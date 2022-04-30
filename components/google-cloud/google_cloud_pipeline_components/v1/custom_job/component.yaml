@@ -61,6 +61,11 @@ description: |
             under the VPC network that can be used for this job.
             If set, we will deploy the job within the provided ip ranges. Otherwise,
             the job will be deployed to any ip ranges under the provided VPC network.
+        nfs_mounts (Optional[Sequence[Dict[str, str]]]):A list of NFS mount specs in Json
+            dict format. For API spec, see
+            https://cloud.devsite.corp.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#NfsMount
+              For more details about mounting NFS for CustomJob, see
+            https://cloud.devsite.corp.google.com/vertex-ai/docs/training/train-nfs-share
         base_output_directory (Optional[str]): The Cloud Storage location to store
             the output of this CustomJob or HyperparameterTuningJob. see below for more details:
             https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination
@@ -86,6 +91,7 @@ inputs:
 - {name: enable_web_access, type: Boolean, optional: true, default: 'false'}
 - {name: network, type: String, optional: true, default: ''}
 - {name: reserved_ip_ranges, type: JsonArray, optional: true, default: "[]" }
+- {name: nfs_mounts, type: JsonArray, optional: true, default: "{}" }
 - {name: base_output_directory, type: String, optional: true, default: ''}
 - {name: labels, type: JsonObject, optional: true, default: '{}'}
 - {name: encryption_spec_key_name, type: String, optional: true, default: ''}
@@ -112,6 +118,7 @@ implementation:
           ', "enable_web_access": "', {inputValue: enable_web_access}, '"',
           ', "network": "', {inputValue: network}, '"',
           ', "reserved_ip_ranges": ', {inputValue: reserved_ip_ranges},
+          ', "nfs_mounts": ', {inputValue: nfs_mounts},
           ', "base_output_directory": {',
           '"output_uri_prefix": "', {inputValue: base_output_directory}, '"',
           '}',
