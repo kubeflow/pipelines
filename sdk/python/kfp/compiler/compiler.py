@@ -41,6 +41,12 @@ from kfp.utils import ir_utils
 _GroupOrTask = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
 
 
+def _make_invalid_input_type_error_msg(arg_name: str, arg_type: Any) -> str:
+    valid_types = (str.__name__, int.__name__, float.__name__, bool.__name__,
+                   dict.__name__, list.__name__)
+    return f"The pipeline parameter '{arg_name}' of type {arg_type} is not a valid input for this component. Passing artifacts as pipeline inputs is not supported. Consider annotating the parameter with a primitive type such as {valid_types}."
+
+
 class Compiler:
     """Experimental DSL compiler that targets the PipelineSpec IR.
 
@@ -144,12 +150,7 @@ class Compiler:
             arg_type = pipeline_meta.inputs[arg_name].type
             if not type_utils.is_parameter_type(arg_type):
                 raise TypeError(
-                    'The pipeline argument "{arg_name}" is viewed as an artifact'
-                    ' due to its type "{arg_type}". And we currently do not '
-                    'support passing artifacts as pipeline inputs. Consider type'
-                    ' annotating the argument with a primitive type, such as '
-                    '"str", "int", "float", "bool", "dict", and "list".'.format(
-                        arg_name=arg_name, arg_type=arg_type))
+                    _make_invalid_input_type_error_msg(arg_name, arg_type))
             args_list.append(
                 dsl.PipelineParameterChannel(
                     name=arg_name, channel_type=arg_type))
@@ -227,15 +228,18 @@ class Compiler:
         signature = inspect.signature(python_func)
 
         for arg_name in signature.parameters:
-            arg_type = pipeline_meta.inputs[arg_name].type
-            if not type_utils.is_parameter_type(arg_type):
+            try:
+                arg_type = pipeline_meta.inputs[arg_name].type
+            except (KeyError, TypeError) as e:
+                # key error catches if the key is not in pipeline_meta.inputs and type error catches if pipeline_meta.inputs is None
                 raise TypeError(
-                    'The pipeline argument "{arg_name}" is viewed as an artifact'
-                    ' due to its type "{arg_type}". And we currently do not '
-                    'support passing artifacts as pipeline inputs. Consider type'
-                    ' annotating the argument with a primitive type, such as '
-                    '"str", "int", "float", "bool", "dict", and "list".'.format(
-                        arg_name=arg_name, arg_type=arg_type))
+                    _make_invalid_input_type_error_msg(
+                        arg_name,
+                        signature.parameters[arg_name].annotation)) from e
+            if not type_utils.is_parameter_type(
+                    arg_type) or type_utils.is_task_final_status_type(arg_type):
+                raise TypeError(
+                    _make_invalid_input_type_error_msg(arg_name, arg_type))
             args_dict[arg_name] = dsl.PipelineParameterChannel(
                 name=arg_name, channel_type=arg_type)
 
@@ -511,10 +515,10 @@ class Compiler:
                 raise ValueError(
                     f'Error compiling component. Expected one task in task group, got {len(task_group.tasks)}.'
                 )
-
             only_task = task_group.tasks[0]
-            for group_name in task_name_to_parent_groups[only_task.name]:
-                inputs[group_name].add((only_task.channel_inputs[-1], None))
+            if only_task.channel_inputs:
+                for group_name in task_name_to_parent_groups[only_task.name]:
+                    inputs[group_name].add((only_task.channel_inputs[-1], None))
             return inputs
 
         inputs = get_inputs(task_group, task_name_to_parent_groups)
