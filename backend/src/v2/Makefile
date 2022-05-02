@@ -114,7 +114,7 @@ pipeline/core/condition/condition_v2_simple:
 pipeline/%: build/compiler image-dev
 	tmp="$$(mktemp -d)" \
 	&& mkdir -p "$$(dirname $${tmp}/$*)" \
-	&& echo "SDK Compiling to $${tmp}/$*-spec.yaml" && dsl-compile --py $(REPO_ROOT)/samples/$*.py --out "$${tmp}/$*-spec.yaml" \
+	&& echo "SDK Compiling to $${tmp}/$*-spec.yaml" && kfp dsl compile --py $(REPO_ROOT)/samples/$*.py --output "$${tmp}/$*-spec.yaml" \
 	&& echo "Backend Compiler compiling to $${tmp}/$*.yaml" && build/compiler --spec "$${tmp}/$*-spec.yaml" --driver "$(DEV_IMAGE_PREFIX)driver:latest" --launcher "$(DEV_IMAGE_PREFIX)launcher-v2:latest" > "$${tmp}/$*.yaml" \
 	&& echo "Linting..." && if which argo >/dev/null; then argo lint "$${tmp}/$*.yaml"; else echo "argo CLI not found, skip linting"; fi \
 	&& echo "Running the pipeline..." && kfp run submit -f "$${tmp}/$*.yaml" -e default -r "$*_$${RANDOM}"

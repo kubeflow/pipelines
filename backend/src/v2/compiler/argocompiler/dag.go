@@ -513,8 +513,9 @@ func depends_exit_handler(deps []string) string {
 		for inner_index, task_status := range []string{".Succeeded", ".Skipped", ".Failed", ".Errored"} {
 			if inner_index > 0 {
 				builder.WriteString(" || ")
-				builder.WriteString(task_status)
 			}
+			builder.WriteString(dep)
+			builder.WriteString(task_status)
 		}
 	}
 	return builder.String()
