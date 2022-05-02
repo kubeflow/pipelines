@@ -14,21 +14,17 @@
 """Tests for `components` command group in KFP CLI."""
 import contextlib
 import pathlib
-import sys
 import textwrap
 import unittest
 from typing import List, Optional, Union
 from unittest import mock
 
-from typer import testing
+import docker
+from click import testing
 
-# Docker is an optional install, but we need the import to succeed for tests.
-# So we patch it before importing kfp.cli.components.
-try:
-    import docker  # pylint: disable=unused-import
-except ImportError:
-    sys.modules['docker'] = mock.Mock()
-from kfp.cli import components
+docker = mock.Mock()
+
+from kfp.cli import component
 
 
 def _make_component(func_name: str,
@@ -68,8 +64,9 @@ def _write_components(filename: str, component_template: Union[List[str], str]):
 class Test(unittest.TestCase):
 
     def setUp(self) -> None:
-        self._runner = testing.CliRunner()
-        components._DOCKER_IS_PRESENT = True
+        self.runner = testing.CliRunner()
+        self.cli = component.component
+        component._DOCKER_IS_PRESENT = True
 
         patcher = mock.patch('docker.from_env')
         self._docker_client = patcher.start().return_value
@@ -79,9 +76,8 @@ class Test(unittest.TestCase):
         self._docker_client.images.push.return_value = [{'status': 'Pushed'}]
         self.addCleanup(patcher.stop)
 
-        self._app = components.app
         with contextlib.ExitStack() as stack:
-            stack.enter_context(self._runner.isolated_filesystem())
+            stack.enter_context(self.runner.isolated_filesystem())
             self._working_dir = pathlib.Path.cwd()
             self.addCleanup(stack.pop_all().close)
 
@@ -105,8 +101,8 @@ class Test(unittest.TestCase):
         _write_components('components.py',
                           [preprocess_component, train_component])
 
-        result = self._runner.invoke(
-            self._app,
+        result = self.runner.invoke(
+            self.cli,
             ['build', str(self._working_dir)],
         )
         self.assertEqual(result.exit_code, 0)
@@ -128,8 +124,8 @@ class Test(unittest.TestCase):
         _write_components('dir1/dir2/dir3/components.py',
                           [preprocess_component, train_component])
 
-        result = self._runner.invoke(
-            self._app,
+        result = self.runner.invoke(
+            self.cli,
             ['build', str(self._working_dir)],
         )
         self.assertEqual(result.exit_code, 0)
@@ -152,8 +148,8 @@ class Test(unittest.TestCase):
             func_name='train', target_image='custom-image')
         _write_components('train_component.py', component)
 
-        result = self._runner.invoke(
-            self._app,
+        result = self.runner.invoke(
+            self.cli,
             ['build', str(self._working_dir)],
         )
         self.assertEqual(result.exit_code, 0)
@@ -176,8 +172,8 @@ class Test(unittest.TestCase):
             func_name='train', target_image='custom-image')
         _write_components('train/train_component.py', component)
 
-        result = self._runner.invoke(
-            self._app,
+        result = self.runner.invoke(
+            self.cli,
             ['build', str(self._working_dir)],
         )
         self.assertEqual(result.exit_code, 0)
@@ -203,8 +199,8 @@ class Test(unittest.TestCase):
         _write_components('three_four/three_four.py',
                           [component_three, component_four])
 
-        result = self._runner.invoke(
-            self._app,
+        result = self.runner.invoke(
+            self.cli,
             ['build', str(self._working_dir)],
         )
         self.assertEqual(result.exit_code, 1)
@@ -225,8 +221,8 @@ class Test(unittest.TestCase):
         _write_components('three_four/three_four.py',
                           [component_three, component_four])
 
-        result = self._runner.invoke(
-            self._app,
+        result = self.runner.invoke(
+            self.cli,
             ['build', str(self._working_dir)],
         )
         self.assertEqual(result.exit_code, 1)
@@ -240,8 +236,8 @@ class Test(unittest.TestCase):
             func_name='train', target_image='custom-image')
         _write_components('train/train_component.py', component)
 
-        result = self._runner.invoke(
-            self._app,
+        result = self.runner.invoke(
+            self.cli,
             [
                 'build',
                 str(self._working_dir), '--component-filepattern=train/*'
@@ -262,8 +258,7 @@ class Test(unittest.TestCase):
             func_name='train', target_image='custom-image')
         _write_components('components.py', component)
 
-        result = self._runner.invoke(self._app,
-                                     ['build', str(self._working_dir)])
+        result = self.runner.invoke(self.cli, ['build', str(self._working_dir)])
         self.assertEqual(result.exit_code, 0)
         self.assertFileExistsAndContains('requirements.txt',
                                          '# Generated by KFP.\n')
@@ -275,8 +270,7 @@ class Test(unittest.TestCase):
 
         _write_file('requirements.txt', 'Some pre-existing content')
 
-        result = self._runner.invoke(self._app,
-                                     ['build', str(self._working_dir)])
+        result = self.runner.invoke(self.cli, ['build', str(self._working_dir)])
         self.assertEqual(result.exit_code, 0)
         self.assertFileExistsAndContains('requirements.txt',
                                          'Some pre-existing content')
@@ -286,8 +280,7 @@ class Test(unittest.TestCase):
             func_name='train', target_image='custom-image')
         _write_components('components.py', component)
 
-        result = self._runner.invoke(self._app,
-                                     ['build', str(self._working_dir)])
+        result = self.runner.invoke(self.cli, ['build', str(self._working_dir)])
         self.assertEqual(result.exit_code, 0)
         self.assertFileExistsAndContains(
             '.dockerignore',
@@ -304,8 +297,7 @@ class Test(unittest.TestCase):
 
         _write_file('.dockerignore', 'Some pre-existing content')
 
-        result = self._runner.invoke(self._app,
-                                     ['build', str(self._working_dir)])
+        result = self.runner.invoke(self.cli, ['build', str(self._working_dir)])
         self.assertEqual(result.exit_code, 0)
         self.assertFileExistsAndContains('.dockerignore',
                                          'Some pre-existing content')
@@ -314,10 +306,10 @@ class Test(unittest.TestCase):
         component = _make_component(
             func_name='train', target_image='custom-image')
         _write_components('components.py', component)
-
-        result = self._runner.invoke(
-            self._app,
-            ['build', str(self._working_dir), '--engine=docker'])
+        result = self.runner.invoke(
+            self.cli,
+            ['build', str(self._working_dir), '--engine=docker'],
+        )
         self.assertEqual(result.exit_code, 0)
         self._docker_client.api.build.assert_called_once()
         self._docker_client.images.push.assert_called_once_with(
@@ -327,10 +319,12 @@ class Test(unittest.TestCase):
         component = _make_component(
             func_name='train', target_image='custom-image')
         _write_components('components.py', component)
-        result = self._runner.invoke(
-            self._app,
-            ['build', str(self._working_dir), '--engine=kaniko'],
-        )
+        with self.assertWarnsRegex(DeprecationWarning,
+                                   r'The --engine option is deprecated'):
+            result = self.runner.invoke(
+                self.cli,
+                ['build', str(self._working_dir), '--engine=kaniko'],
+            )
         self.assertEqual(result.exit_code, 1)
         self._docker_client.api.build.assert_not_called()
         self._docker_client.images.push.assert_not_called()
@@ -339,10 +333,15 @@ class Test(unittest.TestCase):
         component = _make_component(
             func_name='train', target_image='custom-image')
         _write_components('components.py', component)
-        result = self._runner.invoke(
-            self._app,
-            ['build', str(self._working_dir), '--engine=cloudbuild'],
-        )
+
+        with self.assertWarnsRegex(DeprecationWarning,
+                                   r'The --engine option is deprecated'):
+            result = self.runner.invoke(
+                self.cli,
+                ['build',
+                 str(self._working_dir), '--engine=cloudbuild'],
+            )
+
         self.assertEqual(result.exit_code, 1)
         self._docker_client.api.build.assert_not_called()
         self._docker_client.images.push.assert_not_called()
@@ -352,8 +351,8 @@ class Test(unittest.TestCase):
             func_name='train', target_image='custom-image')
         _write_components('components.py', component)
 
-        result = self._runner.invoke(
-            self._app,
+        result = self.runner.invoke(
+            self.cli,
             ['build', str(self._working_dir)],
         )
         self.assertEqual(result.exit_code, 0)
@@ -367,8 +366,8 @@ class Test(unittest.TestCase):
             func_name='train', target_image='custom-image')
         _write_components('components.py', component)
 
-        result = self._runner.invoke(
-            self._app,
+        result = self.runner.invoke(
+            self.cli,
             ['build', str(self._working_dir), '--no-push-image'],
         )
         self.assertEqual(result.exit_code, 0)
@@ -382,8 +381,8 @@ class Test(unittest.TestCase):
             func_name='train', target_image='custom-image')
         _write_components('components.py', component)
 
-        result = self._runner.invoke(
-            self._app,
+        result = self.runner.invoke(
+            self.cli,
             ['build', str(self._working_dir)],
         )
         self.assertEqual(result.exit_code, 0)
@@ -409,8 +408,8 @@ class Test(unittest.TestCase):
         _write_components('components.py', component)
         _write_file('Dockerfile', 'Existing Dockerfile contents')
 
-        result = self._runner.invoke(
-            self._app,
+        result = self.runner.invoke(
+            self.cli,
             ['build', str(self._working_dir)],
         )
         self.assertEqual(result.exit_code, 0)
@@ -425,8 +424,8 @@ class Test(unittest.TestCase):
         _write_components('components.py', component)
         _write_file('Dockerfile', 'Existing Dockerfile contents')
 
-        result = self._runner.invoke(
-            self._app,
+        result = self.runner.invoke(
+            self.cli,
             ['build', str(self._working_dir), '--overwrite-dockerfile'],
         )
         self.assertEqual(result.exit_code, 0)
@@ -451,8 +450,8 @@ class Test(unittest.TestCase):
             func_name='train', target_image='custom-image')
         _write_components('components.py', component)
 
-        result = self._runner.invoke(
-            self._app,
+        result = self.runner.invoke(
+            self.cli,
             [
                 'build',
                 str(self._working_dir),

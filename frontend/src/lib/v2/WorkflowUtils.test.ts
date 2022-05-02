@@ -15,8 +15,11 @@
 import { testBestPractices } from 'src/TestUtils';
 import { Workflow, WorkflowSpec, WorkflowStatus } from 'third_party/argo-ui/argo_template';
 import { getContainer, isV2Pipeline } from './WorkflowUtils';
-import * as v2PipelineSpec from 'src/data/test/mock_lightweight_python_functions_v2_pipeline.json';
 import { ComponentSpec } from 'src/generated/pipeline_spec';
+import fs from 'fs';
+
+const V2_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
+const v2YamlTemplateString = fs.readFileSync(V2_PIPELINESPEC_PATH, 'utf8');
 
 testBestPractices();
 describe('WorkflowUtils', () => {
@@ -45,7 +48,7 @@ describe('WorkflowUtils', () => {
   });
 
   it('get container of given component from pipelineSpec', () => {
-    const pipelineSpecStr = JSON.stringify(v2PipelineSpec);
+    const pipelineSpecStr = v2YamlTemplateString;
     const componentSpec = {} as ComponentSpec;
     componentSpec.executorLabel = 'exec-preprocess';
 
@@ -61,7 +64,7 @@ if ! [ -x "$(command -v pip)" ]; then\n\
     python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\n\
 fi\n\
 \n\
-PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location \'kfp==1.8.9\' && "$0" "$@"\n\
+PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location \'kfp==2.0.0-alpha.1\' && "$0" "$@"\n\
 ',
         'sh',
         '-ec',

@@ -44,7 +44,8 @@ class UtilsTest(unittest.TestCase):
         'transform_dataflow_disk_size_gb': 40,
         'encryption_spec_key_name': '',
         'dataflow_subnetwork': '',
-        'dataflow_use_public_ips': True
+        'dataflow_use_public_ips': True,
+        'additional_experiments': ''
     }
 
   def test_input_dictionary_to_parameter_none(self):
@@ -192,6 +193,7 @@ class UtilsTest(unittest.TestCase):
                 40,
             'distill_stage_1_deadline_hours':
                 3 * 634 * 1.3 / 3600,
+            'additional_experiments': ''
         })
 
   def test_get_skip_architecture_search_pipeline_and_parameters(self):

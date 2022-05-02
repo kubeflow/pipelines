@@ -587,10 +587,10 @@ func (s *JobApiTestSuite) TearDownSuite() {
 /** ======== the following are util functions ========= **/
 
 func (s *JobApiTestSuite) cleanUp() {
-	test.DeleteAllExperiments(s.experimentClient, s.T())
+	test.DeleteAllExperiments(s.experimentClient, "", s.T())
 	test.DeleteAllPipelines(s.pipelineClient, s.T())
-	test.DeleteAllJobs(s.jobClient, s.T())
-	test.DeleteAllRuns(s.runClient, s.T())
+	test.DeleteAllJobs(s.jobClient, "", s.T())
+	test.DeleteAllRuns(s.runClient, "", s.T())
 }
 
 func defaultApiJob(pipelineVersionId, experimentId string) *job_model.APIJob {

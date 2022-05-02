@@ -122,7 +122,6 @@ func RootDAG(ctx context.Context, opts Options, mlmd *metadata.Client) (executio
 	}
 	// TODO(Bobgy): fill in run resource.
 	pipeline, err := mlmd.GetPipeline(ctx, opts.PipelineName, opts.RunID, opts.Namespace, "run-resource", pipelineRoot)
-	glog.Infof("metadata pipeline: %+v", pipeline)
 	if err != nil {
 		return nil, err
 	}
@@ -415,7 +414,6 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 	executorInput := &pipelinespec.ExecutorInput{
 		Inputs: inputs,
 	}
-	glog.Infof("executorInput value: %+v", executorInput)
 	execution = &Execution{ExecutorInput: executorInput}
 	condition := opts.Task.GetTriggerPolicy().GetCondition()
 	if condition != "" {

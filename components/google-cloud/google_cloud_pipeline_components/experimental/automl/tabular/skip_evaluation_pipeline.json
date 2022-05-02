@@ -941,6 +941,9 @@
               },
               "inputs": {
                 "parameters": {
+                  "additional_experiments": {
+                    "componentInputParameter": "pipelineparam--additional_experiments"
+                  },
                   "data_source": {
                     "componentInputParameter": "pipelineparam--data_source"
                   },
@@ -1012,6 +1015,9 @@
         },
         "inputDefinitions": {
           "parameters": {
+            "pipelineparam--additional_experiments": {
+              "type": "STRING"
+            },
             "pipelineparam--cv_trainer_worker_pool_specs_override": {
               "type": "STRING"
             },
@@ -1240,6 +1246,9 @@
         "executorLabel": "exec-tabular-stats-and-example-gen",
         "inputDefinitions": {
           "parameters": {
+            "additional_experiments": {
+              "type": "STRING"
+            },
             "data_source": {
               "type": "STRING"
             },
@@ -1380,7 +1389,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.1"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-automl-tabular-ensemble": {
@@ -1403,7 +1412,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.1"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-automl-tabular-finalizer": {
@@ -1426,7 +1435,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.1"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-automl-tabular-infra-validator": {
@@ -1463,7 +1472,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.1"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-automl-tabular-transform": {
@@ -1486,7 +1495,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.1"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-merge-materialized-splits": {
@@ -1503,7 +1512,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
-              "def _make_parent_dirs_and_return_path(file_path: str):\n    import os\n    os.makedirs(os.path.dirname(file_path), exist_ok=True)\n    return file_path\n\ndef _merge_materialized_splits(\n    split_0,\n    split_1,\n    splits,\n):\n  \"\"\"Merge two materialized splits.\n\n  Args:\n    split_0: The first materialized split.\n    split_1: The second materialized split.\n    splits: The merged materialized split.\n  \"\"\"\n  with open(split_0, \"r\") as f:\n    split_0_content = f.read()\n  with open(split_1, \"r\") as f:\n    split_1_content = f.read()\n  with open(splits, \"w\") as f:\n    f.write(\",\".join([split_0_content, split_1_content]))\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Merge materialized splits', description='Merge two materialized splits.')\n_parser.add_argument(\"--split-0\", dest=\"split_0\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--split-1\", dest=\"split_1\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--splits\", dest=\"splits\", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = _merge_materialized_splits(**_parsed_args)\n"
+              "def _make_parent_dirs_and_return_path(file_path: str):\n    import os\n    os.makedirs(os.path.dirname(file_path), exist_ok=True)\n    return file_path\n\ndef _merge_materialized_splits(\n    split_0,\n    split_1,\n    splits,\n):\n  \"\"\"Merge two materialized splits.\n\n  Args:\n    split_0: The first materialized split.\n    split_1: The second materialized split.\n    splits: The merged materialized split.\n  \"\"\"\n  with open(split_0, 'r') as f:\n    split_0_content = f.read()\n  with open(split_1, 'r') as f:\n    split_1_content = f.read()\n  with open(splits, 'w') as f:\n    f.write(','.join([split_0_content, split_1_content]))\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Merge materialized splits', description='Merge two materialized splits.')\n_parser.add_argument(\"--split-0\", dest=\"split_0\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--split-1\", dest=\"split_1\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--splits\", dest=\"splits\", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = _merge_materialized_splits(**_parsed_args)\n"
             ],
             "image": "python:3.7-slim"
           }
@@ -1530,7 +1539,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.1"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-tabular-stats-and-example-gen": {
@@ -1545,7 +1554,7 @@
               "--gcp_resources",
               "{{$.outputs.parameters['gcp_resources'].output_file}}",
               "--payload",
-              "{\"display_name\": \"tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\": {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod\", \"args\": [\"stats_generator\",\"--train_spec={\\\"prediction_type\\\": \\\"{{$.inputs.parameters['prediction_type']}}\\\", \\\"target_column\\\": \\\"{{$.inputs.parameters['target_column_name']}}\\\", \\\"optimization_objective\\\": \\\"{{$.inputs.parameters['optimization_objective']}}\\\", \\\"weight_column_name\\\": \\\"{{$.inputs.parameters['weight_column_name']}}\\\", \\\"transformations\\\": {{$.inputs.parameters['transformations']}}}\", \"--split_spec={{$.inputs.parameters['split_spec']}}\", \"--data_source={{$.inputs.parameters['data_source']}}\", \"--target_column={{$.inputs.parameters['target_column_name']}}\", \"--request_type=COLUMN_STATS_ONLY\", \"--optimization_objective_recall_value={{$.inputs.parameters['optimization_objective_recall_value']}}\", \"--optimization_objective_precision_value={{$.inputs.parameters['optimization_objective_precision_value']}}\", \"--example_gen_gcs_output_prefix={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/example_gen_output\", \"--dataset_stats_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/stats/\", \"--stats_result_path={{$.outputs.artifacts['dataset_stats'].uri}}\", \"--dataset_schema_path={{$.outputs.artifacts['dataset_schema'].uri}}\", \"--job_name=tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"--dataflow_project={{$.inputs.parameters['project']}}\", \"--error_file_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--dataflow_staging_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging\", \"--dataflow_tmp_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\", \"--dataflow_max_num_workers={{$.inputs.parameters['dataflow_max_num_workers']}}\", \"--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod\", \"--dataflow_machine_type={{$.inputs.parameters['dataflow_machine_type']}}\", \"--dataflow_disk_size_gb={{$.inputs.parameters['dataflow_disk_size_gb']}}\", \"--dataflow_kms_key={{$.inputs.parameters['encryption_spec_key_name']}}\", \"--dataflow_subnetwork_fully_qualified={{$.inputs.parameters['dataflow_subnetwork']}}\", \"--dataflow_use_public_ips={{$.inputs.parameters['dataflow_use_public_ips']}}\", \"--is_distill={{$.inputs.parameters['is_distill']}}\", \"--metadata_path={{$.outputs.artifacts['metadata'].uri}}\", \"--train_split={{$.outputs.artifacts['train_split'].uri}}\", \"--eval_split={{$.outputs.artifacts['eval_split'].uri}}\", \"--test_split={{$.outputs.artifacts['test_split'].uri}}\", \"--test_split_for_batch_prediction_component={{$.outputs.parameters['test_split_json'].output_file}}\", \"--downsampled_test_split_for_batch_prediction_component={{$.outputs.parameters['downsampled_test_split_json'].output_file}}\", \"--instance_baseline_path={{$.outputs.artifacts['instance_baseline'].uri}}\", \"--parse_json=true\", \"--generate_additional_downsample_test_split=true\"]}}]}}"
+              "{\"display_name\": \"tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\": {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod\", \"args\": [\"stats_generator\",\"--train_spec={\\\"prediction_type\\\": \\\"{{$.inputs.parameters['prediction_type']}}\\\", \\\"target_column\\\": \\\"{{$.inputs.parameters['target_column_name']}}\\\", \\\"optimization_objective\\\": \\\"{{$.inputs.parameters['optimization_objective']}}\\\", \\\"weight_column_name\\\": \\\"{{$.inputs.parameters['weight_column_name']}}\\\", \\\"transformations\\\": {{$.inputs.parameters['transformations']}}}\", \"--split_spec={{$.inputs.parameters['split_spec']}}\", \"--data_source={{$.inputs.parameters['data_source']}}\", \"--target_column={{$.inputs.parameters['target_column_name']}}\", \"--request_type=COLUMN_STATS_ONLY\", \"--optimization_objective_recall_value={{$.inputs.parameters['optimization_objective_recall_value']}}\", \"--optimization_objective_precision_value={{$.inputs.parameters['optimization_objective_precision_value']}}\", \"--example_gen_gcs_output_prefix={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/example_gen_output\", \"--dataset_stats_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/stats/\", \"--stats_result_path={{$.outputs.artifacts['dataset_stats'].uri}}\", \"--dataset_schema_path={{$.outputs.artifacts['dataset_schema'].uri}}\", \"--job_name=tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"--dataflow_project={{$.inputs.parameters['project']}}\", \"--error_file_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--dataflow_staging_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging\", \"--dataflow_tmp_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\", \"--dataflow_max_num_workers={{$.inputs.parameters['dataflow_max_num_workers']}}\", \"--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod\", \"--dataflow_machine_type={{$.inputs.parameters['dataflow_machine_type']}}\", \"--dataflow_disk_size_gb={{$.inputs.parameters['dataflow_disk_size_gb']}}\", \"--dataflow_kms_key={{$.inputs.parameters['encryption_spec_key_name']}}\", \"--dataflow_subnetwork_fully_qualified={{$.inputs.parameters['dataflow_subnetwork']}}\", \"--dataflow_use_public_ips={{$.inputs.parameters['dataflow_use_public_ips']}}\", \"--is_distill={{$.inputs.parameters['is_distill']}}\", \"--additional_experiments={{$.inputs.parameters['additional_experiments']}}\", \"--metadata_path={{$.outputs.artifacts['metadata'].uri}}\", \"--train_split={{$.outputs.artifacts['train_split'].uri}}\", \"--eval_split={{$.outputs.artifacts['eval_split'].uri}}\", \"--test_split={{$.outputs.artifacts['test_split'].uri}}\", \"--test_split_for_batch_prediction_component={{$.outputs.parameters['test_split_json'].output_file}}\", \"--downsampled_test_split_for_batch_prediction_component={{$.outputs.parameters['downsampled_test_split_json'].output_file}}\", \"--instance_baseline_path={{$.outputs.artifacts['instance_baseline'].uri}}\", \"--parse_json=true\", \"--generate_additional_downsample_test_split=true\"]}}]}}"
             ],
             "command": [
               "python3",
@@ -1553,7 +1562,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.1"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         }
       }
@@ -1604,6 +1613,9 @@
             },
             "inputs": {
               "parameters": {
+                "pipelineparam--additional_experiments": {
+                  "componentInputParameter": "additional_experiments"
+                },
                 "pipelineparam--cv_trainer_worker_pool_specs_override": {
                   "componentInputParameter": "cv_trainer_worker_pool_specs_override"
                 },
@@ -1719,6 +1731,9 @@
       },
       "inputDefinitions": {
         "parameters": {
+          "additional_experiments": {
+            "type": "STRING"
+          },
           "cv_trainer_worker_pool_specs_override": {
             "type": "STRING"
           },
@@ -1832,6 +1847,9 @@
   },
   "runtimeConfig": {
     "parameters": {
+      "additional_experiments": {
+        "stringValue": ""
+      },
       "cv_trainer_worker_pool_specs_override": {
         "stringValue": ""
       },

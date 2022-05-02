@@ -47,7 +47,7 @@ func (s *InitializationTest) TestInitialization() {
 	assert.Equal(t, "Default", experiments[0].Name)
 
 	/* ---------- Clean up ---------- */
-	test.DeleteAllExperiments(s.experimentClient, t)
+	test.DeleteAllExperiments(s.experimentClient, "", t)
 }
 
 func TestInitialization(t *testing.T) {
