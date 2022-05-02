@@ -1,0 +1,51 @@
+components:
+  comp-flip-coin-op:
+    executorLabel: exec-flip-coin-op
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-flip-coin-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - flip_coin_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.2'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin and output heads\
+          \ or tails randomly.\"\"\"\n    import random\n    result = 'heads' if random.randint(0,\
+          \ 1) == 0 else 'tails'\n    return result\n\n"
+        image: python:3.7
+pipelineInfo:
+  name: flip-coin
+root:
+  dag:
+    tasks:
+      flip-coin-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-flip-coin-op
+        taskInfo:
+          name: flip-coin-op
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.2

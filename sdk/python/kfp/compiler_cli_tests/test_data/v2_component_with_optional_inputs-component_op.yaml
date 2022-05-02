@@ -1,0 +1,75 @@
+components:
+  comp-component-op:
+    executorLabel: exec-component-op
+    inputDefinitions:
+      parameters:
+        input1:
+          defaultValue: default value
+          parameterType: STRING
+        input2:
+          parameterType: STRING
+        input3:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-component-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - component_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.2'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef component_op(\n    input1: str = 'default value',\n    input2:\
+          \ Optional[str] = None,\n    input3: Optional[str] = None,\n):\n    print(f'input1:\
+          \ {input1}, type: {type(input1)}')\n    print(f'input2: {input2}, type:\
+          \ {type(input2)}')\n    print(f'input3: {input3}, type: {type(input3)}')\n\
+          \n"
+        image: python:3.7
+pipelineInfo:
+  name: nent
+root:
+  dag:
+    tasks:
+      component-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-component-op
+        inputs:
+          parameters:
+            input1:
+              componentInputParameter: input1
+            input2:
+              componentInputParameter: input2
+            input3:
+              componentInputParameter: input3
+        taskInfo:
+          name: component-op
+  inputDefinitions:
+    parameters:
+      input1:
+        defaultValue: default value
+        parameterType: STRING
+      input2:
+        parameterType: STRING
+      input3:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.2

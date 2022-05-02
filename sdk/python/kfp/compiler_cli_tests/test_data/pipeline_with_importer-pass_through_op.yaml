@@ -1,0 +1,61 @@
+components:
+  comp-pass-through-op:
+    executorLabel: exec-pass-through-op
+    inputDefinitions:
+      parameters:
+        value:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-pass-through-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - pass_through_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.2'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef pass_through_op(value: str) -> str:\n    return value\n\n"
+        image: python:3.7
+pipelineInfo:
+  name: ass-through
+root:
+  dag:
+    tasks:
+      pass-through-op:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-pass-through-op
+        inputs:
+          parameters:
+            value:
+              componentInputParameter: value
+        taskInfo:
+          name: pass-through-op
+  inputDefinitions:
+    parameters:
+      value:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.2

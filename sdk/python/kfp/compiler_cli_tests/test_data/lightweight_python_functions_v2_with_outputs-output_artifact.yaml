@@ -1,0 +1,70 @@
+components:
+  comp-output-artifact:
+    executorLabel: exec-output-artifact
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+        number:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      artifacts:
+        Output:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-output-artifact:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - output_artifact
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.2'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef output_artifact(number: int, message: str) -> Dataset:\n    result\
+          \ = [message for _ in range(number)]\n    return '\\n'.join(result)\n\n"
+        image: python:3.7
+pipelineInfo:
+  name: utput-artifact
+root:
+  dag:
+    tasks:
+      output-artifact:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-output-artifact
+        inputs:
+          parameters:
+            message:
+              componentInputParameter: message
+            number:
+              componentInputParameter: number
+        taskInfo:
+          name: output-artifact
+  inputDefinitions:
+    parameters:
+      message:
+        parameterType: STRING
+      number:
+        parameterType: NUMBER_INTEGER
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.2

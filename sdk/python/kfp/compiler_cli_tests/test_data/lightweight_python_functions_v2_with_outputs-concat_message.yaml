@@ -1,0 +1,68 @@
+components:
+  comp-concat-message:
+    executorLabel: exec-concat-message
+    inputDefinitions:
+      parameters:
+        first:
+          parameterType: STRING
+        second:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-concat-message:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - concat_message
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.2'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef concat_message(first: str, second: str) -> str:\n    return first\
+          \ + second\n\n"
+        image: python:3.7
+pipelineInfo:
+  name: ncat-message
+root:
+  dag:
+    tasks:
+      concat-message:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-concat-message
+        inputs:
+          parameters:
+            first:
+              componentInputParameter: first
+            second:
+              componentInputParameter: second
+        taskInfo:
+          name: concat-message
+  inputDefinitions:
+    parameters:
+      first:
+        parameterType: STRING
+      second:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.2
