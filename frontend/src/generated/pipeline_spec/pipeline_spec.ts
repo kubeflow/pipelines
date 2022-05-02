@@ -1312,6 +1312,8 @@ export interface PipelineTaskFinalStatus {
    * `projects/{project}/locations/{location}/pipelineJobs/{pipeline_job}`.
    */
   pipelineJobResourceName: string;
+  /** The pipeline task that produces this status. */
+  pipelineTaskName: string;
 }
 
 export interface PipelineStateEnum {}
@@ -9545,6 +9547,7 @@ const basePipelineTaskFinalStatus: object = {
   pipelineJobUuid: 0,
   pipelineJobName: '',
   pipelineJobResourceName: '',
+  pipelineTaskName: '',
 };
 
 export const PipelineTaskFinalStatus = {
@@ -9563,6 +9566,9 @@ export const PipelineTaskFinalStatus = {
     }
     if (message.pipelineJobResourceName !== '') {
       writer.uint32(42).string(message.pipelineJobResourceName);
+    }
+    if (message.pipelineTaskName !== '') {
+      writer.uint32(50).string(message.pipelineTaskName);
     }
     return writer;
   },
@@ -9588,6 +9594,9 @@ export const PipelineTaskFinalStatus = {
           break;
         case 5:
           message.pipelineJobResourceName = reader.string();
+          break;
+        case 6:
+          message.pipelineTaskName = reader.string();
           break;
         default:
           reader.skipType(tag & 7);
@@ -9616,6 +9625,10 @@ export const PipelineTaskFinalStatus = {
       object.pipelineJobResourceName !== undefined && object.pipelineJobResourceName !== null
         ? String(object.pipelineJobResourceName)
         : '';
+    message.pipelineTaskName =
+      object.pipelineTaskName !== undefined && object.pipelineTaskName !== null
+        ? String(object.pipelineTaskName)
+        : '';
     return message;
   },
 
@@ -9629,6 +9642,7 @@ export const PipelineTaskFinalStatus = {
     message.pipelineJobName !== undefined && (obj.pipelineJobName = message.pipelineJobName);
     message.pipelineJobResourceName !== undefined &&
       (obj.pipelineJobResourceName = message.pipelineJobResourceName);
+    message.pipelineTaskName !== undefined && (obj.pipelineTaskName = message.pipelineTaskName);
     return obj;
   },
 
@@ -9644,6 +9658,7 @@ export const PipelineTaskFinalStatus = {
     message.pipelineJobUuid = object.pipelineJobUuid ?? 0;
     message.pipelineJobName = object.pipelineJobName ?? '';
     message.pipelineJobResourceName = object.pipelineJobResourceName ?? '';
+    message.pipelineTaskName = object.pipelineTaskName ?? '';
     return message;
   },
 };

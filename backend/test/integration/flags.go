@@ -16,3 +16,8 @@ var runUpgradeTests = flag.Bool("runUpgradeTests", false, "Whether to run upgrad
  * 2. One step that doesn't work locally is skipped.
  */
 var isDevMode = flag.Bool("isDevMode", false, "Dev mode helps local development of integration tests")
+
+var isDebugMode = flag.Bool("isDebugMode", false, "Whether to enable debug mode. Debug mode will log more diagnostics messages.")
+
+var isKubeflowMode = flag.Bool("isKubeflowMode", false, "Runs tests in full Kubeflow mode")
+var resourceNamespace = flag.String("resourceNamespace", "", "The namespace that will store the test resources in Kubeflow mode")

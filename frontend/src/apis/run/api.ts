@@ -178,11 +178,17 @@ export interface ApiPipelineSpec {
    */
   pipeline_manifest?: string;
   /**
-   * The parameter user provide to inject to the pipeline JSON. If a default value of a parameter exist in the JSON, the value user provided here will replace.
+   *
    * @type {Array<ApiParameter>}
    * @memberof ApiPipelineSpec
    */
   parameters?: Array<ApiParameter>;
+  /**
+   *
+   * @type {PipelineSpecRuntimeConfig}
+   * @memberof ApiPipelineSpec
+   */
+  runtime_config?: PipelineSpecRuntimeConfig;
 }
 
 /**
@@ -479,6 +485,26 @@ export interface ApiStatus {
 }
 
 /**
+ * The runtime config of a PipelineSpec.
+ * @export
+ * @interface PipelineSpecRuntimeConfig
+ */
+export interface PipelineSpecRuntimeConfig {
+  /**
+   * The runtime parameters of the PipelineSpec. The parameters will be used to replace the placeholders at runtime.
+   * @type {{ [key: string]: ProtobufValue; }}
+   * @memberof PipelineSpecRuntimeConfig
+   */
+  parameters?: { [key: string]: ProtobufValue };
+  /**
+   *
+   * @type {string}
+   * @memberof PipelineSpecRuntimeConfig
+   */
+  pipeline_root?: string;
+}
+
+/**
  * `Any` contains an arbitrary serialized protocol buffer message along with a URL that describes the type of the serialized message.  Protobuf library provides support to pack/unpack Any values in the form of utility functions or additional generated methods of the Any type.  Example 1: Pack and unpack a message in C++.      Foo foo = ...;     Any any;     any.PackFrom(foo);     ...     if (any.UnpackTo(&foo)) {       ...     }  Example 2: Pack and unpack a message in Java.      Foo foo = ...;     Any any = Any.pack(foo);     ...     if (any.is(Foo.class)) {       foo = any.unpack(Foo.class);     }   Example 3: Pack and unpack a message in Python.      foo = Foo(...)     any = Any()     any.Pack(foo)     ...     if any.Is(Foo.DESCRIPTOR):       any.Unpack(foo)       ...   Example 4: Pack and unpack a message in Go       foo := &pb.Foo{...}      any, err := anypb.New(foo)      if err != nil {        ...      }      ...      foo := &pb.Foo{}      if err := any.UnmarshalTo(foo); err != nil {        ...      }  The pack methods provided by protobuf library will by default use 'type.googleapis.com/full.type.name' as the type URL and the unpack methods only use the fully qualified type name after the last '/' in the type URL, for example \"foo.bar.com/x/y.z\" will yield type name \"y.z\".   JSON ==== The JSON representation of an `Any` value uses the regular representation of the deserialized, embedded message, with an additional field `@type` which contains the type URL. Example:      package google.profile;     message Person {       string first_name = 1;       string last_name = 2;     }      {       \"@type\": \"type.googleapis.com/google.profile.Person\",       \"firstName\": <string>,       \"lastName\": <string>     }  If the embedded message type is well-known and has a custom JSON representation, that representation will be embedded adding a field `value` which holds the custom JSON in addition to the `@type` field. Example (for message [google.protobuf.Duration][]):      {       \"@type\": \"type.googleapis.com/google.protobuf.Duration\",       \"value\": \"1.212s\"     }
  * @export
  * @interface ProtobufAny
@@ -496,6 +522,87 @@ export interface ProtobufAny {
    * @memberof ProtobufAny
    */
   value?: string;
+}
+
+/**
+ * `ListValue` is a wrapper around a repeated field of values.  The JSON representation for `ListValue` is JSON array.
+ * @export
+ * @interface ProtobufListValue
+ */
+export interface ProtobufListValue {
+  /**
+   * Repeated field of dynamically typed values.
+   * @type {Array<ProtobufValue>}
+   * @memberof ProtobufListValue
+   */
+  values?: Array<ProtobufValue>;
+}
+
+/**
+ * `NullValue` is a singleton enumeration to represent the null value for the `Value` type union.   The JSON representation for `NullValue` is JSON `null`.   - NULL_VALUE: Null value.
+ * @export
+ * @enum {string}
+ */
+export enum ProtobufNullValue {
+  NULLVALUE = <any>'NULL_VALUE',
+}
+
+/**
+ * `Struct` represents a structured data value, consisting of fields which map to dynamically typed values. In some languages, `Struct` might be supported by a native representation. For example, in scripting languages like JS a struct is represented as an object. The details of that representation are described together with the proto support for the language.  The JSON representation for `Struct` is JSON object.
+ * @export
+ * @interface ProtobufStruct
+ */
+export interface ProtobufStruct {
+  /**
+   * Unordered map of dynamically typed values.
+   * @type {{ [key: string]: ProtobufValue; }}
+   * @memberof ProtobufStruct
+   */
+  fields?: { [key: string]: ProtobufValue };
+}
+
+/**
+ * `Value` represents a dynamically typed value which can be either null, a number, a string, a boolean, a recursive struct value, or a list of values. A producer of value is expected to set one of that variants, absence of any variant indicates an error.  The JSON representation for `Value` is JSON value.
+ * @export
+ * @interface ProtobufValue
+ */
+export interface ProtobufValue {
+  /**
+   * Represents a null value.
+   * @type {ProtobufNullValue}
+   * @memberof ProtobufValue
+   */
+  null_value?: ProtobufNullValue;
+  /**
+   * Represents a double value.
+   * @type {number}
+   * @memberof ProtobufValue
+   */
+  number_value?: number;
+  /**
+   * Represents a string value.
+   * @type {string}
+   * @memberof ProtobufValue
+   */
+  string_value?: string;
+  /**
+   * Represents a boolean value.
+   * @type {boolean}
+   * @memberof ProtobufValue
+   */
+  bool_value?: boolean;
+  /**
+   * Represents a structured value.
+   * @type {ProtobufStruct}
+   * @memberof ProtobufValue
+   */
+  struct_value?: ProtobufStruct;
+  /**
+   * Represents a repeated `Value`.
+   * @type {ProtobufListValue}
+   * @memberof ProtobufValue
+   */
+  list_value?: ProtobufListValue;
 }
 
 /**
@@ -763,7 +870,7 @@ export const RunServiceApiFetchParamCreator = function(configuration?: Configura
      * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; (Example, \&quot;name asc\&quot; or \&quot;id desc\&quot;). Ascending by default.
      * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
-     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1226,7 +1333,7 @@ export const RunServiceApiFp = function(configuration?: Configuration) {
      * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; (Example, \&quot;name asc\&quot; or \&quot;id desc\&quot;). Ascending by default.
      * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
-     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1453,7 +1560,7 @@ export const RunServiceApiFactory = function(
      * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; (Example, \&quot;name asc\&quot; or \&quot;id desc\&quot;). Ascending by default.
      * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
      * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
-     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+     * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
      * @param {*} [options] Override http request option.
      * @throws {RequiredError}
      */
@@ -1610,7 +1717,7 @@ export class RunServiceApi extends BaseAPI {
    * @param {string} [sort_by] Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; (Example, \&quot;name asc\&quot; or \&quot;id desc\&quot;). Ascending by default.
    * @param {'UNKNOWN_RESOURCE_TYPE' | 'EXPERIMENT' | 'JOB' | 'PIPELINE' | 'PIPELINE_VERSION' | 'NAMESPACE'} [resource_reference_key_type] The type of the resource that referred to.
    * @param {string} [resource_reference_key_id] The ID of the resource that referred to.
-   * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/ blob/master/backend/api/filter.proto)).
+   * @param {string} [filter] A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
    * @param {*} [options] Override http request option.
    * @throws {RequiredError}
    * @memberof RunServiceApi

@@ -60,7 +60,9 @@ def get_skip_evaluation_pipeline_and_parameters(
     transform_dataflow_disk_size_gb: int = 40,
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
-    encryption_spec_key_name: str = '') -> Tuple[str, Dict[str, Any]]:
+    encryption_spec_key_name: str = '',
+    additional_experiments: Optional[Dict[str, Any]] = None
+) -> Tuple[str, Dict[str, Any]]:
   """Get the AutoML Tabular training pipeline that skips evaluation.
 
   Args:
@@ -68,7 +70,7 @@ def get_skip_evaluation_pipeline_and_parameters(
     location: The GCP region that runs the pipeline components.
     root_dir: The root GCS directory for the pipeline components.
     target_column_name: The target column name.
-    prediction_type: The type of prediction the Model is to produce.
+    prediction_type: The type of prediction the model is to produce.
       "classification" or "regression".
     optimization_objective: For binary classification, "maximize-au-roc",
       "minimize-log-loss", "maximize-au-prc", "maximize-precision-at-recall", or
@@ -237,8 +239,13 @@ def get_skip_evaluation_pipeline_and_parameters(
           dataflow_use_public_ips,
       'encryption_spec_key_name':
           encryption_spec_key_name,
+      'additional_experiments':
+          input_dictionary_to_parameter(additional_experiments),
   }
-
+  if additional_experiments:
+    parameter_values.update({
+        'additional_experiments':
+            input_dictionary_to_parameter(additional_experiments)})
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(), 'skip_evaluation_pipeline.json')
   return pipeline_definition_path, parameter_values
@@ -247,12 +254,10 @@ def get_skip_evaluation_pipeline_and_parameters(
 # TODO(helin): Remove *args in the argument section for getting pipelines.
 def get_default_pipeline_and_parameters(
     *args,
-    is_evaluation: bool = True,
-    batch_predict_machine_type: str = 'n1-standard-16',
-    batch_predict_starting_replica_count: int = 25,
-    batch_predict_max_replica_count: int = 25,
-    evaluation_class_names: Optional[List[str]] = None,
-    evaluation_dataflow_service_account: str = '',
+    dataflow_service_account: str = '',
+    evaluation_batch_predict_machine_type: str = 'n1-standard-16',
+    evaluation_batch_predict_starting_replica_count: int = 25,
+    evaluation_batch_predict_max_replica_count: int = 25,
     evaluation_dataflow_machine_type: str = 'n1-standard-4',
     evaluation_dataflow_max_num_workers: int = 25,
     evaluation_dataflow_disk_size_gb: int = 50,
@@ -261,17 +266,13 @@ def get_default_pipeline_and_parameters(
 
   Args:
     *args: All arguments in `get_skip_evaluation_pipeline_and_parameters`.
-    is_evaluation: Whether to run evaluation steps during training.
-    batch_predict_machine_type: The prediction server machine type for batch
-      predict components during evaluation.
-    batch_predict_starting_replica_count: The initial number of prediction
+    dataflow_service_account: Custom service account to run dataflow jobs.
+    evaluation_batch_predict_machine_type: The prediction server machine type
+      for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count: The initial number of
+      prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count: The max number of prediction
       server for batch predict components during evaluation.
-    batch_predict_max_replica_count: The max number of prediction server for
-      batch predict components during evaluation.
-    evaluation_class_names: The list of class names that the ground truth can
-      be, in the same order they appear in the batch predict predictions output.
-    evaluation_dataflow_service_account: Custom service account to run the
-      evaluation dataflow job.
     evaluation_dataflow_machine_type: The dataflow machine type for evaluation
       components.
     evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
@@ -286,30 +287,15 @@ def get_default_pipeline_and_parameters(
   _, parameter_values = get_skip_evaluation_pipeline_and_parameters(
       *args, **kwargs)
 
-  if parameter_values['prediction_type'] == 'regression':
-    prediction_score_column = 'prediction.value'
-    prediction_label_column = ''
-  elif parameter_values['prediction_type'] == 'classification':
-    prediction_score_column = 'prediction.scores'
-    prediction_label_column = 'prediction.classes'
-
   parameter_values.update({
-      'is_evaluation':
-          is_evaluation,
-      'batch_predict_machine_type':
-          batch_predict_machine_type,
-      'batch_predict_starting_replica_count':
-          batch_predict_starting_replica_count,
-      'batch_predict_max_replica_count':
-          batch_predict_max_replica_count,
-      'evaluation_class_names':
-          evaluation_class_names,
-      'evaluation_prediction_score_column':
-          prediction_score_column,
-      'evaluation_prediction_label_column':
-          prediction_label_column,
-      'evaluation_dataflow_service_account':
-          evaluation_dataflow_service_account,
+      'dataflow_service_account':
+          dataflow_service_account,
+      'evaluation_batch_predict_machine_type':
+          evaluation_batch_predict_machine_type,
+      'evaluation_batch_predict_starting_replica_count':
+          evaluation_batch_predict_starting_replica_count,
+      'evaluation_batch_predict_max_replica_count':
+          evaluation_batch_predict_max_replica_count,
       'evaluation_dataflow_machine_type':
           evaluation_dataflow_machine_type,
       'evaluation_dataflow_max_num_workers':
@@ -361,7 +347,7 @@ def get_feature_selection_skip_evaluation_pipeline_and_parameters(
     location: The GCP region that runs the pipeline components.
     root_dir: The root GCS directory for the pipeline components.
     target_column_name: The target column name.
-    prediction_type: The type of prediction the Model is to produce.
+    prediction_type: The type of prediction the model is to produce.
       "classification" or "regression".
     optimization_objective: For binary classification, "maximize-au-roc",
       "minimize-log-loss", "maximize-au-prc", "maximize-precision-at-recall", or
@@ -489,7 +475,7 @@ def get_skip_architecture_search_pipeline_and_parameters(
     location: The GCP region that runs the pipeline components.
     root_dir: The root GCS directory for the pipeline components.
     target_column_name: The target column name.
-    prediction_type: The type of prediction the Model is to produce.
+    prediction_type: The type of prediction the model is to produce.
       "classification" or "regression".
     optimization_objective: For binary classification, "maximize-au-roc",
       "minimize-log-loss", "maximize-au-prc", "maximize-precision-at-recall", or
@@ -703,8 +689,8 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     location: The GCP region that runs the pipeline components.
     root_dir: The root GCS directory for the pipeline components.
     target_column: The target column name.
-    prediction_type: The type of prediction the Model is to produce.
-      "classification" or "regression".
+    prediction_type: The type of prediction the model is to produce.
+      'classification' or 'regression'.
     transformations: The transformations to apply.
     split_spec: The split spec.
     data_source: The data source.
@@ -713,7 +699,7 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
       model.
     optimizer_type: The type of optimizer to use. Choices are "adam", "ftrl" and
       "sgd" for the Adam, FTRL, and Gradient Descent Optimizers, respectively.
-    max_steps: Number of steps (batches) to run the trainer for.
+    max_steps: Number of steps to run the trainer for.
     max_train_secs: Amount of time in seconds to run the trainer for.
     l1_regularization_strength: L1 regularization strength for
       optimizer_type="ftrl".
@@ -725,9 +711,9 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     beta_2: Beta 2 value for optimizer_type="adam".
     hidden_units: Hidden layer sizes to use for DNN feature columns, provided in
       comma-separated layers.
-    use_wide: If set to True, the categorical columns will be used in the wide
+    use_wide: If set to true, the categorical columns will be used in the wide
       part of the DNN model.
-    embed_categories: If set to True, the categorical columns will be used
+    embed_categories: If set to true, the categorical columns will be used
       embedded and used in the deep part of the model. Embedding size is the
       square root of the column cardinality.
     dnn_dropout: The probability we will drop out a given coordinate.
@@ -744,10 +730,9 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     dnn_beta_2: Beta 2 value for dnn_optimizer_type="adam".
     enable_profiler: Enables profiling and saves a trace during evaluation.
     seed: Seed to be used for this run.
-    eval_steps: Number of steps (batches) to run evaluation for. If not
-      specified or negative, it means run evaluation on the whole validation
-      dataset. If set to 0, it means run evaluation for a fixed number of
-      samples.
+    eval_steps: Number of steps to run evaluation for. If not specified or
+      negative, it means run evaluation on the whole validation dataset. If set
+      to 0, it means run evaluation for a fixed number of samples.
     batch_size: Batch size for training.
     eval_frequency_secs: Frequency at which evaluation and checkpointing will
       take place.
@@ -764,7 +749,8 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
       transform component.
     transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
       transform component.
-    training_machine_spec: The machine spec for trainer component.
+    training_machine_spec: The machine spec for trainer component. See
+      https://cloud.google.com/compute/docs/machine-types for options.
     training_replica_count: The replica count for the trainer component.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default
@@ -893,8 +879,7 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     study_spec_parameters: List[Dict[str, Any]],
     max_trial_count: int,
     parallel_trial_count: int,
-    tabnet: bool = False,
-    wide_and_deep: bool = False,
+    algorithm: str,
     enable_profiler: bool = False,
     seed: int = 1,
     eval_steps: int = 0,
@@ -921,29 +906,27 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     location: The GCP region that runs the pipeline components.
     root_dir: The root GCS directory for the pipeline components.
     target_column: The target column name.
-    prediction_type: The type of prediction the Model is to produce.
+    prediction_type: The type of prediction the model is to produce.
       "classification" or "regression".
     transformations: The transformations to apply.
     split_spec: The split spec.
     data_source: The data source.
     study_spec_metrics: List of dictionaries representing metrics to optimize.
       The dictionary contains the metric_id, which is reported by the training
-      job, ands the optimization goal of the metric. One of 'minimize' or
-      'maximize'.
+      job, ands the optimization goal of the metric. One of "minimize" or
+      "maximize".
     study_spec_parameters: List of dictionaries representing parameters to
       optimize. The dictionary key is the parameter_id, which is passed to
       training job as a command line argument, and the dictionary value is the
       parameter specification of the metric.
     max_trial_count: The desired total number of trials.
     parallel_trial_count: The desired number of trials to run in parallel.
-    tabnet: Train TabNet model.
-    wide_and_deep: Train Wide & Deep model.
+    algorithm: Algorithm to train. One of "tabnet" and "wide_and_deep".
     enable_profiler: Enables profiling and saves a trace during evaluation.
     seed: Seed to be used for this run.
-    eval_steps: Number of steps (batches) to run evaluation for. If not
-      specified or negative, it means run evaluation on the whole validation
-      dataset. If set to 0, it means run evaluation for a fixed number of
-      samples.
+    eval_steps: Number of steps to run evaluation for. If not specified or
+      negative, it means run evaluation on the whole validation dataset. If set
+      to 0, it means run evaluation for a fixed number of samples.
     eval_frequency_secs: Frequency at which evaluation and checkpointing will
       take place.
     weight_column: The weight column name.
@@ -951,11 +934,11 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
       before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides
       how many trials must fail before the whole job fails.
     study_spec_algorithm: The search algorithm specified for the study. One of
-      'ALGORITHM_UNSPECIFIED', 'GRID_SEARCH', or 'RANDOM_SEARCH'.
+      "ALGORITHM_UNSPECIFIED", "GRID_SEARCH", or "RANDOM_SEARCH".
     study_spec_measurement_selection_type:  Which measurement to use if/when the
       service automatically selects the final measurement from previously
-      reported intermediate measurements. One of 'BEST_MEASUREMENT' or
-      'LAST_MEASUREMENT'.
+      reported intermediate measurements. One of "BEST_MEASUREMENT" or
+      "LAST_MEASUREMENT".
     stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
       stats_and_example_gen component.
     stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
@@ -968,7 +951,8 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
       transform component.
     transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
       transform component.
-    training_machine_spec: The machine spec for trainer component.
+    training_machine_spec: The machine spec for trainer component. See
+      https://cloud.google.com/compute/docs/machine-types for options.
     training_replica_count: The replica count for the trainer component.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default
@@ -985,10 +969,10 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
   if not training_machine_spec:
     training_machine_spec = {'machine_type': 'n1-standard-16'}
 
-  if not tabnet and not wide_and_deep:
-    raise ValueError('Either tabnet or wide_and_deep must be specified.')
-  if tabnet and wide_and_deep:
-    raise ValueError('Both tabnet and wide_and_deep cannot be specified.')
+  if algorithm not in ['tabnet', 'wide_and_deep']:
+    raise ValueError(
+        'Invalid algorithm provided. Supported values are "tabnet" and "wide_and_deep".'
+    )
 
   parameter_values = {
       'project':
@@ -1055,13 +1039,13 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
           encryption_spec_key_name,
   }
 
-  if tabnet:
-    parameter_values['tabnet'] = tabnet
+  if algorithm == 'tabnet':
+    parameter_values['tabnet'] = True
     pipeline_definition_path = os.path.join(
         pathlib.Path(__file__).parent.resolve(),
         'tabnet_hyperparameter_tuning_job_pipeline.json')
-  if wide_and_deep:
-    parameter_values['wide_and_deep'] = wide_and_deep
+  if algorithm == 'wide_and_deep':
+    parameter_values['wide_and_deep'] = True
     pipeline_definition_path = os.path.join(
         pathlib.Path(__file__).parent.resolve(),
         'wide_and_deep_hyperparameter_tuning_job_pipeline.json')
@@ -1079,14 +1063,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
     split_spec: Dict[str, Any],
     data_source: Dict[str, Any],
     learning_rate: float,
-    optimizer_type: str = 'adam',
     max_steps: int = -1,
     max_train_secs: int = -1,
-    l1_regularization_strength: float = 0,
-    l2_regularization_strength: float = 0,
-    l2_shrinkage_regularization_strength: float = 0,
-    beta_1: float = 0.9,
-    beta_2: float = 0.999,
     large_category_dim: int = 1,
     large_category_thresh: int = 300,
     yeo_johnson_transform: bool = True,
@@ -1129,24 +1107,14 @@ def get_tabnet_trainer_pipeline_and_parameters(
     location: The GCP region that runs the pipeline components.
     root_dir: The root GCS directory for the pipeline components.
     target_column: The target column name.
-    prediction_type: The type of prediction the Model is to produce.
+    prediction_type: The type of prediction the model is to produce.
       "classification" or "regression".
     transformations: The transformations to apply.
     split_spec: The split spec.
     data_source: The data source.
     learning_rate: The learning rate used by the linear optimizer.
-    optimizer_type: The type of optimizer to use. Choices are "adam", "ftrl" and
-      "sgd" for the Adam, FTRL, and Gradient Descent Optimizers, respectively.
-    max_steps: Number of steps (batches) to run the trainer for.
+    max_steps: Number of steps to run the trainer for.
     max_train_secs: Amount of time in seconds to run the trainer for.
-    l1_regularization_strength: L1 regularization strength for
-      optimizer_type="ftrl".
-    l2_regularization_strength: L2 regularization strength for
-      optimizer_type="ftrl".
-    l2_shrinkage_regularization_strength: L2 shrinkage regularization strength
-      for optimizer_type="ftrl".
-    beta_1: Beta 1 value for optimizer_type="adam".
-    beta_2: Beta 2 value for optimizer_type="adam".
     large_category_dim: Embedding dimension for categorical feature with large
       number of categories.
     large_category_thresh: Threshold for number of categories to apply
@@ -1154,8 +1122,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
     yeo_johnson_transform: Enables trainable Yeo-Johnson power transform.
     feature_dim: Dimensionality of the hidden representation in feature
       transformation block.
-    feature_dim_ratio: The ratio of Output Dimension (Dimensionality of the
-      outputs of each decision step) to Feature Dimension.
+    feature_dim_ratio: The ratio of output dimension (dimensionality of the
+      outputs of each decision step) to feature dimension.
     num_decision_steps: Number of sequential decision steps.
     relaxation_factor: Relaxation factor that promotes the reuse of each feature
       at different decision steps. When it is 1, a feature is enforced to be
@@ -1167,28 +1135,29 @@ def get_tabnet_trainer_pipeline_and_parameters(
     sparsity_loss_weight: Weight of the loss for sparsity regularization
       (increasing it will yield more sparse feature selection).
     batch_momentum: Momentum in ghost batch normalization.
-    batch_size_ratio: The ratio of Virtual Batch Size (size of the ghost batch
-      normalization) to Batch Size.
+    batch_size_ratio: The ratio of virtual batch size (size of the ghost batch
+      normalization) to batch size.
     num_transformer_layers: The number of transformer layers for each decision
       step. used only at one decision step and as it increases, more flexibility
       is provided to use a feature at multiple decision steps.
-    num_transformer_layers_ratio: The ratio of Shared Transformer Layer to
-      Transformer Layers.
+    num_transformer_layers_ratio: The ratio of shared transformer layer to
+      transformer layers.
     class_weight: The class weight is used to computes a weighted cross entropy
-      which is helpful in classify imbalanced dataset.
+      which is helpful in classify imbalanced dataset. Only used for
+      classification.
     loss_function_type: Loss function type. Loss function in classification
       [cross_entropy, weighted_cross_entropy, focal_loss], default is
       cross_entropy.
         Loss function in regression: [rmse, mae, mse], default is mse.
     alpha_focal_loss: Alpha value (balancing factor) in focal_loss function.
+      Only used for classification.
     gamma_focal_loss: Gamma value (modulating factor) for focal loss for focal
-      loss.
+      loss. Only used for classification.
     enable_profiler: Enables profiling and saves a trace during evaluation.
     seed: Seed to be used for this run.
-    eval_steps: Number of steps (batches) to run evaluation for. If not
-      specified or negative, it means run evaluation on the whole validation
-      dataset. If set to 0, it means run evaluation for a fixed number of
-      samples.
+    eval_steps: Number of steps to run evaluation for. If not specified or
+      negative, it means run evaluation on the whole validation dataset. If set
+      to 0, it means run evaluation for a fixed number of samples.
     batch_size: Batch size for training.
     eval_frequency_secs: Frequency at which evaluation and checkpointing will
       take place.
@@ -1205,7 +1174,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
       transform component.
     transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
       transform component.
-    training_machine_spec: The machine spec for trainer component.
+    training_machine_spec: The machine spec for trainer component. See
+      https://cloud.google.com/compute/docs/machine-types for options.
     training_replica_count: The replica count for the trainer component.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default
@@ -1240,22 +1210,10 @@ def get_tabnet_trainer_pipeline_and_parameters(
           input_dictionary_to_parameter(data_source),
       'learning_rate':
           learning_rate,
-      'optimizer_type':
-          optimizer_type,
       'max_steps':
           max_steps,
       'max_train_secs':
           max_train_secs,
-      'l1_regularization_strength':
-          l1_regularization_strength,
-      'l2_regularization_strength':
-          l2_regularization_strength,
-      'l2_shrinkage_regularization_strength':
-          l2_shrinkage_regularization_strength,
-      'beta_1':
-          beta_1,
-      'beta_2':
-          beta_2,
       'large_category_dim':
           large_category_dim,
       'large_category_thresh':

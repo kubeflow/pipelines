@@ -958,7 +958,7 @@
                   "query": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "\n      WITH\n        time_series_windows AS (\n          SELECT\n             MIN({{$.inputs.parameters['pipelineparam--time_column']}}) OVER (horizon) AS start_time,\n             COUNT(*) OVER (horizon) AS count,\n           FROM `{{$.inputs.parameters['pipelineparam--table-to-uri-uri']}}`\n           WHERE UPPER({{$.inputs.parameters['pipelineparam--maybe-replace-with-default-2-Output']}}) IN UNNEST(@splits)\n           WINDOW horizon AS (\n             PARTITION BY {{$.inputs.parameters['pipelineparam--time_series_identifier_column']}}\n             ORDER BY {{$.inputs.parameters['pipelineparam--time_column']}}\n             ROWS BETWEEN 0 PRECEDING AND @forecast_horizon FOLLOWING)\n        )\n      SELECT\n        start_time,\n        DATETIME_ADD(\n          TIMESTAMP(start_time),\n          INTERVAL @forecast_horizon {{$.inputs.parameters['pipelineparam--data_granularity_unit']}}\n        ) AS end_time,\n        SUM(count) AS count,\n      FROM time_series_windows\n      GROUP BY start_time\n  "
+                        "stringValue": "\n      WITH\n        time_series_windows AS (\n          SELECT\n             MIN({{$.inputs.parameters['pipelineparam--time_column']}}) OVER (horizon) AS start_time,\n             COUNT(*) OVER (horizon) AS count,\n           FROM `{{$.inputs.parameters['pipelineparam--table-to-uri-uri']}}`\n           WHERE UPPER({{$.inputs.parameters['pipelineparam--maybe-replace-with-default-2-Output']}}) IN UNNEST(@splits)\n           WINDOW horizon AS (\n             PARTITION BY {{$.inputs.parameters['pipelineparam--time_series_identifier_column']}}\n             ORDER BY {{$.inputs.parameters['pipelineparam--time_column']}}\n             ROWS BETWEEN 0 PRECEDING AND @forecast_horizon FOLLOWING)\n        )\n      SELECT\n        start_time,\n        TIMESTAMP(DATETIME_ADD(\n          DATETIME(start_time),\n          INTERVAL @forecast_horizon {{$.inputs.parameters['pipelineparam--data_granularity_unit']}}\n        )) AS end_time,\n        SUM(count) AS count,\n      FROM time_series_windows\n      GROUP BY start_time\n  "
                       }
                     }
                   },
@@ -2643,7 +2643,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:0.3.0"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-bigquery-create-model-job-2": {
@@ -2670,7 +2670,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:0.3.0"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-bigquery-delete-dataset-with-prefix": {
@@ -2737,7 +2737,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:0.3.0"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-bigquery-query-job-2": {
@@ -2764,7 +2764,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:0.3.0"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-bigquery-query-job-3": {
@@ -2791,7 +2791,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:0.3.0"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-bigquery-query-job-4": {
@@ -2818,7 +2818,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:0.3.0"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-bigquery-query-job-5": {
@@ -2845,7 +2845,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:0.3.0"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-bigquery-query-job-6": {
@@ -2872,7 +2872,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:0.3.0"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-bigquery-query-job-7": {
@@ -2899,7 +2899,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:0.3.0"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
           }
         },
         "exec-build-serialized-query-parameters": {

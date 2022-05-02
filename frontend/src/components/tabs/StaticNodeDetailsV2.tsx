@@ -56,7 +56,7 @@ export function StaticNodeDetailsV2({
     return NODE_INFO_UNKNOWN;
   }
   try {
-    const pipelineSpec = WorkflowUtils.convertJsonToV2PipelineSpec(templateString);
+    const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(templateString);
     return (() => {
       if (isTaskNode(element.id)) {
         // Execution and Sub-DAG nodes

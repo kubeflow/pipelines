@@ -9,13 +9,13 @@ description: |
       Path for model explanation metrics generated from an evaluation comonent.
     model (google.VertexModel):
       Vertex model resource that will be the parent resource of the uploaded evaluation.
-    metrics_schema_uri (str):
+    problem_type (str):
       GCS link to the schema URI for model evaluation metrics.
 inputs:
   - {name: metrics, type: Metrics}
   - {name: explanation, type: Metrics, optional: True}
   - {name: model, type: google.VertexModel}
-  - {name: metrics_schema_uri, type: String}
+  - {name: problem_type, type: String}
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
@@ -28,7 +28,7 @@ implementation:
           then:
           - --explanation
           - "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}"
-      - --metrics_schema_uri
-      - {inputValue: metrics_schema_uri}
+      - --problem_type
+      - {inputValue: problem_type}
       - --model_name
       - "{{$.inputs.artifacts['model'].metadata['resourceName']}}"
