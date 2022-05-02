@@ -19,6 +19,7 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 
 	"github.com/kubeflow/pipelines/backend/src/cache/server"
@@ -57,9 +58,22 @@ type WhSvrDBParameters struct {
 	namespaceToWatch    string
 }
 
+type S3Params struct {
+	serviceHost      string
+	servicePort      string
+	region           string
+	accessKey        string
+	secretKey        string
+	isServiceSecure  bool
+	bucketName       string
+	pipelinePath     string
+	disableMultipart bool
+}
+
 func main() {
 	var params WhSvrDBParameters
 	var clientParams util.ClientParameters
+	var s3params S3Params
 	flag.StringVar(&params.dbDriver, "db_driver", mysqlDBDriverDefault, "Database driver name, mysql is the default value")
 	flag.StringVar(&params.dbHost, "db_host", mysqlDBHostDefault, "Database host name.")
 	flag.StringVar(&params.dbPort, "db_port", mysqlDBPortDefault, "Database port number.")
@@ -74,10 +88,12 @@ func main() {
 	flag.Float64Var(&clientParams.QPS, "kube_client_qps", 5, "The maximum QPS to the master from this client.")
 	flag.IntVar(&clientParams.Burst, "kube_client_burst", 10, "Maximum burst for throttle from this client.")
 
+	s3params = parseS3Flags()
+	//s3 endpoint params
 	flag.Parse()
 
 	log.Println("Initing client manager....")
-	clientManager := NewClientManager(params, clientParams)
+	clientManager := NewClientManager(params, clientParams, s3params)
 	ctx := context.Background()
 	go server.WatchPods(ctx, params.namespaceToWatch, &clientManager)
 
@@ -93,4 +109,19 @@ func main() {
 		Handler: mux,
 	}
 	log.Fatal(server.ListenAndServeTLS(certPath, keyPath))
+}
+
+func parseS3Flags() S3Params {
+	var params S3Params
+	flag.StringVar(&params.serviceHost, "s3_service_host", os.Getenv("MINIO_SERVICE_SERVICE_HOST"), "hostname of S3.")
+	flag.StringVar(&params.servicePort, "s3_service_port", os.Getenv("MINIO_SERVICE_SERVICE_PORT"), "port of S3.")
+	flag.StringVar(&params.region, "s3_region", os.Getenv("MINIO_SERVICE_REGION"), "Region of S3 service.")
+	flag.StringVar(&params.accessKey, "s3_access_key", os.Getenv("OBJECTSTORECONFIG_ACCESSKEY"), "accessKey of S3.")
+	flag.StringVar(&params.secretKey, "s3_secret_key", os.Getenv("OBJECTSTORECONFIG_SECRETACCESSKEY"), "secretKey of S3.")
+	flag.BoolVar(&params.isServiceSecure, "s3_is_service_secure", false, "is ssl enabled on S3.")
+	flag.StringVar(&params.bucketName, "s3_bucketname", os.Getenv("S3_BUCKETNAME"), "default bucketname on S3.")
+	flag.StringVar(&params.pipelinePath, "s3_pipelinepath", "pipelines", "pipelinepath of S3.")
+	flag.BoolVar(&params.disableMultipart, "s3_disable_multipart", true, "if multipart request are disabled on S3.")
+	log.Printf("S3Params %v\n", params)
+	return params
 }

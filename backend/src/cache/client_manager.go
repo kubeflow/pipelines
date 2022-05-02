@@ -16,14 +16,16 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
 
-	"encoding/json"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
+	api_client "github.com/kubeflow/pipelines/backend/src/apiserver/client"
+	api_storage "github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/cache/client"
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/cache/storage"
@@ -38,6 +40,7 @@ type ClientManager struct {
 	db            *storage.DB
 	cacheStore    storage.ExecutionCacheStoreInterface
 	k8sCoreClient client.KubernetesCoreInterface
+	minioClient   api_storage.ObjectStoreInterface
 	time          util.TimeInterface
 }
 
@@ -49,11 +52,15 @@ func (c *ClientManager) KubernetesCoreClient() client.KubernetesCoreInterface {
 	return c.k8sCoreClient
 }
 
+func (c *ClientManager) MinioClient() api_storage.ObjectStoreInterface {
+	return c.minioClient
+}
+
 func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-func (c *ClientManager) init(params WhSvrDBParameters, clientParams util.ClientParameters) {
+func (c *ClientManager) init(params WhSvrDBParameters, clientParams util.ClientParameters, s3params S3Params) {
 	timeoutDuration, _ := time.ParseDuration(DefaultConnectionTimeout)
 	db := initDBClient(params, timeoutDuration)
 
@@ -61,6 +68,15 @@ func (c *ClientManager) init(params WhSvrDBParameters, clientParams util.ClientP
 	c.db = db
 	c.cacheStore = storage.NewExecutionCacheStore(db, c.time)
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(timeoutDuration, clientParams)
+	c.minioClient = NewMinioClient(timeoutDuration, s3params)
+}
+
+func NewMinioClient(initConnectionTimeout time.Duration, params S3Params) api_storage.ObjectStoreInterface {
+	glog.Infof("NewMinioClient %v", params)
+	minioClient := api_client.CreateMinioClientOrFatal(params.serviceHost, params.servicePort,
+		params.accessKey, params.secretKey, params.isServiceSecure, params.region, initConnectionTimeout)
+	return api_storage.NewMinioObjectStore(&api_storage.MinioClient{Client: minioClient},
+		params.region, params.bucketName, params.pipelinePath, params.disableMultipart)
 }
 
 func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration) *storage.DB {
@@ -169,9 +185,9 @@ func initMysql(params WhSvrDBParameters, initConnectionTimeout time.Duration) st
 	return mysqlConfig.FormatDSN()
 }
 
-func NewClientManager(params WhSvrDBParameters, clientParams util.ClientParameters) ClientManager {
+func NewClientManager(params WhSvrDBParameters, clientParams util.ClientParameters, s3params S3Params) ClientManager {
 	clientManager := ClientManager{}
-	clientManager.init(params, clientParams)
+	clientManager.init(params, clientParams, s3params)
 
 	return clientManager
 }

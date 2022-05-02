@@ -21,7 +21,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	minio "github.com/minio/minio-go"
+	"github.com/minio/minio-go"
 )
 
 const (
@@ -40,10 +40,13 @@ type ObjectStoreInterface interface {
 
 // Managing pipeline using Minio
 type MinioObjectStore struct {
-	minioClient      MinioClientInterface
-	bucketName       string
-	baseFolder       string
-	disableMultipart bool
+	minioClient                        MinioClientInterface
+	bucketName                         string
+	baseFolder                         string
+	disableMultipart                   bool
+	defaultBucketName                  string
+	region                             string
+	hasPipelineNamespacedBucketEnabled bool
 }
 
 // GetPipelineKey adds the configured base folder to pipeline id.
@@ -126,6 +129,10 @@ func buildPath(folder, file string) string {
 	return folder + "/" + file
 }
 
-func NewMinioObjectStore(minioClient MinioClientInterface, bucketName string, baseFolder string, disableMultipart bool) *MinioObjectStore {
-	return &MinioObjectStore{minioClient: minioClient, bucketName: bucketName, baseFolder: baseFolder, disableMultipart: disableMultipart}
+func NewMinioObjectStore(minioClient MinioClientInterface, region string, defaultBucketName string,
+	baseFolder string, disableMultipart bool) *MinioObjectStore {
+	return &MinioObjectStore{minioClient: minioClient, region: region,
+		defaultBucketName: defaultBucketName, baseFolder: baseFolder,
+		disableMultipart: disableMultipart,
+	}
 }

@@ -24,9 +24,11 @@ import (
 	"strconv"
 	"strings"
 
+	api_storage "github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/cache/client"
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/cache/storage"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -61,6 +63,7 @@ var (
 type ClientManagerInterface interface {
 	CacheStore() storage.ExecutionCacheStoreInterface
 	KubernetesCoreClient() client.KubernetesCoreInterface
+	MinioClient() api_storage.ObjectStoreInterface
 }
 
 // MutatePodIfCached will check whether the execution has already been run before from MLMD and apply the output into pod.metadata.output
@@ -127,9 +130,21 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 
 	var cachedExecution *model.ExecutionCache
 	cachedExecution, err = clientMgr.CacheStore().GetExecutionCache(executionHashKey, maxCacheStalenessInSeconds)
+	cacheKeyWithFileName := getCacheItemKey(cachedExecution)
+	log.Println("cache key extracted from output: " + cacheKeyWithFileName)
+
 	if err != nil {
 		log.Println(err.Error())
 	}
+
+	cachedExecution, err = retrieveCacheItemIfReallyExists(clientMgr.MinioClient(), cachedExecution, cacheKeyWithFileName)
+
+	if err != nil {
+		log.Printf("deleteItemFromCacheStore %s ", executionHashKey)
+		err = clientMgr.CacheStore().DeleteExecutionCache(executionHashKey)
+		log.Println(err)
+	}
+
 	// Found cached execution, add cached output and cache_id and replace container images.
 	if cachedExecution != nil {
 		log.Println("Cached output: " + cachedExecution.ExecutionOutput)
@@ -208,6 +223,58 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	})
 
 	return patches, nil
+}
+
+//retrieveCacheItemIfReallyExists checks the objects
+func retrieveCacheItemIfReallyExists(minioClient api_storage.ObjectStoreInterface, execution *model.ExecutionCache, fileName string) (*model.ExecutionCache, error) {
+	if execution != nil && minioClient != nil {
+		log.Printf("retrieveCacheItemIfReallyExists %s ", execution.ExecutionTemplate)
+		bucket, key := getCacheItemS3Data(execution)
+		log.Printf("bucket %s , key: %s, filename: %s", bucket, key, fileName)
+		if minioClient != nil {
+			result, err := minioClient.GetFile(fileName)
+			log.Printf("cache retrieve result length %d %v", len(result), err)
+			if len(result) == 0 || err != nil {
+				return nil, util.NewInternalServerError(err, "Failed to get %v", key)
+			}
+		}
+	}
+	return execution, nil
+}
+
+func getCacheItemS3Data(execution *model.ExecutionCache) (string, string) {
+	var outputMap = ExecutionTemplate{}
+	b := []byte(execution.ExecutionTemplate)
+	err := json.Unmarshal(b, &outputMap)
+	if err != nil {
+		panic(err)
+		return "", ""
+	}
+	return outputMap.ArchiveLocation.S3.Bucket, outputMap.ArchiveLocation.S3.Key
+}
+
+func getCacheItemKey(execution *model.ExecutionCache) string {
+	var output = ExecutionOutput{}
+	if execution != nil {
+		b := []byte(execution.ExecutionOutput)
+		err := json.Unmarshal(b, &output)
+		if err != nil {
+			panic(err)
+		}
+		var workflowsArgoprojIoOutputs = WorkflowsArgoprojIoOutputs{}
+		b = []byte(output.WorkflowsArgoprojIoOutputs)
+		err = json.Unmarshal(b, &workflowsArgoprojIoOutputs)
+		if err != nil {
+			panic(err)
+		}
+
+		for _, artifact := range workflowsArgoprojIoOutputs.Artifacts {
+			return artifact.S3.Key
+		}
+	}
+
+	return ""
+
 }
 
 // intersectStructureWithSkeleton recursively intersects two maps

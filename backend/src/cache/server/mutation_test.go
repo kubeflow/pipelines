@@ -170,7 +170,7 @@ func TestMutatePodIfCached(t *testing.T) {
 func TestMutatePodIfCachedWithCacheEntryExist(t *testing.T) {
 	executionCache := &model.ExecutionCache{
 		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
-		ExecutionOutput:   "testOutput",
+		ExecutionOutput:   `{"pipelines.kubeflow.org/metadata_execution_id":"1","workflows.argoproj.io/outputs":"{}"}`,
 		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"}}`,
 		MaxCacheStaleness: -1,
 	}
@@ -189,7 +189,7 @@ func TestMutatePodIfCachedWithCacheEntryExist(t *testing.T) {
 func TestDefaultImage(t *testing.T) {
 	executionCache := &model.ExecutionCache{
 		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
-		ExecutionOutput:   "testOutput",
+		ExecutionOutput:   `{"pipelines.kubeflow.org/metadata_execution_id":"1","workflows.argoproj.io/outputs":"{}"}`,
 		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"}}`,
 		MaxCacheStaleness: -1,
 	}
@@ -208,7 +208,7 @@ func TestSetImage(t *testing.T) {
 
 	executionCache := &model.ExecutionCache{
 		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
-		ExecutionOutput:   "testOutput",
+		ExecutionOutput:   `{"pipelines.kubeflow.org/metadata_execution_id":"1","workflows.argoproj.io/outputs":"{}"}`,
 		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"}}`,
 		MaxCacheStaleness: -1,
 	}
@@ -225,7 +225,7 @@ func TestCacheNodeRestriction(t *testing.T) {
 
 	executionCache := &model.ExecutionCache{
 		ExecutionCacheKey: "f5fe913be7a4516ebfe1b5de29bcb35edd12ecc776b2f33f10ca19709ea3b2f0",
-		ExecutionOutput:   "testOutput",
+		ExecutionOutput:   `{"pipelines.kubeflow.org/metadata_execution_id":"1","workflows.argoproj.io/outputs":"{}"}`,
 		ExecutionTemplate: `{"container":{"command":["echo", "Hello"],"image":"python:3.7"},"nodeSelector":{"disktype":"ssd"}}`,
 		MaxCacheStaleness: -1,
 	}
@@ -240,7 +240,7 @@ func TestCacheNodeRestriction(t *testing.T) {
 func TestMutatePodIfCachedWithTeamplateCleanup(t *testing.T) {
 	executionCache := &model.ExecutionCache{
 		ExecutionCacheKey: "5a20e3f2e74863b363291953082d9812a58e25f7117bface1c76d40ef0ee88fc",
-		ExecutionOutput:   "testOutput",
+		ExecutionOutput:   `{"pipelines.kubeflow.org/metadata_execution_id":"1","workflows.argoproj.io/outputs":"{}"}`,
 		ExecutionTemplate: `Cache key was calculated from this: {"container":{"command":["echo", "Hello"],"image":"python:3.7"},"outputs":"anything"}`,
 		MaxCacheStaleness: -1,
 	}
