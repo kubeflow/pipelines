@@ -144,12 +144,8 @@ class Compiler:
             arg_type = pipeline_meta.inputs[arg_name].type
             if not type_utils.is_parameter_type(arg_type):
                 raise TypeError(
-                    'The pipeline argument "{arg_name}" is viewed as an artifact'
-                    ' due to its type "{arg_type}". And we currently do not '
-                    'support passing artifacts as pipeline inputs. Consider type'
-                    ' annotating the argument with a primitive type, such as '
-                    '"str", "int", "float", "bool", "dict", and "list".'.format(
-                        arg_name=arg_name, arg_type=arg_type))
+                    f"The pipeline parameter '{arg_name}' of type {signature.parameters[arg_name].annotation} is not a valid input for this component. Passing artifacts as pipeline inputs is not supported. Consider annotating the parameter with a primitive type such as {str.__name__, int.__name__, float.__name__, bool.__name__, dict.__name__, list.__name__}."
+                )
             args_list.append(
                 dsl.PipelineParameterChannel(
                     name=arg_name, channel_type=arg_type))
@@ -225,17 +221,18 @@ class Compiler:
 
         args_dict = {}
         signature = inspect.signature(python_func)
-
         for arg_name in signature.parameters:
-            arg_type = pipeline_meta.inputs[arg_name].type
+            try:
+                arg_type = pipeline_meta.inputs[arg_name].type
+            except (KeyError, TypeError) as e:
+                # key error catches if the key is not in pipeline_meta.inputs and type error catches if pipeline_meta.inputs is None
+                raise TypeError(
+                    f"The pipeline parameter '{arg_name}' of type {signature.parameters[arg_name].annotation} is not a valid input for this component."
+                ) from e
             if not type_utils.is_parameter_type(arg_type):
                 raise TypeError(
-                    'The pipeline argument "{arg_name}" is viewed as an artifact'
-                    ' due to its type "{arg_type}". And we currently do not '
-                    'support passing artifacts as pipeline inputs. Consider type'
-                    ' annotating the argument with a primitive type, such as '
-                    '"str", "int", "float", "bool", "dict", and "list".'.format(
-                        arg_name=arg_name, arg_type=arg_type))
+                    f"The pipeline parameter '{arg_name}' of type {signature.parameters[arg_name].annotation} is not a valid input for this component. Passing artifacts as pipeline inputs is not supported. Consider annotating the parameter with a primitive type such as {str.__name__, int.__name__, float.__name__, bool.__name__, dict.__name__, list.__name__}."
+                )
             args_dict[arg_name] = dsl.PipelineParameterChannel(
                 name=arg_name, channel_type=arg_type)
 
@@ -511,10 +508,10 @@ class Compiler:
                 raise ValueError(
                     f'Error compiling component. Expected one task in task group, got {len(task_group.tasks)}.'
                 )
-
             only_task = task_group.tasks[0]
-            for group_name in task_name_to_parent_groups[only_task.name]:
-                inputs[group_name].add((only_task.channel_inputs[-1], None))
+            if only_task.channel_inputs:
+                for group_name in task_name_to_parent_groups[only_task.name]:
+                    inputs[group_name].add((only_task.channel_inputs[-1], None))
             return inputs
 
         inputs = get_inputs(task_group, task_name_to_parent_groups)
