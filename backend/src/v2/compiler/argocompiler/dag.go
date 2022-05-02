@@ -205,7 +205,7 @@ func (c *workflowCompiler) task(name string, task *pipelinespec.PipelineTaskSpec
 				driver.Depends = depends(task.GetDependentTasks())
 			}
 			// Handle exit handler dependency
-			if task.TriggerPolicy.GetStrategy().String() == "ALL_UPSTREAM_TASKS_COMPLETED" {
+			if task.GetTriggerPolicy().GetStrategy().String() == "ALL_UPSTREAM_TASKS_COMPLETED" {
 				driver.Depends = depends_exit_handler(task.GetDependentTasks())
 			}
 			executor := c.containerExecutorTask(name, containerExecutorInputs{
@@ -510,17 +510,12 @@ func depends_exit_handler(deps []string) string {
 		if index > 0 {
 			builder.WriteString(" || ")
 		}
-		builder.WriteString(dep)
-		builder.WriteString(".Succeeded")
-		builder.WriteString(" || ")
-		builder.WriteString(dep)
-		builder.WriteString(".Skipped")
-		builder.WriteString(" || ")
-		builder.WriteString(dep)
-		builder.WriteString(".Failed")
-		builder.WriteString(" || ")
-		builder.WriteString(dep)
-		builder.WriteString(".Errored")
+		for inner_index, task_status := range []string{".Succeeded", ".Skipped", ".Failed", ".Errored"} {
+			if inner_index > 0 {
+				builder.WriteString(" || ")
+				builder.WriteString(task_status)
+			}
+		}
 	}
 	return builder.String()
 }
