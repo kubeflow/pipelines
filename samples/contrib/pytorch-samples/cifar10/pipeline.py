@@ -188,6 +188,7 @@ def pytorch_cifar10( # pylint: disable=too-many-arguments
       predictor:
         serviceAccountName: sa
         pytorch:
+          protocolVersion: v2
           storageUri: {}
           resources:
             limits:
@@ -207,6 +208,7 @@ def pytorch_cifar10( # pylint: disable=too-many-arguments
       predictor:
         serviceAccountName: sa
         pytorch:
+          protocolVersion: v2
           storageUri: {}
           resources:
             limits:

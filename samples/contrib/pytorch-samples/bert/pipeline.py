@@ -177,6 +177,7 @@ def pytorch_bert( # pylint: disable=too-many-arguments
       predictor:
         serviceAccountName: sa
         pytorch:
+          protocolVersion: v2
           storageUri: {}
           resources:
             limits:
@@ -196,6 +197,7 @@ def pytorch_bert( # pylint: disable=too-many-arguments
       predictor:
         serviceAccountName: sa
         pytorch:
+          protocolVersion: v2
           storageUri: {}
           resources:
             limits:
