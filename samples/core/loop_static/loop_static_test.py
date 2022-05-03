@@ -24,13 +24,14 @@ from kfp.samples.test.utils import KfpTask, run_pipeline_func, TestCase
 def obj_to_string(obj, extra='    '):
     return str(obj.__class__) + '\n' + '\n'.join(
         (extra + (str(item) + ' = ' +
-                  (obj_to_string(obj.__dict__[item], extra + '    ') if hasattr(obj.__dict__[item], '__dict__') else str(
-                      obj.__dict__[item])))
-         for item in sorted(obj.__dict__)))
+                  (obj_to_string(obj[item], extra + '    ') if type(obj[item]) is dict  else str(
+                      obj[item])))
+         for item in sorted(obj.keys())))
 
 def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
            tasks: dict[str, KfpTask], **kwargs):
-    print(obj_to_string(tasks))
+    print("Line 33: tasks keys: ", tasks.keys())
+    print("Line 34: tasks fields: ", obj_to_string(tasks))
     t.assertEqual(run.status, 'Succeeded')
     # assert DAG structure
     t.assertCountEqual(['print-op', 'for-loop-1'], tasks.keys())
