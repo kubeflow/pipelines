@@ -242,13 +242,12 @@ class RegistryClient:
 
         with open(file_name, 'rb') as f:
             files = {'content': f}
-
-        response = requests.post(
-            url=url,
-            data=request_body,
-            headers=extra_headers,
-            files=files,
-            auth=auth)
+            response = requests.post(
+                url=url,
+                data=request_body,
+                headers=extra_headers,
+                files=files,
+                auth=auth)
         response.raise_for_status()
         [package_name, version] = response.text.split('/')
 
