@@ -173,7 +173,8 @@ class RegistryClientTest(parameterized.TestCase):
     def test_upload_pipeline(self, mock_open, mock_post, tags, expected_tags):
         mock_open.reset_mock()
         mock_post.return_value.text = 'package_name/sha256:abcde12345'
-        mock_open.return_value = 'file_content'
+        mock_open.return_value.__enter__.return_value = 'file_content'
+        mock_open.return_value.__exit__.return_value = False
         host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(''))
         package_name, version = client.upload_pipeline(

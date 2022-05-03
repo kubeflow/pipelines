@@ -20,7 +20,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import google.auth
 import requests
-from google.auth.credentials import Credentials
+from google.auth import credentials
 
 _KNOWN_HOSTS_REGEX = {
     'kfp_pkg_dev':
@@ -66,7 +66,7 @@ class RegistryClient:
         self,
         host: str,
         auth: Optional[Union[requests.auth.AuthBase,
-                             Credentials]] = None) -> None:
+                             credentials.Credentials]] = None) -> None:
         """RegistryClient initialization.
 
         Args:
@@ -206,14 +206,14 @@ class RegistryClient:
             An instance of the AuthBase class
         """
         auth = self._auth
-        if isinstance(auth, Credentials):
+        if isinstance(auth, credentials.Credentials):
             auth = ApiAuth(auth.token)
         return auth
 
     def _refresh_creds(self) -> None:
         """Helper function to refresh google credentials if needed."""
         if self._is_ar_host() and isinstance(
-                self._auth, Credentials) and not self._auth.valid:
+                self._auth, credentials.Credentials) and not self._auth.valid:
             self._auth.refresh(google.auth.transport.requests.Request())
 
     def upload_pipeline(self, file_name: str, tags: Optional[Union[str,
@@ -239,7 +239,9 @@ class RegistryClient:
             elif isinstance(tags, List):
                 request_body = {'tags': ','.join(tags)}
 
-        files = {'content': open(file_name, 'rb')}
+        with open(file_name, 'rb') as f:
+            files = {'content': f}
+
         response = requests.post(
             url=url,
             data=request_body,
