@@ -270,3 +270,40 @@ func TestMutatePodIfCachedWithTeamplateCleanup(t *testing.T) {
 	require.Equal(t, patchOperation[1].Op, OperationTypeAdd)
 	require.Equal(t, patchOperation[2].Op, OperationTypeAdd)
 }
+
+func TestGetCacheItemKey(t *testing.T) {
+	t.Run("test cache retrieval", func(t *testing.T) {
+		cacheKey := getCacheItemKey(&model.ExecutionCache{
+			ID:                0,
+			ExecutionCacheKey: "",
+			ExecutionTemplate: "",
+			ExecutionOutput: `
+			{
+				"pipelines.kubeflow.org/metadata_execution_id":"1",
+				"workflows.argoproj.io/outputs": "{\"artifacts\": [{\"name\": \"example-name\",\"s3\": {\"key\":\"expected-cachekey\"}}]}"
+			}`,
+			MaxCacheStaleness: 0,
+			StartedAtInSec:    0,
+			EndedAtInSec:      0,
+		})
+		require.Equal(t, "expected-cachekey", cacheKey)
+
+	})
+}
+
+func TestGetCacheItemS3Data(t *testing.T) {
+	t.Run("test s3 data retrieval", func(t *testing.T) {
+		bucket, key := getCacheItemS3Data(&model.ExecutionCache{ExecutionTemplate: `
+		{
+			"archiveLocation": {
+				"archiveLogs": true,
+				"s3": {
+					"key": "key-name",
+					"bucket": "bucket-name"
+				}
+			}
+		}`})
+		require.Equal(t, "bucket-name", bucket)
+		require.Equal(t, "key-name", key)
+	})
+}

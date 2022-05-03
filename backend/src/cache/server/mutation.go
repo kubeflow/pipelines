@@ -243,38 +243,53 @@ func retrieveCacheItemIfReallyExists(minioClient api_storage.ObjectStoreInterfac
 }
 
 func getCacheItemS3Data(execution *model.ExecutionCache) (string, string) {
-	var outputMap = ExecutionTemplate{}
+	key := ""
+	bucket := ""
+	var executionTemplate map[string]interface{}
 	b := []byte(execution.ExecutionTemplate)
-	err := json.Unmarshal(b, &outputMap)
+	err := json.Unmarshal(b, &executionTemplate)
 	if err != nil {
 		panic(err)
-		return "", ""
+		return bucket, key
 	}
-	return outputMap.ArchiveLocation.S3.Bucket, outputMap.ArchiveLocation.S3.Key
+	if archiveLocation, ok := executionTemplate["archiveLocation"]; ok {
+		if s3, ok := archiveLocation.(map[string]interface{})["s3"]; ok {
+			if s3key, ok := s3.(map[string]interface{})["key"]; ok {
+				key = s3key.(string)
+			}
+			if s3bucket, ok := s3.(map[string]interface{})["bucket"]; ok {
+				bucket = s3bucket.(string)
+			}
+		}
+	}
+	return bucket, key
 }
 
 func getCacheItemKey(execution *model.ExecutionCache) string {
-	var output = ExecutionOutput{}
+	var output map[string]interface{}
 	if execution != nil {
 		b := []byte(execution.ExecutionOutput)
 		err := json.Unmarshal(b, &output)
 		if err != nil {
 			panic(err)
 		}
-		var workflowsArgoprojIoOutputs = WorkflowsArgoprojIoOutputs{}
-		b = []byte(output.WorkflowsArgoprojIoOutputs)
-		err = json.Unmarshal(b, &workflowsArgoprojIoOutputs)
-		if err != nil {
-			panic(err)
-		}
-
-		for _, artifact := range workflowsArgoprojIoOutputs.Artifacts {
-			return artifact.S3.Key
+		if output, ok := output["workflows.argoproj.io/outputs"]; ok {
+			var artifacts map[string]interface{}
+			if err := json.Unmarshal([]byte(output.(string)), &artifacts); err != nil {
+				panic(err)
+			}
+			if artifacts, ok := artifacts["artifacts"]; ok {
+				for _, artifact := range artifacts.([]interface{}) {
+					if s3, ok := artifact.(map[string]interface{})["s3"]; ok {
+						if s3key, ok := s3.(map[string]interface{})["key"]; ok {
+							return s3key.(string)
+						}
+					}
+				}
+			}
 		}
 	}
-
 	return ""
-
 }
 
 // intersectStructureWithSkeleton recursively intersects two maps
