@@ -120,6 +120,7 @@ class RegistryClient:
         Returns:
             Whether the host is on Artifact Registry.
         """
+        # TODO: Handle multiple known hosts.
         return self._known_host_key == 'kfp_pkg_dev'
 
     def _is_known_host(self) -> bool:
@@ -136,6 +137,7 @@ class RegistryClient:
         Returns:
             The loaded config if it's a known host, otherwise None.
         """
+        # TODO: Move config file code to its own file.
         config = {}
         if self._is_ar_host():
             repo_resource_format = ''
