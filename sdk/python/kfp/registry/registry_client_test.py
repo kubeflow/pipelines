@@ -37,12 +37,12 @@ class RegistryClientTest(parameterized.TestCase):
         },
     )
     def test_is_ar_host(self, host, expected):
-        client = RegistryClient(host=host, auth=ApiAuth(""))
+        client = RegistryClient(host=host, auth=ApiAuth(''))
         self.assertEqual(client._is_ar_host(), expected)
 
     def test_load_config(self):
         host = _DEFAULT_HOST
-        client = RegistryClient(host=host, auth=ApiAuth(""))
+        client = RegistryClient(host=host, auth=ApiAuth(''))
         expected_config = {
             'host':
                 host,
@@ -151,7 +151,7 @@ class RegistryClientTest(parameterized.TestCase):
                                file_name, expected_url, expected_file_name):
         mock_open.reset_mock()
         host = _DEFAULT_HOST
-        client = RegistryClient(host=host, auth=ApiAuth(""))
+        client = RegistryClient(host=host, auth=ApiAuth(''))
         client.download_pipeline(
             package_name='pack', version=version, tag=tag, file_name=file_name)
         mock_get.assert_called_once_with(
@@ -175,7 +175,7 @@ class RegistryClientTest(parameterized.TestCase):
         mock_post.return_value.text = 'package_name/sha256:abcde12345'
         mock_open.return_value = 'file_content'
         host = _DEFAULT_HOST
-        client = RegistryClient(host=host, auth=ApiAuth(""))
+        client = RegistryClient(host=host, auth=ApiAuth(''))
         package_name, version = client.upload_pipeline(
             file_name='pipeline.yaml',
             tags=tags,
@@ -193,7 +193,7 @@ class RegistryClientTest(parameterized.TestCase):
     @mock.patch('requests.get', autospec=True)
     def test_get_package(self, mock_get):
         host = _DEFAULT_HOST
-        client = RegistryClient(host=host, auth=ApiAuth(""))
+        client = RegistryClient(host=host, auth=ApiAuth(''))
         client.get_package('pack')
         mock_get.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
@@ -206,7 +206,7 @@ class RegistryClientTest(parameterized.TestCase):
     @mock.patch('requests.get', autospec=True)
     def test_list_packages(self, mock_get):
         host = _DEFAULT_HOST
-        client = RegistryClient(host=host, auth=ApiAuth(""))
+        client = RegistryClient(host=host, auth=ApiAuth(''))
         client.list_packages()
         mock_get.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
@@ -219,7 +219,7 @@ class RegistryClientTest(parameterized.TestCase):
     @mock.patch('requests.delete', autospec=True)
     def test_delete_package(self, mock_delete):
         host = _DEFAULT_HOST
-        client = RegistryClient(host=host, auth=ApiAuth(""))
+        client = RegistryClient(host=host, auth=ApiAuth(''))
         client.delete_package('pack')
         mock_delete.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
@@ -232,7 +232,7 @@ class RegistryClientTest(parameterized.TestCase):
     @mock.patch('requests.get', autospec=True)
     def test_get_version(self, mock_get):
         host = _DEFAULT_HOST
-        client = RegistryClient(host=host, auth=ApiAuth(""))
+        client = RegistryClient(host=host, auth=ApiAuth(''))
         client.get_version('pack', 'v1')
         mock_get.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
@@ -245,7 +245,7 @@ class RegistryClientTest(parameterized.TestCase):
     @mock.patch('requests.get', autospec=True)
     def test_list_versions(self, mock_get):
         host = _DEFAULT_HOST
-        client = RegistryClient(host=host, auth=ApiAuth(""))
+        client = RegistryClient(host=host, auth=ApiAuth(''))
         client.list_versions('pack')
         mock_get.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
@@ -258,7 +258,7 @@ class RegistryClientTest(parameterized.TestCase):
     @mock.patch('requests.delete', autospec=True)
     def test_delete_version(self, mock_delete):
         host = _DEFAULT_HOST
-        client = RegistryClient(host=host, auth=ApiAuth(""))
+        client = RegistryClient(host=host, auth=ApiAuth(''))
         client.delete_version('pack', 'v1')
         mock_delete.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
@@ -271,7 +271,7 @@ class RegistryClientTest(parameterized.TestCase):
     @mock.patch('requests.get', autospec=True)
     def test_get_tag(self, mock_get):
         host = _DEFAULT_HOST
-        client = RegistryClient(host=host, auth=ApiAuth(""))
+        client = RegistryClient(host=host, auth=ApiAuth(''))
         client.get_tag('pack', 'tag1')
         mock_get.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
@@ -284,7 +284,7 @@ class RegistryClientTest(parameterized.TestCase):
     @mock.patch('requests.get', autospec=True)
     def test_list_tags(self, mock_get):
         host = _DEFAULT_HOST
-        client = RegistryClient(host=host, auth=ApiAuth(""))
+        client = RegistryClient(host=host, auth=ApiAuth(''))
         client.list_tags('pack')
         mock_get.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
@@ -297,7 +297,7 @@ class RegistryClientTest(parameterized.TestCase):
     @mock.patch('requests.delete', autospec=True)
     def test_delete_tag(self, mock_delete):
         host = _DEFAULT_HOST
-        client = RegistryClient(host=host, auth=ApiAuth(""))
+        client = RegistryClient(host=host, auth=ApiAuth(''))
         client.delete_tag('pack', 'tag1')
         mock_delete.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
@@ -310,7 +310,7 @@ class RegistryClientTest(parameterized.TestCase):
     @mock.patch('requests.post', autospec=True)
     def test_create_tag(self, mock_post):
         host = _DEFAULT_HOST
-        client = RegistryClient(host=host, auth=ApiAuth(""))
+        client = RegistryClient(host=host, auth=ApiAuth(''))
         client.create_tag('pack', 'sha256:abcde12345', 'tag1')
         expected_data = json.dumps({
             'name':
@@ -331,7 +331,7 @@ class RegistryClientTest(parameterized.TestCase):
     @mock.patch('requests.patch', autospec=True)
     def test_update_tag(self, mock_patch):
         host = _DEFAULT_HOST
-        client = RegistryClient(host=host, auth=ApiAuth(""))
+        client = RegistryClient(host=host, auth=ApiAuth(''))
         client.update_tag('pack', 'sha256:abcde12345', 'tag1')
         expected_data = json.dumps({
             'name':

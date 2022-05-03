@@ -16,14 +16,14 @@
 import json
 import logging
 import re
-from typing import Any, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import google.auth
 import requests
 from google.auth.credentials import Credentials
 
 _KNOWN_HOSTS_REGEX = {
-    "kfp_pkg_dev":
+    'kfp_pkg_dev':
         r'(^https\:\/\/(?P<location>[\w\-]+)\-kfp\.pkg\.dev\/(?P<project_id>.*)\/(?P<repo_id>.*))',
 }
 
@@ -34,16 +34,16 @@ _DEFAULT_JSON_HEADER = {
 
 class _SafeDict(dict):
 
-    def __missing__(self, key: str):
+    def __missing__(self, key: str) -> str:
         return '{' + key + '}'
 
 
 class ApiAuth(requests.auth.AuthBase):
 
-    def __init__(self, token: str):
+    def __init__(self, token: str) -> None:
         self._token = token
 
-    def __call__(self, request: requests.Request):
+    def __call__(self, request: requests.Request) -> requests.Request:
         request.headers['authorization'] = 'Bearer ' + self._token
         return request
 
@@ -53,9 +53,9 @@ class RegistryClient:
     def __init__(self,
                  host: str,
                  auth: Optional[Union[requests.auth.AuthBase,
-                                      Credentials]] = None):
+                                      Credentials]] = None) -> None:
         self._host = host.rstrip('/')
-        self._known_host_key = ""
+        self._known_host_key = ''
         for key in _KNOWN_HOSTS_REGEX.keys():
             if re.match(_KNOWN_HOSTS_REGEX[key], self._host):
                 self._known_host_key = key
@@ -70,7 +70,7 @@ class RegistryClient:
                  request_url: str,
                  request_body: str = '',
                  http_request: str = 'get',
-                 extra_headers: dict = None) -> Any:
+                 extra_headers: dict = None) -> requests.Response:
         """Call the HTTP request."""
         self._refresh_creds()
         auth = self._get_auth()
@@ -85,25 +85,25 @@ class RegistryClient:
 
         return response
 
-    def _is_ar_host(self):
-        return self._known_host_key == "kfp_pkg_dev"
+    def _is_ar_host(self) -> bool:
+        return self._known_host_key == 'kfp_pkg_dev'
 
     def _is_known_host(self) -> bool:
         return bool(self._known_host_key)
 
-    def load_config(self):
+    def load_config(self) -> dict:
         config = {}
         if self._is_ar_host():
             repo_resource_format = ''
-            try:
-                matched = re.match(_KNOWN_HOSTS_REGEX[self._known_host_key],
-                                   self._host)
+            matched = re.match(_KNOWN_HOSTS_REGEX[self._known_host_key],
+                               self._host)
+            if matched:
                 repo_resource_format = ('projects/'
                                         '{project_id}/locations/{location}/'
                                         'repositories/{repo_id}'.format_map(
                                             _SafeDict(matched.groupdict())))
-            except AttributeError:
-                raise ValueError('Invalid host URL')
+            else:
+                raise ValueError(f'Invalid host URL: {self._host}.')
             registry_endpoint = 'https://artifactregistry.googleapis.com/v1'
             api_endpoint = f'{registry_endpoint}/{repo_resource_format}'
             package_endpoint = f'{api_endpoint}/packages'
@@ -152,13 +152,13 @@ class RegistryClient:
             logging.info(f'load_config not implemented for host: {self._host}')
         return config
 
-    def _get_auth(self):
+    def _get_auth(self) -> requests.auth.AuthBase:
         auth = self._auth
         if isinstance(auth, Credentials):
             auth = ApiAuth(auth.token)
         return auth
 
-    def _refresh_creds(self):
+    def _refresh_creds(self) -> None:
         if self._is_ar_host() and isinstance(
                 self._auth, Credentials) and not self._auth.valid:
             self._auth.refresh(google.auth.transport.requests.Request())
@@ -227,7 +227,7 @@ class RegistryClient:
 
         return file_name
 
-    def get_package(self, package_name: str) -> dict:
+    def get_package(self, package_name: str) -> Dict[str, Any]:
         url = self._config['get_package_url'].format(package_name=package_name)
         response = self._request(request_url=url)
 
@@ -236,8 +236,9 @@ class RegistryClient:
     def list_packages(self) -> List[dict]:
         url = self._config['list_packages_url']
         response = self._request(request_url=url)
+        response_json = response.json()
 
-        return response.json()
+        return response_json['packages']
 
     def delete_package(self, package_name: str) -> bool:
         url = self._config['delete_package_url'].format(
@@ -247,7 +248,7 @@ class RegistryClient:
 
         return response_json['done']
 
-    def get_version(self, package_name: str, version: str) -> dict:
+    def get_version(self, package_name: str, version: str) -> Dict[str, Any]:
         url = self._config['get_version_url'].format(
             package_name=package_name, version=version)
         response = self._request(request_url=url)
@@ -258,8 +259,9 @@ class RegistryClient:
         url = self._config['list_versions_url'].format(
             package_name=package_name)
         response = self._request(request_url=url)
+        response_json = response.json()
 
-        return response.json()
+        return response_json['versions']
 
     def delete_version(self, package_name: str, version: str) -> bool:
         url = self._config['delete_version_url'].format(
@@ -269,7 +271,7 @@ class RegistryClient:
 
         return response_json['done']
 
-    def create_tag(self, package_name: str, version: str, tag: str) -> dict:
+    def create_tag(self, package_name: str, version: str, tag: str) -> Dict[str, Any]:
         url = self._config['create_tag_url'].format(
             package_name=package_name, tag=tag)
         new_tag = {
@@ -287,14 +289,14 @@ class RegistryClient:
 
         return response.json()
 
-    def get_tag(self, package_name: str, tag: str) -> dict:
+    def get_tag(self, package_name: str, tag: str) -> Dict[str, Any]:
         url = self._config['get_tag_url'].format(
             package_name=package_name, tag=tag)
         response = self._request(request_url=url)
 
         return response.json()
 
-    def update_tag(self, package_name: str, version: str, tag: str) -> dict:
+    def update_tag(self, package_name: str, version: str, tag: str) -> Dict[str, Any]:
         url = self._config['update_tag_url'].format(
             package_name=package_name, tag=tag)
         new_tag = {
@@ -315,10 +317,11 @@ class RegistryClient:
     def list_tags(self, package_name: str) -> List[dict]:
         url = self._config['list_tags_url'].format(package_name=package_name)
         response = self._request(request_url=url)
+        response_json = response.json()
 
-        return response.json()
+        return response_json['tags']
 
-    def delete_tag(self, package_name: str, tag: str) -> bool:
+    def delete_tag(self, package_name: str, tag: str) -> Dict[str, Any]:
         url = self._config['delete_tag_url'].format(
             package_name=package_name, tag=tag)
         response = self._request(request_url=url, http_request='delete')
