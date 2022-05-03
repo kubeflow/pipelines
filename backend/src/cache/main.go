@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/cache/server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
@@ -118,10 +119,12 @@ func parseS3Flags() S3Params {
 	flag.StringVar(&params.region, "s3_region", os.Getenv("MINIO_SERVICE_REGION"), "Region of S3 service.")
 	flag.StringVar(&params.accessKey, "s3_access_key", os.Getenv("OBJECTSTORECONFIG_ACCESSKEY"), "accessKey of S3.")
 	flag.StringVar(&params.secretKey, "s3_secret_key", os.Getenv("OBJECTSTORECONFIG_SECRETACCESSKEY"), "secretKey of S3.")
-	flag.BoolVar(&params.isServiceSecure, "s3_is_service_secure", false, "is ssl enabled on S3.")
-	flag.StringVar(&params.bucketName, "s3_bucketname", os.Getenv("S3_BUCKETNAME"), "default bucketname on S3.")
+	flag.BoolVar(&params.isServiceSecure, "s3_is_service_secure",
+		common.GetBoolFromStringWithDefault(os.Getenv("MINIO_SERVICE_SECURE"), false), "is ssl enabled on S3.")
+	flag.StringVar(&params.bucketName, "s3_bucketname", os.Getenv("MINIO_PIPELINE_BUCKET_NAME"), "default bucketname on S3.")
 	flag.StringVar(&params.pipelinePath, "s3_pipelinepath", "pipelines", "pipelinepath of S3.")
-	flag.BoolVar(&params.disableMultipart, "s3_disable_multipart", true, "if multipart request are disabled on S3.")
+	flag.BoolVar(&params.disableMultipart, "s3_disable_multipart",
+		common.GetBoolConfigWithDefault(os.Getenv("MINIO_PIPELINE_BUCKET_DISABLE_MULTIPART"), true), "if multipart request are disabled on S3.")
 	log.Printf("S3Params %v\n", params)
 	return params
 }
