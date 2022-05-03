@@ -93,6 +93,7 @@ func Compile(jobArg *pipelinespec.PipelineJob, opts *Options) (*wfapi.Workflow, 
 		Spec: wfapi.WorkflowSpec{
 			PodMetadata: &wfapi.Metadata{
 				Annotations: map[string]string{
+					"cluster-autoscaler.kubernetes.io/safe-to-evict": "false",
 					"pipelines.kubeflow.org/v2_component": "true",
 				},
 				Labels: map[string]string{
