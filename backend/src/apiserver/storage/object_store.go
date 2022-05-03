@@ -40,13 +40,11 @@ type ObjectStoreInterface interface {
 
 // Managing pipeline using Minio
 type MinioObjectStore struct {
-	minioClient                        MinioClientInterface
-	bucketName                         string
-	baseFolder                         string
-	disableMultipart                   bool
-	defaultBucketName                  string
-	region                             string
-	hasPipelineNamespacedBucketEnabled bool
+	minioClient      MinioClientInterface
+	bucketName       string
+	baseFolder       string
+	disableMultipart bool
+	region           string
 }
 
 // GetPipelineKey adds the configured base folder to pipeline id.
@@ -129,10 +127,10 @@ func buildPath(folder, file string) string {
 	return folder + "/" + file
 }
 
-func NewMinioObjectStore(minioClient MinioClientInterface, region string, defaultBucketName string,
+func NewMinioObjectStore(minioClient MinioClientInterface, region string, bucketName string,
 	baseFolder string, disableMultipart bool) *MinioObjectStore {
 	return &MinioObjectStore{minioClient: minioClient, region: region,
-		defaultBucketName: defaultBucketName, baseFolder: baseFolder,
+		bucketName: bucketName, baseFolder: baseFolder,
 		disableMultipart: disableMultipart,
 	}
 }
