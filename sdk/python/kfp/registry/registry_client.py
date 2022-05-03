@@ -66,7 +66,8 @@ class RegistryClient:
         self,
         host: str,
         auth: Optional[Union[requests.auth.AuthBase,
-                             credentials.Credentials]] = None) -> None:
+                             credentials.Credentials]] = None
+    ) -> None:
         """RegistryClient initialization.
 
         Args:
