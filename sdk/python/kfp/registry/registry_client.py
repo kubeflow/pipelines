@@ -16,7 +16,7 @@
 import json
 import logging
 import re
-from typing import List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import google.auth
 import requests
@@ -33,27 +33,46 @@ _DEFAULT_JSON_HEADER = {
 
 
 class _SafeDict(dict):
+    """Class for safely handling missing keys in .format_map."""
 
     def __missing__(self, key: str) -> str:
+        """Handle missing keys by adding them back.
+
+        Args:
+            key: The key itself.
+
+        Returns:
+            The key with curly braces.
+        """
         return '{' + key + '}'
 
 
 class ApiAuth(requests.auth.AuthBase):
+    """Class for authentication using API token."""
 
     def __init__(self, token: str) -> None:
         self._token = token
 
-    def __call__(self, request: requests.Request) -> requests.Request:
+    def __call__(self,
+                 request: requests.PreparedRequest) -> requests.PreparedRequest:
         request.headers['authorization'] = 'Bearer ' + self._token
         return request
 
 
 class RegistryClient:
+    """Registry Client class for communicating with registry hosts."""
 
-    def __init__(self,
-                 host: str,
-                 auth: Optional[Union[requests.auth.AuthBase,
-                                      Credentials]] = None) -> None:
+    def __init__(
+        self,
+        host: str,
+        auth: Optional[Union[requests.auth.AuthBase,
+                             Credentials]] = None) -> None:
+        """RegistryClient initialization.
+
+        Args:
+            host: The address of the registry host.
+            auth: Authentication using python requests or google.auth credentials.
+        """
         self._host = host.rstrip('/')
         self._known_host_key = ''
         for key in _KNOWN_HOSTS_REGEX.keys():
@@ -71,7 +90,17 @@ class RegistryClient:
                  request_body: str = '',
                  http_request: str = 'get',
                  extra_headers: dict = None) -> requests.Response:
-        """Call the HTTP request."""
+        """Call the HTTP request.
+
+        Args:
+            request_url: The address of the API endpoint to send the request to.
+            request_body: Body of the request.
+            http_request: Type of HTTP request (post, get, delete etc, defaults to get).
+            extra_headers: Any extra headers required.
+
+        Returns:
+            Response from the request.
+        """
         self._refresh_creds()
         auth = self._get_auth()
         http_request_fn = getattr(requests, http_request)
@@ -86,12 +115,27 @@ class RegistryClient:
         return response
 
     def _is_ar_host(self) -> bool:
+        """Checks if the host is on Artifact Registry.
+
+        Returns:
+            Whether the host is on Artifact Registry.
+        """
         return self._known_host_key == 'kfp_pkg_dev'
 
     def _is_known_host(self) -> bool:
+        """Checks if the host is a known host.
+
+        Returns:
+            Whether the host is a known host.
+        """
         return bool(self._known_host_key)
 
     def load_config(self) -> dict:
+        """Loads the config.
+
+        Returns:
+            The loaded config if it's a known host, otherwise None.
+        """
         config = {}
         if self._is_ar_host():
             repo_resource_format = ''
@@ -153,12 +197,19 @@ class RegistryClient:
         return config
 
     def _get_auth(self) -> requests.auth.AuthBase:
+        """Helper function to convert google credentials to AuthBase class if
+        needed.
+
+        Returns:
+            An instance of the AuthBase class
+        """
         auth = self._auth
         if isinstance(auth, Credentials):
             auth = ApiAuth(auth.token)
         return auth
 
     def _refresh_creds(self) -> None:
+        """Helper function to refresh google credentials if needed."""
         if self._is_ar_host() and isinstance(
                 self._auth, Credentials) and not self._auth.valid:
             self._auth.refresh(google.auth.transport.requests.Request())
@@ -166,6 +217,16 @@ class RegistryClient:
     def upload_pipeline(self, file_name: str, tags: Optional[Union[str,
                                                                    List[str]]],
                         extra_headers: Optional[dict]) -> Tuple[str, str]:
+        """Upload the pipeline.
+
+        Args:
+            file_name: The name of the file to be uploaded.
+            tags: Tags to be attached to the uploaded pipeline.
+            extra_headers: Any extra headers required.
+
+        Returns:
+            A tuple representing the package name and the version
+        """
         url = self._config['upload_url']
         self._refresh_creds()
         auth = self._get_auth()
@@ -192,6 +253,17 @@ class RegistryClient:
                           package_name: str,
                           version: Optional[str] = None,
                           tag: Optional[str] = None) -> str:
+        """Get the download url based on version or tag (either one must be
+        specified).
+
+        Args:
+            package_name: Name of the package.
+            version: Version of the package.
+            tag: Tag attached to the package.
+
+        Returns:
+            A url for downloading the package.
+        """
         if (not version) and (not tag):
             raise ValueError('Either version or tag must be specified.')
         if version:
@@ -211,6 +283,18 @@ class RegistryClient:
                           version: Optional[str] = None,
                           tag: Optional[str] = None,
                           file_name: str = None) -> str:
+        """Download a pipeline - either version or tag must be specified.
+
+        Args:
+            package_name: Name of the package.
+            version: Version of the package.
+            tag: Tag attached to the package.
+            file_name: File name to be saved as. If not specified, the 
+                file name will be based on the package name and version/tag.
+
+        Returns:
+            The file name of the downloaded pipeline.
+        """
         url = self._get_download_url(package_name, version, tag)
         response = self._request(request_url=url)
 
@@ -228,12 +312,25 @@ class RegistryClient:
         return file_name
 
     def get_package(self, package_name: str) -> Dict[str, Any]:
+        """Get package metadata.
+
+        Args:
+            package_name: Name of the package.
+
+        Returns:
+            The package metadata.
+        """
         url = self._config['get_package_url'].format(package_name=package_name)
         response = self._request(request_url=url)
 
         return response.json()
 
     def list_packages(self) -> List[dict]:
+        """List packages.
+
+        Returns:
+            List of packages in the repository.
+        """
         url = self._config['list_packages_url']
         response = self._request(request_url=url)
         response_json = response.json()
@@ -241,6 +338,14 @@ class RegistryClient:
         return response_json['packages']
 
     def delete_package(self, package_name: str) -> bool:
+        """Delete a package.
+
+        Args:
+            package_name: Name of the package.
+
+        Returns:
+            Whether the package was deleted successfully.
+        """
         url = self._config['delete_package_url'].format(
             package_name=package_name)
         response = self._request(request_url=url, http_request='delete')
@@ -249,6 +354,15 @@ class RegistryClient:
         return response_json['done']
 
     def get_version(self, package_name: str, version: str) -> Dict[str, Any]:
+        """Get package version metadata.
+
+        Args:
+            package_name: Name of the package.
+            version: Version of the package.
+
+        Returns:
+            The version metadata.
+        """
         url = self._config['get_version_url'].format(
             package_name=package_name, version=version)
         response = self._request(request_url=url)
@@ -256,6 +370,14 @@ class RegistryClient:
         return response.json()
 
     def list_versions(self, package_name: str) -> List[dict]:
+        """List package versions.
+
+        Args:
+            package_name: Name of the package.
+
+        Returns:
+            List of package versions.
+        """
         url = self._config['list_versions_url'].format(
             package_name=package_name)
         response = self._request(request_url=url)
@@ -264,6 +386,15 @@ class RegistryClient:
         return response_json['versions']
 
     def delete_version(self, package_name: str, version: str) -> bool:
+        """Delete package version.
+
+        Args:
+            package_name: Name of the package.
+            version: Version of the package.
+
+        Returns:
+            Whether the version was deleted successfully.
+        """
         url = self._config['delete_version_url'].format(
             package_name=package_name, version=version)
         response = self._request(request_url=url, http_request='delete')
@@ -271,7 +402,18 @@ class RegistryClient:
 
         return response_json['done']
 
-    def create_tag(self, package_name: str, version: str, tag: str) -> Dict[str, Any]:
+    def create_tag(self, package_name: str, version: str,
+                   tag: str) -> Dict[str, Any]:
+        """Create a tag on a package version.
+
+        Args:
+            package_name: Name of the package.
+            version: Version of the package.
+            tag: Tag to be attached to the package version.
+
+        Returns:
+            The metadata for the created tag.
+        """
         url = self._config['create_tag_url'].format(
             package_name=package_name, tag=tag)
         new_tag = {
@@ -290,13 +432,33 @@ class RegistryClient:
         return response.json()
 
     def get_tag(self, package_name: str, tag: str) -> Dict[str, Any]:
+        """Get tag metadata.
+
+        Args:
+            package_name: Name of the package.
+            tag: Tag attached to the package version.
+
+        Returns:
+            The metadata for the tag.
+        """
         url = self._config['get_tag_url'].format(
             package_name=package_name, tag=tag)
         response = self._request(request_url=url)
 
         return response.json()
 
-    def update_tag(self, package_name: str, version: str, tag: str) -> Dict[str, Any]:
+    def update_tag(self, package_name: str, version: str,
+                   tag: str) -> Dict[str, Any]:
+        """Update a tag to another package version.
+
+        Args:
+            package_name: Name of the package.
+            version: Version of the package.
+            tag: Tag to be attached to the new package version.
+
+        Returns:
+            The metadata for the updated tag.
+        """
         url = self._config['update_tag_url'].format(
             package_name=package_name, tag=tag)
         new_tag = {
@@ -315,6 +477,14 @@ class RegistryClient:
         return response.json()
 
     def list_tags(self, package_name: str) -> List[dict]:
+        """List package tags.
+
+        Args:
+            package_name: Name of the package.
+
+        Returns:
+            List of tags.
+        """
         url = self._config['list_tags_url'].format(package_name=package_name)
         response = self._request(request_url=url)
         response_json = response.json()
@@ -322,6 +492,15 @@ class RegistryClient:
         return response_json['tags']
 
     def delete_tag(self, package_name: str, tag: str) -> Dict[str, Any]:
+        """Delete package tag.
+
+        Args:
+            package_name: Name of the package.
+            tag: Tag to be deleted.
+
+        Returns:
+            Response from the delete request.
+        """
         url = self._config['delete_tag_url'].format(
             package_name=package_name, tag=tag)
         response = self._request(request_url=url, http_request='delete')
