@@ -18,11 +18,19 @@ import kfp.deprecated as kfp
 import kfp_server_api
 from .loop_static import my_pipeline
 from .loop_static_v2 import my_pipeline as my_pipeline_v2
-from kfp.samples.test.utils import KfpTask, debug_verify, run_pipeline_func, TestCase
+from kfp.samples.test.utils import KfpTask, run_pipeline_func, TestCase
 
+
+def obj_to_string(obj, extra='    '):
+    return str(obj.__class__) + '\n' + '\n'.join(
+        (extra + (str(item) + ' = ' +
+                  (obj_to_string(obj.__dict__[item], extra + '    ') if hasattr(obj.__dict__[item], '__dict__') else str(
+                      obj.__dict__[item])))
+         for item in sorted(obj.__dict__)))
 
 def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
            tasks: dict[str, KfpTask], **kwargs):
+    print(obj_to_string(tasks))
     t.assertEqual(run.status, 'Succeeded')
     # assert DAG structure
     t.assertCountEqual(['print-op', 'for-loop-1'], tasks.keys())
