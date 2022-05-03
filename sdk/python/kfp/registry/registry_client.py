@@ -13,14 +13,14 @@
 # limitations under the License.
 """Class for KFP Registry Client."""
 
+import json
 import logging
+import re
+from typing import Any, List, Optional, Tuple, Union
 
 import google.auth
-import json
 import requests
-import re
 from google.auth.credentials import Credentials
-from typing import Any, Optional, List, Tuple, Union
 
 _KNOWN_HOSTS_REGEX = {
     "kfp_pkg_dev":
@@ -71,7 +71,7 @@ class RegistryClient:
                  request_body: str = '',
                  http_request: str = 'get',
                  extra_headers: dict = None) -> Any:
-        """Call the HTTP request"""
+        """Call the HTTP request."""
         self._refresh_creds()
         auth = self._get_auth()
         http_request_fn = getattr(requests, http_request)

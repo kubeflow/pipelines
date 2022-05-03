@@ -13,12 +13,13 @@
 # limitations under the License.
 """Tests for KFP Registry RegistryClient."""
 
-import json
-import mock
 import builtins
+import json
 
+import mock
 from absl.testing import parameterized
-from kfp.registry import RegistryClient, ApiAuth
+from kfp.registry import ApiAuth
+from kfp.registry import RegistryClient
 
 _DEFAULT_HOST = 'https://us-central1-kfp.pkg.dev/proj/repo'
 
