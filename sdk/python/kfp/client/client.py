@@ -202,7 +202,7 @@ class Client:
             ssl_ca_cert: Optional[str], kube_context: Optional[str],
             credentials: Optional[str],
             verify_ssl: Optional[bool]) -> kfp_server_api.Configuration:
-        config = kfp_server_api.configuration.Configuration()
+        config = kfp_server_api.Configuration()
 
         if proxy:
             # https://github.com/kubeflow/pipelines/blob/c6ac5e0b1fd991e19e96419f0f508ec0a4217c29/backend/api/python_http_client/kfp_server_api/rest.py#L100
@@ -334,7 +334,7 @@ class Client:
         # In-cluster pod. We could use relative URL.
         return '/pipeline'
 
-    def _load_context_setting_or_default(self) -> dict:
+    def _load_context_setting_or_default(self) -> None:
         if os.path.exists(Client.LOCAL_KFP_CONTEXT):
             with open(Client.LOCAL_KFP_CONTEXT, 'r') as f:
                 self._context_setting = json.load(f)
@@ -351,7 +351,9 @@ class Client:
         new_token = auth.get_gcp_access_token()
         self._existing_config.api_key['authorization'] = new_token
 
-    def _get_config_with_default_credentials(self, config: dict) -> dict:
+    def _get_config_with_default_credentials(
+            self, config: kfp_server_api.Configuration
+    ) -> kfp_server_api.Configuration:
         """Apply default credentials to the configuration object.
 
         This method accepts a Configuration object and extends it with
@@ -362,6 +364,8 @@ class Client:
         # implement more and more credentials, we can have some heuristic and
         # choose from a number of options.
         # See https://github.com/kubeflow/pipelines/pull/5287#issuecomment-805654121
+
+        # TODO: auth.ServiceAccountCredentials does not exist... dead code path?
         credentials = auth.ServiceAccountTokenVolumeCredentials()
         config_copy = copy.deepcopy(config)
 
@@ -669,7 +673,8 @@ class Client:
             with tarfile.open(package_file, 'r:gz') as tar:
                 file_names = [member.name for member in tar if member.isfile()]
                 pipeline_file = _choose_pipeline_file(file_names)
-                with tar.extractfile(tar.getmember(pipeline_file)) as f:
+                with tar.extractfile(
+                        tar.getmember(pipeline_file)) as f:  # type: ignore
                     return yaml.safe_load(f)
         elif package_file.endswith('.zip'):
             with zipfile.ZipFile(package_file, 'r') as zip:
@@ -684,7 +689,7 @@ class Client:
                 f'The package_file {package_file} should end with one of the '
                 'following formats: [.tar.gz, .tgz, .zip, .yaml, .yml].')
 
-    def _override_caching_options(self, workflow: dict,
+    def _override_caching_options(self, workflow: str,
                                   enable_caching: bool) -> None:
         raise NotImplementedError('enable_caching is not supported yet.')
 
@@ -732,11 +737,11 @@ class Client:
         experiment_id: str,
         job_name: str,
         pipeline_package_path: Optional[str] = None,
-        params: Optional[dict] = None,
+        params: Optional[Mapping[str, Any]] = None,
         pipeline_id: Optional[str] = None,
         version_id: Optional[str] = None,
         pipeline_root: Optional[str] = None,
-        enable_caching: Optional[str] = None,
+        enable_caching: Optional[bool] = None,
         service_account: Optional[str] = None,
     ) -> kfp_server_api.ApiRun:
         """Runs a specified pipeline.
@@ -943,7 +948,7 @@ class Client:
     def _create_job_config(
         self,
         experiment_id: str,
-        params: Optional[dict],
+        params: Optional[Mapping[str, Any]],
         pipeline_package_path: Optional[str],
         pipeline_id: Optional[str],
         version_id: Optional[str],
@@ -1567,7 +1572,7 @@ def _add_generated_apis(target_struct: Any, api_module: ModuleType,
     """
     Struct = type('Struct', (), {})
 
-    def camel_case_to_snake_case(name):
+    def camel_case_to_snake_case(name: str) -> str:
         return re.sub('([a-z0-9])([A-Z])', r'\1_\2', name).lower()
 
     for api_name in dir(api_module):
