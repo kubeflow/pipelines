@@ -451,7 +451,7 @@ class Client:
                 For multi user, input a namespace where the user is authorized.
 
         Returns:
-            An Experiment object. Most important field is id.
+            kfp_server_api.ApiExperiment: ApiExperiment object.
         """
         namespace = namespace or self.get_user_namespace()
         experiment = None
@@ -548,7 +548,7 @@ class Client:
                     })
 
         Returns:
-            A response object including a list of experiments and next page token.
+            kfp_server_api.ApiListExperimentsResponse: ApiListExperimentsResponse object.
         """
         namespace = namespace or self.get_user_namespace()
         response = self._experiment_api.list_experiment(
@@ -577,7 +577,7 @@ class Client:
                 For multi user, input the namespace where the user is authorized.
 
         Returns:
-            A response object including details of a experiment.
+            kfp_server_api.ApiExperiment: ApiExperiment object.
 
         Raises:
             kfp_server_api.ApiException: If experiment is not found or None of
@@ -723,7 +723,7 @@ class Client:
                     })
 
         Returns:
-            A response object including a list of pipelines and next page token.
+            kfp_server_api.ApiListPipelinesResponse: ApiListPipelinesResponse object.
         """
         return self._pipelines_api.list_pipelines(
             page_token=page_token,
@@ -771,7 +771,7 @@ class Client:
                 account this run uses.
 
         Returns:
-            A run object. Most important field is id.
+            kfp_server_api.ApiRun: ApiRun object.
         """
         if params is None:
             params = {}
@@ -900,7 +900,7 @@ class Client:
             service_account (Optional): Specifies which Kubernetes service
                 account this recurring run uses.
         Returns:
-            A Job object. Most important field is id.
+            kfp_server_api.ApiJob: ApiJob object.
 
         Raises:
             ValueError: If required parameters are not supplied.
@@ -977,7 +977,7 @@ class Client:
             pipeline_root: The root path of the pipeline outputs.
 
         Returns:
-            A JobConfig object with attributes spec and resource_reference.
+            JobConfig: A JobConfig object with attributes .spec and .resource_reference.
         """
 
         params = params or {}
@@ -1052,6 +1052,9 @@ class Client:
                 compile time settings).
             service_account (Optional): Specifies which Kubernetes service
                 account this run uses.
+
+        Returns:
+            RunPipelineResult: RunPipelineResult object containing information about the pipeline run.
         """
         #TODO: Check arguments against the pipeline function
         pipeline_name = pipeline_func.__name__
@@ -1109,6 +1112,9 @@ class Client:
                 compile time settings).
             service_account (Optional): Specifies which Kubernetes service
                 account this run uses.
+
+        Returns:
+            RunPipelineResult: RunPipelineResult object containing information about the pipeline run.
         """
 
         #TODO: Check arguments against the pipeline function
@@ -1215,7 +1221,7 @@ class Client:
                     })
 
           Returns:
-              A response object including a list of experiments and next page token.
+              kfp_server_api.ApiListRunsResponse: ApiListRunsResponse object.
         """
         namespace = namespace or self.get_user_namespace()
         if experiment_id is not None:
@@ -1275,8 +1281,7 @@ class Client:
                     })
 
         Returns:
-            A response object including a list of recurring_runs and next page
-            token.
+            kfp_server_api.ApiListJobsResponse: ApiListJobsResponse object.
         """
         if experiment_id is not None:
             response = self._job_api.list_jobs(
@@ -1302,7 +1307,7 @@ class Client:
             job_id: id of the recurring_run.
 
         Returns:
-            A response object including details of a recurring_run.
+            kfp_server_api.ApiJob: ApiJob object.
 
         Raises:
             kfp_server_api.ApiException: If recurring_run is not found.
@@ -1316,7 +1321,7 @@ class Client:
             run_id: id of the run.
 
         Returns:
-            A response object including details of a run.
+            kfp_server_api.ApiRun: ApiRun object.
 
         Raises:
             kfp_server_api.ApiException: If run is not found.
@@ -1332,8 +1337,7 @@ class Client:
             timeout: Timeout in seconds.
 
         Returns:
-            A run detail object: Most important fields are run and
-            pipeline_runtime.
+            kfp_server_api.ApiRun: ApiRun object.
 
         Raises:
             TimeoutError: if the pipeline run failed to finish before the
@@ -1374,7 +1378,7 @@ class Client:
             run_id: run id, returned from run_pipeline.
 
         Returns:
-            workflow: Json workflow
+            Workflow JSON.
         """
         get_run_response = self._run_api.get_run(run_id=run_id)
         workflow = get_run_response.pipeline_runtime.workflow_manifest
@@ -1396,7 +1400,7 @@ class Client:
                 the UI.
 
         Returns:
-            Server response object containing pipleine id and other information.
+            kfp_server_api.ApiPipeline: ApiPipeline object.
         """
 
         response = self._upload_api.upload_pipeline(
@@ -1427,7 +1431,7 @@ class Client:
                 shown in the UI.
 
         Returns:
-            Server response object containing pipleine id and other information.
+            kfp_server_api.ApiPipelineVersion: ApiPipelineVersion object.
 
         Raises:
             ValueError: when none or both of pipeline_id or pipeline_name are
@@ -1465,7 +1469,7 @@ class Client:
             pipeline_id: id of the pipeline.
 
         Returns:
-            A response object including details of a pipeline.
+            kfp_server_api.ApiPipeline: ApiPipeline object.
 
         Raises:
             kfp_server_api.ApiException: If pipeline is not found.
@@ -1518,7 +1522,7 @@ class Client:
                     })
 
         Returns:
-            A response object including a list of versions and next page token.
+            kfp_server_api.ApiListPipelineVersionsResponse: ApiListPipelineVersionsResponse object.
 
         Raises:
             kfp_server_api.ApiException: If pipeline is not found.
@@ -1540,7 +1544,7 @@ class Client:
             version_id: id of the pipeline version.
 
         Returns:
-            kfp_server_api.ApiPipelineVersion: A Pipeline Version object.
+            kfp_server_api.ApiPipelineVersion: ApiPipelineVersion object.
 
         Raises:
             kfp_server_api.ApiException: If pipeline version is not found.
@@ -1554,7 +1558,7 @@ class Client:
             version_id: id of the pipeline version.
 
         Returns:
-            Object.
+            dict: Empty dictionary.
 
         Raises:
             kfp_server_api.ApiException: If pipeline is not found.
