@@ -21,18 +21,8 @@ from .loop_static_v2 import my_pipeline as my_pipeline_v2
 from kfp.samples.test.utils import KfpTask, run_pipeline_func, TestCase
 
 
-def obj_to_string(obj, extra='    '):
-    return str(obj.__class__) + '\n' + '\n'.join(
-        (extra + (str(item) + ' = ' +
-                  (obj_to_string(obj[item], extra + '    ') if type(obj[item]) is dict  else str(
-                      obj[item])))
-         for item in sorted(obj.keys())))
-
 def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
            tasks: dict[str, KfpTask], **kwargs):
-    print("Line 33: tasks keys: ", tasks.keys())
-    print("Line 34: tasks fields: ", obj_to_string(tasks))
-    print("Line 35 direct print of tasks: ", tasks)
     t.assertEqual(run.status, 'Succeeded')
     # assert DAG structure
     t.assertCountEqual(['print-op', 'for-loop-2'], tasks.keys())
