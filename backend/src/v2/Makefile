@@ -63,7 +63,7 @@ dev: pipeline/v2/hello_world \
 	
 # pipeline/core/condition/condition_v2:
 # pipeline/core/loop_output/loop_output_v2:
-# pipeline/core/loop_static/loop_static_v2\
+# pipeline/core/loop_static/loop_static_v2:
 # pipeline/core/loop_parameter/loop_parameter_v2:
 # pipeline/core/resource_spec/resource_spec_v2:
 # TODO(v2): migrate v1 samples to v2.
