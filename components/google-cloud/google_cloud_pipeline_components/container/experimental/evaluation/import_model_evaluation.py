@@ -13,8 +13,8 @@
 # limitations under the License.
 """Module for importing a model evaluation to an existing Vertex model resource."""
 
-import sys
 import argparse
+import sys
 import json
 import six
 
@@ -31,8 +31,9 @@ PROBLEM_TYPE_TO_SCHEMA_URI = {
         'gs://google-cloud-aiplatform/schema/modelevaluation/forecasting_metrics_1.0.0.yaml',
 }
 
+
 def main(argv):
-  """Calls ModelService.ImportModelEvaluation"""
+  """Calls ModelService.ImportModelEvaluation."""
   parser = argparse.ArgumentParser(
       prog='Vertex Model Service evaluation importer', description='')
   parser.add_argument(
@@ -41,6 +42,11 @@ def main(argv):
       type=str,
       required=True,
       default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--metrics_explanation',
+      dest='metrics_explanation',
+      type=str,
+      default=None)
   parser.add_argument(
       '--explanation', dest='explanation', type=str, default=None)
   parser.add_argument(
@@ -75,6 +81,12 @@ def main(argv):
   if parsed_args.explanation:
     explanation_file_name = parsed_args.explanation if not parsed_args.explanation.startswith(
         'gs://') else '/gcs' + parsed_args.explanation[4:]
+  elif parsed_args.metrics_explanation:
+    explanation_file_name = parsed_args.metrics_explanation if not parsed_args.metrics_explanation.startswith(
+        'gs://') else '/gcs' + parsed_args.metrics_explanation[4:]
+  else:
+    explanation_file_name = None
+  if explanation_file_name:
     with open(explanation_file_name) as explanation_file:
       model_evaluation['model_explanation'] = {
           'mean_attributions': [{
