@@ -587,36 +587,36 @@ class Client:
                 f'Multiple experiments is found with name {experiment_name}.')
         return result.experiments[0]
 
-    def archive_experiment(self, experiment_id: str) -> None:
+    def archive_experiment(self, experiment_id: str) -> dict:
         """Archives an experiment.
 
         Args:
             experiment_id: id of the experiment.
 
         Returns:
-            None
+            dict: Empty dictionary.
         """
-        self._experiment_api.archive_experiment(id=experiment_id)
+        return self._experiment_api.archive_experiment(id=experiment_id)
 
-    def unarchive_experiment(self, experiment_id: str) -> None:
+    def unarchive_experiment(self, experiment_id: str) -> dict:
         """Unarchives an experiment.
 
         Args:
             experiment_id: id of the experiment.
 
         Returns:
-            None
+            dict: Empty dictionary.
         """
-        self._experiment_api.unarchive_experiment(id=experiment_id)
+        return self._experiment_api.unarchive_experiment(id=experiment_id)
 
-    def delete_experiment(self, experiment_id: str):
+    def delete_experiment(self, experiment_id: str) -> dict:
         """Delete experiment.
 
         Args:
             experiment_id: id of the experiment.
 
         Returns:
-            If the method is called asynchronously, returns the request thread.
+            dict: Empty dictionary.
 
         Raises:
             kfp_server_api.ApiException: If experiment is not found.
@@ -773,36 +773,36 @@ class Client:
             IPython.display.display(IPython.display.HTML(html))
         return response.run
 
-    def archive_run(self, run_id: str) -> None:
+    def archive_run(self, run_id: str) -> dict:
         """Archives a run.
 
         Args:
             run_id: id of the run.
 
         Returns:
-            None
+            dict: Empty dictionary.
         """
-        self._run_api.archive_run(id=run_id)
+        return self._run_api.archive_run(id=run_id)
 
-    def unarchive_run(self, run_id: str) -> None:
+    def unarchive_run(self, run_id: str) -> dict:
         """Restores an archived run.
 
         Args:
             run_id: id of the run.
 
         Returns:
-            None
+            dict: Empty dictionary.
         """
-        self._run_api.unarchive_run(id=run_id)
+        return self._run_api.unarchive_run(id=run_id)
 
-    def delete_run(self, run_id: str):
+    def delete_run(self, run_id: str) -> dict:
         """Deletes a run.
 
         Args:
             run_id: id of the run.
 
         Returns:
-            Object.
+            dict: Empty dictionary.
         """
         return self._run_api.delete_run(id=run_id)
 
@@ -1133,42 +1133,42 @@ class Client:
         )
         return RunPipelineResult(self, run_info)
 
-    def delete_job(self, job_id: str):
+    def delete_job(self, job_id: str) -> dict:
         """Deletes a job.
 
         Args:
             job_id: id of the job.
 
         Returns:
-            Object.
+            dict: Empty dictionary.
 
         Raises:
             kfp_server_api.ApiException: If the job is not found.
         """
         return self._job_api.delete_job(id=job_id)
 
-    def disable_job(self, job_id: str):
+    def disable_job(self, job_id: str) -> dict:
         """Disables a job.
 
         Args:
             job_id: id of the job.
 
         Returns:
-            Object.
+            dict: Empty dictionary.
 
         Raises:
             kfp_server_api.ApiException: If the job is not found.
         """
         return self._job_api.disable_job(id=job_id)
 
-    def enable_job(self, job_id: str):
+    def enable_job(self, job_id: str) -> dict:
         """Enables a job.
 
         Args:
             job_id: id of the job.
 
         Returns:
-            Object.
+            dict: Empty dictionary.
 
         Raises:
             kfp_server_api.ApiException: If the job is not found.
@@ -1466,14 +1466,14 @@ class Client:
         """
         return self._pipelines_api.get_pipeline(id=pipeline_id)
 
-    def delete_pipeline(self, pipeline_id):
+    def delete_pipeline(self, pipeline_id) -> dict:
         """Deletes a pipeline.
 
         Args:
             pipeline_id: id of the pipeline.
 
         Returns:
-            Object.
+            dict: Empty dictionary.
 
         Raises:
             kfp_server_api.ApiException: If pipeline is not found.
@@ -1528,23 +1528,21 @@ class Client:
             filter=filter)
 
     def get_pipeline_version(
-        self, version_id: str
-    ) -> kfp_server_api.models.api_pipeline_version.ApiPipelineVersion:
+            self, version_id: str) -> kfp_server_api.ApiPipelineVersion:
         """Gets a pipeline version.
 
         Args:
             version_id: id of the pipeline version.
 
         Returns:
-            Object. If the method is called asynchronously, returns the request
-            thread.
+            kfp_server_api.ApiPipelineVersion: A Pipeline Version object.
 
         Raises:
             kfp_server_api.ApiException: If pipeline version is not found.
         """
         return self._pipelines_api.get_pipeline_version(version_id=version_id)
 
-    def delete_pipeline_version(self, version_id: str):
+    def delete_pipeline_version(self, version_id: str) -> dict:
         """Deletes a pipeline version.
 
         Args:
