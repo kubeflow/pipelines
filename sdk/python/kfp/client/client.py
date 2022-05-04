@@ -34,13 +34,13 @@ from kfp.client import auth
 # Operators on scalar values. Only applies to one of |int_value|,
 # |long_value|, |string_value| or |timestamp_value|.
 _FILTER_OPERATIONS = {
-    "UNKNOWN": 0,
-    "EQUALS": 1,
-    "NOT_EQUALS": 2,
-    "GREATER_THAN": 3,
-    "GREATER_THAN_EQUALS": 5,
-    "LESS_THAN": 6,
-    "LESS_THAN_EQUALS": 7
+    'UNKNOWN': 0,
+    'EQUALS': 1,
+    'NOT_EQUALS': 2,
+    'GREATER_THAN': 3,
+    'GREATER_THAN_EQUALS': 5,
+    'LESS_THAN': 6,
+    'LESS_THAN_EQUALS': 7
 }
 
 KF_PIPELINES_ENDPOINT_ENV = 'KF_PIPELINES_ENDPOINT'
@@ -194,8 +194,8 @@ class Client:
         # Defaults to 'https' if host does not contain 'http' or 'https' protocol.
         if host and not host.startswith('http'):
             warnings.warn(
-                'The host %s does not contain the "http" or "https" protocol.'
-                ' Defaults to "https".' % host)
+                f'The host {host} does not contain the "http" or "https" protocol. Defaults to "https".'
+            )
             host = 'https://' + host
 
         # Preprocess the host endpoint to prevent some common user mistakes.
@@ -344,8 +344,8 @@ class Client:
         try:
             credentials.refresh_api_key_hook(config_copy)
         except Exception:
-            logging.warning("Failed to set up default credentials. Proceeding"
-                            " without credentials...")
+            logging.warning('Failed to set up default credentials. Proceeding'
+                            ' without credentials...')
             return config
 
         config.refresh_api_key_hook = credentials.refresh_api_key_hook
@@ -384,8 +384,9 @@ class Client:
             count += 1
             if count > max_attempts:
                 raise TimeoutError(
-                    'Failed getting healthz endpoint after {} attempts.'.format(
-                        max_attempts))
+                    f'Failed getting healthz endpoint after {max_attempts} attempts.'
+                )
+
             try:
                 response = self._healthz_api.get_healthz()
                 return response
@@ -394,7 +395,7 @@ class Client:
             except kfp_server_api.ApiException:
                 # logging.exception also logs detailed info about the ApiException
                 logging.exception(
-                    'Failed to get healthz info attempt {} of 5.'.format(count))
+                    f'Failed to get healthz info attempt {count} of 5.')
                 time.sleep(5)
 
     def get_user_namespace(self) -> str:
@@ -435,7 +436,7 @@ class Client:
                 raise error
 
         if not experiment:
-            logging.info('Creating experiment %s.' % name)
+            logging.info(f'Creating experiment {name}.')
 
             resource_references = []
             if namespace:
@@ -456,8 +457,7 @@ class Client:
         if self._is_ipython():
             import IPython
             html = \
-                ('<a href="%s/#/experiments/details/%s" target="_blank" >Experiment details</a>.'
-                % (self._get_url_prefix(), experiment.id))
+                f'<a href="{self._get_url_prefix()}/#/experiments/details/{experiment.id}" target="_blank" >Experiment details</a>.'
             IPython.display.display(IPython.display.HTML(html))
         return experiment
 
@@ -471,10 +471,10 @@ class Client:
             The pipeline id if a pipeline with the name exists.
         """
         pipeline_filter = json.dumps({
-            "predicates": [{
-                "op": _FILTER_OPERATIONS["EQUALS"],
-                "key": "name",
-                "stringValue": name,
+            'predicates': [{
+                'op': _FILTER_OPERATIONS['EQUALS'],
+                'key': 'name',
+                'stringValue': name,
             }]
         })
         result = self._pipelines_api.list_pipelines(filter=pipeline_filter)
@@ -484,8 +484,8 @@ class Client:
             return result.pipelines[0].id
         elif len(result.pipelines) > 1:
             raise ValueError(
-                "Multiple pipelines with the name: {} found, the name needs to be unique"
-                .format(name))
+                f'Multiple pipelines with the name: {name} found, the name needs to be unique'
+            )
         return None
 
     def list_experiments(
@@ -564,10 +564,10 @@ class Client:
         if experiment_id is not None:
             return self._experiment_api.get_experiment(id=experiment_id)
         experiment_filter = json.dumps({
-            "predicates": [{
-                "op": _FILTER_OPERATIONS["EQUALS"],
-                "key": "name",
-                "stringValue": experiment_name,
+            'predicates': [{
+                'op': _FILTER_OPERATIONS['EQUALS'],
+                'key': 'name',
+                'stringValue': experiment_name,
             }]
         })
         if namespace:
@@ -581,11 +581,10 @@ class Client:
                 filter=experiment_filter)
         if not result.experiments:
             raise ValueError(
-                'No experiment is found with name {}.'.format(experiment_name))
+                f'No experiment is found with name {experiment_name}.')
         if len(result.experiments) > 1:
             raise ValueError(
-                'Multiple experiments is found with name {}.'.format(
-                    experiment_name))
+                f'Multiple experiments is found with name {experiment_name}.')
         return result.experiments[0]
 
     def archive_experiment(self, experiment_id: str) -> None:
@@ -630,7 +629,7 @@ class Client:
             pipeline_files = [
                 file for file in file_list if file.endswith('.yaml')
             ]
-            if len(pipeline_files) == 0:
+            if not pipeline_files:
                 raise ValueError(
                     'Invalid package. Missing pipeline yaml file in the package.'
                 )
@@ -645,7 +644,7 @@ class Client:
                     'are multiple yaml files.')
 
         if package_file.endswith('.tar.gz') or package_file.endswith('.tgz'):
-            with tarfile.open(package_file, "r:gz") as tar:
+            with tarfile.open(package_file, 'r:gz') as tar:
                 file_names = [member.name for member in tar if member.isfile()]
                 pipeline_file = _choose_pipeline_file(file_names)
                 with tar.extractfile(tar.getmember(pipeline_file)) as f:
@@ -769,8 +768,8 @@ class Client:
         if self._is_ipython():
             import IPython
             html = (
-                '<a href="%s/#/runs/details/%s" target="_blank" >Run details</a>.'
-                % (self._get_url_prefix(), response.run.id))
+                f'<a href="{self._get_url_prefix()}/#/runs/details/{response.run.id}" target="_blank" >Run details</a>.'
+            )
             IPython.display.display(IPython.display.HTML(html))
         return response.run
 
@@ -1105,7 +1104,7 @@ class Client:
                     self.run_id, timeout)
 
             def __repr__(self):
-                return 'RunPipelineResult(run_id={})'.format(self.run_id)
+                return f'RunPipelineResult(run_id={self.run_id})'
 
         #TODO: Check arguments against the pipeline function
         pipeline_name = os.path.basename(pipeline_file)
@@ -1114,8 +1113,9 @@ class Client:
         overridden_experiment_name = os.environ.get(
             KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME, experiment_name)
         if overridden_experiment_name != experiment_name:
-            warnings.warn('Changing experiment name from "{}" to "{}".'.format(
-                experiment_name, overridden_experiment_name))
+            warnings.warn(
+                f'Changing experiment name from "{experiment_name}" to "{overridden_experiment_name}".'
+            )
         experiment_name = overridden_experiment_name or 'Default'
         run_name = run_name or (
             pipeline_name + ' ' +
@@ -1397,8 +1397,7 @@ class Client:
             pipeline_package_path, name=pipeline_name, description=description)
         if self._is_ipython():
             import IPython
-            html = '<a href=%s/#/pipelines/details/%s>Pipeline details</a>.' % (
-                self._get_url_prefix(), response.id)
+            html = f'<a href={self._get_url_prefix()}/#/pipelines/details/{response.id}>Pipeline details</a>.'
             IPython.display.display(IPython.display.HTML(html))
         return response
 
@@ -1449,8 +1448,7 @@ class Client:
 
         if self._is_ipython():
             import IPython
-            html = '<a href=%s/#/pipelines/details/%s>Pipeline details</a>.' % (
-                self._get_url_prefix(), response.id)
+            html = f'<a href={self._get_url_prefix()}/#/pipelines/details/{response.id}>Pipeline details</a>.'
             IPython.display.display(IPython.display.HTML(html))
         return response
 
