@@ -24,7 +24,8 @@ import tempfile
 import time
 import warnings
 import zipfile
-from typing import Any, Callable, Mapping, Optional
+from types import ModuleType
+from typing import Any, Callable, List, Mapping, Optional
 
 import kfp_server_api
 import yaml
@@ -50,6 +51,32 @@ KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME = 'KF_PIPELINES_OVERRIDE_EXPERIMENT_NAME'
 KF_PIPELINES_IAP_OAUTH2_CLIENT_ID_ENV = 'KF_PIPELINES_IAP_OAUTH2_CLIENT_ID'
 KF_PIPELINES_APP_OAUTH2_CLIENT_ID_ENV = 'KF_PIPELINES_APP_OAUTH2_CLIENT_ID'
 KF_PIPELINES_APP_OAUTH2_CLIENT_SECRET_ENV = 'KF_PIPELINES_APP_OAUTH2_CLIENT_SECRET'
+
+
+class JobConfig:
+
+    def __init__(
+        self, spec: kfp_server_api.models.ApiPipelineSpec,
+        resource_references: kfp_server_api.models.ApiResourceReference
+    ) -> None:
+        self.spec = spec
+        self.resource_references = resource_references
+
+
+class RunPipelineResult:
+
+    def __init__(self, client: 'Client',
+                 run_info: kfp_server_api.ApiRun) -> None:
+        self._client = client
+        self.run_info = run_info
+        self.run_id = run_info.id
+
+    def wait_for_run_completion(self, timeout=None):
+        timeout = timeout or datetime.timedelta.max
+        return self._client.wait_for_run_completion(self.run_id, timeout)
+
+    def __repr__(self):
+        return f'RunPipelineResult(run_id={self.run_id})'
 
 
 class Client:
@@ -113,7 +140,7 @@ class Client:
         credentials: Optional[str] = None,
         ui_host: Optional[str] = None,
         verify_ssl: Optional[bool] = None,
-    ):
+    ) -> None:
         """Create a new instance of kfp client."""
         warnings.warn(
             'This client only works with Kubeflow Pipeline v2.0.0-alpha.0 '
@@ -175,9 +202,13 @@ class Client:
                 logging.info(
                     'Failed to automatically set namespace.', exc_info=False)
 
-    def _load_config(self, host, client_id, namespace, other_client_id,
-                     other_client_secret, existing_token, proxy, ssl_ca_cert,
-                     kube_context, credentials, verify_ssl):
+    def _load_config(
+            self, host: Optional[str], client_id: Optional[str], namespace: str,
+            other_client_id: Optional[str], other_client_secret: Optional[str],
+            existing_token: Optional[str], proxy: Optional[str],
+            ssl_ca_cert: Optional[str], kube_context: Optional[str],
+            credentials: Optional[str],
+            verify_ssl: Optional[bool]) -> kfp_server_api.Configuration:
         config = kfp_server_api.configuration.Configuration()
 
         if proxy:
@@ -286,7 +317,7 @@ class Client:
             )
         return False
 
-    def _is_ipython(self):
+    def _is_ipython(self) -> bool:
         """Returns whether we are running in notebook."""
         try:
             import IPython
@@ -298,7 +329,7 @@ class Client:
 
         return True
 
-    def _get_url_prefix(self):
+    def _get_url_prefix(self) -> str:
         if self._uihost:
             # User's own connection.
             if self._uihost.startswith('http://') or self._uihost.startswith(
@@ -310,7 +341,7 @@ class Client:
         # In-cluster pod. We could use relative URL.
         return '/pipeline'
 
-    def _load_context_setting_or_default(self):
+    def _load_context_setting_or_default(self) -> dict:
         if os.path.exists(Client.LOCAL_KFP_CONTEXT):
             with open(Client.LOCAL_KFP_CONTEXT, 'r') as f:
                 self._context_setting = json.load(f)
@@ -319,7 +350,7 @@ class Client:
                 'namespace': '',
             }
 
-    def _refresh_api_client_token(self):
+    def _refresh_api_client_token(self) -> None:
         """Refreshes the existing token associated with the kfp_api_client."""
         if getattr(self, '_is_refresh_token', None):
             return
@@ -327,7 +358,7 @@ class Client:
         new_token = auth.get_gcp_access_token()
         self._existing_config.api_key['authorization'] = new_token
 
-    def _get_config_with_default_credentials(self, config):
+    def _get_config_with_default_credentials(self, config: dict) -> dict:
         """Apply default credentials to the configuration object.
 
         This method accepts a Configuration object and extends it with
@@ -623,9 +654,9 @@ class Client:
         """
         return self._experiment_api.delete_experiment(id=experiment_id)
 
-    def _extract_pipeline_yaml(self, package_file):
+    def _extract_pipeline_yaml(self, package_file: str) -> str:
 
-        def _choose_pipeline_file(file_list) -> str:
+        def _choose_pipeline_file(file_list: List[str]) -> str:
             pipeline_files = [
                 file for file in file_list if file.endswith('.yaml')
             ]
@@ -662,7 +693,8 @@ class Client:
                 f'The package_file {package_file} should end with one of the '
                 'following formats: [.tar.gz, .tgz, .zip, .yaml, .yml].')
 
-    def _override_caching_options(self, workflow: dict, enable_caching: bool):
+    def _override_caching_options(self, workflow: dict,
+                                  enable_caching: bool) -> None:
         raise NotImplementedError('enable_caching is not supported yet.')
 
     def list_pipelines(
@@ -926,7 +958,7 @@ class Client:
         version_id: Optional[str],
         enable_caching: Optional[bool],
         pipeline_root: Optional[str],
-    ):
+    ) -> JobConfig:
         """Creates a JobConfig with spec and resource_references.
 
         Args:
@@ -951,12 +983,6 @@ class Client:
         Returns:
             A JobConfig object with attributes spec and resource_reference.
         """
-
-        class JobConfig:
-
-            def __init__(self, spec, resource_references):
-                self.spec = spec
-                self.resource_references = resource_references
 
         params = params or {}
         pipeline_yaml_string = None
@@ -1008,7 +1034,7 @@ class Client:
         pipeline_root: Optional[str] = None,
         enable_caching: Optional[bool] = None,
         service_account: Optional[str] = None,
-    ):
+    ) -> RunPipelineResult:
         """Runs pipeline on KFP-enabled Kubernetes cluster.
 
         This command compiles the pipeline function, creates or gets an
@@ -1066,7 +1092,7 @@ class Client:
         pipeline_root: Optional[str] = None,
         enable_caching: Optional[bool] = None,
         service_account: Optional[str] = None,
-    ):
+    ) -> RunPipelineResult:
         """Runs pipeline on KFP-enabled Kubernetes cluster.
 
         This command takes a local pipeline package, creates or gets an
@@ -1090,21 +1116,6 @@ class Client:
             service_account (Optional): Specifies which Kubernetes service
                 account this run uses.
         """
-
-        class RunPipelineResult:
-
-            def __init__(self, client, run_info):
-                self._client = client
-                self.run_info = run_info
-                self.run_id = run_info.id
-
-            def wait_for_run_completion(self, timeout=None):
-                timeout = timeout or datetime.timedelta.max
-                return self._client.wait_for_run_completion(
-                    self.run_id, timeout)
-
-            def __repr__(self):
-                return f'RunPipelineResult(run_id={self.run_id})'
 
         #TODO: Check arguments against the pipeline function
         pipeline_name = os.path.basename(pipeline_file)
@@ -1318,7 +1329,8 @@ class Client:
         """
         return self._run_api.get_run(run_id=run_id)
 
-    def wait_for_run_completion(self, run_id: str, timeout: int):
+    def wait_for_run_completion(self, run_id: str,
+                                timeout: int) -> kfp_server_api.ApiRun:
         """Waits for a run to complete.
 
         Args:
@@ -1361,7 +1373,7 @@ class Client:
             time.sleep(5)
         return get_run_response
 
-    def _get_workflow_json(self, run_id):
+    def _get_workflow_json(self, run_id: str) -> dict:
         """Gets the workflow json.
 
         Args:
@@ -1403,7 +1415,7 @@ class Client:
 
     def upload_pipeline_version(
         self,
-        pipeline_package_path,
+        pipeline_package_path: str,
         pipeline_version_name: str,
         pipeline_id: Optional[str] = None,
         pipeline_name: Optional[str] = None,
@@ -1466,7 +1478,7 @@ class Client:
         """
         return self._pipelines_api.get_pipeline(id=pipeline_id)
 
-    def delete_pipeline(self, pipeline_id) -> dict:
+    def delete_pipeline(self, pipeline_id: str) -> dict:
         """Deletes a pipeline.
 
         Args:
@@ -1558,7 +1570,8 @@ class Client:
             version_id=version_id)
 
 
-def _add_generated_apis(target_struct, api_module, api_client):
+def _add_generated_apis(target_struct: Any, api_module: ModuleType,
+                        api_client: kfp_server_api.api_client.ApiClient):
     """Initializes a hierarchical API object based on the generated API module.
 
     PipelineServiceApi.create_pipeline becomes
@@ -1595,7 +1608,7 @@ def _add_generated_apis(target_struct, api_module, api_client):
 
 
 # TODO: merge with maybe_rename_for_k8s or not?
-def _sanitize_k8s_name(name: str):
+def _sanitize_k8s_name(name: str) -> str:
     """Cleans and converts the name for k8s requirements.
 
     Args:
