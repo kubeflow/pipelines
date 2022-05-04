@@ -88,7 +88,7 @@ func DeleteAllExperiments(client *api_server.ExperimentClient, namespace string,
 }
 
 func DeleteAllRuns(client *api_server.RunClient, namespace string, t *testing.T) {
-	runs, _, _, err := ListRuns(client, namespace)
+	runs, _, _, err := ListAllRuns(client, namespace)
 	assert.Nil(t, err)
 	for _, r := range runs {
 		assert.Nil(t, client.Delete(&runparams.DeleteRunParams{ID: r.ID}))
@@ -122,16 +122,10 @@ func ListPipelines(client *api_server.PipelineClient) (
 }
 
 func ListAllExperiment(client *api_server.ExperimentClient, namespace string) ([]*experiment_model.APIExperiment, int, string, error) {
-	return ListExperiment(client, nil, nil, nil, nil, namespace)
+	return ListExperiment(client, &experimentparams.ListExperimentParams{}, namespace)
 }
 
-func ListExperiment(client *api_server.ExperimentClient, filter *string, pageSize *int32, pageToken *string, sortBy *string, namespace string) ([]*experiment_model.APIExperiment, int, string, error) {
-	parameters := &experimentparams.ListExperimentParams{
-		Filter:    filter,
-		PageSize:  pageSize,
-		PageToken: pageToken,
-		SortBy:    sortBy,
-	}
+func ListExperiment(client *api_server.ExperimentClient, parameters *experimentparams.ListExperimentParams, namespace string) ([]*experiment_model.APIExperiment, int, string, error) {
 	if namespace != "" {
 		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
 		parameters.SetResourceReferenceKeyID(&namespace)
@@ -140,8 +134,12 @@ func ListExperiment(client *api_server.ExperimentClient, filter *string, pageSiz
 	return client.List(parameters)
 }
 
-func ListRuns(client *api_server.RunClient, namespace string) ([]*run_model.APIRun, int, string, error) {
+func ListAllRuns(client *api_server.RunClient, namespace string) ([]*run_model.APIRun, int, string, error) {
 	parameters := &runparams.ListRunsParams{}
+	return ListRuns(client, parameters, namespace)
+}
+
+func ListRuns(client *api_server.RunClient, parameters *runparams.ListRunsParams, namespace string) ([]*run_model.APIRun, int, string, error) {
 	if namespace != "" {
 		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
 		parameters.SetResourceReferenceKeyID(&namespace)
@@ -178,4 +176,12 @@ func GetExperiment(name string, description string, namespace string) *experimen
 	}
 
 	return experiment
+}
+
+func GetDefaultPipelineRunnerServiceAccount(isKubeflowMode bool) string {
+	if isKubeflowMode {
+		return "default-editor"
+	} else {
+		return "pipeline-runner"
+	}
 }
