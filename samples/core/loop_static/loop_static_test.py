@@ -32,9 +32,10 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
            tasks: dict[str, KfpTask], **kwargs):
     print("Line 33: tasks keys: ", tasks.keys())
     print("Line 34: tasks fields: ", obj_to_string(tasks))
+    print("Line 35 direct print of tasks: ", tasks)
     t.assertEqual(run.status, 'Succeeded')
     # assert DAG structure
-    t.assertCountEqual(['print-op', 'for-loop-1'], tasks.keys())
+    t.assertCountEqual(['print-op', 'for-loop-2'], tasks.keys())
     # assert all iteration parameters
     t.assertCountEqual(
         [{
@@ -46,14 +47,14 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
         }],
         [
             x.inputs
-            .parameters['pipelinechannel--static_loop_arguments-loop-item']
-            for x in tasks['for-loop-1'].children.values()
+            .parameters['pipelinechannel--loop-item-param-1']
+            for x in tasks['for-loop-2'].children.values()
         ],
     )
     # assert all iteration outputs
     t.assertCountEqual(['12', '1020'], [
         x.children['print-op-2'].outputs.parameters['Output']
-        for x in tasks['for-loop-1'].children.values()
+        for x in tasks['for-loop-2'].children.values()
     ])
 
 
