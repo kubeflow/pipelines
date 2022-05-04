@@ -1344,7 +1344,7 @@ class Client:
             try:
                 get_run_response = self._run_api.get_run(run_id=run_id)
                 is_valid_token = True
-            except kfp_api_server.ApiException as api_ex:
+            except kfp_server_api.ApiException as api_ex:
                 # if the token is valid but receiving 401 Unauthorized error
                 # then refresh the token
                 if is_valid_token and api_ex.status == 401:
