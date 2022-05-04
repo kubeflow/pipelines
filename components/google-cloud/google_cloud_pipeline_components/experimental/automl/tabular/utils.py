@@ -339,7 +339,9 @@ def get_feature_selection_skip_evaluation_pipeline_and_parameters(
     transform_dataflow_disk_size_gb: int = 40,
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
-    encryption_spec_key_name: str = '') -> Tuple[str, Dict[str, Any]]:
+    encryption_spec_key_name: str = '',
+    additional_experiments: Optional[Dict[str, Any]] = None
+) -> Tuple[str, Dict[str, Any]]:
   """Get the AutoML Tabular training pipeline that skips evaluation.
 
   Args:
@@ -432,13 +434,40 @@ def get_feature_selection_skip_evaluation_pipeline_and_parameters(
       transform_dataflow_disk_size_gb=transform_dataflow_disk_size_gb,
       dataflow_use_public_ips=dataflow_use_public_ips,
       dataflow_subnetwork=dataflow_subnetwork,
-      encryption_spec_key_name=encryption_spec_key_name)
+      encryption_spec_key_name=encryption_spec_key_name,
+      additional_experiments=additional_experiments)
 
   parameter_values['max_selected_features'] = max_selected_features
 
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
       'feature_selection_skip_evaluation_pipeline.json')
+  return pipeline_definition_path, parameter_values
+
+
+def get_feature_selection_tuning_skip_evaluation_pipeline_and_parameters(
+    *args,
+    max_selected_features: int,
+    **kwargs) -> Tuple[str, Dict[str, Any]]:
+  """Get the AutoML Tabular training pipeline that skips evaluation.
+
+  Args:
+    *args: All arguments in `get_skip_evaluation_pipeline_and_parameters`.
+    max_selected_features: number of features to be selected before stage 1
+      tuner.
+    **kwargs: All arguments in `get_skip_evaluation_pipeline_and_parameters`.
+
+  Returns:
+    Tuple of pipeline_definition_path and parameter_values.
+  """
+  _, parameter_values = get_skip_evaluation_pipeline_and_parameters(
+      *args, **kwargs)
+
+  parameter_values.update({'max_selected_features': max_selected_features})
+
+  pipeline_definition_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(),
+      'feature_selection_tuning_skip_evaluation_pipeline.json')
   return pipeline_definition_path, parameter_values
 
 
