@@ -56,9 +56,8 @@ KF_PIPELINES_APP_OAUTH2_CLIENT_SECRET_ENV = 'KF_PIPELINES_APP_OAUTH2_CLIENT_SECR
 class JobConfig:
 
     def __init__(
-        self, spec: kfp_server_api.models.ApiPipelineSpec,
-        resource_references: kfp_server_api.models.ApiResourceReference
-    ) -> None:
+            self, spec: kfp_server_api.ApiPipelineSpec,
+            resource_references: kfp_server_api.ApiResourceReference) -> None:
         self.spec = spec
         self.resource_references = resource_references
 
@@ -172,7 +171,7 @@ class Client:
         self._existing_config = config
         if cookies is None:
             cookies = self._context_setting.get('client_authentication_cookie')
-        api_client = kfp_server_api.api_client.ApiClient(
+        api_client = kfp_server_api.ApiClient(
             config,
             cookie=cookies,
             header_name=self._context_setting.get(
@@ -180,18 +179,12 @@ class Client:
             header_value=self._context_setting.get(
                 'client_authentication_header_value'))
         _add_generated_apis(self, kfp_server_api, api_client)
-        self._job_api = kfp_server_api.api.job_service_api.JobServiceApi(
-            api_client)
-        self._run_api = kfp_server_api.api.run_service_api.RunServiceApi(
-            api_client)
-        self._experiment_api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi(
-            api_client)
-        self._pipelines_api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi(
-            api_client)
-        self._upload_api = kfp_server_api.api.PipelineUploadServiceApi(
-            api_client)
-        self._healthz_api = kfp_server_api.api.healthz_service_api.HealthzServiceApi(
-            api_client)
+        self._job_api = kfp_server_api.JobServiceApi(api_client)
+        self._run_api = kfp_server_api.RunServiceApi(api_client)
+        self._experiment_api = kfp_server_api.ExperimentServiceApi(api_client)
+        self._pipelines_api = kfp_server_api.PipelineServiceApi(api_client)
+        self._upload_api = kfp_server_api.PipelineUploadServiceApi(api_client)
+        self._healthz_api = kfp_server_api.HealthzServiceApi(api_client)
         if not self._context_setting['namespace'] and self.get_kfp_healthz(
         ).multi_user is True:
             try:
@@ -471,15 +464,13 @@ class Client:
 
             resource_references = []
             if namespace:
-                key = kfp_server_api.models.ApiResourceKey(
-                    id=namespace,
-                    type=kfp_server_api.models.ApiResourceType.NAMESPACE)
-                reference = kfp_server_api.models.ApiResourceReference(
-                    key=key,
-                    relationship=kfp_server_api.models.ApiRelationship.OWNER)
+                key = kfp_server_api.ApiResourceKey(
+                    id=namespace, type=kfp_server_api.ApiResourceType.NAMESPACE)
+                reference = kfp_server_api.ApiResourceReference(
+                    key=key, relationship=kfp_server_api.ApiRelationship.OWNER)
                 resource_references.append(reference)
 
-            experiment = kfp_server_api.models.ApiExperiment(
+            experiment = kfp_server_api.ApiExperiment(
                 name=name,
                 description=description,
                 resource_references=resource_references)
@@ -560,8 +551,8 @@ class Client:
             page_token=page_token,
             page_size=page_size,
             sort_by=sort_by,
-            resource_reference_key_type=kfp_server_api.models.api_resource_type
-            .ApiResourceType.NAMESPACE,
+            resource_reference_key_type=kfp_server_api.ApiResourceType
+            .NAMESPACE,
             resource_reference_key_id=namespace,
             filter=filter)
         return response
@@ -604,8 +595,8 @@ class Client:
         if namespace:
             result = self._experiment_api.list_experiment(
                 filter=experiment_filter,
-                resource_reference_key_type=kfp_server_api.models
-                .api_resource_type.ApiResourceType.NAMESPACE,
+                resource_reference_key_type=kfp_server_api.ApiResourceType
+                .NAMESPACE,
                 resource_reference_key_id=namespace)
         else:
             result = self._experiment_api.list_experiment(
@@ -789,7 +780,7 @@ class Client:
             enable_caching=enable_caching,
             pipeline_root=pipeline_root,
         )
-        run_body = kfp_server_api.models.ApiRun(
+        run_body = kfp_server_api.ApiRun(
             pipeline_spec=job_config.spec,
             resource_references=job_config.resource_references,
             name=job_name,
@@ -925,19 +916,19 @@ class Client:
             raise ValueError(
                 'Either interval_second or cron_expression is required')
         if interval_second is not None:
-            trigger = kfp_server_api.models.ApiTrigger(
-                periodic_schedule=kfp_server_api.models.ApiPeriodicSchedule(
+            trigger = kfp_server_api.ApiTrigger(
+                periodic_schedule=kfp_server_api.ApiPeriodicSchedule(
                     start_time=start_time,
                     end_time=end_time,
                     interval_second=interval_second))
         if cron_expression is not None:
-            trigger = kfp_server_api.models.ApiTrigger(
-                cron_schedule=kfp_server_api.models.ApiCronSchedule(
+            trigger = kfp_server_api.ApiTrigger(
+                cron_schedule=kfp_server_api.ApiCronSchedule(
                     start_time=start_time,
                     end_time=end_time,
                     cron=cron_expression))
 
-        job_body = kfp_server_api.models.ApiJob(
+        job_body = kfp_server_api.ApiJob(
             enabled=enabled,
             pipeline_spec=job_config.spec,
             resource_references=job_config.resource_references,
@@ -996,28 +987,26 @@ class Client:
 
             pipeline_yaml_string = yaml.dump(pipeline_obj, sort_keys=True)
 
-        runtime_config = kfp_server_api.models.PipelineSpecRuntimeConfig(
+        runtime_config = kfp_server_api.PipelineSpecRuntimeConfig(
             pipeline_root=pipeline_root,
             parameters=params,
         )
         resource_references = []
-        key = kfp_server_api.models.ApiResourceKey(
-            id=experiment_id,
-            type=kfp_server_api.models.ApiResourceType.EXPERIMENT)
-        reference = kfp_server_api.models.ApiResourceReference(
-            key=key, relationship=kfp_server_api.models.ApiRelationship.OWNER)
+        key = kfp_server_api.ApiResourceKey(
+            id=experiment_id, type=kfp_server_api.ApiResourceType.EXPERIMENT)
+        reference = kfp_server_api.ApiResourceReference(
+            key=key, relationship=kfp_server_api.ApiRelationship.OWNER)
         resource_references.append(reference)
 
         if version_id:
-            key = kfp_server_api.models.ApiResourceKey(
+            key = kfp_server_api.ApiResourceKey(
                 id=version_id,
-                type=kfp_server_api.models.ApiResourceType.PIPELINE_VERSION)
-            reference = kfp_server_api.models.ApiResourceReference(
-                key=key,
-                relationship=kfp_server_api.models.ApiRelationship.CREATOR)
+                type=kfp_server_api.ApiResourceType.PIPELINE_VERSION)
+            reference = kfp_server_api.ApiResourceReference(
+                key=key, relationship=kfp_server_api.ApiRelationship.CREATOR)
             resource_references.append(reference)
 
-        spec = kfp_server_api.models.ApiPipelineSpec(
+        spec = kfp_server_api.ApiPipelineSpec(
             pipeline_id=pipeline_id,
             pipeline_manifest=pipeline_yaml_string,
             runtime_config=runtime_config,
@@ -1229,8 +1218,8 @@ class Client:
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
-                resource_reference_key_type=kfp_server_api.models
-                .api_resource_type.ApiResourceType.EXPERIMENT,
+                resource_reference_key_type=kfp_server_api.ApiResourceType
+                .EXPERIMENT,
                 resource_reference_key_id=experiment_id,
                 filter=filter)
         elif namespace:
@@ -1238,8 +1227,8 @@ class Client:
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
-                resource_reference_key_type=kfp_server_api.models
-                .api_resource_type.ApiResourceType.NAMESPACE,
+                resource_reference_key_type=kfp_server_api.ApiResourceType
+                .NAMESPACE,
                 resource_reference_key_id=namespace,
                 filter=filter)
         else:
@@ -1289,8 +1278,8 @@ class Client:
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
-                resource_reference_key_type=kfp_server_api.models
-                .api_resource_type.ApiResourceType.EXPERIMENT,
+                resource_reference_key_type=kfp_server_api.ApiResourceType
+                .EXPERIMENT,
                 resource_reference_key_id=experiment_id,
                 filter=filter)
         else:
@@ -1534,8 +1523,7 @@ class Client:
             page_token=page_token,
             page_size=page_size,
             sort_by=sort_by,
-            resource_key_type=kfp_server_api.models.api_resource_type
-            .ApiResourceType.PIPELINE,
+            resource_key_type=kfp_server_api.ApiResourceType.PIPELINE,
             resource_key_id=pipeline_id,
             filter=filter)
 
@@ -1571,7 +1559,7 @@ class Client:
 
 
 def _add_generated_apis(target_struct: Any, api_module: ModuleType,
-                        api_client: kfp_server_api.api_client.ApiClient):
+                        api_client: kfp_server_api.ApiClient):
     """Initializes a hierarchical API object based on the generated API module.
 
     PipelineServiceApi.create_pipeline becomes
