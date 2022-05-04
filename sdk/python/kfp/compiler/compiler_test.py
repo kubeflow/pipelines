@@ -601,7 +601,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
             v2.compiler.Compiler().compile(
                 pipeline_func=pipeline_hello_world, package_path=temp_filepath)
 
-            with open(temp_filepath, "r") as f:
+            with open(temp_filepath, 'r') as f:
                 yaml.load(f)
 
     def test_import_modules(self):  # pylint: disable=no-self-use
@@ -625,7 +625,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
             compiler.Compiler().compile(
                 pipeline_func=pipeline_hello_world, package_path=temp_filepath)
 
-            with open(temp_filepath, "r") as f:
+            with open(temp_filepath, 'r') as f:
                 yaml.load(f)
 
     def test_import_object(self):  # pylint: disable=no-self-use
@@ -650,7 +650,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
             Compiler().compile(
                 pipeline_func=pipeline_hello_world, package_path=temp_filepath)
 
-            with open(temp_filepath, "r") as f:
+            with open(temp_filepath, 'r') as f:
                 yaml.load(f)
 
 
@@ -670,8 +670,8 @@ class TestWriteToFileTypes(parameterized.TestCase):
         return my_pipeline
 
     @parameterized.parameters(
-        {"extension": ".yaml"},
-        {"extension": ".yml"},
+        {'extension': '.yaml'},
+        {'extension': '.yml'},
     )
     def test_can_write_to_yaml(self, extension):
 
@@ -701,7 +701,7 @@ class TestWriteToFileTypes(parameterized.TestCase):
 
             target_file = os.path.join(tmpdir, 'result.json')
             with self.assertWarnsRegex(DeprecationWarning,
-                                       r"Compiling to JSON is deprecated"):
+                                       r'Compiling to JSON is deprecated'):
                 compiler.Compiler().compile(
                     pipeline_func=pipeline_spec, package_path=target_file)
             with open(target_file) as f:
@@ -735,7 +735,7 @@ class TestWriteToFileTypes(parameterized.TestCase):
       inputs:
       - {name: location, type: String, default: 'us-central1'}
       - {name: name, type: Integer, default: 1}
-      - {name: noDefault, type: String}
+      - {name: nodefault, type: String}
       implementation:
         container:
           image: gcr.io/my-project/my-image:tag
@@ -745,7 +745,7 @@ class TestWriteToFileTypes(parameterized.TestCase):
 
             @dsl.pipeline(name='test-pipeline')
             def simple_pipeline():
-                producer = producer_op(location="1")
+                producer = producer_op(location='1', nodefault='string')
 
             target_json_file = os.path.join(tmpdir, 'result.json')
             compiler.Compiler().compile(

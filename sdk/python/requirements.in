@@ -24,7 +24,6 @@ kfp-pipeline-spec>=0.1.14,<0.2.0
 kfp-server-api>=2.0.0a0,<3.0.0
 kubernetes>=8.0.0,<19
 protobuf>=3.13.0,<4
-pydantic>=1.8.2,<2
 PyYAML>=5.3,<6
 requests-toolbelt>=0.8.0,<1
 
