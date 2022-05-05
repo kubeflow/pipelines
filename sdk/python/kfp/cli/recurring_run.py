@@ -162,6 +162,7 @@ def create(ctx: click.Context,
         start_time=start_time,
         version_id=version_id)
     _display_recurring_run(recurring_run, output_format)
+    click.echo(f'Created job {recurring_run.id}.')
 
 
 @recurring_run.command()

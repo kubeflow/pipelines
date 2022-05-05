@@ -58,7 +58,7 @@ def create(ctx: click.Context,
 
     pipeline = client.upload_pipeline(package_file, pipeline_name, description)
     _display_pipeline(pipeline, output_format)
-    click.echo('Pipeline uploaded successfully.')
+    click.echo(f'Created pipeline {pipeline.id}.')
 
 
 either_option_required = 'Either --pipeline-id or --pipeline-name is required.'
@@ -106,6 +106,7 @@ def create_version(ctx: click.Context,
     version = client.pipeline_uploads.upload_pipeline_version(
         package_file, name=pipeline_version, pipelineid=pipeline_id)
     _display_pipeline_version(version, output_format)
+    click.echo(f'Created pipeline version {version.id}.')
 
 
 @pipeline.command()
@@ -213,7 +214,7 @@ def delete_version(ctx: click.Context, version_id: str):
 
     client = ctx.obj['client']
     res = client.delete_pipeline_version(version_id)
-    click.echo(f'Pipeline version {version_id} deleted.')
+    click.echo(f'Deleted pipeline version {version_id}.')
     return res
 
 
@@ -253,7 +254,7 @@ def delete(ctx: click.Context, pipeline_id: str):
         return
 
     client.delete_pipeline(pipeline_id)
-    click.echo(f'{pipeline_id} deleted.')
+    click.echo(f'Deleted pipeline {pipeline_id}.')
 
 
 def _print_pipelines(pipelines: List[kfp_server_api.ApiPipeline],

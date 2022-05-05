@@ -29,9 +29,9 @@ def create(ctx: click.Context, description: str, name: str):
     client = ctx.obj['client']
     output_format = ctx.obj['output']
 
-    response = client.create_experiment(name, description=description)
-    _display_experiment(response, output_format)
-    click.echo('Experiment created.')
+    experiment = client.create_experiment(name, description=description)
+    _display_experiment(experiment, output_format)
+    click.echo(f'Created experiment {experiment.id}.')
 
 
 @experiment.command()
@@ -100,7 +100,7 @@ def delete(ctx: click.Context, experiment_id: str):
     client = ctx.obj['client']
 
     client.delete_experiment(experiment_id)
-    click.echo(f'Experiment {experiment_id} deleted.')
+    click.echo(f'Deleted experiment {experiment_id}.')
 
 
 def _display_experiments(experiments: List[ApiExperiment],
@@ -155,7 +155,7 @@ def archive(ctx: click.Context, experiment_id: str, experiment_name: str):
         experiment_id = experiment.id
 
     client.archive_experiment(experiment_id=experiment_id)
-    click.echo(f'Experiment {experiment_id} archived.')
+    click.echo(f'Archived experiment {experiment_id}.')
 
 
 @experiment.command()
@@ -183,4 +183,4 @@ def unarchive(ctx: click.Context, experiment_id: str, experiment_name: str):
         experiment_id = experiment.id
 
     client.archive_experiment(experiment_id=experiment_id)
-    click.echo(f'Experiment {experiment_id} unarchived.')
+    click.echo(f'Unarchived experiment {experiment_id}.')
