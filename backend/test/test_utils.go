@@ -96,7 +96,7 @@ func DeleteAllRuns(client *api_server.RunClient, namespace string, t *testing.T)
 }
 
 func DeleteAllJobs(client *api_server.JobClient, namespace string, t *testing.T) {
-	jobs, _, _, err := ListJobs(client, namespace)
+	jobs, _, _, err := ListAllJobs(client, namespace)
 	assert.Nil(t, err)
 	for _, j := range jobs {
 		assert.Nil(t, client.Delete(&jobparams.DeleteJobParams{ID: j.ID}))
@@ -148,8 +148,11 @@ func ListRuns(client *api_server.RunClient, parameters *runparams.ListRunsParams
 	return client.List(parameters)
 }
 
-func ListJobs(client *api_server.JobClient, namespace string) ([]*job_model.APIJob, int, string, error) {
-	parameters := &jobparams.ListJobsParams{}
+func ListAllJobs(client *api_server.JobClient, namespace string) ([]*job_model.APIJob, int, string, error) {
+	return ListJobs(client, &jobparams.ListJobsParams{}, namespace)
+}
+
+func ListJobs(client *api_server.JobClient, parameters *jobparams.ListJobsParams, namespace string) ([]*job_model.APIJob, int, string, error) {
 	if namespace != "" {
 		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
 		parameters.SetResourceReferenceKeyID(&namespace)
