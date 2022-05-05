@@ -182,5 +182,5 @@ def unarchive(ctx: click.Context, experiment_id: str, experiment_name: str):
         experiment = client.get_experiment(experiment_name=experiment_name)
         experiment_id = experiment.id
 
-    client.archive_experiment(experiment_id=experiment_id)
+    client.unarchive_experiment(experiment_id=experiment_id)
     click.echo(f'Unarchived experiment {experiment_id}.')
