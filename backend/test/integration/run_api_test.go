@@ -242,13 +242,9 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.NotNil(t, err)
 
 	/* ---------- List runs for hello world experiment. One run should be returned ---------- */
-	runs, totalSize, _, err = test.ListRuns(
-		s.runClient,
-		&runparams.ListRunsParams{
-			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
-			ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)},
-		// Since namespace is implied by the experiment namespace, there is no need to set namespace in resource reference
-		"")
+	runs, totalSize, _, err = s.runClient.List(&runparams.ListRunsParams{
+		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+		ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
 	assert.Equal(t, 1, totalSize)
@@ -261,12 +257,9 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 
 	/* ---------- List runs for hello world experiment. The same run should still be returned, but should be archived ---------- */
-	runs, totalSize, _, err = test.ListRuns(s.runClient,
-		&runparams.ListRunsParams{
-			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
-			ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)},
-		// Since namespace is implied by the experiment namespace, there is no need to set namespace in resource reference
-		"")
+	runs, totalSize, _, err = s.runClient.List(&runparams.ListRunsParams{
+		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+		ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
 	assert.Equal(t, 1, totalSize)
