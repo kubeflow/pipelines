@@ -159,7 +159,7 @@ class ComponentBuilder():
     def _load_components(self):
         if not self._component_files:
             logging.error(
-                'No component files found matching pattern `{self._component_filepattern}` in directory {self._context_directory}'
+                f'No component files found matching pattern `{self._component_filepattern}` in directory {self._context_directory}'
             )
             raise sys.exit(1)
 
