@@ -85,7 +85,7 @@ either_option_required = 'Either --pipeline-id or --pipeline-name is required.'
                                  'pipeline_version_name'),
     required=True,
 )
-@click.argument('package-file')
+@click.argument('package-file', type=click.Path(exists=True, dir_okay=False))
 @click.pass_context
 def create_version(ctx: click.Context,
                    package_file: str,

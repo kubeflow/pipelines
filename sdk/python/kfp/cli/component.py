@@ -330,9 +330,7 @@ def component():
 
 @component.command()
 @click.argument(
-    'components_directory',
-    type=pathlib.Path,
-)
+    'components_directory', type=click.Path(exists=True, file_okay=False))
 @click.option(
     '--component-filepattern',
     type=str,
@@ -346,7 +344,7 @@ def component():
     help="Engine to use to build the component's container.")
 @click.option(
     '--kfp-package-path',
-    type=pathlib.Path,
+    type=click.Path(exists=True),
     default=None,
     help='A pip-installable path to the KFP package.')
 @click.option(
@@ -362,9 +360,9 @@ def component():
     is_flag=True,
     default=True,
     help='Push the built image to its remote repository.')
-def build(components_directory: pathlib.Path, component_filepattern: str,
-          engine: str, kfp_package_path: Optional[pathlib.Path],
-          overwrite_dockerfile: bool, push_image: bool):
+def build(components_directory: str, component_filepattern: str, engine: str,
+          kfp_package_path: Optional[str], overwrite_dockerfile: bool,
+          push_image: bool):
     """Builds containers for KFP v2 Python-based components."""
 
     if engine != 'docker':
@@ -374,6 +372,7 @@ def build(components_directory: pathlib.Path, component_filepattern: str,
             stacklevel=2)
         sys.exit(1)
 
+    components_directory = pathlib.Path(components_directory)
     components_directory = components_directory.resolve()
 
     if not components_directory.is_dir():
@@ -389,6 +388,8 @@ def build(components_directory: pathlib.Path, component_filepattern: str,
             ' optional dependencies by running `pip install kfp[all]`.')
         raise sys.exit(1)
 
+    kfp_package_path = pathlib.Path(
+        kfp_package_path) if kfp_package_path is not None else None
     builder = ComponentBuilder(
         context_directory=components_directory,
         kfp_package_path=kfp_package_path,

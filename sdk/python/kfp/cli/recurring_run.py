@@ -91,6 +91,7 @@ either_option_required = 'Either --experiment-id or --experiment-name is require
 )
 @click.option(
     '--pipeline-package-path',
+    type=click.Path(exists=True, dir_okay=False),
     help=parsing.get_param_descr(client.Client.create_recurring_run,
                                  'pipeline_package_path'))
 @click.option(
