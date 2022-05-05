@@ -2,7 +2,7 @@
 
 ## Major Features and Improvements
 * feat(sdk): add .list_pipeline_versions and .unarchive_experiment methods to Client [\#7563](https://github.com/kubeflow/pipelines/pull/7563)
-* feat(sdk): Implement Registry Client [\#7597](https://github.com/kubeflow/pipelines/pull/7563)
+* feat(sdk): Implement Registry Client [\#7597](https://github.com/kubeflow/pipelines/pull/7597)
 
 ## Breaking Changes
 
