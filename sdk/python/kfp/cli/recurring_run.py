@@ -50,6 +50,7 @@ either_option_required = 'Either --experiment-id or --experiment-name is require
 @click.option(
     '--enable-caching/--disable-caching',
     type=bool,
+    default=None,
     help=parsing.get_param_descr(client.Client.create_recurring_run,
                                  'enable_caching'),
 )
@@ -81,6 +82,7 @@ either_option_required = 'Either --experiment-id or --experiment-name is require
 @click.option(
     '--max-concurrency',
     type=int,
+    default=1,
     help=parsing.get_param_descr(client.Client.create_recurring_run,
                                  'max_concurrency'),
 )
@@ -121,6 +123,17 @@ def create(ctx: click.Context,
     """Create a recurring run."""
     client = ctx.obj['client']
     output_format = ctx.obj['output']
+
+    if enable_caching is not None:
+        click.echo(
+            '--enable-caching and --disable-caching options are not yet supported.'
+        )
+        enable_caching = None
+
+    if (interval_second is None) == (cron_expression is None):
+        raise ValueError(
+            'Either of --interval-second or --cron-expression options is required.'
+        )
 
     if (experiment_id is None) == (experiment_name is None):
         raise ValueError(either_option_required)
