@@ -33,6 +33,7 @@ from kfp.components import pipeline_context
 from kfp.components import pipeline_task
 from kfp.components import python_component
 from kfp.components import tasks_group
+from kfp.components import utils
 from kfp.components import utils as component_utils
 from kfp.components.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -274,7 +275,8 @@ class Compiler:
         group.name = uuid.uuid4().hex
 
         pipeline_name = pipeline_name or component_utils.sanitize_component_name(
-            component.component_spec.name).strip('comp-')
+            component.component_spec.name).replace(utils._COMPONENT_NAME_PREFIX,
+                                                   '')
 
         pipeline_spec = self._create_pipeline_spec_for_component(
             pipeline_name=pipeline_name,
