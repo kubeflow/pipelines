@@ -170,10 +170,9 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- Verify list experiments sorted by names ---------- */
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		nil,
-		util.Int32Pointer(2),
-		nil,
-		util.StringPointer("name"),
+		&params.ListExperimentParams{
+			PageSize: util.Int32Pointer(2),
+			SortBy:   util.StringPointer("name")},
 		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
@@ -184,10 +183,10 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		nil,
-		util.Int32Pointer(2),
-		util.StringPointer(nextPageToken),
-		util.StringPointer("name"),
+		&params.ListExperimentParams{
+			PageToken: util.StringPointer(nextPageToken),
+			PageSize:  util.Int32Pointer(2),
+			SortBy:    util.StringPointer("name")},
 		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
@@ -198,10 +197,9 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- Verify list experiments sorted by creation time ---------- */
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		nil,
-		util.Int32Pointer(2),
-		nil,
-		util.StringPointer("created_at"),
+		&params.ListExperimentParams{
+			PageSize: util.Int32Pointer(2),
+			SortBy:   util.StringPointer("created_at")},
 		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
@@ -212,10 +210,10 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		nil,
-		util.Int32Pointer(2),
-		util.StringPointer(nextPageToken),
-		util.StringPointer("created_at"),
+		&params.ListExperimentParams{
+			PageToken: util.StringPointer(nextPageToken),
+			PageSize:  util.Int32Pointer(2),
+			SortBy:    util.StringPointer("created_at")},
 		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
@@ -226,20 +224,18 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- List experiments sort by unsupported field. Should fail. ---------- */
 	_, _, _, err = test.ListExperiment(
 		s.experimentClient,
-		nil,
-		util.Int32Pointer(2),
-		nil,
-		util.StringPointer("unknownfield"),
+		&params.ListExperimentParams{
+			PageSize: util.Int32Pointer(2),
+			SortBy:   util.StringPointer("unknownfield")},
 		s.resourceNamespace)
 	assert.NotNil(t, err)
 
 	/* ---------- List experiments sorted by names descend order ---------- */
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		nil,
-		util.Int32Pointer(2),
-		nil,
-		util.StringPointer("name desc"),
+		&params.ListExperimentParams{
+			PageSize: util.Int32Pointer(2),
+			SortBy:   util.StringPointer("name desc")},
 		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
@@ -250,10 +246,10 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		nil,
-		util.Int32Pointer(2),
-		util.StringPointer(nextPageToken),
-		util.StringPointer("name desc"),
+		&params.ListExperimentParams{
+			PageToken: util.StringPointer(nextPageToken),
+			PageSize:  util.Int32Pointer(2),
+			SortBy:    util.StringPointer("name desc")},
 		s.resourceNamespace)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, totalSize)
