@@ -150,6 +150,7 @@ def create(ctx: click.Context, experiment_name: str, run_name: str,
         _wait_for_run_completion(client, run.id, timeout, output_format)
     else:
         _display_run(client, namespace, run.id, watch, output_format)
+    click.echo(f'Created run {run.id}.')
 
 
 @run.command()
@@ -192,7 +193,7 @@ def archive(ctx: click.Context, run_id: str):
         sys.exit(1)
 
     client.archive_run(run_id=run_id)
-    click.echo(f'{run_id} archived.')
+    click.echo(f'Archived run {run_id}.')
 
 
 @run.command()
@@ -211,7 +212,7 @@ def unarchive(ctx: click.Context, run_id: str):
         sys.exit(1)
 
     client.unarchive_run(run_id=run_id)
-    click.echo(f'{run_id} unarchived.')
+    click.echo(f'Unarchived run {run_id}.')
 
 
 @run.command()
@@ -227,7 +228,7 @@ def delete(ctx: click.Context, run_id: str):
     client = ctx.obj['client']
 
     client.delete_run(run_id)
-    click.echo(f'{run_id} deleted.')
+    click.echo(f'Deleted run {run_id}.')
 
 
 def _display_run(client: client.Client,

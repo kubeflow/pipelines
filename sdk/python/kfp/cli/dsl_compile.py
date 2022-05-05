@@ -89,10 +89,13 @@ class PipelineCollectorContext():
 
 @click.command()
 @click.option(
-    '--py', type=str, required=True, help='Local absolute path to a py file.')
+    '--py',
+    type=click.Path(exists=True, dir_okay=False),
+    required=True,
+    help='Local absolute path to a py file.')
 @click.option(
     '--output',
-    type=str,
+    type=click.Path(exists=False, dir_okay=False),
     required=True,
     help=parsing.get_param_descr(_compile_pipeline_function, 'package_path'))
 @click.option(
@@ -148,6 +151,11 @@ def main():
     logging.basicConfig(format='%(message)s', level=logging.INFO)
     try:
         dsl_compile.help = '(Deprecated. Please use `kfp dsl compile` instead.)\n\n' + dsl_compile.help
+
+        logging.error(
+            '`dsl-compile` is deprecated. Please use `kfp dsl compile` instead.'
+        )
+
         dsl_compile(obj={}, auto_envvar_prefix='KFP')
     except Exception as e:
         click.echo(str(e), err=True)
