@@ -68,7 +68,7 @@ class RegistryClient:
         auth: Optional[Union[requests.auth.AuthBase,
                              credentials.Credentials]] = None
     ) -> None:
-        """RegistryClient initialization.
+        """Initializes the RegistryClient.
 
         Args:
             host: The address of the registry host.
@@ -91,7 +91,7 @@ class RegistryClient:
                  request_body: str = '',
                  http_request: str = 'get',
                  extra_headers: dict = None) -> requests.Response:
-        """Call the HTTP request.
+        """Calls the HTTP request.
 
         Args:
             request_url: The address of the API endpoint to send the request to.
@@ -220,7 +220,7 @@ class RegistryClient:
     def upload_pipeline(self, file_name: str, tags: Optional[Union[str,
                                                                    List[str]]],
                         extra_headers: Optional[dict]) -> Tuple[str, str]:
-        """Upload the pipeline.
+        """Uploads the pipeline.
 
         Args:
             file_name: The name of the file to be uploaded.
@@ -257,7 +257,7 @@ class RegistryClient:
                           package_name: str,
                           version: Optional[str] = None,
                           tag: Optional[str] = None) -> str:
-        """Get the download url based on version or tag (either one must be
+        """Gets the download url based on version or tag (either one must be
         specified).
 
         Args:
@@ -287,7 +287,7 @@ class RegistryClient:
                           version: Optional[str] = None,
                           tag: Optional[str] = None,
                           file_name: str = None) -> str:
-        """Download a pipeline - either version or tag must be specified.
+        """Downloads a pipeline - either version or tag must be specified.
 
         Args:
             package_name: Name of the package.
@@ -316,7 +316,7 @@ class RegistryClient:
         return file_name
 
     def get_package(self, package_name: str) -> Dict[str, Any]:
-        """Get package metadata.
+        """Gets package metadata.
 
         Args:
             package_name: Name of the package.
@@ -330,7 +330,7 @@ class RegistryClient:
         return response.json()
 
     def list_packages(self) -> List[dict]:
-        """List packages.
+        """Lists packages.
 
         Returns:
             List of packages in the repository.
@@ -342,7 +342,7 @@ class RegistryClient:
         return response_json['packages']
 
     def delete_package(self, package_name: str) -> bool:
-        """Delete a package.
+        """Deletes a package.
 
         Args:
             package_name: Name of the package.
@@ -358,7 +358,7 @@ class RegistryClient:
         return response_json['done']
 
     def get_version(self, package_name: str, version: str) -> Dict[str, Any]:
-        """Get package version metadata.
+        """Gets package version metadata.
 
         Args:
             package_name: Name of the package.
@@ -374,7 +374,7 @@ class RegistryClient:
         return response.json()
 
     def list_versions(self, package_name: str) -> List[dict]:
-        """List package versions.
+        """Lists package versions.
 
         Args:
             package_name: Name of the package.
@@ -390,7 +390,7 @@ class RegistryClient:
         return response_json['versions']
 
     def delete_version(self, package_name: str, version: str) -> bool:
-        """Delete package version.
+        """Deletes package version.
 
         Args:
             package_name: Name of the package.
@@ -408,7 +408,7 @@ class RegistryClient:
 
     def create_tag(self, package_name: str, version: str,
                    tag: str) -> Dict[str, Any]:
-        """Create a tag on a package version.
+        """Creates a tag on a package version.
 
         Args:
             package_name: Name of the package.
@@ -436,7 +436,7 @@ class RegistryClient:
         return response.json()
 
     def get_tag(self, package_name: str, tag: str) -> Dict[str, Any]:
-        """Get tag metadata.
+        """Gets tag metadata.
 
         Args:
             package_name: Name of the package.
@@ -453,7 +453,7 @@ class RegistryClient:
 
     def update_tag(self, package_name: str, version: str,
                    tag: str) -> Dict[str, Any]:
-        """Update a tag to another package version.
+        """Updates a tag to another package version.
 
         Args:
             package_name: Name of the package.
@@ -481,7 +481,7 @@ class RegistryClient:
         return response.json()
 
     def list_tags(self, package_name: str) -> List[dict]:
-        """List package tags.
+        """Lists package tags.
 
         Args:
             package_name: Name of the package.
@@ -496,7 +496,7 @@ class RegistryClient:
         return response_json['tags']
 
     def delete_tag(self, package_name: str, tag: str) -> Dict[str, Any]:
-        """Delete package tag.
+        """Deletes package tag.
 
         Args:
             package_name: Name of the package.
