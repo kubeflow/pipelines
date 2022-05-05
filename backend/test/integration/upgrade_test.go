@@ -32,6 +32,7 @@ import (
 type UpgradeTests struct {
 	suite.Suite
 	namespace            string
+	resourceNamespace    string
 	experimentClient     *api_server.ExperimentClient
 	pipelineClient       *api_server.PipelineClient
 	pipelineUploadClient *api_server.PipelineUploadClient
@@ -46,10 +47,10 @@ func TestUpgrade(t *testing.T) {
 func (s *UpgradeTests) TestPrepare() {
 	t := s.T()
 
-	test.DeleteAllJobs(s.jobClient, "", t)
-	test.DeleteAllRuns(s.runClient, "", t)
+	test.DeleteAllJobs(s.jobClient, s.resourceNamespace, t)
+	test.DeleteAllRuns(s.runClient, s.resourceNamespace, t)
 	test.DeleteAllPipelines(s.pipelineClient, t)
-	test.DeleteAllExperiments(s.experimentClient, "", t)
+	test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, t)
 
 	s.PrepareExperiments()
 	s.PreparePipelines()
@@ -74,32 +75,76 @@ func (s *UpgradeTests) SetupSuite() {
 		return
 	}
 
-	var err error
 	if !*isDevMode {
-		err = test.WaitForReady(*namespace, *initializeTimeout)
+		err := test.WaitForReady(*namespace, *initializeTimeout)
 		if err != nil {
 			glog.Exitf("Failed to initialize test. Error: %v", err)
 		}
 	}
 	s.namespace = *namespace
-	clientConfig := test.GetClientConfig(*namespace)
-	s.experimentClient, err = api_server.NewExperimentClient(clientConfig, false)
+
+	var newExperimentClient func() (*api_server.ExperimentClient, error)
+	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
+	var newPipelineClient func() (*api_server.PipelineClient, error)
+	var newRunClient func() (*api_server.RunClient, error)
+	var newJobClient func() (*api_server.JobClient, error)
+
+	if *isKubeflowMode {
+		s.resourceNamespace = *resourceNamespace
+
+		newExperimentClient = func() (*api_server.ExperimentClient, error) {
+			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode)
+		}
+		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
+			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
+		}
+		newPipelineClient = func() (*api_server.PipelineClient, error) {
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+		}
+		newRunClient = func() (*api_server.RunClient, error) {
+			return api_server.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
+		}
+		newJobClient = func() (*api_server.JobClient, error) {
+			return api_server.NewKubeflowInClusterJobClient(s.namespace, *isDebugMode)
+		}
+	} else {
+		clientConfig := test.GetClientConfig(*namespace)
+
+		newExperimentClient = func() (*api_server.ExperimentClient, error) {
+			return api_server.NewExperimentClient(clientConfig, *isDebugMode)
+		}
+		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
+			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
+		}
+		newPipelineClient = func() (*api_server.PipelineClient, error) {
+			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+		}
+		newRunClient = func() (*api_server.RunClient, error) {
+			return api_server.NewRunClient(clientConfig, *isDebugMode)
+		}
+		newJobClient = func() (*api_server.JobClient, error) {
+			return api_server.NewJobClient(clientConfig, *isDebugMode)
+		}
+	}
+
+	var err error
+	s.experimentClient, err = newExperimentClient()
 	if err != nil {
 		glog.Exitf("Failed to get experiment client. Error: %v", err)
 	}
-	s.pipelineUploadClient, err = api_server.NewPipelineUploadClient(clientConfig, false)
+	s.pipelineUploadClient, err = newPipelineUploadClient()
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
-	s.pipelineClient, err = api_server.NewPipelineClient(clientConfig, false)
+	s.pipelineClient, err = newPipelineClient()
 	if err != nil {
 		glog.Exitf("Failed to get pipeline client. Error: %s", err.Error())
 	}
-	s.runClient, err = api_server.NewRunClient(clientConfig, false)
+	s.runClient, err = newRunClient()
 	if err != nil {
 		glog.Exitf("Failed to get run client. Error: %s", err.Error())
 	}
-	s.jobClient, err = api_server.NewJobClient(clientConfig, false)
+	s.jobClient, err = newJobClient()
 	if err != nil {
 		glog.Exitf("Failed to get job client. Error: %s", err.Error())
 	}
@@ -112,10 +157,10 @@ func (s *UpgradeTests) TearDownSuite() {
 			// Clean up after the suite to unblock other tests. (Not needed for upgrade
 			// tests because it needs changes in prepare tests to persist and verified
 			// later.)
-			test.DeleteAllExperiments(s.experimentClient, "", t)
+			test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, t)
 			test.DeleteAllPipelines(s.pipelineClient, t)
-			test.DeleteAllRuns(s.runClient, "", t)
-			test.DeleteAllJobs(s.jobClient, "", t)
+			test.DeleteAllRuns(s.runClient, s.resourceNamespace, t)
+			test.DeleteAllJobs(s.jobClient, s.resourceNamespace, t)
 		}
 	}
 }
@@ -124,7 +169,7 @@ func (s *UpgradeTests) PrepareExperiments() {
 	t := s.T()
 
 	/* ---------- Create a new experiment ---------- */
-	experiment := &experiment_model.APIExperiment{Name: "training", Description: "my first experiment"}
+	experiment := test.GetExperiment("training", "my first experiment", s.resourceNamespace)
 	_, err := s.experimentClient.Create(&experimentParams.CreateExperimentParams{
 		Body: experiment,
 	})
@@ -133,14 +178,14 @@ func (s *UpgradeTests) PrepareExperiments() {
 	/* ---------- Create a few more new experiment ---------- */
 	// This ensures they can be sorted by create time in expected order.
 	time.Sleep(1 * time.Second)
-	experiment = &experiment_model.APIExperiment{Name: "prediction", Description: "my second experiment"}
+	experiment = test.GetExperiment("prediction", "my second experiment", s.resourceNamespace)
 	_, err = s.experimentClient.Create(&experimentParams.CreateExperimentParams{
 		Body: experiment,
 	})
 	require.Nil(t, err)
 
 	time.Sleep(1 * time.Second)
-	experiment = &experiment_model.APIExperiment{Name: "moonshot", Description: "my third experiment"}
+	experiment = test.GetExperiment("moonshot", "my third experiment", s.resourceNamespace)
 	_, err = s.experimentClient.Create(&experimentParams.CreateExperimentParams{
 		Body: experiment,
 	})
@@ -151,8 +196,10 @@ func (s *UpgradeTests) VerifyExperiments() {
 	t := s.T()
 
 	/* ---------- Verify list experiments sorted by creation time ---------- */
-	experiments, _, _, err := s.experimentClient.List(
-		&experimentParams.ListExperimentParams{SortBy: util.StringPointer("created_at")})
+	experiments, _, _, err := test.ListExperiment(
+		s.experimentClient,
+		&experimentParams.ListExperimentParams{SortBy: util.StringPointer("created_at")},
+		s.resourceNamespace)
 	require.Nil(t, err)
 	// after upgrade, default experiment may be inserted, but the oldest 3
 	// experiments should be the ones created in this test
@@ -270,8 +317,10 @@ func (s *UpgradeTests) VerifyRuns() {
 	t := s.T()
 
 	/* ---------- List the runs, sorted by creation time ---------- */
-	runs, _, _, err := s.runClient.List(
-		&runParams.ListRunsParams{SortBy: util.StringPointer("created_at")})
+	runs, _, _, err := test.ListRuns(
+		s.runClient,
+		&runParams.ListRunsParams{SortBy: util.StringPointer("created_at")},
+		s.resourceNamespace)
 	require.Nil(t, err)
 	require.True(t, len(runs) >= 1)
 	require.Equal(t, "hello world", runs[0].Name)
@@ -314,7 +363,7 @@ func (s *UpgradeTests) VerifyJobs() {
 	experiment := s.getHelloWorldExperiment(false)
 
 	/* ---------- Get hello world job ---------- */
-	jobs, _, _, err := s.jobClient.List(&jobparams.ListJobsParams{})
+	jobs, _, _, err := test.ListAllJobs(s.jobClient, s.resourceNamespace)
 	require.Nil(t, err)
 	require.Len(t, jobs, 1)
 	job := jobs[0]
@@ -338,7 +387,7 @@ func (s *UpgradeTests) VerifyJobs() {
 				Name: "hello-world.yaml", Relationship: job_model.APIRelationshipCREATOR,
 			},
 		},
-		ServiceAccount: "pipeline-runner",
+		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		MaxConcurrency: 10,
 		NoCatchup:      true,
 		Enabled:        true,
@@ -380,7 +429,7 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 				Name: "hello-world.yaml", Relationship: run_model.APIRelationshipCREATOR,
 			},
 		},
-		ServiceAccount: "pipeline-runner",
+		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		CreatedAt:      runDetail.Run.CreatedAt,
 		ScheduledAt:    runDetail.Run.ScheduledAt,
 		FinishedAt:     runDetail.Run.FinishedAt,
@@ -393,7 +442,7 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 func (s *UpgradeTests) createHelloWorldExperiment() *experiment_model.APIExperiment {
 	t := s.T()
 
-	experiment := &experiment_model.APIExperiment{Name: "hello world experiment"}
+	experiment := test.GetExperiment("hello world experiment", "", s.resourceNamespace)
 	helloWorldExperiment, err := s.experimentClient.Create(&experimentParams.CreateExperimentParams{Body: experiment})
 	require.Nil(t, err)
 
@@ -403,7 +452,12 @@ func (s *UpgradeTests) createHelloWorldExperiment() *experiment_model.APIExperim
 func (s *UpgradeTests) getHelloWorldExperiment(createIfNotExist bool) *experiment_model.APIExperiment {
 	t := s.T()
 
-	experiments, err := s.experimentClient.ListAll(&experimentParams.ListExperimentParams{}, 1000)
+	experiments, _, _, err := test.ListExperiment(
+		s.experimentClient,
+		&experimentParams.ListExperimentParams{
+			PageSize: util.Int32Pointer(1000),
+		},
+		s.resourceNamespace)
 	require.Nil(t, err)
 	var helloWorldExperiment *experiment_model.APIExperiment
 	for _, experiment := range experiments {
