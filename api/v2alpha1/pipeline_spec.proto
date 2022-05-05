@@ -492,10 +492,17 @@ message PipelineTaskSpec {
     int32 max_retry_count  = 1;
 
     // The time interval between retries. Defaults to zero (an immediate retry).
+    // Will be capped to backoff_max_duration or 1 hour whichever is shorter.
     google.protobuf.Duration backoff_duration = 2;
 
-    // The exponential backoff factor applied to backoff_duration. If
-    // unspecified, will default to 2.
+    // The exponential backoff factor applied to backoff_duration.
+    //  - If backoff_factor < 1, will raise invalid argument error.
+    //  - If specified to 1, will do constant backoff.
+    //  - If unspecified, will default to 2.
+    //  - For backoff_factor > 1, the actual backoff interval will be calculated
+    //  by `min(backoff_max_duration, 0.4 * backoff_duration + (rand in
+    //  [0.6,1.0])
+    //  * backoff_duration * backoff_factor^retries)`.
     double backoff_factor = 3;
 
     // The maximum duration during which the task will be retried according to
