@@ -196,7 +196,14 @@ description: |
 
     Returns:
         batchpredictionjob (google.VertexBatchPredictionJob):
-            Artifact representation of the created batch prediction job.
+            [**Deprecated. Use gcs_output_directory and bigquery_output_table instead.**] Artifact
+            representation of the created batch prediction job.
+        gcs_output_directory (system.Artifact):
+            Artifact tracking the batch prediction job output. This is only available if
+            gcs_destination_output_uri_prefix is specified.
+        bigquery_output_table (google.BQTable):
+            Artifact tracking the batch prediction job output. This is only available if
+            bigquery_output_table is specified.
         gcp_resources (str):
             Serialized gcp_resources proto tracking the batch prediction job.
 
@@ -227,6 +234,8 @@ inputs:
 - {name: encryption_spec_key_name, type: String, optional: true, default: ''}
 outputs:
 - {name: batchpredictionjob, type: google.VertexBatchPredictionJob}
+- {name: gcs_output_directory, type: system.Artifact}
+- {name: bigquery_output_table, type: google.BQTable}
 - {name: gcp_resources, type: String}
 implementation:
   container:

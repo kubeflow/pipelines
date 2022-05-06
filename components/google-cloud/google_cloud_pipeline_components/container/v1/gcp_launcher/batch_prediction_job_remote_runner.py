@@ -15,18 +15,20 @@
 
 from . import job_remote_runner
 from .utils import artifact_util, json_util, error_util
-import json
 from google.api_core import retry
 from google.cloud.aiplatform.explain import ExplanationMetadata
-from google_cloud_pipeline_components.types.artifact_types import VertexBatchPredictionJob
+from google_cloud_pipeline_components.types.artifact_types import VertexBatchPredictionJob, BQTable
+from kfp.v2 import dsl
+import re
+import json
 
 UNMANAGED_CONTAINER_MODEL_ARTIFACT_NAME = 'unmanaged_container_model'
 _BATCH_PREDICTION_RETRY_DEADLINE_SECONDS = 10.0 * 60.0
+_BQ_DATASET_TEMPLATE = r'(bq://(?P<project>.*)\.(?P<dataset>.*))'
 
 
 def sanitize_job_spec(job_spec):
-  """If the job_spec contains explanation metadata, convert to ExplanationMetadata for the job client to recognize.
-  """
+  """If the job_spec contains explanation metadata, convert to ExplanationMetadata for the job client to recognize."""
   if ('explanation_spec' in job_spec) and ('metadata'
                                            in job_spec['explanation_spec']):
     job_spec['explanation_spec']['metadata'] = ExplanationMetadata.from_json(
@@ -119,7 +121,32 @@ def create_batch_prediction_job(
         get_job_response.output_info.bigquery_output_table,
         get_job_response.output_info.bigquery_output_dataset,
         get_job_response.output_info.gcs_output_directory)
-    artifact_util.update_gcp_output_artifact(executor_input,
-                                             vertex_batch_predict_job_artifact)
+    output_artifacts = [vertex_batch_predict_job_artifact]
+
+    # Output the BQTable artifact
+    if get_job_response.output_info.bigquery_output_dataset:
+      bq_dataset_pattern = re.compile(_BQ_DATASET_TEMPLATE)
+      match = bq_dataset_pattern.match(
+          get_job_response.output_info.bigquery_output_dataset)
+      try:
+        project = match.group('project')
+        dataset = match.group('dataset')
+        bigquery_output_table_artifact = BQTable(
+            'bigquery_output_table', project, dataset,
+            get_job_response.output_info.bigquery_output_table)
+        output_artifacts.append(bigquery_output_table_artifact)
+      except AttributeError as err:
+        error_util.exit_with_internal_error(
+            'Invalid BQ dataset address from batch prediction output: {}. Expect: {}.'
+            .format(get_job_response.output_info.bigquery_output_dataset,
+                    'bq://[project_id].[dataset_id]'))
+
+    # Output the GCS path via system.Artifact
+    if get_job_response.output_info.gcs_output_directory:
+      output_artifacts.append(
+          dsl.Artifact('gcs_output_directory',
+                       get_job_response.output_info.gcs_output_directory))
+
+    artifact_util.update_output_artifacts(executor_input, output_artifacts)
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])
