@@ -14,7 +14,6 @@
 
 import json
 import os
-import shutil
 import tempfile
 import unittest
 
@@ -434,40 +433,6 @@ class TestCompilePipeline(parameterized.TestCase):
                 ' incompatible with the input type "Dataset"'):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='result.yaml')
-
-    @parameterized.parameters(
-        {
-            'pipeline_name': 'my-pipeline',
-            'is_valid': True,
-        },
-        {
-            'pipeline_name': 'p' * 128,
-            'is_valid': True,
-        },
-        {
-            'pipeline_name': 'p' * 129,
-            'is_valid': False,
-        },
-        {
-            'pipeline_name': 'my_pipeline',
-            'is_valid': False,
-        },
-        {
-            'pipeline_name': '-my-pipeline',
-            'is_valid': False,
-        },
-        {
-            'pipeline_name': 'My pipeline',
-            'is_valid': False,
-        },
-    )
-    def test_validate_pipeline_name(self, pipeline_name, is_valid):
-
-        if is_valid:
-            compiler.compiler._validate_pipeline_name(pipeline_name)
-        else:
-            with self.assertRaisesRegex(ValueError, 'Invalid pipeline name: '):
-                compiler.compiler._validate_pipeline_name('my_pipeline')
 
     def test_invalid_after_dependency(self):
 
