@@ -14,15 +14,20 @@
 """Definitions for component spec."""
 
 import ast
+import collections
 import functools
 import itertools
+import uuid
 from typing import Any, Dict, List, Mapping, Optional, Union
 
+import kfp
 import yaml
+from kfp import dsl
 from kfp.components import base_model
 from kfp.components import utils
 from kfp.components import v1_components
 from kfp.components import v1_structures
+from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.utils import ir_utils
 
 
@@ -620,3 +625,104 @@ class ComponentSpec(base_model.BaseModel):
             output_file: File path to store the component yaml.
         """
         ir_utils._write_ir_to_file(self.to_dict(by_alias=True), output_file)
+
+    def to_pipeline_spec(self) -> pipeline_spec_pb2.PipelineSpec:
+        """Creates a pipeline instance and constructs the pipeline spec for a
+        single component.
+
+        Args:
+            component_spec: The ComponentSpec to convert to PipelineSpec.
+
+        Returns:
+            A PipelineSpec proto representing the compiled component.
+        """
+        # import here to aviod circular module dependency
+        from kfp.compiler import helpers as compiler_helpers
+        from kfp.compiler import pipeline_spec_builder as builder
+        from kfp.components import pipeline_task
+        from kfp.components import tasks_group
+        from kfp.components.types import type_utils
+
+        args_dict = {}
+
+        for arg_name, input_spec in self.inputs.items():
+            arg_type = input_spec.type
+            if not type_utils.is_parameter_type(
+                    arg_type) or type_utils.is_task_final_status_type(arg_type):
+                raise TypeError(
+                    compiler_helpers.make_invalid_input_type_error_msg(
+                        arg_name, arg_type))
+            args_dict[arg_name] = dsl.PipelineParameterChannel(
+                name=arg_name, channel_type=arg_type)
+
+        task = pipeline_task.PipelineTask(self, args_dict)
+
+        # instead of constructing a pipeline with pipeline_context.Pipeline,
+        # just build the single task group
+        group = tasks_group.TasksGroup(
+            group_type=tasks_group.TasksGroupType.PIPELINE)
+        group.tasks.append(task)
+
+        pipeline_inputs = self.inputs or {}
+
+        # Fill in the default values.
+        args_list_with_defaults = [
+            dsl.PipelineParameterChannel(
+                name=input_name,
+                channel_type=input_spec.type,
+                value=input_spec.default,
+            ) for input_name, input_spec in pipeline_inputs.items()
+        ]
+        group.name = uuid.uuid4().hex
+
+        pipeline_name = self.name
+        pipeline_args = args_list_with_defaults
+        task_group = group
+
+        compiler_helpers.validate_pipeline_name(pipeline_name)
+
+        pipeline_spec = pipeline_spec_pb2.PipelineSpec()
+        pipeline_spec.pipeline_info.name = pipeline_name
+        pipeline_spec.sdk_version = f'kfp-{kfp.__version__}'
+        # Schema version 2.1.0 is required for kfp-pipeline-spec>0.1.13
+        pipeline_spec.schema_version = '2.1.0'
+        pipeline_spec.root.CopyFrom(
+            builder.build_component_spec_for_group(
+                pipeline_channels=pipeline_args,
+                is_root_group=True,
+            ))
+
+        deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
+        root_group = task_group
+
+        task_name_to_parent_groups, group_name_to_parent_groups = compiler_helpers.get_parent_groups(
+            root_group)
+
+        def get_inputs(task_group: tasks_group.TasksGroup,
+                       task_name_to_parent_groups):
+            inputs = collections.defaultdict(set)
+            if len(task_group.tasks) != 1:
+                raise ValueError(
+                    f'Error compiling component. Expected one task in task group, got {len(task_group.tasks)}.'
+                )
+            only_task = task_group.tasks[0]
+            if only_task.channel_inputs:
+                for group_name in task_name_to_parent_groups[only_task.name]:
+                    inputs[group_name].add((only_task.channel_inputs[-1], None))
+            return inputs
+
+        inputs = get_inputs(task_group, task_name_to_parent_groups)
+
+        compiler_helpers.build_spec_by_group(
+            pipeline_spec=pipeline_spec,
+            deployment_config=deployment_config,
+            group=root_group,
+            inputs=inputs,
+            dependencies={},  # no dependencies for single-component pipeline
+            rootgroup_name=root_group.name,
+            task_name_to_parent_groups=task_name_to_parent_groups,
+            group_name_to_parent_groups=group_name_to_parent_groups,
+            name_to_for_loop_group={},  # no for loop for single-component pipeline
+        )
+
+        return pipeline_spec
