@@ -644,8 +644,9 @@ class ComponentSpec(base_model.BaseModel):
         from kfp.components.types import type_utils
 
         args_dict = {}
+        pipeline_inputs = self.inputs or {}
 
-        for arg_name, input_spec in self.inputs.items():
+        for arg_name, input_spec in pipeline_inputs.items():
             arg_type = input_spec.type
             if not type_utils.is_parameter_type(
                     arg_type) or type_utils.is_task_final_status_type(arg_type):
@@ -662,8 +663,6 @@ class ComponentSpec(base_model.BaseModel):
         group = tasks_group.TasksGroup(
             group_type=tasks_group.TasksGroupType.PIPELINE)
         group.tasks.append(task)
-
-        pipeline_inputs = self.inputs or {}
 
         # Fill in the default values.
         args_list_with_defaults = [
