@@ -30,6 +30,7 @@
 
 ## Bug Fixes and Other Changes
 * Accepts `typing-extensions>=4,<5` in addition to `typing-extensions>=3.7.4,<4` [\#7632](https://github.com/kubeflow/pipelines/pull/7632)
+* Remove dependency on `pydantic` [\#7639](https://github.com/kubeflow/pipelines/pull/7639)
 
 ## Documentation Updates
 
