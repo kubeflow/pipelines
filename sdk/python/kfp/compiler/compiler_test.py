@@ -464,10 +464,10 @@ class TestCompilePipeline(parameterized.TestCase):
     def test_validate_pipeline_name(self, pipeline_name, is_valid):
 
         if is_valid:
-            compiler.Compiler()._validate_pipeline_name(pipeline_name)
+            compiler.compiler._validate_pipeline_name(pipeline_name)
         else:
             with self.assertRaisesRegex(ValueError, 'Invalid pipeline name: '):
-                compiler.Compiler()._validate_pipeline_name('my_pipeline')
+                compiler.compiler._validate_pipeline_name('my_pipeline')
 
     def test_invalid_after_dependency(self):
 
