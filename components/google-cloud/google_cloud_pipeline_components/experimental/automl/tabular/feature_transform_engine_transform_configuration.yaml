@@ -41,7 +41,7 @@ inputs:
 - {name: encryption_spec_key_name, type: String, default: ""}
 
 outputs:
-- {name: fte_transform_configuration_artifact_path, type: String}
+- {name: fte_transform_configuration, type: String}
 - {name: gcp_resources, type: String}
 
 implementation:
@@ -59,11 +59,9 @@ implementation:
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
         'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod',
-        '", "args": ["transform_configuration", "--fte_transform_configuration_artifact_path=',
-        {outputPath: fte_transform_configuration_artifact_path},
-        '", "--fte_transform_configuration_path=',
-        {inputValue: root_dir},
-        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform_configuration", "--metadata_path=',
+        '", "args": ["transform_configuration", "--fte_transform_configuration_path=',
+        {outputPath: fte_transform_configuration},
+        '", "--metadata_path=',
         {inputValue: metadata_path},
         '", "--dataset_stats_path=',
         {inputValue: dataset_stats_path},
