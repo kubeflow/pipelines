@@ -32,6 +32,7 @@ from kfp.components import for_loop
 from kfp.components import pipeline_context
 from kfp.components import pipeline_task
 from kfp.components import python_component
+from kfp.components import structures
 from kfp.components import tasks_group
 from kfp.components import utils
 from kfp.components import utils as component_utils
@@ -40,12 +41,6 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.utils import ir_utils
 
 _GroupOrTask = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
-
-
-def _make_invalid_input_type_error_msg(arg_name: str, arg_type: Any) -> str:
-    valid_types = (str.__name__, int.__name__, float.__name__, bool.__name__,
-                   dict.__name__, list.__name__)
-    return f"The pipeline parameter '{arg_name}' of type {arg_type} is not a valid input for this component. Passing artifacts as pipeline inputs is not supported. Consider annotating the parameter with a primitive type such as {valid_types}."
 
 
 class Compiler:
@@ -98,11 +93,13 @@ class Compiler:
 
         with type_utils.TypeCheckManager(enable=type_check):
             if isinstance(pipeline_func, python_component.PythonComponent):
-                pipeline_spec = self._create_pipeline_for_component(
-                    component=pipeline_func,
+                component_spec = _modify_component_spec_for_compile(
+                    component_spec=pipeline_func.component_spec,
                     pipeline_name=pipeline_name,
                     pipeline_parameters_override=pipeline_parameters,
                 )
+                pipeline_spec = self._create_pipeline_from_component_spec(
+                    component_spec)
             elif pipeline_context.Pipeline.is_pipeline_func(pipeline_func):
                 pipeline_spec = self._create_pipeline(
                     pipeline_func=pipeline_func,
@@ -200,43 +197,23 @@ class Compiler:
 
         return pipeline_spec
 
-    def _create_pipeline_for_component(
+    def _create_pipeline_from_component_spec(
         self,
-        component: python_component.PythonComponent,
-        pipeline_name: Optional[str] = None,
-        pipeline_parameters_override: Optional[Mapping[str, Any]] = None,
+        component_spec: structures.ComponentSpec,
     ) -> pipeline_spec_pb2.PipelineSpec:
         """Creates a pipeline instance and constructs the pipeline spec for a
         single component.
 
         Args:
-            component: The component (constructed with @dsl.component
-                decorator) for which to construct the component.
-            pipeline_name: Optional; the name of the pipeline.
-            pipeline_parameters_override: Optional; the mapping from parameter
-                names to values.
+            component_spec: The ComponentSpec to convert to PipelineSpec.
 
         Returns:
-            A PipelineSpec proto representing the compiled pipeline.
+            A PipelineSpec proto representing the compiled component.
         """
-        python_func = component.python_func
-        # Create the arg list with no default values and call pipeline function.
-        # Assign type information to the PipelineChannel
-        pipeline_meta = component_factory.extract_component_interface(
-            python_func)
-
         args_dict = {}
-        signature = inspect.signature(python_func)
 
-        for arg_name in signature.parameters:
-            try:
-                arg_type = pipeline_meta.inputs[arg_name].type
-            except (KeyError, TypeError) as e:
-                # key error catches if the key is not in pipeline_meta.inputs and type error catches if pipeline_meta.inputs is None
-                raise TypeError(
-                    _make_invalid_input_type_error_msg(
-                        arg_name,
-                        signature.parameters[arg_name].annotation)) from e
+        for arg_name, input_spec in component_spec.inputs.items():
+            arg_type = input_spec.type
             if not type_utils.is_parameter_type(
                     arg_type) or type_utils.is_task_final_status_type(arg_type):
                 raise TypeError(
@@ -244,7 +221,7 @@ class Compiler:
             args_dict[arg_name] = dsl.PipelineParameterChannel(
                 name=arg_name, channel_type=arg_type)
 
-        task = pipeline_task.PipelineTask(component.component_spec, args_dict)
+        task = pipeline_task.PipelineTask(component_spec, args_dict)
 
         # instead of constructing a pipeline with pipeline_context.Pipeline,
         # just build the single task group
@@ -252,43 +229,23 @@ class Compiler:
             group_type=tasks_group.TasksGroupType.PIPELINE)
         group.tasks.append(task)
 
-        pipeline_inputs = pipeline_meta.inputs or {}
-
-        # Verify that pipeline_parameters_override contains only input names
-        # that match the pipeline inputs definition.
-        pipeline_parameters_override = pipeline_parameters_override or {}
-        for input_name in pipeline_parameters_override:
-            if input_name not in pipeline_inputs:
-                raise ValueError(
-                    f'Pipeline parameter {input_name} does not match any known pipeline argument.'
-                )
+        pipeline_inputs = component_spec.inputs or {}
 
         # Fill in the default values.
         args_list_with_defaults = [
             dsl.PipelineParameterChannel(
                 name=input_name,
                 channel_type=input_spec.type,
-                value=pipeline_parameters_override.get(input_name) or
-                input_spec.default,
+                value=input_spec.default,
             ) for input_name, input_spec in pipeline_inputs.items()
         ]
         group.name = uuid.uuid4().hex
 
-        pipeline_name = pipeline_name or component_utils.sanitize_component_name(
-            component.component_spec.name).replace(utils._COMPONENT_NAME_PREFIX,
-                                                   '')
-
-        pipeline_spec = self._create_pipeline_spec_for_component(
-            pipeline_name=pipeline_name,
+        return self._create_pipeline_spec_for_component(
+            pipeline_name=component_spec.name,
             pipeline_args=args_list_with_defaults,
             task_group=group,
         )
-
-        pipeline_root = getattr(python_func, 'pipeline_root', None)
-        if pipeline_root:
-            pipeline_spec.default_pipeline_root = pipeline_root
-
-        return pipeline_spec
 
     def _write_pipeline_spec_file(
         self,
@@ -490,7 +447,6 @@ class Compiler:
         # of _create_pipeline_spec
 
         # one-by-one building up the arguments for self._build_spec_by_group
-
         self._validate_pipeline_name(pipeline_name)
 
         pipeline_spec = pipeline_spec_pb2.PipelineSpec()
@@ -1212,3 +1168,45 @@ class Compiler:
             task_name_to_component_spec=task_name_to_component_spec,
             pipeline_spec=pipeline_spec,
         )
+
+
+def _make_invalid_input_type_error_msg(arg_name: str, arg_type: Any) -> str:
+    valid_types = (str.__name__, int.__name__, float.__name__, bool.__name__,
+                   dict.__name__, list.__name__)
+    return f"The pipeline parameter '{arg_name}' of type {arg_type} is not a valid input for this component. Passing artifacts as pipeline inputs is not supported. Consider annotating the parameter with a primitive type such as {valid_types}."
+
+
+def _modify_component_spec_for_compile(
+    component_spec: structures.ComponentSpec,
+    pipeline_name: Optional[str],
+    pipeline_parameters_override: Optional[Mapping[str, Any]],
+) -> structures.ComponentSpec:
+    """Modifies the ComponentSpec using arguments passed to the
+    Compiler.compile method.
+
+    Args:
+        component_spec (structures.ComponentSpec): ComponentSpec to modify.
+        pipeline_name (Optional[str]): Name of the pipeline. Overrides component name.
+        pipeline_parameters_override (Optional[Mapping[str, Any]]): Pipeline parameters. Overrides component input default values.
+
+    Raises:
+        ValueError: If a parameter is passed to the compiler that is not a component input.
+
+    Returns:
+        structures.ComponentSpec: The modified ComponentSpec.
+    """
+    pipeline_name = pipeline_name or component_utils.sanitize_component_name(
+        component_spec.name).replace(utils._COMPONENT_NAME_PREFIX, '')
+
+    component_spec.name = pipeline_name
+    if component_spec.inputs is not None:
+        pipeline_parameters_override = pipeline_parameters_override or {}
+        for input_name in pipeline_parameters_override:
+            if input_name not in component_spec.inputs:
+                raise ValueError(
+                    f'Parameter {input_name} does not match any known component parameters.'
+                )
+            component_spec.inputs[
+                input_name].default = pipeline_parameters_override[input_name]
+
+    return component_spec
