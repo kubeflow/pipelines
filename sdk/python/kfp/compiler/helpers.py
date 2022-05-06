@@ -26,16 +26,16 @@ from kfp.components import utils
 from kfp.components import utils as component_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
-_GroupOrTask = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
+GroupOrTaskType = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
 
 
-def _make_invalid_input_type_error_msg(arg_name: str, arg_type: Any) -> str:
+def make_invalid_input_type_error_msg(arg_name: str, arg_type: Any) -> str:
     valid_types = (str.__name__, int.__name__, float.__name__, bool.__name__,
                    dict.__name__, list.__name__)
     return f"The pipeline parameter '{arg_name}' of type {arg_type} is not a valid input for this component. Passing artifacts as pipeline inputs is not supported. Consider annotating the parameter with a primitive type such as {valid_types}."
 
 
-def _modify_component_spec_for_compile(
+def modify_component_spec_for_compile(
     component_spec: structures.ComponentSpec,
     pipeline_name: Optional[str],
     pipeline_parameters_override: Optional[Mapping[str, Any]],
@@ -71,14 +71,14 @@ def _modify_component_spec_for_compile(
     return component_spec
 
 
-def _build_spec_by_group(
+def build_spec_by_group(
     pipeline_spec: pipeline_spec_pb2.PipelineSpec,
     deployment_config: pipeline_spec_pb2.PipelineDeploymentConfig,
     group: tasks_group.TasksGroup,
     inputs: Mapping[str, List[Tuple[dsl.PipelineChannel, str]]],
-    dependencies: Dict[str, List[_GroupOrTask]],
+    dependencies: Dict[str, List[GroupOrTaskType]],
     rootgroup_name: str,
-    task_name_to_parent_groups: Mapping[str, List[_GroupOrTask]],
+    task_name_to_parent_groups: Mapping[str, List[GroupOrTaskType]],
     group_name_to_parent_groups: Mapping[str, List[tasks_group.TasksGroup]],
     name_to_for_loop_group: Mapping[str, dsl.ParallelFor],
 ) -> None:
@@ -292,9 +292,10 @@ def _build_spec_by_group(
     )
 
 
-def _get_parent_groups(
+def get_parent_groups(
     root_group: tasks_group.TasksGroup,
-) -> Tuple[Mapping[str, List[_GroupOrTask]], Mapping[str, List[_GroupOrTask]]]:
+) -> Tuple[Mapping[str, List[GroupOrTaskType]], Mapping[str,
+                                                        List[GroupOrTaskType]]]:
     """Get parent groups that contain the specified tasks.
 
     Each pipeline has a root group. Each group has a list of tasks (leaf)
@@ -314,8 +315,8 @@ def _get_parent_groups(
 
     def _get_parent_groups_helper(
         current_groups: List[tasks_group.TasksGroup],
-        tasks_to_groups: Dict[str, List[_GroupOrTask]],
-        groups_to_groups: Dict[str, List[_GroupOrTask]],
+        tasks_to_groups: Dict[str, List[GroupOrTaskType]],
+        groups_to_groups: Dict[str, List[GroupOrTaskType]],
     ) -> None:
         root_group = current_groups[-1]
         for group in root_group.groups:
@@ -347,7 +348,7 @@ def _get_parent_groups(
     return (tasks_to_groups, groups_to_groups)
 
 
-def _validate_pipeline_name(name: str) -> None:
+def validate_pipeline_name(name: str) -> None:
     """Validate pipeline name.
 
     A valid pipeline name should match ^[a-z0-9][a-z0-9-]{0,127}$.

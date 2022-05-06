@@ -26,12 +26,12 @@ import kfp
 from google.protobuf import json_format
 from kfp import dsl
 from kfp.compiler import pipeline_spec_builder as builder
-from kfp.compiler.helpers import _build_spec_by_group
-from kfp.compiler.helpers import _get_parent_groups
-from kfp.compiler.helpers import _GroupOrTask
-from kfp.compiler.helpers import _make_invalid_input_type_error_msg
-from kfp.compiler.helpers import _modify_component_spec_for_compile
-from kfp.compiler.helpers import _validate_pipeline_name
+from kfp.compiler.helpers import GroupOrTaskType
+from kfp.compiler.helpers import build_spec_by_group
+from kfp.compiler.helpers import get_parent_groups
+from kfp.compiler.helpers import make_invalid_input_type_error_msg
+from kfp.compiler.helpers import modify_component_spec_for_compile
+from kfp.compiler.helpers import validate_pipeline_name
 from kfp.components import component_factory
 from kfp.components import for_loop
 from kfp.components import pipeline_context
@@ -95,7 +95,7 @@ class Compiler:
 
         with type_utils.TypeCheckManager(enable=type_check):
             if isinstance(pipeline_func, python_component.PythonComponent):
-                component_spec = _modify_component_spec_for_compile(
+                component_spec = modify_component_spec_for_compile(
                     component_spec=pipeline_func.component_spec,
                     pipeline_name=pipeline_name,
                     pipeline_parameters_override=pipeline_parameters,
@@ -150,7 +150,7 @@ class Compiler:
             arg_type = pipeline_meta.inputs[arg_name].type
             if not type_utils.is_parameter_type(arg_type):
                 raise TypeError(
-                    _make_invalid_input_type_error_msg(arg_name, arg_type))
+                    make_invalid_input_type_error_msg(arg_name, arg_type))
             args_list.append(
                 dsl.PipelineParameterChannel(
                     name=arg_name, channel_type=arg_type))
@@ -219,7 +219,7 @@ class Compiler:
             if not type_utils.is_parameter_type(
                     arg_type) or type_utils.is_task_final_status_type(arg_type):
                 raise TypeError(
-                    _make_invalid_input_type_error_msg(arg_name, arg_type))
+                    make_invalid_input_type_error_msg(arg_name, arg_type))
             args_dict[arg_name] = dsl.PipelineParameterChannel(
                 name=arg_name, channel_type=arg_type)
 
@@ -320,7 +320,7 @@ class Compiler:
         Raises:
             ValueError if the argument is of unsupported types.
         """
-        _validate_pipeline_name(pipeline.name)
+        validate_pipeline_name(pipeline.name)
 
         deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
         pipeline_spec = pipeline_spec_pb2.PipelineSpec()
@@ -341,7 +341,7 @@ class Compiler:
         all_groups = self._get_all_groups(root_group)
         group_name_to_group = {group.name: group for group in all_groups}
         task_name_to_parent_groups, group_name_to_parent_groups = (
-            _get_parent_groups(root_group))
+            get_parent_groups(root_group))
         condition_channels = self._get_condition_channels_for_tasks(root_group)
         name_to_for_loop_group = {
             group_name: group
@@ -367,7 +367,7 @@ class Compiler:
         )
 
         for group in all_groups:
-            _build_spec_by_group(
+            build_spec_by_group(
                 pipeline_spec=pipeline_spec,
                 deployment_config=deployment_config,
                 group=group,
@@ -449,7 +449,7 @@ class Compiler:
         # of _create_pipeline_spec
 
         # one-by-one building up the arguments for self._build_spec_by_group
-        _validate_pipeline_name(pipeline_name)
+        validate_pipeline_name(pipeline_name)
 
         pipeline_spec = pipeline_spec_pb2.PipelineSpec()
         pipeline_spec.pipeline_info.name = pipeline_name
@@ -465,7 +465,7 @@ class Compiler:
         deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
         root_group = task_group
 
-        task_name_to_parent_groups, group_name_to_parent_groups = _get_parent_groups(
+        task_name_to_parent_groups, group_name_to_parent_groups = get_parent_groups(
             root_group)
 
         def get_inputs(task_group: tasks_group.TasksGroup,
@@ -483,7 +483,7 @@ class Compiler:
 
         inputs = get_inputs(task_group, task_name_to_parent_groups)
 
-        _build_spec_by_group(
+        build_spec_by_group(
             pipeline_spec=pipeline_spec,
             deployment_config=deployment_config,
             group=root_group,
@@ -569,7 +569,7 @@ class Compiler:
         pipeline: pipeline_context.Pipeline,
         pipeline_args: List[dsl.PipelineChannel],
         root_group: tasks_group.TasksGroup,
-        task_name_to_parent_groups: Mapping[str, List[_GroupOrTask]],
+        task_name_to_parent_groups: Mapping[str, List[GroupOrTaskType]],
         group_name_to_parent_groups: Mapping[str, List[tasks_group.TasksGroup]],
         condition_channels: Mapping[str, Set[dsl.PipelineParameterChannel]],
         name_to_for_loop_group: Mapping[str, dsl.ParallelFor],
@@ -750,11 +750,11 @@ class Compiler:
 
     def _get_uncommon_ancestors(
         self,
-        task_name_to_parent_groups: Mapping[str, List[_GroupOrTask]],
+        task_name_to_parent_groups: Mapping[str, List[GroupOrTaskType]],
         group_name_to_parent_groups: Mapping[str, List[tasks_group.TasksGroup]],
-        task1: _GroupOrTask,
-        task2: _GroupOrTask,
-    ) -> Tuple[List[_GroupOrTask], List[_GroupOrTask]]:
+        task1: GroupOrTaskType,
+        task2: GroupOrTaskType,
+    ) -> Tuple[List[GroupOrTaskType], List[GroupOrTaskType]]:
         """Gets the unique ancestors between two tasks.
 
         For example, task1's ancestor groups are [root, G1, G2, G3, task1],
@@ -797,11 +797,11 @@ class Compiler:
         self,
         pipeline: pipeline_context.Pipeline,
         root_group: tasks_group.TasksGroup,
-        task_name_to_parent_groups: Mapping[str, List[_GroupOrTask]],
+        task_name_to_parent_groups: Mapping[str, List[GroupOrTaskType]],
         group_name_to_parent_groups: Mapping[str, List[tasks_group.TasksGroup]],
         group_name_to_group: Mapping[str, tasks_group.TasksGroup],
         condition_channels: Dict[str, dsl.PipelineChannel],
-    ) -> Mapping[str, List[_GroupOrTask]]:
+    ) -> Mapping[str, List[GroupOrTaskType]]:
         """Gets dependent groups and tasks for all tasks and groups.
 
         Args:
