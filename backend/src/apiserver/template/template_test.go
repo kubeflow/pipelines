@@ -206,6 +206,12 @@ schemaVersion: 2.0.0
 sdkVersion: kfp-1.6.5
 `
 
+func TestToSwfCRDResourceGeneratedName_HasSuffix(t *testing.T) {
+	name, err := toSWFCRDResourceGeneratedName("name-")
+	assert.Nil(t, err)
+	assert.Equal(t, name, "name-")
+}
+
 func TestToSwfCRDResourceGeneratedName_SpecialCharsAndSpace(t *testing.T) {
 	name, err := toSWFCRDResourceGeneratedName("! HaVe ä £unky name")
 	assert.Nil(t, err)
