@@ -188,6 +188,8 @@ func toSWFCRDResourceGeneratedName(displayName string) (string, error) {
 	processedName := reg.ReplaceAllString(strings.ToLower(displayName), "")
 	if processedName == "" {
 		processedName = "job-"
+	} else if !strings.HasSuffix(processedName, "-") {
+		processedName += "-"
 	}
 	return util.Truncate(processedName, 25), nil
 }
