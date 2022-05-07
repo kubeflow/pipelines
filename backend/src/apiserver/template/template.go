@@ -188,10 +188,17 @@ func toSWFCRDResourceGeneratedName(displayName string) (string, error) {
 	processedName := reg.ReplaceAllString(strings.ToLower(displayName), "")
 	if processedName == "" {
 		processedName = "job-"
-	} else if !strings.HasSuffix(processedName, "-") {
-		processedName += "-"
 	}
-	return util.Truncate(processedName, 25), nil
+
+	if len(processedName) < 25 {
+		if !strings.HasSuffix(processedName, "-") {
+			processedName += "-"
+		}
+		return processedName, nil
+	}
+
+	processedName = util.Truncate(processedName, 24)
+	return processedName + "-", nil
 }
 
 func toCRDTrigger(apiTrigger *api.Trigger) *scheduledworkflow.Trigger {

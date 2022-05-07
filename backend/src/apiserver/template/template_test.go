@@ -215,7 +215,7 @@ func TestToSwfCRDResourceGeneratedName_SpecialCharsAndSpace(t *testing.T) {
 func TestToSwfCRDResourceGeneratedName_TruncateLongName(t *testing.T) {
 	name, err := toSWFCRDResourceGeneratedName("AloooooooooooooooooongName")
 	assert.Nil(t, err)
-	assert.Equal(t, name, "aloooooooooooooooooongnam-")
+	assert.Equal(t, name, "aloooooooooooooooooongna-")
 }
 
 func TestToSwfCRDResourceGeneratedName_EmptyName(t *testing.T) {
