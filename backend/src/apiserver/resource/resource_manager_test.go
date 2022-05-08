@@ -1440,7 +1440,7 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 	expectedJob := &model.Job{
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "j1",
-		Name:           "j1",
+		Name:           "j1-",
 		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		Enabled:        true,
@@ -1470,7 +1470,7 @@ func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
 	expectedJob := &model.Job{
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "j1",
-		Name:           "j1",
+		Name:           "j1-",
 		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		Enabled:        true,
@@ -1530,7 +1530,7 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 	version, err := manager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "version_for_run",
 		ResourceReferences: []*api.ResourceReference{
-			&api.ResourceReference{
+			{
 				Key: &api.ResourceKey{
 					Id:   pipeline.UUID,
 					Type: api.ResourceType_PIPELINE,
@@ -1547,7 +1547,7 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 	expectedJob := &model.Job{
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "j1",
-		Name:           "j1",
+		Name:           "j1-",
 		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		Enabled:        true,
@@ -1593,7 +1593,7 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 	version, err := manager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "version_for_job",
 		ResourceReferences: []*api.ResourceReference{
-			&api.ResourceReference{
+			{
 				Key: &api.ResourceKey{
 					Id:   pipeline.UUID,
 					Type: api.ResourceType_PIPELINE,
@@ -1605,7 +1605,7 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 	assert.Nil(t, err)
 
 	job := &api.Job{
-		Name:    "j1",
+		Name:    "j1-",
 		Enabled: true,
 		PipelineSpec: &api.PipelineSpec{
 			Parameters: []*api.Parameter{
@@ -1626,8 +1626,8 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 	newJob, err := manager.CreateJob(context.Background(), job)
 	expectedJob := &model.Job{
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
-		DisplayName:    "j1",
-		Name:           "j1",
+		DisplayName:    "j1-",
+		Name:           "j1-",
 		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		Enabled:        true,
@@ -1671,7 +1671,7 @@ func TestCreateJob_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	version, err := manager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "version_for_job",
 		ResourceReferences: []*api.ResourceReference{
-			&api.ResourceReference{
+			{
 				Key: &api.ResourceKey{
 					Id:   pipeline.UUID,
 					Type: api.ResourceType_PIPELINE,
@@ -1683,7 +1683,7 @@ func TestCreateJob_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	assert.Nil(t, err)
 
 	job := &api.Job{
-		Name:    "j1",
+		Name:    "j1-",
 		Enabled: true,
 		PipelineSpec: &api.PipelineSpec{
 			PipelineId: pipeline.UUID,
@@ -1705,8 +1705,8 @@ func TestCreateJob_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	newJob, err := manager.CreateJob(context.Background(), job)
 	expectedJob := &model.Job{
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
-		DisplayName:    "j1",
-		Name:           "j1",
+		DisplayName:    "j1-",
+		Name:           "j1-",
 		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		Enabled:        true,
@@ -1838,7 +1838,7 @@ func TestEnableJob(t *testing.T) {
 	expectedJob := &model.Job{
 		UUID:           "123e4567-e89b-12d3-a456-426655440000",
 		DisplayName:    "j1",
-		Name:           "j1",
+		Name:           "j1-",
 		Namespace:      "ns1",
 		ServiceAccount: "pipeline-runner",
 		Enabled:        false,
@@ -2075,7 +2075,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 					ResourceUUID:  "WORKFLOW_1",
 					ResourceType:  common.Run,
 					ReferenceUUID: job.UUID,
-					ReferenceName: job.Name,
+					ReferenceName: "j1",
 					ReferenceType: common.Job,
 					Relationship:  common.Creator,
 				},
@@ -2092,7 +2092,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 	defer store.Close()
 	manager := NewResourceManager(store)
 	job := &api.Job{
-		Name:         "j1",
+		Name:         "j1-",
 		Enabled:      true,
 		PipelineSpec: &api.PipelineSpec{WorkflowManifest: testWorkflow.ToStringForStore()},
 		// no experiment reference
