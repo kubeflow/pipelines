@@ -2,16 +2,19 @@
 
 import json
 from unittest import mock
+import os
 
 import google.auth
 from google.cloud import aiplatform
 from google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation import main
 from google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation import to_value
+from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 
+from google.protobuf import json_format
 from google3.testing.pybase.googletest import TestCase
 
 SCHEMA_URI = 'gs://google-cloud-aiplatform/schema/modelevaluation/classification_metrics_1.0.0.yaml'
-MODEL_NAME = 'projects/project/locations/fake-location/models/1234'
+
 METRICS = ('{"slicedMetrics": [{"singleOutputSlicingSpec": {},"metrics": '
            '{"regression": {"rootMeanSquaredError": '
            '49.40016,"meanAbsoluteError": '
@@ -50,6 +53,16 @@ class ImportModelEvaluationTest(TestCase):
     with open(metrics_path, 'w') as f:
       f.write(METRICS)
     self.metrics_path = metrics_path
+    self._gcp_resources = os.path.join(
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'gcp_resources')
+    self._project = 'test_project'
+    self._location = 'test_location'
+    self._model_name = f'projects/{self._project}/locations/{self._location}/models/1234'
+    self._model_evaluation_uri_prefix = f'https://{self._location}-aiplatform.googleapis.com/v1/'
+
+  def tearDown(self):
+    if os.path.exists(self._gcp_resources):
+      os.remove(self._gcp_resources)
 
   @mock.patch.object(google.auth, 'default', autospec=True)
   @mock.patch.object(
@@ -63,11 +76,11 @@ class ImportModelEvaluationTest(TestCase):
 
     main([
         '--metrics', self.metrics_path, '--problem_type', 'classification',
-        '--model_name', MODEL_NAME
+        '--model_name', self._model_name, '--gcp_resources', self._gcp_resources
     ])
     mock_api.assert_called_with(
         mock.ANY,
-        parent=MODEL_NAME,
+        parent=self._model_name,
         model_evaluation={
             'metrics':
                 to_value(
@@ -95,11 +108,11 @@ class ImportModelEvaluationTest(TestCase):
     main([
         '--metrics', self.metrics_path, '--metrics_explanation',
         explanation_path, '--problem_type', 'classification', '--model_name',
-        MODEL_NAME
+        self._model_name, '--gcp_resources', self._gcp_resources
     ])
     mock_api.assert_called_with(
         mock.ANY,
-        parent=MODEL_NAME,
+        parent=self._model_name,
         model_evaluation={
             'metrics':
                 to_value(
@@ -133,11 +146,12 @@ class ImportModelEvaluationTest(TestCase):
 
     main([
         '--metrics', self.metrics_path, '--explanation', explanation_path,
-        '--problem_type', 'classification', '--model_name', MODEL_NAME
+        '--problem_type', 'classification', '--model_name', self._model_name,
+        '--gcp_resources', self._gcp_resources
     ])
     mock_api.assert_called_with(
         mock.ANY,
-        parent=MODEL_NAME,
+        parent=self._model_name,
         model_evaluation={
             'metrics':
                 to_value(
@@ -177,11 +191,12 @@ class ImportModelEvaluationTest(TestCase):
     main([
         '--metrics', self.metrics_path, '--metrics_explanation',
         explanation_path_1, '--explanation', explanation_path_2,
-        '--problem_type', 'classification', '--model_name', MODEL_NAME
+        '--problem_type', 'classification', '--model_name', self._model_name,
+        '--gcp_resources', self._gcp_resources
     ])
     mock_api.assert_called_with(
         mock.ANY,
-        parent=MODEL_NAME,
+        parent=self._model_name,
         model_evaluation={
             'metrics':
                 to_value(
@@ -198,3 +213,35 @@ class ImportModelEvaluationTest(TestCase):
                 }]
             },
         })
+
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(
+      aiplatform.gapic.ModelServiceClient,
+      'import_model_evaluation',
+      autospec=True)
+  def test_import_model_evaluation_gcp_resources(
+      self, mock_api, mock_auth):
+    mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
+    mock_creds.token = 'token'
+    mock_auth.return_value = [mock_creds, 'project']
+
+    import_model_evaluation_response = mock.Mock()
+    mock_api.return_value = import_model_evaluation_response
+    import_model_evaluation_response.parent = self._model_name
+
+    main([
+        '--metrics', self.metrics_path, '--problem_type', 'classification',
+        '--model_name', self._model_name, '--gcp_resources', self._gcp_resources
+    ])
+
+    with open(self._gcp_resources) as f:
+      serialized_gcp_resources = f.read()
+
+      # Instantiate GCPResources Proto
+      model_evaluation_resources = json_format.Parse(
+          serialized_gcp_resources, GcpResources())
+
+      self.assertLen(model_evaluation_resources.resources, 1)
+      model_evaluation_name = model_evaluation_resources.resources[
+          0].resource_uri[len(self._model_evaluation_uri_prefix):]
+      self.assertEqual(model_evaluation_name, self._model_name)
