@@ -2,6 +2,7 @@ package template
 
 import (
 	"fmt"
+
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/ghodss/yaml"
@@ -13,7 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (t *Argo) RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (*util.Workflow, error) {
+func (t *Argo) RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (util.ExecutionSpec, error) {
 	workflow := util.NewWorkflow(t.wf.Workflow.DeepCopy())
 
 	// Add a KFP specific label for cache service filtering. The cache_enabled flag here is a global control for whether cache server will
@@ -200,4 +201,3 @@ func ValidateWorkflow(template []byte) (*util.Workflow, error) {
 	}
 	return util.NewWorkflow(&wf), nil
 }
-

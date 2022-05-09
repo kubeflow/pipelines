@@ -6,6 +6,7 @@ github.com/asaskevich/govalidator,https://github.com/asaskevich/govalidator/blob
 github.com/cenkalti/backoff,https://github.com/cenkalti/backoff/blob/v2.2.1/LICENSE,MIT
 github.com/davecgh/go-spew/spew,https://github.com/davecgh/go-spew/blob/v1.1.1/LICENSE,ISC
 github.com/emicklei/go-restful,https://github.com/emicklei/go-restful/blob/v2.15.0/LICENSE,MIT
+github.com/ghodss/yaml,https://github.com/ghodss/yaml/blob/25d852aebe32/LICENSE,MIT
 github.com/go-logr/logr,https://github.com/go-logr/logr/blob/v0.4.0/LICENSE,Apache-2.0
 github.com/go-openapi/errors,https://github.com/go-openapi/errors/blob/v0.19.9/LICENSE,Apache-2.0
 github.com/go-openapi/jsonpointer,https://github.com/go-openapi/jsonpointer/blob/v0.19.5/LICENSE,Apache-2.0

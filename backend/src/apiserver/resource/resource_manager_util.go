@@ -17,6 +17,8 @@ package resource
 import (
 	"context"
 	"errors"
+	"strings"
+
 	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/workflow/common"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -25,7 +27,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	apierr "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"strings"
 )
 
 func formulateRetryWorkflow(wf *util.Workflow) (*util.Workflow, []string, error) {
