@@ -17,6 +17,8 @@ inputs:
   - {name: explanation, type: Metrics, optional: True}
   - {name: model, type: google.VertexModel}
   - {name: problem_type, type: String}
+outputs:
+- {name: gcp_resources, type: String}
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
@@ -35,3 +37,5 @@ implementation:
       - {inputValue: problem_type}
       - --model_name
       - "{{$.inputs.artifacts['model'].metadata['resourceName']}}"
+      - --gcp_resources
+      - {outputPath: gcp_resources}
