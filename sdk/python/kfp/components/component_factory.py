@@ -100,7 +100,7 @@ def _get_packages_to_install_command(
 
 def _get_default_kfp_package_path() -> str:
     import kfp
-    return 'kfp=={}'.format(kfp.__version__)
+    return f'kfp=={kfp.__version__}'
 
 
 def _get_function_source_definition(func: Callable) -> str:
@@ -119,8 +119,8 @@ def _get_function_source_definition(func: Callable) -> str:
 
     if not func_code_lines:
         raise ValueError(
-            'Failed to dedent and clean up the source of function "{}". '
-            'It is probably not properly indented.'.format(func.__name__))
+            f'Failed to dedent and clean up the source of function "{func.__name__}". It is probably not properly indented.'
+        )
 
     return '\n'.join(func_code_lines)
 
@@ -163,11 +163,11 @@ def _maybe_make_unique(name: str, names: List[str]):
         return name
 
     for i in range(2, 100):
-        unique_name = '{}_{}'.format(name, i)
+        unique_name = f'{name}_{i}'
         if unique_name not in names:
             return unique_name
 
-    raise RuntimeError('Too many arguments with the name {}'.format(name))
+    raise RuntimeError(f'Too many arguments with the name {name}')
 
 
 def extract_component_interface(func: Callable) -> structures.ComponentSpec:
@@ -201,9 +201,8 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
                 parameter_type)
             if not issubclass(parameter_type, artifact_types.Artifact):
                 raise ValueError(
-                    'Input[T] and Output[T] are only supported when T is a '
-                    'subclass of Artifact. Found `{} with type {}`'.format(
-                        io_name, parameter_type))
+                    f'Input[T] and Output[T] are only supported when T is a subclass of Artifact. Found `{io_name} with type {parameter_type}`'
+                )
 
             if parameter.default is not inspect.Parameter.empty:
                 raise ValueError(
@@ -223,8 +222,8 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
 
         type_struct = _annotation_to_type_struct(parameter_type)
         if type_struct is None:
-            raise TypeError('Missing type annotation for argument: {}'.format(
-                parameter.name))
+            raise TypeError(
+                f'Missing type annotation for argument: {parameter.name}')
 
         if passing_style in [
                 type_annotations.OutputAnnotation, type_annotations.OutputPath
@@ -316,7 +315,7 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
     return component_spec
 
 
-EXECUTOR_INPUT_PLACEHOLDER = "{{$}}"
+EXECUTOR_INPUT_PLACEHOLDER = '{{$}}'
 
 
 def _get_command_and_args_for_lightweight_component(
