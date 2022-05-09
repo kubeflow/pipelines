@@ -14,10 +14,11 @@
 """Module for importing a model evaluation to an existing Vertex model resource."""
 
 import argparse
-import sys
 import json
-import six
+import logging
 import os
+import six
+import sys
 
 from google.cloud import aiplatform
 from google.api_core import gapic_v1
@@ -35,7 +36,8 @@ PROBLEM_TYPE_TO_SCHEMA_URI = {
         'gs://google-cloud-aiplatform/schema/modelevaluation/forecasting_metrics_1.0.0.yaml',
 }
 
-RESOURCE_TYPE = "ModelEvaluation"
+RESOURCE_TYPE = 'ModelEvaluation'
+
 
 def _make_parent_dirs_and_return_path(file_path: str):
   os.makedirs(os.path.dirname(file_path), exist_ok=True)
@@ -95,9 +97,14 @@ def main(argv):
             PROBLEM_TYPE_TO_SCHEMA_URI.get(parsed_args.problem_type),
     }
 
-  if parsed_args.explanation:
+  if parsed_args.explanation and parsed_args.explanation != "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}":
     explanation_file_name = parsed_args.explanation if not parsed_args.explanation.startswith(
         'gs://') else '/gcs' + parsed_args.explanation[4:]
+  elif parsed_args.metrics_explanation and parsed_args.metrics_explanation == "{{$.inputs.artifacts['metrics_explanation'].metadata['explanation_gcs_path']}}":
+    # metrics_explanation must contain explanation_gcs_path when provided.
+    logging.error(
+        '"metrics_explanation" must contain explanations when provided.')
+    sys.exit(13)
   elif parsed_args.metrics_explanation:
     explanation_file_name = parsed_args.metrics_explanation if not parsed_args.metrics_explanation.startswith(
         'gs://') else '/gcs' + parsed_args.metrics_explanation[4:]
