@@ -13,10 +13,13 @@
 # limitations under the License.
 """Definitions for component spec."""
 
+import abc
 import ast
 import collections
+import dataclasses
 import functools
 import itertools
+import re
 import uuid
 from typing import Any, Dict, List, Mapping, Optional, Union
 
@@ -74,7 +77,49 @@ class OutputSpec(base_model.BaseModel):
     description: Optional[str] = None
 
 
-class InputValuePlaceholder(base_model.BaseModel):
+class PlaceholderSerializationMixin(abc.ABC):
+    _FROM_PLACEHOLDER_REGEX: Union[str, type(NotImplemented)] = NotImplemented
+    _TO_PLACEHOLDER_TEMPLATE_STRING: Union[
+        str, type(NotImplemented)] = NotImplemented
+
+    @classmethod
+    def _is_input_placeholder(cls) -> bool:
+        field_names = {field.name for field in dataclasses.fields(cls)}
+        return "input_name" in field_names
+
+    @classmethod
+    def is_match(cls, placeholder: str) -> bool:
+        return re.match(cls._FROM_PLACEHOLDER_REGEX, placeholder) is not None
+
+    @classmethod
+    def from_placeholder(cls, placeholder: str) -> Any:
+        if cls._FROM_PLACEHOLDER_REGEX == NotImplemented:
+            raise NotImplementedError(
+                f'{cls.__name__} does not support placeholder parsing.')
+
+        matches = re.search(cls._FROM_PLACEHOLDER_REGEX, placeholder)
+        if matches is None:
+            raise ValueError(
+                f'Could not parse placeholder: {placeholder} into {cls.__name__}'
+            )
+        if cls._is_input_placeholder():
+            return cls(input_name=matches[1])
+        else:
+            return cls(output_name=matches[1])
+
+    def to_placeholder(self) -> str:
+        if self._TO_PLACEHOLDER_TEMPLATE_STRING == NotImplemented:
+            raise NotImplementedError(
+                f'{self.__class__.__name__} does not support creating placeholder strings.'
+            )
+        attr_name = 'input_name' if self._is_input_placeholder(
+        ) else 'output_name'
+        value = getattr(self, attr_name)
+        return self._TO_PLACEHOLDER_TEMPLATE_STRING.format(value)
+
+
+class InputValuePlaceholder(base_model.BaseModel,
+                            PlaceholderSerializationMixin):
     """Class that holds input value for conditional cases.
 
     Attributes:
@@ -82,9 +127,11 @@ class InputValuePlaceholder(base_model.BaseModel):
     """
     input_name: str
     _aliases = {'input_name': 'inputValue'}
+    _TO_PLACEHOLDER_TEMPLATE_STRING = "{{{{$.inputs.parameters['{}']}}}}"
+    _FROM_PLACEHOLDER_REGEX = r"\{\{\$\.inputs\.parameters\[(?:''|'|\")(.+?)(?:''|'|\")]\}\}"
 
 
-class InputPathPlaceholder(base_model.BaseModel):
+class InputPathPlaceholder(base_model.BaseModel, PlaceholderSerializationMixin):
     """Class that holds input path for conditional cases.
 
     Attributes:
@@ -92,9 +139,11 @@ class InputPathPlaceholder(base_model.BaseModel):
     """
     input_name: str
     _aliases = {'input_name': 'inputPath'}
+    _TO_PLACEHOLDER_TEMPLATE_STRING = "{{{{$.inputs.artifacts['{}'].path}}}}"
+    _FROM_PLACEHOLDER_REGEX = r"\{\{\$\.inputs\.artifacts\[(?:''|'|\")(.+?)(?:''|'|\")]\.path\}\}"
 
 
-class InputUriPlaceholder(base_model.BaseModel):
+class InputUriPlaceholder(base_model.BaseModel, PlaceholderSerializationMixin):
     """Class that holds input uri for conditional cases.
 
     Attributes:
@@ -102,9 +151,12 @@ class InputUriPlaceholder(base_model.BaseModel):
     """
     input_name: str
     _aliases = {'input_name': 'inputUri'}
+    _TO_PLACEHOLDER_TEMPLATE_STRING = "{{{{$.inputs.artifacts['{}'].uri}}}}"
+    _FROM_PLACEHOLDER_REGEX = r"\{\{\$\.inputs\.artifacts\[(?:''|'|\")(.+?)(?:''|'|\")]\.uri\}\}"
 
 
-class OutputPathPlaceholder(base_model.BaseModel):
+class OutputParameterPlaceholder(base_model.BaseModel,
+                                 PlaceholderSerializationMixin):
     """Class that holds output path for conditional cases.
 
     Attributes:
@@ -112,9 +164,24 @@ class OutputPathPlaceholder(base_model.BaseModel):
     """
     output_name: str
     _aliases = {'output_name': 'outputPath'}
+    _TO_PLACEHOLDER_TEMPLATE_STRING = "{{{{$.outputs.parameters['{}'].output_file}}}}"
+    _FROM_PLACEHOLDER_REGEX = r"\{\{\$\.outputs\.parameters\[(?:''|'|\")(.+?)(?:''|'|\")]\.output_file\}\}"
 
 
-class OutputUriPlaceholder(base_model.BaseModel):
+class OutputPathPlaceholder(base_model.BaseModel,
+                            PlaceholderSerializationMixin):
+    """Class that holds output path for conditional cases.
+
+    Attributes:
+        output_name: name of the output.
+    """
+    output_name: str
+    _aliases = {'output_name': 'outputPath'}
+    _TO_PLACEHOLDER_TEMPLATE_STRING = "{{{{$.outputs.artifacts['{}'].path}}}}"
+    _FROM_PLACEHOLDER_REGEX = r"\{\{\$\.outputs\.artifacts\[(?:''|'|\")(.+?)(?:''|'|\")]\.path\}\}"
+
+
+class OutputUriPlaceholder(base_model.BaseModel, PlaceholderSerializationMixin):
     """Class that holds output uri for conditional cases.
 
     Attributes:
@@ -122,12 +189,14 @@ class OutputUriPlaceholder(base_model.BaseModel):
     """
     output_name: str
     _aliases = {'output_name': 'outputUri'}
+    _TO_PLACEHOLDER_TEMPLATE_STRING = "{{{{$.outputs.artifacts['{}'].uri}}}}"
+    _FROM_PLACEHOLDER_REGEX = r"\{\{\$\.outputs\.artifacts\[(?:''|'|\")(.+?)(?:''|'|\")]\.uri\}\}"
 
 
 ValidCommandArgs = Union[str, InputValuePlaceholder, InputPathPlaceholder,
                          InputUriPlaceholder, OutputPathPlaceholder,
-                         OutputUriPlaceholder, 'IfPresentPlaceholder',
-                         'ConcatPlaceholder']
+                         OutputUriPlaceholder, OutputParameterPlaceholder,
+                         'IfPresentPlaceholder', 'ConcatPlaceholder']
 
 
 class ConcatPlaceholder(base_model.BaseModel):
