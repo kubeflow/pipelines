@@ -14,11 +14,15 @@
 
 import { Node } from 'react-flow-renderer';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
-import * as TWO_STEP_PIPELINE from 'src/data/test/mock_lightweight_python_functions_v2_pipeline.json';
 import { PipelineSpec } from 'src/generated/pipeline_spec';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
 import { getNodeMlmdInfo, TASK_NAME_KEY, updateFlowElementsState } from './DynamicFlow';
 import { convertFlowElements, NodeTypeNames } from './StaticFlow';
+import fs from 'fs';
+import jsyaml from 'js-yaml';
+
+const V2_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
+const v2YamlTemplateString = fs.readFileSync(V2_PIPELINESPEC_PATH, 'utf8');
 
 describe('DynamicFlow', () => {
   describe('updateFlowElementsState', () => {
@@ -64,8 +68,8 @@ describe('DynamicFlow', () => {
         .setPath(new Event.Path().setStepsList([new Event.Path.Step().setKey('model')]));
 
       // Converts to static graph first, its type is Elements<any>.
-      const jsonObject = TWO_STEP_PIPELINE;
-      const pipelineSpec = PipelineSpec.fromJSON(jsonObject);
+      const yamlObject = jsyaml.safeLoad(v2YamlTemplateString);
+      const pipelineSpec = PipelineSpec.fromJSON(yamlObject);
       const graph = convertFlowElements(pipelineSpec);
 
       // MLMD objects to provide node states.

@@ -23,22 +23,12 @@ description: |
             Required. The GCP region that runs the pipeline components.
         root_dir (str): Required. The root GCS directory for the pipeline components.
         target_column (str): Required. The target column name.
-        prediction_type (str): Required. The type of prediction the Model is to produce.
+        prediction_type (str): Required. The type of prediction the model is to produce.
             "classification" or "regression".
         weight_column (Optional[str]): The weight column name.
-        max_steps (Optional[int]): Number of steps (batches) to run the trainer for.
+        max_steps (Optional[int]): Number of steps to run the trainer for.
         max_train_secs (Optional[int]): Amount of time in seconds to run the trainer for.
         learning_rate (float): The learning rate used by the linear optimizer.
-        optimizer_type (Optional[str]): The type of optimizer to use. Choices are "adam", "ftrl" and
-            "sgd" for the Adam, FTRL, and Gradient Descent Optimizers, respectively.
-        l1_regularization_strength (Optional[float]): L1 regularization strength for
-            optimizer_type="ftrl".
-        l2_regularization_strength (Optional[float]): L2 regularization strength for
-            optimizer_type="ftrl"
-        l2_shrinkage_regularization_strength (Optional[float]): L2 shrinkage regularization strength
-            for optimizer_type="ftrl".
-        beta_1 (Optional[float]): Beta 1 value for optimizer_type="adam".
-        beta_2 (Optional[float]): Beta 2 value for optimizer_type="adam".
         large_category_dim (Optional[int]): Embedding dimension for categorical feature with
             large number of categories.
         large_category_thresh (Optional[int]): Threshold for number of categories to apply large_category_dim
@@ -46,8 +36,8 @@ description: |
         yeo_johnson_transform (Optional[bool]): Enables trainable Yeo-Johnson power transform.
         feature_dim (Optional[int]): Dimensionality of the hidden representation in feature
             transformation block.
-        feature_dim_ratio (Optional[float]): The ratio of Output Dimension (Dimensionality of the
-            outputs of each decision step) to Feature Dimension.
+        feature_dim_ratio (Optional[float]): The ratio of output dimension (dimensionality of the
+            outputs of each decision step) to feature dimension.
         num_decision_steps (Optional[int]): Number of sequential decision steps.
         relaxation_factor (Optional[float]): Relaxation factor that promotes the reuse of each feature
             at different decision steps. When it is 1, a feature is enforced to be
@@ -57,21 +47,21 @@ description: |
         sparsity_loss_weight (Optional[float]): Weight of the loss for sparsity regularization
             (increasing it will yield more sparse feature selection).
         batch_momentum (Optional[float]): Momentum in ghost batch normalization.
-        batch_size_ratio (Optional[float]): The ratio of Virtual Batch Size
-            (size of the ghost batch normalization) to Batch Size.
+        batch_size_ratio (Optional[float]): The ratio of virtual batch size
+            (size of the ghost batch normalization) to batch size.
         num_transformer_layers (Optional[int]): The number of transformer layers for each decision step.
             used only at one decision step and as it increases, more flexibility is provided to use a feature at multiple decision steps.
-        num_transformer_layers_ratio (Optional[float]): The ratio of Shared Transformer Layer to Transformer Layers.
+        num_transformer_layers_ratio (Optional[float]): The ratio of shared transformer layer to transformer layers.
         class_weight (Optional[float]): The class weight is used to computes a weighted cross
-            entropy which is helpful in classify imbalanced dataset.
+            entropy which is helpful in classify imbalanced dataset. Only used for classification.
         loss_function_type (Optional[str]): Loss function type. Loss function in classification
             [cross_entropy, weighted_cross_entropy, focal_loss], default is cross_entropy.
             Loss function in regression: [rmse, mae, mse], default is mse.
-        alpha_focal_loss (Optional[float]): Alpha value (balancing factor) in focal_loss function.
-        gamma_focal_loss (Optional[float]): Gamma value (modulating factor) for focal loss for focal loss.
+        alpha_focal_loss (Optional[float]): Alpha value (balancing factor) in focal_loss function. Only used for classification.
+        gamma_focal_loss (Optional[float]): Gamma value (modulating factor) for focal loss for focal loss. Only used for classification.
         enable_profiler (Optional[bool]): Enables profiling and saves a trace during evaluation.
         seed (Optional[int]): Seed to be used for this run.
-        eval_steps (Optional[int]): Number of steps (batches) to run evaluation for. If not
+        eval_steps (Optional[int]): Number of steps to run evaluation for. If not
             specified or negative, it means run evaluation on the whole validation
             dataset. If set to 0, it means run evaluation for a fixed number of
             samples.
@@ -80,6 +70,7 @@ description: |
             take place.
         replica_count (Optional[int]): The replica count.
         machine_spec (Optional[Dict[str, Any]]): The machine spec.
+            See https://cloud.google.com/compute/docs/machine-types for options.
         instance_baseline (AutoMLTabularInstanceBaseline): The path to a JSON file for baseline values.
         metadata (TabularExampleGenMetadata): Amount of time in seconds to run the trainer for.
         materialized_train_split (MaterializedSplit): The path to the materialized train split.
@@ -104,12 +95,6 @@ inputs:
   - { name: max_steps, type: Integer, default: -1 }
   - { name: max_train_secs, type: Integer, default: -1 }
   - { name: learning_rate, type: Float }
-  - { name: optimizer_type, type: String, default: "adam" }
-  - { name: l1_regularization_strength, type: Float, default: 0 }
-  - { name: l2_regularization_strength, type: Float, default: 0 }
-  - { name: l2_shrinkage_regularization_strength, type: Float, default: 0 }
-  - { name: beta_1, type: Float, default: 0.9 }
-  - { name: beta_2, type: Float, default: 0.999 }
   - { name: large_category_dim, type: Integer, default: 1 }
   - { name: large_category_thresh, type: Integer, default: 300 }
   - { name: yeo_johnson_transform, type: Boolean, default: "true" }
@@ -197,18 +182,6 @@ implementation:
           { inputValue: max_train_secs },
           '", "--learning_rate=',
           { inputValue: learning_rate },
-          '", "--optimizer_type=',
-          { inputValue: optimizer_type },
-          '", "--l1_regularization_strength=',
-          { inputValue: l1_regularization_strength },
-          '", "--l2_regularization_strength=',
-          { inputValue: l2_regularization_strength },
-          '", "--l2_shrinkage_regularization_strength=',
-          { inputValue: l2_shrinkage_regularization_strength },
-          '", "--beta_1=',
-          { inputValue: beta_1 },
-          '", "--beta_2=',
-          { inputValue: beta_2 },
           '", "--large_category_dim=',
           { inputValue: large_category_dim },
           '", "--large_category_thresh=',

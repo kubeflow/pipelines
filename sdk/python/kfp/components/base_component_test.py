@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2021-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,8 +17,8 @@ import unittest
 from unittest.mock import patch
 
 from kfp.components import base_component
-from kfp.components import structures
 from kfp.components import pipeline_task
+from kfp.components import structures
 
 
 class TestComponent(base_component.BaseComponent):
@@ -30,18 +30,19 @@ class TestComponent(base_component.BaseComponent):
 component_op = TestComponent(
     component_spec=structures.ComponentSpec(
         name='component_1',
-        implementation=structures.ContainerSpec(
-            image='alpine',
-            command=[
-                'sh',
-                '-c',
-                'set -ex\necho "$0" "$1" "$2" > "$3"',
-                structures.InputValuePlaceholder(input_name='input1'),
-                structures.InputValuePlaceholder(input_name='input2'),
-                structures.InputValuePlaceholder(input_name='input3'),
-                structures.OutputPathPlaceholder(output_name='output1'),
-            ],
-        ),
+        implementation=structures.Implementation(
+            container=structures.ContainerSpec(
+                image='alpine',
+                command=[
+                    'sh',
+                    '-c',
+                    'set -ex\necho "$0" "$1" "$2" > "$3"',
+                    structures.InputValuePlaceholder(input_name='input1'),
+                    structures.InputValuePlaceholder(input_name='input2'),
+                    structures.InputValuePlaceholder(input_name='input3'),
+                    structures.OutputPathPlaceholder(output_name='output1'),
+                ],
+            )),
         inputs={
             'input1':
                 structures.InputSpec(type='String'),
@@ -53,7 +54,7 @@ component_op = TestComponent(
                 structures.InputSpec(type='Optional[Float]', default=None),
         },
         outputs={
-            'output1': structures.OutputSpec(name='output1', type='String'),
+            'output1': structures.OutputSpec(type='String'),
         },
     ))
 
@@ -92,25 +93,26 @@ class BaseComponentTest(unittest.TestCase):
         with self.assertRaisesRegex(
                 TypeError,
                 'Components must be instantiated using keyword arguments.'
-                ' Positional parameters are not allowed \(found 3 such'
-                ' parameters for component "component_1"\).'):
+                r' Positional parameters are not allowed \(found 3 such'
+                r' parameters for component "component_1"\).'):
             component_op('abc', 1, 2.3)
 
     def test_instantiate_component_with_unexpected_keyword_arugment(self):
         with self.assertRaisesRegex(
                 TypeError,
-                'component_1\(\) got an unexpected keyword argument "input0".'):
+                r'component_1\(\) got an unexpected keyword argument "input0".'
+        ):
             component_op(input1='abc', input2=1, input3=2.3, input0='extra')
 
     def test_instantiate_component_with_missing_arugments(self):
         with self.assertRaisesRegex(
                 TypeError,
-                'component_1\(\) missing 1 required argument: input1.'):
+                r'component_1\(\) missing 1 required argument: input1.'):
             component_op(input2=1)
 
         with self.assertRaisesRegex(
                 TypeError,
-                'component_1\(\) missing 2 required arguments: input1, input2.'
+                r'component_1\(\) missing 2 required arguments: input1, input2.'
         ):
             component_op()
 

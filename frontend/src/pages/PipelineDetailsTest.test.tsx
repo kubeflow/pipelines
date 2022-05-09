@@ -22,7 +22,6 @@ import { ApiExperiment } from 'src/apis/experiment';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import { ApiRunDetail } from 'src/apis/run';
 import { QUERY_PARAMS, RouteParams } from 'src/components/Router';
-import * as v2PipelineSpec from 'src/data/test/mock_lightweight_python_functions_v2_pipeline.json';
 import * as features from 'src/features';
 import { Apis } from 'src/lib/Apis';
 import TestUtils, { mockResizeObserver, testBestPractices } from 'src/TestUtils';
@@ -31,6 +30,10 @@ import * as StaticGraphParser from '../lib/StaticGraphParser';
 import { PageProps } from './Page';
 import PipelineDetails from './PipelineDetails';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
+import fs from 'fs';
+
+const V2_PIPELINESPEC_PATH = 'src/data/test/lightweight_python_functions_v2_pipeline_rev.yaml';
+const v2YamlTemplateString = fs.readFileSync(V2_PIPELINESPEC_PATH, 'utf8');
 
 // This file is created in order to replace enzyme with react-testing-library gradually.
 // The old test file is written using enzyme in PipelineDetails.test.tsx.
@@ -240,7 +243,7 @@ spec:
   it('Show error if not valid v2 template and enabled v2 feature', async () => {
     // v2 feature is turn on.
     jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
-      if (featureKey === features.FeatureKey.V2) {
+      if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }
       return false;
@@ -255,7 +258,7 @@ spec:
     expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
     expect(updateBannerSpy).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        additionalInfo: 'Unexpected token e in JSON at position 1',
+        additionalInfo: 'Important infomation is missing. Pipeline Spec is invalid.',
         message: 'Error: failed to generate Pipeline graph. Click Details for more information.',
         mode: 'error',
       }),
@@ -265,7 +268,7 @@ spec:
   it('Show v1 page if valid v1 template and enabled v2 feature flag', async () => {
     // v2 feature is turn on.
     jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
-      if (featureKey === features.FeatureKey.V2) {
+      if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }
       return false;
@@ -308,7 +311,7 @@ spec:
   it('Show v2 page if valid v2 template and enabled v2 feature', async () => {
     // v2 feature is turn on.
     jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
-      if (featureKey === features.FeatureKey.V2) {
+      if (featureKey === features.FeatureKey.V2_ALPHA) {
         return true;
       }
       return false;
@@ -317,7 +320,7 @@ spec:
     TestUtils.makeErrorResponse(createGraphSpy, 'bad graph');
     Apis.pipelineServiceApi.getPipelineVersionTemplate = jest
       .fn()
-      .mockResolvedValue({ template: JSON.stringify(v2PipelineSpec) });
+      .mockResolvedValue({ template: v2YamlTemplateString });
 
     render(<PipelineDetails {...generateProps()} />);
     await TestUtils.flushPromises();

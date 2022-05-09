@@ -1748,6 +1748,9 @@ export class PipelineTaskFinalStatus extends jspb.Message {
   getPipelineJobResourceName(): string;
   setPipelineJobResourceName(value: string): PipelineTaskFinalStatus;
 
+  getPipelineTaskName(): string;
+  setPipelineTaskName(value: string): PipelineTaskFinalStatus;
+
   serializeBinary(): Uint8Array;
   toObject(includeInstance?: boolean): PipelineTaskFinalStatus.AsObject;
   static toObject(includeInstance: boolean, msg: PipelineTaskFinalStatus): PipelineTaskFinalStatus.AsObject;
@@ -1763,6 +1766,7 @@ export namespace PipelineTaskFinalStatus {
     pipelineJobUuid: number,
     pipelineJobName: string,
     pipelineJobResourceName: string,
+    pipelineTaskName: string,
   }
 }
 

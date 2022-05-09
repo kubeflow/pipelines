@@ -1,21 +1,24 @@
-name: import_model_evaluation
+name: model_evaluation_import
 description: |
-  Calls ModelService.ImportModelEvaluation to import a model evaluation file to Vertex
-
+  Imports a model evaluation artifact to an existing Vertex model with ModelService.ImportModelEvaluation
+  For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models.evaluations
   Args:
     metrics (system.Metrics):
       Path of metrics generated from an evaluation component.
-    explanation (system.Metrics):
-      Path for model explanation metrics generated from an evaluation comonent.
+    explanation (Optional[system.Metrics]):
+      Path for model explanation metrics generated from an evaluation component.
     model (google.VertexModel):
       Vertex model resource that will be the parent resource of the uploaded evaluation.
-    metrics_schema_uri (str):
-      GCS link to the schema URI for model evaluation metrics.
+    problem_type (str):
+      The problem type of the metrics being imported to the VertexModel.
+        `classification`, `regression`, and `forecasting` are the currently supported problem types.
 inputs:
   - {name: metrics, type: Metrics}
   - {name: explanation, type: Metrics, optional: True}
   - {name: model, type: google.VertexModel}
-  - {name: metrics_schema_uri, type: String}
+  - {name: problem_type, type: String}
+outputs:
+- {name: gcp_resources, type: String}
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
@@ -23,12 +26,16 @@ implementation:
     args:
       - --metrics
       - {inputPath: metrics}
+      - --metrics_explanation
+      - "{{$.inputs.artifacts['metrics'].metadata['explanation_gcs_path']}}"
       - if:
           cond: {isPresent: explanation}
           then:
           - --explanation
           - "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}"
-      - --metrics_schema_uri
-      - {inputValue: metrics_schema_uri}
+      - --problem_type
+      - {inputValue: problem_type}
       - --model_name
       - "{{$.inputs.artifacts['model'].metadata['resourceName']}}"
+      - --gcp_resources
+      - {outputPath: gcp_resources}

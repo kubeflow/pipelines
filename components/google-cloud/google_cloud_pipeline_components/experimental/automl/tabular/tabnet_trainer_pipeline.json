@@ -87,12 +87,6 @@
             "batch_size_ratio": {
               "type": "DOUBLE"
             },
-            "beta_1": {
-              "type": "DOUBLE"
-            },
-            "beta_2": {
-              "type": "DOUBLE"
-            },
             "class_weight": {
               "type": "DOUBLE"
             },
@@ -121,15 +115,6 @@
               "type": "DOUBLE"
             },
             "gradient_thresh": {
-              "type": "DOUBLE"
-            },
-            "l1_regularization_strength": {
-              "type": "DOUBLE"
-            },
-            "l2_regularization_strength": {
-              "type": "DOUBLE"
-            },
-            "l2_shrinkage_regularization_strength": {
               "type": "DOUBLE"
             },
             "large_category_dim": {
@@ -164,9 +149,6 @@
             },
             "num_transformer_layers_ratio": {
               "type": "DOUBLE"
-            },
-            "optimizer_type": {
-              "type": "STRING"
             },
             "prediction_type": {
               "type": "STRING"
@@ -393,12 +375,6 @@
                   "batch_size_ratio": {
                     "componentInputParameter": "pipelineparam--batch_size_ratio"
                   },
-                  "beta_1": {
-                    "componentInputParameter": "pipelineparam--beta_1"
-                  },
-                  "beta_2": {
-                    "componentInputParameter": "pipelineparam--beta_2"
-                  },
                   "class_weight": {
                     "componentInputParameter": "pipelineparam--class_weight"
                   },
@@ -428,15 +404,6 @@
                   },
                   "gradient_thresh": {
                     "componentInputParameter": "pipelineparam--gradient_thresh"
-                  },
-                  "l1_regularization_strength": {
-                    "componentInputParameter": "pipelineparam--l1_regularization_strength"
-                  },
-                  "l2_regularization_strength": {
-                    "componentInputParameter": "pipelineparam--l2_regularization_strength"
-                  },
-                  "l2_shrinkage_regularization_strength": {
-                    "componentInputParameter": "pipelineparam--l2_shrinkage_regularization_strength"
                   },
                   "large_category_dim": {
                     "componentInputParameter": "pipelineparam--large_category_dim"
@@ -470,9 +437,6 @@
                   },
                   "num_transformer_layers_ratio": {
                     "componentInputParameter": "pipelineparam--num_transformer_layers_ratio"
-                  },
-                  "optimizer_type": {
-                    "componentInputParameter": "pipelineparam--optimizer_type"
                   },
                   "prediction_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
@@ -743,6 +707,13 @@
               },
               "inputs": {
                 "parameters": {
+                  "additional_experiments": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
                   "data_source": {
                     "componentInputParameter": "pipelineparam--data_source"
                   },
@@ -838,12 +809,6 @@
             "pipelineparam--batch_size_ratio": {
               "type": "DOUBLE"
             },
-            "pipelineparam--beta_1": {
-              "type": "DOUBLE"
-            },
-            "pipelineparam--beta_2": {
-              "type": "DOUBLE"
-            },
             "pipelineparam--class_weight": {
               "type": "DOUBLE"
             },
@@ -883,15 +848,6 @@
             "pipelineparam--gradient_thresh": {
               "type": "DOUBLE"
             },
-            "pipelineparam--l1_regularization_strength": {
-              "type": "DOUBLE"
-            },
-            "pipelineparam--l2_regularization_strength": {
-              "type": "DOUBLE"
-            },
-            "pipelineparam--l2_shrinkage_regularization_strength": {
-              "type": "DOUBLE"
-            },
             "pipelineparam--large_category_dim": {
               "type": "INT"
             },
@@ -921,9 +877,6 @@
             },
             "pipelineparam--num_transformer_layers_ratio": {
               "type": "DOUBLE"
-            },
-            "pipelineparam--optimizer_type": {
-              "type": "STRING"
             },
             "pipelineparam--prediction_type": {
               "type": "STRING"
@@ -1076,6 +1029,9 @@
         "executorLabel": "exec-tabular-stats-and-example-gen",
         "inputDefinitions": {
           "parameters": {
+            "additional_experiments": {
+              "type": "STRING"
+            },
             "data_source": {
               "type": "STRING"
             },
@@ -1231,7 +1187,7 @@
               "--gcp_resources",
               "{{$.outputs.parameters['gcp_resources'].output_file}}",
               "--payload",
-              "{\"display_name\": \"automl-tabular-tabnet-trainer-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"{{$.inputs.parameters['replica_count']}}\", \"machine_spec\": {{$.inputs.parameters['machine_spec']}}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:prod\", \"args\": [\"--target_column={{$.inputs.parameters['target_column']}}\", \"--weight_column={{$.inputs.parameters['weight_column']}}\", \"--model_type={{$.inputs.parameters['prediction_type']}}\", \"--prediction_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod\", \"--baseline_path={{$.inputs.artifacts['instance_baseline'].uri}}\", \"--metadata_path={{$.inputs.artifacts['metadata'].uri}}\", \"--transform_output_path={{$.inputs.artifacts['transform_output'].uri}}\", \"--training_schema_path={{$.inputs.artifacts['training_schema_uri'].uri}}\", \"--job_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train\", \"--training_data_path={{$.inputs.artifacts['materialized_train_split'].uri}}\", \"--validation_data_path={{$.inputs.artifacts['materialized_eval_split'].uri}}\", \"--test_data_path={{$.inputs.artifacts['materialized_test_split'].uri}}\", \"--max_steps={{$.inputs.parameters['max_steps']}}\", \"--max_train_secs={{$.inputs.parameters['max_train_secs']}}\", \"--learning_rate={{$.inputs.parameters['learning_rate']}}\", \"--optimizer_type={{$.inputs.parameters['optimizer_type']}}\", \"--l1_regularization_strength={{$.inputs.parameters['l1_regularization_strength']}}\", \"--l2_regularization_strength={{$.inputs.parameters['l2_regularization_strength']}}\", \"--l2_shrinkage_regularization_strength={{$.inputs.parameters['l2_shrinkage_regularization_strength']}}\", \"--beta_1={{$.inputs.parameters['beta_1']}}\", \"--beta_2={{$.inputs.parameters['beta_2']}}\", \"--large_category_dim={{$.inputs.parameters['large_category_dim']}}\", \"--large_category_thresh={{$.inputs.parameters['large_category_thresh']}}\", \"--yeo_johnson_transform={{$.inputs.parameters['yeo_johnson_transform']}}\", \"--feature_dim={{$.inputs.parameters['feature_dim']}}\", \"--feature_dim_ratio={{$.inputs.parameters['feature_dim_ratio']}}\", \"--num_decision_steps={{$.inputs.parameters['num_decision_steps']}}\", \"--relaxation_factor={{$.inputs.parameters['relaxation_factor']}}\", \"--decay_every={{$.inputs.parameters['decay_every']}}\", \"--gradient_thresh={{$.inputs.parameters['gradient_thresh']}}\", \"--sparsity_loss_weight={{$.inputs.parameters['sparsity_loss_weight']}}\", \"--batch_momentum={{$.inputs.parameters['batch_momentum']}}\", \"--batch_size_ratio={{$.inputs.parameters['batch_size_ratio']}}\", \"--num_transformer_layers={{$.inputs.parameters['num_transformer_layers']}}\", \"--num_transformer_layers_ratio={{$.inputs.parameters['num_transformer_layers_ratio']}}\", \"--class_weight={{$.inputs.parameters['class_weight']}}\", \"--loss_function_type={{$.inputs.parameters['loss_function_type']}}\", \"--alpha_focal_loss={{$.inputs.parameters['alpha_focal_loss']}}\", \"--gamma_focal_loss={{$.inputs.parameters['gamma_focal_loss']}}\", \"--enable_profiler={{$.inputs.parameters['enable_profiler']}}\", \"--seed={{$.inputs.parameters['seed']}}\", \"--eval_steps={{$.inputs.parameters['eval_steps']}}\", \"--batch_size={{$.inputs.parameters['batch_size']}}\", \"--eval_frequency_secs={{$.inputs.parameters['eval_frequency_secs']}}\", \"--executor_input={{$.json_escape[1]}}\"]}}]}}"
+              "{\"display_name\": \"automl-tabular-tabnet-trainer-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\":\"{{$.inputs.parameters['replica_count']}}\", \"machine_spec\": {{$.inputs.parameters['machine_spec']}}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:prod\", \"args\": [\"--target_column={{$.inputs.parameters['target_column']}}\", \"--weight_column={{$.inputs.parameters['weight_column']}}\", \"--model_type={{$.inputs.parameters['prediction_type']}}\", \"--prediction_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod\", \"--baseline_path={{$.inputs.artifacts['instance_baseline'].uri}}\", \"--metadata_path={{$.inputs.artifacts['metadata'].uri}}\", \"--transform_output_path={{$.inputs.artifacts['transform_output'].uri}}\", \"--training_schema_path={{$.inputs.artifacts['training_schema_uri'].uri}}\", \"--job_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train\", \"--training_data_path={{$.inputs.artifacts['materialized_train_split'].uri}}\", \"--validation_data_path={{$.inputs.artifacts['materialized_eval_split'].uri}}\", \"--test_data_path={{$.inputs.artifacts['materialized_test_split'].uri}}\", \"--max_steps={{$.inputs.parameters['max_steps']}}\", \"--max_train_secs={{$.inputs.parameters['max_train_secs']}}\", \"--learning_rate={{$.inputs.parameters['learning_rate']}}\", \"--large_category_dim={{$.inputs.parameters['large_category_dim']}}\", \"--large_category_thresh={{$.inputs.parameters['large_category_thresh']}}\", \"--yeo_johnson_transform={{$.inputs.parameters['yeo_johnson_transform']}}\", \"--feature_dim={{$.inputs.parameters['feature_dim']}}\", \"--feature_dim_ratio={{$.inputs.parameters['feature_dim_ratio']}}\", \"--num_decision_steps={{$.inputs.parameters['num_decision_steps']}}\", \"--relaxation_factor={{$.inputs.parameters['relaxation_factor']}}\", \"--decay_every={{$.inputs.parameters['decay_every']}}\", \"--gradient_thresh={{$.inputs.parameters['gradient_thresh']}}\", \"--sparsity_loss_weight={{$.inputs.parameters['sparsity_loss_weight']}}\", \"--batch_momentum={{$.inputs.parameters['batch_momentum']}}\", \"--batch_size_ratio={{$.inputs.parameters['batch_size_ratio']}}\", \"--num_transformer_layers={{$.inputs.parameters['num_transformer_layers']}}\", \"--num_transformer_layers_ratio={{$.inputs.parameters['num_transformer_layers_ratio']}}\", \"--class_weight={{$.inputs.parameters['class_weight']}}\", \"--loss_function_type={{$.inputs.parameters['loss_function_type']}}\", \"--alpha_focal_loss={{$.inputs.parameters['alpha_focal_loss']}}\", \"--gamma_focal_loss={{$.inputs.parameters['gamma_focal_loss']}}\", \"--enable_profiler={{$.inputs.parameters['enable_profiler']}}\", \"--seed={{$.inputs.parameters['seed']}}\", \"--eval_steps={{$.inputs.parameters['eval_steps']}}\", \"--batch_size={{$.inputs.parameters['batch_size']}}\", \"--eval_frequency_secs={{$.inputs.parameters['eval_frequency_secs']}}\", \"--executor_input={{$.json_escape[1]}}\"]}}]}}"
             ],
             "command": [
               "python3",
@@ -1302,7 +1258,7 @@
               "--gcp_resources",
               "{{$.outputs.parameters['gcp_resources'].output_file}}",
               "--payload",
-              "{\"display_name\": \"tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\": {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod\", \"args\": [\"stats_generator\",\"--train_spec={\\\"prediction_type\\\": \\\"{{$.inputs.parameters['prediction_type']}}\\\", \\\"target_column\\\": \\\"{{$.inputs.parameters['target_column_name']}}\\\", \\\"optimization_objective\\\": \\\"{{$.inputs.parameters['optimization_objective']}}\\\", \\\"weight_column_name\\\": \\\"{{$.inputs.parameters['weight_column_name']}}\\\", \\\"transformations\\\": {{$.inputs.parameters['transformations']}}}\", \"--split_spec={{$.inputs.parameters['split_spec']}}\", \"--data_source={{$.inputs.parameters['data_source']}}\", \"--target_column={{$.inputs.parameters['target_column_name']}}\", \"--request_type=COLUMN_STATS_ONLY\", \"--optimization_objective_recall_value={{$.inputs.parameters['optimization_objective_recall_value']}}\", \"--optimization_objective_precision_value={{$.inputs.parameters['optimization_objective_precision_value']}}\", \"--example_gen_gcs_output_prefix={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/example_gen_output\", \"--dataset_stats_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/stats/\", \"--stats_result_path={{$.outputs.artifacts['dataset_stats'].uri}}\", \"--dataset_schema_path={{$.outputs.artifacts['dataset_schema'].uri}}\", \"--job_name=tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"--dataflow_project={{$.inputs.parameters['project']}}\", \"--error_file_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--dataflow_staging_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging\", \"--dataflow_tmp_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\", \"--dataflow_max_num_workers={{$.inputs.parameters['dataflow_max_num_workers']}}\", \"--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod\", \"--dataflow_machine_type={{$.inputs.parameters['dataflow_machine_type']}}\", \"--dataflow_disk_size_gb={{$.inputs.parameters['dataflow_disk_size_gb']}}\", \"--dataflow_kms_key={{$.inputs.parameters['encryption_spec_key_name']}}\", \"--dataflow_subnetwork_fully_qualified={{$.inputs.parameters['dataflow_subnetwork']}}\", \"--dataflow_use_public_ips={{$.inputs.parameters['dataflow_use_public_ips']}}\", \"--is_distill={{$.inputs.parameters['is_distill']}}\", \"--metadata_path={{$.outputs.artifacts['metadata'].uri}}\", \"--train_split={{$.outputs.artifacts['train_split'].uri}}\", \"--eval_split={{$.outputs.artifacts['eval_split'].uri}}\", \"--test_split={{$.outputs.artifacts['test_split'].uri}}\", \"--test_split_for_batch_prediction_component={{$.outputs.parameters['test_split_json'].output_file}}\", \"--downsampled_test_split_for_batch_prediction_component={{$.outputs.parameters['downsampled_test_split_json'].output_file}}\", \"--instance_baseline_path={{$.outputs.artifacts['instance_baseline'].uri}}\", \"--parse_json=true\", \"--generate_additional_downsample_test_split=true\"]}}]}}"
+              "{\"display_name\": \"tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\": {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod\", \"args\": [\"stats_generator\",\"--train_spec={\\\"prediction_type\\\": \\\"{{$.inputs.parameters['prediction_type']}}\\\", \\\"target_column\\\": \\\"{{$.inputs.parameters['target_column_name']}}\\\", \\\"optimization_objective\\\": \\\"{{$.inputs.parameters['optimization_objective']}}\\\", \\\"weight_column_name\\\": \\\"{{$.inputs.parameters['weight_column_name']}}\\\", \\\"transformations\\\": {{$.inputs.parameters['transformations']}}}\", \"--split_spec={{$.inputs.parameters['split_spec']}}\", \"--data_source={{$.inputs.parameters['data_source']}}\", \"--target_column={{$.inputs.parameters['target_column_name']}}\", \"--request_type=COLUMN_STATS_ONLY\", \"--optimization_objective_recall_value={{$.inputs.parameters['optimization_objective_recall_value']}}\", \"--optimization_objective_precision_value={{$.inputs.parameters['optimization_objective_precision_value']}}\", \"--example_gen_gcs_output_prefix={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/example_gen_output\", \"--dataset_stats_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/stats/\", \"--stats_result_path={{$.outputs.artifacts['dataset_stats'].uri}}\", \"--dataset_schema_path={{$.outputs.artifacts['dataset_schema'].uri}}\", \"--job_name=tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"--dataflow_project={{$.inputs.parameters['project']}}\", \"--error_file_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--dataflow_staging_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging\", \"--dataflow_tmp_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\", \"--dataflow_max_num_workers={{$.inputs.parameters['dataflow_max_num_workers']}}\", \"--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod\", \"--dataflow_machine_type={{$.inputs.parameters['dataflow_machine_type']}}\", \"--dataflow_disk_size_gb={{$.inputs.parameters['dataflow_disk_size_gb']}}\", \"--dataflow_kms_key={{$.inputs.parameters['encryption_spec_key_name']}}\", \"--dataflow_subnetwork_fully_qualified={{$.inputs.parameters['dataflow_subnetwork']}}\", \"--dataflow_use_public_ips={{$.inputs.parameters['dataflow_use_public_ips']}}\", \"--is_distill={{$.inputs.parameters['is_distill']}}\", \"--additional_experiments={{$.inputs.parameters['additional_experiments']}}\", \"--metadata_path={{$.outputs.artifacts['metadata'].uri}}\", \"--train_split={{$.outputs.artifacts['train_split'].uri}}\", \"--eval_split={{$.outputs.artifacts['eval_split'].uri}}\", \"--test_split={{$.outputs.artifacts['test_split'].uri}}\", \"--test_split_for_batch_prediction_component={{$.outputs.parameters['test_split_json'].output_file}}\", \"--downsampled_test_split_for_batch_prediction_component={{$.outputs.parameters['downsampled_test_split_json'].output_file}}\", \"--instance_baseline_path={{$.outputs.artifacts['instance_baseline'].uri}}\", \"--parse_json=true\", \"--generate_additional_downsample_test_split=true\"]}}]}}"
             ],
             "command": [
               "python3",
@@ -1373,12 +1329,6 @@
                 "pipelineparam--batch_size_ratio": {
                   "componentInputParameter": "batch_size_ratio"
                 },
-                "pipelineparam--beta_1": {
-                  "componentInputParameter": "beta_1"
-                },
-                "pipelineparam--beta_2": {
-                  "componentInputParameter": "beta_2"
-                },
                 "pipelineparam--class_weight": {
                   "componentInputParameter": "class_weight"
                 },
@@ -1418,15 +1368,6 @@
                 "pipelineparam--gradient_thresh": {
                   "componentInputParameter": "gradient_thresh"
                 },
-                "pipelineparam--l1_regularization_strength": {
-                  "componentInputParameter": "l1_regularization_strength"
-                },
-                "pipelineparam--l2_regularization_strength": {
-                  "componentInputParameter": "l2_regularization_strength"
-                },
-                "pipelineparam--l2_shrinkage_regularization_strength": {
-                  "componentInputParameter": "l2_shrinkage_regularization_strength"
-                },
                 "pipelineparam--large_category_dim": {
                   "componentInputParameter": "large_category_dim"
                 },
@@ -1456,9 +1397,6 @@
                 },
                 "pipelineparam--num_transformer_layers_ratio": {
                   "componentInputParameter": "num_transformer_layers_ratio"
-                },
-                "pipelineparam--optimizer_type": {
-                  "componentInputParameter": "optimizer_type"
                 },
                 "pipelineparam--prediction_type": {
                   "componentInputParameter": "prediction_type"
@@ -1539,12 +1477,6 @@
           "batch_size_ratio": {
             "type": "DOUBLE"
           },
-          "beta_1": {
-            "type": "DOUBLE"
-          },
-          "beta_2": {
-            "type": "DOUBLE"
-          },
           "class_weight": {
             "type": "DOUBLE"
           },
@@ -1584,15 +1516,6 @@
           "gradient_thresh": {
             "type": "DOUBLE"
           },
-          "l1_regularization_strength": {
-            "type": "DOUBLE"
-          },
-          "l2_regularization_strength": {
-            "type": "DOUBLE"
-          },
-          "l2_shrinkage_regularization_strength": {
-            "type": "DOUBLE"
-          },
           "large_category_dim": {
             "type": "INT"
           },
@@ -1622,9 +1545,6 @@
           },
           "num_transformer_layers_ratio": {
             "type": "DOUBLE"
-          },
-          "optimizer_type": {
-            "type": "STRING"
           },
           "prediction_type": {
             "type": "STRING"
@@ -1703,12 +1623,6 @@
       "batch_size_ratio": {
         "doubleValue": 0.25
       },
-      "beta_1": {
-        "doubleValue": 0.9
-      },
-      "beta_2": {
-        "doubleValue": 0.999
-      },
       "class_weight": {
         "doubleValue": 1.0
       },
@@ -1745,15 +1659,6 @@
       "gradient_thresh": {
         "doubleValue": 2000.0
       },
-      "l1_regularization_strength": {
-        "doubleValue": 0.0
-      },
-      "l2_regularization_strength": {
-        "doubleValue": 0.0
-      },
-      "l2_shrinkage_regularization_strength": {
-        "doubleValue": 0.0
-      },
       "large_category_dim": {
         "intValue": "1"
       },
@@ -1777,9 +1682,6 @@
       },
       "num_transformer_layers_ratio": {
         "doubleValue": 0.25
-      },
-      "optimizer_type": {
-        "stringValue": "adam"
       },
       "relaxation_factor": {
         "doubleValue": 1.5

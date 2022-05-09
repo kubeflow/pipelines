@@ -3,6 +3,7 @@ package api_server
 import (
 	"fmt"
 
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client"
 	params "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client/job_service"
@@ -24,7 +25,8 @@ type JobInterface interface {
 }
 
 type JobClient struct {
-	apiClient *apiclient.Job
+	apiClient      *apiclient.Job
+	authInfoWriter runtime.ClientAuthInfoWriter
 }
 
 func NewJobClient(clientConfig clientcmd.ClientConfig, debug bool) (
@@ -32,14 +34,28 @@ func NewJobClient(clientConfig clientcmd.ClientConfig, debug bool) (
 
 	runtime, err := NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error occurred when creating job client: %w", err)
 	}
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
-	// Creating upload client
+	// Creating job client
 	return &JobClient{
 		apiClient: apiClient,
+	}, nil
+}
+
+func NewKubeflowInClusterJobClient(namespace string, debug bool) (
+	*JobClient, error) {
+
+	runtime := NewKubeflowInClusterHTTPRuntime(namespace, debug)
+
+	apiClient := apiclient.New(runtime, strfmt.Default)
+
+	// Creating job client
+	return &JobClient{
+		apiClient:      apiClient,
+		authInfoWriter: SATokenVolumeProjectionAuth,
 	}, nil
 }
 
@@ -51,7 +67,7 @@ func (c *JobClient) Create(parameters *params.CreateJobParams) (*model.APIJob,
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.JobService.CreateJob(parameters, PassThroughAuth)
+	response, err := c.apiClient.JobService.CreateJob(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.CreateJobDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -75,7 +91,7 @@ func (c *JobClient) Get(parameters *params.GetJobParams) (*model.APIJob,
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.JobService.GetJob(parameters, PassThroughAuth)
+	response, err := c.apiClient.JobService.GetJob(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetJobDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -98,7 +114,7 @@ func (c *JobClient) Delete(parameters *params.DeleteJobParams) error {
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.JobService.DeleteJob(parameters, PassThroughAuth)
+	_, err := c.apiClient.JobService.DeleteJob(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.DeleteJobDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -121,7 +137,7 @@ func (c *JobClient) Enable(parameters *params.EnableJobParams) error {
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.JobService.EnableJob(parameters, PassThroughAuth)
+	_, err := c.apiClient.JobService.EnableJob(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.EnableJobDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -144,7 +160,7 @@ func (c *JobClient) Disable(parameters *params.DisableJobParams) error {
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.JobService.DisableJob(parameters, PassThroughAuth)
+	_, err := c.apiClient.JobService.DisableJob(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.DisableJobDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -168,7 +184,7 @@ func (c *JobClient) List(parameters *params.ListJobsParams) (
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.JobService.ListJobs(parameters, PassThroughAuth)
+	response, err := c.apiClient.JobService.ListJobs(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ListJobsDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)

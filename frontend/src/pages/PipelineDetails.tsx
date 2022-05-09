@@ -29,7 +29,7 @@ import {
   PipelineFlowElement,
 } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
-import { convertJsonToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
+import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes } from 'typestyle';
 import { Workflow } from '../third_party/mlmd/argo_template';
 import { ApiExperiment } from '../apis/experiment';
@@ -142,13 +142,13 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         console.warn('pipeline spec template is unknown.');
         return;
       }
-      const pipelineSpec = convertJsonToV2PipelineSpec(templateString!);
+      const pipelineSpec = convertYamlToV2PipelineSpec(templateString!);
       const newElements = convertSubDagToFlowElements(pipelineSpec!, layers);
       this.setStateSafe({ graphV2: newElements });
     };
 
     const showV2Pipeline =
-      isFeatureEnabled(FeatureKey.V2) && graphV2 && graphV2.length > 0 && !graph;
+      isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2 && graphV2.length > 0 && !graph;
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
         {showV2Pipeline && (
@@ -331,7 +331,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     const [graph, reducedGraph, graphV2] = await this._createGraph(templateString);
 
-    if (isFeatureEnabled(FeatureKey.V2) && graphV2.length > 0) {
+    if (isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2.length > 0) {
       this.setStateSafe({
         graph: undefined,
         reducedGraph: undefined,
@@ -422,8 +422,8 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
             reducedGraph = undefined; // disable reduction switch
           }
-        } else if (isFeatureEnabled(FeatureKey.V2)) {
-          const pipelineSpec = WorkflowUtils.convertJsonToV2PipelineSpec(templateString);
+        } else if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
+          const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(templateString);
           graphV2 = convertFlowElements(pipelineSpec);
         } else {
           throw new Error(

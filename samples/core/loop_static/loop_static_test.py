@@ -18,14 +18,14 @@ import kfp.deprecated as kfp
 import kfp_server_api
 from .loop_static import my_pipeline
 from .loop_static_v2 import my_pipeline as my_pipeline_v2
-from kfp.samples.test.utils import KfpTask, debug_verify, run_pipeline_func, TestCase
+from kfp.samples.test.utils import KfpTask, run_pipeline_func, TestCase
 
 
 def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
            tasks: dict[str, KfpTask], **kwargs):
     t.assertEqual(run.status, 'Succeeded')
     # assert DAG structure
-    t.assertCountEqual(['print-op', 'for-loop-1'], tasks.keys())
+    t.assertCountEqual(['print-op', 'for-loop-2'], tasks.keys())
     # assert all iteration parameters
     t.assertCountEqual(
         [{
@@ -37,14 +37,14 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
         }],
         [
             x.inputs
-            .parameters['pipelinechannel--static_loop_arguments-loop-item']
-            for x in tasks['for-loop-1'].children.values()
+            .parameters['pipelinechannel--loop-item-param-1']
+            for x in tasks['for-loop-2'].children.values()
         ],
     )
     # assert all iteration outputs
     t.assertCountEqual(['12', '1020'], [
         x.children['print-op-2'].outputs.parameters['Output']
-        for x in tasks['for-loop-1'].children.values()
+        for x in tasks['for-loop-2'].children.values()
     ])
 
 
