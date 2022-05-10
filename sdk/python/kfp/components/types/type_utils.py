@@ -331,9 +331,15 @@ class TypeCheckManager:
         self._enable = enable
 
     def __enter__(self) -> 'TypeCheckManager':
+        """Set type check mode to self._enable.
+
+        Returns:
+            TypeCheckManager: Returns itself.
+        """
         self._prev = kfp.TYPE_CHECK
         kfp.TYPE_CHECK = self._enable
         return self
 
     def __exit__(self, *unused_args) -> None:
+        """Restore type check mode to its previous state."""
         kfp.TYPE_CHECK = self._prev

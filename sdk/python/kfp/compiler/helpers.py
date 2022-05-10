@@ -32,8 +32,14 @@ GroupOrTaskType = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
 
 
 def make_invalid_input_type_error_msg(arg_name: str, arg_type: Any) -> str:
-    valid_types = (str.__name__, int.__name__, float.__name__, bool.__name__,
-                   dict.__name__, list.__name__)
+    valid_types = (
+        str.__name__,
+        int.__name__,
+        float.__name__,
+        bool.__name__,
+        dict.__name__,
+        list.__name__,
+    )
     return f"The pipeline parameter '{arg_name}' of type {arg_type} is not a valid input for this component. Passing artifacts as pipeline inputs is not supported. Consider annotating the parameter with a primitive type such as {valid_types}."
 
 

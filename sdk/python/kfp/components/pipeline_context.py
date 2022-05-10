@@ -198,6 +198,13 @@ class Pipeline:
 
     @classmethod
     def is_pipeline_func(cls, func: Callable) -> bool:
-        """Checks if a function is a pipeline function."""
+        """Checks if a function is a pipeline function.
+
+        Args:
+            func (Callable): The function to check.
+
+        Returns:
+            bool: True if the function is a pipeline function.
+        """
         return callable(func) and hasattr(
             func, '_is_pipeline') and func._is_pipeline  # type: ignore
