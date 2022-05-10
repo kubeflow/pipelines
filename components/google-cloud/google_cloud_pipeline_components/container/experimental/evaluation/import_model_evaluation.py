@@ -97,7 +97,7 @@ def main(argv):
             PROBLEM_TYPE_TO_SCHEMA_URI.get(parsed_args.problem_type),
     }
 
-  if parsed_args.explanation and parsed_args.explanation != "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}":
+  if parsed_args.explanation and parsed_args.explanation != "{{$.inputs.artifacts['metrics'].metadata['explanation_gcs_path']}}":
     explanation_file_name = parsed_args.explanation if not parsed_args.explanation.startswith(
         'gs://') else '/gcs' + parsed_args.explanation[4:]
   elif parsed_args.metrics_explanation and parsed_args.metrics_explanation == "{{$.inputs.artifacts['metrics_explanation'].metadata['explanation_gcs_path']}}":
