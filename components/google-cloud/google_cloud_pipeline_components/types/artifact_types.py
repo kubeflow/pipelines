@@ -191,6 +191,28 @@ class BQTable(dsl.Artifact):
         })
 
 
+class ClassificationMetrics(dsl.Metrics):
+  """An artifact representing Classification Metrics."""
+  TYPE_NAME = 'google.ClassificationMetrics'
+
+  def __init__(self,
+               name: Optional[str] = None,
+               uri: Optional[str] = None,
+               metadata: Optional[Dict] = None):
+    super().__init__(uri=uri, name=name, metadata=metadata)
+
+
+class RegressionMetrics(dsl.Metrics):
+  """An artifact representing Regression Metrics."""
+  TYPE_NAME = 'google.RegressionMetrics'
+
+  def __init__(self,
+               name: Optional[str] = None,
+               uri: Optional[str] = None,
+               metadata: Optional[Dict] = None):
+    super().__init__(uri=uri, name=name, metadata=metadata)
+
+
 class UnmanagedContainerModel(dsl.Artifact):
   """An artifact representing an unmanaged container model."""
   TYPE_NAME = 'google.UnmanagedContainerModel'
