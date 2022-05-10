@@ -248,12 +248,11 @@ class TestCompilePipeline(parameterized.TestCase):
         def my_pipeline():
             VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
-        with self.assertRaisesRegex(
-                ValueError,
-                'Invalid pipeline name: .*\nPlease specify a pipeline name that matches'
-        ):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = os.path.join(tmpdir, 'output.yaml')
+
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='output.yaml')
+                pipeline_func=my_pipeline, package_path=output_path)
 
     def test_set_pipeline_root_through_pipeline_decorator(self):
 
@@ -429,7 +428,7 @@ class TestCompilePipeline(parameterized.TestCase):
         with self.assertRaisesRegex(
                 type_utils.InconsistentTypeException,
                 'Incompatible argument passed to the input "input1" of component'
-                ' "Consumer op": Argument type "SomeArbitraryType" is'
+                ' "consumer-op": Argument type "SomeArbitraryType" is'
                 ' incompatible with the input type "Dataset"'):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='result.yaml')

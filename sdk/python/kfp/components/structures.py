@@ -455,6 +455,10 @@ class ComponentSpec(base_model.BaseModel):
     inputs: Optional[Dict[str, InputSpec]] = None
     outputs: Optional[Dict[str, OutputSpec]] = None
 
+    def transform_name(self) -> None:
+        """Converts the name to a valid name."""
+        self.name = utils.maybe_rename_for_k8s(self.name)
+
     def transform_inputs(self) -> None:
         """Use None instead of empty list for inputs."""
         self.inputs = None if self.inputs == {} else self.inputs
