@@ -226,7 +226,7 @@ class ImportModelEvaluationTest(TestCase):
 
     import_model_evaluation_response = mock.Mock()
     mock_api.return_value = import_model_evaluation_response
-    import_model_evaluation_response.parent = self._model_name
+    import_model_evaluation_response.name = self._model_name
 
     main([
         '--metrics', self.metrics_path, '--problem_type', 'classification',
@@ -257,12 +257,12 @@ class ImportModelEvaluationTest(TestCase):
 
     import_model_evaluation_response = mock.Mock()
     mock_api.return_value = import_model_evaluation_response
-    import_model_evaluation_response.parent = self._model_name
+    import_model_evaluation_response.name = self._model_name
 
     main([
         '--metrics', self.metrics_path, '--problem_type', 'classification',
         '--model_name', self._model_name, '--gcp_resources',
-        self._gcp_resources, '--explanation',
+        self._gcp_resources, '--metrics_explanation',
         "{{$.inputs.artifacts['metrics'].metadata['explanation_gcs_path']}}"
     ])
 
@@ -283,7 +283,7 @@ class ImportModelEvaluationTest(TestCase):
       aiplatform.gapic.ModelServiceClient,
       'import_model_evaluation',
       autospec=True)
-  def test_import_model_evaluation_empty_explanation_with_explanation_overriding(
+  def test_import_model_evaluation_empty_explanation_with_empty_explanation_override(
       self, mock_api, mock_auth):
     mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
     mock_creds.token = 'token'
@@ -291,10 +291,93 @@ class ImportModelEvaluationTest(TestCase):
 
     with self.assertRaises(SystemExit):
       main([
-          '--metrics', self.metrics_path, '--problem_type', 'classification',
-          '--model_name', self._model_name, '--gcp_resources',
-          self._gcp_resources, '--explanation',
-          "{{$.inputs.artifacts['metrics'].metadata['explanation_gcs_path']}}",
+          '--metrics',
+          self.metrics_path,
+          '--problem_type',
+          'classification',
+          '--model_name',
+          self._model_name,
+          '--gcp_resources',
+          self._gcp_resources,
           '--metrics_explanation',
-          "{{$.inputs.artifacts['metrics_explanation'].metadata['explanation_gcs_path']}}"
+          "{{$.inputs.artifacts['metrics'].metadata['explanation_gcs_path']}}",
+          '--explanation',
+          "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}",
       ])
+
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(
+      aiplatform.gapic.ModelServiceClient,
+      'import_model_evaluation',
+      autospec=True)
+  def test_import_model_evaluation_contains_explanation_with_empty_explanation_override(
+      self, mock_api, mock_auth):
+    mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
+    mock_creds.token = 'token'
+    mock_auth.return_value = [mock_creds, 'project']
+
+    explanation_path = self.create_tempfile().full_path
+    with open(explanation_path, 'w') as f:
+      f.write(EXPLANATION_1)
+
+    with self.assertRaises(SystemExit):
+      main([
+          '--metrics',
+          self.metrics_path,
+          '--problem_type',
+          'classification',
+          '--model_name',
+          self._model_name,
+          '--gcp_resources',
+          self._gcp_resources,
+          '--metrics_explanation',
+          explanation_path,
+          '--explanation',
+          "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}",
+      ])
+
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(
+      aiplatform.gapic.ModelServiceClient,
+      'import_model_evaluation',
+      autospec=True)
+  def test_import_model_evaluation_contains_explanation_with_explanation_override(
+      self, mock_api, mock_auth):
+    mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
+    mock_creds.token = 'token'
+    mock_auth.return_value = [mock_creds, 'project']
+
+    # This explanation file will get overrode.
+    explanation_path_ignored = self.create_tempfile().full_path
+    with open(explanation_path_ignored, 'w') as f:
+      f.write(EXPLANATION_1)
+
+    explanation_path = self.create_tempfile().full_path
+    with open(explanation_path, 'w') as f:
+      f.write(EXPLANATION_2)
+
+    main([
+        '--metrics', self.metrics_path, '--metrics_explanation',
+        explanation_path_ignored, '--explanation', explanation_path,
+        '--problem_type', 'classification', '--model_name', self._model_name,
+        '--gcp_resources', self._gcp_resources
+    ])
+    mock_api.assert_called_with(
+        mock.ANY,
+        parent=self._model_name,
+        model_evaluation={
+            'metrics':
+                to_value(
+                    json.loads(METRICS)['slicedMetrics'][0]['metrics']
+                    ['regression']),
+            'metrics_schema_uri':
+                SCHEMA_URI,
+            'model_explanation': {
+                'mean_attributions': [{
+                    'feature_attributions':
+                        to_value(
+                            json.loads(EXPLANATION_2)['explanation']
+                            ['attributions'][0]['featureAttributions'])
+                }]
+            },
+        })
