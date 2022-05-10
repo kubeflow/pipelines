@@ -15,8 +15,8 @@
 
 import builtins
 import json
+from unittest import mock
 
-import mock
 from absl.testing import parameterized
 from kfp.registry import ApiAuth
 from kfp.registry import RegistryClient
