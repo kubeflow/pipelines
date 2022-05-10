@@ -905,7 +905,7 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     split_spec: Dict[str, Any],
     data_source: Dict[str, Any],
     study_spec_metrics: List[Dict[str, Any]],
-    study_spec_parameters: List[Dict[str, Any]],
+    study_spec_parameters_override: List[Dict[str, Any]],
     max_trial_count: int,
     parallel_trial_count: int,
     algorithm: str,
@@ -944,7 +944,7 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
       The dictionary contains the metric_id, which is reported by the training
       job, ands the optimization goal of the metric. One of "minimize" or
       "maximize".
-    study_spec_parameters: List of dictionaries representing parameters to
+    study_spec_parameters_override: List of dictionaries representing parameters to
       optimize. The dictionary key is the parameter_id, which is passed to
       training job as a command line argument, and the dictionary value is the
       parameter specification of the metric.
@@ -1022,8 +1022,8 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
           input_dictionary_to_parameter(data_source),
       'study_spec_metrics':
           study_spec_metrics,
-      'study_spec_parameters':
-          study_spec_parameters,
+      'study_spec_parameters_override':
+          study_spec_parameters_override,
       'max_trial_count':
           max_trial_count,
       'parallel_trial_count':
@@ -1319,3 +1319,90 @@ def get_tabnet_trainer_pipeline_and_parameters(
       pathlib.Path(__file__).parent.resolve(), 'tabnet_trainer_pipeline.json')
 
   return pipeline_definition_path, parameter_values
+
+
+def get_tabnet_study_spec_parameters_override(
+    dataset_size_bucket: str, prediction_type: str,
+    training_budget_bucket: str) -> List[Dict[str, Any]]:
+  """Get study_spec_parameters_override for a TabNet hyperparameter tuning job.
+
+  Args:
+    dataset_size_bucket: Size of the dataset. One of "small" (< 1M rows),
+      "medium" (1M - 100M rows), or "large" (> 100M rows).
+    prediction_type: The type of prediction the model is to produce.
+      "classification" or "regression".
+    training_budget_bucket: Bucket of the estimated training budget. One of
+      "small" (< $600), "medium" ($600 - $2400), or "large" (> $2400). This
+      parameter is only used as a hint for the hyperparameter search space,
+      unrelated to the real cost.
+
+  Returns:
+    List of study_spec_parameters_override.
+  """
+
+  if dataset_size_bucket not in ['small', 'medium', 'large']:
+    raise ValueError('Invalid dataset_size_bucket provided. Supported values '
+                     ' are "small", "medium" or "large".')
+  if training_budget_bucket not in ['small', 'medium', 'large']:
+    raise ValueError(
+        'Invalid training_budget_bucket provided. Supported values '
+        'are "small", "medium" or "large".')
+
+  param_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(),
+      f'configs/tabnet_params_{dataset_size_bucket}_data_{training_budget_bucket}_search_space.json'
+    )
+  with open(param_path, 'r') as f:
+    param_content = f.read()
+    params = json.loads(param_content)
+
+  if prediction_type == 'regression':
+    return _format_tabnet_regression_study_spec_parameters_override(
+        params, training_budget_bucket)
+  return params
+
+
+def _format_tabnet_regression_study_spec_parameters_override(
+    params: List[Dict[str, Any]],
+    training_budget_bucket: str) -> List[Dict[str, Any]]:
+  """Get regression study_spec_parameters_override for a TabNet hyperparameter tuning job.
+
+  Args:
+    params: List of dictionaries representing parameters to optimize. The
+      dictionary key is the parameter_id, which is passed to training job as a
+      command line argument, and the dictionary value is the parameter
+      specification of the metric.
+    training_budget_bucket: Bucket of the estimated training budget. One of
+      "small" (< $600), "medium" ($600 - $2400), or "large" (> $2400). This
+      parameter is only used as a hint for the hyperparameter search space,
+      unrelated to the real cost.
+
+  Returns:
+    List of study_spec_parameters_override for regression.
+  """
+
+  # To get regression study_spec_parameters, we need to set
+  # `loss_function_type` to ‘mae’ (‘mae’ and ‘mse’ for "large" search space),
+  # remove the `alpha_focal_loss`, `gamma_focal_loss`
+  # and `class_weight` parameters and increase the max for
+  # `sparsity_loss_weight` to 100.
+  formatted_params = []
+  for param in params:
+    if param['parameter_id'] in [
+        'alpha_focal_loss', 'gamma_focal_loss', 'class_weight'
+    ]:
+      continue
+    elif param['parameter_id'] == 'sparsity_loss_weight':
+      param['double_value_spec']['max_value'] = 100
+    elif param['parameter_id'] == 'loss_function_type':
+      if training_budget_bucket == 'large':
+        param['categorical_value_spec']['values'] = ['mae', 'mse']
+      else:
+        param['categorical_value_spec']['values'] = ['mae']
+
+    formatted_params.append(param)
+
+  return formatted_params
+
+
+

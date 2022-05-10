@@ -1,0 +1,152 @@
+[
+  {
+    "parameter_id": "max_steps",
+    "discrete_value_spec": {
+       "values": [50000, 60000, 70000, 80000, 90000, 100000]
+    }
+  },
+  {
+    "parameter_id": "max_train_secs",
+    "discrete_value_spec": {
+      "values": [-1]
+    }
+  },
+  {
+    "parameter_id": "batch_size",
+    "discrete_value_spec": {
+      "values": [1024, 2048, 4096, 8192, 16384]
+    }
+  },
+  {
+    "parameter_id": "learning_rate",
+    "double_value_spec": {
+      "min_value": 0.00007,
+      "max_value": 0.03
+    },
+    "scale_type": "UNIT_LOG_SCALE"
+  },
+  {
+    "parameter_id": "large_category_dim",
+    "discrete_value_spec": {
+      "values": [3, 5, 10]
+    }
+  },
+  {
+    "parameter_id": "large_category_thresh",
+    "discrete_value_spec": {
+      "values": [5, 10]
+    }
+  },
+  {
+    "parameter_id": "feature_dim",
+    "integer_value_spec": {
+      "min_value": 50,
+      "max_value": 500
+    },
+    "scale_type": "UNIT_LINEAR_SCALE"
+  },
+  {
+    "parameter_id": "feature_dim_ratio",
+    "double_value_spec": {
+      "min_value": 0.2,
+      "max_value": 0.8
+    },
+    "scale_type": "UNIT_LINEAR_SCALE"
+  },
+  {
+    "parameter_id": "num_decision_steps",
+    "integer_value_spec": {
+      "min_value": 2,
+      "max_value": 8
+    },
+    "scale_type": "UNIT_LINEAR_SCALE"
+  },
+  {
+    "parameter_id": "relaxation_factor",
+    "double_value_spec": {
+      "min_value": 1.05,
+      "max_value": 3.2
+    },
+    "scale_type": "UNIT_LINEAR_SCALE"
+  },
+  {
+    "parameter_id": "decay_rate",
+    "double_value_spec": {
+      "min_value": 0.5,
+      "max_value": 0.999
+    },
+    "scale_type": "UNIT_LOG_SCALE"
+  },
+  {
+    "parameter_id": "decay_every",
+    "integer_value_spec": {
+      "min_value": 10000,
+      "max_value": 50000
+    },
+    "scale_type": "UNIT_LINEAR_SCALE"
+  },
+  {
+    "parameter_id": "sparsity_loss_weight",
+    "double_value_spec": {
+      "min_value": 0.0000001,
+      "max_value": 0.001
+    },
+    "scale_type": "UNIT_LOG_SCALE"
+  },
+  {
+    "parameter_id": "batch_momentum",
+    "double_value_spec": {
+      "min_value": 0.5,
+      "max_value": 0.95
+    },
+    "scale_type": "UNIT_LINEAR_SCALE"
+  },
+  {
+    "parameter_id": "batch_size_ratio",
+    "discrete_value_spec": {
+      "values": [0.0625, 0.125, 0.25, 0.5]
+    }
+  },
+  {
+    "parameter_id": "num_transformer_layers",
+    "integer_value_spec": {
+      "min_value": 4,
+      "max_value": 10
+    },
+    "scale_type": "UNIT_LINEAR_SCALE"
+  },
+  {
+    "parameter_id": "num_transformer_layers_ratio",
+    "double_value_spec": {
+      "min_value": 0.2,
+      "max_value": 0.8
+    },
+    "scale_type": "UNIT_LINEAR_SCALE"
+  },
+  {
+    "parameter_id": "class_weight",
+    "double_value_spec": {
+      "min_value": 1.0,
+      "max_value": 100.0
+    },
+    "scale_type": "UNIT_LINEAR_SCALE"
+  },
+  {
+    "parameter_id": "loss_function_type",
+    "categorical_value_spec": {
+      "values": ["weighted_cross_entropy", "focal_loss"]
+    }
+  },
+  {
+    "parameter_id": "alpha_focal_loss",
+    "discrete_value_spec": {
+      "values": [0.1, 0.25, 0.5, 0.75, 0.9, 0.99]
+    }
+  },
+  {
+    "parameter_id": "gamma_focal_loss",
+    "discrete_value_spec": {
+      "values": [0.0, 0.5, 1.0, 2.0, 3.0, 4.0]
+    }
+  }
+]
