@@ -263,7 +263,7 @@ class ImportModelEvaluationTest(TestCase):
         '--metrics', self.metrics_path, '--problem_type', 'classification',
         '--model_name', self._model_name, '--gcp_resources',
         self._gcp_resources, '--explanation',
-        "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}"
+        "{{$.inputs.artifacts['metrics'].metadata['explanation_gcs_path']}}"
     ])
 
     mock_api.assert_called_with(
@@ -294,7 +294,7 @@ class ImportModelEvaluationTest(TestCase):
           '--metrics', self.metrics_path, '--problem_type', 'classification',
           '--model_name', self._model_name, '--gcp_resources',
           self._gcp_resources, '--explanation',
-          "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}",
+          "{{$.inputs.artifacts['metrics'].metadata['explanation_gcs_path']}}",
           '--metrics_explanation',
           "{{$.inputs.artifacts['metrics_explanation'].metadata['explanation_gcs_path']}}"
       ])
