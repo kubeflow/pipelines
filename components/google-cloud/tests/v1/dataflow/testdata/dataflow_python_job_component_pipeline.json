@@ -59,7 +59,7 @@
                   "-m",
                   "google_cloud_pipeline_components.container.v1.dataflow.dataflow_launcher"
                ],
-               "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+               "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.6"
             }
          }
       }
