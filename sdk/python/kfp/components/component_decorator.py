@@ -13,7 +13,8 @@
 # limitations under the License.
 
 import functools
-from typing import Callable, Optional, List
+import warnings
+from typing import Callable, List, Optional
 
 from kfp.components import component_factory
 
@@ -97,8 +98,10 @@ def component(func: Optional[Callable] = None,
         A component task factory that can be used in pipeline definitions.
     """
     if output_component_file is not None:
-        raise Exception("output_component_file is not supported yet in v2 early"
-                        "releases and will be added back for v2.0.0 ")
+        warnings.warn(
+            'output_component_file parameter is deprecated and will eventually be removed. Please use `Compiler().compile()` to compile a component instead.',
+            DeprecationWarning,
+            stacklevel=2)
 
     if func is None:
         return functools.partial(

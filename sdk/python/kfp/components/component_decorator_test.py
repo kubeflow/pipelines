@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import tempfile
 import unittest
 
 from kfp.components import python_component
+from kfp.components import structures
 from kfp.components.component_decorator import component
 
 
@@ -75,3 +78,21 @@ class TestComponentDecorator(unittest.TestCase):
         self.assertTrue('numpy' in concat_command and
                         'tensorflow' in concat_command)
         self.assertTrue('https://pypi.org/simple' in concat_command)
+
+    def test_output_component_file_parameter(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            filepath = os.path.join(tmpdir, 'my_component.yaml')
+            with self.assertWarnsRegex(
+                    DeprecationWarning,
+                    r'output_component_file parameter is deprecated and will eventually be removed\.'
+            ):
+                comp = component(func, output_component_file=filepath)
+
+            self.assertIsInstance(comp, python_component.PythonComponent)
+            self.assertTrue(os.path.exists(filepath))
+            with open(filepath, 'r') as f:
+                yaml_text = f.read()
+
+        component_spec = structures.ComponentSpec.load_from_component_yaml(
+            yaml_text)
+        self.assertEqual(component_spec, comp.component_spec)
