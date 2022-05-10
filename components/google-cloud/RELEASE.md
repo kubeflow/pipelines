@@ -1,5 +1,20 @@
-# Current Version 1.0.5.dev (Still in Development)
+# Current Version 1.0.7.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.6
+* Update import evaluation metrics component.
+* Support parameterized input for reserved_ip_range and other Vertex Training parameters in custom job utility.
+* Generate feature selection tuning pipeline and test utils.
+* Add retries to queries hitting BQ write quota on BQML Arima pipeline.
+* Minor changes to the feature transform engine and transform configuration component specs to support their integration.
+* Update Executor component for Pipeline to support kernel_spec.
+* Add default TabNet study_spec_parameters_override configs for different dataset sizes and search space modes and helper function to get the parameters.
+
+# Release 1.0.5
+* Add VPC-SC and CMEK support for the experimental evaluation component
+* Add an import evaluation metrics component
+* Modify AutoML Tables template JSON pipeline specs
+* Add feature transform engine AutoML Table component.
 
 # Release 1.0.4
 * Create alias for create_custom_training_job_op_from_component as create_custom_training_job_from_component
