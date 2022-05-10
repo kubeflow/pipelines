@@ -38,8 +38,8 @@ description: |
             Required. List of dictionaries representing metrics to optimize.
             The dictionary contains the metric_id, which is reported by the training
             job, ands the optimization goal of the metric. One of "minimize" or "maximize".
-        study_spec_parameters (list[str]):
-            Required. List of dictionaries representing parameters to
+        study_spec_parameters_override (list[str]):
+            List of dictionaries representing parameters to
             optimize. The dictionary key is the parameter_id, which is passed to
             training job as a command line argument, and the dictionary value is the
             parameter specification of the metric.
@@ -88,7 +88,7 @@ inputs:
   - { name: eval_steps, type: Integer, default: 0 }
   - { name: eval_frequency_secs, type: Integer, default: 600 }
   - { name: study_spec_metrics, type: JsonArray }
-  - { name: study_spec_parameters, type: JsonArray }
+  - { name: study_spec_parameters_override, type: JsonArray }
   - { name: max_trial_count, type: Integer }
   - { name: parallel_trial_count, type: Integer }
   - { name: tabnet, type: Boolean, optional: true }
@@ -130,7 +130,7 @@ implementation:
           '"}, "study_spec": {"metrics": ',
           { inputValue: study_spec_metrics },
           ', "parameters": ',
-          { inputValue: study_spec_parameters },
+          { inputValue: study_spec_parameters_override },
           ', "algorithm": "',
           { inputValue: study_spec_algorithm },
           '", "measurement_selection_type": "',
