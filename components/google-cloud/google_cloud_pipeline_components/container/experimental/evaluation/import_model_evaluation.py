@@ -97,15 +97,15 @@ def main(argv):
             PROBLEM_TYPE_TO_SCHEMA_URI.get(parsed_args.problem_type),
     }
 
-  if parsed_args.explanation and parsed_args.explanation != "{{$.inputs.artifacts['metrics'].metadata['explanation_gcs_path']}}":
-    explanation_file_name = parsed_args.explanation if not parsed_args.explanation.startswith(
-        'gs://') else '/gcs' + parsed_args.explanation[4:]
-  elif parsed_args.metrics_explanation and parsed_args.metrics_explanation == "{{$.inputs.artifacts['metrics_explanation'].metadata['explanation_gcs_path']}}":
+  if parsed_args.explanation and parsed_args.explanation == "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}":
     # metrics_explanation must contain explanation_gcs_path when provided.
     logging.error(
-        '"metrics_explanation" must contain explanations when provided.')
+        '"explanation" must contain explanations when provided.')
     sys.exit(13)
-  elif parsed_args.metrics_explanation:
+  elif parsed_args.explanation:
+    explanation_file_name = parsed_args.explanation if not parsed_args.explanation.startswith(
+        'gs://') else '/gcs' + parsed_args.explanation[4:]
+  elif parsed_args.metrics_explanation and parsed_args.metrics_explanation != "{{$.inputs.artifacts['metrics'].metadata['explanation_gcs_path']}}":
     explanation_file_name = parsed_args.metrics_explanation if not parsed_args.metrics_explanation.startswith(
         'gs://') else '/gcs' + parsed_args.metrics_explanation[4:]
   else:
@@ -130,7 +130,7 @@ def main(argv):
           parent=parsed_args.model_name,
           model_evaluation=model_evaluation,
       )
-  model_evaluation_name = import_model_evaluation_response.parent
+  model_evaluation_name = import_model_evaluation_response.name
 
   # Write the model evaluation resource to GcpResources output.
   model_eval_resources = GcpResources()
