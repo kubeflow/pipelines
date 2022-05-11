@@ -45,6 +45,21 @@ EXPLANATION_2 = ('{"explanation": {"attributions": [{"featureAttributions": '
                  '"totChol": 0.039095268419742674}}]}}')
 
 
+def mock_api_call(test_func):
+
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(
+      aiplatform.gapic.ModelServiceClient,
+      'import_model_evaluation',
+      autospec=True)
+  def mocked_test(self, mock_api, mock_auth):
+    mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
+    mock_creds.token = 'token'
+    mock_auth.return_value = [mock_creds, 'project']
+    test_func(self, mock_api)
+
+  return mocked_test
+
 class ImportModelEvaluationTest(TestCase):
 
   def setUp(self):
@@ -64,16 +79,8 @@ class ImportModelEvaluationTest(TestCase):
     if os.path.exists(self._gcp_resources):
       os.remove(self._gcp_resources)
 
-  @mock.patch.object(google.auth, 'default', autospec=True)
-  @mock.patch.object(
-      aiplatform.gapic.ModelServiceClient,
-      'import_model_evaluation',
-      autospec=True)
-  def test_import_model_evaluation(self, mock_api, mock_auth):
-    mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
-    mock_creds.token = 'token'
-    mock_auth.return_value = [mock_creds, 'project']
-
+  @mock_api_call
+  def test_import_model_evaluation(self, mock_api):
     main([
         '--metrics', self.metrics_path, '--problem_type', 'classification',
         '--model_name', self._model_name, '--gcp_resources', self._gcp_resources
@@ -90,17 +97,8 @@ class ImportModelEvaluationTest(TestCase):
                 SCHEMA_URI,
         })
 
-  @mock.patch.object(google.auth, 'default', autospec=True)
-  @mock.patch.object(
-      aiplatform.gapic.ModelServiceClient,
-      'import_model_evaluation',
-      autospec=True)
-  def test_import_model_evaluation_with_metrics_explanation(
-      self, mock_api, mock_auth):
-    mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
-    mock_creds.token = 'token'
-    mock_auth.return_value = [mock_creds, 'project']
-
+  @mock_api_call
+  def test_import_model_evaluation_with_metrics_explanation(self, mock_api):
     explanation_path = self.create_tempfile().full_path
     with open(explanation_path, 'w') as f:
       f.write(EXPLANATION_1)
@@ -130,16 +128,8 @@ class ImportModelEvaluationTest(TestCase):
             },
         })
 
-  @mock.patch.object(google.auth, 'default', autospec=True)
-  @mock.patch.object(
-      aiplatform.gapic.ModelServiceClient,
-      'import_model_evaluation',
-      autospec=True)
-  def test_import_model_evaluation_with_explanation(self, mock_api, mock_auth):
-    mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
-    mock_creds.token = 'token'
-    mock_auth.return_value = [mock_creds, 'project']
-
+  @mock_api_call
+  def test_import_model_evaluation_with_explanation(self, mock_api):
     explanation_path = self.create_tempfile().full_path
     with open(explanation_path, 'w') as f:
       f.write(EXPLANATION_2)
@@ -169,17 +159,8 @@ class ImportModelEvaluationTest(TestCase):
             },
         })
 
-  @mock.patch.object(google.auth, 'default', autospec=True)
-  @mock.patch.object(
-      aiplatform.gapic.ModelServiceClient,
-      'import_model_evaluation',
-      autospec=True)
-  def test_import_model_evaluation_with_explanation_overriding(
-      self, mock_api, mock_auth):
-    mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
-    mock_creds.token = 'token'
-    mock_auth.return_value = [mock_creds, 'project']
-
+  @mock_api_call
+  def test_import_model_evaluation_with_explanation_overriding(self, mock_api):
     explanation_path_1 = self.create_tempfile().full_path
     with open(explanation_path_1, 'w') as f:
       f.write(EXPLANATION_1)
@@ -214,16 +195,8 @@ class ImportModelEvaluationTest(TestCase):
             },
         })
 
-  @mock.patch.object(google.auth, 'default', autospec=True)
-  @mock.patch.object(
-      aiplatform.gapic.ModelServiceClient,
-      'import_model_evaluation',
-      autospec=True)
-  def test_import_model_evaluation_gcp_resources(self, mock_api, mock_auth):
-    mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
-    mock_creds.token = 'token'
-    mock_auth.return_value = [mock_creds, 'project']
-
+  @mock_api_call
+  def test_import_model_evaluation_gcp_resources(self, mock_api):
     import_model_evaluation_response = mock.Mock()
     mock_api.return_value = import_model_evaluation_response
     import_model_evaluation_response.name = self._model_name
@@ -245,16 +218,8 @@ class ImportModelEvaluationTest(TestCase):
           0].resource_uri[len(self._model_evaluation_uri_prefix):]
       self.assertEqual(model_evaluation_name, self._model_name)
 
-  @mock.patch.object(google.auth, 'default', autospec=True)
-  @mock.patch.object(
-      aiplatform.gapic.ModelServiceClient,
-      'import_model_evaluation',
-      autospec=True)
-  def test_import_model_evaluation_empty_explanation(self, mock_api, mock_auth):
-    mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
-    mock_creds.token = 'token'
-    mock_auth.return_value = [mock_creds, 'project']
-
+  @mock_api_call
+  def test_import_model_evaluation_empty_explanation(self, mock_api):
     import_model_evaluation_response = mock.Mock()
     mock_api.return_value = import_model_evaluation_response
     import_model_evaluation_response.name = self._model_name
@@ -278,17 +243,9 @@ class ImportModelEvaluationTest(TestCase):
                 SCHEMA_URI,
         })
 
-  @mock.patch.object(google.auth, 'default', autospec=True)
-  @mock.patch.object(
-      aiplatform.gapic.ModelServiceClient,
-      'import_model_evaluation',
-      autospec=True)
+  @mock_api_call
   def test_import_model_evaluation_empty_explanation_with_empty_explanation_override(
-      self, mock_api, mock_auth):
-    mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
-    mock_creds.token = 'token'
-    mock_auth.return_value = [mock_creds, 'project']
-
+      self, mock_api):
     with self.assertRaises(SystemExit):
       main([
           '--metrics',
@@ -305,17 +262,9 @@ class ImportModelEvaluationTest(TestCase):
           "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}",
       ])
 
-  @mock.patch.object(google.auth, 'default', autospec=True)
-  @mock.patch.object(
-      aiplatform.gapic.ModelServiceClient,
-      'import_model_evaluation',
-      autospec=True)
+  @mock_api_call
   def test_import_model_evaluation_contains_explanation_with_empty_explanation_override(
-      self, mock_api, mock_auth):
-    mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
-    mock_creds.token = 'token'
-    mock_auth.return_value = [mock_creds, 'project']
-
+      self, mock_api):
     explanation_path = self.create_tempfile().full_path
     with open(explanation_path, 'w') as f:
       f.write(EXPLANATION_1)
@@ -336,18 +285,10 @@ class ImportModelEvaluationTest(TestCase):
           "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}",
       ])
 
-  @mock.patch.object(google.auth, 'default', autospec=True)
-  @mock.patch.object(
-      aiplatform.gapic.ModelServiceClient,
-      'import_model_evaluation',
-      autospec=True)
+  @mock_api_call
   def test_import_model_evaluation_contains_explanation_with_explanation_override(
-      self, mock_api, mock_auth):
-    mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
-    mock_creds.token = 'token'
-    mock_auth.return_value = [mock_creds, 'project']
-
-    # This explanation file will get overrode.
+      self, mock_api):
+    # This explanation file will get overridden.
     explanation_path_ignored = self.create_tempfile().full_path
     with open(explanation_path_ignored, 'w') as f:
       f.write(EXPLANATION_1)
