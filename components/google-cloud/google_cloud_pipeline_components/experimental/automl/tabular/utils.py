@@ -1405,4 +1405,20 @@ def _format_tabnet_regression_study_spec_parameters_override(
   return formatted_params
 
 
+def get_wide_and_deep_study_spec_parameters_override() -> List[Dict[str, Any]]:
+  """Get study_spec_parameters_override for a Wide & Deep hyperparameter tuning job.
+
+  Returns:
+    List of study_spec_parameters_override.
+  """
+
+  param_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(),
+      'configs/wide_and_deep_params.json')
+  with open(param_path, 'r') as f:
+    param_content = f.read()
+    params = json.loads(param_content)
+
+  return params
+
 
