@@ -26,9 +26,9 @@ import (
 )
 
 const (
-	TLSDir      string = "/etc/webhook/certs"
-	TLSCertFile string = "cert.pem"
-	TLSKeyFile  string = "key.pem"
+	TLSDir             string = "/etc/webhook/certs"
+	TLSCertFileDefault string = "cert.pem"
+	TLSKeyFileDefault  string = "key.pem"
 )
 
 const (
@@ -60,6 +60,9 @@ type WhSvrDBParameters struct {
 func main() {
 	var params WhSvrDBParameters
 	var clientParams util.ClientParameters
+	var certFile string
+	var keyFile string
+
 	flag.StringVar(&params.dbDriver, "db_driver", mysqlDBDriverDefault, "Database driver name, mysql is the default value")
 	flag.StringVar(&params.dbHost, "db_host", mysqlDBHostDefault, "Database host name.")
 	flag.StringVar(&params.dbPort, "db_port", mysqlDBPortDefault, "Database port number.")
@@ -73,6 +76,10 @@ func main() {
 	// k8s.io/client-go/rest/config.go#RESTClientFor
 	flag.Float64Var(&clientParams.QPS, "kube_client_qps", 5, "The maximum QPS to the master from this client.")
 	flag.IntVar(&clientParams.Burst, "kube_client_burst", 10, "Maximum burst for throttle from this client.")
+	// If you are NOT using cache deployer to create the certificate then you can use these two parameters to specify the TLS filenames
+	// Eg: If you have created the certificate using cert-manager then specify tls_cert_filename=tls.crt and tls_key_filename=tls.key
+	flag.StringVar(&certFile, "tls_cert_filename", TLSCertFileDefault, "The TLS certificate filename.")
+	flag.StringVar(&keyFile, "tls_key_filename", TLSKeyFileDefault, "The TLS key filename.")
 
 	flag.Parse()
 
@@ -81,8 +88,8 @@ func main() {
 	ctx := context.Background()
 	go server.WatchPods(ctx, params.namespaceToWatch, &clientManager)
 
-	certPath := filepath.Join(TLSDir, TLSCertFile)
-	keyPath := filepath.Join(TLSDir, TLSKeyFile)
+	certPath := filepath.Join(TLSDir, certFile)
+	keyPath := filepath.Join(TLSDir, keyFile)
 
 	mux := http.NewServeMux()
 	mux.Handle(MutateAPI, server.AdmitFuncHandler(server.MutatePodIfCached, &clientManager))
