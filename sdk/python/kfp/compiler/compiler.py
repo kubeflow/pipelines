@@ -25,9 +25,8 @@ from typing import (Any, Callable, Dict, List, Mapping, Optional, Set, Tuple,
 import kfp
 from google.protobuf import json_format
 from kfp import dsl
-from kfp.compiler import helpers as compiler_helpers
 from kfp.compiler import pipeline_spec_builder as builder
-from kfp.compiler.helpers import GroupOrTaskType
+from kfp.compiler.pipeline_spec_builder import GroupOrTaskType
 from kfp.components import base_component
 from kfp.components import component_factory
 from kfp.components import for_loop
@@ -90,7 +89,7 @@ class Compiler:
 
         with type_utils.TypeCheckManager(enable=type_check):
             if isinstance(pipeline_func, base_component.BaseComponent):
-                component_spec = compiler_helpers.modify_component_spec_for_compile(
+                component_spec = builder.modify_component_spec_for_compile(
                     component_spec=pipeline_func.component_spec,
                     pipeline_name=pipeline_name,
                     pipeline_parameters_override=pipeline_parameters,
@@ -145,7 +144,7 @@ class Compiler:
             arg_type = pipeline_meta.inputs[arg_name].type
             if not type_utils.is_parameter_type(arg_type):
                 raise TypeError(
-                    compiler_helpers.make_invalid_input_type_error_msg(
+                    builder.make_invalid_input_type_error_msg(
                         arg_name, arg_type))
             args_list.append(
                 dsl.PipelineParameterChannel(
@@ -215,7 +214,7 @@ class Compiler:
             if not type_utils.is_parameter_type(
                     arg_type) or type_utils.is_task_final_status_type(arg_type):
                 raise TypeError(
-                    compiler_helpers.make_invalid_input_type_error_msg(
+                    builder.make_invalid_input_type_error_msg(
                         arg_name, arg_type))
             args_dict[arg_name] = dsl.PipelineParameterChannel(
                 name=arg_name, channel_type=arg_type)
@@ -240,7 +239,7 @@ class Compiler:
         ]
         group.name = uuid.uuid4().hex
 
-        return compiler_helpers.create_pipeline_spec_for_component(
+        return builder.create_pipeline_spec_for_component(
             pipeline_name=component_spec.name,
             pipeline_args=args_list_with_defaults,
             task_group=group,
@@ -317,7 +316,7 @@ class Compiler:
         Raises:
             ValueError if the argument is of unsupported types.
         """
-        compiler_helpers.validate_pipeline_name(pipeline.name)
+        builder.validate_pipeline_name(pipeline.name)
 
         deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
         pipeline_spec = pipeline_spec_pb2.PipelineSpec()
@@ -338,7 +337,7 @@ class Compiler:
         all_groups = self._get_all_groups(root_group)
         group_name_to_group = {group.name: group for group in all_groups}
         task_name_to_parent_groups, group_name_to_parent_groups = (
-            compiler_helpers.get_parent_groups(root_group))
+            builder.get_parent_groups(root_group))
         condition_channels = self._get_condition_channels_for_tasks(root_group)
         name_to_for_loop_group = {
             group_name: group
@@ -364,7 +363,7 @@ class Compiler:
         )
 
         for group in all_groups:
-            compiler_helpers.build_spec_by_group(
+            builder.build_spec_by_group(
                 pipeline_spec=pipeline_spec,
                 deployment_config=deployment_config,
                 group=group,

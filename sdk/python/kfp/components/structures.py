@@ -641,7 +641,6 @@ class ComponentSpec(base_model.BaseModel):
             A PipelineSpec proto representing the compiled component.
         """
         # import here to aviod circular module dependency
-        from kfp.compiler import helpers as compiler_helpers
         from kfp.compiler import pipeline_spec_builder as builder
         from kfp.components import pipeline_task
         from kfp.components import tasks_group
@@ -655,7 +654,7 @@ class ComponentSpec(base_model.BaseModel):
             if not type_utils.is_parameter_type(
                     arg_type) or type_utils.is_task_final_status_type(arg_type):
                 raise TypeError(
-                    compiler_helpers.make_invalid_input_type_error_msg(
+                    builder.make_invalid_input_type_error_msg(
                         arg_name, arg_type))
             args_dict[arg_name] = dsl.PipelineParameterChannel(
                 name=arg_name, channel_type=arg_type)
@@ -682,7 +681,7 @@ class ComponentSpec(base_model.BaseModel):
         pipeline_args = args_list_with_defaults
         task_group = group
 
-        compiler_helpers.validate_pipeline_name(pipeline_name)
+        builder.validate_pipeline_name(pipeline_name)
 
         pipeline_spec = pipeline_spec_pb2.PipelineSpec()
         pipeline_spec.pipeline_info.name = pipeline_name
@@ -698,7 +697,7 @@ class ComponentSpec(base_model.BaseModel):
         deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
         root_group = task_group
 
-        task_name_to_parent_groups, group_name_to_parent_groups = compiler_helpers.get_parent_groups(
+        task_name_to_parent_groups, group_name_to_parent_groups = builder.get_parent_groups(
             root_group)
 
         def get_inputs(task_group: tasks_group.TasksGroup,
@@ -716,7 +715,7 @@ class ComponentSpec(base_model.BaseModel):
 
         inputs = get_inputs(task_group, task_name_to_parent_groups)
 
-        compiler_helpers.build_spec_by_group(
+        builder.build_spec_by_group(
             pipeline_spec=pipeline_spec,
             deployment_config=deployment_config,
             group=root_group,
