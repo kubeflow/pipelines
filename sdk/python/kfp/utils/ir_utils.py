@@ -38,9 +38,8 @@ def _write_ir_to_file(ir_dict: Dict[str, Any], output_file: str) -> None:
             category=DeprecationWarning,
             stacklevel=2,
         )
-        ir_json = json.dumps(ir_dict, sort_keys=True)
         with open(output_file, 'w') as json_file:
-            json_file.write(ir_json)
+            json.dump(ir_dict, json_file, indent=2, sort_keys=True)
     elif output_file.endswith(('.yaml', '.yml')):
         with open(output_file, 'w') as yaml_file:
             yaml.dump(ir_dict, yaml_file, sort_keys=True)
