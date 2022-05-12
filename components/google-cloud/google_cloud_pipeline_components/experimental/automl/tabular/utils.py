@@ -1410,7 +1410,6 @@ def get_wide_and_deep_study_spec_parameters_override() -> List[Dict[str, Any]]:
   Returns:
     List of study_spec_parameters_override.
   """
-
   param_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
       'configs/wide_and_deep_params.json')
