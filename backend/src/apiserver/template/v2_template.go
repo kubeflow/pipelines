@@ -7,7 +7,7 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 
 	"github.com/ghodss/yaml"
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/api/kfp_pipeline_spec/go/pipelinespec"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"

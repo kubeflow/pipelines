@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/api/kfp_pipeline_spec/go/pipelinespec"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"

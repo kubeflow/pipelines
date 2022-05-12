@@ -6,7 +6,7 @@ import "google/protobuf/any.proto";
 import "google/protobuf/struct.proto";
 import "google/rpc/status.proto";
 
-option go_package = "github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec";
+option go_package = "github.com/kubeflow/pipelines/api/kfp_pipeline_spec/go/pipelinespec";
 
 // The spec of a pipeline job.
 message PipelineJob {

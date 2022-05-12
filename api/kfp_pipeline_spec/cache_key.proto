@@ -14,7 +14,7 @@
 
 syntax = "proto3";
 
-option go_package = "github.com/kubeflow/pipelines/api/v2alpha1/go/cachekey";
+option go_package = "github.com/kubeflow/pipelines/api/kfp_pipeline_spec/go/cachekey";
 package ml_pipelines;
 
 // import "google/protobuf/any.proto";

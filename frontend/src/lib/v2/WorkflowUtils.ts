@@ -30,7 +30,7 @@ export function isArgoWorkflowTemplate(template: Workflow): boolean {
   return false;
 }
 
-// Assuming template is the JSON format of PipelineSpec in api/v2alpha1/pipeline_spec.proto
+// Assuming template is the JSON format of PipelineSpec in api/kfp_pipeline_spec/pipeline_spec.proto
 export function convertYamlToV2PipelineSpec(template: string): PipelineSpec {
   const pipelineSpecYAML = jsyaml.safeLoad(template);
   const ts_pipelinespec = PipelineSpec.fromJSON(pipelineSpecYAML);

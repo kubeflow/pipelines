@@ -60,7 +60,7 @@ github.com/josharian/intern,https://github.com/josharian/intern/blob/v1.0.0/lice
 github.com/json-iterator/go,https://github.com/json-iterator/go/blob/v1.1.11/LICENSE,MIT
 github.com/klauspost/compress/flate,https://github.com/klauspost/compress/blob/v1.13.1/LICENSE,BSD-3-Clause
 github.com/klauspost/pgzip,https://github.com/klauspost/pgzip/blob/v1.2.5/LICENSE,MIT
-github.com/kubeflow/pipelines/api/v2alpha1/go,https://github.com/kubeflow/pipelines/blob/11635101d944/api/LICENSE,Apache-2.0
+github.com/kubeflow/pipelines/api/kfp_pipeline_spec/go,https://github.com/kubeflow/pipelines/blob/11635101d944/api/LICENSE,Apache-2.0
 github.com/kubeflow/pipelines/backend,https://github.com/kubeflow/pipelines/blob/HEAD/LICENSE,Apache-2.0
 github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata,https://github.com/kubeflow/pipelines/blob/e78ed557ddcb/third_party/ml-metadata/LICENSE,Apache-2.0
 github.com/lann/builder,https://github.com/lann/builder/blob/47ae307949d0/LICENSE,MIT

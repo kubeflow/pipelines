@@ -6,7 +6,7 @@ import (
 
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"
 
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/api/kfp_pipeline_spec/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"google.golang.org/protobuf/encoding/protojson"
 	"k8s.io/client-go/kubernetes"

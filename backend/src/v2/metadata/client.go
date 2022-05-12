@@ -26,7 +26,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/api/kfp_pipeline_spec/go/pipelinespec"
 
 	"github.com/golang/glog"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"

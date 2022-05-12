@@ -19,7 +19,7 @@ import (
 	"strings"
 
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/api/kfp_pipeline_spec/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
 	k8score "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"

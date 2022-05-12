@@ -21,7 +21,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/api/kfp_pipeline_spec/go/pipelinespec"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -104,7 +104,7 @@ func isArgoWorkflow(template []byte) bool {
 	return strings.HasPrefix(meta.APIVersion, argoGroup) && meta.Kind == argoK8sResource
 }
 
-// isPipelineSpec returns whether template is in KFP api/v2alpha1/PipelineSpec format.
+// isPipelineSpec returns whether template is in KFP api/kfp_pipeline_spec/PipelineSpec format.
 func isPipelineSpec(template []byte) bool {
 	var spec pipelinespec.PipelineSpec
 	templateJson, err := yaml.YAMLToJSON(template)

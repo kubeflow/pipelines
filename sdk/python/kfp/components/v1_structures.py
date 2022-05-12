@@ -191,7 +191,7 @@ class ExecutorInputPlaceholder(ModelBase):  # Non-standard attr names
     """Represents the serialized ExecutorInput message at runtime.
 
     This placeholder will be replaced by a serialized
-    [ExecutorInput](https://github.com/kubeflow/pipelines/blob/61f9c2c328d245d89c9d9b8c923f24dbbd08cdc9/api/v2alpha1/pipeline_spec.proto#L730)
+    [ExecutorInput](https://github.com/kubeflow/pipelines/blob/61f9c2c328d245d89c9d9b8c923f24dbbd08cdc9/api/kfp_pipeline_spec/pipeline_spec.proto#L730)
     proto message at runtime, which includes parameters of the task, artifact
     URIs and metadata.
     """

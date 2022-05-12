@@ -19,7 +19,7 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/api/kfp_pipeline_spec/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 	"github.com/kubeflow/pipelines/backend/src/v2/objectstore"
 	pb "github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata"

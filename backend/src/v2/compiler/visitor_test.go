@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang/protobuf/jsonpb"
 	"github.com/google/go-cmp/cmp"
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/api/kfp_pipeline_spec/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler"
 )
 

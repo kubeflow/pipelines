@@ -48,7 +48,7 @@ class Compiler:
 
     It compiles pipeline function into PipelineSpec json string.
     PipelineSpec is the IR protobuf message that defines a pipeline:
-    https://github.com/kubeflow/pipelines/blob/237795539f7b85bac77435e2464367226ee19391/api/v2alpha1/pipeline_spec.proto#L8
+    https://github.com/kubeflow/pipelines/blob/237795539f7b85bac77435e2464367226ee19391/api/kfp_pipeline_spec/pipeline_spec.proto#L8
     In this initial implementation, we only support components authored through
     Component yaml spec. And we don't support advanced features like conditions,
     static and dynamic loops, etc.

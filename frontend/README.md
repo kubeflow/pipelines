@@ -201,7 +201,7 @@ package from
 
 ## Pipeline Spec (IR) API
 
-For KFP v2, we use pipeline spec or IR(Intermediate Representation) to represent a Pipeline defintion. It is saved as json payload when transmitted. You can find the API in [api/v2alpha1/pipeline_spec.proto](api/v2alpha1/pipeline_spec.proto). To take the latest of this file and compile it to Typescript classes, follow the below step:
+For KFP v2, we use pipeline spec or IR(Intermediate Representation) to represent a Pipeline defintion. It is saved as json payload when transmitted. You can find the API in [api/kfp_pipeline_spec/pipeline_spec.proto](api/kfp_pipeline_spec/pipeline_spec.proto). To take the latest of this file and compile it to Typescript classes, follow the below step:
 
 ```
 npm run build:pipeline-spec

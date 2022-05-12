@@ -22,7 +22,7 @@ class PipelineTaskFinalStatus:
     """The final status of a pipeline task.
 
     This is the Python representation of the proto: PipelineTaskFinalStatus
-    https://github.com/kubeflow/pipelines/blob/1c3e2768e6177d5d6e3f4b8eff8fafb9a3b76c1f/api/v2alpha1/pipeline_spec.proto#L886
+    https://github.com/kubeflow/pipelines/blob/1c3e2768e6177d5d6e3f4b8eff8fafb9a3b76c1f/api/kfp_pipeline_spec/pipeline_spec.proto#L886
 
     Attributes:
         state: The final state of the task. The value could be one of

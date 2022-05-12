@@ -29,7 +29,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/jsonpb"
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/api/kfp_pipeline_spec/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/config"
 	"github.com/kubeflow/pipelines/backend/src/v2/metadata"
 )

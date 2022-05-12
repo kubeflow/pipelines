@@ -23,7 +23,7 @@ import (
 	wfapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
 	"github.com/google/go-cmp/cmp"
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	"github.com/kubeflow/pipelines/api/kfp_pipeline_spec/go/pipelinespec"
 	"github.com/kubeflow/pipelines/backend/src/v2/compiler/argocompiler"
 	"google.golang.org/protobuf/encoding/protojson"
 )

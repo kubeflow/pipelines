@@ -21,7 +21,7 @@
 package cachekey
 
 import (
-	pipelinespec "github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
+	pipelinespec "github.com/kubeflow/pipelines/api/kfp_pipeline_spec/go/pipelinespec"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	structpb "google.golang.org/protobuf/types/known/structpb"

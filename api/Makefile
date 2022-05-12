@@ -23,7 +23,7 @@ clean: clean-go clean-python
 
 # Generate proto packages using a pre-built api-generator image.
 .PHONY: golang
-golang: v2alpha1/*.proto
+golang: kfp_pipeline_spec/*.proto
 	docker run --interactive --rm \
 		--user $$(id -u):$$(id -g) \
 		--mount type=bind,source="$$(pwd)/..",target=/go/src/github.com/kubeflow/pipelines \
@@ -33,22 +33,22 @@ golang: v2alpha1/*.proto
 # Delete all generated proto go packages.
 .PHONY: clean-go
 clean-go:
-	rm -rf v2alpha1/go
-	rm -f v2alpha1/google/rpc/status.proto
+	rm -rf kfp_pipeline_spec/go
+	rm -f kfp_pipeline_spec/google/rpc/status.proto
 
 # Generate Python package.
 .PHONY: python
-python: v2alpha1/pipeline_spec.proto v2alpha1/google/rpc/status.proto
-	python3 v2alpha1/python/generate_proto.py && cd v2alpha1/python && python3 setup.py bdist_wheel
+python: kfp_pipeline_spec/pipeline_spec.proto kfp_pipeline_spec/google/rpc/status.proto
+	python3 kfp_pipeline_spec/python/generate_proto.py && cd kfp_pipeline_spec/python && python3 setup.py bdist_wheel
 
 # Delete all generated Python packages
 .PHONY: clean-python
 clean-python:
-	rm -rf v2alpha1/python/build
-	rm -rf v2alpha1/python/dist
-	rm -rf v2alpha1/python/kfp_pipeline_spec.egg-info
-	rm -f v2alpha1/python/kfp/pipeline_spec/pipeline_spec_pb2.py
-	rm -f v2alpha1/google/rpc/status.proto
+	rm -rf kfp_pipeline_spec/python/build
+	rm -rf kfp_pipeline_spec/python/dist
+	rm -rf kfp_pipeline_spec/python/kfp_pipeline_spec.egg-info
+	rm -f kfp_pipeline_spec/python/kfp/pipeline_spec/pipeline_spec_pb2.py
+	rm -f kfp_pipeline_spec/google/rpc/status.proto
 
 ##########################
 # The following are IMPLEMENTATION DETAILS.
@@ -60,24 +60,24 @@ clean-python:
 .PHONY: generate
 generate: go_pipelinespec go_cachekey
 
-go_pipelinespec: v2alpha1/pipeline_spec.proto v2alpha1/google/rpc/status.proto
-	mkdir -p v2alpha1/go/pipelinespec
-	cd v2alpha1 && protoc -I=. \
+go_pipelinespec: kfp_pipeline_spec/pipeline_spec.proto kfp_pipeline_spec/google/rpc/status.proto
+	mkdir -p kfp_pipeline_spec/go/pipelinespec
+	cd kfp_pipeline_spec && protoc -I=. \
 		--go_out=go/pipelinespec \
 		--go_opt=paths=source_relative \
 		pipeline_spec.proto
 
-go_cachekey: v2alpha1/pipeline_spec.proto v2alpha1/cache_key.proto
-	mkdir -p v2alpha1/go/cachekey
-	cd v2alpha1 && protoc -I=. \
+go_cachekey: kfp_pipeline_spec/pipeline_spec.proto kfp_pipeline_spec/cache_key.proto
+	mkdir -p kfp_pipeline_spec/go/cachekey
+	cd kfp_pipeline_spec && protoc -I=. \
 		--go_out=go/cachekey \
 		--go_opt=paths=source_relative \
 		cache_key.proto
 
 # Fetch dependency proto
-v2alpha1/google/rpc/status.proto:
-	mkdir -p v2alpha1/google/rpc
-	wget -O v2alpha1/google/rpc/status.proto https://raw.githubusercontent.com/googleapis/googleapis/047d3a8ac7f75383855df0166144f891d7af08d9/google/rpc/status.proto
+kfp_pipeline_spec/google/rpc/status.proto:
+	mkdir -p kfp_pipeline_spec/google/rpc
+	wget -O kfp_pipeline_spec/google/rpc/status.proto https://raw.githubusercontent.com/googleapis/googleapis/047d3a8ac7f75383855df0166144f891d7af08d9/google/rpc/status.proto
 
 # protoc-gen-go is already installed in api-generator image
 .PHONY: protoc-gen-go

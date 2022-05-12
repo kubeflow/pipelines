@@ -74,7 +74,7 @@ Design: [bit.ly/kfp-v2](https://bit.ly/kfp-v2)
 
 * KFP v2 DSL (TBD)
 
-* Use [the pipeline spec](https://github.com/kubeflow/pipelines/blob/master/api/v2alpha1/pipeline_spec.proto) as pipeline description data structure. The new spec is argo workflow agnostic and can be a shared common format for different underlying engines.
+* Use [the pipeline spec](https://github.com/kubeflow/pipelines/blob/master/api/kfp_pipeline_spec/pipeline_spec.proto) as pipeline description data structure. The new spec is argo workflow agnostic and can be a shared common format for different underlying engines.
 
 * Design and implement a pipeline run status API (also argo agnostic).
 

@@ -22,24 +22,24 @@ ARTIFACT_PROPERTY_KEY_RESOURCE_NAME = 'resourceName'
 
 
 class GoogleArtifact(dsl.Artifact):
-  # Converts the artifact into executor output artifact
-  # https://github.com/kubeflow/pipelines/blob/master/api/v2alpha1/pipeline_spec.proto#L878
-  def to_executor_output_artifact(self, artifacts: Dict):
-      artifacts_list = artifacts.get('artifacts')
-      if artifacts_list:
-        updated_runtime_artifact = artifacts_list[0]
-        updated_runtime_artifact['uri'] = self.uri
-        updated_runtime_artifact['metadata'] = self.metadata
-        artifacts_list = {'artifacts': [updated_runtime_artifact]}
-      return artifacts_list
+    # Converts the artifact into executor output artifact
+    # https://github.com/kubeflow/pipelines/blob/master/api/kfp_pipeline_spec/pipeline_spec.proto#L878
+    def to_executor_output_artifact(self, artifacts: Dict):
+        artifacts_list = artifacts.get('artifacts')
+        if artifacts_list:
+            updated_runtime_artifact = artifacts_list[0]
+            updated_runtime_artifact['uri'] = self.uri
+            updated_runtime_artifact['metadata'] = self.metadata
+            artifacts_list = {'artifacts': [updated_runtime_artifact]}
+        return artifacts_list
 
 
 class VertexModel(GoogleArtifact):
-  """An artifact representing a Vertex Model."""
-  TYPE_NAME = 'google.VertexModel'
+    """An artifact representing a Vertex Model."""
+    TYPE_NAME = 'google.VertexModel'
 
-  def __init__(self, name: str, uri: str, model_resource_name: str):
-    """Args:
+    def __init__(self, name: str, uri: str, model_resource_name: str):
+        """Args:
 
          name: The artifact name.
          uri: the Vertex Model resource uri, in a form of
@@ -52,18 +52,18 @@ class VertexModel(GoogleArtifact):
          more details, see
          https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/get
     """
-    super().__init__(
-        uri=uri,
-        name=name,
-        metadata={ARTIFACT_PROPERTY_KEY_RESOURCE_NAME: model_resource_name})
+        super().__init__(
+            uri=uri,
+            name=name,
+            metadata={ARTIFACT_PROPERTY_KEY_RESOURCE_NAME: model_resource_name})
 
 
 class VertexEndpoint(GoogleArtifact):
-  """An artifact representing a Vertex Endpoint."""
-  TYPE_NAME = 'google.VertexEndpoint'
+    """An artifact representing a Vertex Endpoint."""
+    TYPE_NAME = 'google.VertexEndpoint'
 
-  def __init__(self, name: str, uri: str, endpoint_resource_name: str):
-    """Args:
+    def __init__(self, name: str, uri: str, endpoint_resource_name: str):
+        """Args:
 
          name: The artifact name.
          uri: the Vertex Endpoint resource uri, in a form of
@@ -76,24 +76,26 @@ class VertexEndpoint(GoogleArtifact):
          more details, see
          https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/get
     """
-    super().__init__(
-        uri=uri,
-        name=name,
-        metadata={ARTIFACT_PROPERTY_KEY_RESOURCE_NAME: endpoint_resource_name})
+        super().__init__(
+            uri=uri,
+            name=name,
+            metadata={
+                ARTIFACT_PROPERTY_KEY_RESOURCE_NAME: endpoint_resource_name
+            })
 
 
 class VertexBatchPredictionJob(GoogleArtifact):
-  """An artifact representing a Vertex BatchPredictionJob."""
-  TYPE_NAME = 'google.VertexBatchPredictionJob'
+    """An artifact representing a Vertex BatchPredictionJob."""
+    TYPE_NAME = 'google.VertexBatchPredictionJob'
 
-  def __init__(self,
-               name: str,
-               uri: str,
-               job_resource_name: str,
-               bigquery_output_table: Optional[str] = None,
-               bigquery_output_dataset: Optional[str] = None,
-               gcs_output_directory: Optional[str] = None):
-    """Args:
+    def __init__(self,
+                 name: str,
+                 uri: str,
+                 job_resource_name: str,
+                 bigquery_output_table: Optional[str] = None,
+                 bigquery_output_dataset: Optional[str] = None,
+                 gcs_output_directory: Optional[str] = None):
+        """Args:
 
          name: The artifact name.
          uri: the Vertex Batch Prediction resource uri, in a form of
@@ -118,23 +120,23 @@ class VertexBatchPredictionJob(GoogleArtifact):
          see
          https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.batchPredictionJobs#outputinfo
     """
-    super().__init__(
-        uri=uri,
-        name=name,
-        metadata={
-            ARTIFACT_PROPERTY_KEY_RESOURCE_NAME: job_resource_name,
-            'bigqueryOutputTable': bigquery_output_table,
-            'bigqueryOutputDataset': bigquery_output_dataset,
-            'gcsOutputDirectory': gcs_output_directory
-        })
+        super().__init__(
+            uri=uri,
+            name=name,
+            metadata={
+                ARTIFACT_PROPERTY_KEY_RESOURCE_NAME: job_resource_name,
+                'bigqueryOutputTable': bigquery_output_table,
+                'bigqueryOutputDataset': bigquery_output_dataset,
+                'gcsOutputDirectory': gcs_output_directory
+            })
 
 
 class VertexDataset(GoogleArtifact):
-  """An artifact representing a Vertex Dataset."""
-  TYPE_NAME = 'google.VertexDataset'
+    """An artifact representing a Vertex Dataset."""
+    TYPE_NAME = 'google.VertexDataset'
 
-  def __init__(self, name: str, uri: str, dataset_resource_name: str):
-    """Args:
+    def __init__(self, name: str, uri: str, dataset_resource_name: str):
+        """Args:
 
          name: The artifact name.
          uri: the Vertex Dataset resource uri, in a form of
@@ -147,19 +149,21 @@ class VertexDataset(GoogleArtifact):
          more details, see
          https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.datasets/get
     """
-    super().__init__(
-        uri=uri,
-        name=name,
-        metadata={ARTIFACT_PROPERTY_KEY_RESOURCE_NAME: dataset_resource_name})
+        super().__init__(
+            uri=uri,
+            name=name,
+            metadata={
+                ARTIFACT_PROPERTY_KEY_RESOURCE_NAME: dataset_resource_name
+            })
 
 
 class BQMLModel(GoogleArtifact):
-  """An artifact representing a BQML Model."""
-  TYPE_NAME = 'google.BQMLModel'
+    """An artifact representing a BQML Model."""
+    TYPE_NAME = 'google.BQMLModel'
 
-  def __init__(self, name: str, project_id: str, dataset_id: str,
-               model_id: str):
-    """Args:
+    def __init__(self, name: str, project_id: str, dataset_id: str,
+                 model_id: str):
+        """Args:
 
          name: The artifact name.
          project_id: The ID of the project containing this model.
@@ -169,23 +173,23 @@ class BQMLModel(GoogleArtifact):
          For more details, see
          https://cloud.google.com/bigquery/docs/reference/rest/v2/models#ModelReference
     """
-    super().__init__(
-        uri=f'https://www.googleapis.com/bigquery/v2/projects/{project_id}/datasets/{dataset_id}/models/{model_id}',
-        name=name,
-        metadata={
-            'projectId': project_id,
-            'datasetId': dataset_id,
-            'modelId': model_id
-        })
+        super().__init__(
+            uri=f'https://www.googleapis.com/bigquery/v2/projects/{project_id}/datasets/{dataset_id}/models/{model_id}',
+            name=name,
+            metadata={
+                'projectId': project_id,
+                'datasetId': dataset_id,
+                'modelId': model_id
+            })
 
 
 class BQTable(GoogleArtifact):
-  """An artifact representing a BQ Table."""
-  TYPE_NAME = 'google.BQTable'
+    """An artifact representing a BQ Table."""
+    TYPE_NAME = 'google.BQTable'
 
-  def __init__(self, name: str, project_id: str, dataset_id: str,
-               table_id: str):
-    """Args:
+    def __init__(self, name: str, project_id: str, dataset_id: str,
+                 table_id: str):
+        """Args:
 
          name: The artifact name.
          project_id: The ID of the project containing this table.
@@ -195,22 +199,22 @@ class BQTable(GoogleArtifact):
          For more details, see
          https://cloud.google.com/bigquery/docs/reference/rest/v2/TableReference
     """
-    super().__init__(
-        uri=f'https://www.googleapis.com/bigquery/v2/projects/{project_id}/datasets/{dataset_id}/tables/{table_id}',
-        name=name,
-        metadata={
-            'projectId': project_id,
-            'datasetId': dataset_id,
-            'tableId': table_id
-        })
+        super().__init__(
+            uri=f'https://www.googleapis.com/bigquery/v2/projects/{project_id}/datasets/{dataset_id}/tables/{table_id}',
+            name=name,
+            metadata={
+                'projectId': project_id,
+                'datasetId': dataset_id,
+                'tableId': table_id
+            })
 
 
 class UnmanagedContainerModel(GoogleArtifact):
-  """An artifact representing an unmanaged container model."""
-  TYPE_NAME = 'google.UnmanagedContainerModel'
+    """An artifact representing an unmanaged container model."""
+    TYPE_NAME = 'google.UnmanagedContainerModel'
 
-  def __init__(self, predict_schemata: Dict, container_spec: Dict):
-    """Args:
+    def __init__(self, predict_schemata: Dict, container_spec: Dict):
+        """Args:
 
          predict_schemata: Contains the schemata used in Model's predictions and
          explanations via PredictionService.Predict, PredictionService.Explain
@@ -221,7 +225,7 @@ class UnmanagedContainerModel(GoogleArtifact):
          Container v1 core specification. For more details, see
          https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ModelContainerSpec
     """
-    super().__init__(metadata={
-        'predictSchemata': predict_schemata,
-        'containerSpec': container_spec
-    })
+        super().__init__(metadata={
+            'predictSchemata': predict_schemata,
+            'containerSpec': container_spec
+        })
