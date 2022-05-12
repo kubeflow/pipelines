@@ -95,9 +95,11 @@ def create_custom_training_job_op_from_component(
     boot_disk_type (Optional[str]):
       Type of the boot disk (default is "pd-ssd"). Valid values: "pd-ssd"
         (Persistent Disk Solid State Drive) or "pd-standard" (Persistent Disk
-        Hard Disk Drive).
+        Hard Disk Drive). boot_disk_type is set as a static value and cannot be
+        changed as a pipeline parameter.
     boot_disk_size_gb (Optional[int]): Size in GB of the boot disk (default is
-      100GB).
+      100GB). boot_disk_size_gb is set as a static value and cannot be
+        changed as a pipeline parameter.
     timeout (Optional[str]): The maximum job running time. The default is 7
       days. A duration in seconds with up to nine fractional digits, terminated
       by 's', for example: "3.5s".
@@ -134,7 +136,8 @@ def create_custom_training_job_op_from_component(
       set, we will deploy the job within the provided ip ranges. Otherwise, the
       job will be deployed to any ip ranges under the provided VPC network.
     nfs_mounts (Optional[Sequence[Dict]]): A list of NFS mount specs in Json
-      dict format. For API spec, see
+      dict format. nfs_mounts is set as a static value and cannot be changed as
+      a pipeline parameter. For API spec, see
       https://cloud.devsite.corp.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#NfsMount
         For more details about mounting NFS for CustomJob, see
       https://cloud.devsite.corp.google.com/vertex-ai/docs/training/train-nfs-share
@@ -212,6 +215,10 @@ def create_custom_training_job_op_from_component(
     if 'disk_spec' not in worker_pool_spec:
       worker_pool_spec['disk_spec'] = {}
     worker_pool_spec['disk_spec']['boot_disk_size_gb'] = boot_disk_size_gb
+  if nfs_mounts:
+    if 'nfs_mounts' not in worker_pool_spec:
+      worker_pool_spec['nfs_mounts'] = []
+    worker_pool_spec['nfs_mounts'].extend(nfs_mounts)
 
   worker_pool_specs = [worker_pool_spec]
   if int(replica_count) > 1:
@@ -264,9 +271,6 @@ def create_custom_training_job_op_from_component(
     elif 'reserved_ip_ranges' in input_item.values():
       input_item['default'] = json.dumps(
           reserved_ip_ranges) if reserved_ip_ranges else '[]'
-      input_item['optional'] = True
-    elif 'nfs_mounts' in input_item.values():
-      input_item['default'] = json.dumps(nfs_mounts) if nfs_mounts else '{}'
       input_item['optional'] = True
     elif 'base_output_directory' in input_item.values():
       input_item['default'] = base_output_directory

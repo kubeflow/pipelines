@@ -104,16 +104,10 @@ implementation:
             ' that can be used for this job.\n          If set, we will deploy'
             ' the job within the provided ip ranges. Otherwise,\n          the'
             ' job will be deployed to any ip ranges under the provided VPC '
-            'network.\n      nfs_mounts (Optional[Sequence[Dict[str, str]]]):A'
-            ' list of NFS mount specs in Json\n          dict format. For API '
-            'spec, see\n          '
-            'https://cloud.devsite.corp.google.com/vertex-ai/docs/reference/rest/v1/CustomJobSpec#NfsMount\n'
-            '            For more details about mounting NFS for CustomJob, '
-            'see\n          '
-            'https://cloud.devsite.corp.google.com/vertex-ai/docs/training/train-nfs-share\n'
-            '      base_output_directory (Optional[str]): The Cloud Storage '
-            'location to store\n          the output of this CustomJob or '
-            'HyperparameterTuningJob. see below for more details:\n          '
+            'network.\n      base_output_directory (Optional[str]): The Cloud '
+            'Storage location to store\n          the output of this CustomJob'
+            ' or HyperparameterTuningJob. see below for more details:\n'
+            '          '
             'https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination\n'
             '      labels (Optional[Dict[str, str]]): The labels with '
             'user-defined metadata to organize CustomJobs.\n          See '
@@ -190,11 +184,6 @@ implementation:
             'default': '[]',
             'optional': True
         }, {
-            'name': 'nfs_mounts',
-            'type': 'JsonArray',
-            'default': '{}',
-            'optional': True
-        }, {
             'name': 'base_output_directory',
             'type': 'String',
             'default': '',
@@ -252,8 +241,6 @@ implementation:
                                 'inputValue': 'network'
                             }, '"', ', "reserved_ip_ranges": ', {
                                 'inputValue': 'reserved_ip_ranges'
-                            }, ', "nfs_mounts": ', {
-                                'inputValue': 'nfs_mounts'
                             }, ', "base_output_directory": {',
                             '"output_uri_prefix": "', {
                                 'inputValue': 'base_output_directory'
@@ -440,10 +427,10 @@ implementation:
         }])
     self.assertContainsSubsequence(custom_job_spec.component_spec.inputs, [
         components.structures.InputSpec(
-            name='nfs_mounts',
+            name='worker_pool_specs',
             type='JsonArray',
             description=None,
-            default='[{"server": "s1", "path": "p1"}]',
+            default='[{"machine_spec": {"machine_type": "n1-standard-4"}, "replica_count": 1, "container_spec": {"image_uri": "google/cloud-sdk:latest", "command": ["sh", "-c", "set -e -x\\necho \\"$0, this is an output parameter\\"\\n", "{{$.inputs.parameters[\'input_text\']}}", "{{$.outputs.parameters[\'output_value\'].output_file}}"]}, "disk_spec": {"boot_disk_type": "pd-ssd", "boot_disk_size_gb": 100}, "nfs_mounts": [{"server": "s1", "path": "p1"}]}]',
             optional=True,
             annotations=None)
     ])
