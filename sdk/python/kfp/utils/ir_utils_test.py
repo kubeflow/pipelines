@@ -26,6 +26,7 @@
 
 import os
 import tempfile
+import textwrap
 import unittest
 
 import yaml
@@ -60,8 +61,23 @@ class TestWriteIrToFile(unittest.TestCase):
                 DeprecationWarning, r'Compiling to JSON is deprecated'):
             temp_filepath = os.path.join(tempdir, 'output.json')
             ir_utils._write_ir_to_file(json_dict, temp_filepath)
-            actual = load_from_file(temp_filepath)
-        self.assertEqual(actual, json_dict)
+
+            with open(temp_filepath) as f:
+                actual_contents = f.read()
+
+            actual_dict = load_from_file(temp_filepath)
+
+        expected_contents = textwrap.dedent("""\
+                        {
+                          "key": "val",
+                          "list": [
+                            "1",
+                            2,
+                            3.0
+                          ]
+                        }""")
+        self.assertEqual(actual_contents, expected_contents)
+        self.assertEqual(actual_dict, json_dict)
 
     def test_incorrect_extension(self):
         with tempfile.TemporaryDirectory() as tempdir, self.assertRaisesRegex(
