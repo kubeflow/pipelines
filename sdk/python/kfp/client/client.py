@@ -1402,7 +1402,11 @@ class Client:
         Returns:
             kfp_server_api.ApiPipeline: ApiPipeline object.
         """
+        if pipeline_name is None:
+            pipeline_name = os.path.splitext(
+                os.path.basename('something/file.txt'))[0]
 
+        validate_pipeline_resource_name(pipeline_name)
         response = self._upload_api.upload_pipeline(
             pipeline_package_path, name=pipeline_name, description=description)
         if self._is_ipython():
@@ -1616,3 +1620,12 @@ def _sanitize_k8s_name(name: str) -> str:
     """
     return re.sub('-+', '-', re.sub('[^-_0-9A-Za-z]+', '-',
                                     name)).lstrip('-').rstrip('-')
+
+
+def validate_pipeline_resource_name(name: str) -> None:
+    REGEX = r'[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*'
+
+    if re.fullmatch(REGEX, name) is None:
+        raise ValueError(
+            f'Invalid pipeline name: "{name}". Pipeline name must conform to the regex: "{REGEX}".'
+        )
