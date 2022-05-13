@@ -78,8 +78,7 @@ class Compiler:
 
         Args:
             pipeline_func: Pipeline function with @dsl.pipeline or component with @dsl.component decorator.
-            package_path: The output pipeline spec .yaml file path. For example,
-                "~/pipeline_spec.yaml" or "~/component_spec.yaml".
+            package_path: The output pipeline spec .yaml file path. For example, "~/component.yaml".
             pipeline_name: Optional; the name of the pipeline.
             pipeline_parameters: Optional; the mapping from parameter names to
                 values.
@@ -199,7 +198,7 @@ class Compiler:
         component_spec: structures.ComponentSpec,
     ) -> pipeline_spec_pb2.PipelineSpec:
         """Creates a pipeline instance and constructs the pipeline spec for a
-        single component.
+        primitive component.
 
         Args:
             component_spec: The ComponentSpec to convert to PipelineSpec.

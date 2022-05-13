@@ -206,5 +206,4 @@ class Pipeline:
         Returns:
             bool: True if the function is a pipeline function.
         """
-        return callable(func) and hasattr(
-            func, '_is_pipeline') and func._is_pipeline  # type: ignore
+        return callable(func) and getattr(func, '_is_pipeline', False)
