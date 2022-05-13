@@ -54,8 +54,6 @@ def create(ctx: click.Context,
     """Upload a pipeline."""
     client = ctx.obj['client']
     output_format = ctx.obj['output']
-    if not pipeline_name:
-        pipeline_name = package_file.split('.')[0]
 
     pipeline = client.upload_pipeline(package_file, pipeline_name, description)
     _display_pipeline(pipeline, output_format)
