@@ -78,7 +78,7 @@ class Compiler:
 
         Args:
             pipeline_func: Pipeline function with @dsl.pipeline or component with @dsl.component decorator.
-            package_path: The output pipeline spec .yaml file path. For example, "~/component.yaml".
+            package_path: The output pipeline spec .yaml file path. For example, "~/pipeline.yaml" or "~/component.yaml".
             pipeline_name: Optional; the name of the pipeline.
             pipeline_parameters: Optional; the mapping from parameter names to
                 values.
