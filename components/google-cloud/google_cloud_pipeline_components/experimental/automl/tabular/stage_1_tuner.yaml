@@ -50,7 +50,7 @@ description: |
         tuning_result_output (AutoMLTabularTuningResult): The trained model and architectures.
 inputs:
 - {name: project, type: String}
-- {name: location, type: String}
+- {name: location, type: String, default: "us-central1"}
 - {name: root_dir, type: String}
 - {name: study_spec_override, type: String, default: ""}
 - {name: worker_pool_specs_override, type: String, default: ""}

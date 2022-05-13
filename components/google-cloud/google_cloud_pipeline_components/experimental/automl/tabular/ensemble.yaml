@@ -53,7 +53,7 @@ description: |
         explanation_metadata (str): The explanation parameters used by Vertex online and batch explanations.
 inputs:
 - {name: project, type: String}
-- {name: location, type: String}
+- {name: location, type: String, default: "us-central1"}
 - {name: root_dir, type: String}
 - {name: transform_output, type: TransformOutput}
 - {name: metadata, type: TabularExampleGenMetadata}

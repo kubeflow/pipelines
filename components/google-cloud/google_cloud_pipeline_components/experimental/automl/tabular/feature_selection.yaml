@@ -46,7 +46,7 @@ description: |
             For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
 inputs:
 - {name: project, type: String}
-- {name: location, type: String}
+- {name: location, type: String, default: "us-central1"}
 - {name: root_dir, type: String}
 - {name: dataflow_machine_type, type: String, default: "n1-standard-16"}
 - {name: dataflow_max_num_workers, type: Integer, default: "25"}
