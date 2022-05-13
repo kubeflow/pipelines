@@ -46,7 +46,7 @@ class BaseComponent(metaclass=abc.ABCMeta):
             if not type_utils.is_task_final_status_type(input_spec.type)
         }
 
-    def __call__(self, *args, **kwargs) -> pipeline_task.PipelineTask:
+    def __call__(self, **kwargs) -> pipeline_task.PipelineTask:
         """Creates a PipelineTask object.
 
         The arguments are generated on the fly based on component input
