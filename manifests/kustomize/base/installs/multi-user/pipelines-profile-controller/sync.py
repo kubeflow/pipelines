@@ -116,7 +116,7 @@ def server_factory(visualization_server_image,
             service_name='s3',
             aws_access_key_id=admin_minio_access_key,
             aws_secret_access_key=admin_minio_secret_key,
-            endpoint_url=minio_host
+            endpoint_url='http://%s' % minio_host
         )
 
         minio_client = Minio(
@@ -208,7 +208,7 @@ def server_factory(visualization_server_image,
 
         def create_user(self, user_name, password):
             self.admin.user_add(user_name, password)
-            policy_name = self.upsert_iam_policy(shared_bucket_name)
+            policy_name = self.upsert_iam_policy(self.shared_bucket_name)
             self.attach_managed_policy(user_name, policy_name)
 
         def attach_managed_policy(self, user_name, policy_name):
