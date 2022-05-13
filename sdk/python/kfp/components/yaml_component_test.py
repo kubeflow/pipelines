@@ -13,15 +13,14 @@
 # limitations under the License.
 """Tests for kfp.components.yaml_component."""
 
-import requests
-import unittest
 import textwrap
-
+import unittest
 from pathlib import Path
 from unittest import mock
 
-from kfp.components import yaml_component
+import requests
 from kfp.components import structures
+from kfp.components import yaml_component
 
 SAMPLE_YAML = textwrap.dedent("""\
         name: component_1
@@ -47,11 +46,11 @@ class YamlComponentTest(unittest.TestCase):
 
     def test_load_component_from_text(self):
         component = yaml_component.load_component_from_text(SAMPLE_YAML)
-        self.assertEqual(component.component_spec.name, 'component_1')
+        self.assertEqual(component.component_spec.name, 'component-1')
         self.assertEqual(component.component_spec.outputs,
                          {'output1': structures.OutputSpec(type='String')})
         self.assertEqual(component._component_inputs, {'input1'})
-        self.assertEqual(component.name, 'component_1')
+        self.assertEqual(component.name, 'component-1')
         self.assertEqual(
             component.component_spec.implementation.container.image, 'alpine')
 
@@ -59,11 +58,11 @@ class YamlComponentTest(unittest.TestCase):
         component_path = Path(
             __file__).parent / 'test_data' / 'simple_yaml.yaml'
         component = yaml_component.load_component_from_file(component_path)
-        self.assertEqual(component.component_spec.name, 'component_1')
+        self.assertEqual(component.component_spec.name, 'component-1')
         self.assertEqual(component.component_spec.outputs,
                          {'output1': structures.OutputSpec(type='String')})
         self.assertEqual(component._component_inputs, {'input1'})
-        self.assertEqual(component.name, 'component_1')
+        self.assertEqual(component.name, 'component-1')
         self.assertEqual(
             component.component_spec.implementation.container.image, 'alpine')
 
@@ -81,11 +80,11 @@ class YamlComponentTest(unittest.TestCase):
 
         with mock.patch('requests.get', mock_response_factory):
             component = yaml_component.load_component_from_url(component_url)
-            self.assertEqual(component.component_spec.name, 'component_1')
+            self.assertEqual(component.component_spec.name, 'component-1')
             self.assertEqual(component.component_spec.outputs,
                              {'output1': structures.OutputSpec(type='String')})
             self.assertEqual(component._component_inputs, {'input1'})
-            self.assertEqual(component.name, 'component_1')
+            self.assertEqual(component.name, 'component-1')
             self.assertEqual(
                 component.component_spec.implementation.container.image,
                 'alpine')
