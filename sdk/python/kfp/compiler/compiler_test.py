@@ -14,7 +14,6 @@
 
 import json
 import os
-import shutil
 import tempfile
 import unittest
 
@@ -43,12 +42,10 @@ VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
     """)
 
 
-class CompilerTest(parameterized.TestCase):
+class TestCompilePipeline(parameterized.TestCase):
 
     def test_compile_simple_pipeline(self):
-
-        tmpdir = tempfile.mkdtemp()
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
             producer_op = components.load_component_from_text("""
       name: producer
       inputs:
@@ -93,13 +90,10 @@ class CompilerTest(parameterized.TestCase):
             self.assertTrue(os.path.exists(target_file))
             with open(target_file, 'r') as f:
                 f.read()
-        finally:
-            shutil.rmtree(tmpdir)
 
     def test_compile_pipeline_with_bool(self):
 
-        tmpdir = tempfile.mkdtemp()
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
             predict_op = components.load_component_from_text("""
       name: predict
       inputs:
@@ -121,9 +115,7 @@ class CompilerTest(parameterized.TestCase):
 
             self.assertTrue(os.path.exists(target_json_file))
             with open(target_json_file, 'r') as f:
-                print(f.read())
-        finally:
-            shutil.rmtree(tmpdir)
+                f.read()
 
     def test_compile_pipeline_with_dsl_graph_component_should_raise_error(self):
 
@@ -252,20 +244,19 @@ class CompilerTest(parameterized.TestCase):
 
     def test_compile_pipeline_with_invalid_name_should_raise_error(self):
 
+        @dsl.pipeline(name='')
         def my_pipeline():
             VALID_PRODUCER_COMPONENT_SAMPLE(input_param='input')
 
-        with self.assertRaisesRegex(
-                ValueError,
-                'Invalid pipeline name: .*\nPlease specify a pipeline name that matches'
-        ):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = os.path.join(tmpdir, 'output.yaml')
+
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='output.yaml')
+                pipeline_func=my_pipeline, package_path=output_path)
 
     def test_set_pipeline_root_through_pipeline_decorator(self):
 
-        tmpdir = tempfile.mkdtemp()
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
 
             @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
             def my_pipeline():
@@ -279,8 +270,6 @@ class CompilerTest(parameterized.TestCase):
             with open(target_json_file) as f:
                 pipeline_spec = yaml.load(f)
             self.assertEqual('gs://path', pipeline_spec['defaultPipelineRoot'])
-        finally:
-            shutil.rmtree(tmpdir)
 
     def test_passing_string_parameter_to_artifact_should_error(self):
 
@@ -359,15 +348,12 @@ class CompilerTest(parameterized.TestCase):
             consumer_op2(input1=producer_op1().output)
             consumer_op2(input1=producer_op2().output)
 
-        try:
-            tmpdir = tempfile.mkdtemp()
+        with tempfile.TemporaryDirectory() as tmpdir:
             target_yaml_file = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path=target_yaml_file)
 
             self.assertTrue(os.path.exists(target_yaml_file))
-        finally:
-            shutil.rmtree(tmpdir)
 
     def test_passing_concrete_artifact_to_input_expecting_generic_artifact(
             self):
@@ -409,15 +395,12 @@ class CompilerTest(parameterized.TestCase):
             consumer_op2(input1=producer_op1().output)
             consumer_op2(input1=producer_op2().output)
 
-        try:
-            tmpdir = tempfile.mkdtemp()
+        with tempfile.TemporaryDirectory() as tmpdir:
             target_yaml_file = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path=target_yaml_file)
 
             self.assertTrue(os.path.exists(target_yaml_file))
-        finally:
-            shutil.rmtree(tmpdir)
 
     def test_passing_arbitrary_artifact_to_input_expecting_concrete_artifact(
             self):
@@ -445,44 +428,10 @@ class CompilerTest(parameterized.TestCase):
         with self.assertRaisesRegex(
                 type_utils.InconsistentTypeException,
                 'Incompatible argument passed to the input "input1" of component'
-                ' "Consumer op": Argument type "SomeArbitraryType" is'
+                ' "consumer-op": Argument type "SomeArbitraryType" is'
                 ' incompatible with the input type "Dataset"'):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='result.yaml')
-
-    @parameterized.parameters(
-        {
-            'pipeline_name': 'my-pipeline',
-            'is_valid': True,
-        },
-        {
-            'pipeline_name': 'p' * 128,
-            'is_valid': True,
-        },
-        {
-            'pipeline_name': 'p' * 129,
-            'is_valid': False,
-        },
-        {
-            'pipeline_name': 'my_pipeline',
-            'is_valid': False,
-        },
-        {
-            'pipeline_name': '-my-pipeline',
-            'is_valid': False,
-        },
-        {
-            'pipeline_name': 'My pipeline',
-            'is_valid': False,
-        },
-    )
-    def test_validate_pipeline_name(self, pipeline_name, is_valid):
-
-        if is_valid:
-            compiler.Compiler()._validate_pipeline_name(pipeline_name)
-        else:
-            with self.assertRaisesRegex(ValueError, 'Invalid pipeline name: '):
-                compiler.Compiler()._validate_pipeline_name('my_pipeline')
 
     def test_invalid_after_dependency(self):
 
@@ -675,8 +624,7 @@ class TestWriteToFileTypes(parameterized.TestCase):
     )
     def test_can_write_to_yaml(self, extension):
 
-        tmpdir = tempfile.mkdtemp()
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
             pipeline_spec = self.make_pipeline_spec()
 
             target_file = os.path.join(tmpdir, f'result{extension}')
@@ -690,13 +638,9 @@ class TestWriteToFileTypes(parameterized.TestCase):
             self.assertEqual(self.pipeline_name,
                              pipeline_spec['pipelineInfo']['name'])
 
-        finally:
-            shutil.rmtree(tmpdir)
-
     def test_can_write_to_json(self):
 
-        tmpdir = tempfile.mkdtemp()
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
             pipeline_spec = self.make_pipeline_spec()
 
             target_file = os.path.join(tmpdir, 'result.json')
@@ -709,13 +653,11 @@ class TestWriteToFileTypes(parameterized.TestCase):
 
             self.assertEqual(self.pipeline_name,
                              pipeline_spec['pipelineInfo']['name'])
-        finally:
-            shutil.rmtree(tmpdir)
 
     def test_cannot_write_to_bad_extension(self):
 
-        tmpdir = tempfile.mkdtemp()
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+
             pipeline_spec = self.make_pipeline_spec()
 
             target_file = os.path.join(tmpdir, 'result.bad_extension')
@@ -723,13 +665,10 @@ class TestWriteToFileTypes(parameterized.TestCase):
                                         r'.* should end with "\.yaml".*'):
                 compiler.Compiler().compile(
                     pipeline_func=pipeline_spec, package_path=target_file)
-        finally:
-            shutil.rmtree(tmpdir)
 
     def test_compile_pipeline_with_default_value(self):
 
-        tmpdir = tempfile.mkdtemp()
-        try:
+        with tempfile.TemporaryDirectory() as tmpdir:
             producer_op = components.load_component_from_text("""
       name: producer
       inputs:
@@ -753,10 +692,125 @@ class TestWriteToFileTypes(parameterized.TestCase):
 
             self.assertTrue(os.path.exists(target_json_file))
             with open(target_json_file, 'r') as f:
-                print(f.read())
+                f.read()
                 pass
-        finally:
-            shutil.rmtree(tmpdir)
+
+    def test_compile_fails_with_bad_pipeline_func(self):
+        with self.assertRaisesRegex(ValueError,
+                                    r'Unsupported pipeline_func type'):
+            compiler.Compiler().compile(
+                pipeline_func=None, package_path='/tmp/pipeline.yaml')
+
+
+class TestCompileComponent(parameterized.TestCase):
+
+    @parameterized.parameters(['.json', '.yaml', '.yml'])
+    def test_compile_component_simple(self, extension: str):
+
+        @dsl.component
+        def hello_world(text: str) -> str:
+            """Hello world component."""
+            return text
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_json = os.path.join(tempdir, f'component{extension}')
+            compiler.Compiler().compile(
+                pipeline_func=hello_world, package_path=output_json)
+            with open(output_json, "r") as f:
+                pipeline_spec = yaml.safe_load(f)
+
+        self.assertEqual(pipeline_spec['pipelineInfo']['name'], 'hello-world')
+
+    def test_compile_component_two_inputs(self):
+
+        @dsl.component
+        def hello_world(text: str, integer: int) -> str:
+            """Hello world component."""
+            print(integer)
+            return text
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_json = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=hello_world, package_path=output_json)
+            with open(output_json, "r") as f:
+                pipeline_spec = yaml.safe_load(f)
+
+        self.assertEqual(
+            pipeline_spec['root']['inputDefinitions']['parameters']['integer']
+            ['parameterType'], 'NUMBER_INTEGER')
+
+    def test_compile_component_with_default(self):
+
+        @dsl.component
+        def hello_world(text: str = 'default_string') -> str:
+            """Hello world component."""
+            return text
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_json = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=hello_world, package_path=output_json)
+            with open(output_json, "r") as f:
+                pipeline_spec = yaml.safe_load(f)
+
+        self.assertEqual(pipeline_spec['pipelineInfo']['name'], 'hello-world')
+        self.assertEqual(
+            pipeline_spec['root']['inputDefinitions']['parameters']['text']
+            ['defaultValue'], 'default_string')
+
+    def test_compile_component_with_pipeline_name(self):
+
+        @dsl.component
+        def hello_world(text: str = 'default_string') -> str:
+            """Hello world component."""
+            return text
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_json = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=hello_world,
+                package_path=output_json,
+                pipeline_name='custom-name')
+            with open(output_json, "r") as f:
+                pipeline_spec = yaml.safe_load(f)
+
+        self.assertEqual(pipeline_spec['pipelineInfo']['name'], 'custom-name')
+
+    def test_compile_component_with_pipeline_parameters_override(self):
+
+        @dsl.component
+        def hello_world(text: str) -> str:
+            """Hello world component."""
+            return text
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_json = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=hello_world,
+                package_path=output_json,
+                pipeline_parameters={'text': 'override_string'})
+            with open(output_json, "r") as f:
+                pipeline_spec = yaml.safe_load(f)
+
+        self.assertEqual(
+            pipeline_spec['root']['inputDefinitions']['parameters']['text']
+            ['defaultValue'], 'override_string')
+
+
+class TestCompileBadInput(unittest.TestCase):
+
+    def test_compile_non_pipeline_func(self):
+        with self.assertRaisesRegex(ValueError,
+                                    'Unsupported pipeline_func type.'):
+            compiler.Compiler().compile(
+                pipeline_func=lambda x: x, package_path='output.json')
+
+    def test_compile_int(self):
+        with self.assertRaisesRegex(ValueError,
+                                    'Unsupported pipeline_func type.'):
+            compiler.Compiler().compile(
+                pipeline_func=1, package_path='output.json')
 
 
 if __name__ == '__main__':
