@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import json
+from optparse import Option
 from typing import Any, Dict, List, Optional, Union
 
 import click
@@ -65,6 +66,14 @@ either_option_required = 'Either --pipeline-id or --pipeline-name is required.'
 
 
 @pipeline.command()
+@click.argument('package-file', type=click.Path(exists=True, dir_okay=False))
+@click.option(
+    '-v',
+    '--pipeline-version',
+    help=parsing.get_param_descr(client.Client.upload_pipeline_version,
+                                 'pipeline_version_name'),
+    required=True,
+)
 @click.option(
     '-p',
     '--pipeline-id',
@@ -79,19 +88,17 @@ either_option_required = 'Either --pipeline-id or --pipeline-name is required.'
                                  'pipeline_name') + ' ' + either_option_required
 )
 @click.option(
-    '-v',
-    '--pipeline-version',
+    '-d',
+    '--description',
     help=parsing.get_param_descr(client.Client.upload_pipeline_version,
-                                 'pipeline_version_name'),
-    required=True,
-)
-@click.argument('package-file', type=click.Path(exists=True, dir_okay=False))
+                                 'description'))
 @click.pass_context
 def create_version(ctx: click.Context,
                    package_file: str,
                    pipeline_version: str,
                    pipeline_id: Optional[str] = None,
-                   pipeline_name: Optional[str] = None):
+                   pipeline_name: Optional[str] = None,
+                   description: Optional[str] = None):
     """Upload a version of a pipeline."""
     client = ctx.obj['client']
     output_format = ctx.obj['output']
@@ -102,9 +109,12 @@ def create_version(ctx: click.Context,
         if pipeline_id is None:
             raise ValueError(
                 f"Can't find a pipeline with name: {pipeline_name}")
-    # TODO: this is broken
-    version = client.pipeline_uploads.upload_pipeline_version(
-        package_file, name=pipeline_version, pipelineid=pipeline_id)
+    version = client.upload_pipeline_version(
+        pipeline_package_path=package_file,
+        pipeline_version_name=pipeline_version,
+        pipeline_id=pipeline_id,
+        pipeline_name=pipeline_name,
+        description=description)
     _display_pipeline_version(version, output_format)
     click.echo(f'Created pipeline version {version.id}.')
 
