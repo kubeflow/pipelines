@@ -196,7 +196,7 @@ def server_factory(visualization_server_image,
             with open(tmp_policy_filename, 'w') as outfile:
                 json.dump(namespace_isolation_policy, outfile)
             print(f' upsert_iam_policy: {namespace_isolation_policy}')
-            api_response = self.admin.policy_add('namespace-isolation-policy', tmp_policy_filename)
+            api_response = self.admin.policy_add('namespace_isolation_policy', tmp_policy_filename)
             print(api_response)
             os.remove(tmp_policy_filename)
             policy_arn = api_response['policy']
@@ -496,8 +496,8 @@ def server_factory(visualization_server_image,
                     }
                 }
             ]
-            print('Received request:\n', json.dumps(parent, indent=2, sort_keys=True))
-            print('Desired resources except secrets:\n', json.dumps(desired_resources, indent=2, sort_keys=True))
+            print('Received request:\n', json.dumps(parent, sort_keys=True))
+            print('Desired resources except secrets:\n', json.dumps(desired_resources, sort_keys=True))
             # Moved after the print argument because this is sensitive data.
             desired_resources.append({
                 "apiVersion": "v1",
