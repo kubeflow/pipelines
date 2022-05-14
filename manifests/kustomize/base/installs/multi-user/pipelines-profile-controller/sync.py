@@ -163,10 +163,19 @@ def server_factory(visualization_server_image,
                     {
                         "Effect": "Allow",
                         "Action": [
+                            "s3:GetBucketLocation",
+                        ],
+                        "Resource": [
+                            "arn:aws:s3:::%s"  % shared_bucket_name
+                        ]
+                    },
+                    {
+                        "Effect": "Allow",
+                        "Action": [
                             "s3:ListBucket",
                         ],
                         "Resource": [
-                            "arn:aws:s3:::%s"  % shared_bucket_name, # the root is needed to list the bucket
+                            "arn:aws:s3:::%s"  % shared_bucket_name # the root is needed to list the bucket
                         ],
                         "Condition":{"StringLike":{"s3:prefix": [
                             "", "shared/*", "artifacts/*","private-artifacts/", "private/",
