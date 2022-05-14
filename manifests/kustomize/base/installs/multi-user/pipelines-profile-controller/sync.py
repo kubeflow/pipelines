@@ -157,11 +157,23 @@ def server_factory(visualization_server_image,
             print(api_response)
 
         def upsert_iam_policy(self, shared_bucket_name):
-            iam_policy = {
+            namespace_isolation_policy = {
                 "Version": "2012-10-17",
                 "Statement": [
                     {
-                        "Sid":"namespace-isolation-policy",
+                        "Effect": "Allow",
+                        "Action": [
+                            "s3:ListBucket",
+                        ],
+                        "Resource": [
+                            "arn:aws:s3:::%s"  % shared_bucket_name, # the root is needed to list the bucket
+                        ],
+                        "Condition":{"StringLike":{"s3:prefix": [
+                            "", "shared/*", "artifacts/*","private-artifacts/", "private/",
+                            "private-artifacts/${aws:username}/*", "private/${aws:username}/*"
+                        ]}}
+                    },
+                    {
                         "Effect": "Allow",
                         "Action": [
                             "s3:ListBucket",
@@ -172,19 +184,18 @@ def server_factory(visualization_server_image,
                             "s3:PutObject"
                         ],
                         "Resource": [
-                            "arn:aws:s3:::%s"  % shared_bucket_name, # the root is needed to list the bucket
                             "arn:aws:s3:::%s/artifacts/*"  % shared_bucket_name, # old shared artifacts for backwards compatibility
                             "arn:aws:s3:::%s/private-artifacts/${aws:username}/*"  % shared_bucket_name, # private artifacts
                             "arn:aws:s3:::%s/private/${aws:username}/*"  % shared_bucket_name, # private storage
                             "arn:aws:s3:::%s/shared/*"  % shared_bucket_name # shared storage for collaboration
                         ]
-                    },
+                    }
                 ]
             }
-            tmp_policy_filename = '/tmp/namespace-isolation-policy'
+            tmp_policy_filename = '/tmp/namespace_isolation_policy'
             with open(tmp_policy_filename, 'w') as outfile:
-                json.dump(iam_policy, outfile)
-            print(f' upsert_iam_policy: {iam_policy}')
+                json.dump(namespace_isolation_policy, outfile)
+            print(f' upsert_iam_policy: {namespace_isolation_policy}')
             api_response = self.admin.policy_add('namespace-isolation-policy', tmp_policy_filename)
             print(api_response)
             os.remove(tmp_policy_filename)
