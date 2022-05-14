@@ -1,4 +1,3 @@
-#FROM docker.io/minio/mc as minio-cli
 FROM docker.io/minio/mc:RELEASE.2019-08-14T20-49-49Z as minio-cli
 
 FROM python:3.7
