@@ -240,6 +240,9 @@ def server_factory(visualization_server_image,
             user_password = self.get_password(namespace)
             #print('password for ' + namespace + ' is ' + user_password)
             self.create_user(user_name=namespace, password=user_password)
+            # TODO lifecycle policy should take the days from the environment variable
+            # A negative value should disable it.
+            self.upsert_lifecycle_policy(self.shared_bucket_name)
 
             desired_configmap_count = 1
             desired_resources = []
