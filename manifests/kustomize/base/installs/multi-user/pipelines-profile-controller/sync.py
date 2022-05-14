@@ -126,7 +126,7 @@ def server_factory(visualization_server_image,
         )
         # init_mc_client()
         mc_config = {
-            "version": "8",
+            "version": "9",
             "hosts": {
                 "kubeflow-minio": {
                     "url": 'http://%s' % minio_host,
