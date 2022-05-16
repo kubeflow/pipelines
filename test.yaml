@@ -1,0 +1,190 @@
+components:
+  comp-another:
+    executorLabel: exec-another
+    inputDefinitions:
+      parameters:
+        number:
+          parameterType: NUMBER_INTEGER
+        string:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-my-component:
+    executorLabel: exec-my-component
+    inputDefinitions:
+      parameters:
+        number:
+          parameterType: NUMBER_INTEGER
+        string:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-my-component-2:
+    executorLabel: exec-my-component-2
+    inputDefinitions:
+      parameters:
+        number:
+          parameterType: NUMBER_INTEGER
+        string:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+defaultPipelineRoot: gs://my-bucket
+deploymentSpec:
+  executors:
+    exec-another:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - another
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'numpy' 'https://pypi.org/simple/kfp'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef another(string: str, number: int) -> str:\n    string *= number\n\
+          \    return string\n\n"
+        image: python:3.7-alpine
+    exec-my-component:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - my_component
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'numpy' 'https://pypi.org/simple/kfp'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef my_component(string: str, number: int) -> str:\n    string *=\
+          \ number\n    return string\n\n"
+        env:
+        - name: MY_ENV_VAR
+          value: my-value
+        image: python:3.7-alpine
+        resources:
+          accelerator:
+            count: '3'
+            type: TPU_V3
+          cpuLimit: 2.0
+          memoryLimit: 17.179869184
+    exec-my-component-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - my_component
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'numpy' 'https://pypi.org/simple/kfp'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef my_component(string: str, number: int) -> str:\n    string *=\
+          \ number\n    return string\n\n"
+        image: python:3.7-alpine
+pipelineInfo:
+  name: pipeline
+root:
+  dag:
+    tasks:
+      another:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-another
+        dependentTasks:
+        - my-component
+        inputs:
+          parameters:
+            number:
+              componentInputParameter: number
+            string:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: my-component
+        taskInfo:
+          name: another
+      my-component:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-my-component
+        inputs:
+          parameters:
+            number:
+              componentInputParameter: number
+            string:
+              componentInputParameter: string
+        taskInfo:
+          name: my-display-name
+      my-component-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-my-component-2
+        dependentTasks:
+        - my-component
+        inputs:
+          parameters:
+            number:
+              componentInputParameter: number
+            string:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: my-component
+        taskInfo:
+          name: my-component-2
+  inputDefinitions:
+    parameters:
+      number:
+        parameterType: NUMBER_INTEGER
+      string:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.3

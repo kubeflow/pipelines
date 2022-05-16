@@ -324,7 +324,6 @@ class Compiler:
         pipeline_spec.sdk_version = f'kfp-{kfp.__version__}'
         # Schema version 2.1.0 is required for kfp-pipeline-spec>0.1.13
         pipeline_spec.schema_version = '2.1.0'
-
         pipeline_spec.root.CopyFrom(
             builder.build_component_spec_for_group(
                 pipeline_channels=pipeline_args,
@@ -361,6 +360,7 @@ class Compiler:
             condition_channels=condition_channels,
         )
 
+        print(pipeline_spec.components)
         for group in all_groups:
             builder.build_spec_by_group(
                 pipeline_spec=pipeline_spec,
