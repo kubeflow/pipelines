@@ -530,6 +530,29 @@
           }
         }
       },
+      "comp-cond": {
+        "executorLabel": "exec-cond",
+        "inputDefinitions": {
+          "parameters": {
+            "false_str": {
+              "type": "STRING"
+            },
+            "predicate": {
+              "type": "STRING"
+            },
+            "true_str": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
       "comp-exit-handler-1": {
         "dag": {
           "tasks": {
@@ -686,7 +709,7 @@
                   "query": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "\n      CREATE OR REPLACE MODEL `{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-project_id']}}.{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-dataset_id']}}.model`\n      OPTIONS (\n          model_type = 'ARIMA_PLUS',\n          time_series_timestamp_col = '{{$.inputs.parameters['pipelineparam--time_column']}}',\n          time_series_id_col = '{{$.inputs.parameters['pipelineparam--time_series_identifier_column']}}',\n          time_series_data_col = '{{$.inputs.parameters['pipelineparam--target_column_name']}}',\n          horizon = @forecast_horizon,\n          auto_arima = True,\n          auto_arima_max_order = @max_order,\n          data_frequency = @data_granularity_unit,\n          holiday_region = 'GLOBAL',\n          clean_spikes_and_dips = True,\n          adjust_step_changes = True,\n          decompose_time_series = True\n      ) AS\n      SELECT\n        {{$.inputs.parameters['pipelineparam--time_series_identifier_column']}},\n        {{$.inputs.parameters['pipelineparam--time_column']}},\n        {{$.inputs.parameters['pipelineparam--target_column_name']}},\n      FROM `{{$.inputs.parameters['pipelineparam--table-to-uri-uri']}}`\n      WHERE\n        UPPER({{$.inputs.parameters['pipelineparam--maybe-replace-with-default-2-Output']}}) IN UNNEST(@splits)\n        AND TIMESTAMP({{$.inputs.parameters['pipelineparam--time_column']}}) < @start_time\n  "
+                        "stringValue": "\n      CREATE MODEL `{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-project_id']}}.{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-dataset_id']}}.model_{dsl.PIPELINE_JOB_ID_PLACEHOLDER}`\n      OPTIONS (\n          model_type = 'ARIMA_PLUS',\n          time_series_timestamp_col = '{{$.inputs.parameters['pipelineparam--time_column']}}',\n          time_series_id_col = '{{$.inputs.parameters['pipelineparam--time_series_identifier_column']}}',\n          time_series_data_col = '{{$.inputs.parameters['pipelineparam--target_column_name']}}',\n          horizon = @forecast_horizon,\n          auto_arima = True,\n          auto_arima_max_order = @max_order,\n          data_frequency = @data_granularity_unit,\n          holiday_region = 'GLOBAL',\n          clean_spikes_and_dips = True,\n          adjust_step_changes = True,\n          decompose_time_series = True\n      ) AS\n      SELECT\n        {{$.inputs.parameters['pipelineparam--time_series_identifier_column']}},\n        {{$.inputs.parameters['pipelineparam--time_column']}},\n        {{$.inputs.parameters['pipelineparam--target_column_name']}},\n      FROM `{{$.inputs.parameters['pipelineparam--table-to-uri-uri']}}`\n      WHERE\n        UPPER({{$.inputs.parameters['pipelineparam--maybe-replace-with-default-2-Output']}}) IN UNNEST(@splits)\n        AND TIMESTAMP({{$.inputs.parameters['pipelineparam--time_column']}}) < @start_time\n  "
                       }
                     }
                   },
@@ -1064,6 +1087,7 @@
               },
               "dependentTasks": [
                 "bigquery-create-dataset-2",
+                "cond",
                 "for-loop-2",
                 "table-to-uri-2"
               ],
@@ -1072,7 +1096,7 @@
                   "job_configuration_query": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "{\"destinationTable\": {\"projectId\": \"{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-project_id']}}\", \"datasetId\": \"{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-dataset_id']}}\", \"tableId\": \"metrics\"}, \"writeDisposition\": \"WRITE_EMPTY\"}"
+                        "stringValue": "{\"destinationTable\": {\"projectId\": \"{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-project_id']}}\", \"datasetId\": \"{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-dataset_id']}}\", \"tableId\": \"metrics\"}, \"writeDisposition\": \"{{$.inputs.parameters['pipelineparam--cond-Output']}}\"}"
                       }
                     }
                   },
@@ -1096,6 +1120,12 @@
                     "taskOutputParameter": {
                       "outputParameterKey": "project_id",
                       "producerTask": "bigquery-create-dataset-2"
+                    }
+                  },
+                  "pipelineparam--cond-Output": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "Output",
+                      "producerTask": "cond"
                     }
                   },
                   "pipelineparam--table-to-uri-2-uri": {
@@ -1136,6 +1166,7 @@
               },
               "dependentTasks": [
                 "bigquery-create-dataset-2",
+                "cond",
                 "for-loop-2",
                 "table-to-uri-3"
               ],
@@ -1144,7 +1175,7 @@
                   "job_configuration_query": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "{\"destinationTable\": {\"projectId\": \"{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-project_id']}}\", \"datasetId\": \"{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-dataset_id']}}\", \"tableId\": \"evaluated_examples\"}, \"writeDisposition\": \"WRITE_EMPTY\"}"
+                        "stringValue": "{\"destinationTable\": {\"projectId\": \"{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-project_id']}}\", \"datasetId\": \"{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-dataset_id']}}\", \"tableId\": \"evaluated_examples\"}, \"writeDisposition\": \"{{$.inputs.parameters['pipelineparam--cond-Output']}}\"}"
                       }
                     }
                   },
@@ -1168,6 +1199,12 @@
                     "taskOutputParameter": {
                       "outputParameterKey": "project_id",
                       "producerTask": "bigquery-create-dataset-2"
+                    }
+                  },
+                  "pipelineparam--cond-Output": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "Output",
+                      "producerTask": "cond"
                     }
                   },
                   "pipelineparam--table-to-uri-3-uri": {
@@ -1297,6 +1334,38 @@
               },
               "taskInfo": {
                 "name": "build-split-query-parameters"
+              }
+            },
+            "cond": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-cond"
+              },
+              "inputs": {
+                "parameters": {
+                  "false_str": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "WRITE_EMPTY"
+                      }
+                    }
+                  },
+                  "predicate": {
+                    "componentInputParameter": "pipelineparam--override_destination"
+                  },
+                  "true_str": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "WRITE_TRUCATE"
+                      }
+                    }
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "cond"
               }
             },
             "for-loop-2": {
@@ -1825,6 +1894,9 @@
             },
             "pipelineparam--max_order": {
               "type": "INT"
+            },
+            "pipelineparam--override_destination": {
+              "type": "STRING"
             },
             "pipelineparam--project": {
               "type": "STRING"
@@ -2980,6 +3052,26 @@
             "image": "python:3.7-slim"
           }
         },
+        "exec-cond": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "cond"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef cond(predicate: bool, true_str: str, false_str: str) -> str:\n  \"\"\"Returns true_str if predicate is true, else false_str.\"\"\"\n  return true_str if predicate else false_str\n\n"
+            ],
+            "image": "python:3.7-slim"
+          }
+        },
         "exec-generate-iso8601-underscore-datetime-format": {
           "container": {
             "args": [
@@ -3349,6 +3441,9 @@
                 },
                 "pipelineparam--max_order": {
                   "componentInputParameter": "max_order"
+                },
+                "pipelineparam--override_destination": {
+                  "componentInputParameter": "override_destination"
                 },
                 "pipelineparam--project": {
                   "componentInputParameter": "project"
