@@ -82,6 +82,8 @@ _JOB_TYPE_TO_ACTION_MAP = {
         bigquery_job_remote_runner.bigquery_ml_advanced_weights_job,
     'BigqueryMLConfusionMatrixJob':
         bigquery_job_remote_runner.bigquery_ml_confusion_matrix_job,
+    'BigqueryMLFeatureInfoJob':
+        bigquery_job_remote_runner.bigquery_ml_feature_info_job,
     'DataprocPySparkBatch':
         dataproc_batch_remote_runner.create_pyspark_batch,
     'DataprocSparkBatch':
@@ -144,7 +146,8 @@ def _parse_args(args):
           'BigQueryMLWeightsJob', 'BigqueryMLTrialInfoJob',
           'BigqueryMLReconstructionLossJob', 'BigqueryMLTrainingInfoJob',
           'BigqueryMLAdvancedWeightsJob', 'BigqueryDropModelJob',
-          'BigqueryMLCentroidsJob', 'BigqueryMLConfusionMatrixJob'
+          'BigqueryMLCentroidsJob', 'BigqueryMLConfusionMatrixJob',
+          'BigqueryMLFeatureInfoJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -164,7 +167,8 @@ def _parse_args(args):
           'BigQueryMLWeightsJob', 'BigqueryMLTrialInfoJob',
           'BigqueryMLReconstructionLossJob', 'BigqueryMLTrainingInfoJob',
           'BigqueryMLAdvancedWeightsJob', 'BigqueryDropModelJob',
-          'BigqueryMLCentroidsJob', 'BigqueryMLConfusionMatrixJob'
+          'BigqueryMLCentroidsJob', 'BigqueryMLConfusionMatrixJob',
+          'BigqueryMLFeatureInfoJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -177,7 +181,7 @@ def _parse_args(args):
           'BigqueryMLTrialInfoJob', 'BigqueryMLReconstructionLossJob',
           'BigqueryMLTrainingInfoJob', 'BigqueryMLAdvancedWeightsJob',
           'BigqueryDropModelJob', 'BigqueryMLCentroidsJob',
-          'BigqueryMLConfusionMatrixJob'
+          'BigqueryMLConfusionMatrixJob', 'BigqueryMLFeatureInfoJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
