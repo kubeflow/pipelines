@@ -17,7 +17,7 @@ import logging
 import os
 import sys
 
-from kfp.components import executor as component_executor
+from kfp_component_executor import executor
 from kfp.components import kfp_config
 from kfp.components import utils
 
@@ -97,7 +97,7 @@ def executor_main():
     logging.info('Got executor_input:\n{}'.format(
         json.dumps(executor_input, indent=4)))
 
-    executor = component_executor.Executor(
+    executor = executor.Executor(
         executor_input=executor_input, function_to_execute=function_to_execute)
 
     executor.execute()
