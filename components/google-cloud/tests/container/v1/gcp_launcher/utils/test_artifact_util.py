@@ -37,11 +37,11 @@ class ArtifactUtilTests(unittest.TestCase):
     if os.path.exists(self._output_file_path):
       os.remove(self._output_file_path)
 
-  def test_update_gcp_output_artifact(self):
+  def test_update_output_artifacts(self):
     executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.VertexModel"},"uri":"gs://abc"}]}},"outputFile":"' + self._output_file_path + '"}}'
     vertex_model = VertexModel('model', 'https://new/uri',
                                'fake_model_resource_name')
-    artifact_util.update_gcp_output_artifact(executor_input, vertex_model)
+    artifact_util.update_output_artifacts(executor_input, [vertex_model])
 
     with open(self._output_file_path) as f:
       executor_output = json.load(f, strict=False)

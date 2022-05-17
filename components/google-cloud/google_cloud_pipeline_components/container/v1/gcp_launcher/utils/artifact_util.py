@@ -12,20 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import Dict
 import json
 import os
 from kfp.v2 import dsl
-from google_cloud_pipeline_components.types.artifact_types import GoogleArtifact
 
 
 def update_output_artifact(executor_input: str,
                            target_artifact_name: str,
                            uri: str,
                            metadata: dict = {}):
-  """Update the output artifact with the new uri."""
+  """Updates the output artifact with the new uri and metadata."""
   executor_input_json = json.loads(executor_input)
-  executor_output = {}
-  executor_output['artifacts'] = {}
+  executor_output = {'artifacts': {}}
   for name, artifacts in executor_input_json.get('outputs',
                                                  {}).get('artifacts',
                                                          {}).items():
@@ -46,16 +45,24 @@ def update_output_artifact(executor_input: str,
     f.write(json.dumps(executor_output))
 
 
-def update_gcp_output_artifact(executor_input: str, artifact: GoogleArtifact):
-  """Update the output artifact."""
+# Writes a list of Artifacts to the executor output file.
+def update_output_artifacts(executor_input: str, artifacts: list):
+  """Updates a list of Artifacts to the executor output file."""
   executor_input_json = json.loads(executor_input)
+  executor_output = {'artifacts': {}}
   output_artifacts = executor_input_json.get('outputs', {}).get('artifacts', {})
   # This assumes that no other output artifact exists.
-  executor_output = {'artifacts': {}}
-  if artifact.name in output_artifacts.keys():
-    executor_output['artifacts'][
-        artifact.name] = artifact.to_executor_output_artifact(
-            output_artifacts[artifact.name])
+  for artifact in artifacts:
+    if artifact.name in output_artifacts.keys():
+        # Converts the artifact into executor output artifact
+        # https://github.com/kubeflow/pipelines/blob/master/api/v2alpha1/pipeline_spec.proto#L878
+        artifacts_list = output_artifacts[artifact.name].get('artifacts')
+        if artifacts_list:
+          updated_runtime_artifact = artifacts_list[0]
+          updated_runtime_artifact['uri'] = artifact.uri
+          updated_runtime_artifact['metadata'] = artifact.metadata
+          artifacts_list = {'artifacts': [updated_runtime_artifact]}
+        executor_output['artifacts'][artifact.name] = artifacts_list
 
   # update the output artifacts.
   os.makedirs(
