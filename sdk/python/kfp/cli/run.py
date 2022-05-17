@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import datetime
 import json
 import shutil
 import subprocess
@@ -20,10 +19,8 @@ import time
 from typing import List
 
 import click
-import kfp_server_api
 from kfp import client
-from kfp.cli.output import OutputFormat
-from kfp.cli.output import print_output
+from kfp.cli import output
 from kfp.cli.utils import deprecated_alias_group
 from kfp.cli.utils import parsing
 
@@ -60,22 +57,19 @@ def run():
 def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
          sort_by: str, filter: str):
     """List pipeline runs."""
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
-    response = client.list_runs(
+    response = client_obj.list_runs(
         experiment_id=experiment_id,
         page_token=page_token,
         page_size=max_size,
         sort_by=sort_by,
         filter=filter)
-    if response and response.runs:
-        _print_runs(response.runs, output_format)
-    else:
-        if output_format == OutputFormat.json.name:
-            msg = json.dumps([])
-        else:
-            msg = 'No runs found.'
-        click.echo(msg)
+    output.print_output(
+        response.runs or [],
+        output.ModelType.RUN,
+        output_format,
+    )
 
 
 @run.command()
@@ -121,14 +115,14 @@ def create(ctx: click.Context, experiment_name: str, run_name: str,
            package_file: str, pipeline_id: str, pipeline_name: str, watch: bool,
            timeout: int, version: str, args: List[str]):
     """Submit a pipeline run."""
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
     namespace = ctx.obj['namespace']
     output_format = ctx.obj['output']
     if not run_name:
         run_name = experiment_name
 
     if not pipeline_id and pipeline_name:
-        pipeline_id = client.get_pipeline_id(name=pipeline_name)
+        pipeline_id = client_obj.get_pipeline_id(name=pipeline_name)
 
     if not package_file and not pipeline_id and not version:
         click.echo(
@@ -138,8 +132,8 @@ def create(ctx: click.Context, experiment_name: str, run_name: str,
 
     arg_dict = dict(arg.split('=', maxsplit=1) for arg in args)
 
-    experiment = client.create_experiment(experiment_name)
-    run = client.run_pipeline(
+    experiment = client_obj.create_experiment(experiment_name)
+    run = client_obj.run_pipeline(
         experiment_id=experiment.id,
         job_name=run_name,
         pipeline_package_path=package_file,
@@ -147,10 +141,14 @@ def create(ctx: click.Context, experiment_name: str, run_name: str,
         pipeline_id=pipeline_id,
         version_id=version)
     if timeout > 0:
-        _wait_for_run_completion(client, run.id, timeout, output_format)
+        run_detail = client_obj.wait_for_run_completion(run.id, timeout)
+        output.print_output(
+            run_detail.run,
+            output.ModelType.RUN,
+            output_format,
+        )
     else:
-        _display_run(client, namespace, run.id, watch, output_format)
-    click.echo(f'Created run {run.id}.')
+        display_run(client_obj, namespace, run.id, watch, output_format)
 
 
 @run.command()
@@ -170,11 +168,15 @@ def create(ctx: click.Context, experiment_name: str, run_name: str,
 @click.pass_context
 def get(ctx: click.Context, watch: bool, detail: bool, run_id: str):
     """Get information about a pipeline run."""
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
     namespace = ctx.obj['namespace']
     output_format = ctx.obj['output']
-
-    _display_run(client, namespace, run_id, watch, output_format, detail)
+    if detail:
+        output_format = 'json'
+        click.echo(
+            'The --detail/-d flag is deprecated. Please use --output=json instead.',
+            err=True)
+    display_run(client_obj, namespace, run_id, watch, output_format)
 
 
 @run.command()
@@ -182,18 +184,16 @@ def get(ctx: click.Context, watch: bool, detail: bool, run_id: str):
 @click.pass_context
 def archive(ctx: click.Context, run_id: str):
     """Archive a pipeline run."""
-    client = ctx.obj['client']
-    if run_id is None:
-        click.echo('You must provide a run-id.', err=True)
-        sys.exit(1)
+    client_obj: client.Client = ctx.obj['client']
+    output_format = ctx.obj['output']
 
-    get_response = client.get_run(run_id=run_id)
-    if get_response.run.storage_state == 'STORAGESTATE_ARCHIVED':
-        click.echo('Run is already archived.', err=True)
-        sys.exit(1)
-
-    client.archive_run(run_id=run_id)
-    click.echo(f'Archived run {run_id}.')
+    client_obj.archive_run(run_id=run_id)
+    run = client_obj.get_run(run_id=run_id)
+    output.print_output(
+        run.run,
+        output.ModelType.RUN,
+        output_format,
+    )
 
 
 @run.command()
@@ -201,18 +201,15 @@ def archive(ctx: click.Context, run_id: str):
 @click.pass_context
 def unarchive(ctx: click.Context, run_id: str):
     """Unarchive a pipeline run."""
-    client = ctx.obj['client']
-    if run_id is None:
-        click.echo('You must provide a run-id.', err=True)
-        sys.exit(1)
-
-    get_response = client.get_run(run_id=run_id)
-    if get_response.run.storage_state is None:
-        click.echo('Run is not archived.', err=True)
-        sys.exit(1)
-
-    client.unarchive_run(run_id=run_id)
-    click.echo(f'Unarchived run {run_id}.')
+    client_obj: client.Client = ctx.obj['client']
+    output_format = ctx.obj['output']
+    client_obj.unarchive_run(run_id=run_id)
+    run = client_obj.get_run(run_id=run_id)
+    output.print_output(
+        run.run,
+        output.ModelType.RUN,
+        output_format,
+    )
 
 
 @run.command()
@@ -225,32 +222,22 @@ def delete(ctx: click.Context, run_id: str):
     if not click.confirm(confirmation):
         return
 
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
+    output_format = ctx.obj['output']
 
-    client.delete_run(run_id)
-    click.echo(f'Deleted run {run_id}.')
+    client_obj.delete_run(run_id=run_id)
+    output.print_deleted_text('run', run_id, output_format)
 
 
-def _display_run(client: client.Client,
-                 namespace: str,
-                 run_id: str,
-                 watch: bool,
-                 output_format: OutputFormat,
-                 detail: bool = False):
+def display_run(client: client.Client, namespace: str, run_id: str, watch: bool,
+                output_format: str):
     run = client.get_run(run_id).run
 
-    if detail:
-        data = {
-            key:
-            value.isoformat() if isinstance(value, datetime.datetime) else value
-            for key, value in run.to_dict().items()
-            if key not in ['pipeline_spec'
-                          ]  # useless but too much detailed field
-        }
-        click.echo(data)
-        return
-
-    _print_runs([run], output_format)
+    output.print_output(
+        run,
+        output.ModelType.RUN,
+        output_format,
+    )
     if not watch:
         return
     argo_path = shutil.which('argo')
@@ -277,23 +264,8 @@ def _display_run(client: client.Client,
     if argo_workflow_name:
         subprocess.run(
             [argo_path, 'watch', argo_workflow_name, '-n', namespace])
-        _print_runs([run], output_format)
-
-
-def _wait_for_run_completion(client: client.Client, run_id: str, timeout: int,
-                             output_format: OutputFormat):
-    run_detail = client.wait_for_run_completion(run_id, timeout)
-    _print_runs([run_detail.run], output_format)
-
-
-def _print_runs(runs: List[kfp_server_api.ApiRun], output_format: OutputFormat):
-    headers = ['run id', 'name', 'status', 'created at', 'experiment id']
-    data = [[
-        run.id, run.name, run.status,
-        run.created_at.isoformat(),
-        next(rr
-             for rr in run.resource_references
-             if rr.key.type == kfp_server_api.ApiResourceType.EXPERIMENT).key.id
-    ]
-            for run in runs]
-    print_output(data, headers, output_format, table_format='grid')
+        output.print_output(
+            run,
+            output.ModelType.RUN,
+            output_format,
+        )

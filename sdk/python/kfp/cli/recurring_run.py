@@ -12,14 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
 from typing import Any, Dict, List, Optional
 
 import click
-import kfp_server_api
 from kfp import client
-from kfp.cli.output import OutputFormat
-from kfp.cli.output import print_output
+from kfp.cli import output
 from kfp.cli.utils import parsing
 
 
@@ -121,7 +118,7 @@ def create(ctx: click.Context,
            version_id: Optional[str] = None,
            args: Optional[List[str]] = None):
     """Create a recurring run."""
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
 
     if enable_caching is not None:
@@ -138,14 +135,14 @@ def create(ctx: click.Context,
     if (experiment_id is None) == (experiment_name is None):
         raise ValueError(either_option_required)
     if not experiment_id:
-        experiment = client.create_experiment(experiment_name)
+        experiment = client_obj.create_experiment(experiment_name)
         experiment_id = experiment.id
 
     # Ensure we only split on the first equals char so the value can contain
     # equals signs too.
     split_args: List = [arg.split('=', 1) for arg in args or []]
     params: Dict[str, Any] = dict(split_args)
-    recurring_run = client.create_recurring_run(
+    recurring_run = client_obj.create_recurring_run(
         cron_expression=cron_expression,
         description=description,
         enabled=enabled,
@@ -161,8 +158,11 @@ def create(ctx: click.Context,
         pipeline_id=pipeline_id,
         start_time=start_time,
         version_id=version_id)
-    _display_recurring_run(recurring_run, output_format)
-    click.echo(f'Created job {recurring_run.id}.')
+    output.print_output(
+        recurring_run,
+        output.ModelType.JOB,
+        output_format,
+    )
 
 
 @recurring_run.command()
@@ -193,23 +193,20 @@ def create(ctx: click.Context,
 def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
          sort_by: str, filter: str):
     """List recurring runs."""
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
 
-    response = client.list_recurring_runs(
+    response = client_obj.list_recurring_runs(
         experiment_id=experiment_id,
         page_token=page_token,
         page_size=max_size,
         sort_by=sort_by,
         filter=filter)
-    if response.jobs:
-        _display_recurring_runs(response.jobs, output_format)
-    else:
-        if output_format == OutputFormat.json.name:
-            msg = json.dumps([])
-        else:
-            msg = 'No recurring runs found'
-        click.echo(msg)
+    output.print_output(
+        response.jobs or [],
+        output.ModelType.JOB,
+        output_format,
+    )
 
 
 @recurring_run.command()
@@ -217,11 +214,15 @@ def list(ctx: click.Context, experiment_id: str, page_token: str, max_size: int,
 @click.pass_context
 def get(ctx: click.Context, job_id: str):
     """Get information about a recurring run."""
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
 
-    response = client.get_recurring_run(job_id)
-    _display_recurring_run(response, output_format)
+    recurring_run = client_obj.get_recurring_run(job_id)
+    output.print_output(
+        recurring_run,
+        output.ModelType.JOB,
+        output_format,
+    )
 
 
 @recurring_run.command()
@@ -229,12 +230,13 @@ def get(ctx: click.Context, job_id: str):
 @click.pass_context
 def delete(ctx: click.Context, job_id: str):
     """Delete a recurring run."""
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
+    output_format = ctx.obj['output']
     confirmation = f'Are you sure you want to delete job {job_id}?'
     if not click.confirm(confirmation):
         return
-    client.delete_job(job_id)
-    click.echo(f'Deleted job {job_id}.')
+    client_obj.delete_job(job_id)
+    output.print_deleted_text('job', job_id, output_format)
 
 
 @recurring_run.command()
@@ -242,9 +244,17 @@ def delete(ctx: click.Context, job_id: str):
 @click.pass_context
 def enable(ctx: click.Context, job_id: str):
     """Enable a recurring run."""
-    client = ctx.obj['client']
-    client.enable_job(job_id=job_id)
-    click.echo(f'Enabled job {job_id}.')
+    client_obj: client.Client = ctx.obj['client']
+    output_format = ctx.obj['output']
+
+    client_obj.enable_job(job_id=job_id)
+    # TODO: add wait option, since enable takes time to complete
+    recurring_run = client_obj.get_recurring_run(job_id=job_id)
+    output.print_output(
+        recurring_run,
+        output.ModelType.JOB,
+        output_format,
+    )
 
 
 @recurring_run.command()
@@ -252,26 +262,14 @@ def enable(ctx: click.Context, job_id: str):
 @click.pass_context
 def disable(ctx: click.Context, job_id: str):
     """Disable a recurring run."""
-    client = ctx.obj['client']
-    client.disable_job(job_id=job_id)
-    click.echo(f'Disabled job {job_id}.')
+    client_obj: client.Client = ctx.obj['client']
+    output_format = ctx.obj['output']
 
-
-def _display_recurring_runs(recurring_runs: List[kfp_server_api.ApiJob],
-                            output_format: OutputFormat):
-    headers = ['Recurring Run ID', 'Name']
-    data = [[rr.id, rr.name] for rr in recurring_runs]
-    print_output(data, headers, output_format, table_format='grid')
-
-
-def _display_recurring_run(recurring_run: kfp_server_api.ApiJob,
-                           output_format: OutputFormat):
-    table = [
-        ['Recurring Run ID', recurring_run.id],
-        ['Name', recurring_run.name],
-    ]
-    if output_format == OutputFormat.table.name:
-        print_output([], ['Recurring Run Details'], output_format)
-        print_output(table, [], output_format, table_format='plain')
-    elif output_format == OutputFormat.json.name:
-        print_output(dict(table), [], output_format)
+    client_obj.disable_job(job_id=job_id)
+    # TODO: add wait option, since disable takes time to complete
+    recurring_run = client_obj.get_recurring_run(job_id=job_id)
+    output.print_output(
+        recurring_run,
+        output.ModelType.JOB,
+        output_format,
+    )
