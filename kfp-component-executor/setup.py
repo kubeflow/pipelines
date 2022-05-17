@@ -14,18 +14,18 @@
 
 import setuptools
 
-NAME = "kfp-component-executor"
-VERSION = "0.0.1"
+NAME = 'kfp-component-executor'
+VERSION = '0.0.1'
 
 setuptools.setup(
     name=NAME,
     version=VERSION,
-    description="Kubeflow Pipelines component executor package.",
-    author="google",
-    author_email="kubeflow-pipelines@google.com",
-    url="https://github.com/kubeflow/pipelines",
+    description='Kubeflow Pipelines component executor package.',
+    author='google',
+    author_email='kubeflow-pipelines@google.com',
+    url='https://github.com/kubeflow/pipelines',
     packages=['kfp_component_executor'],
-    python_requires=">=3.7.0",
-    install_requires=["kfp>=2.0.0-a3"],
-    license="Apache 2.0",
+    python_requires='>=3.7.0',
+    install_requires=['kfp>=2.0.0-a3'],
+    license='Apache 2.0',
 )

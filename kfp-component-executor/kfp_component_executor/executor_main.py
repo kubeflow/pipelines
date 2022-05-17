@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2021-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,19 +17,19 @@ import logging
 import os
 import sys
 
-from kfp_component_executor import executor
 from kfp.components import kfp_config
 from kfp.components import utils
+from kfp_component_executor import executor
 
 
-def _setup_logging():
+def setup_logging() -> None:
     logging_format = '[KFP Executor %(asctime)s %(levelname)s]: %(message)s'
     logging.basicConfig(
         stream=sys.stdout, format=logging_format, level=logging.INFO)
 
 
-def executor_main():
-    _setup_logging()
+def executor_main() -> None:
+    setup_logging()
     parser = argparse.ArgumentParser(description='KFP Component Executor.')
 
     parser.add_argument(
@@ -59,34 +59,33 @@ def executor_main():
 
     if args.component_module_path is not None:
         logging.info(
-            'Looking for component `{}` in --component_module_path `{}`'.format(
-                func_name, args.component_module_path))
+            f'Looking for component `{func_name}` in --component_module_path `{args.component_module_path}`'
+        )
         module_path = args.component_module_path
         module_directory = os.path.dirname(args.component_module_path)
         module_name = os.path.basename(args.component_module_path)[:-len('.py')]
     else:
         # Look for module directory using kfp_config.ini
-        logging.info('--component_module_path is not specified. Looking for'
-                     ' component `{}` in config file `kfp_config.ini`'
-                     ' instead'.format(func_name))
+        logging.info(
+            f'--component_module_path is not specified. Looking for component `{func_name}` in config file `kfp_config.ini` instead'
+        )
         config = kfp_config.KFPConfig()
         components = config.get_components()
         if not components:
             raise RuntimeError('No components found in `kfp_config.ini`')
         try:
             module_path = components[func_name]
-        except KeyError:
+        except KeyError as e:
             raise RuntimeError(
-                'Could not find component `{}` in `kfp_config.ini`. Found the '
-                ' following components instead:\n{}'.format(
-                    func_name, components))
+                f'Could not find component `{func_name}` in `kfp_config.ini`. Found the  following components instead:\n{components}'
+            ) from e
 
         module_directory = str(module_path.parent)
         module_name = str(module_path.name)[:-len('.py')]
 
     logging.info(
-        'Loading KFP component "{}" from {} (directory "{}" and module name'
-        ' "{}")'.format(func_name, module_path, module_directory, module_name))
+        f'Loading KFP component "{func_name}" from {module_path} (directory "{module_directory}" and module name "{module_name}")'
+    )
 
     module = utils.load_module(
         module_name=module_name, module_directory=module_directory)
@@ -94,13 +93,12 @@ def executor_main():
     executor_input = json.loads(args.executor_input)
     function_to_execute = getattr(module, func_name)
 
-    logging.info('Got executor_input:\n{}'.format(
-        json.dumps(executor_input, indent=4)))
+    logging.info(f'Got executor_input:\n{json.dumps(executor_input, indent=4)}')
 
-    executor = executor.Executor(
+    executor_obj = executor.Executor(
         executor_input=executor_input, function_to_execute=function_to_execute)
 
-    executor.execute()
+    executor_obj.execute()
 
 
 if __name__ == '__main__':
