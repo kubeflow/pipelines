@@ -34,15 +34,17 @@ class PipelineSpecRuntimeConfig(object):
     """
     openapi_types = {
         'parameters': 'dict(str, ProtobufValue)',
-        'pipeline_root': 'str'
+        'pipeline_root': 'str',
+        'parameter_values': 'dict(str, str)'
     }
 
     attribute_map = {
         'parameters': 'parameters',
-        'pipeline_root': 'pipeline_root'
+        'pipeline_root': 'pipeline_root',
+        'parameter_values': 'parameter_values'
     }
 
-    def __init__(self, parameters=None, pipeline_root=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, parameters=None, pipeline_root=None, parameter_values=None, local_vars_configuration=None):  # noqa: E501
         """PipelineSpecRuntimeConfig - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -50,18 +52,21 @@ class PipelineSpecRuntimeConfig(object):
 
         self._parameters = None
         self._pipeline_root = None
+        self._parameter_values = None
         self.discriminator = None
 
         if parameters is not None:
             self.parameters = parameters
         if pipeline_root is not None:
             self.pipeline_root = pipeline_root
+        if parameter_values is not None:
+            self.parameter_values = parameter_values
 
     @property
     def parameters(self):
         """Gets the parameters of this PipelineSpecRuntimeConfig.  # noqa: E501
 
-        The runtime parameters of the PipelineSpec. The parameters will be used to replace the placeholders at runtime.  # noqa: E501
+        TODO: deprecate this field once verified the new field works.  # noqa: E501
 
         :return: The parameters of this PipelineSpecRuntimeConfig.  # noqa: E501
         :rtype: dict(str, ProtobufValue)
@@ -72,7 +77,7 @@ class PipelineSpecRuntimeConfig(object):
     def parameters(self, parameters):
         """Sets the parameters of this PipelineSpecRuntimeConfig.
 
-        The runtime parameters of the PipelineSpec. The parameters will be used to replace the placeholders at runtime.  # noqa: E501
+        TODO: deprecate this field once verified the new field works.  # noqa: E501
 
         :param parameters: The parameters of this PipelineSpecRuntimeConfig.  # noqa: E501
         :type parameters: dict(str, ProtobufValue)
@@ -100,6 +105,29 @@ class PipelineSpecRuntimeConfig(object):
         """
 
         self._pipeline_root = pipeline_root
+
+    @property
+    def parameter_values(self):
+        """Gets the parameter_values of this PipelineSpecRuntimeConfig.  # noqa: E501
+
+        The runtime parameters of the PipelineSpec. The parameters will be used to replace the placeholders at runtime.  # noqa: E501
+
+        :return: The parameter_values of this PipelineSpecRuntimeConfig.  # noqa: E501
+        :rtype: dict(str, str)
+        """
+        return self._parameter_values
+
+    @parameter_values.setter
+    def parameter_values(self, parameter_values):
+        """Sets the parameter_values of this PipelineSpecRuntimeConfig.
+
+        The runtime parameters of the PipelineSpec. The parameters will be used to replace the placeholders at runtime.  # noqa: E501
+
+        :param parameter_values: The parameter_values of this PipelineSpecRuntimeConfig.  # noqa: E501
+        :type parameter_values: dict(str, str)
+        """
+
+        self._parameter_values = parameter_values
 
     def to_dict(self):
         """Returns the model properties as a dict"""

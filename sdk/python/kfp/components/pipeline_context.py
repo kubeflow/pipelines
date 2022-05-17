@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2021-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,6 +51,7 @@ def pipeline(name: Optional[str] = None,
     """
 
     def _pipeline(func: Callable):
+        func._is_pipeline = True
         if name:
             func._component_human_name = name
         if description:
@@ -194,3 +195,15 @@ class Pipeline:
         """Gets the next id for a new group."""
         self._group_id += 1
         return str(self._group_id)
+
+    @classmethod
+    def is_pipeline_func(cls, func: Callable) -> bool:
+        """Checks if a function is a pipeline function.
+
+        Args:
+            func (Callable): The function to check.
+
+        Returns:
+            bool: True if the function is a pipeline function.
+        """
+        return callable(func) and getattr(func, '_is_pipeline', False)
