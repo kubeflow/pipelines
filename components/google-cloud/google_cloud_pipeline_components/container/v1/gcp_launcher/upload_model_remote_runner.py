@@ -69,6 +69,6 @@ def upload_model(
 
     vertex_model = VertexModel('model', vertex_uri_prefix + model_resource_name,
                                model_resource_name)
-    artifact_util.update_gcp_output_artifact(executor_input, vertex_model)
+    artifact_util.update_output_artifacts(executor_input, [vertex_model])
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])
