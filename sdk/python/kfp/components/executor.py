@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2021-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -52,12 +52,12 @@ class Executor():
 
     @classmethod
     def _make_input_artifact(cls, runtime_artifact: Dict):
-        return artifact_types.create_runtime_artifact(runtime_artifact)
+        return create_runtime_artifact(runtime_artifact)
 
     @classmethod
     def _make_output_artifact(cls, runtime_artifact: Dict):
         import os
-        artifact = artifact_types.create_runtime_artifact(runtime_artifact)
+        artifact = create_runtime_artifact(runtime_artifact)
         os.makedirs(os.path.dirname(artifact.path), exist_ok=True)
         return artifact
 
@@ -296,3 +296,35 @@ class Executor():
 
         result = self._func(**func_kwargs)
         self._write_executor_output(result)
+
+
+_SCHEMA_TITLE_TO_TYPE: Dict[str, artifact_types.Artifact] = {
+    x.TYPE_NAME: x for x in [
+        artifact_types.Artifact,
+        artifact_types.Model,
+        artifact_types.Dataset,
+        artifact_types.Metrics,
+        artifact_types.ClassificationMetrics,
+        artifact_types.SlicedClassificationMetrics,
+        artifact_types.HTML,
+        artifact_types.Markdown,
+    ]
+}
+
+
+def create_runtime_artifact(runtime_artifact: Dict) -> artifact_types.Artifact:
+    """Creates an Artifact instance from the specified RuntimeArtifact.
+
+    Args:
+      runtime_artifact: Dictionary representing JSON-encoded RuntimeArtifact.
+    """
+    schema_title = runtime_artifact.get('type', {}).get('schemaTitle', '')
+
+    artifact_type = _SCHEMA_TITLE_TO_TYPE.get(schema_title)
+    if not artifact_type:
+        artifact_type = artifact_types.Artifact
+    return artifact_type(
+        uri=runtime_artifact.get('uri', ''),
+        name=runtime_artifact.get('name', ''),
+        metadata=runtime_artifact.get('metadata', {}),
+    )

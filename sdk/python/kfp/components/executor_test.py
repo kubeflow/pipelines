@@ -30,6 +30,7 @@ from kfp.components.types.type_annotations import Input
 from kfp.components.types.type_annotations import InputPath
 from kfp.components.types.type_annotations import Output
 from kfp.components.types.type_annotations import OutputPath
+from absl.testing import parameterized
 
 _EXECUTOR_INPUT = """\
 {
@@ -688,6 +689,107 @@ class ExecutorTest(unittest.TestCase):
                         'Error message: The DAG failed because some tasks failed. The failed tasks are: [fail-op].'
                 },
             })
+
+
+class TestCreateRuntimeArtifact:
+
+    @parameterized.parameters(
+        {
+            'runtime_artifact': {
+                "metadata": {},
+                "name": "input_artifact_one",
+                "type": {
+                    "schemaTitle": "system.Artifact"
+                },
+                "uri": "gs://some-bucket/input_artifact_one"
+            },
+            'expected_type': artifact_types.Artifact,
+        },
+        {
+            'runtime_artifact': {
+                "metadata": {},
+                "name": "input_artifact_one",
+                "type": {
+                    "schemaTitle": "system.Model"
+                },
+                "uri": "gs://some-bucket/input_artifact_one"
+            },
+            'expected_type': artifact_types.Model,
+        },
+        {
+            'runtime_artifact': {
+                "metadata": {},
+                "name": "input_artifact_one",
+                "type": {
+                    "schemaTitle": "system.Dataset"
+                },
+                "uri": "gs://some-bucket/input_artifact_one"
+            },
+            'expected_type': artifact_types.Dataset,
+        },
+        {
+            'runtime_artifact': {
+                "metadata": {},
+                "name": "input_artifact_one",
+                "type": {
+                    "schemaTitle": "system.Metrics"
+                },
+                "uri": "gs://some-bucket/input_artifact_one"
+            },
+            'expected_type': artifact_types.Metrics,
+        },
+        {
+            'runtime_artifact': {
+                "metadata": {},
+                "name": "input_artifact_one",
+                "type": {
+                    "schemaTitle": "system.ClassificationMetrics"
+                },
+                "uri": "gs://some-bucket/input_artifact_one"
+            },
+            'expected_type': artifact_types.ClassificationMetrics,
+        },
+        {
+            'runtime_artifact': {
+                "metadata": {},
+                "name": "input_artifact_one",
+                "type": {
+                    "schemaTitle": "system.SlicedClassificationMetrics"
+                },
+                "uri": "gs://some-bucket/input_artifact_one"
+            },
+            'expected_type': artifact_types.SlicedClassificationMetrics,
+        },
+        {
+            'runtime_artifact': {
+                "metadata": {},
+                "name": "input_artifact_one",
+                "type": {
+                    "schemaTitle": "system.HTML"
+                },
+                "uri": "gs://some-bucket/input_artifact_one"
+            },
+            'expected_type': artifact_types.HTML,
+        },
+        {
+            'runtime_artifact': {
+                "metadata": {},
+                "name": "input_artifact_one",
+                "type": {
+                    "schemaTitle": "system.Markdown"
+                },
+                "uri": "gs://some-bucket/input_artifact_one"
+            },
+            'expected_type': artifact_types.Markdown,
+        },
+    )
+    def test(
+        self,
+        runtime_artifact,
+        expected_type,
+    ):
+        self.assertIsInstance(
+            executor.create_runtime_artifact(runtime_artifact), expected_type)
 
 
 if __name__ == '__main__':

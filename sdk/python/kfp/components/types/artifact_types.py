@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2021-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -426,35 +426,3 @@ class Markdown(Artifact):
                  uri: Optional[str] = None,
                  metadata: Optional[Dict] = None):
         super().__init__(uri=uri, name=name, metadata=metadata)
-
-
-_SCHEMA_TITLE_TO_TYPE: Dict[str, Artifact] = {
-    x.TYPE_NAME: x for x in [
-        Artifact,
-        Model,
-        Dataset,
-        Metrics,
-        ClassificationMetrics,
-        SlicedClassificationMetrics,
-        HTML,
-        Markdown,
-    ]
-}
-
-
-def create_runtime_artifact(runtime_artifact: Dict) -> Artifact:
-    """Creates an Artifact instance from the specified RuntimeArtifact.
-
-    Args:
-      runtime_artifact: Dictionary representing JSON-encoded RuntimeArtifact.
-    """
-    schema_title = runtime_artifact.get('type', {}).get('schemaTitle', '')
-
-    artifact_type = _SCHEMA_TITLE_TO_TYPE.get(schema_title)
-    if not artifact_type:
-        artifact_type = Artifact
-    return artifact_type(
-        uri=runtime_artifact.get('uri', ''),
-        name=runtime_artifact.get('name', ''),
-        metadata=runtime_artifact.get('metadata', {}),
-    )
