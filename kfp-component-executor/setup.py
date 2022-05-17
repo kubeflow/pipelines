@@ -12,15 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
 import setuptools
 
 NAME = 'kfp-component-executor'
 VERSION = '0.0.1'
 
+readme_path = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'README.md')
+
+with open(readme_path) as f:
+    readme = f.read()
+
 setuptools.setup(
     name=NAME,
     version=VERSION,
     description='Kubeflow Pipelines component executor package.',
+    long_description=readme,
     author='google',
     author_email='kubeflow-pipelines@google.com',
     url='https://github.com/kubeflow/pipelines',
