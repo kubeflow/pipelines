@@ -709,7 +709,7 @@
                   "query": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "\n      CREATE MODEL `{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-project_id']}}.{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-dataset_id']}}.model_{dsl.PIPELINE_JOB_ID_PLACEHOLDER}`\n      OPTIONS (\n          model_type = 'ARIMA_PLUS',\n          time_series_timestamp_col = '{{$.inputs.parameters['pipelineparam--time_column']}}',\n          time_series_id_col = '{{$.inputs.parameters['pipelineparam--time_series_identifier_column']}}',\n          time_series_data_col = '{{$.inputs.parameters['pipelineparam--target_column_name']}}',\n          horizon = @forecast_horizon,\n          auto_arima = True,\n          auto_arima_max_order = @max_order,\n          data_frequency = @data_granularity_unit,\n          holiday_region = 'GLOBAL',\n          clean_spikes_and_dips = True,\n          adjust_step_changes = True,\n          decompose_time_series = True\n      ) AS\n      SELECT\n        {{$.inputs.parameters['pipelineparam--time_series_identifier_column']}},\n        {{$.inputs.parameters['pipelineparam--time_column']}},\n        {{$.inputs.parameters['pipelineparam--target_column_name']}},\n      FROM `{{$.inputs.parameters['pipelineparam--table-to-uri-uri']}}`\n      WHERE\n        UPPER({{$.inputs.parameters['pipelineparam--maybe-replace-with-default-2-Output']}}) IN UNNEST(@splits)\n        AND TIMESTAMP({{$.inputs.parameters['pipelineparam--time_column']}}) < @start_time\n  "
+                        "stringValue": "\n      CREATE MODEL `{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-project_id']}}.{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-dataset_id']}}.model_{{$.pipeline_job_uuid}}`\n      OPTIONS (\n          model_type = 'ARIMA_PLUS',\n          time_series_timestamp_col = '{{$.inputs.parameters['pipelineparam--time_column']}}',\n          time_series_id_col = '{{$.inputs.parameters['pipelineparam--time_series_identifier_column']}}',\n          time_series_data_col = '{{$.inputs.parameters['pipelineparam--target_column_name']}}',\n          horizon = @forecast_horizon,\n          auto_arima = True,\n          auto_arima_max_order = @max_order,\n          data_frequency = @data_granularity_unit,\n          holiday_region = 'GLOBAL',\n          clean_spikes_and_dips = True,\n          adjust_step_changes = True,\n          decompose_time_series = True\n      ) AS\n      SELECT\n        {{$.inputs.parameters['pipelineparam--time_series_identifier_column']}},\n        {{$.inputs.parameters['pipelineparam--time_column']}},\n        {{$.inputs.parameters['pipelineparam--target_column_name']}},\n      FROM `{{$.inputs.parameters['pipelineparam--table-to-uri-uri']}}`\n      WHERE\n        UPPER({{$.inputs.parameters['pipelineparam--maybe-replace-with-default-2-Output']}}) IN UNNEST(@splits)\n        AND TIMESTAMP({{$.inputs.parameters['pipelineparam--time_column']}}) < @start_time\n  "
                       }
                     }
                   },
@@ -1358,7 +1358,7 @@
                   "true_str": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "WRITE_TRUCATE"
+                        "stringValue": "WRITE_TRUNCATE"
                       }
                     }
                   }
@@ -2969,7 +2969,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.4"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.6"
           }
         },
         "exec-build-serialized-query-parameters": {
