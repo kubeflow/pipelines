@@ -14,7 +14,7 @@ dependencies:
   - filelock=3.0.*
   - pip:
     - kubernetes==11.0.*
-    - kfp==1.7.*
+    - kfp==1.8.*
     - minio==5.0.10
     - sagemaker==2.1.*
     - ruamel.yaml==0.16.*
