@@ -219,7 +219,7 @@
                   "job_configuration_query": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "{\"destinationTable\": {\"projectId\": \"{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-project_id']}}\", \"datasetId\": \"{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-dataset_id']}}\", \"tableId\": \"predictions_{dsl.PIPELINE_JOB_ID_PLACEHOLDER}\"}, \"writeDisposition\": \"WRITE_EMPTY\"}"
+                        "stringValue": "{\"destinationTable\": {\"projectId\": \"{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-project_id']}}\", \"datasetId\": \"{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-dataset_id']}}\", \"tableId\": \"predictions_{{$.pipeline_job_uuid}}\"}, \"writeDisposition\": \"WRITE_EMPTY\"}"
                       }
                     }
                   },
