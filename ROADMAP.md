@@ -1,5 +1,25 @@
 # Kubeflow Pipelines Roadmap
 
+## Kubeflow Pipelines 2022 Roadmap
+
+### KFP v2
+
+Design: [bit.ly/kfp-v2](https://bit.ly/kfp-v2)
+
+#### KFP v2 Goals
+
+* Enable v2 authoring Critical User Journeys
+  * Containerized Python component
+  * Bring-your-own container
+  * DAG component
+* Finalize IR and component packaging format to address feature gaps with v1
+
+#### Post-v2 Goals (tentative)
+
+* Support local pipeline runner
+* Further improve DAG visualization on UI
+* Offer advanced control flow features
+
 ## Kubeflow Pipelines 2021 Roadmap (major themes)
 
 ### KFP v2 compatible
