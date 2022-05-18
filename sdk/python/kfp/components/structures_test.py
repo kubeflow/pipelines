@@ -192,7 +192,7 @@ class StructuresTest(parameterized.TestCase):
                             structures.InputValuePlaceholder(
                                 inputValue='input000'),
                             structures.OutputPathPlaceholder(
-                                output_name='output1'),
+                                outputPath='output1'),
                         ],
                     )),
                 inputs={'input1': structures.InputSpec(type='String')},
@@ -215,7 +215,7 @@ class StructuresTest(parameterized.TestCase):
                             structures.InputValuePlaceholder(
                                 inputValue='input1'),
                             structures.OutputPathPlaceholder(
-                                output_name='output000'),
+                                outputPath='output000'),
                         ],
                     )),
                 inputs={'input1': structures.InputSpec(type='String')},
@@ -238,7 +238,7 @@ class StructuresTest(parameterized.TestCase):
                             structures.InputValuePlaceholder(
                                 inputValue='input1'),
                             structures.OutputPathPlaceholder(
-                                output_name='output1'),
+                                outputPath='output1'),
                         ],
                     )),
                 inputs={'input1': structures.InputSpec(type='String')},
@@ -315,7 +315,7 @@ class StructuresTest(parameterized.TestCase):
                         '-c',
                         'set -ex\necho "$0" > "$1"',
                         structures.InputValuePlaceholder(inputValue='input1'),
-                        structures.OutputPathPlaceholder(output_name='output1'),
+                        structures.OutputPathPlaceholder(outputPath='output1'),
                     ],
                 )),
             inputs={'input1': structures.InputSpec(type='String')},
@@ -393,11 +393,9 @@ class StructuresTest(parameterized.TestCase):
                         structures.InputValuePlaceholder(
                             inputValue='input_parameter'),
                         structures.InputPathPlaceholder(
-                            input_name='input_artifact'),
-                        structures.OutputPathPlaceholder(
-                            output_name='output_1'),
-                        structures.OutputPathPlaceholder(
-                            output_name='output_2'),
+                            inputPath='input_artifact'),
+                        structures.OutputPathPlaceholder(outputPath='output_1'),
+                        structures.OutputPathPlaceholder(outputPath='output_2'),
                     ],
                     env={},
                 )),

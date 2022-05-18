@@ -83,13 +83,27 @@ class PlaceholderSerializationMixin(abc.ABC):
         str, type(NotImplemented)] = NotImplemented
 
     @classmethod
-    def get_key_name(cls) -> str:
+    def is_input_placeholder(cls) -> bool:
+        for field in dataclasses.fields(cls):
+            if field.name.startswith('input'):
+                return True
+            if field.name.startswith('output'):
+                return False
+        raise ValueError(
+            f'Could not determine if placeholder is an output or output placeholder. {cls.__name__} does not have an input or output field. Only found fields: {dataclasses.fields(cls)}'
+        )
+
+    @classmethod
+    def get_attr_name(cls) -> str:
         for field in dataclasses.fields(cls):
             if field.name.startswith(('input', 'output')):
                 return field.name
         raise ValueError(
             f'{cls.__name__} does not have an input or output field. Only found fields: {dataclasses.fields(cls)}'
         )
+
+    def get_attr_value(self) -> str:
+        return getattr(self, self.get_attr_name())
 
     @classmethod
     def is_match(cls, placeholder: str) -> bool:
@@ -106,7 +120,7 @@ class PlaceholderSerializationMixin(abc.ABC):
             raise ValueError(
                 f'Could not parse placeholder: {placeholder} into {cls.__name__}'
             )
-        kwargs = {cls.get_key_name(): matches[1]}
+        kwargs = {cls.get_attr_name(): matches[1]}
         return cls(**kwargs)
 
     def to_placeholder(self) -> str:
@@ -114,8 +128,7 @@ class PlaceholderSerializationMixin(abc.ABC):
             raise NotImplementedError(
                 f'{self.__class__.__name__} does not support creating placeholder strings.'
             )
-        print("KEY_NAME", self.get_key_name())
-        value = getattr(self, self.get_key_name())
+        value = self.get_attr_value()
         return self._TO_PLACEHOLDER_TEMPLATE_STRING.format(value)
 
 
@@ -137,8 +150,7 @@ class InputPathPlaceholder(base_model.BaseModel, PlaceholderSerializationMixin):
     Attributes:
         input_name: name of the input.
     """
-    input_name: str
-    _aliases = {'input_name': 'inputPath'}
+    inputPath: str
     _TO_PLACEHOLDER_TEMPLATE_STRING = "{{{{$.inputs.artifacts['{}'].path}}}}"
     _FROM_PLACEHOLDER_REGEX = r"\{\{\$\.inputs\.artifacts\[(?:''|'|\")(.+?)(?:''|'|\")]\.path\}\}"
 
@@ -162,8 +174,7 @@ class OutputParameterPlaceholder(base_model.BaseModel,
     Attributes:
         output_name: name of the output.
     """
-    output_name: str
-    _aliases = {'output_name': 'outputPath'}
+    outputPath: str
     _TO_PLACEHOLDER_TEMPLATE_STRING = "{{{{$.outputs.parameters['{}'].output_file}}}}"
     _FROM_PLACEHOLDER_REGEX = r"\{\{\$\.outputs\.parameters\[(?:''|'|\")(.+?)(?:''|'|\")]\.output_file\}\}"
 
@@ -175,8 +186,7 @@ class OutputPathPlaceholder(base_model.BaseModel,
     Attributes:
         output_name: name of the output.
     """
-    output_name: str
-    _aliases = {'output_name': 'outputPath'}
+    outputPath: str
     _TO_PLACEHOLDER_TEMPLATE_STRING = "{{{{$.outputs.artifacts['{}'].path}}}}"
     _FROM_PLACEHOLDER_REGEX = r"\{\{\$\.outputs\.artifacts\[(?:''|'|\")(.+?)(?:''|'|\")]\.path\}\}"
 
@@ -187,8 +197,7 @@ class OutputUriPlaceholder(base_model.BaseModel, PlaceholderSerializationMixin):
     Attributes:
         output_name: name of the output.
     """
-    output_name: str
-    _aliases = {'output_name': 'outputUri'}
+    outputUri: str
     _TO_PLACEHOLDER_TEMPLATE_STRING = "{{{{$.outputs.artifacts['{}'].uri}}}}"
     _FROM_PLACEHOLDER_REGEX = r"\{\{\$\.outputs\.artifacts\[(?:''|'|\")(.+?)(?:''|'|\")]\.uri\}\}"
 
@@ -371,6 +380,17 @@ def try_to_get_dict_from_string(element: str) -> Union[dict, str]:
     return res
 
 
+KEY_TO_PLACEHOLDER_MAP = {
+    'inputValue': InputValuePlaceholder,
+    'inputPath': InputPathPlaceholder,
+    'inputUri': InputUriPlaceholder,
+    'outputPath': OutputPathPlaceholder,
+    'outputUri': OutputUriPlaceholder,
+}
+
+PLACEHOLDER_TO_KEY_MAP = {v: k for k, v in KEY_TO_PLACEHOLDER_MAP.items()}
+
+
 def convert_str_or_dict_to_placeholder(
     element: Union[str, dict,
                    ValidCommandArgs]) -> Union[str, ValidCommandArgs]:
@@ -409,25 +429,10 @@ def convert_str_or_dict_to_placeholder(
         )
     first_key = list(res.keys())[0]
     first_value = list(res.values())[0]
-    if first_key == 'inputValue':
-        return InputValuePlaceholder(
-            inputValue=utils.sanitize_input_name(first_value))
 
-    elif first_key == 'inputPath':
-        return InputPathPlaceholder(
-            input_name=utils.sanitize_input_name(first_value))
-
-    elif first_key == 'inputUri':
-        return InputUriPlaceholder(
-            input_name=utils.sanitize_input_name(first_value))
-
-    elif first_key == 'outputPath':
-        return OutputPathPlaceholder(
-            output_name=utils.sanitize_input_name(first_value))
-
-    elif first_key == 'outputUri':
-        return OutputUriPlaceholder(
-            output_name=utils.sanitize_input_name(first_value))
+    if first_key in KEY_TO_PLACEHOLDER_MAP:
+        return KEY_TO_PLACEHOLDER_MAP[first_key](
+            utils.sanitize_input_name(first_value))
 
     elif first_key == 'ifPresent':
         structure_kwargs = res['ifPresent']
@@ -472,18 +477,16 @@ def _check_valid_placeholder_reference(valid_inputs: List[str],
         TypeError: if any argument is neither a str nor a placeholder
             instance.
     """
-    if isinstance(placeholder, (InputPathPlaceholder, InputUriPlaceholder)):
-        if placeholder.input_name not in valid_inputs:
-            raise ValueError(
-                f'Argument "{placeholder}" references non-existing input.')
-    elif isinstance(placeholder, InputValuePlaceholder):
-        if placeholder.inputValue not in valid_inputs:
-            raise ValueError(
-                f'Argument "{placeholder}" references non-existing input.')
-    elif isinstance(placeholder, (OutputPathPlaceholder, OutputUriPlaceholder)):
-        if placeholder.output_name not in valid_outputs:
+
+    if placeholder.__class__ in PLACEHOLDER_TO_KEY_MAP:
+        if placeholder.is_input_placeholder():
+            if placeholder.get_attr_value() not in valid_inputs:
+                raise ValueError(
+                    f'Argument "{placeholder}" references non-existing input.')
+        elif placeholder.get_attr_value() not in valid_outputs:
             raise ValueError(
                 f'Argument "{placeholder}" references non-existing output.')
+
     elif isinstance(placeholder, IfPresentPlaceholder):
         if placeholder.if_structure.input_name not in valid_inputs:
             raise ValueError(
