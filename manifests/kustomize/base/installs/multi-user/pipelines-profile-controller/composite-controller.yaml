@@ -1,5 +1,6 @@
 # Change resyncPeriodSeconds to 1 hour from insane 20 seconds  
-# Only  sync namespaces with pipelines.kubeflow.org/enabled = "true"
+# For some crazy reasons the crd name is often different...  
+# CRD is network-attachment-definitions while the instance is NetworkAttachmentDefinition
 apiVersion: metacontroller.k8s.io/v1alpha1
 kind: CompositeController
 metadata:
@@ -27,15 +28,24 @@ spec:
     resource: services
     updateStrategy:
       method: InPlace
-  - apiVersion: networking.istio.io/v1alpha3
-    resource: destinationrules
+  - apiVersion: k8s.cni.cncf.io/v1
+    resource: network-attachment-definitions
     updateStrategy:
       method: InPlace
-  - apiVersion: security.istio.io/v1beta1
-    resource: authorizationpolicies
+  - apiVersion: v1
+    resource: limitranges
+    updateStrategy:
+      method: InPlace
+  - apiVersion: kubeflow.org/v1alpha1
+    resource: poddefaults
+    updateStrategy:
+      method: InPlace
+  - apiVersion: networking.k8s.io/v1
+    resource: networkpolicies
     updateStrategy:
       method: InPlace
   hooks:
     sync:
       webhook:
         url: http://kubeflow-pipelines-profile-controller/sync
+
