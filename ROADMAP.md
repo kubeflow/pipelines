@@ -16,7 +16,7 @@ Design: [bit.ly/kfp-v2](https://bit.ly/kfp-v2)
 
 #### Post-v2 Goals (tentative)
 
-* Support local pipeline runner
+* Support local development
 * Further improve DAG visualization on UI
 * Offer advanced control flow features
 
