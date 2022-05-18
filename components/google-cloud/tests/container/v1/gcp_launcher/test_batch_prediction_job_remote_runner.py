@@ -55,7 +55,10 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._batch_prediction_job_uri_prefix = f'https://{self._location}-aiplatform.googleapis.com/v1/'
     self._output_file_path = os.path.join(
         os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'localpath/foo')
-    self._executor_input = '{"outputs":{"artifacts":{"batchpredictionjob":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.VertexBatchPredictionJob"},"uri":"gs://abc"}]}},"outputFile":"' + self._output_file_path + '"}}'
+    self._executor_input = '{"outputs":{"artifacts":{\
+      "batchpredictionjob":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.VertexBatchPredictionJob"},"uri":"gs://abc"}]},\
+      "bigquery_output_table":{"artifacts":[{"metadata":{},"name":"bq_table","type":{"schemaTitle":"google.BQTable"},"uri":"gs://abc"}]},\
+      "gcs_output_directory":{"artifacts":[{"metadata":{},"name":"gcs_output","type":{"schemaTitle":"system.Artifact"},"uri":"gs://abc"}]}},"outputFile":"' + self._output_file_path + '"}}'
 
   def tearDown(self):
     if os.path.exists(self._gcp_resources):
@@ -63,7 +66,7 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
 
   @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
   @mock.patch.object(os.path, 'exists', autospec=True)
-  def test_batch_prediction_job_remote_runner_succeeded(
+  def test_batch_prediction_job_remote_runner_succeeded_output_bq_table(
       self, mock_path_exists, mock_job_service_client):
     job_client = mock.Mock()
     mock_job_service_client.return_value = job_client
@@ -77,8 +80,67 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
     get_batch_prediction_job_response.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
     get_batch_prediction_job_response.name = 'job1'
     get_batch_prediction_job_response.output_info.bigquery_output_table = 'bigquery_output_table'
-    get_batch_prediction_job_response.output_info.bigquery_output_dataset = 'bigquery_output_dataset'
-    get_batch_prediction_job_response.output_info.gcs_output_directory = 'gcs_output_directory'
+    get_batch_prediction_job_response.output_info.bigquery_output_dataset = 'bq://bq_project.bigquery_output_dataset'
+    get_batch_prediction_job_response.output_info.gcs_output_directory = ''
+
+    mock_path_exists.return_value = False
+
+    batch_prediction_job_remote_runner.create_batch_prediction_job(
+        self._job_type, self._project, self._location, self._payload,
+        self._gcp_resources, self._executor_input)
+
+    mock_job_service_client.assert_called_once_with(
+        client_options={
+            'api_endpoint': 'test_region-aiplatform.googleapis.com'
+        },
+        client_info=mock.ANY)
+
+    expected_parent = f'projects/{self._project}/locations/{self._location}'
+    expected_job_spec = json.loads(self._payload, strict=False)
+
+    job_client.create_batch_prediction_job.assert_called_once_with(
+        parent=expected_parent, batch_prediction_job=expected_job_spec)
+
+    with open(self._gcp_resources) as f:
+      serialized_gcp_resources = f.read()
+
+      # Instantiate GCPResources Proto
+      batch_prediction_job_resources = json_format.Parse(
+          serialized_gcp_resources, GcpResources())
+
+      self.assertEqual(len(batch_prediction_job_resources.resources), 1)
+      batch_prediction_job_name = batch_prediction_job_resources.resources[
+          0].resource_uri[len(self._batch_prediction_job_uri_prefix):]
+      self.assertEqual(batch_prediction_job_name,
+                       self._batch_prediction_job_name)
+
+    with open(self._output_file_path) as f:
+      executor_output = json.load(f, strict=False)
+      self.assertEqual(
+          executor_output,
+          json.loads('{"artifacts": {\
+              "batchpredictionjob": {"artifacts": [{"metadata": {"resourceName": "job1", "bigqueryOutputDataset": "bq://bq_project.bigquery_output_dataset","bigqueryOutputTable": "bigquery_output_table","gcsOutputDirectory": ""}, "name": "foobar", "type": {"schemaTitle": "google.VertexBatchPredictionJob"}, "uri": "https://test_region-aiplatform.googleapis.com/v1/job1"}]},\
+              "bigquery_output_table": {"artifacts": [{"metadata": {"projectId": "bq_project", "datasetId": "bigquery_output_dataset", "tableId": "bigquery_output_table"}, "name": "bq_table", "type": {"schemaTitle": "google.BQTable"}, "uri": "https://www.googleapis.com/bigquery/v2/projects/bq_project/datasets/bigquery_output_dataset/tables/bigquery_output_table"}]}}}'
+                    ))
+
+  @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
+  @mock.patch.object(os.path, 'exists', autospec=True)
+  def test_batch_prediction_job_remote_runner_succeeded_output_gcs(
+      self, mock_path_exists, mock_job_service_client):
+    job_client = mock.Mock()
+    mock_job_service_client.return_value = job_client
+
+    create_batch_prediction_job_response = mock.Mock()
+    job_client.create_batch_prediction_job.return_value = create_batch_prediction_job_response
+    create_batch_prediction_job_response.name = self._batch_prediction_job_name
+
+    get_batch_prediction_job_response = mock.Mock()
+    job_client.get_batch_prediction_job.return_value = get_batch_prediction_job_response
+    get_batch_prediction_job_response.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
+    get_batch_prediction_job_response.name = 'job1'
+    get_batch_prediction_job_response.output_info.bigquery_output_table = ''
+    get_batch_prediction_job_response.output_info.bigquery_output_dataset = ''
+    get_batch_prediction_job_response.output_info.gcs_output_directory = 'gs://foo_gcs_output_directory'
 
     mock_path_exists.return_value = False
 
@@ -116,7 +178,9 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
       self.assertEqual(
           executor_output,
           json.loads(
-              '{"artifacts": {"batchpredictionjob": {"artifacts": [{"metadata": {"resourceName": "job1", "bigqueryOutputDataset": "bigquery_output_dataset","bigqueryOutputTable": "bigquery_output_table","gcsOutputDirectory": "gcs_output_directory"}, "name": "foobar", "type": {"schemaTitle": "google.VertexBatchPredictionJob"}, "uri": "https://test_region-aiplatform.googleapis.com/v1/job1"}]}}}'
+              '{"artifacts": {\
+                "batchpredictionjob": {"artifacts": [{"metadata": {"resourceName": "job1", "bigqueryOutputTable": "", "bigqueryOutputDataset": "", "gcsOutputDirectory": "gs://foo_gcs_output_directory"}, "name": "foobar", "type": {"schemaTitle": "google.VertexBatchPredictionJob"}, "uri": "https://test_region-aiplatform.googleapis.com/v1/job1"}]},\
+                "gcs_output_directory": {"artifacts": [{"metadata": {}, "name": "gcs_output", "type": {"schemaTitle": "system.Artifact"}, "uri": "gs://foo_gcs_output_directory"}]}}}'
           ))
 
   @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
@@ -182,7 +246,7 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
     get_batch_prediction_job_response_success.name = 'job1'
     get_batch_prediction_job_response_success.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
     get_batch_prediction_job_response_success.output_info.bigquery_output_table = 'bigquery_output_table'
-    get_batch_prediction_job_response_success.output_info.bigquery_output_dataset = 'bigquery_output_dataset'
+    get_batch_prediction_job_response_success.output_info.bigquery_output_dataset = 'bq://bq_project.bigquery_output_dataset'
     get_batch_prediction_job_response_success.output_info.gcs_output_directory = 'gcs_output_directory'
 
     get_batch_prediction_job_response_running = mock.Mock()
@@ -227,7 +291,7 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
     get_batch_prediction_job_response.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
     get_batch_prediction_job_response.name = 'job1'
     get_batch_prediction_job_response.output_info.bigquery_output_table = 'bigquery_output_table'
-    get_batch_prediction_job_response.output_info.bigquery_output_dataset = 'bigquery_output_dataset'
+    get_batch_prediction_job_response.output_info.bigquery_output_dataset = 'bq://bq_project.bigquery_output_dataset'
     get_batch_prediction_job_response.output_info.gcs_output_directory = 'gcs_output_directory'
 
     mock_path_exists.return_value = False

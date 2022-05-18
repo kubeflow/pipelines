@@ -39,7 +39,7 @@ exports[`ArchivedRuns renders archived runs 1`] = `
             "disabledTitle": "Select at least one resource to restore",
             "id": "restoreBtn",
             "title": "Restore",
-            "tooltip": "Restore",
+            "tooltip": "Restore the archived run(s) to original location",
           },
         },
         "breadcrumbs": Array [],

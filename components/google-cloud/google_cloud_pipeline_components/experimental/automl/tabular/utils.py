@@ -121,6 +121,7 @@ def get_skip_evaluation_pipeline_and_parameters(
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
     encryption_spec_key_name: The KMS key name.
+    additional_experiments: Use this field to config private preview features.
 
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
@@ -239,8 +240,6 @@ def get_skip_evaluation_pipeline_and_parameters(
           dataflow_use_public_ips,
       'encryption_spec_key_name':
           encryption_spec_key_name,
-      'additional_experiments':
-          input_dictionary_to_parameter(additional_experiments),
   }
   if additional_experiments:
     parameter_values.update({
@@ -401,6 +400,7 @@ def get_feature_selection_skip_evaluation_pipeline_and_parameters(
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
     encryption_spec_key_name: The KMS key name.
+    additional_experiments: Use this field to config private preview features.
 
   Returns:
     Tuple of pipeline_definition_path and parameter_values.
@@ -944,8 +944,8 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
       The dictionary contains the metric_id, which is reported by the training
       job, ands the optimization goal of the metric. One of "minimize" or
       "maximize".
-    study_spec_parameters_override: List of dictionaries representing parameters to
-      optimize. The dictionary key is the parameter_id, which is passed to
+    study_spec_parameters_override: List of dictionaries representing parameters
+      to optimize. The dictionary key is the parameter_id, which is passed to
       training job as a command line argument, and the dictionary value is the
       parameter specification of the metric.
     max_trial_count: The desired total number of trials.
@@ -1080,6 +1080,7 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
         'wide_and_deep_hyperparameter_tuning_job_pipeline.json')
 
   return pipeline_definition_path, parameter_values
+
 
 def get_tabnet_trainer_pipeline_and_parameters(
     project: str,

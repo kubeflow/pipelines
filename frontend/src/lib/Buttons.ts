@@ -119,7 +119,7 @@ export default class Buttons {
       disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to retry',
       id: 'retryBtn',
       title: 'Retry',
-      tooltip: 'Retry',
+      tooltip: 'Retry this run',
     };
     return this;
   }
@@ -333,7 +333,7 @@ export default class Buttons {
       disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to restore',
       id: 'restoreBtn',
       title: 'Restore',
-      tooltip: 'Restore',
+      tooltip: 'Restore the archived run(s) to original location',
     };
     return this;
   }

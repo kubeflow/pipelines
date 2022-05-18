@@ -202,8 +202,7 @@ def _send_cancel_request(job_uri, creds):
   # Bigquery cancel API:
   # https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs/cancel
   response = requests.post(
-      url=f'{job_uri.split("?")[0]}/cancel',
-      data='', headers=headers)
+      url=f'{job_uri.split("?")[0]}/cancel', data='', headers=headers)
   logging.info('Cancel response: %s', response)
 
 
@@ -261,10 +260,9 @@ def bigquery_query_job(
     projectId = job['configuration']['query']['destinationTable']['projectId']
     datasetId = job['configuration']['query']['destinationTable']['datasetId']
     tableId = job['configuration']['query']['destinationTable']['tableId']
-    bq_table_artifact = BQTable(
-        'destination_table',
-        projectId, datasetId, tableId)
-    artifact_util.update_gcp_output_artifact(executor_input, bq_table_artifact)
+    bq_table_artifact = BQTable('destination_table', projectId, datasetId,
+                                tableId)
+    artifact_util.update_output_artifacts(executor_input, [bq_table_artifact])
 
 
 def bigquery_create_model_job(
@@ -330,10 +328,8 @@ def bigquery_create_model_job(
   datasetId = query_result['ddlTargetTable']['datasetId']
   # tableId is the model ID
   modelId = query_result['ddlTargetTable']['tableId']
-  bqml_model_artifact = BQMLModel(
-      'model',
-      projectId, datasetId, modelId)
-  artifact_util.update_gcp_output_artifact(executor_input, bqml_model_artifact)
+  bqml_model_artifact = BQMLModel('model', projectId, datasetId, modelId)
+  artifact_util.update_output_artifacts(executor_input, [bqml_model_artifact])
 
 
 def bigquery_predict_model_job(
@@ -470,8 +466,8 @@ def bigquery_export_model_job(
           https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-export-model
       payload: A json serialized Job proto. For more details, see
         https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
-      exported_model_path: File path for the `exported_model_path`
-        output parameter.
+      exported_model_path: File path for the `exported_model_path` output
+        parameter.
       gcp_resources: File path for storing `gcp_resources` output parameter.
       executor_input:A json serialized pipeline executor input.
   """
