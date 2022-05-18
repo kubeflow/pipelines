@@ -83,9 +83,13 @@ class PlaceholderSerializationMixin(abc.ABC):
         str, type(NotImplemented)] = NotImplemented
 
     @classmethod
-    def _is_input_placeholder(cls) -> bool:
-        field_names = {field.name for field in dataclasses.fields(cls)}
-        return "input_name" in field_names
+    def get_key_name(cls) -> str:
+        for field in dataclasses.fields(cls):
+            if field.name.startswith(('input', 'output')):
+                return field.name
+        raise ValueError(
+            f'{cls.__name__} does not have an input or output field. Only found fields: {dataclasses.fields(cls)}'
+        )
 
     @classmethod
     def is_match(cls, placeholder: str) -> bool:
@@ -102,19 +106,16 @@ class PlaceholderSerializationMixin(abc.ABC):
             raise ValueError(
                 f'Could not parse placeholder: {placeholder} into {cls.__name__}'
             )
-        if cls._is_input_placeholder():
-            return cls(input_name=matches[1])
-        else:
-            return cls(output_name=matches[1])
+        kwargs = {cls.get_key_name(): matches[1]}
+        return cls(**kwargs)
 
     def to_placeholder(self) -> str:
         if self._TO_PLACEHOLDER_TEMPLATE_STRING == NotImplemented:
             raise NotImplementedError(
                 f'{self.__class__.__name__} does not support creating placeholder strings.'
             )
-        attr_name = 'input_name' if self._is_input_placeholder(
-        ) else 'output_name'
-        value = getattr(self, attr_name)
+        print("KEY_NAME", self.get_key_name())
+        value = getattr(self, self.get_key_name())
         return self._TO_PLACEHOLDER_TEMPLATE_STRING.format(value)
 
 
@@ -125,8 +126,7 @@ class InputValuePlaceholder(base_model.BaseModel,
     Attributes:
         input_name: name of the input.
     """
-    input_name: str
-    _aliases = {'input_name': 'inputValue'}
+    inputValue: str
     _TO_PLACEHOLDER_TEMPLATE_STRING = "{{{{$.inputs.parameters['{}']}}}}"
     _FROM_PLACEHOLDER_REGEX = r"\{\{\$\.inputs\.parameters\[(?:''|'|\")(.+?)(?:''|'|\")]\}\}"
 
@@ -407,12 +407,11 @@ def convert_str_or_dict_to_placeholder(
         raise ValueError(
             f'Got unexpected dictionary {res}. Expected a dictionary with one entry.'
         )
-
     first_key = list(res.keys())[0]
     first_value = list(res.values())[0]
     if first_key == 'inputValue':
         return InputValuePlaceholder(
-            input_name=utils.sanitize_input_name(first_value))
+            inputValue=utils.sanitize_input_name(first_value))
 
     elif first_key == 'inputPath':
         return InputPathPlaceholder(
@@ -473,10 +472,12 @@ def _check_valid_placeholder_reference(valid_inputs: List[str],
         TypeError: if any argument is neither a str nor a placeholder
             instance.
     """
-    if isinstance(
-            placeholder,
-        (InputValuePlaceholder, InputPathPlaceholder, InputUriPlaceholder)):
+    if isinstance(placeholder, (InputPathPlaceholder, InputUriPlaceholder)):
         if placeholder.input_name not in valid_inputs:
+            raise ValueError(
+                f'Argument "{placeholder}" references non-existing input.')
+    elif isinstance(placeholder, InputValuePlaceholder):
+        if placeholder.inputValue not in valid_inputs:
             raise ValueError(
                 f'Argument "{placeholder}" references non-existing input.')
     elif isinstance(placeholder, (OutputPathPlaceholder, OutputUriPlaceholder)):
@@ -540,7 +541,6 @@ class ComponentSpec(base_model.BaseModel):
         """Converts command and args elements to a placholder type where
         applicable."""
         if self.implementation.container is not None:
-
             if self.implementation.container.command is not None:
                 self.implementation.container.command = [
                     convert_str_or_dict_to_placeholder(e)

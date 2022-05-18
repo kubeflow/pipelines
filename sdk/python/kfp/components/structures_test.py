@@ -112,7 +112,7 @@ V2_COMPONENT_SPEC_CONCAT_PLACEHOLDER = structures.ComponentSpec(
             args=[
                 structures.ConcatPlaceholder(items=[
                     '--arg1',
-                    structures.InputValuePlaceholder(input_name='input_prefix'),
+                    structures.InputValuePlaceholder(inputValue='input_prefix'),
                 ])
             ])),
     inputs={'input_prefix': structures.InputSpec(type='String')},
@@ -155,7 +155,7 @@ V2_COMPONENT_SPEC_NESTED_PLACEHOLDER = structures.ComponentSpec(
                             then=[
                                 '--arg1',
                                 structures.InputValuePlaceholder(
-                                    input_name='input_prefix'),
+                                    inputValue='input_prefix'),
                             ],
                             otherwise=[
                                 '--arg2',
@@ -163,7 +163,7 @@ V2_COMPONENT_SPEC_NESTED_PLACEHOLDER = structures.ComponentSpec(
                                 structures.ConcatPlaceholder(items=[
                                     '--arg1',
                                     structures.InputValuePlaceholder(
-                                        input_name='input_prefix'),
+                                        inputValue='input_prefix'),
                                 ]),
                             ])),
                 ])
@@ -190,7 +190,7 @@ class StructuresTest(parameterized.TestCase):
                             '-c',
                             'set -ex\necho "$0" > "$1"',
                             structures.InputValuePlaceholder(
-                                input_name='input000'),
+                                inputValue='input000'),
                             structures.OutputPathPlaceholder(
                                 output_name='output1'),
                         ],
@@ -213,7 +213,7 @@ class StructuresTest(parameterized.TestCase):
                             '-c',
                             'set -ex\necho "$0" > "$1"',
                             structures.InputValuePlaceholder(
-                                input_name='input1'),
+                                inputValue='input1'),
                             structures.OutputPathPlaceholder(
                                 output_name='output000'),
                         ],
@@ -236,7 +236,7 @@ class StructuresTest(parameterized.TestCase):
                             '-c',
                             'set -ex\necho "$0" > "$1"',
                             structures.InputValuePlaceholder(
-                                input_name='input1'),
+                                inputValue='input1'),
                             structures.OutputPathPlaceholder(
                                 output_name='output1'),
                         ],
@@ -314,7 +314,7 @@ class StructuresTest(parameterized.TestCase):
                         'sh',
                         '-c',
                         'set -ex\necho "$0" > "$1"',
-                        structures.InputValuePlaceholder(input_name='input1'),
+                        structures.InputValuePlaceholder(inputValue='input1'),
                         structures.OutputPathPlaceholder(output_name='output1'),
                     ],
                 )),
@@ -391,7 +391,7 @@ class StructuresTest(parameterized.TestCase):
                     ],
                     args=[
                         structures.InputValuePlaceholder(
-                            input_name='input_parameter'),
+                            inputValue='input_parameter'),
                         structures.InputPathPlaceholder(
                             input_name='input_artifact'),
                         structures.OutputPathPlaceholder(
