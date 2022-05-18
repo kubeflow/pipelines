@@ -13,7 +13,6 @@
 # limitations under the License.
 """Definitions for component spec."""
 
-import abc
 import ast
 import collections
 import dataclasses
@@ -77,7 +76,7 @@ class OutputSpec(base_model.BaseModel):
     description: Optional[str] = None
 
 
-class PlaceholderSerializationMixin(abc.ABC):
+class PlaceholderSerializationMixin:
     _FROM_PLACEHOLDER_REGEX: Union[str, type(NotImplemented)] = NotImplemented
     _TO_PLACEHOLDER_TEMPLATE_STRING: Union[
         str, type(NotImplemented)] = NotImplemented
