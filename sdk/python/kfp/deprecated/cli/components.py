@@ -19,6 +19,7 @@ import shutil
 import subprocess
 import tempfile
 from typing import Any, List, Optional
+from kfp.shared import kfp_config
 
 _DOCKER_IS_PRESENT = True
 try:
@@ -29,7 +30,7 @@ except ImportError:
 import typer
 
 import kfp.deprecated as kfp
-from kfp.components import component_factory, kfp_config, utils
+from kfp.components import component_factory, utils
 
 _REQUIREMENTS_TXT = 'requirements.txt'
 

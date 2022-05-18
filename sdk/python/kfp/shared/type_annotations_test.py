@@ -17,11 +17,10 @@ import unittest
 from typing import Any, Dict, List, Optional
 
 from absl.testing import parameterized
-from kfp.components.types import type_annotations
-from kfp.components.types.artifact_types import Model
-from kfp.components.types.type_annotations import (Input, InputAnnotation,
-                                                   InputPath, Output,
-                                                   OutputAnnotation, OutputPath)
+from kfp.shared import type_annotations
+from kfp.shared.artifact_types import Model
+from kfp.shared.type_annotations import (Input, InputAnnotation, InputPath,
+                                         Output, OutputAnnotation, OutputPath)
 
 
 class AnnotationsTest(parameterized.TestCase):

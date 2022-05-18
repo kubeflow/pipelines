@@ -17,9 +17,9 @@ import os
 import re
 from typing import Any, Callable, Dict, List, Optional, Union
 
-from kfp.components import task_final_status
-from kfp.components.types import artifact_types
-from kfp.components.types import type_annotations
+from kfp.component_executor.shared import task_final_status
+from kfp.component_executor.shared import artifact_types
+from kfp.component_executor.shared import type_annotations
 
 
 class Executor:

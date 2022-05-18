@@ -18,7 +18,7 @@ import json
 import os
 
 from absl.testing import parameterized
-from kfp.components.types import artifact_types
+from kfp.shared import artifact_types
 
 
 class ArtifactsTest(parameterized.TestCase):

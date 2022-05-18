@@ -18,10 +18,10 @@ import warnings
 from typing import List, Optional, Type, Union
 
 import kfp
-from kfp.components import task_final_status
+from kfp.shared import task_final_status
 from kfp.components import v1_structures
-from kfp.components.types import artifact_types
-from kfp.components.types import type_annotations
+from kfp.shared import artifact_types
+from kfp.shared import type_annotations
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 PARAMETER_TYPES = Union[str, int, float, bool, dict, list]

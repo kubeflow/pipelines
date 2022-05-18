@@ -6,13 +6,13 @@ all: clean
 
 .PHONY: build clean
 clean:
-	rm -rf $(COMPONENT_EXECUTOR_DIR)/kfp
+	rm -rf $(COMPONENT_EXECUTOR_DIR)/kfp/component_executor/shared
 	rm -rf $(COMPONENT_EXECUTOR_DIR)/*.tar.gz
 	rm -rf $(COMPONENT_EXECUTOR_DIR)/*.egg-info
 
 .PHONY: build
 build:
-	rsync -ax --exclude **/*test*.py $(KFP_DIR)/component_executor $(COMPONENT_EXECUTOR_DIR)/kfp/
+	rsync -ax --exclude '**/*test*' $(KFP_DIR)/shared $(COMPONENT_EXECUTOR_DIR)/kfp/component_executor/
 	$(eval dist_dir := $(shell mktemp -d))
 	dist_dir=
 	python3 setup.py sdist --format=gztar --dist-dir "$(dist_dir)"

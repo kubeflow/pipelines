@@ -16,16 +16,11 @@ import json
 import logging
 import os
 import sys
+import types
+import importlib
 
 from kfp.component_executor import executor
-from kfp.components import kfp_config
-from kfp.components import utils
-
-
-def setup_logging() -> None:
-    logging_format = '[KFP Executor %(asctime)s %(levelname)s]: %(message)s'
-    logging.basicConfig(
-        stream=sys.stdout, format=logging_format, level=logging.INFO)
+from kfp.component_executor.shared import kfp_config
 
 
 def executor_main() -> None:
@@ -87,7 +82,7 @@ def executor_main() -> None:
         f'Loading KFP component "{func_name}" from {module_path} (directory "{module_directory}" and module name "{module_name}")'
     )
 
-    module = utils.load_module(
+    module = load_module(
         module_name=module_name, module_directory=module_directory)
 
     executor_input = json.loads(args.executor_input)
@@ -99,6 +94,36 @@ def executor_main() -> None:
         executor_input=executor_input, function_to_execute=function_to_execute)
 
     executor_obj.execute()
+
+
+def setup_logging() -> None:
+    logging_format = '[KFP Executor %(asctime)s %(levelname)s]: %(message)s'
+    logging.basicConfig(
+        stream=sys.stdout, format=logging_format, level=logging.INFO)
+
+
+def load_module(module_name: str, module_directory: str) -> types.ModuleType:
+    """Dynamically imports the Python module with the given name and package
+    path.
+
+    E.g., Assuming there is a file called `my_module.py` under
+    `/some/directory/my_module`, we can use::
+
+        load_module('my_module', '/some/directory')
+
+    to effectively `import mymodule`.
+
+    Args:
+        module_name: The name of the module.
+        package_path: The package under which the specified module resides.
+    """
+    module_spec = importlib.util.spec_from_file_location(
+        name=module_name,
+        location=os.path.join(module_directory, f'{module_name}.py'))
+    module = importlib.util.module_from_spec(module_spec)
+    sys.modules[module_spec.name] = module
+    module_spec.loader.exec_module(module)
+    return module
 
 
 if __name__ == '__main__':

@@ -19,16 +19,16 @@ from typing import Callable, Dict, List, NamedTuple, Optional
 
 from absl.testing import parameterized
 from kfp.component_executor import executor
-from kfp.components.task_final_status import PipelineTaskFinalStatus
-from kfp.components.types import artifact_types
-from kfp.components.types.artifact_types import Artifact
-from kfp.components.types.artifact_types import Dataset
-from kfp.components.types.artifact_types import Metrics
-from kfp.components.types.artifact_types import Model
-from kfp.components.types.type_annotations import Input
-from kfp.components.types.type_annotations import InputPath
-from kfp.components.types.type_annotations import Output
-from kfp.components.types.type_annotations import OutputPath
+from kfp.component_executor.shared.task_final_status import PipelineTaskFinalStatus
+from kfp.component_executor.shared import artifact_types
+from kfp.component_executor.shared.artifact_types import Artifact
+from kfp.component_executor.shared.artifact_types import Dataset
+from kfp.component_executor.shared.artifact_types import Metrics
+from kfp.component_executor.shared.artifact_types import Model
+from kfp.component_executor.shared.type_annotations import Input
+from kfp.component_executor.shared.type_annotations import InputPath
+from kfp.component_executor.shared.type_annotations import Output
+from kfp.component_executor.shared.type_annotations import OutputPath
 
 _EXECUTOR_INPUT = """\
 {

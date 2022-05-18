@@ -32,7 +32,7 @@ except ImportError:
 
 import kfp as kfp
 from kfp.components import component_factory
-from kfp.components import kfp_config
+from kfp.shared import kfp_config
 from kfp.components import utils
 
 _REQUIREMENTS_TXT = 'requirements.txt'

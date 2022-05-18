@@ -23,13 +23,13 @@ from kfp.components.pipeline_channel import (
 )
 from kfp.components.pipeline_context import pipeline
 from kfp.components.pipeline_task import PipelineTask
-from kfp.components.task_final_status import PipelineTaskFinalStatus
+from kfp.shared.task_final_status import PipelineTaskFinalStatus
 from kfp.components.tasks_group import (
     Condition,
     ExitHandler,
     ParallelFor,
 )
-from kfp.components.types.artifact_types import (
+from kfp.shared.artifact_types import (
     Artifact,
     ClassificationMetrics,
     Dataset,
@@ -39,7 +39,7 @@ from kfp.components.types.artifact_types import (
     Model,
     SlicedClassificationMetrics,
 )
-from kfp.components.types.type_annotations import (
+from kfp.shared.type_annotations import (
     Input,
     Output,
     InputPath,

@@ -25,7 +25,8 @@ import docstring_parser
 from kfp.components import placeholders
 from kfp.components import python_component
 from kfp.components import structures
-from kfp.components.types import artifact_types, type_annotations 
+from kfp.shared import artifact_types
+from kfp.shared import type_annotations
 from kfp.components.types import type_utils
 
 _DEFAULT_BASE_IMAGE = 'python:3.7'

@@ -31,7 +31,7 @@ from kfp.components import structures
 from kfp.components import tasks_group
 from kfp.components import utils
 from kfp.components import utils as component_utils
-from kfp.components.types import artifact_types
+from kfp.shared import artifact_types
 from kfp.components.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
