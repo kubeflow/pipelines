@@ -16,8 +16,8 @@ import os
 
 import setuptools
 
-NAME = 'kfp-component-executor'
-VERSION = '0.0.1'
+NAME = "kfp-component-executor"
+VERSION = "0.0.1"
 
 readme_path = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'README.md')
@@ -28,13 +28,12 @@ with open(readme_path) as f:
 setuptools.setup(
     name=NAME,
     version=VERSION,
-    description='Kubeflow Pipelines component executor package.',
+    description="Kubeflow Pipelines component execution runtime.",
     long_description=readme,
-    author='google',
-    author_email='kubeflow-pipelines@google.com',
-    url='https://github.com/kubeflow/pipelines',
-    packages=['kfp_component_executor'],
-    python_requires='>=3.7.0',
-    install_requires=['kfp>=2.0.0-a3'],
-    license='Apache 2.0',
+    author="google",
+    author_email="kubeflow-pipelines@google.com",
+    url="https://github.com/kubeflow/pipelines",
+    packages=setuptools.find_namespace_packages(include=['kfp.*']),
+    python_requires=">=3.7.0",
+    license="Apache 2.0",
 )

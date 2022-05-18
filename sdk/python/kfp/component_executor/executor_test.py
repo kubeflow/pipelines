@@ -18,7 +18,7 @@ import unittest
 from typing import Callable, Dict, List, NamedTuple, Optional
 
 from absl.testing import parameterized
-from kfp.components import executor
+from kfp.component_executor import executor
 from kfp.components.task_final_status import PipelineTaskFinalStatus
 from kfp.components.types import artifact_types
 from kfp.components.types.artifact_types import Artifact

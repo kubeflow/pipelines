@@ -12,10 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
 import setuptools
 
 NAME = "kfp-pipeline-spec"
 VERSION = "0.1.14"
+
+readme_path = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'README.md')
+
+with open(readme_path) as f:
+    readme = f.read()
 
 setuptools.setup(
     name=NAME,
