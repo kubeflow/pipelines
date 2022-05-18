@@ -17,12 +17,12 @@ REGION=${REGION:-"$(aws configure get region)"} # Deployment region
 
 ### Configuration parameters
 EKS_EXISTING_CLUSTER=${EKS_EXISTING_CLUSTER:-""} # Use an existing EKS cluster
-EKS_CLUSTER_VERSION=${EKS_CLUSTER_VERSION:-"1.18"} # EKS cluster K8s version
+EKS_CLUSTER_VERSION=${EKS_CLUSTER_VERSION:-"1.19"} # EKS cluster K8s version
 EKS_NODE_COUNT=${EKS_NODE_COUNT:-"1"} # The initial node count of the EKS cluster
 EKS_PUBLIC_SUBNETS=${EKS_PUBLIC_SUBNETS:-""}
 EKS_PRIVATE_SUBNETS=${EKS_PRIVATE_SUBNETS:-""}
 SKIP_KFP_OIDC_SETUP=${SKIP_KFP_OIDC_SETUP:-"false"}
-KFP_VERSION=${KFP_VERSION:-"1.7.0"}
+KFP_VERSION=${KFP_VERSION:-"1.8.1"}
 
 ### Testing parameters
 MINIO_LOCAL_PORT=${MINIO_LOCAL_PORT:-9000}
