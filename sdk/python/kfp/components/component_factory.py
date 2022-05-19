@@ -17,15 +17,14 @@ import itertools
 import pathlib
 import re
 import textwrap
-from typing import Callable, List, Optional, Tuple
 import warnings
+from typing import Callable, List, Optional, Tuple
 
 import docstring_parser
-
-from kfp.components import placeholders
 from kfp.components import python_component
 from kfp.components import structures
-from kfp.components.types import artifact_types, type_annotations 
+from kfp.components.types import artifact_types
+from kfp.components.types import type_annotations
 from kfp.components.types import type_utils
 
 _DEFAULT_BASE_IMAGE = 'python:3.7'
@@ -317,6 +316,9 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
     return component_spec
 
 
+EXECUTOR_INPUT_PLACEHOLDER = "{{$}}"
+
+
 def _get_command_and_args_for_lightweight_component(
         func: Callable) -> Tuple[List[str], List[str]]:
     imports_source = [
@@ -348,7 +350,7 @@ def _get_command_and_args_for_lightweight_component(
 
     args = [
         '--executor_input',
-        placeholders.executor_input_placeholder(),
+        EXECUTOR_INPUT_PLACEHOLDER,
         '--function_to_execute',
         func.__name__,
     ]
@@ -366,7 +368,7 @@ def _get_command_and_args_for_containerized_component(
 
     args = [
         '--executor_input',
-        placeholders.executor_input_placeholder(),
+        EXECUTOR_INPUT_PLACEHOLDER,
         '--function_to_execute',
         function_name,
     ]
