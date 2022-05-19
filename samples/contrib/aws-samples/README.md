@@ -6,7 +6,7 @@ This folder contains many example pipelines which use [AWS SageMaker Components 
 
 ## Prerequisites 
 
-1. You need a cluster with Kubeflow installed on it. [Install Kubeflow on AWS cluster](https://www.kubeflow.org/docs/aws/deploy/install-kubeflow/)
+1. You need a cluster with Kubeflow installed on it. [Install Kubeflow on AWS cluster](https://awslabs.github.io/kubeflow-manifests/docs/deployment/vanilla/guide/)
 2. Install the following on your local machine or EC2 instance (These are recommended tools. Not all of these are required)
     1. [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html). If you are using an IAM user, configure your [Access Key ID, Secret Access Key](https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html#access-keys-and-secret-access-keys) and preferred AWS Region by running:
        `aws configure`  
