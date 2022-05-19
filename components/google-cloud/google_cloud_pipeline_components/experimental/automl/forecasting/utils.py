@@ -15,6 +15,7 @@ def get_bqml_arima_train_pipeline_and_parameters(
     data_granularity_unit: str,
     data_source: Dict[str, Dict[str, Union[List[str], str]]],
     split_spec: Optional[Dict[str, Dict[str, Union[str, float]]]] = None,
+    window_config: Optional[Dict[str, Union[str, int]]] = None,
     bigquery_destination_uri: str = '',
     override_destination: bool = False,
     max_order: int = 5,
@@ -59,6 +60,13 @@ def get_bqml_arima_train_pipeline_and_parameters(
             'test_fraction': 0.1,
         },
       }
+    window_config: Serialized JSON that configures how many evaluation windows
+      will be created from the test set. Valid inputs are:
+      {"column": "[COLUMN]"}
+      or
+      {"stride_length": [STRIDE]}
+      or
+      {"max_count": [COUNT]}
     bigquery_destination_uri: URI of the desired destination dataset. If not
       specified, resources will be created under a new dataset in the project.
       Unlike in Vertex Forecasting, all resources will be given hardcoded names
@@ -81,6 +89,8 @@ def get_bqml_arima_train_pipeline_and_parameters(
             'test_fraction': 0.1,
         },
     }
+  if window_config is None:
+    window_config = {'max_count': 1e8}
   parameter_values = {
       'project': project,
       'location': location,
@@ -91,6 +101,7 @@ def get_bqml_arima_train_pipeline_and_parameters(
       'data_granularity_unit': data_granularity_unit,
       'data_source': data_source,
       'split_spec': split_spec,
+      'window_config': window_config,
       'bigquery_destination_uri': bigquery_destination_uri,
       'override_destination': override_destination,
       'max_order': max_order,

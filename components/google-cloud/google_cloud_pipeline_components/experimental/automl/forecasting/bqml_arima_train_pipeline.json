@@ -386,6 +386,35 @@
           }
         }
       },
+      "comp-build-preprocessing-query-parameters": {
+        "executorLabel": "exec-build-preprocessing-query-parameters",
+        "inputDefinitions": {
+          "parameters": {
+            "row_count": {
+              "type": "INT"
+            },
+            "training_fraction_split": {
+              "type": "DOUBLE"
+            },
+            "validation_fraction_split": {
+              "type": "DOUBLE"
+            },
+            "window_max_count": {
+              "type": "INT"
+            },
+            "window_stride_length": {
+              "type": "INT"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
       "comp-build-serialized-query-parameters": {
         "executorLabel": "exec-build-serialized-query-parameters",
         "inputDefinitions": {
@@ -470,26 +499,6 @@
           }
         }
       },
-      "comp-build-split-query-parameters": {
-        "executorLabel": "exec-build-split-query-parameters",
-        "inputDefinitions": {
-          "parameters": {
-            "training_fraction_split": {
-              "type": "DOUBLE"
-            },
-            "validation_fraction_split": {
-              "type": "DOUBLE"
-            }
-          }
-        },
-        "outputDefinitions": {
-          "parameters": {
-            "Output": {
-              "type": "STRING"
-            }
-          }
-        }
-      },
       "comp-cond": {
         "executorLabel": "exec-cond",
         "inputDefinitions": {
@@ -509,6 +518,29 @@
           "parameters": {
             "Output": {
               "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-count-rows": {
+        "executorLabel": "exec-count-rows",
+        "inputDefinitions": {
+          "parameters": {
+            "location": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "table": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "INT"
             }
           }
         }
@@ -726,10 +758,12 @@
               },
               "dependentTasks": [
                 "bigquery-create-dataset",
-                "build-split-query-parameters",
+                "build-preprocessing-query-parameters",
                 "get-first-valid",
                 "maybe-replace-with-default-2",
-                "maybe-replace-with-default-3"
+                "maybe-replace-with-default-3",
+                "maybe-replace-with-default-4",
+                "maybe-replace-with-default-5"
               ],
               "inputs": {
                 "parameters": {
@@ -780,6 +814,18 @@
                       "producerTask": "maybe-replace-with-default-3"
                     }
                   },
+                  "pipelineparam--maybe-replace-with-default-4-Output": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "Output",
+                      "producerTask": "maybe-replace-with-default-4"
+                    }
+                  },
+                  "pipelineparam--maybe-replace-with-default-5-Output": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "Output",
+                      "producerTask": "maybe-replace-with-default-5"
+                    }
+                  },
                   "pipelineparam--target_column_name": {
                     "componentInputParameter": "pipelineparam--target_column_name"
                   },
@@ -795,14 +841,14 @@
                   "query": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "\n      WITH\n        fractional_splits AS (\n          SELECT\n            percentiles[OFFSET(@train_percent)] AS train_split,\n            percentiles[OFFSET(@validation_percent)] AS validation_split,\n          FROM (\n            SELECT APPROX_QUANTILES(DISTINCT {{$.inputs.parameters['pipelineparam--time_column']}}, 100) AS percentiles,\n            FROM `{{$.inputs.parameters['pipelineparam--get-first-valid-Output']}}`\n          )\n        ),\n        data_with_fractional_splits AS (\n          SELECT\n            data.*,\n            CASE\n              WHEN {{$.inputs.parameters['pipelineparam--time_column']}} < train_split THEN 'TRAIN'\n              WHEN {{$.inputs.parameters['pipelineparam--time_column']}} < validation_split THEN 'VALIDATE'\n              ELSE 'TEST'\n            END AS _{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-2-Output']}}\n          FROM `{{$.inputs.parameters['pipelineparam--get-first-valid-Output']}}` AS data\n          CROSS JOIN fractional_splits\n        )\n      SELECT\n        CAST({{$.inputs.parameters['pipelineparam--time_series_identifier_column']}} AS STRING)\n          AS {{$.inputs.parameters['pipelineparam--time_series_identifier_column']}},\n        TIMESTAMP({{$.inputs.parameters['pipelineparam--time_column']}}) AS {{$.inputs.parameters['pipelineparam--time_column']}},\n        CAST({{$.inputs.parameters['pipelineparam--target_column_name']}} AS FLOAT64) AS {{$.inputs.parameters['pipelineparam--target_column_name']}},\n        COALESCE({{$.inputs.parameters['pipelineparam--maybe-replace-with-default-3-Output']}}, _{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-2-Output']}}) AS {{$.inputs.parameters['pipelineparam--maybe-replace-with-default-2-Output']}}\n      FROM data_with_fractional_splits\n  "
+                        "stringValue": "\n      WITH\n        fractional_splits AS (\n          SELECT\n            percentiles[OFFSET(@train_percent)] AS train_split,\n            percentiles[OFFSET(@validation_percent)] AS validation_split,\n          FROM (\n            SELECT APPROX_QUANTILES(DISTINCT {{$.inputs.parameters['pipelineparam--time_column']}}, 100) AS percentiles,\n            FROM `{{$.inputs.parameters['pipelineparam--get-first-valid-Output']}}`\n          )\n        ),\n        numbered_data_with_fractional_splits AS (\n          SELECT\n            data.*,\n            CASE\n              WHEN {{$.inputs.parameters['pipelineparam--time_column']}} < train_split THEN 'TRAIN'\n              WHEN {{$.inputs.parameters['pipelineparam--time_column']}} < validation_split THEN 'VALIDATE'\n              ELSE 'TEST'\n            END AS _{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-2-Output']}},\n            DENSE_RANK() OVER (ORDER BY {{$.inputs.parameters['pipelineparam--time_column']}}) - 1 AS window_number,\n          FROM `{{$.inputs.parameters['pipelineparam--get-first-valid-Output']}}` AS data\n          CROSS JOIN fractional_splits\n        ),\n        data_with_fractional_splits_and_windows AS (\n          SELECT\n            *,\n            IF(\n              MOD(window_number, @window_stride) = 0\n                AND RAND() < @window_freq,\n              TRUE,\n              FALSE\n            ) AS _{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-4-Output']}}\n          FROM numbered_data_with_fractional_splits AS data\n        )\n      SELECT\n        CAST({{$.inputs.parameters['pipelineparam--time_series_identifier_column']}} AS STRING)\n          AS {{$.inputs.parameters['pipelineparam--time_series_identifier_column']}},\n        TIMESTAMP({{$.inputs.parameters['pipelineparam--time_column']}}) AS {{$.inputs.parameters['pipelineparam--time_column']}},\n        CAST({{$.inputs.parameters['pipelineparam--target_column_name']}} AS FLOAT64) AS {{$.inputs.parameters['pipelineparam--target_column_name']}},\n        COALESCE({{$.inputs.parameters['pipelineparam--maybe-replace-with-default-3-Output']}}, _{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-2-Output']}}) AS {{$.inputs.parameters['pipelineparam--maybe-replace-with-default-2-Output']}},\n        COALESCE(\n          {{$.inputs.parameters['pipelineparam--maybe-replace-with-default-5-Output']}}, _{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-4-Output']}}\n        ) AS {{$.inputs.parameters['pipelineparam--maybe-replace-with-default-4-Output']}},\n      FROM data_with_fractional_splits_and_windows\n  "
                       }
                     }
                   },
                   "query_parameters": {
                     "taskOutputParameter": {
                       "outputParameterKey": "Output",
-                      "producerTask": "build-split-query-parameters"
+                      "producerTask": "build-preprocessing-query-parameters"
                     }
                   }
                 }
@@ -822,6 +868,7 @@
                 "bigquery-create-dataset",
                 "build-serialized-query-parameters",
                 "maybe-replace-with-default-2",
+                "maybe-replace-with-default-4",
                 "table-to-uri"
               ],
               "inputs": {
@@ -864,6 +911,12 @@
                       "producerTask": "maybe-replace-with-default-2"
                     }
                   },
+                  "pipelineparam--maybe-replace-with-default-4-Output": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "Output",
+                      "producerTask": "maybe-replace-with-default-4"
+                    }
+                  },
                   "pipelineparam--table-to-uri-uri": {
                     "taskOutputParameter": {
                       "outputParameterKey": "uri",
@@ -882,7 +935,7 @@
                   "query": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "\n      WITH\n        time_series_windows AS (\n          SELECT\n             MIN({{$.inputs.parameters['pipelineparam--time_column']}}) OVER (horizon) AS start_time,\n             COUNT(*) OVER (horizon) AS count,\n           FROM `{{$.inputs.parameters['pipelineparam--table-to-uri-uri']}}`\n           WHERE UPPER({{$.inputs.parameters['pipelineparam--maybe-replace-with-default-2-Output']}}) IN UNNEST(@splits)\n           WINDOW horizon AS (\n             PARTITION BY {{$.inputs.parameters['pipelineparam--time_series_identifier_column']}}\n             ORDER BY {{$.inputs.parameters['pipelineparam--time_column']}}\n             ROWS BETWEEN 0 PRECEDING AND @forecast_horizon FOLLOWING)\n        )\n      SELECT\n        start_time,\n        TIMESTAMP(DATETIME_ADD(\n          DATETIME(start_time),\n          INTERVAL @forecast_horizon {{$.inputs.parameters['pipelineparam--data_granularity_unit']}}\n        )) AS end_time,\n        SUM(count) AS count,\n        ROW_NUMBER() OVER () AS window_number,\n      FROM time_series_windows\n      GROUP BY start_time\n  "
+                        "stringValue": "\n      WITH\n        time_series_windows AS (\n          SELECT\n             FIRST_VALUE({{$.inputs.parameters['pipelineparam--time_column']}}) OVER (horizon) AS start_time,\n             COUNT(*) OVER (horizon) AS count,\n             FIRST_VALUE({{$.inputs.parameters['pipelineparam--maybe-replace-with-default-4-Output']}}) OVER (horizon) AS {{$.inputs.parameters['pipelineparam--maybe-replace-with-default-4-Output']}},\n           FROM `{{$.inputs.parameters['pipelineparam--table-to-uri-uri']}}`\n           WHERE UPPER({{$.inputs.parameters['pipelineparam--maybe-replace-with-default-2-Output']}}) IN UNNEST(@splits)\n           WINDOW horizon AS (\n             PARTITION BY {{$.inputs.parameters['pipelineparam--time_series_identifier_column']}}\n             ORDER BY {{$.inputs.parameters['pipelineparam--time_column']}}\n             ROWS BETWEEN 0 PRECEDING AND @forecast_horizon FOLLOWING)\n        )\n      SELECT\n        start_time,\n        TIMESTAMP(DATETIME_ADD(\n          DATETIME(start_time),\n          INTERVAL @forecast_horizon {{$.inputs.parameters['pipelineparam--data_granularity_unit']}}\n        )) AS end_time,\n        SUM(count) AS count,\n        ROW_NUMBER() OVER () AS window_number,\n      FROM time_series_windows\n      WHERE {{$.inputs.parameters['pipelineparam--maybe-replace-with-default-4-Output']}}\n      GROUP BY start_time\n  "
                       }
                     }
                   },
@@ -1196,6 +1249,56 @@
                 "name": "export-evaluated-examples-table"
               }
             },
+            "build-preprocessing-query-parameters": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-build-preprocessing-query-parameters"
+              },
+              "dependentTasks": [
+                "count-rows",
+                "parse-split-spec",
+                "parse-window-config"
+              ],
+              "inputs": {
+                "parameters": {
+                  "row_count": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "Output",
+                      "producerTask": "count-rows"
+                    }
+                  },
+                  "training_fraction_split": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "training_fraction_split",
+                      "producerTask": "parse-split-spec"
+                    }
+                  },
+                  "validation_fraction_split": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "validation_fraction_split",
+                      "producerTask": "parse-split-spec"
+                    }
+                  },
+                  "window_max_count": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "window_max_count",
+                      "producerTask": "parse-window-config"
+                    }
+                  },
+                  "window_stride_length": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "window_stride_length",
+                      "producerTask": "parse-window-config"
+                    }
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "build-preprocessing-query-parameters"
+              }
+            },
             "build-serialized-query-parameters": {
               "cachingOptions": {
                 "enableCache": true
@@ -1266,36 +1369,6 @@
                 "name": "build-serialized-query-parameters-3"
               }
             },
-            "build-split-query-parameters": {
-              "cachingOptions": {
-                "enableCache": true
-              },
-              "componentRef": {
-                "name": "comp-build-split-query-parameters"
-              },
-              "dependentTasks": [
-                "parse-split-spec"
-              ],
-              "inputs": {
-                "parameters": {
-                  "training_fraction_split": {
-                    "taskOutputParameter": {
-                      "outputParameterKey": "training_fraction_split",
-                      "producerTask": "parse-split-spec"
-                    }
-                  },
-                  "validation_fraction_split": {
-                    "taskOutputParameter": {
-                      "outputParameterKey": "validation_fraction_split",
-                      "producerTask": "parse-split-spec"
-                    }
-                  }
-                }
-              },
-              "taskInfo": {
-                "name": "build-split-query-parameters"
-              }
-            },
             "cond": {
               "cachingOptions": {
                 "enableCache": true
@@ -1326,6 +1399,36 @@
               },
               "taskInfo": {
                 "name": "cond"
+              }
+            },
+            "count-rows": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-count-rows"
+              },
+              "dependentTasks": [
+                "get-first-valid"
+              ],
+              "inputs": {
+                "parameters": {
+                  "location": {
+                    "componentInputParameter": "pipelineparam--location"
+                  },
+                  "project": {
+                    "componentInputParameter": "pipelineparam--project"
+                  },
+                  "table": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "Output",
+                      "producerTask": "get-first-valid"
+                    }
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "count-rows"
               }
             },
             "for-loop-2": {
@@ -1658,6 +1761,68 @@
                 "name": "maybe-replace-with-default-3"
               }
             },
+            "maybe-replace-with-default-4": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-maybe-replace-with-default-4"
+              },
+              "dependentTasks": [
+                "parse-window-config"
+              ],
+              "inputs": {
+                "parameters": {
+                  "default": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "is_window"
+                      }
+                    }
+                  },
+                  "value": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "window_column",
+                      "producerTask": "parse-window-config"
+                    }
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "maybe-replace-with-default-4"
+              }
+            },
+            "maybe-replace-with-default-5": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-maybe-replace-with-default-5"
+              },
+              "dependentTasks": [
+                "parse-window-config"
+              ],
+              "inputs": {
+                "parameters": {
+                  "default": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "NULL"
+                      }
+                    }
+                  },
+                  "value": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "window_column",
+                      "producerTask": "parse-window-config"
+                    }
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "maybe-replace-with-default-5"
+              }
+            },
             "parse-data-source": {
               "cachingOptions": {
                 "enableCache": true
@@ -1692,6 +1857,24 @@
               },
               "taskInfo": {
                 "name": "parse-split-spec"
+              }
+            },
+            "parse-window-config": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-parse-window-config"
+              },
+              "inputs": {
+                "parameters": {
+                  "window_config": {
+                    "componentInputParameter": "pipelineparam--window_config"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "parse-window-config"
               }
             },
             "table-to-uri": {
@@ -1775,7 +1958,8 @@
               },
               "dependentTasks": [
                 "parse-data-source",
-                "parse-split-spec"
+                "parse-split-spec",
+                "parse-window-config"
               ],
               "inputs": {
                 "parameters": {
@@ -1826,6 +2010,24 @@
                       "outputParameterKey": "validation_fraction_split",
                       "producerTask": "parse-split-spec"
                     }
+                  },
+                  "window_column": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "window_column",
+                      "producerTask": "parse-window-config"
+                    }
+                  },
+                  "window_max_count": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "window_max_count",
+                      "producerTask": "parse-window-config"
+                    }
+                  },
+                  "window_stride_length": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "window_stride_length",
+                      "producerTask": "parse-window-config"
+                    }
                   }
                 }
               },
@@ -1871,6 +2073,9 @@
               "type": "STRING"
             },
             "pipelineparam--time_series_identifier_column": {
+              "type": "STRING"
+            },
+            "pipelineparam--window_config": {
               "type": "STRING"
             }
           }
@@ -2500,6 +2705,46 @@
           }
         }
       },
+      "comp-maybe-replace-with-default-4": {
+        "executorLabel": "exec-maybe-replace-with-default-4",
+        "inputDefinitions": {
+          "parameters": {
+            "default": {
+              "type": "STRING"
+            },
+            "value": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-maybe-replace-with-default-5": {
+        "executorLabel": "exec-maybe-replace-with-default-5",
+        "inputDefinitions": {
+          "parameters": {
+            "default": {
+              "type": "STRING"
+            },
+            "value": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
       "comp-parse-data-source": {
         "executorLabel": "exec-parse-data-source",
         "inputDefinitions": {
@@ -2542,6 +2787,29 @@
             },
             "validation_fraction_split": {
               "type": "DOUBLE"
+            }
+          }
+        }
+      },
+      "comp-parse-window-config": {
+        "executorLabel": "exec-parse-window-config",
+        "inputDefinitions": {
+          "parameters": {
+            "window_config": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "window_column": {
+              "type": "STRING"
+            },
+            "window_max_count": {
+              "type": "INT"
+            },
+            "window_stride_length": {
+              "type": "INT"
             }
           }
         }
@@ -2780,6 +3048,15 @@
             },
             "validation_fraction_split": {
               "type": "DOUBLE"
+            },
+            "window_column": {
+              "type": "STRING"
+            },
+            "window_max_count": {
+              "type": "INT"
+            },
+            "window_stride_length": {
+              "type": "INT"
             }
           }
         }
@@ -3056,6 +3333,26 @@
             "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.6"
           }
         },
+        "exec-build-preprocessing-query-parameters": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "build_preprocessing_query_parameters"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef build_preprocessing_query_parameters(\n    training_fraction_split: float = 0,\n    validation_fraction_split: float = 0,\n    window_stride_length: int = 1,\n    window_max_count: int = 1e8,\n    row_count: int = 1,\n) -> list:  # pylint: disable=g-bare-generic\n  \"\"\"Creates configuration JSON objects for the split column query.\n\n  All query parameters will be stored in a list of QueryParameter objects:\n  https://cloud.google.com/bigquery/docs/reference/rest/v2/QueryParameter\n\n  Args:\n    training_fraction_split: Fraction of the data to use for training.\n    validation_fraction_split: Fraction of the data to use for validation.\n    window_stride_length: Period to use when selecting test samples to map to\n      evaluation windows. A stride of 1 will result in one window per timestamp.\n    window_max_count: Maximum number of windows across the entire dataset. Used\n      to determine the frequency to sample the test data when creating windows.\n    row_count: The number of rows in the dataset.\n\n  Returns:\n    A list of QueryParameters.\n  \"\"\"\n  return [\n      {\n          'name': 'train_percent',\n          'parameterType': {'type': 'INTEGER'},\n          'parameterValue': {'value': str(int(training_fraction_split * 100))},\n      },\n      {\n          'name': 'validation_percent',\n          'parameterType': {'type': 'INTEGER'},\n          'parameterValue': {\n              'value': str(int(\n                  (training_fraction_split + validation_fraction_split) * 100)),\n          },\n      },\n      {\n          'name': 'window_stride',\n          'parameterType': {'type': 'INTEGER'},\n          'parameterValue': {'value': str(window_stride_length or 1)},\n      },\n      {\n          'name': 'window_freq',\n          'parameterType': {'type': 'FLOAT'},\n          'parameterValue': {\n              'value': str(min(1.0, (window_max_count or 1e8) / row_count)),\n          },\n      },\n  ]\n\n"
+            ],
+            "image": "python:3.7-slim"
+          }
+        },
         "exec-build-serialized-query-parameters": {
           "container": {
             "args": [
@@ -3116,26 +3413,6 @@
             "image": "python:3.7-slim"
           }
         },
-        "exec-build-split-query-parameters": {
-          "container": {
-            "args": [
-              "--executor_input",
-              "{{$}}",
-              "--function_to_execute",
-              "build_split_query_parameters"
-            ],
-            "command": [
-              "sh",
-              "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
-              "sh",
-              "-ec",
-              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef build_split_query_parameters(\n    training_fraction_split: float = 0,\n    validation_fraction_split: float = 0,\n) -> list:  # pylint: disable=g-bare-generic\n  \"\"\"Creates configuration JSON objects for the split column query.\n\n  All query parameters will be stored in a list of QueryParameter objects:\n  https://cloud.google.com/bigquery/docs/reference/rest/v2/QueryParameter\n\n  Args:\n    training_fraction_split: Fraction of the data to use for training.\n    validation_fraction_split: Fraction of the data to use for validation.\n\n  Returns:\n    A list of QueryParameters.\n  \"\"\"\n  return [\n      {\n          'name': 'train_percent',\n          'parameterType': {'type': 'INTEGER'},\n          'parameterValue': {'value': str(int(training_fraction_split * 100))},\n      },\n      {\n          'name': 'validation_percent',\n          'parameterType': {'type': 'INTEGER'},\n          'parameterValue': {\n              'value': str(int(\n                  (training_fraction_split + validation_fraction_split) * 100)),\n          },\n      },\n  ]\n\n"
-            ],
-            "image": "python:3.7-slim"
-          }
-        },
         "exec-cond": {
           "container": {
             "args": [
@@ -3152,6 +3429,26 @@
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
               "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef cond(predicate: bool, true_str: str, false_str: str) -> str:\n  \"\"\"Returns true_str if predicate is true, else false_str.\"\"\"\n  return true_str if predicate else false_str\n\n"
+            ],
+            "image": "python:3.7-slim"
+          }
+        },
+        "exec-count-rows": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "count_rows"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.20.0' 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef count_rows(\n    project: str,\n    location: str,\n    table: str\n) -> int:\n  \"\"\"Returns the number of rows in the given table.\n\n  Args:\n    project: The GCP project.\n    location: The GCP region.\n    table: The BigQuery table to get a row count for.\n\n  Returns:\n    The number of rows in the given table.\n\n  Raises:\n    AssertionError: If the query did not return a single row.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\n  client = bigquery.Client(project=project, location=location)\n  rows = client.query(f'SELECT COUNT(*) AS count FROM `{table}`').result()\n  assert rows.total_rows == 1, f'Only 1 result expected, got {rows.total_rows}.'\n  return int(next(rows).count)\n\n"
             ],
             "image": "python:3.7-slim"
           }
@@ -3316,6 +3613,46 @@
             "image": "python:3.7-slim"
           }
         },
+        "exec-maybe-replace-with-default-4": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "maybe_replace_with_default"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef maybe_replace_with_default(value: str, default: str = '') -> str:\n  \"\"\"Replaces string with another value if it is a dash.\"\"\"\n  return default if not value or value == '-' else value\n\n"
+            ],
+            "image": "python:3.7-slim"
+          }
+        },
+        "exec-maybe-replace-with-default-5": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "maybe_replace_with_default"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef maybe_replace_with_default(value: str, default: str = '') -> str:\n  \"\"\"Replaces string with another value if it is a dash.\"\"\"\n  return default if not value or value == '-' else value\n\n"
+            ],
+            "image": "python:3.7-slim"
+          }
+        },
         "exec-parse-data-source": {
           "container": {
             "args": [
@@ -3352,6 +3689,26 @@
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
               "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef parse_split_spec(\n    split_spec: Dict[str, Dict[str, Union[str, float]]],\n) -> NamedTuple('Outputs', [\n    ('training_fraction_split', float),\n    ('validation_fraction_split', float),\n    ('test_fraction_split', float),\n    ('predefined_split_column', str),\n\n]):\n  \"\"\"Extracts the split column from a split spec JSON.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\n  result = {}\n  if 'predefined_split' in split_spec:\n    result['predefined_split_column'] = split_spec['predefined_split']['key']\n  if 'fraction_split' in split_spec:\n    fractions = split_spec['fraction_split']\n    result['training_fraction_split'] = fractions['training_fraction']\n    result['validation_fraction_split'] = fractions['validation_fraction']\n    result['test_fraction_split'] = fractions['test_fraction']\n  return collections.namedtuple(\n      'Outputs',\n      [\n          'training_fraction_split',\n          'validation_fraction_split',\n          'test_fraction_split',\n          'predefined_split_column',\n      ],\n  )(\n      result.get('training_fraction_split', 0.0),\n      result.get('validation_fraction_split', 0.0),\n      result.get('test_fraction_split', 0.0),\n      result.get('predefined_split_column', ''),\n  )\n\n"
+            ],
+            "image": "python:3.7-slim"
+          }
+        },
+        "exec-parse-window-config": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "parse_window_config"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef parse_window_config(\n    window_config: Dict[str, Union[str, int]],\n) -> NamedTuple('Outputs', [\n    ('window_column', str),\n    ('window_stride_length', int),\n    ('window_max_count', int),\n]):\n  \"\"\"Converts the data source JSON into flat arguments.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n  return collections.namedtuple('Outputs', [\n      'window_column',\n      'window_stride_length',\n      'window_max_count',\n  ])(\n      window_config.get('column', ''),\n      window_config.get('stride_length', 0),\n      window_config.get('max_count', 0),\n  )\n\n"
             ],
             "image": "python:3.7-slim"
           }
@@ -3491,7 +3848,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef validate_inputs(\n    time_column: Optional[str] = None,\n    time_series_identifier_column: Optional[str] = None,\n    target_column_name: Optional[str] = None,\n    bq_source: Optional[str] = None,\n    training_fraction_split: Optional[float] = None,\n    validation_fraction_split: Optional[float] = None,\n    test_fraction_split: Optional[float] = None,\n    predefined_split_column: Optional[str] = None,\n    gcs_source: Optional[List[str]] = None,\n    source_model_uri: Optional[str] = None,\n    bigquery_destination_uri: Optional[str] = None,\n) -> None:\n  \"\"\"Checks training pipeline input parameters are valid.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n  import re\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\n  project_pattern = r'([a-z0-9.-]+:)?[a-z][a-z0-9-_]{4,28}[a-z0-9]'\n  dataset_pattern = r'.[a-zA-Z0-9_]+'\n  table_pattern = r'.[^\\.\\:`]+'\n\n  # Validate BigQuery column and dataset names.\n  bigquery_column_parameters = [\n      time_column,\n      time_series_identifier_column,\n      target_column_name,\n  ]\n  column_pattern = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]{1,300}')\n  for column in bigquery_column_parameters:\n    if column is not None and not column_pattern.fullmatch(column):\n      raise ValueError(f'Invalid column name: {column}.')\n  dataset_uri_pattern = re.compile(project_pattern + dataset_pattern)\n  if (\n      bigquery_destination_uri != '-'\n      and bigquery_destination_uri is not None\n      and not dataset_uri_pattern.fullmatch(bigquery_destination_uri)\n  ):\n    raise ValueError(\n        f'Invalid BigQuery dataset URI: {bigquery_destination_uri}.')\n  table_uri_pattern = re.compile(\n      project_pattern + dataset_pattern + table_pattern)\n  if (\n      source_model_uri is not None\n      and not table_uri_pattern.fullmatch(source_model_uri)\n  ):\n    raise ValueError(f'Invalid BigQuery table URI: {source_model_uri}.')\n\n  # Validate data source.\n  data_source_count = sum([bool(source) for source in [bq_source, gcs_source]])\n  if data_source_count > 1:\n    raise ValueError(f'Expected 1 data source, found {data_source_count}.')\n  if bq_source and not table_uri_pattern.fullmatch(bq_source):\n    raise ValueError(f'Invalid BigQuery table URI: {bq_source}.')\n  gcs_path_pattern = re.compile(r'gs:\\/\\/(.+)\\/([^\\/]+)')\n  if gcs_source:\n    for gcs_path in gcs_source:\n      if not gcs_path_pattern.fullmatch(gcs_path):\n        raise ValueError(f'Invalid path to CSV stored in GCS: {gcs_path}.')\n\n  # Validate split spec.\n  fraction_splits = [\n      training_fraction_split,\n      validation_fraction_split,\n      test_fraction_split,\n  ]\n  split_count = sum(\n      [bool(source)\n       for source in [predefined_split_column, any(fraction_splits)]])\n  if split_count > 1:\n    raise ValueError(f'Expected 1 split type, found {split_count}.')\n  if (\n      predefined_split_column\n      and not column_pattern.fullmatch(predefined_split_column)\n  ):\n    raise ValueError(f'Invalid column name: {predefined_split_column}.')\n  if any(fraction_splits):\n    if not all(fraction_splits):\n      raise ValueError(\n          f'All fractions must be non-zero. Got: {fraction_splits}.')\n    if sum(fraction_splits) != 1:\n      raise ValueError(\n          f'Fraction splits must sum to 1. Got: {sum(fraction_splits)}.')\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef validate_inputs(\n    time_column: Optional[str] = None,\n    time_series_identifier_column: Optional[str] = None,\n    target_column_name: Optional[str] = None,\n    bq_source: Optional[str] = None,\n    training_fraction_split: Optional[float] = None,\n    validation_fraction_split: Optional[float] = None,\n    test_fraction_split: Optional[float] = None,\n    predefined_split_column: Optional[str] = None,\n    gcs_source: Optional[List[str]] = None,\n    source_model_uri: Optional[str] = None,\n    bigquery_destination_uri: Optional[str] = None,\n    window_column: Optional[str] = None,\n    window_stride_length: Optional[int] = None,\n    window_max_count: Optional[int] = None,\n) -> None:\n  \"\"\"Checks training pipeline input parameters are valid.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n  import re\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\n  project_pattern = r'([a-z0-9.-]+:)?[a-z][a-z0-9-_]{4,28}[a-z0-9]'\n  dataset_pattern = r'.[a-zA-Z0-9_]+'\n  table_pattern = r'.[^\\.\\:`]+'\n\n  # Validate BigQuery column and dataset names.\n  bigquery_column_parameters = [\n      time_column,\n      time_series_identifier_column,\n      target_column_name,\n  ]\n  column_pattern = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]{1,300}')\n  for column in bigquery_column_parameters:\n    if column is not None and not column_pattern.fullmatch(column):\n      raise ValueError(f'Invalid column name: {column}.')\n  dataset_uri_pattern = re.compile(project_pattern + dataset_pattern)\n  if (\n      bigquery_destination_uri != '-'\n      and bigquery_destination_uri is not None\n      and not dataset_uri_pattern.fullmatch(bigquery_destination_uri)\n  ):\n    raise ValueError(\n        f'Invalid BigQuery dataset URI: {bigquery_destination_uri}.')\n  table_uri_pattern = re.compile(\n      project_pattern + dataset_pattern + table_pattern)\n  if (\n      source_model_uri is not None\n      and not table_uri_pattern.fullmatch(source_model_uri)\n  ):\n    raise ValueError(f'Invalid BigQuery table URI: {source_model_uri}.')\n\n  # Validate data source.\n  data_source_count = sum([bool(source) for source in [bq_source, gcs_source]])\n  if data_source_count > 1:\n    raise ValueError(f'Expected 1 data source, found {data_source_count}.')\n  if bq_source and not table_uri_pattern.fullmatch(bq_source):\n    raise ValueError(f'Invalid BigQuery table URI: {bq_source}.')\n  gcs_path_pattern = re.compile(r'gs:\\/\\/(.+)\\/([^\\/]+)')\n  if gcs_source:\n    for gcs_path in gcs_source:\n      if not gcs_path_pattern.fullmatch(gcs_path):\n        raise ValueError(f'Invalid path to CSV stored in GCS: {gcs_path}.')\n\n  # Validate split spec.\n  fraction_splits = [\n      training_fraction_split,\n      validation_fraction_split,\n      test_fraction_split,\n  ]\n  split_count = sum(\n      [bool(source)\n       for source in [predefined_split_column, any(fraction_splits)]])\n  if split_count > 1:\n    raise ValueError(f'Expected 1 split type, found {split_count}.')\n  if (\n      predefined_split_column\n      and not column_pattern.fullmatch(predefined_split_column)\n  ):\n    raise ValueError(f'Invalid column name: {predefined_split_column}.')\n  if any(fraction_splits):\n    if not all(fraction_splits):\n      raise ValueError(\n          f'All fractions must be non-zero. Got: {fraction_splits}.')\n    if sum(fraction_splits) != 1:\n      raise ValueError(\n          f'Fraction splits must sum to 1. Got: {sum(fraction_splits)}.')\n\n  # Validate window config.\n  window_configs = [window_column, window_stride_length, window_max_count]\n  window_config_count = sum([bool(config) for config in window_configs])\n  if window_config_count > 1:\n    raise ValueError(f'Expected 1 window config, found {window_config_count}.')\n  if window_column and not column_pattern.fullmatch(window_column):\n    raise ValueError(f'Invalid column name: {window_column}.')\n  if window_stride_length and (\n      window_stride_length < 1 or window_stride_length > 1000):\n    raise ValueError('Stride must be between 1 and 1000. Got: '\n                     f'{window_stride_length}.')\n  if window_max_count and (window_max_count < 1000 or window_max_count > 1e8):\n    raise ValueError('Max count must be between 1000 and 100000000. Got: '\n                     f'{window_max_count}.')\n\n"
             ],
             "image": "python:3.7-slim"
           }
@@ -3583,6 +3940,9 @@
                 },
                 "pipelineparam--time_series_identifier_column": {
                   "componentInputParameter": "time_series_identifier_column"
+                },
+                "pipelineparam--window_config": {
+                  "componentInputParameter": "window_config"
                 }
               }
             },
@@ -3629,6 +3989,9 @@
           },
           "time_series_identifier_column": {
             "type": "STRING"
+          },
+          "window_config": {
+            "type": "STRING"
           }
         }
       }
@@ -3652,6 +4015,9 @@
       },
       "split_spec": {
         "stringValue": "{\"fraction_split\": {\"test_fraction\": 0.1, \"training_fraction\": 0.8, \"validation_fraction\": 0.1}}"
+      },
+      "window_config": {
+        "stringValue": "{\"max_count\": 100000000.0}"
       }
     }
   }
