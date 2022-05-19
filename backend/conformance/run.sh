@@ -8,7 +8,8 @@
     -isKubeflowMode=true \
     -resourceNamespace=kf-conformance \
     -test.v \
-    | tee /tmp/kfp-conformance.log
+    ${ADDITIONAL_FLAGS} \
+    2>&1 | tee /tmp/kfp-conformance.log
 
 # Create the done file.
 touch /tmp/kfp-conformance.done
