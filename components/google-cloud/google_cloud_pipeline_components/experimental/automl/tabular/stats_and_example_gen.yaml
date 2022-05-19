@@ -18,10 +18,9 @@ description: |
 
     Args:
         project (str):
-            Required. Project to run Cross-validation trainer.
+            Required. Project to run dataset statistics and example generation.
         location (str):
-            Location for running the Cross-validation trainer. If not set,
-            default to us-central1.
+            Location for running dataset statistics and example generation.
         root_dir (str): The Cloud Storage location to store the output.
         target_column_name (str): The target column name.
         weight_column_name (str): The weight column name.

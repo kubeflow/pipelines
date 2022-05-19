@@ -1916,6 +1916,18 @@
                 "schemaTitle": "google.VertexBatchPredictionJob",
                 "schemaVersion": "0.0.1"
               }
+            },
+            "bigquery_output_table": {
+              "artifactType": {
+                "schemaTitle": "google.BQTable",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "gcs_output_directory": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
             }
           },
           "parameters": {
@@ -2004,6 +2016,18 @@
             "batchpredictionjob": {
               "artifactType": {
                 "schemaTitle": "google.VertexBatchPredictionJob",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "bigquery_output_table": {
+              "artifactType": {
+                "schemaTitle": "google.BQTable",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "gcs_output_directory": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
                 "schemaVersion": "0.0.1"
               }
             }
