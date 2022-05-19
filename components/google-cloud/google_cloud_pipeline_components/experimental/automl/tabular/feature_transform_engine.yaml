@@ -20,8 +20,7 @@ description: |
         project (str):
             Required. Project to run feature transform engine.
         location (Optional[str]):
-            Location for running the feature transform engine. If not set,
-            default to us-central1.
+            Location for running the feature transform engine.
         root_dir (str): The Cloud Storage location to store the output.
         analyze_data (Dataset): Configuration of the dataset to be analyzed.
         transform_data (Dataset): Configuration of the dataset to be transformed.
@@ -50,7 +49,7 @@ description: |
             For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
 inputs:
 - {name: project, type: String}
-- {name: location, type: String, default: "us-central1"}
+- {name: location, type: String}
 - {name: root_dir, type: String}
 - {name: analyze_data, type: Dataset}
 - {name: transform_data, type: Dataset}
