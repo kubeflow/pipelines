@@ -110,8 +110,10 @@ def component(func: Optional[Callable] = None,
             output_component_file=output_component_file,
             install_kfp_package=install_kfp_package,
             kfp_package_path=kfp_package_path)
+    import functools
 
-    return component_factory.create_component_from_func(
+    # return functools.wraps(func)
+    return (component_factory.create_component_from_func(
         func,
         base_image=base_image,
         target_image=target_image,
@@ -119,4 +121,4 @@ def component(func: Optional[Callable] = None,
         pip_index_urls=pip_index_urls,
         output_component_file=output_component_file,
         install_kfp_package=install_kfp_package,
-        kfp_package_path=kfp_package_path)
+        kfp_package_path=kfp_package_path))
