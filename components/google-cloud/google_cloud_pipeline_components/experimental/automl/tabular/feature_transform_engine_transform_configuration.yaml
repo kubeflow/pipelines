@@ -20,10 +20,10 @@ description: |
         project (str):
             Required. Project to run Fte transform configuration
         location (Optional[str]):
-            Location for running the te transform configuration. If not set, default to us-central1
+            Location for running the te transform configuration.
         root_dir (str): The Cloud Storage location to store the output.
-        metadata_path (str): The metadata of the dataset
-        dataset_stats_path (str): The dataset stats of the dataset
+        metadata (TabularExampleGenMetadata): The metadata of the dataset
+        dataset_stats (AutoMLTabularDatasetStats): The dataset stats of the dataset
         encryption_spec_key_name (Optional[str]):
             Customer-managed encryption key
 
@@ -34,10 +34,10 @@ description: |
             For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
 inputs:
 - {name: project, type: String}
-- {name: location, type: String, optional: True, default: "us-central1"}
+- {name: location, type: String}
 - {name: root_dir, type: String}
-- {name: metadata_path, type: String}
-- {name: dataset_stats_path, type: String}
+- {name: metadata, type: TabularExampleGenMetadata}
+- {name: dataset_stats, type: AutoMLTabularDatasetStats}
 - {name: encryption_spec_key_name, type: String, default: ""}
 
 outputs:
@@ -62,8 +62,8 @@ implementation:
         '", "args": ["transform_configuration", "--fte_transform_configuration_path=',
         {outputPath: fte_transform_configuration},
         '", "--metadata_path=',
-        {inputValue: metadata_path},
+        {inputUri: metadata},
         '", "--dataset_stats_path=',
-        {inputValue: dataset_stats_path},
+        {inputUri: dataset_stats},
         '"]}}]}}'
       ]]
