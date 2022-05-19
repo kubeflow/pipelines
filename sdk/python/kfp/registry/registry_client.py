@@ -31,6 +31,7 @@ _DEFAULT_JSON_HEADER = {
     'Content-type': 'application/json',
 }
 
+_VERSION_PREFIX = 'sha256:'
 
 class _SafeDict(dict):
     """Class for safely handling missing keys in .format_map."""
@@ -131,6 +132,30 @@ class RegistryClient:
             Whether the host is a known host.
         """
         return bool(self._known_host_key)
+
+    def _validate_version(self, version: str) -> bool:
+        """Validates the version.
+
+        Args:
+            version: Version of the package.
+
+        Returns:
+            Whether the version is of valid format
+        """
+        if not version.startswith(_VERSION_PREFIX):
+            raise ValueError('Version should start with \"sha256:\".')
+
+    def _validate_tag(self, tag: str) -> bool:
+        """Validates the tag.
+
+        Args:
+            tag: Tag attached to the package.
+
+        Returns:
+            Whether the tag is of valid format
+        """
+        if tag.startswith(_VERSION_PREFIX):
+            raise ValueError('Tag should not start with \"sha256:\".')
 
     def load_config(self) -> dict:
         """Loads the config.
@@ -271,6 +296,7 @@ class RegistryClient:
         if (not version) and (not tag):
             raise ValueError('Either version or tag must be specified.')
         if version:
+            self._validate_version(version)
             url = self._config['download_version_url'].format(
                 package_name=package_name, version=version)
         if tag:
@@ -278,6 +304,7 @@ class RegistryClient:
                 logging.info(
                     'Both version and tag are specified, using version only.')
             else:
+                self._validate_tag(tag)
                 url = self._config['download_tag_url'].format(
                     package_name=package_name, tag=tag)
         return url
@@ -305,8 +332,10 @@ class RegistryClient:
         if not file_name:
             file_name = package_name + '_'
             if version:
-                file_name += version[len('sha256:'):]
+                self._validate_version(version)
+                file_name += version[len(_VERSION_PREFIX):]
             elif tag:
+                self._validate_tag(tag)
                 file_name += tag
             file_name += '.yaml'
 
@@ -367,6 +396,7 @@ class RegistryClient:
         Returns:
             The version metadata.
         """
+        self._validate_version(version)
         url = self._config['get_version_url'].format(
             package_name=package_name, version=version)
         response = self._request(request_url=url)
@@ -399,6 +429,7 @@ class RegistryClient:
         Returns:
             Whether the version was deleted successfully.
         """
+        self._validate_version(version)
         url = self._config['delete_version_url'].format(
             package_name=package_name, version=version)
         response = self._request(request_url=url, http_request='delete')
@@ -418,6 +449,8 @@ class RegistryClient:
         Returns:
             The metadata for the created tag.
         """
+        self._validate_version(version)
+        self._validate_tag(tag)
         url = self._config['create_tag_url'].format(
             package_name=package_name, tag=tag)
         new_tag = {
@@ -445,6 +478,7 @@ class RegistryClient:
         Returns:
             The metadata for the tag.
         """
+        self._validate_tag(tag)
         url = self._config['get_tag_url'].format(
             package_name=package_name, tag=tag)
         response = self._request(request_url=url)
@@ -463,6 +497,8 @@ class RegistryClient:
         Returns:
             The metadata for the updated tag.
         """
+        self._validate_version(version)
+        self._validate_tag(tag)
         url = self._config['update_tag_url'].format(
             package_name=package_name, tag=tag)
         new_tag = {
@@ -505,6 +541,7 @@ class RegistryClient:
         Returns:
             Response from the delete request.
         """
+        self._validate_tag(tag)
         url = self._config['delete_tag_url'].format(
             package_name=package_name, tag=tag)
         response = self._request(request_url=url, http_request='delete')
