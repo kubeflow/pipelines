@@ -162,14 +162,13 @@ class RegistryClientTest(parameterized.TestCase):
     def test_download_pipeline_version_error(self):
         client = RegistryClient(host=_DEFAULT_HOST, auth=ApiAuth(''))
         with self.assertRaises(ValueError):
-            client.download_pipeline(
-                package_name='pack', version="abcde12345")
+            client.download_pipeline(package_name='pack', version='abcde12345')
 
     def test_download_pipeline_tag_error(self):
         client = RegistryClient(host=_DEFAULT_HOST, auth=ApiAuth(''))
         with self.assertRaises(ValueError):
             client.download_pipeline(
-                package_name='pack', tag="sha256:abcde12345")
+                package_name='pack', tag='sha256:abcde12345')
 
     @parameterized.parameters(
         {
@@ -235,7 +234,7 @@ class RegistryClientTest(parameterized.TestCase):
         host = _DEFAULT_HOST
         mock_response = requests.Response()
         mock_response.status_code = 200
-        mock_response._content = json.dumps({}).encode("utf-8")
+        mock_response._content = json.dumps({}).encode('utf-8')
         mock_get.return_value = mock_response
         client = RegistryClient(host=host, auth=ApiAuth(''))
         packages = client.list_packages()
@@ -292,7 +291,7 @@ class RegistryClientTest(parameterized.TestCase):
         host = _DEFAULT_HOST
         mock_response = requests.Response()
         mock_response.status_code = 200
-        mock_response._content = json.dumps({}).encode("utf-8")
+        mock_response._content = json.dumps({}).encode('utf-8')
         mock_get.return_value = mock_response
         client = RegistryClient(host=host, auth=ApiAuth(''))
         versions = client.list_versions('pack')
@@ -349,7 +348,7 @@ class RegistryClientTest(parameterized.TestCase):
         host = _DEFAULT_HOST
         mock_response = requests.Response()
         mock_response.status_code = 200
-        mock_response._content = json.dumps({}).encode("utf-8")
+        mock_response._content = json.dumps({}).encode('utf-8')
         mock_get.return_value = mock_response
         client = RegistryClient(host=host, auth=ApiAuth(''))
         tags = client.list_tags('pack')

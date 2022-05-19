@@ -33,6 +33,7 @@ _DEFAULT_JSON_HEADER = {
 
 _VERSION_PREFIX = 'sha256:'
 
+
 class _SafeDict(dict):
     """Class for safely handling missing keys in .format_map."""
 
@@ -89,9 +90,9 @@ class RegistryClient:
 
     def _request(self,
                  request_url: str,
-                 request_body: str = '',
-                 http_request: str = 'get',
-                 extra_headers: dict = None) -> requests.Response:
+                 request_body: Optional[str] = '',
+                 http_request: Optional[str] = 'get',
+                 extra_headers: Optional[dict] = None) -> requests.Response:
         """Calls the HTTP request.
 
         Args:
@@ -242,9 +243,11 @@ class RegistryClient:
                 self._auth, credentials.Credentials) and not self._auth.valid:
             self._auth.refresh(google.auth.transport.requests.Request())
 
-    def upload_pipeline(self, file_name: str, tags: Optional[Union[str,
-                                                                   List[str]]],
-                        extra_headers: Optional[dict]) -> Tuple[str, str]:
+    def upload_pipeline(
+            self,
+            file_name: str,
+            tags: Optional[Union[str, List[str]]] = None,
+            extra_headers: Optional[dict] = None) -> Tuple[str, str]:
         """Uploads the pipeline.
 
         Args:
@@ -313,7 +316,7 @@ class RegistryClient:
                           package_name: str,
                           version: Optional[str] = None,
                           tag: Optional[str] = None,
-                          file_name: str = None) -> str:
+                          file_name: Optional[str] = None) -> str:
         """Downloads a pipeline - either version or tag must be specified.
 
         Args:
