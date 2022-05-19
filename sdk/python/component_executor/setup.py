@@ -34,6 +34,7 @@ setuptools.setup(
     author_email='kubeflow-pipelines@google.com',
     url='https://github.com/kubeflow/pipelines',
     packages=setuptools.find_namespace_packages(include=['kfp.*']),
+    install_requires=['typing-extensions>=3.7.4,<5'],
     python_requires='>=3.7.0',
     license='Apache 2.0',
 )
