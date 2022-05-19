@@ -339,7 +339,7 @@ class RegistryClient:
         response = self._request(request_url=url)
         response_json = response.json()
 
-        return response_json['packages']
+        return response_json.get('packages', {})
 
     def delete_package(self, package_name: str) -> bool:
         """Deletes a package.
@@ -387,7 +387,7 @@ class RegistryClient:
         response = self._request(request_url=url)
         response_json = response.json()
 
-        return response_json['versions']
+        return response_json.get('versions', {})
 
     def delete_version(self, package_name: str, version: str) -> bool:
         """Deletes package version.
@@ -493,7 +493,7 @@ class RegistryClient:
         response = self._request(request_url=url)
         response_json = response.json()
 
-        return response_json['tags']
+        return response_json.get('tags', {})
 
     def delete_tag(self, package_name: str, tag: str) -> Dict[str, Any]:
         """Deletes package tag.
