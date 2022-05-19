@@ -2,8 +2,10 @@
 
 ## Major Features and Improvements
 * feat(sdk): Implement Registry Client [\#7597](https://github.com/kubeflow/pipelines/pull/7597)
+* Write compiled JSON with formatting (multiline with indentation) [\#7712](https://github.com/kubeflow/pipelines/pull/7712)
 
 ## Breaking Changes
+* Make CLI output consistent, readable, and usable [\#7739](https://github.com/kubeflow/pipelines/pull/7739)
 
 ### For Pipeline Authors
 
@@ -12,6 +14,7 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
+* Fix CLI upload pipeline version [\#7722](https://github.com/kubeflow/pipelines/pull/7722)
 
 ## Documentation Updates
 # Current Version (2.0.0-alpha.3)
