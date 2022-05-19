@@ -159,6 +159,18 @@ class RegistryClientTest(parameterized.TestCase):
             url=expected_url, data='', headers=None, auth=mock.ANY)
         mock_open.assert_called_once_with(expected_file_name, 'wb')
 
+    def test_download_pipeline_version_error(self):
+        client = RegistryClient(host=_DEFAULT_HOST, auth=ApiAuth(''))
+        with self.assertRaises(ValueError):
+            client.download_pipeline(
+                package_name='pack', version="abcde12345")
+
+    def test_download_pipeline_tag_error(self):
+        client = RegistryClient(host=_DEFAULT_HOST, auth=ApiAuth(''))
+        with self.assertRaises(ValueError):
+            client.download_pipeline(
+                package_name='pack', tag="sha256:abcde12345")
+
     @parameterized.parameters(
         {
             'tags': 'tag1',
