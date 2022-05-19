@@ -26,7 +26,6 @@ from kfp.compiler import pipeline_spec_builder as builder
 from kfp.components import for_loop
 from kfp.components import pipeline_channel
 from kfp.components import pipeline_task
-from kfp.components import placeholders
 from kfp.components import structures
 from kfp.components import tasks_group
 from kfp.components import utils
@@ -248,9 +247,8 @@ def build_task_spec_for_task(
                             '{} and compiler injected input name {}'.format(
                                 existing_input_name, additional_input_name))
 
-                additional_input_placeholder = (
-                    placeholders.input_parameter_placeholder(
-                        additional_input_name))
+                additional_input_placeholder = structures.InputValuePlaceholder(
+                    additional_input_name).to_placeholder()
                 input_value = input_value.replace(channel.pattern,
                                                   additional_input_placeholder)
 
