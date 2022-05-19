@@ -15,6 +15,7 @@
 
 import builtins
 import json
+import requests
 from unittest import mock
 
 from absl.testing import parameterized
@@ -217,6 +218,24 @@ class RegistryClientTest(parameterized.TestCase):
             headers=None,
             auth=mock.ANY)
 
+    @mock.patch('requests.get', autospec=True)
+    def test_list_packages_empty(self, mock_get):
+        host = _DEFAULT_HOST
+        mock_response = requests.Response()
+        mock_response.status_code = 200
+        mock_response._content = json.dumps({}).encode("utf-8")
+        mock_get.return_value = mock_response
+        client = RegistryClient(host=host, auth=ApiAuth(''))
+        packages = client.list_packages()
+        self.assertEqual(packages, {})
+        mock_get.assert_called_once_with(
+            url=('https://artifactregistry.googleapis.com/v1/projects/'
+                 'proj/locations/us-central1/repositories'
+                 '/repo/packages'),
+            data='',
+            headers=None,
+            auth=mock.ANY)
+
     @mock.patch('requests.delete', autospec=True)
     def test_delete_package(self, mock_delete):
         host = _DEFAULT_HOST
@@ -234,11 +253,11 @@ class RegistryClientTest(parameterized.TestCase):
     def test_get_version(self, mock_get):
         host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(''))
-        client.get_version('pack', 'v1')
+        client.get_version('pack', 'sha256:abcde12345')
         mock_get.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
-                 '/repo/packages/pack/versions/v1'),
+                 '/repo/packages/pack/versions/sha256:abcde12345'),
             data='',
             headers=None,
             auth=mock.ANY)
@@ -256,15 +275,33 @@ class RegistryClientTest(parameterized.TestCase):
             headers=None,
             auth=mock.ANY)
 
+    @mock.patch('requests.get', autospec=True)
+    def test_list_versions_empty(self, mock_get):
+        host = _DEFAULT_HOST
+        mock_response = requests.Response()
+        mock_response.status_code = 200
+        mock_response._content = json.dumps({}).encode("utf-8")
+        mock_get.return_value = mock_response
+        client = RegistryClient(host=host, auth=ApiAuth(''))
+        versions = client.list_versions('pack')
+        self.assertEqual(versions, {})
+        mock_get.assert_called_once_with(
+            url=('https://artifactregistry.googleapis.com/v1/projects/'
+                 'proj/locations/us-central1/repositories'
+                 '/repo/packages/pack/versions'),
+            data='',
+            headers=None,
+            auth=mock.ANY)
+
     @mock.patch('requests.delete', autospec=True)
     def test_delete_version(self, mock_delete):
         host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(''))
-        client.delete_version('pack', 'v1')
+        client.delete_version('pack', 'sha256:abcde12345')
         mock_delete.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
-                 '/repo/packages/pack/versions/v1'),
+                 '/repo/packages/pack/versions/sha256:abcde12345'),
             data='',
             headers=None,
             auth=mock.ANY)
@@ -287,6 +324,24 @@ class RegistryClientTest(parameterized.TestCase):
         host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(''))
         client.list_tags('pack')
+        mock_get.assert_called_once_with(
+            url=('https://artifactregistry.googleapis.com/v1/projects/'
+                 'proj/locations/us-central1/repositories'
+                 '/repo/packages/pack/tags'),
+            data='',
+            headers=None,
+            auth=mock.ANY)
+
+    @mock.patch('requests.get', autospec=True)
+    def test_list_tags_empty(self, mock_get):
+        host = _DEFAULT_HOST
+        mock_response = requests.Response()
+        mock_response.status_code = 200
+        mock_response._content = json.dumps({}).encode("utf-8")
+        mock_get.return_value = mock_response
+        client = RegistryClient(host=host, auth=ApiAuth(''))
+        tags = client.list_tags('pack')
+        self.assertEqual(tags, {})
         mock_get.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
