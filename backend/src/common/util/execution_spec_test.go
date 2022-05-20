@@ -15,6 +15,7 @@
 package util
 
 import (
+	"encoding/json"
 	"testing"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
@@ -25,12 +26,12 @@ import (
 
 func TestExecutionSpec_NewExecutionSpec(t *testing.T) {
 	execSpec, err := NewExecutionSpec([]byte{})
-	assert.Empty(t, execSpec)
+	assert.Nil(t, execSpec)
 	assert.Error(t, err)
 	assert.EqualError(t, err, NewInvalidInputError("empty input").Error())
 
 	execSpec, err = NewExecutionSpec([]byte("invalid format"))
-	assert.Empty(t, execSpec)
+	assert.Nil(t, execSpec)
 	assert.Error(t, err)
 	assert.EqualError(t, err, "InvalidInputError: Failed to unmarshal the inputs: "+
 		"error unmarshaling JSON: while decoding JSON: json: cannot unmarshal string "+
@@ -57,10 +58,50 @@ func TestExecutionSpec_NewExecutionSpec(t *testing.T) {
 			Message: "I AM A MESSAGE",
 		},
 	})
-	assert.Empty(t, err)
+	assert.Nil(t, err)
 	assert.NotEmpty(t, bytes)
 	execSpec, err = NewExecutionSpec(bytes)
-	assert.Empty(t, err)
+	assert.Nil(t, err)
+	assert.NotEmpty(t, execSpec)
+}
+
+func TestExecutionSpec_NewExecutionSpecJSON(t *testing.T) {
+	execSpec, err := NewExecutionSpecJSON([]byte{})
+	assert.Nil(t, execSpec)
+	assert.Error(t, err)
+	assert.EqualError(t, err, NewInvalidInputError("empty input").Error())
+
+	execSpec, err = NewExecutionSpecJSON([]byte("invalid format"))
+	assert.Nil(t, execSpec)
+	assert.Error(t, err)
+	assert.EqualError(t, err, "InvalidInputError: Failed to unmarshal the inputs: "+
+		"invalid character 'i' looking for beginning of value")
+
+	// Normal case
+	bytes, err := json.Marshal(workflowapi.Workflow{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "argoproj.io/v1alpha1",
+			Kind:       "Workflow",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "WORKFLOW_NAME",
+			Labels: map[string]string{"key": "value"},
+		},
+		Spec: workflowapi.WorkflowSpec{
+			Arguments: workflowapi.Arguments{
+				Parameters: []workflowapi.Parameter{
+					{Name: "PARAM", Value: workflowapi.AnyStringPtr("VALUE")},
+				},
+			},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Message: "I AM A MESSAGE",
+		},
+	})
+	assert.Nil(t, err)
+	assert.NotEmpty(t, bytes)
+	execSpec, err = NewExecutionSpecJSON(bytes)
+	assert.Nil(t, err)
 	assert.NotEmpty(t, execSpec)
 }
 
@@ -95,4 +136,54 @@ func TestExecutionSpec_NewExecutionSpecFromInterface(t *testing.T) {
 	assert.Empty(t, execSpec)
 	assert.Error(t, err)
 	assert.EqualError(t, err, "InternalServerError: type:PipelineRun: ExecutionType is not supported")
+}
+
+func TestExecutionSpec_UnmarshalParameters(t *testing.T) {
+	orgParams := []workflowapi.Parameter{
+		{Name: "PARAM1", Value: workflowapi.AnyStringPtr("VALUE1")},
+		{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
+		{Name: "PARAM3", Value: workflowapi.AnyStringPtr("VALUE3")},
+		{Name: "PARAM4", Value: workflowapi.AnyStringPtr("")},
+		{Name: "PARAM5", Value: workflowapi.AnyStringPtr("VALUE5")},
+	}
+
+	expectedParams := SpecParameters{
+		SpecParameter{Name: "PARAM1", Value: stringToPointer("VALUE1")},
+		SpecParameter{Name: "PARAM2", Value: stringToPointer("VALUE2")},
+		SpecParameter{Name: "PARAM3", Value: stringToPointer("VALUE3")},
+		SpecParameter{Name: "PARAM4", Value: stringToPointer("")},
+		SpecParameter{Name: "PARAM5", Value: stringToPointer("VALUE5")},
+	}
+
+	paramStr, err := json.Marshal(orgParams)
+	assert.Nil(t, err)
+
+	specParams, err := UnmarshalParameters(ArgoWorkflow, string(paramStr))
+	assert.Nil(t, err)
+	assert.Equal(t, specParams, expectedParams)
+}
+
+func TestExecutionSpec_MarshalParameters(t *testing.T) {
+	expectedParams := []workflowapi.Parameter{
+		{Name: "PARAM1", Value: workflowapi.AnyStringPtr("VALUE1")},
+		{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
+		{Name: "PARAM3", Value: workflowapi.AnyStringPtr("VALUE3")},
+		{Name: "PARAM4", Value: workflowapi.AnyStringPtr("")},
+		{Name: "PARAM5", Value: workflowapi.AnyStringPtr("VALUE5")},
+	}
+
+	params := SpecParameters{
+		SpecParameter{Name: "PARAM1", Value: stringToPointer("VALUE1")},
+		SpecParameter{Name: "PARAM2", Value: stringToPointer("VALUE2")},
+		SpecParameter{Name: "PARAM3", Value: stringToPointer("VALUE3")},
+		SpecParameter{Name: "PARAM4", Value: stringToPointer("")},
+		SpecParameter{Name: "PARAM5", Value: stringToPointer("VALUE5")},
+	}
+
+	expectedStr, err := json.Marshal(expectedParams)
+	assert.Nil(t, err)
+
+	paramStr, err := MarshalParameters(ArgoWorkflow, params)
+	assert.Nil(t, err)
+	assert.Equal(t, paramStr, string(expectedStr))
 }

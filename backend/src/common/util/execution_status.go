@@ -14,6 +14,17 @@
 
 package util
 
+type ExecutionPhase string
+
+const (
+	ExecutionUnknown   ExecutionPhase = ""
+	ExecutionPending   ExecutionPhase = "Pending" // pending some set-up - rarely used
+	ExecutionRunning   ExecutionPhase = "Running" // any node has started; pods might not be running yet, the workflow maybe suspended too
+	ExecutionSucceeded ExecutionPhase = "Succeeded"
+	ExecutionFailed    ExecutionPhase = "Failed" // it maybe that the the workflow was terminated
+	ExecutionError     ExecutionPhase = "Error"
+)
+
 // Abstract interface to encapsulate the resources of the execution runtime specifically
 // for status information. This interface is mainly to access the status related information
 type ExecutionStatus interface {
@@ -21,6 +32,12 @@ type ExecutionStatus interface {
 	// S3 artifact with the specified nodeID and artifactName. Returns empty if nothing is found.
 	FindObjectStoreArtifactKeyOrEmpty(nodeID string, artifactName string) string
 
-	// Get information of current phase
-	Condition() string
+	// Get information of current phase, high-level summary of where the Execution is in its lifecycle.
+	Condition() ExecutionPhase
+
+	// UNIX time the execution finished. If Execution is not finished, return 0
+	FinishedAt() int64
+
+	// IsInFinalState whether the workflow is in a final state.
+	IsInFinalState() bool
 }

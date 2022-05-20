@@ -19,7 +19,6 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -98,7 +97,7 @@ func ToApiPipelineVersion(version *model.PipelineVersion) (*api.PipelineVersion,
 		Description:   version.Description,
 		CodeSourceUrl: version.CodeSourceUrl,
 		ResourceReferences: []*api.ResourceReference{
-			&api.ResourceReference{
+			{
 				Key: &api.ResourceKey{
 					Id:   version.PipelineId,
 					Type: api.ResourceType_PIPELINE,
@@ -130,7 +129,7 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 	if paramsString == "" {
 		return nil, nil
 	}
-	params, err := template.UnmarshalParameters(paramsString)
+	params, err := util.UnmarshalParameters(util.ArgoWorkflow, paramsString)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Parameter with wrong format is stored")
 	}
@@ -138,7 +137,7 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 	for _, param := range params {
 		var value string
 		if param.Value != nil {
-			value = param.Value.String()
+			value = *param.Value
 		}
 		apiParam := api.Parameter{
 			Name:  param.Name,
