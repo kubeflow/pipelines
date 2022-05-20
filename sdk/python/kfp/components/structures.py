@@ -164,6 +164,8 @@ P = TypeVar('P', bound='PlaceholderSerializationMixin')
 
 
 class PlaceholderSerializationMixin:
+    """Mixin for *Placeholder objects that handles the
+    serialization/deserialization of the placeholder."""
     _FROM_PLACEHOLDER_REGEX: Union[str, type(NotImplemented)] = NotImplemented
     _TO_PLACEHOLDER_TEMPLATE_STRING: Union[
         str, type(NotImplemented)] = NotImplemented
