@@ -1,11 +1,6 @@
-import json
-from typing import List
-
 import click
-import kfp_server_api
 from kfp import client
-from kfp.cli.output import OutputFormat
-from kfp.cli.output import print_output
+from kfp.cli import output
 from kfp.cli.utils import parsing
 from kfp_server_api.models.api_experiment import ApiExperiment
 
@@ -26,12 +21,15 @@ def experiment():
 @click.pass_context
 def create(ctx: click.Context, description: str, name: str):
     """Create an experiment."""
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
 
-    experiment = client.create_experiment(name, description=description)
-    _display_experiment(experiment, output_format)
-    click.echo(f'Created experiment {experiment.id}.')
+    experiment = client_obj.create_experiment(name, description=description)
+    output.print_output(
+        experiment,
+        output.ModelType.EXPERIMENT,
+        output_format,
+    )
 
 
 @experiment.command()
@@ -55,22 +53,19 @@ def create(ctx: click.Context, description: str, name: str):
 def list(ctx: click.Context, page_token: str, max_size: int, sort_by: str,
          filter: str):
     """List experiments."""
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
 
-    response = client.list_experiments(
+    response = client_obj.list_experiments(
         page_token=page_token,
         page_size=max_size,
         sort_by=sort_by,
         filter=filter)
-    if response.experiments:
-        _display_experiments(response.experiments, output_format)
-    else:
-        if output_format == OutputFormat.json.name:
-            msg = json.dumps([])
-        else:
-            msg = 'No experiments found'
-        click.echo(msg)
+    output.print_output(
+        response.experiments or [],
+        output.ModelType.EXPERIMENT,
+        output_format,
+    )
 
 
 @experiment.command()
@@ -78,11 +73,15 @@ def list(ctx: click.Context, page_token: str, max_size: int, sort_by: str,
 @click.pass_context
 def get(ctx: click.Context, experiment_id: str):
     """Get information about an experiment."""
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
 
-    response = client.get_experiment(experiment_id)
-    _display_experiment(response, output_format)
+    experiment = client_obj.get_experiment(experiment_id)
+    output.print_output(
+        experiment,
+        output.ModelType.EXPERIMENT,
+        output_format,
+    )
 
 
 @experiment.command()
@@ -97,34 +96,11 @@ def delete(ctx: click.Context, experiment_id: str):
     if not click.confirm(confirmation):
         return
 
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
+    output_format = ctx.obj['output']
 
-    client.delete_experiment(experiment_id)
-    click.echo(f'Deleted experiment {experiment_id}.')
-
-
-def _display_experiments(experiments: List[ApiExperiment],
-                         output_format: OutputFormat):
-    headers = ['Experiment ID', 'Name', 'Created at']
-    data = [
-        [exp.id, exp.name, exp.created_at.isoformat()] for exp in experiments
-    ]
-    print_output(data, headers, output_format, table_format='grid')
-
-
-def _display_experiment(exp: kfp_server_api.ApiExperiment,
-                        output_format: OutputFormat):
-    table = [
-        ['ID', exp.id],
-        ['Name', exp.name],
-        ['Description', exp.description],
-        ['Created at', exp.created_at.isoformat()],
-    ]
-    if output_format == OutputFormat.table.name:
-        print_output([], ['Experiment Details'], output_format)
-        print_output(table, [], output_format, table_format='plain')
-    elif output_format == OutputFormat.json.name:
-        print_output(dict(table), [], output_format)
+    client_obj.delete_experiment(experiment_id)
+    output.print_deleted_text('experiment', experiment_id, output_format)
 
 
 either_option_required = 'Either --experiment-id or --experiment-name is required.'
@@ -144,18 +120,26 @@ either_option_required = 'Either --experiment-id or --experiment-name is require
 @click.pass_context
 def archive(ctx: click.Context, experiment_id: str, experiment_name: str):
     """Archive an experiment."""
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
+    output_format = ctx.obj['output']
 
     if (experiment_id is None) == (experiment_name is None):
-        raise ValueError(
-            'Either --experiment-id or --experiment-name is required.')
+        raise ValueError(either_option_required)
 
     if not experiment_id:
-        experiment = client.get_experiment(experiment_name=experiment_name)
+        experiment = client_obj.get_experiment(experiment_name=experiment_name)
         experiment_id = experiment.id
 
-    client.archive_experiment(experiment_id=experiment_id)
-    click.echo(f'Archived experiment {experiment_id}.')
+    client_obj.archive_experiment(experiment_id=experiment_id)
+    if experiment_id:
+        experiment = client_obj.get_experiment(experiment_id=experiment_id)
+    else:
+        experiment = client_obj.get_experiment(experiment_name=experiment_name)
+    output.print_output(
+        experiment,
+        output.ModelType.EXPERIMENT,
+        output_format,
+    )
 
 
 @experiment.command()
@@ -172,15 +156,23 @@ def archive(ctx: click.Context, experiment_id: str, experiment_name: str):
 @click.pass_context
 def unarchive(ctx: click.Context, experiment_id: str, experiment_name: str):
     """Unarchive an experiment."""
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
+    output_format = ctx.obj['output']
 
     if (experiment_id is None) == (experiment_name is None):
-        raise ValueError(
-            'Either --expriment-id or --experiment-name is required.')
+        raise ValueError(either_option_required)
 
     if not experiment_id:
-        experiment = client.get_experiment(experiment_name=experiment_name)
+        experiment = client_obj.get_experiment(experiment_name=experiment_name)
         experiment_id = experiment.id
 
-    client.unarchive_experiment(experiment_id=experiment_id)
-    click.echo(f'Unarchived experiment {experiment_id}.')
+    client_obj.unarchive_experiment(experiment_id=experiment_id)
+    if experiment_id:
+        experiment = client_obj.get_experiment(experiment_id=experiment_id)
+    else:
+        experiment = client_obj.get_experiment(experiment_name=experiment_name)
+    output.print_output(
+        experiment,
+        output.ModelType.EXPERIMENT,
+        output_format,
+    )

@@ -1,5 +1,6 @@
 docformatter==1.4
 mypy==0.941
+pip-tools==6.0.0
 pylint==2.12.2
 types-protobuf==3.19.15
 types-PyYAML==6.0.5
