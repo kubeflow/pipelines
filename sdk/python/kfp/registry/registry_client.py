@@ -134,26 +134,20 @@ class RegistryClient:
         """
         return bool(self._known_host_key)
 
-    def _validate_version(self, version: str) -> bool:
+    def _validate_version(self, version: str) -> None:
         """Validates the version.
 
         Args:
             version: Version of the package.
-
-        Returns:
-            Whether the version is of valid format
         """
         if not version.startswith(_VERSION_PREFIX):
             raise ValueError('Version should start with \"sha256:\".')
 
-    def _validate_tag(self, tag: str) -> bool:
+    def _validate_tag(self, tag: str) -> None:
         """Validates the tag.
 
         Args:
             tag: Tag attached to the package.
-
-        Returns:
-            Whether the tag is of valid format
         """
         if tag.startswith(_VERSION_PREFIX):
             raise ValueError('Tag should not start with \"sha256:\".')
