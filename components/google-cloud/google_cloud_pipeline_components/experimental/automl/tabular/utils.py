@@ -793,7 +793,7 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     Tuple of pipeline_definiton_path and parameter_values.
   """
   if not training_machine_spec:
-    training_machine_spec = {'machine_type': 'n1-standard-16'}
+    training_machine_spec = {'machine_type': 'c2-standard-16'}
 
   parameter_values = {
       'project':
@@ -996,7 +996,7 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
   """
 
   if not training_machine_spec:
-    training_machine_spec = {'machine_type': 'n1-standard-16'}
+    training_machine_spec = {'machine_type': 'c2-standard-16'}
 
   if algorithm not in ['tabnet', 'wide_and_deep']:
     raise ValueError(
@@ -1218,7 +1218,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
     Tuple of pipeline_definiton_path and parameter_values.
   """
   if not training_machine_spec:
-    training_machine_spec = {'machine_type': 'n1-standard-16'}
+    training_machine_spec = {'machine_type': 'c2-standard-16'}
 
   parameter_values = {
       'project':
