@@ -199,7 +199,7 @@ class StructuresTest(parameterized.TestCase):
                         '-c',
                         'set -ex\necho "$0" > "$1"',
                         structures.InputValuePlaceholder(input_name='input1'),
-                        structures.OutputValuePlaceholder(
+                        structures.OutputParameterPlaceholder(
                             output_name='output1'),
                     ],
                 )),
@@ -284,7 +284,7 @@ sdkVersion: kfp-2.0.0-alpha.2
                         '-c',
                         'set -ex\necho "$0" > "$1"',
                         structures.InputValuePlaceholder(input_name='input1'),
-                        structures.OutputValuePlaceholder(
+                        structures.OutputParameterPlaceholder(
                             output_name='output1'),
                     ],
                 )),
@@ -794,7 +794,7 @@ class TestOutputPathPlaceholder(unittest.TestCase):
 class TestOutputParameterPlaceholder(unittest.TestCase):
 
     def test_to_placeholder(self):
-        structure = structures.OutputValuePlaceholder('output1')
+        structure = structures.OutputParameterPlaceholder('output1')
         actual = structure.to_placeholder()
         expected = "{{$.outputs.parameters['output1'].output_file}}"
         self.assertEqual(
@@ -804,8 +804,9 @@ class TestOutputParameterPlaceholder(unittest.TestCase):
 
     def test_from_placeholder(self):
         placeholder = "{{$.outputs.parameters['output1'].output_file}}"
-        expected = structures.OutputValuePlaceholder('output1')
-        actual = structures.OutputValuePlaceholder.from_placeholder(placeholder)
+        expected = structures.OutputParameterPlaceholder('output1')
+        actual = structures.OutputParameterPlaceholder.from_placeholder(
+            placeholder)
         self.assertEqual(
             actual,
             expected,
@@ -875,7 +876,7 @@ class TestProcessCommandArg(unittest.TestCase):
         placeholder = "{{$.outputs.parameters['output1'].output_file}}"
         actual = structures.maybe_convert_command_arg_to_placeholder(
             placeholder)
-        expected = structures.OutputValuePlaceholder('output1')
+        expected = structures.OutputParameterPlaceholder('output1')
         self.assertEqual(actual, expected)
 
     def test_concat_placeholder(self):

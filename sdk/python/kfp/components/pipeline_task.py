@@ -288,13 +288,13 @@ class PipelineTask:
                 output_name = arg.output_name
 
                 if type_utils.is_parameter_type(outputs_dict[output_name].type):
-                    output_path = structures.OutputValuePlaceholder(
+                    output_path = structures.OutputParameterPlaceholder(
                         arg.output_name).to_placeholder()
                 else:
                     output_path = arg.to_placeholder()
                 return output_path
 
-            elif isinstance(arg, structures.OutputValuePlaceholder):
+            elif isinstance(arg, structures.OutputParameterPlaceholder):
                 output_name = arg.output_name
                 if not type_utils.is_parameter_type(
                         outputs_dict[output_name].type):

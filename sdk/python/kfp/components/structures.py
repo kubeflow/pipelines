@@ -19,11 +19,10 @@ import dataclasses
 import functools
 import itertools
 import re
-import uuid
 from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, Union
+import uuid
 
 import kfp
-import yaml
 from kfp import dsl
 from kfp.components import base_model
 from kfp.components import utils
@@ -32,6 +31,7 @@ from kfp.components import v1_structures
 from kfp.components.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.utils import ir_utils
+import yaml
 
 
 class InputSpec_(base_model.BaseModel):
@@ -270,8 +270,8 @@ class InputUriPlaceholder(base_model.BaseModel, PlaceholderSerializationMixin):
     _FROM_PLACEHOLDER_REGEX = r"\{\{\$\.inputs\.artifacts\[(?:''|'|\")(.+?)(?:''|'|\")]\.uri\}\}"
 
 
-class OutputValuePlaceholder(base_model.BaseModel,
-                             PlaceholderSerializationMixin):
+class OutputParameterPlaceholder(base_model.BaseModel,
+                                 PlaceholderSerializationMixin):
     """Class that holds output path for conditional cases.
 
     Attributes:
@@ -310,7 +310,7 @@ class OutputUriPlaceholder(base_model.BaseModel, PlaceholderSerializationMixin):
 
 ValidCommandArgs = Union[str, InputValuePlaceholder, InputPathPlaceholder,
                          InputUriPlaceholder, OutputPathPlaceholder,
-                         OutputUriPlaceholder, OutputValuePlaceholder,
+                         OutputUriPlaceholder, OutputParameterPlaceholder,
                          'IfPresentPlaceholder', 'ConcatPlaceholder']
 
 
@@ -474,7 +474,7 @@ def maybe_convert_command_arg_to_placeholder(arg: str) -> ValidCommandArgs:
         InputUriPlaceholder,
         OutputPathPlaceholder,
         OutputUriPlaceholder,
-        OutputValuePlaceholder,
+        OutputParameterPlaceholder,
     }
     for placeholder_struct in placeholders:
         if placeholder_struct.is_match(arg):
@@ -703,9 +703,8 @@ def _check_valid_placeholder_reference(valid_inputs: List[str],
         if placeholder.input_name not in valid_inputs:
             raise ValueError(
                 f'Argument "{placeholder}" references non-existing input.')
-    elif isinstance(
-            placeholder,
-        (OutputValuePlaceholder, OutputPathPlaceholder, OutputUriPlaceholder)):
+    elif isinstance(placeholder, (OutputParameterPlaceholder,
+                                  OutputPathPlaceholder, OutputUriPlaceholder)):
         if placeholder.output_name not in valid_outputs:
             raise ValueError(
                 f'Argument "{placeholder}" references non-existing output.')
