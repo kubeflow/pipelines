@@ -1242,7 +1242,7 @@ func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, 
 	// Verify pipeline version exist
 	_, err := r.pipelineStore.GetPipelineVersion(versionId)
 	if err != nil {
-		return nil, util.Wrap(err, "Get pipeline version template failed: version ID does not exist")
+		return nil, util.Wrap(err, "Get pipeline version template failed: cannot get pipeline version")
 	}
 
 	template, err := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(versionId)))
