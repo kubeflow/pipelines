@@ -25,6 +25,7 @@ import (
 	"github.com/argoproj/argo-workflows/v3/workflow/packer"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/cenkalti/backoff"
+	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
@@ -318,7 +319,7 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 	// Verify pipeline exist
 	pipeline, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
-		return nil, util.Wrap(err, "Get pipeline template failed")
+		return nil, util.Wrap(err, "Get pipeline template failed, pipeline ID does not exist")
 	}
 
 	if pipeline.DefaultVersion == nil {
@@ -1241,15 +1242,21 @@ func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, 
 	// Verify pipeline version exist
 	_, err := r.pipelineStore.GetPipelineVersion(versionId)
 	if err != nil {
-		return nil, util.Wrap(err, "Get pipeline version template failed")
+		return nil, util.Wrap(err, "Get pipeline version template failed: version ID does not exist")
 	}
 
 	template, err := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(versionId)))
 	if err != nil {
-		return nil, util.Wrap(err, "Get pipeline version template failed")
+		return nil, util.Wrap(err, "Get pipeline version template failed: cannot get file")
 	}
 
-	return template, nil
+	// convert template from JSON to YAML
+	template_yaml, err := yaml.JSONToYAML(template)
+	if err != nil {
+		return nil, util.Wrap(err, "Get pipeline version template failed: unable to convert template from JSON to YAML")
+	}
+
+	return template_yaml, nil
 }
 
 func (r *ResourceManager) AuthenticateRequest(ctx context.Context) (string, error) {
