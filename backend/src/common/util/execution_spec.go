@@ -15,7 +15,6 @@
 package util
 
 import (
-	"encoding/json"
 	"errors"
 
 	"github.com/ghodss/yaml"
@@ -155,20 +154,16 @@ func NewExecutionSpec(bytes []byte) (ExecutionSpec, error) {
 }
 
 // Convert JSON in bytes into ExecutionSpec instance
-func NewExecutionSpecJSON(bytes []byte) (ExecutionSpec, error) {
+// If the data contains the TypeMeta info, then there is no need to
+// specify the ExecutionType. Explicitly specify it for now
+func NewExecutionSpecJSON(execType ExecutionType, bytes []byte) (ExecutionSpec, error) {
 	if len(bytes) == 0 {
 		return nil, NewInvalidInputError("empty input")
 	}
-	var meta metav1.TypeMeta
-	err := json.Unmarshal(bytes, &meta)
-	if err != nil {
-		return nil, NewInvalidInputErrorWithDetails(err, "Failed to unmarshal the inputs")
-	}
-
-	switch meta.Kind {
-	case string(ArgoWorkflow):
+	switch execType {
+	case ArgoWorkflow:
 		return NewWorkflowFromBytesJSON(bytes)
-	case string(TektonPipelineRun):
+	case TektonPipelineRun:
 		return nil, NewInvalidInputError("Not implemented yet")
 	default:
 		return nil, NewInvalidInputError("Unknown execution spec")

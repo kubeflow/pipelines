@@ -26,7 +26,7 @@ func ToApiExperiment(experiment *model.Experiment) *api.Experiment {
 	resourceReferences := []*api.ResourceReference(nil)
 	if common.IsMultiUserMode() {
 		resourceReferences = []*api.ResourceReference{
-			&api.ResourceReference{
+			{
 				Key: &api.ResourceKey{
 					Type: api.ResourceType_NAMESPACE,
 					Id:   experiment.Namespace,

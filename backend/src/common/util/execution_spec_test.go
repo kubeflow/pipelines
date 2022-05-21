@@ -66,12 +66,12 @@ func TestExecutionSpec_NewExecutionSpec(t *testing.T) {
 }
 
 func TestExecutionSpec_NewExecutionSpecJSON(t *testing.T) {
-	execSpec, err := NewExecutionSpecJSON([]byte{})
+	execSpec, err := NewExecutionSpecJSON(ArgoWorkflow, []byte{})
 	assert.Nil(t, execSpec)
 	assert.Error(t, err)
 	assert.EqualError(t, err, NewInvalidInputError("empty input").Error())
 
-	execSpec, err = NewExecutionSpecJSON([]byte("invalid format"))
+	execSpec, err = NewExecutionSpecJSON(ArgoWorkflow, []byte("invalid format"))
 	assert.Nil(t, execSpec)
 	assert.Error(t, err)
 	assert.EqualError(t, err, "InvalidInputError: Failed to unmarshal the inputs: "+
@@ -100,7 +100,7 @@ func TestExecutionSpec_NewExecutionSpecJSON(t *testing.T) {
 	})
 	assert.Nil(t, err)
 	assert.NotEmpty(t, bytes)
-	execSpec, err = NewExecutionSpecJSON(bytes)
+	execSpec, err = NewExecutionSpecJSON(ArgoWorkflow, bytes)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, execSpec)
 }
