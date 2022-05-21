@@ -319,7 +319,7 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 	// Verify pipeline exist
 	pipeline, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
-		return nil, util.Wrap(err, "Get pipeline template failed, pipeline ID does not exist")
+		return nil, util.Wrap(err, "Get pipeline template failed, pipeline does not exist")
 	}
 
 	if pipeline.DefaultVersion == nil {
