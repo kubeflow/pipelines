@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: feature_transform_engine_transform_configuration
+name: transform_configuration_planner
 description: |
-  Generates an Fte transform configuration for our dataset when not specified by the user.
+  Generates an FTE transform configuration for our dataset when not specified by the user.
 
     Args:
         project (str):
