@@ -2112,7 +2112,7 @@
                   "splits": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "[\"TRAIN\", \"VALIDATE\"]"
+                        "stringValue": "[\"TRAIN\", \"VALIDATE\", \"TEST\"]"
                       }
                     }
                   },
@@ -3708,7 +3708,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef parse_window_config(\n    window_config: Dict[str, Union[str, int]],\n) -> NamedTuple('Outputs', [\n    ('window_column', str),\n    ('window_stride_length', int),\n    ('window_max_count', int),\n]):\n  \"\"\"Converts the data source JSON into flat arguments.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n  return collections.namedtuple('Outputs', [\n      'window_column',\n      'window_stride_length',\n      'window_max_count',\n  ])(\n      window_config.get('column', ''),\n      window_config.get('stride_length', 0),\n      window_config.get('max_count', 0),\n  )\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef parse_window_config(\n    window_config: Dict[str, Union[str, int]],\n) -> NamedTuple('Outputs', [\n    ('window_column', str),\n    ('window_stride_length', int),\n    ('window_max_count', int),\n]):\n  \"\"\"Converts the data source JSON into flat arguments.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n  return collections.namedtuple('Outputs', [\n      'window_column',\n      'window_stride_length',\n      'window_max_count',\n  ])(\n      window_config.get('column', ''),\n      int(window_config.get('stride_length', 0)),\n      int(window_config.get('max_count', 0)),\n  )\n\n"
             ],
             "image": "python:3.7-slim"
           }
@@ -4017,7 +4017,7 @@
         "stringValue": "{\"fraction_split\": {\"test_fraction\": 0.1, \"training_fraction\": 0.8, \"validation_fraction\": 0.1}}"
       },
       "window_config": {
-        "stringValue": "{\"max_count\": 100000000.0}"
+        "stringValue": "{\"max_count\": 100000000}"
       }
     }
   }
