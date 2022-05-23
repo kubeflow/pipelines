@@ -4,7 +4,6 @@
 ./api-test \
     -namespace kubeflow \
     -runIntegrationTests=true \
-    -isDevMode=false \
     -isKubeflowMode=true \
     -resourceNamespace=kf-conformance \
     -test.v \
