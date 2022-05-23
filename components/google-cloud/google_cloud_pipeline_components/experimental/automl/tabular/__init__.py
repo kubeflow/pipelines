@@ -33,7 +33,7 @@ __all__ = [
     'BuiltinAlgorithmHyperparameterTuningJobOp',
     'TabNetTrainerOp',
     'FeatureTransformEngineOp',
-    'FteTransformConfigurationOp',
+    'TransformConfigurationPlannerOp',
 ]
 
 CvTrainerOp = load_component_from_file(
@@ -52,10 +52,10 @@ TransformOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'transform.yaml'))
 FeatureTransformEngineOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'feature_transform_engine.yaml'))
-FteTransformConfigurationOp = load_component_from_file(
+TransformConfigurationPlannerOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__),
-        'feature_transform_engine_transform_configuration.yaml'))
+        'transform_configuration_planner.yaml'))
 FinalizerOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'finalizer.yaml'))
 WideAndDeepTrainerOp = load_component_from_file(
