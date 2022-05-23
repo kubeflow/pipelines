@@ -90,7 +90,7 @@ def get_bqml_arima_train_pipeline_and_parameters(
         },
     }
   if window_config is None:
-    window_config = {'max_count': 1e8}
+    window_config = {'max_count': int(1e8)}
   parameter_values = {
       'project': project,
       'location': location,
