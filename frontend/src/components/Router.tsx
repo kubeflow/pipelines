@@ -43,7 +43,7 @@ import ExperimentDetails from '../pages/ExperimentDetails';
 import { GettingStarted } from '../pages/GettingStarted';
 import NewExperiment from '../pages/NewExperiment';
 import NewPipelineVersion from '../pages/NewPipelineVersion';
-import NewRun from '../pages/NewRun';
+import NewRunSwitcher from '../pages/NewRunSwitcher';
 import PipelineDetails from '../pages/PipelineDetails';
 import PipelineList from '../pages/PipelineList';
 import RecurringRunDetails from '../pages/RecurringRunDetails';
@@ -186,7 +186,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     { path: RoutePage.EXPERIMENT_DETAILS, Component: ExperimentDetails },
     { path: RoutePage.NEW_EXPERIMENT, Component: NewExperiment },
     { path: RoutePage.NEW_PIPELINE_VERSION, Component: NewPipelineVersion },
-    { path: RoutePage.NEW_RUN, Component: NewRun },
+    { path: RoutePage.NEW_RUN, Component: NewRunSwitcher },
     { path: RoutePage.PIPELINES, Component: PipelineList },
     { path: RoutePage.PIPELINE_DETAILS, Component: PipelineDetails },
     { path: RoutePage.PIPELINE_DETAILS_NO_VERSION, Component: PipelineDetails },

@@ -417,3 +417,17 @@ export function isSafari(): boolean {
 export function getStringEnumKey(e: { [s: string]: any }, value: any): string {
   return Object.keys(e)[Object.values(e).indexOf(value)];
 }
+
+export function generateRandomString(length: number): string {
+  let d = 0;
+  function randomChar(): string {
+    const r = Math.trunc((d + Math.random() * 16) % 16);
+    d = Math.floor(d / 16);
+    return r.toString(16);
+  }
+  let str = '';
+  for (let i = 0; i < length; ++i) {
+    str += randomChar();
+  }
+  return str;
+}
