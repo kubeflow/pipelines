@@ -14,7 +14,7 @@
 
 ## Documentation Updates
 
-# Current Version (2.0.0-alpha.4)
+# 2.0.0-alpha.4
 
 ## Major Features and Improvements
 * Implement Registry Client [\#7597](https://github.com/kubeflow/pipelines/pull/7597), [\#7763](https://github.com/kubeflow/pipelines/pull/7763)
