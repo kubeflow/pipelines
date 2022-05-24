@@ -86,10 +86,17 @@ def find_version(*file_path_parts):
     raise RuntimeError('Unable to find version string.')
 
 
+def read_readme():
+    readme_path = os.path.join(os.path.dirname(__file__), 'README.md')
+    with open(readme_path) as f:
+        return f.read()
+
+
 setup(
     name=NAME,
     version=find_version('kfp', '__init__.py'),
     description='KubeFlow Pipelines SDK',
+    long_description=read_readme(),
     author='The Kubeflow Authors',
     url="https://github.com/kubeflow/pipelines",
     project_urls={
