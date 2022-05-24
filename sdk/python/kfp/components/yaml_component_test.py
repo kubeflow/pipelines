@@ -13,9 +13,10 @@
 # limitations under the License.
 """Tests for kfp.components.yaml_component."""
 
+import os
+import tempfile
 import textwrap
 import unittest
-from pathlib import Path
 from unittest import mock
 
 import requests
@@ -23,22 +24,52 @@ from kfp.components import structures
 from kfp.components import yaml_component
 
 SAMPLE_YAML = textwrap.dedent("""\
-        name: component_1
-        inputs:
-          input1: {type: String}
-        outputs:
-          output1: {type: String}
-        implementation:
-          container:
-            image: alpine
-            command:
-            - sh
-            - -c
-            - 'set -ex
+components:
+  comp-component-1:
+    executorLabel: exec-component-1
+    inputDefinitions:
+      parameters:
+        input1:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        output1:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-component-1:
+      container:
+        command:
+        - sh
+        - -c
+        - 'set -ex
 
-            echo "$0" > "$1"'
-            - {inputValue: input1}
-            - {outputPath: output1}
+          echo "$0" > "$1"'
+        - '{{$.inputs.parameters[''input1'']}}'
+        - '{{$.outputs.parameters[''output1''].output_file}}'
+        image: alpine
+pipelineInfo:
+  name: component-1
+root:
+  dag:
+    tasks:
+      component-1:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-component-1
+        inputs:
+          parameters:
+            input1:
+              componentInputParameter: input1
+        taskInfo:
+          name: component-1
+  inputDefinitions:
+    parameters:
+      input1:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.3
         """)
 
 
@@ -55,9 +86,11 @@ class YamlComponentTest(unittest.TestCase):
             component.component_spec.implementation.container.image, 'alpine')
 
     def test_load_component_from_file(self):
-        component_path = Path(
-            __file__).parent / 'test_data' / 'simple_yaml.yaml'
-        component = yaml_component.load_component_from_file(component_path)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'sample_yaml.yaml')
+            with open(path, 'w') as f:
+                f.write(SAMPLE_YAML)
+            component = yaml_component.load_component_from_file(path)
         self.assertEqual(component.component_spec.name, 'component-1')
         self.assertEqual(component.component_spec.outputs,
                          {'output1': structures.OutputSpec(type='String')})
