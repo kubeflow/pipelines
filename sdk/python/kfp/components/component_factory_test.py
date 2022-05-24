@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import unittest
+from unittest import mock
 
 from kfp.components import component_factory
 
@@ -44,3 +46,16 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         concat_command = ' '.join(command)
         for package in packages_to_install + pip_index_urls:
             self.assertTrue(package in concat_command)
+
+    @mock.patch.dict(os.environ, {'KFP_PACKAGE_PATH': 'test-path'}, clear=True)
+    def test_pip_install_with_KFP_PACKAGE_PATH_env_variable(self):
+        kfp_path = component_factory._get_kfp_package_path()
+        self.assertEqual(kfp_path, 'test-path')
+
+        @component_factory.create_component_from_func
+        def my_comp():
+            pass
+
+        command = ''.join(
+            my_comp.component_spec.implementation.container.command)
+        self.assertIn('test-path', command)
