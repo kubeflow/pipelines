@@ -68,7 +68,7 @@ const overviewSectionName = 'Run overview';
 const paramsSectionName = 'Parameters';
 const metricsSectionName = 'Metrics';
 
-function CompareV2(props: CompareState) {
+function CompareV2() {
   const [collapseSections, setCollapseSections] = useState({});
   const [fullscreenViewerConfig, setFullscreenViewerConfig] = useState(null);
   const [metricsCompareProps, setMetricsCompareProps] = useState({ rows: [], xLabels: [], yLabels: [] });
