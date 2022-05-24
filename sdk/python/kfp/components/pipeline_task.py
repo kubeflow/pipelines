@@ -282,8 +282,7 @@ class PipelineTask:
                         f'"{outputs_dict[output_name].type}" cannot be paired with '
                         'OutputUriPlaceholder.')
 
-                output_uri = arg.to_placeholder()
-                return output_uri
+                return arg.to_placeholder()
 
             elif isinstance(arg, structures.OutputPathPlaceholder):
                 output_name = arg.output_name
@@ -294,6 +293,17 @@ class PipelineTask:
                 else:
                     output_path = arg.to_placeholder()
                 return output_path
+
+            elif isinstance(arg, structures.OutputParameterPlaceholder):
+                output_name = arg.output_name
+                if not type_utils.is_parameter_type(
+                        outputs_dict[output_name].type):
+                    raise TypeError(
+                        f'Onput "{output_name}" with type '
+                        f'"{outputs_dict[output_name].type}" cannot be paired with '
+                        'OutputUriPlaceholder.')
+
+                return arg.to_placeholder()
 
             elif isinstance(arg, structures.ConcatPlaceholder):
                 expanded_argument_strings = expand_argument_list(arg.items)
