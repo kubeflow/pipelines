@@ -14,11 +14,12 @@
 import dataclasses
 import inspect
 import itertools
+import os
 import pathlib
 import re
 import textwrap
-import warnings
 from typing import Callable, List, Optional, Tuple
+import warnings
 
 import docstring_parser
 from kfp.components import python_component
@@ -98,9 +99,9 @@ def _get_packages_to_install_command(
     return ['sh', '-c', install_python_packages_script]
 
 
-def _get_default_kfp_package_path() -> str:
+def _get_kfp_package_path() -> str:
     import kfp
-    return 'kfp=={}'.format(kfp.__version__)
+    return os.environ.get('KFP_PACKAGE_PATH', f'kfp=={kfp.__version__}')
 
 
 def _get_function_source_definition(func: Callable) -> str:
@@ -392,7 +393,7 @@ def create_component_from_func(func: Callable,
 
     if install_kfp_package and target_image is None:
         if kfp_package_path is None:
-            kfp_package_path = _get_default_kfp_package_path()
+            kfp_package_path = _get_kfp_package_path()
         packages_to_install.append(kfp_package_path)
 
     packages_to_install_command = _get_packages_to_install_command(
