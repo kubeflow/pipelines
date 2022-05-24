@@ -21,24 +21,6 @@ from kfp.components import pipeline_task
 from kfp.components import structures
 
 V2_YAML = textwrap.dedent("""\
-    name: component1
-    inputs:
-      input1: {type: String}
-    outputs:
-      output1: {type: Artifact}
-    implementation:
-      container:
-        image: alpine
-        command:
-        - sh
-        - -c
-        - echo "$0" >> "$1"
-        args:
-        - {inputValue: input1}
-        - {outputPath: output1}
-""")
-
-V2_YAML = textwrap.dedent("""\
 components:
   comp-component1:
     executorLabel: exec-component1
