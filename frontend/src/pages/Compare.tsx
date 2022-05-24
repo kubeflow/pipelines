@@ -99,16 +99,12 @@ class Compare extends Page<{}, CompareState> {
     const runIds = queryParamRunIds ? queryParamRunIds.split(',') : [];
 
     const showV2Compare =
-      isFeatureEnabled(FeatureKey.V2_ALPHA);
+      isFeatureEnabled(FeatureKey.V2_ALPHA) && this.state.runs.every(run => !run.run?.pipeline_spec?.workflow_manifest);
 
-    if (!showV2Compare) {
-      return (
-        <CompareV1 {...this.props} />
-      );
+    if (showV2Compare) {
+      return <CompareV2 />;
     } else {
-      return (
-        <CompareV2 />
-      );
+      return <CompareV1 {...this.props} />;
     }
   }
 
