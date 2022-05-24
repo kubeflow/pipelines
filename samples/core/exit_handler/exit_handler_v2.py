@@ -28,7 +28,7 @@ def print_op(message: str):
     print(message)
 
 
-@@component(kfp_package_path=_KFP_PACKAGE_PATH)
+@component(kfp_package_path=_KFP_PACKAGE_PATH)
 def fail_op(message: str):
     """Fails."""
     import sys
