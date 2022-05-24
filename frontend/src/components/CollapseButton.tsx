@@ -15,7 +15,7 @@
  */
 
 import * as React from 'react';
-import { CompareState } from '../pages/Compare';
+import { CompareState } from '../pages/CompareV1';
 import Button from '@material-ui/core/Button';
 import ExpandedIcon from '@material-ui/icons/ArrowDropUp';
 import { stylesheet, classes } from 'typestyle';
