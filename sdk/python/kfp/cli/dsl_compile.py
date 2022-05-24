@@ -136,15 +136,19 @@ def dsl_compile(
                 f'Failed to parse --pipeline-parameters argument: {pipeline_parameters}'
             )
             raise e
+
+        package_path = os.path.join(os.getcwd(), output)
         _compile_pipeline_function(
             pipeline_funcs=pipeline_funcs,
             function_name=function_name,
             pipeline_parameters=parsed_parameters,
-            package_path=output,
+            package_path=package_path,
             disable_type_check=disable_type_check,
         )
     finally:
         del sys.path[0]
+
+    click.echo(package_path)
 
 
 def main():
@@ -152,9 +156,9 @@ def main():
     try:
         dsl_compile.help = '(Deprecated. Please use `kfp dsl compile` instead.)\n\n' + dsl_compile.help
 
-        logging.error(
-            '`dsl-compile` is deprecated. Please use `kfp dsl compile` instead.'
-        )
+        click.echo(
+            '`dsl-compile` is deprecated. Please use `kfp dsl compile` instead.',
+            err=True)
 
         dsl_compile(obj={}, auto_envvar_prefix='KFP')
     except Exception as e:

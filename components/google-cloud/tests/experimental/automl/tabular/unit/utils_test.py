@@ -495,7 +495,7 @@ class UtilsTest(unittest.TestCase):
             'transform_dataflow_disk_size_gb':
                 40,
             'training_machine_spec': {
-                'machine_type': 'n1-standard-16'
+                'machine_type': 'c2-standard-16'
             },
             'training_replica_count':
                 1,
@@ -626,7 +626,7 @@ class UtilsTest(unittest.TestCase):
             'transform_dataflow_disk_size_gb':
                 40,
             'training_machine_spec': {
-                'machine_type': 'n1-standard-16'
+                'machine_type': 'c2-standard-16'
             },
             'training_replica_count':
                 1,
@@ -758,7 +758,7 @@ class UtilsTest(unittest.TestCase):
             'transform_dataflow_disk_size_gb':
                 40,
             'training_machine_spec': {
-                'machine_type': 'n1-standard-16'
+                'machine_type': 'c2-standard-16'
             },
             'training_replica_count':
                 1,
@@ -870,7 +870,7 @@ class UtilsTest(unittest.TestCase):
             'transform_dataflow_disk_size_gb':
                 40,
             'training_machine_spec': {
-                'machine_type': 'n1-standard-16'
+                'machine_type': 'c2-standard-16'
             },
             'training_replica_count':
                 1,

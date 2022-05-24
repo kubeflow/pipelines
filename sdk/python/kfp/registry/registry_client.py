@@ -31,6 +31,8 @@ _DEFAULT_JSON_HEADER = {
     'Content-type': 'application/json',
 }
 
+_VERSION_PREFIX = 'sha256:'
+
 
 class _SafeDict(dict):
     """Class for safely handling missing keys in .format_map."""
@@ -88,9 +90,9 @@ class RegistryClient:
 
     def _request(self,
                  request_url: str,
-                 request_body: str = '',
-                 http_request: str = 'get',
-                 extra_headers: dict = None) -> requests.Response:
+                 request_body: Optional[str] = '',
+                 http_request: Optional[str] = 'get',
+                 extra_headers: Optional[dict] = None) -> requests.Response:
         """Calls the HTTP request.
 
         Args:
@@ -131,6 +133,24 @@ class RegistryClient:
             Whether the host is a known host.
         """
         return bool(self._known_host_key)
+
+    def _validate_version(self, version: str) -> None:
+        """Validates the version.
+
+        Args:
+            version: Version of the package.
+        """
+        if not version.startswith(_VERSION_PREFIX):
+            raise ValueError('Version should start with \"sha256:\".')
+
+    def _validate_tag(self, tag: str) -> None:
+        """Validates the tag.
+
+        Args:
+            tag: Tag attached to the package.
+        """
+        if tag.startswith(_VERSION_PREFIX):
+            raise ValueError('Tag should not start with \"sha256:\".')
 
     def load_config(self) -> dict:
         """Loads the config.
@@ -217,9 +237,11 @@ class RegistryClient:
                 self._auth, credentials.Credentials) and not self._auth.valid:
             self._auth.refresh(google.auth.transport.requests.Request())
 
-    def upload_pipeline(self, file_name: str, tags: Optional[Union[str,
-                                                                   List[str]]],
-                        extra_headers: Optional[dict]) -> Tuple[str, str]:
+    def upload_pipeline(
+            self,
+            file_name: str,
+            tags: Optional[Union[str, List[str]]] = None,
+            extra_headers: Optional[dict] = None) -> Tuple[str, str]:
         """Uploads the pipeline.
 
         Args:
@@ -271,6 +293,7 @@ class RegistryClient:
         if (not version) and (not tag):
             raise ValueError('Either version or tag must be specified.')
         if version:
+            self._validate_version(version)
             url = self._config['download_version_url'].format(
                 package_name=package_name, version=version)
         if tag:
@@ -278,6 +301,7 @@ class RegistryClient:
                 logging.info(
                     'Both version and tag are specified, using version only.')
             else:
+                self._validate_tag(tag)
                 url = self._config['download_tag_url'].format(
                     package_name=package_name, tag=tag)
         return url
@@ -286,7 +310,7 @@ class RegistryClient:
                           package_name: str,
                           version: Optional[str] = None,
                           tag: Optional[str] = None,
-                          file_name: str = None) -> str:
+                          file_name: Optional[str] = None) -> str:
         """Downloads a pipeline - either version or tag must be specified.
 
         Args:
@@ -305,8 +329,10 @@ class RegistryClient:
         if not file_name:
             file_name = package_name + '_'
             if version:
-                file_name += version[len('sha256:'):]
+                self._validate_version(version)
+                file_name += version[len(_VERSION_PREFIX):]
             elif tag:
+                self._validate_tag(tag)
                 file_name += tag
             file_name += '.yaml'
 
@@ -339,7 +365,7 @@ class RegistryClient:
         response = self._request(request_url=url)
         response_json = response.json()
 
-        return response_json['packages']
+        return response_json.get('packages', {})
 
     def delete_package(self, package_name: str) -> bool:
         """Deletes a package.
@@ -367,6 +393,7 @@ class RegistryClient:
         Returns:
             The version metadata.
         """
+        self._validate_version(version)
         url = self._config['get_version_url'].format(
             package_name=package_name, version=version)
         response = self._request(request_url=url)
@@ -387,7 +414,7 @@ class RegistryClient:
         response = self._request(request_url=url)
         response_json = response.json()
 
-        return response_json['versions']
+        return response_json.get('versions', {})
 
     def delete_version(self, package_name: str, version: str) -> bool:
         """Deletes package version.
@@ -399,6 +426,7 @@ class RegistryClient:
         Returns:
             Whether the version was deleted successfully.
         """
+        self._validate_version(version)
         url = self._config['delete_version_url'].format(
             package_name=package_name, version=version)
         response = self._request(request_url=url, http_request='delete')
@@ -418,6 +446,8 @@ class RegistryClient:
         Returns:
             The metadata for the created tag.
         """
+        self._validate_version(version)
+        self._validate_tag(tag)
         url = self._config['create_tag_url'].format(
             package_name=package_name, tag=tag)
         new_tag = {
@@ -445,6 +475,7 @@ class RegistryClient:
         Returns:
             The metadata for the tag.
         """
+        self._validate_tag(tag)
         url = self._config['get_tag_url'].format(
             package_name=package_name, tag=tag)
         response = self._request(request_url=url)
@@ -463,6 +494,8 @@ class RegistryClient:
         Returns:
             The metadata for the updated tag.
         """
+        self._validate_version(version)
+        self._validate_tag(tag)
         url = self._config['update_tag_url'].format(
             package_name=package_name, tag=tag)
         new_tag = {
@@ -493,7 +526,7 @@ class RegistryClient:
         response = self._request(request_url=url)
         response_json = response.json()
 
-        return response_json['tags']
+        return response_json.get('tags', {})
 
     def delete_tag(self, package_name: str, tag: str) -> Dict[str, Any]:
         """Deletes package tag.
@@ -505,6 +538,7 @@ class RegistryClient:
         Returns:
             Response from the delete request.
         """
+        self._validate_tag(tag)
         url = self._config['delete_tag_url'].format(
             package_name=package_name, tag=tag)
         response = self._request(request_url=url, http_request='delete')
