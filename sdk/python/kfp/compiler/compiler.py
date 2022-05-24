@@ -18,12 +18,14 @@ https://docs.google.com/document/d/1PUDuSQ8vmeKSBloli53mp7GIvzekaY7sggg6ywy35Dk/
 """
 import collections
 import inspect
-import uuid
+import json
 from typing import (Any, Callable, Dict, List, Mapping, Optional, Set, Tuple,
                     Union)
+import uuid
+import warnings
 
-import kfp
 from google.protobuf import json_format
+import kfp
 from kfp import dsl
 from kfp.compiler import pipeline_spec_builder as builder
 from kfp.compiler.pipeline_spec_builder import GroupOrTaskType
@@ -37,7 +39,7 @@ from kfp.components import tasks_group
 from kfp.components import utils as component_utils
 from kfp.components.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
-from kfp.utils import ir_utils
+import yaml
 
 
 class Compiler:
@@ -106,7 +108,7 @@ class Compiler:
                     'subclass of `base_component.BaseComponent` or '
                     '`Callable` constructed with @dsl.pipeline '
                     f'decorator. Got: {type(pipeline_func)}')
-            self._write_pipeline_spec_file(
+            write_pipeline_spec_to_file(
                 pipeline_spec=pipeline_spec, package_path=package_path)
 
     def _create_pipeline(
@@ -243,21 +245,6 @@ class Compiler:
             pipeline_args=args_list_with_defaults,
             task_group=group,
         )
-
-    def _write_pipeline_spec_file(
-        self,
-        pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-        package_path: str,
-    ) -> None:
-        """Writes pipeline spec into a YAML or JSON (deprecated) file.
-
-        Args:
-            pipeline_spec: IR pipeline spec.
-            package_path: The file path to be written.
-        """
-
-        json_dict = json_format.MessageToDict(pipeline_spec)
-        ir_utils._write_ir_to_file(json_dict, package_path)
 
     def _validate_exit_handler(self,
                                pipeline: pipeline_context.Pipeline) -> None:
@@ -792,3 +779,33 @@ class Compiler:
                 dependencies[downstream_groups[0]].add(upstream_groups[0])
 
         return dependencies
+
+
+def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+                                package_path: str) -> None:
+    """Writes PipelienSpec into a YAML or JSON (deprecated) file.
+
+    Args:
+        pipeline_spec (pipeline_spec_pb2.PipelineSpec): The PipelineSpec.
+        package_path (str): The path to which to write the PipelineSpec.
+    """
+    json_dict = json_format.MessageToDict(pipeline_spec)
+
+    if package_path.endswith('.json'):
+        warnings.warn(
+            ('Compiling to JSON is deprecated and will be '
+             'removed in a future version. Please compile to a YAML file by '
+             'providing a file path with a .yaml extension instead.'),
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        with open(package_path, 'w') as json_file:
+            json.dump(json_dict, json_file, indent=2, sort_keys=True)
+
+    elif package_path.endswith(('.yaml', '.yml')):
+        with open(package_path, 'w') as yaml_file:
+            yaml.dump(json_dict, yaml_file, sort_keys=True)
+
+    else:
+        raise ValueError(
+            f'The output path {package_path} should end with ".yaml".')
