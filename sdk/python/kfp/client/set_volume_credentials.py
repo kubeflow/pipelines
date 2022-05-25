@@ -14,6 +14,7 @@
 
 import logging
 import os
+from typing import Optional
 
 from kfp import client
 from kfp.client import token_credentials_base
@@ -39,12 +40,12 @@ class ServiceAccountTokenVolumeCredentials(
     https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/#service-account-token-volume-projection
     """
 
-    def __init__(self, path=None):
+    def __init__(self, path: Optional[str] = None) -> None:
         self._token_path = (
             path or os.getenv(client.KF_PIPELINES_SA_TOKEN_ENV) or
             client.KF_PIPELINES_SA_TOKEN_PATH)
 
-    def _get_token(self):
+    def _get_token(self) -> str:
         token = None
         try:
             token = token_credentials_base.read_token_from_file(
@@ -55,7 +56,7 @@ class ServiceAccountTokenVolumeCredentials(
             raise
         return token
 
-    def refresh_api_key_hook(self, config: configuration.Configuration):
+    def refresh_api_key_hook(self, config: configuration.Configuration) -> None:
         """Refresh the api key.
 
         This is a helper function for registering token refresh with swagger
