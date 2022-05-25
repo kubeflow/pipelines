@@ -414,6 +414,9 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 
 	// Assign the create at time.
 	runDetail.CreatedAtInSec = runAt
+	// Since this run is not "job"(a.k.a. scheduled run), it is scheduled at the same time
+	// it is created
+	runDetail.ScheduledAtInSec = runAt
 	return r.runStore.CreateRun(runDetail)
 }
 
