@@ -38,7 +38,7 @@ export default function Compare(props: CompareProps) {
   const { isSuccess, data } = useQuery<ApiRunDetail[], Error>(
     ['run_details', { ids: runIds }],
     () => Promise.all(runIds.map(async id => await Apis.runServiceApi.getRun(id))),
-    {},
+    { staleTime: Infinity },
   );
 
   if (data === undefined) {
@@ -50,7 +50,7 @@ export default function Compare(props: CompareProps) {
     isFeatureEnabled(FeatureKey.V2_ALPHA) &&
     isSuccess &&
     data &&
-    data.every(run => run.run?.pipeline_spec?.pipeline_manifest) // TODO: Is the readability here ok?
+    data.every(run => run.run?.pipeline_spec?.hasOwnProperty('pipeline_manifest')) // TODO: Is the readability here ok?
   ) {
     return <CompareV2 />;
   } else {

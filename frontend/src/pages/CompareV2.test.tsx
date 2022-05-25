@@ -36,7 +36,6 @@ describe('CompareV2', () => {
     render(
       <CompareV2 />,
     );
-    // TODO: Is this a fine test?
-    expect(screen.getByText('This is the V2 Compare runs page.')).not.toBeNull();
+    screen.getByTestId('compare-runs-v2');
   });
 });
