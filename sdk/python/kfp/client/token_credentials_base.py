@@ -42,6 +42,6 @@ class TokenCredentialsBase(abc.ABC):
 def read_token_from_file(path=None):
     """Read a token found in some file."""
     token = None
-    with open(path, "r") as f:
+    with open(path) as f:
         token = f.read().strip()
     return token

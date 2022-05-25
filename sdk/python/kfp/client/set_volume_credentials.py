@@ -65,4 +65,4 @@ class ServiceAccountTokenVolumeCredentials(client.TokenCredentialsBase):
                 The Configuration object of the kubernetes client's is the same
                 with kfp_server_api.configuration.Configuration.
         """
-        config.api_key["authorization"] = self._get_token()
+        config.api_key['authorization'] = self._get_token()
