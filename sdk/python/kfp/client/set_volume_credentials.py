@@ -41,11 +41,22 @@ class ServiceAccountTokenVolumeCredentials(
     """
 
     def __init__(self, path: Optional[str] = None) -> None:
+        """Constructs ServiceAccountTokenVolumeCredentials.
+
+        Args:
+            path (Optional[str], optional): Path of file containing auth token. Defaults to None.
+        """
         self._token_path = (
             path or os.getenv(client.KF_PIPELINES_SA_TOKEN_ENV) or
             client.KF_PIPELINES_SA_TOKEN_PATH)
 
     def _get_token(self) -> str:
+        """Reads the token found in file provided as `path` argument to
+        ServiceAccountTokenVolumeCredentials constructor.
+
+        Returns:
+            str: The token.
+        """
         token = None
         try:
             token = token_credentials_base.read_token_from_file(
@@ -57,7 +68,8 @@ class ServiceAccountTokenVolumeCredentials(
         return token
 
     def refresh_api_key_hook(self, config: configuration.Configuration) -> None:
-        """Refresh the api key.
+        """Refreshes the api key using the token found in file provided as
+        `path` argument to ServiceAccountTokenVolumeCredentials constructor.
 
         This is a helper function for registering token refresh with swagger
         generated clients.

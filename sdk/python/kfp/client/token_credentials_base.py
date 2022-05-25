@@ -22,7 +22,7 @@ class TokenCredentialsBase(abc.ABC):
 
     @abc.abstractmethod
     def refresh_api_key_hook(self, config: configuration.Configuration) -> None:
-        """Refresh the api key.
+        """Refreshes the api key.
 
         This is a helper function for registering token refresh with swagger
         generated clients.
@@ -41,7 +41,14 @@ class TokenCredentialsBase(abc.ABC):
 
 
 def read_token_from_file(path: Optional[str] = None) -> str:
-    """Read a token found in some file."""
+    """Reads a token found in some file.
+
+    Args:
+        path (Optional[str], optional): Path of file containing auth token. Defaults to None.
+
+    Returns:
+        str: The token.
+    """
     token = None
     with open(path) as f:
         token = f.read().strip()
