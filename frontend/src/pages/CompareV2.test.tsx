@@ -16,23 +16,10 @@
 
 import { render, screen } from '@testing-library/react';
 import * as React from 'react';
-import { testBestPractices } from '../TestUtils';
 import CompareV2 from './CompareV2';
 
-testBestPractices();
 describe('CompareV2', () => {
-  beforeEach(() => {
-    // Required by reactflow render.
-    window.ResizeObserver =
-      window.ResizeObserver ||
-      jest.fn().mockImplementation(() => ({
-        disconnect: jest.fn(),
-        observe: jest.fn(),
-        unobserve: jest.fn(),
-      }));
-  });
-
-  it('Render detail page with reactflow', async () => {
+  it('Render Compare v2 page', async () => {
     render(
       <CompareV2 />,
     );

@@ -19,17 +19,12 @@ import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { Apis } from 'src/lib/Apis';
 import { PageProps } from './Page';
-import { RoutePage, QUERY_PARAMS, RouteParams } from 'src/components/Router';
+import { QUERY_PARAMS } from 'src/components/Router';
 import { ApiRunDetail } from 'src/apis/run';
 import Compare, { CompareProps } from './Compare';
 import * as features from 'src/features';
 
 describe('Switch between v1 and v2 Compare runs pages', () => {
-  const updateToolbarSpy = jest.fn();
-  const updateBannerSpy = jest.fn();
-  const updateDialogSpy = jest.fn();
-  const updateSnackbarSpy = jest.fn();
-  const historyPushSpy = jest.fn();
   const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
 
   const MOCK_RUN_1_ID = 'mock-run-1-id';
@@ -38,16 +33,16 @@ describe('Switch between v1 and v2 Compare runs pages', () => {
 
   function generateProps(): CompareProps {
     const pageProps: PageProps = {
-      history: { push: historyPushSpy } as any,
+      history: {} as any,
       location: {
         search: `?${QUERY_PARAMS.runlist}=${MOCK_RUN_1_ID},${MOCK_RUN_2_ID},${MOCK_RUN_3_ID}`
       } as any,
-      match: '' as any,
+      match: {} as any,
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
-      updateBanner: updateBannerSpy,
-      updateDialog: updateDialogSpy,
-      updateSnackbar: updateSnackbarSpy,
-      updateToolbar: updateToolbarSpy,
+      updateBanner: () => null,
+      updateDialog: () => null,
+      updateSnackbar: () => null,
+      updateToolbar: () => null,
     };
     return Object.assign(pageProps, {
       collapseSections: {},
@@ -76,22 +71,8 @@ describe('Switch between v1 and v2 Compare runs pages', () => {
     };
   }
 
-  beforeEach(async () => {
-    // Reset mocks
-    updateBannerSpy.mockReset();
-    updateDialogSpy.mockReset();
-    updateSnackbarSpy.mockReset();
-    updateToolbarSpy.mockReset();
-    historyPushSpy.mockReset();
-  });
-
-  afterEach(async () => {
-    jest.resetAllMocks();
-  });
-
   it('getRun is called with query param IDs', async () => {
-    // TODO: When this first test displays the CompareV2 page, it messes up the remaining tests, and I don't understand why.
-    runs.push(newMockRun(MOCK_RUN_1_ID, false), newMockRun(MOCK_RUN_2_ID, true), newMockRun(MOCK_RUN_3_ID, true));
+    runs = [newMockRun(MOCK_RUN_1_ID, false), newMockRun(MOCK_RUN_2_ID, false), newMockRun(MOCK_RUN_3_ID, false)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
 
     // v2 feature is turn on.
@@ -108,7 +89,6 @@ describe('Switch between v1 and v2 Compare runs pages', () => {
       </CommonTestWrapper>
     );
 
-    // TODO: This method is called more than three times - 9 in total, I believe due to page refreshes. Should I look into this?
     expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_1_ID);
     expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_2_ID);
     expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_3_ID);
@@ -133,7 +113,6 @@ describe('Switch between v1 and v2 Compare runs pages', () => {
       </CommonTestWrapper>
     );
 
-    // TODO: I will remove these additional calls once the first test works along with the rest.
     expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_1_ID);
     expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_2_ID);
     expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_3_ID);

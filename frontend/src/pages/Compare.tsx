@@ -29,8 +29,6 @@ export type CompareProps = PageProps & CompareState;
 
 // This is a router to determine whether to show V1 or V2 compare page.
 export default function Compare(props: CompareProps) {
-  console.log(props);
-
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 
@@ -50,7 +48,7 @@ export default function Compare(props: CompareProps) {
     isFeatureEnabled(FeatureKey.V2_ALPHA) &&
     isSuccess &&
     data &&
-    data.every(run => run.run?.pipeline_spec?.hasOwnProperty('pipeline_manifest')) // TODO: Is the readability here ok?
+    data.every(run => run.run?.pipeline_spec?.hasOwnProperty('pipeline_manifest'))
   ) {
     return <CompareV2 />;
   } else {
