@@ -38,7 +38,7 @@ class TestCompare extends CompareV1 {
   }
 }
 
-describe('Compare', () => {
+describe('CompareV1', () => {
   let tree: ReactWrapper | ShallowWrapper;
 
   const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => null);
