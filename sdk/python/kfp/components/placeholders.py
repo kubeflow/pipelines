@@ -9,11 +9,11 @@ from typing import Any, Dict, List, Optional, Union
 from kfp.components import base_model
 
 
-class PlaceholderItemABC(abc.ABC):
+class Placeholder(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def from_placeholder_string(cls, placeholder: str) -> 'PlaceholderItemABC':
+    def from_placeholder_string(cls, placeholder: str) -> 'Placeholder':
         raise NotImplementedError
 
     @classmethod
@@ -37,7 +37,7 @@ class PlaceholderItemABC(abc.ABC):
         raise NotImplementedError
 
 
-class RegexPlaceholderSerializationMixin(PlaceholderItemABC):
+class RegexPlaceholderSerializationMixin(Placeholder):
     """Mixin for *Placeholder objects that handles the
     serialization/deserialization of the placeholder."""
     _FROM_PLACEHOLDER: Union[re.Pattern, type(NotImplemented)] = NotImplemented
@@ -194,7 +194,7 @@ CommandLineElement = Union[str, InputValuePlaceholder, InputPathPlaceholder,
                            'IfPresentPlaceholder', 'ConcatPlaceholder']
 
 
-class ConcatPlaceholder(base_model.BaseModel, PlaceholderItemABC):
+class ConcatPlaceholder(base_model.BaseModel, Placeholder):
     """Placeholder for concatenating multiple strings. May contain other
     placeholders.
 
@@ -262,7 +262,7 @@ class ConcatPlaceholder(base_model.BaseModel, PlaceholderItemABC):
         return ConcatPlaceholder(items=items)
 
 
-class IfPresentPlaceholder(base_model.BaseModel, PlaceholderItemABC):
+class IfPresentPlaceholder(base_model.BaseModel, Placeholder):
     """Placeholder for handling cases where an input may or may not be passed.
     May contain other placeholders.
 
@@ -407,7 +407,7 @@ def maybe_convert_placeholder_to_placeholder_string(
     Returns:
         str: The placeholder string.
     """
-    if isinstance(placeholder, PlaceholderItemABC):
+    if isinstance(placeholder, Placeholder):
         return placeholder.to_placeholder_struct() if hasattr(
             placeholder,
             'to_placeholder_struct') else placeholder.to_placeholder_string()
