@@ -29,6 +29,7 @@ import zipfile
 
 from kfp import compiler
 from kfp.client import auth
+from kfp.client import set_volume_credentials
 from kfp.components import base_component
 import kfp_server_api
 import yaml
@@ -367,9 +368,8 @@ class Client:
         # implement more and more credentials, we can have some heuristic and
         # choose from a number of options.
         # See https://github.com/kubeflow/pipelines/pull/5287#issuecomment-805654121
-
-        # TODO: auth.ServiceAccountCredentials does not exist... dead code path?
-        credentials = auth.ServiceAccountTokenVolumeCredentials()
+        credentials = set_volume_credentials.ServiceAccountTokenVolumeCredentials(
+        )
         config_copy = copy.deepcopy(config)
 
         try:

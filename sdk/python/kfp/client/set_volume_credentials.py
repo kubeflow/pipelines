@@ -16,10 +16,12 @@ import logging
 import os
 
 from kfp import client
+from kfp.client import token_credentials_base
 from kubernetes.client import configuration
 
 
-class ServiceAccountTokenVolumeCredentials(client.TokenCredentialsBase):
+class ServiceAccountTokenVolumeCredentials(
+        token_credentials_base.TokenCredentialsBase):
     """Audience-bound ServiceAccountToken in the local filesystem.
 
     This is a credentials interface for audience-bound ServiceAccountTokens
@@ -45,7 +47,8 @@ class ServiceAccountTokenVolumeCredentials(client.TokenCredentialsBase):
     def _get_token(self):
         token = None
         try:
-            token = client.read_token_from_file(self._token_path)
+            token = token_credentials_base.read_token_from_file(
+                self._token_path)
         except OSError as e:
             logging.error("Failed to read a token from file '%s' (%s).",
                           self._token_path, str(e))
