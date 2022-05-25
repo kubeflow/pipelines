@@ -61,4 +61,4 @@ client.create_run_from_pipeline_func(
 
 ```
 
-For more information, see [Building Python function-based components](https://www.kubeflow.org/docs/components/pipelines/sdk/python-function-components/).
+For more information, refer to [Building Python function-based components](https://www.kubeflow.org/docs/components/pipelines/sdk/python-function-components/).
