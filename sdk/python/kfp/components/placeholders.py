@@ -11,6 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Contains data structures and functions for handling input and output
+placeholders."""
 
 import abc
 import dataclasses
@@ -24,30 +26,62 @@ from kfp.components import base_model
 
 
 class Placeholder(abc.ABC):
+    """Abstract base class for Placeholders.
+
+    All placeholders must implement these methods to be handled
+    appropriately downstream.
+    """
 
     @classmethod
     @abc.abstractmethod
-    def from_placeholder_string(cls, placeholder: str) -> 'Placeholder':
+    def from_placeholder_string(cls, placeholder_string: str) -> 'Placeholder':
+        """Converts a placeholder string to the placeholder object that
+        implements this method.
+
+        Args:
+            placeholder_string (str): The placeholder string.
+
+        Returns:
+            Placeholder: The placeholder object that implements this method.
+        """
         raise NotImplementedError
 
     @classmethod
     @abc.abstractmethod
-    def is_match(cls, placeholder: str) -> bool:
+    def is_match(cls, placeholder_string: str) -> bool:
+        """Checks if the placeholder string matches the placeholder object that
+        implements this method.
+
+        Args:
+            placeholder_string (str): The placeholder string.
+
+        Returns:
+            bool: Whether the placeholder string matches the placeholder object that implements this method and can be converted to an instance of the placeholder object.
+        """
         raise NotImplementedError
 
     @abc.abstractmethod
     def to_placeholder_string(self) -> str:
+        """Converts the placeholder object that implements this to a
+        placeholder string.
+
+        Returns:
+            str: The placeholder string.
+        """
         raise NotImplementedError
 
     @abc.abstractmethod
     def to_dict(self, by_alias: bool = False) -> Dict[str, Any]:
-        raise NotImplementedError
+        """Converts the placeholder object that implements this to a
+        dictionary. This ensures that this concrete placeholder classes also
+        inherit from kfp.components.base_model.BaseModel.
 
-    @classmethod
-    @abc.abstractmethod
-    def from_dict(cls,
-                  data: Dict[str, Any],
-                  by_alias: bool = False) -> base_model.BaseModelType:
+        Args:
+            by_alias (bool, optional): Whether to use attribute name to alias field mapping provided by cls._aliases when converting to dictionary. Defaults to False.
+
+        Returns:
+            Dict[str, Any]: Dictionary representation of the object.
+        """
         raise NotImplementedError
 
 
@@ -219,7 +253,8 @@ class ConcatPlaceholder(base_model.BaseModel, Placeholder):
 
     @classmethod
     def split_cel_concat_string(self, string: str) -> List[str]:
-        """Splits a cel string into a list of strings.
+        """Splits a cel string into a list of strings, which may be normal
+        strings or placeholder strings.
 
         Args:
             cel_string (str): The cel string.
@@ -246,19 +281,13 @@ class ConcatPlaceholder(base_model.BaseModel, Placeholder):
         return items
 
     @classmethod
-    def is_match(cls, item: str) -> bool:
-        """Checks if the placeholder string is a ConcatPlaceholder.
-
-        Args:
-            string: String to check.
-
-        Returns:
-            bool: True if the string is an ConcatPlaceholder.
-        """
+    def is_match(cls, placeholder_string: str) -> bool:
         # 'Concat' is the explicit struct for concatenation
         # cel splitting handles the cases of {{input}}+{{input}} and {{input}}otherstring
-        return 'Concat' in json_load_nested_placeholder_aware(item) or len(
-            ConcatPlaceholder.split_cel_concat_string(item)) > 1
+        return 'Concat' in json_load_nested_placeholder_aware(
+            placeholder_string
+        ) or len(
+            ConcatPlaceholder.split_cel_concat_string(placeholder_string)) > 1
 
     def to_placeholder_struct(self) -> Dict[str, Any]:
         return {
@@ -312,14 +341,6 @@ class IfPresentPlaceholder(base_model.BaseModel, Placeholder):
 
     @classmethod
     def is_match(cls, string: str) -> bool:
-        """Checks if the placeholder string is an IfPresentPlaceholder.
-
-        Args:
-            string: String to check.
-
-        Returns:
-            bool: True if the string is an IfPresentPlaceholder.
-        """
         try:
             return "IfPresent" in json.loads(string)
         except json.decoder.JSONDecodeError:
@@ -430,7 +451,8 @@ def maybe_convert_placeholder_string_to_placeholder(
 
 def maybe_convert_placeholder_to_placeholder_string(
         placeholder: CommandLineElement) -> str:
-    """Converts a placeholder to a placeholder string.
+    """Converts a placeholder to a placeholder string if it's a subclass of
+    Placeholder.
 
     Args:
         placeholder (Placeholder): The placeholder to convert.

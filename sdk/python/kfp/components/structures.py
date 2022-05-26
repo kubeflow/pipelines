@@ -13,9 +13,6 @@
 # limitations under the License.
 """Definitions for component spec."""
 
-# TODO: add support for the final form of concat placeholder
-# TODO: need a good way to detect which type of placeholder it is, then direct the placeholder to the correct class... okay maybe_convert_command_arg_to_placeholder invokes .is_match, which does
-
 import ast
 import collections
 import functools
