@@ -19,8 +19,8 @@ import { commonCss } from 'src/Css';
 
 function CompareV2() {
   return (
-    <div className={commonCss.page} data-testid={'compare-runs-v2'}>
-      <p>This is the V2 Compare runs page.</p>
+    <div className={commonCss.page}>
+      <p>This is the V2 Run Comparison page.</p>
     </div>
   );
 }

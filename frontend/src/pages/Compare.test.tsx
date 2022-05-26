@@ -23,10 +23,10 @@ import { QUERY_PARAMS } from 'src/components/Router';
 import { ApiRunDetail } from 'src/apis/run';
 import Compare, { CompareProps } from './Compare';
 import * as features from 'src/features';
+import { testBestPractices } from 'src/TestUtils';
 
-describe('Switch between v1 and v2 Compare runs pages', () => {
-  const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
-
+testBestPractices();
+describe('Switch between v1 and v2 Run Comparison pages', () => {
   const MOCK_RUN_1_ID = 'mock-run-1-id';
   const MOCK_RUN_2_ID = 'mock-run-2-id';
   const MOCK_RUN_3_ID = 'mock-run-3-id';
@@ -72,7 +72,8 @@ describe('Switch between v1 and v2 Compare runs pages', () => {
   }
 
   it('getRun is called with query param IDs', async () => {
-    runs = [newMockRun(MOCK_RUN_1_ID, false), newMockRun(MOCK_RUN_2_ID, false), newMockRun(MOCK_RUN_3_ID, false)];
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID, true), newMockRun(MOCK_RUN_2_ID, true), newMockRun(MOCK_RUN_3_ID, true)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
 
     // v2 feature is turn on.
@@ -95,7 +96,7 @@ describe('Switch between v1 and v2 Compare runs pages', () => {
   });
 
   it('Show v1 page if all runs are v1 and the v2 feature flag is enabled', async () => {
-    // All runs are v1.
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID, false), newMockRun(MOCK_RUN_2_ID, false), newMockRun(MOCK_RUN_3_ID, false)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
 
@@ -113,14 +114,11 @@ describe('Switch between v1 and v2 Compare runs pages', () => {
       </CommonTestWrapper>
     );
 
-    expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_1_ID);
-    expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_2_ID);
-    expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_3_ID);
-    waitFor(() => screen.getByTestId('compare-runs-v1'));
+    await waitFor(() => screen.getByText('Run overview'));
   });
 
   it('Show v1 page if some runs are v1 and the v2 feature flag is enabled', async () => {
-    // The last two runs are v1.
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID, false), newMockRun(MOCK_RUN_2_ID, true), newMockRun(MOCK_RUN_3_ID, true)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
 
@@ -138,11 +136,11 @@ describe('Switch between v1 and v2 Compare runs pages', () => {
       </CommonTestWrapper>
     );
 
-    waitFor(() => screen.getByTestId('compare-runs-v1'));
+    await waitFor(() => screen.getByText('Run overview'));
   });
 
   it('Show v2 page if all runs are v2 and the v2 feature flag is enabled', async () => {
-    // All runs are v2. 
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID, true), newMockRun(MOCK_RUN_2_ID, true), newMockRun(MOCK_RUN_3_ID, true)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
 
@@ -160,11 +158,11 @@ describe('Switch between v1 and v2 Compare runs pages', () => {
       </CommonTestWrapper>
     );
 
-    waitFor(() => screen.getByTestId('compare-runs-v2'));
+    await waitFor(() => screen.getByText('This is the V2 Run Comparison page.'));
   });
 
   it('Show v1 page if some runs are v1 and the v2 feature flag is disabled', async () => {
-    // The last two runs are v1.
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID, false), newMockRun(MOCK_RUN_2_ID, true), newMockRun(MOCK_RUN_3_ID, true)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
 
@@ -179,11 +177,11 @@ describe('Switch between v1 and v2 Compare runs pages', () => {
       </CommonTestWrapper>
     );
 
-    waitFor(() => screen.getByTestId('compare-runs-v1'));
+    await waitFor(() => screen.getByText('Run overview'));
   });
 
   it('Show v1 page if all runs are v2 and the v2 feature flag is disabled', async () => {
-    // All runs are v2. 
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID, true), newMockRun(MOCK_RUN_2_ID, true), newMockRun(MOCK_RUN_3_ID, true)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
 
@@ -198,6 +196,6 @@ describe('Switch between v1 and v2 Compare runs pages', () => {
       </CommonTestWrapper>
     );
 
-    waitFor(() => screen.getByTestId('compare-runs-v1'));
+    await waitFor(() => screen.getByText('Run overview'));
   });
 });

@@ -3,7 +3,6 @@
 exports[`CompareV1 collapses all sections 1`] = `
 <div
   className="page"
-  data-testid="compare-runs-v1"
 >
   <CollapseButton
     collapseSections={
@@ -96,7 +95,6 @@ exports[`CompareV1 collapses all sections 1`] = `
 exports[`CompareV1 creates a map of viewers 1`] = `
 <div
   className="page"
-  data-testid="compare-runs-v1"
 >
   <CollapseButton
     collapseSections={Object {}}
@@ -296,7 +294,6 @@ exports[`CompareV1 creates a map of viewers 1`] = `
 exports[`CompareV1 creates an extra aggregation plot for compatible viewers 1`] = `
 <div
   className="page"
-  data-testid="compare-runs-v1"
 >
   <CollapseButton
     collapseSections={Object {}}
@@ -551,7 +548,6 @@ exports[`CompareV1 creates an extra aggregation plot for compatible viewers 1`] 
 exports[`CompareV1 displays a run's metrics if the run has any 1`] = `
 <div
   className="page"
-  data-testid="compare-runs-v1"
 >
   <CollapseButton
     collapseSections={Object {}}
@@ -696,7 +692,6 @@ exports[`CompareV1 displays a run's metrics if the run has any 1`] = `
 exports[`CompareV1 displays metrics from multiple runs 1`] = `
 <div
   className="page"
-  data-testid="compare-runs-v1"
 >
   <CollapseButton
     collapseSections={Object {}}
@@ -847,7 +842,6 @@ exports[`CompareV1 displays metrics from multiple runs 1`] = `
 exports[`CompareV1 displays parameters from multiple runs 1`] = `
 <div
   className="page"
-  data-testid="compare-runs-v1"
 >
   <CollapseButton
     collapseSections={Object {}}
@@ -1003,7 +997,6 @@ exports[`CompareV1 displays parameters from multiple runs 1`] = `
 exports[`CompareV1 displays run's parameters if the run has any 1`] = `
 <div
   className="page"
-  data-testid="compare-runs-v1"
 >
   <CollapseButton
     collapseSections={Object {}}
@@ -1148,7 +1141,6 @@ exports[`CompareV1 displays run's parameters if the run has any 1`] = `
 exports[`CompareV1 does not show viewers for deselected runs 1`] = `
 <div
   className="page"
-  data-testid="compare-runs-v1"
 >
   <CollapseButton
     collapseSections={Object {}}
@@ -1268,7 +1260,6 @@ exports[`CompareV1 does not show viewers for deselected runs 1`] = `
 exports[`CompareV1 expands all sections if they were collapsed 1`] = `
 <div
   className="page"
-  data-testid="compare-runs-v1"
 >
   <CollapseButton
     collapseSections={Object {}}
@@ -1517,7 +1508,6 @@ exports[`CompareV1 expands all sections if they were collapsed 1`] = `
 exports[`CompareV1 renders a page with multiple runs 1`] = `
 <div
   className="page"
-  data-testid="compare-runs-v1"
 >
   <CollapseButton
     collapseSections={Object {}}
@@ -1656,7 +1646,6 @@ exports[`CompareV1 renders a page with multiple runs 1`] = `
 exports[`CompareV1 renders a page with no runs 1`] = `
 <div
   className="page"
-  data-testid="compare-runs-v1"
 >
   <CollapseButton
     collapseSections={Object {}}

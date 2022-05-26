@@ -16,13 +16,15 @@
 
 import { render, screen } from '@testing-library/react';
 import * as React from 'react';
+import { testBestPractices } from 'src/TestUtils';
 import CompareV2 from './CompareV2';
 
+testBestPractices();
 describe('CompareV2', () => {
   it('Render Compare v2 page', async () => {
     render(
       <CompareV2 />,
     );
-    screen.getByTestId('compare-runs-v2');
+    screen.getByText('This is the V2 Run Comparison page.');
   });
 });

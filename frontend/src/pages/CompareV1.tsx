@@ -110,7 +110,7 @@ class CompareV1 extends Page<{}, CompareState> {
     };
 
     return (
-      <div className={classes(commonCss.page, padding(20, 'lrt'))} data-testid={'compare-runs-v1'}>
+      <div className={classes(commonCss.page, padding(20, 'lrt'))}>
         {/* Overview section */}
         <CollapseButton
           sectionName={overviewSectionName}
