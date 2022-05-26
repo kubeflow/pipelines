@@ -109,7 +109,7 @@ class InputValuePlaceholder(base_model.BaseModel,
     _aliases = {'input_name': 'inputValue'}
     _TO_PLACEHOLDER = "{{{{$.inputs.parameters['{input_name}']}}}}"
     _FROM_PLACEHOLDER = re.compile(
-        r"^\{\{\$\.inputs\.parameters\[(?:''|'|\")(?P<input_name>.+?)(?:''|'|\")]\}\}$"
+        r"\{\{\$\.inputs\.parameters\[(?:''|'|\")(?P<input_name>.+?)(?:''|'|\")]\}\}"
     )
 
 
@@ -204,6 +204,34 @@ class ConcatPlaceholder(base_model.BaseModel, Placeholder):
     items: List[CommandLineElement]
 
     @classmethod
+    def split_cel_concat_string(self, string: str) -> List[str]:
+        """Splits a cel string into a list of strings.
+
+        Args:
+            cel_string (str): The cel string.
+
+        Returns:
+            List[str]: The list of strings.
+        """
+        concat_char = '+'
+        start_ends = [(match.start(0), match.end(0)) for match in
+                      InputValuePlaceholder._FROM_PLACEHOLDER.finditer(string)]
+
+        items = []
+        if start_ends:
+            start = 0
+            for match_start, match_end in start_ends:
+                leading_string = string[start:match_start]
+                if leading_string and leading_string != concat_char:
+                    items.append(leading_string)
+                items.append(string[match_start:match_end])
+                start = match_end
+            trailing_string = string[match_end:]
+            if trailing_string and trailing_string != concat_char:
+                items.append(trailing_string)
+        return items
+
+    @classmethod
     def is_match(cls, item: str) -> bool:
         """Checks if the placeholder string is a ConcatPlaceholder.
 
@@ -213,8 +241,10 @@ class ConcatPlaceholder(base_model.BaseModel, Placeholder):
         Returns:
             bool: True if the string is an ConcatPlaceholder.
         """
-        return '}}+{{' in item or 'Concat' in custom_load_nested_placeholder_string(
-            item)
+        # 'Concat' is the explicit struct for concatenation
+        # cel splitting handles the cases of {{input}}+{{input}} and {{input}}otherstring
+        return 'Concat' in json_load_nested_placeholder_aware(item) or len(
+            ConcatPlaceholder.split_cel_concat_string(item)) > 1
 
     def to_placeholder_struct(self) -> Dict[str, Any]:
         return {
@@ -230,10 +260,14 @@ class ConcatPlaceholder(base_model.BaseModel, Placeholder):
     @classmethod
     def from_placeholder_string(cls,
                                 placeholder_string: str) -> 'ConcatPlaceholder':
-        placeholder_struct = custom_load_nested_placeholder_string(
+        placeholder_struct = json_load_nested_placeholder_aware(
             placeholder_string)
         if isinstance(placeholder_struct, str):
-            return cls._from_addition_concat_string(placeholder_struct)
+            items = [
+                maybe_convert_placeholder_string_to_placeholder(item)
+                for item in cls.split_cel_concat_string(placeholder_struct)
+            ]
+            return cls(items=items)
         elif isinstance(placeholder_struct, dict):
             items = [
                 maybe_convert_placeholder_string_to_placeholder(item)
@@ -242,24 +276,6 @@ class ConcatPlaceholder(base_model.BaseModel, Placeholder):
             return ConcatPlaceholder(items=items)
 
         raise ValueError
-
-    @classmethod
-    def _from_addition_concat_string(cls,
-                                     concat_string: str) -> 'ConcatPlaceholder':
-        """Creates a concat placeholder from an IR string indicating
-        concatenation.
-
-        Args:
-            concat_string (str): The IR string (e.g. {{$.inputs.parameters['input1']}}+{{$.inputs.parameters['input2']}})
-
-        Returns:
-            ConcatPlaceholder: The ConcatPlaceholder instance.
-        """
-        items = [
-            maybe_convert_placeholder_string_to_placeholder(a)
-            for a in concat_string.split('+')
-        ]
-        return ConcatPlaceholder(items=items)
 
 
 class IfPresentPlaceholder(base_model.BaseModel, Placeholder):
@@ -315,7 +331,7 @@ class IfPresentPlaceholder(base_model.BaseModel, Placeholder):
     @classmethod
     def from_placeholder_string(
             cks, placeholder_string: str) -> 'IfPresentPlaceholder':
-        struct = custom_load_nested_placeholder_string(placeholder_string)
+        struct = json_load_nested_placeholder_aware(placeholder_string)
         struct_body = struct['IfPresent']
 
         then = struct_body['Then']
@@ -357,7 +373,7 @@ class CustomizedDecoder(json.JSONDecoder):
         self.scan_once = py_make_scanner(self)
 
 
-def custom_load_nested_placeholder_string(
+def json_load_nested_placeholder_aware(
     placeholder_string: str
 ) -> Union[str, Dict[str, Union[str, List[str], dict]]]:
     try:
@@ -380,9 +396,10 @@ def maybe_convert_placeholder_string_to_placeholder(
     if not placeholder_string.startswith('{'):
         return placeholder_string
 
+    # order matters here!
     from_string_placeholders = [
-        ConcatPlaceholder,
         IfPresentPlaceholder,
+        ConcatPlaceholder,
         InputValuePlaceholder,
         InputPathPlaceholder,
         InputUriPlaceholder,

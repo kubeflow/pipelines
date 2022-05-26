@@ -1,3 +1,4 @@
+from typing import List
 import unittest
 
 from absl.testing import parameterized
@@ -181,6 +182,43 @@ class TestConcatPlaceholder(parameterized.TestCase):
                 placeholder_string), placeholder_obj)
         self.assertEqual(placeholder_obj.to_placeholder_string(),
                          placeholder_string)
+
+    @parameterized.parameters([
+        "{{$.inputs.parameters[''input1'']}}+{{$.inputs.parameters[''input2'']}}",
+        '{"Concat": ["a", "b"]}', '{"Concat": ["a", {"Concat": ["b", "c"]}]}',
+        "{{$.inputs.parameters[''input1'']}}something{{$.inputs.parameters[''input2'']}}",
+        "{{$.inputs.parameters[''input_prefix'']}}some value",
+        "some value{{$.inputs.parameters[''input_suffix'']}}",
+        "some value{{$.inputs.parameters[''input_infix'']}}some value"
+    ])
+    def test_is_match(self, placeholder: str):
+        self.assertTrue(placeholders.ConcatPlaceholder.is_match(placeholder))
+
+    @parameterized.parameters([
+        ("{{$.inputs.parameters[''input1'']}}something{{$.inputs.parameters[''input2'']}}",
+         [
+             "{{$.inputs.parameters[''input1'']}}", 'something',
+             "{{$.inputs.parameters[''input2'']}}"
+         ]),
+        ("{{$.inputs.parameters[''input_prefix'']}}some value",
+         ["{{$.inputs.parameters[''input_prefix'']}}", 'some value']),
+        ("some value{{$.inputs.parameters[''input_suffix'']}}",
+         ['some value', "{{$.inputs.parameters[''input_suffix'']}}"]),
+        ("some value{{$.inputs.parameters[''input_infix'']}}some value", [
+            'some value', "{{$.inputs.parameters[''input_infix'']}}",
+            'some value'
+        ]),
+        ("{{$.inputs.parameters[''input1'']}}+{{$.inputs.parameters[''input2'']}}",
+         [
+             "{{$.inputs.parameters[''input1'']}}",
+             "{{$.inputs.parameters[''input2'']}}"
+         ])
+    ])
+    def test_split_cel_concat_string(self, placeholder: str,
+                                     expected: List[str]):
+        self.assertEqual(
+            placeholders.ConcatPlaceholder.split_cel_concat_string(placeholder),
+            expected)
 
 
 class TestProcessCommandArg(unittest.TestCase):
