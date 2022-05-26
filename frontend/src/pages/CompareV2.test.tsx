@@ -22,9 +22,7 @@ import CompareV2 from './CompareV2';
 testBestPractices();
 describe('CompareV2', () => {
   it('Render Compare v2 page', async () => {
-    render(
-      <CompareV2 />,
-    );
+    render(<CompareV2 />);
     screen.getByText('This is the V2 Run Comparison page.');
   });
 });
