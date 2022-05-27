@@ -32,7 +32,7 @@ inputs:
     type: PipelineTaskFinalStatus
 implementation:
   container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8
     command: [
       python3,
       -u,
