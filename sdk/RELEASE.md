@@ -11,6 +11,7 @@
 
 ## Bug Fixes and Other Changes
 * Depends on `google-cloud-storage>=2.2.1,<3` [\#7502](https://github.com/kubeflow/pipelines/pull/7502)
+* Accepts `typing-extensions>=4,<5` in addition to `typing-extensions>=3.7.4,<4` [\#7801](https://github.com/kubeflow/pipelines/pull/7801)
 
 ## Documentation Updates
 
