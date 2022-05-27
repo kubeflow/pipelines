@@ -12,14 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
-from typing import Any, Dict, List, Optional, Union
+from typing import Optional
 
 import click
-import kfp_server_api
 from kfp import client
-from kfp.cli.output import OutputFormat
-from kfp.cli.output import print_output
+from kfp.cli import output
 from kfp.cli.utils import deprecated_alias_group
 from kfp.cli.utils import parsing
 
@@ -51,20 +48,30 @@ def create(ctx: click.Context,
            package_file: str,
            description: str = None):
     """Upload a pipeline."""
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
-    if not pipeline_name:
-        pipeline_name = package_file.split('.')[0]
 
-    pipeline = client.upload_pipeline(package_file, pipeline_name, description)
-    _display_pipeline(pipeline, output_format)
-    click.echo(f'Created pipeline {pipeline.id}.')
+    pipeline = client_obj.upload_pipeline(package_file, pipeline_name,
+                                          description)
+    output.print_output(
+        pipeline,
+        output.ModelType.PIPELINE,
+        output_format,
+    )
 
 
 either_option_required = 'Either --pipeline-id or --pipeline-name is required.'
 
 
 @pipeline.command()
+@click.argument('package-file', type=click.Path(exists=True, dir_okay=False))
+@click.option(
+    '-v',
+    '--pipeline-version',
+    help=parsing.get_param_descr(client.Client.upload_pipeline_version,
+                                 'pipeline_version_name'),
+    required=True,
+)
 @click.option(
     '-p',
     '--pipeline-id',
@@ -79,34 +86,38 @@ either_option_required = 'Either --pipeline-id or --pipeline-name is required.'
                                  'pipeline_name') + ' ' + either_option_required
 )
 @click.option(
-    '-v',
-    '--pipeline-version',
+    '-d',
+    '--description',
     help=parsing.get_param_descr(client.Client.upload_pipeline_version,
-                                 'pipeline_version_name'),
-    required=True,
-)
-@click.argument('package-file', type=click.Path(exists=True, dir_okay=False))
+                                 'description'))
 @click.pass_context
 def create_version(ctx: click.Context,
                    package_file: str,
                    pipeline_version: str,
                    pipeline_id: Optional[str] = None,
-                   pipeline_name: Optional[str] = None):
+                   pipeline_name: Optional[str] = None,
+                   description: Optional[str] = None):
     """Upload a version of a pipeline."""
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
     if bool(pipeline_id) == bool(pipeline_name):
         raise ValueError(either_option_required)
     if pipeline_name is not None:
-        pipeline_id = client.get_pipeline_id(name=pipeline_name)
+        pipeline_id = client_obj.get_pipeline_id(name=pipeline_name)
         if pipeline_id is None:
             raise ValueError(
                 f"Can't find a pipeline with name: {pipeline_name}")
-    # TODO: this is broken
-    version = client.pipeline_uploads.upload_pipeline_version(
-        package_file, name=pipeline_version, pipelineid=pipeline_id)
-    _display_pipeline_version(version, output_format)
-    click.echo(f'Created pipeline version {version.id}.')
+    version = client_obj.upload_pipeline_version(
+        pipeline_package_path=package_file,
+        pipeline_version_name=pipeline_version,
+        pipeline_id=pipeline_id,
+        pipeline_name=pipeline_name,
+        description=description)
+    output.print_output(
+        version,
+        output.ModelType.PIPELINE,
+        output_format,
+    )
 
 
 @pipeline.command()
@@ -130,22 +141,19 @@ def create_version(ctx: click.Context,
 def list(ctx: click.Context, page_token: str, max_size: int, sort_by: str,
          filter: str):
     """List pipelines."""
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
 
-    response = client.list_pipelines(
+    response = client_obj.list_pipelines(
         page_token=page_token,
         page_size=max_size,
         sort_by=sort_by,
         filter=filter)
-    if response.pipelines:
-        _print_pipelines(response.pipelines, output_format)
-    else:
-        if output_format == OutputFormat.json.name:
-            msg = json.dumps([])
-        else:
-            msg = 'No pipelines found'
-        click.echo(msg)
+    output.print_output(
+        response.pipelines or [],
+        output.ModelType.PIPELINE,
+        output_format,
+    )
 
 
 @pipeline.command()
@@ -174,48 +182,36 @@ def list(ctx: click.Context, page_token: str, max_size: int, sort_by: str,
 def list_versions(ctx: click.Context, pipeline_id: str, page_token: str,
                   max_size: int, sort_by: str, filter: str):
     """List versions of a pipeline."""
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
 
-    response = client.list_pipeline_versions(
+    response = client_obj.list_pipeline_versions(
         pipeline_id,
         page_token=page_token,
         page_size=max_size,
         sort_by=sort_by,
         filter=filter)
-    if response.versions:
-        _print_pipeline_versions(response.versions, output_format)
-    else:
-        if output_format == OutputFormat.json.name:
-            msg = json.dumps([])
-        else:
-            msg = 'No pipeline or version found'
-        click.echo(msg)
+    output.print_output(
+        response.versions or [],
+        output.ModelType.PIPELINE,
+        output_format,
+    )
 
 
 @pipeline.command()
 @click.argument('version-id')
 @click.pass_context
 def delete_version(ctx: click.Context, version_id: str):
-    """Delete a version of a pipeline.
-
-    Args:
-      version_id: id of the pipeline version.
-
-    Returns:
-      Object. If the method is called asynchronously, returns the request thread.
-
-    Throws:
-      Exception if pipeline version is not found.
-    """
+    """Delete a version of a pipeline."""
     confirmation = f'Are you sure you want to delete pipeline version {version_id}?'
     if not click.confirm(confirmation):
         return
 
-    client = ctx.obj['client']
-    res = client.delete_pipeline_version(version_id)
-    click.echo(f'Deleted pipeline version {version_id}.')
-    return res
+    client_obj: client.Client = ctx.obj['client']
+    output_format = ctx.obj['output']
+
+    client_obj.delete_pipeline_version(version_id)
+    output.print_deleted_text('pipeline version', version_id, output_format)
 
 
 @pipeline.command()
@@ -223,11 +219,15 @@ def delete_version(ctx: click.Context, version_id: str):
 @click.pass_context
 def get(ctx: click.Context, pipeline_id: str):
     """Get information about a pipeline."""
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
 
-    pipeline = client.get_pipeline(pipeline_id)
-    _display_pipeline(pipeline, output_format)
+    pipeline = client_obj.get_pipeline(pipeline_id)
+    output.print_output(
+        pipeline,
+        output.ModelType.PIPELINE,
+        output_format,
+    )
 
 
 @pipeline.command()
@@ -235,11 +235,15 @@ def get(ctx: click.Context, pipeline_id: str):
 @click.pass_context
 def get_version(ctx: click.Context, version_id: str):
     """Get information about a version of a pipeline."""
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
     output_format = ctx.obj['output']
 
-    version = client.get_pipeline_version(version_id=version_id)
-    _display_pipeline_version(version, output_format)
+    version = client_obj.get_pipeline_version(version_id=version_id)
+    output.print_output(
+        version,
+        output.ModelType.PIPELINE,
+        output_format,
+    )
 
 
 @pipeline.command()
@@ -247,75 +251,12 @@ def get_version(ctx: click.Context, version_id: str):
 @click.pass_context
 def delete(ctx: click.Context, pipeline_id: str):
     """Delete a pipeline."""
-    client = ctx.obj['client']
+    client_obj: client.Client = ctx.obj['client']
+    output_format = ctx.obj['output']
 
     confirmation = f'Are you sure you want to delete pipeline {pipeline_id}?'
     if not click.confirm(confirmation):
         return
 
-    client.delete_pipeline(pipeline_id)
-    click.echo(f'Deleted pipeline {pipeline_id}.')
-
-
-def _print_pipelines(pipelines: List[kfp_server_api.ApiPipeline],
-                     output_format: OutputFormat):
-    headers = ['Pipeline ID', 'Name', 'Uploaded at']
-    data = [[pipeline.id, pipeline.name,
-             pipeline.created_at.isoformat()] for pipeline in pipelines]
-    print_output(data, headers, output_format, table_format='grid')
-
-
-def _print_pipeline_versions(versions: List[kfp_server_api.ApiPipelineVersion],
-                             output_format: OutputFormat):
-    headers = ['Version ID', 'Version name', 'Uploaded at', 'Pipeline ID']
-    data = [[
-        version.id, version.name,
-        version.created_at.isoformat(),
-        next(rr
-             for rr in version.resource_references
-             if rr.key.type == kfp_server_api.ApiResourceType.PIPELINE).key.id
-    ]
-            for version in versions]
-    print_output(data, headers, output_format, table_format='grid')
-
-
-def _display_pipeline(pipeline: kfp_server_api.ApiPipeline,
-                      output_format: OutputFormat):
-    # Pipeline information
-    table = [['Pipeline ID', pipeline.id], ['Name', pipeline.name],
-             ['Description', pipeline.description],
-             ['Uploaded at', pipeline.created_at.isoformat()],
-             ['Version ID', pipeline.default_version.id]]
-
-    # Pipeline parameter details
-    headers = ['Parameter Name', 'Default Value']
-    data = []
-    if pipeline.parameters is not None:
-        data = [[param.name, param.value] for param in pipeline.parameters]
-
-    if output_format == OutputFormat.table.name:
-        print_output([], ['Pipeline Details'], output_format)
-        print_output(table, [], output_format, table_format='plain')
-        print_output(data, headers, output_format, table_format='grid')
-    elif output_format == OutputFormat.json.name:
-        OutputType = Dict[str, Union[Dict[str, str], List[Dict[str, Any]]]]
-        output: OutputType = {'Pipeline Details': dict(table)}
-        params = [dict(zip(headers, item)) for item in data]
-        output['Pipeline Parameters'] = params
-        print_output(output, [], output_format)
-
-
-def _display_pipeline_version(version: kfp_server_api.ApiPipelineVersion,
-                              output_format: OutputFormat):
-    pipeline_id = next(
-        rr for rr in version.resource_references
-        if rr.key.type == kfp_server_api.ApiResourceType.PIPELINE).key.id
-    table = [['Pipeline ID', pipeline_id], ['Version name', version.name],
-             ['Uploaded at', version.created_at.isoformat()],
-             ['Version ID', version.id]]
-
-    if output_format == OutputFormat.table.name:
-        print_output([], ['Pipeline Version Details'], output_format)
-        print_output(table, [], output_format, table_format='plain')
-    elif output_format == OutputFormat.json.name:
-        print_output(dict(table), [], output_format)
+    client_obj.delete_pipeline(pipeline_id)
+    output.print_deleted_text('pipeline', pipeline_id, output_format)

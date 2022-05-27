@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2021-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@ from typing import Any, List, Mapping, Optional, Union
 
 from kfp.components import constants
 from kfp.components import pipeline_channel
-from kfp.components import placeholders
 from kfp.components import structures
+from kfp.components import utils
 from kfp.components.types import type_utils
 
 
@@ -48,8 +48,11 @@ class PipelineTask:
             container_spec and importer_spec should be filled.
     """
 
-    # To be override by pipeline `register_task_and_generate_id`
-    register_task_handler = lambda task: task.component_spec.name
+    # Fallback behavior for compiling a component. This should be overriden by
+    # pipeline `register_task_and_generate_id` if compiling a pipeline (more
+    # than one component).
+    register_task_handler = lambda task: utils.maybe_rename_for_k8s(
+        task.component_spec.name)
 
     def __init__(
         self,
@@ -224,7 +227,7 @@ class PipelineTask:
 
                 if input_name in args or type_utils.is_task_final_status_type(
                         inputs_dict[input_name].type):
-                    return placeholders.input_parameter_placeholder(input_name)
+                    return arg.to_placeholder()
                 else:
                     input_spec = inputs_dict[input_name]
                     if input_spec.default is not None:
@@ -242,8 +245,7 @@ class PipelineTask:
                         'InputUriPlaceholder.')
 
                 if input_name in args:
-                    input_uri = placeholders.input_artifact_uri_placeholder(
-                        input_name)
+                    input_uri = arg.to_placeholder()
                     return input_uri
                 else:
                     input_spec = inputs_dict[input_name]
@@ -262,8 +264,7 @@ class PipelineTask:
                         'InputPathPlaceholder.')
 
                 if input_name in args:
-                    input_path = placeholders.input_artifact_path_placeholder(
-                        input_name)
+                    input_path = arg.to_placeholder()
                     return input_path
                 else:
                     input_spec = inputs_dict[input_name]
@@ -281,20 +282,28 @@ class PipelineTask:
                         f'"{outputs_dict[output_name].type}" cannot be paired with '
                         'OutputUriPlaceholder.')
 
-                output_uri = placeholders.output_artifact_uri_placeholder(
-                    output_name)
-                return output_uri
+                return arg.to_placeholder()
 
             elif isinstance(arg, structures.OutputPathPlaceholder):
                 output_name = arg.output_name
 
                 if type_utils.is_parameter_type(outputs_dict[output_name].type):
-                    output_path = placeholders.output_parameter_path_placeholder(
-                        output_name)
+                    output_path = structures.OutputParameterPlaceholder(
+                        arg.output_name).to_placeholder()
                 else:
-                    output_path = placeholders.output_artifact_path_placeholder(
-                        output_name)
+                    output_path = arg.to_placeholder()
                 return output_path
+
+            elif isinstance(arg, structures.OutputParameterPlaceholder):
+                output_name = arg.output_name
+                if not type_utils.is_parameter_type(
+                        outputs_dict[output_name].type):
+                    raise TypeError(
+                        f'Onput "{output_name}" with type '
+                        f'"{outputs_dict[output_name].type}" cannot be paired with '
+                        'OutputUriPlaceholder.')
+
+                return arg.to_placeholder()
 
             elif isinstance(arg, structures.ConcatPlaceholder):
                 expanded_argument_strings = expand_argument_list(arg.items)

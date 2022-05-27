@@ -411,11 +411,18 @@
           "additionalProperties": {
             "$ref": "#/definitions/protobufValue"
           },
-          "description": "The runtime parameters of the PipelineSpec. The parameters will be\nused to replace the placeholders\nat runtime."
+          "description": "TODO: deprecate this field once verified the new field works."
         },
         "pipeline_root": {
           "type": "string",
           "title": "A path in a object store bucket which will be treated as the root\noutput directory of the pipeline. It is used by the system to\ngenerate the paths of output artifacts. Ref:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)"
+        },
+        "parameter_values": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "The runtime parameters of the PipelineSpec. The parameters will be\nused to replace the placeholders at runtime."
         }
       },
       "description": "The runtime config of a PipelineSpec."

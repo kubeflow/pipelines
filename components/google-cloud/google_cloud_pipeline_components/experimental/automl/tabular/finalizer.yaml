@@ -20,8 +20,7 @@ description: |
         project (str):
             Required. Project to run Cross-validation trainer.
         location (str):
-            Location for running the Cross-validation trainer. If not set,
-            default to us-central1.
+            Location for running the Cross-validation trainer.
         root_dir (str): The Cloud Storage location to store the output.
         encryption_spec_key_name (Optional[str]): Customer-managed encryption key.
 

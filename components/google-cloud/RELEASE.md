@@ -1,5 +1,12 @@
-# Current Version 1.0.7.dev (Still in Development)
+# Current Version 1.0.8.dev (Still in Development)
 * Add notes for next release here.
+
+# Current Version 1.0.7
+* Allow metrics and evaluated examples tables to be overwritten.
+* Replace custom copy_table component with BQ first-party query component.
+* Support vpc in feature selection.
+* Add import eval metrics to model to AutoML Tables default pipeline.
+* Add default Wide & Deep study_spec_parameters configs and add helper function to utils.py to get parameters.
 
 # Release 1.0.6
 * Update import evaluation metrics component.

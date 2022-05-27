@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package ml_pipelines;
 
-import "google/protobuf/any.proto";
+import "google/protobuf/duration.proto";
 import "google/protobuf/struct.proto";
 import "google/rpc/status.proto";
 
@@ -188,6 +188,17 @@ message ComponentInputsSpec {
 
     // Optional field. Default value of the input parameter.
     google.protobuf.Value default_value = 3;
+    
+    // Whether this input parameter is optional or not.
+    // - If required, the parameter should either have a default value, or have
+    // to be able to resolve to a concrete value at runtime.
+    // - If it's optional, it can be missing from the
+    // PipelineTaskInputsSpec.InputParameterSpec (if it's instantiated into a
+    // task), or can be missing from the runtimeParameter (if it's the root
+    // component). If the value is missing, the default_value will be used. Or
+    // if default_value is not provided, the default value of the parameter's
+    // type will be used.
+    bool is_optional = 4;
   }
   // Name to artifact input.
   map<string, ArtifactSpec> artifacts = 1;

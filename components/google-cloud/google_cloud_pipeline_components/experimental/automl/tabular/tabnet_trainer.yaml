@@ -119,7 +119,7 @@ inputs:
   - { name: batch_size, type: Integer, default: 100 }
   - { name: eval_frequency_secs, type: Integer, default: 600 }
   - { name: replica_count, type: Integer, default: 1 }
-  - { name: machine_spec, type: JsonObject, default: '{"machine_type": "n1-standard-16"}' }
+  - { name: machine_spec, type: JsonObject, default: '{"machine_type": "c2-standard-16"}' }
   - { name: instance_baseline, type: AutoMLTabularInstanceBaseline }
   - { name: metadata, type: TabularExampleGenMetadata }
   - { name: materialized_train_split, type: MaterializedSplit }

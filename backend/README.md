@@ -58,3 +58,11 @@ need to be regenerated and checked-in. Refer to [backend/api](./api/README.md) f
 dependencies. To update dependencies, edit [requirements.in](requirements.in)
 and run `./update_requirements.sh` to update and pin the transitive
 dependencies.
+
+
+## Building conformance tests (WIP)
+
+Run
+```
+docker build . -f backend/Dockerfile.conformance -t <tag>
+```
