@@ -115,7 +115,7 @@ class CompareV1 extends Page<{}, CompareState> {
         <CollapseButton
           sectionName={overviewSectionName}
           collapseSections={collapseSections}
-          compareSetState={this.setStateSafe.bind(this)}
+          collapseSectionsUpdate={this._collapseSectionsUpdate.bind(this)}
         />
         {!collapseSections[overviewSectionName] && (
           <div className={commonCss.noShrink}>
@@ -136,7 +136,7 @@ class CompareV1 extends Page<{}, CompareState> {
         <CollapseButton
           sectionName={paramsSectionName}
           collapseSections={collapseSections}
-          compareSetState={this.setStateSafe.bind(this)}
+          collapseSectionsUpdate={this._collapseSectionsUpdate.bind(this)}
         />
         {!collapseSections[paramsSectionName] && (
           <div className={classes(commonCss.noShrink, css.outputsRow)}>
@@ -150,7 +150,7 @@ class CompareV1 extends Page<{}, CompareState> {
         <CollapseButton
           sectionName={metricsSectionName}
           collapseSections={collapseSections}
-          compareSetState={this.setStateSafe.bind(this)}
+          collapseSectionsUpdate={this._collapseSectionsUpdate.bind(this)}
         />
         {!collapseSections[metricsSectionName] && (
           <div className={classes(commonCss.noShrink, css.outputsRow)}>
@@ -168,7 +168,7 @@ class CompareV1 extends Page<{}, CompareState> {
               <div key={i}>
                 <CollapseButton
                   collapseSections={collapseSections}
-                  compareSetState={this.setStateSafe.bind(this)}
+                  collapseSectionsUpdate={this._collapseSectionsUpdate.bind(this)}
                   sectionName={componentMap[viewerType].prototype.getDisplayName()}
                 />
                 {!collapseSections[componentMap[viewerType].prototype.getDisplayName()] && (
@@ -327,6 +327,10 @@ class CompareV1 extends Page<{}, CompareState> {
     const metricsCompareProps = CompareUtils.multiRunMetricsCompareProps(filteredRuns);
 
     this.setState({ metricsCompareProps });
+  }
+
+  private _collapseSectionsUpdate(collapseSections: { [key: string]: boolean }): void {
+    this.setState({ collapseSections });
   }
 }
 
