@@ -47,6 +47,8 @@ import { Page } from './Page';
 import PipelineDetailsV1 from './PipelineDetailsV1';
 import PipelineDetailsV2 from './PipelineDetailsV2';
 
+import i18n from "i18next";
+
 interface PipelineDetailsState {
   graph: dagre.graphlib.Graph | null;
   reducedGraph: dagre.graphlib.Graph | null;
@@ -87,7 +89,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           return pipelineVersionIdFromParams ? pipelineVersionIdFromParams : '';
         },
       )
-      .newPipelineVersion('Upload version', () =>
+      .newPipelineVersion(i18n.t('PipelineDetails.UploadVersion'), () =>
         pipelineIdFromParams ? pipelineIdFromParams : '',
       );
 
@@ -100,7 +102,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, fromRunId),
           },
         ],
-        pageTitle: 'Pipeline details',
+        pageTitle: i18n.t('PipelineDetails.PipelineDetails'),
       };
     } else {
       // Add buttons for creating experiment and deleting pipeline version
@@ -217,7 +219,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             }
           } catch (err) {
             await this.showPageError(
-              `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`,
+              `${i18n.t('PipelineDetails.FailedToParse')}: ${runDetails.run!.id}.`,
               err,
             );
             logger.error(
@@ -227,7 +229,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           }
         } catch (err) {
           await this.showPageError(
-            `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`,
+            `${i18n.t('PipelineDetails.FailedToParse')}: ${runDetails.run!.id}.`,
             err,
           );
           logger.error(
@@ -255,15 +257,15 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             },
           );
         } else {
-          breadcrumbs.push({ displayName: 'All runs', href: RoutePage.RUNS });
+          breadcrumbs.push({ displayName: i18n.t('PipelineDetails.AllRuns'), href: RoutePage.RUNS });
         }
         breadcrumbs.push({
           displayName: runDetails.run!.name!,
           href: RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, fromRunId),
         });
-        pageTitle = 'Pipeline details';
+        pageTitle = i18n.t('PipelineDetails.PipelineDetails');
       } catch (err) {
-        await this.showPageError('Cannot retrieve run details.', err);
+        await this.showPageError(i18n.t('PipelineDetails.CannotRetrieveRunDetails'), err);
         logger.error('Cannot retrieve run details.', err);
         return;
       }
@@ -274,7 +276,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       try {
         pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
       } catch (err) {
-        await this.showPageError('Cannot retrieve pipeline details.', err);
+        await this.showPageError(i18n.t('PipelineDetails.CannotRetrieveRunDetails'), err);
         logger.error('Cannot retrieve pipeline details.', err);
         return;
       }
@@ -287,7 +289,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           version = await Apis.pipelineServiceApi.getPipelineVersion(versionId);
         }
       } catch (err) {
-        await this.showPageError('Cannot retrieve pipeline version.', err);
+        await this.showPageError(i18n.t('PipelineDetails.CannotRetrievePipelineVersion'), err);
         logger.error('Cannot retrieve pipeline version.', err);
         return;
       }
@@ -317,7 +319,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
               )
             ).versions || [];
         } catch (err) {
-          await this.showPageError('Cannot retrieve pipeline versions.', err);
+          await this.showPageError(i18n.t('PipelineDetails.CannotRetrievePipelineVersion'), err);
           logger.error('Cannot retrieve pipeline versions.', err);
           return;
         }
@@ -368,7 +370,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       const [graph, reducedGraph, graphV2] = await this._createGraph(
         selectedVersionPipelineTemplate,
       );
-      if (isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2.length > 0) {
+      if (isFeatureEnabled(FeatureKey.V2) && graphV2.length > 0) {
         this.setStateSafe({
           graph: undefined,
           reducedGraph: undefined,
@@ -398,7 +400,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       }
       return templateResponse.template || '';
     } catch (err) {
-      await this.showPageError('Cannot retrieve pipeline template.', err);
+      await this.showPageError(i18n.t('PipelineDetails.CannotRetrievePipelineTemplate'), err);
       logger.error('Cannot retrieve pipeline details.', err);
     }
     return '';
@@ -427,12 +429,12 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           graphV2 = convertFlowElements(pipelineSpec);
         } else {
           throw new Error(
-            'Unable to convert string response from server to Argo workflow template' +
+              i18n.t('PipelineDetails.UnableToConvertStringResponse') +
               ': https://argoproj.github.io/argo-workflows/workflow-templates/',
           );
         }
       } catch (err) {
-        await this.showPageError('Error: failed to generate Pipeline graph.', err);
+        await this.showPageError(i18n.t('PipelineDetails.FailedToGeneratePipelineGraph'), err);
       }
     }
     return [graph, reducedGraph, graphV2];

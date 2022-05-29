@@ -36,6 +36,7 @@ import Buttons, { ButtonKeys } from '../lib/Buttons';
 import { errorToMessage, formatDateString } from '../lib/Utils';
 import { Page } from './Page';
 import PipelineVersionList from './PipelineVersionList';
+import i18n from "i18next";
 
 interface DisplayPipeline extends ApiPipeline {
   expandState?: ExpandState;
@@ -62,7 +63,6 @@ class PipelineList extends Page<{}, PipelineListState> {
 
   constructor(props: any) {
     super(props);
-
     this.state = {
       displayPipelines: [],
       selectedIds: [],
@@ -76,7 +76,7 @@ class PipelineList extends Page<{}, PipelineListState> {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: buttons
-        .newPipelineVersion('Upload pipeline')
+        .newPipelineVersion(i18n.t('PipelineList.UploadPipeline'))
         .refresh(this.refresh.bind(this))
         .deletePipelinesAndPipelineVersions(
           () => this.state.selectedIds,
@@ -86,7 +86,7 @@ class PipelineList extends Page<{}, PipelineListState> {
         )
         .getToolbarActionMap(),
       breadcrumbs: [],
-      pageTitle: 'Pipelines',
+      pageTitle: i18n.t('PipelineList.Pipelines'),
     };
   }
 
@@ -95,11 +95,11 @@ class PipelineList extends Page<{}, PipelineListState> {
       {
         customRenderer: this._nameCustomRenderer,
         flex: 1,
-        label: 'Pipeline name',
+        label: i18n.t('PipelineList.PipelineName'),
         sortKey: PipelineSortKeys.NAME,
       },
-      { label: 'Description', flex: 3, customRenderer: descriptionCustomRenderer },
-      { label: 'Uploaded on', sortKey: PipelineSortKeys.CREATED_AT, flex: 1 },
+      { label: i18n.t('PipelineList.Description'), flex: 3, customRenderer: descriptionCustomRenderer },
+      { label: i18n.t('PipelineList.UploadedOn'), sortKey: PipelineSortKeys.CREATED_AT, flex: 1 },
     ];
 
     const rows: Row[] = this.state.displayPipelines.map(p => {
@@ -122,8 +122,8 @@ class PipelineList extends Page<{}, PipelineListState> {
           reload={this._reload.bind(this)}
           toggleExpansion={this._toggleRowExpand.bind(this)}
           getExpandComponent={this._getExpandedPipelineComponent.bind(this)}
-          filterLabel='Filter pipelines'
-          emptyMessage='No pipelines found. Click "Upload pipeline" to start.'
+          filterLabel={i18n.t('PipelineList.FilterPipelines')}
+          emptyMessage={i18n.t('PipelineList.EmptyMessage')}
         />
 
         <UploadPipelineDialog
@@ -181,7 +181,7 @@ class PipelineList extends Page<{}, PipelineListState> {
       displayPipelines.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
       this.clearBanner();
     } catch (err) {
-      await this.showPageError('Error: failed to retrieve list of pipelines.', err);
+      await this.showPageError(i18n.t('PipelineList.FailedToRetrieveList'), err);
     }
 
     this.setStateSafe({ displayPipelines: (response && response.pipelines) || [] });
@@ -254,7 +254,7 @@ class PipelineList extends Page<{}, PipelineListState> {
       return true;
     } catch (err) {
       const errorMessage = await errorToMessage(err);
-      this.showErrorDialog('Failed to upload pipeline', errorMessage);
+      this.showErrorDialog(i18n.t('PipelineList.FailedToUpload'), errorMessage);
       return false;
     }
   }

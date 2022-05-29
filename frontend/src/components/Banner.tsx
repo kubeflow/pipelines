@@ -27,6 +27,8 @@ import { classes, stylesheet } from 'typestyle';
 
 import { color, commonCss, spacing } from '../Css';
 
+import i18n from "i18next";
+
 export type Mode = 'error' | 'warning' | 'info';
 
 export const css = stylesheet({
@@ -93,7 +95,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
       mode: { backgroundColor: color.errorBg, color: color.errorText },
     });
     let bannerIcon = <ErrorIcon className={css.icon} />;
-    let dialogTitle = 'An error occurred';
+    let dialogTitle = i18n.t('Banner.dialogTitle1');
     let showTroubleshootingGuideLink = false;
     let showRefreshButton = true;
 
@@ -103,7 +105,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
           mode: { backgroundColor: color.errorBg, color: color.errorText },
         });
         bannerIcon = <ErrorIcon className={css.icon} />;
-        dialogTitle = 'An error occurred';
+        dialogTitle = i18n.t('Banner.dialogTitle1');
         showTroubleshootingGuideLink = this.props.showTroubleshootingGuideLink || false;
         break;
       case 'warning':
@@ -111,14 +113,14 @@ class Banner extends React.Component<BannerProps, BannerState> {
           mode: { backgroundColor: color.warningBg, color: color.warningText },
         });
         bannerIcon = <WarningIcon className={css.icon} />;
-        dialogTitle = 'Warning';
+        dialogTitle = i18n.t('Banner.dialogTitle2');
         break;
       case 'info':
         bannerModeCss = stylesheet({
           mode: { backgroundColor: color.infoBg, color: color.infoText },
         });
         bannerIcon = <InfoIcon className={css.icon} />;
-        dialogTitle = 'Info';
+        dialogTitle = i18n.t('Banner.dialogTitle3');
         showRefreshButton = false;
         break;
       default:
@@ -138,7 +140,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
               className={css.troubleShootingLink}
               href='https://www.kubeflow.org/docs/pipelines/troubleshooting'
             >
-              Troubleshooting guide
+              {i18n.t('Banner.TroubleshootingGuide')}
             </a>
           )}
           {this.props.additionalInfo && (
@@ -146,7 +148,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
               className={classes(css.button, css.detailsButton)}
               onClick={this._showAdditionalInfo.bind(this)}
             >
-              Details
+              {i18n.t('Banner.Details')}
             </Button>
           )}
           {showRefreshButton && this.props.refresh && (
@@ -154,7 +156,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
               className={classes(css.button, css.refreshButton)}
               onClick={this._refresh.bind(this)}
             >
-              Refresh
+              {i18n.t('Banner.Refresh')}
             </Button>
           )}
         </div>
@@ -165,7 +167,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
             <DialogContent className={commonCss.prewrap}>{this.props.additionalInfo}</DialogContent>
             <DialogActions>
               <Button id='dismissDialogBtn' onClick={this._dialogClosed.bind(this)}>
-                Dismiss
+                {i18n.t('Banner.Dismiss')}
               </Button>
             </DialogActions>
           </Dialog>

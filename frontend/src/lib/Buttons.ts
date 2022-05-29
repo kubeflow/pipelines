@@ -24,6 +24,8 @@ import { Apis } from './Apis';
 import { URLParser } from './URLParser';
 import { errorToMessage, s } from './Utils';
 
+import i18n from "i18next";
+
 export enum ButtonKeys {
   ARCHIVE = 'archive',
   CLONE_RUN = 'cloneRun',
@@ -77,8 +79,8 @@ export default class Buttons {
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to archive',
       id: 'archiveBtn',
-      title: 'Archive',
-      tooltip: 'Archive',
+      title: i18n.t('Buttons.archive'),
+      tooltip: i18n.t('Buttons.archive'),
     };
     return this;
   }
@@ -90,8 +92,8 @@ export default class Buttons {
       disabledTitle: useCurrentResource ? undefined : 'Select a run to clone',
       id: 'cloneBtn',
       style: { minWidth: 100 },
-      title: 'Clone run',
-      tooltip: 'Create a copy from this runs initial state',
+      title: i18n.t('Buttons.cloneRun'),
+      tooltip: i18n.t('Buttons.createACopyFromThisRunsInitialState'),
     };
     return this;
   }
@@ -100,10 +102,10 @@ export default class Buttons {
     this._map[ButtonKeys.CLONE_RECURRING_RUN] = {
       action: () => this._cloneRun(getSelectedIds(), true),
       disabled: !useCurrentResource,
-      disabledTitle: useCurrentResource ? undefined : 'Select a recurring run to clone',
+      disabledTitle: useCurrentResource ? undefined : i18n.t('Buttons.selectARecurringRunToClone'),
       id: 'cloneBtn',
-      title: 'Clone recurring run',
-      tooltip: 'Create a copy from this runs initial state',
+      title: i18n.t('Buttons.cloneRecurringRun'),
+      tooltip: i18n.t('Buttons.createACopyFromThisRunsInitialState'),
     };
     return this;
   }
@@ -116,10 +118,10 @@ export default class Buttons {
     this._map[ButtonKeys.RETRY] = {
       action: () => this._retryRun(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
-      disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to retry',
+      disabledTitle: useCurrentResource ? undefined : i18n.t('Buttons.selectAtLeastOneResourceToRetry'),
       id: 'retryBtn',
-      title: 'Retry',
-      tooltip: 'Retry this run',
+      title: i18n.t('Buttons.retry'),
+      tooltip: i18n.t('Buttons.retryThisRun'),
     };
     return this;
   }
@@ -129,8 +131,8 @@ export default class Buttons {
       action,
       icon: CollapseIcon,
       id: 'collapseBtn',
-      title: 'Collapse all',
-      tooltip: 'Collapse all sections',
+      title: i18n.t('Buttons.collapseAll'),
+      tooltip: i18n.t('Buttons.collapseAllSections'),
     };
     return this;
   }
@@ -139,11 +141,11 @@ export default class Buttons {
     this._map[ButtonKeys.COMPARE] = {
       action: () => this._compareRuns(getSelectedIds()),
       disabled: true,
-      disabledTitle: 'Select multiple runs to compare',
+      disabledTitle: i18n.t('Buttons.selectMultipleRunsToCompare'),
       id: 'compareBtn',
       style: { minWidth: 125 },
-      title: 'Compare runs',
-      tooltip: 'Compare up to 10 selected runs',
+      title: i18n.t('Buttons.compareRuns'),
+      tooltip: i18n.t('Buttons.compareUpTo10SelectedRuns'),
     };
     return this;
   }
@@ -168,10 +170,10 @@ export default class Buttons {
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource
         ? undefined
-        : `Select at least one ${resourceName} to delete`,
+        : `${i18n.t('Buttons.selectAtLeastOne')} ${resourceName} ${i18n.t('Buttons.toDelete')}`,
       id: 'deleteBtn',
-      title: 'Delete',
-      tooltip: 'Delete',
+      title: i18n.t('Buttons.delete'),
+      tooltip: i18n.t('Buttons.delete'),
     };
     return this;
   }
@@ -194,10 +196,10 @@ export default class Buttons {
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource
         ? undefined
-        : `Select at least one pipeline and/or one pipeline version to delete`,
+        : i18n.t('Buttons.selectAtLeastOnePipelineAndOrOnePipelineVersionToDelete'),
       id: 'deletePipelinesAndPipelineVersionsBtn',
-      title: 'Delete',
-      tooltip: 'Delete',
+      title: i18n.t('Buttons.delete'),
+      tooltip: i18n.t('Buttons.delete'),
     };
     return this;
   }
@@ -206,10 +208,10 @@ export default class Buttons {
     this._map[ButtonKeys.DISABLE_RECURRING_RUN] = {
       action: () => this._setRecurringRunEnabledState(getId(), false),
       disabled: true,
-      disabledTitle: 'Run schedule already disabled',
+      disabledTitle: i18n.t('Buttons.runScheduleAlreadyDisabled'),
       id: 'disableBtn',
-      title: 'Disable',
-      tooltip: "Disable the run's trigger",
+      title: i18n.t('Buttons.disable'),
+      tooltip: i18n.t('Buttons.disableTheRunSTrigger'),
     };
     return this;
   }
@@ -218,10 +220,10 @@ export default class Buttons {
     this._map[ButtonKeys.ENABLE_RECURRING_RUN] = {
       action: () => this._setRecurringRunEnabledState(getId(), true),
       disabled: true,
-      disabledTitle: 'Run schedule already enabled',
+      disabledTitle: i18n.t('Buttons.runScheduleAlreadyEnabled'),
       id: 'enableBtn',
-      title: 'Enable',
-      tooltip: "Enable the run's trigger",
+      title: i18n.t('Buttons.enable'),
+      tooltip: i18n.t('Buttons.enableTheRunSTrigger'),
     };
     return this;
   }
@@ -231,8 +233,8 @@ export default class Buttons {
       action,
       icon: ExpandIcon,
       id: 'expandBtn',
-      title: 'Expand all',
-      tooltip: 'Expand all sections',
+      title: i18n.t('Buttons.expandAll'),
+      tooltip: i18n.t('Buttons.expandAllSections'),
     };
     return this;
   }
@@ -245,8 +247,8 @@ export default class Buttons {
       outlined: true,
       primary: true,
       style: { minWidth: 185 },
-      title: 'Create experiment',
-      tooltip: 'Create a new experiment',
+      title: i18n.t('Buttons.createExperiment'),
+      tooltip: i18n.t('Buttons.createANewExperiment'),
     };
     return this;
   }
@@ -259,8 +261,8 @@ export default class Buttons {
       outlined: true,
       primary: true,
       style: { minWidth: 130 },
-      title: 'Create run',
-      tooltip: 'Create a new run',
+      title: i18n.t('Buttons.createRun'),
+      tooltip: i18n.t('Buttons.createANewRun'),
     };
     return this;
   }
@@ -276,8 +278,8 @@ export default class Buttons {
       outlined: true,
       primary: true,
       style: { minWidth: 130 },
-      title: 'Create run',
-      tooltip: 'Create a new run',
+      title: i18n.t('Buttons.createRun'),
+      tooltip: i18n.t('Buttons.createANewRun'),
     };
     return this;
   }
@@ -289,8 +291,8 @@ export default class Buttons {
       id: 'createNewRecurringRunBtn',
       outlined: true,
       style: { minWidth: 195 },
-      title: 'Create recurring run',
-      tooltip: 'Create a new recurring run',
+      title: i18n.t('Buttons.createRecurringRun'),
+      tooltip: i18n.t('Buttons.createANewRecurringRun'),
     };
     return this;
   }
@@ -303,7 +305,7 @@ export default class Buttons {
       outlined: true,
       style: { minWidth: 160 },
       title: label,
-      tooltip: 'Upload pipeline version',
+      tooltip: i18n.t('Buttons.uploadPipelineVersion'),
     };
     return this;
   }
@@ -312,8 +314,8 @@ export default class Buttons {
     this._map[ButtonKeys.REFRESH] = {
       action,
       id: 'refreshBtn',
-      title: 'Refresh',
-      tooltip: 'Refresh the list',
+      title: i18n.t('Buttons.refresh'),
+      tooltip: i18n.t('Buttons.refreshTheList'),
     };
     return this;
   }
@@ -330,10 +332,10 @@ export default class Buttons {
           ? this._restore(getSelectedIds(), useCurrentResource, callback)
           : this._restoreExperiments(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
-      disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to restore',
+      disabledTitle: useCurrentResource ? undefined : i18n.t('Buttons.selectAtLeastOneResourceToRestore'),
       id: 'restoreBtn',
-      title: 'Restore',
-      tooltip: 'Restore the archived run(s) to original location',
+      title: i18n.t('Buttons.restore'),
+      tooltip: i18n.t('Buttons.restoreTheArchivedRunSToOriginalLocation'),
     };
     return this;
   }
@@ -346,10 +348,10 @@ export default class Buttons {
     this._map[ButtonKeys.TERMINATE_RUN] = {
       action: () => this._terminateRun(getSelectedIds(), useCurrentResource, callback),
       disabled: !useCurrentResource,
-      disabledTitle: useCurrentResource ? undefined : 'Select at least one run to terminate',
+      disabledTitle: useCurrentResource ? undefined : i18n.t('Buttons.selectAtLeastOneRunToTerminate'),
       id: 'terminateRunBtn',
-      title: 'Terminate',
-      tooltip: 'Terminate execution of a run',
+      title: i18n.t('Buttons.terminate'),
+      tooltip: i18n.t('Buttons.terminateExecutionOfARun'),
     };
     return this;
   }
@@ -361,8 +363,8 @@ export default class Buttons {
       id: 'uploadBtn',
       outlined: true,
       style: { minWidth: 160 },
-      title: 'Upload pipeline',
-      tooltip: 'Upload pipeline',
+      title: i18n.t('Buttons.uploadPipeline'),
+      tooltip: i18n.t('Buttons.uploadPipeline'),
     };
     return this;
   }
@@ -391,7 +393,7 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      'Retry this run?',
+        `${i18n.t('Buttons.retryThisRun')}?`,
       useCurrent,
       id => Apis.runServiceApi.retryRun(id),
       callback,
@@ -407,12 +409,12 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      `Run${s(selectedIds)} will be moved to the Archive section, where you can still view ` +
+      `Run${s(selectedIds)} ${i18n.t('Buttons.willBeMovedToTheArchiveSectionWhereYouCanStillView')} ` +
         `${
-          selectedIds.length === 1 ? 'its' : 'their'
-        } details. Please note that the run will not ` +
-        `be stopped if it's running when it's archived. Use the Restore action to restore the ` +
-        `run${s(selectedIds)} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
+          selectedIds.length === 1 ? i18n.t('Buttons.its') : i18n.t('Buttons.their')
+        } ${i18n.t('Buttons.detailsPleaseNoteThatTheRunWillNot')} ` +
+        `${i18n.t('Buttons.beStoppedIfItSRunningWhenItSArchivedUseTheRestoreActionToRestoreThe')} ` +
+        `run${s(selectedIds)} ${i18n.t('Buttons.to')} ${selectedIds.length === 1 ? i18n.t('Buttons.its') : i18n.t('Buttons.their')} ${i18n.t('Buttons.originalLocation')}.`,
       useCurrent,
       id => Apis.runServiceApi.archiveRun(id),
       callback,
@@ -428,9 +430,9 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      `Do you want to restore ${
-        selectedIds.length === 1 ? 'this run to its' : 'these runs to their'
-      } original location?`,
+      `${i18n.t('Buttons.doYouWantToRestore')} ${
+        selectedIds.length === 1 ? i18n.t('Buttons.thisRunToIts') : i18n.t('Buttons.theseRunsToTheir')
+      } ${i18n.t('Buttons.originalLocation')}?`,
       useCurrent,
       id => Apis.runServiceApi.unarchiveRun(id),
       callback,
@@ -446,13 +448,13 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      `Do you want to restore ${
-        selectedIds.length === 1 ? 'this experiment to its' : 'these experiments to their'
-      } original location? All runs and jobs in ${
-        selectedIds.length === 1 ? 'this experiment' : 'these experiments'
-      } will stay at their current locations in spite that ${
-        selectedIds.length === 1 ? 'this experiment' : 'these experiments'
-      } will be moved to ${selectedIds.length === 1 ? 'its' : 'their'} original location${s(
+      `${i18n.t('Buttons.doYouWantToRestore')} ${
+        selectedIds.length === 1 ? i18n.t('Buttons.thisExperimentToIts') : i18n.t('Buttons.theseExperimentsToTheir')
+      } ${i18n.t('Buttons.originalLocationAllRunsAndJobsIn')} ${
+        selectedIds.length === 1 ? i18n.t('Buttons.thisExperiment') : i18n.t('Buttons.theseExperiments')
+      } ${i18n.t('Buttons.willStayAtTheirCurrentLocationsInSpiteThat')} ${
+        selectedIds.length === 1 ? i18n.t('Buttons.thisExperiment') : i18n.t('Buttons.theseExperiments')
+      } ${i18n.t('Buttons.willBeMovedTo')} ${selectedIds.length === 1 ? i18n.t('Buttons.its') : i18n.t('Buttons.their')} ${i18n.t('Buttons.originalLocation')}${s(
         selectedIds,
       )}.`,
       useCurrent,
@@ -470,9 +472,9 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      `Do you want to delete ${
-        selectedIds.length === 1 ? 'this Pipeline' : 'these Pipelines'
-      }? This action cannot be undone.`,
+      `${i18n.t('Buttons.doYouWantToDelete')} ${
+        selectedIds.length === 1 ? i18n.t('Buttons.thisPipeline') : i18n.t('Buttons.thesePipelines')
+      }? ${i18n.t('Buttons.thisActionCannotBeUndone')}`,
       useCurrentResource,
       id => Apis.pipelineServiceApi.deletePipeline(id),
       callback,
@@ -488,9 +490,9 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      `Do you want to delete ${
-        selectedIds.length === 1 ? 'this Pipeline Version' : 'these Pipeline Versions'
-      }? This action cannot be undone.`,
+      `${i18n.t('Buttons.doYouWantToDelete')} ${
+        selectedIds.length === 1 ? i18n.t('Buttons.thisPipelineVersion') : i18n.t('Buttons.thesePipelineVersions')
+      }? ${i18n.t('Buttons.thisActionCannotBeUndone')}`,
       useCurrentResource,
       id => Apis.pipelineServiceApi.deletePipelineVersion(id),
       callback,
@@ -506,7 +508,7 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       [id],
-      'Do you want to delete this recurring run config? This action cannot be undone.',
+        i18n.t('Buttons.doYouWantToDeleteThisRecurringRunConfigThisActionCannotBeUndone'),
       useCurrentResource,
       jobId => Apis.jobServiceApi.deleteJob(jobId),
       callback,
@@ -522,8 +524,8 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       ids,
-      'Do you want to terminate this run? This action cannot be undone. This will terminate any' +
-        ' running pods, but they will not be deleted.',
+        i18n.t('Buttons.doYouWantToTerminateThisRunThisActionCannotBeUndoneThisWillTerminateAny') +
+        i18n.t('Buttons.runningPodsButTheyWillNotBeDeleted'),
       useCurrentResource,
       id => Apis.runServiceApi.terminateRun(id),
       callback,
@@ -539,7 +541,7 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       ids,
-      'Do you want to delete the selected runs? This action cannot be undone.',
+        i18n.t('Buttons.doYouWantToDeleteTheSelectedRunsThisActionCannotBeUndone'),
       useCurrentResource,
       id => Apis.runServiceApi.deleteRun(id),
       callback,
@@ -572,7 +574,7 @@ export default class Buttons {
       buttons: [
         {
           onClick: async () => await dialogClosedHandler(false),
-          text: 'Cancel',
+          text: i18n.t('Buttons.cancel'),
         },
         {
           onClick: async () => await dialogClosedHandler(true),
@@ -607,7 +609,7 @@ export default class Buttons {
             unsuccessfulIds.push(id);
             const errorMessage = await errorToMessage(err);
             errorMessages.push(
-              `Failed to ${actionName.toLowerCase()} ${resourceName}: ${id} with error: "${errorMessage}"`,
+              `${i18n.t('Buttons.failedTo')} ${actionName.toLowerCase()} ${resourceName}: ${id} ${i18n.t('Buttons.withError')}: "${errorMessage}"`,
             );
           }
         }),
@@ -616,7 +618,7 @@ export default class Buttons {
       const successfulOps = selectedIds.length - unsuccessfulIds.length;
       if (successfulOps > 0) {
         this._props.updateSnackbar({
-          message: `${actionName} succeeded for ${
+          message: `${actionName} ${i18n.t('Buttons.succeededFor')} ${
             useCurrentResource ? 'this' : successfulOps
           } ${resourceName}${useCurrentResource ? '' : s(successfulOps)}`,
           open: true,
@@ -628,9 +630,9 @@ export default class Buttons {
 
       if (unsuccessfulIds.length > 0) {
         this._props.updateDialog({
-          buttons: [{ text: 'Dismiss' }],
+          buttons: [{ text: i18n.t('Buttons.dismiss') }],
           content: errorMessages.join('\n\n'),
-          title: `Failed to ${actionName.toLowerCase()} ${
+          title: `${i18n.t('Buttons.failedTo')} ${actionName.toLowerCase()} ${
             useCurrentResource ? '' : unsuccessfulIds.length + ' '
           }${resourceName}${useCurrentResource ? '' : s(unsuccessfulIds)}`,
         });
@@ -700,7 +702,7 @@ export default class Buttons {
         this._props.updateDialog({
           buttons: [{ text: 'Dismiss' }],
           content: errorMessage,
-          title: `Failed to ${enabled ? 'enable' : 'disable'} recurring run`,
+          title: `${i18n.t('Buttons.failedTo')} ${enabled ? i18n.t('Buttons.enable') : i18n.t('Buttons.disable')} ${i18n.t('Buttons.recurringRun')}}`,
         });
       } finally {
         toolbarActions[buttonKey].busy = false;
@@ -741,7 +743,7 @@ export default class Buttons {
               selectedVersionIds,
               callback,
             ),
-          text: 'Cancel',
+          text: i18n.t('Buttons.cancel'),
         },
         {
           onClick: async () =>
@@ -751,7 +753,7 @@ export default class Buttons {
               selectedVersionIds,
               callback,
             ),
-          text: 'Delete',
+          text: i18n.t('Buttons.delete'),
         },
       ],
       onClose: async () =>
@@ -761,7 +763,7 @@ export default class Buttons {
           selectedVersionIds,
           callback,
         ),
-      title: `Delete ` + pipelineMessage + andMessage + pipelineVersionMessage + `?`,
+      title: `${i18n.t('Buttons.delete')} ` + pipelineMessage + andMessage + pipelineVersionMessage + `?`,
     });
   }
 
@@ -790,7 +792,7 @@ export default class Buttons {
           unsuccessfulIds.push(id);
           succeededfulIds.delete(id);
           const errorMessage = await errorToMessage(err);
-          errorMessages.push(`Failed to delete pipeline: ${id} with error: "${errorMessage}"`);
+          errorMessages.push(`${i18n.t('Buttons.failedToDeletePipeline')}: ${id} ${i18n.t('Buttons.withError')}: "${errorMessage}"`);
         }
       }),
     );
@@ -816,7 +818,7 @@ export default class Buttons {
             unsuccessfulVersionIds[pipelineId].push(versionId);
             const errorMessage = await errorToMessage(err);
             errorMessages.push(
-              `Failed to delete pipeline version: ${versionId} with error: "${errorMessage}"`,
+              `${i18n.t('Buttons.failedToDeletePipelineVersion')}: ${versionId} ${i18n.t('Buttons.withError')}: "${errorMessage}"`,
             );
           }
         });
@@ -835,7 +837,7 @@ export default class Buttons {
     const andMessage = pipelineMessage !== `` && pipelineVersionMessage !== `` ? ` and ` : ``;
     if (pipelineMessage !== `` || pipelineVersionMessage !== ``) {
       this._props.updateSnackbar({
-        message: `Deletion succeeded for ` + pipelineMessage + andMessage + pipelineVersionMessage,
+        message: `${i18n.t('Buttons.deletionSucceededFor')} ` + pipelineMessage + andMessage + pipelineVersionMessage,
         open: true,
       });
     }
@@ -843,7 +845,7 @@ export default class Buttons {
       this._props.updateDialog({
         buttons: [{ text: 'Dismiss' }],
         content: errorMessages.join('\n\n'),
-        title: `Failed to delete some pipelines and/or some pipeline versions`,
+        title: `${i18n.t('Buttons.failedToDeleteSomePipelinesAndOrSomePipelineVersions')}`,
       });
     }
 
@@ -879,11 +881,11 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       selectedIds,
-      `Experiment${s(selectedIds)} will be moved to the Archive section, where you can still view${
-        selectedIds.length === 1 ? 'its' : 'their'
-      } details. All runs in this archived experiment will be archived. All jobs in this archived experiment will be disabled. Use the Restore action on the experiment details page to restore the experiment${s(
+      `Experiment${s(selectedIds)} ${i18n.t('Buttons.willBeMovedToTheArchiveSectionWhereYouCanStillView')}${
+        selectedIds.length === 1 ? i18n.t('Buttons.its') : i18n.t('Buttons.their')
+      } ${i18n.t('Buttons.detailsAllRunsInThisArchivedExperiment')}${s(
         selectedIds,
-      )} to ${selectedIds.length === 1 ? 'its' : 'their'} original location.`,
+      )} ${i18n.t('Buttons.to')} ${selectedIds.length === 1 ? i18n.t('Buttons.its') : i18n.t('Buttons.their')} ${i18n.t('Buttons.originalLocation')}.`,
       useCurrent,
       id => Apis.experimentServiceApi.archiveExperiment(id),
       callback,

@@ -34,6 +34,32 @@ import {
 } from './lib/KubeflowClient';
 // import { ReactQueryDevtools } from 'react-query/devtools';
 
+import {initReactI18next, I18nextProvider} from 'react-i18next';
+import viVn from "./i18n/vi-VN";
+import enUs from "./i18n/en-US";
+import i18n from "i18next";
+
+i18n
+  .use(initReactI18next)
+  .init({
+    resources: {
+      en: {
+        translations: enUs
+      },
+      vi: {
+        translations: viVn
+      }
+    },
+    fallbackLng: "vi",
+    debug: true,
+    // have a common namespace used around the full app
+    ns: ["translations"],
+    defaultNS: "translations",
+    interpolation: {
+      escapeValue: false
+    }
+  });
+
 // TODO: license headers
 
 if (KFP_FLAGS.DEPLOYMENT === Deployments.KUBEFLOW) {
@@ -71,7 +97,7 @@ ReactDOM.render(
   ) : (
     // Uncomment the following for namespace switch during development.
     // <NamespaceContext.Provider value='your-namespace'>{app}</NamespaceContext.Provider>
-    <NamespaceContext.Provider value={undefined}>{app}</NamespaceContext.Provider>
+    <NamespaceContext.Provider value={undefined}><I18nextProvider i18n={i18n}>{app}</I18nextProvider></NamespaceContext.Provider>
   ),
   document.getElementById('root'),
 );
