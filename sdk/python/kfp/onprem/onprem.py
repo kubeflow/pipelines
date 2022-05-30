@@ -1,5 +1,5 @@
 from typing import Dict, Optional
-from kfp.deprecated import dsl
+from kfp import dsl
 
 
 def mount_pvc(pvc_name='pipeline-claim',
