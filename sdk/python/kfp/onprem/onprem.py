@@ -42,7 +42,7 @@ def use_k8s_secret(
     """An operator that configures the container to use k8s credentials.
 
     k8s_secret_key_to_env specifies a mapping from the name of the keys in the
-    k8s secret to the name of the environment variables where 
+    k8s secret to the name of the environment variables where
     the values will be added.
 
     The secret needs to be deployed manually a priori.
@@ -55,7 +55,7 @@ def use_k8s_secret(
             k8s_secret_key_to_env={'secret_key': 'AWS_SECRET_ACCESS_KEY'}))
 
         This will load the value in secret 's3-secret' at key 'secret_key' and
-        source it as the environment variable 'AWS_SECRET_ACCESS_KEY'. 
+        source it as the environment variable 'AWS_SECRET_ACCESS_KEY'.
         I.e. it will produce the following section on the pod:
         env:
         - name: AWS_SECRET_ACCESS_KEY
