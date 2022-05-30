@@ -1,5 +1,6 @@
 from typing import Dict, Optional
 from kfp import dsl
+from kubernetes import client as k8s_client
 
 
 def mount_pvc(pvc_name='pipeline-claim',
@@ -17,7 +18,6 @@ def mount_pvc(pvc_name='pipeline-claim',
     """
 
     def _mount_pvc(task):
-        from kubernetes import client as k8s_client
         # there can be other ops in a pipeline (e.g. ResourceOp, VolumeOp)
         # refer to #3906
         if not hasattr(task, "add_volume") or not hasattr(
@@ -41,8 +41,9 @@ def use_k8s_secret(
 ):
     """An operator that configures the container to use k8s credentials.
 
-    k8s_secret_key_to_env specifies a mapping from the name of the keys in the k8s secret to the name of the
-    environment variables where the values will be added.
+    k8s_secret_key_to_env specifies a mapping from the name of the keys in the
+    k8s secret to the name of the environment variables where 
+    the values will be added.
 
     The secret needs to be deployed manually a priori.
 
@@ -53,8 +54,9 @@ def use_k8s_secret(
             train.apply(use_k8s_secret(secret_name='s3-secret',
             k8s_secret_key_to_env={'secret_key': 'AWS_SECRET_ACCESS_KEY'}))
 
-        This will load the value in secret 's3-secret' at key 'secret_key' and source it as the environment variable
-        'AWS_SECRET_ACCESS_KEY'. I.e. it will produce the following section on the pod:
+        This will load the value in secret 's3-secret' at key 'secret_key' and
+        source it as the environment variable 'AWS_SECRET_ACCESS_KEY'. 
+        I.e. it will produce the following section on the pod:
         env:
         - name: AWS_SECRET_ACCESS_KEY
           valueFrom:
@@ -66,7 +68,6 @@ def use_k8s_secret(
     k8s_secret_key_to_env = k8s_secret_key_to_env or {}
 
     def _use_k8s_secret(task):
-        from kubernetes import client as k8s_client
         for secret_key, env_var in k8s_secret_key_to_env.items():
             task.container \
                 .add_env_variable(
@@ -122,7 +123,8 @@ def _apply_default_resource(task: dsl.ContainerOp, resource_name: str,
                             default_limit: Optional[str]):
     if task.container.get_resource_limit(resource_name):
         # Do nothing.
-        # Limit is set, request will default to limit if not set (Kubernetes default behavior),
+        # Limit is set, request will default to limit if not set,
+        # which is (Kubernetes default behavior),
         # so we do not need to further apply defaults.
         return
 
