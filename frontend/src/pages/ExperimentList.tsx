@@ -43,7 +43,7 @@ import { logger } from '../lib/Utils';
 import { statusToIcon } from './Status';
 import Tooltip from '@material-ui/core/Tooltip';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
-
+import  i18n from 'i18next'
 interface DisplayExperiment extends ApiExperiment {
   last5Runs?: ApiRun[];
   error?: string;
@@ -94,17 +94,17 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
       {
         customRenderer: this._nameCustomRenderer,
         flex: 1,
-        label: 'Experiment name',
+        label: i18n.t('ExperimentList.experimentName'),
         sortKey: ExperimentSortKeys.NAME,
       },
       {
         flex: 2,
-        label: 'Description',
+        label: i18n.t('ExperimentList.description'),
       },
       {
         customRenderer: this._last5RunsCustomRenderer,
         flex: 1,
-        label: 'Last 5 runs',
+        label: i18n.t('ExperimentList.last5Runs'),
       },
     ];
 
@@ -132,8 +132,8 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
           reload={this._reload.bind(this)}
           toggleExpansion={this._toggleRowExpand.bind(this)}
           getExpandComponent={this._getExpandedExperimentComponent.bind(this)}
-          filterLabel='Filter experiments'
-          emptyMessage='No experiments found. Click "Create experiment" to start.'
+          filterLabel={i18n.t('ExperimentList.filterExperiments')}
+          emptyMessage={i18n.t('ExperimentList.noExperimentsFound')}
         />
       </div>
     );
@@ -206,7 +206,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
       displayExperiments = response.experiments || [];
       displayExperiments.forEach(exp => (exp.expandState = ExpandState.COLLAPSED));
     } catch (err) {
-      await this.showPageError('Error: failed to retrieve list of experiments.', err);
+      await this.showPageError(i18n.t('ExperimentList.failedToRetrieveListOfExperiments'), err);
       // No point in continuing if we couldn't retrieve any experiments.
       return '';
     }
@@ -236,9 +236,9 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
           );
           experiment.last5Runs = listRunsResponse.runs || [];
         } catch (err) {
-          experiment.error = 'Failed to load the last 5 runs of this experiment';
+          experiment.error = i18n.t('ExperimentList.failedToRetrieveRunStatusesForExperiment');
           logger.error(
-            `Error: failed to retrieve run statuses for experiment: ${experiment.name}.`,
+            `${i18n.t('ExperimentList.failedToRetrieveRunStatusesForExperiment')} ${experiment.name}.`,
             err,
           );
         }

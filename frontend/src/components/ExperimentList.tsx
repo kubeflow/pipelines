@@ -31,7 +31,7 @@ import RunList from '../pages/RunList';
 import { PredicateOp, ApiFilter } from '../apis/filter';
 import produce from 'immer';
 import Tooltip from '@material-ui/core/Tooltip';
-
+import i18n from 'i18next'
 export interface ExperimentListProps extends RouteComponentProps {
   namespace?: string;
   storageState?: ApiExperimentStorageState;
@@ -63,12 +63,12 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
       {
         customRenderer: this._nameCustomRenderer,
         flex: 1,
-        label: 'Experiment name',
+        label: i18n.t('ExperimentList.experimentName'),
         sortKey: ExperimentSortKeys.NAME,
       },
       {
         flex: 2,
-        label: 'Description',
+        label: i18n.t('ExperimentList.description'),
       },
     ];
 
@@ -92,8 +92,8 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
           reload={this._loadExperiments.bind(this)}
           toggleExpansion={this._toggleRowExpand.bind(this)}
           getExpandComponent={this._getExpandedExperimentComponent.bind(this)}
-          filterLabel='Filter experiments'
-          emptyMessage='No experiments found. Click "Create experiment" to start.'
+          filterLabel={i18n.t('ExperimentList.filterExperiments')}
+          emptyMessage={i18n.t('ExperimentList.noExperimentsFound')}
         />
       </div>
     );
@@ -146,7 +146,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
         request.filter = encodeURIComponent(JSON.stringify(filter));
       } catch (err) {
         const error = new Error(await errorToMessage(err));
-        this.props.onError('Error: failed to parse request filter: ', error);
+        this.props.onError(i18n.t('ExperimentList.failedToParseRequestFilter'), error);
         return '';
       }
     }
@@ -167,7 +167,7 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
       this.setState({ displayExperiments });
     } catch (err) {
       const error = new Error(await errorToMessage(err));
-      this.props.onError('Error: failed to list experiments: ', error);
+      this.props.onError(i18n.t('ExperimentList.failedToRetrieveListOfExperiments'), error);
       return '';
     }
 

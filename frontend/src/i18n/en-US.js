@@ -151,5 +151,19 @@ export default {
         "deletionSucceededFor": "Deletion succeeded for",
         "failedToDeleteSomePipelinesAndOrSomePipelineVersions": "Failed to delete some pipelines and/or some pipeline versions",
         "detailsAllRunsInThisArchivedExperiment": "details. All runs in this archived experiment will be archived. All jobs in this archived experiment will be disabled. Use the Restore action on the experiment details page to restore the experiment"
+    },
+    ExperimentList:{
+        failedToRetrieveListOfExperiments: "Error: failed to retrieve list of experiments.",
+        failedToRetrieveRunStatusesForExperiment: "Error: failed to retrieve run statuses for experiment:",
+        failedToLoadTheLast5RunsOfThisExperiment: "Failed to load the last 5 runs of this experiment",
+        noExperimentsFound: "No experiments found. Click \"Create experiment\" to start.",
+        filterExperiments: "Filter experiments",
+        experimentName: "Experiment name",
+        description: "Description",
+        last5Runs: "Last 5 runs",
+        failedToParseRequestFilter: "Error: failed to parse request filter: "
+    },
+    ExperimentDetails: {
+        
     }
 }

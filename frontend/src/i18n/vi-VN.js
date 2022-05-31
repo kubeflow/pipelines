@@ -151,5 +151,19 @@ export default {
         "deletionSucceededFor": "Đã xóa thành công cho",
         "failedToDeleteSomePipelinesAndOrSomePipelineVersions": "Không xóa được một số pipeline và / hoặc một số phiên bản pipeline",
         "detailsAllRunsInThisArchivedExperiment": "thông tin chi tiết. Tất cả các runs trong experiment được lưu trữ này sẽ được lưu trữ. Tất cả các công việc trong experiment được lưu trữ này sẽ bị vô hiệu hóa. Sử dụng hành động Khôi phục trên trang chi tiết experiment để khôi phụcexperiment "
+    },
+    ExperimentList:{
+        failedToRetrieveListOfExperiments: "Lỗi: không thể truy xuất danh sách các experiments.",
+        failedToRetrieveRunStatusesForExperiment: "Lỗi: không thể truy xuất các trạng thái chạy cho experiments:",
+        failedToLoadTheLast5RunsOfThisExperiment: "Không tải được 5 lần runs cuối cùng của experiment này",
+        noExperimentsFound: "Không có experiments nào được tìm thấy. Nhấp vào \"Tạo experiments \" để bắt đầu",
+        filterExperiments: "Lọc experiments",
+        experimentName: "Tên experiment",
+        description: "Mô tả",
+        last5Runs: "5 runs cuối cùng",
+        failedToParseRequestFilter: "Lỗi: không thể phân tích cú pháp bộ lọc yêu cầu: "
+    },
+    ExperimentDetails: {
+
     }
 }
