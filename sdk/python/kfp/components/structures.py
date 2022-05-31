@@ -83,8 +83,16 @@ class InputSpec(InputSpec_, base_model.BaseModel):
             raise ValueError(
                 f'Unknown type {ir_parameter_dict["parameterType"]} found in IR.'
             )
-        default = ir_parameter_dict.get('defaultValue')
-        return InputSpec(type=type_, default=default)
+
+        # isOptional defaults to False and is typically omitted from IR when False
+        # we want to allow null/None as a default value, so when use isOptional == True as primary way to identify optional status, not defaultValue == None, but then also check if the defaultValue is not None, since that also means the input is optional
+        if ir_parameter_dict.get(
+                'isOptional',
+                False) or ir_parameter_dict.get('defaultValue') is not None:
+            default = ir_parameter_dict['defaultValue']
+            return InputSpec(type=type_, default=default)
+        else:
+            return InputSpec(type=type_)
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for InputSpec. Robust to different type
