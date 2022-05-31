@@ -17,13 +17,15 @@ import os
 import tempfile
 import unittest
 
-import yaml
 from absl.testing import parameterized
-from kfp import compiler
+from google.protobuf import json_format
 from kfp import components
 from kfp import dsl
+from kfp.compiler import compiler
 from kfp.components.types import type_utils
 from kfp.dsl import PipelineTaskFinalStatus
+from kfp.pipeline_spec import pipeline_spec_pb2
+import yaml
 
 VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
     name: producer
@@ -716,7 +718,7 @@ class TestCompileComponent(parameterized.TestCase):
             output_json = os.path.join(tempdir, f'component{extension}')
             compiler.Compiler().compile(
                 pipeline_func=hello_world, package_path=output_json)
-            with open(output_json, "r") as f:
+            with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
 
         self.assertEqual(pipeline_spec['pipelineInfo']['name'], 'hello-world')
@@ -733,7 +735,7 @@ class TestCompileComponent(parameterized.TestCase):
             output_json = os.path.join(tempdir, 'component.yaml')
             compiler.Compiler().compile(
                 pipeline_func=hello_world, package_path=output_json)
-            with open(output_json, "r") as f:
+            with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
 
         self.assertEqual(
@@ -751,7 +753,7 @@ class TestCompileComponent(parameterized.TestCase):
             output_json = os.path.join(tempdir, 'component.yaml')
             compiler.Compiler().compile(
                 pipeline_func=hello_world, package_path=output_json)
-            with open(output_json, "r") as f:
+            with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
 
         self.assertEqual(pipeline_spec['pipelineInfo']['name'], 'hello-world')
@@ -772,7 +774,7 @@ class TestCompileComponent(parameterized.TestCase):
                 pipeline_func=hello_world,
                 package_path=output_json,
                 pipeline_name='custom-name')
-            with open(output_json, "r") as f:
+            with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
 
         self.assertEqual(pipeline_spec['pipelineInfo']['name'], 'custom-name')
@@ -790,7 +792,7 @@ class TestCompileComponent(parameterized.TestCase):
                 pipeline_func=hello_world,
                 package_path=output_json,
                 pipeline_parameters={'text': 'override_string'})
-            with open(output_json, "r") as f:
+            with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
 
         self.assertEqual(
@@ -811,6 +813,53 @@ class TestCompileBadInput(unittest.TestCase):
                                     'Unsupported pipeline_func type.'):
             compiler.Compiler().compile(
                 pipeline_func=1, package_path='output.json')
+
+
+def pipeline_spec_from_file(filepath: str) -> str:
+    with open(filepath, 'r') as f:
+        dictionary = yaml.safe_load(f)
+    return json_format.ParseDict(dictionary, pipeline_spec_pb2.PipelineSpec())
+
+
+class TestWriteIrToFile(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        pipeline_spec = pipeline_spec_pb2.PipelineSpec()
+        pipeline_spec.pipeline_info.name = 'pipeline-name'
+        cls.pipeline_spec = pipeline_spec
+
+    def test_yaml(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            temp_filepath = os.path.join(tempdir, 'output.yaml')
+            compiler.write_pipeline_spec_to_file(self.pipeline_spec,
+                                                 temp_filepath)
+            actual = pipeline_spec_from_file(temp_filepath)
+        self.assertEqual(actual, self.pipeline_spec)
+
+    def test_yml(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            temp_filepath = os.path.join(tempdir, 'output.yml')
+            compiler.write_pipeline_spec_to_file(self.pipeline_spec,
+                                                 temp_filepath)
+            actual = pipeline_spec_from_file(temp_filepath)
+        self.assertEqual(actual, self.pipeline_spec)
+
+    def test_json(self):
+        with tempfile.TemporaryDirectory() as tempdir, self.assertWarnsRegex(
+                DeprecationWarning, r'Compiling to JSON is deprecated'):
+            temp_filepath = os.path.join(tempdir, 'output.json')
+            compiler.write_pipeline_spec_to_file(self.pipeline_spec,
+                                                 temp_filepath)
+            actual = pipeline_spec_from_file(temp_filepath)
+        self.assertEqual(actual, self.pipeline_spec)
+
+    def test_incorrect_extension(self):
+        with tempfile.TemporaryDirectory() as tempdir, self.assertRaisesRegex(
+                ValueError, r'should end with "\.yaml"\.'):
+            temp_filepath = os.path.join(tempdir, 'output.txt')
+            compiler.write_pipeline_spec_to_file(self.pipeline_spec,
+                                                 temp_filepath)
 
 
 if __name__ == '__main__':

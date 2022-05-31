@@ -10,6 +10,12 @@ _DEFAULT_NUM_PARALLEL_TRAILS = 35
 _DEFAULT_STAGE_2_NUM_SELECTED_TRAILS = 5
 _NUM_FOLDS = 5
 _DISTILL_TOTAL_TRIALS = 100
+_EVALUATION_BATCH_PREDICT_MACHINE_TYPE = 'n1-standard-16'
+_EVALUATION_BATCH_PREDICT_STARTING_REPLICA_COUNT = 25
+_EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT = 25
+_EVALUATION_DATAFLOW_MACHINE_TYPE = 'n1-standard-4'
+_EVALUATION_DATAFLOW_MAX_NUM_WORKERS = 25
+_EVALUATION_DATAFLOW_DISK_SIZE_GB = 50
 
 
 def input_dictionary_to_parameter(input_dict: Optional[Dict[str, Any]]) -> str:
@@ -254,12 +260,16 @@ def get_skip_evaluation_pipeline_and_parameters(
 def get_default_pipeline_and_parameters(
     *args,
     dataflow_service_account: str = '',
-    evaluation_batch_predict_machine_type: str = 'n1-standard-16',
-    evaluation_batch_predict_starting_replica_count: int = 25,
-    evaluation_batch_predict_max_replica_count: int = 25,
-    evaluation_dataflow_machine_type: str = 'n1-standard-4',
-    evaluation_dataflow_max_num_workers: int = 25,
-    evaluation_dataflow_disk_size_gb: int = 50,
+    evaluation_batch_predict_machine_type:
+    str = _EVALUATION_BATCH_PREDICT_MACHINE_TYPE,
+    evaluation_batch_predict_starting_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_STARTING_REPLICA_COUNT,
+    evaluation_batch_predict_max_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT,
+    evaluation_dataflow_machine_type: str = _EVALUATION_DATAFLOW_MACHINE_TYPE,
+    evaluation_dataflow_max_num_workers:
+    int = _EVALUATION_DATAFLOW_MAX_NUM_WORKERS,
+    evaluation_dataflow_disk_size_gb: int = _EVALUATION_DATAFLOW_DISK_SIZE_GB,
     **kwargs) -> Tuple[str, Dict[str, Any]]:
   """Get the AutoML Tabular default training pipeline.
 
@@ -708,6 +718,18 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     transform_dataflow_disk_size_gb: int = 40,
     training_machine_spec: Optional[Dict[str, Any]] = None,
     training_replica_count: int = 1,
+    run_evaluation: bool = True,
+    evaluation_batch_predict_machine_type:
+    str = _EVALUATION_BATCH_PREDICT_MACHINE_TYPE,
+    evaluation_batch_predict_starting_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_STARTING_REPLICA_COUNT,
+    evaluation_batch_predict_max_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT,
+    evaluation_dataflow_machine_type: str = _EVALUATION_DATAFLOW_MACHINE_TYPE,
+    evaluation_dataflow_max_num_workers:
+    int = _EVALUATION_DATAFLOW_MAX_NUM_WORKERS,
+    evaluation_dataflow_disk_size_gb: int = _EVALUATION_DATAFLOW_DISK_SIZE_GB,
+    dataflow_service_account: str = '',
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '') -> Tuple[str, Dict[str, Any]]:
@@ -781,6 +803,20 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     training_machine_spec: The machine spec for trainer component. See
       https://cloud.google.com/compute/docs/machine-types for options.
     training_replica_count: The replica count for the trainer component.
+    run_evaluation: Whether to run evaluation steps during training.
+    evaluation_batch_predict_machine_type: The prediction server machine type
+      for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count: The initial number of
+      prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count: The max number of prediction
+      server for batch predict components during evaluation.
+    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
+      components.
+    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
+      evaluation components.
+    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+      evaluation components.
+    dataflow_service_account: Custom service account to run dataflow jobs.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default
       subnetwork will be used. Example:
@@ -880,6 +916,22 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
           training_machine_spec,
       'training_replica_count':
           training_replica_count,
+      'run_evaluation':
+          run_evaluation,
+      'evaluation_batch_predict_machine_type':
+          evaluation_batch_predict_machine_type,
+      'evaluation_batch_predict_starting_replica_count':
+          evaluation_batch_predict_starting_replica_count,
+      'evaluation_batch_predict_max_replica_count':
+          evaluation_batch_predict_max_replica_count,
+      'evaluation_dataflow_machine_type':
+          evaluation_dataflow_machine_type,
+      'evaluation_dataflow_max_num_workers':
+          evaluation_dataflow_max_num_workers,
+      'evaluation_dataflow_disk_size_gb':
+          evaluation_dataflow_disk_size_gb,
+      'dataflow_service_account':
+          dataflow_service_account,
       'dataflow_subnetwork':
           dataflow_subnetwork,
       'dataflow_use_public_ips':
@@ -924,6 +976,18 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     transform_dataflow_max_num_workers: int = 25,
     transform_dataflow_disk_size_gb: int = 40,
     training_machine_spec: Optional[Dict[str, Any]] = None,
+    run_evaluation: bool = True,
+    evaluation_batch_predict_machine_type:
+    str = _EVALUATION_BATCH_PREDICT_MACHINE_TYPE,
+    evaluation_batch_predict_starting_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_STARTING_REPLICA_COUNT,
+    evaluation_batch_predict_max_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT,
+    evaluation_dataflow_machine_type: str = _EVALUATION_DATAFLOW_MACHINE_TYPE,
+    evaluation_dataflow_max_num_workers:
+    int = _EVALUATION_DATAFLOW_MAX_NUM_WORKERS,
+    evaluation_dataflow_disk_size_gb: int = _EVALUATION_DATAFLOW_DISK_SIZE_GB,
+    dataflow_service_account: str = '',
     training_replica_count: int = 1,
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
@@ -983,6 +1047,20 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     training_machine_spec: The machine spec for trainer component. See
       https://cloud.google.com/compute/docs/machine-types for options.
     training_replica_count: The replica count for the trainer component.
+    run_evaluation: Whether to run evaluation steps during training.
+    evaluation_batch_predict_machine_type: The prediction server machine type
+      for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count: The initial number of
+      prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count: The max number of prediction
+      server for batch predict components during evaluation.
+    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
+      components.
+    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
+      evaluation components.
+    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+      evaluation components.
+    dataflow_service_account: Custom service account to run dataflow jobs.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default
       subnetwork will be used. Example:
@@ -1060,6 +1138,22 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
           training_machine_spec,
       'training_replica_count':
           training_replica_count,
+      'run_evaluation':
+          run_evaluation,
+      'evaluation_batch_predict_machine_type':
+          evaluation_batch_predict_machine_type,
+      'evaluation_batch_predict_starting_replica_count':
+          evaluation_batch_predict_starting_replica_count,
+      'evaluation_batch_predict_max_replica_count':
+          evaluation_batch_predict_max_replica_count,
+      'evaluation_dataflow_machine_type':
+          evaluation_dataflow_machine_type,
+      'evaluation_dataflow_max_num_workers':
+          evaluation_dataflow_max_num_workers,
+      'evaluation_dataflow_disk_size_gb':
+          evaluation_dataflow_disk_size_gb,
+      'dataflow_service_account':
+          dataflow_service_account,
       'dataflow_subnetwork':
           dataflow_subnetwork,
       'dataflow_use_public_ips':
@@ -1126,6 +1220,18 @@ def get_tabnet_trainer_pipeline_and_parameters(
     transform_dataflow_disk_size_gb: int = 40,
     training_machine_spec: Optional[Dict[str, Any]] = None,
     training_replica_count: int = 1,
+    run_evaluation: bool = True,
+    evaluation_batch_predict_machine_type:
+    str = _EVALUATION_BATCH_PREDICT_MACHINE_TYPE,
+    evaluation_batch_predict_starting_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_STARTING_REPLICA_COUNT,
+    evaluation_batch_predict_max_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT,
+    evaluation_dataflow_machine_type: str = _EVALUATION_DATAFLOW_MACHINE_TYPE,
+    evaluation_dataflow_max_num_workers:
+    int = _EVALUATION_DATAFLOW_MAX_NUM_WORKERS,
+    evaluation_dataflow_disk_size_gb: int = _EVALUATION_DATAFLOW_DISK_SIZE_GB,
+    dataflow_service_account: str = '',
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '') -> Tuple[str, Dict[str, Any]]:
@@ -1206,6 +1312,20 @@ def get_tabnet_trainer_pipeline_and_parameters(
     training_machine_spec: The machine spec for trainer component. See
       https://cloud.google.com/compute/docs/machine-types for options.
     training_replica_count: The replica count for the trainer component.
+    run_evaluation: Whether to run evaluation steps during training.
+    evaluation_batch_predict_machine_type: The prediction server machine type
+      for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count: The initial number of
+      prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count: The max number of prediction
+      server for batch predict components during evaluation.
+    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
+      components.
+    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
+      evaluation components.
+    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+      evaluation components.
+    dataflow_service_account: Custom service account to run dataflow jobs.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default
       subnetwork will be used. Example:
@@ -1307,6 +1427,22 @@ def get_tabnet_trainer_pipeline_and_parameters(
           training_machine_spec,
       'training_replica_count':
           training_replica_count,
+      'run_evaluation':
+          run_evaluation,
+      'evaluation_batch_predict_machine_type':
+          evaluation_batch_predict_machine_type,
+      'evaluation_batch_predict_starting_replica_count':
+          evaluation_batch_predict_starting_replica_count,
+      'evaluation_batch_predict_max_replica_count':
+          evaluation_batch_predict_max_replica_count,
+      'evaluation_dataflow_machine_type':
+          evaluation_dataflow_machine_type,
+      'evaluation_dataflow_max_num_workers':
+          evaluation_dataflow_max_num_workers,
+      'evaluation_dataflow_disk_size_gb':
+          evaluation_dataflow_disk_size_gb,
+      'dataflow_service_account':
+          dataflow_service_account,
       'dataflow_subnetwork':
           dataflow_subnetwork,
       'dataflow_use_public_ips':
