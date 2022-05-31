@@ -797,7 +797,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.6"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         },
         "exec-generate-iso8601-underscore-datetime-format": {
