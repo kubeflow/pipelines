@@ -177,7 +177,6 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
     parameters = list(signature.parameters.values())
 
     parsed_docstring = docstring_parser.parse(inspect.getdoc(func))
-    doc_dict = {p.arg_name: p.description for p in parsed_docstring.params}
 
     inputs = {}
     outputs = {}
@@ -231,8 +230,7 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
         ]:
             io_name = _maybe_make_unique(io_name, output_names)
             output_names.add(io_name)
-            output_spec = structures.OutputSpec(
-                type=type_struct, description=doc_dict.get(parameter.name))
+            output_spec = structures.OutputSpec(type=type_struct)
             outputs[io_name] = output_spec
         else:
             io_name = _maybe_make_unique(io_name, input_names)
@@ -240,14 +238,10 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
             if parameter.default is not inspect.Parameter.empty:
                 input_spec = structures.InputSpec(
                     type=type_struct,
-                    description=doc_dict.get(parameter.name),
                     default=parameter.default,
                 )
             else:
-                input_spec = structures.InputSpec(
-                    type=type_struct,
-                    description=doc_dict.get(parameter.name),
-                )
+                input_spec = structures.InputSpec(type=type_struct)
 
             inputs[io_name] = input_spec
 

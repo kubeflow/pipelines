@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`Compare collapses all sections 1`] = `
+exports[`CompareV1 collapses all sections 1`] = `
 <div
   className="page"
 >
@@ -14,7 +14,7 @@ exports[`Compare collapses all sections 1`] = `
         "Tensorboard": true,
       }
     }
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Run overview"
   />
   <Separator
@@ -30,7 +30,7 @@ exports[`Compare collapses all sections 1`] = `
         "Tensorboard": true,
       }
     }
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Parameters"
   />
   <CollapseButton
@@ -43,7 +43,7 @@ exports[`Compare collapses all sections 1`] = `
         "Tensorboard": true,
       }
     }
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Metrics"
   />
   <Separator
@@ -62,7 +62,7 @@ exports[`Compare collapses all sections 1`] = `
           "Tensorboard": true,
         }
       }
-      compareSetState={[Function]}
+      collapseSectionsUpdate={[Function]}
       sectionName="Tensorboard"
     />
     <Separator
@@ -82,7 +82,7 @@ exports[`Compare collapses all sections 1`] = `
           "Tensorboard": true,
         }
       }
-      compareSetState={[Function]}
+      collapseSectionsUpdate={[Function]}
       sectionName="Table"
     />
     <Separator
@@ -92,13 +92,13 @@ exports[`Compare collapses all sections 1`] = `
 </div>
 `;
 
-exports[`Compare creates a map of viewers 1`] = `
+exports[`CompareV1 creates a map of viewers 1`] = `
 <div
   className="page"
 >
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Run overview"
   />
   <div
@@ -174,7 +174,7 @@ exports[`Compare creates a map of viewers 1`] = `
   />
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Parameters"
   />
   <div
@@ -196,7 +196,7 @@ exports[`Compare creates a map of viewers 1`] = `
   </div>
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Metrics"
   />
   <div
@@ -224,7 +224,7 @@ exports[`Compare creates a map of viewers 1`] = `
   >
     <CollapseButton
       collapseSections={Object {}}
-      compareSetState={[Function]}
+      collapseSectionsUpdate={[Function]}
       sectionName="Tensorboard"
     />
     <div
@@ -255,7 +255,7 @@ exports[`Compare creates a map of viewers 1`] = `
   >
     <CollapseButton
       collapseSections={Object {}}
-      compareSetState={[Function]}
+      collapseSectionsUpdate={[Function]}
       sectionName="Table"
     />
     <div
@@ -291,13 +291,13 @@ exports[`Compare creates a map of viewers 1`] = `
 </div>
 `;
 
-exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = `
+exports[`CompareV1 creates an extra aggregation plot for compatible viewers 1`] = `
 <div
   className="page"
 >
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Run overview"
   />
   <div
@@ -375,7 +375,7 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
   />
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Parameters"
   />
   <div
@@ -398,7 +398,7 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
   </div>
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Metrics"
   />
   <div
@@ -427,7 +427,7 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
   >
     <CollapseButton
       collapseSections={Object {}}
-      compareSetState={[Function]}
+      collapseSectionsUpdate={[Function]}
       sectionName="Tensorboard"
     />
     <div
@@ -487,7 +487,7 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
   >
     <CollapseButton
       collapseSections={Object {}}
-      compareSetState={[Function]}
+      collapseSectionsUpdate={[Function]}
       sectionName="ROC Curve"
     />
     <div
@@ -545,13 +545,13 @@ exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = 
 </div>
 `;
 
-exports[`Compare displays a run's metrics if the run has any 1`] = `
+exports[`CompareV1 displays a run's metrics if the run has any 1`] = `
 <div
   className="page"
 >
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Run overview"
   />
   <div
@@ -627,7 +627,7 @@ exports[`Compare displays a run's metrics if the run has any 1`] = `
   />
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Parameters"
   />
   <div
@@ -649,7 +649,7 @@ exports[`Compare displays a run's metrics if the run has any 1`] = `
   </div>
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Metrics"
   />
   <div
@@ -689,13 +689,13 @@ exports[`Compare displays a run's metrics if the run has any 1`] = `
 </div>
 `;
 
-exports[`Compare displays metrics from multiple runs 1`] = `
+exports[`CompareV1 displays metrics from multiple runs 1`] = `
 <div
   className="page"
 >
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Run overview"
   />
   <div
@@ -773,7 +773,7 @@ exports[`Compare displays metrics from multiple runs 1`] = `
   />
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Parameters"
   />
   <div
@@ -796,7 +796,7 @@ exports[`Compare displays metrics from multiple runs 1`] = `
   </div>
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Metrics"
   />
   <div
@@ -839,13 +839,13 @@ exports[`Compare displays metrics from multiple runs 1`] = `
 </div>
 `;
 
-exports[`Compare displays parameters from multiple runs 1`] = `
+exports[`CompareV1 displays parameters from multiple runs 1`] = `
 <div
   className="page"
 >
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Run overview"
   />
   <div
@@ -923,7 +923,7 @@ exports[`Compare displays parameters from multiple runs 1`] = `
   />
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Parameters"
   />
   <div
@@ -967,7 +967,7 @@ exports[`Compare displays parameters from multiple runs 1`] = `
   </div>
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Metrics"
   />
   <div
@@ -994,13 +994,13 @@ exports[`Compare displays parameters from multiple runs 1`] = `
 </div>
 `;
 
-exports[`Compare displays run's parameters if the run has any 1`] = `
+exports[`CompareV1 displays run's parameters if the run has any 1`] = `
 <div
   className="page"
 >
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Run overview"
   />
   <div
@@ -1076,7 +1076,7 @@ exports[`Compare displays run's parameters if the run has any 1`] = `
   />
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Parameters"
   />
   <div
@@ -1112,7 +1112,7 @@ exports[`Compare displays run's parameters if the run has any 1`] = `
   </div>
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Metrics"
   />
   <div
@@ -1138,13 +1138,13 @@ exports[`Compare displays run's parameters if the run has any 1`] = `
 </div>
 `;
 
-exports[`Compare does not show viewers for deselected runs 1`] = `
+exports[`CompareV1 does not show viewers for deselected runs 1`] = `
 <div
   className="page"
 >
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Run overview"
   />
   <div
@@ -1217,7 +1217,7 @@ exports[`Compare does not show viewers for deselected runs 1`] = `
   />
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Parameters"
   />
   <div
@@ -1235,7 +1235,7 @@ exports[`Compare does not show viewers for deselected runs 1`] = `
   </div>
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Metrics"
   />
   <div
@@ -1257,13 +1257,13 @@ exports[`Compare does not show viewers for deselected runs 1`] = `
 </div>
 `;
 
-exports[`Compare expands all sections if they were collapsed 1`] = `
+exports[`CompareV1 expands all sections if they were collapsed 1`] = `
 <div
   className="page"
 >
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Run overview"
   />
   <div
@@ -1341,7 +1341,7 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
   />
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Parameters"
   />
   <div
@@ -1364,7 +1364,7 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
   </div>
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Metrics"
   />
   <div
@@ -1393,7 +1393,7 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
   >
     <CollapseButton
       collapseSections={Object {}}
-      compareSetState={[Function]}
+      collapseSectionsUpdate={[Function]}
       sectionName="Tensorboard"
     />
     <div
@@ -1453,7 +1453,7 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
   >
     <CollapseButton
       collapseSections={Object {}}
-      compareSetState={[Function]}
+      collapseSectionsUpdate={[Function]}
       sectionName="Table"
     />
     <div
@@ -1505,13 +1505,13 @@ exports[`Compare expands all sections if they were collapsed 1`] = `
 </div>
 `;
 
-exports[`Compare renders a page with multiple runs 1`] = `
+exports[`CompareV1 renders a page with multiple runs 1`] = `
 <div
   className="page"
 >
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Run overview"
   />
   <div
@@ -1591,7 +1591,7 @@ exports[`Compare renders a page with multiple runs 1`] = `
   />
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Parameters"
   />
   <div
@@ -1615,7 +1615,7 @@ exports[`Compare renders a page with multiple runs 1`] = `
   </div>
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Metrics"
   />
   <div
@@ -1643,13 +1643,13 @@ exports[`Compare renders a page with multiple runs 1`] = `
 </div>
 `;
 
-exports[`Compare renders a page with no runs 1`] = `
+exports[`CompareV1 renders a page with no runs 1`] = `
 <div
   className="page"
 >
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Run overview"
   />
   <div
@@ -1717,7 +1717,7 @@ exports[`Compare renders a page with no runs 1`] = `
   />
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Parameters"
   />
   <div
@@ -1735,7 +1735,7 @@ exports[`Compare renders a page with no runs 1`] = `
   </div>
   <CollapseButton
     collapseSections={Object {}}
-    compareSetState={[Function]}
+    collapseSectionsUpdate={[Function]}
     sectionName="Metrics"
   />
   <div

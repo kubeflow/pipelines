@@ -18,10 +18,8 @@ import (
 type PipelineSpecRuntimeConfig struct {
 
 	// The runtime parameters of the PipelineSpec. The parameters will be
-	// used to replace the placeholders at runtime.
-	ParameterValues map[string]string `json:"parameter_values,omitempty"`
-
-	// TODO: deprecate this field once verified the new field works.
+	// used to replace the placeholders
+	// at runtime.
 	Parameters map[string]ProtobufValue `json:"parameters,omitempty"`
 
 	// A path in a object store bucket which will be treated as the root
