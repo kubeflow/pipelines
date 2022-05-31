@@ -1,5 +1,11 @@
-# Current Version 1.0.8.dev (Still in Development)
-* Add notes for next release here.
+# Current Version 1.0.8
+* Use batch queries in ARIMA pipeline to avoid quota issues.
+* Removed default location setting from AutoML components and documentation.
+* Update default machine type to c2-standard-16 for built-in algorithms Custom and HyperparameterTuning Jobs.
+* Change json util to not remove empty primitives in a list.
+* Add model eval component to built-in algorithm default pipelines.
+* Update AutoML pipelines to reference next GCPC package release (1.0.8).
+* Quick fix to Batch Prediction component input "bigquery_source_input_uri".
 
 # Current Version 1.0.7
 * Allow metrics and evaluated examples tables to be overwritten.
