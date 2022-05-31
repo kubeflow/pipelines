@@ -13,7 +13,6 @@
 # limitations under the License.
 """Functions for creating PipelineSpec proto objects."""
 
-import collections
 import json
 import re
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
@@ -359,6 +358,8 @@ def build_component_spec_for_task(
                 component_spec.input_definitions.parameters[
                     input_name].default_value.CopyFrom(
                         _to_protobuf_value(input_spec.default))
+                component_spec.input_definitions.parameters[
+                    input_name].is_optional = True
 
         else:
             component_spec.input_definitions.artifacts[
@@ -483,6 +484,8 @@ def _fill_in_component_input_default_value(
         component_spec.input_definitions.parameters[
             input_name].default_value.CopyFrom(
                 _to_protobuf_value(default_value))
+
+    component_spec.input_definitions.parameters[input_name].is_optional = True
 
 
 def build_component_spec_for_group(
