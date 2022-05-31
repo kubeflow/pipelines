@@ -164,6 +164,10 @@ class PipelineSpecBuilderTest(parameterized.TestCase):
             expected,
             component_spec.input_definitions.parameters['input1'].default_value,
         )
+        self.assertEqual(
+            default_value is not None,
+            component_spec.input_definitions.parameters['input1'].is_optional,
+        )
 
 
 class TestValidatePipelineName(parameterized.TestCase):
