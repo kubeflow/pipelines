@@ -20,6 +20,7 @@ import { ApiRunDetail } from 'src/apis/run';
 import { QUERY_PARAMS } from 'src/components/Router';
 import { FeatureKey, isFeatureEnabled } from 'src/features';
 import { Apis } from 'src/lib/Apis';
+import { errorToMessage } from 'src/lib/Utils';
 import { URLParser } from '../lib/URLParser';
 import CompareV1, { CompareState } from './CompareV1';
 import CompareV2 from './CompareV2';
@@ -33,13 +34,24 @@ export default function Compare(props: CompareProps) {
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 
   // Retrieves run details.
-  const { isSuccess, data } = useQuery<ApiRunDetail[], Error>(
+  const { isSuccess, isError, data } = useQuery<ApiRunDetail[], Error>(
     ['run_details', { ids: runIds }],
     () => Promise.all(runIds.map(async id => await Apis.runServiceApi.getRun(id))),
-    { staleTime: Infinity },
+    {
+      staleTime: Infinity,
+      onError: async error => {
+        const errorMessage = await errorToMessage(error);
+        props.updateBanner({
+          additionalInfo: errorMessage ? errorMessage : undefined,
+          message: `Error: failed loading ${runIds.length} runs. Click Details for more information.`,
+          mode: 'error',
+        });
+      },
+      onSuccess: () => props.updateBanner({}),
+    },
   );
 
-  if (data === undefined) {
+  if (isError || data === undefined) {
     return <></>;
   }
 

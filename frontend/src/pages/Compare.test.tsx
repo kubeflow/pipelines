@@ -24,12 +24,14 @@ import { ApiRunDetail } from 'src/apis/run';
 import Compare, { CompareProps } from './Compare';
 import * as features from 'src/features';
 import { testBestPractices } from 'src/TestUtils';
+import TestUtils from 'src/TestUtils';
 
 testBestPractices();
 describe('Switch between v1 and v2 Run Comparison pages', () => {
   const MOCK_RUN_1_ID = 'mock-run-1-id';
   const MOCK_RUN_2_ID = 'mock-run-2-id';
   const MOCK_RUN_3_ID = 'mock-run-3-id';
+  const updateBannerSpy = jest.fn();
 
   function generateProps(): CompareProps {
     const pageProps: PageProps = {
@@ -39,7 +41,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
       } as any,
       match: {} as any,
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
-      updateBanner: () => null,
+      updateBanner: updateBannerSpy,
       updateDialog: () => null,
       updateSnackbar: () => null,
       updateToolbar: () => null,
@@ -221,5 +223,33 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     );
 
     await waitFor(() => screen.getByText('Run overview'));
+  });
+
+  it('Show page error on page when getRun request fails', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [
+      newMockRun(MOCK_RUN_1_ID, true),
+      newMockRun(MOCK_RUN_2_ID, true),
+      newMockRun(MOCK_RUN_3_ID, true),
+    ];
+    getRunSpy.mockImplementation(_ => {
+      throw {
+        text: () => Promise.resolve('test error'),
+      };
+    });
+
+    render(
+      <CommonTestWrapper>
+        <Compare {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await TestUtils.flushPromises();
+
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({
+      additionalInfo: 'test error',
+      message: 'Error: failed loading 3 runs. Click Details for more information.',
+      mode: 'error',
+    });
   });
 });
