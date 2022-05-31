@@ -1908,7 +1908,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.6"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         },
         "exec-automl-tabular-transform": {
@@ -1931,7 +1931,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.6"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         },
         "exec-automl-tabular-wide-and-deep-trainer": {
@@ -1954,7 +1954,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.6"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         },
         "exec-bool-identity": {
@@ -1996,7 +1996,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.6"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         },
         "exec-model-evaluation": {
@@ -2098,7 +2098,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.6"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         },
         "exec-tabular-stats-and-example-gen": {
@@ -2121,7 +2121,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.6"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         }
       }
