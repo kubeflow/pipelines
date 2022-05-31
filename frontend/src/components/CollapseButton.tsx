@@ -15,7 +15,6 @@
  */
 
 import * as React from 'react';
-import { CompareState } from '../pages/Compare';
 import Button from '@material-ui/core/Button';
 import ExpandedIcon from '@material-ui/icons/ArrowDropUp';
 import { stylesheet, classes } from 'typestyle';
@@ -39,20 +38,20 @@ const css = stylesheet({
 
 interface CollapseButtonProps {
   collapseSections: { [key: string]: boolean };
-  compareSetState: (state: Partial<CompareState>) => void;
+  collapseSectionsUpdate: (collapseSections: { [key: string]: boolean }) => void;
   sectionName: string;
 }
 
 class CollapseButton extends React.Component<CollapseButtonProps> {
   public render(): JSX.Element {
-    const { collapseSections, compareSetState } = this.props;
+    const { collapseSections, collapseSectionsUpdate } = this.props;
     const sectionName = this.props.sectionName;
     return (
       <div>
         <Button
           onClick={() => {
             collapseSections[sectionName] = !collapseSections[sectionName];
-            compareSetState({ collapseSections });
+            collapseSectionsUpdate(collapseSections);
           }}
           title='Expand/Collapse this section'
           className={css.collapseBtn}

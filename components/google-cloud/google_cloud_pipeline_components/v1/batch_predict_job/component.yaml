@@ -216,7 +216,7 @@ inputs:
 - {name: unmanaged_container_model, type: google.UnmanagedContainerModel, optional: true}
 - {name: instances_format, type: String, default: "jsonl"}
 - {name: gcs_source_uris, type: JsonArray, optional: true, default: '[]'}
-- {name: bigquery_source_input_uri, type: String, optional: true}
+- {name: bigquery_source_input_uri, type: String, optional: true, default: ''}
 - {name: model_parameters, type: JsonObject, optional: true, default: '{}'}
 - {name: predictions_format, type: String, default: "jsonl"}
 - {name: gcs_destination_output_uri_prefix, type: String, optional: true, default: ''}
