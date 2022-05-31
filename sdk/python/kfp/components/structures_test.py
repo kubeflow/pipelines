@@ -180,6 +180,105 @@ COMPONENT_SPEC_EXECUTOR_INPUT_PLACEHOLDER = structures.ComponentSpec(
             ])),
     inputs={'input': structures.InputSpec(type='String')},
 )
+COMPONENT_YAML_V2 = textwrap.dedent("""\
+components:
+  comp-component-1:
+    executorLabel: exec-component-1
+    inputDefinitions:
+      parameters:
+        input1:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        output1:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-component-1:
+      container:
+        command:
+        - sh
+        - -c
+        - 'set -ex
+
+          echo "$0" > "$1"'
+        - '{{$.inputs.parameters[''input1'']}}'
+        - '{{$.outputs.parameters[''output1''].output_file}}'
+        image: alpine
+pipelineInfo:
+  name: component-1
+root:
+  dag:
+    tasks:
+      component-1:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-component-1
+        inputs:
+          parameters:
+            input1:
+              componentInputParameter: input1
+        taskInfo:
+          name: component-1
+  inputDefinitions:
+    parameters:
+      input1:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.2
+""")
+
+COMPONENT_YAML_V2_WITH_DEFAULTS = textwrap.dedent("""\
+components:
+  comp-component-1:
+    executorLabel: exec-component-1
+    inputDefinitions:
+      parameters:
+        input1:
+          parameterType: STRING
+          defaultValue: my default value
+    outputDefinitions:
+      parameters:
+        output1:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-component-1:
+      container:
+        command:
+        - sh
+        - -c
+        - 'set -ex
+
+          echo "$0" > "$1"'
+        - '{{$.inputs.parameters[''input1'']}}'
+        - '{{$.outputs.parameters[''output1''].output_file}}'
+        image: alpine
+pipelineInfo:
+  name: component-1
+root:
+  dag:
+    tasks:
+      component-1:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-component-1
+        inputs:
+          parameters:
+            input1:
+              componentInputParameter: input1
+        taskInfo:
+          name: component-1
+  inputDefinitions:
+    parameters:
+      input1:
+        parameterType: STRING
+        defaultValue: my default value
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.2
+""")
 
 
 class StructuresTest(parameterized.TestCase):
@@ -267,57 +366,8 @@ class StructuresTest(parameterized.TestCase):
         self.assertEqual(original_component_spec, new_component_spec)
 
     def test_simple_component_spec_load_from_v2_component_yaml(self):
-        component_yaml_v2 = textwrap.dedent("""\
-components:
-  comp-component-1:
-    executorLabel: exec-component-1
-    inputDefinitions:
-      parameters:
-        input1:
-          parameterType: STRING
-    outputDefinitions:
-      parameters:
-        output1:
-          parameterType: STRING
-deploymentSpec:
-  executors:
-    exec-component-1:
-      container:
-        command:
-        - sh
-        - -c
-        - 'set -ex
-
-          echo "$0" > "$1"'
-        - '{{$.inputs.parameters[''input1'']}}'
-        - '{{$.outputs.parameters[''output1''].output_file}}'
-        image: alpine
-pipelineInfo:
-  name: component-1
-root:
-  dag:
-    tasks:
-      component-1:
-        cachingOptions:
-          enableCache: true
-        componentRef:
-          name: comp-component-1
-        inputs:
-          parameters:
-            input1:
-              componentInputParameter: input1
-        taskInfo:
-          name: component-1
-  inputDefinitions:
-    parameters:
-      input1:
-        parameterType: STRING
-schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.2
-        """)
-
         generated_spec = structures.ComponentSpec.load_from_component_yaml(
-            component_yaml_v2)
+            COMPONENT_YAML_V2)
 
         expected_spec = structures.ComponentSpec(
             name='component-1',
@@ -337,6 +387,38 @@ sdkVersion: kfp-2.0.0-alpha.2
             outputs={'output1': structures.OutputSpec(type='String')})
 
         self.assertEqual(generated_spec, expected_spec)
+
+    def test_simple_component_spec_load_from_v2_component_yaml_with_defaults(
+            self):
+        generated_spec = structures.ComponentSpec.load_from_component_yaml(
+            COMPONENT_YAML_V2_WITH_DEFAULTS)
+
+        expected_spec = structures.ComponentSpec(
+            name='component-1',
+            implementation=structures.Implementation(
+                container=structures.ContainerSpec(
+                    image='alpine',
+                    command=[
+                        'sh',
+                        '-c',
+                        'set -ex\necho "$0" > "$1"',
+                        placeholders.InputValuePlaceholder(input_name='input1'),
+                        placeholders.OutputParameterPlaceholder(
+                            output_name='output1'),
+                    ],
+                )),
+            inputs={
+                'input1':
+                    structures.InputSpec(
+                        type='String', default='my default value')
+            },
+            outputs={'output1': structures.OutputSpec(type='String')})
+
+        self.assertEqual(generated_spec, expected_spec)
+        self.assertEqual(generated_spec.inputs['input1'].default,
+                         expected_spec.inputs['input1'].default)
+        self.assertEqual(generated_spec.inputs['input1']._optional,
+                         expected_spec.inputs['input1']._optional)
 
     @parameterized.parameters(
         {
