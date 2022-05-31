@@ -84,6 +84,7 @@ root:
     parameters:
       message:
         defaultValue: Hello World!
+        isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-alpha.5

@@ -99,12 +99,15 @@ root:
     parameters:
       input_location:
         defaultValue: gs://test-bucket/pipeline_root
+        isOptional: true
         parameterType: STRING
       n_epochs:
         defaultValue: 200.0
+        isOptional: true
         parameterType: NUMBER_INTEGER
       optimizer:
         defaultValue: sgd
+        isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-alpha.5

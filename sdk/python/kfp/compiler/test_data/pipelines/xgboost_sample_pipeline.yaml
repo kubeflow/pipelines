@@ -5,15 +5,19 @@ components:
       parameters:
         format:
           defaultValue: csv
+          isOptional: true
           parameterType: STRING
         limit:
           defaultValue: '1000'
+          isOptional: true
           parameterType: NUMBER_INTEGER
         select:
           defaultValue: trip_id,taxi_id,trip_start_timestamp,trip_end_timestamp,trip_seconds,trip_miles,pickup_census_tract,dropoff_census_tract,pickup_community_area,dropoff_community_area,fare,tips,tolls,extras,trip_total,payment_type,company,pickup_centroid_latitude,pickup_centroid_longitude,pickup_centroid_location,dropoff_centroid_latitude,dropoff_centroid_longitude,dropoff_centroid_location
+          isOptional: true
           parameterType: STRING
         where:
           defaultValue: trip_start_timestamp>="1900-01-01" AND trip_start_timestamp<"2100-01-01"
+          isOptional: true
           parameterType: STRING
     outputDefinitions:
       artifacts:
@@ -130,24 +134,31 @@ components:
       parameters:
         booster:
           defaultValue: gbtree
+          isOptional: true
           parameterType: STRING
         label_column:
           defaultValue: '0'
+          isOptional: true
           parameterType: NUMBER_INTEGER
         learning_rate:
           defaultValue: '0.3'
+          isOptional: true
           parameterType: NUMBER_DOUBLE
         max_depth:
           defaultValue: '6'
+          isOptional: true
           parameterType: NUMBER_INTEGER
         min_split_loss:
           defaultValue: '0'
+          isOptional: true
           parameterType: NUMBER_DOUBLE
         num_iterations:
           defaultValue: '10'
+          isOptional: true
           parameterType: NUMBER_INTEGER
         objective:
           defaultValue: reg:squarederror
+          isOptional: true
           parameterType: STRING
     outputDefinitions:
       artifacts:
@@ -170,23 +181,29 @@ components:
       parameters:
         booster:
           defaultValue: gbtree
+          isOptional: true
           parameterType: STRING
         label_column_name:
           parameterType: STRING
         learning_rate:
           defaultValue: '0.3'
+          isOptional: true
           parameterType: NUMBER_DOUBLE
         max_depth:
           defaultValue: '6'
+          isOptional: true
           parameterType: NUMBER_INTEGER
         min_split_loss:
           defaultValue: '0'
+          isOptional: true
           parameterType: NUMBER_DOUBLE
         num_iterations:
           defaultValue: '10'
+          isOptional: true
           parameterType: NUMBER_INTEGER
         objective:
           defaultValue: reg:squarederror
+          isOptional: true
           parameterType: STRING
     outputDefinitions:
       artifacts:

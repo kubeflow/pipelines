@@ -138,9 +138,11 @@ root:
     parameters:
       a:
         defaultValue: 2.0
+        isOptional: true
         parameterType: NUMBER_INTEGER
       b:
         defaultValue: 5.0
+        isOptional: true
         parameterType: NUMBER_INTEGER
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-alpha.5

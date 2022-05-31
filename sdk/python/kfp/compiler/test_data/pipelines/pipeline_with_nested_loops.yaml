@@ -242,6 +242,7 @@ root:
           - q_a: '11'
           - q_a: '22'
           p_b: halo
+        isOptional: true
         parameterType: LIST
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-alpha.5

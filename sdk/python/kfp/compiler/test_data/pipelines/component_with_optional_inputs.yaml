@@ -5,6 +5,7 @@ components:
       parameters:
         input1:
           defaultValue: default value
+          isOptional: true
           parameterType: STRING
         input2:
           parameterType: STRING

@@ -51,6 +51,7 @@ components:
           parameterType: STRING
         num_steps:
           defaultValue: 100.0
+          isOptional: true
           parameterType: NUMBER_INTEGER
     outputDefinitions:
       artifacts:
@@ -228,6 +229,7 @@ root:
         defaultValue:
           A: 1.0
           B: 2.0
+        isOptional: true
         parameterType: STRUCT
       message:
         parameterType: STRING
