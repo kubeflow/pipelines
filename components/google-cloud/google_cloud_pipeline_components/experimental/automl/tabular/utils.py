@@ -318,6 +318,28 @@ def get_default_pipeline_and_parameters(
   return pipeline_definition_path, parameter_values
 
 
+def get_automl_tabular_default_pipeline_with_fte(
+    *args,
+    **kwargs) -> Tuple[str, Dict[str, Any]]:
+  """Get the AutoML Tabular training pipeline with FTE that skips evaluation.
+
+  Args:
+    *args: All arguments in `get_skip_evaluation_pipeline_and_parameters`.
+    **kwargs: All arguments in `get_skip_evaluation_pipeline_and_parameters`.
+
+  Returns:
+    Tuple of pipeline_definiton_path and parameter_values.
+  """
+  _, parameter_values = get_skip_evaluation_pipeline_and_parameters(
+      *args, **kwargs)
+
+  pipeline_definition_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(),
+      'automl_tabular_default_pipeline_with_fte_pipeline.json')
+
+  return pipeline_definition_path, parameter_values
+
+
 def get_feature_selection_skip_evaluation_pipeline_and_parameters(
     project: str,
     location: str,
@@ -1555,5 +1577,3 @@ def get_wide_and_deep_study_spec_parameters_override() -> List[Dict[str, Any]]:
     params = json.loads(param_content)
 
   return params
-
-
