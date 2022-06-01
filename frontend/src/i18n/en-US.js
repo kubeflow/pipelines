@@ -164,6 +164,27 @@ export default {
         failedToParseRequestFilter: "Error: failed to parse request filter: "
     },
     ExperimentDetails: {
-        
+        experimentDescription: "Experiment description",
+        failedToRetrieveRecurringRunsForExperiment: "Error: failed to retrieve recurring runs for experiment:",
+        fetchingRecurringRunsForExperiment: "Error: fetching recurring runs for experiment",
+        errorFailedToRetrieveExperiment: "Error: failed to retrieve experiment",
+        errorLoadingExperiment: "Error loading experiment:",
+    },
+    NewExperiment: {
+        newExperiment: "New experiment",
+        experimentName: "Experiment name",
+        successfullyCreatedNewExperiment: "Successfully created new Experiment:",
+        experimentCreationFailed: "Experiment creation failed",
+        errorCreatingExperiment: "Error creating experiment:",
+        experimentNameIsRequired: "Experiment name is required",
+        description: "Description (optional)",
+        next: "Next",
+        cancel: "Cancel",
+        experimentDetails: "Experiment details",
+        thinkOfAnExperiment: "Think of an Experiment as a space that contains the history of all pipelines and their associated runs"
+    },
+    AllExperimentsAndArchive: {
+        active: "Active",
+        archived: "Archived",
     }
 }

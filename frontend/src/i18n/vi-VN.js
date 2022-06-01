@@ -153,17 +153,38 @@ export default {
         "detailsAllRunsInThisArchivedExperiment": "thông tin chi tiết. Tất cả các runs trong experiment được lưu trữ này sẽ được lưu trữ. Tất cả các công việc trong experiment được lưu trữ này sẽ bị vô hiệu hóa. Sử dụng hành động Khôi phục trên trang chi tiết experiment để khôi phụcexperiment "
     },
     ExperimentList:{
-        failedToRetrieveListOfExperiments: "Lỗi: không thể truy xuất danh sách các experiments.",
-        failedToRetrieveRunStatusesForExperiment: "Lỗi: không thể truy xuất các trạng thái chạy cho experiments:",
-        failedToLoadTheLast5RunsOfThisExperiment: "Không tải được 5 lần runs cuối cùng của experiment này",
-        noExperimentsFound: "Không có experiments nào được tìm thấy. Nhấp vào \"Tạo experiments \" để bắt đầu",
-        filterExperiments: "Lọc experiments",
-        experimentName: "Tên experiment",
+        failedToRetrieveListOfExperiments: "Lỗi: không thể truy xuất danh sách các Experiment.",
+        failedToRetrieveRunStatusesForExperiment: "Lỗi: không thể truy xuất các trạng thái chạy cho Experiments:",
+        failedToLoadTheLast5RunsOfThisExperiment: "Không tải được 5 lần runs cuối cùng của Experiment này",
+        noExperimentsFound: "Không có Experiment nào được tìm thấy. Nhấp vào \"Tạo Experiment \" để bắt đầu",
+        filterExperiments: "Lọc Experiment",
+        experimentName: "Tên Experiment",
         description: "Mô tả",
         last5Runs: "5 runs cuối cùng",
         failedToParseRequestFilter: "Lỗi: không thể phân tích cú pháp bộ lọc yêu cầu: "
     },
     ExperimentDetails: {
-
+        experimentDescription: "Mô tả Experiment",
+        failedToRetrieveRecurringRunsForExperiment: "Lỗi: không thể truy xuất các lần chạy định kỳ cho Experiment:",
+        fetchingRecurringRunsForExperiment: "Lỗi: tìm nạp các lần chạy định kỳ cho Experiment",
+        errorFailedToRetrieveExperiment: "Lỗi: không thể truy xuất Experiment",
+        errorLoadingExperiment: "Lỗi khi tải Experiment",
+    },
+    NewExperiment: {
+        newExperiment: "Experiment mới",
+        experimentName: "Tên Experiment",
+        successfullyCreatedNewExperiment: "Đã tạo thành công Experiment mới:",
+        experimentCreationFailed: "Tạo Experiment không thành công",
+        errorCreatingExperiment: "Lỗi khi tạo Experiment:",
+        experimentNameIsRequired: "Tên Experiment là bắt buộc",
+        description: "Mô tả (tuỳ chọn)",
+        next: "Tiếp theo",
+        cancel: "Huỷ bỏ",
+        experimentDetails: "Chi tiết Experiment",
+        thinkOfAnExperiment: "Hãy coi Experiment như một không gian chứa lịch sử của tất cả các pipeline và các lần chạy liên quan của chúng"
+    },
+    AllExperimentsAndArchive: {
+        active: "Đang hoạt động",
+        archived: "Được lưu trữ",
     }
 }
