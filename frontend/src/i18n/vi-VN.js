@@ -151,5 +151,24 @@ export default {
         "deletionSucceededFor": "Đã xóa thành công cho",
         "failedToDeleteSomePipelinesAndOrSomePipelineVersions": "Không xóa được một số pipeline và / hoặc một số phiên bản pipeline",
         "detailsAllRunsInThisArchivedExperiment": "thông tin chi tiết. Tất cả các runs trong experiment được lưu trữ này sẽ được lưu trữ. Tất cả các công việc trong experiment được lưu trữ này sẽ bị vô hiệu hóa. Sử dụng hành động Khôi phục trên trang chi tiết experiment để khôi phụcexperiment "
+    },
+    RecurringRunList: {
+        "recurringRunName": "Tên Recurring Run",
+        "status": "Trạng thái",
+        "trigger": "Kích hoạt",
+        "experiment": "Kinh nghiệm",
+        "createdAt": "Ngày tạo",
+        "filterRecurringRuns": "Lọc Recurring Runs",
+        "noAvailableRecurringRunsFound": "Không tìm thấy recurring runs",
+        "forThisExperiment": "Cho thử nghiệm này",
+        "forThisNamespace": "Cho không gian tên này",
+        "failedToFetchRecurringRuns": "Lỗi: Không tìm được recurring runs.",
+    },
+    ArtifactList: {
+        "name": "Tên",
+        "type": "Loại",
+        "createdAt": "Ngày tạo",
+        "noArtifactsFound": "Không tìm thấy artifacts.",
+        "filter": "Lọc"
     }
 }
