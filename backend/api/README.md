@@ -10,7 +10,7 @@ Tools needed:
 ## Auto-generation of Go client and swagger definitions
 
 ```bash
-make
+make generate
 ```
 
 Code will be generated in:
