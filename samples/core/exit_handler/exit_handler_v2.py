@@ -13,18 +13,23 @@
 # limitations under the License.
 """Pipeline using ExitHandler."""
 
+import os
 from kfp import dsl
 from kfp import compiler
 from kfp.dsl import component
 
+# In tests, we install a KFP package from the PR under test. Users should not
+# normally need to specify `kfp_package_path` in their component definitions.
+_KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
 
-@component
+
+@component(kfp_package_path=_KFP_PACKAGE_PATH)
 def print_op(message: str):
     """Prints a message."""
     print(message)
 
 
-@component
+@component(kfp_package_path=_KFP_PACKAGE_PATH)
 def fail_op(message: str):
     """Fails."""
     import sys
