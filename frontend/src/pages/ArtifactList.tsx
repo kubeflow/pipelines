@@ -47,6 +47,8 @@ import {
   serviceErrorToString,
 } from '../lib/Utils';
 import { Page } from './Page';
+import i18n from "i18next";
+
 
 interface ArtifactListState {
   artifacts: Artifact[];
@@ -81,13 +83,13 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
         {
           customRenderer: this.nameCustomRenderer,
           flex: 1,
-          label: 'Name',
+          label: i18n.t('ArtifactList.name'),
           sortKey: 'name',
         },
         { label: 'ID', flex: 1, sortKey: 'id' },
-        { label: 'Type', flex: 2, sortKey: 'type' },
+        { label: i18n.t('ArtifactList.type'), flex: 2, sortKey: 'type' },
         { label: 'URI', flex: 2, sortKey: 'uri', customRenderer: this.uriCustomRenderer },
-        { label: 'Created at', flex: 1, sortKey: 'created_at' },
+        { label: i18n.t('ArtifactList.createdAt'), flex: 1, sortKey: 'created_at' },
       ],
       expandedRows: new Map(),
       rows: [],
@@ -113,6 +115,7 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
           ref={this.tableRef}
           columns={columns}
           rows={rows}
+          filterLabel={i18n.t('ArtifactList.filter')}
           disablePaging={true}
           disableSelection={true}
           reload={this.reload}
@@ -120,7 +123,7 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
           initialSortOrder='asc'
           getExpandComponent={this.getExpandedArtifactsRow}
           toggleExpansion={this.toggleRowExpand}
-          emptyMessage='No artifacts found.'
+          emptyMessage={i18n.t('ArtifactList.noArtifactsFound')}
         />
       </div>
     );
