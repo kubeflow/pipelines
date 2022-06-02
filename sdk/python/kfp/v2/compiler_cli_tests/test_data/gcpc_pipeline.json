@@ -1,72 +1,15 @@
 {
   "pipelineSpec": {
     "components": {
-      "comp-automlimagetrainingjob-run": {
-        "executorLabel": "exec-automlimagetrainingjob-run",
-        "inputDefinitions": {
-          "artifacts": {
-            "dataset": {
-              "artifactType": {
-                "schemaTitle": "google.VertexDataset",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          }
-        },
-        "outputDefinitions": {
-          "artifacts": {
-            "model": {
-              "artifactType": {
-                "schemaTitle": "google.VertexModel",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          }
-        }
-      },
       "comp-dummy-op": {
         "executorLabel": "exec-dummy-op",
         "inputDefinitions": {
           "artifacts": {
             "artifact": {
               "artifactType": {
-                "schemaTitle": "google.VertexModel",
+                "schemaTitle": "google.VertexDataset",
                 "schemaVersion": "0.0.1"
               }
-            }
-          }
-        }
-      },
-      "comp-endpoint-create": {
-        "executorLabel": "exec-endpoint-create",
-        "inputDefinitions": {
-          "parameters": {
-            "display_name": {
-              "type": "STRING"
-            },
-            "labels": {
-              "type": "STRING"
-            },
-            "location": {
-              "type": "STRING"
-            },
-            "project": {
-              "type": "STRING"
-            }
-          }
-        },
-        "outputDefinitions": {
-          "artifacts": {
-            "endpoint": {
-              "artifactType": {
-                "schemaTitle": "google.VertexEndpoint",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          },
-          "parameters": {
-            "gcp_resources": {
-              "type": "STRING"
             }
           }
         }
@@ -87,46 +30,6 @@
     },
     "deploymentSpec": {
       "executors": {
-        "exec-automlimagetrainingjob-run": {
-          "container": {
-            "args": [
-              "--init.project",
-              "chesu-dev",
-              "--init.display_name",
-              "automl-image-training",
-              "--init.prediction_type",
-              "classification",
-              "--init.model_type",
-              "CLOUD",
-              "--method.model_display_name",
-              "train-automl-flowers",
-              "--method.training_fraction_split",
-              "0.6",
-              "--method.validation_fraction_split",
-              "0.2",
-              "--method.test_fraction_split",
-              "0.2",
-              "--method.budget_milli_node_hours",
-              "8000",
-              "--executor_input",
-              "{{$}}",
-              "--resource_name_output_artifact_uri",
-              "{{$.outputs.artifacts['model'].uri}}",
-              "--method.dataset",
-              "{{$.inputs.artifacts['dataset'].metadata['resourceName']}}"
-            ],
-            "command": [
-              "python3",
-              "-m",
-              "google_cloud_pipeline_components.container.aiplatform.remote_runner",
-              "--cls_name",
-              "AutoMLImageTrainingJob",
-              "--method_name",
-              "run"
-            ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
-          }
-        },
         "exec-dummy-op": {
           "container": {
             "args": [
@@ -142,43 +45,18 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\nfrom google_cloud_pipeline_components.types.artifact_types import VertexModel\n\ndef dummy_op(artifact: Input[VertexModel]):\n    print('artifact.type: ', type(artifact))\n    print('artifact.name: ', artifact.name)\n    print('artifact.uri: ', artifact.uri)\n    print('artifact.metadata: ', artifact.metadata)\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef dummy_op(artifact: Input[VertexDataset]):\n    print('artifact.type: ', type(artifact))\n    print('artifact.name: ', artifact.name)\n    print('artifact.uri: ', artifact.uri)\n    print('artifact.metadata: ', artifact.metadata)\n\n"
             ],
             "image": "python:3.7"
-          }
-        },
-        "exec-endpoint-create": {
-          "container": {
-            "args": [
-              "--type",
-              "CreateEndpoint",
-              "--payload",
-              "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"description\": \"\", \"labels\": {{$.inputs.parameters['labels']}}, \"encryption_spec\": {\"kms_key_name\":\"\"}, \"network\": \"\"}",
-              "--project",
-              "{{$.inputs.parameters['project']}}",
-              "--location",
-              "{{$.inputs.parameters['location']}}",
-              "--gcp_resources",
-              "{{$.outputs.parameters['gcp_resources'].output_file}}",
-              "--executor_input",
-              "{{$}}"
-            ],
-            "command": [
-              "python3",
-              "-u",
-              "-m",
-              "google_cloud_pipeline_components.container.experimental.gcp_launcher.launcher"
-            ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
           }
         },
         "exec-imagedataset-create": {
           "container": {
             "args": [
               "--method.project",
-              "chesu-dev",
+              "cjmccarthy-kfp",
               "--method.display_name",
-              "automl-image-training",
+              "test-vertex-dataset",
               "--method.gcs_source",
               "gs://cloud-samples-data/vision/automl_classification/flowers/all_data_v2.csv",
               "--method.import_schema_uri",
@@ -197,41 +75,17 @@
               "--method_name",
               "create"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:0.2.0"
           }
         }
       }
     },
     "pipelineInfo": {
-      "name": "automl-tabular-beans-training-v2"
+      "name": "test-vertex-dataset"
     },
     "root": {
       "dag": {
         "tasks": {
-          "automlimagetrainingjob-run": {
-            "cachingOptions": {
-              "enableCache": true
-            },
-            "componentRef": {
-              "name": "comp-automlimagetrainingjob-run"
-            },
-            "dependentTasks": [
-              "imagedataset-create"
-            ],
-            "inputs": {
-              "artifacts": {
-                "dataset": {
-                  "taskOutputArtifact": {
-                    "outputArtifactKey": "dataset",
-                    "producerTask": "imagedataset-create"
-                  }
-                }
-              }
-            },
-            "taskInfo": {
-              "name": "automlimagetrainingjob-run"
-            }
-          },
           "dummy-op": {
             "cachingOptions": {
               "enableCache": true
@@ -240,63 +94,20 @@
               "name": "comp-dummy-op"
             },
             "dependentTasks": [
-              "automlimagetrainingjob-run"
+              "imagedataset-create"
             ],
             "inputs": {
               "artifacts": {
                 "artifact": {
                   "taskOutputArtifact": {
-                    "outputArtifactKey": "model",
-                    "producerTask": "automlimagetrainingjob-run"
+                    "outputArtifactKey": "dataset",
+                    "producerTask": "imagedataset-create"
                   }
                 }
               }
             },
             "taskInfo": {
               "name": "dummy-op"
-            }
-          },
-          "endpoint-create": {
-            "cachingOptions": {
-              "enableCache": true
-            },
-            "componentRef": {
-              "name": "comp-endpoint-create"
-            },
-            "inputs": {
-              "parameters": {
-                "display_name": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "automl-image-training"
-                    }
-                  }
-                },
-                "labels": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "{}"
-                    }
-                  }
-                },
-                "location": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "us-central1"
-                    }
-                  }
-                },
-                "project": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "chesu-dev"
-                    }
-                  }
-                }
-              }
-            },
-            "taskInfo": {
-              "name": "endpoint-create"
             }
           },
           "imagedataset-create": {
@@ -314,7 +125,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.8.8"
+    "sdkVersion": "kfp-1.8.12"
   },
   "runtimeConfig": {}
 }
