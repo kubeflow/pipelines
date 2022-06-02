@@ -17,14 +17,19 @@ import itertools
 import pathlib
 import re
 import textwrap
-from typing import Callable, List, Optional, Tuple
+from types import ModuleType
+from typing import (Any, Callable, Dict, get_type_hints, List, Optional, Tuple,
+                    Union)
 import warnings
 
 import docstring_parser
-
 from kfp import components as v1_components
-from kfp.components import _components, _data_passing, structures, type_annotation_utils
-from kfp.v2.components.types import artifact_types, type_annotations
+from kfp.components import _components
+from kfp.components import _data_passing
+from kfp.components import structures
+from kfp.components import type_annotation_utils
+from kfp.v2.components.types import artifact_types
+from kfp.v2.components.types import type_annotations
 
 _DEFAULT_BASE_IMAGE = 'python:3.7'
 
@@ -318,18 +323,69 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
     return component_spec
 
 
+def get_obj_name_for_qualname(qualname: str,
+                              vardict: Dict[str, Any]) -> Dict[str, str]:
+    path_parts = qualname.split('.')
+    for i, mpc in enumerate(path_parts[::-1]):
+        if mpc in vardict:
+            name = '.'.join(path_parts[:len(path_parts) - i - 1])
+            return {name: mpc}
+
+    return {}
+
+
+def get_full_qualname(cls: type) -> str:
+    module = cls.__module__
+    name = cls.__qualname__
+    if module is not None and module != "__builtin__":
+        name = module + "." + name
+    return name
+
+
+def get_import_module_to_obj_names(func: Callable) -> Dict[str, str]:
+    type_hint_dict = get_type_hints(func)
+    artifact_anns = {
+        ann.__args__[0]
+        for ann in list(type_hint_dict.values())
+        if type_annotations.is_artifact_annotation(ann)
+    }
+
+    imports = {}
+    for ann in artifact_anns:
+        qualname = get_full_qualname(ann)
+        name_obj = get_obj_name_for_qualname(
+            qualname, globals()) or get_obj_name_for_qualname(
+                qualname, locals())
+
+        if not name_obj:
+            raise ImportError(
+                f'Could not find object for {qualname} in current runtime variables.'
+            )
+
+        imports.update(name_obj)
+    return imports
+
+
+def import_artifact_annotations(module_to_obj: Dict[str, str]) -> None:
+    imports = {
+        obj_name:
+        getattr(__import__(name=module, fromlist=[obj_name]), obj_name)
+        for module, obj_name in module_to_obj.items()
+    }
+    globals().update(imports)
+
+
 def _get_command_and_args_for_lightweight_component(
-    func: Callable,
-    imports: Optional[List[str]] = None,
-) -> Tuple[List[str], List[str]]:
+    func: Callable,) -> Tuple[List[str], List[str]]:
+    module_to_obj_names = get_import_module_to_obj_names(func)
     imports_source = [
         "import kfp",
         "from kfp.v2 import dsl",
         "from kfp.v2.dsl import *",
         "from typing import *",
+        "from kfp.v2.components import component_factory",
+        f"component_factory.import_artifact_annotations({module_to_obj_names})",
     ]
-    if imports:
-        imports_source.extend(imports)
 
     func_source = _get_function_source_definition(func)
     source = textwrap.dedent("""
@@ -386,7 +442,6 @@ def create_component_from_func(
     output_component_file: Optional[str] = None,
     install_kfp_package: bool = True,
     kfp_package_path: Optional[str] = None,
-    imports: Optional[List[str]] = None,
 ):
     """Implementation for the @component decorator.
 
@@ -416,7 +471,7 @@ def create_component_from_func(
             function_name=func.__name__)
     else:
         command, args = _get_command_and_args_for_lightweight_component(
-            func=func, imports=imports)
+            func=func)
 
     component_spec = extract_component_interface(func)
     component_spec.implementation = structures.ContainerImplementation(

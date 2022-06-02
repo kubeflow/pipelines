@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import functools
-from typing import Callable, Optional, List
+from typing import Callable, List, Optional
 
 from kfp.v2.components import component_factory
 
@@ -27,7 +27,6 @@ def component(
     output_component_file: Optional[str] = None,
     install_kfp_package: bool = True,
     kfp_package_path: Optional[str] = None,
-    imports: Optional[List[str]] = None,
 ):
     """Decorator for Python-function based components in KFP v2.
 
@@ -95,6 +94,7 @@ def component(
     Returns:
         A component task factory that can be used in pipeline definitions.
     """
+
     if func is None:
         return functools.partial(
             component,
@@ -104,7 +104,6 @@ def component(
             output_component_file=output_component_file,
             install_kfp_package=install_kfp_package,
             kfp_package_path=kfp_package_path,
-            imports=imports,
         )
 
     return component_factory.create_component_from_func(
@@ -115,5 +114,4 @@ def component(
         output_component_file=output_component_file,
         install_kfp_package=install_kfp_package,
         kfp_package_path=kfp_package_path,
-        imports=imports,
     )

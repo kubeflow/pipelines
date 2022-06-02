@@ -1,0 +1,112 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: test-vertex-dataset-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.8, pipelines.kubeflow.org/pipeline_compilation_time: '2022-06-02T17:00:11.214137',
+    pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "gs://cjmccarthy-kfp-default-bucket",
+      "name": "pipeline-root"}], "name": "test-vertex-dataset"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.8}
+spec:
+  entrypoint: test-vertex-dataset
+  templates:
+  - name: dummy-op
+    container:
+      args: [--executor_input, '{{$}}', --function_to_execute, dummy_op]
+      command:
+      - sh
+      - -c
+      - |2
+
+        if ! [ -x "$(command -v pip)" ]; then
+            python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip
+        fi
+
+        PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'google_cloud_pipeline_components' 'git+https://github.com/connor-mccarthy/pipelines@connor-custom-type#egg=kfp&subdirectory=sdk/python' && "$0" "$@"
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp -d)
+        printf "%s" "$0" > "$program_path/ephemeral_component.py"
+        python3 -m kfp.v2.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+      - |2+
+
+        import kfp
+        from kfp.v2 import dsl
+        from kfp.v2.dsl import *
+        from typing import *
+        from kfp.v2.components import component_factory
+        component_factory.import_artifact_annotations({'google_cloud_pipeline_components.types': 'artifact_types'})
+
+        def dummy_op(artifact: Input[VertexDataset]):
+            print('artifact.type: ', type(artifact))
+            print('artifact.name: ', artifact.name)
+            print('artifact.uri: ', artifact.uri)
+            print('artifact.metadata: ', artifact.metadata)
+
+      image: python:3.7
+    inputs:
+      artifacts:
+      - {name: imagedataset-create-dataset, path: /tmp/inputs/artifact/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.8
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--executor_input", {"executorInput": null}, "--function_to_execute",
+          "dummy_op"], "command": ["sh", "-c", "\nif ! [ -x \"$(command -v pip)\"
+          ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get
+          install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip
+          install --quiet     --no-warn-script-location ''google_cloud_pipeline_components''
+          ''git+https://github.com/connor-mccarthy/pipelines@connor-custom-type#egg=kfp&subdirectory=sdk/python''
+          && \"$0\" \"$@\"\n", "sh", "-ec", "program_path=$(mktemp -d)\nprintf \"%s\"
+          \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+          "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing
+          import *\nfrom kfp.v2.components import component_factory\ncomponent_factory.import_artifact_annotations({''google_cloud_pipeline_components.types'':
+          ''artifact_types''})\n\ndef dummy_op(artifact: Input[VertexDataset]):\n    print(''artifact.type:
+          '', type(artifact))\n    print(''artifact.name: '', artifact.name)\n    print(''artifact.uri:
+          '', artifact.uri)\n    print(''artifact.metadata: '', artifact.metadata)\n\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "artifact", "type": "google.VertexDataset"}],
+          "name": "Dummy op"}', pipelines.kubeflow.org/component_ref: '{}'}
+  - name: imagedataset-create
+    container:
+      args: [--method.project, cjmccarthy-kfp, --method.display_name, test-vertex-dataset,
+        --method.gcs_source, 'gs://cloud-samples-data/vision/automl_classification/flowers/all_data_v2.csv',
+        --method.import_schema_uri, 'gs://google-cloud-aiplatform/schema/dataset/ioformat/image_classification_single_label_io_format_1.0.0.yaml',
+        --executor_input, '{{$}}', --resource_name_output_artifact_uri, '{{$.outputs.artifacts[''dataset''].uri}}']
+      command: [python3, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner,
+        --cls_name, ImageDataset, --method_name, create]
+      image: gcr.io/ml-pipeline/google-cloud-pipeline-components:0.2.0
+    outputs:
+      artifacts:
+      - {name: imagedataset-create-dataset, path: /tmp/outputs/dataset/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.8
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--method.project", "cjmccarthy-kfp", "--method.display_name",
+          "test-vertex-dataset", "--method.gcs_source", "gs://cloud-samples-data/vision/automl_classification/flowers/all_data_v2.csv",
+          "--method.import_schema_uri", "gs://google-cloud-aiplatform/schema/dataset/ioformat/image_classification_single_label_io_format_1.0.0.yaml",
+          "--executor_input", "{{$}}", "--resource_name_output_artifact_uri", {"outputUri":
+          "dataset"}], "command": ["python3", "-m", "google_cloud_pipeline_components.container.aiplatform.remote_runner",
+          "--cls_name", "ImageDataset", "--method_name", "create"], "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:0.2.0"}},
+          "inputs": [], "name": "ImageDataset-create", "outputs": [{"name": "dataset",
+          "type": "google.VertexDataset"}]}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "68b1b1ade4d66fa1de9125641acb8dd0d3c2461ab2045896152aae9e7c7a4057", "url":
+          "/var/folders/s4/q287k45x17x_j2mlv1lc_43r00xv1g/T/tmpdf6c_0fi"}'}
+  - name: test-vertex-dataset
+    dag:
+      tasks:
+      - name: dummy-op
+        template: dummy-op
+        dependencies: [imagedataset-create]
+        arguments:
+          artifacts:
+          - {name: imagedataset-create-dataset, from: '{{tasks.imagedataset-create.outputs.artifacts.imagedataset-create-dataset}}'}
+      - {name: imagedataset-create, template: imagedataset-create}
+  arguments:
+    parameters:
+    - {name: pipeline-root, value: 'gs://cjmccarthy-kfp-default-bucket'}
+  serviceAccountName: pipeline-runner

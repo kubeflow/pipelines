@@ -3,19 +3,19 @@ from tabnanny import verbose
 import google.cloud.aiplatform as aip
 from google_cloud_pipeline_components import aiplatform as gcc_aip
 import kfp
-from kfp.v2.dsl import component
+from kfp.v2 import dsl
 from kfp.v2.dsl import Input
 
-DISPLAY_NAME = "test-vertex-dataset"
-PIPELINE_NAME = "test-vertex-dataset"
+DISPLAY_NAME = 'test-vertex-dataset'
+PIPELINE_NAME = 'test-vertex-dataset'
 PROJECT_ID = 'cjmccarthy-kfp'
 
 from google_cloud_pipeline_components.types.artifact_types import VertexDataset
 from kfp.v2.dsl import Input
 
 
-@component(
-    kfp_package_path='git+https://github.com/chensun/pipelines@custom-type#egg=kfp&subdirectory=sdk/python',
+@dsl.component(
+    kfp_package_path='git+https://github.com/connor-mccarthy/pipelines@connor-custom-type#egg=kfp&subdirectory=sdk/python',
     packages_to_install=['google_cloud_pipeline_components'],
 )
 def dummy_op(artifact: Input[VertexDataset]):
@@ -25,7 +25,8 @@ def dummy_op(artifact: Input[VertexDataset]):
     print('artifact.metadata: ', artifact.metadata)
 
 
-@kfp.dsl.pipeline(name=PIPELINE_NAME)
+@dsl.pipeline(
+    name=PIPELINE_NAME, pipeline_root='gs://cjmccarthy-kfp-default-bucket')
 def pipeline():
     ds_op = gcc_aip.ImageDatasetCreateOp(
         project=PROJECT_ID,
@@ -39,6 +40,9 @@ def pipeline():
 
 
 if __name__ == '__main__':
+    import json
+
     from kfp.v2 import compiler
-    compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__.replace('.py', '.json'))
+    import yaml
+    ir_file = __file__.replace('.py', '.json')
+    compiler.Compiler().compile(pipeline_func=pipeline, package_path=ir_file)
