@@ -168,7 +168,7 @@ export default {
         "name": "Tên",
         "type": "Loại",
         "createdAt": "Ngày tạo",
-        "noArtifactsFound": "Không tìm thấy artifacts.",
+        "noArtifactsFound": "Không tìm thấy artifacts",
         "filter": "Lọc"
     }
 }
