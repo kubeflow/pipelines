@@ -841,18 +841,20 @@ class ComponentSpec(base_model.BaseModel):
                         input_name=utils.sanitize_input_name(
                             if_placeholder_values['cond']['isPresent']),
                         then=[
-                            convert_str_or_dict_to_placeholder(val)
+                            convert_str_or_dict_to_placeholder(
+                                convert_v1_if_present_placholder_to_v2(val))
                             for val in if_placeholder_values_then
                         ],
                         otherwise=[
-                            convert_str_or_dict_to_placeholder(val)
+                            convert_str_or_dict_to_placeholder(
+                                convert_v1_if_present_placholder_to_v2(val))
                             for val in if_placeholder_values_else
                         ]))
 
             elif 'concat' in arg:
-
                 return ConcatPlaceholder(items=[
-                    convert_str_or_dict_to_placeholder(val)
+                    convert_str_or_dict_to_placeholder(
+                        convert_v1_if_present_placholder_to_v2(val))
                     for val in arg['concat']
                 ])
             elif isinstance(arg, (ValidCommandArgTypes, dict)):
