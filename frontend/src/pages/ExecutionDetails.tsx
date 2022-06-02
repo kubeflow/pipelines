@@ -170,13 +170,13 @@ export class ExecutionDetailsContent extends Component<
         });
       })
       .catch(err => {
-        this.props.onError(i18n.t('ExecutionDetailsContent.failedToFetchArtifactTypes'), err, i18n.t('ExecutionDetailsContent.warning'), this.refresh);
+        this.props.onError(i18n.t('ExecutionDetailsContent.failedToFetchArtifactTypes'), err, 'warning', this.refresh);
       });
 
     const numberId = this.props.id;
     if (isNaN(numberId) || numberId < 0) {
       const error = new Error(`${i18n.t('ExecutionDetailsContent.invalidExecutionId')}: ${this.props.id}`);
-      this.props.onError(error.message, error, i18n.t('ExecutionDetailsContent.error'), this.refresh);
+      this.props.onError(error.message, error, 'error', this.refresh);
       return;
     }
 
@@ -195,7 +195,7 @@ export class ExecutionDetailsContent extends Component<
         this.props.onError(
           `${i18n.t('ExecutionDetailsContent.noExecutionIdentifiedById')}: ${this.props.id}`,
           undefined,
-          i18n.t('ExecutionDetailsContent.error'),
+          'error',
           this.refresh,
         );
         return;
@@ -205,7 +205,7 @@ export class ExecutionDetailsContent extends Component<
         this.props.onError(
           `${i18n.t('ExecutionDetailsContent.foundMultipleExecutionsWithId')}: ${this.props.id}`,
           undefined,
-          i18n.t('ExecutionDetailsContent.error'),
+          'error',
           this.refresh,
         );
         return;
@@ -223,7 +223,7 @@ export class ExecutionDetailsContent extends Component<
         this.props.onError(
           `${i18n.t('ExecutionDetailsContent.cannotFindExecutionTypeWithId')}: ${execution.getTypeId()}`,
           undefined,
-          i18n.t('ExecutionDetailsContent.error'),
+          'error',
           this.refresh,
         );
         return;
@@ -231,7 +231,7 @@ export class ExecutionDetailsContent extends Component<
         this.props.onError(
           `${i18n.t('ExecutionDetailsContent.moreThanOneExecutionTypeFoundWithId')}: ${execution.getTypeId()}`,
           undefined,
-          i18n.t('ExecutionDetailsContent.error'),
+          'error',
           this.refresh,
         );
         return;
@@ -247,7 +247,7 @@ export class ExecutionDetailsContent extends Component<
         executionType,
       });
     } catch (err) {
-      this.props.onError(serviceErrorToString(err), err, i18n.t('ExecutionDetailsContent.error'), this.refresh);
+      this.props.onError(serviceErrorToString(err), err, 'error', this.refresh);
     }
   };
 }
