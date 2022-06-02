@@ -152,6 +152,23 @@ export default {
         "failedToDeleteSomePipelinesAndOrSomePipelineVersions": "Failed to delete some pipelines and/or some pipeline versions",
         "detailsAllRunsInThisArchivedExperiment": "details. All runs in this archived experiment will be archived. All jobs in this archived experiment will be disabled. Use the Restore action on the experiment details page to restore the experiment"
     },
+    ExecutionDetailsContent: {
+        declaredInputs : "Declared Inputs",
+        input: "Input",
+        declaredOutputs: "Declared Outputs",
+        outputs: "Outputs",
+        failedToFetchArtifactTypes: "Failed to fetch artifact types",
+        invalidExecutionId: "Invalid execution id",
+        noExecutionIdentifiedById: "No execution identified by id",
+        foundMultipleExecutionsWithId: "Found multiple executions with ID",
+        cannotFindExecutionTypeWithId: "Cannot find execution type with id",
+        moreThanOneExecutionTypeFoundWithId: "More than one execution type found with id",
+    },
+    ExecutionList: {
+        name: "Name",
+        state: "State",
+        type: "Type",
+        failedGettingExecutions: "Failed getting executions: ",
     RecurringRunList: {
         "recurringRunName": "Recurring Run Name",
         "status": "Status",
@@ -171,4 +188,5 @@ export default {
         "noArtifactsFound":"No artifacts found.",
         "filter": "Filter",
     }
+
 }
