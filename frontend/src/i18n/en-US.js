@@ -169,6 +169,8 @@ export default {
         state: "State",
         type: "Type",
         failedGettingExecutions: "Failed getting executions: ",
+        noExecutionsFound: "No executions found."
+    },
     RecurringRunList: {
         "recurringRunName": "Recurring Run Name",
         "status": "Status",
@@ -187,6 +189,12 @@ export default {
         "createdAt": "Created at",
         "noArtifactsFound":"No artifacts found.",
         "filter": "Filter",
+    },
+    PipelineVersionList: {
+        versionName: 'Version name',
+        description: 'Description',
+        uploadedOn: 'Uploaded on',
+        noPipelineVersionsFound: 'No pipeline versions found',
+        errorFailedToFetchRuns: 'Error: failed to fetch runs.'
     }
-
 }

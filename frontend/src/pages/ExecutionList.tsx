@@ -71,12 +71,12 @@ class ExecutionList extends Page<{}, ExecutionListState> {
         {
           customRenderer: this.nameCustomRenderer,
           flex: 1,
-          label: i18n.t("ExcutionList.name"),
+          label: i18n.t('ExecutionList.name'),
           sortKey: 'name',
         },
-        { label: i18n.t("ExcutionList.state"), flex: 1, sortKey: 'state' },
+        { label: i18n.t('ExecutionList.state'), flex: 1, sortKey: 'state' },
         { label: 'ID', flex: 1, sortKey: 'id' },
-        { label: i18n.t("ExcutionList.type"), flex: 2, sortKey: 'type' },
+        { label: i18n.t('ExecutionList.type'), flex: 2, sortKey: 'type' },
       ],
       executions: [],
       expandedRows: new Map(),
@@ -110,7 +110,7 @@ class ExecutionList extends Page<{}, ExecutionListState> {
           initialSortOrder='asc'
           getExpandComponent={this.getExpandedExecutionsRow}
           toggleExpansion={this.toggleRowExpand}
-          emptyMessage='No executions found.'
+          emptyMessage={i18n.t('ExecutionList.noExecutionsFound')}
         />
       </div>
     );
@@ -154,7 +154,7 @@ class ExecutionList extends Page<{}, ExecutionListState> {
       // Code === 5 means no record found in backend. This is a temporary workaround.
       // TODO: remove err.code !== 5 check when backend is fixed.
       if (err.code !== 5) {
-        err.message = i18n.t("ExcutionList.failedGettingExecutions") + err.message;
+        err.message = i18n.t('ExecutionList.failedGettingExecutions') + err.message;
         throw err;
       }
     }

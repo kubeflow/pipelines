@@ -169,6 +169,8 @@ export default {
         state: "Trạng Thái",
         type: "Kiểu",
         failedGettingExecutions: "Không thực hiện được: ",
+        noExecutionsFound: "Không tìm thấy executions."
+    },
     RecurringRunList: {
         "recurringRunName": "Tên Recurring Run",
         "status": "Trạng thái",
@@ -187,5 +189,12 @@ export default {
         "createdAt": "Ngày tạo",
         "noArtifactsFound": "Không tìm thấy artifacts",
         "filter": "Lọc"
+    },
+    PipelineVersionList: {
+        versionName: 'Tên phiên bản',
+        description: 'Mô tả',
+        uploadedOn: 'Đã tải lên',
+        noPipelineVersionsFound: 'Không tìm thấy phiên bản pipeline.',
+        errorFailedToFetchRuns: 'Lỗi: không tìm được các lần chạy.'
     }
 }

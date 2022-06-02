@@ -24,6 +24,7 @@ import { Apis, ListRequest, PipelineVersionSortKeys } from '../lib/Apis';
 import { errorToMessage, formatDateString } from '../lib/Utils';
 import { RoutePage, RouteParams } from '../components/Router';
 import { commonCss } from '../Css';
+import i18n from "i18next";
 
 export interface PipelineVersionListProps extends RouteComponentProps {
   pipelineId?: string;
@@ -99,11 +100,11 @@ class PipelineVersionList extends React.PureComponent<
       {
         customRenderer: this._nameCustomRenderer,
         flex: 1,
-        label: 'Version name',
+        label: i18n.t('PipelineVersionList.versionName'),
         sortKey: PipelineVersionSortKeys.NAME,
       },
-      { label: 'Description', flex: 3, customRenderer: descriptionCustomRenderer },
-      { label: 'Uploaded on', flex: 1, sortKey: PipelineVersionSortKeys.CREATED_AT },
+      { label: i18n.t('PipelineVersionList.description'), flex: 3, customRenderer: descriptionCustomRenderer },
+      { label: i18n.t('PipelineVersionList.uploadedOn'), flex: 1, sortKey: PipelineVersionSortKeys.CREATED_AT },
     ];
 
     const rows: Row[] = this.state.pipelineVersions.map(r => {
@@ -128,7 +129,7 @@ class PipelineVersionList extends React.PureComponent<
           disableSorting={this.props.disableSorting}
           disableSelection={this.props.disableSelection}
           noFilterBox={this.props.noFilterBox}
-          emptyMessage='No pipeline versions found.'
+          emptyMessage={i18n.t('PipelineVersionList.noPipelineVersionsFound')}
         />
       </div>
     );
@@ -148,7 +149,7 @@ class PipelineVersionList extends React.PureComponent<
         );
       } catch (err) {
         const error = new Error(await errorToMessage(err));
-        this.props.onError('Error: failed to fetch runs.', error);
+        this.props.onError(i18n.t('PipelineVersionList.errorFailedToFetchRuns'), error);
         // No point in continuing if we couldn't retrieve any runs.
         return '';
       }
