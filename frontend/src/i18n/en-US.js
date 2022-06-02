@@ -152,7 +152,6 @@ export default {
         "failedToDeleteSomePipelinesAndOrSomePipelineVersions": "Failed to delete some pipelines and/or some pipeline versions",
         "detailsAllRunsInThisArchivedExperiment": "details. All runs in this archived experiment will be archived. All jobs in this archived experiment will be disabled. Use the Restore action on the experiment details page to restore the experiment"
     },
-<<<<<<< HEAD
     ExecutionDetailsContent: {
         declaredInputs : "Declared Inputs",
         input: "Input",
@@ -170,7 +169,6 @@ export default {
         state: "State",
         type: "Type",
         failedGettingExecutions: "Failed getting executions: ",
-=======
     RecurringRunList: {
         "recurringRunName": "Recurring Run Name",
         "status": "Status",
@@ -189,7 +187,6 @@ export default {
         "createdAt": "Created at",
         "noArtifactsFound":"No artifacts found.",
         "filter": "Filter",
->>>>>>> 2987d87ce00c2291b29f3492351cf7200c72c704
     }
 
 }

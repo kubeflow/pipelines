@@ -152,7 +152,6 @@ export default {
         "failedToDeleteSomePipelinesAndOrSomePipelineVersions": "Không xóa được một số pipeline và / hoặc một số phiên bản pipeline",
         "detailsAllRunsInThisArchivedExperiment": "thông tin chi tiết. Tất cả các runs trong experiment được lưu trữ này sẽ được lưu trữ. Tất cả các công việc trong experiment được lưu trữ này sẽ bị vô hiệu hóa. Sử dụng hành động Khôi phục trên trang chi tiết experiment để khôi phụcexperiment "
     },
-<<<<<<< HEAD
     ExecutionDetailsContent: {
         declaredInputs : "Đầu vào đã khai báo",
         input: "Đầu vào",
@@ -170,7 +169,6 @@ export default {
         state: "Trạng Thái",
         type: "Kiểu",
         failedGettingExecutions: "Không thực hiện được: ",
-=======
     RecurringRunList: {
         "recurringRunName": "Tên Recurring Run",
         "status": "Trạng thái",
@@ -189,6 +187,5 @@ export default {
         "createdAt": "Ngày tạo",
         "noArtifactsFound": "Không tìm thấy artifacts",
         "filter": "Lọc"
->>>>>>> 2987d87ce00c2291b29f3492351cf7200c72c704
     }
 }
