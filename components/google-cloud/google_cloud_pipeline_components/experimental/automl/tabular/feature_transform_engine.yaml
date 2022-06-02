@@ -89,7 +89,7 @@ implementation:
         {inputValue: root_dir},
         '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized_data","--materialized_data_artifact_path=',
         {outputUri: materialized_data},
-        '", "--transform_config=',
+        '", "--transform_config_path=',
         {inputValue: transform_config},
         '", "--analyze_data_path=',
         {inputUri: analyze_data},
