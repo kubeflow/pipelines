@@ -151,5 +151,27 @@ export default {
         "deletionSucceededFor": "Deletion succeeded for",
         "failedToDeleteSomePipelinesAndOrSomePipelineVersions": "Failed to delete some pipelines and/or some pipeline versions",
         "detailsAllRunsInThisArchivedExperiment": "details. All runs in this archived experiment will be archived. All jobs in this archived experiment will be disabled. Use the Restore action on the experiment details page to restore the experiment"
+    },
+    ExecutionDetailsContent: {
+        declaredInputs : "Declared Inputs",
+        input: "Input",
+        declaredOutputs: "Declared Outputs",
+        outputs: "Outputs",
+        failedToFetchArtifactTypes: "Failed to fetch artifact types",
+        warning: "warning",
+        invalidExecutionId: "Invalid execution id: ${this.props.id}",
+        error: "error",
+        noExecutionIdentifiedById: "No execution identified by id: ${this.props.id}",
+        foundMultipleExecutionsWithId: "Found multiple executions with ID: ${this.props.id}",
+        cannotFindExecutionTypeWithId: "Cannot find execution type with id: ${execution.getTypeId()}",
+        moreThanOneExecutionTypeFoundWithId: "More than one execution type found with id: ${execution.getTypeId()}",
+        artifactHasEmptyId: "Artifact has empty id",
+    },
+    ExecutionList: {
+        name: "Name",
+        state: "State",
+        type: "Type",
+        failedGettingExecutions: "Failed getting executions: ",
     }
+
 }

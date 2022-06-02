@@ -45,6 +45,7 @@ import { ToolbarProps } from '../components/Toolbar';
 import { color, commonCss, padding } from '../Css';
 import { logger, serviceErrorToString } from '../lib/Utils';
 import { Page, PageErrorHandler } from './Page';
+import i18n from "i18next";
 
 interface ExecutionDetailsState {
   execution?: Execution;
@@ -123,22 +124,22 @@ export class ExecutionDetailsContent extends Component<
           resource={this.state.execution}
         />
         <SectionIO
-          title={'Declared Inputs'}
+          title={i18n.t('ExecutionDetailsContent.declaredInputs')}
           events={this.state.events[Event.Type.DECLARED_INPUT]}
           artifactTypeMap={this.state.artifactTypeMap}
         />
         <SectionIO
-          title={'Inputs'}
+          title={i18n.t('ExecutionDetailsContent.inputs')}
           events={this.state.events[Event.Type.INPUT]}
           artifactTypeMap={this.state.artifactTypeMap}
         />
         <SectionIO
-          title={'Declared Outputs'}
+          title={i18n.t('ExecutionDetailsContent.declaredOutputs')}
           events={this.state.events[Event.Type.DECLARED_OUTPUT]}
           artifactTypeMap={this.state.artifactTypeMap}
         />
         <SectionIO
-          title={'Outputs'}
+          title={i18n.t('ExecutionDetailsContent.outputs')}
           events={this.state.events[Event.Type.OUTPUT]}
           artifactTypeMap={this.state.artifactTypeMap}
         />
@@ -169,13 +170,13 @@ export class ExecutionDetailsContent extends Component<
         });
       })
       .catch(err => {
-        this.props.onError('Failed to fetch artifact types', err, 'warning', this.refresh);
+        this.props.onError(i18n.t('ExecutionDetailsContent.failedToFetchArtifactTypes'), err, i18n.t('ExecutionDetailsContent.warning'), this.refresh);
       });
 
     const numberId = this.props.id;
     if (isNaN(numberId) || numberId < 0) {
-      const error = new Error(`Invalid execution id: ${this.props.id}`);
-      this.props.onError(error.message, error, 'error', this.refresh);
+      const error = new Error(i18n.t(`ExecutionDetailsContent.invalidExecutionId`));
+      this.props.onError(error.message, error, i18n.t('ExecutionDetailsContent.error'), this.refresh);
       return;
     }
 
@@ -192,9 +193,9 @@ export class ExecutionDetailsContent extends Component<
 
       if (!executionResponse.getExecutionsList().length) {
         this.props.onError(
-          `No execution identified by id: ${this.props.id}`,
+          i18n.t(`ExecutionDetailsContent.noExecutionIdentifiedById`),
           undefined,
-          'error',
+          i18n.t('ExecutionDetailsContent.error'),
           this.refresh,
         );
         return;
@@ -202,9 +203,9 @@ export class ExecutionDetailsContent extends Component<
 
       if (executionResponse.getExecutionsList().length > 1) {
         this.props.onError(
-          `Found multiple executions with ID: ${this.props.id}`,
+          i18n.t(`ExecutionDetailsContent.foundMultipleExecutionsWithId`),
           undefined,
-          'error',
+          i18n.t('ExecutionDetailsContent.error'),
           this.refresh,
         );
         return;
@@ -220,17 +221,17 @@ export class ExecutionDetailsContent extends Component<
       let executionType: ExecutionType | undefined;
       if (!types || types.length === 0) {
         this.props.onError(
-          `Cannot find execution type with id: ${execution.getTypeId()}`,
+          i18n.t(`ExecutionDetailsContent.cannotFindExecutionTypeWithId`),
           undefined,
-          'error',
+          i18n.t('ExecutionDetailsContent.error'),
           this.refresh,
         );
         return;
       } else if (types.length > 1) {
         this.props.onError(
-          `More than one execution type found with id: ${execution.getTypeId()}`,
+          i18n.t(`ExecutionDetailsContent.moreThanOneExecutionTypeFoundWithId`),
           undefined,
-          'error',
+          i18n.t('ExecutionDetailsContent.error'),
           this.refresh,
         );
         return;
@@ -246,7 +247,7 @@ export class ExecutionDetailsContent extends Component<
         executionType,
       });
     } catch (err) {
-      this.props.onError(serviceErrorToString(err), err, 'error', this.refresh);
+      this.props.onError(serviceErrorToString(err), err, i18n.t('ExecutionDetailsContent.error'), this.refresh);
     }
   };
 }
@@ -311,7 +312,7 @@ class SectionIO extends Component<
       linkedArtifacts.forEach(linkedArtifact => {
         const id = linkedArtifact.event.getArtifactId();
         if (!id) {
-          logger.error('Artifact has empty id', linkedArtifact.artifact.toObject());
+          logger.error(i18n.t('ExecutionDetailsContent.artifactHasEmptyId'), linkedArtifact.artifact.toObject());
           return;
         }
         artifactDataMap[id] = {

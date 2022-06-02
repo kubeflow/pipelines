@@ -151,5 +151,26 @@ export default {
         "deletionSucceededFor": "Đã xóa thành công cho",
         "failedToDeleteSomePipelinesAndOrSomePipelineVersions": "Không xóa được một số pipeline và / hoặc một số phiên bản pipeline",
         "detailsAllRunsInThisArchivedExperiment": "thông tin chi tiết. Tất cả các runs trong experiment được lưu trữ này sẽ được lưu trữ. Tất cả các công việc trong experiment được lưu trữ này sẽ bị vô hiệu hóa. Sử dụng hành động Khôi phục trên trang chi tiết experiment để khôi phụcexperiment "
+    },
+    ExecutionDetailsContent: {
+        declaredInputs : "Đầu vào đã khai báo",
+        input: "Đầu vào",
+        declaredOutputs: "Đầu ra đã khai báo",
+        outputs: "Đầu ra",
+        failedToFetchArtifactTypes: "Lỗi không tìm thấy kiểu artifact",
+        warning: "cảnh báo",
+        invalidExecutionId: "ID thực thi không hợp lệ: ${this.props.id}",
+        error: "lỗi",
+        noExecutionIdentifiedById: "Không có sự thực thi nào được xác định bởi id: ${this.props.id}",
+        foundMultipleExecutionsWithId: "Tìm thấy nhiều lần thực thi với ID: ${this.props.id}",
+        cannotFindExecutionTypeWithId: "Không thể tìm thấy loại thực thi với id: ${execution.getTypeId()}",
+        moreThanOneExecutionTypeFoundWithId: "Nhiều loại thực thi được tìm thấy với id: ${execution.getTypeId()}",
+        artifactHasEmptyId: "Artifact có id trống",
+    },
+    ExecutionList: {
+        name: "Tên",
+        state: "Trạng Thái",
+        type: "Kiểu",
+        failedGettingExecutions: "Không thực hiện được: ",
     }
 }
