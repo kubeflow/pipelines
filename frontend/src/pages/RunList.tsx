@@ -189,14 +189,12 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           noFilterBox={this.props.noFilterBox}
           emptyMessage={
             `No` +
-            `${
-              this.props.storageState === ApiRunStorageState.ARCHIVED ? ' archived' : ' available'
+            `${this.props.storageState === ApiRunStorageState.ARCHIVED ? ' archived' : ' available'
             }` +
             ` runs found` +
-            `${
-              this.props.experimentIdMask
-                ? ' for this experiment'
-                : this.props.namespaceMask
+            `${this.props.experimentIdMask
+              ? ' for this experiment'
+              : this.props.namespaceMask
                 ? ' for this namespace'
                 : ''
             }.`
@@ -238,13 +236,13 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     const search = new URLParser(this.props).build({ [QUERY_PARAMS.fromRunId]: props.id });
     const url = props.value.usePlaceholder
       ? RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(':' + RouteParams.pipelineId + '?', '') +
-        search
+      search
       : !!props.value.versionId
-      ? RoutePage.PIPELINE_DETAILS.replace(
+        ? RoutePage.PIPELINE_DETAILS.replace(
           ':' + RouteParams.pipelineId,
           props.value.pipelineId || '',
         ).replace(':' + RouteParams.pipelineVersionId, props.value.versionId || '')
-      : RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(
+        : RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(
           ':' + RouteParams.pipelineId,
           props.value.pipelineId || '',
         );
@@ -331,9 +329,12 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
     if (Array.isArray(this.props.runIdListMask)) {
       displayRuns = this.props.runIdListMask.map(id => ({ run: { id } }));
-      // listRuns doesn't currently support batching by IDs, so in this case we retrieve each run
-      // individually.
-      await this._getAndSetRuns(displayRuns);
+      const filter = JSON.parse(
+        decodeURIComponent(request.filter || '{"predicates": []}'),
+      ) as ApiFilter;
+      // listRuns doesn't currently support batching by IDs, so in this case we retrieve and filter
+      // each run individually.
+      await this._getAndSetRuns(displayRuns, filter);
     } else {
       // Load all runs
       if (this.props.storageState) {
@@ -429,14 +430,24 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
   /**
    * For each run ID, fetch its corresponding run, and set it in DisplayRuns
+   * Remove the run from the list if its name does not match the filter
    */
-  private _getAndSetRuns(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
+  private _getAndSetRuns(displayRuns: DisplayRun[], filter: ApiFilter): Promise<DisplayRun[]> {
+    const filterSubstring = (filter.predicates
+      && filter.predicates[0]
+      && filter.predicates[0].key === 'name'
+      && filter.predicates[0].op === PredicateOp.ISSUBSTRING
+      && filter.predicates[0].string_value) ? filter.predicates[0].string_value.toLowerCase() : '';
     return Promise.all(
       displayRuns.map(async displayRun => {
         let getRunResponse: ApiRunDetail;
         try {
           getRunResponse = await Apis.runServiceApi.getRun(displayRun.run!.id!);
-          displayRun.run = getRunResponse.run!;
+          if (getRunResponse.run?.name?.toLowerCase().includes(filterSubstring)) {
+            displayRun.run = getRunResponse.run!;
+          } else {
+            displayRuns.splice(displayRuns.indexOf(displayRun), 1);
+          }
         } catch (err) {
           displayRun.error = await errorToMessage(err);
         }
