@@ -175,7 +175,7 @@ export class ExecutionDetailsContent extends Component<
 
     const numberId = this.props.id;
     if (isNaN(numberId) || numberId < 0) {
-      const error = new Error(i18n.t(`ExecutionDetailsContent.invalidExecutionId`));
+      const error = new Error(`${i18n.t('ExecutionDetailsContent.invalidExecutionId')}: ${this.props.id}`);
       this.props.onError(error.message, error, i18n.t('ExecutionDetailsContent.error'), this.refresh);
       return;
     }
@@ -193,7 +193,7 @@ export class ExecutionDetailsContent extends Component<
 
       if (!executionResponse.getExecutionsList().length) {
         this.props.onError(
-          i18n.t(`ExecutionDetailsContent.noExecutionIdentifiedById`),
+          `${i18n.t('ExecutionDetailsContent.noExecutionIdentifiedById')}: ${this.props.id}`,
           undefined,
           i18n.t('ExecutionDetailsContent.error'),
           this.refresh,
@@ -203,7 +203,7 @@ export class ExecutionDetailsContent extends Component<
 
       if (executionResponse.getExecutionsList().length > 1) {
         this.props.onError(
-          i18n.t(`ExecutionDetailsContent.foundMultipleExecutionsWithId`),
+          `${i18n.t('ExecutionDetailsContent.foundMultipleExecutionsWithId')}: ${this.props.id}`,
           undefined,
           i18n.t('ExecutionDetailsContent.error'),
           this.refresh,
@@ -221,7 +221,7 @@ export class ExecutionDetailsContent extends Component<
       let executionType: ExecutionType | undefined;
       if (!types || types.length === 0) {
         this.props.onError(
-          i18n.t(`ExecutionDetailsContent.cannotFindExecutionTypeWithId`),
+          `${i18n.t('ExecutionDetailsContent.cannotFindExecutionTypeWithId')}: ${execution.getTypeId()}`,
           undefined,
           i18n.t('ExecutionDetailsContent.error'),
           this.refresh,
@@ -229,7 +229,7 @@ export class ExecutionDetailsContent extends Component<
         return;
       } else if (types.length > 1) {
         this.props.onError(
-          i18n.t(`ExecutionDetailsContent.moreThanOneExecutionTypeFoundWithId`),
+          `${i18n.t('ExecutionDetailsContent.moreThanOneExecutionTypeFoundWithId')}: ${execution.getTypeId()}`,
           undefined,
           i18n.t('ExecutionDetailsContent.error'),
           this.refresh,
@@ -312,7 +312,7 @@ class SectionIO extends Component<
       linkedArtifacts.forEach(linkedArtifact => {
         const id = linkedArtifact.event.getArtifactId();
         if (!id) {
-          logger.error(i18n.t('ExecutionDetailsContent.artifactHasEmptyId'), linkedArtifact.artifact.toObject());
+          logger.error('Artifact has empty id', linkedArtifact.artifact.toObject());
           return;
         }
         artifactDataMap[id] = {
