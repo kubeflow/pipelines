@@ -195,6 +195,9 @@ export default {
         archived: "Archived",
     },
     NewRun: {
+        startANewRun: "Start a new run",
+        runDetails: "Run details",
+        viewPipeline: "View pipeline",
         pipelineName: "Pipeline Name",
         description: "Description",
         uploadedOn: "Uploaded On",

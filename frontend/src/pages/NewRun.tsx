@@ -59,6 +59,7 @@ import { NameWithTooltip } from '../components/CustomTableNameColumn';
 import { PredicateOp, ApiFilter } from '../apis/filter';
 import { HelpButton } from 'src/atoms/HelpButton';
 import { ExternalLink } from 'src/atoms/ExternalLink';
+import {t} from 'i18next'
 
 interface NewRunState {
   description: string;
@@ -132,7 +133,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     pipelineVersionSelectorOpen: false,
     runName: '',
     uploadDialogOpen: false,
-    usePipelineFromRunLabel: 'Using pipeline from cloned run',
+    usePipelineFromRunLabel: t('NewRun.usingPipelineFromClonedRun'),
     useWorkflowFromRun: false,
   };
 
@@ -140,42 +141,42 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     {
       customRenderer: NameWithTooltip,
       flex: 1,
-      label: 'Pipeline name',
+      label: t('NewRun.pipelineName'),
       sortKey: PipelineSortKeys.NAME,
     },
-    { label: 'Description', flex: 2, customRenderer: descriptionCustomRenderer },
-    { label: 'Uploaded on', flex: 1, sortKey: PipelineSortKeys.CREATED_AT },
+    { label: t('NewRun.description'), flex: 2, customRenderer: descriptionCustomRenderer },
+    { label: t('NewRun.uploadedOn'), flex: 1, sortKey: PipelineSortKeys.CREATED_AT },
   ];
 
   private pipelineVersionSelectorColumns = [
     {
       customRenderer: NameWithTooltip,
       flex: 2,
-      label: 'Version name',
+      label: t('NewRun.versionName'),
       sortKey: PipelineVersionSortKeys.NAME,
     },
     // TODO(jingzhang36): version doesn't have description field; remove it and
     // fix the rendering.
-    { label: 'Description', flex: 1, customRenderer: descriptionCustomRenderer },
-    { label: 'Uploaded on', flex: 1, sortKey: PipelineVersionSortKeys.CREATED_AT },
+    { label: t('NewRun.description'), flex: 1, customRenderer: descriptionCustomRenderer },
+    { label: t('NewRun.uploadedOn'), flex: 1, sortKey: PipelineVersionSortKeys.CREATED_AT },
   ];
 
   private experimentSelectorColumns = [
     {
       customRenderer: NameWithTooltip,
       flex: 1,
-      label: 'Experiment name',
+      label: t('NewRun.experimentName'),
       sortKey: ExperimentSortKeys.NAME,
     },
-    { label: 'Description', flex: 2 },
-    { label: 'Created at', flex: 1, sortKey: ExperimentSortKeys.CREATED_AT },
+    { label: t('NewRun.description'), flex: 2 },
+    { label: t('NewRun.createdAt'), flex: 1, sortKey: ExperimentSortKeys.CREATED_AT },
   ];
 
   public getInitialToolbarState(): ToolbarProps {
     return {
       actions: {},
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
-      pageTitle: 'Start a new run',
+      pageTitle:  t('NewRun.startANewRun'),
     };
   }
 
@@ -218,7 +219,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <div className={commonCss.scrollContainer}>
-          <div className={commonCss.header}>Run details</div>
+          <div className={commonCss.header}>{t('NewRun.runDetails')}</div>
 
           {/* Pipeline selection */}
           {workflowFromRun && (
@@ -229,7 +230,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
               <div className={classes(padding(10, 't'))}>
                 {originalRunId && (
                   <Link className={classes(commonCss.link)} to={pipelineDetailsUrl}>
-                    [View pipeline]
+                    [{t('NewRun.viewPipeline')}]
                   </Link>
                 )}
               </div>
@@ -252,7 +253,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                       onClick={() => this.setStateSafe({ pipelineSelectorOpen: true })}
                       style={{ padding: '3px 5px', margin: 0 }}
                     >
-                      Choose
+                      {t('NewRun.choose')}
                     </Button>
                   </InputAdornment>
                 ),
@@ -264,7 +265,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
             <Input
               value={pipelineVersionName}
               required={true}
-              label='Pipeline Version'
+              label= {t('NewRun.pipelineVersion')}
               disabled={true}
               variant='outlined'
               InputProps={{
@@ -277,7 +278,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                       onClick={() => this.setStateSafe({ pipelineVersionSelectorOpen: true })}
                       style={{ padding: '3px 5px', margin: 0 }}
                     >
-                      Choose
+                      {t('NewRun.choose')}
                     </Button>
                   </InputAdornment>
                 ),
@@ -296,8 +297,8 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
             <DialogContent>
               <ResourceSelector
                 {...this.props}
-                title='Choose a pipeline'
-                filterLabel='Filter pipelines'
+                title={t('NewRun.chooseAPipeline')}
+                filterLabel={t('NewRun.filterPipelines')}
                 listApi={async (...args) => {
                   const response = await Apis.pipelineServiceApi.listPipelines(...args);
                   return {
@@ -306,7 +307,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                   };
                 }}
                 columns={this.pipelineSelectorColumns}
-                emptyMessage='No pipelines found. Upload a pipeline and then try again.'
+                emptyMessage={t('NewRun.noPipelinesFound')}
                 initialSortColumn={PipelineSortKeys.CREATED_AT}
                 selectionChanged={(selectedPipeline: ApiPipeline) =>
                   this.setStateSafe({ unconfirmedSelectedPipeline: selectedPipeline })
@@ -324,7 +325,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 onClick={() => this._pipelineSelectorClosed(false)}
                 color='secondary'
               >
-                Cancel
+                {t('NewRun.cancel')}
               </Button>
               <Button
                 id='usePipelineBtn'
@@ -332,7 +333,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 color='secondary'
                 disabled={!unconfirmedSelectedPipeline}
               >
-                Use this pipeline
+                {t('NewRun.useThisPipeline')}
               </Button>
             </DialogActions>
           </Dialog>
@@ -347,8 +348,8 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
             <DialogContent>
               <ResourceSelector
                 {...this.props}
-                title='Choose a pipeline version'
-                filterLabel='Filter pipeline versions'
+                title={t('NewRun.chooseAPipelineVersion')}
+                filterLabel={t('NewRun.filterPipelineVersions')}
                 listApi={async (...args) => {
                   const response = await Apis.pipelineServiceApi.listPipelineVersions(
                     'PIPELINE',
@@ -364,7 +365,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                   };
                 }}
                 columns={this.pipelineVersionSelectorColumns}
-                emptyMessage='No pipeline versions found. Select or upload a pipeline then try again.'
+                emptyMessage={t('NewRun.noPipelineVersionsFound')}
                 initialSortColumn={PipelineVersionSortKeys.CREATED_AT}
                 selectionChanged={(selectedPipelineVersion: ApiPipelineVersion) =>
                   this.setStateSafe({ unconfirmedSelectedPipelineVersion: selectedPipelineVersion })
@@ -385,7 +386,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 onClick={() => this._pipelineVersionSelectorClosed(false)}
                 color='secondary'
               >
-                Cancel
+                {t('NewRun.cancel')}
               </Button>
               <Button
                 id='usePipelineVersionBtn'
@@ -393,7 +394,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 color='secondary'
                 disabled={!unconfirmedSelectedPipelineVersion}
               >
-                Use this pipeline version
+                {t('NewRun.useThisPipelineVersion')}
               </Button>
             </DialogActions>
           </Dialog>
@@ -413,8 +414,8 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
             <DialogContent>
               <ResourceSelector
                 {...this.props}
-                title='Choose an experiment'
-                filterLabel='Filter experiments'
+                title={t('NewRun.chooseAnExperiment')}
+                filterLabel={t('NewRun.filterExperiments')}
                 listApi={async (
                   page_token?: string,
                   page_size?: number,
@@ -448,7 +449,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                   };
                 }}
                 columns={this.experimentSelectorColumns}
-                emptyMessage='No experiments found. Create an experiment and then try again.'
+                emptyMessage={t('NewRun.noExperimentsFound')}
                 initialSortColumn={ExperimentSortKeys.CREATED_AT}
                 selectionChanged={(selectedExperiment: ApiExperiment) =>
                   this.setStateSafe({ unconfirmedSelectedExperiment: selectedExperiment })
@@ -461,7 +462,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 onClick={() => this._experimentSelectorClosed(false)}
                 color='secondary'
               >
-                Cancel
+                {t('NewRun.cancel')}
               </Button>
               <Button
                 id='useExperimentBtn'
@@ -469,14 +470,14 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 color='secondary'
                 disabled={!unconfirmedSelectedExperiment}
               >
-                Use this experiment
+                {t('NewRun.useThisPipeline')}
               </Button>
             </DialogActions>
           </Dialog>
 
           {/* Run metadata inputs */}
           <Input
-            label={isRecurringRun ? 'Recurring run config name' : 'Run name'}
+            label={isRecurringRun ? t('NewRun.recurringRunConfigName') : t('NewRun.runName')}
             required={true}
             onChange={this.handleChange('runName')}
             autoFocus={true}
@@ -484,7 +485,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
             variant='outlined'
           />
           <Input
-            label='Description (optional)'
+            label={t('NewRun.descriptionOption')}
             multiline={true}
             onChange={this.handleChange('description')}
             value={description}
@@ -492,7 +493,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           />
 
           {/* Experiment selection */}
-          <div>This run will be associated with the following experiment</div>
+          <div>{t('NewRun.thisRunWillBeAssociatedWithTheFollowingExperiment')}</div>
           <Input
             value={experimentName}
             required={true}
@@ -509,7 +510,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                     onClick={() => this.setStateSafe({ experimentSelectorOpen: true })}
                     style={{ padding: '3px 5px', margin: 0 }}
                   >
-                    Choose
+                    {t('NewRun.choose')}
                   </Button>
                 </InputAdornment>
               ),
@@ -518,15 +519,15 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           />
 
           <div>
-            This run will use the following Kubernetes service account.{' '}
+            {t('NewRun.thisRunWillUseTheFollowingKubernetesServiceAccount')}{' '}
             <HelpButton
               helpText={
                 <div>
-                  Note, the service account needs{' '}
+                  {t('NewRun.noteTheServiceAccountNeeds')}{' '}
                   <ExternalLink href='https://argoproj.github.io/argo-workflows/workflow-rbac/'>
-                    minimum permissions required by argo workflows
+                    {t('NewRun.minimumPermissionsRequiredByArgoWorkflows')}
                   </ExternalLink>{' '}
-                  and extra permissions the specific task requires.
+                  {t('NewRun.andExtraPermissionsTheSpecificTaskRequires')}
                 </div>
               }
             />
@@ -534,25 +535,25 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           <Input
             value={serviceAccount}
             onChange={this.handleChange('serviceAccount')}
-            label='Service Account (Optional)'
+            label={t('NewRun.serviceAccountOptional')}
             variant='outlined'
           />
 
           {/* One-off/Recurring Run Type */}
-          <div className={commonCss.header}>Run Type</div>
-          {isClone && <span>{isRecurringRun ? 'Recurring' : 'One-off'}</span>}
+          <div className={commonCss.header}>{t('NewRun.runType')}</div>
+          {isClone && <span>{isRecurringRun ? t('NewRun.recurring') : t('NewRun.oneOff')}</span>}
           {!isClone && (
             <React.Fragment>
               <FormControlLabel
                 id='oneOffToggle'
-                label='One-off'
+                label={t('NewRun.oneOff')}
                 control={<Radio color='primary' />}
                 onChange={() => this._updateRecurringRunState(false)}
                 checked={!isRecurringRun}
               />
               <FormControlLabel
                 id='recurringToggle'
-                label='Recurring'
+                label={t('NewRun.recurring')}
                 control={<Radio color='primary' />}
                 onChange={() => this._updateRecurringRunState(true)}
                 checked={isRecurringRun}
@@ -563,8 +564,8 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           {/* Recurring run controls */}
           {isRecurringRun && (
             <React.Fragment>
-              <div className={commonCss.header}>Run trigger</div>
-              <div>Choose a method by which new runs will be triggered</div>
+              <div className={commonCss.header}>{t('NewRun.runTrigger')}</div>
+              <div>{t('NewRun.chooseAMethodByWhichNewRunsWillBeTriggered')}</div>
 
               <Trigger
                 initialProps={{
@@ -600,7 +601,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
               disabled={!!errorMessage}
               busy={this.state.isBeingStarted}
               className={commonCss.buttonAction}
-              title='Start'
+              title={t('NewRun.start')}
               onClick={this._start.bind(this)}
             />
             <Button
@@ -616,14 +617,14 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 );
               }}
             >
-              {isFirstRunInExperiment ? 'Skip this step' : 'Cancel'}
+              {isFirstRunInExperiment ? t('NewRun.skipThisStep') : t('NewRun.cancel')}
             </Button>
             <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
               {errorMessage}
             </div>
             {this._areParametersMissing() && (
               <div id='missing-parameters-message' style={{ color: 'orange' }}>
-                Some parameters are missing values
+                {t('NewRun.someParametersAreMissingValues')}
               </div>
             )}
           </div>
@@ -665,8 +666,8 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           experimentId = RunUtils.getFirstExperimentReferenceId(originalRun.run);
         }
       } catch (err) {
-        await this.showPageError(`Error: failed to retrieve original run: ${originalRunId}.`, err);
-        logger.error(`Failed to retrieve original run: ${originalRunId}`, err);
+        await this.showPageError(`${t('NewRun.errorFailedToRetrieveOriginalRun')} ${originalRunId}.`, err);
+        logger.error(`${t('NewRun.errorFailedToRetrieveOriginalRun')} ${originalRunId}`, err);
       }
     } else if (originalRecurringRunId) {
       // If we are cloning a recurring run, fetch the original
@@ -683,10 +684,10 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
         }
       } catch (err) {
         await this.showPageError(
-          `Error: failed to retrieve original recurring run: ${originalRunId}.`,
+          `${t('NewRun.errorFailedToRetrieveOriginalRecurringRun')} ${originalRunId}.`,
           err,
         );
-        logger.error(`Failed to retrieve original recurring run: ${originalRunId}`, err);
+        logger.error(`${t('NewRun.errorFailedToRetrieveOriginalRecurringRun')} ${originalRunId}`, err);
       }
     } else if (embeddedRunId) {
       // If we create run from a workflow manifest that is acquried from an existing run.
@@ -722,11 +723,11 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
             } catch (err) {
               urlParser.clear(QUERY_PARAMS.pipelineVersionId);
               await this.showPageError(
-                `Error: failed to retrieve pipeline version: ${possiblePipelineVersionId}.`,
+                `${t('NewRun.errorFailedToRetrievePipelineVersion')} ${possiblePipelineVersionId}.`,
                 err,
               );
               logger.error(
-                `Failed to retrieve pipeline version: ${possiblePipelineVersionId}`,
+                `${t('NewRun.errorFailedToRetrievePipelineVersion')} ${possiblePipelineVersionId}`,
                 err,
               );
             }
@@ -738,10 +739,10 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
         } catch (err) {
           urlParser.clear(QUERY_PARAMS.pipelineId);
           await this.showPageError(
-            `Error: failed to retrieve pipeline: ${possiblePipelineId}.`,
+            `${t('NewRun.errorFailedToRetrievePipeline')} ${possiblePipelineId}.`,
             err,
           );
-          logger.error(`Failed to retrieve pipeline: ${possiblePipelineId}`, err);
+          logger.error(`${t('NewRun.errorFailedToRetrievePipeline')} ${possiblePipelineId}`, err);
         }
       }
     }
@@ -759,16 +760,16 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
         });
       } catch (err) {
         await this.showPageError(
-          `Error: failed to retrieve associated experiment: ${experimentId}.`,
+          `${t('NewRun.errorFailedToRetrieveAssociatedExperiment')} ${experimentId}.`,
           err,
         );
-        logger.error(`Failed to retrieve associated experiment: ${experimentId}`, err);
+        logger.error(`${t('NewRun.errorFailedToRetrieveAssociatedExperiment')} ${experimentId}`, err);
       }
     }
 
     const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
-    const titleVerb = originalRunId ? 'Clone' : 'Start';
-    const pageTitle = isRecurringRun ? `${titleVerb} a recurring run` : `${titleVerb} a run`;
+    const titleVerb = originalRunId ? t('NewRun.clone') : t('NewRun.start');
+    const pageTitle = isRecurringRun ? `${titleVerb} ${t('NewRun.aRecurringRun')}` : `${titleVerb} ${t('NewRun.aRun')}`;
 
     this.props.updateToolbar({ actions: this.props.toolbarProps.actions, breadcrumbs, pageTitle });
 
@@ -849,7 +850,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
 
   protected _updateRecurringRunState(isRecurringRun: boolean): void {
     this.props.updateToolbar({
-      pageTitle: isRecurringRun ? 'Start a recurring run' : 'Start a new run',
+      pageTitle: isRecurringRun ? t('NewRun.startARecurringRun') : t('NewRun.startANewRun'),
     });
     this.setStateSafe({ isRecurringRun });
   }
@@ -894,7 +895,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
       return true;
     } catch (err) {
       const errorMessage = await errorToMessage(err);
-      this.showErrorDialog('Failed to upload pipeline', errorMessage);
+      this.showErrorDialog(t('NewRun.failedToUploadPipeline'), errorMessage);
       return false;
     }
   }
@@ -908,16 +909,16 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
       embeddedPipelineSpec = RunUtils.getWorkflowManifest(runWithEmbeddedPipeline.run);
     } catch (err) {
       await this.showPageError(
-        `Error: failed to retrieve the specified run: ${embeddedRunId}.`,
+        `${t('NewRun.errorFailedToRetrieveTheSpecifiedRun')} ${embeddedRunId}.`,
         err,
       );
-      logger.error(`Failed to retrieve the specified run: ${embeddedRunId}`, err);
+      logger.error(`${t('NewRun.errorFailedToRetrieveTheSpecifiedRun')} ${embeddedRunId}`, err);
       return;
     }
 
     if (!embeddedPipelineSpec) {
       await this.showPageError(
-        `Error: somehow the run provided in the query params: ${embeddedRunId} had no embedded pipeline.`,
+        `${t('NewRun.errorSomehowTheRunProvidedInTheQueryParams')} ${embeddedRunId} ${t('NewRun.hadNoEmbeddedPipeline')}`,
       );
       return;
     }
@@ -927,16 +928,16 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
       const parameters = RunUtils.getParametersFromRun(runWithEmbeddedPipeline);
       this.setStateSafe({
         parameters,
-        usePipelineFromRunLabel: 'Using pipeline from previous page.',
+        usePipelineFromRunLabel: t('NewRun.usingPipelineFromPreviousPage'),
         useWorkflowFromRun: true,
         workflowFromRun: workflow,
       });
     } catch (err) {
       await this.showPageError(
-        `Error: failed to parse the embedded pipeline's spec: ${embeddedPipelineSpec}.`,
+        `${t('NewRun.errorFailedToParseTheEmbeddedPipelineSSpec')} ${embeddedPipelineSpec}.`,
         err,
       );
-      logger.error(`Failed to parse the embedded pipeline's spec from run: ${embeddedRunId}`, err);
+      logger.error(`${t('NewRun.failedToParseTheEmbeddedPipelineSSpecFromRun')} ${embeddedRunId}`, err);
       return;
     }
 
@@ -948,7 +949,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     runtime?: ApiPipelineRuntime,
   ): Promise<void> {
     if (!originalRun) {
-      logger.error('Could not get cloned run details');
+      logger.error(t('NewRun.couldNotGetClonedRunDetails'));
       return;
     }
 
@@ -981,7 +982,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
         name = pipeline.name || '';
       } catch (err) {
         await this.showPageError(
-          'Error: failed to find a pipeline version corresponding to that of the original run:' +
+          t('NewRun.errorFailedToFindAPipelineVersionCorrespondingToThatOfTheOriginalRun') +
             ` ${originalRun.id}.`,
           err,
         );
@@ -993,7 +994,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
         name = pipeline.name || '';
       } catch (err) {
         await this.showPageError(
-          'Error: failed to find a pipeline corresponding to that of the original run:' +
+          t('NewRun.errorFailedToFindAPipelineCorrespondingToThatOfTheOriginalRun') +
             ` ${originalRun.id}.`,
           err,
         );
@@ -1004,18 +1005,18 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
         workflowFromRun = JSON.parse(embeddedPipelineSpec);
         name = workflowFromRun!.metadata.name || '';
       } catch (err) {
-        await this.showPageError("Error: failed to read the clone run's pipeline definition.", err);
+        await this.showPageError(t('NewRun.errorFailedToReadTheCloneRunSPipelineDefinition'), err);
         return;
       }
       useWorkflowFromRun = true;
-      usePipelineFromRunLabel = 'Using pipeline from cloned run';
+      usePipelineFromRunLabel = t('NewRun.usingPipelineFromClonedRun');
     } else {
-      await this.showPageError("Could not find the cloned run's pipeline definition.");
+      await this.showPageError(t('NewRun.couldNotFindTheClonedRunSPipelineDefinition'));
       return;
     }
 
     if (!originalRun.pipeline_spec || !originalRun.pipeline_spec.workflow_manifest) {
-      await this.showPageError(`Error: run ${originalRun.id} had no workflow manifest`);
+      await this.showPageError(`${t('NewRun.errorRun')} ${originalRun.id} ${t('NewRun.hadNoWorkflowManifest')}`);
       return;
     }
 
@@ -1043,18 +1044,18 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
   private _runParametersMessage(): string {
     if (this.state.pipeline || this.state.workflowFromRun) {
       if (this.state.parameters.length) {
-        return 'Specify parameters required by the pipeline';
+        return t('NewRun.specifyParametersRequiredByThePipeline');
       } else {
-        return 'This pipeline has no parameters';
+        return t('NewRun.thisPipelineHasNoParameters');
       }
     }
-    return 'Parameters will appear after you select a pipeline';
+    return t('NewRun.parametersWillAppearAfterYouSelectAPipeline');
   }
 
   private _start(): void {
     if (!this.state.pipelineVersion && !this.state.workflowFromRun) {
-      this.showErrorDialog('Run creation failed', 'Cannot start run without pipeline version');
-      logger.error('Cannot start run without pipeline version');
+      this.showErrorDialog(t('NewRun.runCreationFailed'), t('NewRun.cannotStartRunWithoutPipelineVersion'));
+      logger.error(t('NewRun.cannotStartRunWithoutPipelineVersion'));
       return;
     }
     const references: ApiResourceReference[] = [];
@@ -1111,8 +1112,8 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           : await Apis.runServiceApi.createRun(newRun);
       } catch (err) {
         const errorMessage = await errorToMessage(err);
-        this.showErrorDialog('Run creation failed', errorMessage);
-        logger.error('Error creating Run:', err);
+        this.showErrorDialog(t('NewRun.runCreationFailed'), errorMessage);
+        logger.error(t('NewRun.errorCreatingRun'), err);
         return;
       } finally {
         this.setStateSafe({ isBeingStarted: false });
@@ -1129,7 +1130,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
         this.props.history.push(RoutePage.RUNS);
       }
       this.props.updateSnackbar({
-        message: `Successfully started new Run: ${newRun.name}`,
+        message: `${t('NewRun.successfullyStartedNewRun')} ${newRun.name}`,
         open: true,
       });
     });
@@ -1140,10 +1141,10 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     const match = oldName.match(numberRegex);
     if (!match) {
       // No match, add Clone prefix
-      return 'Clone of ' + oldName;
+      return t('NewRun.cloneOf', {number: ''}) + ' ' + oldName;
     } else {
       const cloneNumber = match[1] ? +match[1] : 1;
-      return `Clone (${cloneNumber + 1}) of ${match[2]}`;
+      return `${t('NewRun.cloneOf', {number: cloneNumber + 1})} of ${match[2]}`;
     }
   }
 
@@ -1162,7 +1163,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
   }
 
   private _getRunNameFromPipelineVersion(pipelineVersionName: string): string {
-    return 'Run of ' + pipelineVersionName + ' (' + this._generateRandomString(5) + ')';
+    return t('NewRun.runOf')+ ' ' + pipelineVersionName + ' (' + this._generateRandomString(5) + ')';
   }
 
   private _validate(): void {
@@ -1170,10 +1171,10 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     const { pipelineVersion, workflowFromRun, maxConcurrentRuns, runName, trigger } = this.state;
     try {
       if (!pipelineVersion && !workflowFromRun) {
-        throw new Error('A pipeline version must be selected');
+        throw new Error(t('NewRun.aPipelineVersionMustBeSelected'));
       }
       if (!runName) {
-        throw new Error('Run name is required');
+        throw new Error(t('NewRun.runNameIsRequired'));
       }
 
       const hasTrigger = trigger && (!!trigger.cron_schedule || !!trigger.periodic_schedule);
@@ -1185,13 +1186,13 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           ? trigger!.cron_schedule!.end_time
           : trigger!.periodic_schedule!.end_time;
         if (startDate && endDate && startDate > endDate) {
-          throw new Error('End date/time cannot be earlier than start date/time');
+          throw new Error(t('NewRun.endDateTimeCannotBeEarlierThanStartDateTime'));
         }
         const validMaxConcurrentRuns = (input: string) =>
           !isNaN(Number.parseInt(input, 10)) && +input > 0;
 
         if (maxConcurrentRuns !== undefined && !validMaxConcurrentRuns(maxConcurrentRuns)) {
-          throw new Error('For triggered runs, maximum concurrent runs must be a positive number');
+          throw new Error(t('NewRun.forTriggeredRunsMaximumConcurrentRunsMustBeAPositiveNumber'));
         }
       }
 
