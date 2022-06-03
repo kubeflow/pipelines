@@ -23,7 +23,7 @@ import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import ArchivedRuns from './ArchivedRuns';
-
+import i18n from 'i18next'
 export enum AllRunsAndArchiveTab {
   RUNS = 0,
   ARCHIVE = 1,
@@ -46,7 +46,7 @@ class AllRunsAndArchive extends Page<AllRunsAndArchiveProps, AllRunsAndArchiveSt
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
         <MD2Tabs
-          tabs={['Active', 'Archived']}
+          tabs={[i18n.t('AllRunsAndArchive.active'), i18n.t('AllRunsAndArchive.archived')]}
           selectedTab={this.props.view}
           onSwitch={this._tabSwitched.bind(this)}
         />
