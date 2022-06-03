@@ -64,6 +64,8 @@ _JOB_TYPE_TO_ACTION_MAP = {
         bigquery_job_remote_runner.bigquery_export_model_job,
     'BigqueryEvaluateModelJob':
         bigquery_job_remote_runner.bigquery_evaluate_model_job,
+    'BigqueryMLWeightsJob':
+        bigquery_job_remote_runner.bigquery_ml_weights_job,
     'DataprocPySparkBatch':
         dataproc_batch_remote_runner.create_pyspark_batch,
     'DataprocSparkBatch':
@@ -122,7 +124,8 @@ def _parse_args(args):
       required=(parsed_args.type in {
           'UploadModel', 'CreateEndpoint', 'BatchPredictionJob',
           'BigqueryQueryJob', 'BigqueryCreateModelJob',
-          'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob'
+          'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob',
+          'BigQueryMLWeightsJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -138,7 +141,8 @@ def _parse_args(args):
       type=str,
       required=(parsed_args.type in {
           'BigqueryQueryJob', 'BigqueryCreateModelJob',
-          'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob'
+          'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob',
+          'BigQueryMLWeightsJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -147,7 +151,7 @@ def _parse_args(args):
       type=str,
       required=(parsed_args.type in {
           'BigqueryPredictModelJob', 'BigqueryExportModelJob',
-          'BigQueryEvaluateModelJob'
+          'BigQueryEvaluateModelJob', 'BigQueryMLWeightsJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
