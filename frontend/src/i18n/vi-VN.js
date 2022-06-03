@@ -179,5 +179,11 @@ export default {
         "createdAt": "Ngày tạo",
         "noArtifactsFound": "Không tìm thấy artifacts",
         "filter": "Lọc"
-    }
+    },
+    EnhancedArtifactDetails: {
+        "noArtifactIdentifiedById": "Không có cấu phần phần mềm nào được xác định bằng id:",
+        "foundMultipleArtifactsWithId": "Đã tìm thấy nhiều Artifact có ID:",
+        "unknownSelectedTab": "Tab đã chọn không xác định",
+        
+    },
 }

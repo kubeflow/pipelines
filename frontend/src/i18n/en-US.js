@@ -180,5 +180,11 @@ export default {
         "createdAt": "Created at",
         "noArtifactsFound":"No artifacts found.",
         "filter": "Filter",
-    }
+    },
+    EnhancedArtifactDetails: {
+        "noArtifactIdentifiedById": "No artifact identified by id:",
+        "foundMultipleArtifactsWithId": "Found multiple artifacts with ID:",
+        "unknownSelectedTab": "Unknown selected tab",
+        
+    },
 }
