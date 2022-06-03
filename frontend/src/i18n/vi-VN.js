@@ -164,6 +164,15 @@ export default {
         "forThisNamespace": "Cho không gian tên này",
         "failedToFetchRecurringRuns": "Lỗi: Không tìm được recurring runs.",
     },
+    RecurringRunDetails: {
+        "recurringRunDetails": "Chi tiết Recurring run",
+        "runTrigger": "Kích hoạt Run",
+        "runParameters": "Thông số Run",
+        "failedToRetrieveRecurringRun": "Lỗi: không thể truy xuất lần chạy định kỳ:",
+        "failedToRetrieveThisRecurringRunSExperiment": "Lỗi: không thể truy xuất thử nghiệm của lần chạy định kỳ này.",
+
+    },
+
     ArtifactList: {
         "name": "Tên",
         "type": "Loại",

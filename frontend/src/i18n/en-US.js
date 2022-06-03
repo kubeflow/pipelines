@@ -164,6 +164,16 @@ export default {
         "forThisNamespace": "for this namespace",
         "failedToFetchRecurringRuns": "Error: failed to fetch recurring runs.",
     },
+    RecurringRunDetails: {
+        "recurringRunDetails": "Recurring run details",
+        "runTrigger": "Run trigger",
+        "runParameters": "Run parameters",
+        "failedToRetrieveRecurringRun": "Error: failed to retrieve recurring run:",
+        "failedToRetrieveThisRecurringRunSExperiment": "Error: failed to retrieve this recurring run's experiment.",
+
+
+
+    },
     ArtifactList: {
         "name": "Name",
         "type": "Type",

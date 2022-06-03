@@ -118,7 +118,7 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
           filterLabel={i18n.t('ArtifactList.filter')}
           disablePaging={true}
           disableSelection={true}
-          reload={this.reload}
+          reload={this.reload} 
           initialSortColumn='pipelineName'
           initialSortOrder='asc'
           getExpandComponent={this.getExpandedArtifactsRow}
