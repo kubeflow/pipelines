@@ -393,11 +393,14 @@ describe('RunList', () => {
         }),
       ),
     });
-    expect(tree.state('runs')).toMatchObject([{
-      'run': { 'name': 'run with id: filterRun1' }
-    }, {
-      'run': { 'name': 'run with id: filterRun2' }
-    }]);
+    expect(tree.state('runs')).toMatchObject([
+      {
+        run: { name: 'run with id: filterRun1' },
+      },
+      {
+        run: { name: 'run with id: filterRun2' },
+      },
+    ]);
   });
 
   it('adds metrics columns', async () => {

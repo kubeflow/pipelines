@@ -189,12 +189,14 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           noFilterBox={this.props.noFilterBox}
           emptyMessage={
             `No` +
-            `${this.props.storageState === ApiRunStorageState.ARCHIVED ? ' archived' : ' available'
+            `${
+              this.props.storageState === ApiRunStorageState.ARCHIVED ? ' archived' : ' available'
             }` +
             ` runs found` +
-            `${this.props.experimentIdMask
-              ? ' for this experiment'
-              : this.props.namespaceMask
+            `${
+              this.props.experimentIdMask
+                ? ' for this experiment'
+                : this.props.namespaceMask
                 ? ' for this namespace'
                 : ''
             }.`
@@ -236,13 +238,13 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
     const search = new URLParser(this.props).build({ [QUERY_PARAMS.fromRunId]: props.id });
     const url = props.value.usePlaceholder
       ? RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(':' + RouteParams.pipelineId + '?', '') +
-      search
+        search
       : !!props.value.versionId
-        ? RoutePage.PIPELINE_DETAILS.replace(
+      ? RoutePage.PIPELINE_DETAILS.replace(
           ':' + RouteParams.pipelineId,
           props.value.pipelineId || '',
         ).replace(':' + RouteParams.pipelineVersionId, props.value.versionId || '')
-        : RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(
+      : RoutePage.PIPELINE_DETAILS_NO_VERSION.replace(
           ':' + RouteParams.pipelineId,
           props.value.pipelineId || '',
         );
@@ -433,11 +435,14 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
    * Remove the run from the list if its name does not match the filter
    */
   private _getAndSetRuns(displayRuns: DisplayRun[], filter: ApiFilter): Promise<DisplayRun[]> {
-    const filterSubstring = (filter.predicates
-      && filter.predicates[0]
-      && filter.predicates[0].key === 'name'
-      && filter.predicates[0].op === PredicateOp.ISSUBSTRING
-      && filter.predicates[0].string_value) ? filter.predicates[0].string_value.toLowerCase() : '';
+    const filterSubstring =
+      filter.predicates &&
+      filter.predicates[0] &&
+      filter.predicates[0].key === 'name' &&
+      filter.predicates[0].op === PredicateOp.ISSUBSTRING &&
+      filter.predicates[0].string_value
+        ? filter.predicates[0].string_value.toLowerCase()
+        : '';
     return Promise.all(
       displayRuns.map(async displayRun => {
         let getRunResponse: ApiRunDetail;
