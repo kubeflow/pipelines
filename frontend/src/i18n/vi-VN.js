@@ -277,5 +277,50 @@ export default {
         runNameIsRequired: "Tên run là bắt buộc",
         endDateTimeCannotBeEarlierThanStartDateTime: "Ngày / giờ kết thúc không được sớm hơn ngày / giờ bắt đầu",
         forTriggeredRunsMaximumConcurrentRunsMustBeAPositiveNumber: "Đối với các lần run được kích hoạt, số lần run đồng thời tối đa phải là một số dương"
+    },
+    ExecutionDetailsContent: {
+        declaredInputs : "Đầu vào đã khai báo",
+        input: "Đầu vào",
+        declaredOutputs: "Đầu ra đã khai báo",
+        outputs: "Đầu ra",
+        failedToFetchArtifactTypes: "Lỗi không tìm thấy kiểu artifact",
+        invalidExecutionId: "ID thực thi không hợp lệ",
+        noExecutionIdentifiedById: "Không có sự thực thi nào được xác định bởi id",
+        foundMultipleExecutionsWithId: "Tìm thấy nhiều lần thực thi với ID",
+        cannotFindExecutionTypeWithId: "Không thể tìm thấy loại thực thi với id",
+        moreThanOneExecutionTypeFoundWithId: "Nhiều loại thực thi được tìm thấy với id",
+    },
+    ExecutionList: {
+        name: "Tên",
+        state: "Trạng Thái",
+        type: "Kiểu",
+        failedGettingExecutions: "Không thực hiện được: ",
+        noExecutionsFound: "Không tìm thấy executions."
+    },
+    RecurringRunList: {
+        "recurringRunName": "Tên Recurring Run",
+        "status": "Trạng thái",
+        "trigger": "Kích hoạt",
+        "experiment": "Kinh nghiệm",
+        "createdAt": "Ngày tạo",
+        "filterRecurringRuns": "Lọc Recurring Runs",
+        "noAvailableRecurringRunsFound": "Không tìm thấy recurring runs",
+        "forThisExperiment": "Cho thử nghiệm này",
+        "forThisNamespace": "Cho không gian tên này",
+        "failedToFetchRecurringRuns": "Lỗi: Không tìm được recurring runs.",
+    },
+    ArtifactList: {
+        "name": "Tên",
+        "type": "Loại",
+        "createdAt": "Ngày tạo",
+        "noArtifactsFound": "Không tìm thấy artifacts",
+        "filter": "Lọc"
+    },
+    PipelineVersionList: {
+        versionName: 'Tên phiên bản',
+        description: 'Mô tả',
+        uploadedOn: 'Đã tải lên',
+        noPipelineVersionsFound: 'Không tìm thấy phiên bản pipeline.',
+        errorFailedToFetchRuns: 'Lỗi: không tìm được các lần chạy.'
     }
 }

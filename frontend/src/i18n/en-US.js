@@ -275,6 +275,51 @@ export default {
         aPipelineVersionMustBeSelected: "A pipeline version must be selected",
         runNameIsRequired: "Run name is required",
         endDateTimeCannotBeEarlierThanStartDateTime: "End date/time cannot be earlier than start date/time",
-        forTriggeredRunsMaximumConcurrentRunsMustBeAPositiveNumber: "For triggered runs, maximum concurrent runs must be a positive number"
+        forTriggeredRunsMaximumConcurrentRunsMustBeAPositiveNumber: "For triggered runs, maximum concurrent runs must be a positive number",
+    },
+    ExecutionDetailsContent: {
+        declaredInputs : "Declared Inputs",
+        input: "Input",
+        declaredOutputs: "Declared Outputs",
+        outputs: "Outputs",
+        failedToFetchArtifactTypes: "Failed to fetch artifact types",
+        invalidExecutionId: "Invalid execution id",
+        noExecutionIdentifiedById: "No execution identified by id",
+        foundMultipleExecutionsWithId: "Found multiple executions with ID",
+        cannotFindExecutionTypeWithId: "Cannot find execution type with id",
+        moreThanOneExecutionTypeFoundWithId: "More than one execution type found with id",
+    },
+    ExecutionList: {
+        name: "Name",
+        state: "State",
+        type: "Type",
+        failedGettingExecutions: "Failed getting executions: ",
+        noExecutionsFound: "No executions found."
+    },
+    RecurringRunList: {
+        "recurringRunName": "Recurring Run Name",
+        "status": "Status",
+        "trigger": "Trigger",
+        "experiment": "Experiment",
+        "createdAt": "Created at",
+        "filterRecurringRuns": "Filter recurring runs",
+        "noAvailableRecurringRunsFound": "No available recurring runs found​",
+        "forThisExperiment": "for this experiment",
+        "forThisNamespace": "for this namespace",
+        "failedToFetchRecurringRuns": "Error: failed to fetch recurring runs.",
+    },
+    ArtifactList: {
+        "name": "Name",
+        "type": "Type",
+        "createdAt": "Created at",
+        "noArtifactsFound":"No artifacts found.",
+        "filter": "Filter",
+    },
+    PipelineVersionList: {
+        versionName: 'Version name',
+        description: 'Description',
+        uploadedOn: 'Uploaded on',
+        noPipelineVersionsFound: 'No pipeline versions found',
+        errorFailedToFetchRuns: 'Error: failed to fetch runs.'
     }
 }
