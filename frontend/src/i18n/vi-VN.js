@@ -322,5 +322,8 @@ export default {
         uploadedOn: 'Đã tải lên',
         noPipelineVersionsFound: 'Không tìm thấy phiên bản pipeline.',
         errorFailedToFetchRuns: 'Lỗi: không tìm được các lần chạy.'
+    },
+    NewRunSwitcher: {
+        currentlyLoadingPipelineInformation: "Hiện đang tải thông tin pipeline"
     }
 }

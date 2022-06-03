@@ -9,7 +9,7 @@ import { NewRun } from './NewRun';
 import NewRunV2 from './NewRunV2';
 import { PageProps } from './Page';
 import { isTemplateV2 } from 'src/lib/v2/WorkflowUtils';
-
+import { t } from 'i18next'
 function NewRunSwitcher(props: PageProps) {
   const namespace = React.useContext(NamespaceContext);
 
@@ -44,7 +44,7 @@ function NewRunSwitcher(props: PageProps) {
   }
 
   if (isFetching) {
-    return <div>Currently loading pipeline information</div>;
+    return <div>{t('NewRunSwitcher.currentlyLoadingPipelineInformation')}</div>;
   }
 
   return <NewRun {...props} namespace={namespace} />;

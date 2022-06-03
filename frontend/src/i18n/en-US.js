@@ -321,5 +321,8 @@ export default {
         uploadedOn: 'Uploaded on',
         noPipelineVersionsFound: 'No pipeline versions found',
         errorFailedToFetchRuns: 'Error: failed to fetch runs.'
+    },
+    NewRunSwitcher: {
+        currentlyLoadingPipelineInformation: "Currently loading pipeline information"
     }
 }
