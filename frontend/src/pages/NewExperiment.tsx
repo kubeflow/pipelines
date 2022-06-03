@@ -29,6 +29,7 @@ import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, fontsize } from '../Css';
 import { logger, errorToMessage } from '../lib/Utils';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
+import i18n from 'i18next'
 
 interface NewExperimentState {
   description: string;
@@ -66,7 +67,7 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
     return {
       actions: {},
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
-      pageTitle: 'New experiment',
+      pageTitle: i18n.t('NewExperiment.newExperiment'),
     };
   }
 
@@ -76,16 +77,15 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <div className={classes(commonCss.scrollContainer, padding(20, 'lr'))}>
-          <div className={commonCss.header}>Experiment details</div>
+          <div className={commonCss.header}>{i18n.t('NewExperiment.experimentDetails')}</div>
           {/* TODO: this description needs work. */}
           <div className={css.explanation}>
-            Think of an Experiment as a space that contains the history of all pipelines and their
-            associated runs
+            {i18n.t('NewExperiment.thinkOfAnExperiment')}
           </div>
 
           <Input
             id='experimentName'
-            label='Experiment name'
+            label={i18n.t('NewExperiment.experimentName')}
             inputRef={this._experimentNameRef}
             required={true}
             onChange={this.handleChange('experimentName')}
@@ -95,7 +95,7 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
           />
           <Input
             id='experimentDescription'
-            label='Description (optional)'
+            label={i18n.t('NewExperiment.description')}
             multiline={true}
             onChange={this.handleChange('description')}
             value={description}
@@ -108,14 +108,14 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
               disabled={!!validationError}
               busy={isbeingCreated}
               className={commonCss.buttonAction}
-              title={'Next'}
+              title={i18n.t('NewExperiment.next')}
               onClick={this._create.bind(this)}
             />
             <Button
               id='cancelNewExperimentBtn'
               onClick={() => this.props.history.push(RoutePage.EXPERIMENTS)}
             >
-              Cancel
+              {i18n.t('NewExperiment.cancel')}
             </Button>
             <div className={css.errorMessage}>{validationError}</div>
           </div>
@@ -179,13 +179,13 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
         this.props.history.push(RoutePage.NEW_RUN + searchString);
         this.props.updateSnackbar({
           autoHideDuration: 10000,
-          message: `Successfully created new Experiment: ${newExperiment.name}`,
+          message: `${i18n.t('NewExperiment.successfullyCreatedNewExperiment')} ${newExperiment.name}`,
           open: true,
         });
       } catch (err) {
         const errorMessage = await errorToMessage(err);
-        await this.showErrorDialog('Experiment creation failed', errorMessage);
-        logger.error('Error creating experiment:', err);
+        await this.showErrorDialog(i18n.t('NewExperiment.experimentCreationFailed'), errorMessage);
+        logger.error(i18n.t('NewExperiment.errorCreatingExperiment'), err);
         this.setState({ isbeingCreated: false });
       }
     });
@@ -196,7 +196,7 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
     const { experimentName } = this.state;
     try {
       if (!experimentName) {
-        throw new Error('Experiment name is required');
+        throw new Error(i18n.t('NewExperiment.experimentNameIsRequired'));
       }
       this.setState({ validationError: '' });
     } catch (err) {

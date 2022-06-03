@@ -36,6 +36,7 @@ import { logger } from '../lib/Utils';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
 import { ApiRunStorageState } from 'src/apis/run';
+import i18n from 'i18next'
 
 const css = stylesheet({
   card: {
@@ -200,7 +201,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
                     onClick={() =>
                       this.props.updateDialog({
                         content: description,
-                        title: 'Experiment description',
+                        title: i18n.t('ExperimentDetails.experimentDescription'),
                       })
                     }
                     className={classes(css.popOutIcon, 'popOutButton')}
@@ -329,10 +330,10 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
           .length;
       } catch (err) {
         await this.showPageError(
-          `Error: failed to retrieve recurring runs for experiment: ${experimentId}.`,
+          `${i18n.t('ExperimentDetails.failedToRetrieveRecurringRunsForExperiment')} ${experimentId}.`,
           err,
         );
-        logger.error(`Error fetching recurring runs for experiment: ${experimentId}`, err);
+        logger.error(`${i18n.t('ExperimentDetails.fetchingRecurringRunsForExperiment')} ${experimentId}`, err);
       }
 
       let runlistRefreshCount = this.state.runlistRefreshCount + 1;
@@ -344,8 +345,8 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       });
       this._selectionChanged([]);
     } catch (err) {
-      await this.showPageError(`Error: failed to retrieve experiment: ${experimentId}.`, err);
-      logger.error(`Error loading experiment: ${experimentId}`, err);
+      await this.showPageError(`${i18n.t('ExperimentDetails.errorFailedToRetrieveExperiment')} ${experimentId}.`, err);
+      logger.error(`${i18n.t('ExperimentDetails.errorLoadingExperiment')} ${experimentId}`, err);
     }
   }
 
