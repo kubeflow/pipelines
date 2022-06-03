@@ -195,7 +195,6 @@ export default {
         archived: "Archived",
     },
     NewRun: {
-        startANewRun: "Start a new run",
         runDetails: "Run details",
         viewPipeline: "View pipeline",
         pipelineName: "Pipeline Name",
@@ -246,7 +245,6 @@ export default {
         aRecurringRun: "a recurring run",
         aRun: "a run",
         startARecurringRun: "Start a recurring run",
-        startANewRun: "Start a new run",
         failedToUploadPipeline: "Failed to upload pipeline",
         errorFailedToRetrieveTheSpecifiedRun: "Error: failed to retrieve the specified run:",
         errorSomehowTheRunProvidedInTheQueryParams: "Error: somehow the run provided in the query params:",
@@ -265,7 +263,6 @@ export default {
         specifyParametersRequiredByThePipeline: "Specify parameters required by the pipeline",
         thisPipelineHasNoParameters: "This pipeline has no parameters",
         parametersWillAppearAfterYouSelectAPipeline: "Parameters will appear after you select a pipeline",
-        runCreationFailedCannotStartRunWithoutPipelineVersion: "Run creation failed', 'Cannot start run without pipeline version",
         cannotStartRunWithoutPipelineVersion: "Cannot start run without pipeline version",
         runCreationFailed: "Run creation failed",
         errorCreatingRun: "Error creating Run:",
