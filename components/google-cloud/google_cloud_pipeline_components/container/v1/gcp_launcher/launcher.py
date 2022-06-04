@@ -60,6 +60,8 @@ _JOB_TYPE_TO_ACTION_MAP = {
         bigquery_job_remote_runner.bigquery_create_model_job,
     'BigqueryPredictModelJob':
         bigquery_job_remote_runner.bigquery_predict_model_job,
+    'BigqueryExplainPredictModelJob':
+        bigquery_job_remote_runner.bigquery_explain_predict_model_job,
     'BigqueryExportModelJob':
         bigquery_job_remote_runner.bigquery_export_model_job,
     'BigqueryEvaluateModelJob':
@@ -70,6 +72,8 @@ _JOB_TYPE_TO_ACTION_MAP = {
         bigquery_job_remote_runner.bigquery_ml_reconstruction_loss_job,
     'BigqueryMLTrialInfoJob':
         bigquery_job_remote_runner.bigquery_ml_trial_info_job,
+    'BigqueryMLTrainingInfoJob':
+        bigquery_job_remote_runner.bigquery_ml_training_info_job,
     'DataprocPySparkBatch':
         dataproc_batch_remote_runner.create_pyspark_batch,
     'DataprocSparkBatch':
@@ -130,7 +134,7 @@ def _parse_args(args):
           'BigqueryQueryJob', 'BigqueryCreateModelJob',
           'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob',
           'BigQueryMLWeightsJob', 'BigqueryMLTrialInfoJob',
-          'BigqueryMLReconstructionLossJob'
+          'BigqueryMLReconstructionLossJob', 'BigqueryMLTrainingInfoJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -148,7 +152,7 @@ def _parse_args(args):
           'BigqueryQueryJob', 'BigqueryCreateModelJob',
           'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob',
           'BigQueryMLWeightsJob', 'BigqueryMLTrialInfoJob',
-          'BigqueryMLReconstructionLossJob'
+          'BigqueryMLReconstructionLossJob', 'BigqueryMLTrainingInfoJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -159,6 +163,7 @@ def _parse_args(args):
           'BigqueryPredictModelJob', 'BigqueryExportModelJob',
           'BigQueryEvaluateModelJob', 'BigQueryMLWeightsJob',
           'BigqueryMLTrialInfoJob', 'BigqueryMLReconstructionLossJob'
+          'BigqueryMLTrainingInfoJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
