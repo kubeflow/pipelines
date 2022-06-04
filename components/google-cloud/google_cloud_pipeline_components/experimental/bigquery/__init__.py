@@ -27,6 +27,8 @@ __all__ = [
     'BigqueryPredictModelJobOp',
     'BigqueryEvaluateModelJobOp',
     'BigqueryMLWeightsJobOp',
+    'BigqueryMLReconstructionLossJobOp',
+    'BigqueryMLTrialInfoJobOp',
 ]
 
 BigqueryQueryJobOp = load_component_from_file(
@@ -43,7 +45,14 @@ BigqueryPredictModelJobOp = load_component_from_file(
         os.path.join(os.path.dirname(__file__), 'predict_model/component.yaml'))
 
 BigqueryEvaluateModelJobOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'evaluate_model/component.yaml'))
+    os.path.join(os.path.dirname(__file__), 'evaluate_model/component.yaml'))
+
+BigqueryMLReconstructionLossJobOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'ml_reconstruction_loss/component.yaml'))
+
+BigqueryMLTrialInfoJobOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'ml_trial_info/component.yaml'))
 
 BigqueryMLWeightsJobOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'ml_weights/component.yaml'))
