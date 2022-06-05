@@ -152,7 +152,7 @@ export default {
         "failedToDeleteSomePipelinesAndOrSomePipelineVersions": "Failed to delete some pipelines and/or some pipeline versions",
         "detailsAllRunsInThisArchivedExperiment": "details. All runs in this archived experiment will be archived. All jobs in this archived experiment will be disabled. Use the Restore action on the experiment details page to restore the experiment"
     },
-    ExperimentList:{
+    ExperimentList: {
         failedToRetrieveListOfExperiments: "Error: failed to retrieve list of experiments.",
         failedToRetrieveRunStatusesForExperiment: "Error: failed to retrieve run statuses for experiment:",
         failedToLoadTheLast5RunsOfThisExperiment: "Failed to load the last 5 runs of this experiment",
@@ -275,7 +275,7 @@ export default {
         forTriggeredRunsMaximumConcurrentRunsMustBeAPositiveNumber: "For triggered runs, maximum concurrent runs must be a positive number",
     },
     ExecutionDetailsContent: {
-        declaredInputs : "Declared Inputs",
+        declaredInputs: "Declared Inputs",
         input: "Input",
         declaredOutputs: "Declared Outputs",
         outputs: "Outputs",
@@ -309,7 +309,7 @@ export default {
         "name": "Name",
         "type": "Type",
         "createdAt": "Created at",
-        "noArtifactsFound":"No artifacts found.",
+        "noArtifactsFound": "No artifacts found.",
         "filter": "Filter",
     },
     PipelineVersionList: {
@@ -321,5 +321,40 @@ export default {
     },
     NewRunSwitcher: {
         currentlyLoadingPipelineInformation: "Currently loading pipeline information"
+    },
+    PageNotFound: {
+        pageNotFound: "Page Not Found:"
+    },
+    ArtifactPreview: {
+        canNotRetrieveStoragePathFromArtifactUri: "Can not retrieve storage path from artifact uri: ",
+        errorInRetrievingArtifactPreview: "Error in retrieving artifact preview.",
+        noErrorMessage: "No error message"
+    },
+    CollapseButton: {
+        expandCollapseThisSection: "Expand/Collapse this section"
+    },
+    CustomTable: {
+        sort: "Sort",
+        cannotSortByThisColumn: "Cannot sort by this column",
+        rowsPerPage: "Rows per page:"
+    },
+    Graph: {
+        graphDefinitionIsInvalid: "Graph definition is invalid. Cannot get node by",
+        thereWasAnErrorRenderingTheGraph: "There was an error rendering the graph. Cannot get node by",
+        thisIsLikelyABugInKubeflowPipelines: "This is likely a bug in Kubeflow Pipelines. Error message:"
+    },
+    NewRunParameters: {
+        closeJsonEditor: "Close Json Editor",
+        openJsonEditor: "Open Json Editor",
+        parsedJsonWasNeitherAnArrayNorAnObjectUsingDefaultRenderer: "Parsed JSON was neither an array nor an object. Using default renderer",
+    },
+    NewRunParametersV2: {
+        pipelineRootRepresentsAnArtifactRepositoryReferTo: "Pipeline Root represents an artifact repository, refer to",
+        pipelineRootDocumentation: "Pipeline Root Documentation",
+        customPipelineRoot: "Custom Pipeline Root",
+        setCustomPipelineRoot: "Set custom pipeline root.",
+        parsedJsonWasNeitherAnArrayNorAnObjectUsingDefaultRenderer: "Parsed JSON was neither an array nor an object. Using default renderer",
+        closeJsonEditor: "Close Json Editor",
+        openJsonEditor: "Open Json Editor",
     }
 }

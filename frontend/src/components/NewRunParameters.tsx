@@ -22,7 +22,7 @@ import { classes, stylesheet } from 'typestyle';
 import { ApiParameter } from '../apis/pipeline';
 import { color, commonCss, spacing } from '../Css';
 import Editor from './Editor';
-
+import { t } from 'i18next'
 export interface NewRunParametersProps {
   initialParams: ApiParameter[];
   titleMessage: string;
@@ -103,7 +103,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
       // Nulls, booleans, strings, and numbers can all be parsed as JSON, but we don't care
       // about rendering. Note that `typeOf null` returns 'object'
       if (displayValue === null || typeof displayValue !== 'object') {
-        throw new Error('Parsed JSON was neither an array nor an object. Using default renderer');
+        throw new Error(t('NewRunParameters.parsedJsonWasNeitherAnArrayNorAnObjectUsingDefaultRenderer'));
       }
     } catch (err) {
       isJson = false;
@@ -153,7 +153,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
               endAdornment: (
                 <InputAdornment position='end'>
                   <Button className={css.button} color='secondary' onClick={onClick}>
-                    {this.state.isEditorOpen ? 'Close Json Editor' : 'Open Json Editor'}
+                    {this.state.isEditorOpen ? t('NewRunParameters.closeJsonEditor') : t('NewRunParameters.openJsonEditor')}
                   </Button>
                 </InputAdornment>
               ),

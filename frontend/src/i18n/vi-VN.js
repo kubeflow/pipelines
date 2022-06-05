@@ -152,7 +152,7 @@ export default {
         "failedToDeleteSomePipelinesAndOrSomePipelineVersions": "Không xóa được một số pipeline và / hoặc một số phiên bản pipeline",
         "detailsAllRunsInThisArchivedExperiment": "thông tin chi tiết. Tất cả các runs trong experiment được lưu trữ này sẽ được lưu trữ. Tất cả các công việc trong experiment được lưu trữ này sẽ bị vô hiệu hóa. Sử dụng hành động Khôi phục trên trang chi tiết experiment để khôi phụcexperiment "
     },
-    ExperimentList:{
+    ExperimentList: {
         failedToRetrieveListOfExperiments: "Lỗi: không thể truy xuất danh sách các Experiment.",
         failedToRetrieveRunStatusesForExperiment: "Lỗi: không thể truy xuất các trạng thái chạy cho Experiments:",
         failedToLoadTheLast5RunsOfThisExperiment: "Không tải được 5 lần runs cuối cùng của Experiment này",
@@ -263,7 +263,7 @@ export default {
         specifyParametersRequiredByThePipeline: "Chỉ định các thông số theo yêu cầu của pipeline",
         thisPipelineHasNoParameters: "Pipeline không có tham số",
         parametersWillAppearAfterYouSelectAPipeline: "Các thông số sẽ xuất hiện sau khi bạn chọn một pipeline",
-        runCreationFailed:"Run tạo không thành công",
+        runCreationFailed: "Run tạo không thành công",
         cannotStartRunWithoutPipelineVersion: "Không thể bắt đầu run nếu không có phiên bản pipeline",
         errorCreatingRun: "Lỗi khi tạo Run",
         successfullyStartedNewRun: "Đã bắt đầu thành công Run mới:",
@@ -275,7 +275,7 @@ export default {
         forTriggeredRunsMaximumConcurrentRunsMustBeAPositiveNumber: "Đối với các lần run được kích hoạt, số lần run đồng thời tối đa phải là một số dương"
     },
     ExecutionDetailsContent: {
-        declaredInputs : "Đầu vào đã khai báo",
+        declaredInputs: "Đầu vào đã khai báo",
         input: "Đầu vào",
         declaredOutputs: "Đầu ra đã khai báo",
         outputs: "Đầu ra",
@@ -321,5 +321,40 @@ export default {
     },
     NewRunSwitcher: {
         currentlyLoadingPipelineInformation: "Hiện đang tải thông tin pipeline"
+    },
+    PageNotFound: {
+        pageNotFound: "Không tìm thấy trang:"
+    },
+    ArtifactPreview: {
+        canNotRetrieveStoragePathFromArtifactUri: "Không thể truy xuất đường dẫn lưu trữ từ uri tạo phần mềm: ",
+        errorInRetrievingArtifactPreview: "Lỗi khi truy xuất bản xem trước cấu phần phần mềm:",
+        noErrorMessage: "Không có thông báo lỗi"
+    },
+    CollapseButton: {
+        expandCollapseThisSection: "Mở rộng/Thu gọn phần này"
+    },
+    CustomTable: {
+        sort: "Sắp xếp",
+        cannotSortByThisColumn: "Không thể sắp xếp cột này",
+        rowsPerPage: "Hàng trên trang:"
+    },
+    Graph: {
+        graphDefinitionIsInvalid: "Định nghĩa đồ thị không hợp lệ. Không thể nhận được nút bằng",
+        thereWasAnErrorRenderingTheGraph: "Đã xảy ra lỗi khi hiển thị biểu đồ. Không thể nhận được nút bằng",
+        thisIsLikelyABugInKubeflowPipelines: "Đây có thể là một lỗi trong Kubeflow Pipelines. Thông báo lỗi:"
+    },
+    NewRunParameters: {
+        closeJsonEditor: "Đóng Json Editor",
+        openJsonEditor: "Mở Json Editor",
+        parsedJsonWasNeitherAnArrayNorAnObjectUsingDefaultRenderer: "JSON được phân tích cú pháp không phải là một mảng hay một đối tượng. Sử dụng trình kết xuất mặc định",
+    },
+    NewRunParametersV2: {
+        pipelineRootRepresentsAnArtifactRepositoryReferTo: "Pipeline Root đại diện cho một kho lưu trữ tạo tác, tham khảo",
+        pipelineRootDocumentation: "Pipeline Root Documentation",
+        customPipelineRoot: "tuỳ chỉnh Pipeline gốc",
+        setCustomPipelineRoot: "Đặt gốc pipeline tùy chỉnh.",
+        closeJsonEditor: "Đóng Json Editor",
+        openJsonEditor: "Mở Json Editor",
+        parsedJsonWasNeitherAnArrayNorAnObjectUsingDefaultRenderer: "JSON được phân tích cú pháp không phải là một mảng hay một đối tượng. Sử dụng trình kết xuất mặc định",
     }
 }

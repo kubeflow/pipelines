@@ -24,6 +24,7 @@ import { RuntimeParameters, SpecParameters } from 'src/pages/NewRunV2';
 import { classes, stylesheet } from 'typestyle';
 import { color, commonCss, spacing } from '../Css';
 import Editor from './Editor';
+import { t } from 'i18next'
 
 const css = stylesheet({
   button: {
@@ -80,16 +81,16 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     <div>
       <div className={commonCss.header}>Pipeline Root</div>
       <div>
-        Pipeline Root represents an artifact repository, refer to{' '}
+        {t('NewRunParametersV2.pipelineRootRepresentsAnArtifactRepositoryReferTo')}{' '}
         <ExternalLink href='https://www.kubeflow.org/docs/components/pipelines/overview/pipeline-root/'>
-          Pipeline Root Documentation
+          {t('NewRunParametersV2.pipelineRootDocumentation')}
         </ExternalLink>
         .
       </div>
 
       <div>
         <FormControlLabel
-          label='Custom Pipeline Root'
+          label={t('NewRunParametersV2.customPipelineRoot')}
           control={
             <Checkbox
               color='primary'
@@ -100,7 +101,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                   setCustomPipelineRoot(undefined);
                 }
               }}
-              inputProps={{ 'aria-label': 'Set custom pipeline root.' }}
+              inputProps={{ 'aria-label': t('NewRunParametersV2.setCustomPipelineRoot') }}
             />
           }
         />
@@ -181,7 +182,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
       // Nulls, booleans, strings, and numbers can all be parsed as JSON, but we don't care
       // about rendering. Note that `typeOf null` returns 'object'
       if (displayValue === null || typeof displayValue !== 'object') {
-        throw new Error('Parsed JSON was neither an array nor an object. Using default renderer');
+        throw new Error(t('NewRunParametersV2.parsedJsonWasNeitherAnArrayNorAnObjectUsingDefaultRenderer'));
       }
     } catch (err) {
       isJson = false;
@@ -232,7 +233,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
               endAdornment: (
                 <InputAdornment position='end'>
                   <Button className={css.button} color='secondary' onClick={onClick}>
-                    {this.state.isEditorOpen ? 'Close Json Editor' : 'Open Json Editor'}
+                    {this.state.isEditorOpen ? t('NewRunParametersV2.closeJsonEditor') : t('NewRunParametersV2.openJsonEditor')}
                   </Button>
                 </InputAdornment>
               ),
