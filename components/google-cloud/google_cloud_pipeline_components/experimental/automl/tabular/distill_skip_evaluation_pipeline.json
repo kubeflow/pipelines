@@ -2046,11 +2046,7 @@
               "inputs": {
                 "parameters": {
                   "additional_experiments": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--additional_experiments"
                   },
                   "data_source": {
                     "componentInputParameter": "pipelineparam--data_source"
@@ -2171,6 +2167,9 @@
         },
         "inputDefinitions": {
           "parameters": {
+            "pipelineparam--additional_experiments": {
+              "type": "STRING"
+            },
             "pipelineparam--cv_trainer_worker_pool_specs_override": {
               "type": "STRING"
             },
@@ -3426,6 +3425,9 @@
             },
             "inputs": {
               "parameters": {
+                "pipelineparam--additional_experiments": {
+                  "componentInputParameter": "additional_experiments"
+                },
                 "pipelineparam--cv_trainer_worker_pool_specs_override": {
                   "componentInputParameter": "cv_trainer_worker_pool_specs_override"
                 },
@@ -3553,6 +3555,9 @@
       },
       "inputDefinitions": {
         "parameters": {
+          "additional_experiments": {
+            "type": "STRING"
+          },
           "cv_trainer_worker_pool_specs_override": {
             "type": "STRING"
           },
@@ -3678,6 +3683,9 @@
   },
   "runtimeConfig": {
     "parameters": {
+      "additional_experiments": {
+        "stringValue": ""
+      },
       "cv_trainer_worker_pool_specs_override": {
         "stringValue": ""
       },
