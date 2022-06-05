@@ -127,7 +127,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     await waitFor(() => screen.getByText('Run overview'));
   });
 
-  it('Show v1 page if some runs are v1 and the v2 feature flag is enabled', async () => {
+  it('Show mixed version runs page error if run versions are mixed between v1 and v2', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [
       newMockRun(MOCK_RUN_1_ID, false),
@@ -150,7 +150,122 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
       </CommonTestWrapper>,
     );
 
+    await TestUtils.flushPromises();
+
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({
+      additionalInfo:
+        'The selected runs are a mix of V1 and V2.' +
+        ' Please select all V1 or all V2 runs to view the associated Run Comparison page.',
+      message: 'Error: failed loading the Run Comparison page. Click Details for more information.',
+      mode: 'error',
+    });
+  });
+
+  it('Show too few runs page error if there are less than two runs', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID, true)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    // v2 feature is turn on.
+    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+      if (featureKey === features.FeatureKey.V2_ALPHA) {
+        return true;
+      }
+      return false;
+    });
+
+    const props = generateProps();
+    props.location.search = `?${QUERY_PARAMS.runlist}=${MOCK_RUN_1_ID}`;
+    render(
+      <CommonTestWrapper>
+        <Compare {...props} />
+      </CommonTestWrapper>,
+    );
+
+    await TestUtils.flushPromises();
+
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({
+      additionalInfo: 'At least two runs must be selected to view the Run Comparison page.',
+      message: 'Error: failed loading the Run Comparison page. Click Details for more information.',
+      mode: 'error',
+    });
+  });
+
+  it('Show no error on v1 page if run versions are mixed between v1 and v2 and feature flag disabled', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [
+      newMockRun(MOCK_RUN_1_ID, false),
+      newMockRun(MOCK_RUN_2_ID, true),
+      newMockRun(MOCK_RUN_3_ID, true),
+    ];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    // v2 feature is turn off.
+    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(_ => false);
+
+    render(
+      <CommonTestWrapper>
+        <Compare {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await TestUtils.flushPromises();
+
     await waitFor(() => screen.getByText('Run overview'));
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+  });
+
+  it('Show no error on v1 page if there are less than two runs and v2 feature flag disabled', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID, true)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    // v2 feature is turn off.
+    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(_ => false);
+
+    const props = generateProps();
+    props.location.search = `?${QUERY_PARAMS.runlist}=${MOCK_RUN_1_ID}`;
+    render(
+      <CommonTestWrapper>
+        <Compare {...props} />
+      </CommonTestWrapper>,
+    );
+
+    await TestUtils.flushPromises();
+
+    await waitFor(() => screen.getByText('Run overview'));
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+  });
+
+  it('Show info banner on v1 page if all runs are v2 and v2 feature flag disabled', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [
+      newMockRun(MOCK_RUN_1_ID, true),
+      newMockRun(MOCK_RUN_2_ID, true),
+      newMockRun(MOCK_RUN_3_ID, true),
+    ];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    // v2 feature is turn off.
+    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(_ => false);
+
+    render(
+      <CommonTestWrapper>
+        <Compare {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    await TestUtils.flushPromises();
+
+    await waitFor(() => screen.getByText('Run overview'));
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({
+      additionalInfo:
+        'The selected runs are all V2, but the V2_ALPHA feature flag is disabled.' +
+        ' The V1 page will not show any useful information for these runs.',
+      message:
+        'Info: enable the V2_ALPHA feature flag in order to view the updated Run Comparison page.',
+      mode: 'info',
+    });
   });
 
   it('Show v2 page if all runs are v2 and the v2 feature flag is enabled', async () => {
@@ -189,9 +304,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
 
     // v2 feature is turn off.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(_ => {
-      return false;
-    });
+    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(_ => false);
 
     render(
       <CommonTestWrapper>
@@ -212,9 +325,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
 
     // v2 feature is turn off.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(_ => {
-      return false;
-    });
+    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(_ => false);
 
     render(
       <CommonTestWrapper>
