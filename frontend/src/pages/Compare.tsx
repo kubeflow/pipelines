@@ -32,12 +32,12 @@ enum CompareVersion {
   V1,
   V2,
   Mixed,
-  TooFewRuns,
+  InvalidRunCount,
 }
 
 // This is a router to determine whether to show V1 or V2 compare page.
 export default function Compare(props: CompareProps) {
-  const [compareVersion, setCompareVersion] = useState<CompareVersion>(CompareVersion.TooFewRuns);
+  const [compareVersion, setCompareVersion] = useState<CompareVersion>(CompareVersion.InvalidRunCount);
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 
@@ -58,13 +58,13 @@ export default function Compare(props: CompareProps) {
       },
       onSuccess: data => {
         // Set the version based on the runs included.
-        let version: CompareVersion = CompareVersion.TooFewRuns;
-        if (data && data.length > 1) {
+        let version: CompareVersion = CompareVersion.InvalidRunCount;
+        if (data && data.length >= 2 && data.length <= 10) {
           for (const run of data) {
             const runVersion = run.run?.pipeline_spec?.hasOwnProperty('pipeline_manifest')
               ? CompareVersion.V2
               : CompareVersion.V1;
-            if (version === CompareVersion.TooFewRuns) {
+            if (version === CompareVersion.InvalidRunCount) {
               version = runVersion;
             } else if (version !== runVersion) {
               version = CompareVersion.Mixed;
@@ -73,9 +73,10 @@ export default function Compare(props: CompareProps) {
         }
 
         // Update banner based on feature flag, run versions, and run count.
-        if (isFeatureEnabled(FeatureKey.V2_ALPHA) && version === CompareVersion.TooFewRuns) {
+        if (isFeatureEnabled(FeatureKey.V2_ALPHA) && version === CompareVersion.InvalidRunCount) {
           props.updateBanner({
-            additionalInfo: 'At least two runs must be selected to view the Run Comparison page.',
+            additionalInfo:
+              'At least two runs and at most ten runs must be selected to view the Run Comparison page.',
             message:
               'Error: failed loading the Run Comparison page. Click Details for more information.',
             mode: 'error',

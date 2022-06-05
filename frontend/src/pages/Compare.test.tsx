@@ -161,7 +161,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     });
   });
 
-  it('Show too few runs page error if there are less than two runs', async () => {
+  it('Show invalid run count page error if there are less than two runs', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID, true)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
@@ -185,7 +185,49 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     await TestUtils.flushPromises();
 
     expect(updateBannerSpy).toHaveBeenLastCalledWith({
-      additionalInfo: 'At least two runs must be selected to view the Run Comparison page.',
+      additionalInfo: 'At least two runs and at most ten runs must be selected to view the Run Comparison page.',
+      message: 'Error: failed loading the Run Comparison page. Click Details for more information.',
+      mode: 'error',
+    });
+  });
+
+  it('Show invalid run count page error if there are more than ten runs', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [
+      newMockRun('1', true),
+      newMockRun('2', true),
+      newMockRun('3', true),
+      newMockRun('4', true),
+      newMockRun('5', true),
+      newMockRun('6', true),
+      newMockRun('7', true),
+      newMockRun('8', true),
+      newMockRun('9', true),
+      newMockRun('10', true),
+      newMockRun('11', true),
+    ];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    // v2 feature is turn on.
+    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
+      if (featureKey === features.FeatureKey.V2_ALPHA) {
+        return true;
+      }
+      return false;
+    });
+
+    const props = generateProps();
+    props.location.search = `?${QUERY_PARAMS.runlist}=1,2,3,4,5,6,7,8,9,10,11`;
+    render(
+      <CommonTestWrapper>
+        <Compare {...props} />
+      </CommonTestWrapper>,
+    );
+
+    await TestUtils.flushPromises();
+
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({
+      additionalInfo: 'At least two runs and at most ten runs must be selected to view the Run Comparison page.',
       message: 'Error: failed loading the Run Comparison page. Click Details for more information.',
       mode: 'error',
     });
