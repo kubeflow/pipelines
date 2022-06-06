@@ -185,7 +185,8 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     await TestUtils.flushPromises();
 
     expect(updateBannerSpy).toHaveBeenLastCalledWith({
-      additionalInfo: 'At least two runs and at most ten runs must be selected to view the Run Comparison page.',
+      additionalInfo:
+        'At least two runs and at most ten runs must be selected to view the Run Comparison page.',
       message: 'Error: failed loading the Run Comparison page. Click Details for more information.',
       mode: 'error',
     });
@@ -227,7 +228,8 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     await TestUtils.flushPromises();
 
     expect(updateBannerSpy).toHaveBeenLastCalledWith({
-      additionalInfo: 'At least two runs and at most ten runs must be selected to view the Run Comparison page.',
+      additionalInfo:
+        'At least two runs and at most ten runs must be selected to view the Run Comparison page.',
       message: 'Error: failed loading the Run Comparison page. Click Details for more information.',
       mode: 'error',
     });

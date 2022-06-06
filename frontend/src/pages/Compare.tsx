@@ -37,7 +37,9 @@ enum CompareVersion {
 
 // This is a router to determine whether to show V1 or V2 compare page.
 export default function Compare(props: CompareProps) {
-  const [compareVersion, setCompareVersion] = useState<CompareVersion>(CompareVersion.InvalidRunCount);
+  const [compareVersion, setCompareVersion] = useState<CompareVersion>(
+    CompareVersion.InvalidRunCount,
+  );
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 

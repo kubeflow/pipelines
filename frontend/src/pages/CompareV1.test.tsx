@@ -153,12 +153,6 @@ describe('CompareV1', () => {
     }
   });
 
-  it('clears banner upon initial load', () => {
-    tree = shallow(<CompareV1 {...generateProps()} />);
-    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
-  });
-
   it('renders a page with no runs', async () => {
     const props = generateProps();
     // Ensure there are no run IDs in the query
@@ -166,8 +160,7 @@ describe('CompareV1', () => {
     tree = shallow(<CompareV1 {...props} />);
     await TestUtils.flushPromises();
 
-    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+    expect(updateBannerSpy).toHaveBeenCalledTimes(0);
 
     expect(tree).toMatchSnapshot();
   });
@@ -228,21 +221,6 @@ describe('CompareV1', () => {
         mode: 'error',
       }),
     );
-  });
-
-  it('clears the error banner on refresh', async () => {
-    TestUtils.makeErrorResponseOnce(getRunSpy, 'test error');
-
-    tree = shallow(<CompareV1 {...generateProps()} />);
-    await TestUtils.flushPromises();
-
-    // Verify that error banner is being shown
-    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({ mode: 'error' }));
-
-    (tree.instance() as Compare).refresh();
-
-    // Error banner should be cleared
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 
   it("displays run's parameters if the run has any", async () => {
