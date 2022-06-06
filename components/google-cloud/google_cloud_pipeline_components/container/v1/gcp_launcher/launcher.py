@@ -68,6 +68,8 @@ _JOB_TYPE_TO_ACTION_MAP = {
         bigquery_job_remote_runner.bigquery_export_model_job,
     'BigqueryEvaluateModelJob':
         bigquery_job_remote_runner.bigquery_evaluate_model_job,
+    'BigqueryMLCentroidsJob':
+        bigquery_job_remote_runner.bigquery_ml_centroids_job,
     'BigqueryMLWeightsJob':
         bigquery_job_remote_runner.bigquery_ml_weights_job,
     'BigqueryMLReconstructionLossJob':
@@ -139,7 +141,8 @@ def _parse_args(args):
           'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob',
           'BigQueryMLWeightsJob', 'BigqueryMLTrialInfoJob',
           'BigqueryMLReconstructionLossJob', 'BigqueryMLTrainingInfoJob',
-          'BigqueryMLAdvancedWeightsJob', 'BigqueryDropModelJob'
+          'BigqueryMLAdvancedWeightsJob', 'BigqueryDropModelJob',
+          'BigqueryMLCentroidsJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -158,7 +161,8 @@ def _parse_args(args):
           'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob',
           'BigQueryMLWeightsJob', 'BigqueryMLTrialInfoJob',
           'BigqueryMLReconstructionLossJob', 'BigqueryMLTrainingInfoJob',
-          'BigqueryMLAdvancedWeightsJob', 'BigqueryDropModelJob'
+          'BigqueryMLAdvancedWeightsJob', 'BigqueryDropModelJob',
+          'BigqueryMLCentroidsJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -170,7 +174,7 @@ def _parse_args(args):
           'BigQueryEvaluateModelJob', 'BigQueryMLWeightsJob',
           'BigqueryMLTrialInfoJob', 'BigqueryMLReconstructionLossJob'
           'BigqueryMLTrainingInfoJob', 'BigqueryMLAdvancedWeightsJob',
-          'BigqueryDropModelJob'
+          'BigqueryDropModelJob', 'BigqueryMLCentroidsJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -218,9 +222,15 @@ def _parse_args(args):
       dest='batch_id',
       type=str,
       required=(parsed_args.type in {
-          'DataprocPySparkBatch', 'DataprocSparkBatch',
-          'DataprocSparkRBatch', 'DataprocSparkSqlBatch'
+          'DataprocPySparkBatch', 'DataprocSparkBatch', 'DataprocSparkRBatch',
+          'DataprocSparkSqlBatch'
       }),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--standardize',
+      dest='standardize',
+      type=bool,
+      required=(parsed_args.type in {'BigqueryMLCentroidsJob'}),
       default=argparse.SUPPRESS)
   parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)

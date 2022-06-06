@@ -33,6 +33,7 @@ __all__ = [
     'BigqueryExplainPredictModelJobOp',
     'BigqueryMLAdvancedWeightsJobOp',
     'BigqueryDropModelJobOp',
+    'BigqueryMLCentroidsJobOp',
 ]
 
 BigqueryQueryJobOp = load_component_from_file(
@@ -74,3 +75,6 @@ BigqueryMLAdvancedWeightsJobOp = load_component_from_file(
 
 BigqueryDropModelJobOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'drop_model/component.yaml'))
+
+BigqueryMLCentroidsJobOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'ml_centroids/component.yaml'))
