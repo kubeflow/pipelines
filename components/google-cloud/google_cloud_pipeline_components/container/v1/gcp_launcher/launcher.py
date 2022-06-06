@@ -74,6 +74,8 @@ _JOB_TYPE_TO_ACTION_MAP = {
         bigquery_job_remote_runner.bigquery_ml_trial_info_job,
     'BigqueryMLTrainingInfoJob':
         bigquery_job_remote_runner.bigquery_ml_training_info_job,
+    'BigqueryMLAdvancedWeightsJob':
+        bigquery_job_remote_runner.bigquery_ml_advanced_weights_job,
     'DataprocPySparkBatch':
         dataproc_batch_remote_runner.create_pyspark_batch,
     'DataprocSparkBatch':
@@ -134,7 +136,8 @@ def _parse_args(args):
           'BigqueryQueryJob', 'BigqueryCreateModelJob',
           'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob',
           'BigQueryMLWeightsJob', 'BigqueryMLTrialInfoJob',
-          'BigqueryMLReconstructionLossJob', 'BigqueryMLTrainingInfoJob'
+          'BigqueryMLReconstructionLossJob', 'BigqueryMLTrainingInfoJob',
+          'BigqueryMLAdvancedWeightsJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -152,7 +155,8 @@ def _parse_args(args):
           'BigqueryQueryJob', 'BigqueryCreateModelJob',
           'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob',
           'BigQueryMLWeightsJob', 'BigqueryMLTrialInfoJob',
-          'BigqueryMLReconstructionLossJob', 'BigqueryMLTrainingInfoJob'
+          'BigqueryMLReconstructionLossJob', 'BigqueryMLTrainingInfoJob',
+          'BigqueryMLAdvancedWeightsJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -163,7 +167,7 @@ def _parse_args(args):
           'BigqueryPredictModelJob', 'BigqueryExportModelJob',
           'BigQueryEvaluateModelJob', 'BigQueryMLWeightsJob',
           'BigqueryMLTrialInfoJob', 'BigqueryMLReconstructionLossJob'
-          'BigqueryMLTrainingInfoJob'
+          'BigqueryMLTrainingInfoJob', 'BigqueryMLAdvancedWeightsJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
