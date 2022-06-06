@@ -58,6 +58,8 @@ _JOB_TYPE_TO_ACTION_MAP = {
         bigquery_job_remote_runner.bigquery_query_job,
     'BigqueryCreateModelJob':
         bigquery_job_remote_runner.bigquery_create_model_job,
+    'BigqueryDropModelJob':
+        bigquery_job_remote_runner.bigquery_drop_model_job,
     'BigqueryPredictModelJob':
         bigquery_job_remote_runner.bigquery_predict_model_job,
     'BigqueryExplainPredictModelJob':
@@ -137,7 +139,7 @@ def _parse_args(args):
           'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob',
           'BigQueryMLWeightsJob', 'BigqueryMLTrialInfoJob',
           'BigqueryMLReconstructionLossJob', 'BigqueryMLTrainingInfoJob',
-          'BigqueryMLAdvancedWeightsJob'
+          'BigqueryMLAdvancedWeightsJob', 'BigqueryDropModelJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -156,7 +158,7 @@ def _parse_args(args):
           'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob',
           'BigQueryMLWeightsJob', 'BigqueryMLTrialInfoJob',
           'BigqueryMLReconstructionLossJob', 'BigqueryMLTrainingInfoJob',
-          'BigqueryMLAdvancedWeightsJob'
+          'BigqueryMLAdvancedWeightsJob', 'BigqueryDropModelJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -167,7 +169,8 @@ def _parse_args(args):
           'BigqueryPredictModelJob', 'BigqueryExportModelJob',
           'BigQueryEvaluateModelJob', 'BigQueryMLWeightsJob',
           'BigqueryMLTrialInfoJob', 'BigqueryMLReconstructionLossJob'
-          'BigqueryMLTrainingInfoJob', 'BigqueryMLAdvancedWeightsJob'
+          'BigqueryMLTrainingInfoJob', 'BigqueryMLAdvancedWeightsJob',
+          'BigqueryDropModelJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
