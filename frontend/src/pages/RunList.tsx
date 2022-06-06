@@ -444,7 +444,6 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
   /**
    * For each run ID, fetch its corresponding run, and set it in DisplayRuns
-   * Remove the run from the list if its name does not match the filter
    */
   private _getAndSetRuns(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
     return Promise.all(
