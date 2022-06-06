@@ -22,11 +22,9 @@ import { FeatureKey, isFeatureEnabled } from 'src/features';
 import { Apis } from 'src/lib/Apis';
 import { errorToMessage } from 'src/lib/Utils';
 import { URLParser } from '../lib/URLParser';
-import CompareV1, { CompareState } from './CompareV1';
+import CompareV1 from './CompareV1';
 import CompareV2 from './CompareV2';
 import { PageProps } from './Page';
-
-export type CompareProps = PageProps & CompareState;
 
 enum CompareVersion {
   V1,
@@ -36,7 +34,7 @@ enum CompareVersion {
 }
 
 // This is a router to determine whether to show V1 or V2 compare page.
-export default function Compare(props: CompareProps) {
+export default function Compare(props: PageProps) {
   const [compareVersion, setCompareVersion] = useState<CompareVersion>(
     CompareVersion.InvalidRunCount,
   );
