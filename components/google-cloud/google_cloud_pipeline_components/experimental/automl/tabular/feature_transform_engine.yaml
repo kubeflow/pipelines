@@ -44,6 +44,7 @@ description: |
     Returns:
         materialized_data (Dataset): The materialized dataset.
         transform_output (TransformOutput): The transform output artifact.
+        training_schema (TrainingSchema): The training schema.
         gcp_resources (str):
             GCP resources created by this component.
             For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
@@ -64,6 +65,7 @@ inputs:
 outputs:
 - {name: materialized_data, type: Dataset}
 - {name: transform_output, type: TransformOutput}
+- {name: training_schema, type: TrainingSchema}
 - {name: gcp_resources, type: String}
 
 implementation:
@@ -89,12 +91,14 @@ implementation:
         {inputValue: root_dir},
         '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized_data","--materialized_data_artifact_path=',
         {outputUri: materialized_data},
-        '", "--transform_config=',
+        '", "--transform_config_path=',
         {inputValue: transform_config},
         '", "--analyze_data_path=',
         {inputUri: analyze_data},
         '", "--transform_data_path=',
         {inputUri: transform_data},
+        '", "--training_schema_path=',
+        {outputUri: training_schema},
         '", "--job_name=feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
         '", "--dataflow_project=',
         {inputValue: project},
