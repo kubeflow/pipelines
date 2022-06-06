@@ -336,7 +336,19 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       ) as ApiFilter;
       // listRuns doesn't currently support batching by IDs, so in this case we retrieve and filter
       // each run individually.
-      await this._getAndSetRuns(displayRuns, filter);
+      await this._getAndSetRuns(displayRuns);
+      const predicates = filter.predicates?.filter(
+        p => p.key === 'name' && p.op === PredicateOp.ISSUBSTRING,
+      );
+      const substrings = predicates?.map(p => p.string_value?.toLowerCase() || '') || [];
+      displayRuns = displayRuns.filter(runDetail => {
+        for (const sub of substrings) {
+          if (!runDetail?.run?.name?.toLowerCase().includes(sub)) {
+            return false;
+          }
+        }
+        return true;
+      });
     } else {
       // Load all runs
       if (this.props.storageState) {
@@ -434,25 +446,13 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
    * For each run ID, fetch its corresponding run, and set it in DisplayRuns
    * Remove the run from the list if its name does not match the filter
    */
-  private _getAndSetRuns(displayRuns: DisplayRun[], filter: ApiFilter): Promise<DisplayRun[]> {
-    const filterSubstring =
-      filter.predicates &&
-      filter.predicates[0] &&
-      filter.predicates[0].key === 'name' &&
-      filter.predicates[0].op === PredicateOp.ISSUBSTRING &&
-      filter.predicates[0].string_value
-        ? filter.predicates[0].string_value.toLowerCase()
-        : '';
+  private _getAndSetRuns(displayRuns: DisplayRun[]): Promise<DisplayRun[]> {
     return Promise.all(
       displayRuns.map(async displayRun => {
         let getRunResponse: ApiRunDetail;
         try {
           getRunResponse = await Apis.runServiceApi.getRun(displayRun.run!.id!);
-          if (getRunResponse.run?.name?.toLowerCase().includes(filterSubstring)) {
-            displayRun.run = getRunResponse.run!;
-          } else {
-            displayRuns.splice(displayRuns.indexOf(displayRun), 1);
-          }
+          displayRun.run = getRunResponse.run!;
         } catch (err) {
           displayRun.error = await errorToMessage(err);
         }

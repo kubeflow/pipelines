@@ -403,6 +403,28 @@ describe('RunList', () => {
     ]);
   });
 
+  it('loads given and filtered list of runs only through multiple filters', async () => {
+    mockNRuns(5, {});
+    const props = generateProps();
+    props.runIdListMask = ['filterRun1', 'filterRun2', 'notincluded1'];
+    tree = shallow(<RunList {...props} />);
+    await (tree.instance() as RunListTest)._loadRuns({
+      filter: encodeURIComponent(
+        JSON.stringify({
+          predicates: [
+            { key: 'name', op: PredicateOp.ISSUBSTRING, string_value: 'filterRun' },
+            { key: 'name', op: PredicateOp.ISSUBSTRING, string_value: '1' },
+          ],
+        }),
+      ),
+    });
+    expect(tree.state('runs')).toMatchObject([
+      {
+        run: { name: 'run with id: filterRun1' },
+      },
+    ]);
+  });
+
   it('adds metrics columns', async () => {
     mockNRuns(2, {
       run: {
