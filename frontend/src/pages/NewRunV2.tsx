@@ -25,7 +25,6 @@ import {
   ApiResourceReference,
   ApiResourceType,
   ApiRun,
-  ProtobufValue,
 } from 'src/apis/run';
 import BusyButton from 'src/atoms/BusyButton';
 import { ExternalLink } from 'src/atoms/ExternalLink';
@@ -66,7 +65,7 @@ interface RunV2Props {
 type NewRunV2Props = RunV2Props & PageProps;
 
 export type SpecParameters = { [key: string]: ComponentInputsSpec_ParameterSpec };
-export type RuntimeParameters = { [key: string]: ProtobufValue };
+export type RuntimeParameters = { [key: string]: any };
 
 function NewRunV2(props: NewRunV2Props) {
   // List of elements we need to create Pipeline Run.
