@@ -75,7 +75,7 @@ describe('CompareV1', () => {
 
   let runs: ApiRunDetail[] = [];
 
-  function newMockRun(id?: string): ApiRunDetail {
+  function newMockRun(id?: string, v2?: boolean): ApiRunDetail {
     return {
       pipeline_runtime: {
         workflow_manifest: '{}',
@@ -83,6 +83,7 @@ describe('CompareV1', () => {
       run: {
         id: id || 'test-run-id',
         name: 'test run ' + id,
+        pipeline_spec: v2 ? { pipeline_manifest: '' } : { workflow_manifest: '' },
       },
     };
   }
@@ -153,6 +154,12 @@ describe('CompareV1', () => {
     }
   });
 
+  it('clears banner upon initial load', () => {
+    tree = shallow(<CompareV1 {...generateProps()} />);
+    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+  });
+
   it('renders a page with no runs', async () => {
     const props = generateProps();
     // Ensure there are no run IDs in the query
@@ -160,7 +167,8 @@ describe('CompareV1', () => {
     tree = shallow(<CompareV1 {...props} />);
     await TestUtils.flushPromises();
 
-    expect(updateBannerSpy).toHaveBeenCalledTimes(0);
+    expect(updateBannerSpy).toHaveBeenCalledTimes(1);
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
 
     expect(tree).toMatchSnapshot();
   });
@@ -204,6 +212,27 @@ describe('CompareV1', () => {
     );
   });
 
+  it('shows an info banner if all runs are v2', async () => {
+    runs = [
+      newMockRun(MOCK_RUN_1_ID, true),
+      newMockRun(MOCK_RUN_2_ID, true),
+      newMockRun(MOCK_RUN_3_ID, true),
+    ];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    tree = shallow(<CompareV1 {...generateProps()} />);
+    await TestUtils.flushPromises();
+
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({
+      additionalInfo:
+        'The selected runs are all V2, but the V2_ALPHA feature flag is disabled.' +
+        ' The V1 page will not show any useful information for these runs.',
+      message:
+        'Info: enable the V2_ALPHA feature flag in order to view the updated Run Comparison page.',
+      mode: 'info',
+    });
+  });
+
   it('shows an error banner indicating the number of getRun calls that failed', async () => {
     getRunSpy.mockImplementation(() => {
       throw {
@@ -221,6 +250,21 @@ describe('CompareV1', () => {
         mode: 'error',
       }),
     );
+  });
+
+  it('clears the error banner on refresh', async () => {
+    TestUtils.makeErrorResponseOnce(getRunSpy, 'test error');
+
+    tree = shallow(<CompareV1 {...generateProps()} />);
+    await TestUtils.flushPromises();
+
+    // Verify that error banner is being shown
+    expect(updateBannerSpy).toHaveBeenLastCalledWith(expect.objectContaining({ mode: 'error' }));
+
+    (tree.instance() as Compare).refresh();
+
+    // Error banner should be cleared
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 
   it("displays run's parameters if the run has any", async () => {

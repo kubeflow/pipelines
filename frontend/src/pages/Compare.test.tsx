@@ -152,13 +152,16 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
 
     await TestUtils.flushPromises();
 
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({
-      additionalInfo:
-        'The selected runs are a mix of V1 and V2.' +
-        ' Please select all V1 or all V2 runs to view the associated Run Comparison page.',
-      message: 'Error: failed loading the Run Comparison page. Click Details for more information.',
-      mode: 'error',
-    });
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenLastCalledWith({
+        additionalInfo:
+          'The selected runs are a mix of V1 and V2.' +
+          ' Please select all V1 or all V2 runs to view the associated Run Comparison page.',
+        message:
+          'Error: failed loading the Run Comparison page. Click Details for more information.',
+        mode: 'error',
+      }),
+    );
   });
 
   it('Show invalid run count page error if there are less than two runs', async () => {
@@ -184,12 +187,15 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
 
     await TestUtils.flushPromises();
 
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({
-      additionalInfo:
-        'At least two runs and at most ten runs must be selected to view the Run Comparison page.',
-      message: 'Error: failed loading the Run Comparison page. Click Details for more information.',
-      mode: 'error',
-    });
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenLastCalledWith({
+        additionalInfo:
+          'At least two runs and at most ten runs must be selected to view the Run Comparison page.',
+        message:
+          'Error: failed loading the Run Comparison page. Click Details for more information.',
+        mode: 'error',
+      }),
+    );
   });
 
   it('Show invalid run count page error if there are more than ten runs', async () => {
@@ -227,12 +233,15 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
 
     await TestUtils.flushPromises();
 
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({
-      additionalInfo:
-        'At least two runs and at most ten runs must be selected to view the Run Comparison page.',
-      message: 'Error: failed loading the Run Comparison page. Click Details for more information.',
-      mode: 'error',
-    });
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenLastCalledWith({
+        additionalInfo:
+          'At least two runs and at most ten runs must be selected to view the Run Comparison page.',
+        message:
+          'Error: failed loading the Run Comparison page. Click Details for more information.',
+        mode: 'error',
+      }),
+    );
   });
 
   it('Show no error on v1 page if run versions are mixed between v1 and v2 and feature flag disabled', async () => {
@@ -256,7 +265,6 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     await TestUtils.flushPromises();
 
     await waitFor(() => screen.getByText('Run overview'));
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
   });
 
   it('Show no error on v1 page if there are less than two runs and v2 feature flag disabled', async () => {
@@ -278,38 +286,6 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     await TestUtils.flushPromises();
 
     await waitFor(() => screen.getByText('Run overview'));
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
-  });
-
-  it('Show info banner on v1 page if all runs are v2 and v2 feature flag disabled', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
-    runs = [
-      newMockRun(MOCK_RUN_1_ID, true),
-      newMockRun(MOCK_RUN_2_ID, true),
-      newMockRun(MOCK_RUN_3_ID, true),
-    ];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
-
-    // v2 feature is turn off.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(_ => false);
-
-    render(
-      <CommonTestWrapper>
-        <Compare {...generateProps()} />
-      </CommonTestWrapper>,
-    );
-
-    await TestUtils.flushPromises();
-
-    await waitFor(() => screen.getByText('Run overview'));
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({
-      additionalInfo:
-        'The selected runs are all V2, but the V2_ALPHA feature flag is disabled.' +
-        ' The V1 page will not show any useful information for these runs.',
-      message:
-        'Info: enable the V2_ALPHA feature flag in order to view the updated Run Comparison page.',
-      mode: 'info',
-    });
   });
 
   it('Show v2 page if all runs are v2 and the v2 feature flag is enabled', async () => {
@@ -409,10 +385,12 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
 
     await TestUtils.flushPromises();
 
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({
-      additionalInfo: 'test error',
-      message: 'Error: failed loading 3 runs. Click Details for more information.',
-      mode: 'error',
-    });
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenLastCalledWith({
+        additionalInfo: 'test error',
+        message: 'Error: failed loading 3 runs. Click Details for more information.',
+        mode: 'error',
+      }),
+    );
   });
 });

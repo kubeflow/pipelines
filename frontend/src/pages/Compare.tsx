@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from 'react-query';
 import { ApiRunDetail } from 'src/apis/run';
 import { QUERY_PARAMS } from 'src/components/Router';
@@ -31,82 +31,78 @@ enum CompareVersion {
   V2,
   Mixed,
   InvalidRunCount,
+  Unknown,
 }
 
 // This is a router to determine whether to show V1 or V2 compare page.
 export default function Compare(props: PageProps) {
-  const [compareVersion, setCompareVersion] = useState<CompareVersion>(
-    CompareVersion.InvalidRunCount,
-  );
+  const { updateBanner } = props;
+  const [compareVersion, setCompareVersion] = useState<CompareVersion>(CompareVersion.Unknown);
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 
   // Retrieves run details, set page version on success.
-  const { isError } = useQuery<ApiRunDetail[], Error>(
+  const { isError, error } = useQuery<ApiRunDetail[], Error>(
     ['run_details', { ids: runIds }],
     () => Promise.all(runIds.map(async id => await Apis.runServiceApi.getRun(id))),
     {
-      refetchOnMount: 'always',
       staleTime: Infinity,
-      onError: async error => {
+      onSuccess: data => {
+        // Set the version based on the runs included.
+        if (data.length < 2 || data.length > 10) {
+          setCompareVersion(CompareVersion.InvalidRunCount);
+        } else {
+          const v2runs = data.filter(run =>
+            run.run?.pipeline_spec?.hasOwnProperty('pipeline_manifest'),
+          );
+          if (v2runs.length === 0) {
+            setCompareVersion(CompareVersion.V1);
+          } else if (v2runs.length === data.length) {
+            setCompareVersion(CompareVersion.V2);
+          } else {
+            setCompareVersion(CompareVersion.Mixed);
+          }
+        }
+      },
+    },
+  );
+
+  useEffect(() => {
+    // Update banner based on error, feature flag, run versions, and run count.
+    if (isError) {
+      (async function() {
         const errorMessage = await errorToMessage(error);
-        props.updateBanner({
+        updateBanner({
           additionalInfo: errorMessage ? errorMessage : undefined,
           message: `Error: failed loading ${runIds.length} runs. Click Details for more information.`,
           mode: 'error',
         });
-      },
-      onSuccess: data => {
-        // Set the version based on the runs included.
-        let version: CompareVersion = CompareVersion.InvalidRunCount;
-        if (data && data.length >= 2 && data.length <= 10) {
-          for (const run of data) {
-            const runVersion = run.run?.pipeline_spec?.hasOwnProperty('pipeline_manifest')
-              ? CompareVersion.V2
-              : CompareVersion.V1;
-            if (version === CompareVersion.InvalidRunCount) {
-              version = runVersion;
-            } else if (version !== runVersion) {
-              version = CompareVersion.Mixed;
-            }
-          }
-        }
-
-        // Update banner based on feature flag, run versions, and run count.
-        if (isFeatureEnabled(FeatureKey.V2_ALPHA) && version === CompareVersion.InvalidRunCount) {
-          props.updateBanner({
-            additionalInfo:
-              'At least two runs and at most ten runs must be selected to view the Run Comparison page.',
-            message:
-              'Error: failed loading the Run Comparison page. Click Details for more information.',
-            mode: 'error',
-          });
-        } else if (isFeatureEnabled(FeatureKey.V2_ALPHA) && version === CompareVersion.Mixed) {
-          props.updateBanner({
-            additionalInfo:
-              'The selected runs are a mix of V1 and V2.' +
-              ' Please select all V1 or all V2 runs to view the associated Run Comparison page.',
-            message:
-              'Error: failed loading the Run Comparison page. Click Details for more information.',
-            mode: 'error',
-          });
-        } else if (!isFeatureEnabled(FeatureKey.V2_ALPHA) && version === CompareVersion.V2) {
-          props.updateBanner({
-            additionalInfo:
-              'The selected runs are all V2, but the V2_ALPHA feature flag is disabled.' +
-              ' The V1 page will not show any useful information for these runs.',
-            message:
-              'Info: enable the V2_ALPHA feature flag in order to view the updated Run Comparison page.',
-            mode: 'info',
-          });
-        } else {
-          props.updateBanner({});
-        }
-
-        setCompareVersion(version);
-      },
-    },
-  );
+      })();
+    } else if (
+      isFeatureEnabled(FeatureKey.V2_ALPHA) &&
+      compareVersion === CompareVersion.InvalidRunCount
+    ) {
+      updateBanner({
+        additionalInfo:
+          'At least two runs and at most ten runs must be selected to view the Run Comparison page.',
+        message:
+          'Error: failed loading the Run Comparison page. Click Details for more information.',
+        mode: 'error',
+      });
+    } else if (isFeatureEnabled(FeatureKey.V2_ALPHA) && compareVersion === CompareVersion.Mixed) {
+      updateBanner({
+        additionalInfo:
+          'The selected runs are a mix of V1 and V2.' +
+          ' Please select all V1 or all V2 runs to view the associated Run Comparison page.',
+        message:
+          'Error: failed loading the Run Comparison page. Click Details for more information.',
+        mode: 'error',
+      });
+    } else if (isFeatureEnabled(FeatureKey.V2_ALPHA) && compareVersion !== CompareVersion.V1) {
+      // Clear the banner unless the V1 page is shown, as that page handles its own banner state.
+      updateBanner({});
+    }
+  }, [compareVersion, isError, error, updateBanner, runIds.length]);
 
   if (isError) {
     return <></>;
