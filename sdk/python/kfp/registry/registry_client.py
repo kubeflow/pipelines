@@ -203,9 +203,9 @@ class RegistryClient:
                 'update_tag_url':
                     f'{tags_endpoint}/{{tag}}?updateMask=version',
                 'get_version_url':
-                    f'{versions_endpoint}/{{version}}',
+                    f'{versions_endpoint}/{{version}}?view=FULL',
                 'list_versions_url':
-                    f'{versions_endpoint}',
+                    f'{versions_endpoint}?view=FULL',
                 'delete_version_url':
                     f'{versions_endpoint}/{{version}}',
                 'package_format':
