@@ -14,18 +14,22 @@
 
 import json
 import os
+import re
 import tempfile
 import unittest
+from typing import Any, Dict, List, Optional
 
+import yaml
 from absl.testing import parameterized
+from click import testing
 from google.protobuf import json_format
 from kfp import components
 from kfp import dsl
+from kfp.cli import cli
 from kfp.compiler import compiler
 from kfp.components.types import type_utils
 from kfp.dsl import PipelineTaskFinalStatus
 from kfp.pipeline_spec import pipeline_spec_pb2
-import yaml
 
 VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
     name: producer
@@ -860,6 +864,95 @@ class TestWriteIrToFile(unittest.TestCase):
             temp_filepath = os.path.join(tempdir, 'output.txt')
             compiler.write_pipeline_spec_to_file(self.pipeline_spec,
                                                  temp_filepath)
+
+
+SAMPLE_PIPELINES_TEST_DATA_DIR = os.path.join(
+    os.path.dirname(__file__), 'test_data')
+
+SPECIAL_TEST_PY_FILES = {'two_step_pipeline.py'}
+
+TEST_PY_FILES = {
+    file.split('.')[0]
+    for file in os.listdir(SAMPLE_PIPELINES_TEST_DATA_DIR)
+    if ".py" in file and file not in SPECIAL_TEST_PY_FILES
+}
+
+
+class TestDslCompileSamplePipelines(parameterized.TestCase):
+
+    def _invoke(self, args: List[str]) -> testing.Result:
+        starting_args = ['dsl', 'compile']
+        args = starting_args + args
+        runner = testing.CliRunner()
+        return runner.invoke(
+            cli=cli.cli, args=args, catch_exceptions=False, obj={})
+
+    def _ignore_kfp_version_helper(self, spec: Dict[str,
+                                                    Any]) -> Dict[str, Any]:
+        """Ignores kfp sdk versioning in command.
+
+        Takes in a YAML input and ignores the kfp sdk versioning in
+        command for comparison between compiled file and goldens.
+        """
+        pipeline_spec = spec.get('pipelineSpec', spec)
+
+        if 'executors' in pipeline_spec['deploymentSpec']:
+            for executor in pipeline_spec['deploymentSpec']['executors']:
+                pipeline_spec['deploymentSpec']['executors'][
+                    executor] = yaml.safe_load(
+                        re.sub(
+                            r"'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'", 'kfp',
+                            yaml.dump(
+                                pipeline_spec['deploymentSpec']['executors']
+                                [executor],
+                                sort_keys=True)))
+        return spec
+
+    def _load_compiled_file(self, filename: str) -> Dict[str, Any]:
+        with open(filename, 'r') as f:
+            contents = yaml.safe_load(f)
+            pipeline_spec = contents[
+                'pipelineSpec'] if 'pipelineSpec' in contents else contents
+            # ignore the sdkVersion
+            del pipeline_spec['sdkVersion']
+            return self._ignore_kfp_version_helper(contents)
+
+    def _test_compile_py_to_yaml(
+            self,
+            file_base_name: str,
+            additional_arguments: Optional[List[str]] = None) -> None:
+        py_file = os.path.join(SAMPLE_PIPELINES_TEST_DATA_DIR,
+                               f'{file_base_name}.py')
+
+        golden_compiled_file = os.path.join(SAMPLE_PIPELINES_TEST_DATA_DIR,
+                                            f'{file_base_name}.yaml')
+
+        if additional_arguments is None:
+            additional_arguments = []
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            generated_compiled_file = os.path.join(
+                tmpdir, f'{file_base_name}-pipeline.yaml')
+
+            result = self._invoke(
+                ['--py', py_file, '--output', generated_compiled_file] +
+                additional_arguments)
+
+            self.assertEqual(result.exit_code, 0)
+
+            compiled = self._load_compiled_file(generated_compiled_file)
+
+        golden = self._load_compiled_file(golden_compiled_file)
+        self.assertEqual(golden, compiled)
+
+    def test_two_step_pipeline(self):
+        self._test_compile_py_to_yaml(
+            'two_step_pipeline',
+            ['--pipeline-parameters', '{"text":"Hello KFP!"}'])
+
+    @parameterized.parameters(TEST_PY_FILES)
+    def test_compile_pipelines(self, file: str):
+        self._test_compile_py_to_yaml(file)
 
 
 if __name__ == '__main__':
