@@ -32,6 +32,9 @@ import yaml
 from kfp import compiler
 from kfp.client import auth
 
+
+LOG_LEVEL_WHITELIST = ["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"]
+
 # Operators on scalar values. Only applies to one of |int_value|,
 # |long_value|, |string_value| or |timestamp_value|.
 _FILTER_OPERATIONS = {
@@ -110,6 +113,8 @@ class Client:
         ui_host: Base url to use to open the Kubeflow Pipelines UI. This is used
             when running the client from a notebook to generate and print links.
         verify_ssl: Whether to verify the servers TLS certificate or not.
+        log_level: Log level to be used. Chose one of ["CRITICAL", "ERROR",
+            "WARNING", "INFO", "DEBUG", "NOTSET"]
     """
 
     # in-cluster DNS name of the pipeline service
@@ -139,8 +144,10 @@ class Client:
         credentials: Optional[str] = None,
         ui_host: Optional[str] = None,
         verify_ssl: Optional[bool] = None,
+        log_level: str = "NOTSET",
     ) -> None:
         """Create a new instance of kfp client."""
+        self._set_log_level(log_level)
         warnings.warn(
             'This client only works with Kubeflow Pipeline v2.0.0-alpha.0 '
             'and later versions.',
@@ -194,6 +201,13 @@ class Client:
             except FileNotFoundError:
                 logging.info(
                     'Failed to automatically set namespace.', exc_info=False)
+
+    @staticmethod
+    def _set_log_level(log_level: str) -> None:
+        """Sets log_level"""
+        if log_level not in LOG_LEVEL_WHITELIST:
+            raise ValueError(f"log_level must be one of {LOG_LEVEL_WHITELIST}")
+        logging.getLogger().setLevel(getattr(logging, log_level))
 
     def _load_config(
             self, host: Optional[str], client_id: Optional[str], namespace: str,
