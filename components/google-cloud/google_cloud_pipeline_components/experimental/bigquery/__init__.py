@@ -35,6 +35,7 @@ __all__ = [
     'BigqueryDropModelJobOp',
     'BigqueryMLCentroidsJobOp',
     'BigqueryMLConfusionMatrixJobOp',
+    'BigqueryMLFeatureInfoJobOp',
 ]
 
 BigqueryQueryJobOp = load_component_from_file(
@@ -82,3 +83,5 @@ BigqueryMLCentroidsJobOp = load_component_from_file(
 BigqueryMLConfusionMatrixJobOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'ml_confusion_matrix/component.yaml'))
+BigqueryMLFeatureInfoJobOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'ml_feature_info/component.yaml'))
