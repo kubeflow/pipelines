@@ -108,12 +108,21 @@ export default function Compare(props: PageProps) {
     return <></>;
   }
 
-  if (isFeatureEnabled(FeatureKey.V2_ALPHA) && compareVersion === CompareVersion.V2) {
-    return <CompareV2 />;
-  } else if (!isFeatureEnabled(FeatureKey.V2_ALPHA) || compareVersion === CompareVersion.V1) {
+  if (!isFeatureEnabled(FeatureKey.V2_ALPHA)) {
     return <CompareV1 {...props} />;
+  } else {
+    if (compareVersion === CompareVersion.V2) {
+      return <CompareV2 />;
+    } else if (compareVersion === CompareVersion.V1) {
+      return <CompareV1 {...props} />;
+    } else if (
+      compareVersion === CompareVersion.Mixed ||
+      compareVersion === CompareVersion.InvalidRunCount ||
+      compareVersion === CompareVersion.Unknown
+    ) {
+      return <></>;
+    }
   }
 
-  // Only the error banner shown for mixed run versions or less than two selected runs.
   return <></>;
 }
