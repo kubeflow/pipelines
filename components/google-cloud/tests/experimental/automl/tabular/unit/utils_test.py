@@ -324,7 +324,8 @@ class UtilsTest(unittest.TestCase):
             'distill_batch_predict_starting_replica_count':
                 40,
             'distill_stage_1_deadline_hours':
-                3 * 634 * 1.3 / 3600
+                3 * 634 * 1.3 / 3600,
+            'is_distill': True
         })
 
   def test_get_skip_architecture_search_pipeline_and_parameters(self):
