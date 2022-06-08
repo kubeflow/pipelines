@@ -899,8 +899,6 @@ SAMPLE_TEST_PY_FILES = [
     'v2_component_with_pip_index_urls',
 ]
 
-SPECIAL_TEST_PY_FILES = {'two_step_pipeline.py'}
-
 
 class TestDslCompileSamplePipelines(parameterized.TestCase):
 
