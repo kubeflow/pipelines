@@ -869,13 +869,37 @@ class TestWriteIrToFile(unittest.TestCase):
 SAMPLE_PIPELINES_TEST_DATA_DIR = os.path.join(
     os.path.dirname(__file__), 'test_data')
 
-SPECIAL_TEST_PY_FILES = {'two_step_pipeline.py'}
+SAMPLE_TEST_PY_FILES = [
+    'pipeline_with_importer',
+    'pipeline_with_ontology',
+    'pipeline_with_if_placeholder',
+    'pipeline_with_concat_placeholder',
+    'pipeline_with_resource_spec',
+    'pipeline_with_various_io_types',
+    'pipeline_with_reused_component',
+    'pipeline_with_after',
+    'pipeline_with_condition',
+    'pipeline_with_nested_conditions',
+    'pipeline_with_nested_conditions_yaml',
+    'pipeline_with_loops',
+    'pipeline_with_nested_loops',
+    'pipeline_with_loops_and_conditions',
+    'pipeline_with_params_containing_format',
+    'lightweight_python_functions_v2_pipeline',
+    'lightweight_python_functions_v2_with_outputs',
+    'xgboost_sample_pipeline',
+    'pipeline_with_metrics_outputs',
+    'pipeline_with_exit_handler',
+    'pipeline_with_env',
+    'v2_component_with_optional_inputs',
+    'pipeline_with_gcpc_types',
+    'pipeline_with_placeholders',
+    'pipeline_with_task_final_status',
+    'pipeline_with_task_final_status_yaml',
+    'v2_component_with_pip_index_urls',
+]
 
-TEST_PY_FILES = {
-    file.split('.')[0]
-    for file in os.listdir(SAMPLE_PIPELINES_TEST_DATA_DIR)
-    if ".py" in file and file not in SPECIAL_TEST_PY_FILES
-}
+SPECIAL_TEST_PY_FILES = {'two_step_pipeline.py'}
 
 
 class TestDslCompileSamplePipelines(parameterized.TestCase):
@@ -950,7 +974,7 @@ class TestDslCompileSamplePipelines(parameterized.TestCase):
             'two_step_pipeline',
             ['--pipeline-parameters', '{"text":"Hello KFP!"}'])
 
-    @parameterized.parameters(TEST_PY_FILES)
+    @parameterized.parameters(SAMPLE_TEST_PY_FILES)
     def test_compile_pipelines(self, file: str):
         self._test_compile_py_to_yaml(file)
 
