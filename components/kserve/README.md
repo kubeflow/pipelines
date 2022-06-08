@@ -4,7 +4,7 @@ Organization: KServe
 
 Organization Description: KServe is a highly scalable and standards based Model Inference Platform on Kubernetes for Trusted AI
 
-Version information: 0.7.0
+Version information: 0.8.0
 
 Test status: Currently manual tests
 
