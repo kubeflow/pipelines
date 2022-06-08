@@ -42,30 +42,33 @@ export default function Compare(props: PageProps) {
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 
   // Retrieves run details, set page version on success.
-  const { isError, error } = useQuery<ApiRunDetail[], Error>(
+  const { isError, error, data } = useQuery<ApiRunDetail[], Error>(
     ['run_details', { ids: runIds }],
     () => Promise.all(runIds.map(async id => await Apis.runServiceApi.getRun(id))),
     {
       staleTime: Infinity,
-      onSuccess: data => {
-        // Set the version based on the runs included.
-        if (data.length < 2 || data.length > 10) {
-          setCompareVersion(CompareVersion.InvalidRunCount);
-        } else {
-          const v2runs = data.filter(run =>
-            run.run?.pipeline_spec?.hasOwnProperty('pipeline_manifest'),
-          );
-          if (v2runs.length === 0) {
-            setCompareVersion(CompareVersion.V1);
-          } else if (v2runs.length === data.length) {
-            setCompareVersion(CompareVersion.V2);
-          } else {
-            setCompareVersion(CompareVersion.Mixed);
-          }
-        }
-      },
     },
   );
+
+  useEffect(() => {
+    // Set the version based on the runs included.
+    if (data) {
+      if (data.length < 2 || data.length > 10) {
+        setCompareVersion(CompareVersion.InvalidRunCount);
+      } else {
+        const v2runs = data.filter(run =>
+          run.run?.pipeline_spec?.hasOwnProperty('pipeline_manifest'),
+        );
+        if (v2runs.length === 0) {
+          setCompareVersion(CompareVersion.V1);
+        } else if (v2runs.length === data.length) {
+          setCompareVersion(CompareVersion.V2);
+        } else {
+          setCompareVersion(CompareVersion.Mixed);
+        }
+      }
+    }
+  }, [data]);
 
   useEffect(() => {
     // Update banner based on error, feature flag, run versions, and run count.
@@ -108,20 +111,12 @@ export default function Compare(props: PageProps) {
     return <></>;
   }
 
-  if (!isFeatureEnabled(FeatureKey.V2_ALPHA)) {
+  if (!isFeatureEnabled(FeatureKey.V2_ALPHA) || compareVersion === CompareVersion.V1) {
     return <CompareV1 {...props} />;
-  } else {
-    if (compareVersion === CompareVersion.V2) {
-      return <CompareV2 />;
-    } else if (compareVersion === CompareVersion.V1) {
-      return <CompareV1 {...props} />;
-    } else if (
-      compareVersion === CompareVersion.Mixed ||
-      compareVersion === CompareVersion.InvalidRunCount ||
-      compareVersion === CompareVersion.Unknown
-    ) {
-      return <></>;
-    }
+  }
+
+  if (compareVersion === CompareVersion.V2) {
+    return <CompareV2 />;
   }
 
   return <></>;
