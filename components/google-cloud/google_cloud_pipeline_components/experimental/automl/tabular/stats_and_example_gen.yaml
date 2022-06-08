@@ -102,6 +102,7 @@ inputs:
 - {name: transformations, type: String}
 - {name: split_spec, type: String}
 - {name: data_source, type: String}
+- {name: request_type, type: String, default: "COLUMN_STATS_ONLY"}
 - {name: dataflow_machine_type, type: String, default: "n1-standard-16"}
 - {name: dataflow_max_num_workers, type: Integer, default: "25"}
 - {name: dataflow_disk_size_gb, type: Integer, default: "40"}
@@ -155,7 +156,8 @@ implementation:
         {inputValue: data_source},
         '", "--target_column=',
         {inputValue: target_column_name},
-        '", "--request_type=COLUMN_STATS_ONLY',
+        '", "--request_type=',
+        {inputValue: request_type},
         '", "--optimization_objective_recall_value=',
         {inputValue: optimization_objective_recall_value},
         '", "--optimization_objective_precision_value=',
