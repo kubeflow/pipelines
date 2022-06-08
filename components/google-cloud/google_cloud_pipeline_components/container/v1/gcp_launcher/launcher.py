@@ -86,6 +86,10 @@ _JOB_TYPE_TO_ACTION_MAP = {
         bigquery_job_remote_runner.bigquery_ml_feature_info_job,
     'BigqueryMLRocCurveJob':
         bigquery_job_remote_runner.bigquery_ml_roc_curve_job,
+    'BigqueryMLPrincipalComponentsJob':
+        bigquery_job_remote_runner.bigquery_ml_principal_components_job,
+    'BigqueryMLPrincipalComponentInfoJob':
+        bigquery_job_remote_runner.bigquery_ml_principal_component_info_job,
     'DataprocPySparkBatch':
         dataproc_batch_remote_runner.create_pyspark_batch,
     'DataprocSparkBatch':
@@ -149,7 +153,9 @@ def _parse_args(args):
           'BigqueryMLReconstructionLossJob', 'BigqueryMLTrainingInfoJob',
           'BigqueryMLAdvancedWeightsJob', 'BigqueryDropModelJob',
           'BigqueryMLCentroidsJob', 'BigqueryMLConfusionMatrixJob',
-          'BigqueryMLFeatureInfoJob', 'BigqueryMLRocCurveJob'
+          'BigqueryMLFeatureInfoJob', 'BigqueryMLRocCurveJob',
+          'BigQueryMLPrincipalComponentsJob',
+          'BigQueryMLPrincipalComponentInfoJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -170,7 +176,9 @@ def _parse_args(args):
           'BigqueryMLReconstructionLossJob', 'BigqueryMLTrainingInfoJob',
           'BigqueryMLAdvancedWeightsJob', 'BigqueryDropModelJob',
           'BigqueryMLCentroidsJob', 'BigqueryMLConfusionMatrixJob',
-          'BigqueryMLFeatureInfoJob', 'BigqueryMLRocCurveJob'
+          'BigqueryMLFeatureInfoJob', 'BigqueryMLRocCurveJob',
+          'BigQueryMLPrincipalComponentsJob',
+          'BigQueryMLPrincipalComponentInfoJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -184,7 +192,8 @@ def _parse_args(args):
           'BigqueryMLTrainingInfoJob', 'BigqueryMLAdvancedWeightsJob',
           'BigqueryDropModelJob', 'BigqueryMLCentroidsJob',
           'BigqueryMLConfusionMatrixJob', 'BigqueryMLFeatureInfoJob',
-          'BigqueryMLRocCurveJob'
+          'BigqueryMLRocCurveJob', 'BigQueryMLPrincipalComponentsJob',
+          'BigQueryMLPrincipalComponentInfoJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
