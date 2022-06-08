@@ -22,6 +22,7 @@ description: |
         location (Optional[str]):
             Location for running the te transform configuration.
         root_dir (str): The Cloud Storage location to store the output.
+        skip_planner (bool): Whether to skip running the planner or not.
         metadata (TabularExampleGenMetadata): The metadata of the dataset
         dataset_stats (AutoMLTabularDatasetStats): The dataset stats of the dataset
         encryption_spec_key_name (Optional[str]):
@@ -36,6 +37,7 @@ inputs:
 - {name: project, type: String}
 - {name: location, type: String}
 - {name: root_dir, type: String}
+- {name: skip_planner, type: Boolean, default: "false"}
 - {name: metadata, type: TabularExampleGenMetadata}
 - {name: dataset_stats, type: AutoMLTabularDatasetStats}
 - {name: encryption_spec_key_name, type: String, default: ""}
@@ -65,6 +67,8 @@ implementation:
         {outputPath: fte_transform_configuration_path},
         '", "--metadata_path=',
         {inputUri: metadata},
+        '", "--skip_planner=',
+        {inputValue: skip_planner},
         '", "--dataset_stats_path=',
         {inputUri: dataset_stats},
         '"]}}]}}'
