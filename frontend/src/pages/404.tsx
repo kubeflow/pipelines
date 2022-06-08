@@ -31,7 +31,7 @@ export default class Page404 extends Page<{}, {}> {
     return (
       <div style={{ margin: '100px auto', textAlign: 'center' }}>
         <div style={{ color: '#aaa', fontSize: 50, fontWeight: 'bold' }}>404</div>
-        <div style={{ fontSize: 16 }}>{t('PageNotFoundpageNotFound')} {this.props.location.pathname}</div>
+        <div style={{ fontSize: 16 }}>{t('PageNotFound.pageNotFound')} {this.props.location.pathname}</div>
       </div>
     );
   }

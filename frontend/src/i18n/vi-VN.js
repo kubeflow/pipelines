@@ -356,5 +356,34 @@ export default {
         closeJsonEditor: "Đóng Json Editor",
         openJsonEditor: "Mở Json Editor",
         parsedJsonWasNeitherAnArrayNorAnObjectUsingDefaultRenderer: "JSON được phân tích cú pháp không phải là một mảng hay một đối tượng. Sử dụng trình kết xuất mặc định",
+    },
+    PodYaml: {
+        failedToRetrievePodInfo: "Không truy xuất được thông tin nhóm. Các lý do có thể bao gồm tự động thay đổi tỷ lệ theo cụm, ưu tiên nhóm hoặc nhóm được dọn dẹp theo thời gian để cấu hình trực tiếp",
+        failedToRetrievePodEvents: "Không thể truy xuất các sự kiện nhóm. Các lý do có thể bao gồm tự động thay đổi tỷ lệ theo cụm, ưu tiên nhóm hoặc nhóm được dọn dẹp theo thời gian để cấu hình trực tiếp"
+    },
+    SideNav: {
+        gettingStarted: "Bắt đầu",
+        list: "Danh sách {{name}}",
+        openJupyterNotebook: "Mở Jupyter Notebook",
+        documentation: "Tài liệu",
+        clusterName: "Tên cluster:",
+        buildDate: "Ngày build:",
+        version: "Phiên bản:",
+        reportAnIssue: "Báo cáo một vấn đề"
+    },
+    RunDetailsV2: {
+        cannotGetMlmdObjectsFromMetadataStore: "Không thể tải các đối tượng MLMD từ cửa hàng Siêu dữ liệu.",
+        graph: "Đồ thị",
+        detail: "Chi tiết",
+        runDetails: "Chi tiết Run",
+        runNameUnknown: "tên Run không xác định",
+        allRuns: "Tất cả runs",
+        workflowName: "Tên quy trình làm việc",
+        status: "Trạng thái",
+        description: "Mô tả",
+        createdAt: "Tạo lúc",
+        startedAt: "Bắt đầu lúc",
+        finishedAt: "Kết thúc lúc",
+        duration: "Khoảng thời gian",
     }
 }

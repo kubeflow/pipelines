@@ -20,7 +20,7 @@ import { Apis, JSONObject } from 'src/lib/Apis';
 import { serviceErrorToString } from 'src/lib/Utils';
 import Banner from './Banner';
 import Editor from './Editor';
-
+import { t } from 'i18next'
 async function getPodYaml(name: string, namespace: string): Promise<string> {
   const response = await Apis.getPodInfo(name, namespace);
   return JsYaml.safeDump(reorderPodJson(response), { skipInvalid: true });
@@ -30,7 +30,7 @@ export const PodInfo: React.FC<{ name: string; namespace: string }> = ({ name, n
     <PodYaml
       name={name}
       namespace={namespace}
-      errorMessage='Failed to retrieve pod info. Possible reasons include cluster autoscaling, pod preemption or pod cleaned up by time to live configuration'
+      errorMessage={t('PodYaml.failedToRetrievePodInfo')}
       getYaml={getPodYaml}
     />
   );
@@ -48,7 +48,7 @@ export const PodEvents: React.FC<{
     <PodYaml
       name={name}
       namespace={namespace}
-      errorMessage='Failed to retrieve pod events. Possible reasons include cluster autoscaling, pod preemption or pod cleaned up by time to live configuration'
+      errorMessage={t('PodYaml.failedToRetrievePodEvents')}
       getYaml={getPodEventsYaml}
     />
   );
@@ -63,9 +63,9 @@ const PodYaml: React.FC<{
   const [yaml, setYaml] = React.useState<string | undefined>(undefined);
   const [error, setError] = React.useState<
     | {
-        message: string;
-        additionalInfo: string;
-      }
+      message: string;
+      additionalInfo: string;
+    }
     | undefined
   >(undefined);
   const [refreshes, setRefresh] = React.useState(0);

@@ -19,7 +19,7 @@ import DetailsTable from './DetailsTable';
 import { classes, stylesheet } from 'typestyle';
 import { commonCss, fontsize } from '../Css';
 import { SelectedNodeInfo } from '../lib/StaticGraphParser';
-
+import { t } from 'i18next'
 export type nodeType = 'container' | 'resource' | 'dag' | 'unknown';
 
 const css = stylesheet({
@@ -45,9 +45,9 @@ class StaticNodeDetails extends React.Component<StaticNodeDetailsProps> {
       <div>
         {nodeInfo.nodeType === 'container' && (
           <div>
-            <DetailsTable title='Input parameters' fields={nodeInfo.inputs} />
+            <DetailsTable title={t('StaticNodeDetails.inputParameters')} fields={nodeInfo.inputs} />
 
-            <DetailsTable title='Output parameters' fields={nodeInfo.outputs} />
+            <DetailsTable title={t('StaticNodeDetails.outputParameters')} fields={nodeInfo.outputs} />
 
             <div className={classes(commonCss.header, css.fontSizeTitle)}>Arguments</div>
             {nodeInfo.args.map((arg, i) => (
@@ -66,24 +66,24 @@ class StaticNodeDetails extends React.Component<StaticNodeDetailsProps> {
             <div className={classes(commonCss.header, css.fontSizeTitle)}>Image</div>
             <div style={{ fontFamily: 'monospace' }}>{nodeInfo.image}</div>
 
-            <DetailsTable title='Volume Mounts' fields={nodeInfo.volumeMounts} />
+            <DetailsTable title={t('StaticNodeDetails.volumeMounts')} fields={nodeInfo.volumeMounts} />
           </div>
         )}
 
         {nodeInfo.nodeType === 'resource' && (
           <div>
-            <DetailsTable title='Input parameters' fields={nodeInfo.inputs} />
+            <DetailsTable title={t('StaticNodeDetails.inputParameters')} fields={nodeInfo.inputs} />
 
-            <DetailsTable title='Output parameters' fields={nodeInfo.outputs} />
+            <DetailsTable title={t('StaticNodeDetails.outputParameters')} fields={nodeInfo.outputs} />
 
-            <DetailsTable title='Manifest' fields={nodeInfo.resource} />
+            <DetailsTable title={t('StaticNodeDetails.manifest')} fields={nodeInfo.resource} />
           </div>
         )}
 
         {!!nodeInfo.condition && (
           <div>
-            <div className={css.taskTitle}>Condition</div>
-            <div>Run when: {nodeInfo.condition}</div>
+            <div className={css.taskTitle}>{t('StaticNodeDetails.condition')}</div>
+            <div>{t('StaticNodeDetails.runWhen')} {nodeInfo.condition}</div>
           </div>
         )}
       </div>

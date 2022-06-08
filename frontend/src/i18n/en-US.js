@@ -356,5 +356,42 @@ export default {
         parsedJsonWasNeitherAnArrayNorAnObjectUsingDefaultRenderer: "Parsed JSON was neither an array nor an object. Using default renderer",
         closeJsonEditor: "Close Json Editor",
         openJsonEditor: "Open Json Editor",
+    },
+    PodYaml: {
+        failedToRetrievePodInfo: "Failed to retrieve pod info. Possible reasons include cluster autoscaling, pod preemption or pod cleaned up by time to live configuration",
+        failedToRetrievePodEvents: "Failed to retrieve pod events. Possible reasons include cluster autoscaling, pod preemption or pod cleaned up by time to live configuration"
+    },
+    SideNav: {
+        gettingStarted: "Getting Started",
+        list: "{{name}} List",
+        openJupyterNotebook: "Open Jupyter Notebook",
+        documentation: "Documentation",
+        clusterName: "Cluster name:",
+        buildDate: "Build date:",
+        version: "Version:",
+        reportAnIssue: "Report an Issue"
+    },
+    StaticNodeDetails: {
+        inputParameters: "Input parameters",
+        outputParameters: "Output parameters",
+        volumeMounts: "Volume Mounts",
+        manifest: "Manifest",
+        condition: "Condition",
+        runWhen: "Run when:",
+    },
+    RunDetailsV2: {
+        cannotGetMlmdObjectsFromMetadataStore: "Cannot get MLMD objects from Metadata store.",
+        graph: "Graph",
+        detail: "Detail",
+        runDetails: "Run details",
+        runNameUnknown: "Run name unknown",
+        allRuns: "All runs",
+        workflowName: "Workflow name",
+        status: "Status",
+        description: "Description",
+        createdAt: "Created at",
+        startedAt: "Started at",
+        finishedAt: "Finished at",
+        duration: "Duration",
     }
 }
