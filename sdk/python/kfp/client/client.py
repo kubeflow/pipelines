@@ -834,6 +834,17 @@ class Client:
         """
         return self._run_api.delete_run(id=run_id)
 
+    def terminate_run(self, run_id: str) -> dict:
+        """Terminates a run.
+
+        Args:
+            run_id: id of the run.
+
+        Returns:
+            dict: Empty dictionary.
+        """
+        return self._run_api.terminate_run(run_id=run_id)
+
     def create_recurring_run(
         self,
         experiment_id: str,
