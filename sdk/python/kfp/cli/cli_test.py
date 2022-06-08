@@ -14,17 +14,15 @@
 
 import functools
 import itertools
-import json
 import os
 import re
 import subprocess
 import tempfile
 import unittest
-from typing import Any, Dict, List, Optional
+from typing import List
 from unittest import mock
 
 import click
-import yaml
 from absl.testing import parameterized
 from click import testing
 from kfp.cli import cli
@@ -51,37 +49,6 @@ class TestCliNounAliases(unittest.TestCase):
         self.assertEqual(result.exit_code, 2)
         self.assertEqual("Error: Unrecognized command 'componentss'\n",
                          result.output)
-
-
-def _ignore_kfp_version_helper(spec: Dict[str, Any]) -> Dict[str, Any]:
-    """Ignores kfp sdk versioning in command.
-
-    Takes in a YAML input and ignores the kfp sdk versioning in command
-    for comparison between compiled file and goldens.
-    """
-    pipeline_spec = spec.get('pipelineSpec', spec)
-
-    if 'executors' in pipeline_spec['deploymentSpec']:
-        for executor in pipeline_spec['deploymentSpec']['executors']:
-            pipeline_spec['deploymentSpec']['executors'][
-                executor] = yaml.safe_load(
-                    re.sub(
-                        r"'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'", 'kfp',
-                        yaml.dump(
-                            pipeline_spec['deploymentSpec']['executors']
-                            [executor],
-                            sort_keys=True)))
-    return spec
-
-
-def load_compiled_file(filename: str) -> Dict[str, Any]:
-    with open(filename, 'r') as f:
-        contents = yaml.safe_load(f)
-        pipeline_spec = contents[
-            'pipelineSpec'] if 'pipelineSpec' in contents else contents
-        # ignore the sdkVersion
-        del pipeline_spec['sdkVersion']
-        return _ignore_kfp_version_helper(contents)
 
 
 class TestAliases(unittest.TestCase):
@@ -175,19 +142,6 @@ class TestCliVersion(unittest.TestCase):
         self.assertTrue(matches)
 
 
-COMPILER_CLI_TEST_DATA_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)), 'compiler_cli_tests',
-    'test_data')
-
-SPECIAL_TEST_PY_FILES = {'two_step_pipeline.py'}
-
-TEST_PY_FILES = {
-    file.split('.')[0]
-    for file in os.listdir(COMPILER_CLI_TEST_DATA_DIR)
-    if ".py" in file and file not in SPECIAL_TEST_PY_FILES
-}
-
-
 class TestDslCompile(parameterized.TestCase):
 
     def invoke(self, args: List[str]) -> testing.Result:
@@ -204,54 +158,6 @@ class TestDslCompile(parameterized.TestCase):
             args=args,
             catch_exceptions=False,
             obj={})
-
-    def _test_compile_py_to_yaml(
-            self,
-            file_base_name: str,
-            additional_arguments: Optional[List[str]] = None) -> None:
-        py_file = os.path.join(COMPILER_CLI_TEST_DATA_DIR,
-                               f'{file_base_name}.py')
-
-        golden_compiled_file = os.path.join(COMPILER_CLI_TEST_DATA_DIR,
-                                            f'{file_base_name}.yaml')
-
-        if additional_arguments is None:
-            additional_arguments = []
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            generated_compiled_file = os.path.join(
-                tmpdir, f'{file_base_name}-pipeline.yaml')
-
-            result = self.invoke(
-                ['--py', py_file, '--output', generated_compiled_file] +
-                additional_arguments)
-
-            self.assertEqual(result.exit_code, 0)
-
-            compiled = load_compiled_file(generated_compiled_file)
-
-        golden = load_compiled_file(golden_compiled_file)
-        self.assertEqual(golden, compiled)
-
-    def test_two_step_pipeline(self):
-        self._test_compile_py_to_yaml(
-            'two_step_pipeline',
-            ['--pipeline-parameters', '{"text":"Hello KFP!"}'])
-
-    def test_two_step_pipeline_failure_parameter_parse(self):
-        with self.assertRaisesRegex(json.decoder.JSONDecodeError,
-                                    r"Unterminated string starting at:"):
-            self._test_compile_py_to_yaml(
-                'two_step_pipeline',
-                ['--pipeline-parameters', '{"text":"Hello KFP!}'])
-
-    @parameterized.parameters(TEST_PY_FILES)
-    def test_compile_pipelines(self, file: str):
-
-        # To update all golden snapshots:
-        # for f in test_data/*.py ; do python3 "$f" ; done
-
-        self._test_compile_py_to_yaml(file)
 
     def test_deprecated_command_is_found(self):
         result = self.invoke_deprecated(['--help'])
