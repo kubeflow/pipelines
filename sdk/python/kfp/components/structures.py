@@ -182,6 +182,17 @@ class PlaceholderSerializationMixin:
         return "input_name" in field_names
 
     @classmethod
+    def _is_output_placeholder(cls) -> bool:
+        """Checks if the class is an OutputPlaceholder (rather than an
+        InputPlaceholder).
+
+        Returns:
+            bool: True if the class is an OutputPlaceholder, False otherwise.
+        """
+        field_names = {field.name for field in dataclasses.fields(cls)}
+        return "output_name" in field_names
+
+    @classmethod
     def is_match(cls: Type[P], placeholder_string: str) -> bool:
         """Determines if the placeholder_string matches the placeholder
         pattern.
@@ -216,8 +227,10 @@ class PlaceholderSerializationMixin:
             )
         if cls._is_input_placeholder():
             return cls(input_name=matches[1])  # type: ignore
-        else:
+        elif cls._is_output_placeholder():
             return cls(output_name=matches[1])  # type: ignore
+        else:
+            return cls()  # type: ignore
 
     def to_placeholder(self: P) -> str:
         """Converts a placeholder object into a placeholder string.
@@ -229,10 +242,21 @@ class PlaceholderSerializationMixin:
             raise NotImplementedError(
                 f'{self.__class__.__name__} does not support creating placeholder strings.'
             )
-        attr_name = 'input_name' if self._is_input_placeholder(
-        ) else 'output_name'
-        value = getattr(self, attr_name)
-        return self._TO_PLACEHOLDER_TEMPLATE_STRING.format(value)
+        if self._is_input_placeholder():
+            return self._TO_PLACEHOLDER_TEMPLATE_STRING.format(
+                getattr(self, 'input_name'))
+        elif self._is_output_placeholder():
+            return self._TO_PLACEHOLDER_TEMPLATE_STRING.format(
+                getattr(self, 'output_name'))
+        else:
+            return self._TO_PLACEHOLDER_TEMPLATE_STRING
+
+
+class ExecutorInputPlaceholder(base_model.BaseModel,
+                               PlaceholderSerializationMixin):
+    """Class that represents executor input placeholder."""
+    _TO_PLACEHOLDER_TEMPLATE_STRING = "{{$}}"
+    _FROM_PLACEHOLDER_REGEX = r"\{\{\$\}\}"
 
 
 class InputValuePlaceholder(base_model.BaseModel,
@@ -677,6 +701,9 @@ def convert_str_or_dict_to_placeholder(
             convert_str_or_dict_to_placeholder(e) for e in res['concat']
         ])
 
+    elif first_key == 'executorInput':
+        return ExecutorInputPlaceholder()
+
     else:
         raise TypeError(
             f'Unexpected command/argument type: "{element}" of type "{type(element)}".'
@@ -723,7 +750,9 @@ def _check_valid_placeholder_reference(valid_inputs: List[str],
         for placeholder in placeholder.items:
             _check_valid_placeholder_reference(valid_inputs, valid_outputs,
                                                placeholder)
-    elif not isinstance(placeholder, str):
+    elif not isinstance(placeholder,
+                        ExecutorInputPlaceholder) and not isinstance(
+                            placeholder, str):
         raise TypeError(
             f'Unexpected argument "{placeholder}" of type {type(placeholder)}.')
 

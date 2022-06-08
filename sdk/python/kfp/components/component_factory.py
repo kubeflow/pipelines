@@ -310,9 +310,6 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
     return component_spec
 
 
-EXECUTOR_INPUT_PLACEHOLDER = "{{$}}"
-
-
 def _get_command_and_args_for_lightweight_component(
         func: Callable) -> Tuple[List[str], List[str]]:
     imports_source = [
@@ -344,7 +341,7 @@ def _get_command_and_args_for_lightweight_component(
 
     args = [
         '--executor_input',
-        EXECUTOR_INPUT_PLACEHOLDER,
+        structures.ExecutorInputPlaceholder().to_placeholder(),
         '--function_to_execute',
         func.__name__,
     ]
@@ -362,7 +359,7 @@ def _get_command_and_args_for_containerized_component(
 
     args = [
         '--executor_input',
-        EXECUTOR_INPUT_PLACEHOLDER,
+        structures.ExecutorInputPlaceholder().to_placeholder(),
         '--function_to_execute',
         function_name,
     ]

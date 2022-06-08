@@ -145,6 +145,43 @@ COMPONENT_SPEC_NESTED_PLACEHOLDER = structures.ComponentSpec(
     inputs={'input_prefix': structures.InputSpec(type='String')},
 )
 
+V1_YAML_EXECUTOR_INPUT_PLACEHOLDER = textwrap.dedent("""\
+    name: component_executor_input
+    inputs:
+    - {name: input, type: String}
+    implementation:
+      container:
+        image: alpine
+        command:
+        - python
+        - -m
+        - kfp.containers.entrypoint
+        args:
+        - --executor_input
+        - {executorInput: null}
+        - --function_name
+        - test_function
+    """)
+
+COMPONENT_SPEC_EXECUTOR_INPUT_PLACEHOLDER = structures.ComponentSpec(
+    name='component_executor_input',
+    implementation=structures.Implementation(
+        container=structures.ContainerSpec(
+            image='alpine',
+            command=[
+                'python',
+                '-m',
+                'kfp.containers.entrypoint',
+            ],
+            args=[
+                '--executor_input',
+                structures.ExecutorInputPlaceholder(),
+                '--function_name',
+                'test_function',
+            ])),
+    inputs={'input': structures.InputSpec(type='String')},
+)
+
 
 class StructuresTest(parameterized.TestCase):
 
@@ -315,6 +352,10 @@ sdkVersion: kfp-2.0.0-alpha.2
             'yaml': V1_YAML_NESTED_PLACEHOLDER,
             'expected_component': COMPONENT_SPEC_NESTED_PLACEHOLDER
         },
+        {
+            'yaml': V1_YAML_EXECUTOR_INPUT_PLACEHOLDER,
+            'expected_component': COMPONENT_SPEC_EXECUTOR_INPUT_PLACEHOLDER
+        },
     )
     def test_component_spec_placeholder_load_from_v2_component_yaml(
             self, yaml, expected_component):
@@ -382,6 +423,28 @@ sdkVersion: kfp-2.0.0-alpha.2
                 'output_2': structures.OutputSpec(type='Artifact'),
             })
         self.assertEqual(generated_spec, expected_spec)
+
+
+class TestExecutorInputPlaceholder(unittest.TestCase):
+
+    def test_to_placeholder(self):
+        structure = structures.ExecutorInputPlaceholder()
+        actual = structure.to_placeholder()
+        expected = "{{$}}"
+        self.assertEqual(
+            actual,
+            expected,
+        )
+
+    def test_from_placeholder_single_quote(self):
+        placeholder = "{{$}}"
+        expected = structures.ExecutorInputPlaceholder()
+        actual = structures.ExecutorInputPlaceholder.from_placeholder(
+            placeholder)
+        self.assertEqual(
+            actual,
+            expected,
+        )
 
 
 class TestInputValuePlaceholder(unittest.TestCase):
