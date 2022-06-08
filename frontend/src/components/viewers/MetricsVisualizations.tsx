@@ -207,7 +207,7 @@ export function MetricsVisualizations({
   );
 }
 
-function getVerifiedClassificationMetricsArtifacts(
+export function getVerifiedClassificationMetricsArtifacts(
   artifacts: Artifact[],
   artifactTypes: ArtifactType[],
 ): Artifact[] {
@@ -247,7 +247,7 @@ function getVerifiedClassificationMetricsArtifacts(
     .map(x => x.artifact);
 }
 
-function getVerifiedMetricsArtifacts(
+export function getVerifiedMetricsArtifacts(
   artifacts: Artifact[],
   artifactTypes: ArtifactType[],
 ): Artifact[] {
@@ -266,7 +266,7 @@ function getVerifiedMetricsArtifacts(
   );
 }
 
-function getVertifiedHtmlArtifacts(
+export function getVertifiedHtmlArtifacts(
   linkedArtifacts: LinkedArtifact[],
   artifactTypes: ArtifactType[],
 ): LinkedArtifact[] {
@@ -283,7 +283,7 @@ function getVertifiedHtmlArtifacts(
   );
 }
 
-function getVertifiedMarkdownArtifacts(
+export function getVertifiedMarkdownArtifacts(
   linkedArtifacts: LinkedArtifact[],
   artifactTypes: ArtifactType[],
 ): LinkedArtifact[] {
@@ -304,7 +304,7 @@ function getVertifiedMarkdownArtifacts(
   );
 }
 
-function getV1VisualizationArtifacts(
+export function getV1VisualizationArtifacts(
   linkedArtifacts: LinkedArtifact[],
   artifactTypes: ArtifactType[],
 ): LinkedArtifact | undefined {

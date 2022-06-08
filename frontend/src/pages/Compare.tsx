@@ -22,14 +22,12 @@ import { FeatureKey, isFeatureEnabled } from 'src/features';
 import { Apis } from 'src/lib/Apis';
 import { errorToMessage } from 'src/lib/Utils';
 import { URLParser } from '../lib/URLParser';
-import CompareV1, { CompareState } from './CompareV1';
+import CompareV1 from './CompareV1';
 import CompareV2 from './CompareV2';
 import { PageProps } from './Page';
 
-export type CompareProps = PageProps & CompareState;
-
 // This is a router to determine whether to show V1 or V2 compare page.
-export default function Compare(props: CompareProps) {
+export default function Compare(props: PageProps) {
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 
@@ -62,7 +60,7 @@ export default function Compare(props: CompareProps) {
     data &&
     data.every(run => run.run?.pipeline_spec?.hasOwnProperty('pipeline_manifest'))
   ) {
-    return <CompareV2 />;
+    return <CompareV2 {...props} />;
   } else {
     return <CompareV1 {...props} />;
   }
