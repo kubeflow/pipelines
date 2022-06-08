@@ -64,6 +64,8 @@ _JOB_TYPE_TO_ACTION_MAP = {
         bigquery_job_remote_runner.bigquery_predict_model_job,
     'BigqueryExplainPredictModelJob':
         bigquery_job_remote_runner.bigquery_explain_predict_model_job,
+    'BigqueryExplainForecastModelJob':
+        bigquery_job_remote_runner.bigquery_explain_forecast_model_job,
     'BigqueryExportModelJob':
         bigquery_job_remote_runner.bigquery_export_model_job,
     'BigqueryEvaluateModelJob':
@@ -173,6 +175,7 @@ def _parse_args(args):
           'BigQueryMLPrincipalComponentsJob',
           'BigQueryMLPrincipalComponentInfoJob',
           'BigqueryMLRecommendJob',
+          'BigqueryExplainForecastModelJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -204,6 +207,7 @@ def _parse_args(args):
           'BigQueryMLPrincipalComponentsJob',
           'BigQueryMLPrincipalComponentInfoJob',
           'BigqueryMLRecommendJob',
+          'BigqueryExplainForecastModelJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -229,6 +233,7 @@ def _parse_args(args):
           'BigQueryMLPrincipalComponentInfoJob',
           'BigqueryMLFeatureImportanceJob',
           'BigqueryMLRecommendJob',
+          'BigqueryExplainForecastModelJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -296,6 +301,18 @@ def _parse_args(args):
       dest='standardize',
       type=bool,
       required=(parsed_args.type in {'BigqueryMLCentroidsJob'}),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--horizon',
+      dest='horizon',
+      type=int,
+      required=(parsed_args.type in {'BigqueryMLForecastJob'}),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--confidence_level',
+      dest='confidence_level',
+      type=float,
+      required=(parsed_args.type in {'BigqueryMLForecastJob'}),
       default=argparse.SUPPRESS)
   parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)
