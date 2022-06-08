@@ -68,6 +68,8 @@ _JOB_TYPE_TO_ACTION_MAP = {
         bigquery_job_remote_runner.bigquery_export_model_job,
     'BigqueryEvaluateModelJob':
         bigquery_job_remote_runner.bigquery_evaluate_model_job,
+    'BigqueryMLArimaCoefficientsJob':
+        bigquery_job_remote_runner.bigquery_ml_arima_coefficients,
     'BigqueryMLCentroidsJob':
         bigquery_job_remote_runner.bigquery_ml_centroids_job,
     'BigqueryMLWeightsJob':
@@ -151,6 +153,7 @@ def _parse_args(args):
           'UploadModel', 'CreateEndpoint', 'BatchPredictionJob',
           'BigqueryQueryJob', 'BigqueryCreateModelJob',
           'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob',
+          'BigQueryMLArimaCoefficientsJob',
           'BigQueryMLWeightsJob', 'BigqueryMLTrialInfoJob',
           'BigqueryMLReconstructionLossJob', 'BigqueryMLTrainingInfoJob',
           'BigqueryMLAdvancedWeightsJob', 'BigqueryDropModelJob',
@@ -189,7 +192,9 @@ def _parse_args(args):
       type=str,
       required=(parsed_args.type in {
           'BigqueryPredictModelJob', 'BigqueryExportModelJob',
-          'BigQueryEvaluateModelJob', 'BigQueryMLWeightsJob',
+          'BigQueryEvaluateModelJob',
+          'BigQueryMLArimaCoefficientsJob',
+          'BigQueryMLWeightsJob',
           'BigqueryMLTrialInfoJob', 'BigqueryMLReconstructionLossJob',
           'BigqueryMLTrainingInfoJob', 'BigqueryMLAdvancedWeightsJob',
           'BigqueryDropModelJob', 'BigqueryMLCentroidsJob',
