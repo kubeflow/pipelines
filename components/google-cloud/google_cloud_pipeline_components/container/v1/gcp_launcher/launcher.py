@@ -90,6 +90,8 @@ _JOB_TYPE_TO_ACTION_MAP = {
         bigquery_job_remote_runner.bigquery_ml_principal_components_job,
     'BigqueryMLPrincipalComponentInfoJob':
         bigquery_job_remote_runner.bigquery_ml_principal_component_info_job,
+    'BigqueryMLFeatureImportanceJob':
+        bigquery_job_remote_runner.bigquery_ml_feature_importance_job,
     'DataprocPySparkBatch':
         dataproc_batch_remote_runner.create_pyspark_batch,
     'DataprocSparkBatch':
@@ -193,7 +195,8 @@ def _parse_args(args):
           'BigqueryDropModelJob', 'BigqueryMLCentroidsJob',
           'BigqueryMLConfusionMatrixJob', 'BigqueryMLFeatureInfoJob',
           'BigqueryMLRocCurveJob', 'BigQueryMLPrincipalComponentsJob',
-          'BigQueryMLPrincipalComponentInfoJob'
+          'BigQueryMLPrincipalComponentInfoJob',
+          'BigqueryMLFeatureImportanceJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
