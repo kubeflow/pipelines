@@ -324,7 +324,8 @@ class UtilsTest(unittest.TestCase):
             'distill_batch_predict_starting_replica_count':
                 40,
             'distill_stage_1_deadline_hours':
-                3 * 634 * 1.3 / 3600
+                3 * 634 * 1.3 / 3600,
+            'is_distill': True
         })
 
   def test_get_skip_architecture_search_pipeline_and_parameters(self):
@@ -499,6 +500,22 @@ class UtilsTest(unittest.TestCase):
             },
             'training_replica_count':
                 1,
+            'run_evaluation':
+                True,
+            'evaluation_batch_predict_machine_type':
+                'n1-standard-16',
+            'evaluation_batch_predict_starting_replica_count':
+                25,
+            'evaluation_batch_predict_max_replica_count':
+                25,
+            'evaluation_dataflow_machine_type':
+                'n1-standard-4',
+            'evaluation_dataflow_max_num_workers':
+                25,
+            'evaluation_dataflow_disk_size_gb':
+                50,
+            'dataflow_service_account':
+                '',
             'dataflow_subnetwork':
                 '',
             'dataflow_use_public_ips':
@@ -630,6 +647,22 @@ class UtilsTest(unittest.TestCase):
             },
             'training_replica_count':
                 1,
+            'run_evaluation':
+                True,
+            'evaluation_batch_predict_machine_type':
+                'n1-standard-16',
+            'evaluation_batch_predict_starting_replica_count':
+                25,
+            'evaluation_batch_predict_max_replica_count':
+                25,
+            'evaluation_dataflow_machine_type':
+                'n1-standard-4',
+            'evaluation_dataflow_max_num_workers':
+                25,
+            'evaluation_dataflow_disk_size_gb':
+                50,
+            'dataflow_service_account':
+                '',
             'dataflow_subnetwork':
                 '',
             'dataflow_use_public_ips':
@@ -762,6 +795,22 @@ class UtilsTest(unittest.TestCase):
             },
             'training_replica_count':
                 1,
+            'run_evaluation':
+                True,
+            'evaluation_batch_predict_machine_type':
+                'n1-standard-16',
+            'evaluation_batch_predict_starting_replica_count':
+                25,
+            'evaluation_batch_predict_max_replica_count':
+                25,
+            'evaluation_dataflow_machine_type':
+                'n1-standard-4',
+            'evaluation_dataflow_max_num_workers':
+                25,
+            'evaluation_dataflow_disk_size_gb':
+                50,
+            'dataflow_service_account':
+                '',
             'dataflow_subnetwork':
                 '',
             'dataflow_use_public_ips':
@@ -874,6 +923,22 @@ class UtilsTest(unittest.TestCase):
             },
             'training_replica_count':
                 1,
+            'run_evaluation':
+                True,
+            'evaluation_batch_predict_machine_type':
+                'n1-standard-16',
+            'evaluation_batch_predict_starting_replica_count':
+                25,
+            'evaluation_batch_predict_max_replica_count':
+                25,
+            'evaluation_dataflow_machine_type':
+                'n1-standard-4',
+            'evaluation_dataflow_max_num_workers':
+                25,
+            'evaluation_dataflow_disk_size_gb':
+                50,
+            'dataflow_service_account':
+                '',
             'dataflow_subnetwork':
                 '',
             'dataflow_use_public_ips':

@@ -59,6 +59,7 @@ setuptools.setup(
     version=find_version('kfp', '__init__.py'),
     description='Kubeflow Pipelines SDK',
     long_description=read_readme(),
+    long_description_content_type='text/markdown',
     author='The Kubeflow Authors',
     url="https://github.com/kubeflow/pipelines",
     project_urls={

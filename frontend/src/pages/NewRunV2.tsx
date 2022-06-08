@@ -20,13 +20,7 @@ import { useMutation, useQuery } from 'react-query';
 import { ApiExperiment, ApiExperimentStorageState } from 'src/apis/experiment';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
-import {
-  ApiRelationship,
-  ApiResourceReference,
-  ApiResourceType,
-  ApiRun,
-  ProtobufValue,
-} from 'src/apis/run';
+import { ApiRelationship, ApiResourceReference, ApiResourceType, ApiRun } from 'src/apis/run';
 import BusyButton from 'src/atoms/BusyButton';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { HelpButton } from 'src/atoms/HelpButton';
@@ -66,7 +60,7 @@ interface RunV2Props {
 type NewRunV2Props = RunV2Props & PageProps;
 
 export type SpecParameters = { [key: string]: ComponentInputsSpec_ParameterSpec };
-export type RuntimeParameters = { [key: string]: ProtobufValue };
+export type RuntimeParameters = { [key: string]: any };
 
 function NewRunV2(props: NewRunV2Props) {
   // List of elements we need to create Pipeline Run.
