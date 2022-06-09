@@ -565,8 +565,7 @@ V1_YAML = textwrap.dedent("""\
     """)
 
 COMPILER_CLI_TEST_DATA_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)), 'compiler_cli_tests',
-    'test_data')
+    os.path.dirname(os.path.dirname(__file__)), 'compiler', 'test_data')
 
 SUPPORTED_COMPONENTS_COMPILE_TEST_CASES = [
     {
