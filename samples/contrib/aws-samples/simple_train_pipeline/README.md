@@ -16,6 +16,8 @@ Create a new file named `s3_sample_data_creator.py` with the following content:
 ```
 import pickle, gzip, numpy, urllib.request, json
 from urllib.parse import urlparse
+from sagemaker.session import Session
+from sagemaker.utils import S3DataConfig
 
 ###################################################################
 # This is the only thing that you need to change to run this code 
@@ -29,6 +31,7 @@ bucket = '<bucket-name>'
 
 # Load the dataset
 s3 = boto3.client("s3")
+sm_session = Session()
 data_bucket = S3DataConfig(
     sm_session, "example-notebooks-data-config", "config/data_config.json"
 ).get_data_bucket()

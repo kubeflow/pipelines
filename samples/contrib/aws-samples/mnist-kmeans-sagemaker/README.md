@@ -57,6 +57,9 @@ import pickle
 import urllib.request
 import gzip
 import numpy
+from sagemaker.session import Session
+from sagemaker.utils import S3DataConfig
+
 
 ENDPOINT_NAME="<your_endpoint_name>"
 
@@ -69,6 +72,7 @@ def np2csv(arr):
 # Prepare input for the model
 # Load the dataset
 s3 = boto3.client("s3")
+sm_session = Session()
 data_bucket = S3DataConfig(
     sm_session, "example-notebooks-data-config", "config/data_config.json"
 ).get_data_bucket()
