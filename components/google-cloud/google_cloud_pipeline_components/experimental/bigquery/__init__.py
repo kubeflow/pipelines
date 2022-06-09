@@ -44,11 +44,11 @@ __all__ = [
     'BigqueryMLPrincipalComponentInfoJobOp',
     'BigqueryMLFeatureImportanceJobOp',
     'BigqueryMLRecommendJobOp',
+    'BigqueryForecastModelJobOp'
 ]
 
 BigqueryQueryJobOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'query_job/component.yaml'))
-
 BigqueryCreateModelJobOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'create_model/component.yaml'))
 
@@ -119,5 +119,9 @@ BigqueryMLPrincipalComponentInfoJobOp = load_component_from_file(
 BigqueryMLFeatureImportanceJobOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'feature_importance/component.yaml'))
+
 BigqueryMLRecommendJobOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'ml_recommend/component.yaml'))
+
+BigqueryForecastModelJobOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'forecast_model/component.yaml'))
