@@ -209,49 +209,5 @@ def pipeline_spec_from_file(filepath: str) -> str:
     return json_format.ParseDict(dictionary, pipeline_spec_pb2.PipelineSpec())
 
 
-class TestWriteIrToFile(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        pipeline_spec = pipeline_spec_pb2.PipelineSpec()
-        pipeline_spec.pipeline_info.name = 'pipeline-name'
-        cls.pipeline_spec = pipeline_spec
-
-    def test_yaml(self):
-        with tempfile.TemporaryDirectory() as tempdir:
-            temp_filepath = os.path.join(tempdir, 'output.yaml')
-            pipeline_spec_builder.write_pipeline_spec_to_file(
-                self.pipeline_spec, temp_filepath)
-            actual = pipeline_spec_from_file(temp_filepath)
-        self.assertEqual(actual, self.pipeline_spec)
-
-    def test_yml(self):
-        with tempfile.TemporaryDirectory() as tempdir:
-            temp_filepath = os.path.join(tempdir, 'output.yml')
-            pipeline_spec_builder.write_pipeline_spec_to_file(
-                self.pipeline_spec, temp_filepath)
-            actual = pipeline_spec_from_file(temp_filepath)
-        self.assertEqual(actual, self.pipeline_spec)
-
-    def test_json(self):
-        with tempfile.TemporaryDirectory() as tempdir, self.assertWarnsRegex(
-                DeprecationWarning, r"Compiling to JSON is deprecated"):
-            temp_filepath = os.path.join(tempdir, 'output.json')
-            pipeline_spec_builder.write_pipeline_spec_to_file(
-                self.pipeline_spec, temp_filepath)
-            actual = pipeline_spec_from_file(temp_filepath)
-        self.assertEqual(actual, self.pipeline_spec)
-
-    def test_incorrect_extension(self):
-        with tempfile.TemporaryDirectory() as tempdir, self.assertRaisesRegex(
-                ValueError, r'should end with "\.yaml"\.'):
-            temp_filepath = os.path.join(tempdir, 'output.txt')
-            pipeline_spec_builder.write_pipeline_spec_to_file(
-                self.pipeline_spec, temp_filepath)
-
-
-if __name__ == '__main__':
-    unittest.main()
-
 if __name__ == '__main__':
     unittest.main()

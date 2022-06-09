@@ -1336,33 +1336,3 @@ def create_pipeline_spec_for_component(
     )
 
     return pipeline_spec
-
-
-def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-                                package_path: str) -> None:
-    """Writes PipelienSpec into a YAML or JSON (deprecated) file.
-
-    Args:
-        pipeline_spec (pipeline_spec_pb2.PipelineSpec): The PipelineSpec.
-        package_path (str): The path to which to write the PipelineSpec.
-    """
-    json_dict = json_format.MessageToDict(pipeline_spec)
-
-    if package_path.endswith(".json"):
-        warnings.warn(
-            ("Compiling to JSON is deprecated and will be "
-             "removed in a future version. Please compile to a YAML file by "
-             "providing a file path with a .yaml extension instead."),
-            category=DeprecationWarning,
-            stacklevel=2,
-        )
-        with open(package_path, 'w') as json_file:
-            json.dump(json_dict, json_file, indent=2, sort_keys=True)
-
-    elif package_path.endswith((".yaml", ".yml")):
-        with open(package_path, 'w') as yaml_file:
-            yaml.dump(json_dict, yaml_file, sort_keys=True)
-
-    else:
-        raise ValueError(
-            f'The output path {package_path} should end with ".yaml".')
