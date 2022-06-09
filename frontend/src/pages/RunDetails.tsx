@@ -78,6 +78,7 @@ import WorkflowParser from '../lib/WorkflowParser';
 import { ExecutionDetailsContent } from './ExecutionDetails';
 import { Page, PageProps } from './Page';
 import { statusToIcon } from './Status';
+import { t } from 'i18next'
 
 export enum SidePanelTab {
   INPUT_OUTPUT,
