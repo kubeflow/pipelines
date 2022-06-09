@@ -140,7 +140,6 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 	if s.options.CollectMetrics {
 		runCount.Inc()
 	}
-	// run.ScheduledAtInSec = 3
 	return ToApiRunDetail(run), nil
 }
 
@@ -158,7 +157,6 @@ func (s *RunServer) GetRun(ctx context.Context, request *api.GetRunRequest) (*ap
 	if err != nil {
 		return nil, err
 	}
-	// run.ScheduledAtInSec = 4
 	return ToApiRunDetail(run), nil
 }
 

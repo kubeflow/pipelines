@@ -79,16 +79,14 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 
 	runDetail := &model.RunDetail{
 		Run: model.Run{
-			UUID:           runId,
-			ExperimentUUID: experimentUUID,
-			DisplayName:    run.Name,
-			Name:           workflow.Name,
-			Namespace:      workflow.Namespace,
-			ServiceAccount: workflow.Spec.ServiceAccountName,
-			Conditions:     workflow.Condition(),
-			Description:    run.Description,
-			// ScheduledAtInSec:   run.ScheduledAt.Seconds,
-			// ScheduledAtInSec:   23,
+			UUID:               runId,
+			ExperimentUUID:     experimentUUID,
+			DisplayName:        run.Name,
+			Name:               workflow.Name,
+			Namespace:          workflow.Namespace,
+			ServiceAccount:     workflow.Spec.ServiceAccountName,
+			Conditions:         workflow.Condition(),
+			Description:        run.Description,
 			ResourceReferences: resourceReferences,
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:   run.GetPipelineSpec().GetPipelineId(),

@@ -211,7 +211,6 @@ func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
 		// This can only happen when workflow reporting is failed.
 		return nil, util.NewResourceNotFoundError("Failed to get run: %s", runId)
 	}
-	// runs[0].ScheduledAtInSec = 7
 	return runs[0], nil
 }
 
@@ -359,7 +358,6 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %q.", r.StorageState)
 	}
 
-	// r.ScheduledAtInSec = 11
 	runSql, runArgs, err := sq.
 		Insert("run_details").
 		SetMap(sq.Eq{
