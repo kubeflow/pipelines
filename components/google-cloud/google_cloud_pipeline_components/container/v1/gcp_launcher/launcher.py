@@ -70,6 +70,8 @@ _JOB_TYPE_TO_ACTION_MAP = {
         bigquery_job_remote_runner.bigquery_evaluate_model_job,
     'BigqueryMLArimaCoefficientsJob':
         bigquery_job_remote_runner.bigquery_ml_arima_coefficients,
+    'BigqueryMLArimaEvaluateJob':
+        bigquery_job_remote_runner.bigquery_ml_arima_evaluate_job,
     'BigqueryMLCentroidsJob':
         bigquery_job_remote_runner.bigquery_ml_centroids_job,
     'BigqueryMLWeightsJob':
@@ -160,6 +162,7 @@ def _parse_args(args):
           'BigqueryPredictModelJob',
           'BigQueryEvaluateModelJob',
           'BigQueryMLArimaCoefficientsJob',
+          'BigQueryMLArimaEvaluateJob',
           'BigQueryMLWeightsJob',
           'BigqueryMLTrialInfoJob',
           'BigqueryMLReconstructionLossJob',
@@ -215,6 +218,7 @@ def _parse_args(args):
           'BigqueryExportModelJob',
           'BigQueryEvaluateModelJob',
           'BigQueryMLArimaCoefficientsJob',
+          'BigQueryMLArimaEvaluateJob',
           'BigQueryMLWeightsJob',
           'BigqueryMLTrialInfoJob',
           'BigqueryMLReconstructionLossJob',
@@ -296,6 +300,12 @@ def _parse_args(args):
       dest='standardize',
       type=bool,
       required=(parsed_args.type in {'BigqueryMLCentroidsJob'}),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--show_all_candidate_models',
+      dest='show_all_candidate_models',
+      type=bool,
+      required=(parsed_args.type in {'BigqueryMLArimaEvaluateJob'}),
       default=argparse.SUPPRESS)
   parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)

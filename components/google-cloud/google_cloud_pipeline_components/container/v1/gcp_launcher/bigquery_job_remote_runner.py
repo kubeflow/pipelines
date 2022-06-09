@@ -534,6 +534,83 @@ def _get_query_results(project_id, job_id, location, creds):
   return response
 
 
+def bigquery_ml_arima_evaluate_job(
+    type,
+    project,
+    location,
+    model_name,
+    show_all_candidate_models,
+    payload,
+    job_configuration_query_override,
+    gcp_resources,
+    executor_input,
+):
+  """Create and poll BigQuery ML.ARIMA_EVALUATE job till it reaches a final state.
+
+  This follows the typical launching logic:
+  1. Read if the bigquery job already exists in gcp_resources
+     - If already exists, jump to step 3 and poll the job status. This happens
+     if the launcher container experienced unexpected termination, such as
+     preemption
+  2. Deserialize the payload into the job spec and create the bigquery job
+  3. Poll the bigquery job status every
+  job_remote_runner._POLLING_INTERVAL_IN_SECONDS seconds
+     - If the bigquery job is succeeded, return succeeded
+     - If the bigquery job is pending/running, continue polling the status
+
+  Also retry on ConnectionError up to
+  job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
+
+
+  Args:
+      type: BigQuery ML.ARIMA_EVALUATE job type.
+      project: Project to launch the query job.
+      location: location to launch the query job. For more details, see
+        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      model_name: BigQuery ML model name for prediction. For more details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#predict_model_name
+      show_all_candidate_models: You can use show_all_candidate_models to show
+        evaluation metrics or an error message for either all candidate models
+        or for only the best model with the lowest AIC. For more details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-arima-evaluate#show_all_candidate_models
+      payload: A json serialized Job proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
+      job_configuration_query_override: A json serialized JobConfigurationQuery
+        proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      gcp_resources: File path for storing `gcp_resources` output parameter.
+      executor_input:A json serialized pipeline executor input.
+  """
+  if show_all_candidate_models:
+    show_all_candidate_models_sql = ', STRUCT(%s AS show_all_candidate_models)' % show_all_candidate_models
+
+  job_configuration_query_override_json = json.loads(
+      job_configuration_query_override, strict=False)
+  job_configuration_query_override_json[
+      'query'] = 'SELECT * FROM ML.ARIMA_EVALUATE(MODEL %s%s)' % (
+          _back_quoted_if_needed(model_name), show_all_candidate_models_sql)
+
+  creds, _ = google.auth.default()
+  job_uri = _check_if_job_exists(gcp_resources)
+  if job_uri is None:
+    job_uri = _create_query_job(
+        project, location, payload,
+        json.dumps(job_configuration_query_override_json), creds, gcp_resources)
+
+  # Poll bigquery job status until finished.
+  job = _poll_job(job_uri, creds)
+  logging.info('Getting query result for job ' + job['id'])
+  _, job_id = job['id'].split('.')
+  query_results = _get_query_results(project, job_id, location, creds)
+  artifact_util.update_output_artifact(
+      executor_input, 'arima_evaluation_metrics', '', {
+          _ARTIFACT_PROPERTY_KEY_SCHEMA:
+              query_results[_ARTIFACT_PROPERTY_KEY_SCHEMA],
+          _ARTIFACT_PROPERTY_KEY_ROWS:
+              query_results[_ARTIFACT_PROPERTY_KEY_ROWS]
+      })
+
+
 def bigquery_evaluate_model_job(
     type,
     project,
