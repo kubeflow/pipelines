@@ -102,6 +102,8 @@ _JOB_TYPE_TO_ACTION_MAP = {
         bigquery_job_remote_runner.bigquery_ml_feature_importance_job,
     'BigqueryMLRecommendJob':
         bigquery_job_remote_runner.bigquery_ml_recommend_job,
+    'BigqueryMLGlobalExplainJob':
+        bigquery_job_remote_runner.bigquery_ml_global_explain_job,
     'DataprocPySparkBatch':
         dataproc_batch_remote_runner.create_pyspark_batch,
     'DataprocSparkBatch':
@@ -311,6 +313,12 @@ def _parse_args(args):
       dest='standardize',
       type=bool,
       required=(parsed_args.type in {'BigqueryMLCentroidsJob'}),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--class_level_explain',
+      dest='class_level_explain',
+      type=bool,
+      required=False,
       default=argparse.SUPPRESS)
   parser.add_argument(
       '--show_all_candidate_models',

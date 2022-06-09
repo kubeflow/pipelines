@@ -1768,6 +1768,52 @@ def bigquery_ml_feature_importance_job(
       })
 
 
+def bigquery_ml_global_explain_job(
+    type,
+    project,
+    location,
+    model_name,
+    payload,
+    class_level_explain,
+    job_configuration_query_override,
+    gcp_resources,
+    executor_input,
+):
+  """Create and poll bigquery global explain job till it reaches a final state.
+
+  This follows the typical launching logic:
+  1. Read if the bigquery job already exists in gcp_resources
+     - If already exists, jump to step 3 and poll the job status. This happens
+     if the launcher container experienced unexpected termination, such as
+     preemption
+  2. Deserialize the payload into the job spec and create the bigquery job
+  3. Poll the bigquery job status every
+  job_remote_runner._POLLING_INTERVAL_IN_SECONDS seconds
+     - If the bigquery job is succeeded, return succeeded
+     - If the bigquery job is pending/running, continue polling the status
+
+  Also retry on ConnectionError up to
+  job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
+
+
+  Args:
+      type: BigQuery global explain job type.
+      project: Project to launch the query job.
+      location: location to launch the query job. For more details, see
+        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      model_name: BigQuery ML model name for prediction. For more details, see
+      https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#predict_model_name
+  """
+  job_configuration_query_override_json = json.loads(
+      job_configuration_query_override, strict=False)
+  job_configuration_query_override_json[
+      'query'] = 'SELECT * FROM ML.GLOBAL_EXPLAIN(MODEL %s, STRUCT(TRUE AS class_level_explain))' % (
+          _back_quoted_if_needed(model_name))
+  return bigquery_query_job(type, project, location, payload,
+                            json.dumps(job_configuration_query_override_json),
+                            gcp_resources, executor_input)
+
+
 def bigquery_ml_recommend_job(
     type,
     project,
