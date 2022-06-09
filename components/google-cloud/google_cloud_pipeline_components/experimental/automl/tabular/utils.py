@@ -10,6 +10,12 @@ _DEFAULT_NUM_PARALLEL_TRAILS = 35
 _DEFAULT_STAGE_2_NUM_SELECTED_TRAILS = 5
 _NUM_FOLDS = 5
 _DISTILL_TOTAL_TRIALS = 100
+_EVALUATION_BATCH_PREDICT_MACHINE_TYPE = 'n1-standard-16'
+_EVALUATION_BATCH_PREDICT_STARTING_REPLICA_COUNT = 25
+_EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT = 25
+_EVALUATION_DATAFLOW_MACHINE_TYPE = 'n1-standard-4'
+_EVALUATION_DATAFLOW_MAX_NUM_WORKERS = 25
+_EVALUATION_DATAFLOW_DISK_SIZE_GB = 50
 
 
 def input_dictionary_to_parameter(input_dict: Optional[Dict[str, Any]]) -> str:
@@ -122,6 +128,172 @@ def get_skip_evaluation_pipeline_and_parameters(
       addresses.
     encryption_spec_key_name: The KMS key name.
     additional_experiments: Use this field to config private preview features.
+
+  Returns:
+    Tuple of pipeline_definiton_path and parameter_values.
+  """
+  return get_default_pipeline_and_parameters(
+      project=project,
+      location=location,
+      root_dir=root_dir,
+      target_column_name=target_column_name,
+      prediction_type=prediction_type,
+      optimization_objective=optimization_objective,
+      transformations=transformations,
+      split_spec=split_spec,
+      data_source=data_source,
+      train_budget_milli_node_hours=train_budget_milli_node_hours,
+      stage_1_num_parallel_trials=stage_1_num_parallel_trials,
+      stage_2_num_parallel_trials=stage_2_num_parallel_trials,
+      stage_2_num_selected_trials=stage_2_num_selected_trials,
+      weight_column_name=weight_column_name,
+      study_spec_override=study_spec_override,
+      optimization_objective_recall_value=optimization_objective_recall_value,
+      optimization_objective_precision_value=optimization_objective_precision_value,
+      stage_1_tuner_worker_pool_specs_override=stage_1_tuner_worker_pool_specs_override,
+      cv_trainer_worker_pool_specs_override=cv_trainer_worker_pool_specs_override,
+      export_additional_model_without_custom_ops=export_additional_model_without_custom_ops,
+      stats_and_example_gen_dataflow_machine_type=stats_and_example_gen_dataflow_machine_type,
+      stats_and_example_gen_dataflow_max_num_workers=stats_and_example_gen_dataflow_max_num_workers,
+      stats_and_example_gen_dataflow_disk_size_gb=stats_and_example_gen_dataflow_disk_size_gb,
+      transform_dataflow_machine_type=transform_dataflow_machine_type,
+      transform_dataflow_max_num_workers=transform_dataflow_max_num_workers,
+      transform_dataflow_disk_size_gb=transform_dataflow_disk_size_gb,
+      dataflow_subnetwork=dataflow_subnetwork,
+      dataflow_use_public_ips=dataflow_use_public_ips,
+      encryption_spec_key_name=encryption_spec_key_name,
+      additional_experiments=additional_experiments,
+      run_evaluation=False,
+      run_distillation=False)
+
+
+def get_default_pipeline_and_parameters(
+    project: str,
+    location: str,
+    root_dir: str,
+    target_column_name: str,
+    prediction_type: str,
+    optimization_objective: str,
+    transformations: Dict[str, Any],
+    split_spec: Dict[str, Any],
+    data_source: Dict[str, Any],
+    train_budget_milli_node_hours: float,
+    stage_1_num_parallel_trials: int = _DEFAULT_NUM_PARALLEL_TRAILS,
+    stage_2_num_parallel_trials: int = _DEFAULT_NUM_PARALLEL_TRAILS,
+    stage_2_num_selected_trials: int = _DEFAULT_STAGE_2_NUM_SELECTED_TRAILS,
+    weight_column_name: str = '',
+    study_spec_override: Optional[Dict[str, Any]] = None,
+    optimization_objective_recall_value: float = -1,
+    optimization_objective_precision_value: float = -1,
+    stage_1_tuner_worker_pool_specs_override: Optional[Dict[str, Any]] = None,
+    cv_trainer_worker_pool_specs_override: Optional[Dict[str, Any]] = None,
+    export_additional_model_without_custom_ops: bool = False,
+    stats_and_example_gen_dataflow_machine_type: str = 'n1-standard-16',
+    stats_and_example_gen_dataflow_max_num_workers: int = 25,
+    stats_and_example_gen_dataflow_disk_size_gb: int = 40,
+    transform_dataflow_machine_type: str = 'n1-standard-16',
+    transform_dataflow_max_num_workers: int = 25,
+    transform_dataflow_disk_size_gb: int = 40,
+    dataflow_subnetwork: str = '',
+    dataflow_use_public_ips: bool = True,
+    encryption_spec_key_name: str = '',
+    additional_experiments: Optional[Dict[str, Any]] = None,
+    dataflow_service_account: str = '',
+    run_evaluation: bool = True,
+    evaluation_batch_predict_machine_type:
+    str = _EVALUATION_BATCH_PREDICT_MACHINE_TYPE,
+    evaluation_batch_predict_starting_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_STARTING_REPLICA_COUNT,
+    evaluation_batch_predict_max_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT,
+    evaluation_dataflow_machine_type: str = _EVALUATION_DATAFLOW_MACHINE_TYPE,
+    evaluation_dataflow_max_num_workers:
+    int = _EVALUATION_DATAFLOW_MAX_NUM_WORKERS,
+    evaluation_dataflow_disk_size_gb: int = _EVALUATION_DATAFLOW_DISK_SIZE_GB,
+    run_distillation: bool = False,
+    distill_batch_predict_machine_type: str = 'n1-standard-16',
+    distill_batch_predict_starting_replica_count: int = 25,
+    distill_batch_predict_max_replica_count: int = 25
+) -> Tuple[str, Dict[str, Any]]:
+  """Get the AutoML Tabular default training pipeline.
+
+  Args:
+    project: The GCP project that runs the pipeline components.
+    location: The GCP region that runs the pipeline components.
+    root_dir: The root GCS directory for the pipeline components.
+    target_column_name: The target column name.
+    prediction_type: The type of prediction the model is to produce.
+      "classification" or "regression".
+    optimization_objective: For binary classification, "maximize-au-roc",
+      "minimize-log-loss", "maximize-au-prc", "maximize-precision-at-recall", or
+      "maximize-recall-at-precision". For multi class classification,
+      "minimize-log-loss". For regression, "minimize-rmse", "minimize-mae", or
+      "minimize-rmsle".
+    transformations: The transformations to apply.
+    split_spec: The split spec.
+    data_source: The data source.
+    train_budget_milli_node_hours: The train budget of creating this model,
+      expressed in milli node hours i.e. 1,000 value in this field means 1 node
+      hour.
+    stage_1_num_parallel_trials: Number of parallel trails for stage 1.
+    stage_2_num_parallel_trials: Number of parallel trails for stage 2.
+    stage_2_num_selected_trials: Number of selected trials for stage 2.
+    weight_column_name: The weight column name.
+    study_spec_override: The dictionary for overriding study spec. The
+      dictionary should be of format
+      https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/study.proto#L181.
+    optimization_objective_recall_value: Required when optimization_objective is
+      "maximize-precision-at-recall". Must be between 0 and 1, inclusive.
+    optimization_objective_precision_value: Required when optimization_objective
+      is "maximize-recall-at-precision". Must be between 0 and 1, inclusive.
+    stage_1_tuner_worker_pool_specs_override: The dictionary for overriding.
+      stage 1 tuner worker pool spec. The dictionary should be of format
+        https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+    cv_trainer_worker_pool_specs_override: The dictionary for overriding stage
+      cv trainer worker pool spec. The dictionary should be of format
+        https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+    export_additional_model_without_custom_ops: Whether to export additional
+      model without custom TensorFlow operators.
+    stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
+      stats_and_example_gen component.
+    stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
+      workers for stats_and_example_gen component.
+    stats_and_example_gen_dataflow_disk_size_gb: Dataflow worker's disk size in
+      GB for stats_and_example_gen component.
+    transform_dataflow_machine_type: The dataflow machine type for transform
+      component.
+    transform_dataflow_max_num_workers: The max number of Dataflow workers for
+      transform component.
+    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+      transform component.
+    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
+      the default subnetwork will be used. Example:
+        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
+      addresses.
+    encryption_spec_key_name: The KMS key name.
+    additional_experiments: Use this field to config private preview features.
+    dataflow_service_account: Custom service account to run dataflow jobs.
+    run_evaluation: Whether to run evaluation in the training pipeline.
+    evaluation_batch_predict_machine_type: The prediction server machine type
+      for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count: The initial number of
+      prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count: The max number of prediction
+      server for batch predict components during evaluation.
+    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
+      components.
+    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
+      evaluation components.
+    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+      evaluation components.
+    run_distillation: Whether to run distill in the training pipeline.
+    distill_batch_predict_machine_type: The prediction server machine type for
+      batch predict component in the model distillation.
+    distill_batch_predict_starting_replica_count: The initial number of
+      prediction server for batch predict component in the model distillation.
+    distill_batch_predict_max_replica_count: The max number of prediction server
+      for batch predict component in the model distillation.
 
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
@@ -244,65 +416,47 @@ def get_skip_evaluation_pipeline_and_parameters(
   if additional_experiments:
     parameter_values.update({
         'additional_experiments':
-            input_dictionary_to_parameter(additional_experiments)})
-  pipeline_definition_path = os.path.join(
-      pathlib.Path(__file__).parent.resolve(), 'skip_evaluation_pipeline.json')
-  return pipeline_definition_path, parameter_values
+            input_dictionary_to_parameter(additional_experiments)
+    })
+  if run_evaluation:
+    parameter_values.update({
+        'dataflow_service_account':
+            dataflow_service_account,
+        'evaluation_batch_predict_machine_type':
+            evaluation_batch_predict_machine_type,
+        'evaluation_batch_predict_starting_replica_count':
+            evaluation_batch_predict_starting_replica_count,
+        'evaluation_batch_predict_max_replica_count':
+            evaluation_batch_predict_max_replica_count,
+        'evaluation_dataflow_machine_type':
+            evaluation_dataflow_machine_type,
+        'evaluation_dataflow_max_num_workers':
+            evaluation_dataflow_max_num_workers,
+        'evaluation_dataflow_disk_size_gb':
+            evaluation_dataflow_disk_size_gb,
+        'run_evaluation':
+            run_evaluation,
+    })
+  if run_distillation:
+    # All of magic number "1.3" above is because the trial doesn't always finish
+    # in time_per_trial. 1.3 is an empirical safety margin here.
+    distill_stage_1_deadline_hours = math.ceil(
+        float(_DISTILL_TOTAL_TRIALS) /
+        parameter_values['stage_1_num_parallel_trials']
+    ) * parameter_values['stage_1_single_run_max_secs'] * 1.3 / 3600.0
 
-
-# TODO(helin): Remove *args in the argument section for getting pipelines.
-def get_default_pipeline_and_parameters(
-    *args,
-    dataflow_service_account: str = '',
-    evaluation_batch_predict_machine_type: str = 'n1-standard-16',
-    evaluation_batch_predict_starting_replica_count: int = 25,
-    evaluation_batch_predict_max_replica_count: int = 25,
-    evaluation_dataflow_machine_type: str = 'n1-standard-4',
-    evaluation_dataflow_max_num_workers: int = 25,
-    evaluation_dataflow_disk_size_gb: int = 50,
-    **kwargs) -> Tuple[str, Dict[str, Any]]:
-  """Get the AutoML Tabular default training pipeline.
-
-  Args:
-    *args: All arguments in `get_skip_evaluation_pipeline_and_parameters`.
-    dataflow_service_account: Custom service account to run dataflow jobs.
-    evaluation_batch_predict_machine_type: The prediction server machine type
-      for batch predict components during evaluation.
-    evaluation_batch_predict_starting_replica_count: The initial number of
-      prediction server for batch predict components during evaluation.
-    evaluation_batch_predict_max_replica_count: The max number of prediction
-      server for batch predict components during evaluation.
-    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
-      components.
-    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
-      evaluation components.
-    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
-      evaluation components.
-    **kwargs: All arguments in `get_skip_evaluation_pipeline_and_parameters`.
-
-  Returns:
-    Tuple of pipeline_definiton_path and parameter_values.
-  """
-  _, parameter_values = get_skip_evaluation_pipeline_and_parameters(
-      *args, **kwargs)
-
-  parameter_values.update({
-      'dataflow_service_account':
-          dataflow_service_account,
-      'evaluation_batch_predict_machine_type':
-          evaluation_batch_predict_machine_type,
-      'evaluation_batch_predict_starting_replica_count':
-          evaluation_batch_predict_starting_replica_count,
-      'evaluation_batch_predict_max_replica_count':
-          evaluation_batch_predict_max_replica_count,
-      'evaluation_dataflow_machine_type':
-          evaluation_dataflow_machine_type,
-      'evaluation_dataflow_max_num_workers':
-          evaluation_dataflow_max_num_workers,
-      'evaluation_dataflow_disk_size_gb':
-          evaluation_dataflow_disk_size_gb,
-  })
-
+    parameter_values.update({
+        'distill_stage_1_deadline_hours':
+            distill_stage_1_deadline_hours,
+        'distill_batch_predict_machine_type':
+            distill_batch_predict_machine_type,
+        'distill_batch_predict_starting_replica_count':
+            distill_batch_predict_starting_replica_count,
+        'distill_batch_predict_max_replica_count':
+            distill_batch_predict_max_replica_count,
+        'run_distillation':
+            run_distillation,
+    })
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(), 'default_pipeline.json')
   return pipeline_definition_path, parameter_values
@@ -618,51 +772,144 @@ def get_skip_architecture_search_pipeline_and_parameters(
 
 
 def get_distill_skip_evaluation_pipeline_and_parameters(
-    *args,
+    project: str,
+    location: str,
+    root_dir: str,
+    target_column_name: str,
+    prediction_type: str,
+    optimization_objective: str,
+    transformations: Dict[str, Any],
+    split_spec: Dict[str, Any],
+    data_source: Dict[str, Any],
+    train_budget_milli_node_hours: float,
+    stage_1_num_parallel_trials: int = _DEFAULT_NUM_PARALLEL_TRAILS,
+    stage_2_num_parallel_trials: int = _DEFAULT_NUM_PARALLEL_TRAILS,
+    stage_2_num_selected_trials: int = _DEFAULT_STAGE_2_NUM_SELECTED_TRAILS,
+    weight_column_name: str = '',
+    study_spec_override: Optional[Dict[str, Any]] = None,
+    optimization_objective_recall_value: float = -1,
+    optimization_objective_precision_value: float = -1,
+    stage_1_tuner_worker_pool_specs_override: Optional[Dict[str, Any]] = None,
+    cv_trainer_worker_pool_specs_override: Optional[Dict[str, Any]] = None,
+    export_additional_model_without_custom_ops: bool = False,
+    stats_and_example_gen_dataflow_machine_type: str = 'n1-standard-16',
+    stats_and_example_gen_dataflow_max_num_workers: int = 25,
+    stats_and_example_gen_dataflow_disk_size_gb: int = 40,
+    transform_dataflow_machine_type: str = 'n1-standard-16',
+    transform_dataflow_max_num_workers: int = 25,
+    transform_dataflow_disk_size_gb: int = 40,
+    dataflow_subnetwork: str = '',
+    dataflow_use_public_ips: bool = True,
+    encryption_spec_key_name: str = '',
+    additional_experiments: Optional[Dict[str, Any]] = None,
     distill_batch_predict_machine_type: str = 'n1-standard-16',
     distill_batch_predict_starting_replica_count: int = 25,
-    distill_batch_predict_max_replica_count: int = 25,
-    **kwargs) -> Tuple[str, Dict[str, Any]]:
+    distill_batch_predict_max_replica_count: int = 25
+    ) -> Tuple[str, Dict[str, Any]]:
   """Get the AutoML Tabular training pipeline that distill and skips evaluation.
 
   Args:
-    *args: All arguments in `get_skip_evaluation_pipeline_and_parameters`.
+    project: The GCP project that runs the pipeline components.
+    location: The GCP region that runs the pipeline components.
+    root_dir: The root GCS directory for the pipeline components.
+    target_column_name: The target column name.
+    prediction_type: The type of prediction the model is to produce.
+      "classification" or "regression".
+    optimization_objective: For binary classification, "maximize-au-roc",
+      "minimize-log-loss", "maximize-au-prc", "maximize-precision-at-recall", or
+      "maximize-recall-at-precision". For multi class classification,
+      "minimize-log-loss". For regression, "minimize-rmse", "minimize-mae", or
+      "minimize-rmsle".
+    transformations: The transformations to apply.
+    split_spec: The split spec.
+    data_source: The data source.
+    train_budget_milli_node_hours: The train budget of creating this model,
+      expressed in milli node hours i.e. 1,000 value in this field means 1 node
+      hour.
+    stage_1_num_parallel_trials: Number of parallel trails for stage 1.
+    stage_2_num_parallel_trials: Number of parallel trails for stage 2.
+    stage_2_num_selected_trials: Number of selected trials for stage 2.
+    weight_column_name: The weight column name.
+    study_spec_override: The dictionary for overriding study spec. The
+      dictionary should be of format
+      https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/study.proto#L181.
+    optimization_objective_recall_value: Required when optimization_objective is
+      "maximize-precision-at-recall". Must be between 0 and 1, inclusive.
+    optimization_objective_precision_value: Required when optimization_objective
+      is "maximize-recall-at-precision". Must be between 0 and 1, inclusive.
+    stage_1_tuner_worker_pool_specs_override: The dictionary for overriding.
+      stage 1 tuner worker pool spec. The dictionary should be of format
+        https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+    cv_trainer_worker_pool_specs_override: The dictionary for overriding stage
+      cv trainer worker pool spec. The dictionary should be of format
+        https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+    export_additional_model_without_custom_ops: Whether to export additional
+      model without custom TensorFlow operators.
+    stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
+      stats_and_example_gen component.
+    stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
+      workers for stats_and_example_gen component.
+    stats_and_example_gen_dataflow_disk_size_gb: Dataflow worker's disk size in
+      GB for stats_and_example_gen component.
+    transform_dataflow_machine_type: The dataflow machine type for transform
+      component.
+    transform_dataflow_max_num_workers: The max number of Dataflow workers for
+      transform component.
+    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+      transform component.
+    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
+      the default subnetwork will be used. Example:
+        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
+      addresses.
+    encryption_spec_key_name: The KMS key name.
+    additional_experiments: Use this field to config private preview features.
     distill_batch_predict_machine_type: The prediction server machine type for
       batch predict component in the model distillation.
     distill_batch_predict_starting_replica_count: The initial number of
       prediction server for batch predict component in the model distillation.
     distill_batch_predict_max_replica_count: The max number of prediction server
       for batch predict component in the model distillation.
-    **kwargs: All arguments in `get_skip_evaluation_pipeline_and_parameters`.
 
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
-  _, parameter_values = get_skip_evaluation_pipeline_and_parameters(
-      *args, **kwargs)
-
-  # All of magic number "1.3" above is because the trial doesn't always finish
-  # in time_per_trial. 1.3 is an empirical safety margin here.
-  distill_stage_1_deadline_hours = math.ceil(
-      float(_DISTILL_TOTAL_TRIALS) /
-      parameter_values['stage_1_num_parallel_trials']
-  ) * parameter_values['stage_1_single_run_max_secs'] * 1.3 / 3600.0
-
-  parameter_values.update({
-      'distill_stage_1_deadline_hours':
-          distill_stage_1_deadline_hours,
-      'distill_batch_predict_machine_type':
-          distill_batch_predict_machine_type,
-      'distill_batch_predict_starting_replica_count':
-          distill_batch_predict_starting_replica_count,
-      'distill_batch_predict_max_replica_count':
-          distill_batch_predict_max_replica_count,
-  })
-
-  pipeline_definiton_path = os.path.join(
-      pathlib.Path(__file__).parent.resolve(),
-      'distill_skip_evaluation_pipeline.json')
-  return pipeline_definiton_path, parameter_values
+  return get_default_pipeline_and_parameters(
+      project=project,
+      location=location,
+      root_dir=root_dir,
+      target_column_name=target_column_name,
+      prediction_type=prediction_type,
+      optimization_objective=optimization_objective,
+      transformations=transformations,
+      split_spec=split_spec,
+      data_source=data_source,
+      train_budget_milli_node_hours=train_budget_milli_node_hours,
+      stage_1_num_parallel_trials=stage_1_num_parallel_trials,
+      stage_2_num_parallel_trials=stage_2_num_parallel_trials,
+      stage_2_num_selected_trials=stage_2_num_selected_trials,
+      weight_column_name=weight_column_name,
+      study_spec_override=study_spec_override,
+      optimization_objective_recall_value=optimization_objective_recall_value,
+      optimization_objective_precision_value=optimization_objective_precision_value,
+      stage_1_tuner_worker_pool_specs_override=stage_1_tuner_worker_pool_specs_override,
+      cv_trainer_worker_pool_specs_override=cv_trainer_worker_pool_specs_override,
+      export_additional_model_without_custom_ops=export_additional_model_without_custom_ops,
+      stats_and_example_gen_dataflow_machine_type=stats_and_example_gen_dataflow_machine_type,
+      stats_and_example_gen_dataflow_max_num_workers=stats_and_example_gen_dataflow_max_num_workers,
+      stats_and_example_gen_dataflow_disk_size_gb=stats_and_example_gen_dataflow_disk_size_gb,
+      transform_dataflow_machine_type=transform_dataflow_machine_type,
+      transform_dataflow_max_num_workers=transform_dataflow_max_num_workers,
+      transform_dataflow_disk_size_gb=transform_dataflow_disk_size_gb,
+      dataflow_subnetwork=dataflow_subnetwork,
+      dataflow_use_public_ips=dataflow_use_public_ips,
+      encryption_spec_key_name=encryption_spec_key_name,
+      additional_experiments=additional_experiments,
+      distill_batch_predict_machine_type=distill_batch_predict_machine_type,
+      distill_batch_predict_starting_replica_count=distill_batch_predict_starting_replica_count,
+      distill_batch_predict_max_replica_count=distill_batch_predict_max_replica_count,
+      run_evaluation=False,
+      run_distillation=True)
 
 
 def get_wide_and_deep_trainer_pipeline_and_parameters(
@@ -708,6 +955,18 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     transform_dataflow_disk_size_gb: int = 40,
     training_machine_spec: Optional[Dict[str, Any]] = None,
     training_replica_count: int = 1,
+    run_evaluation: bool = True,
+    evaluation_batch_predict_machine_type:
+    str = _EVALUATION_BATCH_PREDICT_MACHINE_TYPE,
+    evaluation_batch_predict_starting_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_STARTING_REPLICA_COUNT,
+    evaluation_batch_predict_max_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT,
+    evaluation_dataflow_machine_type: str = _EVALUATION_DATAFLOW_MACHINE_TYPE,
+    evaluation_dataflow_max_num_workers:
+    int = _EVALUATION_DATAFLOW_MAX_NUM_WORKERS,
+    evaluation_dataflow_disk_size_gb: int = _EVALUATION_DATAFLOW_DISK_SIZE_GB,
+    dataflow_service_account: str = '',
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '') -> Tuple[str, Dict[str, Any]]:
@@ -781,6 +1040,20 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     training_machine_spec: The machine spec for trainer component. See
       https://cloud.google.com/compute/docs/machine-types for options.
     training_replica_count: The replica count for the trainer component.
+    run_evaluation: Whether to run evaluation steps during training.
+    evaluation_batch_predict_machine_type: The prediction server machine type
+      for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count: The initial number of
+      prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count: The max number of prediction
+      server for batch predict components during evaluation.
+    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
+      components.
+    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
+      evaluation components.
+    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+      evaluation components.
+    dataflow_service_account: Custom service account to run dataflow jobs.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default
       subnetwork will be used. Example:
@@ -880,6 +1153,22 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
           training_machine_spec,
       'training_replica_count':
           training_replica_count,
+      'run_evaluation':
+          run_evaluation,
+      'evaluation_batch_predict_machine_type':
+          evaluation_batch_predict_machine_type,
+      'evaluation_batch_predict_starting_replica_count':
+          evaluation_batch_predict_starting_replica_count,
+      'evaluation_batch_predict_max_replica_count':
+          evaluation_batch_predict_max_replica_count,
+      'evaluation_dataflow_machine_type':
+          evaluation_dataflow_machine_type,
+      'evaluation_dataflow_max_num_workers':
+          evaluation_dataflow_max_num_workers,
+      'evaluation_dataflow_disk_size_gb':
+          evaluation_dataflow_disk_size_gb,
+      'dataflow_service_account':
+          dataflow_service_account,
       'dataflow_subnetwork':
           dataflow_subnetwork,
       'dataflow_use_public_ips':
@@ -925,6 +1214,18 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     transform_dataflow_disk_size_gb: int = 40,
     training_machine_spec: Optional[Dict[str, Any]] = None,
     training_replica_count: int = 1,
+    run_evaluation: bool = True,
+    evaluation_batch_predict_machine_type:
+    str = _EVALUATION_BATCH_PREDICT_MACHINE_TYPE,
+    evaluation_batch_predict_starting_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_STARTING_REPLICA_COUNT,
+    evaluation_batch_predict_max_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT,
+    evaluation_dataflow_machine_type: str = _EVALUATION_DATAFLOW_MACHINE_TYPE,
+    evaluation_dataflow_max_num_workers:
+    int = _EVALUATION_DATAFLOW_MAX_NUM_WORKERS,
+    evaluation_dataflow_disk_size_gb: int = _EVALUATION_DATAFLOW_DISK_SIZE_GB,
+    dataflow_service_account: str = '',
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '') -> Tuple[str, Dict[str, Any]]:
@@ -983,6 +1284,20 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     training_machine_spec: The machine spec for trainer component. See
       https://cloud.google.com/compute/docs/machine-types for options.
     training_replica_count: The replica count for the trainer component.
+    run_evaluation: Whether to run evaluation steps during training.
+    evaluation_batch_predict_machine_type: The prediction server machine type
+      for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count: The initial number of
+      prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count: The max number of prediction
+      server for batch predict components during evaluation.
+    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
+      components.
+    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
+      evaluation components.
+    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+      evaluation components.
+    dataflow_service_account: Custom service account to run dataflow jobs.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default
       subnetwork will be used. Example:
@@ -1060,6 +1375,22 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
           training_machine_spec,
       'training_replica_count':
           training_replica_count,
+      'run_evaluation':
+          run_evaluation,
+      'evaluation_batch_predict_machine_type':
+          evaluation_batch_predict_machine_type,
+      'evaluation_batch_predict_starting_replica_count':
+          evaluation_batch_predict_starting_replica_count,
+      'evaluation_batch_predict_max_replica_count':
+          evaluation_batch_predict_max_replica_count,
+      'evaluation_dataflow_machine_type':
+          evaluation_dataflow_machine_type,
+      'evaluation_dataflow_max_num_workers':
+          evaluation_dataflow_max_num_workers,
+      'evaluation_dataflow_disk_size_gb':
+          evaluation_dataflow_disk_size_gb,
+      'dataflow_service_account':
+          dataflow_service_account,
       'dataflow_subnetwork':
           dataflow_subnetwork,
       'dataflow_use_public_ips':
@@ -1126,6 +1457,18 @@ def get_tabnet_trainer_pipeline_and_parameters(
     transform_dataflow_disk_size_gb: int = 40,
     training_machine_spec: Optional[Dict[str, Any]] = None,
     training_replica_count: int = 1,
+    run_evaluation: bool = True,
+    evaluation_batch_predict_machine_type:
+    str = _EVALUATION_BATCH_PREDICT_MACHINE_TYPE,
+    evaluation_batch_predict_starting_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_STARTING_REPLICA_COUNT,
+    evaluation_batch_predict_max_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT,
+    evaluation_dataflow_machine_type: str = _EVALUATION_DATAFLOW_MACHINE_TYPE,
+    evaluation_dataflow_max_num_workers:
+    int = _EVALUATION_DATAFLOW_MAX_NUM_WORKERS,
+    evaluation_dataflow_disk_size_gb: int = _EVALUATION_DATAFLOW_DISK_SIZE_GB,
+    dataflow_service_account: str = '',
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
     encryption_spec_key_name: str = '') -> Tuple[str, Dict[str, Any]]:
@@ -1206,6 +1549,20 @@ def get_tabnet_trainer_pipeline_and_parameters(
     training_machine_spec: The machine spec for trainer component. See
       https://cloud.google.com/compute/docs/machine-types for options.
     training_replica_count: The replica count for the trainer component.
+    run_evaluation: Whether to run evaluation steps during training.
+    evaluation_batch_predict_machine_type: The prediction server machine type
+      for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count: The initial number of
+      prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count: The max number of prediction
+      server for batch predict components during evaluation.
+    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
+      components.
+    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
+      evaluation components.
+    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+      evaluation components.
+    dataflow_service_account: Custom service account to run dataflow jobs.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default
       subnetwork will be used. Example:
@@ -1307,6 +1664,22 @@ def get_tabnet_trainer_pipeline_and_parameters(
           training_machine_spec,
       'training_replica_count':
           training_replica_count,
+      'run_evaluation':
+          run_evaluation,
+      'evaluation_batch_predict_machine_type':
+          evaluation_batch_predict_machine_type,
+      'evaluation_batch_predict_starting_replica_count':
+          evaluation_batch_predict_starting_replica_count,
+      'evaluation_batch_predict_max_replica_count':
+          evaluation_batch_predict_max_replica_count,
+      'evaluation_dataflow_machine_type':
+          evaluation_dataflow_machine_type,
+      'evaluation_dataflow_max_num_workers':
+          evaluation_dataflow_max_num_workers,
+      'evaluation_dataflow_disk_size_gb':
+          evaluation_dataflow_disk_size_gb,
+      'dataflow_service_account':
+          dataflow_service_account,
       'dataflow_subnetwork':
           dataflow_subnetwork,
       'dataflow_use_public_ips':

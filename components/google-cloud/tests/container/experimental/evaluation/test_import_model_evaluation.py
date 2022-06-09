@@ -1,17 +1,17 @@
 """Tests for importing model evaluations."""
 
 import json
-from unittest import mock
 import os
+from unittest import mock
 
 import google.auth
 from google.cloud import aiplatform
 from google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation import main
 from google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation import to_value
-from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
+from google_cloud_pipeline_components.proto import gcp_resources_pb2
 
 from google.protobuf import json_format
-from google3.testing.pybase.googletest import TestCase
+import unittest
 
 SCHEMA_URI = 'gs://google-cloud-aiplatform/schema/modelevaluation/classification_metrics_1.0.0.yaml'
 
@@ -60,7 +60,8 @@ def mock_api_call(test_func):
 
   return mocked_test
 
-class ImportModelEvaluationTest(TestCase):
+
+class ImportModelEvaluationTest(unittest.TestCase):
 
   def setUp(self):
     super(ImportModelEvaluationTest, self).setUp()
@@ -210,8 +211,8 @@ class ImportModelEvaluationTest(TestCase):
       serialized_gcp_resources = f.read()
 
       # Instantiate GCPResources Proto
-      model_evaluation_resources = json_format.Parse(serialized_gcp_resources,
-                                                     GcpResources())
+      model_evaluation_resources = json_format.Parse(
+          serialized_gcp_resources, gcp_resources_pb2.GcpResources())
 
       self.assertLen(model_evaluation_resources.resources, 1)
       model_evaluation_name = model_evaluation_resources.resources[

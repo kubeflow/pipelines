@@ -259,9 +259,6 @@
             "encryption_spec_key_name": {
               "type": "STRING"
             },
-            "is_distill": {
-              "type": "STRING"
-            },
             "location": {
               "type": "STRING"
             },
@@ -278,6 +275,9 @@
               "type": "STRING"
             },
             "root_dir": {
+              "type": "STRING"
+            },
+            "run_distillation": {
               "type": "STRING"
             },
             "single_run_max_secs": {
@@ -665,13 +665,6 @@
                   "encryption_spec_key_name": {
                     "componentInputParameter": "pipelineparam--encryption_spec_key_name"
                   },
-                  "is_distill": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "false"
-                      }
-                    }
-                  },
                   "location": {
                     "componentInputParameter": "pipelineparam--location"
                   },
@@ -689,6 +682,13 @@
                   },
                   "root_dir": {
                     "componentInputParameter": "pipelineparam--root_dir"
+                  },
+                  "run_distillation": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "false"
+                      }
+                    }
                   },
                   "single_run_max_secs": {
                     "componentInputParameter": "pipelineparam--stage_1_single_run_max_secs"
@@ -1124,13 +1124,6 @@
                   "encryption_spec_key_name": {
                     "componentInputParameter": "pipelineparam--encryption_spec_key_name"
                   },
-                  "is_distill": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "intValue": "0"
-                      }
-                    }
-                  },
                   "location": {
                     "componentInputParameter": "pipelineparam--location"
                   },
@@ -1151,6 +1144,13 @@
                   },
                   "root_dir": {
                     "componentInputParameter": "pipelineparam--root_dir"
+                  },
+                  "run_distillation": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "0"
+                      }
+                    }
                   },
                   "split_spec": {
                     "componentInputParameter": "pipelineparam--split_spec"
@@ -1536,9 +1536,6 @@
             "encryption_spec_key_name": {
               "type": "STRING"
             },
-            "is_distill": {
-              "type": "STRING"
-            },
             "location": {
               "type": "STRING"
             },
@@ -1558,6 +1555,9 @@
               "type": "STRING"
             },
             "root_dir": {
+              "type": "STRING"
+            },
+            "run_distillation": {
               "type": "STRING"
             },
             "split_spec": {
@@ -1655,7 +1655,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.6"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         },
         "exec-automl-tabular-ensemble": {
@@ -1678,7 +1678,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.6"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         },
         "exec-automl-tabular-finalizer": {
@@ -1701,7 +1701,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.6"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         },
         "exec-automl-tabular-infra-validator": {
@@ -1730,7 +1730,7 @@
               "--gcp_resources",
               "{{$.outputs.parameters['gcp_resources'].output_file}}",
               "--payload",
-              "{\"display_name\": \"automl-tabular-stage-1-tuner-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\": {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod\", \"args\": [\"l2l_stage_1_tuner\", \"--transform_output_path={{$.inputs.artifacts['transform_output'].uri}}\", \"--training_docker_uri=us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod\", \"--feature_selection_result_path={{$.inputs.artifacts['feature_ranking'].uri}}\",\"--disable_early_stopping={{$.inputs.parameters['disable_early_stopping']}}\", \"--tune_feature_selection_rate={{$.inputs.parameters['tune_feature_selection_rate']}}\", \"--reduce_search_space_mode={{$.inputs.parameters['reduce_search_space_mode']}}\", \"--component_id={{$.pipeline_task_uuid}}\", \"--training_base_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train\", \"--study_spec_override={{$.inputs.parameters['study_spec_override']}}\", \"--worker_pool_specs_override={{$.inputs.parameters['worker_pool_specs_override']}}\", \"--num_parallel_trial={{$.inputs.parameters['num_parallel_trials']}}\", \"--single_run_max_secs={{$.inputs.parameters['single_run_max_secs']}}\", \"--deadline_hours={{$.inputs.parameters['deadline_hours']}}\", \"--num_selected_trials={{$.inputs.parameters['num_selected_trials']}}\", \"--lro_job_info={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/lro\", \"--error_file_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--metadata_path={{$.inputs.artifacts['metadata'].uri}}\", \"--materialized_train_split={{$.inputs.artifacts['materialized_train_split'].uri}}\", \"--materialized_eval_split={{$.inputs.artifacts['materialized_eval_split'].uri}}\", \"--is_distill={{$.inputs.parameters['is_distill']}}\", \"--tuning_result_output_path={{$.outputs.artifacts['tuning_result_output'].uri}}\", \"--kms_key_name={{$.inputs.parameters['encryption_spec_key_name']}}\", \"--use_json=true\", \"--log_level=ERROR\"]}}]}}"
+              "{\"display_name\": \"automl-tabular-stage-1-tuner-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\": {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod\", \"args\": [\"l2l_stage_1_tuner\", \"--transform_output_path={{$.inputs.artifacts['transform_output'].uri}}\", \"--training_docker_uri=us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod\", \"--feature_selection_result_path={{$.inputs.artifacts['feature_ranking'].uri}}\",\"--disable_early_stopping={{$.inputs.parameters['disable_early_stopping']}}\", \"--tune_feature_selection_rate={{$.inputs.parameters['tune_feature_selection_rate']}}\", \"--reduce_search_space_mode={{$.inputs.parameters['reduce_search_space_mode']}}\", \"--component_id={{$.pipeline_task_uuid}}\", \"--training_base_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train\", \"--study_spec_override={{$.inputs.parameters['study_spec_override']}}\", \"--worker_pool_specs_override={{$.inputs.parameters['worker_pool_specs_override']}}\", \"--num_parallel_trial={{$.inputs.parameters['num_parallel_trials']}}\", \"--single_run_max_secs={{$.inputs.parameters['single_run_max_secs']}}\", \"--deadline_hours={{$.inputs.parameters['deadline_hours']}}\", \"--num_selected_trials={{$.inputs.parameters['num_selected_trials']}}\", \"--lro_job_info={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/lro\", \"--error_file_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--metadata_path={{$.inputs.artifacts['metadata'].uri}}\", \"--materialized_train_split={{$.inputs.artifacts['materialized_train_split'].uri}}\", \"--materialized_eval_split={{$.inputs.artifacts['materialized_eval_split'].uri}}\", \"--is_distill={{$.inputs.parameters['run_distillation']}}\", \"--tuning_result_output_path={{$.outputs.artifacts['tuning_result_output'].uri}}\", \"--kms_key_name={{$.inputs.parameters['encryption_spec_key_name']}}\", \"--use_json=true\", \"--log_level=ERROR\"]}}]}}"
             ],
             "command": [
               "python3",
@@ -1738,7 +1738,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.6"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         },
         "exec-automl-tabular-transform": {
@@ -1761,7 +1761,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.6"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         },
         "exec-check-if-binary-classification": {
@@ -1822,7 +1822,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.6"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         },
         "exec-purge-unused-features": {
@@ -1864,7 +1864,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.6"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         },
         "exec-tabular-stats-and-example-gen": {
@@ -1879,7 +1879,7 @@
               "--gcp_resources",
               "{{$.outputs.parameters['gcp_resources'].output_file}}",
               "--payload",
-              "{\"display_name\": \"tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\": {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod\", \"args\": [\"stats_generator\",\"--train_spec={\\\"prediction_type\\\": \\\"{{$.inputs.parameters['prediction_type']}}\\\", \\\"target_column\\\": \\\"{{$.inputs.parameters['target_column_name']}}\\\", \\\"optimization_objective\\\": \\\"{{$.inputs.parameters['optimization_objective']}}\\\", \\\"weight_column_name\\\": \\\"{{$.inputs.parameters['weight_column_name']}}\\\", \\\"transformations\\\": {{$.inputs.parameters['transformations']}}}\", \"--split_spec={{$.inputs.parameters['split_spec']}}\", \"--data_source={{$.inputs.parameters['data_source']}}\", \"--target_column={{$.inputs.parameters['target_column_name']}}\", \"--request_type=COLUMN_STATS_ONLY\", \"--optimization_objective_recall_value={{$.inputs.parameters['optimization_objective_recall_value']}}\", \"--optimization_objective_precision_value={{$.inputs.parameters['optimization_objective_precision_value']}}\", \"--example_gen_gcs_output_prefix={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/example_gen_output\", \"--dataset_stats_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/stats/\", \"--stats_result_path={{$.outputs.artifacts['dataset_stats'].uri}}\", \"--dataset_schema_path={{$.outputs.artifacts['dataset_schema'].uri}}\", \"--job_name=tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"--dataflow_project={{$.inputs.parameters['project']}}\", \"--error_file_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--dataflow_staging_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging\", \"--dataflow_tmp_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\", \"--dataflow_max_num_workers={{$.inputs.parameters['dataflow_max_num_workers']}}\", \"--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod\", \"--dataflow_machine_type={{$.inputs.parameters['dataflow_machine_type']}}\", \"--dataflow_disk_size_gb={{$.inputs.parameters['dataflow_disk_size_gb']}}\", \"--dataflow_kms_key={{$.inputs.parameters['encryption_spec_key_name']}}\", \"--dataflow_subnetwork_fully_qualified={{$.inputs.parameters['dataflow_subnetwork']}}\", \"--dataflow_use_public_ips={{$.inputs.parameters['dataflow_use_public_ips']}}\", \"--is_distill={{$.inputs.parameters['is_distill']}}\", \"--additional_experiments={{$.inputs.parameters['additional_experiments']}}\", \"--metadata_path={{$.outputs.artifacts['metadata'].uri}}\", \"--train_split={{$.outputs.artifacts['train_split'].uri}}\", \"--eval_split={{$.outputs.artifacts['eval_split'].uri}}\", \"--test_split={{$.outputs.artifacts['test_split'].uri}}\", \"--test_split_for_batch_prediction_component={{$.outputs.parameters['test_split_json'].output_file}}\", \"--downsampled_test_split_for_batch_prediction_component={{$.outputs.parameters['downsampled_test_split_json'].output_file}}\", \"--instance_baseline_path={{$.outputs.artifacts['instance_baseline'].uri}}\", \"--parse_json=true\", \"--generate_additional_downsample_test_split=true\"]}}]}}"
+              "{\"display_name\": \"tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\": {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod\", \"args\": [\"stats_generator\",\"--train_spec={\\\"prediction_type\\\": \\\"{{$.inputs.parameters['prediction_type']}}\\\", \\\"target_column\\\": \\\"{{$.inputs.parameters['target_column_name']}}\\\", \\\"optimization_objective\\\": \\\"{{$.inputs.parameters['optimization_objective']}}\\\", \\\"weight_column_name\\\": \\\"{{$.inputs.parameters['weight_column_name']}}\\\", \\\"transformations\\\": {{$.inputs.parameters['transformations']}}}\", \"--split_spec={{$.inputs.parameters['split_spec']}}\", \"--data_source={{$.inputs.parameters['data_source']}}\", \"--target_column={{$.inputs.parameters['target_column_name']}}\", \"--request_type=COLUMN_STATS_ONLY\", \"--optimization_objective_recall_value={{$.inputs.parameters['optimization_objective_recall_value']}}\", \"--optimization_objective_precision_value={{$.inputs.parameters['optimization_objective_precision_value']}}\", \"--example_gen_gcs_output_prefix={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/example_gen_output\", \"--dataset_stats_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/stats/\", \"--stats_result_path={{$.outputs.artifacts['dataset_stats'].uri}}\", \"--dataset_schema_path={{$.outputs.artifacts['dataset_schema'].uri}}\", \"--job_name=tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"--dataflow_project={{$.inputs.parameters['project']}}\", \"--error_file_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--dataflow_staging_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging\", \"--dataflow_tmp_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\", \"--dataflow_max_num_workers={{$.inputs.parameters['dataflow_max_num_workers']}}\", \"--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod\", \"--dataflow_machine_type={{$.inputs.parameters['dataflow_machine_type']}}\", \"--dataflow_disk_size_gb={{$.inputs.parameters['dataflow_disk_size_gb']}}\", \"--dataflow_kms_key={{$.inputs.parameters['encryption_spec_key_name']}}\", \"--dataflow_subnetwork_fully_qualified={{$.inputs.parameters['dataflow_subnetwork']}}\", \"--dataflow_use_public_ips={{$.inputs.parameters['dataflow_use_public_ips']}}\", \"--is_distill={{$.inputs.parameters['run_distillation']}}\", \"--additional_experiments={{$.inputs.parameters['additional_experiments']}}\", \"--metadata_path={{$.outputs.artifacts['metadata'].uri}}\", \"--train_split={{$.outputs.artifacts['train_split'].uri}}\", \"--eval_split={{$.outputs.artifacts['eval_split'].uri}}\", \"--test_split={{$.outputs.artifacts['test_split'].uri}}\", \"--test_split_for_batch_prediction_component={{$.outputs.parameters['test_split_json'].output_file}}\", \"--downsampled_test_split_for_batch_prediction_component={{$.outputs.parameters['downsampled_test_split_json'].output_file}}\", \"--instance_baseline_path={{$.outputs.artifacts['instance_baseline'].uri}}\", \"--parse_json=true\", \"--generate_additional_downsample_test_split=true\"]}}]}}"
             ],
             "command": [
               "python3",
@@ -1887,7 +1887,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.6"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         }
       }
