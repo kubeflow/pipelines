@@ -42,7 +42,7 @@ export default function Compare(props: PageProps) {
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 
   // Retrieves run details, set page version on success.
-  const { isError, error, data } = useQuery<ApiRunDetail[], Error>(
+  const { isLoading, isError, error, data } = useQuery<ApiRunDetail[], Error>(
     ['run_details', { ids: runIds }],
     () => Promise.all(runIds.map(async id => await Apis.runServiceApi.getRun(id))),
     {
@@ -71,6 +71,10 @@ export default function Compare(props: PageProps) {
   }, [data]);
 
   useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
     // Update banner based on error, feature flag, run versions, and run count.
     if (isError) {
       (async function() {
@@ -107,7 +111,7 @@ export default function Compare(props: PageProps) {
     }
   }, [compareVersion, isError, error, updateBanner, runIds.length]);
 
-  if (isError) {
+  if (isError || isLoading) {
     return <></>;
   }
 

@@ -254,7 +254,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
 
     // v2 feature is turn off.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(_ => false);
+    jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(false);
 
     render(
       <CommonTestWrapper>
@@ -273,7 +273,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
 
     // v2 feature is turn off.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(_ => false);
+    jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(false);
 
     const props = generateProps();
     props.location.search = `?${QUERY_PARAMS.runlist}=${MOCK_RUN_1_ID}`;
@@ -324,7 +324,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
 
     // v2 feature is turn off.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(_ => false);
+    jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(false);
 
     render(
       <CommonTestWrapper>
@@ -345,7 +345,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
 
     // v2 feature is turn off.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(_ => false);
+    jest.spyOn(features, 'isFeatureEnabled').mockReturnValue(false);
 
     render(
       <CommonTestWrapper>
