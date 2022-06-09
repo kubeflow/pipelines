@@ -1,4 +1,4 @@
-# Copyright 2020 The Kubeflow Authors
+# Copyright 2020-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -739,6 +739,20 @@ class Compiler(object):
 
                 # Task level caching option.
                 subgroup.task_spec.caching_options.enable_cache = subgroup.enable_caching
+                if subgroup.num_retries or subgroup.backoff_duration or subgroup.backoff_factor or subgroup.backoff_max_duration:
+
+                    if subgroup.retry_policy is not None:
+                        warnings.warn(
+                            "'retry_policy' is ignored when compiling to IR using the v2 compiler.",
+                            compiler_utils.NoOpWarning)
+
+                    retry_policy_proto = compiler_utils.make_retry_policy_proto(
+                        max_retry_count=subgroup.num_retries,
+                        backoff_duration=subgroup.backoff_duration,
+                        backoff_factor=subgroup.backoff_factor,
+                        backoff_max_duration=subgroup.backoff_max_duration,
+                    )
+                    subgroup.task_spec.retry_policy.CopyFrom(retry_policy_proto)
 
             subgroup_inputs = inputs.get(subgroup.name, [])
             subgroup_params = [param for param, _ in subgroup_inputs]
