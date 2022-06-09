@@ -35,7 +35,7 @@ export function isTemplateV2(templateString: string): boolean {
     const template = jsyaml.safeLoad(templateString);
     if (isArgoWorkflowTemplate(template)) {
       return false;
-    } else if (isFeatureEnabled(FeatureKey.V2)) {
+    } else if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
       WorkflowUtils.convertYamlToV2PipelineSpec(templateString);
       return true;
     } else {

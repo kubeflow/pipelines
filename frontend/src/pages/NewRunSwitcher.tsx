@@ -37,7 +37,7 @@ function NewRunSwitcher(props: PageProps) {
     { staleTime: Infinity },
   );
 
-  if (isFeatureEnabled(FeatureKey.V2)) {
+  if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
     if (isSuccess && isTemplateV2(templateString || '')) {
       return <NewRunV2 {...props} namespace={namespace} />;
     }

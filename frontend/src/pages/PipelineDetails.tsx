@@ -368,7 +368,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       const [graph, reducedGraph, graphV2] = await this._createGraph(
         selectedVersionPipelineTemplate,
       );
-      if (isFeatureEnabled(FeatureKey.V2) && graphV2.length > 0) {
+      if (isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2.length > 0) {
         this.setStateSafe({
           graph: undefined,
           reducedGraph: undefined,

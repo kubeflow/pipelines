@@ -8,9 +8,7 @@ package run_model
 import (
 	strfmt "github.com/go-openapi/strfmt"
 
-	"github.com/go-openapi/errors"
 	"github.com/go-openapi/swag"
-	"github.com/go-openapi/validate"
 )
 
 // PipelineSpecRuntimeConfig The runtime config of a PipelineSpec.
@@ -18,11 +16,9 @@ import (
 type PipelineSpecRuntimeConfig struct {
 
 	// The runtime parameters of the PipelineSpec. The parameters will be
-	// used to replace the placeholders at runtime.
-	ParameterValues map[string]string `json:"parameter_values,omitempty"`
-
-	// TODO: deprecate this field once verified the new field works.
-	Parameters map[string]ProtobufValue `json:"parameters,omitempty"`
+	// used to replace the placeholders
+	// at runtime.
+	Parameters map[string]interface{} `json:"parameters,omitempty"`
 
 	// A path in a object store bucket which will be treated as the root
 	// output directory of the pipeline. It is used by the system to
@@ -32,37 +28,6 @@ type PipelineSpecRuntimeConfig struct {
 
 // Validate validates this pipeline spec runtime config
 func (m *PipelineSpecRuntimeConfig) Validate(formats strfmt.Registry) error {
-	var res []error
-
-	if err := m.validateParameters(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if len(res) > 0 {
-		return errors.CompositeValidationError(res...)
-	}
-	return nil
-}
-
-func (m *PipelineSpecRuntimeConfig) validateParameters(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Parameters) { // not required
-		return nil
-	}
-
-	for k := range m.Parameters {
-
-		if err := validate.Required("parameters"+"."+k, "body", m.Parameters[k]); err != nil {
-			return err
-		}
-		if val, ok := m.Parameters[k]; ok {
-			if err := val.Validate(formats); err != nil {
-				return err
-			}
-		}
-
-	}
-
 	return nil
 }
 

@@ -17,7 +17,6 @@
 import { Button, Checkbox, FormControlLabel, InputAdornment, TextField } from '@material-ui/core';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
-import { ProtobufValue } from 'src/apis/run';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { ParameterType_ParameterTypeEnum } from 'src/generated/pipeline_spec/pipeline_spec';
 import { RuntimeParameters, SpecParameters } from 'src/pages/NewRunV2';
@@ -155,7 +154,7 @@ export default NewRunParametersV2;
 
 interface Param {
   key: string;
-  value: ProtobufValue;
+  value: any;
 }
 
 interface ParamEditorProps {

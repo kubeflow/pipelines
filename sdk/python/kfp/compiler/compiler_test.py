@@ -14,16 +14,22 @@
 
 import json
 import os
+import re
 import tempfile
 import unittest
+from typing import Any, Dict, List, Optional
 
 import yaml
 from absl.testing import parameterized
-from kfp import compiler
+from click import testing
+from google.protobuf import json_format
 from kfp import components
 from kfp import dsl
+from kfp.cli import cli
+from kfp.compiler import compiler
 from kfp.components.types import type_utils
 from kfp.dsl import PipelineTaskFinalStatus
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
     name: producer
@@ -716,7 +722,7 @@ class TestCompileComponent(parameterized.TestCase):
             output_json = os.path.join(tempdir, f'component{extension}')
             compiler.Compiler().compile(
                 pipeline_func=hello_world, package_path=output_json)
-            with open(output_json, "r") as f:
+            with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
 
         self.assertEqual(pipeline_spec['pipelineInfo']['name'], 'hello-world')
@@ -733,7 +739,7 @@ class TestCompileComponent(parameterized.TestCase):
             output_json = os.path.join(tempdir, 'component.yaml')
             compiler.Compiler().compile(
                 pipeline_func=hello_world, package_path=output_json)
-            with open(output_json, "r") as f:
+            with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
 
         self.assertEqual(
@@ -751,7 +757,7 @@ class TestCompileComponent(parameterized.TestCase):
             output_json = os.path.join(tempdir, 'component.yaml')
             compiler.Compiler().compile(
                 pipeline_func=hello_world, package_path=output_json)
-            with open(output_json, "r") as f:
+            with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
 
         self.assertEqual(pipeline_spec['pipelineInfo']['name'], 'hello-world')
@@ -772,7 +778,7 @@ class TestCompileComponent(parameterized.TestCase):
                 pipeline_func=hello_world,
                 package_path=output_json,
                 pipeline_name='custom-name')
-            with open(output_json, "r") as f:
+            with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
 
         self.assertEqual(pipeline_spec['pipelineInfo']['name'], 'custom-name')
@@ -790,7 +796,7 @@ class TestCompileComponent(parameterized.TestCase):
                 pipeline_func=hello_world,
                 package_path=output_json,
                 pipeline_parameters={'text': 'override_string'})
-            with open(output_json, "r") as f:
+            with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
 
         self.assertEqual(
@@ -811,6 +817,164 @@ class TestCompileBadInput(unittest.TestCase):
                                     'Unsupported pipeline_func type.'):
             compiler.Compiler().compile(
                 pipeline_func=1, package_path='output.json')
+
+
+def pipeline_spec_from_file(filepath: str) -> str:
+    with open(filepath, 'r') as f:
+        dictionary = yaml.safe_load(f)
+    return json_format.ParseDict(dictionary, pipeline_spec_pb2.PipelineSpec())
+
+
+class TestWriteIrToFile(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        pipeline_spec = pipeline_spec_pb2.PipelineSpec()
+        pipeline_spec.pipeline_info.name = 'pipeline-name'
+        cls.pipeline_spec = pipeline_spec
+
+    def test_yaml(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            temp_filepath = os.path.join(tempdir, 'output.yaml')
+            compiler.write_pipeline_spec_to_file(self.pipeline_spec,
+                                                 temp_filepath)
+            actual = pipeline_spec_from_file(temp_filepath)
+        self.assertEqual(actual, self.pipeline_spec)
+
+    def test_yml(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            temp_filepath = os.path.join(tempdir, 'output.yml')
+            compiler.write_pipeline_spec_to_file(self.pipeline_spec,
+                                                 temp_filepath)
+            actual = pipeline_spec_from_file(temp_filepath)
+        self.assertEqual(actual, self.pipeline_spec)
+
+    def test_json(self):
+        with tempfile.TemporaryDirectory() as tempdir, self.assertWarnsRegex(
+                DeprecationWarning, r'Compiling to JSON is deprecated'):
+            temp_filepath = os.path.join(tempdir, 'output.json')
+            compiler.write_pipeline_spec_to_file(self.pipeline_spec,
+                                                 temp_filepath)
+            actual = pipeline_spec_from_file(temp_filepath)
+        self.assertEqual(actual, self.pipeline_spec)
+
+    def test_incorrect_extension(self):
+        with tempfile.TemporaryDirectory() as tempdir, self.assertRaisesRegex(
+                ValueError, r'should end with "\.yaml"\.'):
+            temp_filepath = os.path.join(tempdir, 'output.txt')
+            compiler.write_pipeline_spec_to_file(self.pipeline_spec,
+                                                 temp_filepath)
+
+
+SAMPLE_PIPELINES_TEST_DATA_DIR = os.path.join(
+    os.path.dirname(__file__), 'test_data')
+
+SAMPLE_TEST_PY_FILES = [
+    'pipeline_with_importer',
+    'pipeline_with_ontology',
+    'pipeline_with_if_placeholder',
+    'pipeline_with_concat_placeholder',
+    'pipeline_with_resource_spec',
+    'pipeline_with_various_io_types',
+    'pipeline_with_reused_component',
+    'pipeline_with_after',
+    'pipeline_with_condition',
+    'pipeline_with_nested_conditions',
+    'pipeline_with_nested_conditions_yaml',
+    'pipeline_with_loops',
+    'pipeline_with_nested_loops',
+    'pipeline_with_loops_and_conditions',
+    'pipeline_with_params_containing_format',
+    'lightweight_python_functions_v2_pipeline',
+    'lightweight_python_functions_v2_with_outputs',
+    'xgboost_sample_pipeline',
+    'pipeline_with_metrics_outputs',
+    'pipeline_with_exit_handler',
+    'pipeline_with_env',
+    'v2_component_with_optional_inputs',
+    'pipeline_with_gcpc_types',
+    'pipeline_with_placeholders',
+    'pipeline_with_task_final_status',
+    'pipeline_with_task_final_status_yaml',
+    'v2_component_with_pip_index_urls',
+]
+
+
+class TestDslCompileSamplePipelines(parameterized.TestCase):
+
+    def _invoke(self, args: List[str]) -> testing.Result:
+        starting_args = ['dsl', 'compile']
+        args = starting_args + args
+        runner = testing.CliRunner()
+        return runner.invoke(
+            cli=cli.cli, args=args, catch_exceptions=False, obj={})
+
+    def _ignore_kfp_version_helper(self, spec: Dict[str,
+                                                    Any]) -> Dict[str, Any]:
+        """Ignores kfp sdk versioning in command.
+
+        Takes in a YAML input and ignores the kfp sdk versioning in
+        command for comparison between compiled file and goldens.
+        """
+        pipeline_spec = spec.get('pipelineSpec', spec)
+
+        if 'executors' in pipeline_spec['deploymentSpec']:
+            for executor in pipeline_spec['deploymentSpec']['executors']:
+                pipeline_spec['deploymentSpec']['executors'][
+                    executor] = yaml.safe_load(
+                        re.sub(
+                            r"'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'", 'kfp',
+                            yaml.dump(
+                                pipeline_spec['deploymentSpec']['executors']
+                                [executor],
+                                sort_keys=True)))
+        return spec
+
+    def _load_compiled_file(self, filename: str) -> Dict[str, Any]:
+        with open(filename, 'r') as f:
+            contents = yaml.safe_load(f)
+            pipeline_spec = contents[
+                'pipelineSpec'] if 'pipelineSpec' in contents else contents
+            # ignore the sdkVersion
+            del pipeline_spec['sdkVersion']
+            return self._ignore_kfp_version_helper(contents)
+
+    def _test_compile_py_to_yaml(
+            self,
+            file_base_name: str,
+            additional_arguments: Optional[List[str]] = None) -> None:
+        py_file = os.path.join(SAMPLE_PIPELINES_TEST_DATA_DIR,
+                               f'{file_base_name}.py')
+
+        golden_compiled_file = os.path.join(SAMPLE_PIPELINES_TEST_DATA_DIR,
+                                            f'{file_base_name}.yaml')
+
+        if additional_arguments is None:
+            additional_arguments = []
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            generated_compiled_file = os.path.join(
+                tmpdir, f'{file_base_name}-pipeline.yaml')
+
+            result = self._invoke(
+                ['--py', py_file, '--output', generated_compiled_file] +
+                additional_arguments)
+
+            self.assertEqual(result.exit_code, 0)
+
+            compiled = self._load_compiled_file(generated_compiled_file)
+
+        golden = self._load_compiled_file(golden_compiled_file)
+        self.assertEqual(golden, compiled)
+
+    def test_two_step_pipeline(self):
+        self._test_compile_py_to_yaml(
+            'two_step_pipeline',
+            ['--pipeline-parameters', '{"text":"Hello KFP!"}'])
+
+    @parameterized.parameters(SAMPLE_TEST_PY_FILES)
+    def test_compile_pipelines(self, file: str):
+        self._test_compile_py_to_yaml(file)
 
 
 if __name__ == '__main__':
