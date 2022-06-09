@@ -294,14 +294,14 @@ function updateToolBarActions(
 }
 
 function getDetailsFields(apiRun?: ApiRun): Array<KeyValue<string>> {
-  // check if the run has finished or not. The default value for apiRun.finished_at is 
+  // check if the run has finished or not. The default value for apiRun.finished_at is
   // Date(0), when it is not specified.
   var finished_at = new Date(0);
   if (apiRun?.finished_at) {
     finished_at = new Date(apiRun?.finished_at);
   }
   var time_zero = new Date(0);
-  var has_finished = Boolean(finished_at.getTime() !== time_zero.getTime())
+  var has_finished = Boolean(finished_at.getTime() !== time_zero.getTime());
 
   return [
     ['Run ID', apiRun?.id || '-'],
