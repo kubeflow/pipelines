@@ -24,6 +24,7 @@ __all__ = [
     'BigqueryQueryJobOp',
     'BigqueryCreateModelJobOp',
     'BigqueryExportModelJobOp',
+    'BigqueryMLArimaEvaluateJobOp',
     'BigqueryPredictModelJobOp',
     'BigqueryEvaluateModelJobOp',
     'BigqueryMLArimaCoefficientsJobOp',
@@ -66,6 +67,9 @@ BigqueryEvaluateModelJobOp = load_component_from_file(
 BigqueryMLArimaCoefficientsJobOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'ml_arima_coefficients/component.yaml'))
+
+BigqueryMLArimaEvaluateJobOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'ml_arima_evaluate/component.yaml'))
 
 BigqueryMLReconstructionLossJobOp = load_component_from_file(
     os.path.join(
