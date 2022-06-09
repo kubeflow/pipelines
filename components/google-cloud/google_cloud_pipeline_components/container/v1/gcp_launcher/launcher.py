@@ -62,6 +62,8 @@ _JOB_TYPE_TO_ACTION_MAP = {
         bigquery_job_remote_runner.bigquery_drop_model_job,
     'BigqueryPredictModelJob':
         bigquery_job_remote_runner.bigquery_predict_model_job,
+    'BigqueryMLForecastJob':
+        bigquery_job_remote_runner.bigquery_forecast_model_job,
     'BigqueryExplainPredictModelJob':
         bigquery_job_remote_runner.bigquery_explain_predict_model_job,
     'BigqueryExplainForecastModelJob':
@@ -179,6 +181,7 @@ def _parse_args(args):
           'BigQueryMLPrincipalComponentInfoJob',
           'BigqueryMLRecommendJob',
           'BigqueryExplainForecastModelJob'
+          'BigqueryMLForecastJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -209,8 +212,10 @@ def _parse_args(args):
           'BigqueryMLRocCurveJob',
           'BigQueryMLPrincipalComponentsJob',
           'BigQueryMLPrincipalComponentInfoJob',
+          'BigQueryMLPrincipalComponentInfoJob',
           'BigqueryMLRecommendJob',
-          'BigqueryExplainForecastModelJob'
+          'BigqueryExplainForecastModelJob',
+          'BigqueryMLForecastJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -237,7 +242,8 @@ def _parse_args(args):
           'BigQueryMLPrincipalComponentInfoJob',
           'BigqueryMLFeatureImportanceJob',
           'BigqueryMLRecommendJob',
-          'BigqueryExplainForecastModelJob'
+          'BigqueryExplainForecastModelJob',
+          'BigqueryMLForecastJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -316,13 +322,17 @@ def _parse_args(args):
       '--horizon',
       dest='horizon',
       type=int,
-      required=(parsed_args.type in {'BigqueryMLForecastJob'}),
+      required=(parsed_args.type
+                in {'BigqueryMLForecastJob',
+                    'BigqueryExplainForecastModelJob'}),
       default=argparse.SUPPRESS)
   parser.add_argument(
       '--confidence_level',
       dest='confidence_level',
       type=float,
-      required=(parsed_args.type in {'BigqueryMLForecastJob'}),
+      required=(parsed_args.type
+                in {'BigqueryMLForecastJob',
+                    'BigqueryExplainForecastModelJob'}),
       default=argparse.SUPPRESS)
   parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)
