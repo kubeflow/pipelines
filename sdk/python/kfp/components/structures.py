@@ -17,9 +17,11 @@ import ast
 import collections
 import functools
 import itertools
+import re
 from typing import Any, Dict, List, Mapping, Optional, Union
 import uuid
 
+from google.protobuf import json_format
 import kfp
 from kfp import dsl
 from kfp.compiler import compiler
@@ -236,6 +238,48 @@ class ContainerSpec(base_model.BaseModel):
             resources=None)  # can only be set on tasks
 
 
+class RetryPolicy(base_model.BaseModel):
+    """The retry policy of a container execution.
+
+    Attributes:
+        num_retries (int): Number of times to retry on failure.
+        backoff_duration (int): The the number of seconds to wait before triggering a retry.
+        backoff_factor (float): The exponential backoff factor applied to backoff_duration. For example, if backoff_duration="60" (60 seconds) and backoff_factor=2, the first retry will happen after 60 seconds, then after 120, 240, and so on.
+        backoff_max_duration (int): The maximum duration during which the task will be retried.
+    """
+    max_retry_count: Optional[int] = None
+    backoff_duration: Optional[str] = None
+    backoff_factor: Optional[float] = None
+    backoff_max_duration: Optional[str] = None
+
+    def to_proto(self) -> pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy:
+        # include defaults so that IR is more reflective of runtime behavior
+        max_retry_count = self.max_retry_count or 0
+        backoff_duration = self.backoff_duration or '0s'
+        backoff_factor = self.backoff_factor or 2.0
+        backoff_max_duration = self.backoff_max_duration or '3600s'
+
+        # include max duration seconds cap so that IR is more reflective of runtime behavior
+        backoff_duration_seconds = f'{convert_duration_to_seconds(backoff_duration)}s'
+        backoff_max_duration_seconds = f'{min(convert_duration_to_seconds(backoff_max_duration), 3600)}s'
+
+        return json_format.ParseDict(
+            {
+                'max_retry_count': max_retry_count,
+                'backoff_duration': backoff_duration_seconds,
+                'backoff_factor': backoff_factor,
+                'backoff_max_duration': backoff_max_duration_seconds,
+            }, pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy())
+
+    @classmethod
+    def from_proto(
+        cls, retry_policy_proto: pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy
+    ) -> 'RetryPolicy':
+        return cls.from_dict(
+            json_format.MessageToDict(
+                retry_policy_proto, preserving_proto_field_name=True))
+
+
 class TaskSpec(base_model.BaseModel):
     """The spec of a pipeline task.
 
@@ -268,6 +312,7 @@ class TaskSpec(base_model.BaseModel):
     iterator_item_input: Optional[str] = None
     enable_caching: bool = True
     display_name: Optional[str] = None
+    retry_policy: Optional[RetryPolicy] = None
 
 
 class DagSpec(base_model.BaseModel):
@@ -698,3 +743,51 @@ class ComponentSpec(base_model.BaseModel):
         )
 
         return pipeline_spec
+
+
+def normalize_time_string(duration: str) -> str:
+    """Normalizes a time string.
+        Examples:
+            - '1 hour' -> '1h'
+            - '2 hours' -> '2h'
+            - '2hours' -> '2h'
+            - '2 w' -> '2w'
+            - '2w' -> '2w'
+    Args:
+        duration (str): The unnormalized duration string.
+    Returns:
+        str: The normalized duration string.
+    """
+    no_ws_duration = duration.replace(' ', '')
+    duration_split = [el for el in re.split(r'(\D+)', no_ws_duration) if el]
+
+    if len(duration_split) != 2:
+        raise ValueError(
+            f"Invalid duration string: '{duration}'. Expected one value (as integer in string) and one unit, such as '1 hour'."
+        )
+
+    value = duration_split[0]
+    unit = duration_split[1]
+
+    first_letter_of_unit = unit[0]
+    return value + first_letter_of_unit
+
+
+def convert_duration_to_seconds(duration: str) -> int:
+    """Converts a duration string to seconds.
+
+    Args:
+        duration (str): The unnormalized duration string. (e.g. '1h', '1 hour', '2
+            hours', '2w', '2 weeks', '2d', etc.)
+    Raises:
+        ValueError: If the time unit is not one of seconds, minutes, hours, days,
+            or weeks.
+    Returns:
+        int: The number of seconds in the duration.
+    """
+    duration = normalize_time_string(duration)
+    seconds_per_unit = {'s': 1, 'm': 60, 'h': 3_600, 'd': 86_400, 'w': 604_800}
+    if duration[-1] not in seconds_per_unit.keys():
+        raise ValueError(
+            f"Unsupported duration unit: '{duration[-1]}' for '{duration}'.")
+    return int(duration[:-1]) * seconds_per_unit[duration[-1]]
