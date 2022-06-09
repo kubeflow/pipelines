@@ -73,81 +73,114 @@ function CompareV2(props: PageProps) {
     },
   );
 
-  if (data) {
-    console.log(data);
-    for (const mlmdPackage of data) {
-      console.log(mlmdPackage);
-      const artifactIds = mlmdPackage.artifacts.map(artifact => artifact.getId());
-      const eventsRequest = new GetEventsByArtifactIDsRequest();
-      eventsRequest.setArtifactIdsList(artifactIds);
-      // I know that not all code paths return a value, this is intentional code just for testing, for the moment.
-      api.metadataStoreService.getEventsByArtifactIDs(eventsRequest).then(response => {
-        if (!response) {
-          console.log('Error in response.');
-          return <></>;
-        }
-  
-        const responseData = response.getEventsList();
-        console.log(responseData);
-        // The last output event is the event that produced current artifact.
-        const outputEvents = responseData
-          .filter(event => event.getType() === EventType.DECLARED_OUTPUT || event.getType() === EventType.OUTPUT);
-        console.log(outputEvents);
-        for (const outputEvent of outputEvents) {
-          console.log(outputEvent?.getPath()?.getStepsList()[0].getKey());
-          console.log(outputEvent.getPath());
-        }
-      }).catch(err => {
-        console.log(err);
-      });
-    }
-  }
-
-  // // Retrieving a list of artifacts associated with this execution,
-  // // so we can find the artifact for system metrics from there.
-  // const {
-  //   isLoading: isLoadingArtifacts,
-  //   isSuccess: isSuccessArtifacts,
-  //   error: errorArtifacts,
-  //   data: linkedArtifactsList,
-  // } = useQuery<LinkedArtifact[][], Error>(
-  //   ['execution_output_artifact', { data }],
-  //   async () => {
-  //     const promises = [];
-  //     if (data) {
-  //       for (const mlmdPackage of data) {
-  //         for (const execution of mlmdPackage.executions) {
-  //           promises.push(getOutputLinkedArtifactsInExecution(execution));
-  //         }
+  // if (data) {
+  //   console.log(data);
+  //   for (const mlmdPackage of data) {
+  //     console.log(mlmdPackage);
+  //     const artifactIds = mlmdPackage.artifacts.map(artifact => artifact.getId());
+  //     const eventsRequest = new GetEventsByArtifactIDsRequest();
+  //     eventsRequest.setArtifactIdsList(artifactIds);
+  //     // I know that not all code paths return a value, this is intentional code just for testing, for the moment.
+  //     api.metadataStoreService.getEventsByArtifactIDs(eventsRequest).then(response => {
+  //       if (!response) {
+  //         console.log('Error in response.');
+  //         return <></>;
   //       }
-  //     }
-  //     return await Promise.all(promises);
-  //   },
-  //   { staleTime: Infinity },
-  // );
+  
+  //       const responseData = response.getEventsList();
+  //       console.log(responseData);
+  //       // The last output event is the event that produced current artifact.
+  //       const outputEvents = responseData
+  //         .filter(event => event.getType() === EventType.DECLARED_OUTPUT || event.getType() === EventType.OUTPUT);
+  //       console.log(outputEvents);
+  //       for (const outputEvent of outputEvents) {
+  //         console.log(outputEvent?.getPath()?.getStepsList()[0].getKey());
+  //         console.log(outputEvent.getPath());
+  //       }
+  //     }).catch(err => {
+  //       console.log(err);
+  //     });
+  //   }
+  // }
 
-  // // artifactTypes allows us to map from artifactIds to artifactTypeNames,
-  // // so we can identify metrics artifact provided by system.
-  // const {
-  //   isLoading: isLoadingArtifactTypes,
-  //   isSuccess: isSuccessArtifactTypes,
-  //   error: errorArtifactTypes,
-  //   data: artifactTypes,
-  // } = useQuery<ArtifactType[], Error>(['artifact_types', {}], () => getArtifactTypes(), {
-  //   staleTime: Infinity,
-  // });
+  interface ExecutionAndLinkedArtifacts {
+    executionName: string,
+    artifactNames: string[],
+    linkedArtifacts: LinkedArtifact[],
+  };
+  // Retrieving a list of artifacts associated with this execution,
+  // so we can find the artifact for system metrics from there.
+  const {
+    isLoading: isLoadingArtifacts,
+    isSuccess: isSuccessArtifacts,
+    error: errorArtifacts,
+    data: linkedArtifactsList,
+  } = useQuery<ExecutionAndLinkedArtifacts[], Error>(
+    ['execution_output_artifact', { data }],
+    async () => {
+      const promises = [];
+      const executionNames = [];
+      if (data) {
+        for (const mlmdPackage of data) {
+          for (const execution of mlmdPackage.executions) {
+            // This is the process I found to get the execution name. I think there may be a cleaner way (getName() does not work - we'll see).
+            const executionName = execution.getCustomPropertiesMap().getEntryList().filter(x => x[0] === 'display_name')[0][1][2];
+            if (executionName) {
+              executionNames.push(executionName);
+              promises.push(getOutputLinkedArtifactsInExecution(execution));
+            }
+          }
+        }
+      }
+      const linkedArtifactsList = await Promise.all(promises);
+      const output = [];
+      for (let i = 0; i < executionNames.length; i++) {
+        const artifactNames = [];
+        const artifactFullNames = [];
+        for (const linkedArtifact of linkedArtifactsList[i]) {
+          const artifactName = linkedArtifact.event.getPath()?.getStepsList()[0].getKey() || 'na';
+          artifactNames.push(artifactName);
+          artifactFullNames.push(`${executionNames[i]} > ${artifactName}`)
+        }
+        output.push({
+          executionName: executionNames[i],
+          artifactNames,
+          artifactFullNames,
+          linkedArtifacts: linkedArtifactsList[i],
+        });
+      }
+      return output;
+    },
+    { staleTime: Infinity },
+  );
+  console.log(linkedArtifactsList);
+
+
+
+  // artifactTypes allows us to map from artifactIds to artifactTypeNames,
+  // so we can identify metrics artifact provided by system.
+  const {
+    isLoading: isLoadingArtifactTypes,
+    isSuccess: isSuccessArtifactTypes,
+    error: errorArtifactTypes,
+    data: artifactTypes,
+  } = useQuery<ArtifactType[], Error>(['artifact_types', {}], () => getArtifactTypes(), {
+    staleTime: Infinity,
+  });
 
   if (!data) {
     return <></>;
   }
 
-  // if (!linkedArtifactsList) {
-  //   return <></>;
-  // }
+  if (!linkedArtifactsList) {
+    return <></>;
+  }
 
-  // if (!artifactTypes) {
-  //   return <></>;
-  // }
+  if (!artifactTypes) {
+    return <></>;
+  }
+
+
 
   // // There can be multiple system.ClassificationMetrics or system.Metrics artifacts per execution.
   // // Get scalar metrics, confidenceMetrics and confusionMatrix from artifact.
