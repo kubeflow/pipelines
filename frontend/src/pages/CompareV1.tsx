@@ -244,6 +244,18 @@ class CompareV1 extends Page<{}, CompareState> {
         `Failed loading ${failingRuns.length} runs, last failed with the error: ${lastError}`,
       );
       return;
+    } else if (
+      runs.length > 0 &&
+      runs.every(runDetail => runDetail.run?.pipeline_spec?.hasOwnProperty('pipeline_manifest'))
+    ) {
+      this.props.updateBanner({
+        additionalInfo:
+          'The selected runs are all V2, but the V2_ALPHA feature flag is disabled.' +
+          ' The V1 page will not show any useful information for these runs.',
+        message:
+          'Info: enable the V2_ALPHA feature flag in order to view the updated Run Comparison page.',
+        mode: 'info',
+      });
     }
 
     const selectedIds = runs.map(r => r.run!.id!);

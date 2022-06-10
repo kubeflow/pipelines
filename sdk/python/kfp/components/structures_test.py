@@ -21,6 +21,7 @@ import unittest
 
 from absl.testing import parameterized
 from kfp import compiler
+from kfp.components import placeholders
 from kfp.components import structures
 
 V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
@@ -48,18 +49,17 @@ COMPONENT_SPEC_IF_PLACEHOLDER = structures.ComponentSpec(
         container=structures.ContainerSpec(
             image='alpine',
             args=[
-                structures.IfPresentPlaceholder(
-                    if_structure=structures.IfPresentPlaceholderStructure(
-                        input_name='optional_input_1',
-                        then=[
-                            '--arg1',
-                            structures.InputUriPlaceholder(
-                                input_name='optional_input_1'),
-                        ],
-                        otherwise=[
-                            '--arg2',
-                            'default',
-                        ]))
+                placeholders.IfPresentPlaceholder(
+                    input_name='optional_input_1',
+                    then=[
+                        '--arg1',
+                        placeholders.InputUriPlaceholder(
+                            input_name='optional_input_1'),
+                    ],
+                    else_=[
+                        '--arg2',
+                        'default',
+                    ])
             ])),
     inputs={
         'optional_input_1': structures.InputSpec(type='String', default=None)
@@ -83,9 +83,10 @@ COMPONENT_SPEC_CONCAT_PLACEHOLDER = structures.ComponentSpec(
         container=structures.ContainerSpec(
             image='alpine',
             args=[
-                structures.ConcatPlaceholder(items=[
+                placeholders.ConcatPlaceholder(items=[
                     '--arg1',
-                    structures.InputValuePlaceholder(input_name='input_prefix'),
+                    placeholders.InputValuePlaceholder(
+                        input_name='input_prefix'),
                 ])
             ])),
     inputs={'input_prefix': structures.InputSpec(type='String')},
@@ -121,25 +122,24 @@ COMPONENT_SPEC_NESTED_PLACEHOLDER = structures.ComponentSpec(
         container=structures.ContainerSpec(
             image='alpine',
             args=[
-                structures.ConcatPlaceholder(items=[
+                placeholders.ConcatPlaceholder(items=[
                     '--arg1',
-                    structures.IfPresentPlaceholder(
-                        if_structure=structures.IfPresentPlaceholderStructure(
-                            input_name='input_prefix',
-                            then=[
+                    placeholders.IfPresentPlaceholder(
+                        input_name='input_prefix',
+                        then=[
+                            '--arg1',
+                            placeholders.InputValuePlaceholder(
+                                input_name='input_prefix'),
+                        ],
+                        else_=[
+                            '--arg2',
+                            'default',
+                            placeholders.ConcatPlaceholder(items=[
                                 '--arg1',
-                                structures.InputValuePlaceholder(
+                                placeholders.InputValuePlaceholder(
                                     input_name='input_prefix'),
-                            ],
-                            otherwise=[
-                                '--arg2',
-                                'default',
-                                structures.ConcatPlaceholder(items=[
-                                    '--arg1',
-                                    structures.InputValuePlaceholder(
-                                        input_name='input_prefix'),
-                                ]),
-                            ])),
+                            ]),
+                        ]),
                 ])
             ])),
     inputs={'input_prefix': structures.InputSpec(type='String')},
@@ -163,9 +163,9 @@ class StructuresTest(parameterized.TestCase):
                             'sh',
                             '-c',
                             'set -ex\necho "$0" > "$1"',
-                            structures.InputValuePlaceholder(
+                            placeholders.InputValuePlaceholder(
                                 input_name='input000'),
-                            structures.OutputPathPlaceholder(
+                            placeholders.OutputPathPlaceholder(
                                 output_name='output1'),
                         ],
                     )),
@@ -186,9 +186,9 @@ class StructuresTest(parameterized.TestCase):
                             'sh',
                             '-c',
                             'set -ex\necho "$0" > "$1"',
-                            structures.InputValuePlaceholder(
+                            placeholders.InputValuePlaceholder(
                                 input_name='input1'),
-                            structures.OutputPathPlaceholder(
+                            placeholders.OutputPathPlaceholder(
                                 output_name='output000'),
                         ],
                     )),
@@ -207,8 +207,8 @@ class StructuresTest(parameterized.TestCase):
                         'sh',
                         '-c',
                         'set -ex\necho "$0" > "$1"',
-                        structures.InputValuePlaceholder(input_name='input1'),
-                        structures.OutputParameterPlaceholder(
+                        placeholders.InputValuePlaceholder(input_name='input1'),
+                        placeholders.OutputParameterPlaceholder(
                             output_name='output1'),
                     ],
                 )),
@@ -292,8 +292,8 @@ sdkVersion: kfp-2.0.0-alpha.2
                         'sh',
                         '-c',
                         'set -ex\necho "$0" > "$1"',
-                        structures.InputValuePlaceholder(input_name='input1'),
-                        structures.OutputParameterPlaceholder(
+                        placeholders.InputValuePlaceholder(input_name='input1'),
+                        placeholders.OutputParameterPlaceholder(
                             output_name='output1'),
                     ],
                 )),
@@ -362,13 +362,13 @@ sdkVersion: kfp-2.0.0-alpha.2
                          'echo "$0" > "$2" cp "$1" "$3" '),
                     ],
                     args=[
-                        structures.InputValuePlaceholder(
+                        placeholders.InputValuePlaceholder(
                             input_name='input_parameter'),
-                        structures.InputPathPlaceholder(
+                        placeholders.InputPathPlaceholder(
                             input_name='input_artifact'),
-                        structures.OutputPathPlaceholder(
+                        placeholders.OutputPathPlaceholder(
                             output_name='output_1'),
-                        structures.OutputPathPlaceholder(
+                        placeholders.OutputPathPlaceholder(
                             output_name='output_2'),
                     ],
                     env={},
@@ -382,163 +382,6 @@ sdkVersion: kfp-2.0.0-alpha.2
                 'output_2': structures.OutputSpec(type='Artifact'),
             })
         self.assertEqual(generated_spec, expected_spec)
-
-
-class TestInputValuePlaceholder(unittest.TestCase):
-
-    def test_to_placeholder(self):
-        structure = structures.InputValuePlaceholder('input1')
-        actual = structure.to_placeholder()
-        expected = "{{$.inputs.parameters['input1']}}"
-        self.assertEqual(
-            actual,
-            expected,
-        )
-
-    def test_from_placeholder_single_quote(self):
-        placeholder = "{{$.inputs.parameters['input1']}}"
-        expected = structures.InputValuePlaceholder('input1')
-        actual = structures.InputValuePlaceholder.from_placeholder(placeholder)
-        self.assertEqual(
-            actual,
-            expected,
-        )
-
-    def test_from_placeholder_double_single_quote(self):
-        placeholder = "{{$.inputs.parameters[''input1'']}}"
-        expected = structures.InputValuePlaceholder('input1')
-        actual = structures.InputValuePlaceholder.from_placeholder(placeholder)
-        self.assertEqual(
-            actual,
-            expected,
-        )
-
-    def test_from_placeholder_double_quote(self):
-        placeholder = '{{$.inputs.parameters["input1"]}}'
-        expected = structures.InputValuePlaceholder('input1')
-        actual = structures.InputValuePlaceholder.from_placeholder(placeholder)
-        self.assertEqual(
-            actual,
-            expected,
-        )
-
-
-class TestInputPathPlaceholder(unittest.TestCase):
-
-    def test_to_placeholder(self):
-        structure = structures.InputPathPlaceholder('input1')
-        actual = structure.to_placeholder()
-        expected = "{{$.inputs.artifacts['input1'].path}}"
-        self.assertEqual(
-            actual,
-            expected,
-        )
-
-    def test_from_placeholder(self):
-        placeholder = "{{$.inputs.artifacts['input1'].path}}"
-        expected = structures.InputPathPlaceholder('input1')
-        actual = structures.InputPathPlaceholder.from_placeholder(placeholder)
-        self.assertEqual(
-            actual,
-            expected,
-        )
-
-
-class TestInputUriPlaceholder(unittest.TestCase):
-
-    def test_to_placeholder(self):
-        structure = structures.InputUriPlaceholder('input1')
-        actual = structure.to_placeholder()
-        expected = "{{$.inputs.artifacts['input1'].uri}}"
-        self.assertEqual(
-            actual,
-            expected,
-        )
-
-    def test_from_placeholder(self):
-        placeholder = "{{$.inputs.artifacts['input1'].uri}}"
-        expected = structures.InputUriPlaceholder('input1')
-        actual = structures.InputUriPlaceholder.from_placeholder(placeholder)
-        self.assertEqual(
-            actual,
-            expected,
-        )
-
-
-class TestOutputPathPlaceholder(unittest.TestCase):
-
-    def test_to_placeholder(self):
-        structure = structures.OutputPathPlaceholder('output1')
-        actual = structure.to_placeholder()
-        expected = "{{$.outputs.artifacts['output1'].path}}"
-        self.assertEqual(
-            actual,
-            expected,
-        )
-
-    def test_from_placeholder(self):
-        placeholder = "{{$.outputs.artifacts['output1'].path}}"
-        expected = structures.OutputPathPlaceholder('output1')
-        actual = structures.OutputPathPlaceholder.from_placeholder(placeholder)
-        self.assertEqual(
-            actual,
-            expected,
-        )
-
-
-class TestOutputParameterPlaceholder(unittest.TestCase):
-
-    def test_to_placeholder(self):
-        structure = structures.OutputParameterPlaceholder('output1')
-        actual = structure.to_placeholder()
-        expected = "{{$.outputs.parameters['output1'].output_file}}"
-        self.assertEqual(
-            actual,
-            expected,
-        )
-
-    def test_from_placeholder(self):
-        placeholder = "{{$.outputs.parameters['output1'].output_file}}"
-        expected = structures.OutputParameterPlaceholder('output1')
-        actual = structures.OutputParameterPlaceholder.from_placeholder(
-            placeholder)
-        self.assertEqual(
-            actual,
-            expected,
-        )
-
-
-class TestOutputUriPlaceholder(unittest.TestCase):
-
-    def test_to_placeholder(self):
-        structure = structures.OutputUriPlaceholder('output1')
-        actual = structure.to_placeholder()
-        expected = "{{$.outputs.artifacts['output1'].uri}}"
-        self.assertEqual(
-            actual,
-            expected,
-        )
-
-    def test_from_placeholder(self):
-        placeholder = "{{$.outputs.artifacts['output1'].uri}}"
-        expected = structures.OutputUriPlaceholder('output1')
-        actual = structures.OutputUriPlaceholder.from_placeholder(placeholder)
-        self.assertEqual(
-            actual,
-            expected,
-        )
-
-
-class TestIfPresentPlaceholderStructure(unittest.TestCase):
-
-    def test_otherwise(self):
-        obj = structures.IfPresentPlaceholderStructure(
-            then='then', input_name='input_name', otherwise=['something'])
-        self.assertEqual(obj.otherwise, ['something'])
-
-        obj = structures.IfPresentPlaceholderStructure(
-            then='then', input_name='input_name', otherwise=[])
-        self.assertEqual(obj.otherwise, None)
 
 
 class TestContainerSpec(unittest.TestCase):
@@ -702,62 +545,6 @@ class TestOutputSpec(parameterized.TestCase):
         self.assertEqual(output_spec.type, 'Artifact')
 
 
-class TestProcessCommandArg(unittest.TestCase):
-
-    def test_string(self):
-        arg = 'test'
-        struct = structures.maybe_convert_command_arg_to_placeholder(arg)
-        self.assertEqual(struct, arg)
-
-    def test_input_value_placeholder(self):
-        arg = "{{$.inputs.parameters['input1']}}"
-        actual = structures.maybe_convert_command_arg_to_placeholder(arg)
-        expected = structures.InputValuePlaceholder(input_name='input1')
-        self.assertEqual(actual, expected)
-
-    def test_input_path_placeholder(self):
-        arg = "{{$.inputs.artifacts['input1'].path}}"
-        actual = structures.maybe_convert_command_arg_to_placeholder(arg)
-        expected = structures.InputPathPlaceholder('input1')
-        self.assertEqual(actual, expected)
-
-    def test_input_uri_placeholder(self):
-        arg = "{{$.inputs.artifacts['input1'].uri}}"
-        actual = structures.maybe_convert_command_arg_to_placeholder(arg)
-        expected = structures.InputUriPlaceholder('input1')
-        self.assertEqual(actual, expected)
-
-    def test_output_path_placeholder(self):
-        arg = "{{$.outputs.artifacts['output1'].path}}"
-        actual = structures.maybe_convert_command_arg_to_placeholder(arg)
-        expected = structures.OutputPathPlaceholder('output1')
-        self.assertEqual(actual, expected)
-
-    def test_output_uri_placeholder(self):
-        placeholder = "{{$.outputs.artifacts['output1'].uri}}"
-        actual = structures.maybe_convert_command_arg_to_placeholder(
-            placeholder)
-        expected = structures.OutputUriPlaceholder('output1')
-        self.assertEqual(actual, expected)
-
-    def test_output_parameter_placeholder(self):
-        placeholder = "{{$.outputs.parameters['output1'].output_file}}"
-        actual = structures.maybe_convert_command_arg_to_placeholder(
-            placeholder)
-        expected = structures.OutputParameterPlaceholder('output1')
-        self.assertEqual(actual, expected)
-
-    def test_concat_placeholder(self):
-        placeholder = "{{$.inputs.parameters[''input1'']}}+{{$.inputs.parameters[''input2'']}}"
-        actual = structures.maybe_convert_command_arg_to_placeholder(
-            placeholder)
-        expected = structures.ConcatPlaceholder(items=[
-            structures.InputValuePlaceholder(input_name='input1'), '+',
-            structures.InputValuePlaceholder(input_name='input2')
-        ])
-        self.assertEqual(actual, expected)
-
-
 V1_YAML = textwrap.dedent("""\
     implementation:
       container:
@@ -778,8 +565,7 @@ V1_YAML = textwrap.dedent("""\
     """)
 
 COMPILER_CLI_TEST_DATA_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)), 'compiler_cli_tests',
-    'test_data')
+    os.path.dirname(os.path.dirname(__file__)), 'compiler', 'test_data')
 
 SUPPORTED_COMPONENTS_COMPILE_TEST_CASES = [
     {
@@ -974,8 +760,9 @@ sdkVersion: kfp-2.0.0-alpha.2""")
                     image='alpine',
                     command=['sh', '-c', 'echo "$0" >> "$1"'],
                     args=[
-                        structures.InputValuePlaceholder(input_name='input1'),
-                        structures.OutputPathPlaceholder(output_name='output1')
+                        placeholders.InputValuePlaceholder(input_name='input1'),
+                        placeholders.OutputPathPlaceholder(
+                            output_name='output1')
                     ],
                     env=None,
                     resources=None),
@@ -1041,7 +828,7 @@ sdkVersion: kfp-2.0.0-alpha.2""")
                     command=['sh', '-c', 'echo "$0" "$1"'],
                     args=[
                         'input: ',
-                        structures.InputValuePlaceholder(
+                        placeholders.InputValuePlaceholder(
                             input_name='optional_input_1')
                     ],
                     env=None,
@@ -1112,10 +899,10 @@ sdkVersion: kfp-2.0.0-alpha.2""")
                     image='alpine',
                     command=[
                         'sh', '-c', 'echo "$0"',
-                        structures.ConcatPlaceholder(items=[
-                            structures.InputValuePlaceholder(
-                                input_name='input1'), '+',
-                            structures.InputValuePlaceholder(
+                        placeholders.ConcatPlaceholder(items=[
+                            placeholders.InputValuePlaceholder(
+                                input_name='input1'),
+                            placeholders.InputValuePlaceholder(
                                 input_name='input2')
                         ])
                     ],
