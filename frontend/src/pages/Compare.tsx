@@ -109,7 +109,7 @@ export default function Compare(props: PageProps) {
       // Clear the banner unless the V1 page is shown, as that page handles its own banner state.
       updateBanner({});
     }
-  }, [compareVersion, isError, error, updateBanner, runIds.length]);
+  }, [compareVersion, isError, error, isLoading, updateBanner, runIds.length]);
 
   if (isError || isLoading) {
     return <></>;
