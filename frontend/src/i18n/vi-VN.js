@@ -336,5 +336,56 @@ export default {
     },
     NewRunSwitcher: {
         currentlyLoadingPipelineInformation: "Hiện đang tải thông tin pipeline"
+    },
+    NewRunV2: {
+        startANewRun: "Bắt đầu Run mới",
+        runNameCanNotBeEmpty: "Tên Run không được để trống.",
+        successfullyStartedNewRun: "Bắt đầu thành công RUn mới:",
+        runCreationFailed: "Run không thành công",
+        pipelineVersion: "Phiên bản Pipeline",
+        description: "Mô tả(không bắt buộc)",
+        thisRunWillBeAssociatedWithTheFollowingExperiment: "Lần chạy này sẽ được kết hợp với thử nghiệm sau",
+        start: "Bắt đầu",
+        cancel: "Huỷ bỏ",
+        experimentName:"tên thí nghiệm",
+        description: "Mô tả",
+        createdAt: "Ngày tạo",
+        experiment: "Experiment",
+        chooseAnExperiment: "Chọn kinh nghiệm",
+        filterExperiments: "Lọc experiments",
+        noExperimentsFoundCreateAnExperimentAndThenTryAgain: "Không có thử nghiệm nào được tìm thấy. Tạo một thử nghiệm và sau đó thử lại.",
+
+
+    },
+    Toolbar: {
+        back: "Quay lại",
+    },
+    Trigger: {
+        triggerType: "Loại Trigger",
+        maximumConcurrentRuns: "Số lần chạy đồng thời tối đa",
+        hasStartDate: "Có ngày bắt đầu",
+        hasStartDate: "Có ngày kết thúc",
+        startDate: "Ngày bắt đầu",
+        startDate: "Ngày kết thúc",
+        startTime: "Thời gian bắt đầu",
+        endTime: "Thời gian kết thúc",
+        cronExpression: "biểu thức cron",
+
+
+    },
+    UploadPipelineDialog: {
+        uploadAFile: "Tải File",
+        importByURL: "Nhập URL",
+        file: "Tệp",
+        pipelineName: "Tên Pipeline"
+    },
+    PipelineVersionCard: {
+        hide: "Ẩn",
+        version: "Phiên bản",
+        versionSource: "Nguồn phiên bản",
+        uploadOn:"Tải lên",
+        pipelineDescription: "Mô tả Pipeline",
+        showSummary: "Hiển thị Tóm tắt"
     }
+
 }
