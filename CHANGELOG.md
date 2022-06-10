@@ -1,5 +1,17 @@
 # Changelog
 
+### [1.8.2](https://github.com/kubeflow/pipelines/compare/1.8.1...1.8.2) (2022-06-10)
+
+
+### Features
+
+* **backend:** use cert-manager for cache server cert ([\#7843](https://github.com/kubeflow/pipelines/issues/7843)) ([d7db373](https://github.com/kubeflow/pipelines/commit/d7db373dad146562e824c6708f96c9db436f5924))
+
+
+### Bug Fixes
+
+* **cache:** Change kfp cache cert names to match cert-manager ([\#7538](https://github.com/kubeflow/pipelines/issues/7538)) ([8649bac](https://github.com/kubeflow/pipelines/commit/8649bac68e070a79d7ba14fb2f6b7623337c18a7))
+
 ### [1.8.1](https://github.com/kubeflow/pipelines/compare/1.8.0...1.8.1) (2022-02-25)
 
 
