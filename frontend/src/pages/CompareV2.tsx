@@ -14,13 +14,166 @@
  * limitations under the License.
  */
 
-import React from 'react';
-import { commonCss } from 'src/Css';
+import React, { useEffect, useRef, useState } from 'react';
+import { useQuery } from 'react-query';
+import { ApiRunDetail } from 'src/apis/run';
+import Hr from 'src/atoms/Hr';
+import Separator from 'src/atoms/Separator';
+import CollapseButton from 'src/components/CollapseButton';
+import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
+import { commonCss, padding } from 'src/Css';
+import { Apis } from 'src/lib/Apis';
+import Buttons from 'src/lib/Buttons';
+import { URLParser } from 'src/lib/URLParser';
+import { errorToMessage } from 'src/lib/Utils';
+import { classes, stylesheet } from 'typestyle';
+import { PageProps } from './Page';
+import RunList from './RunList';
 
-function CompareV2() {
+const css = stylesheet({
+  outputsRow: {
+    marginLeft: 15,
+    overflowX: 'auto',
+  },
+});
+
+const overviewSectionName = 'Run overview';
+const paramsSectionName = 'Parameters';
+const metricsSectionName = 'Metrics';
+
+function CompareV2(props: PageProps) {
+  const { updateBanner, updateToolbar } = props;
+
+  const runlistRef = useRef<RunList>(null);
+  const [collapseSections, setCollapseSections] = useState<{ [key: string]: boolean }>({});
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
+  const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
+
+  // Retrieves run details.
+  const { isError, data, refetch } = useQuery<ApiRunDetail[], Error>(
+    ['run_details', { ids: runIds }],
+    () => Promise.all(runIds.map(async id => await Apis.runServiceApi.getRun(id))),
+    {
+      staleTime: Infinity,
+      onError: async error => {
+        const errorMessage = await errorToMessage(error);
+        updateBanner({
+          additionalInfo: errorMessage ? errorMessage : undefined,
+          message: `Error: failed loading ${runIds.length} runs. Click Details for more information.`,
+          mode: 'error',
+        });
+      },
+      onSuccess: () => props.updateBanner({}),
+    },
+  );
+
+  useEffect(() => {
+    const refresh = async () => {
+      if (runlistRef.current) {
+        await runlistRef.current.refresh();
+      }
+      await refetch();
+    };
+
+    const buttons = new Buttons(props, refresh);
+    updateToolbar({
+      actions: buttons
+        .expandSections(() => setCollapseSections({}))
+        .collapseSections(() =>
+          setCollapseSections({
+            [overviewSectionName]: true,
+            [paramsSectionName]: true,
+            [metricsSectionName]: true,
+          }),
+        )
+        .refresh(refresh)
+        .getToolbarActionMap(),
+      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+      pageTitle: 'Compare runs',
+    });
+  }, [updateToolbar, refetch]);
+
+  useEffect(() => {
+    if (data) {
+      setSelectedIds(data.map(r => r.run!.id!));
+    }
+  }, [data]);
+
+  const collapseSectionsUpdate = (collapseSections: { [key: string]: boolean }): void => {
+    setCollapseSections(Object.create(collapseSections));
+  };
+
+  const showPageError = async (message: string, error: Error | undefined) => {
+    const errorMessage = await errorToMessage(error);
+    updateBanner({
+      additionalInfo: errorMessage ? errorMessage : undefined,
+      message: message + (errorMessage ? ' Click Details for more information.' : ''),
+    });
+  };
+
+  const selectionChanged = (selectedIds: string[]): void => {
+    setSelectedIds(selectedIds);
+  };
+
+  if (isError) {
+    return <></>;
+  }
+
   return (
-    <div className={commonCss.page}>
-      <p>This is the V2 Run Comparison page.</p>
+    <div className={classes(commonCss.page, padding(20, 'lrt'))}>
+      {/* Overview section */}
+      <CollapseButton
+        sectionName={overviewSectionName}
+        collapseSections={collapseSections}
+        collapseSectionsUpdate={collapseSectionsUpdate}
+      />
+      {!collapseSections[overviewSectionName] && (
+        <div className={commonCss.noShrink}>
+          <RunList
+            onError={showPageError}
+            {...props}
+            selectedIds={selectedIds}
+            ref={runlistRef}
+            runIdListMask={runIds}
+            disablePaging={true}
+            onSelectionChange={selectionChanged}
+          />
+        </div>
+      )}
+
+      <Separator orientation='vertical' />
+
+      {/* Parameters section */}
+      <CollapseButton
+        sectionName={paramsSectionName}
+        collapseSections={collapseSections}
+        collapseSectionsUpdate={collapseSectionsUpdate}
+      />
+      {!collapseSections[paramsSectionName] && (
+        <div className={classes(commonCss.noShrink, css.outputsRow)}>
+          <Separator orientation='vertical' />
+          <p>Parameter Section V2</p>
+          <Hr />
+        </div>
+      )}
+
+      {/* Metrics section */}
+      <CollapseButton
+        sectionName={metricsSectionName}
+        collapseSections={collapseSections}
+        collapseSectionsUpdate={collapseSectionsUpdate}
+      />
+      {!collapseSections[metricsSectionName] && (
+        <div className={classes(commonCss.noShrink, css.outputsRow)}>
+          <Separator orientation='vertical' />
+          <p>Metrics Section V2</p>
+          <Hr />
+        </div>
+      )}
+
+      <Separator orientation='vertical' />
     </div>
   );
 }

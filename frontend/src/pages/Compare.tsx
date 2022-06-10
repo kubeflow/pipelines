@@ -62,7 +62,7 @@ export default function Compare(props: CompareProps) {
     data &&
     data.every(run => run.run?.pipeline_spec?.hasOwnProperty('pipeline_manifest'))
   ) {
-    return <CompareV2 />;
+    return <CompareV2 {...props} />;
   } else {
     return <CompareV1 {...props} />;
   }
