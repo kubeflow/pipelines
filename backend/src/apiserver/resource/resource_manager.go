@@ -288,6 +288,8 @@ func (r *ResourceManager) CreatePipeline(name string, description string, namesp
 	}
 
 	// Store the pipeline file to a path dependent on pipeline version
+	// TODO(lingqinggan): comments of the yaml files are lost during the coversion;
+	// need to find a way to preserve the original files.
 	err = r.objectStore.AddFile(tmpl.Bytes(),
 		r.objectStore.GetPipelineKey(fmt.Sprint(newPipeline.DefaultVersion.UUID)))
 	if err != nil {
