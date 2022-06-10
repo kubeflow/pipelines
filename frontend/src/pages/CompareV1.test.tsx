@@ -421,7 +421,7 @@ describe('CompareV1', () => {
 
   it('collapses all sections', async () => {
     await setUpViewersAndShallowMount();
-    const instance = tree.instance() as Compare;
+    const instance = tree.instance() as CompareV1;
     const collapseBtn = instance.getInitialToolbarState().actions[ButtonKeys.COLLAPSE];
 
     expect(tree.state('collapseSections')).toEqual({});
@@ -441,7 +441,7 @@ describe('CompareV1', () => {
 
   it('expands all sections if they were collapsed', async () => {
     await setUpViewersAndShallowMount();
-    const instance = tree.instance() as Compare;
+    const instance = tree.instance() as CompareV1;
     const collapseBtn = instance.getInitialToolbarState().actions[ButtonKeys.COLLAPSE];
     const expandBtn = instance.getInitialToolbarState().actions[ButtonKeys.EXPAND];
 
