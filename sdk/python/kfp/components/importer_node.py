@@ -18,6 +18,7 @@ from typing import Any, Mapping, Optional, Type, Union
 from kfp.components import importer_component
 from kfp.components import pipeline_channel
 from kfp.components import pipeline_task
+from kfp.components import placeholders
 from kfp.components import structures
 from kfp.components.types import artifact_types
 
@@ -51,8 +52,8 @@ def importer(
         name='importer',
         implementation=structures.Implementation(
             importer=structures.ImporterSpec(
-                artifact_uri=structures.InputValuePlaceholder(
-                    INPUT_KEY).to_placeholder(),
+                artifact_uri=placeholders.InputValuePlaceholder(
+                    INPUT_KEY).to_placeholder_string(),
                 type_schema=artifact_class.TYPE_NAME,
                 reimport=reimport,
                 metadata=metadata)),

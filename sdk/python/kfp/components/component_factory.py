@@ -21,6 +21,7 @@ import warnings
 from typing import Callable, List, Optional, Tuple
 
 import docstring_parser
+from kfp.components import placeholders
 from kfp.components import python_component
 from kfp.components import structures
 from kfp.components.types import artifact_types
@@ -341,7 +342,7 @@ def _get_command_and_args_for_lightweight_component(
 
     args = [
         '--executor_input',
-        structures.ExecutorInputPlaceholder().to_placeholder(),
+        placeholders.ExecutorInputPlaceholder().to_placeholder_string(),
         '--function_to_execute',
         func.__name__,
     ]
@@ -359,7 +360,7 @@ def _get_command_and_args_for_containerized_component(
 
     args = [
         '--executor_input',
-        structures.ExecutorInputPlaceholder().to_placeholder(),
+        placeholders.ExecutorInputPlaceholder().to_placeholder_string(),
         '--function_to_execute',
         function_name,
     ]

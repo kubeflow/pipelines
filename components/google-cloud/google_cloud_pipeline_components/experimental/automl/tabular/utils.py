@@ -252,7 +252,7 @@ def get_skip_evaluation_pipeline_and_parameters(
         'additional_experiments':
             input_dictionary_to_parameter(additional_experiments)})
   pipeline_definition_path = os.path.join(
-      pathlib.Path(__file__).parent.resolve(), 'skip_evaluation_pipeline.json')
+      pathlib.Path(__file__).parent.resolve(), 'default_pipeline.json')
   return pipeline_definition_path, parameter_values
 
 
@@ -311,6 +311,8 @@ def get_default_pipeline_and_parameters(
           evaluation_dataflow_max_num_workers,
       'evaluation_dataflow_disk_size_gb':
           evaluation_dataflow_disk_size_gb,
+      'is_evaluation':
+          True,
   })
 
   pipeline_definition_path = os.path.join(
@@ -667,11 +669,13 @@ def get_distill_skip_evaluation_pipeline_and_parameters(
           distill_batch_predict_starting_replica_count,
       'distill_batch_predict_max_replica_count':
           distill_batch_predict_max_replica_count,
+      'is_distill':
+          True,
   })
 
   pipeline_definiton_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
-      'distill_skip_evaluation_pipeline.json')
+      'default_pipeline.json')
   return pipeline_definiton_path, parameter_values
 
 
