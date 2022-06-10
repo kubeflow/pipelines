@@ -21,7 +21,7 @@ import { Apis } from 'src/lib/Apis';
 import * as features from 'src/features';
 import { testBestPractices } from 'src/TestUtils';
 import { QUERY_PARAMS } from 'src/components/Router';
-import CompareV2 from './CompareV2';
+import CompareV2, { overviewSectionName, paramsSectionName, metricsSectionName } from './CompareV2';
 import { PageProps } from './Page';
 import { ApiRunDetail } from 'src/apis/run';
 import TestUtils from 'src/TestUtils';
@@ -31,10 +31,6 @@ describe('CompareV2', () => {
   const MOCK_RUN_1_ID = 'mock-run-1-id';
   const MOCK_RUN_2_ID = 'mock-run-2-id';
   const MOCK_RUN_3_ID = 'mock-run-3-id';
-
-  const overviewSectionName = 'Run overview';
-  const paramsSectionName = 'Parameters';
-  const metricsSectionName = 'Metrics';
   const updateBannerSpy = jest.fn();
 
   function generateProps(): PageProps {
@@ -82,14 +78,6 @@ describe('CompareV2', () => {
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
 
-    // v2 feature is turn on.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
-      if (featureKey === features.FeatureKey.V2_ALPHA) {
-        return true;
-      }
-      return false;
-    });
-
     render(
       <CommonTestWrapper>
         <CompareV2 {...generateProps()} />
@@ -105,14 +93,6 @@ describe('CompareV2', () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
-
-    // v2 feature is turn on.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
-      if (featureKey === features.FeatureKey.V2_ALPHA) {
-        return true;
-      }
-      return false;
-    });
 
     render(
       <CommonTestWrapper>
@@ -133,14 +113,6 @@ describe('CompareV2', () => {
       };
     });
 
-    // v2 feature is turn on.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
-      if (featureKey === features.FeatureKey.V2_ALPHA) {
-        return true;
-      }
-      return false;
-    });
-
     render(
       <CommonTestWrapper>
         <CompareV2 {...generateProps()} />
@@ -159,14 +131,6 @@ describe('CompareV2', () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
-
-    // v2 feature is turn on.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
-      if (featureKey === features.FeatureKey.V2_ALPHA) {
-        return true;
-      }
-      return false;
-    });
 
     render(
       <CommonTestWrapper>
@@ -196,14 +160,6 @@ describe('CompareV2', () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
-
-    // v2 feature is turn on.
-    jest.spyOn(features, 'isFeatureEnabled').mockImplementation(featureKey => {
-      if (featureKey === features.FeatureKey.V2_ALPHA) {
-        return true;
-      }
-      return false;
-    });
 
     render(
       <CommonTestWrapper>

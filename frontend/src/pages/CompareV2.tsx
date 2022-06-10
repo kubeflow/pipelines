@@ -37,9 +37,9 @@ const css = stylesheet({
   },
 });
 
-const overviewSectionName = 'Run overview';
-const paramsSectionName = 'Parameters';
-const metricsSectionName = 'Metrics';
+export const overviewSectionName = 'Run overview';
+export const paramsSectionName = 'Parameters';
+export const metricsSectionName = 'Metrics';
 
 function CompareV2(props: PageProps) {
   const { updateBanner, updateToolbar } = props;
