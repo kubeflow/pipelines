@@ -32,6 +32,7 @@ import { getResourceStateText, ResourceType } from '../ResourceInfo';
 import { MetricsVisualizations } from '../viewers/MetricsVisualizations';
 import { ArtifactTitle } from './ArtifactTitle';
 import InputOutputTab, { getArtifactParamList } from './InputOutputTab';
+import { t } from 'i18next';
 
 const NODE_INFO_UNKNOWN = (
   <div className='relative flex flex-col h-screen'>
@@ -97,7 +98,7 @@ function TaskNodeDetail({ element, execution, namespace }: TaskNodeDetailProps) 
   return (
     <div className={commonCss.page}>
       <MD2Tabs
-        tabs={['Input/Output', 'Task Details']}
+        tabs={[t('RuntimeNodeDetailsV2.inputOutput'), t('RuntimeNodeDetailsV2.taskDetails')]}
         selectedTab={selectedTab}
         onSwitch={tab => setSelectedTab(tab)}
       />
@@ -114,7 +115,7 @@ function TaskNodeDetail({ element, execution, namespace }: TaskNodeDetailProps) 
         {/* Task Details tab */}
         {selectedTab === 1 && (
           <div className={padding(20)}>
-            <DetailsTable title='Task Details' fields={getTaskDetailsFields(element, execution)} />
+            <DetailsTable title={t('RuntimeNodeDetailsV2.taskDetails')} fields={getTaskDetailsFields(element, execution)} />
           </div>
         )}
       </div>
@@ -132,7 +133,7 @@ function getTaskDetailsFields(
     if (execution) {
       // Static execution info.
       details.push([
-        'Task name',
+        t('RuntimeNodeDetailsV2.taskName'),
         execution
           .getCustomPropertiesMap()
           .get('display_name')
@@ -145,10 +146,10 @@ function getTaskDetailsFields(
         resource: execution,
         typeName: 'Execution',
       });
-      details.push(['Status', stateText || '-']);
+      details.push([t('RuntimeNodeDetailsV2.status'), stateText || '-']);
 
       const createdAt = new Date(execution.getCreateTimeSinceEpoch()).toString();
-      details.push(['Created At', createdAt]);
+      details.push([t('RuntimeNodeDetailsV2.createdAt'), createdAt]);
 
       const lastUpdatedTime = execution.getLastUpdateTimeSinceEpoch();
       let finishedAt = '-';
@@ -161,7 +162,7 @@ function getTaskDetailsFields(
       ) {
         finishedAt = new Date(lastUpdatedTime).toString();
       }
-      details.push(['Finished At', finishedAt]);
+      details.push([t('RuntimeNodeDetailsV2.finishedAt'), finishedAt]);
     }
   }
 
@@ -184,7 +185,7 @@ function ArtifactNodeDetail({ execution, linkedArtifact, namespace }: ArtifactNo
   return (
     <div className={commonCss.page}>
       <MD2Tabs
-        tabs={['Artifact Info', 'Visualization']}
+        tabs={[t('RuntimeNodeDetailsV2.artifactInfo'), t('RuntimeNodeDetailsV2.visualization')]}
         selectedTab={selectedTab}
         onSwitch={tab => setSelectedTab(tab)}
       />
@@ -261,11 +262,11 @@ function ArtifactInfo({
 
   // Artifact info rows.
   const artifactInfo = [
-    ['Upstream Task Name', taskName],
-    ['Artifact Name', artifactName],
-    ['Artifact Type', artifactTypeName],
-    ['Created At', createdAt],
-    ['Finished At', finishedAt],
+    [t('RuntimeNodeDetailsV2.upstreamTaskName'), taskName],
+    [t('RuntimeNodeDetailsV2.artifactName'), artifactName],
+    [t('RuntimeNodeDetailsV2.artifactType'), artifactTypeName],
+    [t('RuntimeNodeDetailsV2.createdAt'), createdAt],
+    [t('RuntimeNodeDetailsV2.Finished At'), finishedAt],
   ];
 
   return (
@@ -273,7 +274,7 @@ function ArtifactInfo({
       <ArtifactTitle artifact={linkedArtifact.artifact}></ArtifactTitle>
       {artifactInfo && (
         <div>
-          <DetailsTable title='Artifact Info' fields={artifactInfo} />
+          <DetailsTable title={t('RuntimeNodeDetailsV2.artifactInfo')} fields={artifactInfo} />
         </div>
       )}
 

@@ -23,6 +23,7 @@ import * as React from 'react';
 import { commonCss, padding } from 'src/Css';
 import { getFeatureList, initFeatures, saveFeatures } from 'src/features';
 import { classes } from 'typestyle';
+import { t } from 'i18next';
 
 interface FrontendFeaturesProps {}
 
@@ -55,10 +56,10 @@ const FrontendFeatures: React.FC<FrontendFeaturesProps> = () => {
     <div className={classes(commonCss.page, padding(20, 't'))}>
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <div style={{ alignSelf: 'flex-end', flexDirection: 'initial' }}>
-          <Button variant='contained' color='primary' onClick={submit}>
+          <Button variant={t('FrontendFeatures.contained')} color='primary' onClick={submit}>
             Save changes
           </Button>
-          <Button variant='contained' color='secondary' onClick={reset}>
+          <Button variant={t('FrontendFeatures.contained')} color='secondary' onClick={reset}>
             Reset
           </Button>
         </div>

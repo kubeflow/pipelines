@@ -29,6 +29,7 @@ import { color } from '../Css';
 import { logger, formatDateString } from '../lib/Utils';
 import { NodePhase, checkIfTerminated } from '../lib/StatusUtils';
 import { Execution } from 'src/third_party/mlmd/generated/ml_metadata/proto/metadata_store_pb';
+import { t } from 'i18next';
 
 export function statusToIcon(
   status?: NodePhase,
@@ -41,55 +42,55 @@ export function statusToIcon(
   // tslint:disable-next-line:variable-name
   let IconComponent: any = UnknownIcon;
   let iconColor = color.inactive;
-  let title = 'Unknown status';
+  let title = t('Status.unknownStatus');
   switch (status) {
     case NodePhase.ERROR:
       IconComponent = ErrorIcon;
       iconColor = color.errorText;
-      title = 'Error while running this resource';
+      title = t('Status.errorWhileRunningThisResource');
       break;
     case NodePhase.FAILED:
       IconComponent = ErrorIcon;
       iconColor = color.errorText;
-      title = 'Resource failed to execute';
+      title = t('Status.resourceFailedToExecute');
       break;
     case NodePhase.PENDING:
       IconComponent = PendingIcon;
       iconColor = color.weak;
-      title = 'Pending execution';
+      title = t('Status.pendingExecution');
       break;
     case NodePhase.RUNNING:
       IconComponent = RunningIcon;
       iconColor = color.blue;
-      title = 'Running';
+      title = t('Status.running');
       break;
     case NodePhase.TERMINATING:
       IconComponent = RunningIcon;
       iconColor = color.blue;
-      title = 'Run is terminating';
+      title = t('Status.runIsTerminating');
       break;
     case NodePhase.SKIPPED:
       IconComponent = SkippedIcon;
-      title = 'Execution has been skipped for this resource';
+      title = t('Status.executionHasBeenSkippedForThisResource');
       break;
     case NodePhase.SUCCEEDED:
       IconComponent = SuccessIcon;
       iconColor = color.success;
-      title = 'Executed successfully';
+      title = t('Status.executedSuccessfully');
       break;
     case NodePhase.CACHED: // This is not argo native, only applies to node.
       IconComponent = CachedIcon;
       iconColor = color.success;
-      title = 'Execution was skipped and outputs were taken from cache';
+      title = t('Status.executionWasSkippedAndOutputsWereTakenFromCache');
       break;
     case NodePhase.TERMINATED:
       IconComponent = TerminatedIcon;
       iconColor = color.terminated;
-      title = 'Run was manually terminated';
+      title = t('Status.runWasManuallyTerminated');
       break;
     case NodePhase.OMITTED:
       IconComponent = BlockIcon;
-      title = 'Run was omitted because the previous step failed.';
+      title = t('Status.runWasOmittedBecauseThePreviousStepFailed');
       break;
     case NodePhase.UNKNOWN:
       break;
@@ -99,7 +100,7 @@ export function statusToIcon(
   if (mlmdState === Execution.State.CACHED) {
     IconComponent = CachedIcon;
     iconColor = color.success;
-    title = 'Execution was skipped and outputs were taken from cache';
+    title = t('Status.executionWasSkippedAndOutputsWereTakenFromCache');
   }
   return (
     <Tooltip

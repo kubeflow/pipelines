@@ -21,6 +21,7 @@ import { ListRequest } from '../lib/Apis';
 import { RouteComponentProps } from 'react-router-dom';
 import { logger, errorToMessage, formatDateString } from '../lib/Utils';
 import { DialogProps } from '../components/Router';
+import { t } from 'i18next';
 
 interface BaseResponse {
   resources: BaseResource[];
@@ -136,7 +137,7 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
       this.props.updateDialog({
         buttons: [{ text: 'Dismiss' }],
         content: 'List request failed with:\n' + errorMessage,
-        title: 'Error retrieving resources',
+        title: t('ResourceSelector.errorRetrievingResources'),
       });
       logger.error('Could not get requested list of resources', errorMessage);
     }
