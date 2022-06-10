@@ -414,9 +414,15 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 
 	// Assign the create at time.
 	runDetail.CreatedAtInSec = runAt
-	// Since this run is not "job"(a.k.a. scheduled run), it is scheduled at the same time
-	// it is created
-	runDetail.ScheduledAtInSec = runAt
+
+	// Assign the scheduled at time
+	if !apiRun.ScheduledAt.AsTime().IsZero() {
+		// if there is no scheduled time, then we assume this run is scheduled at the same time it is created
+		runDetail.ScheduledAtInSec = runAt
+	} else {
+		runDetail.ScheduledAtInSec = apiRun.ScheduledAt.AsTime().Unix()
+	}
+
 	return r.runStore.CreateRun(runDetail)
 }
 
@@ -869,6 +875,13 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, workflow *
 		if err != nil {
 			return util.Wrap(err, "Failed to retrieve the job name for the job that created the run.")
 		}
+		// Scheduled time equals created time if it is not specified
+		var scheduledTimeInSec int64
+		if workflow.ScheduledAtInSecOr0() == 0 {
+			scheduledTimeInSec = workflow.CreationTimestamp.Unix()
+		} else {
+			scheduledTimeInSec = workflow.ScheduledAtInSecOr0()
+		}
 		runDetail := &model.RunDetail{
 			Run: model.Run{
 				UUID:             runId,
@@ -878,7 +891,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, workflow *
 				StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 				Namespace:        workflow.Namespace,
 				CreatedAtInSec:   workflow.CreationTimestamp.Unix(),
-				ScheduledAtInSec: workflow.ScheduledAtInSecOr0(),
+				ScheduledAtInSec: scheduledTimeInSec,
 				FinishedAtInSec:  workflow.FinishedAt(),
 				Conditions:       condition,
 				PipelineSpec: model.PipelineSpec{
