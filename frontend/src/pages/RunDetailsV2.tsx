@@ -296,12 +296,10 @@ function updateToolBarActions(
 function getDetailsFields(apiRun?: ApiRun): Array<KeyValue<string>> {
   // check if the run has finished or not. The default value for apiRun.finished_at is
   // Date(0), when it is not specified.
-  var finished_at = new Date(0);
+  let finishedAt = new Date(0);
   if (apiRun?.finished_at) {
-    finished_at = new Date(apiRun?.finished_at);
+    finishedAt = apiRun?.finished_at;
   }
-  var time_zero = new Date(0);
-  var has_finished = Boolean(finished_at.getTime() !== time_zero.getTime());
 
   return [
     ['Run ID', apiRun?.id || '-'],
@@ -310,7 +308,7 @@ function getDetailsFields(apiRun?: ApiRun): Array<KeyValue<string>> {
     ['Description', apiRun?.description || ''],
     ['Created at', apiRun?.created_at ? formatDateString(apiRun.created_at) : '-'],
     ['Started at', formatDateString(apiRun?.scheduled_at)],
-    ['Finished at', has_finished ? formatDateString(apiRun?.finished_at) : '-'],
-    ['Duration', has_finished ? getRunDurationFromApiRun(apiRun) : '-'],
+    ['Finished at', finishedAt > new Date(0) ? formatDateString(apiRun?.finished_at) : '-'],
+    ['Duration', finishedAt > new Date(0) ? getRunDurationFromApiRun(apiRun) : '-'],
   ];
 }
