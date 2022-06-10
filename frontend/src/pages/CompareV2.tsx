@@ -102,7 +102,7 @@ function CompareV2(props: PageProps) {
   }, [data]);
 
   const collapseSectionsUpdate = (collapseSections: { [key: string]: boolean }): void => {
-    setCollapseSections(Object.create(collapseSections));
+    setCollapseSections({ ...collapseSections });
   };
 
   const showPageError = async (message: string, error: Error | undefined) => {
