@@ -1250,13 +1250,7 @@ func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, 
 		return nil, util.Wrap(err, "Get pipeline version template failed: cannot get file")
 	}
 
-	// convert template from JSON to YAML
-	template_yaml, err := yaml.JSONToYAML(template)
-	if err != nil {
-		return nil, util.Wrap(err, "Get pipeline version template failed: unable to convert template from JSON to YAML")
-	}
-
-	return template_yaml, nil
+	return template, nil
 }
 
 func (r *ResourceManager) AuthenticateRequest(ctx context.Context) (string, error) {
