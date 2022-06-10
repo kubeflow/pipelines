@@ -123,8 +123,9 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
+    await TestUtils.flushPromises();
 
-    await waitFor(() => screen.getByText('Run overview'));
+    await waitFor(() => expect(screen.queryByText('Parameter Section V2')).toBeNull());
   });
 
   it('Show v1 page if some runs are v1 and the v2 feature flag is enabled', async () => {
@@ -149,8 +150,9 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
+    await TestUtils.flushPromises();
 
-    await waitFor(() => screen.getByText('Run overview'));
+    await waitFor(() => expect(screen.queryByText('Parameter Section V2')).toBeNull());
   });
 
   it('Show v2 page if all runs are v2 and the v2 feature flag is enabled', async () => {
@@ -175,8 +177,9 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
+    await TestUtils.flushPromises();
 
-    await waitFor(() => screen.getByText('This is the V2 Run Comparison page.'));
+    await waitFor(() => screen.getByText('Parameter Section V2'));
   });
 
   it('Show v1 page if some runs are v1 and the v2 feature flag is disabled', async () => {
@@ -198,8 +201,9 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
+    await TestUtils.flushPromises();
 
-    await waitFor(() => screen.getByText('Run overview'));
+    await waitFor(() => expect(screen.queryByText('Parameter Section V2')).toBeNull());
   });
 
   it('Show v1 page if all runs are v2 and the v2 feature flag is disabled', async () => {
@@ -221,8 +225,9 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
+    await TestUtils.flushPromises();
 
-    await waitFor(() => screen.getByText('Run overview'));
+    await waitFor(() => expect(screen.queryByText('Parameter Section V2')).toBeNull());
   });
 
   it('Show page error on page when getRun request fails', async () => {
@@ -251,7 +256,6 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
-
     await TestUtils.flushPromises();
 
     expect(updateBannerSpy).toHaveBeenLastCalledWith({
