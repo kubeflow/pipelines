@@ -305,12 +305,28 @@ export default {
         "forThisNamespace": "for this namespace",
         "failedToFetchRecurringRuns": "Error: failed to fetch recurring runs.",
     },
+    RecurringRunDetails: {
+        "recurringRunDetails": "Recurring run details",
+        "runTrigger": "Run trigger",
+        "runParameters": "Run parameters",
+        "failedToRetrieveRecurringRun": "Error: failed to retrieve recurring run:",
+        "failedToRetrieveThisRecurringRunSExperiment": "Error: failed to retrieve this recurring run's experiment.",
+
+
+
+    },
     ArtifactList: {
         "name": "Name",
         "type": "Type",
         "createdAt": "Created at",
         "noArtifactsFound":"No artifacts found.",
         "filter": "Filter",
+    },
+    EnhancedArtifactDetails: {
+        "noArtifactIdentifiedById": "No artifact identified by id:",
+        "foundMultipleArtifactsWithId": "Found multiple artifacts with ID:",
+        "unknownSelectedTab": "Unknown selected tab",
+        
     },
     PipelineVersionList: {
         versionName: 'Version name',
@@ -321,5 +337,49 @@ export default {
     },
     NewRunSwitcher: {
         currentlyLoadingPipelineInformation: "Currently loading pipeline information"
+    },
+    NewRunV2: {
+        startANewRun: "Start a new run",
+        runNameCanNotBeEmpty: "Run name can not be empty.",
+        successfullyStartedNewRun: "Successfully started new Run:",
+        runCreationFailed:"Run creation failed",
+        pipelineVersion:"Pipeline Version",
+        description: "Description (optional)",
+        thisRunWillBeAssociatedWithTheFollowingExperiment: "This run will be associated with the following experiment",
+        start: "Start",
+        cancel: "Cancel",
+        experimentName: "Experiment name",
+        description: "Description",
+        createdAt: "Created at",
+        experiment: "Kinh nghiệm",
+        chooseAnExperiment: "Choose an experiment",
+        filterExperiments: "Filter experiments",
+        noExperimentsFoundCreateAnExperimentAndThenTryAgain: "No experiments found. Create an experiment and then try again.",
+    },
+    Toolbar: {
+        back: "Back",
+    },
+    Trigger: {
+        triggerType: "Trigger type",
+        maximumConcurrentRuns: "Maximum concurrent runs",
+        hasStartDate: "Has start date",
+        hasEndDate: "Has end date",
+        startDate: "Start date",
+        endDate: "End date",
+        startTime: "Start time",
+        endTime: "End time",
+        cronExpression: "cron expression"
+
+    },
+    UploadPipelineDialog: {
+        uploadAFile: "Up Load File",
+        importByURL: "Import by URL",
+        file: "File",
+        pipelineName: "Pipeline name",
+        versionSource: "Version source",
+        uploadOn: "Uploaded on",
+        pipelineDescription: "Pipeline Description",
+        showSummary: "showSummary",
+
     }
 }

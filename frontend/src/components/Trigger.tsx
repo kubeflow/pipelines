@@ -38,6 +38,7 @@ import {
   ParsedTrigger,
 } from '../lib/TriggerUtils';
 import { logger } from 'src/lib/Utils';
+import i18n from "i18next";
 
 type TriggerInitialProps = {
   maxConcurrentRuns?: string;
@@ -161,7 +162,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       <div>
         <Input
           select={true}
-          label='Trigger type'
+          label={i18n.t('Trigger.triggerType')}
           required={true}
           onChange={this.handleChange('type')}
           value={type}
@@ -176,7 +177,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
 
         <div>
           <Input
-            label='Maximum concurrent runs'
+            label={i18n.t('Trigger.maximumConcurrentRuns')}
             required={true}
             onChange={this.handleChange('maxConcurrentRuns')}
             value={maxConcurrentRuns}
@@ -192,10 +193,10 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
                   onClick={this.handleChange('hasStartDate')}
                 />
               }
-              label='Has start date'
+              label={i18n.t('Trigger.maximumConcurrentRuns')}
             />
             <Input
-              label='Start date'
+              label={i18n.t('Trigger.startDate')}
               type='date'
               onChange={this.handleChange('startDate')}
               value={startDate}
@@ -206,7 +207,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
             />
             <Separator />
             <Input
-              label='Start time'
+              label={i18n.t('Trigger.startTime')}
               type='time'
               onChange={this.handleChange('startTime')}
               value={startTime}
@@ -233,10 +234,10 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
                   onClick={this.handleChange('hasEndDate')}
                 />
               }
-              label='Has end date'
+              label={i18n.t('Trigger.hasEndDate')}
             />
             <Input
-              label='End date'
+              label={i18n.t('Trigger.endDate')}
               type='date'
               onChange={this.handleChange('endDate')}
               value={endDate}
@@ -247,7 +248,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
             />
             <Separator />
             <Input
-              label='End time'
+              label={i18n.t('Trigger.endTime')}
               type='time'
               onChange={this.handleChange('endTime')}
               value={endTime}
@@ -384,7 +385,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
             </div>
 
             <Input
-              label='cron expression'
+              label={i18n.t('Trigger.cronExpression')}
               onChange={this.handleChange('cron')}
               value={cron}
               width={300}

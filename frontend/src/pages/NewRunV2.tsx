@@ -46,6 +46,8 @@ import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes, stylesheet } from 'typestyle';
 import { PageProps } from './Page';
 import ResourceSelector from './ResourceSelector';
+import i18n from "i18next";
+
 
 const css = stylesheet({
   nonEditableInput: {
@@ -132,7 +134,7 @@ function NewRunV2(props: NewRunV2Props) {
   useEffect(() => {
     props.updateToolbar({
       actions: {},
-      pageTitle: 'Start a new run',
+      pageTitle: i18n.t('NewRunV2.startANewRun'),
     });
   }, []);
 
@@ -179,7 +181,7 @@ function NewRunV2(props: NewRunV2Props) {
         setErrorMessage('');
         return;
       } else {
-        setErrorMessage('Run name can not be empty.');
+        setErrorMessage(i18n.t('NewRunV2.runNameCanNotBeEmpty'));
         return;
       }
     }
@@ -234,7 +236,7 @@ function NewRunV2(props: NewRunV2Props) {
         props.history.push(RoutePage.RUNS);
 
         props.updateSnackbar({
-          message: `Successfully started new Run: ${data.run?.name}`,
+          message: `${i18n.t('NewRunV2.successfullyStartedNewRun')} ${data.run?.name}`,
           open: true,
         });
       },
@@ -244,7 +246,7 @@ function NewRunV2(props: NewRunV2Props) {
           buttons: [{ text: 'Dismiss' }],
           onClose: () => setIsStartingNewRun(false),
           content: errorMessage,
-          title: 'Run creation failed',
+          title: i18n.t('NewRunV2.runCreationFailed'),
         });
       },
     });
@@ -272,7 +274,7 @@ function NewRunV2(props: NewRunV2Props) {
         <Input
           value={apiPipelineVersion?.name || ''}
           required={true}
-          label='Pipeline Version'
+          label= {i18n.t('NewRunV2.pipelineVersion')}
           disabled={true}
           variant='outlined'
           InputProps={{
@@ -291,7 +293,7 @@ function NewRunV2(props: NewRunV2Props) {
           variant='outlined'
         />
         <Input
-          label='Description (optional)'
+          label={i18n.t('NewRunV2.description')}
           multiline={true}
           onChange={event => setRunDescription(event.target.value)}
           value={runDescription}
@@ -299,7 +301,7 @@ function NewRunV2(props: NewRunV2Props) {
         />
 
         {/* Experiment selection */}
-        <div>This run will be associated with the following experiment</div>
+        <div>{i18n.t('NewRunV2.thisRunWillBeAssociatedWithTheFollowingExperiment')}</div>
         <ExperimentSelector {...props} setApiExperiment={setApiExperiment} />
 
         {/* Service account selection */}
@@ -349,7 +351,7 @@ function NewRunV2(props: NewRunV2Props) {
             disabled={!isStartButtonEnabled}
             busy={isStartingNewRun}
             className={commonCss.buttonAction}
-            title='Start'
+            title={i18n.t('NewRunV2.start')}
             onClick={startRun}
           />
           <Button
@@ -359,7 +361,7 @@ function NewRunV2(props: NewRunV2Props) {
               props.history.push(RoutePage.RUNS);
             }}
           >
-            {'Cancel'}
+           {i18n.t('NewRunV2.cancel')}
           </Button>
           <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
             {errorMessage}
@@ -377,11 +379,11 @@ const EXPERIMENT_SELECTOR_COLUMNS = [
   {
     customRenderer: NameWithTooltip,
     flex: 1,
-    label: 'Experiment name',
+    label: i18n.t('NewRunV2.experimentName'),
     sortKey: ExperimentSortKeys.NAME,
   },
-  { label: 'Description', flex: 2 },
-  { label: 'Created at', flex: 1, sortKey: ExperimentSortKeys.CREATED_AT },
+  { label: i18n.t('NewRunV2.description'), flex: 2 },
+  { label: i18n.t('NewRunV2.createdAt'), flex: 1, sortKey: ExperimentSortKeys.CREATED_AT },
 ];
 
 interface ExperimentSelectorSpecificProps {
@@ -400,7 +402,7 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
       <Input
         value={experimentName}
         required={true}
-        label='Experiment'
+        label={i18n.t('NewRunV2.experiment')}
         disabled={true}
         variant='outlined'
         InputProps={{
@@ -431,8 +433,8 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
         <DialogContent>
           <ResourceSelector
             {...props}
-            title='Choose an experiment'
-            filterLabel='Filter experiments'
+            title={i18n.t('NewRunV2.chooseAnExperiment')}
+            filterLabel= {i18n.t('NewRunV2.filterExperiments')}
             listApi={async (
               page_token?: string,
               page_size?: number,
@@ -466,7 +468,7 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
               };
             }}
             columns={EXPERIMENT_SELECTOR_COLUMNS}
-            emptyMessage='No experiments found. Create an experiment and then try again.'
+            emptyMessage={i18n.t('NewRunV2.chooseAnExperiment')}
             initialSortColumn={ExperimentSortKeys.CREATED_AT}
             selectionChanged={(selectedExperiment: ApiExperiment) =>
               setPendingExperiment(selectedExperiment)
