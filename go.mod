@@ -44,7 +44,6 @@ require (
 	github.com/stretchr/testify v1.7.0
 	gocloud.dev v0.22.0
 	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f
-	golang.org/x/tools v0.1.11 // indirect
 	google.golang.org/genproto v0.0.0-20220310185008-1973136f34c6
 	google.golang.org/grpc v1.44.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.1.0
