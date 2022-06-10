@@ -8,4 +8,4 @@ commonLabels:
   app: cache-deployer
 images:
   - name: gcr.io/ml-pipeline/cache-deployer
-    newTag: 2.0.0-alpha.2
+    newTag: 1.8.2
