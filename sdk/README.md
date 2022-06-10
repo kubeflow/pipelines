@@ -1,9 +1,24 @@
 ## Contributing to the `kfp` SDK
 KFP v2 for SDK is under development on the `master` branch.
 
-To contribute to v1, please go to [sdk/release-1.8 branch](https://github.com/kubeflow/pipelines/tree/sdk/release-1.8) to submit your change. 
+To contribute to v1, please go to [sdk/release-1.8 branch](https://github.com/kubeflow/pipelines/tree/sdk/release-1.8) to submit your change.
 
 For general contribution guidelines including pull request conventions, see [pipelines/CONTRIBUTING.md](https://github.com/kubeflow/pipelines/blob/master/CONTRIBUTING.md).
+
+### Requirements
+All development requirement versions are pinned in [requirements-dev.txt](https://github.com/kubeflow/pipelines/blob/master/sdk/python/requirements-dev.txt).
+
+### Testing
+We suggest running unit tests using [`pytest`](https://docs.pytest.org/en/7.1.x/). From the project root, the following runs all KFP SDK unit tests:
+```sh
+pytest sdk/python
+```
+
+To run tests in parallel for faster execution, you can run the tests using the `pytest-xdist` plugin:
+
+```sh
+pytest sdk/python -n auto
+```
 
 ### Code Style
 Dependencies for code style checks/changes can be found in the kfp SDK [requirements-dev.txt](https://github.com/kubeflow/pipelines/blob/master/sdk/python/requirements-dev.txt).
