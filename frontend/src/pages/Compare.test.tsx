@@ -21,7 +21,7 @@ import { Apis } from 'src/lib/Apis';
 import { PageProps } from './Page';
 import { QUERY_PARAMS } from 'src/components/Router';
 import { ApiRunDetail } from 'src/apis/run';
-import Compare, { CompareProps } from './Compare';
+import Compare from './Compare';
 import * as features from 'src/features';
 import { testBestPractices } from 'src/TestUtils';
 import TestUtils from 'src/TestUtils';
@@ -33,7 +33,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
   const MOCK_RUN_3_ID = 'mock-run-3-id';
   const updateBannerSpy = jest.fn();
 
-  function generateProps(): CompareProps {
+  function generateProps(): PageProps {
     const pageProps: PageProps = {
       history: {} as any,
       location: {
@@ -46,16 +46,7 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
       updateSnackbar: () => null,
       updateToolbar: () => null,
     };
-    return Object.assign(pageProps, {
-      collapseSections: {},
-      fullscreenViewerConfig: null,
-      metricsCompareProps: { rows: [], xLabels: [], yLabels: [] },
-      paramsCompareProps: { rows: [], xLabels: [], yLabels: [] },
-      runs: [],
-      selectedIds: [],
-      viewersMap: new Map(),
-      workflowObjects: [],
-    });
+    return pageProps;
   }
 
   let runs: ApiRunDetail[] = [];
