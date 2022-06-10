@@ -104,6 +104,8 @@ _JOB_TYPE_TO_ACTION_MAP = {
         bigquery_job_remote_runner.bigquery_ml_recommend_job,
     'BigqueryMLGlobalExplainJob':
         bigquery_job_remote_runner.bigquery_ml_global_explain_job,
+    'BigqueryDetectAnomaliesModelJob':
+        bigquery_job_remote_runner.bigquery_detect_anomalies_model_job,
     'DataprocPySparkBatch':
         dataproc_batch_remote_runner.create_pyspark_batch,
     'DataprocSparkBatch':
@@ -183,7 +185,8 @@ def _parse_args(args):
           'BigQueryMLPrincipalComponentInfoJob',
           'BigqueryMLRecommendJob',
           'BigqueryExplainForecastModelJob'
-          'BigqueryMLForecastJob'
+          'BigqueryMLForecastJob',
+          'BigqueryDetectAnomaliesModelJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -217,7 +220,8 @@ def _parse_args(args):
           'BigQueryMLPrincipalComponentInfoJob',
           'BigqueryMLRecommendJob',
           'BigqueryExplainForecastModelJob',
-          'BigqueryMLForecastJob'
+          'BigqueryMLForecastJob',
+          'BigqueryDetectAnomaliesModelJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -245,7 +249,8 @@ def _parse_args(args):
           'BigqueryMLFeatureImportanceJob',
           'BigqueryMLRecommendJob',
           'BigqueryExplainForecastModelJob',
-          'BigqueryMLForecastJob'
+          'BigqueryMLForecastJob',
+          'BigqueryDetectAnomaliesModelJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -341,6 +346,18 @@ def _parse_args(args):
       required=(parsed_args.type
                 in {'BigqueryMLForecastJob',
                     'BigqueryExplainForecastModelJob'}),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--contamination',
+      dest='contamination',
+      type=float,
+      required=(parsed_args.type in {'BigqueryDetectAnomaliesModelJob'}),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--anomaly_prob_threshold',
+      dest='anomaly_prob_threshold',
+      type=float,
+      required=(parsed_args.type in {'BigqueryDetectAnomaliesModelJob'}),
       default=argparse.SUPPRESS)
   parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)
