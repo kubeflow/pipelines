@@ -119,6 +119,21 @@ class ExecutorTest(unittest.TestCase):
 
         self._get_executor(test_func).execute()
 
+    def test_input_artifact_custom_type(self):
+
+        class VertexDataset(Dataset):
+            pass
+
+        def test_func(input_artifact_one_path: Input[VertexDataset]):
+            self.assertEqual(input_artifact_one_path.uri,
+                             'gs://some-bucket/input_artifact_one')
+            self.assertEqual(
+                input_artifact_one_path.path,
+                os.path.join(self._test_dir, 'some-bucket/input_artifact_one'))
+            self.assertEqual(input_artifact_one_path.name, 'input_artifact_one')
+
+        self._get_executor(test_func).execute()
+
     def test_input_artifact(self):
 
         def test_func(input_artifact_one_path: Input[Dataset]):

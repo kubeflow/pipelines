@@ -512,7 +512,10 @@ _SCHEMA_TITLE_TO_TYPE: Dict[str, Artifact] = {
 }
 
 
-def create_runtime_artifact(runtime_artifact: Dict) -> Artifact:
+def create_runtime_artifact(
+    runtime_artifact: Dict,
+    artifact_cls=None,
+) -> Artifact:
     """Creates an Artifact instance from the specified RuntimeArtifact.
 
     Args:
@@ -522,7 +525,7 @@ def create_runtime_artifact(runtime_artifact: Dict) -> Artifact:
 
     artifact_type = _SCHEMA_TITLE_TO_TYPE.get(schema_title)
     if not artifact_type:
-        artifact_type = Artifact
+        artifact_type = artifact_cls or Artifact
     return artifact_type(
         uri=runtime_artifact.get('uri', ''),
         name=runtime_artifact.get('name', ''),
