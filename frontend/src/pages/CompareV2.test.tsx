@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { Apis } from 'src/lib/Apis';
-import * as features from 'src/features';
 import { testBestPractices } from 'src/TestUtils';
 import { QUERY_PARAMS } from 'src/components/Router';
 import CompareV2, { overviewSectionName, paramsSectionName, metricsSectionName } from './CompareV2';
@@ -144,16 +143,16 @@ describe('CompareV2', () => {
     screen.getByText('Scalar Metrics');
 
     fireEvent.click(screen.getByText(overviewSectionName));
-    await waitFor(() => expect(screen.queryByText('Filter runs')).toBeNull());
+    expect(screen.queryByText('Filter runs')).toBeNull();
 
     fireEvent.click(screen.getByText(overviewSectionName));
     screen.getByText('Filter runs');
 
     fireEvent.click(screen.getByText(paramsSectionName));
-    await waitFor(() => expect(screen.queryByText('Parameter Section V2')).toBeNull());
+    expect(screen.queryByText('Parameter Section V2')).toBeNull();
 
     fireEvent.click(screen.getByText(metricsSectionName));
-    await waitFor(() => expect(screen.queryByText('Scalar Metrics')).toBeNull());
+    expect(screen.queryByText('Scalar Metrics')).toBeNull();
   });
 
   it('All runs are initially selected', async () => {
@@ -169,8 +168,13 @@ describe('CompareV2', () => {
     await TestUtils.flushPromises();
 
     // Four checkboxes: three runs and one table header
-    const runCheckboxes = screen.queryAllByRole('checkbox', { checked: true });
+    let runCheckboxes = screen.queryAllByRole('checkbox', { checked: true });
     expect(runCheckboxes.filter(r => r.nodeName === 'INPUT')).toHaveLength(4);
+
+    // Uncheck all run checkboxes
+    fireEvent.click(runCheckboxes[0]);
+    runCheckboxes = screen.queryAllByRole('checkbox', { checked: true });
+    expect(runCheckboxes.filter(r => r.nodeName === 'INPUT')).toHaveLength(0);
   });
 
   it('Scalar metrics tab initially enabled, and switch tabs', async () => {
