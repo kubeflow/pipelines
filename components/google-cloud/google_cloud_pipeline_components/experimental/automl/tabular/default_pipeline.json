@@ -7321,14 +7321,11 @@
             ],
             "command": [
               "sh",
-              "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
-              "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
               "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _set_model_can_skip_validation(model: Input[Artifact]):\n  \"\"\"Construct Dataset based on the batch prediction job.\n\n  Args:\n    model: The model artifact.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  import os\n  import tensorflow as tf\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\n  # create an empty CAN_SKIP_VALIDATION file\n  with tf.io.gfile.GFile(os.path.join(model.uri, 'CAN_SKIP_VALIDATION'),\n                         'w') as f:\n    f.write('')\n\n"
             ],
-            "image": "tensorflow/tensorflow:2.4.1"
+            "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod"
           }
         },
         "exec-tabular-stats-and-example-gen": {
@@ -7364,14 +7361,11 @@
             ],
             "command": [
               "sh",
-              "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
-              "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
               "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _write_bp_result_path(\n    bp_job: Input[Artifact],\n    result: OutputPath('Dataset'),\n):\n  \"\"\"Construct Dataset based on the batch prediction job.\n\n  Args:\n    bp_job: The batch prediction job artifact.\n    result: Tbe path to the file that contains Dataset data.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n  import json\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n  directory = bp_job.metadata['gcsOutputDirectory']\n  data_source = {\n      'tf_record_data_source': {\n          'file_patterns': [f'{directory}/prediction.results-*',],\n          'coder': 'PROTO_VALUE',\n      },\n  }\n  with open(result, 'w') as f:\n    f.write(json.dumps(data_source))\n\n"
             ],
-            "image": "python:3.7-slim"
+            "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod"
           }
         },
         "exec-write-bp-result-path-2": {
@@ -7384,14 +7378,11 @@
             ],
             "command": [
               "sh",
-              "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
-              "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
               "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _write_bp_result_path(\n    bp_job: Input[Artifact],\n    result: OutputPath('Dataset'),\n):\n  \"\"\"Construct Dataset based on the batch prediction job.\n\n  Args:\n    bp_job: The batch prediction job artifact.\n    result: Tbe path to the file that contains Dataset data.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n  import json\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n  directory = bp_job.metadata['gcsOutputDirectory']\n  data_source = {\n      'tf_record_data_source': {\n          'file_patterns': [f'{directory}/prediction.results-*',],\n          'coder': 'PROTO_VALUE',\n      },\n  }\n  with open(result, 'w') as f:\n    f.write(json.dumps(data_source))\n\n"
             ],
-            "image": "python:3.7-slim"
+            "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod"
           }
         }
       }
