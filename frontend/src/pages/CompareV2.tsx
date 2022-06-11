@@ -27,6 +27,7 @@ import Buttons from 'src/lib/Buttons';
 import { URLParser } from 'src/lib/URLParser';
 import { errorToMessage } from 'src/lib/Utils';
 import { classes, stylesheet } from 'typestyle';
+import MD2Tabs from 'src/atoms/MD2Tabs';
 import { PageProps } from './Page';
 import RunList from './RunList';
 
@@ -36,6 +37,14 @@ const css = stylesheet({
     overflowX: 'auto',
   },
 });
+
+enum MetricsTab {
+  SCALAR_METRICS,
+  CONFUSION_MATRIX,
+  ROC_CURVE,
+  HTML,
+  MARKDOWN,
+}
 
 export const overviewSectionName = 'Run overview';
 export const paramsSectionName = 'Parameters';
@@ -47,6 +56,7 @@ function CompareV2(props: PageProps) {
   const runlistRef = useRef<RunList>(null);
   const [collapseSections, setCollapseSections] = useState<{ [key: string]: boolean }>({});
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [metricsTab, setMetricsTab] = useState(MetricsTab.SCALAR_METRICS);
 
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
@@ -168,7 +178,18 @@ function CompareV2(props: PageProps) {
       {!collapseSections[metricsSectionName] && (
         <div className={classes(commonCss.noShrink, css.outputsRow)}>
           <Separator orientation='vertical' />
-          <p>Metrics Section V2</p>
+          <MD2Tabs
+            tabs={['Scalar Metrics', 'Confusion Matrix', 'ROC Curve', 'HTML', 'Markdown']}
+            selectedTab={metricsTab}
+            onSwitch={setMetricsTab}
+          />
+          <div className={classes(commonCss.page, padding(20, 'lrt'))}>
+            {metricsTab === MetricsTab.SCALAR_METRICS && <p>This is the Scalar Metrics tab.</p>}
+            {metricsTab === MetricsTab.CONFUSION_MATRIX && <p>This is the Confusion Matrix tab.</p>}
+            {metricsTab === MetricsTab.ROC_CURVE && <p>This is the ROC Curve tab.</p>}
+            {metricsTab === MetricsTab.HTML && <p>This is the HTML tab.</p>}
+            {metricsTab === MetricsTab.MARKDOWN && <p>This is the Markdown tab.</p>}
+          </div>
           <Hr />
         </div>
       )}
