@@ -37,6 +37,7 @@ import { ApiFilter, PredicateOp } from '../apis/filter/api';
 import { debounce } from 'lodash';
 import { InputAdornment } from '@material-ui/core';
 import { CustomTableRow } from './CustomTableRow';
+import { t } from 'i18next'
 
 export enum ExpandState {
   COLLAPSED,
@@ -324,14 +325,14 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         {/* Header */}
         <div className={classes(css.header, this.props.disableSelection && padding(20, 'l'))}>
           {// Called as function to avoid breaking shallow rendering tests.
-          HeaderRowSelectionSection({
-            disableSelection: this.props.disableSelection,
-            indeterminate: !!numSelected && numSelected < this.props.rows.length,
-            isSelected: !!numSelected && numSelected === this.props.rows.length,
-            onSelectAll: this.handleSelectAllClick.bind(this),
-            showExpandButton: !!this.props.getExpandComponent,
-            useRadioButtons: this.props.useRadioButtons,
-          })}
+            HeaderRowSelectionSection({
+              disableSelection: this.props.disableSelection,
+              indeterminate: !!numSelected && numSelected < this.props.rows.length,
+              isSelected: !!numSelected && numSelected === this.props.rows.length,
+              onSelectAll: this.handleSelectAllClick.bind(this),
+              showExpandButton: !!this.props.getExpandComponent,
+              useRadioButtons: this.props.useRadioButtons,
+            })}
           {this.props.columns.map((col, i) => {
             const isColumnSortable = !!this.props.columns[i].sortKey;
             const isCurrentSortColumn = sortBy === this.props.columns[i].sortKey;
@@ -349,7 +350,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                 {this.props.disableSorting === true && col.label}
                 {!this.props.disableSorting && (
                   <Tooltip
-                    title={isColumnSortable ? 'Sort' : 'Cannot sort by this column'}
+                    title={isColumnSortable ? t('CustomTable.sort') : t('CustomTable.cannotSortByThisColumn')}
                     enterDelay={300}
                   >
                     <TableSortLabel
@@ -413,14 +414,14 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                   onClick={e => this.handleClick(e, row.id)}
                 >
                   {// Called as function to avoid breaking shallow rendering tests.
-                  BodyRowSelectionSection({
-                    disableSelection: this.props.disableSelection,
-                    expandState: row.expandState,
-                    isSelected: selected,
-                    onExpand: e => this._expandButtonToggled(e, i),
-                    showExpandButton: !!this.props.getExpandComponent,
-                    useRadioButtons: this.props.useRadioButtons,
-                  })}
+                    BodyRowSelectionSection({
+                      disableSelection: this.props.disableSelection,
+                      expandState: row.expandState,
+                      isSelected: selected,
+                      onExpand: e => this._expandButtonToggled(e, i),
+                      showExpandButton: !!this.props.getExpandComponent,
+                      useRadioButtons: this.props.useRadioButtons,
+                    })}
                   <CustomTableRow row={row} columns={this.props.columns} />
                 </div>
                 {row.expandState === ExpandState.EXPANDED && this.props.getExpandComponent && (
@@ -434,7 +435,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
         {/* Footer */}
         {!this.props.disablePaging && (
           <div className={css.footer}>
-            <span className={padding(10, 'r')}>Rows per page:</span>
+            <span className={padding(10, 'r')}>{t('CustomTable.rowsPerPage')}</span>
             <TextField
               select={true}
               variant='standard'

@@ -20,6 +20,7 @@ import Button from '@material-ui/core/Button';
 import ExpandedIcon from '@material-ui/icons/ArrowDropUp';
 import { stylesheet, classes } from 'typestyle';
 import { color, fontsize } from '../Css';
+import { t } from 'i18next'
 
 const css = stylesheet({
   collapseBtn: {
@@ -54,7 +55,7 @@ class CollapseButton extends React.Component<CollapseButtonProps> {
             collapseSections[sectionName] = !collapseSections[sectionName];
             compareSetState({ collapseSections });
           }}
-          title='Expand/Collapse this section'
+          title={t('CollapseButton.expandCollapseThisSection')}
           className={css.collapseBtn}
         >
           <ExpandedIcon

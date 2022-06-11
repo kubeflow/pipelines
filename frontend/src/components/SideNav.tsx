@@ -39,7 +39,7 @@ import { LocalStorage, LocalStorageKey } from '../lib/LocalStorage';
 import { logger } from '../lib/Utils';
 import { GkeMetadataContext, GkeMetadata } from 'src/lib/GkeMetadata';
 import { Alarm } from '@material-ui/icons';
-
+import { t } from 'i18next'
 export const tailwindcss = {
   sideNavItem: 'flex flex-row flex-shrink-0',
 };
@@ -285,7 +285,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                 )}
               />
               <Tooltip
-                title={'Getting Started'}
+                title={t('SideNav.gettingStarted')}
                 enterDelay={300}
                 placement={'right-start'}
                 disableFocusListener={!collapsed}
@@ -303,7 +303,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                     <div className={tailwindcss.sideNavItem}>
                       <DescriptionIcon style={{ width: 20, height: 20 }} />
                       <span className={classes(collapsed && css.collapsedLabel, css.label)}>
-                        Getting Started
+                        {t('SideNav.gettingStarted')}
                       </span>
                     </div>
                   </Button>
@@ -318,7 +318,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             )}
           />
           <Tooltip
-            title={'Pipeline List'}
+            title={t('SideNav.list', { name: 'Pipeline' })}
             enterDelay={300}
             placement={'right-start'}
             disableFocusListener={!collapsed}
@@ -355,7 +355,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             )}
           />
           <Tooltip
-            title={'Experiment List'}
+            title={t('SideNav.list', { name: 'Experiment' })}
             enterDelay={300}
             placement={'right-start'}
             disableFocusListener={!collapsed}
@@ -394,7 +394,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             )}
           />
           <Tooltip
-            title={'Runs List'}
+            title={t('SideNav.list', { name: 'Runs' })}
             enterDelay={300}
             placement={'right-start'}
             disableFocusListener={!collapsed}
@@ -423,7 +423,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             )}
           />
           <Tooltip
-            title={'Recurring Runs List'}
+            title={t('SideNav.list', { name: 'Recurring Runs' })}
             enterDelay={300}
             placement={'right-start'}
             disableFocusListener={!collapsed}
@@ -458,7 +458,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             )}
           />
           <Tooltip
-            title={'Artifacts List'}
+            title={t('SideNav.list', { name: 'Artifacts List' })}
             enterDelay={300}
             placement={'right-start'}
             disableFocusListener={!collapsed}
@@ -489,7 +489,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
             )}
           />
           <Tooltip
-            title={'Executions List'}
+            title={t('SideNav.list', { name: 'Executions' })}
             enterDelay={300}
             placement={'right-start'}
             disableFocusListener={!collapsed}
@@ -515,7 +515,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           </Tooltip>
           {this.state.jupyterHubAvailable && (
             <Tooltip
-              title={'Open Jupyter Notebook'}
+              title={t('SideNav.openJupyterNotebook')}
               enterDelay={300}
               placement={'right-start'}
               disableFocusListener={!collapsed}
@@ -543,7 +543,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           )}
           <hr className={classes(css.separator, collapsed && css.collapsedSeparator)} />
           <ExternalUri
-            title={'Documentation'}
+            title={t('SideNav.documentation')}
             to={ExternalLinks.DOCUMENTATION}
             collapsed={collapsed}
             icon={className => <DescriptionIcon className={className} />}
@@ -567,12 +567,12 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
         <div className={collapsed ? css.infoHidden : css.infoVisible}>
           {gkeMetadata.clusterName && gkeMetadata.projectId && (
             <Tooltip
-              title={`Cluster name: ${gkeMetadata.clusterName}, Project ID: ${gkeMetadata.projectId}`}
+              title={`${t('SideNav.clusterName')} ${gkeMetadata.clusterName}, Project ID: ${gkeMetadata.projectId}`}
               enterDelay={300}
               placement='top-start'
             >
               <div className={css.envMetadata}>
-                <span>Cluster name: </span>
+                <span>{t('SideNav.clusterName')} </span>
                 <a
                   href={`https://console.cloud.google.com/kubernetes/list?project=${gkeMetadata.projectId}&filter=name:${gkeMetadata.clusterName}`}
                   className={classes(css.link, commonCss.unstyled)}
@@ -586,12 +586,12 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
           )}
           {displayBuildInfo && (
             <Tooltip
-              title={`Build date: ${displayBuildInfo.date}, Commit hash: ${displayBuildInfo.commitHash}`}
+              title={`${t('SideNav.buildDate')} ${displayBuildInfo.date}, Commit hash: ${displayBuildInfo.commitHash}`}
               enterDelay={300}
               placement={'top-start'}
             >
               <div className={css.envMetadata}>
-                <span>Version: </span>
+                <span>{t('SideNav.version')}</span>
                 <a
                   href={displayBuildInfo.commitUrl}
                   className={classes(css.link, commonCss.unstyled)}
@@ -603,7 +603,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
               </div>
             </Tooltip>
           )}
-          <Tooltip title='Report an Issue' enterDelay={300} placement={'top-start'}>
+          <Tooltip title={t('SideNav.reportAnIssue')} enterDelay={300} placement={'top-start'}>
             <div className={css.envMetadata}>
               <a
                 href={ExternalLinks.GITHUB_ISSUE}
@@ -611,7 +611,7 @@ export class SideNav extends React.Component<SideNavInternalProps, SideNavState>
                 rel='noopener'
                 target='_blank'
               >
-                Report an Issue
+                {t('SideNav.reportAnIssue')}
               </a>
             </div>
           </Tooltip>

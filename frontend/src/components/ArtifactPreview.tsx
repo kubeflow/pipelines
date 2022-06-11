@@ -23,6 +23,7 @@ import WorkflowParser, { StoragePath } from 'src/lib/WorkflowParser';
 import { stylesheet } from 'typestyle';
 import Banner from './Banner';
 import { ValueComponentProps } from './DetailsTable';
+import { t } from 'i18next'
 
 const css = stylesheet({
   root: {
@@ -75,7 +76,7 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
 
   if (!storage) {
     return (
-      <Banner message={'Can not retrieve storage path from artifact uri: ' + value} mode='error' />
+      <Banner message={t('ArtifactPreview.canNotRetrieveStoragePathFromArtifactUri') + value} mode='error' />
     );
   }
 
@@ -100,9 +101,9 @@ const ArtifactPreview: React.FC<ArtifactPreviewProps> = ({
       </div>
       {isError && (
         <Banner
-          message='Error in retrieving artifact preview.'
+          message={t('ArtifactPreview.errorInRetrievingArtifactPreview')}
           mode='error'
-          additionalInfo={error ? error.message : 'No error message'}
+          additionalInfo={error ? error.message : t('ArtifactPreview.noErrorMessage')}
         />
       )}
       {isSuccess && data && (

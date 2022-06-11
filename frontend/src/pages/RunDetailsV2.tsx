@@ -47,6 +47,7 @@ import { classes } from 'typestyle';
 import { RunDetailsProps } from './RunDetails';
 import { statusToIcon } from './Status';
 import DagCanvas from './v2/DagCanvas';
+import { t } from 'i18next'
 
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
 const QUERY_REFETCH_INTERNAL = 10000; // 10000 milliseconds == 10 seconds.
@@ -90,7 +91,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     setLayers(layers);
   };
 
-  const getNodeName = function(element: FlowElement<FlowElementDataBase> | null): string {
+  const getNodeName = function (element: FlowElement<FlowElementDataBase> | null): string {
     if (element && element.data && element.data.label) {
       return element.data.label;
     }
@@ -114,7 +115,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
       refetchInterval: QUERY_REFETCH_INTERNAL,
       onError: error =>
         props.updateBanner({
-          message: 'Cannot get MLMD objects from Metadata store.',
+          message: t('RunDetailsV2.cannotGetMlmdObjectsFromMetadataStore'),
           additionalInfo: error.message,
           mode: 'error',
         }),
@@ -176,7 +177,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   return (
     <>
       <div className={classes(commonCss.page, padding(20, 't'))}>
-        <MD2Tabs selectedTab={selectedTab} tabs={['Graph', 'Detail']} onSwitch={setSelectedTab} />
+        <MD2Tabs selectedTab={selectedTab} tabs={[t('RunDetailsV2.graph'), t('RunDetailsV2.detail')]} onSwitch={setSelectedTab} />
         {/* DAG tab */}
         {selectedTab === 0 && (
           <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
@@ -209,7 +210,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         {/* Run details tab */}
         {selectedTab === 1 && (
           <div className={padding()}>
-            <DetailsTable title='Run details' fields={getDetailsFields(runDetail.run)} />
+            <DetailsTable title={t('RunDetailsV2.runDetails')} fields={getDetailsFields(runDetail.run)} />
           </div>
 
           // TODO(zijianjoy): Wait backend to supply run parameters, so UI can show them.
@@ -236,7 +237,7 @@ function updateToolBar(
     const pageTitle = (
       <div className={commonCss.flex}>
         {statusToIcon(runMetadata.status as NodePhase, runMetadata.created_at)}
-        <span style={{ marginLeft: 10 }}>{runMetadata.name || 'Run name unknown'}</span>
+        <span style={{ marginLeft: 10 }}>{runMetadata.name || t('RunDetailsV2.runNameUnknown')}</span>
       </div>
     );
 
@@ -256,7 +257,7 @@ function updateToolBar(
       },
     );
   } else {
-    breadcrumbs.push({ displayName: 'All runs', href: RoutePage.RUNS });
+    breadcrumbs.push({ displayName: t('RunDetailsV2.allRuns'), href: RoutePage.RUNS });
   }
   updateToolBarCallback({ breadcrumbs });
 }
@@ -296,12 +297,12 @@ function updateToolBarActions(
 function getDetailsFields(apiRun?: ApiRun): Array<KeyValue<string>> {
   return [
     ['Run ID', apiRun?.id || '-'],
-    ['Workflow name', apiRun?.name || '-'],
-    ['Status', apiRun?.status],
-    ['Description', apiRun?.description || ''],
-    ['Created at', apiRun?.created_at ? formatDateString(apiRun.created_at) : '-'],
-    ['Started at', formatDateString(apiRun?.scheduled_at)],
-    ['Finished at', formatDateString(apiRun?.finished_at)],
-    ['Duration', getRunDurationFromApiRun(apiRun)],
+    [t('RunDetailsV2.workflowName'), apiRun?.name || '-'],
+    [t('RunDetailsV2.status'), apiRun?.status],
+    [t('RunDetailsV2.description'), apiRun?.description || ''],
+    [t('RunDetailsV2.createdAt'), apiRun?.created_at ? formatDateString(apiRun.created_at) : '-'],
+    [t('RunDetailsV2.startedAt'), formatDateString(apiRun?.scheduled_at)],
+    [t('RunDetailsV2.finishedAt'), formatDateString(apiRun?.finished_at)],
+    [t('RunDetailsV2.duration'), getRunDurationFromApiRun(apiRun)],
   ];
 }

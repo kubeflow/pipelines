@@ -20,6 +20,7 @@ import { classes, stylesheet } from 'typestyle';
 import { fontsize, color, fonts, zIndex } from '../Css';
 import { Constants } from '../lib/Constants';
 import Tooltip from '@material-ui/core/Tooltip';
+import { t } from 'i18next';
 
 interface Segment {
   angle: number;
@@ -118,8 +119,8 @@ class GraphErrorBoundary extends React.Component<GraphErrorBoundaryProps> {
   };
 
   componentDidCatch(error: Error): void {
-    const message = 'There was an error rendering the graph.';
-    const additionalInfo = `${message} This is likely a bug in Kubeflow Pipelines. Error message: '${error.message}'.`;
+    const message = t('Graph.thereWasAnErrorRenderingTheGraph');
+    const additionalInfo = `${message} ${t('Graph.thisIsLikelyABugInKubeflowPipelines')} '${error.message}'.`;
     if (this.props.onError) {
       this.props.onError(message, additionalInfo);
     }
@@ -178,7 +179,7 @@ export class Graph extends React.Component<GraphProps, GraphState> {
             const sourceNode = graph.node(edgeInfo.v);
 
             if (!sourceNode) {
-              throw new Error(`Graph definition is invalid. Cannot get node by '${edgeInfo.v}'.`);
+              throw new Error(`${t('Graph.graphDefinitionIsInvalid')} '${edgeInfo.v}'.`);
             }
 
             // Set the edge's first segment to start at the bottom or top of the source node.

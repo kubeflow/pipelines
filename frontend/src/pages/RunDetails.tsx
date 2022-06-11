@@ -78,6 +78,7 @@ import WorkflowParser from '../lib/WorkflowParser';
 import { ExecutionDetailsContent } from './ExecutionDetails';
 import { Page, PageProps } from './Page';
 import { statusToIcon } from './Status';
+import { t } from 'i18next'
 
 export enum SidePanelTab {
   INPUT_OUTPUT,
@@ -205,8 +206,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
             this.state.runMetadata
               ? [this.state.runMetadata!.id!]
               : runIdFromParams
-              ? [runIdFromParams]
-              : [],
+                ? [runIdFromParams]
+                : [],
           true,
           () => this.retry(),
         )
@@ -215,8 +216,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
             this.state.runMetadata
               ? [this.state.runMetadata!.id!]
               : runIdFromParams
-              ? [runIdFromParams]
-              : [],
+                ? [runIdFromParams]
+                : [],
           true,
         )
         .terminateRun(
@@ -224,8 +225,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
             this.state.runMetadata
               ? [this.state.runMetadata!.id!]
               : runIdFromParams
-              ? [runIdFromParams]
-              : [],
+                ? [runIdFromParams]
+                : [],
           true,
           () => this.refresh(),
         )
@@ -291,7 +292,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
           <div className={commonCss.page}>
             <MD2Tabs
               selectedTab={selectedTab}
-              tabs={['Graph', 'Run output', 'Config']}
+              tabs={[t('RunDetails.graph'), t('RunDetails.runOutput'), t('RunDetails.config')]}
               onSwitch={(tab: number) => this.setStateSafe({ selectedTab: tab })}
             />
             <div className={commonCss.page}>
@@ -352,8 +353,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                       nodeStatus={
                                         this.state.workflow && this.state.workflow.status
                                           ? this.state.workflow.status.nodes[
-                                              this.state.selectedNodeDetails.id
-                                            ]
+                                          this.state.selectedNodeDetails.id
+                                          ]
                                           : undefined
                                       }
                                       namespace={this.state.workflow?.metadata?.namespace}
@@ -381,13 +382,13 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                     <div className={padding(20)}>
                                       <DetailsTable
                                         key={`input-parameters-${selectedNodeId}`}
-                                        title='Input parameters'
+                                        title={t('RunDetails.inputParameters')}
                                         fields={inputParams}
                                       />
 
                                       <DetailsTable
                                         key={`input-artifacts-${selectedNodeId}`}
-                                        title='Input artifacts'
+                                        title={t('RunDetails.inputArtifacts')}
                                         fields={inputArtifacts}
                                         valueComponent={MinioArtifactPreview}
                                         valueComponentProps={{
@@ -397,13 +398,13 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
                                       <DetailsTable
                                         key={`output-parameters-${selectedNodeId}`}
-                                        title='Output parameters'
+                                        title={t('RunDetails.outputParameters')}
                                         fields={outputParams}
                                       />
 
                                       <DetailsTable
                                         key={`output-artifacts-${selectedNodeId}`}
-                                        title='Output artifacts'
+                                        title={t('RunDetails.outputArtifacts')}
                                         fields={outputArtifacts}
                                         valueComponent={MinioArtifactPreview}
                                         valueComponentProps={{
@@ -424,7 +425,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                 {sidepanelSelectedTab === SidePanelTab.TASK_DETAILS && (
                                   <div className={padding(20)}>
                                     <DetailsTable
-                                      title='Task Details'
+                                      title={t('RunDetails.taskDetails')}
                                       fields={this._getTaskDetailsFields(workflow, selectedNodeId)}
                                     />
                                   </div>
@@ -436,7 +437,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                       {selectedExecution && (
                                         <>
                                           <div>
-                                            This step corresponds to execution{' '}
+                                            {t('RunDetails.thisStepCorrespondsToExecution')}{' '}
                                             <Link
                                               className={commonCss.link}
                                               to={RoutePageFactory.executionDetails(
@@ -461,7 +462,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                         </>
                                       )}
                                       {!selectedExecution && (
-                                        <div>Corresponding ML Metadata not found.</div>
+                                        <div>{t('RunDetails.correspondingMlMetadataNotFound')}</div>
                                       )}
                                     </div>
                                   )}
@@ -469,7 +470,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                 {sidepanelSelectedTab === SidePanelTab.VOLUMES && (
                                   <div className={padding(20)}>
                                     <DetailsTable
-                                      title='Volume Mounts'
+                                      title={t('RunDetails.volumeMounts')}
                                       fields={WorkflowParser.getNodeVolumeMounts(
                                         workflow,
                                         selectedNodeId,
@@ -481,7 +482,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                                 {sidepanelSelectedTab === SidePanelTab.MANIFEST && (
                                   <div className={padding(20)}>
                                     <DetailsTable
-                                      title='Resource Manifest'
+                                      title={t('RunDetails.resourceManifest')}
                                       fields={WorkflowParser.getNodeManifest(
                                         workflow,
                                         selectedNodeId,
@@ -560,8 +561,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                         <div className={commonCss.flex}>
                           <InfoIcon className={commonCss.infoIcon} />
                           <span className={css.infoSpan}>
-                            Runtime execution graph. Only steps that are currently running or have
-                            already completed are shown.
+                            {t('RunDetails.runtimeExecutionGraph')}
                           </span>
                         </div>
                       </div>
@@ -569,7 +569,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                   )}
                   {!graphToShow && (
                     <div>
-                      {runFinished && <span style={{ margin: '40px auto' }}>No graph to show</span>}
+                      {runFinished && <span style={{ margin: '40px auto' }}>{t('RunDetails.noGraphToShow')}</span>}
                       {!runFinished && (
                         <CircularProgress size={30} className={commonCss.absoluteCenter} />
                       )}
@@ -583,7 +583,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                 <div className={padding()}>
                   {hasMetrics && (
                     <div>
-                      <div className={css.outputTitle}>Metrics</div>
+                      <div className={css.outputTitle}>{t('RunDetails.metrics')}</div>
                       <div className={padding(20, 'lt')}>
                         <CompareTable
                           {...CompareUtils.singleRunToMetricsCompareProps(runMetadata, workflow)}
@@ -591,7 +591,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                       </div>
                     </div>
                   )}
-                  {!hasMetrics && <span>No metrics found for this run.</span>}
+                  {!hasMetrics && <span>{t('RunDetails.noMetricsFoundForThisRun')}</span>}
 
                   <Separator orientation='vertical' />
                   <Hr />
@@ -609,7 +609,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
                     </div>
                   ))}
                   {!allArtifactConfigs.length && (
-                    <span>No output artifacts found for this run.</span>
+                    <span>{t('RunDetails.noOutputArtifactsFoundForThisRun')}</span>
                   )}
                 </div>
               )}
@@ -618,14 +618,14 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
               {selectedTab === 2 && (
                 <div className={padding()}>
                   <DetailsTable
-                    title='Run details'
+                    title={t('RunDetails.runDetails')}
                     fields={this._getDetailsFields(workflow, runMetadata)}
                   />
 
                   {workflowParameters && !!workflowParameters.length && (
                     <div>
                       <DetailsTable
-                        title='Run parameters'
+                        title={t('RunDetails.runParameters')}
                         fields={workflowParameters.map(p => [p.name, p.value || ''])}
                       />
                     </div>
@@ -650,45 +650,45 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       // plus symbol changes enum to number.
       switch (+tab) {
         case SidePanelTab.INPUT_OUTPUT: {
-          tabNameList.push('Input/Output');
+          tabNameList.push(t('RunDetails.inputOutput'));
           break;
         }
         case SidePanelTab.VISUALIZATIONS: {
-          tabNameList.push('Visualizations');
+          tabNameList.push(t('RunDetails.visualizations'));
           break;
         }
         case SidePanelTab.ML_METADATA: {
           if (isV2Pipeline(workflow)) {
             break;
           }
-          tabNameList.push('ML Metadata');
+          tabNameList.push(t('RunDetails.mlMetadata'));
           break;
         }
         case SidePanelTab.TASK_DETAILS: {
-          tabNameList.push('Details');
+          tabNameList.push(t('RunDetails.details'));
           break;
         }
         case SidePanelTab.VOLUMES: {
-          tabNameList.push('Volumes');
+          tabNameList.push(t('RunDetails.volumes'));
           break;
         }
         case SidePanelTab.LOGS: {
-          tabNameList.push('Logs');
+          tabNameList.push(t('RunDetails.logs'));
           break;
         }
         case SidePanelTab.POD: {
-          tabNameList.push('Pod');
+          tabNameList.push(t('RunDetails.pod'));
           break;
         }
         case SidePanelTab.EVENTS: {
-          tabNameList.push('Events');
+          tabNameList.push(t('RunDetails.events'));
           break;
         }
         case SidePanelTab.MANIFEST: {
           if (WorkflowParser.getNodeManifest(workflow, selectedNodeId).length === 0) {
             break;
           }
-          tabNameList.push('Manifest');
+          tabNameList.push(t('RunDetails.manifest'));
           break;
         }
         default: {
@@ -742,7 +742,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       const allowCustomVisualizations = await Apis.areCustomVisualizationsAllowed();
       this.setState({ allowCustomVisualizations });
     } catch (err) {
-      this.showPageError('Error: Unable to enable custom visualizations.', err);
+      this.showPageError(t('RunDetails.errorUnableToEnableCustomVisualizations'), err);
     }
 
     try {
@@ -789,14 +789,14 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       if (workflowError) {
         if (workflowError === 'terminated') {
           this.props.updateBanner({
-            additionalInfo: `This run's workflow included the following message: ${workflowError}`,
-            message: 'This run was terminated',
+            additionalInfo: `${t('RunDetails.thisRunSWorkflowIncludedTheFollowingMessage')} ${workflowError}`,
+            message: t('RunDetails.thisRunWasTerminated'),
             mode: 'warning',
             refresh: undefined,
           });
         } else {
           this.showPageError(
-            `Error: found errors when executing run: ${runId}.`,
+            `${t('RunDetails.errorFoundErrorsWhenExecutingRun')} ${runId}.`,
             new Error(workflowError),
           );
         }
@@ -821,7 +821,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
           : undefined;
       let reducedGraph = graph
         ? // copy graph before removing edges
-          transitiveReduction(graph)
+        transitiveReduction(graph)
         : undefined;
       if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
         reducedGraph = undefined; // disable reduction switch
@@ -831,7 +831,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       // If this is an archived run, only show Archive in breadcrumbs, otherwise show
       // the full path, including the experiment if any.
       if (runMetadata.storage_state === ApiRunStorageState.ARCHIVED) {
-        breadcrumbs.push({ displayName: 'Archive', href: RoutePage.ARCHIVED_RUNS });
+        breadcrumbs.push({ displayName: t('RunDetails.archive'), href: RoutePage.ARCHIVED_RUNS });
       } else {
         if (experiment) {
           breadcrumbs.push(
@@ -845,7 +845,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
             },
           );
         } else {
-          breadcrumbs.push({ displayName: 'All runs', href: RoutePage.RUNS });
+          breadcrumbs.push({ displayName: t('RunDetails.allRuns'), href: RoutePage.RUNS });
         }
       }
       const pageTitle = (
@@ -904,7 +904,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         }
       }
     } catch (err) {
-      await this.showPageError(`Error: failed to retrieve run: ${runId}.`, err);
+      await this.showPageError(`${t('RunDetails.errorFailedToRetrieveRun')} ${runId}.`, err);
       logger.error('Error loading run:', runId, err);
     }
 
@@ -969,30 +969,30 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     return !workflow.status
       ? []
       : [
-          ['Run ID', runMetadata?.id || '-'],
-          ['Workflow name', workflow.metadata?.name || '-'],
-          ['Status', workflow.status.phase],
-          ['Description', runMetadata ? runMetadata!.description! : ''],
-          [
-            'Created at',
-            workflow.metadata ? formatDateString(workflow.metadata.creationTimestamp) : '-',
-          ],
-          ['Started at', formatDateString(workflow.status.startedAt)],
-          ['Finished at', formatDateString(workflow.status.finishedAt)],
-          ['Duration', getRunDurationFromWorkflow(workflow)],
-        ];
+        ['Run ID', runMetadata?.id || '-'],
+        [t('RunDetails.workflowName'), workflow.metadata?.name || '-'],
+        [t('RunDetails.status'), workflow.status.phase],
+        [t('RunDetails.description'), runMetadata ? runMetadata!.description! : ''],
+        [
+          t('RunDetails.createdAt'),
+          workflow.metadata ? formatDateString(workflow.metadata.creationTimestamp) : '-',
+        ],
+        [t('RunDetails.startedAt'), formatDateString(workflow.status.startedAt)],
+        [t('RunDetails.finishedAt'), formatDateString(workflow.status.finishedAt)],
+        [t('RunDetails.duration'), getRunDurationFromWorkflow(workflow)],
+      ];
   }
 
   private _getTaskDetailsFields(workflow: Workflow, nodeId: string): Array<KeyValue<string>> {
     return workflow?.status?.nodes?.[nodeId]
       ? [
-          ['Task ID', workflow.status.nodes[nodeId].id || '-'],
-          ['Task name', workflow.status.nodes[nodeId].displayName || '-'],
-          ['Status', workflow.status.nodes[nodeId].phase || '-'],
-          ['Started at', formatDateString(workflow.status.nodes[nodeId].startedAt) || '-'],
-          ['Finished at', formatDateString(workflow.status.nodes[nodeId].finishedAt) || '-'],
-          ['Duration', getRunDurationFromNode(workflow, nodeId) || '-'],
-        ]
+        [t('RunDetails.taskId'), workflow.status.nodes[nodeId].id || '-'],
+        [t('RunDetails.taskName'), workflow.status.nodes[nodeId].displayName || '-'],
+        [t('RunDetails.status'), workflow.status.nodes[nodeId].phase || '-'],
+        [t('RunDetails.startedAt'), formatDateString(workflow.status.nodes[nodeId].startedAt) || '-'],
+        [t('RunDetails.finishedAt'), formatDateString(workflow.status.nodes[nodeId].finishedAt) || '-'],
+        [t('RunDetails.duration'), getRunDurationFromNode(workflow, nodeId) || '-'],
+      ]
       : [];
   }
 
@@ -1014,7 +1014,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       if (node) {
         selectedNodeDetails.phaseMessage =
           node && node.message
-            ? `This step is in ${node.phase} state with this message: ` + node.message
+            ? `${t('RunDetails.thisStepIsInPhaseStateWithThisMessage', { phase: node.phase })} ` + node.message
             : undefined;
 
         selectedNodeDetails.phase = node.phase;
@@ -1061,20 +1061,20 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       selectedNodeDetails.logs = await Apis.getPodLogs(runId, selectedNodeDetails.id, namespace);
     } catch (err) {
       let errMsg = await errorToMessage(err);
-      logsBannerMessage = 'Failed to retrieve pod logs.';
+      logsBannerMessage = t('RunDetails.failedToRetrievePodLogs');
 
       if (errMsg === 'pod not found') {
         logsBannerMessage += this.props.gkeMetadata.projectId
-          ? ' Use Stackdriver Kubernetes Monitoring to view them.'
+          ? ' ' + t('RunDetails.useStackdriverKubernetesMonitoringToViewThem')
           : '';
         logsBannerMode = 'info';
         logsBannerAdditionalInfo =
-          'Possible reasons include pod garbage collection, cluster autoscaling and pod preemption. ';
+          t('RunDetails.possibleReasonsIncludePodGarbageCollectionClusterAutoscalingAndPodPreemption') + ' ';
       } else {
         logsBannerMode = 'error';
       }
 
-      logsBannerAdditionalInfo += 'Error response: ' + errMsg;
+      logsBannerAdditionalInfo += t('RunDetails.errorResponse') + ' ' + errMsg;
     }
 
     this.setStateSafe({
@@ -1094,7 +1094,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
   ): Promise<void> {
     const nodeId = this.state.selectedNodeDetails ? this.state.selectedNodeDetails.id : '';
     if (nodeId.length === 0) {
-      this.showPageError('Unable to generate visualization, no component selected.');
+      this.showPageError(t('RunDetails.unableToGenerateVisualizationNoComponentSelected'));
       return;
     }
 
@@ -1103,7 +1103,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         // Attempts to validate JSON, if attempt fails an error is displayed.
         JSON.parse(visualizationArguments);
       } catch (err) {
-        this.showPageError('Unable to generate visualization, invalid JSON provided.', err);
+        this.showPageError(t('RunDetails.unableToGenerateVisualizationInvalidJsonProvided'), err);
         return;
       }
     }
@@ -1124,7 +1124,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       this.setState({ generatedVisualizations });
     } catch (err) {
       this.showPageError(
-        'Unable to generate visualization, an unexpected error was encountered.',
+        t('RunDetails.unableToGenerateVisualizationAnUnexpectedErrorWasEncountered'),
         err,
       );
     } finally {
@@ -1212,123 +1212,123 @@ const VisualizationsTabContent: React.FC<{
   namespace,
   onError,
 }) => {
-  const [loaded, setLoaded] = React.useState(false);
-  // Progress component expects onLoad function identity to stay the same
-  const onLoad = React.useCallback(() => setLoaded(true), [setLoaded]);
+    const [loaded, setLoaded] = React.useState(false);
+    // Progress component expects onLoad function identity to stay the same
+    const onLoad = React.useCallback(() => setLoaded(true), [setLoaded]);
 
-  const [progress, setProgress] = React.useState(0);
-  const [viewerConfigs, setViewerConfigs] = React.useState<ViewerConfig[]>([]);
-  const nodeCompleted: boolean = !!nodeStatus && COMPLETED_NODE_PHASES.includes(nodeStatus.phase);
+    const [progress, setProgress] = React.useState(0);
+    const [viewerConfigs, setViewerConfigs] = React.useState<ViewerConfig[]>([]);
+    const nodeCompleted: boolean = !!nodeStatus && COMPLETED_NODE_PHASES.includes(nodeStatus.phase);
 
-  React.useEffect(() => {
-    let aborted = false;
-    async function loadVisualizations() {
-      if (aborted) {
-        return;
-      }
-      setLoaded(false);
-      setProgress(0);
-      setViewerConfigs([]);
-
-      if (!nodeStatus || !nodeCompleted) {
-        setProgress(100); // Loaded will be set by Progress onComplete
-        return; // Abort, because there is no data.
-      }
-      // Load runtime outputs from the selected Node
-      const outputPaths = WorkflowParser.loadNodeOutputPaths(nodeStatus);
-      const reportProgress = (reportedProgress: number) => {
-        if (!aborted) {
-          setProgress(reportedProgress);
+    React.useEffect(() => {
+      let aborted = false;
+      async function loadVisualizations() {
+        if (aborted) {
+          return;
         }
-      };
-      const reportErrorAndReturnEmpty = (error: Error): [] => {
-        onError(error);
-        return [];
-      };
+        setLoaded(false);
+        setProgress(0);
+        setViewerConfigs([]);
 
-      // Load the viewer configurations from the output paths
-      const builtConfigs = (
-        await Promise.all([
-          ...(!execution
-            ? []
-            : [
+        if (!nodeStatus || !nodeCompleted) {
+          setProgress(100); // Loaded will be set by Progress onComplete
+          return; // Abort, because there is no data.
+        }
+        // Load runtime outputs from the selected Node
+        const outputPaths = WorkflowParser.loadNodeOutputPaths(nodeStatus);
+        const reportProgress = (reportedProgress: number) => {
+          if (!aborted) {
+            setProgress(reportedProgress);
+          }
+        };
+        const reportErrorAndReturnEmpty = (error: Error): [] => {
+          onError(error);
+          return [];
+        };
+
+        // Load the viewer configurations from the output paths
+        const builtConfigs = (
+          await Promise.all([
+            ...(!execution
+              ? []
+              : [
                 OutputArtifactLoader.buildTFXArtifactViewerConfig({
                   reportProgress,
                   execution,
                   namespace: namespace || '',
                 }).catch(reportErrorAndReturnEmpty),
               ]),
-          ...outputPaths.map(path =>
-            OutputArtifactLoader.load(path, namespace).catch(reportErrorAndReturnEmpty),
-          ),
-        ])
-      ).flatMap(configs => configs);
-      if (aborted) {
+            ...outputPaths.map(path =>
+              OutputArtifactLoader.load(path, namespace).catch(reportErrorAndReturnEmpty),
+            ),
+          ])
+        ).flatMap(configs => configs);
+        if (aborted) {
+          return;
+        }
+        setViewerConfigs(builtConfigs);
+
+        setProgress(100); // Loaded will be set by Progress onComplete
         return;
       }
-      setViewerConfigs(builtConfigs);
+      loadVisualizations();
 
-      setProgress(100); // Loaded will be set by Progress onComplete
-      return;
-    }
-    loadVisualizations();
+      const abort = () => {
+        aborted = true;
+      };
+      return abort;
+      // Workaround:
+      // Watches nodeStatus.phase in completed status instead of nodeStatus,
+      // because nodeStatus data won't further change after completed, but
+      // nodeStatus object instance will keep changing after new requests to get
+      // workflow status.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [nodeId, execution ? execution.getId() : undefined, nodeCompleted, onError, namespace]);
+    // Temporarily use verbose undefined detection instead of execution?.getId() for eslint issue.
 
-    const abort = () => {
-      aborted = true;
-    };
-    return abort;
-    // Workaround:
-    // Watches nodeStatus.phase in completed status instead of nodeStatus,
-    // because nodeStatus data won't further change after completed, but
-    // nodeStatus object instance will keep changing after new requests to get
-    // workflow status.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodeId, execution ? execution.getId() : undefined, nodeCompleted, onError, namespace]);
-  // Temporarily use verbose undefined detection instead of execution?.getId() for eslint issue.
-
-  return (
-    <div className={commonCss.page}>
-      {!loaded ? (
-        <Progress value={progress} onComplete={onLoad} />
-      ) : (
-        <>
-          {viewerConfigs.length + generatedVisualizations.length === 0 && (
-            <Banner message='There are no visualizations in this step.' mode='info' />
-          )}
-          {[
-            ...viewerConfigs,
-            ...generatedVisualizations.map(visualization => visualization.config),
-          ].map((config, i) => {
-            const title = componentMap[config.type].prototype.getDisplayName();
-            return (
-              <div key={i} className={padding(20, 'lrt')}>
-                <PlotCard configs={[config]} title={title} maxDimension={500} />
-                <Hr />
-              </div>
-            );
-          })}
-          <div className={padding(20, 'lrt')}>
-            <PlotCard
-              configs={[visualizationCreatorConfig]}
-              title={VisualizationCreator.prototype.getDisplayName()}
-              maxDimension={500}
-            />
-            <Hr />
-          </div>
-          <div className={padding(20)}>
-            <p>
-              Add visualizations to your own components following instructions in{' '}
-              <ExternalLink href='https://www.kubeflow.org/docs/pipelines/sdk/output-viewer/'>
-                Visualize Results in the Pipelines UI
-              </ExternalLink>
-              .
-            </p>
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
+    return (
+      <div className={commonCss.page}>
+        {!loaded ? (
+          <Progress value={progress} onComplete={onLoad} />
+        ) : (
+          <>
+            {viewerConfigs.length + generatedVisualizations.length === 0 && (
+              <Banner message={t('RunDetails.thereAreNoVisualizationsInThisStep')} mode='info' />
+            )}
+            {[
+              ...viewerConfigs,
+              ...generatedVisualizations.map(visualization => visualization.config),
+            ].map((config, i) => {
+              const title = componentMap[config.type].prototype.getDisplayName();
+              return (
+                <div key={i} className={padding(20, 'lrt')}>
+                  <PlotCard configs={[config]} title={title} maxDimension={500} />
+                  <Hr />
+                </div>
+              );
+            })}
+            <div className={padding(20, 'lrt')}>
+              <PlotCard
+                configs={[visualizationCreatorConfig]}
+                title={VisualizationCreator.prototype.getDisplayName()}
+                maxDimension={500}
+              />
+              <Hr />
+            </div>
+            <div className={padding(20)}>
+              <p>
+                {t('RunDetails.addVisualizationsToYourOwnComponentsFollowingInstructionsIn')}{' '}
+                <ExternalLink href='https://www.kubeflow.org/docs/pipelines/sdk/output-viewer/'>
+                  {t('RunDetails.visualizeResultsInThePipelinesUi')}
+                </ExternalLink>
+                .
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
 
 const EnhancedRunDetails: React.FC<RunDetailsProps> = props => {
   const namespaceChanged = useNamespaceChangeEvent();
