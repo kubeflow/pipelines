@@ -305,12 +305,27 @@ export default {
         "forThisNamespace": "Cho không gian tên này",
         "failedToFetchRecurringRuns": "Lỗi: Không tìm được recurring runs.",
     },
+    RecurringRunDetails: {
+        "recurringRunDetails": "Chi tiết Recurring run",
+        "runTrigger": "Kích hoạt Run",
+        "runParameters": "Thông số Run",
+        "failedToRetrieveRecurringRun": "Lỗi: không thể truy xuất lần chạy định kỳ:",
+        "failedToRetrieveThisRecurringRunSExperiment": "Lỗi: không thể truy xuất thử nghiệm của lần chạy định kỳ này.",
+
+    },
+
     ArtifactList: {
         "name": "Tên",
         "type": "Loại",
         "createdAt": "Ngày tạo",
         "noArtifactsFound": "Không tìm thấy artifacts",
         "filter": "Lọc"
+    },
+    EnhancedArtifactDetails: {
+        "noArtifactIdentifiedById": "Không có cấu phần phần mềm nào được xác định bằng id:",
+        "foundMultipleArtifactsWithId": "Đã tìm thấy nhiều Artifact có ID:",
+        "unknownSelectedTab": "Tab đã chọn không xác định",
+        
     },
     PipelineVersionList: {
         versionName: 'Tên phiên bản',
@@ -322,6 +337,7 @@ export default {
     NewRunSwitcher: {
         currentlyLoadingPipelineInformation: "Hiện đang tải thông tin pipeline"
     },
+
     PageNotFound: {
         pageNotFound: "Không tìm thấy trang:"
     },
@@ -450,5 +466,122 @@ export default {
         thereAreNoVisualizationsInThisStep: "Không có hình dung trong bước này.",
         addVisualizationsToYourOwnComponentsFollowingInstructionsIn: "Thêm hình ảnh trực quan vào các thành phần của riêng bạn theo hướng dẫn trong",
         visualizeResultsInThePipelinesUi: "Trực quan hóa kết quả trong giao diện người dùng Pipelines",
+
+    InputOutputTab: {
+        errorInRetrievingArtifacts: 'Lỗi khi truy xuất Artifacts.',
+        thereIsNoInputOutputParameterOrArtifact: 'Không có tham số đầu vào/đầu ra hoặc artifact.'
+    },
+    MetricsTab: {
+        taskIsInUnknownState: 'Task ở trạng thái không xác định.',
+        taskHasNotCompleted: 'Task chưa hoàn thành.',
+        metricsIsLoading: 'Đang tải số liệu.',
+        errorInRetrievingMetricsInformation: 'Lỗi khi truy xuất thông tin số liệu.',
+        errorInRetrievingArtifactTypesInformation: 'Lỗi khi truy xuất thông tin các loại artifact.'
+    },
+
+    RuntimeNodeDetailsV2: {
+        inputOutput: 'Đầu vào/Đầu ra',
+        taskDetails: 'Chi tiết task',
+        taskName: 'Tên task',
+        status: 'Trạng thái',
+        createdAt: 'Được tạo lúc',
+        finishedAt: 'Hoàn thành lúc',
+        artifactInfo: 'Thông tin Artifact',
+        visualization: 'Hiển thị',
+        upstreamTaskName: 'Tên Upstream Task',
+        artifactName: 'Tên Artifact',
+        artifactType: 'Kiểu Artifact',
+    },
+    StaticNodeDetailsV2: {
+        contained: 'bao gồm',
+        inputArtifacts: 'Artifacts đầu vào',
+        inputParameters: 'Tham số đầu vào',
+        outputArtifacts: 'Artifacts đầu ra',
+        outputParameters: 'Tham số đầu ra',
+        artifactName: 'Tên Artifact',
+        artifactType: 'Kiểu Artifact',
+    },
+    FrontendFeatures: {
+        contained: 'bao gồm'
+    },
+    GettingStarted: {
+        gettingStarted: 'Bắt đầu',
+    },
+    ResourceSelector: {
+        errorRetrievingResources: 'Lỗi khi truy xuất tài nguyên'
+    },
+    Status: {
+        unknownStatus: 'Trạng thái không xác định',
+        errorWhileRunningThisResource: 'Lỗi khi chạy tài nguyên này',
+        resourceFailedToExecute: 'Tài nguyên không thực thi được',
+        pendingExecution: 'Đang chờ thực hiện',
+        running: 'Đang chạy',
+        runIsTerminating: 'Đang kết thúc chạy',
+        executionHasBeenSkippedForThisResource: 'Quá trình thực thi đã bị bỏ qua đối với tài nguyên này',
+        executedSuccessfully: 'Đã thực thi thành công',
+        executionWasSkippedAndOutputsWereTakenFromCache: 'Quá trình thực thi đã bị bỏ qua và kết quả đầu ra được lấy từ bộ nhớ cache',
+        runWasManuallyTerminated: 'Đã kết thúc chạy theo cách thủ công',
+        runWasOmittedBecauseThePreviousStepFailed: 'Chạy đã bị bỏ qua vì bước trước đó không thành công.',
+    },
+    NewRunV2: {
+        startANewRun: "Bắt đầu Run mới",
+        runNameCanNotBeEmpty: "Tên Run không được để trống.",
+        successfullyStartedNewRun: "Bắt đầu thành công RUn mới:",
+        runCreationFailed: "Run không thành công",
+        pipelineVersion: "Phiên bản Pipeline",
+        description: "Mô tả(không bắt buộc)",
+        thisRunWillBeAssociatedWithTheFollowingExperiment: "Lần chạy này sẽ được kết hợp với thử nghiệm sau",
+        start: "Bắt đầu",
+        cancel: "Huỷ bỏ",
+        experimentName:"tên thí nghiệm",
+        description: "Mô tả",
+        createdAt: "Ngày tạo",
+        experiment: "Experiment",
+        chooseAnExperiment: "Chọn kinh nghiệm",
+        filterExperiments: "Lọc experiments",
+        noExperimentsFoundCreateAnExperimentAndThenTryAgain: "Không có thử nghiệm nào được tìm thấy. Tạo một thử nghiệm và sau đó thử lại.",
+    },
+    Toolbar: {
+        back: "Quay lại",
+    },
+    Trigger: {
+        triggerType: "Loại Trigger",
+        maximumConcurrentRuns: "Số lần chạy đồng thời tối đa",
+        hasStartDate: "Có ngày bắt đầu",
+        hasStartDate: "Có ngày kết thúc",
+        startDate: "Ngày bắt đầu",
+        startDate: "Ngày kết thúc",
+        startTime: "Thời gian bắt đầu",
+        endTime: "Thời gian kết thúc",
+        cronExpression: "biểu thức cron",
+
+
+    },
+    UploadPipelineDialog: {
+        uploadAFile: "Tải File",
+        importByURL: "Nhập URL",
+        file: "Tệp",
+        pipelineName: "Tên Pipeline"
+    },
+    PipelineVersionCard: {
+        hide: "Ẩn",
+        version: "Phiên bản",
+        versionSource: "Nguồn phiên bản",
+        uploadOn:"Tải lên",
+        pipelineDescription: "Mô tả Pipeline",
+        showSummary: "Hiển thị tóm tắt"
+    },
+    RecurringRunsManager: {
+        runName: "Tên Run",
+        createdAt: "Ngày tạo",
+        filterRecurringRuns: "Lọc RecurringRuns",
+        enabled: "Kích hoạt",
+        disabled: "Vô hiệu hóa",
+        errorRetrievingRecurringRunConfigs: "Lỗi khi truy xuất cấu hình chạy định kỳ",
+        couldNotGetListOfRecurringRuns: "Không thể nhận danh sách các lần chạy định kỳ",
+        error: "Lỗi",
+        errorChangingEnabledStateOfRecurringRun: "Lỗi khi thay đổi trạng thái chạy định kỳ đã bật"
+
     }
+
 }

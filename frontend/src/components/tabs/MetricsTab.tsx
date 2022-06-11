@@ -27,6 +27,7 @@ import { ArtifactType, Execution } from 'src/third_party/mlmd';
 import Banner from '../Banner';
 import { MetricsVisualizations } from '../viewers/MetricsVisualizations';
 import { ExecutionTitle } from './ExecutionTitle';
+import { t } from 'i18next';
 
 type MetricsTabProps = {
   execution: Execution;
@@ -90,23 +91,23 @@ export function MetricsTab({ execution, namespace }: MetricsTabProps) {
       <div className={commonCss.page}>
         <div className={padding(20)}>
           <ExecutionTitle execution={execution} />
-          {executionStateUnknown && <Banner message='Task is in unknown state.' mode='info' />}
+          {executionStateUnknown && <Banner message={t('MetricsTab.taskIsInUnknownState')} mode='info' />}
           {!executionStateUnknown && !executionCompleted && (
-            <Banner message='Task has not completed.' mode='info' />
+            <Banner message={t('MetricsTab.taskHasNotCompleted')} mode='info' />
           )}
           {(isLoadingArtifactTypes || isLoadingArtifacts) && (
-            <Banner message='Metrics is loading.' mode='info' />
+            <Banner message={t('MetricsTab.metricsIsLoading')} mode='info' />
           )}
           {errorArtifacts && (
             <Banner
-              message='Error in retrieving metrics information.'
+              message={t('MetricsTab.errorInRetrievingMetricsInformation')}
               mode='error'
               additionalInfo={errorArtifacts.message}
             />
           )}
           {!errorArtifacts && errorArtifactTypes && (
             <Banner
-              message='Error in retrieving artifact types information.'
+              message={t('MetricsTab.errorInRetrievingArtifactTypesInformation')}
               mode='error'
               additionalInfo={errorArtifactTypes.message}
             />

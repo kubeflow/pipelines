@@ -29,6 +29,7 @@ import { TextFieldProps } from '@material-ui/core/TextField';
 import { padding, commonCss, zIndex, color } from '../Css';
 import { stylesheet, classes } from 'typestyle';
 import { ExternalLink } from '../atoms/ExternalLink';
+import i18n from "i18next";
 
 const css = stylesheet({
   dropOverlay: {
@@ -121,14 +122,14 @@ class UploadPipelineDialog extends React.Component<
           <div className={classes(commonCss.flex, padding(10, 'b'))}>
             <FormControlLabel
               id='uploadLocalFileBtn'
-              label='Upload a file'
+              label={i18n.t('UploadPipelineDialog.uploadAFile')}
               checked={importMethod === ImportMethod.LOCAL}
               control={<Radio color='primary' />}
               onChange={() => this.setState({ importMethod: ImportMethod.LOCAL })}
             />
             <FormControlLabel
               id='uploadFromUrlBtn'
-              label='Import by URL'
+              label={i18n.t('UploadPipelineDialog.importByURL')}
               checked={importMethod === ImportMethod.URL}
               control={<Radio color='primary' />}
               onChange={() => this.setState({ importMethod: ImportMethod.URL })}
@@ -160,7 +161,7 @@ class UploadPipelineDialog extends React.Component<
                   onChange={this.handleChange('fileName')}
                   value={fileName}
                   required={true}
-                  label='File'
+                  label={i18n.t('UploadPipelineDialog.file')}
                   variant='outlined'
                   InputProps={{
                     endAdornment: (
@@ -197,7 +198,7 @@ class UploadPipelineDialog extends React.Component<
 
           <Input
             id='uploadFileName'
-            label='Pipeline name'
+            label={i18n.t('UploadPipelineDialog.pipelineName')}
             onChange={this.handleChange('uploadPipelineName')}
             required={true}
             value={uploadPipelineName}

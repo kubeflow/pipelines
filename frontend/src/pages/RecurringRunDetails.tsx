@@ -29,6 +29,7 @@ import { commonCss, padding } from '../Css';
 import { KeyValue } from '../lib/StaticGraphParser';
 import { formatDateString, enabledDisplayString, errorToMessage } from '../lib/Utils';
 import { triggerDisplayString } from '../lib/TriggerUtils';
+import i18n from "i18next";
 
 interface RecurringRunConfigState {
   run: ApiJob | null;
@@ -112,14 +113,14 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         {run && (
           <div className={commonCss.page}>
-            <DetailsTable title='Recurring run details' fields={runDetails} />
+            <DetailsTable title={i18n.t('RecurringRunDetails.recurringRunDetails')} fields={runDetails} />
 
             {!!triggerDetails.length && (
-              <DetailsTable title='Run trigger' fields={triggerDetails} />
+              <DetailsTable title={i18n.t('RecurringRunDetails.runTrigger')} fields={triggerDetails} />
             )}
 
             {!!inputParameters.length && (
-              <DetailsTable title='Run parameters' fields={inputParameters} />
+              <DetailsTable title={i18n.t('RecurringRunDetails.runParameters')} fields={inputParameters} />
             )}
           </div>
         )}
@@ -145,7 +146,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
     } catch (err) {
       const errorMessage = await errorToMessage(err);
       await this.showPageError(
-        `Error: failed to retrieve recurring run: ${runId}.`,
+        `${i18n.t('RecurringRunDetails.failedToRetrieveRecurringRun')} ${runId}.`,
         new Error(errorMessage),
       );
       return;
@@ -159,7 +160,7 @@ class RecurringRunDetails extends Page<{}, RecurringRunConfigState> {
       } catch (err) {
         const errorMessage = await errorToMessage(err);
         await this.showPageError(
-          `Error: failed to retrieve this recurring run's experiment.`,
+          `${i18n.t('RecurringRunDetails.failedToRetrieveThisRecurringRunSExperiment')}`,
           new Error(errorMessage),
           'warning',
         );

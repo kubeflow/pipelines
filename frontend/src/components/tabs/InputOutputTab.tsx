@@ -35,6 +35,7 @@ import Banner from '../Banner';
 import DetailsTable from '../DetailsTable';
 import { RoutePageFactory } from '../Router';
 import { ExecutionTitle } from './ExecutionTitle';
+import { t } from 'i18next'
 
 type ParamList = Array<KeyValue<string>>;
 
@@ -81,14 +82,14 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
 
           {error && (
             <Banner
-              message='Error in retrieving Artifacts.'
+              message={t('InputOutputTab.errorInRetrievingArtifacts')}
               mode='error'
               additionalInfo={error.message}
             />
           )}
 
           {isSuccess && isIoEmpty && (
-            <Banner message='There is no input/output parameter or artifact.' mode='info' />
+            <Banner message={t('InputOutputTab.thereIsNoInputOutputParameterOrArtifact')} mode='info' />
           )}
 
           {inputParams.length > 0 && (

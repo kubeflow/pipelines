@@ -25,6 +25,7 @@ import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import { Description } from 'src/components/Description';
 import { commonCss } from 'src/Css';
 import { formatDateString } from 'src/lib/Utils';
+import i18n from "i18next";
 
 interface PipelineVersionCardProps {
   apiPipeline: ApiPipeline | null;
@@ -52,7 +53,7 @@ export function PipelineVersionCard({
           <div className='items-baseline flex justify-between'>
             <div className={commonCss.header}>Static Pipeline Summary</div>
             <Button onClick={() => setSummaryShown(false)} color='secondary'>
-              Hide
+            {i18n.t('PipelineVersionCard.hide')}
             </Button>
           </div>
           <div className='text-gray-900 mt-5'>Pipeline ID</div>
@@ -62,7 +63,7 @@ export function PipelineVersionCard({
               <div className='text-gray-900 mt-5'>
                 <form autoComplete='off'>
                   <FormControl>
-                    <InputLabel>Version</InputLabel>
+                    <InputLabel>{i18n.t('PipelineVersionCard.version')}</InputLabel>
                     <Select
                       aria-label='version_selector'
                       data-testid='version_selector'
@@ -83,19 +84,19 @@ export function PipelineVersionCard({
               </div>
               <div className='text-blue-500 mt-5'>
                 <a href={createVersionUrl()} target='_blank' rel='noopener noreferrer'>
-                  Version source
+                  {i18n.t('PipelineVersionCard.versionSource')}
                 </a>
               </div>
             </>
           )}
-          <div className='text-gray-900 mt-5'>Uploaded on</div>
+          <div className='text-gray-900 mt-5'>{i18n.t('PipelineVersionCard.uploadOn')}</div>
           <div>
             {selectedVersion
               ? formatDateString(selectedVersion.created_at)
               : formatDateString(apiPipeline.created_at)}
           </div>
 
-          <div className='text-gray-900 mt-5'>Pipeline Description</div>
+          <div className='text-gray-900 mt-5'>{i18n.t('PipelineVersionCard.pipelineDescription')}</div>
           <Description description={apiPipeline.description || 'empty pipeline description'} />
 
           {/* selectedVersion is always populated by either selected or pipeline default version if it exists */}
@@ -114,7 +115,7 @@ export function PipelineVersionCard({
       {!summaryShown && (
         <div className='flex absolute bottom-5 left-10 pb-5 pl-10 bg-transparent z-20'>
           <Button onClick={() => setSummaryShown(!summaryShown)} color='secondary'>
-            Show Summary
+            {i18n.t('PipelineVersionCard.pipelineDescription')}
           </Button>
         </div>
       )}

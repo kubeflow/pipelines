@@ -39,6 +39,7 @@ import { logger } from '../lib/Utils';
 import WorkflowParser from '../lib/WorkflowParser';
 import { Page, PageProps } from './Page';
 import RunList from './RunList';
+import i18n from "i18next";
 
 const css = stylesheet({
   outputsRow: {
