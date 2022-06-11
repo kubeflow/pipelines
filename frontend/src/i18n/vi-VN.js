@@ -305,12 +305,27 @@ export default {
         "forThisNamespace": "Cho không gian tên này",
         "failedToFetchRecurringRuns": "Lỗi: Không tìm được recurring runs.",
     },
+    RecurringRunDetails: {
+        "recurringRunDetails": "Chi tiết Recurring run",
+        "runTrigger": "Kích hoạt Run",
+        "runParameters": "Thông số Run",
+        "failedToRetrieveRecurringRun": "Lỗi: không thể truy xuất lần chạy định kỳ:",
+        "failedToRetrieveThisRecurringRunSExperiment": "Lỗi: không thể truy xuất thử nghiệm của lần chạy định kỳ này.",
+
+    },
+
     ArtifactList: {
         "name": "Tên",
         "type": "Loại",
         "createdAt": "Ngày tạo",
         "noArtifactsFound": "Không tìm thấy artifacts",
         "filter": "Lọc"
+    },
+    EnhancedArtifactDetails: {
+        "noArtifactIdentifiedById": "Không có cấu phần phần mềm nào được xác định bằng id:",
+        "foundMultipleArtifactsWithId": "Đã tìm thấy nhiều Artifact có ID:",
+        "unknownSelectedTab": "Tab đã chọn không xác định",
+        
     },
     PipelineVersionList: {
         versionName: 'Tên phiên bản',
@@ -377,6 +392,56 @@ export default {
         executionWasSkippedAndOutputsWereTakenFromCache: 'Quá trình thực thi đã bị bỏ qua và kết quả đầu ra được lấy từ bộ nhớ cache',
         runWasManuallyTerminated: 'Đã kết thúc chạy theo cách thủ công',
         runWasOmittedBecauseThePreviousStepFailed: 'Chạy đã bị bỏ qua vì bước trước đó không thành công.',
+    },
+    NewRunV2: {
+        startANewRun: "Bắt đầu Run mới",
+        runNameCanNotBeEmpty: "Tên Run không được để trống.",
+        successfullyStartedNewRun: "Bắt đầu thành công RUn mới:",
+        runCreationFailed: "Run không thành công",
+        pipelineVersion: "Phiên bản Pipeline",
+        description: "Mô tả(không bắt buộc)",
+        thisRunWillBeAssociatedWithTheFollowingExperiment: "Lần chạy này sẽ được kết hợp với thử nghiệm sau",
+        start: "Bắt đầu",
+        cancel: "Huỷ bỏ",
+        experimentName:"tên thí nghiệm",
+        description: "Mô tả",
+        createdAt: "Ngày tạo",
+        experiment: "Experiment",
+        chooseAnExperiment: "Chọn kinh nghiệm",
+        filterExperiments: "Lọc experiments",
+        noExperimentsFoundCreateAnExperimentAndThenTryAgain: "Không có thử nghiệm nào được tìm thấy. Tạo một thử nghiệm và sau đó thử lại.",
+
+
+    },
+    Toolbar: {
+        back: "Quay lại",
+    },
+    Trigger: {
+        triggerType: "Loại Trigger",
+        maximumConcurrentRuns: "Số lần chạy đồng thời tối đa",
+        hasStartDate: "Có ngày bắt đầu",
+        hasStartDate: "Có ngày kết thúc",
+        startDate: "Ngày bắt đầu",
+        startDate: "Ngày kết thúc",
+        startTime: "Thời gian bắt đầu",
+        endTime: "Thời gian kết thúc",
+        cronExpression: "biểu thức cron",
+
+
+    },
+    UploadPipelineDialog: {
+        uploadAFile: "Tải File",
+        importByURL: "Nhập URL",
+        file: "Tệp",
+        pipelineName: "Tên Pipeline"
+    },
+    PipelineVersionCard: {
+        hide: "Ẩn",
+        version: "Phiên bản",
+        versionSource: "Nguồn phiên bản",
+        uploadOn:"Tải lên",
+        pipelineDescription: "Mô tả Pipeline",
+        showSummary: "Hiển thị Tóm tắt"
     }
 
 }

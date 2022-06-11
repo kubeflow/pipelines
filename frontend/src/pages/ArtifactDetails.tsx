@@ -39,6 +39,7 @@ import { commonCss, padding } from '../Css';
 import { logger, serviceErrorToString, titleCase } from '../lib/Utils';
 import { Page, PageProps } from './Page';
 import { ArtifactHelpers } from 'src/mlmd/MlmdUtils';
+import i18n from "i18next";
 
 export enum ArtifactDetailsTab {
   OVERVIEW = 0,
@@ -172,11 +173,11 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
     try {
       const response = await this.api.metadataStoreService.getArtifactsByID(request);
       if (response.getArtifactsList().length === 0) {
-        this.showPageError(`No artifact identified by id: ${this.id}`);
+        this.showPageError(`${i18n.t('RecurringRunDetails.noArtifactIdentifiedById')} ${this.id}`);
         return;
       }
       if (response.getArtifactsList().length > 1) {
-        this.showPageError(`Found multiple artifacts with ID: ${this.id}`);
+        this.showPageError(`${i18n.t('RecurringRunDetails.foundMultipleArtifactsWithId')} ${this.id}`);
         return;
       }
       const artifact = response.getArtifactsList()[0];
@@ -206,7 +207,7 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
       case ArtifactDetailsTab.OVERVIEW:
         return this.props.history.push(this.props.match.url);
       default:
-        logger.error(`Unknown selected tab ${selectedTab}.`);
+        logger.error(`${i18n.t('RecurringRunDetails.unknownSelectedTab')} ${selectedTab}.`);
     }
   };
 }
