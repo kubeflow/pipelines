@@ -448,11 +448,11 @@ export default {
 
     },
     RecurringRunsManager: {
-        runName: "Tên Run",
-        createdAt: "Ngày tạo",
-        filterRecurringRuns: "Lọc RecurringRuns",
-        enabled: "Kích hoạt",
-        disabled: "Vô hiệu hóa",
+        runName: "Run name",
+        createdAt: "Created at",
+        filterRecurringRuns: "Filter RecurringRuns",
+        enabled: "Enabled",
+        disabled: "Disabled",
         errorRetrievingRecurringRunConfigs: "Error retrieving recurring run configs",
         couldNotGetListOfRecurringRuns: "Could not get list of recurring runs",
         error: "Error",
