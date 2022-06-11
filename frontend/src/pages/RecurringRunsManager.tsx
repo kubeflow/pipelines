@@ -26,6 +26,7 @@ import { RouteComponentProps } from 'react-router';
 import { SnackbarProps } from '@material-ui/core/Snackbar';
 import { commonCss } from '../Css';
 import { logger, formatDateString, errorToMessage } from '../lib/Utils';
+import i18n from "i18next";
 
 export interface RecurringRunListProps extends RouteComponentProps {
   experimentId: string;
@@ -61,10 +62,10 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
       {
         customRenderer: this._nameCustomRenderer,
         flex: 2,
-        label: 'Run name',
+        label: i18n.t('RecurringRunsManager.runName'),
         sortKey: JobSortKeys.NAME,
       },
-      { label: 'Created at', flex: 2, sortKey: JobSortKeys.CREATED_AT },
+      { label: i18n.t('RecurringRunsManager.createdAt'), flex: 2, sortKey: JobSortKeys.CREATED_AT },
       { customRenderer: this._enabledCustomRenderer, label: '', flex: 1 },
     ];
 
@@ -87,7 +88,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
           updateSelection={ids => this.setState({ selectedIds: ids })}
           initialSortColumn={JobSortKeys.CREATED_AT}
           reload={this._loadRuns.bind(this)}
-          filterLabel='Filter recurring runs'
+          filterLabel={i18n.t('RecurringRunsManager.filterRecurringRuns')}
           disableSelection={true}
           emptyMessage={'No recurring runs found in this experiment.'}
         />
@@ -121,7 +122,7 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
     return (
       <BusyButton
         outlined={props.value}
-        title={props.value === true ? 'Enabled' : 'Disabled'}
+        title={props.value === true ? i18n.t('RecurringRunsManager.enabled') : i18n.t('RecurringRunsManager.disabled')}
         busy={isBusy}
         onClick={() => {
           let busyIds = this.state.busyIds;
@@ -157,9 +158,9 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
       this.props.updateDialog({
         buttons: [{ text: 'Dismiss' }],
         content: 'List recurring run configs request failed with:\n' + errorMessage,
-        title: 'Error retrieving recurring run configs',
+        title: i18n.t('RecurringRunsManager.errorRetrievingRecurringRunConfigs'),
       });
-      logger.error('Could not get list of recurring runs', errorMessage);
+      logger.error(i18n.t('RecurringRunsManager.couldNotGetListOfRecurringRuns'), errorMessage);
     }
 
     this.setState({ runs });
@@ -174,9 +175,9 @@ class RecurringRunsManager extends React.Component<RecurringRunListProps, Recurr
       this.props.updateDialog({
         buttons: [{ text: 'Dismiss' }],
         content: 'Error changing enabled state of recurring run:\n' + errorMessage,
-        title: 'Error',
+        title: i18n.t('RecurringRunsManager.error'),
       });
-      logger.error('Error changing enabled state of recurring run', errorMessage);
+      logger.error(i18n.t('RecurringRunsManager.errorChangingEnabledStateOfRecurringRun'), errorMessage);
     }
   }
 }

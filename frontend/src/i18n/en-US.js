@@ -435,5 +435,27 @@ export default {
         uploadOn: "Uploaded on",
         pipelineDescription: "Pipeline Description",
         showSummary: "showSummary",
+    },
+    PipelineVersionCard: {
+        hide: "Hide",
+        version: "Version",
+        versionSource: "Version Source",
+        uploadOn:"Up load",
+        pipelineDescription: "Pipeline Description",
+        showSummary: "Show summary",
+        filterRecurringRuns: "Filter recurring runs",
+        
+
+    },
+    RecurringRunsManager: {
+        runName: "Run name",
+        createdAt: "Created at",
+        filterRecurringRuns: "Filter RecurringRuns",
+        enabled: "Enabled",
+        disabled: "Disabled",
+        errorRetrievingRecurringRunConfigs: "Error retrieving recurring run configs",
+        couldNotGetListOfRecurringRuns: "Could not get list of recurring runs",
+        error: "Error",
+        errorChangingEnabledStateOfRecurringRun: "Error changing enabled state of recurring run",
     }
 }
