@@ -338,7 +338,6 @@ export default {
     NewRunSwitcher: {
         currentlyLoadingPipelineInformation: "Currently loading pipeline information"
     },
-<<<<<<< HEAD
     PageNotFound: {
         pageNotFound: "Page Not Found:"
     },
@@ -467,7 +466,7 @@ export default {
         thereAreNoVisualizationsInThisStep: "There are no visualizations in this step.",
         addVisualizationsToYourOwnComponentsFollowingInstructionsIn: "Add visualizations to your own components following instructions in",
         visualizeResultsInThePipelinesUi: "Visualize Results in the Pipelines UI",
-=======
+    },
     InputOutputTab: {
         errorInRetrievingArtifacts: 'Error in retrieving Artifacts.',
         thereIsNoInputOutputParameterOrArtifact: 'There is no input/output parameter or artifact.'
@@ -587,6 +586,5 @@ export default {
         couldNotGetListOfRecurringRuns: "Could not get list of recurring runs",
         error: "Error",
         errorChangingEnabledStateOfRecurringRun: "Error changing enabled state of recurring run",
->>>>>>> 497773fafd8a355e17ea40327bac657e5e24ce47
     }
 }

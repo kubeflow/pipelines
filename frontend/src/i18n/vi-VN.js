@@ -337,7 +337,6 @@ export default {
     NewRunSwitcher: {
         currentlyLoadingPipelineInformation: "Hiện đang tải thông tin pipeline"
     },
-
     PageNotFound: {
         pageNotFound: "Không tìm thấy trang:"
     },
@@ -466,7 +465,7 @@ export default {
         thereAreNoVisualizationsInThisStep: "Không có hình dung trong bước này.",
         addVisualizationsToYourOwnComponentsFollowingInstructionsIn: "Thêm hình ảnh trực quan vào các thành phần của riêng bạn theo hướng dẫn trong",
         visualizeResultsInThePipelinesUi: "Trực quan hóa kết quả trong giao diện người dùng Pipelines",
-
+    },
     InputOutputTab: {
         errorInRetrievingArtifacts: 'Lỗi khi truy xuất Artifacts.',
         thereIsNoInputOutputParameterOrArtifact: 'Không có tham số đầu vào/đầu ra hoặc artifact.'
