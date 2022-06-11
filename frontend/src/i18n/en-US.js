@@ -338,6 +338,61 @@ export default {
     NewRunSwitcher: {
         currentlyLoadingPipelineInformation: "Currently loading pipeline information"
     },
+    InputOutputTab: {
+        errorInRetrievingArtifacts: 'Error in retrieving Artifacts.',
+        thereIsNoInputOutputParameterOrArtifact: 'There is no input/output parameter or artifact.'
+    },
+    MetricsTab: {
+        taskIsInUnknownState: 'Task is in unknown state.',
+        taskHasNotCompleted: 'Task has not completed.',
+        metricsIsLoading: 'Metrics is loading.',
+        errorInRetrievingMetricsInformation: 'Error in retrieving metrics information.',
+        errorInRetrievingArtifactTypesInformation: 'Error in retrieving artifact types information.'
+    },
+    RuntimeNodeDetailsV2: {
+        inputOutput: 'Input/Output',
+        taskDetails: 'Task Details',
+        taskName: 'Task name',
+        status: 'Status',
+        createdAt: 'Created At',
+        finishedAt: 'Finished At',
+        artifactInfo: 'Artifact Info',
+        visualization: 'Visualization',
+        upstreamTaskName: 'Upstream Task Name',
+        artifactName: 'Artifact Name',
+        artifactType: 'Artifact Type',
+    },
+    StaticNodeDetailsV2: {
+        contained: 'contained',
+        inputArtifacts: 'Input Artifacts',
+        inputParameters: 'Input Parameters',
+        outputArtifacts: 'Output Artifacts',
+        outputParameters: 'Output Parameters',
+        artifactName: 'Artifact Name',
+        artifactType: 'Artifact Type',
+    },
+    FrontendFeatures: {
+        contained: 'contained'
+    },
+    GettingStarted: {
+        gettingStarted: 'Getting Started',
+    },
+    ResourceSelector: {
+        errorRetrievingResources: 'Error retrieving resources'
+    },
+    Status: {
+        unknownStatus: 'Unknown status',
+        errorWhileRunningThisResource: 'Error while running this resource',
+        resourceFailedToExecute: 'Resource failed to execute',
+        pendingExecution: 'Pending execution',
+        running: 'Running',
+        runIsTerminating: 'Run is terminating',
+        executionHasBeenSkippedForThisResource: 'Execution has been skipped for this resource',
+        executedSuccessfully: 'Executed successfully',
+        executionWasSkippedAndOutputsWereTakenFromCache: 'Execution was skipped and outputs were taken from cache',
+        runWasManuallyTerminated: 'Run was manually terminated',
+        runWasOmittedBecauseThePreviousStepFailed: 'Run was omitted because the previous step failed.',
+    },
     NewRunV2: {
         startANewRun: "Start a new run",
         runNameCanNotBeEmpty: "Run name can not be empty.",
@@ -380,6 +435,5 @@ export default {
         uploadOn: "Uploaded on",
         pipelineDescription: "Pipeline Description",
         showSummary: "showSummary",
-
     }
 }

@@ -337,6 +337,62 @@ export default {
     NewRunSwitcher: {
         currentlyLoadingPipelineInformation: "Hiện đang tải thông tin pipeline"
     },
+    InputOutputTab: {
+        errorInRetrievingArtifacts: 'Lỗi khi truy xuất Artifacts.',
+        thereIsNoInputOutputParameterOrArtifact: 'Không có tham số đầu vào/đầu ra hoặc artifact.'
+    },
+    MetricsTab: {
+        taskIsInUnknownState: 'Task ở trạng thái không xác định.',
+        taskHasNotCompleted: 'Task chưa hoàn thành.',
+        metricsIsLoading: 'Đang tải số liệu.',
+        errorInRetrievingMetricsInformation: 'Lỗi khi truy xuất thông tin số liệu.',
+        errorInRetrievingArtifactTypesInformation: 'Lỗi khi truy xuất thông tin các loại artifact.'
+    },
+
+    RuntimeNodeDetailsV2: {
+        inputOutput: 'Đầu vào/Đầu ra',
+        taskDetails: 'Chi tiết task',
+        taskName: 'Tên task',
+        status: 'Trạng thái',
+        createdAt: 'Được tạo lúc',
+        finishedAt: 'Hoàn thành lúc',
+        artifactInfo: 'Thông tin Artifact',
+        visualization: 'Hiển thị',
+        upstreamTaskName: 'Tên Upstream Task',
+        artifactName: 'Tên Artifact',
+        artifactType: 'Kiểu Artifact',
+    },
+    StaticNodeDetailsV2: {
+        contained: 'bao gồm',
+        inputArtifacts: 'Artifacts đầu vào',
+        inputParameters: 'Tham số đầu vào',
+        outputArtifacts: 'Artifacts đầu ra',
+        outputParameters: 'Tham số đầu ra',
+        artifactName: 'Tên Artifact',
+        artifactType: 'Kiểu Artifact',
+    },
+    FrontendFeatures: {
+        contained: 'bao gồm'
+    },
+    GettingStarted: {
+        gettingStarted: 'Bắt đầu',
+    },
+    ResourceSelector: {
+        errorRetrievingResources: 'Lỗi khi truy xuất tài nguyên'
+    },
+    Status: {
+        unknownStatus: 'Trạng thái không xác định',
+        errorWhileRunningThisResource: 'Lỗi khi chạy tài nguyên này',
+        resourceFailedToExecute: 'Tài nguyên không thực thi được',
+        pendingExecution: 'Đang chờ thực hiện',
+        running: 'Đang chạy',
+        runIsTerminating: 'Đang kết thúc chạy',
+        executionHasBeenSkippedForThisResource: 'Quá trình thực thi đã bị bỏ qua đối với tài nguyên này',
+        executedSuccessfully: 'Đã thực thi thành công',
+        executionWasSkippedAndOutputsWereTakenFromCache: 'Quá trình thực thi đã bị bỏ qua và kết quả đầu ra được lấy từ bộ nhớ cache',
+        runWasManuallyTerminated: 'Đã kết thúc chạy theo cách thủ công',
+        runWasOmittedBecauseThePreviousStepFailed: 'Chạy đã bị bỏ qua vì bước trước đó không thành công.',
+    },
     NewRunV2: {
         startANewRun: "Bắt đầu Run mới",
         runNameCanNotBeEmpty: "Tên Run không được để trống.",

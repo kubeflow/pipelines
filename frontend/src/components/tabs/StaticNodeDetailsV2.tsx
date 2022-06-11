@@ -30,6 +30,7 @@ import {
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import DetailsTable from '../DetailsTable';
 import { FlowElementDataBase } from '../graph/Constants';
+import { t } from 'i18next';
 
 const NODE_INFO_UNKNOWN = (
   <div className='relative flex flex-col h-screen'>
@@ -121,29 +122,29 @@ function TaskNodeDetail({
     <div>
       {componentDag && (
         <div>
-          <Button variant='contained' onClick={onSubDagOpenClick}>
+          <Button variant={t('StaticNodeDetailsV2.contained')} onClick={onSubDagOpenClick}>
             Open Workflow
           </Button>
         </div>
       )}
       {inputArtifacts && (
         <div>
-          <DetailsTable title='Input Artifacts' fields={inputArtifacts} />
+          <DetailsTable title={t('StaticNodeDetailsV2.inputArtifacts')} fields={inputArtifacts} />
         </div>
       )}
       {inputParameters && (
         <div>
-          <DetailsTable title='Input Parameters' fields={inputParameters} />
+          <DetailsTable title={t('StaticNodeDetailsV2.inputParameters')} fields={inputParameters} />
         </div>
       )}
       {outputArtifacts && (
         <div>
-          <DetailsTable title='Output Artifacts' fields={outputArtifacts} />
+          <DetailsTable title={t('StaticNodeDetailsV2.outputArtifacts')} fields={outputArtifacts} />
         </div>
       )}
       {outputParameters && (
         <div>
-          <DetailsTable title='Output Parameters' fields={outputParameters} />
+          <DetailsTable title={t('StaticNodeDetailsV2.outputParameters')} fields={outputParameters} />
         </div>
       )}
       {image && (
@@ -185,14 +186,14 @@ function ArtifactNodeDetail({ pipelineSpec, element, layers }: ArtifactNodeDetai
   const artifactType = getOutputArtifacts(componentSpec).filter(a => a[0] === artifactKey);
   const artifactInfo = [
     ['Upstream Task', taskKey],
-    ['Artifact Name', artifactKey],
-    ['Artifact Type', artifactType[0][1]],
+    [t('StaticNodeDetailsV2.artifactName'), artifactKey],
+    [t('StaticNodeDetailsV2.artifactType'), artifactType[0][1]],
   ];
   return (
     <div>
       {artifactInfo && (
         <div>
-          <DetailsTable title='Artifact Info' fields={artifactInfo} />
+          <DetailsTable title={t('StaticNodeDetailsV2.artifactInfo')} fields={artifactInfo} />
         </div>
       )}
     </div>
