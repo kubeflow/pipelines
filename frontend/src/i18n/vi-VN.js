@@ -440,6 +440,18 @@ export default {
         uploadOn:"Tải lên",
         pipelineDescription: "Mô tả Pipeline",
         showSummary: "Hiển thị tóm tắt"
+    },
+    RecurringRunsManager: {
+        runName: "Tên Run",
+        createdAt: "Ngày tạo",
+        filterRecurringRuns: "Lọc RecurringRuns",
+        enabled: "Kích hoạt",
+        disabled: "Vô hiệu hóa",
+        errorRetrievingRecurringRunConfigs: "Lỗi khi truy xuất cấu hình chạy định kỳ",
+        couldNotGetListOfRecurringRuns: "Không thể nhận danh sách các lần chạy định kỳ",
+        error: "Lỗi",
+        errorChangingEnabledStateOfRecurringRun: "Lỗi khi thay đổi trạng thái chạy định kỳ đã bật"
+
     }
 
 }
