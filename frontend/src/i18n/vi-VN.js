@@ -410,8 +410,6 @@ export default {
         chooseAnExperiment: "Chọn kinh nghiệm",
         filterExperiments: "Lọc experiments",
         noExperimentsFoundCreateAnExperimentAndThenTryAgain: "Không có thử nghiệm nào được tìm thấy. Tạo một thử nghiệm và sau đó thử lại.",
-
-
     },
     Toolbar: {
         back: "Quay lại",
@@ -441,7 +439,7 @@ export default {
         versionSource: "Nguồn phiên bản",
         uploadOn:"Tải lên",
         pipelineDescription: "Mô tả Pipeline",
-        showSummary: "Hiển thị Tóm tắt"
+        showSummary: "Hiển thị tóm tắt"
     }
 
 }
