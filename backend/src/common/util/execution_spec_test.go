@@ -141,18 +141,12 @@ func TestExecutionSpec_NewExecutionSpecFromInterface(t *testing.T) {
 func TestExecutionSpec_UnmarshalParameters(t *testing.T) {
 	orgParams := []workflowapi.Parameter{
 		{Name: "PARAM1", Value: workflowapi.AnyStringPtr("VALUE1")},
-		{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
-		{Name: "PARAM3", Value: workflowapi.AnyStringPtr("VALUE3")},
-		{Name: "PARAM4", Value: workflowapi.AnyStringPtr("")},
-		{Name: "PARAM5", Value: workflowapi.AnyStringPtr("VALUE5")},
+		{Name: "PARAM2", Value: workflowapi.AnyStringPtr("")},
 	}
 
 	expectedParams := SpecParameters{
 		SpecParameter{Name: "PARAM1", Value: stringToPointer("VALUE1")},
-		SpecParameter{Name: "PARAM2", Value: stringToPointer("VALUE2")},
-		SpecParameter{Name: "PARAM3", Value: stringToPointer("VALUE3")},
-		SpecParameter{Name: "PARAM4", Value: stringToPointer("")},
-		SpecParameter{Name: "PARAM5", Value: stringToPointer("VALUE5")},
+		SpecParameter{Name: "PARAM2", Value: stringToPointer("")},
 	}
 
 	paramStr, err := json.Marshal(orgParams)
@@ -166,18 +160,12 @@ func TestExecutionSpec_UnmarshalParameters(t *testing.T) {
 func TestExecutionSpec_MarshalParameters(t *testing.T) {
 	expectedParams := []workflowapi.Parameter{
 		{Name: "PARAM1", Value: workflowapi.AnyStringPtr("VALUE1")},
-		{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
-		{Name: "PARAM3", Value: workflowapi.AnyStringPtr("VALUE3")},
-		{Name: "PARAM4", Value: workflowapi.AnyStringPtr("")},
-		{Name: "PARAM5", Value: workflowapi.AnyStringPtr("VALUE5")},
+		{Name: "PARAM2", Value: workflowapi.AnyStringPtr("")},
 	}
 
 	params := SpecParameters{
 		SpecParameter{Name: "PARAM1", Value: stringToPointer("VALUE1")},
-		SpecParameter{Name: "PARAM2", Value: stringToPointer("VALUE2")},
-		SpecParameter{Name: "PARAM3", Value: stringToPointer("VALUE3")},
-		SpecParameter{Name: "PARAM4", Value: stringToPointer("")},
-		SpecParameter{Name: "PARAM5", Value: stringToPointer("VALUE5")},
+		SpecParameter{Name: "PARAM2", Value: stringToPointer("")},
 	}
 
 	expectedStr, err := json.Marshal(expectedParams)

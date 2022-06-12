@@ -111,8 +111,6 @@ type ExecutionSpec interface {
 	// having Execution prefix to avoid name conflict with underlying data struct
 	ExecutionUID() string
 
-	SetExecutionUID(uid string)
-
 	ExecutionMeta() metav1.ObjectMeta
 
 	// Get ScheduledWorkflowUUID from OwnerReferences

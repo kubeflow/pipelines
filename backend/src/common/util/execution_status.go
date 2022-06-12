@@ -16,6 +16,8 @@ package util
 
 type ExecutionPhase string
 
+// borrow from Workflow.Status.Phase:
+// https://pkg.go.dev/github.com/argoproj/argo-workflows/v3@v3.2.3/pkg/apis/workflow/v1alpha1#WorkflowPhase
 const (
 	ExecutionUnknown   ExecutionPhase = ""
 	ExecutionPending   ExecutionPhase = "Pending" // pending some set-up - rarely used
