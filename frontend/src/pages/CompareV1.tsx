@@ -39,6 +39,7 @@ import { logger } from '../lib/Utils';
 import WorkflowParser from '../lib/WorkflowParser';
 import { Page, PageProps } from './Page';
 import RunList from './RunList';
+import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 
 const css = stylesheet({
   outputsRow: {
@@ -63,10 +64,6 @@ export interface CompareState {
   viewersMap: Map<PlotType, TaggedViewerConfig[]>;
   workflowObjects: Workflow[];
 }
-
-const overviewSectionName = 'Run overview';
-const paramsSectionName = 'Parameters';
-const metricsSectionName = 'Metrics';
 
 class CompareV1 extends Page<{}, CompareState> {
   constructor(props: any) {
@@ -113,11 +110,11 @@ class CompareV1 extends Page<{}, CompareState> {
       <div className={classes(commonCss.page, padding(20, 'lrt'))}>
         {/* Overview section */}
         <CollapseButton
-          sectionName={overviewSectionName}
+          sectionName={OVERVIEW_SECTION_NAME}
           collapseSections={collapseSections}
           collapseSectionsUpdate={this._collapseSectionsUpdate.bind(this)}
         />
-        {!collapseSections[overviewSectionName] && (
+        {!collapseSections[OVERVIEW_SECTION_NAME] && (
           <div className={commonCss.noShrink}>
             <RunList
               onError={this.showPageError.bind(this)}
@@ -134,11 +131,11 @@ class CompareV1 extends Page<{}, CompareState> {
 
         {/* Parameters section */}
         <CollapseButton
-          sectionName={paramsSectionName}
+          sectionName={PARAMS_SECTION_NAME}
           collapseSections={collapseSections}
           collapseSectionsUpdate={this._collapseSectionsUpdate.bind(this)}
         />
-        {!collapseSections[paramsSectionName] && (
+        {!collapseSections[PARAMS_SECTION_NAME] && (
           <div className={classes(commonCss.noShrink, css.outputsRow)}>
             <Separator orientation='vertical' />
             <CompareTable {...this.state.paramsCompareProps} />
@@ -148,11 +145,11 @@ class CompareV1 extends Page<{}, CompareState> {
 
         {/* Metrics section */}
         <CollapseButton
-          sectionName={metricsSectionName}
+          sectionName={METRICS_SECTION_NAME}
           collapseSections={collapseSections}
           collapseSectionsUpdate={this._collapseSectionsUpdate.bind(this)}
         />
-        {!collapseSections[metricsSectionName] && (
+        {!collapseSections[METRICS_SECTION_NAME] && (
           <div className={classes(commonCss.noShrink, css.outputsRow)}>
             <Separator orientation='vertical' />
             <CompareTable {...this.state.metricsCompareProps} />
@@ -307,9 +304,9 @@ class CompareV1 extends Page<{}, CompareState> {
 
   private _collapseAllSections(): void {
     const collapseSections = {
-      [overviewSectionName]: true,
-      [paramsSectionName]: true,
-      [metricsSectionName]: true,
+      [OVERVIEW_SECTION_NAME]: true,
+      [PARAMS_SECTION_NAME]: true,
+      [METRICS_SECTION_NAME]: true,
     };
     Array.from(this.state.viewersMap.keys()).forEach(t => {
       const sectionName = componentMap[t].prototype.getDisplayName();

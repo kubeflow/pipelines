@@ -34,6 +34,10 @@ enum CompareVersion {
   Unknown,
 }
 
+export const OVERVIEW_SECTION_NAME = 'Run overview';
+export const PARAMS_SECTION_NAME = 'Parameters';
+export const METRICS_SECTION_NAME = 'Metrics';
+
 // This is a router to determine whether to show V1 or V2 compare page.
 export default function Compare(props: PageProps) {
   const { updateBanner } = props;

@@ -30,6 +30,7 @@ import { ButtonKeys } from '../lib/Buttons';
 import { render } from '@testing-library/react';
 import { Router } from 'react-router-dom';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 
 const CompareV1 = TEST_ONLY.CompareV1;
 class TestCompare extends CompareV1 {
@@ -451,9 +452,9 @@ describe('CompareV1', () => {
     collapseBtn!.action();
 
     expect(tree.state('collapseSections')).toEqual({
-      Metrics: true,
-      Parameters: true,
-      'Run overview': true,
+      [METRICS_SECTION_NAME]: true,
+      [PARAMS_SECTION_NAME]: true,
+      [OVERVIEW_SECTION_NAME]: true,
       Table: true,
       Tensorboard: true,
     });
@@ -472,9 +473,9 @@ describe('CompareV1', () => {
     collapseBtn!.action();
 
     expect(tree.state('collapseSections')).toEqual({
-      Metrics: true,
-      Parameters: true,
-      'Run overview': true,
+      [METRICS_SECTION_NAME]: true,
+      [PARAMS_SECTION_NAME]: true,
+      [OVERVIEW_SECTION_NAME]: true,
       Table: true,
       Tensorboard: true,
     });
@@ -499,7 +500,7 @@ describe('CompareV1', () => {
       .find('button')
       .simulate('click');
 
-    expect(tree.state('collapseSections')).toEqual({ 'Run overview': true });
+    expect(tree.state('collapseSections')).toEqual({ [OVERVIEW_SECTION_NAME]: true });
 
     // Collapse run parameters
     tree
@@ -509,8 +510,8 @@ describe('CompareV1', () => {
       .simulate('click');
 
     expect(tree.state('collapseSections')).toEqual({
-      Parameters: true,
-      'Run overview': true,
+      [PARAMS_SECTION_NAME]: true,
+      [OVERVIEW_SECTION_NAME]: true,
     });
 
     // Re-expand run overview and parameters
@@ -526,8 +527,8 @@ describe('CompareV1', () => {
       .simulate('click');
 
     expect(tree.state('collapseSections')).toEqual({
-      Parameters: false,
-      'Run overview': false,
+      [PARAMS_SECTION_NAME]: false,
+      [OVERVIEW_SECTION_NAME]: false,
     });
   });
 

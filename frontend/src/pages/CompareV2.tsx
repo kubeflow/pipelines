@@ -19,7 +19,7 @@ import { useQuery } from 'react-query';
 import { ApiRunDetail } from 'src/apis/run';
 import Hr from 'src/atoms/Hr';
 import Separator from 'src/atoms/Separator';
-import CollapseButton from 'src/components/CollapseButton';
+import CollapseButton from 'src/components/CollapseButtonSingle';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
@@ -30,6 +30,7 @@ import { classes, stylesheet } from 'typestyle';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { PageProps } from './Page';
 import RunList from './RunList';
+import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 
 const css = stylesheet({
   outputsRow: {
@@ -46,17 +47,15 @@ enum MetricsTab {
   MARKDOWN,
 }
 
-export const overviewSectionName = 'Run overview';
-export const paramsSectionName = 'Parameters';
-export const metricsSectionName = 'Metrics';
-
 function CompareV2(props: PageProps) {
   const { updateBanner, updateToolbar } = props;
 
   const runlistRef = useRef<RunList>(null);
-  const [collapseSections, setCollapseSections] = useState<{ [key: string]: boolean }>({});
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [metricsTab, setMetricsTab] = useState(MetricsTab.SCALAR_METRICS);
+  const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
+  const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
+  const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
 
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
@@ -90,14 +89,16 @@ function CompareV2(props: PageProps) {
     const buttons = new Buttons(props, refresh);
     updateToolbar({
       actions: buttons
-        .expandSections(() => setCollapseSections({}))
-        .collapseSections(() =>
-          setCollapseSections({
-            [overviewSectionName]: true,
-            [paramsSectionName]: true,
-            [metricsSectionName]: true,
-          }),
-        )
+        .expandSections(() => {
+          setIsOverviewCollapsed(false);
+          setIsParamsCollapsed(false);
+          setIsMetricsCollapsed(false);
+        })
+        .collapseSections(() => {
+          setIsOverviewCollapsed(true);
+          setIsParamsCollapsed(true);
+          setIsMetricsCollapsed(true);
+        })
         .refresh(refresh)
         .getToolbarActionMap(),
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
@@ -110,10 +111,6 @@ function CompareV2(props: PageProps) {
       setSelectedIds(data.map(r => r.run!.id!));
     }
   }, [data]);
-
-  const collapseSectionsUpdate = (collapseSections: { [key: string]: boolean }): void => {
-    setCollapseSections({ ...collapseSections });
-  };
 
   const showPageError = async (message: string, error: Error | undefined) => {
     const errorMessage = await errorToMessage(error);
@@ -135,11 +132,11 @@ function CompareV2(props: PageProps) {
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
       {/* Overview section */}
       <CollapseButton
-        sectionName={overviewSectionName}
-        collapseSections={collapseSections}
-        collapseSectionsUpdate={collapseSectionsUpdate}
+        sectionName={OVERVIEW_SECTION_NAME}
+        collapseSection={isOverviewCollapsed}
+        collapseSectionUpdate={setIsOverviewCollapsed}
       />
-      {!collapseSections[overviewSectionName] && (
+      {!isOverviewCollapsed && (
         <div className={commonCss.noShrink}>
           <RunList
             onError={showPageError}
@@ -157,11 +154,11 @@ function CompareV2(props: PageProps) {
 
       {/* Parameters section */}
       <CollapseButton
-        sectionName={paramsSectionName}
-        collapseSections={collapseSections}
-        collapseSectionsUpdate={collapseSectionsUpdate}
+        sectionName={PARAMS_SECTION_NAME}
+        collapseSection={isParamsCollapsed}
+        collapseSectionUpdate={setIsParamsCollapsed}
       />
-      {!collapseSections[paramsSectionName] && (
+      {!isParamsCollapsed && (
         <div className={classes(commonCss.noShrink, css.outputsRow)}>
           <Separator orientation='vertical' />
           <p>Parameter Section V2</p>
@@ -171,11 +168,11 @@ function CompareV2(props: PageProps) {
 
       {/* Metrics section */}
       <CollapseButton
-        sectionName={metricsSectionName}
-        collapseSections={collapseSections}
-        collapseSectionsUpdate={collapseSectionsUpdate}
+        sectionName={METRICS_SECTION_NAME}
+        collapseSection={isMetricsCollapsed}
+        collapseSectionUpdate={setIsMetricsCollapsed}
       />
-      {!collapseSections[metricsSectionName] && (
+      {!isMetricsCollapsed && (
         <div className={classes(commonCss.noShrink, css.outputsRow)}>
           <Separator orientation='vertical' />
           <MD2Tabs
