@@ -29,6 +29,7 @@ import { errorToMessage } from 'src/lib/Utils';
 import { classes, stylesheet } from 'typestyle';
 import { PageProps } from './Page';
 import RunList from './RunList';
+import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 
 const css = stylesheet({
   outputsRow: {
@@ -36,10 +37,6 @@ const css = stylesheet({
     overflowX: 'auto',
   },
 });
-
-export const overviewSectionName = 'Run overview';
-export const paramsSectionName = 'Parameters';
-export const metricsSectionName = 'Metrics';
 
 function CompareV2(props: PageProps) {
   const { updateBanner, updateToolbar } = props;
@@ -83,9 +80,9 @@ function CompareV2(props: PageProps) {
         .expandSections(() => setCollapseSections({}))
         .collapseSections(() =>
           setCollapseSections({
-            [overviewSectionName]: true,
-            [paramsSectionName]: true,
-            [metricsSectionName]: true,
+            [OVERVIEW_SECTION_NAME]: true,
+            [PARAMS_SECTION_NAME]: true,
+            [METRICS_SECTION_NAME]: true,
           }),
         )
         .refresh(refresh)
@@ -125,11 +122,11 @@ function CompareV2(props: PageProps) {
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
       {/* Overview section */}
       <CollapseButton
-        sectionName={overviewSectionName}
+        sectionName={OVERVIEW_SECTION_NAME}
         collapseSections={collapseSections}
         collapseSectionsUpdate={collapseSectionsUpdate}
       />
-      {!collapseSections[overviewSectionName] && (
+      {!collapseSections[OVERVIEW_SECTION_NAME] && (
         <div className={commonCss.noShrink}>
           <RunList
             onError={showPageError}
@@ -147,11 +144,11 @@ function CompareV2(props: PageProps) {
 
       {/* Parameters section */}
       <CollapseButton
-        sectionName={paramsSectionName}
+        sectionName={PARAMS_SECTION_NAME}
         collapseSections={collapseSections}
         collapseSectionsUpdate={collapseSectionsUpdate}
       />
-      {!collapseSections[paramsSectionName] && (
+      {!collapseSections[PARAMS_SECTION_NAME] && (
         <div className={classes(commonCss.noShrink, css.outputsRow)}>
           <Separator orientation='vertical' />
           <p>Parameter Section V2</p>
@@ -161,11 +158,11 @@ function CompareV2(props: PageProps) {
 
       {/* Metrics section */}
       <CollapseButton
-        sectionName={metricsSectionName}
+        sectionName={METRICS_SECTION_NAME}
         collapseSections={collapseSections}
         collapseSectionsUpdate={collapseSectionsUpdate}
       />
-      {!collapseSections[metricsSectionName] && (
+      {!collapseSections[METRICS_SECTION_NAME] && (
         <div className={classes(commonCss.noShrink, css.outputsRow)}>
           <Separator orientation='vertical' />
           <p>Metrics Section V2</p>

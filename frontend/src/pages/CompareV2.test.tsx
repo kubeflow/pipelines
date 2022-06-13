@@ -20,10 +20,11 @@ import { CommonTestWrapper } from 'src/TestWrapper';
 import { Apis } from 'src/lib/Apis';
 import { testBestPractices } from 'src/TestUtils';
 import { QUERY_PARAMS } from 'src/components/Router';
-import CompareV2, { overviewSectionName, paramsSectionName, metricsSectionName } from './CompareV2';
+import CompareV2 from './CompareV2';
 import { PageProps } from './Page';
 import { ApiRunDetail } from 'src/apis/run';
 import TestUtils from 'src/TestUtils';
+import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 
 testBestPractices();
 describe('CompareV2', () => {
@@ -69,7 +70,7 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    screen.getByText(overviewSectionName);
+    screen.getByText(OVERVIEW_SECTION_NAME);
   });
 
   it('getRun is called with query param IDs', async () => {
@@ -142,16 +143,16 @@ describe('CompareV2', () => {
     screen.getByText('Parameter Section V2');
     screen.getByText('Metrics Section V2');
 
-    fireEvent.click(screen.getByText(overviewSectionName));
+    fireEvent.click(screen.getByText(OVERVIEW_SECTION_NAME));
     expect(screen.queryByText('Filter runs')).toBeNull();
 
-    fireEvent.click(screen.getByText(overviewSectionName));
+    fireEvent.click(screen.getByText(OVERVIEW_SECTION_NAME));
     screen.getByText('Filter runs');
 
-    fireEvent.click(screen.getByText(paramsSectionName));
+    fireEvent.click(screen.getByText(PARAMS_SECTION_NAME));
     expect(screen.queryByText('Parameter Section V2')).toBeNull();
 
-    fireEvent.click(screen.getByText(metricsSectionName));
+    fireEvent.click(screen.getByText(METRICS_SECTION_NAME));
     expect(screen.queryByText('Metrics Section V2')).toBeNull();
   });
 
