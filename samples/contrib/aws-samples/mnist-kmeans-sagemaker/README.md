@@ -57,8 +57,6 @@ import pickle
 import urllib.request
 import gzip
 import numpy
-from sagemaker.session import Session
-from sagemaker.utils import S3DataConfig
 
 
 ENDPOINT_NAME="<your_endpoint_name>"
@@ -72,14 +70,8 @@ def np2csv(arr):
 # Prepare input for the model
 # Load the dataset
 s3 = boto3.client("s3")
-sm_session = Session()
-data_bucket = S3DataConfig(
-    sm_session, "example-notebooks-data-config", "config/data_config.json"
-).get_data_bucket()
-print(f"Using data from {data_bucket}")
-
 s3.download_file(
-    data_bucket, "datasets/image/MNIST/mnist.pkl.gz", "mnist.pkl.gz")
+    "sagemaker-sample-files", "datasets/image/MNIST/mnist.pkl.gz", "mnist.pkl.gz")
 
 with gzip.open("mnist.pkl.gz", "rb") as f:
     train_set, _, _ = pickle.load(f, encoding="latin1")
