@@ -134,7 +134,7 @@ outputs:
 - {name: model, type: google.VertexModel}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.9
     command: [python3, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner,
       --cls_name, AutoMLVideoTrainingJob, --method_name, run]
     args:
