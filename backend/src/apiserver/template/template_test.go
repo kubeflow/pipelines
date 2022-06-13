@@ -73,7 +73,7 @@ kind: Workflow`,
 		templateType: V1,
 	}, {
 		template:     v2SpecHelloWorldJSON,
-		templateType: V2,
+		templateType: Unknown,
 	}, {
 		template:     "",
 		templateType: Unknown,
@@ -279,7 +279,6 @@ root:
 schemaVersion: 2.0.0
 sdkVersion: kfp-1.6.5
 `
-
 
 func TestToSwfCRDResourceGeneratedName_SpecialCharsAndSpace(t *testing.T) {
 	name, err := toSWFCRDResourceGeneratedName("! HaVe ä £unky name")
