@@ -336,7 +336,7 @@ func (s *PipelineVersionApiTest) TestV2Spec() {
 	/* ---------- Upload a pipeline version with v2 pipeline spec JSON ---------- */
 	time.Sleep(1 * time.Second)
 	v2Version, err := s.pipelineUploadClient.UploadPipelineVersion(
-		"../resources/v2-hello-world.json", &uploadParams.UploadPipelineVersionParams{
+		"../resources/v2-hello-world.yaml", &uploadParams.UploadPipelineVersionParams{
 			Name:       util.StringPointer("v2-hello-world"),
 			Pipelineid: util.StringPointer(pipeline.ID),
 		})
@@ -346,7 +346,7 @@ func (s *PipelineVersionApiTest) TestV2Spec() {
 	/* ---------- Verify get template works ---------- */
 	template, err := s.pipelineClient.GetPipelineVersionTemplate(&params.GetPipelineVersionTemplateParams{VersionID: v2Version.ID})
 	require.Nil(t, err)
-	bytes, err := ioutil.ReadFile("../resources/v2-hello-world.json")
+	bytes, err := ioutil.ReadFile("../resources/v2-hello-world.yaml")
 	require.Nil(t, err)
 	expected, err := pipelinetemplate.New(bytes)
 	require.Nil(t, err)
