@@ -40,14 +40,70 @@ interface RunExecutions {
 
 interface ExecutionArtifacts {
   execution: Execution;
-  executionName: string;
   linkedArtifacts: LinkedArtifact[];
-  linkedArtifactNames: string[];
 }
 
 interface RunArtifacts {
   run: ApiRunDetail;
   executionArtifacts: ExecutionArtifacts[];
+}
+
+enum MetricsType {
+  SCALAR_METRICS,
+  CONFUSION_MATRIX,
+  ROC_CURVE,
+  HTML,
+  MARKDOWN,
+}
+
+function filterRunArtifactsByType(
+  runArtifacts: RunArtifacts[],
+  artifactTypes: ArtifactType[],
+  metricsType: MetricsType,
+): RunArtifacts[] {
+  const metricsFilter =
+    metricsType === MetricsType.SCALAR_METRICS
+      ? 'system.Metrics'
+      : metricsType === MetricsType.CONFUSION_MATRIX || metricsType === MetricsType.ROC_CURVE
+      ? 'system.ClassificationMetrics'
+      : metricsType === MetricsType.HTML
+      ? 'system.HTML'
+      : metricsType === MetricsType.MARKDOWN
+      ? 'system.Markdown'
+      : '';
+  const typeRuns: RunArtifacts[] = [];
+  for (const runArtifact of runArtifacts) {
+    const typeExecutions: ExecutionArtifacts[] = [];
+    for (const e of runArtifact.executionArtifacts) {
+      let typeArtifacts: LinkedArtifact[] = filterLinkedArtifactsByType(
+        metricsFilter,
+        artifactTypes,
+        e.linkedArtifacts,
+      );
+      if (metricsType === MetricsType.CONFUSION_MATRIX) {
+        typeArtifacts = typeArtifacts.filter(x =>
+          x.artifact.getCustomPropertiesMap().has('confusionMatrix'),
+        );
+      } else if (metricsType === MetricsType.ROC_CURVE) {
+        typeArtifacts = typeArtifacts.filter(x =>
+          x.artifact.getCustomPropertiesMap().has('confidenceMetrics'),
+        );
+      }
+      if (typeArtifacts.length > 0) {
+        typeExecutions.push({
+          execution: e.execution,
+          linkedArtifacts: typeArtifacts,
+        } as ExecutionArtifacts);
+      }
+    }
+    if (typeExecutions.length > 0) {
+      typeRuns.push({
+        run: runArtifact.run,
+        executionArtifacts: typeExecutions,
+      } as RunArtifacts);
+    }
+  }
+  return typeRuns;
 }
 
 function CompareV2(props: PageProps) {
@@ -127,9 +183,7 @@ function CompareV2(props: PageProps) {
                 );
                 return {
                   execution,
-                  executionName,
                   linkedArtifacts,
-                  linkedArtifactNames,
                 } as ExecutionArtifacts;
               }),
             );
@@ -166,114 +220,28 @@ function CompareV2(props: PageProps) {
     return <></>;
   }
 
-  const scalarMetricsArtifacts: RunArtifacts[] = runArtifacts;
-  const confusionMatrixArtifacts: RunArtifacts[] = runArtifacts;
-  const rocCurveArtifacts: RunArtifacts[] = runArtifacts;
-  const htmlArtifacts: RunArtifacts[] = runArtifacts;
-  const markdownArtifacts: RunArtifacts[] = runArtifacts;
-
-  let runIndex = 0;
-  for (const runArtifact of runArtifacts) {
-    let executionIndex = 0;
-    for (const e of runArtifact.executionArtifacts) {
-      scalarMetricsArtifacts[runIndex].executionArtifacts[
-        executionIndex
-      ].linkedArtifacts = filterLinkedArtifactsByType(
-        'system.Metrics',
-        artifactTypes,
-        e.linkedArtifacts,
-      );
-      scalarMetricsArtifacts[runIndex].executionArtifacts[
-        executionIndex
-      ].linkedArtifactNames = scalarMetricsArtifacts[runIndex].executionArtifacts[
-        executionIndex
-      ].linkedArtifacts.map(
-        l =>
-          l.event
-            .getPath()
-            ?.getStepsList()[0]
-            .getKey() || 'na',
-      );
-
-      confusionMatrixArtifacts[runIndex].executionArtifacts[
-        executionIndex
-      ].linkedArtifacts = filterLinkedArtifactsByType(
-        'system.ClassificationMetrics',
-        artifactTypes,
-        e.linkedArtifacts,
-      );
-      confusionMatrixArtifacts[runIndex].executionArtifacts[
-        executionIndex
-      ].linkedArtifactNames = confusionMatrixArtifacts[runIndex].executionArtifacts[
-        executionIndex
-      ].linkedArtifacts.map(
-        l =>
-          l.event
-            .getPath()
-            ?.getStepsList()[0]
-            .getKey() || 'na',
-      );
-
-      rocCurveArtifacts[runIndex].executionArtifacts[
-        executionIndex
-      ].linkedArtifacts = filterLinkedArtifactsByType(
-        'system.ClassificationMetrics',
-        artifactTypes,
-        e.linkedArtifacts,
-      );
-      rocCurveArtifacts[runIndex].executionArtifacts[
-        executionIndex
-      ].linkedArtifactNames = rocCurveArtifacts[runIndex].executionArtifacts[
-        executionIndex
-      ].linkedArtifacts.map(
-        l =>
-          l.event
-            .getPath()
-            ?.getStepsList()[0]
-            .getKey() || 'na',
-      );
-
-      htmlArtifacts[runIndex].executionArtifacts[
-        executionIndex
-      ].linkedArtifacts = filterLinkedArtifactsByType(
-        'system.HTML',
-        artifactTypes,
-        e.linkedArtifacts,
-      );
-      htmlArtifacts[runIndex].executionArtifacts[
-        executionIndex
-      ].linkedArtifactNames = htmlArtifacts[runIndex].executionArtifacts[
-        executionIndex
-      ].linkedArtifacts.map(
-        l =>
-          l.event
-            .getPath()
-            ?.getStepsList()[0]
-            .getKey() || 'na',
-      );
-
-      markdownArtifacts[runIndex].executionArtifacts[
-        executionIndex
-      ].linkedArtifacts = filterLinkedArtifactsByType(
-        'system.Markdown',
-        artifactTypes,
-        e.linkedArtifacts,
-      );
-      markdownArtifacts[runIndex].executionArtifacts[
-        executionIndex
-      ].linkedArtifactNames = markdownArtifacts[runIndex].executionArtifacts[
-        executionIndex
-      ].linkedArtifacts.map(
-        l =>
-          l.event
-            .getPath()
-            ?.getStepsList()[0]
-            .getKey() || 'na',
-      );
-      executionIndex++;
-    }
-    runIndex++;
-  }
+  // TODO: I still need to determine how to differentiate Confusion Matrices and ROC Curves.
+  const scalarMetricsArtifacts = filterRunArtifactsByType(
+    runArtifacts,
+    artifactTypes,
+    MetricsType.SCALAR_METRICS,
+  );
+  const confusionMatrixArtifacts = filterRunArtifactsByType(
+    runArtifacts,
+    artifactTypes,
+    MetricsType.CONFUSION_MATRIX,
+  );
+  const rocCurveArtifacts = filterRunArtifactsByType(
+    runArtifacts,
+    artifactTypes,
+    MetricsType.ROC_CURVE,
+  );
+  const htmlArtifacts = filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML);
+  const markdownArtifacts = filterRunArtifactsByType(
+    runArtifacts,
+    artifactTypes,
+    MetricsType.MARKDOWN,
+  );
 
   console.log(scalarMetricsArtifacts);
   console.log(confusionMatrixArtifacts);
