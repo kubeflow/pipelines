@@ -69,6 +69,7 @@ const css = stylesheet({
   },
 });
 
+// Include only the runs and executions which have artifacts of the specified type.
 function filterRunArtifactsByType(
   runArtifacts: RunArtifacts[],
   artifactTypes: ArtifactType[],
@@ -136,18 +137,18 @@ function displayMetricsFromRunArtifacts(runArtifacts: RunArtifacts[]) {
                     .get('display_name')
                     ?.getStringValue()}
                 </p>
-                <div className={css.largeIndent}>
-                  {y.linkedArtifacts.map(z => {
-                    return (
+                {y.linkedArtifacts.map(z => {
+                  return (
+                    <div className={css.largeIndent}>
                       <p>
                         {z.event
                           .getPath()
                           ?.getStepsList()[0]
                           .getKey()}
                       </p>
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
