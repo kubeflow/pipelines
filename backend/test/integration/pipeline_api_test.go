@@ -224,7 +224,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	bytes, err = ioutil.ReadFile("../resources/v2-hello-world.yaml")
 	require.Nil(t, err)
 	expected, err = pipelinetemplate.New(bytes)
-	expected.OverrideV2PipelineName("v2-hello-world.json", "")
+	expected.OverrideV2PipelineName("v2-hello-world.yaml", "")
 	assert.Equal(t, expected, template)
 }
 
