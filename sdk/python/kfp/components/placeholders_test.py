@@ -23,7 +23,7 @@ from kfp.components import structures
 class TestExecutorInputPlaceholder(parameterized.TestCase):
 
     @parameterized.parameters([
-        ("{{$}}", placeholders.ExecutorInputPlaceholder()),
+        ('{{$}}', placeholders.ExecutorInputPlaceholder()),
     ])
     def test_to_from_placeholder(
             self, placeholder_string: str,

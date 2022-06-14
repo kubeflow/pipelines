@@ -149,8 +149,8 @@ class RegexPlaceholderSerializationMixin(Placeholder):
 class ExecutorInputPlaceholder(base_model.BaseModel,
                                RegexPlaceholderSerializationMixin):
     """Class that represents executor input placeholder."""
-    _TO_PLACEHOLDER = "{{$}}"
-    _FROM_PLACEHOLDER = re.compile(r"\{\{\$\}\}")
+    _TO_PLACEHOLDER = '{{$}}'
+    _FROM_PLACEHOLDER = re.compile(r'\{\{\$\}\}')
 
     def to_placeholder_string(self) -> str:
         return self._TO_PLACEHOLDER
