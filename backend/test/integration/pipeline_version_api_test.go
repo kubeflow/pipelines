@@ -333,7 +333,7 @@ func (s *PipelineVersionApiTest) TestV2Spec() {
 	require.Nil(t, err)
 	assert.Equal(t, "test_v2_pipeline", pipeline.Name)
 
-	/* ---------- Upload a pipeline version with v2 pipeline spec JSON ---------- */
+	/* ---------- Upload a pipeline version with v2 pipeline spec YAML ---------- */
 	time.Sleep(1 * time.Second)
 	v2Version, err := s.pipelineUploadClient.UploadPipelineVersion(
 		"../resources/v2-hello-world.yaml", &uploadParams.UploadPipelineVersionParams{

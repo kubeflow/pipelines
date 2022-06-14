@@ -128,11 +128,11 @@ func TestReadPipelineFile_YAML(t *testing.T) {
 }
 
 func TestReadPipelineFile_JSON(t *testing.T) {
-	file, _ := os.Open("test/v2-hello-world.yaml")
-	fileBytes, err := ReadPipelineFile("v2-hello-world.yaml", file, MaxFileLength)
+	file, _ := os.Open("test/v2-hello-world.json")
+	fileBytes, err := ReadPipelineFile("v2-hello-world.json", file, MaxFileLength)
 	assert.Nil(t, err)
 
-	expectedFileBytes, _ := ioutil.ReadFile("test/v2-hello-world.yaml")
+	expectedFileBytes, _ := ioutil.ReadFile("test/v2-hello-world.json")
 	assert.Equal(t, expectedFileBytes, fileBytes)
 }
 
