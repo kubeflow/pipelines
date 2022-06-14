@@ -219,19 +219,7 @@ function CompareV2(props: PageProps) {
           runExecutions.map(async runExecution => {
             const executionArtifacts = Promise.all(
               runExecution.executions.map(async execution => {
-                const executionName = execution
-                  .getCustomPropertiesMap()
-                  .get('display_name')
-                  ?.getStringValue();
                 const linkedArtifacts = await getOutputLinkedArtifactsInExecution(execution);
-                // TODO: It seems I can also retrieve this through custom properties - which is preferable? Do I need the Event in the LinkedArtifact?
-                const linkedArtifactNames = linkedArtifacts.map(
-                  l =>
-                    l.event
-                      .getPath()
-                      ?.getStepsList()[0]
-                      .getKey() || 'na',
-                );
                 return {
                   execution,
                   linkedArtifacts,
@@ -271,7 +259,6 @@ function CompareV2(props: PageProps) {
     return <></>;
   }
 
-  // TODO: I still need to determine how to differentiate Confusion Matrices and ROC Curves.
   const scalarMetricsArtifacts = filterRunArtifactsByType(
     runArtifacts,
     artifactTypes,
