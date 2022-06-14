@@ -248,9 +248,6 @@ function CompareV2(props: PageProps) {
     },
   );
 
-  console.log(runArtifacts);
-  console.log(artifactTypes);
-
   if (!runArtifacts) {
     return <></>;
   }
@@ -280,12 +277,6 @@ function CompareV2(props: PageProps) {
     artifactTypes,
     MetricsType.MARKDOWN,
   );
-
-  console.log(scalarMetricsArtifacts);
-  console.log(confusionMatrixArtifacts);
-  console.log(rocCurveArtifacts);
-  console.log(htmlArtifacts);
-  console.log(markdownArtifacts);
 
   return (
     <div className={commonCss.page}>
