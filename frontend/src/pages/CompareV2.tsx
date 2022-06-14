@@ -14,53 +14,83 @@
  * limitations under the License.
  */
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useQuery } from 'react-query';
+import { ApiRunDetail } from 'src/apis/run';
 import { QUERY_PARAMS } from 'src/components/Router';
-import {
-  getVerifiedClassificationMetricsArtifacts,
-  getVerifiedMetricsArtifacts,
-  getVertifiedHtmlArtifacts,
-  getVertifiedMarkdownArtifacts,
-  getV1VisualizationArtifacts,
-} from 'src/components/viewers/MetricsVisualizations';
 import { commonCss } from 'src/Css';
+import { Apis } from 'src/lib/Apis';
 import { URLParser } from 'src/lib/URLParser';
-import { Api } from 'src/mlmd/library';
+import { errorToMessage } from 'src/lib/Utils';
 import {
-  getArtifactsFromContext,
+  filterLinkedArtifactsByType,
   getArtifactTypes,
-  getEventsByExecutions,
   getExecutionsFromContext,
   getKfpV2RunContext,
   getOutputLinkedArtifactsInExecution,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
-import { ArtifactType, Event, Execution, GetEventsByArtifactIDsRequest } from 'src/third_party/mlmd';
+import { ArtifactType, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
-import { MlmdPackage } from './RunDetailsV2';
 
-const EventType = Event.Type;
+interface RunExecutions {
+  run: ApiRunDetail;
+  executions: Execution[];
+}
+
+interface ExecutionArtifacts {
+  execution: Execution;
+  executionName: string;
+  linkedArtifacts: LinkedArtifact[];
+  linkedArtifactNames: string[];
+}
+
+interface RunArtifacts {
+  run: ApiRunDetail;
+  executionArtifacts: ExecutionArtifacts[];
+}
 
 function CompareV2(props: PageProps) {
-  const api = Api.getInstance();
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 
-  // Retrieves MLMD states from the MLMD store.
-  const { isSuccess, data } = useQuery<MlmdPackage[], Error>(
-    ['mlmd_package', { ids: runIds }],
-    () =>
-      Promise.all(
-        runIds.map(async id => {
-          const context = await getKfpV2RunContext(id);
-          const executions = await getExecutionsFromContext(context);
-          const artifacts = await getArtifactsFromContext(context);
-          const events = await getEventsByExecutions(executions);
+  // Retrieves run details.
+  const { data: runs } = useQuery<ApiRunDetail[], Error>(
+    ['run_details', { ids: runIds }],
+    () => Promise.all(runIds.map(async id => await Apis.runServiceApi.getRun(id))),
+    {
+      staleTime: Infinity,
+      onError: async error => {
+        const errorMessage = await errorToMessage(error);
+        props.updateBanner({
+          additionalInfo: errorMessage ? errorMessage : undefined,
+          message: `Error: failed loading ${runIds.length} runs. Click Details for more information.`,
+          mode: 'error',
+        });
+      },
+      onSuccess: () => props.updateBanner({}),
+    },
+  );
 
-          return { executions, artifacts, events };
-        }),
-      ),
+  // Retrieves MLMD states from the MLMD store.
+  const { data: runExecutions } = useQuery<RunExecutions[], Error>(
+    ['mlmd_package', { runIds, runs }],
+    () => {
+      if (runs) {
+        return Promise.all(
+          runIds.map(async (r, index) => {
+            const context = await getKfpV2RunContext(r);
+            const executions = await getExecutionsFromContext(context);
+
+            return {
+              run: runs[index],
+              executions,
+            };
+          }),
+        );
+      }
+      return [];
+    },
     {
       staleTime: Infinity,
       onError: error =>
@@ -73,106 +103,62 @@ function CompareV2(props: PageProps) {
     },
   );
 
-  // if (data) {
-  //   console.log(data);
-  //   for (const mlmdPackage of data) {
-  //     console.log(mlmdPackage);
-  //     const artifactIds = mlmdPackage.artifacts.map(artifact => artifact.getId());
-  //     const eventsRequest = new GetEventsByArtifactIDsRequest();
-  //     eventsRequest.setArtifactIdsList(artifactIds);
-  //     // I know that not all code paths return a value, this is intentional code just for testing, for the moment.
-  //     api.metadataStoreService.getEventsByArtifactIDs(eventsRequest).then(response => {
-  //       if (!response) {
-  //         console.log('Error in response.');
-  //         return <></>;
-  //       }
-  
-  //       const responseData = response.getEventsList();
-  //       console.log(responseData);
-  //       // The last output event is the event that produced current artifact.
-  //       const outputEvents = responseData
-  //         .filter(event => event.getType() === EventType.DECLARED_OUTPUT || event.getType() === EventType.OUTPUT);
-  //       console.log(outputEvents);
-  //       for (const outputEvent of outputEvents) {
-  //         console.log(outputEvent?.getPath()?.getStepsList()[0].getKey());
-  //         console.log(outputEvent.getPath());
-  //       }
-  //     }).catch(err => {
-  //       console.log(err);
-  //     });
-  //   }
-  // }
-
-  interface ExecutionAndLinkedArtifacts {
-    executionName: string,
-    artifactNames: string[],
-    linkedArtifacts: LinkedArtifact[],
-  };
-  // Retrieving a list of artifacts associated with this execution,
-  // so we can find the artifact for system metrics from there.
-  const {
-    isLoading: isLoadingArtifacts,
-    isSuccess: isSuccessArtifacts,
-    error: errorArtifacts,
-    data: linkedArtifactsList,
-  } = useQuery<ExecutionAndLinkedArtifacts[], Error>(
-    ['execution_output_artifact', { data }],
-    async () => {
-      const promises = [];
-      const executionNames = [];
-      if (data) {
-        for (const mlmdPackage of data) {
-          for (const execution of mlmdPackage.executions) {
-            // This is the process I found to get the execution name. I think there may be a cleaner way (getName() does not work - we'll see).
-            const executionName = execution.getCustomPropertiesMap().getEntryList().filter(x => x[0] === 'display_name')[0][1][2];
-            if (executionName) {
-              executionNames.push(executionName);
-              promises.push(getOutputLinkedArtifactsInExecution(execution));
-            }
-          }
-        }
+  // Retrieving a list of artifacts associated with each execution.
+  const { data: runArtifacts } = useQuery<RunArtifacts[], Error>(
+    ['execution_output_artifact', { runExecutions }],
+    () => {
+      if (runExecutions) {
+        return Promise.all(
+          runExecutions.map(async runExecution => {
+            const executionArtifacts = Promise.all(
+              runExecution.executions.map(async execution => {
+                const executionName = execution
+                  .getCustomPropertiesMap()
+                  .get('display_name')
+                  ?.getStringValue();
+                const linkedArtifacts = await getOutputLinkedArtifactsInExecution(execution);
+                // TODO: It seems I can also retrieve this through custom properties - which is preferable? Do I need the Event in the LinkedArtifact?
+                const linkedArtifactNames = linkedArtifacts.map(
+                  l =>
+                    l.event
+                      .getPath()
+                      ?.getStepsList()[0]
+                      .getKey() || 'na',
+                );
+                return {
+                  execution,
+                  executionName,
+                  linkedArtifacts,
+                  linkedArtifactNames,
+                } as ExecutionArtifacts;
+              }),
+            );
+            return {
+              run: runExecution.run,
+              executionArtifacts: await executionArtifacts,
+            } as RunArtifacts;
+          }),
+        );
       }
-      const linkedArtifactsList = await Promise.all(promises);
-      const output = [];
-      for (let i = 0; i < executionNames.length; i++) {
-        const artifactNames = [];
-        const artifactFullNames = [];
-        for (const linkedArtifact of linkedArtifactsList[i]) {
-          const artifactName = linkedArtifact.event.getPath()?.getStepsList()[0].getKey() || 'na';
-          artifactNames.push(artifactName);
-          artifactFullNames.push(`${executionNames[i]} > ${artifactName}`)
-        }
-        output.push({
-          executionName: executionNames[i],
-          artifactNames,
-          artifactFullNames,
-          linkedArtifacts: linkedArtifactsList[i],
-        });
-      }
-      return output;
+      return [];
     },
     { staleTime: Infinity },
   );
-  console.log(linkedArtifactsList);
-
-
 
   // artifactTypes allows us to map from artifactIds to artifactTypeNames,
   // so we can identify metrics artifact provided by system.
-  const {
-    isLoading: isLoadingArtifactTypes,
-    isSuccess: isSuccessArtifactTypes,
-    error: errorArtifactTypes,
-    data: artifactTypes,
-  } = useQuery<ArtifactType[], Error>(['artifact_types', {}], () => getArtifactTypes(), {
-    staleTime: Infinity,
-  });
+  const { data: artifactTypes } = useQuery<ArtifactType[], Error>(
+    ['artifact_types', {}],
+    () => getArtifactTypes(),
+    {
+      staleTime: Infinity,
+    },
+  );
 
-  if (!data) {
-    return <></>;
-  }
+  console.log(runArtifacts);
+  console.log(artifactTypes);
 
-  if (!linkedArtifactsList) {
+  if (!runArtifacts) {
     return <></>;
   }
 
@@ -180,47 +166,120 @@ function CompareV2(props: PageProps) {
     return <></>;
   }
 
+  const scalarMetricsArtifacts: RunArtifacts[] = runArtifacts;
+  const confusionMatrixArtifacts: RunArtifacts[] = runArtifacts;
+  const rocCurveArtifacts: RunArtifacts[] = runArtifacts;
+  const htmlArtifacts: RunArtifacts[] = runArtifacts;
+  const markdownArtifacts: RunArtifacts[] = runArtifacts;
 
+  let runIndex = 0;
+  for (const runArtifact of runArtifacts) {
+    let executionIndex = 0;
+    for (const e of runArtifact.executionArtifacts) {
+      scalarMetricsArtifacts[runIndex].executionArtifacts[
+        executionIndex
+      ].linkedArtifacts = filterLinkedArtifactsByType(
+        'system.Metrics',
+        artifactTypes,
+        e.linkedArtifacts,
+      );
+      scalarMetricsArtifacts[runIndex].executionArtifacts[
+        executionIndex
+      ].linkedArtifactNames = scalarMetricsArtifacts[runIndex].executionArtifacts[
+        executionIndex
+      ].linkedArtifacts.map(
+        l =>
+          l.event
+            .getPath()
+            ?.getStepsList()[0]
+            .getKey() || 'na',
+      );
 
-  // // There can be multiple system.ClassificationMetrics or system.Metrics artifacts per execution.
-  // // Get scalar metrics, confidenceMetrics and confusionMatrix from artifact.
-  // // If there is no available metrics, show banner to notify users.
-  // // Otherwise, Visualize all available metrics per artifact.
-  // console.log(data);
-  // console.log(linkedArtifactsList);
-  // for (const linkedArtifacts of linkedArtifactsList) {
-  //   const artifacts = linkedArtifacts.map(x => x.artifact);
-  //   const classificationMetricsArtifacts = getVerifiedClassificationMetricsArtifacts(
-  //     artifacts,
-  //     artifactTypes,
-  //   );
-  //   const metricsArtifacts = getVerifiedMetricsArtifacts(artifacts, artifactTypes);
-  //   const htmlArtifacts = getVertifiedHtmlArtifacts(linkedArtifacts, artifactTypes);
-  //   const mdArtifacts = getVertifiedMarkdownArtifacts(linkedArtifacts, artifactTypes);
-  //   const v1VisualizationArtifact = getV1VisualizationArtifacts(linkedArtifacts, artifactTypes);
+      confusionMatrixArtifacts[runIndex].executionArtifacts[
+        executionIndex
+      ].linkedArtifacts = filterLinkedArtifactsByType(
+        'system.ClassificationMetrics',
+        artifactTypes,
+        e.linkedArtifacts,
+      );
+      confusionMatrixArtifacts[runIndex].executionArtifacts[
+        executionIndex
+      ].linkedArtifactNames = confusionMatrixArtifacts[runIndex].executionArtifacts[
+        executionIndex
+      ].linkedArtifacts.map(
+        l =>
+          l.event
+            .getPath()
+            ?.getStepsList()[0]
+            .getKey() || 'na',
+      );
 
-  //   console.log('');
-  //   console.log(classificationMetricsArtifacts);
-  //   console.log(metricsArtifacts);
-  //   console.log(htmlArtifacts);
-  //   console.log(mdArtifacts);
-  //   console.log(v1VisualizationArtifact);
-  // }
+      rocCurveArtifacts[runIndex].executionArtifacts[
+        executionIndex
+      ].linkedArtifacts = filterLinkedArtifactsByType(
+        'system.ClassificationMetrics',
+        artifactTypes,
+        e.linkedArtifacts,
+      );
+      rocCurveArtifacts[runIndex].executionArtifacts[
+        executionIndex
+      ].linkedArtifactNames = rocCurveArtifacts[runIndex].executionArtifacts[
+        executionIndex
+      ].linkedArtifacts.map(
+        l =>
+          l.event
+            .getPath()
+            ?.getStepsList()[0]
+            .getKey() || 'na',
+      );
 
-  // const onSelectionChange = (elements: Elements<FlowElementDataBase> | null) => {
-  //   if (!elements || elements?.length === 0) {
-  //     setSelectedNode(null);
-  //     return;
-  //   }
-  //   if (elements && elements.length === 1) {
-  //     setSelectedNode(elements[0]);
-  //     if (data) {
-  //       setSelectedNodeMlmdInfo(
-  //         getNodeMlmdInfo(elements[0], data.executions, data.events, data.artifacts),
-  //       );
-  //     }
-  //   }
-  // };
+      htmlArtifacts[runIndex].executionArtifacts[
+        executionIndex
+      ].linkedArtifacts = filterLinkedArtifactsByType(
+        'system.HTML',
+        artifactTypes,
+        e.linkedArtifacts,
+      );
+      htmlArtifacts[runIndex].executionArtifacts[
+        executionIndex
+      ].linkedArtifactNames = htmlArtifacts[runIndex].executionArtifacts[
+        executionIndex
+      ].linkedArtifacts.map(
+        l =>
+          l.event
+            .getPath()
+            ?.getStepsList()[0]
+            .getKey() || 'na',
+      );
+
+      markdownArtifacts[runIndex].executionArtifacts[
+        executionIndex
+      ].linkedArtifacts = filterLinkedArtifactsByType(
+        'system.Markdown',
+        artifactTypes,
+        e.linkedArtifacts,
+      );
+      markdownArtifacts[runIndex].executionArtifacts[
+        executionIndex
+      ].linkedArtifactNames = markdownArtifacts[runIndex].executionArtifacts[
+        executionIndex
+      ].linkedArtifacts.map(
+        l =>
+          l.event
+            .getPath()
+            ?.getStepsList()[0]
+            .getKey() || 'na',
+      );
+      executionIndex++;
+    }
+    runIndex++;
+  }
+
+  console.log(scalarMetricsArtifacts);
+  console.log(confusionMatrixArtifacts);
+  console.log(rocCurveArtifacts);
+  console.log(htmlArtifacts);
+  console.log(markdownArtifacts);
 
   return (
     <div className={commonCss.page}>

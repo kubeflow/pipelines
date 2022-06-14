@@ -51,7 +51,7 @@ import DagCanvas from './v2/DagCanvas';
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
 const QUERY_REFETCH_INTERNAL = 10000; // 10000 milliseconds == 10 seconds.
 
-export interface MlmdPackage {
+interface MlmdPackage {
   executions: Execution[];
   artifacts: Artifact[];
   events: Event[];
