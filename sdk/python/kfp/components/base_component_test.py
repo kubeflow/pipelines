@@ -18,6 +18,7 @@ from unittest.mock import patch
 
 from kfp.components import base_component
 from kfp.components import pipeline_task
+from kfp.components import placeholders
 from kfp.components import structures
 
 
@@ -37,10 +38,10 @@ component_op = TestComponent(
                     'sh',
                     '-c',
                     'set -ex\necho "$0" "$1" "$2" > "$3"',
-                    structures.InputValuePlaceholder(input_name='input1'),
-                    structures.InputValuePlaceholder(input_name='input2'),
-                    structures.InputValuePlaceholder(input_name='input3'),
-                    structures.OutputPathPlaceholder(output_name='output1'),
+                    placeholders.InputValuePlaceholder(input_name='input1'),
+                    placeholders.InputValuePlaceholder(input_name='input2'),
+                    placeholders.InputValuePlaceholder(input_name='input3'),
+                    placeholders.OutputPathPlaceholder(output_name='output1'),
                 ],
             )),
         inputs={

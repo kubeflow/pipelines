@@ -534,6 +534,83 @@ def _get_query_results(project_id, job_id, location, creds):
   return response
 
 
+def bigquery_ml_arima_evaluate_job(
+    type,
+    project,
+    location,
+    model_name,
+    show_all_candidate_models,
+    payload,
+    job_configuration_query_override,
+    gcp_resources,
+    executor_input,
+):
+  """Create and poll BigQuery ML.ARIMA_EVALUATE job till it reaches a final state.
+
+  This follows the typical launching logic:
+  1. Read if the bigquery job already exists in gcp_resources
+     - If already exists, jump to step 3 and poll the job status. This happens
+     if the launcher container experienced unexpected termination, such as
+     preemption
+  2. Deserialize the payload into the job spec and create the bigquery job
+  3. Poll the bigquery job status every
+  job_remote_runner._POLLING_INTERVAL_IN_SECONDS seconds
+     - If the bigquery job is succeeded, return succeeded
+     - If the bigquery job is pending/running, continue polling the status
+
+  Also retry on ConnectionError up to
+  job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
+
+
+  Args:
+      type: BigQuery ML.ARIMA_EVALUATE job type.
+      project: Project to launch the query job.
+      location: location to launch the query job. For more details, see
+        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      model_name: BigQuery ML model name for prediction. For more details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#predict_model_name
+      show_all_candidate_models: You can use show_all_candidate_models to show
+        evaluation metrics or an error message for either all candidate models
+        or for only the best model with the lowest AIC. For more details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-arima-evaluate#show_all_candidate_models
+      payload: A json serialized Job proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
+      job_configuration_query_override: A json serialized JobConfigurationQuery
+        proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      gcp_resources: File path for storing `gcp_resources` output parameter.
+      executor_input:A json serialized pipeline executor input.
+  """
+  if show_all_candidate_models:
+    show_all_candidate_models_sql = ', STRUCT(%s AS show_all_candidate_models)' % show_all_candidate_models
+
+  job_configuration_query_override_json = json.loads(
+      job_configuration_query_override, strict=False)
+  job_configuration_query_override_json[
+      'query'] = 'SELECT * FROM ML.ARIMA_EVALUATE(MODEL %s%s)' % (
+          _back_quoted_if_needed(model_name), show_all_candidate_models_sql)
+
+  creds, _ = google.auth.default()
+  job_uri = _check_if_job_exists(gcp_resources)
+  if job_uri is None:
+    job_uri = _create_query_job(
+        project, location, payload,
+        json.dumps(job_configuration_query_override_json), creds, gcp_resources)
+
+  # Poll bigquery job status until finished.
+  job = _poll_job(job_uri, creds)
+  logging.info('Getting query result for job ' + job['id'])
+  _, job_id = job['id'].split('.')
+  query_results = _get_query_results(project, job_id, location, creds)
+  artifact_util.update_output_artifact(
+      executor_input, 'arima_evaluation_metrics', '', {
+          _ARTIFACT_PROPERTY_KEY_SCHEMA:
+              query_results[_ARTIFACT_PROPERTY_KEY_SCHEMA],
+          _ARTIFACT_PROPERTY_KEY_ROWS:
+              query_results[_ARTIFACT_PROPERTY_KEY_ROWS]
+      })
+
+
 def bigquery_evaluate_model_job(
     type,
     project,
@@ -1148,6 +1225,63 @@ def bigquery_ml_advanced_weights_job(
       })
 
 
+def bigquery_ml_arima_coefficients(
+    type,
+    project,
+    location,
+    model_name,
+    payload,
+    job_configuration_query_override,
+    gcp_resources,
+    executor_input,
+):
+  """Create and poll bigquery ML.ARIMA_COEFFICIENTS job till it reaches a final state.
+
+  The launching logic is the same as bigquery_{predict|evaluate}_model_job.
+
+  Args:
+      type: BigQuery ML.ARIMA_COEFFICIENTS job type.
+      project: Project to launch the query job.
+      location: location to launch the query job. For more details, see
+        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      model_name: BigQuery ML model name for ML.ARIMA_COEFFICIENTS. For more
+        details, see
+      https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-arima-coefficients
+      payload: A json serialized Job proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
+      job_configuration_query_override: A json serialized JobConfigurationQuery
+        proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      gcp_resources: File path for storing `gcp_resources` output parameter.
+      executor_input:A json serialized pipeline executor input.
+  """
+  job_configuration_query_override_json = json.loads(
+      job_configuration_query_override, strict=False)
+  job_configuration_query_override_json[
+      'query'] = 'SELECT * FROM ML.ARIMA_COEFFICIENTS(MODEL %s)' % (
+          _back_quoted_if_needed(model_name))
+
+  creds, _ = google.auth.default()
+  job_uri = _check_if_job_exists(gcp_resources)
+  if job_uri is None:
+    job_uri = _create_query_job(
+        project, location, payload,
+        json.dumps(job_configuration_query_override_json), creds, gcp_resources)
+
+  # Poll bigquery job status until finished.
+  job = _poll_job(job_uri, creds)
+  logging.info('Getting query result for job ' + job['id'])
+  _, job_id = job['id'].split('.')
+  query_results = _get_query_results(project, job_id, location, creds)
+  artifact_util.update_output_artifact(
+      executor_input, 'arima_coefficients', '', {
+          _ARTIFACT_PROPERTY_KEY_SCHEMA:
+              query_results[_ARTIFACT_PROPERTY_KEY_SCHEMA],
+          _ARTIFACT_PROPERTY_KEY_ROWS:
+              query_results[_ARTIFACT_PROPERTY_KEY_ROWS]
+      })
+
+
 def bigquery_ml_centroids_job(
     type,
     project,
@@ -1377,3 +1511,591 @@ def bigquery_ml_feature_info_job(
           _ARTIFACT_PROPERTY_KEY_ROWS:
               query_results[_ARTIFACT_PROPERTY_KEY_ROWS]
       })
+
+
+def bigquery_ml_roc_curve_job(
+    type,
+    project,
+    location,
+    model_name,
+    table_name,
+    query_statement,
+    thresholds,
+    payload,
+    job_configuration_query_override,
+    gcp_resources,
+    executor_input,
+):
+  """Create and poll bigquery roc curve job till it reaches a final state.
+
+  This follows the typical launching logic:
+  1. Read if the bigquery job already exists in gcp_resources
+     - If already exists, jump to step 3 and poll the job status. This happens
+     if the launcher container experienced unexpected termination, such as
+     preemption
+  2. Deserialize the payload into the job spec and create the bigquery job
+  3. Poll the bigquery job status every
+  job_remote_runner._POLLING_INTERVAL_IN_SECONDS seconds
+     - If the bigquery job is succeeded, return succeeded
+     - If the bigquery job is pending/running, continue polling the status
+
+  Also retry on ConnectionError up to
+  job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
+
+
+  Args:
+      type: BigQuery roc curve job type.
+      project: Project to launch the query job.
+      location: location to launch the query job. For more details, see
+        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      model_name: BigQuery ML model name for roc curve. For more details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-roc#roc_model_name
+      table_name: BigQuery table id of the input table that contains the
+        evaluation data. For more details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-roc#roc_table_name
+      query_statement: query statement string used to generate the evaluation
+        data. For more details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-roc#roc_query_statement
+      thresholds: Percentile values of the prediction output. For more details,
+        see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-roc#roc_thresholds
+      payload: A json serialized Job proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
+      job_configuration_query_override: A json serialized JobConfigurationQuery
+        proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      gcp_resources: File path for storing `gcp_resources` output parameter.
+      executor_input:A json serialized pipeline executor input.
+  """
+  if not (not query_statement) ^ (not table_name):
+    raise ValueError(
+        'Only and Only one of query_statment and table_name should be '
+        'populated for BigQuery roc curve job.')
+
+  input_data_sql = ''
+  if table_name:
+    input_data_sql = ', TABLE %s' % _back_quoted_if_needed(table_name)
+  if query_statement:
+    input_data_sql = ', (%s)' % query_statement
+
+  thresholds_sql = ''
+  if thresholds is not None and thresholds:
+    thresholds_sql = ', GENERATE_ARRAY(%s)' % thresholds
+
+  job_configuration_query_override_json = json.loads(
+      job_configuration_query_override, strict=False)
+  job_configuration_query_override_json[
+      'query'] = 'SELECT * FROM ML.ROC_CURVE(MODEL %s%s%s)' % (
+          _back_quoted_if_needed(model_name), input_data_sql, thresholds_sql)
+
+  # For ML roc curve job, as the returned results is the same as the
+  # number of input, which can be very large. In this case we would like to ask
+  # users to insert a destination table into the job config.
+  return bigquery_query_job(type, project, location, payload,
+                            json.dumps(job_configuration_query_override_json),
+                            gcp_resources, executor_input)
+
+
+def bigquery_ml_principal_components_job(
+    type,
+    project,
+    location,
+    model_name,
+    payload,
+    job_configuration_query_override,
+    gcp_resources,
+    executor_input,
+):
+  """Create and poll bigquery ML.principal_components job till it reaches a final state.
+
+  This follows the typical launching logic:
+  1. Read if the bigquery job already exists in gcp_resources
+     - If already exists, jump to step 3 and poll the job status. This happens
+     if the launcher container experienced unexpected termination, such as
+     preemption
+  2. Deserialize the payload into the job spec and create the bigquery job
+  3. Poll the bigquery job status every
+  job_remote_runner._POLLING_INTERVAL_IN_SECONDS seconds
+     - If the bigquery job is succeeded, return succeeded
+     - If the bigquery job is pending/running, continue polling the status
+
+  Also retry on ConnectionError up to
+  job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
+
+
+  Args:
+      type: BigQuery ML.principal_components job type.
+      project: Project to launch the query job.
+      location: location to launch the query job. For more details, see
+        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      model_name: BigQuery ML model name for ML.principal_components. For more
+        details, see
+      https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-principal-components#mlprincipal_components_syntax
+      payload: A json serialized Job proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
+      job_configuration_query_override: A json serialized JobConfigurationQuery
+        proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      gcp_resources: File path for storing `gcp_resources` output parameter.
+      executor_input:A json serialized pipeline executor input.
+  """
+
+  job_configuration_query_override_json = json.loads(
+      job_configuration_query_override, strict=False)
+  job_configuration_query_override_json[
+      'query'] = 'SELECT * FROM ML.PRINCIPAL_COMPONENTS(MODEL %s)' % (
+          _back_quoted_if_needed(model_name))
+
+  return bigquery_query_job(type, project, location, payload,
+                            json.dumps(job_configuration_query_override_json),
+                            gcp_resources, executor_input)
+
+
+def bigquery_ml_principal_component_info_job(
+    type,
+    project,
+    location,
+    model_name,
+    payload,
+    job_configuration_query_override,
+    gcp_resources,
+    executor_input,
+):
+  """Create and poll bigquery ML.principal_component_info job till it reaches a final state.
+
+  This follows the typical launching logic:
+  1. Read if the bigquery job already exists in gcp_resources
+     - If already exists, jump to step 3 and poll the job status. This happens
+     if the launcher container experienced unexpected termination, such as
+     preemption
+  2. Deserialize the payload into the job spec and create the bigquery job
+  3. Poll the bigquery job status every
+  job_remote_runner._POLLING_INTERVAL_IN_SECONDS seconds
+     - If the bigquery job is succeeded, return succeeded
+     - If the bigquery job is pending/running, continue polling the status
+
+  Also retry on ConnectionError up to
+  job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
+
+
+  Args:
+      type: BigQuery ML.principal_component_info job type.
+      project: Project to launch the query job.
+      location: location to launch the query job. For more details, see
+        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      model_name: BigQuery ML model name for ML.principal_component_info. For
+        more details, see
+      https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-principal-component-info#mlprincipal_component_info_syntax
+      payload: A json serialized Job proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
+      job_configuration_query_override: A json serialized JobConfigurationQuery
+        proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      gcp_resources: File path for storing `gcp_resources` output parameter.
+      executor_input:A json serialized pipeline executor input.
+  """
+
+  job_configuration_query_override_json = json.loads(
+      job_configuration_query_override, strict=False)
+  job_configuration_query_override_json[
+      'query'] = 'SELECT * FROM ML.PRINCIPAL_COMPONENT_INFO(MODEL %s)' % (
+          _back_quoted_if_needed(model_name))
+
+  return bigquery_query_job(type, project, location, payload,
+                            json.dumps(job_configuration_query_override_json),
+                            gcp_resources, executor_input)
+
+
+def bigquery_ml_feature_importance_job(
+    type,
+    project,
+    location,
+    model_name,
+    payload,
+    job_configuration_query_override,
+    gcp_resources,
+    executor_input,
+):
+  """Create and poll bigquery feature importance job till it reaches a final state.
+
+  This follows the typical launching logic:
+  1. Read if the bigquery job already exists in gcp_resources
+     - If already exists, jump to step 3 and poll the job status. This happens
+     if the launcher container experienced unexpected termination, such as
+     preemption
+  2. Deserialize the payload into the job spec and create the bigquery job
+  3. Poll the bigquery job status every
+  job_remote_runner._POLLING_INTERVAL_IN_SECONDS seconds
+     - If the bigquery job is succeeded, return succeeded
+     - If the bigquery job is pending/running, continue polling the status
+
+  Also retry on ConnectionError up to
+  job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
+
+
+  Args:
+      type: BigQuery feature importance job type.
+      project: Project to launch the query job.
+      location: location to launch the query job. For more details, see
+        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      model_name: BigQuery ML model name for prediction. For more details, see
+      https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#predict_model_name
+  """
+  job_configuration_query_override_json = json.loads(
+      job_configuration_query_override, strict=False)
+  job_configuration_query_override_json[
+      'query'] = 'SELECT * FROM ML.FEATURE_IMPORTANCE(MODEL %s)' % (
+          _back_quoted_if_needed(model_name))
+
+  creds, _ = google.auth.default()
+  job_uri = _check_if_job_exists(gcp_resources)
+  if job_uri is None:
+    job_uri = _create_query_job(
+        project, location, payload,
+        json.dumps(job_configuration_query_override_json), creds, gcp_resources)
+
+  # Poll bigquery job status until finished.
+  job = _poll_job(job_uri, creds)
+  logging.info('Getting query result for job ' + job['id'])
+  _, job_id = job['id'].split('.')
+  query_results = _get_query_results(project, job_id, location, creds)
+  artifact_util.update_output_artifact(
+      executor_input, 'feature_importance', '', {
+          _ARTIFACT_PROPERTY_KEY_SCHEMA:
+              query_results[_ARTIFACT_PROPERTY_KEY_SCHEMA],
+          _ARTIFACT_PROPERTY_KEY_ROWS:
+              query_results[_ARTIFACT_PROPERTY_KEY_ROWS]
+      })
+
+
+def bigquery_ml_global_explain_job(
+    type,
+    project,
+    location,
+    model_name,
+    payload,
+    class_level_explain,
+    job_configuration_query_override,
+    gcp_resources,
+    executor_input,
+):
+  """Create and poll bigquery global explain job till it reaches a final state.
+
+  This follows the typical launching logic:
+  1. Read if the bigquery job already exists in gcp_resources
+     - If already exists, jump to step 3 and poll the job status. This happens
+     if the launcher container experienced unexpected termination, such as
+     preemption
+  2. Deserialize the payload into the job spec and create the bigquery job
+  3. Poll the bigquery job status every
+  job_remote_runner._POLLING_INTERVAL_IN_SECONDS seconds
+     - If the bigquery job is succeeded, return succeeded
+     - If the bigquery job is pending/running, continue polling the status
+
+  Also retry on ConnectionError up to
+  job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
+
+
+  Args:
+      type: BigQuery global explain job type.
+      project: Project to launch the query job.
+      location: location to launch the query job. For more details, see
+        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      model_name: BigQuery ML model name for prediction. For more details, see
+      https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#predict_model_name
+  """
+  job_configuration_query_override_json = json.loads(
+      job_configuration_query_override, strict=False)
+  job_configuration_query_override_json[
+      'query'] = 'SELECT * FROM ML.GLOBAL_EXPLAIN(MODEL %s, STRUCT(TRUE AS class_level_explain))' % (
+          _back_quoted_if_needed(model_name))
+  return bigquery_query_job(type, project, location, payload,
+                            json.dumps(job_configuration_query_override_json),
+                            gcp_resources, executor_input)
+
+
+def bigquery_ml_recommend_job(
+    type,
+    project,
+    location,
+    model_name,
+    table_name,
+    query_statement,
+    payload,
+    job_configuration_query_override,
+    gcp_resources,
+    executor_input,
+):
+  """Create and poll bigquery ML Recommend job till it reaches a final state.
+
+  This follows the typical launching logic:
+  1. Read if the bigquery job already exists in gcp_resources
+     - If already exists, jump to step 3 and poll the job status. This happens
+     if the launcher container experienced unexpected termination, such as
+     preemption
+  2. Deserialize the payload into the job spec and create the bigquery job
+  3. Poll the bigquery job status every
+  job_remote_runner._POLLING_INTERVAL_IN_SECONDS seconds
+     - If the bigquery job is succeeded, return succeeded
+     - If the bigquery job is pending/running, continue polling the status
+
+  Also retry on ConnectionError up to
+  job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
+
+
+  Args:
+      type: BigQuery model ML Recommend job type.
+      project: Project to launch the query job.
+      location: location to launch the query job. For more details, see
+        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      model_name: BigQuery ML model name for recommendation evaluation. For more
+        details, see
+      https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-recommend#recommend_model_name
+      table_name: BigQuery table id of the input table that contains the user
+        and/or item data. For more details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-recommend#recommend_table_name
+      query_statement: query statement string used to generate the evaluation
+        data. For more details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-recommend#recommend_query_statement
+      payload: A json serialized Job proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
+      job_configuration_query_override: A json serialized JobConfigurationQuery
+        proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      gcp_resources: File path for storing `gcp_resources` output parameter.
+      executor_input:A json serialized pipeline executor input.
+  """
+  if query_statement and table_name:
+    raise ValueError('At most one of query_statment and table_name should be '
+                     'populated for BigQuery ML Recommend job.')
+
+  input_data_sql = ''
+  if table_name:
+    input_data_sql = ', TABLE %s' % _back_quoted_if_needed(table_name)
+  if query_statement:
+    input_data_sql = ', (%s)' % query_statement
+
+  job_configuration_query_override_json = json.loads(
+      job_configuration_query_override, strict=False)
+  job_configuration_query_override_json[
+      'query'] = 'SELECT * FROM ML.RECOMMEND(MODEL %s%s)' % (
+          _back_quoted_if_needed(model_name), input_data_sql)
+
+  return bigquery_query_job(type, project, location, payload,
+                            json.dumps(job_configuration_query_override_json),
+                            gcp_resources, executor_input)
+
+
+def bigquery_explain_forecast_model_job(
+    type,
+    project,
+    location,
+    model_name,
+    horizon,
+    confidence_level,
+    payload,
+    job_configuration_query_override,
+    gcp_resources,
+    executor_input,
+):
+  """Create and poll bigquery ML.EXPLAIN_FORECAST job till it reaches a final state.
+
+  The launching logic is the same as bigquery_{predict|evaluate}_model_job.
+
+  Args:
+      type: BigQuery ML.EXPLAIN_FORECAST job type.
+      project: Project to launch the query job.
+      location: location to launch the query job. For more details, see
+        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      model_name: BigQuery ML model name for ML.EXPLAIN_FORECAST. For more
+        details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-forecast
+      horizon: Horizon is the number of time points to forecast. For more
+        details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-forecast#horizon
+      confidence_level: The percentage of the future values that fall in the
+        prediction interval. For more details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-forecast#confidence_level
+      payload: A json serialized Job proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
+      job_configuration_query_override: A json serialized JobConfigurationQuery
+        proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      gcp_resources: File path for storing `gcp_resources` output parameter.
+      executor_input:A json serialized pipeline executor input.
+  """
+  settings_field_sql_list = []
+  if horizon is not None and horizon > 0:
+    settings_field_sql_list.append('%s AS horizon' % horizon)
+
+  if confidence_level is not None and confidence_level >= 0.0 and confidence_level < 1.0:
+    settings_field_sql_list.append('%s AS confidence_level' % confidence_level)
+
+  settings_field_sql = ','.join(settings_field_sql_list)
+  settings_sql = ', STRUCT(%s)' % settings_field_sql
+
+  job_configuration_query_override_json = json.loads(
+      job_configuration_query_override, strict=False)
+  job_configuration_query_override_json[
+      'query'] = 'SELECT * FROM ML.EXPLAIN_FORECAST(MODEL %s %s)' % (
+          _back_quoted_if_needed(model_name), settings_sql)
+
+  return bigquery_query_job(type, project, location, payload,
+                            json.dumps(job_configuration_query_override_json),
+                            gcp_resources, executor_input)
+
+
+def bigquery_forecast_model_job(
+    type,
+    project,
+    location,
+    model_name,
+    horizon,
+    confidence_level,
+    payload,
+    job_configuration_query_override,
+    gcp_resources,
+    executor_input,
+):
+  """Create and poll bigquery ML.FORECAST job till it reaches a final state.
+
+  The launching logic is the same as bigquery_{predict|evaluate}_model_job.
+
+  Args:
+      type: BigQuery ML.FORECAST job type.
+      project: Project to launch the query job.
+      location: location to launch the query job. For more details, see
+        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      model_name: BigQuery ML model name for ML.FORECAST. For more details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-forecast
+      horizon: Horizon is the number of time points to forecast. For more
+        details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-forecast#horizon
+      confidence_level: The percentage of the future values that fall in the
+        prediction interval. For more details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-forecast#confidence_level
+      payload: A json serialized Job proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
+      job_configuration_query_override: A json serialized JobConfigurationQuery
+        proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      gcp_resources: File path for storing `gcp_resources` output parameter.
+      executor_input:A json serialized pipeline executor input.
+  """
+  settings_field_sql_list = []
+  if horizon is not None and horizon > 0:
+    settings_field_sql_list.append('%s AS horizon' % horizon)
+
+  if confidence_level is not None and confidence_level >= 0.0 and confidence_level < 1.0:
+    settings_field_sql_list.append('%s AS confidence_level' % confidence_level)
+
+  settings_field_sql = ','.join(settings_field_sql_list)
+  settings_sql = ', STRUCT(%s)' % settings_field_sql
+
+  job_configuration_query_override_json = json.loads(
+      job_configuration_query_override, strict=False)
+  job_configuration_query_override_json[
+      'query'] = 'SELECT * FROM ML.FORECAST(MODEL %s %s)' % (
+          _back_quoted_if_needed(model_name), settings_sql)
+
+  return bigquery_query_job(type, project, location, payload,
+                            json.dumps(job_configuration_query_override_json),
+                            gcp_resources, executor_input)
+
+
+def bigquery_detect_anomalies_model_job(
+    type,
+    project,
+    location,
+    model_name,
+    table_name,
+    query_statement,
+    contamination,
+    anomaly_prob_threshold,
+    payload,
+    job_configuration_query_override,
+    gcp_resources,
+    executor_input,
+):
+  """Create and poll bigquery detect anomalies model job till it reaches a final state.
+
+  This follows the typical launching logic:
+  1. Read if the bigquery job already exists in gcp_resources
+     - If already exists, jump to step 3 and poll the job status. This happens
+     if the launcher container experienced unexpected termination, such as
+     preemption
+  2. Deserialize the payload into the job spec and create the bigquery job
+  3. Poll the bigquery job status every
+  job_remote_runner._POLLING_INTERVAL_IN_SECONDS seconds
+     - If the bigquery job is succeeded, return succeeded
+     - If the bigquery job is pending/running, continue polling the status
+
+  Also retry on ConnectionError up to
+  job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
+
+
+  Args:
+      type: BigQuery model detect anomalies job type.
+      project: Project to launch the query job.
+      location: location to launch the query job. For more details, see
+        https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      model_name: BigQuery ML model name for generating detected anomalies. For
+        more details, see
+      https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-detect-anomalies#model_name
+      table_name: BigQuery table id of the input table that contains the
+        prediction data. For more details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-detect-anomalies#table_name
+      query_statement: query statement string used to generate the prediction
+        data. For more details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-detect-anomalies#query_statement
+      contamination: contamination is the proportion of anomalies in the
+        training dataset that are used to create the AUTOENCODER, KMEANS, or PCA
+        input models. For more details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-detect-anomalies#contamination
+      anomaly_prob_threshold: The ARIMA_PLUS model supports the
+        anomaly_prob_threshold custom threshold for anomaly detection. The value
+        of the anomaly probability at each timestamp is calculated using the
+        actual time-series data value and the values of the predicted
+        time-series data and the variance from the model training. The actual
+        time-series data value at a specific timestamp is identified as
+        anomalous if the anomaly probability exceeds the anomaly_prob_threshold
+        value. For more details, see
+        https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-detect-anomalies#anomaly_prob_threshold
+      payload: A json serialized Job proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
+      job_configuration_query_override: A json serialized JobConfigurationQuery
+        proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+      gcp_resources: File path for storing `gcp_resources` output parameter.
+      executor_input: A json serialized pipeline executor input.
+  """
+  settings_field_sql_list = []
+  if contamination is not None and contamination >= 0.0 and contamination <= 0.5:
+    settings_field_sql_list.append('%s AS contamination' % contamination)
+
+  if anomaly_prob_threshold is not None and anomaly_prob_threshold > 0.0 and anomaly_prob_threshold < 1.0:
+    settings_field_sql_list.append('%s AS anomaly_prob_threshold' %
+                                   anomaly_prob_threshold)
+
+  settings_field_sql = ','.join(settings_field_sql_list)
+
+  job_configuration_query_override_json = json.loads(
+      job_configuration_query_override, strict=False)
+
+  if query_statement or table_name:
+    input_data_sql = ('TABLE %s' % _back_quoted_if_needed(table_name)
+                      if table_name else '(%s)' % query_statement)
+    settings_sql = ' STRUCT(%s), ' % settings_field_sql
+    job_configuration_query_override_json[
+        'query'] = 'SELECT * FROM ML.DETECT_ANOMALIES(MODEL `%s`, %s%s)' % (
+            model_name, settings_sql, input_data_sql)
+  else:
+    settings_sql = ' STRUCT(%s)' % settings_field_sql
+    job_configuration_query_override_json[
+        'query'] = 'SELECT * FROM ML.DETECT_ANOMALIES(MODEL `%s`, %s)' % (
+            model_name, settings_sql)
+
+  # TODO(mingge): check if model is a valid BigQuery model resource.
+  return bigquery_query_job(type, project, location, payload,
+                            json.dumps(job_configuration_query_override_json),
+                            gcp_resources, executor_input)
