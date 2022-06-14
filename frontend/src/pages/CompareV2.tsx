@@ -31,6 +31,7 @@ import {
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
 import { ArtifactType, Execution } from 'src/third_party/mlmd';
+import { stylesheet } from 'typestyle';
 import { PageProps } from './Page';
 
 interface RunExecutions {
@@ -55,6 +56,18 @@ enum MetricsType {
   HTML,
   MARKDOWN,
 }
+
+const css = stylesheet({
+  smallIndent: {
+    marginLeft: '0.5rem',
+  },
+  mediumIndent: {
+    marginLeft: '1rem',
+  },
+  largeIndent: {
+    marginLeft: '2rem',
+  },
+});
 
 function filterRunArtifactsByType(
   runArtifacts: RunArtifacts[],
@@ -104,6 +117,44 @@ function filterRunArtifactsByType(
     }
   }
   return typeRuns;
+}
+
+function displayMetricsFromRunArtifacts(runArtifacts: RunArtifacts[]) {
+  return runArtifacts.length === 0 ? (
+    <p>There are no artifacts of this type.</p>
+  ) : (
+    runArtifacts.map(x => {
+      return (
+        <div className={css.smallIndent}>
+          <p>{x.run?.run?.name}</p>
+          {x.executionArtifacts.map(y => {
+            return (
+              <div className={css.mediumIndent}>
+                <p>
+                  {y.execution
+                    .getCustomPropertiesMap()
+                    .get('display_name')
+                    ?.getStringValue()}
+                </p>
+                <div className={css.largeIndent}>
+                  {y.linkedArtifacts.map(z => {
+                    return (
+                      <p>
+                        {z.event
+                          .getPath()
+                          ?.getStepsList()[0]
+                          .getKey()}
+                      </p>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      );
+    })
+  );
 }
 
 function CompareV2(props: PageProps) {
@@ -252,6 +303,20 @@ function CompareV2(props: PageProps) {
   return (
     <div className={commonCss.page}>
       <p>This is the V2 Run Comparison page.</p>
+      <div>Scalar Metrics</div>
+      {displayMetricsFromRunArtifacts(scalarMetricsArtifacts)}
+      <br />
+      <div>Confusion Matrices</div>
+      {displayMetricsFromRunArtifacts(confusionMatrixArtifacts)}
+      <br />
+      <div>ROC Curves</div>
+      {displayMetricsFromRunArtifacts(rocCurveArtifacts)}
+      <br />
+      <div>HTML</div>
+      {displayMetricsFromRunArtifacts(htmlArtifacts)}
+      <br />
+      <div>Markdown</div>
+      {displayMetricsFromRunArtifacts(markdownArtifacts)}
     </div>
   );
 }
