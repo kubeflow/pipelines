@@ -23,7 +23,6 @@ import { Apis } from 'src/lib/Apis';
 import { URLParser } from 'src/lib/URLParser';
 import { errorToMessage } from 'src/lib/Utils';
 import {
-  filterLinkedArtifactsByType,
   getArtifactTypes,
   getExecutionsFromContext,
   getKfpV2RunContext,
@@ -31,7 +30,6 @@ import {
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
 import { ArtifactType, Execution } from 'src/third_party/mlmd';
-import { stylesheet } from 'typestyle';
 import { PageProps } from './Page';
 
 interface RunExecutions {
@@ -47,115 +45,6 @@ interface ExecutionArtifacts {
 interface RunArtifacts {
   run: ApiRunDetail;
   executionArtifacts: ExecutionArtifacts[];
-}
-
-enum MetricsType {
-  SCALAR_METRICS,
-  CONFUSION_MATRIX,
-  ROC_CURVE,
-  HTML,
-  MARKDOWN,
-}
-
-const css = stylesheet({
-  smallIndent: {
-    marginLeft: '0.5rem',
-  },
-  mediumIndent: {
-    marginLeft: '1rem',
-  },
-  largeIndent: {
-    marginLeft: '2rem',
-  },
-});
-
-// Include only the runs and executions which have artifacts of the specified type.
-function filterRunArtifactsByType(
-  runArtifacts: RunArtifacts[],
-  artifactTypes: ArtifactType[],
-  metricsType: MetricsType,
-): RunArtifacts[] {
-  const metricsFilter =
-    metricsType === MetricsType.SCALAR_METRICS
-      ? 'system.Metrics'
-      : metricsType === MetricsType.CONFUSION_MATRIX || metricsType === MetricsType.ROC_CURVE
-      ? 'system.ClassificationMetrics'
-      : metricsType === MetricsType.HTML
-      ? 'system.HTML'
-      : metricsType === MetricsType.MARKDOWN
-      ? 'system.Markdown'
-      : '';
-  const typeRuns: RunArtifacts[] = [];
-  for (const runArtifact of runArtifacts) {
-    const typeExecutions: ExecutionArtifacts[] = [];
-    for (const e of runArtifact.executionArtifacts) {
-      let typeArtifacts: LinkedArtifact[] = filterLinkedArtifactsByType(
-        metricsFilter,
-        artifactTypes,
-        e.linkedArtifacts,
-      );
-      if (metricsType === MetricsType.CONFUSION_MATRIX) {
-        typeArtifacts = typeArtifacts.filter(x =>
-          x.artifact.getCustomPropertiesMap().has('confusionMatrix'),
-        );
-      } else if (metricsType === MetricsType.ROC_CURVE) {
-        typeArtifacts = typeArtifacts.filter(x =>
-          x.artifact.getCustomPropertiesMap().has('confidenceMetrics'),
-        );
-      }
-      if (typeArtifacts.length > 0) {
-        typeExecutions.push({
-          execution: e.execution,
-          linkedArtifacts: typeArtifacts,
-        } as ExecutionArtifacts);
-      }
-    }
-    if (typeExecutions.length > 0) {
-      typeRuns.push({
-        run: runArtifact.run,
-        executionArtifacts: typeExecutions,
-      } as RunArtifacts);
-    }
-  }
-  return typeRuns;
-}
-
-function displayMetricsFromRunArtifacts(runArtifacts: RunArtifacts[]) {
-  return runArtifacts.length === 0 ? (
-    <p>There are no artifacts of this type.</p>
-  ) : (
-    runArtifacts.map(x => {
-      return (
-        <div className={css.smallIndent}>
-          <p>{x.run?.run?.name}</p>
-          {x.executionArtifacts.map(y => {
-            return (
-              <div className={css.mediumIndent}>
-                <p>
-                  {y.execution
-                    .getCustomPropertiesMap()
-                    .get('display_name')
-                    ?.getStringValue()}
-                </p>
-                {y.linkedArtifacts.map(z => {
-                  return (
-                    <div className={css.largeIndent}>
-                      <p>
-                        {z.event
-                          .getPath()
-                          ?.getStepsList()[0]
-                          .getKey()}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-      );
-    })
-  );
 }
 
 function CompareV2(props: PageProps) {
@@ -239,63 +128,15 @@ function CompareV2(props: PageProps) {
     { staleTime: Infinity },
   );
 
-  // artifactTypes allows us to map from artifactIds to artifactTypeNames,
-  // so we can identify metrics artifact provided by system.
-  const { data: artifactTypes } = useQuery<ArtifactType[], Error>(
-    ['artifact_types', {}],
-    () => getArtifactTypes(),
-    {
-      staleTime: Infinity,
-    },
-  );
-
   if (!runArtifacts) {
     return <></>;
   }
 
-  if (!artifactTypes) {
-    return <></>;
-  }
-
-  const scalarMetricsArtifacts = filterRunArtifactsByType(
-    runArtifacts,
-    artifactTypes,
-    MetricsType.SCALAR_METRICS,
-  );
-  const confusionMatrixArtifacts = filterRunArtifactsByType(
-    runArtifacts,
-    artifactTypes,
-    MetricsType.CONFUSION_MATRIX,
-  );
-  const rocCurveArtifacts = filterRunArtifactsByType(
-    runArtifacts,
-    artifactTypes,
-    MetricsType.ROC_CURVE,
-  );
-  const htmlArtifacts = filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML);
-  const markdownArtifacts = filterRunArtifactsByType(
-    runArtifacts,
-    artifactTypes,
-    MetricsType.MARKDOWN,
-  );
+  console.log(runArtifacts);
 
   return (
     <div className={commonCss.page}>
       <p>This is the V2 Run Comparison page.</p>
-      <div>Scalar Metrics</div>
-      {displayMetricsFromRunArtifacts(scalarMetricsArtifacts)}
-      <br />
-      <div>Confusion Matrices</div>
-      {displayMetricsFromRunArtifacts(confusionMatrixArtifacts)}
-      <br />
-      <div>ROC Curves</div>
-      {displayMetricsFromRunArtifacts(rocCurveArtifacts)}
-      <br />
-      <div>HTML</div>
-      {displayMetricsFromRunArtifacts(htmlArtifacts)}
-      <br />
-      <div>Markdown</div>
-      {displayMetricsFromRunArtifacts(markdownArtifacts)}
     </div>
   );
 }
