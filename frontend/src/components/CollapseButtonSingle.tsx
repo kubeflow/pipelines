@@ -36,13 +36,13 @@ const css = stylesheet({
   },
 });
 
-interface CollapseButtonProps {
+interface CollapseButtonSingleProps {
   collapseSection: boolean;
   collapseSectionUpdate: (collapseSection: boolean) => void;
   sectionName: string;
 }
 
-function CollapseButton(props: CollapseButtonProps) {
+function CollapseButtonSingle(props: CollapseButtonSingleProps) {
   const { collapseSection, collapseSectionUpdate, sectionName } = props;
 
   return (
@@ -61,4 +61,4 @@ function CollapseButton(props: CollapseButtonProps) {
   );
 }
 
-export default CollapseButton;
+export default CollapseButtonSingle;

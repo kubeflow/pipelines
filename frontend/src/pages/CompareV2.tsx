@@ -19,7 +19,7 @@ import { useQuery } from 'react-query';
 import { ApiRunDetail } from 'src/apis/run';
 import Hr from 'src/atoms/Hr';
 import Separator from 'src/atoms/Separator';
-import CollapseButton from 'src/components/CollapseButtonSingle';
+import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
@@ -121,7 +121,7 @@ function CompareV2(props: PageProps) {
   return (
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
       {/* Overview section */}
-      <CollapseButton
+      <CollapseButtonSingle
         sectionName={OVERVIEW_SECTION_NAME}
         collapseSection={isOverviewCollapsed}
         collapseSectionUpdate={setIsOverviewCollapsed}
@@ -143,7 +143,7 @@ function CompareV2(props: PageProps) {
       <Separator orientation='vertical' />
 
       {/* Parameters section */}
-      <CollapseButton
+      <CollapseButtonSingle
         sectionName={PARAMS_SECTION_NAME}
         collapseSection={isParamsCollapsed}
         collapseSectionUpdate={setIsParamsCollapsed}
@@ -157,7 +157,7 @@ function CompareV2(props: PageProps) {
       )}
 
       {/* Metrics section */}
-      <CollapseButton
+      <CollapseButtonSingle
         sectionName={METRICS_SECTION_NAME}
         collapseSection={isMetricsCollapsed}
         collapseSectionUpdate={setIsMetricsCollapsed}
