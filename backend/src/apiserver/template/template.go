@@ -107,7 +107,7 @@ func isArgoWorkflow(template []byte) bool {
 // isPipelineSpec returns whether template is in KFP api/v2alpha1/PipelineSpec format.
 func isPipelineSpec(template []byte) bool {
 	var jsonRaw json.RawMessage
-	if json.Unmarshal(template, &jsonRaw) != nil {
+	if json.Unmarshal(template, &jsonRaw) == nil {
 		return false
 	}
 
