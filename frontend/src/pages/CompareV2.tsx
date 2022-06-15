@@ -94,6 +94,7 @@ function CompareV2(props: PageProps) {
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       pageTitle: 'Compare runs',
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [updateToolbar, refetch]);
 
   useEffect(() => {
