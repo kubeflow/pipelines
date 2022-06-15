@@ -31,11 +31,6 @@ import {
 import { Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
 
-interface RunExecutions {
-  run: ApiRunDetail;
-  executions: Execution[];
-}
-
 interface ExecutionArtifacts {
   execution: Execution;
   linkedArtifacts: LinkedArtifact[];
@@ -68,9 +63,9 @@ function CompareV2(props: PageProps) {
     },
   );
 
-  // Retrieves MLMD states from the MLMD store.
-  const { data: runExecutions } = useQuery<RunExecutions[], Error>(
-    ['run_executions', { runIds, runs }],
+  // Retrieves MLMD states (executions and linked artifacts) from the MLMD store.
+  const { data: runArtifacts } = useQuery<RunArtifacts[], Error>(
+    ['run_artifacts', { runIds, runs }],
     () => {
       if (runs) {
         return Promise.all(
@@ -78,9 +73,17 @@ function CompareV2(props: PageProps) {
             const context = await getKfpV2RunContext(r);
             const executions = await getExecutionsFromContext(context);
 
+            const executionArtifacts = await Promise.all(executions.map(async execution => {
+              const linkedArtifacts = await getOutputLinkedArtifactsInExecution(execution);
+              return {
+                execution,
+                linkedArtifacts,
+              } as ExecutionArtifacts;
+            }));
+
             return {
               run: runs[index],
-              executions,
+              executionArtifacts,
             };
           }),
         );
@@ -97,34 +100,6 @@ function CompareV2(props: PageProps) {
         }),
       onSuccess: () => props.updateBanner({}),
     },
-  );
-
-  // Retrieving a list of artifacts associated with each execution.
-  const { data: runArtifacts } = useQuery<RunArtifacts[], Error>(
-    ['run_artifacts', { runExecutions }],
-    () => {
-      if (runExecutions) {
-        return Promise.all(
-          runExecutions.map(async runExecution => {
-            const executionArtifacts = await Promise.all(
-              runExecution.executions.map(async execution => {
-                const linkedArtifacts = await getOutputLinkedArtifactsInExecution(execution);
-                return {
-                  execution,
-                  linkedArtifacts,
-                } as ExecutionArtifacts;
-              }),
-            );
-            return {
-              run: runExecution.run,
-              executionArtifacts,
-            } as RunArtifacts;
-          }),
-        );
-      }
-      return [];
-    },
-    { staleTime: Infinity },
   );
 
   console.log(runArtifacts);

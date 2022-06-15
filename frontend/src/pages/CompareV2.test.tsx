@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { testBestPractices } from 'src/TestUtils';
@@ -189,13 +189,23 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    expect(getContextSpy).toHaveBeenCalledWith(expect.objectContaining({ array: ['system.PipelineRun', MOCK_RUN_1_ID] }));
-    expect(getContextSpy).toHaveBeenCalledWith(expect.objectContaining({ array: ['system.PipelineRun', MOCK_RUN_2_ID] }));
-    expect(getContextSpy).toHaveBeenCalledWith(expect.objectContaining({ array: ['system.PipelineRun', MOCK_RUN_3_ID] }));
+    await waitFor(() => {
+      expect(getContextSpy).toHaveBeenCalledWith(expect.objectContaining({ array: ['system.PipelineRun', MOCK_RUN_1_ID] }));
+      expect(getContextSpy).toHaveBeenCalledWith(expect.objectContaining({ array: ['system.PipelineRun', MOCK_RUN_2_ID] }));
+      expect(getContextSpy).toHaveBeenCalledWith(expect.objectContaining({ array: ['system.PipelineRun', MOCK_RUN_3_ID] }));
 
-    expect(getExecutionsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [1] }));
-    expect(getExecutionsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [2] }));
-    expect(getExecutionsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [3] }));
+      expect(getExecutionsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [1] }));
+      expect(getExecutionsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [2] }));
+      expect(getExecutionsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [3] }));
+
+      expect(getEventsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[1]] }));
+      expect(getEventsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[2]] }));
+      expect(getEventsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[3]] }));
+
+      expect(getArtifactsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[1]] }));
+      expect(getArtifactsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[2]] }));
+      expect(getArtifactsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[3]] }));
+    });
   });
 
   it('Render Compare v2 page', async () => {
