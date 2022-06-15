@@ -17,7 +17,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
-import { testBestPractices } from 'src/TestUtils';
+import TestUtils, { testBestPractices } from 'src/TestUtils';
 import {
   Artifact,
   Context,
@@ -39,7 +39,6 @@ import CompareV2 from './CompareV2';
 import { QUERY_PARAMS } from 'src/components/Router';
 import { PageProps } from './Page';
 import { ApiRunDetail } from 'src/apis/run';
-import TestUtils from 'src/TestUtils';
 
 testBestPractices();
 describe('CompareV2', () => {
