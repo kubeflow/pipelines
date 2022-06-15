@@ -124,10 +124,18 @@ describe('CompareV2', () => {
     expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_3_ID);
   });
 
-  it('Failed MLMD request create error banner', async () => {
+  it('Show page error on page when getRun request fails', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
-    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    runs = [
+      newMockRun(MOCK_RUN_1_ID, true),
+      newMockRun(MOCK_RUN_2_ID, true),
+      newMockRun(MOCK_RUN_3_ID, true),
+    ];
+    getRunSpy.mockImplementation(_ => {
+      throw {
+        text: () => Promise.resolve('test error'),
+      };
+    });
 
     render(
       <CommonTestWrapper>
@@ -136,15 +144,13 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    await waitFor(() => {
+    await waitFor(() =>
       expect(updateBannerSpy).toHaveBeenLastCalledWith({
-        additionalInfo:
-          'Cannot find context with '
-          + '{"typeName":"system.PipelineRun","contextName":"mock-run-1-id"}: Incomplete response',
-        message: 'Cannot get MLMD objects from Metadata store.',
+        additionalInfo: 'test error',
+        message: 'Error: failed loading 3 runs. Click Details for more information.',
         mode: 'error',
-      });
-    });
+      }),
+    );
   });
 
   it('Successful MLMD requests clear the banner', async () => {
@@ -236,7 +242,30 @@ describe('CompareV2', () => {
       expect(getArtifactsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[2]] }));
       expect(getArtifactsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[3]] }));
 
-      expect(updateBannerSpy).toHaveBeenLastCalledWith({})
+      expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+    });
+  });
+
+  it('Failed MLMD request create error banner', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    await waitFor(() => {
+      expect(updateBannerSpy).toHaveBeenLastCalledWith({
+        additionalInfo:
+          'Cannot find context with ' +
+          '{"typeName":"system.PipelineRun","contextName":"mock-run-1-id"}: Incomplete response',
+        message: 'Cannot get MLMD objects from Metadata store.',
+        mode: 'error',
+      });
     });
   });
 
