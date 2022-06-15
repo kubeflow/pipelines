@@ -11,13 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import ast
 import dataclasses
 import inspect
 import itertools
 import pathlib
 import re
+import sys
 import textwrap
-from typing import Callable, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 import warnings
 
 import docstring_parser
@@ -29,6 +31,7 @@ from kfp.components.types import type_annotations
 from kfp.components.types import type_utils
 
 _DEFAULT_BASE_IMAGE = 'python:3.7'
+PYTHON_VERSION = str(sys.version_info.major) + '.' + str(sys.version_info.minor)
 
 
 @dataclasses.dataclass
@@ -248,13 +251,9 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
 
     #Analyzing the return type annotations.
     return_ann = signature.return_annotation
-    if hasattr(return_ann, '_fields'):  #NamedTuple
+    if is_typed_named_tuple_annotation(return_ann):
         # Getting field type annotations.
-        # __annotations__ does not exist in python 3.5 and earlier
-        # _field_types does not exist in python 3.9 and later
-        field_annotations = getattr(return_ann,
-                                    '__annotations__', None) or getattr(
-                                        return_ann, '_field_types', None)
+        field_annotations = getattr(return_ann, '__annotations__', {})
         for field_name in return_ann._fields:
             type_struct = None
             if field_annotations:
@@ -311,6 +310,260 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
     return component_spec
 
 
+def convert_arg_nodes_to_param_dict(args: List[ast.arg]) -> Dict[str, str]:
+    arg_to_ann = {}
+    for arg in args:
+        annotation = arg.annotation
+
+        if annotation is None:
+            arg_to_ann[arg.arg] = None
+        # Handle InputPath() and OutputPath()
+        elif isinstance(annotation, ast.Call):
+            if isinstance(annotation.func, ast.Name):
+                arg_to_ann[arg.arg] = annotation.func.id
+            elif isinstance(annotation.func, ast.Attribute):
+                arg_to_ann[arg.arg] = annotation.func.value.id
+            else:
+                raise TypeError(
+                    f'Unexpected type annotation for {annotation.func}.')
+        # annotations with variable name
+        elif isinstance(annotation, ast.Name):
+            arg_to_ann[arg.arg] = annotation.id
+        # annotations with a subtype like Input[Artifact]
+        elif isinstance(annotation, ast.Subscript):
+            # get inner type
+            if PYTHON_VERSION < '3.9':
+                # see "Changed in version 3.9" https://docs.python.org/3/library/ast.html#node-classes
+                if isinstance(annotation.slice.value, ast.Name):
+                    arg_to_ann[arg.arg] = annotation.slice.value.id
+                if isinstance(annotation.slice.value, ast.Attribute):
+                    arg_to_ann[arg.arg] = annotation.slice.value.value.id
+            else:
+                if isinstance(annotation.slice, ast.Name):
+                    arg_to_ann[arg.arg] = annotation.slice.id
+                if isinstance(annotation.slice, ast.Attribute):
+                    arg_to_ann[arg.arg] = annotation.slice.value.id
+
+        # annotations like type_annotations.Input[Artifact]
+        elif isinstance(annotation, ast.Attribute):
+            arg_to_ann[arg.arg] = annotation.value.id
+        else:
+            raise TypeError(
+                f'Unexpected type annotation for {arg.arg}: {annotation}.')
+    return arg_to_ann
+
+
+def convert_return_ann_to_dict(return_ann: ast.Return) -> Dict[str, str]:
+    return_dict = {}
+    if return_ann is None:
+        return_dict['return'] = None
+
+    # handles primtiive return types and -> Artifact
+    elif isinstance(return_ann, ast.Name):
+        return_dict['return'] = return_ann.id
+
+    # handles return type annotations like module.Artifact
+    elif isinstance(return_ann, ast.Attribute):
+        return_dict['return'] = return_ann.value.id
+
+    # handles return type annotations like List[Dict[str, str]] (gets 'List' and has no effect on import extraction)
+    elif isinstance(return_ann, ast.Subscript):
+        return_dict['return'] = return_ann.value.id
+
+    # handles any sort of call in the return type
+    elif isinstance(return_ann, ast.Call):
+        func = return_ann.func
+
+        # handles -> typing.NamedTuple
+        if isinstance(
+                func, ast.Attribute
+        ) and func.value.id == 'typing' and func.attr == 'NamedTuple':
+            nt_field_list = return_ann.args[1].elts
+            for el in nt_field_list:
+                return_dict[
+                    f'return-{el.elts[0].s}'] = el.elts[1].id if isinstance(
+                        el.elts[1], ast.Name) else el.elts[1].value.id
+
+        # handles -> NamedTuple
+        elif isinstance(func, ast.Name) and func.id == 'NamedTuple':
+            nt_field_list = return_ann.args[1].elts
+            for el in nt_field_list:
+                return_dict[
+                    f'return-{el.elts[0].s}'] = el.elts[1].id if isinstance(
+                        el.elts[1], ast.Name) else el.elts[1].value.id
+
+        elif isinstance(func, ast.Name):
+            return_dict['return'] = func.id
+        elif isinstance(func, ast.Attribute):
+            return_dict['return'] = func.value.id
+        else:
+            raise TypeError(
+                f"Unexpected type annotation '{return_ann}' for {func}.")
+
+    else:
+        raise TypeError(f"Unexpected type annotation '{return_ann}'")
+    return return_dict
+
+
+def get_param_to_ann_string(function: Callable) -> Dict[str, str]:
+    """Gets a dictionary of parameter name to type annotation string from a
+    function. Note: Input[] and Output[] (typing.Annotated) are stripped from
+    Artifact types.
+
+    Args:
+        func (Callable): The function.
+
+    Returns:
+        Dict[str, str]: Dictionary of parameter name to type annotation string.
+    """
+    module_node = ast.parse(_get_function_source_definition(function))
+    args = module_node.body[0].args.args
+    return_ann = module_node.body[0].returns
+    param_dict = convert_arg_nodes_to_param_dict(args)
+    return_dict = convert_return_ann_to_dict(return_ann)
+    return {**param_dict, **return_dict}
+
+
+def is_typed_named_tuple_annotation(annotation: Any) -> bool:
+    """Checks if the type is a namedtuple (either typing.NamedTuple or
+    collections.namedtuple).
+
+    Args:
+        annotation (Any): The type object.
+
+    Returns:
+        bool: Whether the type is a namedtuple type.
+    """
+    # it's possible to get false positives from this, but unlikely to be a problem for the KFP use-case unless someone creates a custom artifact class with the attribute ._fields
+    if hasattr(annotation, '_fields'):
+        is_typing_named_tuple = hasattr(annotation, '__annotations__')
+        if not is_typing_named_tuple:
+            raise TypeError(
+                'Named tuple return types annotations must be typed with field annotations using typing.NamedTuple, rather than collections.namedtuple.'
+            )
+        return True
+    return False
+
+
+def get_param_to_ann_obj(func: Callable) -> Dict[str, Any]:
+    """Gets a dictionary of parameter name to type annotation object from a
+    function.
+
+    Args:
+        func (Callable): The function.
+
+    Returns:
+        Dict[str, Any]: Dictionary of parameter name to type annotation object.
+    """
+    signature = inspect.signature(func)
+    param_to_ann_obj = {
+        name: parameter.annotation
+        for name, parameter in signature.parameters.items()
+    }
+    return_annotation = signature.return_annotation
+
+    if is_typed_named_tuple_annotation(return_annotation):
+        for name, annotation in return_annotation.__annotations__.items():
+            param_to_ann_obj[f'return-{name}'] = annotation
+    elif return_annotation is inspect.Signature.empty:
+        param_to_ann_obj['return'] = None
+    else:
+        param_to_ann_obj['return'] = return_annotation
+
+    return param_to_ann_obj
+
+
+def get_full_qualname_for_artifact(obj: type) -> str:
+    """Gets the fully qualified name for an annotation. For example, for class
+    Foo in module bar.baz, this function returns bar.baz.Foo.
+
+    Note: typing.get_type_hints purports to do the same thing, but it behaves differently when executed within the scope of a test, so preferring this approach instead.
+
+    Args:
+        obj (type): The class or module for which to get the fully qualified name.
+
+    Returns:
+        str: The fully qualified name for the class.
+    """
+    module = obj.__module__
+    name = obj.__qualname__
+    if module is not None and module != '__builtin__':
+        name = module + '.' + name
+    return name
+
+
+def get_import_item_from_annotation_string_and_ann_obj(artifact_str: str,
+                                                       qualname: str) -> str:
+    """Gets the fully qualified names of the module or type to import from the
+    annotation string and the annotation object.
+
+    Args:
+        artifact_str (str): The type annotation string.
+        qualname (str): The fully qualified type annotation name as a string.
+
+    Returns:
+        str: The fully qualified names of the module or type to import.
+    """
+    split_qualname = qualname.split('.')
+    if artifact_str in split_qualname:
+        name_to_import = '.'.join(
+            split_qualname[:split_qualname.index(artifact_str) + 1])
+    else:
+        raise TypeError(
+            f"Module or type name aliases are not supported. You appear to be using an alias in your type annotation: '{qualname}'. This may be due to use of an 'as' statement in an import statement or a reassignment of a module or type to a new name. Reference the module and/or type using the name as defined in the source from which the module or type is imported."
+        )
+    return name_to_import
+
+
+def get_artifact_import_items_from_function(func: Callable) -> List[str]:
+    """Gets a list of fully qualified names of the modules or types to import.
+
+    Args:
+        func (Callable): The component function.
+
+    Returns:
+        List[str]: A list containing the fully qualified names of the module or type to import.
+    """
+
+    param_to_ann_string = get_param_to_ann_string(func)
+    param_to_ann_obj = get_param_to_ann_obj(func)
+
+    named_tuple_did_not_expand = 'return' in param_to_ann_string and 'return' not in param_to_ann_obj
+    if named_tuple_did_not_expand:
+        raise TypeError(
+            "Error handling NamedTuple return type. The NamedTuple return type was assigned to a variable and referenced in the function signature. NamedTuple return types must be declared directly in the function signature like `-> NamedTuple('name', [('field', int)]):`."
+        )
+
+    import_items = []
+    seen = set()
+    for param_name, ann_string in param_to_ann_string.items():
+        # don't process the same annotation string multiple times... us the string, not the object in the seen set, since the same object can be referenced different ways in the same function signature
+        if ann_string in seen:
+            continue
+        else:
+            seen.add(ann_string)
+
+        actual_ann = param_to_ann_obj.get(param_name)
+        if actual_ann is None:
+            continue
+        if type_annotations.is_artifact_annotation(actual_ann):
+            artifact_class = type_annotations.get_io_artifact_class(actual_ann)
+        elif inspect.isclass(actual_ann) and issubclass(
+                actual_ann, artifact_types.Artifact):
+            artifact_class = actual_ann
+        else:
+            continue
+
+        artifact_qualname = get_full_qualname_for_artifact(artifact_class)
+        if artifact_qualname.startswith('kfp.'):
+            # kfp artifacts are already imported by default
+            continue
+        import_items.append(
+            get_import_item_from_annotation_string_and_ann_obj(
+                ann_string, artifact_qualname))
+    return import_items
+
+
 def _get_command_and_args_for_lightweight_component(
         func: Callable) -> Tuple[List[str], List[str]]:
     imports_source = [
@@ -319,6 +572,10 @@ def _get_command_and_args_for_lightweight_component(
         'from kfp.dsl import *',
         'from typing import *',
     ]
+    artifact_imports = get_artifact_import_items_from_function(func)
+    for obj_str in artifact_imports:
+        path, name = obj_str.rsplit('.', 1)
+        imports_source.append(f'from {path} import {name}')
 
     func_source = _get_function_source_definition(func)
     source = textwrap.dedent('''
