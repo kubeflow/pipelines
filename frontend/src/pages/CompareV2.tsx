@@ -104,8 +104,6 @@ function CompareV2(props: PageProps) {
     },
   );
 
-  console.log(runArtifacts);
-
   return (
     <div className={commonCss.page}>
       <p>This is the V2 Run Comparison page.</p>
