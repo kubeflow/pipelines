@@ -72,9 +72,6 @@ apiVersion: argoproj.io/v1alpha2
 kind: Workflow`,
 		templateType: V1,
 	}, {
-		template:     v2SpecHelloWorldJSON,
-		templateType: Unknown,
-	}, {
 		template:     "",
 		templateType: Unknown,
 	}, {
@@ -148,78 +145,6 @@ spec:
         value: "value1"
     container:
       image: docker/whalesay:latest`
-
-var v2SpecHelloWorldJSON = `
-{
-  "components": {
-    "comp-hello-world": {
-      "executorLabel": "exec-hello-world",
-      "inputDefinitions": {
-	"parameters": {
-	  "text": {
-	    "type": "STRING"
-	  }
-	}
-      }
-    }
-  },
-  "deploymentSpec": {
-    "executors": {
-      "exec-hello-world": {
-	"container": {
-	  "args": [
-	    "--text",
-	    "{{$.inputs.parameters['text']}}"
-	  ],
-	  "command": [
-	    "sh",
-	    "-ec",
-	    "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
-	    "def hello_world(text):\n    print(text)\n    return text\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Hello world', description='')\n_parser.add_argument(\"--text\", dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = hello_world(**_parsed_args)\n"
-	  ],
-	  "image": "python:3.7"
-	}
-      }
-    }
-  },
-  "pipelineInfo": {
-    "name": "namespace/n1/pipeline/hello-world"
-  },
-  "root": {
-    "dag": {
-      "tasks": {
-	"hello-world": {
-	  "cachingOptions": {
-	    "enableCache": true
-	  },
-	  "componentRef": {
-	    "name": "comp-hello-world"
-	  },
-	  "inputs": {
-	    "parameters": {
-	      "text": {
-		"componentInputParameter": "text"
-	      }
-	    }
-	  },
-	  "taskInfo": {
-	    "name": "hello-world"
-	  }
-	}
-      }
-    },
-    "inputDefinitions": {
-      "parameters": {
-	"text": {
-	  "type": "STRING"
-	}
-      }
-    }
-  },
-  "schemaVersion": "2.0.0",
-  "sdkVersion": "kfp-1.6.5"
-}
-`
 
 var v2SpecHelloWorldYAML = `
 # this is a comment
