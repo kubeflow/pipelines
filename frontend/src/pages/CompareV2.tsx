@@ -23,13 +23,12 @@ import { Apis } from 'src/lib/Apis';
 import { URLParser } from 'src/lib/URLParser';
 import { errorToMessage } from 'src/lib/Utils';
 import {
-  getArtifactTypes,
   getExecutionsFromContext,
   getKfpV2RunContext,
   getOutputLinkedArtifactsInExecution,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
-import { ArtifactType, Execution } from 'src/third_party/mlmd';
+import { Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
 
 interface RunExecutions {
@@ -71,7 +70,7 @@ function CompareV2(props: PageProps) {
 
   // Retrieves MLMD states from the MLMD store.
   const { data: runExecutions } = useQuery<RunExecutions[], Error>(
-    ['mlmd_package', { runIds, runs }],
+    ['run_executions', { runIds, runs }],
     () => {
       if (runs) {
         return Promise.all(
@@ -102,12 +101,12 @@ function CompareV2(props: PageProps) {
 
   // Retrieving a list of artifacts associated with each execution.
   const { data: runArtifacts } = useQuery<RunArtifacts[], Error>(
-    ['execution_output_artifact', { runExecutions }],
+    ['run_artifacts', { runExecutions }],
     () => {
       if (runExecutions) {
         return Promise.all(
           runExecutions.map(async runExecution => {
-            const executionArtifacts = Promise.all(
+            const executionArtifacts = await Promise.all(
               runExecution.executions.map(async execution => {
                 const linkedArtifacts = await getOutputLinkedArtifactsInExecution(execution);
                 return {
@@ -118,7 +117,7 @@ function CompareV2(props: PageProps) {
             );
             return {
               run: runExecution.run,
-              executionArtifacts: await executionArtifacts,
+              executionArtifacts,
             } as RunArtifacts;
           }),
         );
@@ -127,10 +126,6 @@ function CompareV2(props: PageProps) {
     },
     { staleTime: Infinity },
   );
-
-  if (!runArtifacts) {
-    return <></>;
-  }
 
   console.log(runArtifacts);
 
