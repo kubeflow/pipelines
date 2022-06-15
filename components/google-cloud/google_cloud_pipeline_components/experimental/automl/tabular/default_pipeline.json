@@ -304,9 +304,9 @@
         "executorLabel": "exec-automl-tabular-infra-validator",
         "inputDefinitions": {
           "artifacts": {
-            "model": {
+            "unmanaged_container_model": {
               "artifactType": {
-                "schemaTitle": "system.Artifact",
+                "schemaTitle": "google.UnmanagedContainerModel",
                 "schemaVersion": "0.0.1"
               }
             }
@@ -317,9 +317,9 @@
         "executorLabel": "exec-automl-tabular-infra-validator-2",
         "inputDefinitions": {
           "artifacts": {
-            "model": {
+            "unmanaged_container_model": {
               "artifactType": {
-                "schemaTitle": "system.Artifact",
+                "schemaTitle": "google.UnmanagedContainerModel",
                 "schemaVersion": "0.0.1"
               }
             }
@@ -845,9 +845,9 @@
               ],
               "inputs": {
                 "artifacts": {
-                  "model": {
+                  "unmanaged_container_model": {
                     "taskOutputArtifact": {
-                      "outputArtifactKey": "model",
+                      "outputArtifactKey": "unmanaged_container_model",
                       "producerTask": "automl-tabular-ensemble-2"
                     }
                   }
@@ -3989,9 +3989,9 @@
               ],
               "inputs": {
                 "artifacts": {
-                  "model": {
+                  "unmanaged_container_model": {
                     "taskOutputArtifact": {
-                      "outputArtifactKey": "model",
+                      "outputArtifactKey": "unmanaged_container_model",
                       "producerTask": "automl-tabular-ensemble"
                     }
                   }
@@ -6524,9 +6524,8 @@
         "exec-automl-tabular-infra-validator": {
           "container": {
             "args": [
-              "--validate_infra_model_path",
-              "{{$.inputs.artifacts['model'].uri}}",
-              "--read_path_from_file"
+              "--executor_input",
+              "{{$}}"
             ],
             "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod",
             "resources": {
@@ -6538,9 +6537,8 @@
         "exec-automl-tabular-infra-validator-2": {
           "container": {
             "args": [
-              "--validate_infra_model_path",
-              "{{$.inputs.artifacts['model'].uri}}",
-              "--read_path_from_file"
+              "--executor_input",
+              "{{$}}"
             ],
             "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod",
             "resources": {

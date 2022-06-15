@@ -27,6 +27,19 @@
           }
         }
       },
+      "comp-automl-tabular-infra-validator": {
+        "executorLabel": "exec-automl-tabular-infra-validator",
+        "inputDefinitions": {
+          "artifacts": {
+            "unmanaged_container_model": {
+              "artifactType": {
+                "schemaTitle": "google.UnmanagedContainerModel",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
       "comp-automl-tabular-tabnet-trainer": {
         "executorLabel": "exec-automl-tabular-tabnet-trainer",
         "inputDefinitions": {
@@ -609,6 +622,30 @@
             }
           },
           "tasks": {
+            "automl-tabular-infra-validator": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-automl-tabular-infra-validator"
+              },
+              "dependentTasks": [
+                "automl-tabular-tabnet-trainer"
+              ],
+              "inputs": {
+                "artifacts": {
+                  "unmanaged_container_model": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "unmanaged_container_model",
+                      "producerTask": "automl-tabular-tabnet-trainer"
+                    }
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "automl-tabular-infra-validator"
+              }
+            },
             "automl-tabular-tabnet-trainer": {
               "cachingOptions": {
                 "enableCache": true
@@ -2124,6 +2161,19 @@
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
             "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+          }
+        },
+        "exec-automl-tabular-infra-validator": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}"
+            ],
+            "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod",
+            "resources": {
+              "cpuLimit": 8.0,
+              "memoryLimit": 52.0
+            }
           }
         },
         "exec-automl-tabular-tabnet-trainer": {
