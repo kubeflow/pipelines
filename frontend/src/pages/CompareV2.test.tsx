@@ -19,10 +19,16 @@ import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { testBestPractices } from 'src/TestUtils';
 import {
+  Artifact,
   Context,
+  Event,
   Execution,
+  GetArtifactsByIDRequest,
+  GetArtifactsByIDResponse,
   GetContextByTypeAndNameRequest,
   GetContextByTypeAndNameResponse,
+  GetEventsByExecutionIDsRequest,
+  GetEventsByExecutionIDsResponse,
   GetExecutionsByContextRequest,
   GetExecutionsByContextResponse,
   Value,
@@ -89,6 +95,35 @@ describe('CompareV2', () => {
     return execution;
   }
 
+  function newMockEvent(id?: number): Execution {
+    const event = new Event();
+    event.setArtifactId(id);
+    event.setType(Event.Type.OUTPUT);
+    return event;
+  }
+
+  function newMockArtifact(id?: number): Execution {
+    const artifact = new Artifact();
+    artifact.setId(id);
+    return artifact;
+  }
+
+  it('getRun is called with query param IDs', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_1_ID);
+    expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_2_ID);
+    expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_3_ID);
+  });
+
   it('Ensure MLMD requests are accurately made', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
@@ -101,6 +136,14 @@ describe('CompareV2', () => {
     const getExecutionsSpy = jest.spyOn(
       Api.getInstance().metadataStoreService,
       'getExecutionsByContext',
+    );
+    const getEventsSpy = jest.spyOn(
+      Api.getInstance().metadataStoreService,
+      'getEventsByExecutionIDs',
+    );
+    const getArtifactsSpy = jest.spyOn(
+      Api.getInstance().metadataStoreService,
+      'getArtifactsByID',
     );
 
     const contextResponses = [
@@ -116,9 +159,27 @@ describe('CompareV2', () => {
       new GetExecutionsByContextResponse().setExecutionsList([newMockExecution(1)]),
       new GetExecutionsByContextResponse().setExecutionsList([newMockExecution(2)]),
       new GetExecutionsByContextResponse().setExecutionsList([newMockExecution(3)]),
-    ]
+    ];
     getExecutionsSpy.mockImplementation((request: GetExecutionsByContextRequest) =>
-      executionResponses.find(e => e.getExecutionsList()[0].getId() === 1)
+      executionResponses.find(e => e.getExecutionsList()[0].getId() === request.getContextId())
+    );
+
+    const eventResponses = [
+      new GetEventsByExecutionIDsResponse().setEventsList([newMockEvent(1)]),
+      new GetEventsByExecutionIDsResponse().setEventsList([newMockEvent(2)]),
+      new GetEventsByExecutionIDsResponse().setEventsList([newMockEvent(3)]),
+    ];
+    getEventsSpy.mockImplementation((request: GetEventsByExecutionIDsRequest) =>
+      eventResponses.find(e => e.getEventsList()[0].getArtifactId() === request.getExecutionIdsList()[0])
+    );
+
+    const artifactResponses = [
+      new GetArtifactsByIDResponse().setArtifactsList([newMockArtifact(1)]),
+      new GetArtifactsByIDResponse().setArtifactsList([newMockArtifact(2)]),
+      new GetArtifactsByIDResponse().setArtifactsList([newMockArtifact(3)]),
+    ]
+    getArtifactsSpy.mockImplementation((request: GetArtifactsByIDRequest) =>
+      artifactResponses.find(a => a.getArtifactsList()[0].getId() === request.getArtifactIdsList()[0])
     );
 
     render(
@@ -127,10 +188,6 @@ describe('CompareV2', () => {
       </CommonTestWrapper>,
     );
     await TestUtils.flushPromises();
-
-    expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_1_ID);
-    expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_2_ID);
-    expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_3_ID);
 
     expect(getContextSpy).toHaveBeenCalledWith(expect.objectContaining({ array: ['system.PipelineRun', MOCK_RUN_1_ID] }));
     expect(getContextSpy).toHaveBeenCalledWith(expect.objectContaining({ array: ['system.PipelineRun', MOCK_RUN_2_ID] }));
