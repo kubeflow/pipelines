@@ -124,7 +124,30 @@ describe('CompareV2', () => {
     expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_3_ID);
   });
 
-  it('Ensure MLMD requests are accurately made', async () => {
+  it('Failed MLMD request create error banner', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    await waitFor(() => {
+      expect(updateBannerSpy).toHaveBeenLastCalledWith({
+        additionalInfo:
+          'Cannot find context with '
+          + '{"typeName":"system.PipelineRun","contextName":"mock-run-1-id"}: Incomplete response',
+        message: 'Cannot get MLMD objects from Metadata store.',
+        mode: 'error',
+      });
+    });
+  });
+
+  it('Successful MLMD requests clear the banner', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
@@ -141,10 +164,7 @@ describe('CompareV2', () => {
       Api.getInstance().metadataStoreService,
       'getEventsByExecutionIDs',
     );
-    const getArtifactsSpy = jest.spyOn(
-      Api.getInstance().metadataStoreService,
-      'getArtifactsByID',
-    );
+    const getArtifactsSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID');
 
     const contextResponses = [
       new GetContextByTypeAndNameResponse().setContext(newMockContext(MOCK_RUN_1_ID, 1)),
@@ -152,7 +172,7 @@ describe('CompareV2', () => {
       new GetContextByTypeAndNameResponse().setContext(newMockContext(MOCK_RUN_3_ID, 3)),
     ];
     getContextSpy.mockImplementation((request: GetContextByTypeAndNameRequest) =>
-      contextResponses.find(c => c.getContext().getName() === request.getContextName())
+      contextResponses.find(c => c.getContext().getName() === request.getContextName()),
     );
 
     const executionResponses = [
@@ -161,7 +181,7 @@ describe('CompareV2', () => {
       new GetExecutionsByContextResponse().setExecutionsList([newMockExecution(3)]),
     ];
     getExecutionsSpy.mockImplementation((request: GetExecutionsByContextRequest) =>
-      executionResponses.find(e => e.getExecutionsList()[0].getId() === request.getContextId())
+      executionResponses.find(e => e.getExecutionsList()[0].getId() === request.getContextId()),
     );
 
     const eventResponses = [
@@ -170,16 +190,20 @@ describe('CompareV2', () => {
       new GetEventsByExecutionIDsResponse().setEventsList([newMockEvent(3)]),
     ];
     getEventsSpy.mockImplementation((request: GetEventsByExecutionIDsRequest) =>
-      eventResponses.find(e => e.getEventsList()[0].getArtifactId() === request.getExecutionIdsList()[0])
+      eventResponses.find(
+        e => e.getEventsList()[0].getArtifactId() === request.getExecutionIdsList()[0],
+      ),
     );
 
     const artifactResponses = [
       new GetArtifactsByIDResponse().setArtifactsList([newMockArtifact(1)]),
       new GetArtifactsByIDResponse().setArtifactsList([newMockArtifact(2)]),
       new GetArtifactsByIDResponse().setArtifactsList([newMockArtifact(3)]),
-    ]
+    ];
     getArtifactsSpy.mockImplementation((request: GetArtifactsByIDRequest) =>
-      artifactResponses.find(a => a.getArtifactsList()[0].getId() === request.getArtifactIdsList()[0])
+      artifactResponses.find(
+        a => a.getArtifactsList()[0].getId() === request.getArtifactIdsList()[0],
+      ),
     );
 
     render(
@@ -190,9 +214,15 @@ describe('CompareV2', () => {
     await TestUtils.flushPromises();
 
     await waitFor(() => {
-      expect(getContextSpy).toHaveBeenCalledWith(expect.objectContaining({ array: ['system.PipelineRun', MOCK_RUN_1_ID] }));
-      expect(getContextSpy).toHaveBeenCalledWith(expect.objectContaining({ array: ['system.PipelineRun', MOCK_RUN_2_ID] }));
-      expect(getContextSpy).toHaveBeenCalledWith(expect.objectContaining({ array: ['system.PipelineRun', MOCK_RUN_3_ID] }));
+      expect(getContextSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ array: ['system.PipelineRun', MOCK_RUN_1_ID] }),
+      );
+      expect(getContextSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ array: ['system.PipelineRun', MOCK_RUN_2_ID] }),
+      );
+      expect(getContextSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ array: ['system.PipelineRun', MOCK_RUN_3_ID] }),
+      );
 
       expect(getExecutionsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [1] }));
       expect(getExecutionsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [2] }));
@@ -205,6 +235,8 @@ describe('CompareV2', () => {
       expect(getArtifactsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[1]] }));
       expect(getArtifactsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[2]] }));
       expect(getArtifactsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[3]] }));
+
+      expect(updateBannerSpy).toHaveBeenLastCalledWith({})
     });
   });
 

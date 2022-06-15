@@ -73,13 +73,15 @@ function CompareV2(props: PageProps) {
             const context = await getKfpV2RunContext(r);
             const executions = await getExecutionsFromContext(context);
 
-            const executionArtifacts = await Promise.all(executions.map(async execution => {
-              const linkedArtifacts = await getOutputLinkedArtifactsInExecution(execution);
-              return {
-                execution,
-                linkedArtifacts,
-              } as ExecutionArtifacts;
-            }));
+            const executionArtifacts = await Promise.all(
+              executions.map(async execution => {
+                const linkedArtifacts = await getOutputLinkedArtifactsInExecution(execution);
+                return {
+                  execution,
+                  linkedArtifacts,
+                } as ExecutionArtifacts;
+              }),
+            );
 
             return {
               run: runs[index],
