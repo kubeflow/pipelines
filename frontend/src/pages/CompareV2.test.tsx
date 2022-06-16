@@ -75,9 +75,6 @@ describe('CompareV2', () => {
   function newMockExecution(id: number): Execution {
     const execution = new Execution();
     execution.setId(id);
-    execution
-      .getCustomPropertiesMap()
-      .set('display_name', new Value().setStringValue(`execution${id}`));
     return execution;
   }
 
@@ -188,7 +185,7 @@ describe('CompareV2', () => {
     });
   });
 
-  it('Failed MLMD request create error banner', async () => {
+  it('Failed MLMD request creates error banner', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
