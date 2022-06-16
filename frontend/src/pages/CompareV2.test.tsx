@@ -14,15 +14,167 @@
  * limitations under the License.
  */
 
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import * as React from 'react';
+import { CommonTestWrapper } from 'src/TestWrapper';
+import { Apis } from 'src/lib/Apis';
 import { testBestPractices } from 'src/TestUtils';
+import { QUERY_PARAMS } from 'src/components/Router';
 import CompareV2 from './CompareV2';
+import { PageProps } from './Page';
+import { ApiRunDetail } from 'src/apis/run';
+import TestUtils from 'src/TestUtils';
+import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 
 testBestPractices();
 describe('CompareV2', () => {
+  const MOCK_RUN_1_ID = 'mock-run-1-id';
+  const MOCK_RUN_2_ID = 'mock-run-2-id';
+  const MOCK_RUN_3_ID = 'mock-run-3-id';
+  const updateBannerSpy = jest.fn();
+
+  function generateProps(): PageProps {
+    const pageProps: PageProps = {
+      history: {} as any,
+      location: {
+        search: `?${QUERY_PARAMS.runlist}=${MOCK_RUN_1_ID},${MOCK_RUN_2_ID},${MOCK_RUN_3_ID}`,
+      } as any,
+      match: {} as any,
+      toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: '' },
+      updateBanner: updateBannerSpy,
+      updateDialog: () => null,
+      updateSnackbar: () => null,
+      updateToolbar: () => null,
+    };
+    return pageProps;
+  }
+
+  let runs: ApiRunDetail[] = [];
+
+  function newMockRun(id?: string): ApiRunDetail {
+    return {
+      pipeline_runtime: {
+        workflow_manifest: '{}',
+      },
+      run: {
+        id: id || 'test-run-id',
+        name: 'test run ' + id,
+        pipeline_spec: { pipeline_manifest: '' },
+      },
+    };
+  }
+
   it('Render Compare v2 page', async () => {
-    render(<CompareV2 />);
-    screen.getByText('This is the V2 Run Comparison page.');
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    screen.getByText(OVERVIEW_SECTION_NAME);
+  });
+
+  it('getRun is called with query param IDs', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+
+    expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_1_ID);
+    expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_2_ID);
+    expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_3_ID);
+  });
+
+  it('Clear banner when getRun request succeeds', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+  });
+
+  it('Show page error on page when getRun request fails', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation(_ => {
+      throw {
+        text: () => Promise.resolve('test error'),
+      };
+    });
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({
+      additionalInfo: 'test error',
+      message: 'Error: failed loading 3 runs. Click Details for more information.',
+      mode: 'error',
+    });
+  });
+
+  it('Allows individual sections to be collapsed and expanded', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    screen.getByText('Filter runs');
+    screen.getByText('Parameter Section V2');
+    screen.getByText('Metrics Section V2');
+
+    fireEvent.click(screen.getByText(OVERVIEW_SECTION_NAME));
+    expect(screen.queryByText('Filter runs')).toBeNull();
+
+    fireEvent.click(screen.getByText(OVERVIEW_SECTION_NAME));
+    screen.getByText('Filter runs');
+
+    fireEvent.click(screen.getByText(PARAMS_SECTION_NAME));
+    expect(screen.queryByText('Parameter Section V2')).toBeNull();
+
+    fireEvent.click(screen.getByText(METRICS_SECTION_NAME));
+    expect(screen.queryByText('Metrics Section V2')).toBeNull();
+  });
+
+  it('All runs are initially selected', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    // Four checkboxes: three runs and one table header
+    let runCheckboxes = screen.queryAllByRole('checkbox', { checked: true });
+    expect(runCheckboxes.filter(r => r.nodeName === 'INPUT')).toHaveLength(4);
+
+    // Uncheck all run checkboxes
+    fireEvent.click(runCheckboxes[0]);
+    runCheckboxes = screen.queryAllByRole('checkbox', { checked: true });
+    expect(runCheckboxes.filter(r => r.nodeName === 'INPUT')).toHaveLength(0);
   });
 });
