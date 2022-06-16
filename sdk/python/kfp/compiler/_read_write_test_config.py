@@ -42,6 +42,7 @@ CONFIG = {
             'pipeline_with_task_final_status',
             'pipeline_with_task_final_status_yaml',
             'component_with_pip_index_urls',
+            'pipeline_with_gcpc_types',
         ],
         'test_data_dir': 'sdk/python/kfp/compiler/test_data/pipelines',
         'config': {
