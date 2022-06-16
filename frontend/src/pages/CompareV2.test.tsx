@@ -18,23 +18,9 @@ import { render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import TestUtils, { testBestPractices } from 'src/TestUtils';
-import {
-  Artifact,
-  Context,
-  Event,
-  Execution,
-  GetArtifactsByIDRequest,
-  GetArtifactsByIDResponse,
-  GetContextByTypeAndNameRequest,
-  GetContextByTypeAndNameResponse,
-  GetEventsByExecutionIDsRequest,
-  GetEventsByExecutionIDsResponse,
-  GetExecutionsByContextRequest,
-  GetExecutionsByContextResponse,
-  Value,
-} from 'src/third_party/mlmd';
+import { Artifact, Context, Event, Execution, LinkedArtifact, Value } from 'src/third_party/mlmd';
 import { Apis } from 'src/lib/Apis';
-import { Api } from 'src/mlmd/Api';
+import * as mlmdUtils from 'src/mlmd/MlmdUtils';
 import CompareV2 from './CompareV2';
 import { QUERY_PARAMS } from 'src/components/Router';
 import { PageProps } from './Page';
@@ -94,17 +80,17 @@ describe('CompareV2', () => {
     return execution;
   }
 
-  function newMockEvent(id?: number): Execution {
+  function newMockLinkedArtifact(id?: number): LinkedArtifact {
     const event = new Event();
     event.setArtifactId(id);
     event.setType(Event.Type.OUTPUT);
-    return event;
-  }
 
-  function newMockArtifact(id?: number): Execution {
     const artifact = new Artifact();
     artifact.setId(id);
-    return artifact;
+    return {
+      event,
+      artifact,
+    } as LinkedArtifact;
   }
 
   it('getRun is called with query param IDs', async () => {
@@ -157,58 +143,30 @@ describe('CompareV2', () => {
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
 
-    const getContextSpy = jest.spyOn(
-      Api.getInstance().metadataStoreService,
-      'getContextByTypeAndName',
-    );
-    const getExecutionsSpy = jest.spyOn(
-      Api.getInstance().metadataStoreService,
-      'getExecutionsByContext',
-    );
-    const getEventsSpy = jest.spyOn(
-      Api.getInstance().metadataStoreService,
-      'getEventsByExecutionIDs',
-    );
-    const getArtifactsSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID');
-
-    const contextResponses = [
-      new GetContextByTypeAndNameResponse().setContext(newMockContext(MOCK_RUN_1_ID, 1)),
-      new GetContextByTypeAndNameResponse().setContext(newMockContext(MOCK_RUN_2_ID, 2)),
-      new GetContextByTypeAndNameResponse().setContext(newMockContext(MOCK_RUN_3_ID, 3)),
+    const contexts = [
+      newMockContext(MOCK_RUN_1_ID, 1),
+      newMockContext(MOCK_RUN_2_ID, 2),
+      newMockContext(MOCK_RUN_3_ID, 3),
     ];
-    getContextSpy.mockImplementation((request: GetContextByTypeAndNameRequest) =>
-      contextResponses.find(c => c.getContext().getName() === request.getContextName()),
+    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    getContextSpy.mockImplementation((runID: string) =>
+      Promise.resolve(contexts.find(c => c.getName() === runID)),
     );
 
-    const executionResponses = [
-      new GetExecutionsByContextResponse().setExecutionsList([newMockExecution(1)]),
-      new GetExecutionsByContextResponse().setExecutionsList([newMockExecution(2)]),
-      new GetExecutionsByContextResponse().setExecutionsList([newMockExecution(3)]),
-    ];
-    getExecutionsSpy.mockImplementation((request: GetExecutionsByContextRequest) =>
-      executionResponses.find(e => e.getExecutionsList()[0].getId() === request.getContextId()),
+    const executions = [[newMockExecution(1)], [newMockExecution(2)], [newMockExecution(3)]];
+    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    getExecutionsSpy.mockImplementation((context: Context) =>
+      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
     );
 
-    const eventResponses = [
-      new GetEventsByExecutionIDsResponse().setEventsList([newMockEvent(1)]),
-      new GetEventsByExecutionIDsResponse().setEventsList([newMockEvent(2)]),
-      new GetEventsByExecutionIDsResponse().setEventsList([newMockEvent(3)]),
+    const linkedArtifacts = [
+      [newMockLinkedArtifact(1)],
+      [newMockLinkedArtifact(2)],
+      [newMockLinkedArtifact(3)],
     ];
-    getEventsSpy.mockImplementation((request: GetEventsByExecutionIDsRequest) =>
-      eventResponses.find(
-        e => e.getEventsList()[0].getArtifactId() === request.getExecutionIdsList()[0],
-      ),
-    );
-
-    const artifactResponses = [
-      new GetArtifactsByIDResponse().setArtifactsList([newMockArtifact(1)]),
-      new GetArtifactsByIDResponse().setArtifactsList([newMockArtifact(2)]),
-      new GetArtifactsByIDResponse().setArtifactsList([newMockArtifact(3)]),
-    ];
-    getArtifactsSpy.mockImplementation((request: GetArtifactsByIDRequest) =>
-      artifactResponses.find(
-        a => a.getArtifactsList()[0].getId() === request.getArtifactIdsList()[0],
-      ),
+    const getLinkedArtifactsSpy = jest.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution');
+    getLinkedArtifactsSpy.mockImplementation((execution: Execution) =>
+      Promise.resolve(linkedArtifacts.find(l => l[0].artifact.getId() === execution.getId())),
     );
 
     render(
@@ -219,28 +177,9 @@ describe('CompareV2', () => {
     await TestUtils.flushPromises();
 
     await waitFor(() => {
-      expect(getContextSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ array: ['system.PipelineRun', MOCK_RUN_1_ID] }),
-      );
-      expect(getContextSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ array: ['system.PipelineRun', MOCK_RUN_2_ID] }),
-      );
-      expect(getContextSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ array: ['system.PipelineRun', MOCK_RUN_3_ID] }),
-      );
-
-      expect(getExecutionsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [1] }));
-      expect(getExecutionsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [2] }));
-      expect(getExecutionsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [3] }));
-
-      expect(getEventsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[1]] }));
-      expect(getEventsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[2]] }));
-      expect(getEventsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[3]] }));
-
-      expect(getArtifactsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[1]] }));
-      expect(getArtifactsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[2]] }));
-      expect(getArtifactsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[3]] }));
-
+      expect(getContextSpy).toBeCalledTimes(3);
+      expect(getExecutionsSpy).toBeCalledTimes(3);
+      expect(getLinkedArtifactsSpy).toBeCalledTimes(3);
       expect(updateBannerSpy).toHaveBeenLastCalledWith({});
     });
   });
