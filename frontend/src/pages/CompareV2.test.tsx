@@ -64,14 +64,14 @@ describe('CompareV2', () => {
     };
   }
 
-  function newMockContext(name?: string, id?: number): Execution {
+  function newMockContext(name: string, id: number): Execution {
     const context = new Context();
     context.setName(name);
     context.setId(id);
     return context;
   }
 
-  function newMockExecution(id?: number): Execution {
+  function newMockExecution(id: number): Execution {
     const execution = new Execution();
     execution.setId(id);
     execution
@@ -80,17 +80,18 @@ describe('CompareV2', () => {
     return execution;
   }
 
-  function newMockLinkedArtifact(id?: number): LinkedArtifact {
+  function newMockEvent(id: number): Event {
     const event = new Event();
     event.setArtifactId(id);
+    event.setExecutionId(id);
     event.setType(Event.Type.OUTPUT);
+    return event;
+  }
 
+  function newMockArtifact(id: number): Artifact {
     const artifact = new Artifact();
     artifact.setId(id);
-    return {
-      event,
-      artifact,
-    } as LinkedArtifact;
+    return artifact;
   }
 
   it('getRun is called with query param IDs', async () => {
@@ -111,11 +112,7 @@ describe('CompareV2', () => {
 
   it('Show page error on page when getRun request fails', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
-    runs = [
-      newMockRun(MOCK_RUN_1_ID, true),
-      newMockRun(MOCK_RUN_2_ID, true),
-      newMockRun(MOCK_RUN_3_ID, true),
-    ];
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation(_ => {
       throw {
         text: () => Promise.resolve('test error'),
@@ -159,15 +156,13 @@ describe('CompareV2', () => {
       Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
     );
 
-    const linkedArtifacts = [
-      [newMockLinkedArtifact(1)],
-      [newMockLinkedArtifact(2)],
-      [newMockLinkedArtifact(3)],
-    ];
-    const getLinkedArtifactsSpy = jest.spyOn(mlmdUtils, 'getOutputLinkedArtifactsInExecution');
-    getLinkedArtifactsSpy.mockImplementation((execution: Execution) =>
-      Promise.resolve(linkedArtifacts.find(l => l[0].artifact.getId() === execution.getId())),
-    );
+    const artifacts = [newMockArtifact(1), newMockArtifact(2), newMockArtifact(3)];
+    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+
+    const events = [newMockEvent(1), newMockEvent(2), newMockEvent(3)];
+    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
+    getEventsSpy.mockReturnValue(Promise.resolve(events));
 
     render(
       <CommonTestWrapper>
@@ -179,7 +174,8 @@ describe('CompareV2', () => {
     await waitFor(() => {
       expect(getContextSpy).toBeCalledTimes(3);
       expect(getExecutionsSpy).toBeCalledTimes(3);
-      expect(getLinkedArtifactsSpy).toBeCalledTimes(3);
+      expect(getArtifactsSpy).toBeCalledTimes(3);
+      expect(getEventsSpy).toBeCalledTimes(3);
       expect(updateBannerSpy).toHaveBeenLastCalledWith({});
     });
   });

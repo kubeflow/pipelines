@@ -23,12 +23,13 @@ import { Apis } from 'src/lib/Apis';
 import { URLParser } from 'src/lib/URLParser';
 import { errorToMessage } from 'src/lib/Utils';
 import {
+  getArtifactsFromContext,
+  getEventsByExecutions,
   getExecutionsFromContext,
   getKfpV2RunContext,
-  getOutputLinkedArtifactsInExecution,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
-import { Execution } from 'src/third_party/mlmd';
+import { Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
 
 interface ExecutionArtifacts {
@@ -72,17 +73,27 @@ function CompareV2(props: PageProps) {
           runIds.map(async (r, index) => {
             const context = await getKfpV2RunContext(r);
             const executions = await getExecutionsFromContext(context);
-
-            const executionArtifacts = await Promise.all(
-              executions.map(async execution => {
-                const linkedArtifacts = await getOutputLinkedArtifactsInExecution(execution);
-                return {
-                  execution,
-                  linkedArtifacts,
-                } as ExecutionArtifacts;
-              }),
+            const artifacts = await getArtifactsFromContext(context);
+            const events = (await getEventsByExecutions(executions)).filter(
+              e => e.getType() === Event.Type.OUTPUT,
             );
 
+            // Match artifacts to executions.
+            const artifactMap = new Map();
+            artifacts.forEach(artifact => artifactMap.set(artifact.getId(), artifact));
+            const executionArtifacts = executions.map(execution => {
+              const executionEvents = events.filter(e => e.getExecutionId() === execution.getId());
+              const linkedArtifacts = executionEvents.map(event => {
+                return {
+                  event,
+                  artifact: artifactMap.get(event.getArtifactId()),
+                } as LinkedArtifact;
+              });
+              return {
+                execution,
+                linkedArtifacts,
+              } as ExecutionArtifacts;
+            });
             return {
               run: runs[index],
               executionArtifacts,
@@ -103,6 +114,8 @@ function CompareV2(props: PageProps) {
       onSuccess: () => props.updateBanner({}),
     },
   );
+
+  console.log(runArtifacts);
 
   return (
     <div className={commonCss.page}>
