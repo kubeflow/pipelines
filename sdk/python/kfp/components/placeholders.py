@@ -146,6 +146,16 @@ class RegexPlaceholderSerializationMixin(Placeholder):
         return self._TO_PLACEHOLDER.format(**self.to_dict())
 
 
+class ExecutorInputPlaceholder(base_model.BaseModel,
+                               RegexPlaceholderSerializationMixin):
+    """Class that represents executor input placeholder."""
+    _TO_PLACEHOLDER = '{{$}}'
+    _FROM_PLACEHOLDER = re.compile(r'\{\{\$\}\}')
+
+    def to_placeholder_string(self) -> str:
+        return self._TO_PLACEHOLDER
+
+
 class InputValuePlaceholder(base_model.BaseModel,
                             RegexPlaceholderSerializationMixin):
     """Class that holds an input value placeholder.
@@ -236,10 +246,11 @@ class OutputUriPlaceholder(base_model.BaseModel,
     )
 
 
-CommandLineElement = Union[str, InputValuePlaceholder, InputPathPlaceholder,
-                           InputUriPlaceholder, OutputParameterPlaceholder,
-                           OutputPathPlaceholder, OutputUriPlaceholder,
-                           'IfPresentPlaceholder', 'ConcatPlaceholder']
+CommandLineElement = Union[str, ExecutorInputPlaceholder, InputValuePlaceholder,
+                           InputPathPlaceholder, InputUriPlaceholder,
+                           OutputParameterPlaceholder, OutputPathPlaceholder,
+                           OutputUriPlaceholder, 'IfPresentPlaceholder',
+                           'ConcatPlaceholder']
 
 
 class ConcatPlaceholder(base_model.BaseModel, Placeholder):

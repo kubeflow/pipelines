@@ -145,6 +145,43 @@ COMPONENT_SPEC_NESTED_PLACEHOLDER = structures.ComponentSpec(
     inputs={'input_prefix': structures.InputSpec(type='String')},
 )
 
+V1_YAML_EXECUTOR_INPUT_PLACEHOLDER = textwrap.dedent("""\
+    name: component_executor_input
+    inputs:
+    - {name: input, type: String}
+    implementation:
+      container:
+        image: alpine
+        command:
+        - python
+        - -m
+        - kfp.containers.entrypoint
+        args:
+        - --executor_input
+        - {executorInput: null}
+        - --function_name
+        - test_function
+    """)
+
+COMPONENT_SPEC_EXECUTOR_INPUT_PLACEHOLDER = structures.ComponentSpec(
+    name='component_executor_input',
+    implementation=structures.Implementation(
+        container=structures.ContainerSpec(
+            image='alpine',
+            command=[
+                'python',
+                '-m',
+                'kfp.containers.entrypoint',
+            ],
+            args=[
+                '--executor_input',
+                placeholders.ExecutorInputPlaceholder(),
+                '--function_name',
+                'test_function',
+            ])),
+    inputs={'input': structures.InputSpec(type='String')},
+)
+
 
 class StructuresTest(parameterized.TestCase):
 
@@ -314,6 +351,10 @@ sdkVersion: kfp-2.0.0-alpha.2
         {
             'yaml': V1_YAML_NESTED_PLACEHOLDER,
             'expected_component': COMPONENT_SPEC_NESTED_PLACEHOLDER
+        },
+        {
+            'yaml': V1_YAML_EXECUTOR_INPUT_PLACEHOLDER,
+            'expected_component': COMPONENT_SPEC_EXECUTOR_INPUT_PLACEHOLDER
         },
     )
     def test_component_spec_placeholder_load_from_v2_component_yaml(

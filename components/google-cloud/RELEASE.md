@@ -1,7 +1,49 @@
-# Current Version 1.0.8.dev (Still in Development)
+# Current Version 1.0.10.dev (Still in Development)
 * Add notes for next release here.
 
-# Current Version 1.0.7
+# Release 1.0.9
+* FTE transform config passed as path to config file instead of directly as string to FTE
+* Support BigQuery ML weights job component
+* FTE now outputs training schema.
+* Support BigQuery ML reconstruction loss and trial info job components
+* Adding ML.TRAINING_INFO KFP and ML.EXPLAIN_PREDICT BQ Component.
+* Add additional experiments in distillation pipeline.
+* Support BigQuery ML advanced weights job component.
+* Support BigQuery drop model job components.
+* Support BigQuery ML centroids job components.
+* Wide and Deep and Tabnet models both now use the Feature Transform Engine pipeline instead of the Transform component.
+* Adding ML.CONFUSION_MATRIX KFP BQ Component.
+* Adding ML.FEATURE_INFO KFP BQ Component.
+* Merge distill_skip_evaluation and skip_evaluation pipelines with default pipeline using dsl.Condition
+* Adding ML.ROC_CURVE KFP BQ Component.
+* Adding ML.PRINCIPAL_COMPONENTS and ML.PRINCIPAL_COMPONENT_INFO KFP BQ component.
+* Adding ML.FEATURE_IMPORTANCE KFP BQ Component.
+* Add ML.ARIMA_COEFFICIENTS in component.yaml
+* Adding ML.Recommend KFP BQ component.
+* Add ML.ARIMA_EVALUATE in component.yaml
+* KFP component for ml.explain_forecast
+* KFP component for ml.forecast
+* Add distill + evaluation pipeline for Tables
+* Adding ML.GLOBAL_EXPLAIN KFP BQ Component.
+* KFP component for ml.detect_anomalies
+* Make stats-gen component to support running with example-gen only mode
+* Fix AutoML Tables pipeline and builtin pipelines on VPC-SC environment.
+* Preserve empty features in explanation_spec
+
+# Release 1.0.8
+* Use BigQuery batch queries in ARIMA pipeline after first 50 queries
+* Stats Gen and Feature Transform Engine pipeline integration.
+* Add window config to ARIMA pipeline
+* Removed default location setting from AutoML components and documentation.
+* Update default machine type to c2-standard-16 for built-in algorithms Custom and HyperparameterTuning Jobs
+* Use float instead of int max windows, which caused ARIMA pipeline failure
+* Renamed "Feature Transform Engine Transform Configuration" component to "Transform Configuration Planner" for clarity.
+* Preserve empty features in explanation_spec
+* Change json util to not remove empty primitives in a list.
+* Add model eval component to built-in algorithm default pipelines
+* Quick fix to Batch Prediction component input "bigquery_source_input_uri"
+
+# Release 1.0.7
 * Allow metrics and evaluated examples tables to be overwritten.
 * Replace custom copy_table component with BQ first-party query component.
 * Support vpc in feature selection.
@@ -37,8 +79,8 @@
 
 # Release 1.0.2
 * Dataproc Serverless components v1.0 launch.
-* Bump google-cloud-aiplatform version 
-* Fix HP Tuning documentation, fixes #7460 
+* Bump google-cloud-aiplatform version
+* Fix HP Tuning documentation, fixes #7460
 * Use feature ranking and selected features in AutoML Tables stage 1 tuning component.
 * Update distill_skip_evaluation_pipeline for performance improvement.
 

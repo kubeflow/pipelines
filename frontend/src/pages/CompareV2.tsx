@@ -14,24 +14,39 @@
  * limitations under the License.
  */
 
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useQuery } from 'react-query';
 import { ApiRunDetail } from 'src/apis/run';
-import { QUERY_PARAMS } from 'src/components/Router';
-import { commonCss } from 'src/Css';
+import Hr from 'src/atoms/Hr';
+import Separator from 'src/atoms/Separator';
+import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
+import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
+import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
+import Buttons from 'src/lib/Buttons';
 import { URLParser } from 'src/lib/URLParser';
 import { errorToMessage } from 'src/lib/Utils';
+import { classes, stylesheet } from 'typestyle';
 import {
   filterLinkedArtifactsByType,
   getArtifactTypes,
+  getArtifactsFromContext,
+  getEventsByExecutions,
   getExecutionsFromContext,
   getKfpV2RunContext,
-  getOutputLinkedArtifactsInExecution,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
-import { ArtifactType, Execution } from 'src/third_party/mlmd';
+import { ArtifactType, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
+import RunList from './RunList';
+import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
+
+const css = stylesheet({
+  outputsRow: {
+    marginLeft: 15,
+    overflowX: 'auto',
+  },
+});
 
 interface ExecutionArtifacts {
   execution: Execution;
@@ -53,10 +68,14 @@ enum MetricsType {
 
 // Include only the runs and executions which have artifacts of the specified type.
 function filterRunArtifactsByType(
-  runArtifacts: RunArtifacts[],
-  artifactTypes: ArtifactType[],
+  runArtifacts: RunArtifacts[] | undefined,
+  artifactTypes: ArtifactType[] | undefined,
   metricsType: MetricsType,
 ): RunArtifacts[] {
+  if (!runArtifacts || !artifactTypes) {
+    return [];
+  }
+
   const metricsFilter =
     metricsType === MetricsType.SCALAR_METRICS
       ? 'system.Metrics'
@@ -103,24 +122,32 @@ function filterRunArtifactsByType(
 }
 
 function CompareV2(props: PageProps) {
+  const { updateBanner, updateToolbar } = props;
+
+  const runlistRef = useRef<RunList>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
+  const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
+  const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
+
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 
   // Retrieves run details.
-  const { data: runs } = useQuery<ApiRunDetail[], Error>(
+  const { isError, data: runs, refetch } = useQuery<ApiRunDetail[], Error>(
     ['run_details', { ids: runIds }],
     () => Promise.all(runIds.map(async id => await Apis.runServiceApi.getRun(id))),
     {
       staleTime: Infinity,
       onError: async error => {
         const errorMessage = await errorToMessage(error);
-        props.updateBanner({
+        updateBanner({
           additionalInfo: errorMessage ? errorMessage : undefined,
           message: `Error: failed loading ${runIds.length} runs. Click Details for more information.`,
           mode: 'error',
         });
       },
-      onSuccess: () => props.updateBanner({}),
+      onSuccess: () => updateBanner({}),
     },
   );
 
@@ -133,17 +160,27 @@ function CompareV2(props: PageProps) {
           runIds.map(async (r, index) => {
             const context = await getKfpV2RunContext(r);
             const executions = await getExecutionsFromContext(context);
-
-            const executionArtifacts = await Promise.all(
-              executions.map(async execution => {
-                const linkedArtifacts = await getOutputLinkedArtifactsInExecution(execution);
-                return {
-                  execution,
-                  linkedArtifacts,
-                } as ExecutionArtifacts;
-              }),
+            const artifacts = await getArtifactsFromContext(context);
+            const events = (await getEventsByExecutions(executions)).filter(
+              e => e.getType() === Event.Type.OUTPUT,
             );
 
+            // Match artifacts to executions.
+            const artifactMap = new Map();
+            artifacts.forEach(artifact => artifactMap.set(artifact.getId(), artifact));
+            const executionArtifacts = executions.map(execution => {
+              const executionEvents = events.filter(e => e.getExecutionId() === execution.getId());
+              const linkedArtifacts = executionEvents.map(event => {
+                return {
+                  event,
+                  artifact: artifactMap.get(event.getArtifactId()),
+                } as LinkedArtifact;
+              });
+              return {
+                execution,
+                linkedArtifacts,
+              } as ExecutionArtifacts;
+            });
             return {
               run: runs[index],
               executionArtifacts,
@@ -156,12 +193,12 @@ function CompareV2(props: PageProps) {
     {
       staleTime: Infinity,
       onError: error =>
-        props.updateBanner({
+        updateBanner({
           message: 'Cannot get MLMD objects from Metadata store.',
           additionalInfo: error.message,
           mode: 'error',
         }),
-      onSuccess: () => props.updateBanner({}),
+      onSuccess: () => updateBanner({}),
     },
   );
 
@@ -180,14 +217,6 @@ function CompareV2(props: PageProps) {
         }),
     },
   );
-
-  if (!runArtifacts || !artifactTypes) {
-    return (
-      <div className={commonCss.page}>
-        <p>This is the V2 Run Comparison page.</p>
-      </div>
-    );
-  }
 
   const scalarMetricsArtifacts = filterRunArtifactsByType(
     runArtifacts,
@@ -222,9 +251,110 @@ function CompareV2(props: PageProps) {
   console.log('Markdown');
   console.log(markdownArtifacts);
 
+  useEffect(() => {
+    const refresh = async () => {
+      if (runlistRef.current) {
+        await runlistRef.current.refresh();
+      }
+      await refetch();
+    };
+
+    const buttons = new Buttons(props, refresh);
+    updateToolbar({
+      actions: buttons
+        .expandSections(() => {
+          setIsOverviewCollapsed(false);
+          setIsParamsCollapsed(false);
+          setIsMetricsCollapsed(false);
+        })
+        .collapseSections(() => {
+          setIsOverviewCollapsed(true);
+          setIsParamsCollapsed(true);
+          setIsMetricsCollapsed(true);
+        })
+        .refresh(refresh)
+        .getToolbarActionMap(),
+      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+      pageTitle: 'Compare runs',
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (runs) {
+      setSelectedIds(runs.map(r => r.run!.id!));
+    }
+  }, [runs]);
+
+  const showPageError = async (message: string, error: Error | undefined) => {
+    const errorMessage = await errorToMessage(error);
+    updateBanner({
+      additionalInfo: errorMessage ? errorMessage : undefined,
+      message: message + (errorMessage ? ' Click Details for more information.' : ''),
+    });
+  };
+
+  const selectionChanged = (selectedIds: string[]): void => {
+    setSelectedIds(selectedIds);
+  };
+
+  if (isError) {
+    return <></>;
+  }
+
   return (
-    <div className={commonCss.page}>
-      <p>This is the V2 Run Comparison page.</p>
+    <div className={classes(commonCss.page, padding(20, 'lrt'))}>
+      {/* Overview section */}
+      <CollapseButtonSingle
+        sectionName={OVERVIEW_SECTION_NAME}
+        collapseSection={isOverviewCollapsed}
+        collapseSectionUpdate={setIsOverviewCollapsed}
+      />
+      {!isOverviewCollapsed && (
+        <div className={commonCss.noShrink}>
+          <RunList
+            onError={showPageError}
+            {...props}
+            selectedIds={selectedIds}
+            ref={runlistRef}
+            runIdListMask={runIds}
+            disablePaging={true}
+            onSelectionChange={selectionChanged}
+          />
+        </div>
+      )}
+
+      <Separator orientation='vertical' />
+
+      {/* Parameters section */}
+      <CollapseButtonSingle
+        sectionName={PARAMS_SECTION_NAME}
+        collapseSection={isParamsCollapsed}
+        collapseSectionUpdate={setIsParamsCollapsed}
+      />
+      {!isParamsCollapsed && (
+        <div className={classes(commonCss.noShrink, css.outputsRow)}>
+          <Separator orientation='vertical' />
+          <p>Parameter Section V2</p>
+          <Hr />
+        </div>
+      )}
+
+      {/* Metrics section */}
+      <CollapseButtonSingle
+        sectionName={METRICS_SECTION_NAME}
+        collapseSection={isMetricsCollapsed}
+        collapseSectionUpdate={setIsMetricsCollapsed}
+      />
+      {!isMetricsCollapsed && (
+        <div className={classes(commonCss.noShrink, css.outputsRow)}>
+          <Separator orientation='vertical' />
+          <p>Metrics Section V2</p>
+          <Hr />
+        </div>
+      )}
+
+      <Separator orientation='vertical' />
     </div>
   );
 }

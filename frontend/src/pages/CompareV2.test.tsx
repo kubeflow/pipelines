@@ -14,31 +14,18 @@
  * limitations under the License.
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import TestUtils, { testBestPractices } from 'src/TestUtils';
-import {
-  Artifact,
-  Context,
-  Event,
-  Execution,
-  GetArtifactsByIDRequest,
-  GetArtifactsByIDResponse,
-  GetContextByTypeAndNameRequest,
-  GetContextByTypeAndNameResponse,
-  GetEventsByExecutionIDsRequest,
-  GetEventsByExecutionIDsResponse,
-  GetExecutionsByContextRequest,
-  GetExecutionsByContextResponse,
-  Value,
-} from 'src/third_party/mlmd';
+import { Artifact, Context, Event, Execution, Value } from 'src/third_party/mlmd';
 import { Apis } from 'src/lib/Apis';
-import { Api } from 'src/mlmd/Api';
-import CompareV2 from './CompareV2';
 import { QUERY_PARAMS } from 'src/components/Router';
+import * as mlmdUtils from 'src/mlmd/MlmdUtils';
+import CompareV2 from './CompareV2';
 import { PageProps } from './Page';
 import { ApiRunDetail } from 'src/apis/run';
+import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 
 testBestPractices();
 describe('CompareV2', () => {
@@ -78,34 +65,41 @@ describe('CompareV2', () => {
     };
   }
 
-  function newMockContext(name?: string, id?: number): Execution {
+  function newMockContext(name: string, id: number): Execution {
     const context = new Context();
     context.setName(name);
     context.setId(id);
     return context;
   }
 
-  function newMockExecution(id?: number): Execution {
+  function newMockExecution(id: number): Execution {
     const execution = new Execution();
     execution.setId(id);
-    execution
-      .getCustomPropertiesMap()
-      .set('display_name', new Value().setStringValue(`execution${id}`));
     return execution;
   }
 
-  function newMockEvent(id?: number): Execution {
+  function newMockEvent(id: number): Event {
     const event = new Event();
     event.setArtifactId(id);
+    event.setExecutionId(id);
     event.setType(Event.Type.OUTPUT);
     return event;
   }
 
-  function newMockArtifact(id?: number): Execution {
+  function newMockArtifact(id: number): Artifact {
     const artifact = new Artifact();
     artifact.setId(id);
     return artifact;
   }
+
+  it('Render Compare v2 page', async () => {
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    screen.getByText(OVERVIEW_SECTION_NAME);
+  });
 
   it('getRun is called with query param IDs', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
@@ -123,13 +117,54 @@ describe('CompareV2', () => {
     expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_3_ID);
   });
 
+  it('Clear banner when getRun and MLMD requests succeed', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    const contexts = [
+      newMockContext(MOCK_RUN_1_ID, 1),
+      newMockContext(MOCK_RUN_2_ID, 2),
+      newMockContext(MOCK_RUN_3_ID, 3),
+    ];
+    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    getContextSpy.mockImplementation((runID: string) =>
+      Promise.resolve(contexts.find(c => c.getName() === runID)),
+    );
+
+    const executions = [[newMockExecution(1)], [newMockExecution(2)], [newMockExecution(3)]];
+    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    getExecutionsSpy.mockImplementation((context: Context) =>
+      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+    );
+
+    const artifacts = [newMockArtifact(1), newMockArtifact(2), newMockArtifact(3)];
+    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+
+    const events = [newMockEvent(1), newMockEvent(2), newMockEvent(3)];
+    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
+    getEventsSpy.mockReturnValue(Promise.resolve(events));
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    await waitFor(() => {
+      expect(getContextSpy).toBeCalledTimes(3);
+      expect(getExecutionsSpy).toBeCalledTimes(3);
+      expect(getArtifactsSpy).toBeCalledTimes(3);
+      expect(getEventsSpy).toBeCalledTimes(3);
+      expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+    });
+  });
+
   it('Show page error on page when getRun request fails', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
-    runs = [
-      newMockRun(MOCK_RUN_1_ID, true),
-      newMockRun(MOCK_RUN_2_ID, true),
-      newMockRun(MOCK_RUN_3_ID, true),
-    ];
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation(_ => {
       throw {
         text: () => Promise.resolve('test error'),
@@ -143,109 +178,14 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    await waitFor(() =>
-      expect(updateBannerSpy).toHaveBeenLastCalledWith({
-        additionalInfo: 'test error',
-        message: 'Error: failed loading 3 runs. Click Details for more information.',
-        mode: 'error',
-      }),
-    );
-  });
-
-  it('Successful MLMD requests clear the banner', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
-    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
-
-    const getContextSpy = jest.spyOn(
-      Api.getInstance().metadataStoreService,
-      'getContextByTypeAndName',
-    );
-    const getExecutionsSpy = jest.spyOn(
-      Api.getInstance().metadataStoreService,
-      'getExecutionsByContext',
-    );
-    const getEventsSpy = jest.spyOn(
-      Api.getInstance().metadataStoreService,
-      'getEventsByExecutionIDs',
-    );
-    const getArtifactsSpy = jest.spyOn(Api.getInstance().metadataStoreService, 'getArtifactsByID');
-
-    const contextResponses = [
-      new GetContextByTypeAndNameResponse().setContext(newMockContext(MOCK_RUN_1_ID, 1)),
-      new GetContextByTypeAndNameResponse().setContext(newMockContext(MOCK_RUN_2_ID, 2)),
-      new GetContextByTypeAndNameResponse().setContext(newMockContext(MOCK_RUN_3_ID, 3)),
-    ];
-    getContextSpy.mockImplementation((request: GetContextByTypeAndNameRequest) =>
-      contextResponses.find(c => c.getContext().getName() === request.getContextName()),
-    );
-
-    const executionResponses = [
-      new GetExecutionsByContextResponse().setExecutionsList([newMockExecution(1)]),
-      new GetExecutionsByContextResponse().setExecutionsList([newMockExecution(2)]),
-      new GetExecutionsByContextResponse().setExecutionsList([newMockExecution(3)]),
-    ];
-    getExecutionsSpy.mockImplementation((request: GetExecutionsByContextRequest) =>
-      executionResponses.find(e => e.getExecutionsList()[0].getId() === request.getContextId()),
-    );
-
-    const eventResponses = [
-      new GetEventsByExecutionIDsResponse().setEventsList([newMockEvent(1)]),
-      new GetEventsByExecutionIDsResponse().setEventsList([newMockEvent(2)]),
-      new GetEventsByExecutionIDsResponse().setEventsList([newMockEvent(3)]),
-    ];
-    getEventsSpy.mockImplementation((request: GetEventsByExecutionIDsRequest) =>
-      eventResponses.find(
-        e => e.getEventsList()[0].getArtifactId() === request.getExecutionIdsList()[0],
-      ),
-    );
-
-    const artifactResponses = [
-      new GetArtifactsByIDResponse().setArtifactsList([newMockArtifact(1)]),
-      new GetArtifactsByIDResponse().setArtifactsList([newMockArtifact(2)]),
-      new GetArtifactsByIDResponse().setArtifactsList([newMockArtifact(3)]),
-    ];
-    getArtifactsSpy.mockImplementation((request: GetArtifactsByIDRequest) =>
-      artifactResponses.find(
-        a => a.getArtifactsList()[0].getId() === request.getArtifactIdsList()[0],
-      ),
-    );
-
-    render(
-      <CommonTestWrapper>
-        <CompareV2 {...generateProps()} />
-      </CommonTestWrapper>,
-    );
-    await TestUtils.flushPromises();
-
-    await waitFor(() => {
-      expect(getContextSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ array: ['system.PipelineRun', MOCK_RUN_1_ID] }),
-      );
-      expect(getContextSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ array: ['system.PipelineRun', MOCK_RUN_2_ID] }),
-      );
-      expect(getContextSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ array: ['system.PipelineRun', MOCK_RUN_3_ID] }),
-      );
-
-      expect(getExecutionsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [1] }));
-      expect(getExecutionsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [2] }));
-      expect(getExecutionsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [3] }));
-
-      expect(getEventsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[1]] }));
-      expect(getEventsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[2]] }));
-      expect(getEventsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[3]] }));
-
-      expect(getArtifactsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[1]] }));
-      expect(getArtifactsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[2]] }));
-      expect(getArtifactsSpy).toHaveBeenCalledWith(expect.objectContaining({ array: [[3]] }));
-
-      expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({
+      additionalInfo: 'test error',
+      message: 'Error: failed loading 3 runs. Click Details for more information.',
+      mode: 'error',
     });
   });
 
-  it('Failed MLMD request create error banner', async () => {
+  it('Failed MLMD request creates error banner', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
@@ -268,12 +208,54 @@ describe('CompareV2', () => {
     });
   });
 
-  it('Render Compare v2 page', async () => {
+  it('Allows individual sections to be collapsed and expanded', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
     render(
       <CommonTestWrapper>
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    screen.getByText('This is the V2 Run Comparison page.');
+    await TestUtils.flushPromises();
+
+    screen.getByText('Filter runs');
+    screen.getByText('Parameter Section V2');
+    screen.getByText('Metrics Section V2');
+
+    fireEvent.click(screen.getByText(OVERVIEW_SECTION_NAME));
+    expect(screen.queryByText('Filter runs')).toBeNull();
+
+    fireEvent.click(screen.getByText(OVERVIEW_SECTION_NAME));
+    screen.getByText('Filter runs');
+
+    fireEvent.click(screen.getByText(PARAMS_SECTION_NAME));
+    expect(screen.queryByText('Parameter Section V2')).toBeNull();
+
+    fireEvent.click(screen.getByText(METRICS_SECTION_NAME));
+    expect(screen.queryByText('Metrics Section V2')).toBeNull();
+  });
+
+  it('All runs are initially selected', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    // Four checkboxes: three runs and one table header
+    let runCheckboxes = screen.queryAllByRole('checkbox', { checked: true });
+    expect(runCheckboxes.filter(r => r.nodeName === 'INPUT')).toHaveLength(4);
+
+    // Uncheck all run checkboxes
+    fireEvent.click(runCheckboxes[0]);
+    runCheckboxes = screen.queryAllByRole('checkbox', { checked: true });
+    expect(runCheckboxes.filter(r => r.nodeName === 'INPUT')).toHaveLength(0);
   });
 });
