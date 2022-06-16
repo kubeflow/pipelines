@@ -207,7 +207,7 @@ func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
 	if len(runs) == 0 {
 		return nil, util.NewResourceNotFoundError("Run", fmt.Sprint(runId))
 	}
-	if runs[0].WorkflowRuntimeManifest == ""  && runs[0].WorkflowSpecManifest != ""{
+	if runs[0].WorkflowRuntimeManifest == "" && runs[0].WorkflowSpecManifest != "" {
 		// This can only happen when workflow reporting is failed.
 		return nil, util.NewResourceNotFoundError("Failed to get run: %s", runId)
 	}
@@ -380,6 +380,8 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 			"PipelineSpecManifest":    r.PipelineSpecManifest,
 			"WorkflowSpecManifest":    r.WorkflowSpecManifest,
 			"Parameters":              r.Parameters,
+			"RuntimeParameters":       r.RuntimeConfig.Parameters,
+			"PipelineRoot":            r.RuntimeConfig.PipelineRoot,
 		}).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to store run to run table: '%v/%v",
