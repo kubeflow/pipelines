@@ -783,7 +783,7 @@ _outputs = {func_name}(**_parsed_args)
                 textwrap.dedent('''\
                     program_path=$(mktemp)
                     printf "%s" "$0" > "$program_path"
-                    python3 -u "$program_path" "$@"
+                    exec python3 -u "$program_path" "$@"
                 '''),
                 full_source,
             ],

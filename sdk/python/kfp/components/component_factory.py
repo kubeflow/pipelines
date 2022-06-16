@@ -332,7 +332,7 @@ def _get_command_and_args_for_lightweight_component(
         textwrap.dedent('''\
                     program_path=$(mktemp -d)
                     printf "%s" "$0" > "$program_path/ephemeral_component.py"
-                    python3 -m kfp.components.executor_main \
+                    exec python3 -m kfp.components.executor_main \
                         --component_module_path \
                         "$program_path/ephemeral_component.py" \
                         "$@"
