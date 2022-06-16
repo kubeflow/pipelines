@@ -11,3 +11,7 @@ spec:
         - name: NAMESPACE
           value: ''
           valueFrom: null
+        - name: KUBEFLOW_USERID_HEADER
+          value: kubeflow-userid
+        - name: KUBEFLOW_USERID_PREFIX
+          value: ""

@@ -11,6 +11,13 @@ rules:
   - get
   - list
   - watch
+  - patch
+- apiGroups:
+  - ''
+  resources:
+  - namespaces
+  verbs:
+  - get
 - apiGroups:
   - kubeflow.org
   resources:

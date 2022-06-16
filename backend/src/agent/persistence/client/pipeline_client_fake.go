@@ -57,12 +57,15 @@ func (p *PipelineClientFake) ReportScheduledWorkflow(swf *util.ScheduledWorkflow
 	return nil
 }
 
-func (p *PipelineClientFake) ReadArtifact(request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error) {
+func (p *PipelineClientFake) ReadArtifact(request *api.ReadArtifactRequest, user string) (*api.ReadArtifactResponse, error) {
+	if p.err != nil {
+		return nil, p.err
+	}
 	p.readArtifactRequest = request
 	return p.artifacts[request.String()], nil
 }
 
-func (p *PipelineClientFake) ReportRunMetrics(request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error) {
+func (p *PipelineClientFake) ReportRunMetrics(request *api.ReportRunMetricsRequest, user string) (*api.ReportRunMetricsResponse, error) {
 	p.reportedMetricsRequest = request
 	return p.reportMetricsResponseStub, p.reportMetricsErrorStub
 }
