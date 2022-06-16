@@ -180,11 +180,13 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({
-      additionalInfo: 'test error',
-      message: 'Error: failed loading 3 runs. Click Details for more information.',
-      mode: 'error',
-    });
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenLastCalledWith({
+        additionalInfo: 'test error',
+        message: 'Error: failed loading 3 runs. Click Details for more information.',
+        mode: 'error',
+      }),
+    );
   });
 
   it('Failed MLMD request creates error banner', async () => {
@@ -235,7 +237,6 @@ describe('CompareV2', () => {
       });
     });
   });
-
 
   it('Allows individual sections to be collapsed and expanded', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
