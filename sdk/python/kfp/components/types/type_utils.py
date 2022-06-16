@@ -222,36 +222,38 @@ def verify_type_compatibility(
         expected_type: The declared type of the input.
         error_message_prefix: The prefix for the error message.
 
-    Returns:
-        True if types are compatible, and False if otherwise.
-
     Raises:
         InconsistentTypeException if types are incompatible and TYPE_CHECK==True.
     """
+    types_are_compatible = False
+    is_parameter = is_parameter_type(str(given_type))
 
-    # Generic "Artifact" type is compatible with any specific artifact types.
-    if not is_parameter_type(
-            str(given_type)) and (str(given_type).lower() == 'artifact' or
-                                  str(expected_type).lower() == 'artifact'):
-        return True
+    # handle parameteres
+    if is_parameter:
+        # Normalize parameter type names.
+        if is_parameter_type(given_type):
+            given_type = get_parameter_type_name(given_type)
+        if is_parameter_type(expected_type):
+            expected_type = get_parameter_type_name(expected_type)
 
-    # Normalize parameter type names.
-    if is_parameter_type(given_type):
-        given_type = get_parameter_type_name(given_type)
-    if is_parameter_type(expected_type):
-        expected_type = get_parameter_type_name(expected_type)
+        types_are_compatible = _check_types(given_type, expected_type)
 
-    types_are_compatible = _check_types(given_type, expected_type)
+    # handle artifacts
+    elif (str(given_type).lower() == 'artifact' or
+          str(expected_type).lower() == 'artifact'):
+        types_are_compatible = True
+    elif str(given_type).lower().split('.')[-1] == str(
+            expected_type).lower().split('.')[-1]:
+        types_are_compatible = True
 
+    # maybe raise, maybe warn, return bool
     if not types_are_compatible:
-        error_text = error_message_prefix + (
-            'Argument type "{}" is incompatible with the input type "{}"'
-        ).format(str(given_type), str(expected_type))
-
+        error_text = error_message_prefix + f'Argument type "{given_type}" is incompatible with the input type "{expected_type}"'
         if kfp.TYPE_CHECK:
             raise InconsistentTypeException(error_text)
         else:
             warnings.warn(InconsistentTypeWarning(error_text))
+
     return types_are_compatible
 
 
