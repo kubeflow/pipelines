@@ -95,7 +95,7 @@ function CompareV2(props: PageProps) {
       pageTitle: 'Compare runs',
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [updateToolbar, refetch]);
+  }, []);
 
   useEffect(() => {
     if (data) {
