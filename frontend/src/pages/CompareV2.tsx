@@ -69,25 +69,27 @@ function CompareV2(props: PageProps) {
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 
   // Retrieves run details.
-  const { isError, data: runs, refetch } = useQuery<ApiRunDetail[], Error>(
+  const {
+    isLoading: isLoadingRunDetails,
+    isError: isErrorRunDetails,
+    error: errorRunDetails,
+    data: runs,
+    refetch,
+  } = useQuery<ApiRunDetail[], Error>(
     ['run_details', { ids: runIds }],
     () => Promise.all(runIds.map(async id => await Apis.runServiceApi.getRun(id))),
     {
       staleTime: Infinity,
-      onError: async error => {
-        const errorMessage = await errorToMessage(error);
-        updateBanner({
-          additionalInfo: errorMessage ? errorMessage : undefined,
-          message: `Error: failed loading ${runIds.length} runs. Click Details for more information.`,
-          mode: 'error',
-        });
-      },
-      onSuccess: () => updateBanner({}),
     },
   );
 
   // Retrieves MLMD states (executions and linked artifacts) from the MLMD store.
-  const { data: runArtifacts } = useQuery<RunArtifacts[], Error>(
+  const {
+    data: runArtifacts,
+    isLoading: isLoadingRunArtifacts,
+    isError: isErrorRunArtifacts,
+    error: errorRunArtifacts,
+  } = useQuery<RunArtifacts[], Error>(
     ['run_artifacts', { runIds, runs }],
     () => {
       if (runs) {
@@ -127,15 +129,41 @@ function CompareV2(props: PageProps) {
     },
     {
       staleTime: Infinity,
-      onError: error =>
-        updateBanner({
-          message: 'Cannot get MLMD objects from Metadata store.',
-          additionalInfo: error.message,
-          mode: 'error',
-        }),
-      onSuccess: () => updateBanner({}),
     },
   );
+
+  useEffect(() => {
+    if (isLoadingRunDetails || isLoadingRunArtifacts) {
+      return;
+    }
+
+    if (isErrorRunDetails) {
+      (async function() {
+        const errorMessage = await errorToMessage(errorRunDetails);
+        updateBanner({
+          additionalInfo: errorMessage ? errorMessage : undefined,
+          message: `Error: failed loading ${runIds.length} runs. Click Details for more information.`,
+          mode: 'error',
+        });
+      })();
+    } else if (isErrorRunArtifacts) {
+      updateBanner({
+        message: 'Cannot get MLMD objects from Metadata store.',
+        additionalInfo: errorRunArtifacts ? errorRunArtifacts.message : undefined,
+        mode: 'error',
+      });
+    } else {
+      updateBanner({});
+    }
+  }, [
+    isLoadingRunDetails,
+    isLoadingRunArtifacts,
+    isErrorRunDetails,
+    isErrorRunArtifacts,
+    errorRunDetails,
+    errorRunArtifacts,
+    updateBanner,
+  ]);
 
   useEffect(() => {
     const refresh = async () => {
@@ -183,10 +211,6 @@ function CompareV2(props: PageProps) {
   const selectionChanged = (selectedIds: string[]): void => {
     setSelectedIds(selectedIds);
   };
-
-  if (isError) {
-    return <></>;
-  }
 
   return (
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>

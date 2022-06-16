@@ -178,11 +178,13 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({
-      additionalInfo: 'test error',
-      message: 'Error: failed loading 3 runs. Click Details for more information.',
-      mode: 'error',
-    });
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenLastCalledWith({
+        additionalInfo: 'test error',
+        message: 'Error: failed loading 3 runs. Click Details for more information.',
+        mode: 'error',
+      }),
+    );
   });
 
   it('Failed MLMD request creates error banner', async () => {
