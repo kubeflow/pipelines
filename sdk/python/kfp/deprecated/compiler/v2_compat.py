@@ -81,7 +81,7 @@ def update_op(op: dsl.ContainerOp,
     # - |
     #     program_path=$(mktemp)
     #     printf "%s" "$0" > "$program_path"
-    #     python3 -u "$program_path" "$@"
+    #     exec python3 -u "$program_path" "$@"
     # - >
     #     import json
     #     import xxx

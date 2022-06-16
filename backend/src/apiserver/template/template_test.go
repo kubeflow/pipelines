@@ -174,7 +174,7 @@ var v2SpecHelloWorldJSON = `
 	  "command": [
 	    "sh",
 	    "-ec",
-	    "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+	    "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\nexec python3 -u \"$program_path\" \"$@\"\n",
 	    "def hello_world(text):\n    print(text)\n    return text\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Hello world', description='')\n_parser.add_argument(\"--text\", dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = hello_world(**_parsed_args)\n"
 	  ],
 	  "image": "python:3.7"
@@ -243,7 +243,7 @@ deploymentSpec:
         - |
           program_path=$(mktemp)
           printf "%s" "$0" > "$program_path"
-          python3 -u "$program_path" "$@"
+          exec python3 -u "$program_path" "$@"
         - |
           def hello_world(text):
               print(text)
