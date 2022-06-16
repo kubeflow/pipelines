@@ -21,6 +21,7 @@ python3 -m pip install $(grep 'docker==' sdk/python/requirements-dev.txt)
 python3 -m pip install $(grep 'pytest==' sdk/python/requirements-dev.txt)
 python3 -m pip install $(grep 'pytest-xdist==' sdk/python/requirements-dev.txt)
 python3 -m pip install $(grep 'pytest-cov==' sdk/python/requirements-dev.txt)
+python3 -m pip install -e components/google-cloud
 python3 -m pip install --upgrade protobuf
 
 # Installing Argo CLI to lint all compiled workflows
