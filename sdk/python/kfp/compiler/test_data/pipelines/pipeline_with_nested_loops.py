@@ -27,20 +27,20 @@ def print_op(msg: str, msg2: Optional[str] = None):
 @dsl.pipeline(name='pipeline-with-nested-loops')
 def my_pipeline(loop_parameter: list = [
     {
-        "p_a": [{
-            "q_a": '1'
+        'p_a': [{
+            'q_a': '1'
         }, {
-            "q_a": '2'
+            'q_a': '2'
         }],
-        "p_b": "hello",
+        'p_b': 'hello',
     },
     {
-        "p_a": [{
-            "q_a": '11'
+        'p_a': [{
+            'q_a': '11'
         }, {
-            "q_a": '22'
+            'q_a': '22'
         }],
-        "p_b": "halo",
+        'p_b': 'halo',
     },
 ]):
     # Nested loop with withParams loop args

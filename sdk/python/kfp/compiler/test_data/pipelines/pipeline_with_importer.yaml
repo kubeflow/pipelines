@@ -124,7 +124,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -138,9 +138,9 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef train(\n    dataset: Input[Dataset]\n) -> NamedTuple('Outputs',\
           \ [\n    ('scalar', str),\n    ('model', Model),\n]):\n    \"\"\"Dummy Training\
-          \ step.\"\"\"\n    with open(dataset.path, 'r') as f:\n        data = f.read()\n\
-          \    print('Dataset:', data)\n\n    scalar = '123'\n    model = 'My model\
-          \ trained using data: {}'.format(data)\n\n    from collections import namedtuple\n\
+          \ step.\"\"\"\n    with open(dataset.path) as f:\n        data = f.read()\n\
+          \    print('Dataset:', data)\n\n    scalar = '123'\n    model = f'My model\
+          \ trained using data: {data}'\n\n    from collections import namedtuple\n\
           \    output = namedtuple('Outputs', ['scalar', 'model'])\n    return output(scalar,\
           \ model)\n\n"
         image: python:3.7
@@ -156,7 +156,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -170,9 +170,9 @@ deploymentSpec:
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
           \ *\n\ndef train(\n    dataset: Input[Dataset]\n) -> NamedTuple('Outputs',\
           \ [\n    ('scalar', str),\n    ('model', Model),\n]):\n    \"\"\"Dummy Training\
-          \ step.\"\"\"\n    with open(dataset.path, 'r') as f:\n        data = f.read()\n\
-          \    print('Dataset:', data)\n\n    scalar = '123'\n    model = 'My model\
-          \ trained using data: {}'.format(data)\n\n    from collections import namedtuple\n\
+          \ step.\"\"\"\n    with open(dataset.path) as f:\n        data = f.read()\n\
+          \    print('Dataset:', data)\n\n    scalar = '123'\n    model = f'My model\
+          \ trained using data: {data}'\n\n    from collections import namedtuple\n\
           \    output = namedtuple('Outputs', ['scalar', 'model'])\n    return output(scalar,\
           \ model)\n\n"
         image: python:3.7
@@ -231,4 +231,4 @@ root:
         defaultValue: gs://ml-pipeline-playground/shakespeare2.txt
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.1
+sdkVersion: kfp-2.0.0-alpha.5

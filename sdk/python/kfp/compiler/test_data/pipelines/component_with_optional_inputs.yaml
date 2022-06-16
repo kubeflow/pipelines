@@ -1,6 +1,13 @@
 components:
   comp-component-op:
     executorLabel: exec-component-op
+    inputDefinitions:
+      parameters:
+        input1:
+          defaultValue: default value
+          parameterType: STRING
+        input2:
+          parameterType: STRING
 deploymentSpec:
   executors:
     exec-component-op:
@@ -15,9 +22,8 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location --index-url\
-          \ https://pypi.org/simple --trusted-host https://pypi.org/simple 'yapf'\
-          \ 'kfp==2.0.0-alpha.1' && \"$0\" \"$@\"\n"
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -28,10 +34,14 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef component_op():\n    import yapf\n    print(dir(yapf))\n\n"
+          \ *\n\ndef component_op(\n    input1: str = 'default value',\n    input2:\
+          \ Optional[str] = None,\n    input3: Optional[str] = None,\n):\n    print(f'input1:\
+          \ {input1}, type: {type(input1)}')\n    print(f'input2: {input2}, type:\
+          \ {type(input2)}')\n    print(f'input3: {input3}, type: {type(input3)}')\n\
+          \n"
         image: python:3.7
 pipelineInfo:
-  name: v2-component-pip-index-urls
+  name: v2-component-optional-input
 root:
   dag:
     tasks:
@@ -40,7 +50,15 @@ root:
           enableCache: true
         componentRef:
           name: comp-component-op
+        inputs:
+          parameters:
+            input1:
+              runtimeValue:
+                constant: Hello
+            input2:
+              runtimeValue:
+                constant: World
         taskInfo:
           name: component-op
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.1
+sdkVersion: kfp-2.0.0-alpha.5

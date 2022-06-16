@@ -47,20 +47,20 @@ def output_named_tuple(
     ('metrics', Metrics),
     ('model', Model),
 ]):
-    scalar = "123"
+    scalar = '123'
 
     import json
     metrics = json.dumps({
         'metrics': [{
             'name': 'accuracy',
             'numberValue': 0.9,
-            'format': "PERCENTAGE",
+            'format': 'PERCENTAGE',
         }]
     })
 
-    with open(artifact.path, 'r') as f:
+    with open(artifact.path) as f:
         artifact_contents = f.read()
-    model = "Model contents: " + artifact_contents
+    model = 'Model contents: ' + artifact_contents
 
     from collections import namedtuple
     output = namedtuple('Outputs', ['scalar', 'metrics', 'model'])

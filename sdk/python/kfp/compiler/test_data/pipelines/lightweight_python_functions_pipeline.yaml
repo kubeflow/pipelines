@@ -73,7 +73,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -125,7 +125,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.1'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -148,20 +148,19 @@ deploymentSpec:
           \ dict.\n    input_dict: Dict[str, int],\n    # An input parameter of type\
           \ List[str].\n    input_list: List[str],\n    # An input parameter of type\
           \ int with a default value.\n    num_steps: int = 100,\n):\n    \"\"\"Dummy\
-          \ Training step.\"\"\"\n    with open(dataset_one_path, 'r') as input_file:\n\
-          \        dataset_one_contents = input_file.read()\n\n    with open(dataset_two.path,\
-          \ 'r') as input_file:\n        dataset_two_contents = input_file.read()\n\
-          \n    line = (f'dataset_one_contents: {dataset_one_contents} || '\n    \
-          \        f'dataset_two_contents: {dataset_two_contents} || '\n         \
-          \   f'message: {message} || '\n            f'input_bool: {input_bool}, type\
+          \ Training step.\"\"\"\n    with open(dataset_one_path) as input_file:\n\
+          \        dataset_one_contents = input_file.read()\n\n    with open(dataset_two.path)\
+          \ as input_file:\n        dataset_two_contents = input_file.read()\n\n \
+          \   line = (f'dataset_one_contents: {dataset_one_contents} || '\n      \
+          \      f'dataset_two_contents: {dataset_two_contents} || '\n           \
+          \ f'message: {message} || '\n            f'input_bool: {input_bool}, type\
           \ {type(input_bool)} || '\n            f'input_dict: {input_dict}, type\
           \ {type(input_dict)} || '\n            f'input_list: {input_list}, type\
           \ {type(input_list)} \\n')\n\n    with open(model.path, 'w') as output_file:\n\
-          \        for i in range(num_steps):\n            output_file.write('Step\
-          \ {}\\n{}\\n=====\\n'.format(i, line))\n\n    # model is an instance of\
-          \ Model artifact, which has a .metadata dictionary\n    # to store arbitrary\
-          \ metadata for the output artifact.\n    model.metadata['accuracy'] = 0.9\n\
-          \n"
+          \        for i in range(num_steps):\n            output_file.write(f'Step\
+          \ {i}\\n{line}\\n=====\\n')\n\n    # model is an instance of Model artifact,\
+          \ which has a .metadata dictionary\n    # to store arbitrary metadata for\
+          \ the output artifact.\n    model.metadata['accuracy'] = 0.9\n\n"
         image: python:3.7
 pipelineInfo:
   name: my-test-pipeline-beta
@@ -233,4 +232,4 @@ root:
       message:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.1
+sdkVersion: kfp-2.0.0-alpha.5
