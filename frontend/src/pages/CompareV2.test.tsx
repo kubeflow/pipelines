@@ -146,7 +146,8 @@ describe('CompareV2', () => {
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
     getEventsSpy.mockReturnValue(Promise.resolve(events));
 
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue([]);
+    const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
+    getArtifactTypesSpy.mockReturnValue([]);
 
     render(
       <CommonTestWrapper>
@@ -160,6 +161,7 @@ describe('CompareV2', () => {
       expect(getExecutionsSpy).toBeCalledTimes(3);
       expect(getArtifactsSpy).toBeCalledTimes(3);
       expect(getEventsSpy).toBeCalledTimes(3);
+      expect(getArtifactTypesSpy).toBeCalledTimes(1);
       expect(updateBannerSpy).toHaveBeenLastCalledWith({});
     });
   });
