@@ -146,6 +146,8 @@ describe('CompareV2', () => {
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
     getEventsSpy.mockReturnValue(Promise.resolve(events));
 
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue([]);
+
     render(
       <CommonTestWrapper>
         <CompareV2 {...generateProps()} />
@@ -207,6 +209,33 @@ describe('CompareV2', () => {
       });
     });
   });
+
+  it('Failed getArtifactTypes request creates error banner', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    jest.spyOn(mlmdUtils, 'getKfpV2RunContext').mockReturnValue(new Context());
+    jest.spyOn(mlmdUtils, 'getExecutionsFromContext').mockReturnValue([]);
+    jest.spyOn(mlmdUtils, 'getArtifactsFromContext').mockReturnValue([]);
+    jest.spyOn(mlmdUtils, 'getEventsByExecutions').mockReturnValue([]);
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockRejectedValue('test error');
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    await waitFor(() => {
+      expect(updateBannerSpy).toHaveBeenLastCalledWith({
+        message: 'Cannot get Artifact Types for MLMD.',
+        mode: 'error',
+      });
+    });
+  });
+
 
   it('Allows individual sections to be collapsed and expanded', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');

@@ -147,7 +147,7 @@ function CompareV2(props: PageProps) {
           mode: 'error',
         });
       },
-      onSuccess: () => updateBanner({}),
+      onSuccess: () => updateBanner({ message: 't' }),
     },
   );
 
@@ -198,7 +198,7 @@ function CompareV2(props: PageProps) {
           additionalInfo: error.message,
           mode: 'error',
         }),
-      onSuccess: () => updateBanner({}),
+      onSuccess: () => updateBanner({ message: 't2' }),
     },
   );
 
@@ -209,8 +209,8 @@ function CompareV2(props: PageProps) {
     () => getArtifactTypes(),
     {
       staleTime: Infinity,
-      onError: error =>
-        props.updateBanner({
+      onError: error => 
+        updateBanner({
           message: 'Cannot get Artifact Types for MLMD.',
           additionalInfo: error.message,
           mode: 'error',
@@ -240,16 +240,16 @@ function CompareV2(props: PageProps) {
     MetricsType.MARKDOWN,
   );
 
-  console.log('Scalar Metrics');
-  console.log(scalarMetricsArtifacts);
-  console.log('Confusion Matrix');
-  console.log(confusionMatrixArtifacts);
-  console.log('ROC Curve');
-  console.log(rocCurveArtifacts);
-  console.log('HTML');
-  console.log(htmlArtifacts);
-  console.log('Markdown');
-  console.log(markdownArtifacts);
+  // console.log('Scalar Metrics');
+  // console.log(scalarMetricsArtifacts);
+  // console.log('Confusion Matrix');
+  // console.log(confusionMatrixArtifacts);
+  // console.log('ROC Curve');
+  // console.log(rocCurveArtifacts);
+  // console.log('HTML');
+  // console.log(htmlArtifacts);
+  // console.log('Markdown');
+  // console.log(markdownArtifacts);
 
   useEffect(() => {
     const refresh = async () => {
