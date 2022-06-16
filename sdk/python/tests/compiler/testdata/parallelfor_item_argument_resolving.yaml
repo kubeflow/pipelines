@@ -17,7 +17,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        python3 -u "$program_path" "$@"
+        exec python3 -u "$program_path" "$@"
       - |
         def consume(param1):
             print(param1)
@@ -56,7 +56,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        python3 -u "$program_path" "$@"
+        exec python3 -u "$program_path" "$@"
       - |
         def consume(param1):
             print(param1)
@@ -95,7 +95,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        python3 -u "$program_path" "$@"
+        exec python3 -u "$program_path" "$@"
       - |
         def consume(param1):
             print(param1)
@@ -134,7 +134,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        python3 -u "$program_path" "$@"
+        exec python3 -u "$program_path" "$@"
       - |
         def consume(param1):
             print(param1)
@@ -173,7 +173,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        python3 -u "$program_path" "$@"
+        exec python3 -u "$program_path" "$@"
       - |
         def consume(param1):
             print(param1)
@@ -212,7 +212,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        python3 -u "$program_path" "$@"
+        exec python3 -u "$program_path" "$@"
       - |
         def consume(param1):
             print(param1)
@@ -251,7 +251,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        python3 -u "$program_path" "$@"
+        exec python3 -u "$program_path" "$@"
       - |
         def consume(param1):
             print(param1)
@@ -290,7 +290,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        python3 -u "$program_path" "$@"
+        exec python3 -u "$program_path" "$@"
       - |
         def consume(param1):
             print(param1)
@@ -326,7 +326,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        python3 -u "$program_path" "$@"
+        exec python3 -u "$program_path" "$@"
       - |
         def consume(param1):
             print(param1)
@@ -474,7 +474,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        python3 -u "$program_path" "$@"
+        exec python3 -u "$program_path" "$@"
       - |
         def produce_list_of_dicts():
             return [{"aaa": "aaa1", "bbb": "bbb1"}, {"aaa": "aaa2", "bbb": "bbb2"}]
@@ -557,7 +557,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        python3 -u "$program_path" "$@"
+        exec python3 -u "$program_path" "$@"
       - |
         def produce_list_of_ints():
             return [1234567890, 987654321]
@@ -639,7 +639,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        python3 -u "$program_path" "$@"
+        exec python3 -u "$program_path" "$@"
       - |
         def produce_list_of_strings():
             return ["a", "z"]
@@ -721,7 +721,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        python3 -u "$program_path" "$@"
+        exec python3 -u "$program_path" "$@"
       - |
         def produce_str():
             return "Hello"
