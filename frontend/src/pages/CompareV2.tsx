@@ -17,11 +17,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useQuery } from 'react-query';
 import { ApiRunDetail } from 'src/apis/run';
+import Hr from 'src/atoms/Hr';
+import Separator from 'src/atoms/Separator';
+import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
+import Buttons from 'src/lib/Buttons';
 import { URLParser } from 'src/lib/URLParser';
 import { errorToMessage } from 'src/lib/Utils';
+import { classes, stylesheet } from 'typestyle';
 import {
   getArtifactsFromContext,
   getEventsByExecutions,
@@ -31,11 +36,6 @@ import {
 } from 'src/mlmd/MlmdUtils';
 import { Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
-import Hr from 'src/atoms/Hr';
-import Separator from 'src/atoms/Separator';
-import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
-import Buttons from 'src/lib/Buttons';
-import { classes, stylesheet } from 'typestyle';
 import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 

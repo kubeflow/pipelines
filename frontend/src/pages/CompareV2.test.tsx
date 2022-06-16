@@ -18,11 +18,11 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import TestUtils, { testBestPractices } from 'src/TestUtils';
-import { Artifact, Context, Event, Execution, LinkedArtifact, Value } from 'src/third_party/mlmd';
+import { Artifact, Context, Event, Execution, Value } from 'src/third_party/mlmd';
 import { Apis } from 'src/lib/Apis';
+import { QUERY_PARAMS } from 'src/components/Router';
 import * as mlmdUtils from 'src/mlmd/MlmdUtils';
 import CompareV2 from './CompareV2';
-import { QUERY_PARAMS } from 'src/components/Router';
 import { PageProps } from './Page';
 import { ApiRunDetail } from 'src/apis/run';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
@@ -120,30 +120,7 @@ describe('CompareV2', () => {
     expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_3_ID);
   });
 
-  it('Show page error on page when getRun request fails', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
-    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation(_ => {
-      throw {
-        text: () => Promise.resolve('test error'),
-      };
-    });
-
-    render(
-      <CommonTestWrapper>
-        <CompareV2 {...generateProps()} />
-      </CommonTestWrapper>,
-    );
-    await TestUtils.flushPromises();
-
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({
-      additionalInfo: 'test error',
-      message: 'Error: failed loading 3 runs. Click Details for more information.',
-      mode: 'error',
-    });
-  });
-
-  it('Successful MLMD requests clear the banner', async () => {
+  it('Clear banner when getRun and MLMD requests succeed', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
@@ -188,6 +165,29 @@ describe('CompareV2', () => {
     });
   });
 
+  it('Show page error on page when getRun request fails', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation(_ => {
+      throw {
+        text: () => Promise.resolve('test error'),
+      };
+    });
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({
+      additionalInfo: 'test error',
+      message: 'Error: failed loading 3 runs. Click Details for more information.',
+      mode: 'error',
+    });
+  });
+
   it('Failed MLMD request create error banner', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
@@ -209,22 +209,6 @@ describe('CompareV2', () => {
         mode: 'error',
       });
     });
-  });
-
-  // TODO: We'll see about this one. I think remove it, personally.
-  it('Clear banner when getRun request succeeds', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
-    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
-
-    render(
-      <CommonTestWrapper>
-        <CompareV2 {...generateProps()} />
-      </CommonTestWrapper>,
-    );
-    await TestUtils.flushPromises();
-
-    await waitFor(() => expect(updateBannerSpy).toHaveBeenLastCalledWith({}));
   });
 
   it('Allows individual sections to be collapsed and expanded', async () => {
