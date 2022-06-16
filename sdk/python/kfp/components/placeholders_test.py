@@ -20,6 +20,21 @@ from kfp.components import placeholders
 from kfp.components import structures
 
 
+class TestExecutorInputPlaceholder(parameterized.TestCase):
+
+    @parameterized.parameters([
+        ('{{$}}', placeholders.ExecutorInputPlaceholder()),
+    ])
+    def test_to_from_placeholder(
+            self, placeholder_string: str,
+            placeholder_obj: placeholders.ExecutorInputPlaceholder):
+        self.assertEqual(
+            placeholders.ExecutorInputPlaceholder.from_placeholder_string(
+                placeholder_string), placeholder_obj)
+        self.assertEqual(placeholder_obj.to_placeholder_string(),
+                         placeholder_string)
+
+
 class TestInputValuePlaceholder(parameterized.TestCase):
 
     @parameterized.parameters([

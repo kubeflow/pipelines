@@ -412,6 +412,9 @@ def convert_str_or_dict_to_placeholder(
             convert_str_or_dict_to_placeholder(e) for e in element['concat']
         ])
 
+    elif first_key == 'executorInput':
+        return placeholders.ExecutorInputPlaceholder()
+
     else:
         raise TypeError(
             f'Unexpected command/argument type: "{element}" of type "{type(element)}".'
@@ -459,7 +462,8 @@ def _check_valid_placeholder_reference(
         for placeholder in placeholder.items:
             _check_valid_placeholder_reference(valid_inputs, valid_outputs,
                                                placeholder)
-    elif not isinstance(placeholder, str):
+    elif not isinstance(placeholder, placeholders.ExecutorInputPlaceholder
+                       ) and not isinstance(placeholder, str):
         raise TypeError(
             f'Unexpected argument "{placeholder}" of type {type(placeholder)}.')
 

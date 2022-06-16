@@ -66,6 +66,8 @@ export interface CompareState {
 }
 
 class CompareV1 extends Page<{}, CompareState> {
+  private _runlistRef = React.createRef<RunList>();
+
   constructor(props: any) {
     super(props);
 
@@ -120,6 +122,7 @@ class CompareV1 extends Page<{}, CompareState> {
               onError={this.showPageError.bind(this)}
               {...this.props}
               selectedIds={selectedIds}
+              ref={this._runlistRef}
               runIdListMask={runIds}
               disablePaging={true}
               onSelectionChange={this._selectionChanged.bind(this)}
@@ -205,6 +208,9 @@ class CompareV1 extends Page<{}, CompareState> {
   }
 
   public async refresh(): Promise<void> {
+    if (this._runlistRef.current) {
+      await this._runlistRef.current.refresh();
+    }
     return this.load();
   }
 

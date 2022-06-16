@@ -16,14 +16,14 @@
 
 import * as React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import CollapseButton from './CollapseButtonSingle';
+import CollapseButtonSingle from './CollapseButtonSingle';
 
 describe('CollapseButtonSingle', () => {
   const collapseSectionUpdateSpy = jest.fn();
 
   it('Collapes an expanded section when clicked', () => {
     render(
-      <CollapseButton
+      <CollapseButtonSingle
         collapseSection={false}
         collapseSectionUpdate={collapseSectionUpdateSpy}
         sectionName='testSection'
@@ -36,7 +36,7 @@ describe('CollapseButtonSingle', () => {
 
   it('Expands a collapsed section when clicked', () => {
     render(
-      <CollapseButton
+      <CollapseButtonSingle
         collapseSection={true}
         collapseSectionUpdate={collapseSectionUpdateSpy}
         sectionName='testSection'

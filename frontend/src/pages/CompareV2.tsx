@@ -19,7 +19,7 @@ import { useQuery } from 'react-query';
 import { ApiRunDetail } from 'src/apis/run';
 import Hr from 'src/atoms/Hr';
 import Separator from 'src/atoms/Separator';
-import CollapseButton from 'src/components/CollapseButtonSingle';
+import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
 import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
@@ -27,10 +27,10 @@ import Buttons from 'src/lib/Buttons';
 import { URLParser } from 'src/lib/URLParser';
 import { errorToMessage } from 'src/lib/Utils';
 import { classes, stylesheet } from 'typestyle';
-import MD2Tabs from 'src/atoms/MD2Tabs';
 import { PageProps } from './Page';
 import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
+import MD2Tabs from 'src/atoms/MD2Tabs';
 
 const css = stylesheet({
   outputsRow: {
@@ -104,7 +104,8 @@ function CompareV2(props: PageProps) {
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
       pageTitle: 'Compare runs',
     });
-  }, [updateToolbar, refetch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (data) {
@@ -131,7 +132,7 @@ function CompareV2(props: PageProps) {
   return (
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
       {/* Overview section */}
-      <CollapseButton
+      <CollapseButtonSingle
         sectionName={OVERVIEW_SECTION_NAME}
         collapseSection={isOverviewCollapsed}
         collapseSectionUpdate={setIsOverviewCollapsed}
@@ -153,7 +154,7 @@ function CompareV2(props: PageProps) {
       <Separator orientation='vertical' />
 
       {/* Parameters section */}
-      <CollapseButton
+      <CollapseButtonSingle
         sectionName={PARAMS_SECTION_NAME}
         collapseSection={isParamsCollapsed}
         collapseSectionUpdate={setIsParamsCollapsed}
@@ -167,7 +168,7 @@ function CompareV2(props: PageProps) {
       )}
 
       {/* Metrics section */}
-      <CollapseButton
+      <CollapseButtonSingle
         sectionName={METRICS_SECTION_NAME}
         collapseSection={isMetricsCollapsed}
         collapseSectionUpdate={setIsMetricsCollapsed}
