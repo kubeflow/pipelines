@@ -16,7 +16,11 @@ from typing import NamedTuple
 
 from kfp import compiler
 from kfp import dsl
-from kfp.dsl import component, Input, Dataset, Model, Metrics
+from kfp.dsl import component
+from kfp.dsl import Dataset
+from kfp.dsl import Input
+from kfp.dsl import Metrics
+from kfp.dsl import Model
 
 
 @component

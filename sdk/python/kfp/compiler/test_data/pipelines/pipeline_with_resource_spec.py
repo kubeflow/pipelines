@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import components
-from kfp import dsl
-from kfp import compiler
 import pathlib
 
-test_data_dir = pathlib.Path(__file__).parent / 'component_yaml'
+from kfp import compiler
+from kfp import components
+from kfp import dsl
+
+test_data_dir = pathlib.Path(__file__).parent.parent / 'v1_component_yaml'
 
 ingestion_op = components.load_component_from_file(
     str(test_data_dir / 'ingestion_component.yaml'))

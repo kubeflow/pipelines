@@ -1,4 +1,4 @@
-# Copyright 2020 The Kubeflow Authors
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,32 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from kfp import compiler
 from kfp import components
 from kfp import dsl
-from kfp import compiler
-
-component_op = components.load_component_from_text("""
-name: Print Text
-inputs:
-- {name: text, type: String}
-implementation:
-  container:
-    image: alpine
-    command:
-    - sh
-    - -c
-    - |
-      set -e -x
-      echo "$0"
-    - {inputValue: text}
-""")
+from kfp.dsl import component
 
 
-@dsl.pipeline(name='pipeline-with-after', pipeline_root='dummy_root')
-def my_pipeline():
-    task1 = component_op(text='1st task')
-    task2 = component_op(text='2nd task').after(task1)
-    task3 = component_op(text='3rd task').after(task1, task2)
+@component
+def print_op(text: str) -> str:
+    print(text)
+    return text
+
+
+@component
+def print_op2(text1: str, text2: str) -> str:
+    print(text1 + text2)
+    return text1 + text2
+
+
+@dsl.pipeline(name='pipeline-with-pipelineparam-containing-format')
+def my_pipeline(name: str = 'KFP'):
+    print_task = print_op(text='Hello {}'.format(name))
+    print_op(text='{}, again.'.format(print_task.output))
+
+    new_value = f' and {name}.'
+    with dsl.ParallelFor(['1', '2']) as item:
+        print_op2(text1=item, text2=new_value)
 
 
 if __name__ == '__main__':

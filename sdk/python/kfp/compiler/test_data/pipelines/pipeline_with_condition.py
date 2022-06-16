@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from kfp import compiler
 from kfp import components
 from kfp import dsl
-from kfp import compiler
 from kfp.dsl import component
 
 
@@ -32,20 +32,15 @@ def print_op(msg: str):
     print(msg)
 
 
-@dsl.pipeline(name='nested-conditions-pipeline')
-def my_pipeline():
-    flip1 = flip_coin_op()
+@dsl.pipeline(name='single-condition-pipeline', pipeline_root='dummy_root')
+def my_pipeline(text: str = 'condition test'):
+    flip1 = flip_coin_op().set_caching_options(False)
     print_op(msg=flip1.output)
-    flip2 = flip_coin_op()
-    print_op(msg=flip2.output)
 
-    with dsl.Condition(flip1.output != 'no-such-result'):  # always true
-        flip3 = flip_coin_op()
-        print_op(msg=flip3.output)
-
-        with dsl.Condition(flip2.output == flip3.output):
-            flip4 = flip_coin_op()
-            print_op(msg=flip4.output)
+    with dsl.Condition(flip1.output == 'heads'):
+        flip2 = flip_coin_op().set_caching_options(False)
+        print_op(msg=flip2.output)
+        print_op(msg=text)
 
 
 if __name__ == '__main__':

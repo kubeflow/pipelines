@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,30 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Pipeline with Metrics outputs."""
 
-from typing import NamedTuple
+import pathlib
 
+from kfp import compiler
 from kfp import components
 from kfp import dsl
-from kfp import compiler
-from kfp.dsl import component, Dataset, Input, Metrics, Output
+
+test_data_dir = pathlib.Path(__file__).parent.parent / 'v1_component_yaml'
+component_op = components.load_component_from_file(
+    str(test_data_dir / 'concat_placeholder_component.yaml'))
 
 
-@component
-def output_metrics(metrics: Output[Metrics]):
-    """Dummy component that outputs metrics with a random accuracy."""
-    import random
-    result = random.randint(0, 100)
-    metrics.log_metric('accuracy', result)
-
-
-@dsl.pipeline(name='pipeline-with-metrics-outputs', pipeline_root='dummy_root')
+@dsl.pipeline(
+    name='one-step-pipeline-with-concat-placeholder',
+    pipeline_root='dummy_root')
 def my_pipeline():
-    output_metrics()
-
-    with dsl.ParallelFor([1, 2]) as item:
-        output_metrics()
+    component = component_op(input_prefix='some prefix:')
 
 
 if __name__ == '__main__':

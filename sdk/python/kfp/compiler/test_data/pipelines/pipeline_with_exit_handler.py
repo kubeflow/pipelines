@@ -11,39 +11,35 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Pipeline using ExitHandler."""
 
-from kfp import compiler, dsl
+from kfp import compiler
+from kfp import dsl
 from kfp.dsl import component
 
 
 @component
-def print_op(msg: str, value: str):
-    print(msg, value)
+def print_op(message: str):
+    """Prints a message."""
+    print(message)
 
 
-@dsl.pipeline(name='pipeline-with-placeholders')
-def my_pipeline():
+@component
+def fail_op(message: str):
+    """Fails."""
+    import sys
+    print(message)
+    sys.exit(1)
 
-    print_op(
-        msg='job name:',
-        value=dsl.PIPELINE_JOB_NAME_PLACEHOLDER,
-    )
-    print_op(
-        msg='job resource name:',
-        value=dsl.PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER,
-    )
-    print_op(
-        msg='job id:',
-        value=dsl.PIPELINE_JOB_ID_PLACEHOLDER,
-    )
-    print_op(
-        msg='task name:',
-        value=dsl.PIPELINE_TASK_NAME_PLACEHOLDER,
-    )
-    print_op(
-        msg='task id:',
-        value=dsl.PIPELINE_TASK_ID_PLACEHOLDER,
-    )
+
+@dsl.pipeline(name='pipeline-with-exit-handler')
+def my_pipeline(message: str = 'Hello World!'):
+
+    exit_task = print_op(message='Exit handler has worked!')
+
+    with dsl.ExitHandler(exit_task):
+        print_op(message=message)
+        fail_op(message='Task failed.')
 
 
 if __name__ == '__main__':

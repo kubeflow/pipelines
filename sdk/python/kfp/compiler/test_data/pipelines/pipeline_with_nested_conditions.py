@@ -12,32 +12,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from kfp import compiler
 from kfp import components
 from kfp import dsl
-from kfp import compiler
 from kfp.dsl import component
 
 
 @component
-def print_op(text: str) -> str:
-    print(text)
-    return text
+def flip_coin_op() -> str:
+    """Flip a coin and output heads or tails randomly."""
+    import random
+    result = 'heads' if random.randint(0, 1) == 0 else 'tails'
+    return result
 
 
 @component
-def print_op2(text1: str, text2: str) -> str:
-    print(text1 + text2)
-    return text1 + text2
+def print_op(msg: str):
+    """Print a message."""
+    print(msg)
 
 
-@dsl.pipeline(name='pipeline-with-pipelineparam-containing-format')
-def my_pipeline(name: str = 'KFP'):
-    print_task = print_op(text='Hello {}'.format(name))
-    print_op(text='{}, again.'.format(print_task.output))
+@dsl.pipeline(name='nested-conditions-pipeline')
+def my_pipeline():
+    flip1 = flip_coin_op()
+    print_op(msg=flip1.output)
+    flip2 = flip_coin_op()
+    print_op(msg=flip2.output)
 
-    new_value = f' and {name}.'
-    with dsl.ParallelFor(['1', '2']) as item:
-        print_op2(text1=item, text2=new_value)
+    with dsl.Condition(flip1.output != 'no-such-result'):  # always true
+        flip3 = flip_coin_op()
+        print_op(msg=flip3.output)
+
+        with dsl.Condition(flip2.output == flip3.output):
+            flip4 = flip_coin_op()
+            print_op(msg=flip4.output)
 
 
 if __name__ == '__main__':

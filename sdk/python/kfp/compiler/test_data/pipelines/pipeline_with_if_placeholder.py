@@ -12,41 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import pathlib
+
+from kfp import compiler
 from kfp import components
 from kfp import dsl
-from kfp import compiler
-from kfp.dsl import component
+
+test_data_dir = pathlib.Path(__file__).parent.parent / 'v1_component_yaml'
+component_op = components.load_component_from_file(
+    str(test_data_dir / 'if_placeholder_component.yaml'))
 
 
-@component
-def print_env_op():
-    import os
-    print(os.environ['ENV1'])
-
-
-print_env_2_op = components.load_component_from_text("""
-name: Print env
-implementation:
-  container:
-    image: alpine
-    command:
-    - sh
-    - -c
-    - |
-      set -e -x
-      echo "$ENV2"
-      echo "$ENV3"
-    env:
-      ENV2: val0
-""")
-
-
-@dsl.pipeline(name='pipeline-with-env', pipeline_root='dummy_root')
-def my_pipeline():
-    print_env_op().set_env_variable(name='ENV1', value='val1')
-    print_env_2_op().set_env_variable(
-        name='ENV2', value='val2').set_env_variable(
-            name='ENV3', value='val3')
+@dsl.pipeline(
+    name='one-step-pipeline-with-if-placeholder', pipeline_root='dummy_root')
+def my_pipeline(input0: str, input1: str, input2: str):
+    # supply only optional_input_1 but not optional_input_2
+    component = component_op(required_input=input0, optional_input_1=input1)
 
 
 if __name__ == '__main__':

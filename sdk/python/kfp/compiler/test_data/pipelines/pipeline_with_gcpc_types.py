@@ -1,4 +1,4 @@
-# Copyright 2020 The Kubeflow Authors
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,25 +12,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pathlib
-
-from kfp import components
 from kfp import compiler
+from kfp import components
 from kfp import dsl
+from kfp.dsl import component
+from kfp.dsl import Input
+from kfp.dsl import Output
 
-test_data_dir = pathlib.Path(__file__).parent / 'component_yaml'
-add_op = components.load_component_from_file(
-    str(test_data_dir / 'add_component.yaml'))
+
+class VertexModel(dsl.Artifact):
+    TYPE_NAME = 'google.VertexModel'
 
 
-@dsl.pipeline(name='add-pipeline', pipeline_root='dummy_root')
-def my_pipeline(
-    a: int = 2,
-    b: int = 5,
-):
-    first_add_task = add_op(op_1=a, op2=3)
-    second_add_task = add_op(op_1=first_add_task.outputs['sum'], op2=b)
-    third_add_task = add_op(op_1=second_add_task.outputs['sum'], op2=7)
+producer_op = components.load_component_from_text("""
+name: producer
+outputs:
+  - {name: model, type: google.VertexModel}
+implementation:
+  container:
+    image: dummy
+    command:
+    - cmd
+    args:
+    - {outputPath: model}
+""")
+
+
+@component
+def consumer_op(model: Input[VertexModel]):
+    pass
+
+
+@dsl.pipeline(name='pipeline-with-gcpc-types')
+def my_pipeline():
+    consumer_op(model=producer_op().outputs['model'])
 
 
 if __name__ == '__main__':

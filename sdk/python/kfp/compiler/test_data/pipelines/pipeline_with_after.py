@@ -12,22 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pathlib
-
+from kfp import compiler
 from kfp import components
 from kfp import dsl
-from kfp import compiler
 
-test_data_dir = pathlib.Path(__file__).parent / 'component_yaml'
-component_op = components.load_component_from_file(
-    str(test_data_dir / 'concat_placeholder_component.yaml'))
+component_op = components.load_component_from_text("""
+name: Print Text
+inputs:
+- {name: text, type: String}
+implementation:
+  container:
+    image: alpine
+    command:
+    - sh
+    - -c
+    - |
+      set -e -x
+      echo "$0"
+    - {inputValue: text}
+""")
 
 
-@dsl.pipeline(
-    name='one-step-pipeline-with-concat-placeholder',
-    pipeline_root='dummy_root')
+@dsl.pipeline(name='pipeline-with-after', pipeline_root='dummy_root')
 def my_pipeline():
-    component = component_op(input_prefix='some prefix:')
+    task1 = component_op(text='1st task')
+    task2 = component_op(text='2nd task').after(task1)
+    task3 = component_op(text='3rd task').after(task1, task2)
 
 
 if __name__ == '__main__':

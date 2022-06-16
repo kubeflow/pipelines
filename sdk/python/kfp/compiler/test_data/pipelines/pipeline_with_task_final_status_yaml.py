@@ -13,9 +13,9 @@
 # limitations under the License.
 """Pipeline using ExitHandler with PipelineTaskFinalStatus (YAML)."""
 
+from kfp import compiler
 from kfp import components
 from kfp import dsl
-from kfp import compiler
 from kfp.dsl import component
 
 exit_op = components.load_component_from_text("""

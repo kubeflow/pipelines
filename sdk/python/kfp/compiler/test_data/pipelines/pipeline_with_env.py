@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,38 +12,41 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp import components
-from kfp.dsl import component, Input, Output
 from kfp import compiler
+from kfp import components
 from kfp import dsl
-
-
-class VertexModel(dsl.Artifact):
-    TYPE_NAME = 'google.VertexModel'
-
-
-producer_op = components.load_component_from_text("""
-name: producer
-outputs:
-  - {name: model, type: google.VertexModel}
-implementation:
-  container:
-    image: dummy
-    command:
-    - cmd
-    args:
-    - {outputPath: model}
-""")
+from kfp.dsl import component
 
 
 @component
-def consumer_op(model: Input[VertexModel]):
-    pass
+def print_env_op():
+    import os
+    print(os.environ['ENV1'])
 
 
-@dsl.pipeline(name='pipeline-with-gcpc-types')
+print_env_2_op = components.load_component_from_text("""
+name: Print env
+implementation:
+  container:
+    image: alpine
+    command:
+    - sh
+    - -c
+    - |
+      set -e -x
+      echo "$ENV2"
+      echo "$ENV3"
+    env:
+      ENV2: val0
+""")
+
+
+@dsl.pipeline(name='pipeline-with-env', pipeline_root='dummy_root')
 def my_pipeline():
-    consumer_op(model=producer_op().outputs['model'])
+    print_env_op().set_env_variable(name='ENV1', value='val1')
+    print_env_2_op().set_env_variable(
+        name='ENV2', value='val2').set_env_variable(
+            name='ENV3', value='val3')
 
 
 if __name__ == '__main__':

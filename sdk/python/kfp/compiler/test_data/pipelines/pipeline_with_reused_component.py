@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,35 +11,26 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Pipeline using ExitHandler."""
 
-from kfp import dsl
+import pathlib
+
 from kfp import compiler
-from kfp.dsl import component
+from kfp import components
+from kfp import dsl
+
+test_data_dir = pathlib.Path(__file__).parent.parent / 'v1_component_yaml'
+add_op = components.load_component_from_file(
+    str(test_data_dir / 'add_component.yaml'))
 
 
-@component
-def print_op(message: str):
-    """Prints a message."""
-    print(message)
-
-
-@component
-def fail_op(message: str):
-    """Fails."""
-    import sys
-    print(message)
-    sys.exit(1)
-
-
-@dsl.pipeline(name='pipeline-with-exit-handler')
-def my_pipeline(message: str = 'Hello World!'):
-
-    exit_task = print_op(message='Exit handler has worked!')
-
-    with dsl.ExitHandler(exit_task):
-        print_op(message=message)
-        fail_op(message='Task failed.')
+@dsl.pipeline(name='add-pipeline', pipeline_root='dummy_root')
+def my_pipeline(
+    a: int = 2,
+    b: int = 5,
+):
+    first_add_task = add_op(op_1=a, op2=3)
+    second_add_task = add_op(op_1=first_add_task.outputs['sum'], op2=b)
+    third_add_task = add_op(op_1=second_add_task.outputs['sum'], op2=7)
 
 
 if __name__ == '__main__':

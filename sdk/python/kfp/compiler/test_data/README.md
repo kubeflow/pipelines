@@ -1,7 +1,7 @@
 # Pipeline samples for compiler unit tests.
 
-To update all golden snapshots:
+To update pipeline golden snapshots:
 
 ```bash
-for f in test_data/*.py ; do python3 "$f" ; done
+for f in python sdk/python/kfp/compiler/test_data/pipelines/*.py ; do echo "$f" ; done
 ```

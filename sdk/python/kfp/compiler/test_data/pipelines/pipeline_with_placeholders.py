@@ -1,4 +1,4 @@
-# Copyright 2020 The Kubeflow Authors
+# Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,22 +12,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pathlib
-
-from kfp import components
-from kfp import dsl
 from kfp import compiler
-
-test_data_dir = pathlib.Path(__file__).parent / 'component_yaml'
-component_op = components.load_component_from_file(
-    str(test_data_dir / 'if_placeholder_component.yaml'))
+from kfp import dsl
+from kfp.dsl import component
 
 
-@dsl.pipeline(
-    name='one-step-pipeline-with-if-placeholder', pipeline_root='dummy_root')
-def my_pipeline(input0: str, input1: str, input2: str):
-    # supply only optional_input_1 but not optional_input_2
-    component = component_op(required_input=input0, optional_input_1=input1)
+@component
+def print_op(msg: str, value: str):
+    print(msg, value)
+
+
+@dsl.pipeline(name='pipeline-with-placeholders')
+def my_pipeline():
+
+    print_op(
+        msg='job name:',
+        value=dsl.PIPELINE_JOB_NAME_PLACEHOLDER,
+    )
+    print_op(
+        msg='job resource name:',
+        value=dsl.PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER,
+    )
+    print_op(
+        msg='job id:',
+        value=dsl.PIPELINE_JOB_ID_PLACEHOLDER,
+    )
+    print_op(
+        msg='task name:',
+        value=dsl.PIPELINE_TASK_NAME_PLACEHOLDER,
+    )
+    print_op(
+        msg='task id:',
+        value=dsl.PIPELINE_TASK_ID_PLACEHOLDER,
+    )
 
 
 if __name__ == '__main__':

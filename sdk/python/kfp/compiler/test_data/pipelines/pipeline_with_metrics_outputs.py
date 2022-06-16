@@ -11,36 +11,34 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""Pipeline with Metrics outputs."""
 
+from typing import NamedTuple
+
+from kfp import compiler
 from kfp import components
 from kfp import dsl
-from kfp import compiler
 from kfp.dsl import component
+from kfp.dsl import Dataset
+from kfp.dsl import Input
+from kfp.dsl import Metrics
+from kfp.dsl import Output
 
 
 @component
-def flip_coin_op() -> str:
-    """Flip a coin and output heads or tails randomly."""
+def output_metrics(metrics: Output[Metrics]):
+    """Dummy component that outputs metrics with a random accuracy."""
     import random
-    result = 'heads' if random.randint(0, 1) == 0 else 'tails'
-    return result
+    result = random.randint(0, 100)
+    metrics.log_metric('accuracy', result)
 
 
-@component
-def print_op(msg: str):
-    """Print a message."""
-    print(msg)
+@dsl.pipeline(name='pipeline-with-metrics-outputs', pipeline_root='dummy_root')
+def my_pipeline():
+    output_metrics()
 
-
-@dsl.pipeline(name='single-condition-pipeline', pipeline_root='dummy_root')
-def my_pipeline(text: str = 'condition test'):
-    flip1 = flip_coin_op().set_caching_options(False)
-    print_op(msg=flip1.output)
-
-    with dsl.Condition(flip1.output == 'heads'):
-        flip2 = flip_coin_op().set_caching_options(False)
-        print_op(msg=flip2.output)
-        print_op(msg=text)
+    with dsl.ParallelFor([1, 2]) as item:
+        output_metrics()
 
 
 if __name__ == '__main__':
