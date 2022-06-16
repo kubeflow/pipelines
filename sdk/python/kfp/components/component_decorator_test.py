@@ -21,11 +21,6 @@ from kfp.components import structures
 from kfp.components.component_decorator import component
 
 
-def func(text: str) -> str:
-    """Function for lightweight component used throughout tests below."""
-    return text
-
-
 class TestComponentDecorator(unittest.TestCase):
 
     def test_as_decorator_syntactic_sugar_no_args(self):
@@ -48,17 +43,26 @@ class TestComponentDecorator(unittest.TestCase):
 
     def test_no_args(self):
 
-        comp = component(func)
+        @component
+        def comp(text: str) -> str:
+            return text
+
         self.assertIsInstance(comp, python_component.PythonComponent)
 
     def test_some_args(self):
 
-        comp = component(func, base_image='python:3.9')
+        @component(base_image='python:3.9')
+        def comp(text: str) -> str:
+            return text
+
         self.assertIsInstance(comp, python_component.PythonComponent)
 
     def test_packages_to_install(self):
 
-        comp = component(func, packages_to_install=['numpy', 'tensorflow'])
+        @component(packages_to_install=['numpy', 'tensorflow'])
+        def comp(text: str) -> str:
+            return text
+
         self.assertIsInstance(comp, python_component.PythonComponent)
 
         concat_command = ' '.join(
@@ -67,10 +71,13 @@ class TestComponentDecorator(unittest.TestCase):
                         'tensorflow' in concat_command)
 
     def test_packages_to_install_with_custom_index_url(self):
-        comp = component(
-            func,
+
+        @component(
             packages_to_install=['numpy', 'tensorflow'],
             pip_index_urls=['https://pypi.org/simple'])
+        def comp(text: str) -> str:
+            return text
+
         self.assertIsInstance(comp, python_component.PythonComponent)
 
         concat_command = ' '.join(
@@ -86,7 +93,10 @@ class TestComponentDecorator(unittest.TestCase):
                     DeprecationWarning,
                     r'output_component_file parameter is deprecated and will eventually be removed\.'
             ):
-                comp = component(func, output_component_file=filepath)
+
+                @component(output_component_file=filepath)
+                def comp(text: str) -> str:
+                    return text
 
             self.assertIsInstance(comp, python_component.PythonComponent)
             self.assertTrue(os.path.exists(filepath))
