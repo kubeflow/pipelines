@@ -29,8 +29,18 @@ echo "Testing loading all components"
 find . -name component.yaml | python3 -c '
 import sys
 import kfp
+
+# These components use v1 graph syntax which is not supported in v2 yet.
+SKIP_COMPONENT_FILES = [
+  "./contrib/XGBoost/Cross_validation_for_regression/from_CSV/component.yaml",
+  "./contrib/XGBoost/Train_regression_and_calculate_metrics/from_CSV/component.yaml",
+  "./contrib/XGBoost/Train_and_cross-validate_regression/from_CSV/component.yaml",
+]
+
 for component_file in sys.stdin:
   component_file = component_file.rstrip("\n")
   print(component_file)
+  if component_file in SKIP_COMPONENT_FILES:
+    continue
   kfp.components.load_component_from_file(component_file)
 '
