@@ -230,17 +230,6 @@ function CompareV2(props: PageProps) {
     MetricsType.MARKDOWN,
   );
 
-  // console.log('Scalar Metrics');
-  // console.log(scalarMetricsArtifacts);
-  // console.log('Confusion Matrix');
-  // console.log(confusionMatrixArtifacts);
-  // console.log('ROC Curve');
-  // console.log(rocCurveArtifacts);
-  // console.log('HTML');
-  // console.log(htmlArtifacts);
-  // console.log('Markdown');
-  // console.log(markdownArtifacts);
-
   useEffect(() => {
     if (isLoadingRunDetails || isLoadingRunArtifacts || isLoadingArtifactTypes) {
       return;
