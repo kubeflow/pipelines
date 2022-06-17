@@ -24,16 +24,15 @@ from kfp.registry import ApiAuth
 from kfp.registry import RegistryClient
 
 _DEFAULT_HOST = 'https://us-central1-kfp.pkg.dev/proj/repo'
+_KFP_CONFIG_FILE = os.path.join(
+    os.path.dirname(__file__), 'context/kfp_pkg_dev.json')
 
 
 class RegistryClientTest(parameterized.TestCase):
 
     def setUp(self):
         super(RegistryClientTest, self).setUp()
-        with open(
-                os.path.join(
-                    os.path.dirname(__file__), 'context/kfp_pkg_dev.json'),
-                'r') as f:
+        with open(_KFP_CONFIG_FILE, 'r') as f:
             read_value = f.read()
         self._mock_open = self.enter_context(
             mock.patch(
@@ -119,6 +118,8 @@ class RegistryClientTest(parameterized.TestCase):
                 ('projects/proj/locations/us-central1/repositories'
                  '/repo/packages/{package_name}/versions/{version}')
         }
+        self.assertEqual(self._mock_open.call_args_list[0][0],
+                         (_KFP_CONFIG_FILE, 'r'))
         self.assertEqual(expected_config, client._config)
 
     @parameterized.parameters(
@@ -168,8 +169,8 @@ class RegistryClientTest(parameterized.TestCase):
             package_name='pack', version=version, tag=tag, file_name=file_name)
         mock_get.assert_called_once_with(
             url=expected_url, data='', headers=None, auth=mock.ANY)
-        call_args = self._mock_open.call_args_list[-1][0]
-        self.assertEqual(call_args, (expected_file_name, 'wb'))
+        self.assertEqual(self._mock_open.call_args_list[1][0],
+                         (expected_file_name, 'wb'))
 
     def test_download_pipeline_version_error(self):
         client = RegistryClient(host=_DEFAULT_HOST, auth=ApiAuth(''))
@@ -207,8 +208,8 @@ class RegistryClientTest(parameterized.TestCase):
             headers={'description': 'nothing'},
             files={'content': mock.ANY},
             auth=mock.ANY)
-        call_args = self._mock_open.call_args_list[-1][0]
-        self.assertEqual(call_args, ('pipeline.yaml', 'rb'))
+        self.assertEqual(self._mock_open.call_args_list[1][0],
+                         ('pipeline.yaml', 'rb'))
         self.assertEqual(package_name, 'package_name')
         self.assertEqual(version, 'sha256:abcde12345')
 
