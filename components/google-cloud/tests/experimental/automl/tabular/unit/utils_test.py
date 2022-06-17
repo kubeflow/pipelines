@@ -498,9 +498,7 @@ class UtilsTest(unittest.TestCase):
   def test_get_wide_and_deep_trainer_pipeline_and_parameters(self):
     _, parameter_values = utils.get_wide_and_deep_trainer_pipeline_and_parameters(
         'project', 'us-central1', 'gs://foo', 'target', 'classification',
-        {'auto': {
-            'column_name': 'feature_1'
-        }}, {
+        {'auto_transforms': ['feature_1']}, {
             'fraction_split': {
                 'training_fraction': 0.8,
                 'validation_fraction': 0.2,
@@ -522,8 +520,8 @@ class UtilsTest(unittest.TestCase):
                 'target',
             'prediction_type':
                 'classification',
-            'transformations':
-                '{\\"auto\\": {\\"column_name\\": \\"feature_1\\"}}',
+            'transform_config':
+                '{"auto_transforms": ["feature_1"]}',
             'split_spec':
                 '{\\"fraction_split\\": {\\"training_fraction\\": 0.8, \\"validation_fraction\\": 0.2, \\"test_fraction\\": 0.0}}',
             'data_source':
@@ -627,9 +625,7 @@ class UtilsTest(unittest.TestCase):
         'us-central1',
         'gs://foo',
         'target',
-        'classification', {'auto': {
-            'column_name': 'feature_1'
-        }}, {
+        'classification', {'auto_transforms': ['feature_1']}, {
             'fraction_split': {
                 'training_fraction': 0.8,
                 'validation_fraction': 0.2,
@@ -675,8 +671,8 @@ class UtilsTest(unittest.TestCase):
                 'target',
             'prediction_type':
                 'classification',
-            'transformations':
-                '{\\"auto\\": {\\"column_name\\": \\"feature_1\\"}}',
+            'transform_config':
+                '{"auto_transforms": ["feature_1"]}',
             'split_spec':
                 '{\\"fraction_split\\": {\\"training_fraction\\": 0.8, \\"validation_fraction\\": 0.2, \\"test_fraction\\": 0.0}}',
             'data_source':
@@ -775,9 +771,7 @@ class UtilsTest(unittest.TestCase):
         'us-central1',
         'gs://foo',
         'target',
-        'classification', {'auto': {
-            'column_name': 'feature_1'
-        }}, {
+        'classification', {'auto_transforms': ['feature_1']}, {
             'fraction_split': {
                 'training_fraction': 0.8,
                 'validation_fraction': 0.2,
@@ -823,8 +817,8 @@ class UtilsTest(unittest.TestCase):
                 'target',
             'prediction_type':
                 'classification',
-            'transformations':
-                '{\\"auto\\": {\\"column_name\\": \\"feature_1\\"}}',
+            'transform_config':
+                '{"auto_transforms": ["feature_1"]}',
             'split_spec':
                 '{\\"fraction_split\\": {\\"training_fraction\\": 0.8, \\"validation_fraction\\": 0.2, \\"test_fraction\\": 0.0}}',
             'data_source':
@@ -919,9 +913,7 @@ class UtilsTest(unittest.TestCase):
   def test_get_tabnet_trainer_pipeline_and_parameters(self):
     _, parameter_values = utils.get_tabnet_trainer_pipeline_and_parameters(
         'project', 'us-central1', 'gs://foo', 'target', 'classification',
-        {'auto': {
-            'column_name': 'feature_1'
-        }}, {
+        {'auto_transforms': ['feature_1']}, {
             'fraction_split': {
                 'training_fraction': 0.8,
                 'validation_fraction': 0.2,
@@ -943,8 +935,8 @@ class UtilsTest(unittest.TestCase):
                 'target',
             'prediction_type':
                 'classification',
-            'transformations':
-                '{\\"auto\\": {\\"column_name\\": \\"feature_1\\"}}',
+            'transform_config':
+                '{"auto_transforms": ["feature_1"]}',
             'split_spec':
                 '{\\"fraction_split\\": {\\"training_fraction\\": 0.8, \\"validation_fraction\\": 0.2, \\"test_fraction\\": 0.0}}',
             'data_source':

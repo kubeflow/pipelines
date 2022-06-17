@@ -918,7 +918,7 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     root_dir: str,
     target_column: str,
     prediction_type: str,
-    transformations: Dict[str, Any],
+    transform_config: Dict[str, Any],
     split_spec: Dict[str, Any],
     data_source: Dict[str, Any],
     learning_rate: float,
@@ -979,7 +979,7 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     target_column: The target column name.
     prediction_type: The type of prediction the model is to produce.
       'classification' or 'regression'.
-    transformations: The transformations to apply.
+    transform_config: The transformations to apply.
     split_spec: The split spec.
     data_source: The data source.
     learning_rate: The learning rate used by the linear optimizer.
@@ -1079,8 +1079,8 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
           target_column,
       'prediction_type':
           prediction_type,
-      'transformations':
-          input_dictionary_to_parameter(transformations),
+      'transform_config':
+          json.dumps(transform_config),
       'split_spec':
           input_dictionary_to_parameter(split_spec),
       'data_source':
@@ -1190,7 +1190,7 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     root_dir: str,
     target_column: str,
     prediction_type: str,
-    transformations: Dict[str, Any],
+    transform_config: Dict[str, Any],
     split_spec: Dict[str, Any],
     data_source: Dict[str, Any],
     study_spec_metrics: List[Dict[str, Any]],
@@ -1238,7 +1238,7 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     target_column: The target column name.
     prediction_type: The type of prediction the model is to produce.
       "classification" or "regression".
-    transformations: The transformations to apply.
+    transform_config: The transformations to apply.
     split_spec: The split spec.
     data_source: The data source.
     study_spec_metrics: List of dictionaries representing metrics to optimize.
@@ -1329,8 +1329,8 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
           target_column,
       'prediction_type':
           prediction_type,
-      'transformations':
-          input_dictionary_to_parameter(transformations),
+      'transform_config':
+          json.dumps(transform_config),
       'split_spec':
           input_dictionary_to_parameter(split_spec),
       'data_source':
@@ -1419,7 +1419,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
     root_dir: str,
     target_column: str,
     prediction_type: str,
-    transformations: Dict[str, Any],
+    transform_config: Dict[str, Any],
     split_spec: Dict[str, Any],
     data_source: Dict[str, Any],
     learning_rate: float,
@@ -1481,7 +1481,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
     target_column: The target column name.
     prediction_type: The type of prediction the model is to produce.
       "classification" or "regression".
-    transformations: The transformations to apply.
+    transform_config: The transformations to apply.
     split_spec: The split spec.
     data_source: The data source.
     learning_rate: The learning rate used by the linear optimizer.
@@ -1588,8 +1588,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
           target_column,
       'prediction_type':
           prediction_type,
-      'transformations':
-          input_dictionary_to_parameter(transformations),
+      'transform_config':
+          json.dumps(transform_config),
       'split_spec':
           input_dictionary_to_parameter(split_spec),
       'data_source':
