@@ -582,14 +582,15 @@
                 "feature-transform-engine",
                 "get-wide-and-deep-study-spec-parameters",
                 "split-materialized-data",
-                "tabular-stats-and-example-gen"
+                "tabular-stats-and-example-gen",
+                "transform-configuration-planner"
               ],
               "inputs": {
                 "artifacts": {
                   "instance_baseline": {
                     "taskOutputArtifact": {
                       "outputArtifactKey": "instance_baseline",
-                      "producerTask": "tabular-stats-and-example-gen"
+                      "producerTask": "transform-configuration-planner"
                     }
                   },
                   "materialized_eval_split": {
@@ -619,7 +620,7 @@
                   "training_schema_uri": {
                     "taskOutputArtifact": {
                       "outputArtifactKey": "training_schema",
-                      "producerTask": "feature-transform-engine"
+                      "producerTask": "transform-configuration-planner"
                     }
                   },
                   "transform_output": {
@@ -1289,11 +1290,18 @@
                 "name": "comp-transform-configuration-planner"
               },
               "dependentTasks": [
+                "generate-analyze-and-transform-data",
                 "prepare-transform-config",
                 "tabular-stats-and-example-gen"
               ],
               "inputs": {
                 "artifacts": {
+                  "analyze_data": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "analyze_data",
+                      "producerTask": "generate-analyze-and-transform-data"
+                    }
+                  },
                   "dataset_stats": {
                     "taskOutputArtifact": {
                       "outputArtifactKey": "dataset_stats",
@@ -1534,12 +1542,6 @@
             "materialized_data": {
               "artifactType": {
                 "schemaTitle": "system.Dataset",
-                "schemaVersion": "0.0.1"
-              }
-            },
-            "training_schema": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact",
                 "schemaVersion": "0.0.1"
               }
             },
@@ -2133,6 +2135,12 @@
         "executorLabel": "exec-transform-configuration-planner",
         "inputDefinitions": {
           "artifacts": {
+            "analyze_data": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            },
             "dataset_stats": {
               "artifactType": {
                 "schemaTitle": "system.Artifact",
@@ -2171,6 +2179,20 @@
           }
         },
         "outputDefinitions": {
+          "artifacts": {
+            "instance_baseline": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "training_schema": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
           "parameters": {
             "fte_transform_configuration_path": {
               "type": "STRING"
@@ -2259,7 +2281,7 @@
               "--gcp_resources",
               "{{$.outputs.parameters['gcp_resources'].output_file}}",
               "--payload",
-              "{\"display_name\": \"feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\": {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod\", \"args\": [\"feature_transform_engine\", \"--transform_output_artifact_path={{$.outputs.artifacts['transform_output'].uri}}\", \"--transform_output_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform\", \"--materialized_data_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized_data\",\"--materialized_data_artifact_path={{$.outputs.artifacts['materialized_data'].uri}}\", \"--transform_config_path={{$.inputs.parameters['transform_config']}}\", \"--analyze_data_path={{$.inputs.artifacts['analyze_data'].uri}}\", \"--transform_data_path={{$.inputs.artifacts['transform_data'].uri}}\", \"--training_schema_path={{$.outputs.artifacts['training_schema'].uri}}\", \"--job_name=feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"--dataflow_project={{$.inputs.parameters['project']}}\", \"--dataflow_staging_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging\", \"--dataflow_tmp_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\", \"--dataflow_max_num_workers={{$.inputs.parameters['dataflow_max_num_workers']}}\", \"--dataflow_machine_type={{$.inputs.parameters['dataflow_machine_type']}}\", \"--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod\", \"--dataflow_disk_size_gb={{$.inputs.parameters['dataflow_disk_size_gb']}}\", \"--dataflow_subnetwork_fully_qualified={{$.inputs.parameters['dataflow_subnetwork']}}\", \"--dataflow_use_public_ips={{$.inputs.parameters['dataflow_use_public_ips']}}\", \"--dataflow_kms_key={{$.inputs.parameters['encryption_spec_key_name']}}\"]}}]}}"
+              "{\"display_name\": \"feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\": {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod\", \"args\": [\"feature_transform_engine\", \"--transform_output_artifact_path={{$.outputs.artifacts['transform_output'].uri}}\", \"--transform_output_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform\", \"--materialized_data_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized_data\",\"--materialized_data_artifact_path={{$.outputs.artifacts['materialized_data'].uri}}\", \"--transform_config_path={{$.inputs.parameters['transform_config']}}\", \"--analyze_data_path={{$.inputs.artifacts['analyze_data'].uri}}\", \"--transform_data_path={{$.inputs.artifacts['transform_data'].uri}}\", \"--job_name=feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"--dataflow_project={{$.inputs.parameters['project']}}\", \"--dataflow_staging_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging\", \"--dataflow_tmp_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\", \"--dataflow_max_num_workers={{$.inputs.parameters['dataflow_max_num_workers']}}\", \"--dataflow_machine_type={{$.inputs.parameters['dataflow_machine_type']}}\", \"--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod\", \"--dataflow_disk_size_gb={{$.inputs.parameters['dataflow_disk_size_gb']}}\", \"--dataflow_subnetwork_fully_qualified={{$.inputs.parameters['dataflow_subnetwork']}}\", \"--dataflow_use_public_ips={{$.inputs.parameters['dataflow_use_public_ips']}}\", \"--dataflow_kms_key={{$.inputs.parameters['encryption_spec_key_name']}}\"]}}]}}"
             ],
             "command": [
               "python3",
@@ -2517,7 +2539,7 @@
               "--gcp_resources",
               "{{$.outputs.parameters['gcp_resources'].output_file}}",
               "--payload",
-              "{\"display_name\": \"automl-tabular-transform-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\": {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod\", \"args\": [\"transform_configuration_planner\", \"--fte_transform_configuration_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform_configuration\", \"--fte_transform_configuration_output_path={{$.outputs.parameters['fte_transform_configuration_path'].output_file}}\", \"--transform_config_path={{$.inputs.parameters['transform_config']}}\", \"--target_column={{$.inputs.parameters['target_column']}}\", \"--weight_column={{$.inputs.parameters['weight_column']}}\", \"--prediction_type={{$.inputs.parameters['prediction_type']}}\", \"--is_distill={{$.inputs.parameters['is_distillation']}}\", \"--dataset_stats_path={{$.inputs.artifacts['dataset_stats'].uri}}\"]}}]}}"
+              "{\"display_name\": \"automl-tabular-transform-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\": {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod\", \"args\": [\"transform_configuration_planner\", \"--fte_transform_configuration_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform_configuration\", \"--fte_transform_configuration_output_path={{$.outputs.parameters['fte_transform_configuration_path'].output_file}}\", \"--transform_config_path={{$.inputs.parameters['transform_config']}}\", \"--target_column={{$.inputs.parameters['target_column']}}\", \"--analyze_data_path={{$.inputs.artifacts['analyze_data'].uri}}\", \"--weight_column={{$.inputs.parameters['weight_column']}}\", \"--prediction_type={{$.inputs.parameters['prediction_type']}}\", \"--is_distill={{$.inputs.parameters['is_distillation']}}\", \"--dataset_stats_path={{$.inputs.artifacts['dataset_stats'].uri}}\", \"--training_schema_path={{$.outputs.artifacts['training_schema'].uri}}\", \"--instance_baseline_path={{$.outputs.artifacts['instance_baseline'].uri}}\"]}}]}}"
             ],
             "command": [
               "python3",
