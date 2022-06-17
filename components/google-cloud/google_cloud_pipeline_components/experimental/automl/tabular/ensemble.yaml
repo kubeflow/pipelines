@@ -70,6 +70,7 @@ outputs:
 - {name: unmanaged_container_model, type: google.UnmanagedContainerModel}
 - {name: model_without_custom_ops, type: system.Model}
 - {name: explanation_metadata, type: JsonObject}
+- {name: explanation_metadata_artifact, type: Artifact}
 - {name: explanation_parameters, type: JsonObject}
 
 implementation:
@@ -114,7 +115,7 @@ implementation:
         '", "--custom_model_path=',
         {outputUri: model_without_custom_ops},
         '", "--explanation_metadata_path=',
-        {outputPath: explanation_metadata},
+        {outputPath: explanation_metadata}, ',', {outputUri: explanation_metadata_artifact},
         '", "--explanation_parameters_path=',
         {outputPath: explanation_parameters},
         '", "--model_architecture_path=',
