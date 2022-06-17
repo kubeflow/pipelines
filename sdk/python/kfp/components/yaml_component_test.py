@@ -19,9 +19,12 @@ import textwrap
 import unittest
 from unittest import mock
 
-import requests
+from absl.testing import parameterized
+from kfp.compiler import compiler
+from kfp.compiler import compiler_test
 from kfp.components import structures
 from kfp.components import yaml_component
+import requests
 
 SAMPLE_YAML = textwrap.dedent("""\
 components:
@@ -72,8 +75,21 @@ schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-alpha.3
         """)
 
+V1_COMPONENTS_TEST_DATA_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), 'compiler', 'test_data',
+    'v1_component_yaml')
 
-class YamlComponentTest(unittest.TestCase):
+V1_COMPONENT_YAML_TEST_CASES = [
+    'concat_placeholder_component.yaml',
+    'ingestion_component.yaml',
+    'serving_component.yaml',
+    'if_placeholder_component.yaml',
+    'trainer_component.yaml',
+    'add_component.yaml',
+]
+
+
+class YamlComponentTest(parameterized.TestCase):
 
     def test_load_component_from_text(self):
         component = yaml_component.load_component_from_text(SAMPLE_YAML)
@@ -121,6 +137,19 @@ class YamlComponentTest(unittest.TestCase):
             self.assertEqual(
                 component.component_spec.implementation.container.image,
                 'alpine')
+
+    @parameterized.parameters(V1_COMPONENT_YAML_TEST_CASES)
+    def test_load_from_v1_component_yaml(self, file: str):
+        fp = os.path.join(V1_COMPONENTS_TEST_DATA_DIR, file)
+        with open(fp, 'r') as f:
+            yaml_component.load_component_from_text(f.read())
+
+    @parameterized.parameters(compiler_test.SUPPORTED_COMPONENT_TEST_CASES)
+    def test_load_from_component_ir(self, file: str):
+        fp = os.path.join(compiler_test.SUPPORTED_COMPONENTS_TEST_DATA_DIR,
+                          f'{file}.yaml')
+        with open(fp, 'r') as f:
+            yaml_component.load_component_from_text(f.read())
 
 
 if __name__ == '__main__':
