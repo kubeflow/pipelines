@@ -407,6 +407,9 @@
             "study_spec_override": {
               "type": "STRING"
             },
+            "study_spec_parameters_override": {
+              "type": "STRING"
+            },
             "study_spec_parameters_override_json": {
               "type": "STRING"
             },
@@ -501,6 +504,9 @@
               "type": "INT"
             },
             "study_spec_override": {
+              "type": "STRING"
+            },
+            "study_spec_parameters_override": {
               "type": "STRING"
             },
             "study_spec_parameters_override_json": {
@@ -964,6 +970,13 @@
                     "runtimeValue": {
                       "constantValue": {
                         "stringValue": ""
+                      }
+                    }
+                  },
+                  "study_spec_parameters_override": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "[]"
                       }
                     }
                   },
@@ -4116,6 +4129,13 @@
                   },
                   "study_spec_override": {
                     "componentInputParameter": "pipelineparam--study_spec_override"
+                  },
+                  "study_spec_parameters_override": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "[]"
+                      }
+                    }
                   },
                   "study_spec_parameters_override_json": {
                     "runtimeValue": {
