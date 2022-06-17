@@ -81,12 +81,12 @@ class RegistryClient:
         Args:
             host: The address of the registry host. The host needs to be specified here
                 or in the config file.
-            auth: Optional. Authentication using python requests or google.auth credentials.
+            auth: Optional. Authentication using python requests or google.auth.credentials.
             config_file: Optional. The location of the local config file. If not specified,
-                defaults to LOCAL_REGISTRY_CONTEXT (if it exists).
+                defaults to ~/.config/kfp/context.json (if it exists).
             auth_file: Optional. The location of the local config file that contains the
                 authentication token. If not specified, defaults to
-                LOCAL_REGISTRY_CREDENTIAL (if it exists).
+                ~/.config/kfp/registry_credentials.json (if it exists).
         """
         self._host = ''
         self._known_host_key = ''
@@ -96,7 +96,7 @@ class RegistryClient:
     def _request(self,
                  request_url: str,
                  request_body: Optional[str] = '',
-                 http_request: Optional[str] = 'get',
+                 http_request: Optional[str] = None,
                  extra_headers: Optional[dict] = None) -> requests.Response:
         """Calls the HTTP request.
 
@@ -111,6 +111,7 @@ class RegistryClient:
         """
         self._refresh_creds()
         auth = self._get_auth()
+        http_request = http_request or 'get'
         http_request_fn = getattr(requests, http_request)
 
         response = http_request_fn(
@@ -169,7 +170,7 @@ class RegistryClient:
             auth: Optional. Authentication using python requests or google.auth credentials.
             auth_file: Optional. The location of the local config file that contains the
                 authentication token. If not specified, defaults to
-                LOCAL_REGISTRY_CREDENTIAL (if it exists).
+                ~/.config/kfp/registry_credentials.json (if it exists).
 
         Returns:
             The loaded authentication token.
@@ -194,23 +195,18 @@ class RegistryClient:
                 return ApiAuth(auth_token)
         return None
 
-    def load_config(self, host: str, config_file: str) -> dict:
+    def load_config(self, host: Optional[str], config_file: Optional[str]) -> dict:
         """Loads the config.
 
         Args:
             host: The address of the registry host. The host needs to be specified here
                 or in the config file.
-            auth: Optional. Authentication using python requests or google.auth credentials.
             config_file: Optional. The location of the local config file. If not specified,
-                defaults to LOCAL_REGISTRY_CONTEXT (if it exists).
-            auth_file: Optional. The location of the local config file. If not specified,
-                defaults to LOCAL_REGISTRY_CREDENTIAL (if it exists).
+                defaults to ~/.config/kfp/context.json (if it exists).
 
         Returns:
             The loaded config.
         """
-        config = {}
-
         if host:
             self._host = host.rstrip('/')
         else:
@@ -230,7 +226,7 @@ class RegistryClient:
                     if 'host' in data:
                         self._host = data['host']
         if not self._host:
-            raise ValueError(f'No host found.')
+            raise ValueError('No host found.')
 
         # Check if it's a known host
         for key in _KNOWN_HOSTS_REGEX.keys():
@@ -244,6 +240,8 @@ class RegistryClient:
                 _KNOWN_HOSTS_REGEX[self._known_host_key][1])
         elif os.path.exists(LOCAL_REGISTRY_CONTEXT):
             config = self._load_context(LOCAL_REGISTRY_CONTEXT)
+        else:
+            config = {}
 
         # If config file is specified, add/override any extra context info needed
         if config_file and os.path.exists(config_file):
@@ -253,11 +251,10 @@ class RegistryClient:
         if self._is_known_host():
             matched = re.match(_KNOWN_HOSTS_REGEX[self._known_host_key][0],
                                self._host)
-        else:
-            if 'regex' in config:
-                matched = re.match(config['regex'], self._host)
+        elif 'regex' in config:
+            matched = re.match(config['regex'], self._host)
 
-        if not bool(matched):
+        if matched is None:
             raise ValueError(f'Invalid host URL: {self._host}.')
 
         # Replace all currently known variables with values
@@ -279,18 +276,17 @@ class RegistryClient:
         Returns:
             The loaded config.
         """
-        loaded_config = {}
         if not os.path.exists(config_file):
             raise ValueError(f'Config file not found: {config_file}.')
         with open(config_file, 'r') as f:
             loaded_config = json.load(f)
         if config:
-            for config_key in loaded_config:
-                config[config_key] = loaded_config[config_key]
+            config.update(loaded_config)
             return config
         return loaded_config
 
-    def _get_auth(self) -> requests.auth.AuthBase:
+    def _get_auth(self) -> Optional[Union[requests.auth.AuthBase,
+                                      credentials.Credentials]]:
         """Helper function to convert google credentials to AuthBase class if
         needed.
 
