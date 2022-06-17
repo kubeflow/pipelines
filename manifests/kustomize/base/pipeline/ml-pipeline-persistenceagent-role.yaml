@@ -24,4 +24,4 @@ rules:
   resources:
   - namespace
   verbs:
-  - ge
+  - get
