@@ -22,7 +22,11 @@ description: |
         location (Optional[str]):
             Location for running the te transform configuration.
         root_dir (str): The Cloud Storage location to store the output.
-        metadata (TabularExampleGenMetadata): The metadata of the dataset
+        transform_config (str): Feature transformation configurations.
+        target_column_name (str): The target column name.
+        weight_column_name (str): The weight column name.
+        prediction_type (str): The prediction type. Supported values: "classification", "regression".
+        is_distill (bool): True if in distillation mode. The default value is false.
         dataset_stats (AutoMLTabularDatasetStats): The dataset stats of the dataset
         encryption_spec_key_name (Optional[str]):
             Customer-managed encryption key
@@ -36,7 +40,11 @@ inputs:
 - {name: project, type: String}
 - {name: location, type: String}
 - {name: root_dir, type: String}
-- {name: metadata, type: TabularExampleGenMetadata}
+- {name: transform_config, type: String}
+- {name: target_column, type: String}
+- {name: weight_column, type: String, default: ""}
+- {name: prediction_type, type: String}
+- {name: is_distillation, type: Boolean, default: "false"}
 - {name: dataset_stats, type: AutoMLTabularDatasetStats}
 - {name: encryption_spec_key_name, type: String, default: ""}
 
@@ -63,8 +71,16 @@ implementation:
         {inputValue: root_dir},
         '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform_configuration", "--fte_transform_configuration_output_path=',
         {outputPath: fte_transform_configuration_path},
-        '", "--metadata_path=',
-        {inputUri: metadata},
+        '", "--transform_config_path=',
+        {inputValue: transform_config},
+        '", "--target_column=',
+        {inputValue: target_column},
+        '", "--weight_column=',
+        {inputValue: weight_column},
+        '", "--prediction_type=',
+        {inputValue: prediction_type},
+        '", "--is_distill=',
+        {inputValue: is_distillation},
         '", "--dataset_stats_path=',
         {inputUri: dataset_stats},
         '"]}}]}}'
