@@ -260,6 +260,7 @@ function CompareV2(props: PageProps) {
       updateBanner({});
     }
   }, [
+    runIds.length,
     isLoadingRunDetails,
     isLoadingRunArtifacts,
     isLoadingArtifactTypes,
