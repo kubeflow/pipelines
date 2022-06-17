@@ -649,7 +649,7 @@ class Client:
         """
         return self._experiment_api.delete_experiment(id=experiment_id)
 
-    def _extract_pipeline_yaml(self, package_file: str) -> str:
+    def _extract_pipeline_yaml(self, package_file: str) -> dict:
 
         def _choose_pipeline_file(file_list: List[str]) -> str:
             pipeline_files = [
@@ -689,9 +689,12 @@ class Client:
                 f'The package_file {package_file} should end with one of the '
                 'following formats: [.tar.gz, .tgz, .zip, .yaml, .yml].')
 
-    def _override_caching_options(self, workflow: str,
+    def _override_caching_options(self, workflow: dict, 
                                   enable_caching: bool) -> None:
-        raise NotImplementedError('enable_caching is not supported yet.')
+        if workflow is not None:
+            for task in workflow['root']['dag']['tasks']:
+                if 'cachingOptions' in workflow['root']['dag']['tasks'][task]:
+                    workflow['root']['dag']['tasks'][task]['cachingOptions']['enableCache'] = enable_caching
 
     def list_pipelines(
         self,

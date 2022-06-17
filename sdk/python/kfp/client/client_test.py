@@ -41,5 +41,23 @@ class TestValidatePipelineName(parameterized.TestCase):
             client.validate_pipeline_resource_name(name)
 
 
+class TestOverrideCachingOptions(parameterized.TestCase):
+    @parameterized.parameters([
+        '../compiler/test_data/pipeline_with_concat_placeholder.yaml',
+        '../compiler/test_data/pipeline_with_after.yaml',
+        '../compiler/test_data/pipeline_with_loops.yaml',
+        '../compiler/test_data/pipeline_with_importer.yaml',
+        '../compiler/test_data/pipeline_with_condition.yaml',
+    ])
+    def test_override_caching(self, pipeline_path: str):
+        import yaml
+        with open(pipeline_path) as f:
+            yaml_dict = yaml.safe_load(f)
+            test_client = client.Client(namespace='dummy_namespace')
+            test_client._override_caching_options(yaml_dict, False)
+            for task in yaml_dict['root']['dag']['tasks']:
+                if 'cachingOptions' in yaml_dict:
+                    assert yaml_dict['root']['dag']['tasks'][task]['cachingOptions']['enableCache'] == False
+
 if __name__ == '__main__':
     unittest.main()
