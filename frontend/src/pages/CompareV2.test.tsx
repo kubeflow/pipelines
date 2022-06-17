@@ -18,7 +18,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import TestUtils, { testBestPractices } from 'src/TestUtils';
-import { Artifact, Context, Event, Execution, Value } from 'src/third_party/mlmd';
+import { Artifact, Context, Event, Execution } from 'src/third_party/mlmd';
 import { Apis } from 'src/lib/Apis';
 import { QUERY_PARAMS } from 'src/components/Router';
 import * as mlmdUtils from 'src/mlmd/MlmdUtils';
@@ -191,6 +191,9 @@ describe('CompareV2', () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    jest
+      .spyOn(mlmdUtils, 'getKfpV2RunContext')
+      .mockRejectedValue(new Error('Not connected to MLMD'));
 
     render(
       <CommonTestWrapper>
@@ -201,9 +204,7 @@ describe('CompareV2', () => {
 
     await waitFor(() => {
       expect(updateBannerSpy).toHaveBeenLastCalledWith({
-        additionalInfo:
-          'Cannot find context with ' +
-          '{"typeName":"system.PipelineRun","contextName":"mock-run-1-id"}: Incomplete response',
+        additionalInfo: 'Not connected to MLMD',
         message: 'Cannot get MLMD objects from Metadata store.',
         mode: 'error',
       });
