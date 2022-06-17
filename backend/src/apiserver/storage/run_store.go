@@ -256,7 +256,7 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 	for rows.Next() {
 		var uuid, experimentUUID, displayName, name, storageState, namespace, serviceAccount, description, pipelineId,
 			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, conditions, pipelineRuntimeManifest,
-			workflowRuntimeManifest string
+			workflowRuntimeManifest, runtimeParameters, pipelineRoot string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec int64
 		var metricsInString, resourceReferencesInString sql.NullString
 		err := rows.Scan(
@@ -279,6 +279,8 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 			&parameters,
 			&pipelineRuntimeManifest,
 			&workflowRuntimeManifest,
+			&runtimeParameters,
+			&pipelineRoot,
 			&resourceReferencesInString,
 			&metricsInString,
 		)
@@ -323,7 +325,10 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 		},
 			PipelineRuntime: model.PipelineRuntime{
 				PipelineRuntimeManifest: pipelineRuntimeManifest,
-				WorkflowRuntimeManifest: workflowRuntimeManifest}})
+				WorkflowRuntimeManifest: workflowRuntimeManifest},
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   runtimeParameters,
+				PipelineRoot: pipelineRoot}})
 	}
 	return runs, nil
 }
