@@ -298,13 +298,13 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
           <div>
             <Input
               id='tableFilterBox'
-              label={this.props.filterLabel || 'Filter'}
+              label=''
               height={48}
               maxWidth={'100%'}
               className={css.filterBox}
               InputLabelProps={{ classes: { root: css.noMargin } }}
               onChange={this.handleFilterChange}
-              value={filterString}
+              value={'Choose a first Confusion Matrix artifact'}
               variant='outlined'
               InputProps={{
                 classes: {

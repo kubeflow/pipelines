@@ -30,6 +30,7 @@ import { classes, stylesheet } from 'typestyle';
 import { PageProps } from './Page';
 import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
+import Dropdown, { DropdownItem } from 'src/components/Dropdown';
 
 const css = stylesheet({
   outputsRow: {
@@ -37,6 +38,31 @@ const css = stylesheet({
     overflowX: 'auto',
   },
 });
+
+const dropdownItems: DropdownItem[] = [
+  {
+    name: 'first',
+    subItems: [
+      {
+        name: 'first->first',
+        subItems: [
+          {
+            name: 'first->first->first',
+            subItems: [],
+          },
+          {
+            name: 'first->first->second',
+            subItems: [],
+          }
+        ],
+      }
+    ]
+  },
+  {
+    name: 'second',
+    subItems: [],
+  }
+];
 
 function CompareV2(props: PageProps) {
   const { updateBanner, updateToolbar } = props;
@@ -170,6 +196,10 @@ function CompareV2(props: PageProps) {
           <Hr />
         </div>
       )}
+      <Dropdown
+        title='Choose a first Confusion Matrix artifact'
+        items={dropdownItems}
+      />
 
       <Separator orientation='vertical' />
     </div>
