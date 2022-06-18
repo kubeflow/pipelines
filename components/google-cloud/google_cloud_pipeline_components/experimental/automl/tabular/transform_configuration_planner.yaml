@@ -40,6 +40,7 @@ inputs:
 - {name: project, type: String}
 - {name: location, type: String}
 - {name: root_dir, type: String}
+- {name: analyze_data, type: Dataset, default: ""}
 - {name: transform_config, type: String}
 - {name: target_column, type: String}
 - {name: weight_column, type: String, default: ""}
@@ -50,6 +51,8 @@ inputs:
 
 outputs:
 - {name: fte_transform_configuration_path, type: String}
+- {name: training_schema, type: TrainingSchema}
+- {name: instance_baseline, type: AutoMLTabularInstanceBaseline}
 - {name: gcp_resources, type: String}
 
 implementation:
@@ -75,6 +78,8 @@ implementation:
         {inputValue: transform_config},
         '", "--target_column=',
         {inputValue: target_column},
+        '", "--analyze_data_path=',
+        {inputUri: analyze_data},
         '", "--weight_column=',
         {inputValue: weight_column},
         '", "--prediction_type=',
@@ -83,5 +88,9 @@ implementation:
         {inputValue: is_distillation},
         '", "--dataset_stats_path=',
         {inputUri: dataset_stats},
+        '", "--training_schema_path=',
+        {outputUri: training_schema},
+        '", "--instance_baseline_path=',
+        {outputUri: instance_baseline},
         '"]}}]}}'
       ]]
