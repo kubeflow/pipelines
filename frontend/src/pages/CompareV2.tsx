@@ -30,7 +30,7 @@ import { classes, stylesheet } from 'typestyle';
 import { PageProps } from './Page';
 import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
-import Dropdown, { DropdownItem } from 'src/components/Dropdown';
+import Dropdown, { DropdownItem } from 'src/components/MultiLevelDropdown';
 
 const css = stylesheet({
   outputsRow: {
@@ -42,35 +42,16 @@ const css = stylesheet({
 const dropdownItems: DropdownItem[] = [
   {
     name: 'first',
-    subItems: [
-      {
-        name: 'first->first',
-        subItems: [
-          {
-            name: 'first->first->first',
-            subItems: [],
-          },
-          {
-            name: 'first->first->second',
-            subItems: [],
-          }
-        ],
-      }
-    ]
+    subItems: ['first->first', 'first->first->first', 'first->first->second'],
   },
   {
     name: 'second',
-    subItems: [],
+    subItems: ['second->first'],
   },
   {
     name: 'third',
-    subItems: [
-      {
-        name: 'third->first->first',
-        subItems: [],
-      },
-    ],
-  }
+    subItems: ['third->first'],
+  },
 ];
 
 function CompareV2(props: PageProps) {
@@ -205,10 +186,7 @@ function CompareV2(props: PageProps) {
           <Hr />
         </div>
       )}
-      <Dropdown
-        title='Choose a first Confusion Matrix artifact'
-        items={dropdownItems}
-      />
+      <Dropdown title='Choose a first Confusion Matrix artifact' items={dropdownItems} />
 
       <Separator orientation='vertical' />
     </div>
