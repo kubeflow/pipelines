@@ -65,7 +65,6 @@ inputs:
 outputs:
 - {name: materialized_data, type: Dataset}
 - {name: transform_output, type: TransformOutput}
-- {name: training_schema, type: TrainingSchema}
 - {name: gcp_resources, type: String}
 
 implementation:
@@ -97,8 +96,6 @@ implementation:
         {inputUri: analyze_data},
         '", "--transform_data_path=',
         {inputUri: transform_data},
-        '", "--training_schema_path=',
-        {outputUri: training_schema},
         '", "--job_name=feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
         '", "--dataflow_project=',
         {inputValue: project},
