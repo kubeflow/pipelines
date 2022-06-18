@@ -61,6 +61,15 @@ const dropdownItems: DropdownItem[] = [
   {
     name: 'second',
     subItems: [],
+  },
+  {
+    name: 'third',
+    subItems: [
+      {
+        name: 'third->first->first',
+        subItems: [],
+      },
+    ],
   }
 ];
 

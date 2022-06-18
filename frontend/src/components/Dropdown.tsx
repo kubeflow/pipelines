@@ -112,10 +112,12 @@ const DropdownItemDisplay = (props: DropdownItemDisplayProps) => {
       {
         items.map(item => {
           index++;
-          console.log(item.name);
-          console.log(index);
-          if (item.subItems === []) {
-            return (<li className={classes(css.dropdownElement)}>{item.name}</li>);
+          const valueCopy = index;
+          // console.log(item.name);
+          // console.log(item.subItems);
+          if (item.subItems.length === 0) {
+            return (<li className={classes(css.dropdownElement)} key={valueCopy} 
+            onClick={() => console.log(item.name)}>{item.name}</li>);
           }
       
           return (
@@ -123,19 +125,20 @@ const DropdownItemDisplay = (props: DropdownItemDisplayProps) => {
               className={classes(css.dropdownElement)}
               onMouseEnter={() => {
                 const newSubDropdown = [...subDropdown];
-                newSubDropdown[index] = true;
+                newSubDropdown[valueCopy] = true;
                 console.log(subDropdown);
                 setSubDropdown(newSubDropdown);
               }}
               onMouseLeave={() => {
                 const newSubDropdown = [...subDropdown];
-                // newSubDropdown[index] = false;
+                newSubDropdown[valueCopy] = false;
                 setSubDropdown(newSubDropdown);
               }}
+              key={valueCopy}
             >
               {item.name}
-              <ArrowForwardIosIcon className={classes(css.defaultFont)} />
-              <ul className={subDropdown[index] ? classes(css.dropdownSubmenu, css.dropdownMenu) : classes(css.hidden)}>
+              <ArrowForwardIosIcon className={classes(css.defaultFont)} key={`forwardIcon${valueCopy}`} />
+              <ul className={subDropdown[valueCopy] ? classes(css.dropdownSubmenu, css.dropdownMenu) : classes(css.hidden)} key={`ul${valueCopy}`}>
                 <DropdownItemDisplay
                   items={item.subItems}
                   subDropdown={subDropdown}
