@@ -42,6 +42,8 @@ func NewFakeDb() (*DB, error) {
 		&model.DBStatus{},
 		&model.DefaultExperiment{})
 
+	fmt.Printf("%+v\n", model.RunDetail{})
+
 	return NewDB(db.DB(), NewSQLiteDialect()), nil
 }
 

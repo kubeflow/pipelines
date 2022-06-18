@@ -92,10 +92,6 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 				PipelineId:   run.GetPipelineSpec().GetPipelineId(),
 				PipelineName: pipelineName,
 			},
-			RuntimeConfig: model.RuntimeConfig{
-				Parameters: 	run.GetPipelineSpec().GetRuntimeConfig().GetParameters(),
-				PipelineRoot: 	run.GetPipelineSpec().GetRuntimeConfig().GetPipelineRoot(),
-			}
 		},
 	}
 
@@ -116,6 +112,8 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 		}
 		runDetail.Parameters = params
 		runDetail.PipelineSpecManifest = manifest
+		runDetail.PipelineSpec.RuntimeConfig.Parameters = params
+		runDetail.PipelineSpec.RuntimeConfig.PipelineRoot = run.GetPipelineSpec().GetRuntimeConfig().GetPipelineRoot()
 		return runDetail, nil
 
 	} else {

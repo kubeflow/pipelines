@@ -34,7 +34,7 @@ import (
 
 var runColumns = []string{"UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description",
 	"CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineName", "PipelineSpecManifest",
-	"WorkflowSpecManifest", "Parameters", "pipelineRuntimeManifest", "WorkflowRuntimeManifest",
+	"WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", "pipelineRuntimeManifest", "WorkflowRuntimeManifest",
 }
 
 type RunStoreInterface interface {
@@ -192,24 +192,24 @@ func (s *RunStore) GetRun(runId string) (*model.RunDetail, error) {
 		ToSql()
 
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
+		return nil, util.NewInternalServerError(err, "Failed to get run 1: %v", err.Error())
 	}
 	r, err := s.db.Query(sql, args...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
+		return nil, util.NewInternalServerError(err, "Failed to get run 2: %v", err.Error())
 	}
 	defer r.Close()
 	runs, err := s.scanRowsToRunDetails(r)
 
 	if err != nil || len(runs) > 1 {
-		return nil, util.NewInternalServerError(err, "Failed to get run: %v", err.Error())
+		return nil, util.NewInternalServerError(err, "Failed to get run 3: %v", err.Error())
 	}
 	if len(runs) == 0 {
 		return nil, util.NewResourceNotFoundError("Run", fmt.Sprint(runId))
 	}
 	if runs[0].WorkflowRuntimeManifest == "" && runs[0].WorkflowSpecManifest != "" {
 		// This can only happen when workflow reporting is failed.
-		return nil, util.NewResourceNotFoundError("Failed to get run: %s", runId)
+		return nil, util.NewResourceNotFoundError("Failed to get run 4: ", runId)
 	}
 	return runs[0], nil
 }
@@ -253,6 +253,12 @@ func (s *RunStore) addMetricsAndResourceReferences(filteredSelectBuilder sq.Sele
 
 func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, error) {
 	var runs []*model.RunDetail
+
+	allColumns, _ := rows.Columns()
+	for _, colTemp := range allColumns {
+		fmt.Printf(colTemp + "  ")
+	}
+
 	for rows.Next() {
 		var uuid, experimentUUID, displayName, name, storageState, namespace, serviceAccount, description, pipelineId,
 			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, conditions, pipelineRuntimeManifest,
@@ -277,10 +283,10 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 			&pipelineSpecManifest,
 			&workflowSpecManifest,
 			&parameters,
-			&pipelineRuntimeManifest,
-			&workflowRuntimeManifest,
 			&runtimeParameters,
 			&pipelineRoot,
+			&pipelineRuntimeManifest,
+			&workflowRuntimeManifest,
 			&resourceReferencesInString,
 			&metricsInString,
 		)
@@ -321,14 +327,15 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 				PipelineSpecManifest: pipelineSpecManifest,
 				WorkflowSpecManifest: workflowSpecManifest,
 				Parameters:           parameters,
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   runtimeParameters,
+					PipelineRoot: pipelineRoot},
 			},
 		},
 			PipelineRuntime: model.PipelineRuntime{
 				PipelineRuntimeManifest: pipelineRuntimeManifest,
 				WorkflowRuntimeManifest: workflowRuntimeManifest},
-			RuntimeConfig: model.RuntimeConfig{
-				Parameters:   runtimeParameters,
-				PipelineRoot: pipelineRoot}})
+		})
 	}
 	return runs, nil
 }

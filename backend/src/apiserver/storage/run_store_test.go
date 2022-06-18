@@ -67,6 +67,10 @@ func initializeRunStore() (*DB, *RunStore) {
 					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:`[{"name":"param2","value":"world"}]`,
+				PipelineRoot: 	"gs://my-bucket/path/to/root",
+			}
 		},
 		PipelineRuntime: model.PipelineRuntime{
 			WorkflowRuntimeManifest: "workflow1",
