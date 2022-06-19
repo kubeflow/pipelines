@@ -639,7 +639,7 @@ func localPathForURI(uri string) (string, error) {
 func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
 	for name, parameter := range executorInput.GetOutputs().GetParameters() {
 		dir := filepath.Dir(parameter.OutputFile)
-		if err := os.MkdirAll(dir, 0644); err != nil {
+		if err := os.MkdirAll(dir, 0755); err != nil {
 			return fmt.Errorf("failed to create directory %q for output parameter %q: %w", dir, name, err)
 		}
 	}
@@ -655,7 +655,7 @@ func prepareOutputFolders(executorInput *pipelinespec.ExecutorInput) error {
 			return fmt.Errorf("failed to generate local storage path for output artifact %q: %w", name, err)
 		}
 
-		if err := os.MkdirAll(filepath.Dir(localPath), 0644); err != nil {
+		if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
 			return fmt.Errorf("unable to create directory %q for output artifact %q: %w", filepath.Dir(localPath), name, err)
 		}
 	}
