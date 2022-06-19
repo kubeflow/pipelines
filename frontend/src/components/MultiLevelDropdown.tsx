@@ -49,11 +49,19 @@ export const css = stylesheet({
   dropdownElement: {
     padding: '1rem',
     position: 'relative',
+    
     $nest: {
       '&:hover': {
         backgroundColor: `${color.lightGrey}`,
       },
     },
+  },
+  textContainer: {
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    maxWidth: '20rem',
+    overflow: 'hidden',
+    verticalAlign: 'top',
   },
   dropdownSubmenu: {
     left: '100%',
@@ -82,10 +90,12 @@ export interface DropdownItem {
 interface DropdownProps {
   title: string;
   items: DropdownItem[];
+  selectedItem: string;
+  setSelectedItem: (selectedItem: string) => void,
 }
 
 export const MultiLevelDropdown = (props: DropdownProps) => {
-  const { title, items } = props;
+  const { title, items, selectedItem, setSelectedItem } = props;
   const [dropdownActive, setDropdownActive] = useState(false);
   const [subDropdown, setSubDropdown] = useState<boolean[]>(new Array(items.length).fill(false));
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -109,8 +119,8 @@ export const MultiLevelDropdown = (props: DropdownProps) => {
   return (
     <div className={classes(css.relativeContainer)}>
       <div className={classes(css.inlineContainer)} ref={dropdownRef}>
-        <Button onClick={handleDropdownClick} className={classes(css.dropdown)}>
-          {title}
+        <Button onClick={handleDropdownClick} className={classes(css.dropdown, css.textContainer)}>
+          <span className={classes(css.textContainer)}>{selectedItem ? selectedItem : title}</span>
           <ArrowDropDownIcon />
         </Button>
       </div>
@@ -131,12 +141,14 @@ export const MultiLevelDropdown = (props: DropdownProps) => {
                 }}
                 onMouseLeave={() => {
                   const newSubDropdown = [...subDropdown];
-                  newSubDropdown[index] = false;
+                  // newSubDropdown[index] = false;
                   setSubDropdown(newSubDropdown);
                 }}
                 key={`index${index}`}
               >
-                {item.name}
+                <div className={classes(css.textContainer, css.inlineContainer)}>
+                  {item.name}
+                </div>
                 <ArrowForwardIosIcon
                   className={classes(css.defaultFont)}
                   key={`forwardIcon${index}`}
@@ -151,10 +163,10 @@ export const MultiLevelDropdown = (props: DropdownProps) => {
                 >
                   {item.subItems.map((subItem, subIndex) => (
                     <li
-                      className={classes(css.dropdownElement)}
+                      className={classes(css.dropdownElement, css.textContainer)}
                       key={`subIndex${subIndex}`}
                       onClick={() => {
-                        console.log(subItem);
+                        setSelectedItem(subItem);
                         setDropdownActive(false);
                       }}
                     >
