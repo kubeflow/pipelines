@@ -34,7 +34,7 @@ import {
   getKfpV2RunContext,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
-import { Event, Execution } from 'src/third_party/mlmd';
+import { Artifact, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
 import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
@@ -46,6 +46,12 @@ const css = stylesheet({
   },
 });
 
+interface MlmdPackage {
+  executions: Execution[];
+  artifacts: Artifact[];
+  events: Event[];
+}
+
 interface ExecutionArtifacts {
   execution: Execution;
   linkedArtifacts: LinkedArtifact[];
@@ -54,6 +60,35 @@ interface ExecutionArtifacts {
 interface RunArtifacts {
   run: ApiRunDetail;
   executionArtifacts: ExecutionArtifacts[];
+}
+
+function getRunArtifacts(runs: ApiRunDetail[], mlmdPackages: MlmdPackage[]): RunArtifacts[] {
+  return mlmdPackages.map((mlmdPackage, index) => {
+    const events = mlmdPackage.events.filter(
+      e => e.getType() === Event.Type.OUTPUT,
+    );
+
+    // Match artifacts to executions.
+    const artifactMap = new Map();
+    mlmdPackage.artifacts.forEach(artifact => artifactMap.set(artifact.getId(), artifact));
+    const executionArtifacts = mlmdPackage.executions.map(execution => {
+      const executionEvents = events.filter(e => e.getExecutionId() === execution.getId());
+      const linkedArtifacts = executionEvents.map(event => {
+        return {
+          event,
+          artifact: artifactMap.get(event.getArtifactId()),
+        } as LinkedArtifact;
+      });
+      return {
+        execution,
+        linkedArtifacts,
+      } as ExecutionArtifacts;
+    });
+    return {
+      run: runs[index],
+      executionArtifacts,
+    } as RunArtifacts;
+  });
 }
 
 function CompareV2(props: PageProps) {
@@ -85,55 +120,33 @@ function CompareV2(props: PageProps) {
 
   // Retrieves MLMD states (executions and linked artifacts) from the MLMD store.
   const {
-    data: runArtifacts,
-    isLoading: isLoadingRunArtifacts,
-    isError: isErrorRunArtifacts,
-    error: errorRunArtifacts,
-  } = useQuery<RunArtifacts[], Error>(
-    ['run_artifacts', { runIds, runs }],
-    () => {
-      if (runs) {
-        return Promise.all(
-          runIds.map(async (r, index) => {
-            const context = await getKfpV2RunContext(r);
-            const executions = await getExecutionsFromContext(context);
-            const artifacts = await getArtifactsFromContext(context);
-            const events = (await getEventsByExecutions(executions)).filter(
-              e => e.getType() === Event.Type.OUTPUT,
-            );
-
-            // Match artifacts to executions.
-            const artifactMap = new Map();
-            artifacts.forEach(artifact => artifactMap.set(artifact.getId(), artifact));
-            const executionArtifacts = executions.map(execution => {
-              const executionEvents = events.filter(e => e.getExecutionId() === execution.getId());
-              const linkedArtifacts = executionEvents.map(event => {
-                return {
-                  event,
-                  artifact: artifactMap.get(event.getArtifactId()),
-                } as LinkedArtifact;
-              });
-              return {
-                execution,
-                linkedArtifacts,
-              } as ExecutionArtifacts;
-            });
-            return {
-              run: runs[index],
-              executionArtifacts,
-            };
-          }),
-        );
-      }
-      return [];
-    },
+    data: mlmdPackages,
+    isLoading: isLoadingMlmdPackages,
+    isError: isErrorMlmdPackages,
+    error: errorMlmdPackages,
+  } = useQuery<MlmdPackage[], Error>(
+    ['run_artifacts', { runIds }],
+    () => Promise.all(
+      runIds.map(async (runId) => {
+        const context = await getKfpV2RunContext(runId);
+        const executions = await getExecutionsFromContext(context);
+        const artifacts = await getArtifactsFromContext(context);
+        const events = await getEventsByExecutions(executions);
+        return {
+          executions,
+          artifacts,
+          events,
+        } as MlmdPackage;
+      }),
+    ),
     {
       staleTime: Infinity,
     },
   );
 
+  const runArtifacts = runs && mlmdPackages ? getRunArtifacts(runs, mlmdPackages) : [];
   useEffect(() => {
-    if (isLoadingRunDetails || isLoadingRunArtifacts) {
+    if (isLoadingRunDetails || isLoadingMlmdPackages) {
       return;
     }
 
@@ -146,10 +159,10 @@ function CompareV2(props: PageProps) {
           mode: 'error',
         });
       })();
-    } else if (isErrorRunArtifacts) {
+    } else if (isErrorMlmdPackages) {
       updateBanner({
         message: 'Cannot get MLMD objects from Metadata store.',
-        additionalInfo: errorRunArtifacts ? errorRunArtifacts.message : undefined,
+        additionalInfo: errorMlmdPackages ? errorMlmdPackages.message : undefined,
         mode: 'error',
       });
     } else {
@@ -158,11 +171,11 @@ function CompareV2(props: PageProps) {
   }, [
     runIds.length,
     isLoadingRunDetails,
-    isLoadingRunArtifacts,
+    isLoadingMlmdPackages,
     isErrorRunDetails,
-    isErrorRunArtifacts,
+    isErrorMlmdPackages,
     errorRunDetails,
-    errorRunArtifacts,
+    errorMlmdPackages,
     updateBanner,
   ]);
 
@@ -271,3 +284,41 @@ function CompareV2(props: PageProps) {
 }
 
 export default CompareV2;
+
+/*
+if (runs) {
+        return Promise.all(
+          runIds.map(async (r, index) => {
+            const context = await getKfpV2RunContext(r);
+            const executions = await getExecutionsFromContext(context);
+            const artifacts = await getArtifactsFromContext(context);
+            const events = (await getEventsByExecutions(executions)).filter(
+              e => e.getType() === Event.Type.OUTPUT,
+            );
+
+            // Match artifacts to executions.
+            const artifactMap = new Map();
+            artifacts.forEach(artifact => artifactMap.set(artifact.getId(), artifact));
+            const executionArtifacts = executions.map(execution => {
+              const executionEvents = events.filter(e => e.getExecutionId() === execution.getId());
+              const linkedArtifacts = executionEvents.map(event => {
+                return {
+                  event,
+                  artifact: artifactMap.get(event.getArtifactId()),
+                } as LinkedArtifact;
+              });
+              return {
+                execution,
+                linkedArtifacts,
+              } as ExecutionArtifacts;
+            });
+            return {
+              run: runs[index],
+              executionArtifacts,
+            };
+          }),
+        );
+      }
+      return [];
+    },
+    */
