@@ -22,6 +22,7 @@ import { Artifact, Context, Event, Execution } from 'src/third_party/mlmd';
 import { Apis } from 'src/lib/Apis';
 import { QUERY_PARAMS } from 'src/components/Router';
 import * as mlmdUtils from 'src/mlmd/MlmdUtils';
+import * as Utils from 'src/lib/Utils';
 import CompareV2 from './CompareV2';
 import { PageProps } from './Page';
 import { ApiRunDetail } from 'src/apis/run';
@@ -159,6 +160,51 @@ describe('CompareV2', () => {
       expect(getArtifactsSpy).toBeCalledTimes(3);
       expect(getEventsSpy).toBeCalledTimes(3);
       expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+    });
+  });
+
+  it('Log warning when artifact with specified ID is not found', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    const contexts = [
+      newMockContext(MOCK_RUN_1_ID, 1),
+      newMockContext(MOCK_RUN_2_ID, 2),
+      newMockContext(MOCK_RUN_3_ID, 3),
+    ];
+    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    getContextSpy.mockImplementation((runID: string) =>
+      Promise.resolve(contexts.find(c => c.getName() === runID)),
+    );
+
+    const executions = [[newMockExecution(1)], [newMockExecution(2)], [newMockExecution(3)]];
+    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    getExecutionsSpy.mockImplementation((context: Context) =>
+      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+    );
+
+    const artifacts = [newMockArtifact(1), newMockArtifact(3)];
+    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+
+    const events = [newMockEvent(1), newMockEvent(2), newMockEvent(3)];
+    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
+    getEventsSpy.mockReturnValue(Promise.resolve(events));
+
+    const warnSpy = jest.spyOn(Utils.logger, 'warn');
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    await waitFor(() => {
+      expect(warnSpy).toHaveBeenLastCalledWith(
+        'The artifact with the following ID was not found: 2',
+      );
     });
   });
 

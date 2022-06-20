@@ -25,7 +25,7 @@ import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import Buttons from 'src/lib/Buttons';
 import { URLParser } from 'src/lib/URLParser';
-import { errorToMessage } from 'src/lib/Utils';
+import { errorToMessage, logger } from 'src/lib/Utils';
 import { classes, stylesheet } from 'typestyle';
 import {
   getArtifactsFromContext,
@@ -64,21 +64,26 @@ interface RunArtifacts {
 
 function getRunArtifacts(runs: ApiRunDetail[], mlmdPackages: MlmdPackage[]): RunArtifacts[] {
   return mlmdPackages.map((mlmdPackage, index) => {
-    const events = mlmdPackage.events.filter(
-      e => e.getType() === Event.Type.OUTPUT,
-    );
+    const events = mlmdPackage.events.filter(e => e.getType() === Event.Type.OUTPUT);
 
     // Match artifacts to executions.
     const artifactMap = new Map();
     mlmdPackage.artifacts.forEach(artifact => artifactMap.set(artifact.getId(), artifact));
     const executionArtifacts = mlmdPackage.executions.map(execution => {
       const executionEvents = events.filter(e => e.getExecutionId() === execution.getId());
-      const linkedArtifacts = executionEvents.map(event => {
-        return {
-          event,
-          artifact: artifactMap.get(event.getArtifactId()),
-        } as LinkedArtifact;
-      });
+      const linkedArtifacts: LinkedArtifact[] = [];
+      for (const event of executionEvents) {
+        const artifactId = event.getArtifactId();
+        const artifact = artifactMap.get(artifactId);
+        if (artifact) {
+          linkedArtifacts.push({
+            event,
+            artifact,
+          } as LinkedArtifact);
+        } else {
+          logger.warn(`The artifact with the following ID was not found: ${artifactId}`);
+        }
+      }
       return {
         execution,
         linkedArtifacts,
@@ -126,19 +131,20 @@ function CompareV2(props: PageProps) {
     error: errorMlmdPackages,
   } = useQuery<MlmdPackage[], Error>(
     ['run_artifacts', { runIds }],
-    () => Promise.all(
-      runIds.map(async (runId) => {
-        const context = await getKfpV2RunContext(runId);
-        const executions = await getExecutionsFromContext(context);
-        const artifacts = await getArtifactsFromContext(context);
-        const events = await getEventsByExecutions(executions);
-        return {
-          executions,
-          artifacts,
-          events,
-        } as MlmdPackage;
-      }),
-    ),
+    () =>
+      Promise.all(
+        runIds.map(async runId => {
+          const context = await getKfpV2RunContext(runId);
+          const executions = await getExecutionsFromContext(context);
+          const artifacts = await getArtifactsFromContext(context);
+          const events = await getEventsByExecutions(executions);
+          return {
+            executions,
+            artifacts,
+            events,
+          } as MlmdPackage;
+        }),
+      ),
     {
       staleTime: Infinity,
     },
