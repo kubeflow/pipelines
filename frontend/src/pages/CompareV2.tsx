@@ -30,7 +30,7 @@ import { classes, stylesheet } from 'typestyle';
 import { PageProps } from './Page';
 import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
-import MultiLevelDropdown, { DropdownItem } from 'src/components/MultiLevelDropdown';
+import MultiLevelDropdown, { DropdownItem, SelectedItem } from 'src/components/MultiLevelDropdown';
 
 const css = stylesheet({
   outputsRow: {
@@ -42,10 +42,15 @@ const css = stylesheet({
 const dropdownItems: DropdownItem[] = [
   {
     name: 'first',
-    subItems: ['first->first', 'first->first->first', 'first->first->second->aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
+    subItems: [
+      'first->first',
+      'first->first->first',
+      'first->first->second->aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    ],
   },
   {
-    name: 'secondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecond',
+    name:
+      'secondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecond',
     subItems: ['second->first'],
   },
   {
@@ -59,7 +64,7 @@ function CompareV2(props: PageProps) {
 
   const runlistRef = useRef<RunList>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [selectedItem, setSelectedItem] = useState<string>('');
+  const [selectedItem, setSelectedItem] = useState<SelectedItem>({ itemName: '', subItemName: '' });
   const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
