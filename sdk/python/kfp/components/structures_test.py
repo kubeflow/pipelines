@@ -21,6 +21,8 @@ import unittest
 
 from absl.testing import parameterized
 from kfp import compiler
+from kfp.compiler.compiler_test import SUPPORTED_COMPONENT_TEST_CASES
+from kfp.compiler.compiler_test import SUPPORTED_COMPONENTS_TEST_DATA_DIR
 from kfp.components import placeholders
 from kfp.components import structures
 
@@ -605,116 +607,6 @@ V1_YAML = textwrap.dedent("""\
     name: component_if
     """)
 
-COMPILER_CLI_TEST_DATA_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)), 'compiler', 'test_data')
-
-SUPPORTED_COMPONENTS_COMPILE_TEST_CASES = [
-    {
-        'file': 'pipeline_with_importer',
-        'component_name': 'pass_through_op'
-    },
-    {
-        'file': 'pipeline_with_env',
-        'component_name': 'print_env_op'
-    },
-    {
-        'file': 'pipeline_with_loops',
-        'component_name': 'args_generator_op'
-    },
-    {
-        'file': 'pipeline_with_loops',
-        'component_name': 'print_struct'
-    },
-    {
-        'file': 'pipeline_with_loops',
-        'component_name': 'print_text'
-    },
-    {
-        'file': 'v2_component_with_pip_index_urls',
-        'component_name': 'component_op'
-    },
-    {
-        'file': 'pipeline_with_condition',
-        'component_name': 'flip_coin_op'
-    },
-    {
-        'file': 'pipeline_with_condition',
-        'component_name': 'print_op'
-    },
-    {
-        'file': 'pipeline_with_task_final_status',
-        'component_name': 'fail_op'
-    },
-    {
-        'file': 'pipeline_with_task_final_status',
-        'component_name': 'print_op'
-    },
-    {
-        'file': 'pipeline_with_loops_and_conditions',
-        'component_name': 'args_generator_op'
-    },
-    {
-        'file': 'pipeline_with_loops_and_conditions',
-        'component_name': 'flip_coin_op'
-    },
-    {
-        'file': 'pipeline_with_loops_and_conditions',
-        'component_name': 'print_struct'
-    },
-    {
-        'file': 'pipeline_with_loops_and_conditions',
-        'component_name': 'print_text'
-    },
-    {
-        'file': 'v2_component_with_optional_inputs',
-        'component_name': 'component_op'
-    },
-    {
-        'file': 'lightweight_python_functions_v2_with_outputs',
-        'component_name': 'add_numbers'
-    },
-    {
-        'file': 'lightweight_python_functions_v2_with_outputs',
-        'component_name': 'concat_message'
-    },
-    {
-        'file': 'lightweight_python_functions_v2_with_outputs',
-        'component_name': 'output_artifact'
-    },
-    {
-        'file': 'pipeline_with_nested_loops',
-        'component_name': 'print_op'
-    },
-    {
-        'file': 'pipeline_with_nested_conditions',
-        'component_name': 'flip_coin_op'
-    },
-    {
-        'file': 'pipeline_with_nested_conditions',
-        'component_name': 'print_op'
-    },
-    {
-        'file': 'pipeline_with_params_containing_format',
-        'component_name': 'print_op'
-    },
-    {
-        'file': 'pipeline_with_params_containing_format',
-        'component_name': 'print_op2'
-    },
-    {
-        'file': 'pipeline_with_exit_handler',
-        'component_name': 'fail_op'
-    },
-    {
-        'file': 'pipeline_with_exit_handler',
-        'component_name': 'print_op'
-    },
-    {
-        'file': 'pipeline_with_placeholders',
-        'component_name': 'print_op'
-    },
-]
-
 
 class TestReadInComponent(parameterized.TestCase):
 
@@ -725,12 +617,12 @@ class TestReadInComponent(parameterized.TestCase):
         self.assertEqual(component_spec.implementation.container.image,
                          'alpine')
 
-    @parameterized.parameters(SUPPORTED_COMPONENTS_COMPILE_TEST_CASES)
-    def test_read_in_all_v2_components(self, file, component_name):
+    @parameterized.parameters(SUPPORTED_COMPONENT_TEST_CASES)
+    def test_read_in_all_v2_components(self, file):
         try:
-            sys.path.insert(0, COMPILER_CLI_TEST_DATA_DIR)
-            mod = __import__(file, fromlist=[component_name])
-            component = getattr(mod, component_name)
+            sys.path.insert(0, SUPPORTED_COMPONENTS_TEST_DATA_DIR)
+            mod = __import__(file, fromlist=[file])
+            component = getattr(mod, file)
         finally:
             del sys.path[0]
 

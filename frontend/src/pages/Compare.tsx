@@ -34,6 +34,10 @@ enum CompareVersion {
   Unknown,
 }
 
+export const OVERVIEW_SECTION_NAME = 'Run overview';
+export const PARAMS_SECTION_NAME = 'Parameters';
+export const METRICS_SECTION_NAME = 'Metrics';
+
 // This is a router to determine whether to show V1 or V2 compare page.
 export default function Compare(props: PageProps) {
   const { updateBanner } = props;
@@ -109,7 +113,7 @@ export default function Compare(props: PageProps) {
       // Clear the banner unless the V1 page is shown, as that page handles its own banner state.
       updateBanner({});
     }
-  }, [compareVersion, isError, error, updateBanner, runIds.length]);
+  }, [compareVersion, isError, error, isLoading, updateBanner, runIds.length]);
 
   if (isError || isLoading) {
     return <></>;
@@ -120,7 +124,7 @@ export default function Compare(props: PageProps) {
   }
 
   if (compareVersion === CompareVersion.V2) {
-    return <CompareV2 />;
+    return <CompareV2 {...props} />;
   }
 
   return <></>;
