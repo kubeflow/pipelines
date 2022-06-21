@@ -62,6 +62,18 @@ function NewRunParametersV2(props: NewRunParametersProps) {
   const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
 
   const [updatedParameters, setUpdatedParameters] = useState({});
+  const inputConverter = (paramStr: string) => {
+    if (paramStr === 'True') {
+      return true;
+    } else if (paramStr === 'False') {
+      return false;
+    } else if (Number(paramStr)) {
+      return Number(paramStr);
+    } else {
+      return paramStr;
+    }
+  };
+
   useEffect(() => {
     const runtimeParametersWithDefault: RuntimeParameters = {};
     Object.keys(props.specParameters).map(key => {
@@ -121,9 +133,9 @@ function NewRunParametersV2(props: NewRunParametersProps) {
 
       {!!Object.keys(props.specParameters).length && (
         <div>
-          {Object.entries(props.specParameters).map(([k, value]) => {
+          {Object.entries(props.specParameters).map(([k, v]) => {
             const param = {
-              key: `${k} - ${ParameterType_ParameterTypeEnum[value.parameterType]}`,
+              key: `${k} - ${ParameterType_ParameterTypeEnum[v.parameterType]}`,
               value: updatedParameters[k],
             };
 
@@ -137,7 +149,12 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                   nextUpdatedParameters[k] = { string_value: value };
                   setUpdatedParameters(nextUpdatedParameters);
                   if (props.handleParameterChange) {
-                    props.handleParameterChange(nextUpdatedParameters);
+                    let parametersInRealType = {};
+                    Object.entries(nextUpdatedParameters).map(([k, v]) => {
+                      parametersInRealType[k] = inputConverter(v['string_value']);
+                    });
+                    props.handleParameterChange(parametersInRealType);
+                    console.log(parametersInRealType);
                   }
                 }}
                 param={param}
