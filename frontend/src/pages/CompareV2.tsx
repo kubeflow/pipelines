@@ -49,14 +49,6 @@ const css = stylesheet({
   },
 });
 
-enum MetricsTab {
-  SCALAR_METRICS,
-  CONFUSION_MATRIX,
-  ROC_CURVE,
-  HTML,
-  MARKDOWN,
-}
-
 interface MlmdPackage {
   executions: Execution[];
   artifacts: Artifact[];
@@ -175,7 +167,7 @@ function CompareV2(props: PageProps) {
 
   const runlistRef = useRef<RunList>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [metricsTab, setMetricsTab] = useState(MetricsTab.SCALAR_METRICS);
+  const [metricsTab, setMetricsTab] = useState(MetricsType.SCALAR_METRICS);
   const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
@@ -388,11 +380,13 @@ function CompareV2(props: PageProps) {
             onSwitch={setMetricsTab}
           />
           <div className={classes(commonCss.page, padding(20, 'lrt'))}>
-            {metricsTab === MetricsTab.SCALAR_METRICS && <p>This is the Scalar Metrics tab.</p>}
-            {metricsTab === MetricsTab.CONFUSION_MATRIX && <p>This is the Confusion Matrix tab.</p>}
-            {metricsTab === MetricsTab.ROC_CURVE && <p>This is the ROC Curve tab.</p>}
-            {metricsTab === MetricsTab.HTML && <p>This is the HTML tab.</p>}
-            {metricsTab === MetricsTab.MARKDOWN && <p>This is the Markdown tab.</p>}
+            {metricsTab === MetricsType.SCALAR_METRICS && <p>This is the Scalar Metrics tab.</p>}
+            {metricsTab === MetricsType.CONFUSION_MATRIX && (
+              <p>This is the Confusion Matrix tab.</p>
+            )}
+            {metricsTab === MetricsType.ROC_CURVE && <p>This is the ROC Curve tab.</p>}
+            {metricsTab === MetricsType.HTML && <p>This is the HTML tab.</p>}
+            {metricsTab === MetricsType.MARKDOWN && <p>This is the Markdown tab.</p>}
           </div>
           <Hr />
         </div>
