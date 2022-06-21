@@ -23,8 +23,7 @@ import { QUERY_PARAMS } from 'src/components/Router';
 import { ApiRunDetail } from 'src/apis/run';
 import Compare from './Compare';
 import * as features from 'src/features';
-import { testBestPractices } from 'src/TestUtils';
-import TestUtils from 'src/TestUtils';
+import TestUtils, { testBestPractices } from 'src/TestUtils';
 
 testBestPractices();
 describe('Switch between v1 and v2 Run Comparison pages', () => {
