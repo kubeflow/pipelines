@@ -151,7 +151,9 @@ function CompareV2(props: PageProps) {
   );
 
   // TODO(zpChris): The pending work item of displaying visualizations will need getRunArtifacts.
-  runs && mlmdPackages ? getRunArtifacts(runs, mlmdPackages) : [];
+  if (runs && mlmdPackages) {
+    getRunArtifacts(runs, mlmdPackages);
+  }
   useEffect(() => {
     if (isLoadingRunDetails || isLoadingMlmdPackages) {
       return;
