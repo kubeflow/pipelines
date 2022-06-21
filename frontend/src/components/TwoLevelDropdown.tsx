@@ -15,7 +15,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Button, Menu, MenuItem, Typography } from '@material-ui/core';
+import { Button, Menu, MenuItem, Tooltip, Typography } from '@material-ui/core';
 
 import { color, commonCss, spacing } from '../Css';
 import { classes, stylesheet } from 'typestyle';
@@ -128,31 +128,42 @@ export const TwoLevelDropdown = (props: DropdownProps) => {
     }
   };
 
+  let dropdownTooltip: string;
+  if (selectedItem.itemName && selectedItem.subItemName) {
+    dropdownTooltip = `${selectedItem.itemName} > ${selectedItem.subItemName}`;
+    if (selectedItem.subItemSecondaryName) {
+      dropdownTooltip += ` > ${selectedItem.subItemSecondaryName}`;
+    }
+  } else {
+    dropdownTooltip = title;
+  }
   return (
     <div className={classes(css.relativeContainer)}>
       <div className={classes(css.inlineContainer)} ref={dropdownRef}>
         <Button onClick={handleDropdownClick} className={classes(css.dropdown, css.textContainer)}>
-          <span className={classes(css.textContainer)}>
-            {selectedItem.itemName && selectedItem.subItemName ? (
-              <span>
-                {selectedItem.itemName}
-                <ArrowForwardIosIcon
-                  className={classes(css.defaultFont)}
-                  key={`forwardIcon-${selectedItem.itemName}`}
-                />
-                {selectedItem.subItemName}
-                {selectedItem.subItemSecondaryName &&
+          <Tooltip title={dropdownTooltip} enterDelay={300} placement='top-start'>
+            <span className={classes(css.textContainer)}>
+              {selectedItem.itemName && selectedItem.subItemName ? (
+                <span>
+                  {selectedItem.itemName}
                   <ArrowForwardIosIcon
                     className={classes(css.defaultFont)}
-                    key={`forwardIcon-${selectedItem.subItemSecondaryName}`}
+                    key={`forwardIcon-${selectedItem.itemName}`}
                   />
-                }
-                {selectedItem.subItemSecondaryName}
-              </span>
-            ) : (
-              title
-            )}
-          </span>
+                  {selectedItem.subItemName}
+                  {selectedItem.subItemSecondaryName &&
+                    <ArrowForwardIosIcon
+                      className={classes(css.defaultFont)}
+                      key={`forwardIcon-${selectedItem.subItemSecondaryName}`}
+                    />
+                  }
+                  {selectedItem.subItemSecondaryName}
+                </span>
+              ) : (
+                title
+              )}
+            </span>
+          </Tooltip>
           <ArrowDropDownIcon />
         </Button>
       </div>
@@ -178,7 +189,9 @@ export const TwoLevelDropdown = (props: DropdownProps) => {
                 }}
                 key={`index${index}`}
               >
-                <div className={classes(css.textContainer, css.inlineContainer)}>{item.name}</div>
+                <Tooltip title={item.name} enterDelay={300} placement='top-start'>
+                  <div className={classes(css.textContainer, css.inlineContainer)}>{item.name}</div>
+                </Tooltip>
                 <ArrowForwardIosIcon
                   className={classes(css.defaultFont)}
                   key={`forwardIcon${index}`}
@@ -193,21 +206,25 @@ export const TwoLevelDropdown = (props: DropdownProps) => {
                 >
                   {item.subItems.map((subItem, subIndex) => (
                     <li
-                      className={classes(css.dropdownElement, css.textContainer)}
+                      className={classes(css.dropdownElement)}
                       key={`subIndex${subIndex}`}
                       onClick={() => {
                         setSelectedItem({ itemName: item.name, subItemName: subItem.name, subItemSecondaryName: subItem.secondaryName });
                         setDropdownActive(false);
                       }}
                     >
-                      {subItem.name}
-                      {subItem.secondaryName &&
-                        <ArrowForwardIosIcon
-                          className={classes(css.defaultFont)}
-                          key={`forwardIcon${index}`}
-                        />
-                      }
-                      {subItem.secondaryName}
+                      <Tooltip title={subItem.name + (subItem.secondaryName ? ` > ${subItem.secondaryName}` : '')} enterDelay={300} placement='top-start'>
+                        <div className={classes(css.textContainer)}>
+                          {subItem.name}
+                          {subItem.secondaryName &&
+                            <ArrowForwardIosIcon
+                              className={classes(css.defaultFont)}
+                              key={`forwardIcon${index}`}
+                            />
+                          }
+                          {subItem.secondaryName}
+                        </div>
+                      </Tooltip>
                     </li>
                   ))}
                 </ul>

@@ -52,14 +52,14 @@ const dropdownItems: DropdownItem[] = [
         secondaryName: 'check2',
       },
       {
-        name: 'first->first->second->aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        name: 'first->first-> second ->aaaaaaaaaaaaaaaaaaaaaa aaaaaaaaaaa aaaaaaaaaaaaaaa',
         secondaryName: 'check3',
       },
     ],
   },
   {
     name:
-      'secondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecond',
+      'secondsecondsecondseconds econdsecondsecondsecondsecondsecondsec ondsecondsecondseco ndsecondsecondsecondsecon dsecondsecondsecond',
     subItems: [{
       name: 'second->first',
       secondaryName: 'check',
