@@ -30,7 +30,7 @@ import { classes, stylesheet } from 'typestyle';
 import { PageProps } from './Page';
 import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
-import MultiLevelDropdown, { DropdownItem, SelectedItem } from 'src/components/MultiLevelDropdown';
+import TwoLevelDropdown, { DropdownItem, SelectedItem } from 'src/components/TwoLevelDropdown';
 
 const css = stylesheet({
   outputsRow: {
@@ -192,7 +192,7 @@ function CompareV2(props: PageProps) {
           <Hr />
         </div>
       )}
-      <MultiLevelDropdown
+      <TwoLevelDropdown
         title='Choose a first Confusion Matrix artifact'
         items={dropdownItems}
         selectedItem={selectedItem}

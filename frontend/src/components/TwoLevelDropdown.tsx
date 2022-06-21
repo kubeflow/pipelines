@@ -17,7 +17,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button, Menu, MenuItem, Typography } from '@material-ui/core';
 
-import { color, commonCss, spacing } from '../Css';
+import { color, fontsize, commonCss, spacing } from 'src/Css';
 import { classes, stylesheet } from 'typestyle';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import ArrowForwardIosIcon from '@material-ui/icons/ChevronRight';
@@ -52,14 +52,19 @@ export const css = stylesheet({
 
     $nest: {
       '&:hover': {
-        backgroundColor: `${color.lightGrey}`,
+        backgroundColor: color.lightGrey,
       },
     },
+  },
+  dropdownHeader: {
+    padding: '1rem',
+    fontWeight: 700,
+    fontSize: fontsize.medium,
   },
   textContainer: {
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    maxWidth: '20rem',
+    maxWidth: '30rem',
     overflow: 'hidden',
     verticalAlign: 'top',
   },
@@ -99,7 +104,7 @@ interface DropdownProps {
   setSelectedItem: (selectedItem: SelectedItem) => void;
 }
 
-export const MultiLevelDropdown = (props: DropdownProps) => {
+export const TwoLevelDropdown = (props: DropdownProps) => {
   const { title, items, selectedItem, setSelectedItem } = props;
   const [dropdownActive, setDropdownActive] = useState(false);
   const [subDropdown, setSubDropdown] = useState<boolean[]>(new Array(items.length).fill(false));
@@ -147,6 +152,12 @@ export const MultiLevelDropdown = (props: DropdownProps) => {
         <ul
           className={dropdownActive ? classes(css.active, css.dropdownMenu) : classes(css.hidden)}
         >
+          <li
+            className={classes(css.dropdownHeader)}
+            key={`ulheader`}
+          >
+            Run
+          </li>
           {items.map((item, index) => {
             return (
               <li
@@ -178,6 +189,17 @@ export const MultiLevelDropdown = (props: DropdownProps) => {
                   }
                   key={`ul${index}`}
                 >
+                  <li
+                    className={classes(css.dropdownHeader, css.textContainer)}
+                    key={`ul${index}header`}
+                  >
+                    Execution
+                    <ArrowForwardIosIcon
+                      className={classes(css.defaultFont)}
+                      key={`forwardIcon${index}`}
+                    />
+                    Artifact
+                  </li>
                   {item.subItems.map((subItem, subIndex) => (
                     <li
                       className={classes(css.dropdownElement, css.textContainer)}
@@ -188,6 +210,11 @@ export const MultiLevelDropdown = (props: DropdownProps) => {
                       }}
                     >
                       {subItem}
+                      <ArrowForwardIosIcon
+                        className={classes(css.defaultFont)}
+                        key={`forwardIcon${index}`}
+                      />
+                      further test
                     </li>
                   ))}
                 </ul>
@@ -200,4 +227,4 @@ export const MultiLevelDropdown = (props: DropdownProps) => {
   );
 };
 
-export default MultiLevelDropdown;
+export default TwoLevelDropdown;
