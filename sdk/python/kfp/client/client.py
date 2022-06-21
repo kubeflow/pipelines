@@ -13,7 +13,6 @@
 # limitations under the License.
 """The SDK client for Kubeflow Pipelines API."""
 
-from cgitb import enable
 import copy
 import datetime
 import json
