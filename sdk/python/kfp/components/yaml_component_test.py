@@ -19,9 +19,6 @@ import textwrap
 import unittest
 from unittest import mock
 
-from absl.testing import parameterized
-from kfp.compiler import compiler
-from kfp.compiler import compiler_test
 from kfp.components import structures
 from kfp.components import yaml_component
 import requests
@@ -89,7 +86,7 @@ V1_COMPONENT_YAML_TEST_CASES = [
 ]
 
 
-class YamlComponentTest(parameterized.TestCase):
+class YamlComponentTest(unittest.TestCase):
 
     def test_load_component_from_text(self):
         component = yaml_component.load_component_from_text(SAMPLE_YAML)
@@ -137,19 +134,6 @@ class YamlComponentTest(parameterized.TestCase):
             self.assertEqual(
                 component.component_spec.implementation.container.image,
                 'alpine')
-
-    @parameterized.parameters(V1_COMPONENT_YAML_TEST_CASES)
-    def test_load_from_v1_component_yaml(self, file: str):
-        fp = os.path.join(V1_COMPONENTS_TEST_DATA_DIR, file)
-        with open(fp, 'r') as f:
-            yaml_component.load_component_from_text(f.read())
-
-    @parameterized.parameters(compiler_test.SUPPORTED_COMPONENT_TEST_CASES)
-    def test_load_from_component_ir(self, file: str):
-        fp = os.path.join(compiler_test.SUPPORTED_COMPONENTS_TEST_DATA_DIR,
-                          f'{file}.yaml')
-        with open(fp, 'r') as f:
-            yaml_component.load_component_from_text(f.read())
 
 
 if __name__ == '__main__':
