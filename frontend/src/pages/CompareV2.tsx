@@ -150,7 +150,8 @@ function CompareV2(props: PageProps) {
     },
   );
 
-  const runArtifacts = runs && mlmdPackages ? getRunArtifacts(runs, mlmdPackages) : [];
+  // TODO(zpChris): The pending work item of displaying visualizations will need getRunArtifacts.
+  runs && mlmdPackages ? getRunArtifacts(runs, mlmdPackages) : [];
   useEffect(() => {
     if (isLoadingRunDetails || isLoadingMlmdPackages) {
       return;
