@@ -18,6 +18,7 @@ import sys
 import tempfile
 import types
 from typing import Any, Callable, Dict, List, Optional, Union
+import unittest
 
 from absl.testing import parameterized
 from kfp import compiler
@@ -187,3 +188,7 @@ class ReadWriteTest(parameterized.TestCase):
         if read:
             self._test_serialization_deserialization_consistency(
                 yaml_file=yaml_file)
+
+
+if __name__ == '__main__':
+    unittest.main()
