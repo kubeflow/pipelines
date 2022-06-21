@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
+import TestUtils, { testBestPractices } from 'src/TestUtils';
+import { Artifact, Context, Event, Execution } from 'src/third_party/mlmd';
 import { Apis } from 'src/lib/Apis';
-import { testBestPractices } from 'src/TestUtils';
 import { QUERY_PARAMS } from 'src/components/Router';
+import * as mlmdUtils from 'src/mlmd/MlmdUtils';
+import * as Utils from 'src/lib/Utils';
 import CompareV2 from './CompareV2';
 import { PageProps } from './Page';
 import { ApiRunDetail } from 'src/apis/run';
-import TestUtils from 'src/TestUtils';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 
 testBestPractices();
@@ -64,6 +66,33 @@ describe('CompareV2', () => {
     };
   }
 
+  function newMockContext(name: string, id: number): Execution {
+    const context = new Context();
+    context.setName(name);
+    context.setId(id);
+    return context;
+  }
+
+  function newMockExecution(id: number): Execution {
+    const execution = new Execution();
+    execution.setId(id);
+    return execution;
+  }
+
+  function newMockEvent(id: number): Event {
+    const event = new Event();
+    event.setArtifactId(id);
+    event.setExecutionId(id);
+    event.setType(Event.Type.OUTPUT);
+    return event;
+  }
+
+  function newMockArtifact(id: number): Artifact {
+    const artifact = new Artifact();
+    artifact.setId(id);
+    return artifact;
+  }
+
   it('Render Compare v2 page', async () => {
     render(
       <CommonTestWrapper>
@@ -89,10 +118,34 @@ describe('CompareV2', () => {
     expect(getRunSpy).toHaveBeenCalledWith(MOCK_RUN_3_ID);
   });
 
-  it('Clear banner when getRun request succeeds', async () => {
+  it('Clear banner when getRun and MLMD requests succeed', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    const contexts = [
+      newMockContext(MOCK_RUN_1_ID, 1),
+      newMockContext(MOCK_RUN_2_ID, 2),
+      newMockContext(MOCK_RUN_3_ID, 3),
+    ];
+    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    getContextSpy.mockImplementation((runID: string) =>
+      Promise.resolve(contexts.find(c => c.getName() === runID)),
+    );
+
+    const executions = [[newMockExecution(1)], [newMockExecution(2)], [newMockExecution(3)]];
+    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    getExecutionsSpy.mockImplementation((context: Context) =>
+      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+    );
+
+    const artifacts = [newMockArtifact(1), newMockArtifact(2), newMockArtifact(3)];
+    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+
+    const events = [newMockEvent(1), newMockEvent(2), newMockEvent(3)];
+    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
+    getEventsSpy.mockReturnValue(Promise.resolve(events));
 
     render(
       <CommonTestWrapper>
@@ -101,7 +154,58 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+    await waitFor(() => {
+      expect(getContextSpy).toBeCalledTimes(3);
+      expect(getExecutionsSpy).toBeCalledTimes(3);
+      expect(getArtifactsSpy).toBeCalledTimes(3);
+      expect(getEventsSpy).toBeCalledTimes(3);
+      expect(updateBannerSpy).toHaveBeenLastCalledWith({});
+    });
+  });
+
+  it('Log warning when artifact with specified ID is not found', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    const contexts = [
+      newMockContext(MOCK_RUN_1_ID, 1),
+      newMockContext(MOCK_RUN_2_ID, 2),
+      newMockContext(MOCK_RUN_3_ID, 3),
+    ];
+    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    getContextSpy.mockImplementation((runID: string) =>
+      Promise.resolve(contexts.find(c => c.getName() === runID)),
+    );
+
+    const executions = [[newMockExecution(1)], [newMockExecution(2)], [newMockExecution(3)]];
+    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    getExecutionsSpy.mockImplementation((context: Context) =>
+      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+    );
+
+    const artifacts = [newMockArtifact(1), newMockArtifact(3)];
+    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+
+    const events = [newMockEvent(1), newMockEvent(2), newMockEvent(3)];
+    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
+    getEventsSpy.mockReturnValue(Promise.resolve(events));
+
+    const warnSpy = jest.spyOn(Utils.logger, 'warn');
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    await waitFor(() => {
+      expect(warnSpy).toHaveBeenLastCalledWith(
+        'The artifact with the following ID was not found: 2',
+      );
+    });
   });
 
   it('Show page error on page when getRun request fails', async () => {
@@ -120,10 +224,36 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    expect(updateBannerSpy).toHaveBeenLastCalledWith({
-      additionalInfo: 'test error',
-      message: 'Error: failed loading 3 runs. Click Details for more information.',
-      mode: 'error',
+    await waitFor(() =>
+      expect(updateBannerSpy).toHaveBeenLastCalledWith({
+        additionalInfo: 'test error',
+        message: 'Error: failed loading 3 runs. Click Details for more information.',
+        mode: 'error',
+      }),
+    );
+  });
+
+  it('Failed MLMD request creates error banner', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+    jest
+      .spyOn(mlmdUtils, 'getKfpV2RunContext')
+      .mockRejectedValue(new Error('Not connected to MLMD'));
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    await waitFor(() => {
+      expect(updateBannerSpy).toHaveBeenLastCalledWith({
+        additionalInfo: 'Not connected to MLMD',
+        message: 'Cannot get MLMD objects from Metadata store.',
+        mode: 'error',
+      });
     });
   });
 

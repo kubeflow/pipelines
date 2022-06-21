@@ -25,8 +25,16 @@ import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import Buttons from 'src/lib/Buttons';
 import { URLParser } from 'src/lib/URLParser';
-import { errorToMessage } from 'src/lib/Utils';
+import { errorToMessage, logger } from 'src/lib/Utils';
 import { classes, stylesheet } from 'typestyle';
+import {
+  getArtifactsFromContext,
+  getEventsByExecutions,
+  getExecutionsFromContext,
+  getKfpV2RunContext,
+  LinkedArtifact,
+} from 'src/mlmd/MlmdUtils';
+import { Artifact, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
 import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
@@ -47,6 +55,56 @@ enum MetricsTab {
   MARKDOWN,
 }
 
+interface MlmdPackage {
+  executions: Execution[];
+  artifacts: Artifact[];
+  events: Event[];
+}
+
+interface ExecutionArtifacts {
+  execution: Execution;
+  linkedArtifacts: LinkedArtifact[];
+}
+
+interface RunArtifacts {
+  run: ApiRunDetail;
+  executionArtifacts: ExecutionArtifacts[];
+}
+
+function getRunArtifacts(runs: ApiRunDetail[], mlmdPackages: MlmdPackage[]): RunArtifacts[] {
+  return mlmdPackages.map((mlmdPackage, index) => {
+    const events = mlmdPackage.events.filter(e => e.getType() === Event.Type.OUTPUT);
+
+    // Match artifacts to executions.
+    const artifactMap = new Map();
+    mlmdPackage.artifacts.forEach(artifact => artifactMap.set(artifact.getId(), artifact));
+    const executionArtifacts = mlmdPackage.executions.map(execution => {
+      const executionEvents = events.filter(e => e.getExecutionId() === execution.getId());
+      const linkedArtifacts: LinkedArtifact[] = [];
+      for (const event of executionEvents) {
+        const artifactId = event.getArtifactId();
+        const artifact = artifactMap.get(artifactId);
+        if (artifact) {
+          linkedArtifacts.push({
+            event,
+            artifact,
+          } as LinkedArtifact);
+        } else {
+          logger.warn(`The artifact with the following ID was not found: ${artifactId}`);
+        }
+      }
+      return {
+        execution,
+        linkedArtifacts,
+      } as ExecutionArtifacts;
+    });
+    return {
+      run: runs[index],
+      executionArtifacts,
+    } as RunArtifacts;
+  });
+}
+
 function CompareV2(props: PageProps) {
   const { updateBanner, updateToolbar } = props;
 
@@ -61,22 +119,84 @@ function CompareV2(props: PageProps) {
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
 
   // Retrieves run details.
-  const { isError, data, refetch } = useQuery<ApiRunDetail[], Error>(
+  const {
+    isLoading: isLoadingRunDetails,
+    isError: isErrorRunDetails,
+    error: errorRunDetails,
+    data: runs,
+    refetch,
+  } = useQuery<ApiRunDetail[], Error>(
     ['run_details', { ids: runIds }],
     () => Promise.all(runIds.map(async id => await Apis.runServiceApi.getRun(id))),
     {
       staleTime: Infinity,
-      onError: async error => {
-        const errorMessage = await errorToMessage(error);
+    },
+  );
+
+  // Retrieves MLMD states (executions and linked artifacts) from the MLMD store.
+  const {
+    data: mlmdPackages,
+    isLoading: isLoadingMlmdPackages,
+    isError: isErrorMlmdPackages,
+    error: errorMlmdPackages,
+  } = useQuery<MlmdPackage[], Error>(
+    ['run_artifacts', { runIds }],
+    () =>
+      Promise.all(
+        runIds.map(async runId => {
+          const context = await getKfpV2RunContext(runId);
+          const executions = await getExecutionsFromContext(context);
+          const artifacts = await getArtifactsFromContext(context);
+          const events = await getEventsByExecutions(executions);
+          return {
+            executions,
+            artifacts,
+            events,
+          } as MlmdPackage;
+        }),
+      ),
+    {
+      staleTime: Infinity,
+    },
+  );
+
+  // TODO(zpChris): The pending work item of displaying visualizations will need getRunArtifacts.
+  if (runs && mlmdPackages) {
+    getRunArtifacts(runs, mlmdPackages);
+  }
+  useEffect(() => {
+    if (isLoadingRunDetails || isLoadingMlmdPackages) {
+      return;
+    }
+
+    if (isErrorRunDetails) {
+      (async function() {
+        const errorMessage = await errorToMessage(errorRunDetails);
         updateBanner({
           additionalInfo: errorMessage ? errorMessage : undefined,
           message: `Error: failed loading ${runIds.length} runs. Click Details for more information.`,
           mode: 'error',
         });
-      },
-      onSuccess: () => props.updateBanner({}),
-    },
-  );
+      })();
+    } else if (isErrorMlmdPackages) {
+      updateBanner({
+        message: 'Cannot get MLMD objects from Metadata store.',
+        additionalInfo: errorMlmdPackages ? errorMlmdPackages.message : undefined,
+        mode: 'error',
+      });
+    } else {
+      updateBanner({});
+    }
+  }, [
+    runIds.length,
+    isLoadingRunDetails,
+    isLoadingMlmdPackages,
+    isErrorRunDetails,
+    isErrorMlmdPackages,
+    errorRunDetails,
+    errorMlmdPackages,
+    updateBanner,
+  ]);
 
   useEffect(() => {
     const refresh = async () => {
@@ -108,10 +228,10 @@ function CompareV2(props: PageProps) {
   }, []);
 
   useEffect(() => {
-    if (data) {
-      setSelectedIds(data.map(r => r.run!.id!));
+    if (runs) {
+      setSelectedIds(runs.map(r => r.run!.id!));
     }
-  }, [data]);
+  }, [runs]);
 
   const showPageError = async (message: string, error: Error | undefined) => {
     const errorMessage = await errorToMessage(error);
@@ -124,10 +244,6 @@ function CompareV2(props: PageProps) {
   const selectionChanged = (selectedIds: string[]): void => {
     setSelectedIds(selectedIds);
   };
-
-  if (isError) {
-    return <></>;
-  }
 
   return (
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
