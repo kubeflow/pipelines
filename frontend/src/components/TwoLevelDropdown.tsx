@@ -17,7 +17,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Button, Menu, MenuItem, Typography } from '@material-ui/core';
 
-import { color, fontsize, commonCss, spacing } from 'src/Css';
+import { color, commonCss, spacing } from '../Css';
 import { classes, stylesheet } from 'typestyle';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import ArrowForwardIosIcon from '@material-ui/icons/ChevronRight';
@@ -52,14 +52,9 @@ export const css = stylesheet({
 
     $nest: {
       '&:hover': {
-        backgroundColor: color.lightGrey,
+        backgroundColor: `${color.lightGrey}`,
       },
     },
-  },
-  dropdownHeader: {
-    padding: '1rem',
-    fontWeight: 700,
-    fontSize: fontsize.medium,
   },
   textContainer: {
     textOverflow: 'ellipsis',
@@ -90,11 +85,17 @@ export const css = stylesheet({
 export interface SelectedItem {
   itemName: string;
   subItemName: string;
+  subItemSecondaryName?: string;
+}
+
+interface SubItemName {
+  name: string;
+  secondaryName?: string;
 }
 
 export interface DropdownItem {
   name: string;
-  subItems: string[];
+  subItems: SubItemName[]; // TODO: This is so specialized, I don't know how to keep this generalizable.
 }
 
 interface DropdownProps {
@@ -140,6 +141,13 @@ export const TwoLevelDropdown = (props: DropdownProps) => {
                   key={`forwardIcon-${selectedItem.itemName}`}
                 />
                 {selectedItem.subItemName}
+                {selectedItem.subItemSecondaryName &&
+                  <ArrowForwardIosIcon
+                    className={classes(css.defaultFont)}
+                    key={`forwardIcon-${selectedItem.subItemSecondaryName}`}
+                  />
+                }
+                {selectedItem.subItemSecondaryName}
               </span>
             ) : (
               title
@@ -152,12 +160,6 @@ export const TwoLevelDropdown = (props: DropdownProps) => {
         <ul
           className={dropdownActive ? classes(css.active, css.dropdownMenu) : classes(css.hidden)}
         >
-          <li
-            className={classes(css.dropdownHeader)}
-            key={`ulheader`}
-          >
-            Run
-          </li>
           {items.map((item, index) => {
             return (
               <li
@@ -189,32 +191,23 @@ export const TwoLevelDropdown = (props: DropdownProps) => {
                   }
                   key={`ul${index}`}
                 >
-                  <li
-                    className={classes(css.dropdownHeader, css.textContainer)}
-                    key={`ul${index}header`}
-                  >
-                    Execution
-                    <ArrowForwardIosIcon
-                      className={classes(css.defaultFont)}
-                      key={`forwardIcon${index}`}
-                    />
-                    Artifact
-                  </li>
                   {item.subItems.map((subItem, subIndex) => (
                     <li
                       className={classes(css.dropdownElement, css.textContainer)}
                       key={`subIndex${subIndex}`}
                       onClick={() => {
-                        setSelectedItem({ itemName: item.name, subItemName: subItem });
+                        setSelectedItem({ itemName: item.name, subItemName: subItem.name, subItemSecondaryName: subItem.secondaryName });
                         setDropdownActive(false);
                       }}
                     >
-                      {subItem}
-                      <ArrowForwardIosIcon
-                        className={classes(css.defaultFont)}
-                        key={`forwardIcon${index}`}
-                      />
-                      further test
+                      {subItem.name}
+                      {subItem.secondaryName &&
+                        <ArrowForwardIosIcon
+                          className={classes(css.defaultFont)}
+                          key={`forwardIcon${index}`}
+                        />
+                      }
+                      {subItem.secondaryName}
                     </li>
                   ))}
                 </ul>

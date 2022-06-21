@@ -43,19 +43,33 @@ const dropdownItems: DropdownItem[] = [
   {
     name: 'first',
     subItems: [
-      'first->first',
-      'first->first->first',
-      'first->first->second->aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      {
+        name: 'first->first',
+        secondaryName: 'check',
+      },
+      {
+        name: 'first->first->first',
+        secondaryName: 'check2',
+      },
+      {
+        name: 'first->first->second->aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        secondaryName: 'check3',
+      },
     ],
   },
   {
     name:
       'secondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecondsecond',
-    subItems: ['second->first'],
+    subItems: [{
+      name: 'second->first',
+      secondaryName: 'check',
+    }],
   },
   {
     name: 'third',
-    subItems: ['third->first'],
+    subItems: [{
+      name: 'third->first',
+    }],
   },
 ];
 
