@@ -154,7 +154,6 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                       parametersInRealType[k] = inputConverter(v['string_value']);
                     });
                     props.handleParameterChange(parametersInRealType);
-                    console.log(parametersInRealType);
                   }
                 }}
                 param={param}
