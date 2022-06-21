@@ -40,6 +40,7 @@ import { Artifact, ArtifactType, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
 import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
+import MD2Tabs from 'src/atoms/MD2Tabs';
 
 const css = stylesheet({
   outputsRow: {
@@ -47,6 +48,14 @@ const css = stylesheet({
     overflowX: 'auto',
   },
 });
+
+enum MetricsTab {
+  SCALAR_METRICS,
+  CONFUSION_MATRIX,
+  ROC_CURVE,
+  HTML,
+  MARKDOWN,
+}
 
 interface MlmdPackage {
   executions: Execution[];
@@ -166,6 +175,7 @@ function CompareV2(props: PageProps) {
 
   const runlistRef = useRef<RunList>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [metricsTab, setMetricsTab] = useState(MetricsTab.SCALAR_METRICS);
   const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
@@ -372,7 +382,18 @@ function CompareV2(props: PageProps) {
       {!isMetricsCollapsed && (
         <div className={classes(commonCss.noShrink, css.outputsRow)}>
           <Separator orientation='vertical' />
-          <p>Metrics Section V2</p>
+          <MD2Tabs
+            tabs={['Scalar Metrics', 'Confusion Matrix', 'ROC Curve', 'HTML', 'Markdown']}
+            selectedTab={metricsTab}
+            onSwitch={setMetricsTab}
+          />
+          <div className={classes(commonCss.page, padding(20, 'lrt'))}>
+            {metricsTab === MetricsTab.SCALAR_METRICS && <p>This is the Scalar Metrics tab.</p>}
+            {metricsTab === MetricsTab.CONFUSION_MATRIX && <p>This is the Confusion Matrix tab.</p>}
+            {metricsTab === MetricsTab.ROC_CURVE && <p>This is the ROC Curve tab.</p>}
+            {metricsTab === MetricsTab.HTML && <p>This is the HTML tab.</p>}
+            {metricsTab === MetricsTab.MARKDOWN && <p>This is the Markdown tab.</p>}
+          </div>
           <Hr />
         </div>
       )}

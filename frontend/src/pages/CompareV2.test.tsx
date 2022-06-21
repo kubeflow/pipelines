@@ -305,7 +305,7 @@ describe('CompareV2', () => {
 
     screen.getByText('Filter runs');
     screen.getByText('Parameter Section V2');
-    screen.getByText('Metrics Section V2');
+    screen.getByText('Scalar Metrics');
 
     fireEvent.click(screen.getByText(OVERVIEW_SECTION_NAME));
     expect(screen.queryByText('Filter runs')).toBeNull();
@@ -317,7 +317,7 @@ describe('CompareV2', () => {
     expect(screen.queryByText('Parameter Section V2')).toBeNull();
 
     fireEvent.click(screen.getByText(METRICS_SECTION_NAME));
-    expect(screen.queryByText('Metrics Section V2')).toBeNull();
+    expect(screen.queryByText('Scalar Metrics')).toBeNull();
   });
 
   it('All runs are initially selected', async () => {
@@ -340,5 +340,31 @@ describe('CompareV2', () => {
     fireEvent.click(runCheckboxes[0]);
     runCheckboxes = screen.queryAllByRole('checkbox', { checked: true });
     expect(runCheckboxes.filter(r => r.nodeName === 'INPUT')).toHaveLength(0);
+  });
+
+  it('Scalar metrics tab initially enabled, and switch tabs', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    screen.getByText('This is the Scalar Metrics tab.');
+
+    fireEvent.click(screen.getByText('ROC Curve'));
+    screen.getByText('This is the ROC Curve tab.');
+    expect(screen.queryByText('This is the Scalar Metrics Tab')).toBeNull();
+
+    fireEvent.click(screen.getByText('ROC Curve'));
+    screen.getByText('This is the ROC Curve tab.');
+
+    fireEvent.click(screen.getByText('Scalar Metrics'));
+    screen.getByText('This is the Scalar Metrics tab.');
+    expect(screen.queryByText('This is the ROC Curve Tab')).toBeNull();
   });
 });
