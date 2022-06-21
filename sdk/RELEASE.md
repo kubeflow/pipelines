@@ -20,6 +20,7 @@
 * Implement Registry Client [\#7597](https://github.com/kubeflow/pipelines/pull/7597), [\#7763](https://github.com/kubeflow/pipelines/pull/7763)
 * Write compiled JSON with formatting (multiline with indentation) [\#7712](https://github.com/kubeflow/pipelines/pull/7712)
 * Add function to sdk client for terminating run [\#7835](https://github.com/kubeflow/pipelines/pull/7835)
+* Re-enable component compilation via @component decorator (deprecated) [\#7554](https://github.com/kubeflow/pipelines/pull/7554)
 
 ## Breaking Changes
 * Make CLI output consistent, readable, and usable [\#7739](https://github.com/kubeflow/pipelines/pull/7739)

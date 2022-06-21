@@ -12,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from ast import Assert
 import json
 import os
 import re
+import subprocess
 import tempfile
-import unittest
 from typing import Any, Dict, List, Optional
+import unittest
 
-import yaml
 from absl.testing import parameterized
 from click import testing
 from google.protobuf import json_format
@@ -30,6 +31,7 @@ from kfp.compiler import compiler
 from kfp.components.types import type_utils
 from kfp.dsl import PipelineTaskFinalStatus
 from kfp.pipeline_spec import pipeline_spec_pb2
+import yaml
 
 VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
     name: producer
@@ -866,10 +868,14 @@ class TestWriteIrToFile(unittest.TestCase):
                                                  temp_filepath)
 
 
-SAMPLE_PIPELINES_TEST_DATA_DIR = os.path.join(
-    os.path.dirname(__file__), 'test_data')
+PIPELINES_TEST_DATA_DIR = os.path.join(
+    os.path.dirname(__file__), 'test_data', 'pipelines')
+SUPPORTED_COMPONENTS_TEST_DATA_DIR = os.path.join(
+    os.path.dirname(__file__), 'test_data', 'components')
+UNSUPPORTED_COMPONENTS_TEST_DATA_DIR = os.path.join(
+    os.path.dirname(__file__), 'test_data', 'components', 'unsupported')
 
-SAMPLE_TEST_PY_FILES = [
+PIPELINE_TEST_CASES = [
     'pipeline_with_importer',
     'pipeline_with_ontology',
     'pipeline_with_if_placeholder',
@@ -885,96 +891,161 @@ SAMPLE_TEST_PY_FILES = [
     'pipeline_with_nested_loops',
     'pipeline_with_loops_and_conditions',
     'pipeline_with_params_containing_format',
-    'lightweight_python_functions_v2_pipeline',
-    'lightweight_python_functions_v2_with_outputs',
+    'lightweight_python_functions_pipeline',
+    'lightweight_python_functions_with_outputs',
     'xgboost_sample_pipeline',
     'pipeline_with_metrics_outputs',
     'pipeline_with_exit_handler',
     'pipeline_with_env',
-    'v2_component_with_optional_inputs',
+    'component_with_optional_inputs',
     'pipeline_with_gcpc_types',
     'pipeline_with_placeholders',
     'pipeline_with_task_final_status',
     'pipeline_with_task_final_status_yaml',
-    'v2_component_with_pip_index_urls',
+    'component_with_pip_index_urls',
+]
+SUPPORTED_COMPONENT_TEST_CASES = [
+    'add_numbers',
+    'component_with_pip_install',
+    'concat_message',
+    'dict_input',
+    'identity',
+    'nested_return',
+    'output_artifact',
+    'output_metrics',
+    'preprocess',
+]
+UNSUPPORTED_COMPONENT_TEST_CASES = [
+    'artifact_consumer',
+    'output_named_tuple',
+    'task_status',
+    'train',
 ]
 
 
-class TestDslCompileSamplePipelines(parameterized.TestCase):
+class TestCompile(parameterized.TestCase):
 
-    def _invoke(self, args: List[str]) -> testing.Result:
-        starting_args = ['dsl', 'compile']
-        args = starting_args + args
-        runner = testing.CliRunner()
-        return runner.invoke(
-            cli=cli.cli, args=args, catch_exceptions=False, obj={})
+    @classmethod
+    def setUpClass(cls):
+        cls.runner = testing.CliRunner()
 
-    def _ignore_kfp_version_helper(self, spec: Dict[str,
-                                                    Any]) -> Dict[str, Any]:
-        """Ignores kfp sdk versioning in command.
+    def _test_compile(self,
+                      file_base_name: str,
+                      directory: str,
+                      fn: Optional[str] = None,
+                      additional_arguments: Optional[List[str]] = None) -> None:
+        py_file = os.path.join(directory, f'{file_base_name}.py')
 
-        Takes in a YAML input and ignores the kfp sdk versioning in
-        command for comparison between compiled file and goldens.
-        """
-        pipeline_spec = spec.get('pipelineSpec', spec)
-
-        if 'executors' in pipeline_spec['deploymentSpec']:
-            for executor in pipeline_spec['deploymentSpec']['executors']:
-                pipeline_spec['deploymentSpec']['executors'][
-                    executor] = yaml.safe_load(
-                        re.sub(
-                            r"'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'", 'kfp',
-                            yaml.dump(
-                                pipeline_spec['deploymentSpec']['executors']
-                                [executor],
-                                sort_keys=True)))
-        return spec
-
-    def _load_compiled_file(self, filename: str) -> Dict[str, Any]:
-        with open(filename, 'r') as f:
-            contents = yaml.safe_load(f)
-            pipeline_spec = contents[
-                'pipelineSpec'] if 'pipelineSpec' in contents else contents
-            # ignore the sdkVersion
-            del pipeline_spec['sdkVersion']
-            return self._ignore_kfp_version_helper(contents)
-
-    def _test_compile_py_to_yaml(
-            self,
-            file_base_name: str,
-            additional_arguments: Optional[List[str]] = None) -> None:
-        py_file = os.path.join(SAMPLE_PIPELINES_TEST_DATA_DIR,
-                               f'{file_base_name}.py')
-
-        golden_compiled_file = os.path.join(SAMPLE_PIPELINES_TEST_DATA_DIR,
-                                            f'{file_base_name}.yaml')
+        golden_compiled_file = os.path.join(directory, f'{file_base_name}.yaml')
 
         if additional_arguments is None:
             additional_arguments = []
 
+        function_parts = [] if fn is None else ['--function', fn]
+
         with tempfile.TemporaryDirectory() as tmpdir:
-            generated_compiled_file = os.path.join(
-                tmpdir, f'{file_base_name}-pipeline.yaml')
+            generated_compiled_file = os.path.join(tmpdir,
+                                                   f'{file_base_name}.yaml')
 
-            result = self._invoke(
-                ['--py', py_file, '--output', generated_compiled_file] +
-                additional_arguments)
+            result = self.runner.invoke(
+                cli=cli.cli,
+                args=[
+                    'dsl', 'compile', '--py', py_file, '--output',
+                    generated_compiled_file
+                ] + function_parts + additional_arguments,
+                catch_exceptions=False)
 
+            if result.exit_code != 0:
+                print(result.output)
             self.assertEqual(result.exit_code, 0)
 
-            compiled = self._load_compiled_file(generated_compiled_file)
+            compiled = load_compiled_file(generated_compiled_file)
 
-        golden = self._load_compiled_file(golden_compiled_file)
+        golden = load_compiled_file(golden_compiled_file)
         self.assertEqual(golden, compiled)
 
     def test_two_step_pipeline(self):
-        self._test_compile_py_to_yaml(
+        self._test_compile(
             'two_step_pipeline',
-            ['--pipeline-parameters', '{"text":"Hello KFP!"}'])
+            directory=PIPELINES_TEST_DATA_DIR,
+            additional_arguments=[
+                '--pipeline-parameters', '{"text":"Hello KFP!"}'
+            ])
 
-    @parameterized.parameters(SAMPLE_TEST_PY_FILES)
+    def test_two_step_pipeline_failure_parameter_parse(self):
+        with self.assertRaisesRegex(json.decoder.JSONDecodeError,
+                                    r'Unterminated string starting at:'):
+            self._test_compile(
+                'two_step_pipeline',
+                directory=PIPELINES_TEST_DATA_DIR,
+                additional_arguments=[
+                    '--pipeline-parameters', '{"text":"Hello KFP!}'
+                ])
+
+    def test_compile_components_not_found(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Pipeline function or component "step1" not found in module two_step_pipeline\.py\.'
+        ):
+            self._test_compile(
+                'two_step_pipeline',
+                directory=PIPELINES_TEST_DATA_DIR,
+                fn='step1')
+
+    def test_deprecation_warning(self):
+        res = subprocess.run(['dsl-compile', '--help'], capture_output=True)
+        self.assertIn('Deprecated. Please use `kfp dsl compile` instead.)',
+                      res.stdout.decode('utf-8'))
+
+    @parameterized.parameters(PIPELINE_TEST_CASES)
     def test_compile_pipelines(self, file: str):
-        self._test_compile_py_to_yaml(file)
+        self._test_compile(file, directory=PIPELINES_TEST_DATA_DIR)
+
+    @parameterized.parameters(SUPPORTED_COMPONENT_TEST_CASES)
+    def test_compile_components(self, component_name: str):
+        self._test_compile(
+            component_name,
+            directory=SUPPORTED_COMPONENTS_TEST_DATA_DIR,
+            fn=component_name)
+
+    @parameterized.parameters(UNSUPPORTED_COMPONENT_TEST_CASES)
+    def test_compile_unsupported_components(self, component_name: str):
+        with self.assertRaisesRegex(TypeError, r'is not a valid input'):
+            self._test_compile(
+                component_name,
+                directory=UNSUPPORTED_COMPONENTS_TEST_DATA_DIR,
+                fn=component_name)
+
+
+def ignore_kfp_version_helper(spec: Dict[str, Any]) -> Dict[str, Any]:
+    """Ignores kfp sdk versioning in command.
+
+    Takes in a YAML input and ignores the kfp sdk versioning in command
+    for comparison between compiled file and goldens.
+    """
+    pipeline_spec = spec.get('pipelineSpec', spec)
+
+    if 'executors' in pipeline_spec['deploymentSpec']:
+        for executor in pipeline_spec['deploymentSpec']['executors']:
+            pipeline_spec['deploymentSpec']['executors'][
+                executor] = yaml.safe_load(
+                    re.sub(
+                        r"'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'", 'kfp',
+                        yaml.dump(
+                            pipeline_spec['deploymentSpec']['executors']
+                            [executor],
+                            sort_keys=True)))
+    return spec
+
+
+def load_compiled_file(filename: str) -> Dict[str, Any]:
+    with open(filename, 'r') as f:
+        contents = yaml.safe_load(f)
+        pipeline_spec = contents[
+            'pipelineSpec'] if 'pipelineSpec' in contents else contents
+        # ignore the sdkVersion
+        del pipeline_spec['sdkVersion']
+        return ignore_kfp_version_helper(contents)
 
 
 if __name__ == '__main__':

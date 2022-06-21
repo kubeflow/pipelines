@@ -25,7 +25,7 @@ import { commonCss, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import Buttons from 'src/lib/Buttons';
 import { URLParser } from 'src/lib/URLParser';
-import { errorToMessage } from 'src/lib/Utils';
+import { errorToMessage, logger } from 'src/lib/Utils';
 import { classes, stylesheet } from 'typestyle';
 import {
   filterLinkedArtifactsByType,
@@ -36,7 +36,7 @@ import {
   getKfpV2RunContext,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
-import { ArtifactType, Event, Execution } from 'src/third_party/mlmd';
+import { Artifact, ArtifactType, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
 import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
@@ -47,6 +47,12 @@ const css = stylesheet({
     overflowX: 'auto',
   },
 });
+
+interface MlmdPackage {
+  executions: Execution[];
+  artifacts: Artifact[];
+  events: Event[];
+}
 
 interface ExecutionArtifacts {
   execution: Execution;
@@ -121,6 +127,40 @@ function filterRunArtifactsByType(
   return typeRuns;
 }
 
+function getRunArtifacts(runs: ApiRunDetail[], mlmdPackages: MlmdPackage[]): RunArtifacts[] {
+  return mlmdPackages.map((mlmdPackage, index) => {
+    const events = mlmdPackage.events.filter(e => e.getType() === Event.Type.OUTPUT);
+
+    // Match artifacts to executions.
+    const artifactMap = new Map();
+    mlmdPackage.artifacts.forEach(artifact => artifactMap.set(artifact.getId(), artifact));
+    const executionArtifacts = mlmdPackage.executions.map(execution => {
+      const executionEvents = events.filter(e => e.getExecutionId() === execution.getId());
+      const linkedArtifacts: LinkedArtifact[] = [];
+      for (const event of executionEvents) {
+        const artifactId = event.getArtifactId();
+        const artifact = artifactMap.get(artifactId);
+        if (artifact) {
+          linkedArtifacts.push({
+            event,
+            artifact,
+          } as LinkedArtifact);
+        } else {
+          logger.warn(`The artifact with the following ID was not found: ${artifactId}`);
+        }
+      }
+      return {
+        execution,
+        linkedArtifacts,
+      } as ExecutionArtifacts;
+    });
+    return {
+      run: runs[index],
+      executionArtifacts,
+    } as RunArtifacts;
+  });
+}
+
 function CompareV2(props: PageProps) {
   const { updateBanner, updateToolbar } = props;
 
@@ -150,52 +190,32 @@ function CompareV2(props: PageProps) {
 
   // Retrieves MLMD states (executions and linked artifacts) from the MLMD store.
   const {
-    data: runArtifacts,
-    isLoading: isLoadingRunArtifacts,
-    isError: isErrorRunArtifacts,
-    error: errorRunArtifacts,
-  } = useQuery<RunArtifacts[], Error>(
-    ['run_artifacts', { runIds, runs }],
-    () => {
-      if (runs) {
-        return Promise.all(
-          runIds.map(async (r, index) => {
-            const context = await getKfpV2RunContext(r);
-            const executions = await getExecutionsFromContext(context);
-            const artifacts = await getArtifactsFromContext(context);
-            const events = (await getEventsByExecutions(executions)).filter(
-              e => e.getType() === Event.Type.OUTPUT,
-            );
-
-            // Match artifacts to executions.
-            const artifactMap = new Map();
-            artifacts.forEach(artifact => artifactMap.set(artifact.getId(), artifact));
-            const executionArtifacts = executions.map(execution => {
-              const executionEvents = events.filter(e => e.getExecutionId() === execution.getId());
-              const linkedArtifacts = executionEvents.map(event => {
-                return {
-                  event,
-                  artifact: artifactMap.get(event.getArtifactId()),
-                } as LinkedArtifact;
-              });
-              return {
-                execution,
-                linkedArtifacts,
-              } as ExecutionArtifacts;
-            });
-            return {
-              run: runs[index],
-              executionArtifacts,
-            };
-          }),
-        );
-      }
-      return [];
-    },
+    data: mlmdPackages,
+    isLoading: isLoadingMlmdPackages,
+    isError: isErrorMlmdPackages,
+    error: errorMlmdPackages,
+  } = useQuery<MlmdPackage[], Error>(
+    ['run_artifacts', { runIds }],
+    () =>
+      Promise.all(
+        runIds.map(async runId => {
+          const context = await getKfpV2RunContext(runId);
+          const executions = await getExecutionsFromContext(context);
+          const artifacts = await getArtifactsFromContext(context);
+          const events = await getEventsByExecutions(executions);
+          return {
+            executions,
+            artifacts,
+            events,
+          } as MlmdPackage;
+        }),
+      ),
     {
       staleTime: Infinity,
     },
   );
+
+  const runArtifacts = runs && mlmdPackages ? getRunArtifacts(runs, mlmdPackages) : [];
 
   // artifactTypes allows us to map from artifactIds to artifactTypeNames,
   // so we can identify metrics artifact provided by system.
@@ -208,30 +228,15 @@ function CompareV2(props: PageProps) {
     staleTime: Infinity,
   });
 
-  const scalarMetricsArtifacts = filterRunArtifactsByType(
-    runArtifacts,
-    artifactTypes,
-    MetricsType.SCALAR_METRICS,
-  );
-  const confusionMatrixArtifacts = filterRunArtifactsByType(
-    runArtifacts,
-    artifactTypes,
-    MetricsType.CONFUSION_MATRIX,
-  );
-  const rocCurveArtifacts = filterRunArtifactsByType(
-    runArtifacts,
-    artifactTypes,
-    MetricsType.ROC_CURVE,
-  );
-  const htmlArtifacts = filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML);
-  const markdownArtifacts = filterRunArtifactsByType(
-    runArtifacts,
-    artifactTypes,
-    MetricsType.MARKDOWN,
-  );
+  // TODO(zpChris): The pending work item of displaying visualizations will need these filters.
+  filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.SCALAR_METRICS);
+  filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX);
+  filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.ROC_CURVE);
+  filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML);
+  filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN);
 
   useEffect(() => {
-    if (isLoadingRunDetails || isLoadingRunArtifacts || isLoadingArtifactTypes) {
+    if (isLoadingRunDetails || isLoadingMlmdPackages || isLoadingArtifactTypes) {
       return;
     }
 
@@ -244,10 +249,10 @@ function CompareV2(props: PageProps) {
           mode: 'error',
         });
       })();
-    } else if (isErrorRunArtifacts) {
+    } else if (isErrorMlmdPackages) {
       updateBanner({
         message: 'Cannot get MLMD objects from Metadata store.',
-        additionalInfo: errorRunArtifacts ? errorRunArtifacts.message : undefined,
+        additionalInfo: errorMlmdPackages ? errorMlmdPackages.message : undefined,
         mode: 'error',
       });
     } else if (isErrorArtifactTypes) {
@@ -262,13 +267,13 @@ function CompareV2(props: PageProps) {
   }, [
     runIds.length,
     isLoadingRunDetails,
-    isLoadingRunArtifacts,
+    isLoadingMlmdPackages,
     isLoadingArtifactTypes,
     isErrorRunDetails,
-    isErrorRunArtifacts,
+    isErrorMlmdPackages,
     isErrorArtifactTypes,
     errorRunDetails,
-    errorRunArtifacts,
+    errorMlmdPackages,
     errorArtifactTypes,
     updateBanner,
   ]);

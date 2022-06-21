@@ -21,8 +21,14 @@ except ImportError:
   from kfp.components import load_component_from_file
 
 __all__ = [
-    'ModelEvaluationOp',
+    'ModelEvaluationOp', 'EvaluationDataSamplerOp', 'EvaluationDataSplitterOp'
 ]
 
 ModelEvaluationOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'component.yaml'))
+    os.path.join(os.path.dirname(__file__), 'component.yaml'))
+
+EvaluationDataSamplerOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'evaluation_data_sampler.yaml'))
+
+EvaluationDataSplitterOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'evaluation_data_splitter.yaml'))
