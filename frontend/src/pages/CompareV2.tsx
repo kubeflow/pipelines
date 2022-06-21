@@ -35,7 +35,6 @@ import TwoLevelDropdown, { DropdownItem, SelectedItem } from 'src/components/Two
 const css = stylesheet({
   outputsRow: {
     marginLeft: 15,
-    overflowX: 'auto',
   },
 });
 
@@ -206,16 +205,16 @@ function CompareV2(props: PageProps) {
       {!isMetricsCollapsed && (
         <div className={classes(commonCss.noShrink, css.outputsRow)}>
           <Separator orientation='vertical' />
+          <TwoLevelDropdown
+            title='Choose a first Confusion Matrix artifact'
+            items={dropdownItems}
+            selectedItem={selectedItem}
+            setSelectedItem={setSelectedItem}
+          />
+          <br />
           <p>Metrics Section V2</p>
-          <Hr />
         </div>
       )}
-      <TwoLevelDropdown
-        title='Choose a first Confusion Matrix artifact'
-        items={dropdownItems}
-        selectedItem={selectedItem}
-        setSelectedItem={setSelectedItem}
-      />
 
       <Separator orientation='vertical' />
     </div>

@@ -45,6 +45,7 @@ export const css = stylesheet({
     left: 0,
     minWidth: '10rem',
     cursor: 'pointer',
+    backgroundColor: color.background,
   },
   dropdownElement: {
     padding: '1rem',
