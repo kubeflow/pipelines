@@ -60,16 +60,20 @@ const dropdownItems: DropdownItem[] = [
   {
     name:
       'secondsecondsecondseconds econdsecondsecondsecondsecondsecondsec ondsecondsecondseco ndsecondsecondsecondsecon dsecondsecondsecond',
-    subItems: [{
-      name: 'second->first',
-      secondaryName: 'check',
-    }],
+    subItems: [
+      {
+        name: 'second->first',
+        secondaryName: 'check',
+      },
+    ],
   },
   {
     name: 'third',
-    subItems: [{
-      name: 'third->first',
-    }],
+    subItems: [
+      {
+        name: 'third->first',
+      },
+    ],
   },
 ];
 

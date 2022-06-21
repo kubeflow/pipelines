@@ -151,12 +151,12 @@ export const TwoLevelDropdown = (props: DropdownProps) => {
                     key={`forwardIcon-${selectedItem.itemName}`}
                   />
                   {selectedItem.subItemName}
-                  {selectedItem.subItemSecondaryName &&
+                  {selectedItem.subItemSecondaryName && (
                     <ArrowForwardIosIcon
                       className={classes(css.defaultFont)}
                       key={`forwardIcon-${selectedItem.subItemSecondaryName}`}
                     />
-                  }
+                  )}
                   {selectedItem.subItemSecondaryName}
                 </span>
               ) : (
@@ -209,19 +209,30 @@ export const TwoLevelDropdown = (props: DropdownProps) => {
                       className={classes(css.dropdownElement)}
                       key={`subIndex${subIndex}`}
                       onClick={() => {
-                        setSelectedItem({ itemName: item.name, subItemName: subItem.name, subItemSecondaryName: subItem.secondaryName });
+                        setSelectedItem({
+                          itemName: item.name,
+                          subItemName: subItem.name,
+                          subItemSecondaryName: subItem.secondaryName,
+                        });
                         setDropdownActive(false);
                       }}
                     >
-                      <Tooltip title={subItem.name + (subItem.secondaryName ? ` > ${subItem.secondaryName}` : '')} enterDelay={300} placement='top-start'>
+                      <Tooltip
+                        title={
+                          subItem.name +
+                          (subItem.secondaryName ? ` > ${subItem.secondaryName}` : '')
+                        }
+                        enterDelay={300}
+                        placement='top-start'
+                      >
                         <div className={classes(css.textContainer)}>
                           {subItem.name}
-                          {subItem.secondaryName &&
+                          {subItem.secondaryName && (
                             <ArrowForwardIosIcon
                               className={classes(css.defaultFont)}
                               key={`forwardIcon${index}`}
                             />
-                          }
+                          )}
                           {subItem.secondaryName}
                         </div>
                       </Tooltip>
