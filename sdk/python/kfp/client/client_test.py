@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 import os
+import tempfile
+import unittest
 import yaml
 
 from absl.testing import parameterized
@@ -44,7 +45,7 @@ class TestValidatePipelineName(parameterized.TestCase):
 
 
 PIPELINES_TEST_DATA_DIR = os.path.join(
-    os.path.abspath(os.path.join(__file__, "../..")),
+    os.path.abspath(os.path.join(__file__, os.path.pardir, os.path.pardir)),
     'compiler', 'test_data', 'pipelines')
 
 PIPELINE_TEST_CASES = [
@@ -76,17 +77,49 @@ PIPELINE_TEST_CASES = [
     'pipeline_with_task_final_status_yaml',
     'component_with_pip_index_urls',
 ]
+
+
 class TestOverrideCachingOptions(parameterized.TestCase):
+
     @parameterized.parameters(PIPELINE_TEST_CASES)
-    def test_override_caching(self, pipeline_base_name: str):
-        pipeline_path = os.path.join(PIPELINES_TEST_DATA_DIR, f'{pipeline_base_name}.yaml')
+    def test_override_caching_from_yaml(self, pipeline_base_name: str):
+        pipeline_path = os.path.join(PIPELINES_TEST_DATA_DIR,
+                                     f'{pipeline_base_name}.yaml')
         with open(pipeline_path) as f:
             yaml_dict = yaml.safe_load(f)
             test_client = client.Client(namespace='dummy_namespace')
             test_client._override_caching_options(yaml_dict, False)
-            for task in yaml_dict['root']['dag']['tasks']:
-                if 'cachingOptions' in yaml_dict:
-                    assert yaml_dict['root']['dag']['tasks'][task]['cachingOptions']['enableCache'] == False
+            for _, task in yaml_dict['root']['dag']['tasks'].items():
+                assert task['cachingOptions']['enableCache'] == False
+
+    def test_override_caching_from_pipeline(self):
+        from kfp.v2.compiler import Compiler
+        from kfp.v2.dsl import component
+        from kfp.v2.dsl import pipeline
+
+        @component
+        def hello_world(text: str) -> str:
+            """Hello world component."""
+            return text
+
+        @pipeline(name='hello-world', description='A simple intro pipeline')
+        def pipeline_hello_world(text: str = 'hi there'):
+            """Hello world pipeline."""
+
+            hello_world(text=text).set_caching_options(False)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
+            Compiler().compile(
+                pipeline_func=pipeline_hello_world, package_path=temp_filepath)
+
+            with open(temp_filepath, 'r') as f:
+                pipeline_obj = yaml.load(f)
+                test_client = client.Client(namespace='dummy_namespace')
+                test_client._override_caching_options(pipeline_obj, True)
+                for _, task in pipeline_obj['root']['dag']['tasks'].items():
+                    assert task['cachingOptions']['enableCache'] == True
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -13,6 +13,7 @@
 # limitations under the License.
 """The SDK client for Kubeflow Pipelines API."""
 
+from cgitb import enable
 import copy
 import datetime
 import json
@@ -689,12 +690,22 @@ class Client:
                 f'The package_file {package_file} should end with one of the '
                 'following formats: [.tar.gz, .tgz, .zip, .yaml, .yml].')
 
-    def _override_caching_options(self, workflow: dict, 
+    def _override_caching_options(self, pipeline_obj: dict,
                                   enable_caching: bool) -> None:
-        if workflow is not None:
-            for task in workflow['root']['dag']['tasks']:
-                if 'cachingOptions' in workflow['root']['dag']['tasks'][task]:
-                    workflow['root']['dag']['tasks'][task]['cachingOptions']['enableCache'] = enable_caching
+        """Override caching options.
+
+        Args:
+            pipeline_obj: Dict object parsed from the yaml file.
+            enable_caching: Override options, one of 'True', 'False'.
+        
+        Returns:
+            None
+        """
+        for _, task in pipeline_obj['root']['dag']['tasks'].items():
+            if 'cachingOptions' in task:
+                task['cachingOptions']['enableCache'] = enable_caching
+            else:
+                task['cachingOptions'] = {'enableCache': enable_caching}
 
     def list_pipelines(
         self,
