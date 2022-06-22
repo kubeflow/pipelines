@@ -62,15 +62,18 @@ function NewRunParametersV2(props: NewRunParametersProps) {
   const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
 
   const [updatedParameters, setUpdatedParameters] = useState({});
-  const inputConverter = (paramStr: string) => {
-    if (paramStr === 'True') {
+  const inputConverter = (paramStr: string, paramTypeIdx: number) => {
+    if (ParameterType_ParameterTypeEnum[paramTypeIdx] === 'BOOLEAN' && paramStr === 'True') {
       return true;
-    } else if (paramStr === 'False') {
+    } else if (ParameterType_ParameterTypeEnum[paramTypeIdx] === 'BOOLEAN' && paramStr === 'False') {
       return false;
-    } else if (Number(paramStr)) {
+    } else if (ParameterType_ParameterTypeEnum[paramTypeIdx] === 'NUMBER_INTEGER' && Number(paramStr)) {
       return Number(paramStr);
-    } else {
+    } else if (ParameterType_ParameterTypeEnum[paramTypeIdx] === 'STRING') {
       return paramStr;
+    } else {
+      // TODO: (jlyaoyuli) Determine which type (null or undefined) is returned for invalid input.
+      return undefined;
     }
   };
 
@@ -79,9 +82,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     Object.keys(props.specParameters).map(key => {
       if (props.specParameters[key].defaultValue) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.
-        runtimeParametersWithDefault[key] = {
-          string_value: props.specParameters[key].defaultValue,
-        };
+        runtimeParametersWithDefault[key] = props.specParameters[key].defaultValue;
       }
     });
     setUpdatedParameters(runtimeParametersWithDefault);
@@ -146,15 +147,18 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                 onChange={value => {
                   const nextUpdatedParameters: RuntimeParameters = {};
                   Object.assign(nextUpdatedParameters, updatedParameters);
-                  nextUpdatedParameters[k] = { string_value: value };
+                  nextUpdatedParameters[k] = value;
                   setUpdatedParameters(nextUpdatedParameters);
                   if (props.handleParameterChange) {
-                    let parametersInRealType = {};
-                    Object.entries(nextUpdatedParameters).map(([k, v]) => {
-                      parametersInRealType[k] = inputConverter(v['string_value']);
-                    });
+                    let parametersInRealType: RuntimeParameters = {};
+                    Object.entries(nextUpdatedParameters).map(([k, v1]) => {
+                      parametersInRealType[k] = inputConverter(v1, props.specParameters[k].parameterType);
+                    })                    
+                    // TODO: (jlyaoyuli) Validate if the type of parameters matches the value
+                    // If it doesn't throw an error message next to the TextField.
                     props.handleParameterChange(parametersInRealType);
-                  }
+                    console.log(parametersInRealType);
+                  }                  
                 }}
                 param={param}
               />
@@ -260,7 +264,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
             variant='outlined'
             label={param.key}
             //TODO(zijianjoy): Convert defaultValue to correct type.
-            value={param.value?.string_value || ''}
+            value={param.value || ''}
             onChange={ev => onChange(ev.target.value || '')}
             className={classes(commonCss.textField, css.textfield)}
           />
@@ -277,7 +281,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
               showGutter={true}
               readOnly={false}
               onChange={text => onChange(text || '')}
-              value={param.value?.string_value || ''}
+              value={param.value || ''}
             />
           </div>
         )}
