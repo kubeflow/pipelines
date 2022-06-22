@@ -137,7 +137,8 @@ function DropdownButton(props: DropdownButtonProps) {
 }
 
 interface DropdownSubMenuProps {
-  subDropdown: boolean[];
+  subDropdownActive: number;
+  setSubDropdownActive: (subDropdownActive: number) => void;
   subDropdownIndex: number;
   item: DropdownItem;
   setSelectedItem: (selectedItem: SelectedItem) => void;
@@ -145,9 +146,16 @@ interface DropdownSubMenuProps {
 }
 
 function DropdownSubMenu(props: DropdownSubMenuProps) {
-  const { subDropdown, subDropdownIndex, item, setSelectedItem, setDropdownActive } = props;
+  const {
+    subDropdownActive,
+    setSubDropdownActive,
+    subDropdownIndex,
+    item,
+    setSelectedItem,
+    setDropdownActive,
+  } = props;
 
-  if (item.subItems.length === 0 || !subDropdown[subDropdownIndex]) {
+  if (item.subItems.length === 0 || subDropdownActive !== subDropdownIndex) {
     return <></>;
   }
 
@@ -164,6 +172,7 @@ function DropdownSubMenu(props: DropdownSubMenuProps) {
               subItemSecondaryName: subItem.secondaryName,
             });
             setDropdownActive(false);
+            setSubDropdownActive(-1);
           }}
         >
           <Tooltip
@@ -198,8 +207,8 @@ interface DropdownMenuProps {
 function DropdownMenu(props: DropdownMenuProps) {
   const { dropdownListRef, dropdownActive, items, setSelectedItem, setDropdownActive } = props;
 
-  // Determines whether the specified sub-dropdown is shown.
-  const [subDropdown, setSubDropdown] = useState<boolean[]>(new Array(items.length).fill(false));
+  // Provides the index of the active sub-dropdown, or '-1' if none are active.
+  const [subDropdownActive, setSubDropdownActive] = useState<number>(-1);
 
   if (items.length === 0 || !dropdownActive) {
     return <></>;
@@ -212,18 +221,8 @@ function DropdownMenu(props: DropdownMenuProps) {
           return (
             <li
               className={classes(css.dropdownElement)}
-              onMouseEnter={() => {
-                // If the cursor navigates directly from one item to another,
-                // this hard-reset is required to deactivate the original sub-dropdown.
-                const newSubDropdown = new Array(items.length).fill(false);
-                newSubDropdown[index] = true;
-                setSubDropdown(newSubDropdown);
-              }}
-              onMouseLeave={() => {
-                const newSubDropdown = [...subDropdown];
-                newSubDropdown[index] = false;
-                setSubDropdown(newSubDropdown);
-              }}
+              onMouseEnter={() => setSubDropdownActive(index)}
+              onMouseLeave={() => setSubDropdownActive(-1)}
               key={index}
             >
               <Tooltip title={item.name} enterDelay={300} placement='top-start'>
@@ -231,7 +230,8 @@ function DropdownMenu(props: DropdownMenuProps) {
               </Tooltip>
               <ChevronRightSmallIcon />
               <DropdownSubMenu
-                subDropdown={subDropdown}
+                subDropdownActive={subDropdownActive}
+                setSubDropdownActive={setSubDropdownActive}
                 subDropdownIndex={index}
                 item={item}
                 setSelectedItem={setSelectedItem}

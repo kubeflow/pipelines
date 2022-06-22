@@ -15,7 +15,6 @@
  */
 
 import { render, screen, fireEvent } from '@testing-library/react';
-import '@testing-library/jest-dom';
 import * as React from 'react';
 import { testBestPractices } from 'src/TestUtils';
 import TwoLevelDropdown, {
