@@ -40,7 +40,11 @@ import { Artifact, ArtifactType, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
 import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
-import TwoLevelDropdown, { DropdownItem, SelectedItem } from 'src/components/TwoLevelDropdown';
+import TwoLevelDropdown, {
+  DropdownItem,
+  DropdownSubItem,
+  SelectedItem,
+} from 'src/components/TwoLevelDropdown';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 
 const css = stylesheet({
@@ -211,13 +215,42 @@ function getRunArtifacts(runs: ApiRunDetail[], mlmdPackages: MlmdPackage[]): Run
 }
 
 interface MetricsDropdownProps {
+  filteredRunArtifacts: RunArtifacts[];
   metricsTabText: string;
 }
 
 function MetricsDropdown(props: MetricsDropdownProps) {
-  const { metricsTabText } = props;
+  const { filteredRunArtifacts, metricsTabText } = props;
   const [selectedItem, setSelectedItem] = useState<SelectedItem>({ itemName: '', subItemName: '' });
 
+  const dropdownItems: DropdownItem[] = filteredRunArtifacts.map(x => {
+    const runName: string = x.run.run?.name || '';
+    const subItems: DropdownSubItem[] = [];
+    for (const y of x.executionArtifacts) {
+      const executionName: string =
+        y.execution
+          .getCustomPropertiesMap()
+          .get('display_name')
+          ?.getStringValue() || '';
+      subItems.push(
+        ...y.linkedArtifacts.map(z => {
+          const artifactName: string =
+            z.event
+              .getPath()
+              ?.getStepsList()[0]
+              .getKey() || '';
+          return {
+            name: executionName,
+            secondaryName: artifactName,
+          } as DropdownSubItem;
+        }),
+      );
+    }
+    return {
+      name: runName,
+      subItems,
+    } as DropdownItem;
+  });
   return (
     <>
       <TwoLevelDropdown
@@ -241,6 +274,12 @@ function CompareV2(props: PageProps) {
   const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
+
+  const [scalarMetricsArtifacts, setScalarMetricsArtifacts] = useState<RunArtifacts[]>([]);
+  const [confusionMatrixArtifacts, setConfusionMatrixArtifacts] = useState<RunArtifacts[]>([]);
+  const [rocCurveArtifacts, setRocCurveArtifacts] = useState<RunArtifacts[]>([]);
+  const [htmlArtifacts, setHtmlArtifacts] = useState<RunArtifacts[]>([]);
+  const [markdownArtifacts, setMarkdownArtifacts] = useState<RunArtifacts[]>([]);
 
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
@@ -287,8 +326,6 @@ function CompareV2(props: PageProps) {
     },
   );
 
-  const runArtifacts = runs && mlmdPackages ? getRunArtifacts(runs, mlmdPackages) : [];
-
   // artifactTypes allows us to map from artifactIds to artifactTypeNames,
   // so we can identify metrics artifact provided by system.
   const {
@@ -301,13 +338,26 @@ function CompareV2(props: PageProps) {
   });
 
   // TODO(zpChris): The pending work item of displaying visualizations will need these filters.
-  if (artifactTypes) {
-    filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.SCALAR_METRICS);
-    filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX);
-    filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.ROC_CURVE);
-    filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML);
-    filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN);
-  }
+
+  useEffect(() => {
+    if (artifactTypes) {
+      const runArtifacts = runs && mlmdPackages ? getRunArtifacts(runs, mlmdPackages) : [];
+      setScalarMetricsArtifacts(
+        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.SCALAR_METRICS),
+      );
+      setConfusionMatrixArtifacts(
+        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX),
+      );
+      setRocCurveArtifacts(
+        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.ROC_CURVE),
+      );
+      setHtmlArtifacts(filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML));
+      setMarkdownArtifacts(
+        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN),
+      );
+    }
+    // TODO(zpChris): This will need to be updated to get the latest info that is up-to-date.
+  }, [mlmdPackages, artifactTypes]);
 
   useEffect(() => {
     if (isLoadingRunDetails || isLoadingMlmdPackages || isLoadingArtifactTypes) {
@@ -455,12 +505,23 @@ function CompareV2(props: PageProps) {
           <div className={classes(padding(20, 'lrt'))}>
             {metricsTab === MetricsType.SCALAR_METRICS && <p>This is the {metricsTabText} tab.</p>}
             {metricsTab === MetricsType.CONFUSION_MATRIX && (
-              <MetricsDropdown metricsTabText={metricsTabText} />
+              <MetricsDropdown
+                filteredRunArtifacts={confusionMatrixArtifacts}
+                metricsTabText={metricsTabText}
+              />
             )}
             {metricsTab === MetricsType.ROC_CURVE && <p>This is the {metricsTabText} tab.</p>}
-            {metricsTab === MetricsType.HTML && <MetricsDropdown metricsTabText={metricsTabText} />}
+            {metricsTab === MetricsType.HTML && (
+              <MetricsDropdown
+                filteredRunArtifacts={htmlArtifacts}
+                metricsTabText={metricsTabText}
+              />
+            )}
             {metricsTab === MetricsType.MARKDOWN && (
-              <MetricsDropdown metricsTabText={metricsTabText} />
+              <MetricsDropdown
+                filteredRunArtifacts={markdownArtifacts}
+                metricsTabText={metricsTabText}
+              />
             )}
           </div>
         </div>

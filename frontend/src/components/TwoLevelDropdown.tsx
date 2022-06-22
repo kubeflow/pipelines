@@ -22,7 +22,7 @@ import { classes, stylesheet } from 'typestyle';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 
-export const css = stylesheet({
+const css = stylesheet({
   defaultFont: {
     fontSize: '1rem',
   },
@@ -86,7 +86,7 @@ export interface SelectedItem {
   subItemSecondaryName?: string;
 }
 
-interface DropdownSubItem {
+export interface DropdownSubItem {
   name: string;
   secondaryName?: string;
 }
