@@ -170,7 +170,7 @@ class ReadWriteTest(parameterized.TestCase):
         """Tests serialization and deserialization consistency and correctness.
 
         Args:
-            name (str): '{test_grou_name}-{test_case_name}'. Useful for print statements/debugging.
+            name (str): '{test_group_name}-{test_case_name}'. Useful for print statements/debugging.
             test_case (str): Test case name (without file extension).
             test_data_dir (str): The directory containing the test case files.
             function (str, optional): The function name to compile.
