@@ -27,7 +27,10 @@ from kfp.deprecated.cli.experiment import experiment
 from kfp.deprecated.cli.output import OutputFormat
 from kfp.deprecated.cli import components
 
-_NO_CLIENT_COMMANDS = ['diagnose_me', 'components']
+_NO_CLIENT_COMMANDS = [
+    'diagnose_me',
+    'components'
+]
 
 
 @click.group()
