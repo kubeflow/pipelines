@@ -287,6 +287,8 @@ func (r *ResourceManager) CreatePipeline(name string, description string, namesp
 	}
 
 	// Store the pipeline file to a path dependent on pipeline version
+	// TODO(lingqinggan): comments in the yaml files are lost during the coversion;
+	// need to find a way to preserve the original files.
 	err = r.objectStore.AddFile(tmpl.Bytes(),
 		r.objectStore.GetPipelineKey(fmt.Sprint(newPipeline.DefaultVersion.UUID)))
 	if err != nil {
@@ -318,7 +320,7 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 	// Verify pipeline exist
 	pipeline, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
-		return nil, util.Wrap(err, "Get pipeline template failed")
+		return nil, util.Wrap(err, "Get pipeline template failed, pipeline does not exist")
 	}
 
 	if pipeline.DefaultVersion == nil {
@@ -1257,12 +1259,12 @@ func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, 
 	// Verify pipeline version exist
 	_, err := r.pipelineStore.GetPipelineVersion(versionId)
 	if err != nil {
-		return nil, util.Wrap(err, "Get pipeline version template failed")
+		return nil, util.Wrap(err, "Get pipeline version template failed: cannot get pipeline version")
 	}
 
 	template, err := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(versionId)))
 	if err != nil {
-		return nil, util.Wrap(err, "Get pipeline version template failed")
+		return nil, util.Wrap(err, "Get pipeline version template failed: cannot get file")
 	}
 
 	return template, nil

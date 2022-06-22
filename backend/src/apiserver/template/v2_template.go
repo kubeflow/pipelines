@@ -109,10 +109,15 @@ func (t *V2Spec) Bytes() []byte {
 	}
 	bytes, err := protojson.Marshal(t.spec)
 	if err != nil {
-		// this is unexpected
+		// this is unexpected, cannot convert proto message to JSON
 		return nil
 	}
-	return bytes
+	bytesYAML, err := yaml.JSONToYAML(bytes)
+	if err != nil {
+		// this is unexpected, cannot convert JSON to YAML
+		return nil
+	}
+	return bytesYAML
 }
 
 func (t *V2Spec) IsV2() bool {
