@@ -406,9 +406,9 @@ sdkVersion: kfp-2.0.0-alpha.2
                             input_name='input_parameter'),
                         placeholders.InputPathPlaceholder(
                             input_name='input_artifact'),
-                        placeholders.OutputPathPlaceholder(
+                        placeholders.OutputParameterPlaceholder(
                             output_name='output_1'),
-                        placeholders.OutputPathPlaceholder(
+                        placeholders.OutputParameterPlaceholder(
                             output_name='output_2'),
                     ],
                     env={},
