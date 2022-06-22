@@ -64,8 +64,8 @@ export const css = stylesheet({
   },
   dropdownSubmenu: {
     left: '100%',
-    top: 0,
-    marginTop: '-6px',
+    // Offsets the dropdown menu vertical padding (5px) and border (1px).
+    top: '-6px',
   },
   inlineContainer: {
     display: 'inline-block',

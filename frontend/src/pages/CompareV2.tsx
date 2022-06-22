@@ -49,44 +49,6 @@ const css = stylesheet({
   },
 });
 
-const dropdownItems: DropdownItem[] = [
-  {
-    name: 'first',
-    subItems: [
-      {
-        name: 'first->first',
-        secondaryName: 'check',
-      },
-      {
-        name: 'first->first->first',
-        secondaryName: 'check2',
-      },
-      {
-        name: 'first->first-> second ->aaaaaaaaaaaaaaaaaaaaaa aaaaaaaaaaa aaaaaaaaaaaaaaa',
-        secondaryName: 'check3',
-      },
-    ],
-  },
-  {
-    name:
-      'secondsecondsecondseconds econdsecondsecondsecondsecondsecondsec ondsecondsecondseco ndsecondsecondsecondsecon dsecondsecondsecond',
-    subItems: [
-      {
-        name: 'second->first',
-        secondaryName: 'check',
-      },
-    ],
-  },
-  {
-    name: 'third',
-    subItems: [
-      {
-        name: 'third->first',
-      },
-    ],
-  },
-];
-
 interface MlmdPackage {
   executions: Execution[];
   artifacts: Artifact[];
@@ -208,28 +170,6 @@ function getRunArtifacts(runs: ApiRunDetail[], mlmdPackages: MlmdPackage[]): Run
       executionArtifacts,
     } as RunArtifacts;
   });
-}
-
-interface MetricsDropdownProps {
-  metricsTabText: string;
-}
-
-function MetricsDropdown(props: MetricsDropdownProps) {
-  const { metricsTabText } = props;
-  const [selectedItem, setSelectedItem] = useState<SelectedItem>({ itemName: '', subItemName: '' });
-
-  return (
-    <>
-      <TwoLevelDropdown
-        title={`Choose a first ${metricsTabText} artifact`}
-        items={dropdownItems}
-        selectedItem={selectedItem}
-        setSelectedItem={setSelectedItem}
-      />
-      <br />
-      <p>This is the {metricsTabText} tab.</p>
-    </>
-  );
 }
 
 function CompareV2(props: PageProps) {
@@ -453,15 +393,13 @@ function CompareV2(props: PageProps) {
             onSwitch={setMetricsTab}
           />
           <div className={classes(padding(20, 'lrt'))}>
-            {metricsTab === MetricsType.SCALAR_METRICS && <p>This is the {metricsTabText} tab.</p>}
+            {metricsTab === MetricsType.SCALAR_METRICS && <p>This is the Scalar Metrics tab.</p>}
             {metricsTab === MetricsType.CONFUSION_MATRIX && (
-              <MetricsDropdown metricsTabText={metricsTabText} />
+              <p>This is the Confusion Matrix tab.</p>
             )}
-            {metricsTab === MetricsType.ROC_CURVE && <p>This is the {metricsTabText} tab.</p>}
-            {metricsTab === MetricsType.HTML && <MetricsDropdown metricsTabText={metricsTabText} />}
-            {metricsTab === MetricsType.MARKDOWN && (
-              <MetricsDropdown metricsTabText={metricsTabText} />
-            )}
+            {metricsTab === MetricsType.ROC_CURVE && <p>This is the ROC Curve tab.</p>}
+            {metricsTab === MetricsType.HTML && <p>This is the HTML tab.</p>}
+            {metricsTab === MetricsType.MARKDOWN && <p>This is the Markdown tab.</p>}
           </div>
         </div>
       )}
