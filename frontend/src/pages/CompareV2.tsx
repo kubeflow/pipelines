@@ -75,14 +75,10 @@ enum MetricsType {
 
 // Include only the runs and executions which have artifacts of the specified type.
 function filterRunArtifactsByType(
-  runArtifacts: RunArtifacts[] | undefined,
-  artifactTypes: ArtifactType[] | undefined,
+  runArtifacts: RunArtifacts[],
+  artifactTypes: ArtifactType[],
   metricsType: MetricsType,
 ): RunArtifacts[] {
-  if (!runArtifacts || !artifactTypes) {
-    return [];
-  }
-
   const metricsFilter =
     metricsType === MetricsType.SCALAR_METRICS
       ? 'system.Metrics'
@@ -231,11 +227,13 @@ function CompareV2(props: PageProps) {
   });
 
   // TODO(zpChris): The pending work item of displaying visualizations will need these filters.
-  filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.SCALAR_METRICS);
-  filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX);
-  filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.ROC_CURVE);
-  filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML);
-  filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN);
+  if (artifactTypes) {
+    filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.SCALAR_METRICS);
+    filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX);
+    filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.ROC_CURVE);
+    filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML);
+    filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN);
+  }
 
   useEffect(() => {
     if (isLoadingRunDetails || isLoadingMlmdPackages || isLoadingArtifactTypes) {
