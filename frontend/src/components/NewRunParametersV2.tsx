@@ -57,32 +57,29 @@ interface NewRunParametersProps {
   handleParameterChange?: (parameters: RuntimeParameters) => void;
 }
 
+const inputConverter = (paramStr: string, paramTypeIdx: number) => {
+  if (ParameterType_ParameterTypeEnum[paramTypeIdx] === 'BOOLEAN' && paramStr === 'True') {
+    return true;
+  } else if (ParameterType_ParameterTypeEnum[paramTypeIdx] === 'BOOLEAN' && paramStr === 'False') {
+    return false;
+  } else if (
+    ParameterType_ParameterTypeEnum[paramTypeIdx] === 'NUMBER_INTEGER' &&
+    Number(paramStr)
+  ) {
+    return Number(paramStr);
+  } else if (ParameterType_ParameterTypeEnum[paramTypeIdx] === 'STRING') {
+    return paramStr;
+  } else {
+    // TODO: (jlyaoyuli) Determine which type (null or undefined) is returned for invalid input.
+    return undefined;
+  }
+};
+
 function NewRunParametersV2(props: NewRunParametersProps) {
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
   const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
 
   const [updatedParameters, setUpdatedParameters] = useState({});
-  const inputConverter = (paramStr: string, paramTypeIdx: number) => {
-    if (ParameterType_ParameterTypeEnum[paramTypeIdx] === 'BOOLEAN' && paramStr === 'True') {
-      return true;
-    } else if (
-      ParameterType_ParameterTypeEnum[paramTypeIdx] === 'BOOLEAN' &&
-      paramStr === 'False'
-    ) {
-      return false;
-    } else if (
-      ParameterType_ParameterTypeEnum[paramTypeIdx] === 'NUMBER_INTEGER' &&
-      Number(paramStr)
-    ) {
-      return Number(paramStr);
-    } else if (ParameterType_ParameterTypeEnum[paramTypeIdx] === 'STRING') {
-      return paramStr;
-    } else {
-      // TODO: (jlyaoyuli) Determine which type (null or undefined) is returned for invalid input.
-      return undefined;
-    }
-  };
-
   useEffect(() => {
     const runtimeParametersWithDefault: RuntimeParameters = {};
     Object.keys(props.specParameters).map(key => {
@@ -166,7 +163,6 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                     // TODO: (jlyaoyuli) Validate if the type of parameters matches the value
                     // If it doesn't throw an error message next to the TextField.
                     props.handleParameterChange(parametersInRealType);
-                    console.log(parametersInRealType);
                   }
                 }}
                 param={param}
