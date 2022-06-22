@@ -66,7 +66,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        exec python3 -u "$program_path" "$@"
+        python3 -u "$program_path" "$@"
       - |
         def metadata_and_metrics():
             metadata = {
@@ -134,7 +134,7 @@ spec:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["----output-paths", {"outputPath": "mlpipeline_ui_metadata"},
           {"outputPath": "mlpipeline_metrics"}], "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf
-          \"%s\" \"$0\" > \"$program_path\"\nexec python3 -u \"$program_path\" \"$@\"\n",
+          \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
           "def metadata_and_metrics():\n    metadata = {\n        \"outputs\": [\n            {\"storage\":
           \"inline\", \"source\": \"*this should be bold*\", \"type\": \"markdown\"}\n        ]\n    }\n    metrics
           = {\n        \"metrics\": [\n            {\n                \"name\": \"train-accuracy\",\n                \"numberValue\":

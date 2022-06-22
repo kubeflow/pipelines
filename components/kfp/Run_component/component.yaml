@@ -25,7 +25,7 @@ implementation:
     - |
       program_path=$(mktemp)
       printf "%s" "$0" > "$program_path"
-      exec python3 -u "$program_path" "$@"
+      python3 -u "$program_path" "$@"
     - |
       def run_component_or_pipeline(
           component_url,
