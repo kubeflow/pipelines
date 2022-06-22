@@ -14,28 +14,26 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
-import { Button, Menu, MenuItem, Tooltip, Typography } from '@material-ui/core';
+import React, { Ref, useRef, useState } from 'react';
+import { Button, Tooltip } from '@material-ui/core';
 
-import { color, commonCss, spacing } from '../Css';
+import { color } from '../Css';
 import { classes, stylesheet } from 'typestyle';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
-import ArrowForwardIosIcon from '@material-ui/icons/ChevronRight';
-
-// import NestedMenuItem from "material-ui-nested-menu-item";
+import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 
 export const css = stylesheet({
   defaultFont: {
     fontSize: '1rem',
   },
   dropdown: {
-    // TODO: I tried finding the grey used on either "Upload pipeline" or "Filter pipelines" but couldn't. Where are these?
     border: `1px solid ${color.lightGrey}`,
     color: color.grey,
     fontWeight: 400,
     margin: 0,
   },
   dropdownMenu: {
+    display: 'block',
     borderRadius: '5px',
     border: `1px solid ${color.lightGrey}`,
     margin: 0,
@@ -75,9 +73,6 @@ export const css = stylesheet({
   relativeContainer: {
     position: 'relative',
   },
-  active: {
-    display: 'block',
-  },
   hidden: {
     display: 'none',
   },
@@ -89,14 +84,21 @@ export interface SelectedItem {
   subItemSecondaryName?: string;
 }
 
-interface SubItemName {
+interface DropdownSubItem {
   name: string;
   secondaryName?: string;
 }
 
 export interface DropdownItem {
   name: string;
-  subItems: SubItemName[]; // TODO: This is so specialized, I don't know how to keep this generalizable.
+  subItems: DropdownSubItem[];
+}
+
+interface DropdownButtonProps {
+  dropdownRef: Ref<HTMLDivElement>;
+  toggleDropdown: (e: React.MouseEvent) => void;
+  selectedItem: SelectedItem;
+  title: string;
 }
 
 interface DropdownProps {
@@ -106,18 +108,56 @@ interface DropdownProps {
   setSelectedItem: (selectedItem: SelectedItem) => void;
 }
 
-export const TwoLevelDropdown = (props: DropdownProps) => {
+function DropdownButton(props: DropdownButtonProps) {
+  const { dropdownRef, toggleDropdown, selectedItem, title } = props;
+
+  const dropdownTooltip: string =
+    selectedItem.itemName && selectedItem.subItemName
+      ? `${selectedItem.itemName} > ${selectedItem.subItemName}` +
+        (selectedItem.subItemSecondaryName ? ` > ${selectedItem.subItemSecondaryName}` : '')
+      : title;
+  return (
+    <div className={classes(css.inlineContainer)} ref={dropdownRef}>
+      <Button onClick={toggleDropdown} className={classes(css.dropdown, css.textContainer)}>
+        <Tooltip title={dropdownTooltip} enterDelay={300} placement='top-start'>
+          <span className={classes(css.textContainer)}>
+            {selectedItem.itemName && selectedItem.subItemName ? (
+              <>
+                {selectedItem.itemName}
+                <ChevronRightIcon
+                  className={classes(css.defaultFont)}
+                />
+                {selectedItem.subItemName}
+                {selectedItem.subItemSecondaryName && (
+                  <>
+                    <ChevronRightIcon
+                      className={classes(css.defaultFont)}
+                    />
+                    {selectedItem.subItemSecondaryName}
+                  </>
+                )}
+              </>
+            ) : (
+              title
+            )}
+          </span>
+        </Tooltip>
+        <ArrowDropDownIcon />
+      </Button>
+    </div>
+  );
+}
+
+function TwoLevelDropdown(props: DropdownProps) {
   const { title, items, selectedItem, setSelectedItem } = props;
   const [dropdownActive, setDropdownActive] = useState(false);
+
+  // Determines whether the specified sub-dropdown is shown.
   const [subDropdown, setSubDropdown] = useState<boolean[]>(new Array(items.length).fill(false));
+
+  // Close dropdown if the user clicks outside of the dropdown button or main menu.
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dropdownListRef = useRef<HTMLDivElement>(null);
-
-  const handleDropdownClick = (event: React.MouseEvent) => {
-    setDropdownActive(!dropdownActive);
-    event.preventDefault();
-  };
-
   window.onclick = (event: MouseEvent) => {
     if (
       dropdownRef.current &&
@@ -129,49 +169,20 @@ export const TwoLevelDropdown = (props: DropdownProps) => {
     }
   };
 
-  let dropdownTooltip: string;
-  if (selectedItem.itemName && selectedItem.subItemName) {
-    dropdownTooltip = `${selectedItem.itemName} > ${selectedItem.subItemName}`;
-    if (selectedItem.subItemSecondaryName) {
-      dropdownTooltip += ` > ${selectedItem.subItemSecondaryName}`;
-    }
-  } else {
-    dropdownTooltip = title;
-  }
+  const toggleDropdown = (_: React.MouseEvent) => {
+    setDropdownActive(!dropdownActive);
+  };
+
   return (
     <div className={classes(css.relativeContainer)}>
-      <div className={classes(css.inlineContainer)} ref={dropdownRef}>
-        <Button onClick={handleDropdownClick} className={classes(css.dropdown, css.textContainer)}>
-          <Tooltip title={dropdownTooltip} enterDelay={300} placement='top-start'>
-            <span className={classes(css.textContainer)}>
-              {selectedItem.itemName && selectedItem.subItemName ? (
-                <span>
-                  {selectedItem.itemName}
-                  <ArrowForwardIosIcon
-                    className={classes(css.defaultFont)}
-                    key={`forwardIcon-${selectedItem.itemName}`}
-                  />
-                  {selectedItem.subItemName}
-                  {selectedItem.subItemSecondaryName && (
-                    <ArrowForwardIosIcon
-                      className={classes(css.defaultFont)}
-                      key={`forwardIcon-${selectedItem.subItemSecondaryName}`}
-                    />
-                  )}
-                  {selectedItem.subItemSecondaryName}
-                </span>
-              ) : (
-                title
-              )}
-            </span>
-          </Tooltip>
-          <ArrowDropDownIcon />
-        </Button>
-      </div>
+      <DropdownButton
+        dropdownRef={dropdownRef}
+        toggleDropdown={toggleDropdown}
+        selectedItem={selectedItem}
+        title={title}
+      />
       <div ref={dropdownListRef}>
-        <ul
-          className={dropdownActive ? classes(css.active, css.dropdownMenu) : classes(css.hidden)}
-        >
+        <ul className={classes(!dropdownActive && css.hidden, css.dropdownMenu)}>
           {items.map((item, index) => {
             return (
               <li
@@ -180,7 +191,6 @@ export const TwoLevelDropdown = (props: DropdownProps) => {
                   // Necessary if it goes from one submenu directly to another.
                   const newSubDropdown = new Array(items.length).fill(false);
                   newSubDropdown[index] = true;
-                  console.log(subDropdown);
                   setSubDropdown(newSubDropdown);
                 }}
                 onMouseLeave={() => {
@@ -188,27 +198,25 @@ export const TwoLevelDropdown = (props: DropdownProps) => {
                   newSubDropdown[index] = false;
                   setSubDropdown(newSubDropdown);
                 }}
-                key={`index${index}`}
+                key={index}
               >
                 <Tooltip title={item.name} enterDelay={300} placement='top-start'>
                   <div className={classes(css.textContainer, css.inlineContainer)}>{item.name}</div>
                 </Tooltip>
-                <ArrowForwardIosIcon
+                <ChevronRightIcon
                   className={classes(css.defaultFont)}
-                  key={`forwardIcon${index}`}
                 />
                 <ul
-                  className={
-                    subDropdown[index]
-                      ? classes(css.dropdownSubmenu, css.dropdownMenu)
-                      : classes(css.hidden)
-                  }
-                  key={`ul${index}`}
+                  className={classes(
+                    !subDropdown[index] && css.hidden,
+                    css.dropdownSubmenu,
+                    css.dropdownMenu,
+                  )}
                 >
                   {item.subItems.map((subItem, subIndex) => (
                     <li
                       className={classes(css.dropdownElement)}
-                      key={`subIndex${subIndex}`}
+                      key={subIndex}
                       onClick={() => {
                         setSelectedItem({
                           itemName: item.name,
@@ -229,9 +237,8 @@ export const TwoLevelDropdown = (props: DropdownProps) => {
                         <div className={classes(css.textContainer)}>
                           {subItem.name}
                           {subItem.secondaryName && (
-                            <ArrowForwardIosIcon
+                            <ChevronRightIcon
                               className={classes(css.defaultFont)}
-                              key={`forwardIcon${index}`}
                             />
                           )}
                           {subItem.secondaryName}
@@ -247,6 +254,6 @@ export const TwoLevelDropdown = (props: DropdownProps) => {
       </div>
     </div>
   );
-};
+}
 
 export default TwoLevelDropdown;
