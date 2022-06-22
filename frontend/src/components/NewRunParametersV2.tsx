@@ -65,9 +65,15 @@ function NewRunParametersV2(props: NewRunParametersProps) {
   const inputConverter = (paramStr: string, paramTypeIdx: number) => {
     if (ParameterType_ParameterTypeEnum[paramTypeIdx] === 'BOOLEAN' && paramStr === 'True') {
       return true;
-    } else if (ParameterType_ParameterTypeEnum[paramTypeIdx] === 'BOOLEAN' && paramStr === 'False') {
+    } else if (
+      ParameterType_ParameterTypeEnum[paramTypeIdx] === 'BOOLEAN' &&
+      paramStr === 'False'
+    ) {
       return false;
-    } else if (ParameterType_ParameterTypeEnum[paramTypeIdx] === 'NUMBER_INTEGER' && Number(paramStr)) {
+    } else if (
+      ParameterType_ParameterTypeEnum[paramTypeIdx] === 'NUMBER_INTEGER' &&
+      Number(paramStr)
+    ) {
       return Number(paramStr);
     } else if (ParameterType_ParameterTypeEnum[paramTypeIdx] === 'STRING') {
       return paramStr;
@@ -152,13 +158,16 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                   if (props.handleParameterChange) {
                     let parametersInRealType: RuntimeParameters = {};
                     Object.entries(nextUpdatedParameters).map(([k, v1]) => {
-                      parametersInRealType[k] = inputConverter(v1, props.specParameters[k].parameterType);
-                    })                    
+                      parametersInRealType[k] = inputConverter(
+                        v1,
+                        props.specParameters[k].parameterType,
+                      );
+                    });
                     // TODO: (jlyaoyuli) Validate if the type of parameters matches the value
                     // If it doesn't throw an error message next to the TextField.
                     props.handleParameterChange(parametersInRealType);
                     console.log(parametersInRealType);
-                  }                  
+                  }
                 }}
                 param={param}
               />
