@@ -1,5 +1,8 @@
-# Current Version 1.0.10.dev (Still in Development)
-* Add notes for next release here.
+# Release 1.0.10
+* Add new Evaluation components 'evaluation_data_sampler' and 'evaluation_data_splitter'
+* Make AutoML Tables ensemble also output explanation_metadata artifact
+* AutoML Tables - decouple transform config planner from metadata
+* AutoML Tables - Feature transform engine config planner to generate training schema & instance baseline
 
 # Release 1.0.9
 * FTE transform config passed as path to config file instead of directly as string to FTE
