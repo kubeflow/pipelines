@@ -51,7 +51,7 @@ func TestUploadPipeline(t *testing.T) {
 		name: "upload argo workflow YAML",
 		spec: []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"),
 	}, {
-		name: "upload pipeline v2 job in proto json",
+		name: "upload pipeline v2 job in proto yaml",
 		spec: []byte(v2SpecHelloWorld),
 	}}
 	for _, test := range tt {
@@ -492,73 +492,59 @@ func uploadPipeline(url string, body io.Reader, writer *multipart.Writer, upload
 }
 
 var v2SpecHelloWorld = `
-{
-  "components": {
-    "comp-hello-world": {
-      "executorLabel": "exec-hello-world",
-      "inputDefinitions": {
-	"parameters": {
-	  "text": {
-	    "type": "STRING"
-	  }
-	}
-      }
-    }
-  },
-  "deploymentSpec": {
-    "executors": {
-      "exec-hello-world": {
-	"container": {
-	  "args": [
-	    "--text",
-	    "{{$.inputs.parameters['text']}}"
-	  ],
-	  "command": [
-	    "sh",
-	    "-ec",
-	    "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\nexec python3 -u \"$program_path\" \"$@\"\n",
-	    "def hello_world(text):\n    print(text)\n    return text\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Hello world', description='')\n_parser.add_argument(\"--text\", dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = hello_world(**_parsed_args)\n"
-	  ],
-	  "image": "python:3.7"
-	}
-      }
-    }
-  },
-  "pipelineInfo": {
-    "name": "hello-world"
-  },
-  "root": {
-    "dag": {
-      "tasks": {
-	"hello-world": {
-	  "cachingOptions": {
-	    "enableCache": true
-	  },
-	  "componentRef": {
-	    "name": "comp-hello-world"
-	  },
-	  "inputs": {
-	    "parameters": {
-	      "text": {
-		"componentInputParameter": "text"
-	      }
-	    }
-	  },
-	  "taskInfo": {
-	    "name": "hello-world"
-	  }
-	}
-      }
-    },
-    "inputDefinitions": {
-      "parameters": {
-	"text": {
-	  "type": "STRING"
-	}
-      }
-    }
-  },
-  "schemaVersion": "2.0.0",
-  "sdkVersion": "kfp-1.6.5"
-}
+components:
+  comp-hello-world:
+    executorLabel: exec-hello-world
+    inputDefinitions:
+      parameters:
+        text:
+          type: STRING
+deploymentSpec:
+  executors:
+    exec-hello-world:
+      container:
+        args:
+        - "--text"
+        - "{{$.inputs.parameters['text']}}"
+        command:
+        - sh
+        - "-ec"
+        - |
+          program_path=$(mktemp)
+          printf "%s" "$0" > "$program_path"
+          exec python3 -u "$program_path" "$@"
+        - |
+          def hello_world(text):
+              print(text)
+              return text
+
+          import argparse
+          _parser = argparse.ArgumentParser(prog='Hello world', description='')
+          _parser.add_argument("--text", dest="text", type=str, required=True, default=argparse.SUPPRESS)
+          _parsed_args = vars(_parser.parse_args())
+
+          _outputs = hello_world(**_parsed_args)
+        image: python:3.7
+pipelineInfo:
+  name: hello-world
+root:
+  dag:
+    tasks:
+      hello-world:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-hello-world
+        inputs:
+          parameters:
+            text:
+              componentInputParameter: text
+        taskInfo:
+          name: hello-world
+  inputDefinitions:
+    parameters:
+      text:
+        type: STRING
+schemaVersion: 2.0.0
+sdkVersion: kfp-1.6.5
 `
