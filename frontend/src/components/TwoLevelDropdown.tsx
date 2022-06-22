@@ -73,9 +73,6 @@ export const css = stylesheet({
   relativeContainer: {
     position: 'relative',
   },
-  hidden: {
-    display: 'none',
-  },
 });
 
 const ChevronRightSmallIcon = () => <ChevronRightIcon className={classes(css.defaultFont)} />;
@@ -149,14 +146,13 @@ interface DropdownSubMenuProps {
 
 function DropdownSubMenu(props: DropdownSubMenuProps) {
   const { subDropdown, subDropdownIndex, item, setSelectedItem, setDropdownActive } = props;
+
+  if (item.subItems.length === 0 || !subDropdown[subDropdownIndex]) {
+    return <></>;
+  }
+
   return (
-    <ul
-      className={classes(
-        !subDropdown[subDropdownIndex] && css.hidden,
-        css.dropdownSubmenu,
-        css.dropdownMenu,
-      )}
-    >
+    <ul className={classes(css.dropdownSubmenu, css.dropdownMenu)}>
       {item.subItems.map((subItem, subIndex) => (
         <li
           className={classes(css.dropdownElement)}
@@ -205,9 +201,13 @@ function DropdownMenu(props: DropdownMenuProps) {
   // Determines whether the specified sub-dropdown is shown.
   const [subDropdown, setSubDropdown] = useState<boolean[]>(new Array(items.length).fill(false));
 
+  if (items.length === 0 || !dropdownActive) {
+    return <></>;
+  }
+
   return (
     <div ref={dropdownListRef}>
-      <ul className={classes(!dropdownActive && css.hidden, css.dropdownMenu)}>
+      <ul className={classes(css.dropdownMenu)}>
         {items.map((item, index) => {
           return (
             <li
@@ -245,7 +245,7 @@ function DropdownMenu(props: DropdownMenuProps) {
   );
 }
 
-interface TwoLevelDropdownProps {
+export interface TwoLevelDropdownProps {
   title: string;
   items: DropdownItem[];
   selectedItem: SelectedItem;
