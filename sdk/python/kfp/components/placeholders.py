@@ -444,6 +444,7 @@ def maybe_convert_placeholder_string_to_placeholder(
 
     # order matters here!
     from_string_placeholders = [
+        ExecutorInputPlaceholder,
         IfPresentPlaceholder,
         ConcatPlaceholder,
         InputValuePlaceholder,

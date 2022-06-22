@@ -217,6 +217,9 @@ class PipelineTask:
             elif isinstance(arg, (dict, list)):
                 return json.dumps(arg)
 
+            elif isinstance(arg, placeholders.ExecutorInputPlaceholder):
+                return arg.to_placeholder_string()
+
             elif isinstance(arg, placeholders.InputValuePlaceholder):
                 input_name = arg.input_name
                 if not type_utils.is_parameter_type(
