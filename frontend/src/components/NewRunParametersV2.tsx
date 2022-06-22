@@ -57,23 +57,31 @@ interface NewRunParametersProps {
   handleParameterChange?: (parameters: RuntimeParameters) => void;
 }
 
-const inputConverter = (paramStr: string, paramTypeIdx: number) => {
-  if (ParameterType_ParameterTypeEnum[paramTypeIdx] === 'BOOLEAN' && paramStr === 'True') {
-    return true;
-  } else if (ParameterType_ParameterTypeEnum[paramTypeIdx] === 'BOOLEAN' && paramStr === 'False') {
-    return false;
-  } else if (
-    ParameterType_ParameterTypeEnum[paramTypeIdx] === 'NUMBER_INTEGER' &&
-    Number(paramStr)
-  ) {
-    return Number(paramStr);
-  } else if (ParameterType_ParameterTypeEnum[paramTypeIdx] === 'STRING') {
-    return paramStr;
-  } else {
-    // TODO: (jlyaoyuli) Determine which type (null or undefined) is returned for invalid input.
-    return undefined;
+function inputConverter(paramStr: string, paramType: string): any {
+  switch (paramType) {
+    case 'BOOLEAN':
+      if (paramStr !== 'True' && paramStr !== 'False') {
+        console.log('Invalid input for ' + paramType + ' type.');
+        return null;
+      } else {
+        return paramStr === 'True';
+      }
+    case 'STRING':
+      return paramStr;
+    case 'NUMBER_INTEGER':
+      if (~~paramStr) {
+        return ~~paramStr;
+      } else {
+        console.log('Invalid input for ' + paramType + ' type.');
+        return null;
+      }
+    default:
+      // TODO: (jlyaoyuli) Validate if the type of parameters matches the value
+      // If it doesn't throw an error message next to the TextField.
+      console.log('Unknown paramter type: ' + paramType);
+      return null;
   }
-};
+}
 
 function NewRunParametersV2(props: NewRunParametersProps) {
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
@@ -157,11 +165,9 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                     Object.entries(nextUpdatedParameters).map(([k, v1]) => {
                       parametersInRealType[k] = inputConverter(
                         v1,
-                        props.specParameters[k].parameterType,
+                        ParameterType_ParameterTypeEnum[props.specParameters[k].parameterType],
                       );
                     });
-                    // TODO: (jlyaoyuli) Validate if the type of parameters matches the value
-                    // If it doesn't throw an error message next to the TextField.
                     props.handleParameterChange(parametersInRealType);
                   }
                 }}
