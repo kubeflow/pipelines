@@ -78,6 +78,8 @@ export const css = stylesheet({
   },
 });
 
+const ChevronRightSmallIcon = () => <ChevronRightIcon className={classes(css.defaultFont)} />;
+
 export interface SelectedItem {
   itemName: string;
   subItemName: string;
@@ -101,13 +103,6 @@ interface DropdownButtonProps {
   title: string;
 }
 
-interface DropdownProps {
-  title: string;
-  items: DropdownItem[];
-  selectedItem: SelectedItem;
-  setSelectedItem: (selectedItem: SelectedItem) => void;
-}
-
 function DropdownButton(props: DropdownButtonProps) {
   const { dropdownRef, toggleDropdown, selectedItem, title } = props;
 
@@ -124,15 +119,11 @@ function DropdownButton(props: DropdownButtonProps) {
             {selectedItem.itemName && selectedItem.subItemName ? (
               <>
                 {selectedItem.itemName}
-                <ChevronRightIcon
-                  className={classes(css.defaultFont)}
-                />
+                <ChevronRightSmallIcon />
                 {selectedItem.subItemName}
                 {selectedItem.subItemSecondaryName && (
                   <>
-                    <ChevronRightIcon
-                      className={classes(css.defaultFont)}
-                    />
+                    <ChevronRightSmallIcon />
                     {selectedItem.subItemSecondaryName}
                   </>
                 )}
@@ -148,12 +139,122 @@ function DropdownButton(props: DropdownButtonProps) {
   );
 }
 
-function TwoLevelDropdown(props: DropdownProps) {
-  const { title, items, selectedItem, setSelectedItem } = props;
-  const [dropdownActive, setDropdownActive] = useState(false);
+interface DropdownSubMenuProps {
+  subDropdown: boolean[];
+  subDropdownIndex: number;
+  item: DropdownItem;
+  setSelectedItem: (selectedItem: SelectedItem) => void;
+  setDropdownActive: (dropdownActive: boolean) => void;
+}
+
+function DropdownSubMenu(props: DropdownSubMenuProps) {
+  const { subDropdown, subDropdownIndex, item, setSelectedItem, setDropdownActive } = props;
+  return (
+    <ul
+      className={classes(
+        !subDropdown[subDropdownIndex] && css.hidden,
+        css.dropdownSubmenu,
+        css.dropdownMenu,
+      )}
+    >
+      {item.subItems.map((subItem, subIndex) => (
+        <li
+          className={classes(css.dropdownElement)}
+          key={subIndex}
+          onClick={() => {
+            setSelectedItem({
+              itemName: item.name,
+              subItemName: subItem.name,
+              subItemSecondaryName: subItem.secondaryName,
+            });
+            setDropdownActive(false);
+          }}
+        >
+          <Tooltip
+            title={subItem.name + (subItem.secondaryName ? ` > ${subItem.secondaryName}` : '')}
+            enterDelay={300}
+            placement='top-start'
+          >
+            <span className={classes(css.textContainer, css.inlineContainer)}>
+              {subItem.name}
+              {subItem.secondaryName && (
+                <>
+                  <ChevronRightSmallIcon />
+                  {subItem.secondaryName}
+                </>
+              )}
+            </span>
+          </Tooltip>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+interface DropdownMenuProps {
+  dropdownListRef: Ref<HTMLDivElement>;
+  dropdownActive: boolean;
+  items: DropdownItem[];
+  setSelectedItem: (selectedItem: SelectedItem) => void;
+  setDropdownActive: (dropdownActive: boolean) => void;
+}
+
+function DropdownMenu(props: DropdownMenuProps) {
+  const { dropdownListRef, dropdownActive, items, setSelectedItem, setDropdownActive } = props;
 
   // Determines whether the specified sub-dropdown is shown.
   const [subDropdown, setSubDropdown] = useState<boolean[]>(new Array(items.length).fill(false));
+
+  return (
+    <div ref={dropdownListRef}>
+      <ul className={classes(!dropdownActive && css.hidden, css.dropdownMenu)}>
+        {items.map((item, index) => {
+          return (
+            <li
+              className={classes(css.dropdownElement)}
+              onMouseEnter={() => {
+                // If the cursor navigates directly from one item to another,
+                // this hard-reset is required to deactivate the original sub-dropdown.
+                const newSubDropdown = new Array(items.length).fill(false);
+                newSubDropdown[index] = true;
+                setSubDropdown(newSubDropdown);
+              }}
+              onMouseLeave={() => {
+                const newSubDropdown = [...subDropdown];
+                newSubDropdown[index] = false;
+                setSubDropdown(newSubDropdown);
+              }}
+              key={index}
+            >
+              <Tooltip title={item.name} enterDelay={300} placement='top-start'>
+                <span className={classes(css.textContainer, css.inlineContainer)}>{item.name}</span>
+              </Tooltip>
+              <ChevronRightSmallIcon />
+              <DropdownSubMenu
+                subDropdown={subDropdown}
+                subDropdownIndex={index}
+                item={item}
+                setSelectedItem={setSelectedItem}
+                setDropdownActive={setDropdownActive}
+              />
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+interface TwoLevelDropdownProps {
+  title: string;
+  items: DropdownItem[];
+  selectedItem: SelectedItem;
+  setSelectedItem: (selectedItem: SelectedItem) => void;
+}
+
+function TwoLevelDropdown(props: TwoLevelDropdownProps) {
+  const { title, items, selectedItem, setSelectedItem } = props;
+  const [dropdownActive, setDropdownActive] = useState(false);
 
   // Close dropdown if the user clicks outside of the dropdown button or main menu.
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -181,77 +282,13 @@ function TwoLevelDropdown(props: DropdownProps) {
         selectedItem={selectedItem}
         title={title}
       />
-      <div ref={dropdownListRef}>
-        <ul className={classes(!dropdownActive && css.hidden, css.dropdownMenu)}>
-          {items.map((item, index) => {
-            return (
-              <li
-                className={classes(css.dropdownElement)}
-                onMouseEnter={() => {
-                  // Necessary if it goes from one submenu directly to another.
-                  const newSubDropdown = new Array(items.length).fill(false);
-                  newSubDropdown[index] = true;
-                  setSubDropdown(newSubDropdown);
-                }}
-                onMouseLeave={() => {
-                  const newSubDropdown = [...subDropdown];
-                  newSubDropdown[index] = false;
-                  setSubDropdown(newSubDropdown);
-                }}
-                key={index}
-              >
-                <Tooltip title={item.name} enterDelay={300} placement='top-start'>
-                  <div className={classes(css.textContainer, css.inlineContainer)}>{item.name}</div>
-                </Tooltip>
-                <ChevronRightIcon
-                  className={classes(css.defaultFont)}
-                />
-                <ul
-                  className={classes(
-                    !subDropdown[index] && css.hidden,
-                    css.dropdownSubmenu,
-                    css.dropdownMenu,
-                  )}
-                >
-                  {item.subItems.map((subItem, subIndex) => (
-                    <li
-                      className={classes(css.dropdownElement)}
-                      key={subIndex}
-                      onClick={() => {
-                        setSelectedItem({
-                          itemName: item.name,
-                          subItemName: subItem.name,
-                          subItemSecondaryName: subItem.secondaryName,
-                        });
-                        setDropdownActive(false);
-                      }}
-                    >
-                      <Tooltip
-                        title={
-                          subItem.name +
-                          (subItem.secondaryName ? ` > ${subItem.secondaryName}` : '')
-                        }
-                        enterDelay={300}
-                        placement='top-start'
-                      >
-                        <div className={classes(css.textContainer)}>
-                          {subItem.name}
-                          {subItem.secondaryName && (
-                            <ChevronRightIcon
-                              className={classes(css.defaultFont)}
-                            />
-                          )}
-                          {subItem.secondaryName}
-                        </div>
-                      </Tooltip>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+      <DropdownMenu
+        dropdownListRef={dropdownListRef}
+        dropdownActive={dropdownActive}
+        items={items}
+        setSelectedItem={setSelectedItem}
+        setDropdownActive={setDropdownActive}
+      />
     </div>
   );
 }
