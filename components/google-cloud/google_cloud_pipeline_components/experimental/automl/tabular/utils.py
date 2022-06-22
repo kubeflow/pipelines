@@ -599,6 +599,47 @@ def get_feature_selection_skip_evaluation_pipeline_and_parameters(
   return pipeline_definition_path, parameter_values
 
 
+def get_feature_selection_from_original_dataset_pipeline_and_parameters(
+    project: str,
+    location: str,
+    root_dir: str,
+    target_column: str,
+    prediction_type: str,
+    data_source: Dict[str, Any],
+    max_selected_features: int):
+  """Get the AutoML Tabular training pipeline that skips evaluation.
+
+  Args:
+    project: The GCP project that runs the pipeline components.
+    location: The GCP region that runs the pipeline components.
+    root_dir: The root GCS directory for the pipeline components.
+    target_column: The target column name.
+    prediction_type: The type of prediction the model is to produce.
+      "classification" or "regression".
+    data_source: The data source.
+    max_selected_features: number of features to be selected.
+
+  Returns:
+    Tuple of pipeline_definition_path and parameter_values.
+  """
+
+  parameter_values = {
+      'project': project,
+      'location': location,
+      'root_dir': root_dir,
+      'target_column_name': target_column,
+      'prediction_type': prediction_type,
+      'data_source': input_dictionary_to_parameter(data_source),
+      'max_selected_features': max_selected_features,
+  }
+
+  pipeline_definition_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(),
+      'feature_selection_original_dataset_pipeline.json')
+
+  return pipeline_definition_path, parameter_values
+
+
 def get_feature_selection_tuning_skip_evaluation_pipeline_and_parameters(
     *args,
     max_selected_features: int,
