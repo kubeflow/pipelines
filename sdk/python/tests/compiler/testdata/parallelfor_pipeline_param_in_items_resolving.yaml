@@ -19,7 +19,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        exec python3 -u "$program_path" "$@"
+        python3 -u "$program_path" "$@"
       - |
         def consume(param1):
             print(param1)
@@ -58,7 +58,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        exec python3 -u "$program_path" "$@"
+        python3 -u "$program_path" "$@"
       - |
         def consume(param1):
             print(param1)
@@ -97,7 +97,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        exec python3 -u "$program_path" "$@"
+        python3 -u "$program_path" "$@"
       - |
         def consume(param1):
             print(param1)
@@ -136,7 +136,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        exec python3 -u "$program_path" "$@"
+        python3 -u "$program_path" "$@"
       - |
         def consume(param1):
             print(param1)
@@ -175,7 +175,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        exec python3 -u "$program_path" "$@"
+        python3 -u "$program_path" "$@"
       - |
         def consume(param1):
             print(param1)
@@ -301,7 +301,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        exec python3 -u "$program_path" "$@"
+        python3 -u "$program_path" "$@"
       - |
         def produce_message(fname1):
             return "My name is %s" % fname1
@@ -354,7 +354,7 @@ spec:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--fname1", {"inputValue": "fname1"}, "----output-paths", {"outputPath":
           "Output"}], "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\"
-          \"$0\" > \"$program_path\"\nexec python3 -u \"$program_path\" \"$@\"\n", "def
+          \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n", "def
           produce_message(fname1):\n    return \"My name is %s\" % fname1\n\ndef _serialize_str(str_value:
           str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError(''Value
           \"{}\" has type \"{}\" instead of str.''.format(\n            str(str_value),
@@ -379,7 +379,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        exec python3 -u "$program_path" "$@"
+        python3 -u "$program_path" "$@"
       - |
         def produce_message(fname1):
             return "My name is %s" % fname1
@@ -432,7 +432,7 @@ spec:
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
           {"args": ["--fname1", {"inputValue": "fname1"}, "----output-paths", {"outputPath":
           "Output"}], "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\"
-          \"$0\" > \"$program_path\"\nexec python3 -u \"$program_path\" \"$@\"\n", "def
+          \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n", "def
           produce_message(fname1):\n    return \"My name is %s\" % fname1\n\ndef _serialize_str(str_value:
           str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError(''Value
           \"{}\" has type \"{}\" instead of str.''.format(\n            str(str_value),

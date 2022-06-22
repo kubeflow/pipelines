@@ -2519,7 +2519,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        exec python3 -u "$program_path" "$@"
+        python3 -u "$program_path" "$@"
       - |
         def _make_parent_dirs_and_return_path(file_path: str):
             import os
@@ -2619,7 +2619,7 @@ spec:
       - |
         program_path=$(mktemp)
         printf "%s" "$0" > "$program_path"
-        exec python3 -u "$program_path" "$@"
+        python3 -u "$program_path" "$@"
       - |
         def _make_parent_dirs_and_return_path(file_path: str):
             import os
@@ -3473,7 +3473,7 @@ deploymentSpec:
         - |
           program_path=$(mktemp)
           printf "%s" "$0" > "$program_path"
-          exec python3 -u "$program_path" "$@"
+          python3 -u "$program_path" "$@"
         - |
           def hello_world(text):
               print(text)

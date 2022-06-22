@@ -33,7 +33,7 @@ from kfp.deprecated.containers import entrypoint
 
 V2_COMPONENT_ANNOTATION = 'pipelines.kubeflow.org/component_v2'
 _PROGRAM_LAUNCHER_CMD = 'program_path=$(mktemp)\nprintf "%s" "$0" > ' \
-                        '"$program_path"\nexec python3 -u "$program_path" "$@"\n'
+                        '"$program_path"\npython3 -u "$program_path" "$@"\n'
 
 
 class VersionedDependency(object):
