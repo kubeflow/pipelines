@@ -45,6 +45,7 @@ import MD2Tabs from 'src/atoms/MD2Tabs';
 const css = stylesheet({
   outputsRow: {
     marginLeft: 15,
+    overflowX: 'auto',
   },
 });
 
@@ -70,20 +71,6 @@ enum MetricsType {
   ROC_CURVE,
   HTML,
   MARKDOWN,
-}
-
-function convertMetricsTypeToText(metricsType: MetricsType) {
-  return metricsType === MetricsType.SCALAR_METRICS
-    ? 'Scalar Metrics'
-    : metricsType === MetricsType.CONFUSION_MATRIX
-    ? 'Confusion Matrix'
-    : metricsType === MetricsType.ROC_CURVE
-    ? 'ROC Curve'
-    : metricsType === MetricsType.HTML
-    ? 'HTML'
-    : metricsType === MetricsType.MARKDOWN
-    ? 'Markdown'
-    : '';
 }
 
 // Include only the runs and executions which have artifacts of the specified type.
@@ -338,7 +325,6 @@ function CompareV2(props: PageProps) {
     setSelectedIds(selectedIds);
   };
 
-  const metricsTabText = convertMetricsTypeToText(metricsTab);
   return (
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
       {/* Overview section */}
@@ -391,7 +377,7 @@ function CompareV2(props: PageProps) {
             selectedTab={metricsTab}
             onSwitch={setMetricsTab}
           />
-          <div className={classes(padding(20, 'lrt'))}>
+          <div className={classes(commonCss.page, padding(20, 'lrt'))}>
             {metricsTab === MetricsType.SCALAR_METRICS && <p>This is the Scalar Metrics tab.</p>}
             {metricsTab === MetricsType.CONFUSION_MATRIX && (
               <p>This is the Confusion Matrix tab.</p>
@@ -400,6 +386,7 @@ function CompareV2(props: PageProps) {
             {metricsTab === MetricsType.HTML && <p>This is the HTML tab.</p>}
             {metricsTab === MetricsType.MARKDOWN && <p>This is the Markdown tab.</p>}
           </div>
+          <Hr />
         </div>
       )}
 
