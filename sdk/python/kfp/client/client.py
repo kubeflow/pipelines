@@ -691,11 +691,11 @@ class Client:
 
     def _override_caching_options(self, pipeline_obj: dict,
                                   enable_caching: bool) -> None:
-        """Override caching options.
+        """Overrides caching options.
 
         Args:
-            pipeline_obj: Dict object parsed from the yaml file.
-            enable_caching: Override options, one of 'True', 'False'.
+            pipeline_obj (dict): Dict object parsed from the yaml file.
+            enable_caching (bool): Overrides options, one of 'True', 'False'.
         
         Returns:
             None

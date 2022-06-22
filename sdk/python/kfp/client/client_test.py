@@ -19,6 +19,9 @@ import yaml
 
 from absl.testing import parameterized
 from kfp.client import client
+from kfp.compiler import Compiler
+from kfp.dsl import component
+from kfp.dsl import pipeline
 
 
 class TestValidatePipelineName(parameterized.TestCase):
@@ -48,40 +51,15 @@ PIPELINES_TEST_DATA_DIR = os.path.join(
     os.path.abspath(os.path.join(__file__, os.path.pardir, os.path.pardir)),
     'compiler', 'test_data', 'pipelines')
 
-PIPELINE_TEST_CASES = [
-    'pipeline_with_importer',
-    'pipeline_with_ontology',
-    'pipeline_with_if_placeholder',
-    'pipeline_with_concat_placeholder',
-    'pipeline_with_resource_spec',
-    'pipeline_with_various_io_types',
-    'pipeline_with_reused_component',
-    'pipeline_with_after',
-    'pipeline_with_condition',
-    'pipeline_with_nested_conditions',
-    'pipeline_with_nested_conditions_yaml',
-    'pipeline_with_loops',
-    'pipeline_with_nested_loops',
-    'pipeline_with_loops_and_conditions',
-    'pipeline_with_params_containing_format',
-    'lightweight_python_functions_pipeline',
-    'lightweight_python_functions_with_outputs',
-    'xgboost_sample_pipeline',
-    'pipeline_with_metrics_outputs',
-    'pipeline_with_exit_handler',
-    'pipeline_with_env',
-    'component_with_optional_inputs',
-    'pipeline_with_gcpc_types',
-    'pipeline_with_placeholders',
-    'pipeline_with_task_final_status',
-    'pipeline_with_task_final_status_yaml',
-    'component_with_pip_index_urls',
-]
-
 
 class TestOverrideCachingOptions(parameterized.TestCase):
 
-    @parameterized.parameters(PIPELINE_TEST_CASES)
+    @parameterized.parameters([
+        'pipeline_with_importer',
+        'pipeline_with_after',
+        'pipeline_with_nested_conditions',
+        'pipeline_with_loops',
+    ])
     def test_override_caching_from_yaml(self, pipeline_base_name: str):
         pipeline_path = os.path.join(PIPELINES_TEST_DATA_DIR,
                                      f'{pipeline_base_name}.yaml')
@@ -90,12 +68,9 @@ class TestOverrideCachingOptions(parameterized.TestCase):
             test_client = client.Client(namespace='dummy_namespace')
             test_client._override_caching_options(yaml_dict, False)
             for _, task in yaml_dict['root']['dag']['tasks'].items():
-                assert task['cachingOptions']['enableCache'] == False
+                self.assertFalse(task['cachingOptions']['enableCache'])
 
     def test_override_caching_from_pipeline(self):
-        from kfp.v2.compiler import Compiler
-        from kfp.v2.dsl import component
-        from kfp.v2.dsl import pipeline
 
         @component
         def hello_world(text: str) -> str:
@@ -106,7 +81,7 @@ class TestOverrideCachingOptions(parameterized.TestCase):
         def pipeline_hello_world(text: str = 'hi there'):
             """Hello world pipeline."""
 
-            hello_world(text=text).set_caching_options(False)
+            hello_world(text=text).set_caching_options(True)
 
         with tempfile.TemporaryDirectory() as tempdir:
             temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
@@ -114,11 +89,46 @@ class TestOverrideCachingOptions(parameterized.TestCase):
                 pipeline_func=pipeline_hello_world, package_path=temp_filepath)
 
             with open(temp_filepath, 'r') as f:
-                pipeline_obj = yaml.load(f)
+                pipeline_obj = yaml.safe_load(f)
                 test_client = client.Client(namespace='dummy_namespace')
-                test_client._override_caching_options(pipeline_obj, True)
+                test_client._override_caching_options(pipeline_obj, False)
                 for _, task in pipeline_obj['root']['dag']['tasks'].items():
-                    assert task['cachingOptions']['enableCache'] == True
+                    self.assertFalse(task['cachingOptions']['enableCache'])
+
+    def test_override_caching_of_multiple_components(self):
+
+        @component
+        def hello_word(text: str) -> str:
+            return text
+
+        @component
+        def to_lower(text: str) -> str:
+            return text.lower()
+
+        @pipeline(
+            name='sample two-step pipeline',
+            description='a minimal two-step pipeline')
+        def pipeline_with_two_component(text: str = 'hi there'):
+
+            component_1 = hello_word(text=text).set_caching_options(True)
+            component_2 = to_lower(
+                text=component_1.output).set_caching_options(True)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            temp_filepath = os.path.join(tempdir, 'hello_world_pipeline.yaml')
+            Compiler().compile(
+                pipeline_func=pipeline_with_two_component,
+                package_path=temp_filepath)
+
+            with open(temp_filepath, 'r') as f:
+                pipeline_obj = yaml.safe_load(f)
+                test_client = client.Client(namespace='dummy_namespace')
+                test_client._override_caching_options(pipeline_obj, False)
+                self.assertFalse(
+                    pipeline_obj['root']['dag']['tasks']['hello-word']
+                    ['cachingOptions']['enableCache'])
+                self.assertFalse(pipeline_obj['root']['dag']['tasks']
+                                 ['to-lower']['cachingOptions']['enableCache'])
 
 
 if __name__ == '__main__':
