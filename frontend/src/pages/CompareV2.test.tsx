@@ -147,6 +147,9 @@ describe('CompareV2', () => {
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
     getEventsSpy.mockReturnValue(Promise.resolve(events));
 
+    const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
+    getArtifactTypesSpy.mockReturnValue([]);
+
     render(
       <CommonTestWrapper>
         <CompareV2 {...generateProps()} />
@@ -159,6 +162,7 @@ describe('CompareV2', () => {
       expect(getExecutionsSpy).toBeCalledTimes(3);
       expect(getArtifactsSpy).toBeCalledTimes(3);
       expect(getEventsSpy).toBeCalledTimes(3);
+      expect(getArtifactTypesSpy).toBeCalledTimes(1);
       expect(updateBannerSpy).toHaveBeenLastCalledWith({});
     });
   });
@@ -191,6 +195,9 @@ describe('CompareV2', () => {
     const events = [newMockEvent(1), newMockEvent(2), newMockEvent(3)];
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
     getEventsSpy.mockReturnValue(Promise.resolve(events));
+
+    const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
+    getArtifactTypesSpy.mockReturnValue([]);
 
     const warnSpy = jest.spyOn(Utils.logger, 'warn');
 
@@ -252,6 +259,33 @@ describe('CompareV2', () => {
       expect(updateBannerSpy).toHaveBeenLastCalledWith({
         additionalInfo: 'Not connected to MLMD',
         message: 'Cannot get MLMD objects from Metadata store.',
+        mode: 'error',
+      });
+    });
+  });
+
+  it('Failed getArtifactTypes request creates error banner', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    jest.spyOn(mlmdUtils, 'getKfpV2RunContext').mockReturnValue(new Context());
+    jest.spyOn(mlmdUtils, 'getExecutionsFromContext').mockReturnValue([]);
+    jest.spyOn(mlmdUtils, 'getArtifactsFromContext').mockReturnValue([]);
+    jest.spyOn(mlmdUtils, 'getEventsByExecutions').mockReturnValue([]);
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockRejectedValue(new Error('Not connected to MLMD'));
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    await waitFor(() => {
+      expect(updateBannerSpy).toHaveBeenLastCalledWith({
+        additionalInfo: 'Not connected to MLMD',
+        message: 'Cannot get Artifact Types for MLMD.',
         mode: 'error',
       });
     });

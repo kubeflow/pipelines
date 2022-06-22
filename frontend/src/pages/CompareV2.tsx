@@ -28,13 +28,15 @@ import { URLParser } from 'src/lib/URLParser';
 import { errorToMessage, logger } from 'src/lib/Utils';
 import { classes, stylesheet } from 'typestyle';
 import {
+  filterLinkedArtifactsByType,
+  getArtifactTypes,
   getArtifactsFromContext,
   getEventsByExecutions,
   getExecutionsFromContext,
   getKfpV2RunContext,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
-import { Artifact, Event, Execution } from 'src/third_party/mlmd';
+import { Artifact, ArtifactType, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
 import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
@@ -46,14 +48,6 @@ const css = stylesheet({
     overflowX: 'auto',
   },
 });
-
-enum MetricsTab {
-  SCALAR_METRICS,
-  CONFUSION_MATRIX,
-  ROC_CURVE,
-  HTML,
-  MARKDOWN,
-}
 
 interface MlmdPackage {
   executions: Execution[];
@@ -69,6 +63,65 @@ interface ExecutionArtifacts {
 interface RunArtifacts {
   run: ApiRunDetail;
   executionArtifacts: ExecutionArtifacts[];
+}
+
+enum MetricsType {
+  SCALAR_METRICS,
+  CONFUSION_MATRIX,
+  ROC_CURVE,
+  HTML,
+  MARKDOWN,
+}
+
+// Include only the runs and executions which have artifacts of the specified type.
+function filterRunArtifactsByType(
+  runArtifacts: RunArtifacts[],
+  artifactTypes: ArtifactType[],
+  metricsType: MetricsType,
+): RunArtifacts[] {
+  const metricsFilter =
+    metricsType === MetricsType.SCALAR_METRICS
+      ? 'system.Metrics'
+      : metricsType === MetricsType.CONFUSION_MATRIX || metricsType === MetricsType.ROC_CURVE
+      ? 'system.ClassificationMetrics'
+      : metricsType === MetricsType.HTML
+      ? 'system.HTML'
+      : metricsType === MetricsType.MARKDOWN
+      ? 'system.Markdown'
+      : '';
+  const typeRuns: RunArtifacts[] = [];
+  for (const runArtifact of runArtifacts) {
+    const typeExecutions: ExecutionArtifacts[] = [];
+    for (const e of runArtifact.executionArtifacts) {
+      let typeArtifacts: LinkedArtifact[] = filterLinkedArtifactsByType(
+        metricsFilter,
+        artifactTypes,
+        e.linkedArtifacts,
+      );
+      if (metricsType === MetricsType.CONFUSION_MATRIX) {
+        typeArtifacts = typeArtifacts.filter(x =>
+          x.artifact.getCustomPropertiesMap().has('confusionMatrix'),
+        );
+      } else if (metricsType === MetricsType.ROC_CURVE) {
+        typeArtifacts = typeArtifacts.filter(x =>
+          x.artifact.getCustomPropertiesMap().has('confidenceMetrics'),
+        );
+      }
+      if (typeArtifacts.length > 0) {
+        typeExecutions.push({
+          execution: e.execution,
+          linkedArtifacts: typeArtifacts,
+        } as ExecutionArtifacts);
+      }
+    }
+    if (typeExecutions.length > 0) {
+      typeRuns.push({
+        run: runArtifact.run,
+        executionArtifacts: typeExecutions,
+      } as RunArtifacts);
+    }
+  }
+  return typeRuns;
 }
 
 function getRunArtifacts(runs: ApiRunDetail[], mlmdPackages: MlmdPackage[]): RunArtifacts[] {
@@ -110,7 +163,7 @@ function CompareV2(props: PageProps) {
 
   const runlistRef = useRef<RunList>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [metricsTab, setMetricsTab] = useState(MetricsTab.SCALAR_METRICS);
+  const [metricsTab, setMetricsTab] = useState(MetricsType.SCALAR_METRICS);
   const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
@@ -160,12 +213,30 @@ function CompareV2(props: PageProps) {
     },
   );
 
-  // TODO(zpChris): The pending work item of displaying visualizations will need getRunArtifacts.
-  if (runs && mlmdPackages) {
-    getRunArtifacts(runs, mlmdPackages);
+  const runArtifacts = runs && mlmdPackages ? getRunArtifacts(runs, mlmdPackages) : [];
+
+  // artifactTypes allows us to map from artifactIds to artifactTypeNames,
+  // so we can identify metrics artifact provided by system.
+  const {
+    data: artifactTypes,
+    isLoading: isLoadingArtifactTypes,
+    isError: isErrorArtifactTypes,
+    error: errorArtifactTypes,
+  } = useQuery<ArtifactType[], Error>(['artifact_types', {}], () => getArtifactTypes(), {
+    staleTime: Infinity,
+  });
+
+  // TODO(zpChris): The pending work item of displaying visualizations will need these filters.
+  if (artifactTypes) {
+    filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.SCALAR_METRICS);
+    filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX);
+    filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.ROC_CURVE);
+    filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML);
+    filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN);
   }
+
   useEffect(() => {
-    if (isLoadingRunDetails || isLoadingMlmdPackages) {
+    if (isLoadingRunDetails || isLoadingMlmdPackages || isLoadingArtifactTypes) {
       return;
     }
 
@@ -184,6 +255,12 @@ function CompareV2(props: PageProps) {
         additionalInfo: errorMlmdPackages ? errorMlmdPackages.message : undefined,
         mode: 'error',
       });
+    } else if (isErrorArtifactTypes) {
+      updateBanner({
+        message: 'Cannot get Artifact Types for MLMD.',
+        additionalInfo: errorArtifactTypes ? errorArtifactTypes.message : undefined,
+        mode: 'error',
+      });
     } else {
       updateBanner({});
     }
@@ -191,10 +268,13 @@ function CompareV2(props: PageProps) {
     runIds.length,
     isLoadingRunDetails,
     isLoadingMlmdPackages,
+    isLoadingArtifactTypes,
     isErrorRunDetails,
     isErrorMlmdPackages,
+    isErrorArtifactTypes,
     errorRunDetails,
     errorMlmdPackages,
+    errorArtifactTypes,
     updateBanner,
   ]);
 
@@ -298,11 +378,13 @@ function CompareV2(props: PageProps) {
             onSwitch={setMetricsTab}
           />
           <div className={classes(commonCss.page, padding(20, 'lrt'))}>
-            {metricsTab === MetricsTab.SCALAR_METRICS && <p>This is the Scalar Metrics tab.</p>}
-            {metricsTab === MetricsTab.CONFUSION_MATRIX && <p>This is the Confusion Matrix tab.</p>}
-            {metricsTab === MetricsTab.ROC_CURVE && <p>This is the ROC Curve tab.</p>}
-            {metricsTab === MetricsTab.HTML && <p>This is the HTML tab.</p>}
-            {metricsTab === MetricsTab.MARKDOWN && <p>This is the Markdown tab.</p>}
+            {metricsTab === MetricsType.SCALAR_METRICS && <p>This is the Scalar Metrics tab.</p>}
+            {metricsTab === MetricsType.CONFUSION_MATRIX && (
+              <p>This is the Confusion Matrix tab.</p>
+            )}
+            {metricsTab === MetricsType.ROC_CURVE && <p>This is the ROC Curve tab.</p>}
+            {metricsTab === MetricsType.HTML && <p>This is the HTML tab.</p>}
+            {metricsTab === MetricsType.MARKDOWN && <p>This is the Markdown tab.</p>}
           </div>
           <Hr />
         </div>
