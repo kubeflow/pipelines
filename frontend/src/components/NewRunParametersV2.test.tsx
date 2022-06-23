@@ -21,6 +21,7 @@ import { CommonTestWrapper } from 'src/TestWrapper';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ParameterType_ParameterTypeEnum } from 'src/generated/pipeline_spec/pipeline_spec';
 import NewRunParametersV2 from 'src/components/NewRunParametersV2';
+import { inputConverter} from 'src/components/NewRunParametersV2';
 
 testBestPractices();
 
@@ -39,6 +40,10 @@ describe('NewRunParametersV2', () => {
               parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
               defaultValue: true,
             },
+            intParam: {
+              parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+              defaultValue: 123,
+            }
           }}
         ></NewRunParametersV2>
       </CommonTestWrapper>,
@@ -50,6 +55,8 @@ describe('NewRunParametersV2', () => {
     expect(screen.getByDisplayValue('string value'));
     expect(screen.getByText('boolParam - BOOLEAN'));
     expect(screen.getByDisplayValue('true'));
+    expect(screen.getByText('intParam - NUMBER_INTEGER'));
+    expect(screen.getByDisplayValue('123'));
   });
 
   it('edits parameters', () => {
@@ -66,6 +73,10 @@ describe('NewRunParametersV2', () => {
               parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
               defaultValue: 123,
             },
+            boolParam: {
+              parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
+              defaultValue: true,
+            }
           }}
         ></NewRunParametersV2>
       </CommonTestWrapper>,
@@ -75,10 +86,23 @@ describe('NewRunParametersV2', () => {
     fireEvent.change(strParam, { target: { value: 'new string' } });
     expect(strParam.closest('input').value).toEqual('new string');
 
-    const intParam = screen.getByDisplayValue(123);
+    const intParam = screen.getByDisplayValue('123');
     fireEvent.change(intParam, { target: { value: 999 } });
     expect(intParam.closest('input').value).toEqual('999');
+
+    const boolParam = screen.getByDisplayValue('true');
+    fireEvent.change(boolParam, { target: {value: false}});
+    expect(boolParam.closest('input').value).toEqual('false');
   });
+
+  it('convert string-type user input to real type', () => {
+    expect(inputConverter('string value', ParameterType_ParameterTypeEnum.STRING)).toEqual('string value');
+    expect(inputConverter('True', ParameterType_ParameterTypeEnum.BOOLEAN)).toEqual(true);
+    expect(inputConverter('123', ParameterType_ParameterTypeEnum.NUMBER_INTEGER)).toEqual(123);
+    expect(inputConverter('True', ParameterType_ParameterTypeEnum.STRING)).toEqual('True');
+    expect(inputConverter('123', ParameterType_ParameterTypeEnum.STRING)).toEqual('123');
+    expect(inputConverter('true', ParameterType_ParameterTypeEnum.BOOLEAN)).toEqual(null);
+  })
 
   it('does not display any text fields if there are no parameters', () => {
     const { container } = render(

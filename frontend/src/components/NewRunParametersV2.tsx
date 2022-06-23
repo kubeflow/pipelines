@@ -57,20 +57,20 @@ interface NewRunParametersProps {
   handleParameterChange?: (parameters: RuntimeParameters) => void;
 }
 
-function inputConverter(paramStr: string, paramType: string): any {
+export function inputConverter(paramStr: string, paramType: ParameterType_ParameterTypeEnum): any {
   switch (paramType) {
-    case 'BOOLEAN':
+    case ParameterType_ParameterTypeEnum.BOOLEAN:
       if (paramStr !== 'True' && paramStr !== 'False') {
         console.log('Invalid input for ' + paramType + ' type.');
         return null;
       } else {
         return paramStr === 'True';
       }
-    case 'STRING':
+    case ParameterType_ParameterTypeEnum.STRING:
       return paramStr;
-    case 'NUMBER_INTEGER':
-      if (~~paramStr) {
-        return ~~paramStr;
+    case ParameterType_ParameterTypeEnum.NUMBER_INTEGER:
+      if (Number.isInteger(Number(paramStr))) {
+        return Number(paramStr);
       } else {
         console.log('Invalid input for ' + paramType + ' type.');
         return null;
@@ -163,9 +163,11 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                   if (props.handleParameterChange) {
                     let parametersInRealType: RuntimeParameters = {};
                     Object.entries(nextUpdatedParameters).map(([k, v1]) => {
+                      console.log(ParameterType_ParameterTypeEnum[props.specParameters[k].parameterType]);
+                      console.log(typeof(ParameterType_ParameterTypeEnum[props.specParameters[k].parameterType]));
                       parametersInRealType[k] = inputConverter(
                         v1,
-                        ParameterType_ParameterTypeEnum[props.specParameters[k].parameterType],
+                        props.specParameters[k].parameterType,
                       );
                     });
                     props.handleParameterChange(parametersInRealType);
