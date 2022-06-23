@@ -71,7 +71,7 @@ describe('TwoLevelDropdown', () => {
     props.selectedItem = {
       itemName: 'first',
       subItemName: 'second',
-      subItemSecondaryName: 'third'
+      subItemSecondaryName: 'third',
     } as SelectedItem;
     render(<TwoLevelDropdown {...props} />);
     expect(screen.queryByText(title)).toBeNull();
