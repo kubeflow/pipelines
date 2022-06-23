@@ -32,7 +32,6 @@ _NO_CLIENT_COMMANDS = [
     'components'
 ]
 
-
 @click.group()
 @click.option('--endpoint', help='Endpoint of the KFP API service to connect.')
 @click.option('--iap-client-id', help='Client ID for IAP protected endpoint.')
