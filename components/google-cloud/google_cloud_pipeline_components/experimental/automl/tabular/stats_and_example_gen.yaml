@@ -111,6 +111,7 @@ inputs:
 - {name: encryption_spec_key_name, type: String, default: ""}
 - {name: run_distillation, type: Boolean, default: "false"}
 - {name: additional_experiments, type: String, default: ""}
+- {name: additional_experiments_json, type: JsonObject, default: "{}"}
 
 outputs:
 - {name: dataset_schema, type: DatasetSchema}
@@ -211,5 +212,5 @@ implementation:
         {outputPath: downsampled_test_split_json},
         '", "--instance_baseline_path=',
         {outputUri: instance_baseline},
-        '", "--parse_json=true", "--generate_additional_downsample_test_split=true"]}}]}}'
+        '", "--parse_json=true", "--generate_additional_downsample_test_split=true", "--executor_input={{$.json_escape[1]}}"]}}]}}'
       ]]
