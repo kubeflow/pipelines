@@ -32,7 +32,9 @@ const (
 // Represent the value of a Parameter containing
 // Name, Default and Value.
 type SpecParameter struct {
-	Name    string
+	Name string
+	// TODO: need to revisit `Default` to see if this is needed
+	// https://github.com/kubeflow/pipelines/pull/7766#discussion_r905345651
 	Default *string
 	Value   *string
 }
