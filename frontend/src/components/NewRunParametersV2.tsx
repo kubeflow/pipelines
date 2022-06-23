@@ -163,8 +163,6 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                   if (props.handleParameterChange) {
                     let parametersInRealType: RuntimeParameters = {};
                     Object.entries(nextUpdatedParameters).map(([k, v1]) => {
-                      console.log(ParameterType_ParameterTypeEnum[props.specParameters[k].parameterType]);
-                      console.log(typeof(ParameterType_ParameterTypeEnum[props.specParameters[k].parameterType]));
                       parametersInRealType[k] = inputConverter(
                         v1,
                         props.specParameters[k].parameterType,

@@ -21,7 +21,7 @@ import { CommonTestWrapper } from 'src/TestWrapper';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ParameterType_ParameterTypeEnum } from 'src/generated/pipeline_spec/pipeline_spec';
 import NewRunParametersV2 from 'src/components/NewRunParametersV2';
-import { inputConverter} from 'src/components/NewRunParametersV2';
+import { inputConverter } from 'src/components/NewRunParametersV2';
 
 testBestPractices();
 
@@ -43,7 +43,7 @@ describe('NewRunParametersV2', () => {
             intParam: {
               parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
               defaultValue: 123,
-            }
+            },
           }}
         ></NewRunParametersV2>
       </CommonTestWrapper>,
@@ -76,7 +76,7 @@ describe('NewRunParametersV2', () => {
             boolParam: {
               parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
               defaultValue: true,
-            }
+            },
           }}
         ></NewRunParametersV2>
       </CommonTestWrapper>,
@@ -91,18 +91,20 @@ describe('NewRunParametersV2', () => {
     expect(intParam.closest('input').value).toEqual('999');
 
     const boolParam = screen.getByDisplayValue('true');
-    fireEvent.change(boolParam, { target: {value: false}});
+    fireEvent.change(boolParam, { target: { value: false } });
     expect(boolParam.closest('input').value).toEqual('false');
   });
 
   it('convert string-type user input to real type', () => {
-    expect(inputConverter('string value', ParameterType_ParameterTypeEnum.STRING)).toEqual('string value');
+    expect(inputConverter('string value', ParameterType_ParameterTypeEnum.STRING)).toEqual(
+      'string value',
+    );
     expect(inputConverter('True', ParameterType_ParameterTypeEnum.BOOLEAN)).toEqual(true);
     expect(inputConverter('123', ParameterType_ParameterTypeEnum.NUMBER_INTEGER)).toEqual(123);
     expect(inputConverter('True', ParameterType_ParameterTypeEnum.STRING)).toEqual('True');
     expect(inputConverter('123', ParameterType_ParameterTypeEnum.STRING)).toEqual('123');
     expect(inputConverter('true', ParameterType_ParameterTypeEnum.BOOLEAN)).toEqual(null);
-  })
+  });
 
   it('does not display any text fields if there are no parameters', () => {
     const { container } = render(
