@@ -74,7 +74,7 @@ describe('TwoLevelDropdown', () => {
       subItemSecondaryName: 'third'
     } as SelectedItem;
     render(<TwoLevelDropdown {...props} />);
-    expect(screen.queryByText('first')).toBeNull();
+    expect(screen.queryByText(title)).toBeNull();
     screen.getByText(/first/);
     screen.getByText(/second/);
     screen.getByText(/third/);
