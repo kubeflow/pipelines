@@ -16,8 +16,7 @@
 
 import React, { Ref, useRef, useState } from 'react';
 import { Button, Tooltip } from '@material-ui/core';
-
-import { color } from '../Css';
+import { color } from 'src/Css';
 import { classes, stylesheet } from 'typestyle';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
@@ -64,17 +63,14 @@ const css = stylesheet({
   },
   dropdownSubmenu: {
     left: '100%',
-    top: 0,
-    marginTop: '-6px',
+    // Offsets the dropdown menu vertical padding (5px) and border (1px).
+    top: '-6px',
   },
   inlineContainer: {
     display: 'inline-block',
   },
   relativeContainer: {
     position: 'relative',
-  },
-  hidden: {
-    display: 'none',
   },
 });
 
@@ -140,7 +136,8 @@ function DropdownButton(props: DropdownButtonProps) {
 }
 
 interface DropdownSubMenuProps {
-  subDropdown: boolean[];
+  subDropdownActive: number;
+  setSubDropdownActive: (subDropdownActive: number) => void;
   subDropdownIndex: number;
   item: DropdownItem;
   setSelectedItem: (selectedItem: SelectedItem) => void;
@@ -148,15 +145,21 @@ interface DropdownSubMenuProps {
 }
 
 function DropdownSubMenu(props: DropdownSubMenuProps) {
-  const { subDropdown, subDropdownIndex, item, setSelectedItem, setDropdownActive } = props;
+  const {
+    subDropdownActive,
+    setSubDropdownActive,
+    subDropdownIndex,
+    item,
+    setSelectedItem,
+    setDropdownActive,
+  } = props;
+
+  if (item.subItems.length === 0 || subDropdownActive !== subDropdownIndex) {
+    return <></>;
+  }
+
   return (
-    <ul
-      className={classes(
-        !subDropdown[subDropdownIndex] && css.hidden,
-        css.dropdownSubmenu,
-        css.dropdownMenu,
-      )}
-    >
+    <ul className={classes(css.dropdownSubmenu, css.dropdownMenu)}>
       {item.subItems.map((subItem, subIndex) => (
         <li
           className={classes(css.dropdownElement)}
@@ -168,6 +171,7 @@ function DropdownSubMenu(props: DropdownSubMenuProps) {
               subItemSecondaryName: subItem.secondaryName,
             });
             setDropdownActive(false);
+            setSubDropdownActive(-1);
           }}
         >
           <Tooltip
@@ -202,28 +206,22 @@ interface DropdownMenuProps {
 function DropdownMenu(props: DropdownMenuProps) {
   const { dropdownListRef, dropdownActive, items, setSelectedItem, setDropdownActive } = props;
 
-  // Determines whether the specified sub-dropdown is shown.
-  const [subDropdown, setSubDropdown] = useState<boolean[]>(new Array(items.length).fill(false));
+  // Provides the index of the active sub-dropdown, or '-1' if none are active.
+  const [subDropdownActive, setSubDropdownActive] = useState<number>(-1);
+
+  if (items.length === 0 || !dropdownActive) {
+    return <></>;
+  }
 
   return (
     <div ref={dropdownListRef}>
-      <ul className={classes(!dropdownActive && css.hidden, css.dropdownMenu)}>
+      <ul className={classes(css.dropdownMenu)}>
         {items.map((item, index) => {
           return (
             <li
               className={classes(css.dropdownElement)}
-              onMouseEnter={() => {
-                // If the cursor navigates directly from one item to another,
-                // this hard-reset is required to deactivate the original sub-dropdown.
-                const newSubDropdown = new Array(items.length).fill(false);
-                newSubDropdown[index] = true;
-                setSubDropdown(newSubDropdown);
-              }}
-              onMouseLeave={() => {
-                const newSubDropdown = [...subDropdown];
-                newSubDropdown[index] = false;
-                setSubDropdown(newSubDropdown);
-              }}
+              onMouseEnter={() => setSubDropdownActive(index)}
+              onMouseLeave={() => setSubDropdownActive(-1)}
               key={index}
             >
               <Tooltip title={item.name} enterDelay={300} placement='top-start'>
@@ -231,7 +229,8 @@ function DropdownMenu(props: DropdownMenuProps) {
               </Tooltip>
               <ChevronRightSmallIcon />
               <DropdownSubMenu
-                subDropdown={subDropdown}
+                subDropdownActive={subDropdownActive}
+                setSubDropdownActive={setSubDropdownActive}
                 subDropdownIndex={index}
                 item={item}
                 setSelectedItem={setSelectedItem}
@@ -245,7 +244,7 @@ function DropdownMenu(props: DropdownMenuProps) {
   );
 }
 
-interface TwoLevelDropdownProps {
+export interface TwoLevelDropdownProps {
   title: string;
   items: DropdownItem[];
   selectedItem: SelectedItem;

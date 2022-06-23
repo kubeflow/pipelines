@@ -51,45 +51,10 @@ const css = stylesheet({
   outputsRow: {
     marginLeft: 15,
   },
+  overflowRow: {
+    overflowX: 'auto',
+  }
 });
-
-const dropdownItems: DropdownItem[] = [
-  {
-    name: 'first',
-    subItems: [
-      {
-        name: 'first->first',
-        secondaryName: 'check',
-      },
-      {
-        name: 'first->first->first',
-        secondaryName: 'check2',
-      },
-      {
-        name: 'first->first-> second ->aaaaaaaaaaaaaaaaaaaaaa aaaaaaaaaaa aaaaaaaaaaaaaaa',
-        secondaryName: 'check3',
-      },
-    ],
-  },
-  {
-    name:
-      'secondsecondsecondseconds econdsecondsecondsecondsecondsecondsec ondsecondsecondseco ndsecondsecondsecondsecon dsecondsecondsecond',
-    subItems: [
-      {
-        name: 'second->first',
-        secondaryName: 'check',
-      },
-    ],
-  },
-  {
-    name: 'third',
-    subItems: [
-      {
-        name: 'third->first',
-      },
-    ],
-  },
-];
 
 interface MlmdPackage {
   executions: Execution[];
@@ -115,19 +80,22 @@ enum MetricsType {
   MARKDOWN,
 }
 
-function convertMetricsTypeToText(metricsType: MetricsType) {
-  return metricsType === MetricsType.SCALAR_METRICS
-    ? 'Scalar Metrics'
-    : metricsType === MetricsType.CONFUSION_MATRIX
-    ? 'Confusion Matrix'
-    : metricsType === MetricsType.ROC_CURVE
-    ? 'ROC Curve'
-    : metricsType === MetricsType.HTML
-    ? 'HTML'
-    : metricsType === MetricsType.MARKDOWN
-    ? 'Markdown'
-    : '';
-}
+const metricsTypeToString = (metricsType: MetricsType): string => {
+  switch (metricsType) {
+    case MetricsType.SCALAR_METRICS:
+      return 'Scalar Metrics';
+    case MetricsType.CONFUSION_MATRIX:
+      return 'Confusion Matrix';
+    case MetricsType.ROC_CURVE:
+      return 'ROC Curve';
+    case MetricsType.HTML:
+      return 'HTML';
+    case MetricsType.MARKDOWN:
+      return 'Markdown';
+    default:
+      return '';
+  }
+};
 
 // Include only the runs and executions which have artifacts of the specified type.
 function filterRunArtifactsByType(
@@ -275,9 +243,7 @@ function CompareV2(props: PageProps) {
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
 
-  const [scalarMetricsArtifacts, setScalarMetricsArtifacts] = useState<RunArtifacts[]>([]);
   const [confusionMatrixArtifacts, setConfusionMatrixArtifacts] = useState<RunArtifacts[]>([]);
-  const [rocCurveArtifacts, setRocCurveArtifacts] = useState<RunArtifacts[]>([]);
   const [htmlArtifacts, setHtmlArtifacts] = useState<RunArtifacts[]>([]);
   const [markdownArtifacts, setMarkdownArtifacts] = useState<RunArtifacts[]>([]);
 
@@ -337,19 +303,11 @@ function CompareV2(props: PageProps) {
     staleTime: Infinity,
   });
 
-  // TODO(zpChris): The pending work item of displaying visualizations will need these filters.
-
   useEffect(() => {
     if (artifactTypes) {
       const runArtifacts = runs && mlmdPackages ? getRunArtifacts(runs, mlmdPackages) : [];
-      setScalarMetricsArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.SCALAR_METRICS),
-      );
       setConfusionMatrixArtifacts(
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX),
-      );
-      setRocCurveArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.ROC_CURVE),
       );
       setHtmlArtifacts(filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML));
       setMarkdownArtifacts(
@@ -449,7 +407,7 @@ function CompareV2(props: PageProps) {
     setSelectedIds(selectedIds);
   };
 
-  const metricsTabText = convertMetricsTypeToText(metricsTab);
+  const metricsTabText = metricsTypeToString(metricsTab);
   return (
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
       {/* Overview section */}
@@ -481,7 +439,7 @@ function CompareV2(props: PageProps) {
         collapseSectionUpdate={setIsParamsCollapsed}
       />
       {!isParamsCollapsed && (
-        <div className={classes(commonCss.noShrink, css.outputsRow)}>
+        <div className={classes(commonCss.noShrink, css.outputsRow, css.overflowRow)}>
           <Separator orientation='vertical' />
           <p>Parameter Section V2</p>
           <Hr />
@@ -503,7 +461,7 @@ function CompareV2(props: PageProps) {
             onSwitch={setMetricsTab}
           />
           <div className={classes(padding(20, 'lrt'))}>
-            {metricsTab === MetricsType.SCALAR_METRICS && <p>This is the {metricsTabText} tab.</p>}
+            {metricsTab === MetricsType.SCALAR_METRICS && <p>This is the Scalar Metrics tab.</p>}
             {metricsTab === MetricsType.CONFUSION_MATRIX && (
               <MetricsDropdown
                 filteredRunArtifacts={confusionMatrixArtifacts}
