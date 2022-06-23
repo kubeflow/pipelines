@@ -15,6 +15,7 @@
 package template
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
