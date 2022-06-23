@@ -66,6 +66,20 @@ describe('TwoLevelDropdown', () => {
     screen.getByText(title);
   });
 
+  it('Render two-level dropdown with selection', async () => {
+    const props: TwoLevelDropdownProps = generateProps();
+    props.selectedItem = {
+      itemName: 'first',
+      subItemName: 'second',
+      subItemSecondaryName: 'third'
+    } as SelectedItem;
+    render(<TwoLevelDropdown {...props} />);
+    expect(screen.queryByText('first')).toBeNull();
+    screen.getByText(/first/);
+    screen.getByText(/second/);
+    screen.getByText(/third/);
+  });
+
   it('Two-level dropdown toggle behavior', async () => {
     render(<TwoLevelDropdown {...generateProps()} />);
 

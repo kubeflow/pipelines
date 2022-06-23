@@ -16,13 +16,12 @@
 
 import React, { Ref, useRef, useState } from 'react';
 import { Button, Tooltip } from '@material-ui/core';
-
-import { color } from '../Css';
+import { color } from 'src/Css';
 import { classes, stylesheet } from 'typestyle';
 import ArrowDropDownIcon from '@material-ui/icons/ArrowDropDown';
 import ChevronRightIcon from '@material-ui/icons/ChevronRight';
 
-export const css = stylesheet({
+const css = stylesheet({
   defaultFont: {
     fontSize: '1rem',
   },
