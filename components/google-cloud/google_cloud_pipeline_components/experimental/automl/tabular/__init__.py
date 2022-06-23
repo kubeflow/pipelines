@@ -13,6 +13,7 @@
 # limitations under the License.
 """Module for AutoML Tables KFP components."""
 
+import json
 import os
 
 try:
@@ -34,6 +35,7 @@ __all__ = [
     'TabNetTrainerOp',
     'FeatureTransformEngineOp',
     'TransformConfigurationPlannerOp',
+    'DefaultPipelineJsonPipelineSpec',
 ]
 
 CvTrainerOp = load_component_from_file(
@@ -66,3 +68,7 @@ BuiltinAlgorithmHyperparameterTuningJobOp = load_component_from_file(
         'builtin_algorithm_hyperparameter_tuning_job.yaml'))
 TabNetTrainerOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'tabnet_trainer.yaml'))
+
+with open(os.path.join(os.path.dirname(__file__),
+                       'default_pipeline.json')) as f:
+  DefaultPipelineJsonPipelineSpec = json.load(f)
