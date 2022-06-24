@@ -53,7 +53,7 @@ const css = stylesheet({
   },
   overflowRow: {
     overflowX: 'auto',
-  }
+  },
 });
 
 interface MlmdPackage {
@@ -192,9 +192,7 @@ function MetricsDropdown(props: MetricsDropdownProps) {
   const [selectedItem, setSelectedItem] = useState<SelectedItem>({ itemName: '', subItemName: '' });
 
   if (filteredRunArtifacts.length === 0) {
-    return (
-      <p>There are no {metricsTabText} artifacts available on the selected runs.</p>
-    )
+    return <p>There are no {metricsTabText} artifacts available on the selected runs.</p>;
   }
 
   const dropdownItems: DropdownItem[] = filteredRunArtifacts.map(x => {
@@ -226,14 +224,12 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     } as DropdownItem;
   });
   return (
-    <>
-      <TwoLevelDropdown
-        title={`Choose a first ${metricsTabText} artifact`}
-        items={dropdownItems}
-        selectedItem={selectedItem}
-        setSelectedItem={setSelectedItem}
-      />
-    </>
+    <TwoLevelDropdown
+      title={`Choose a first ${metricsTabText} artifact`}
+      items={dropdownItems}
+      selectedItem={selectedItem}
+      setSelectedItem={setSelectedItem}
+    />
   );
 }
 

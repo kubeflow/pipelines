@@ -27,6 +27,7 @@ import CompareV2 from './CompareV2';
 import { PageProps } from './Page';
 import { ApiRunDetail } from 'src/apis/run';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
+import { Value } from 'google-protobuf/google/protobuf/struct_pb';
 
 testBestPractices();
 describe('CompareV2', () => {
@@ -87,9 +88,14 @@ describe('CompareV2', () => {
     return event;
   }
 
-  function newMockArtifact(id: number): Artifact {
+  function newMockArtifact(id: number, confusionMatrix?: boolean): Artifact {
     const artifact = new Artifact();
     artifact.setId(id);
+    if (confusionMatrix) {
+      const customPropertiesMap: Map<string, Value> = new Map();
+      customPropertiesMap.set('confusionMatrix', new Value());
+      jest.spyOn(artifact, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
+    }
     return artifact;
   }
 
@@ -366,5 +372,91 @@ describe('CompareV2', () => {
     fireEvent.click(screen.getByText('Scalar Metrics'));
     screen.getByText('This is the Scalar Metrics tab.');
     expect(screen.queryByText('This is the ROC Curve Tab')).toBeNull();
+  });
+
+  it('Two-panel tabs have no dropdown loaded as content is not present', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    jest.spyOn(mlmdUtils, 'getKfpV2RunContext').mockReturnValue(new Context());
+    jest.spyOn(mlmdUtils, 'getExecutionsFromContext').mockReturnValue([]);
+    jest.spyOn(mlmdUtils, 'getArtifactsFromContext').mockReturnValue([]);
+    jest.spyOn(mlmdUtils, 'getEventsByExecutions').mockReturnValue([]);
+    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue([]);
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    fireEvent.click(screen.getByText('Confusion Matrix'));
+    screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
+
+    fireEvent.click(screen.getByText('HTML'));
+    screen.getByText('There are no HTML artifacts available on the selected runs.');
+
+    fireEvent.click(screen.getByText('Markdown'));
+    screen.getByText('There are no Markdown artifacts available on the selected runs.');
+  });
+
+  it('Only confusion matrix tab has dropdown loaded with content', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    const contexts = [
+      newMockContext(MOCK_RUN_1_ID, 1),
+      newMockContext(MOCK_RUN_2_ID, 2),
+      newMockContext(MOCK_RUN_3_ID, 3),
+    ];
+    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    getContextSpy.mockImplementation((runID: string) =>
+      Promise.resolve(contexts.find(c => c.getName() === runID)),
+    );
+
+    const executions = [[newMockExecution(1)], [newMockExecution(2)], [newMockExecution(3)]];
+    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    getExecutionsSpy.mockImplementation((context: Context) =>
+      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+    );
+
+    const artifacts = [newMockArtifact(1), newMockArtifact(2, true), newMockArtifact(3)];
+    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+
+    const events = [newMockEvent(1), newMockEvent(2), newMockEvent(3)];
+    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
+    getEventsSpy.mockReturnValue(Promise.resolve(events));
+
+    const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
+    getArtifactTypesSpy.mockReturnValue([]);
+
+    // Simulate all artifacts as type "ClassificationMetrics" (Confusion Matrix or ROC Curve).
+    const filterLinkedArtifactsByTypeSpy = jest.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
+    filterLinkedArtifactsByTypeSpy.mockImplementation(
+      (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
+        metricsFilter === 'system.ClassificationMetrics' ? linkedArtifacts : [],
+    );
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    await waitFor(() => expect(filterLinkedArtifactsByTypeSpy).toHaveBeenCalledTimes(9));
+
+    fireEvent.click(screen.getByText('Confusion Matrix'));
+    screen.getByText('Choose a first Confusion Matrix artifact');
+
+    fireEvent.click(screen.getByText('HTML'));
+    screen.getByText('There are no HTML artifacts available on the selected runs.');
+
+    fireEvent.click(screen.getByText('Markdown'));
+    screen.getByText('There are no Markdown artifacts available on the selected runs.');
   });
 });
