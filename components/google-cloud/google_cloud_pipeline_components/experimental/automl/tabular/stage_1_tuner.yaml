@@ -20,8 +20,7 @@ description: |
         project (str):
             Required. Project to run Cross-validation trainer.
         location (str):
-            Location for running the Cross-validation trainer. If not set,
-            default to us-central1.
+            Location for running the Cross-validation trainer.
         root_dir (str): The Cloud Storage location to store the output.
         study_spec_override (str):
             Quote escaped JSON string for the study spec. An example of the study specs JSON is:
@@ -41,7 +40,7 @@ description: |
         materialized_train_split (MaterializedSplit): The materialized train split.
         materialized_eval_split (MaterializedSplit): The materialized eval split.
         encryption_spec_key_name (Optional[str]): Customer-managed encryption key.
-        is_distill (bool): True if in distillation mode. The default value is false.
+        run_distillation (bool): True if in distillation mode. The default value is false.
 
     Returns:
         gcp_resources (str):
@@ -67,7 +66,7 @@ inputs:
 - {name: feature_ranking, type: TabularFeatureRanking, optional: true}
 - {name: tune_feature_selection_rate, type: Boolean, default: "false"}
 - {name: encryption_spec_key_name, type: String, default: ""}
-- {name: is_distill, type: Boolean, default: "false"}
+- {name: run_distillation, type: Boolean, default: "false"}
 
 outputs:
 - {name: gcp_resources, type: String}
@@ -131,7 +130,7 @@ implementation:
         '", "--materialized_eval_split=',
         {inputUri: materialized_eval_split},
         '", "--is_distill=',
-        {inputValue: is_distill},
+        {inputValue: run_distillation},
         '", "--tuning_result_output_path=',
         {outputUri: tuning_result_output},
         '", "--kms_key_name=',

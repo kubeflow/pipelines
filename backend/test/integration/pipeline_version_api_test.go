@@ -25,6 +25,7 @@ import (
 // - Providing tarball file url
 type PipelineVersionApiTest struct {
 	suite.Suite
+	namespace            string
 	pipelineClient       *api_server.PipelineClient
 	pipelineUploadClient *api_server.PipelineUploadClient
 }
@@ -42,13 +43,36 @@ func (s *PipelineVersionApiTest) SetupTest() {
 			glog.Exitf("Failed to initialize test. Error: %s", err.Error())
 		}
 	}
-	clientConfig := test.GetClientConfig(*namespace)
+
+	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
+	var newPipelineClient func() (*api_server.PipelineClient, error)
+
+	if *isKubeflowMode {
+		s.namespace = *namespace
+
+		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
+			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
+		}
+		newPipelineClient = func() (*api_server.PipelineClient, error) {
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+		}
+	} else {
+		clientConfig := test.GetClientConfig(*namespace)
+
+		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
+			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
+		}
+		newPipelineClient = func() (*api_server.PipelineClient, error) {
+			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+		}
+	}
+
 	var err error
-	s.pipelineUploadClient, err = api_server.NewPipelineUploadClient(clientConfig, false)
+	s.pipelineUploadClient, err = newPipelineUploadClient()
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
-	s.pipelineClient, err = api_server.NewPipelineClient(clientConfig, false)
+	s.pipelineClient, err = newPipelineClient()
 	if err != nil {
 		glog.Exitf("Failed to get pipeline client. Error: %s", err.Error())
 	}

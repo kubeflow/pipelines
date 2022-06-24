@@ -130,7 +130,7 @@ type Template interface {
 	GetTemplateType() TemplateType
 
 	//Get workflow
-	RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (*util.Workflow, error)
+	RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (util.ExecutionSpec, error)
 
 	ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledWorkflow, error)
 }
@@ -192,12 +192,12 @@ func OverrideParameterWithSystemDefault(workflow *util.Workflow) error {
 	return nil
 }
 
-func setDefaultServiceAccount(workflow *util.Workflow, serviceAccount string) {
+func setDefaultServiceAccount(workflow util.ExecutionSpec, serviceAccount string) {
 	if len(serviceAccount) > 0 {
 		workflow.SetServiceAccount(serviceAccount)
 		return
 	}
-	workflowServiceAccount := workflow.Spec.ServiceAccountName
+	workflowServiceAccount := workflow.ServiceAccount()
 	if len(workflowServiceAccount) == 0 || workflowServiceAccount == common.DefaultPipelineRunnerServiceAccount {
 		// To reserve SDK backward compatibility, the backend only replaces
 		// serviceaccount when it is empty or equal to default value set by SDK.

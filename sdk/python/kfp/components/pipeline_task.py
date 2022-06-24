@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2021-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,14 +13,15 @@
 # limitations under the License.
 """Pipeline task class and operations."""
 
-import re
 import copy
+import re
 from typing import Any, List, Mapping, Optional, Union
 
 from kfp.components import constants
-from kfp.components import placeholders
 from kfp.components import pipeline_channel
+from kfp.components import placeholders
 from kfp.components import structures
+from kfp.components import utils
 from kfp.components.types import type_utils
 
 
@@ -48,8 +49,11 @@ class PipelineTask:
             container_spec and importer_spec should be filled.
     """
 
-    # To be override by pipeline `register_task_and_generate_id`
-    register_task_handler = lambda task: task.component_spec.name
+    # Fallback behavior for compiling a component. This should be overriden by
+    # pipeline `register_task_and_generate_id` if compiling a pipeline (more
+    # than one component).
+    register_task_handler = lambda task: utils.maybe_rename_for_k8s(
+        task.component_spec.name)
 
     def __init__(
         self,
@@ -116,6 +120,7 @@ class PipelineTask:
         self.container_spec = None
 
         if component_spec.implementation.container is not None:
+
             self.container_spec = self._resolve_command_line_and_arguments(
                 component_spec=component_spec,
                 args=args,
@@ -212,7 +217,7 @@ class PipelineTask:
             elif isinstance(arg, (dict, list)):
                 return json.dumps(arg)
 
-            elif isinstance(arg, structures.InputValuePlaceholder):
+            elif isinstance(arg, placeholders.InputValuePlaceholder):
                 input_name = arg.input_name
                 if not type_utils.is_parameter_type(
                         inputs_dict[input_name].type):
@@ -223,7 +228,7 @@ class PipelineTask:
 
                 if input_name in args or type_utils.is_task_final_status_type(
                         inputs_dict[input_name].type):
-                    return placeholders.input_parameter_placeholder(input_name)
+                    return arg.to_placeholder_string()
                 else:
                     input_spec = inputs_dict[input_name]
                     if input_spec.default is not None:
@@ -232,7 +237,7 @@ class PipelineTask:
                         raise ValueError(
                             f'No value provided for input: {input_name}.')
 
-            elif isinstance(arg, structures.InputUriPlaceholder):
+            elif isinstance(arg, placeholders.InputUriPlaceholder):
                 input_name = arg.input_name
                 if type_utils.is_parameter_type(inputs_dict[input_name].type):
                     raise TypeError(
@@ -241,8 +246,7 @@ class PipelineTask:
                         'InputUriPlaceholder.')
 
                 if input_name in args:
-                    input_uri = placeholders.input_artifact_uri_placeholder(
-                        input_name)
+                    input_uri = arg.to_placeholder_string()
                     return input_uri
                 else:
                     input_spec = inputs_dict[input_name]
@@ -252,7 +256,7 @@ class PipelineTask:
                         raise ValueError(
                             f'No value provided for input: {input_name}.')
 
-            elif isinstance(arg, structures.InputPathPlaceholder):
+            elif isinstance(arg, placeholders.InputPathPlaceholder):
                 input_name = arg.input_name
                 if type_utils.is_parameter_type(inputs_dict[input_name].type):
                     raise TypeError(
@@ -261,18 +265,17 @@ class PipelineTask:
                         'InputPathPlaceholder.')
 
                 if input_name in args:
-                    input_path = placeholders.input_artifact_path_placeholder(
-                        input_name)
+                    input_path = arg.to_placeholder_string()
                     return input_path
                 else:
                     input_spec = inputs_dict[input_name]
-                    if input_spec.optional:
+                    if input_spec._optional:
                         return None
                     else:
                         raise ValueError(
                             f'No value provided for input: {input_name}.')
 
-            elif isinstance(arg, structures.OutputUriPlaceholder):
+            elif isinstance(arg, placeholders.OutputUriPlaceholder):
                 output_name = arg.output_name
                 if type_utils.is_parameter_type(outputs_dict[output_name].type):
                     raise TypeError(
@@ -280,30 +283,38 @@ class PipelineTask:
                         f'"{outputs_dict[output_name].type}" cannot be paired with '
                         'OutputUriPlaceholder.')
 
-                output_uri = placeholders.output_artifact_uri_placeholder(
-                    output_name)
-                return output_uri
+                return arg.to_placeholder_string()
 
-            elif isinstance(arg, structures.OutputPathPlaceholder):
+            elif isinstance(arg, placeholders.OutputPathPlaceholder):
                 output_name = arg.output_name
 
                 if type_utils.is_parameter_type(outputs_dict[output_name].type):
-                    output_path = placeholders.output_parameter_path_placeholder(
-                        output_name)
+                    output_path = placeholders.OutputParameterPlaceholder(
+                        arg.output_name).to_placeholder_string()
                 else:
-                    output_path = placeholders.output_artifact_path_placeholder(
-                        output_name)
+                    output_path = arg.to_placeholder_string()
                 return output_path
 
-            elif isinstance(arg, structures.ConcatPlaceholder):
+            elif isinstance(arg, placeholders.OutputParameterPlaceholder):
+                output_name = arg.output_name
+                if not type_utils.is_parameter_type(
+                        outputs_dict[output_name].type):
+                    raise TypeError(
+                        f'Onput "{output_name}" with type '
+                        f'"{outputs_dict[output_name].type}" cannot be paired with '
+                        'OutputUriPlaceholder.')
+
+                return arg.to_placeholder_string()
+
+            elif isinstance(arg, placeholders.ConcatPlaceholder):
                 expanded_argument_strings = expand_argument_list(arg.items)
                 return ''.join(expanded_argument_strings)
 
-            elif isinstance(arg, structures.IfPresentPlaceholder):
-                if arg.if_structure.input_name in argument_values:
-                    result_node = arg.if_structure.then
+            elif isinstance(arg, placeholders.IfPresentPlaceholder):
+                if arg.input_name in argument_values:
+                    result_node = arg.then
                 else:
-                    result_node = arg.if_structure.otherwise
+                    result_node = arg.else_
 
                 if result_node is None:
                     return []
@@ -315,7 +326,7 @@ class PipelineTask:
                 return expanded_result
 
             else:
-                raise TypeError('Unrecognized argument type: {}'.format(arg))
+                raise TypeError(f'Unrecognized argument type: {arg}')
 
         def expand_argument_list(argument_list) -> Optional[List[str]]:
             if argument_list is None:

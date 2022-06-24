@@ -13,176 +13,161 @@
 # limitations under the License.
 """Definitions for component spec."""
 
-import dataclasses
+import ast
+import collections
+import functools
 import itertools
-from typing import Any, Dict, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
+import uuid
 
-import pydantic
-import yaml
+import kfp
+from kfp import dsl
+from kfp.compiler import compiler
+from kfp.components import base_model
+from kfp.components import placeholders
 from kfp.components import utils
 from kfp.components import v1_components
 from kfp.components import v1_structures
-from kfp.utils import ir_utils
+from kfp.components.types import type_utils
+from kfp.pipeline_spec import pipeline_spec_pb2
+import yaml
 
 
-class BaseModel(pydantic.BaseModel):
+class InputSpec_(base_model.BaseModel):
+    """Component input definitions. (Inner class).
 
-    class Config:
-        allow_population_by_field_name = True
-        arbitrary_types_allowed = True
+    Attributes:
+        type: The type of the input.
+        default (optional): the default value for the input.
+        description: Optional: the user description of the input.
+    """
+    type: Union[str, dict]
+    default: Union[Any, None] = None
 
 
-class InputSpec(BaseModel):
+# Hack to allow access to __init__ arguments for setting _optional value
+class InputSpec(InputSpec_, base_model.BaseModel):
     """Component input definitions.
 
     Attributes:
         type: The type of the input.
-        default: Optional; the default value for the input.
-        description: Optional: the user description of the input.
-        optional: Wether the input is optional. An input is optional when it has
-            an explicit default value.
+        default (optional): the default value for the input.
+        _optional: Wether the input is optional. An input is optional when it has an explicit default value.
     """
-    type: Union[str, dict]
-    default: Optional[Any] = None
-    description: Optional[str] = None
-    _optional: bool = pydantic.PrivateAttr()
 
-    def __init__(self, **data):
-        super().__init__(**data)
-        # An input is optional if a default value is explicitly specified.
-        self._optional = 'default' in data
+    @functools.wraps(InputSpec_.__init__)
+    def __init__(self, *args, **kwargs) -> None:
+        """InputSpec constructor, which can access the arguments passed to the
+        constructor for setting ._optional value."""
+        if args:
+            raise ValueError('InputSpec does not accept positional arguments.')
+        super().__init__(*args, **kwargs)
+        self._optional = 'default' in kwargs
 
-    @property
-    def optional(self) -> bool:
-        return self._optional
+    @classmethod
+    def from_ir_parameter_dict(
+            cls, ir_parameter_dict: Dict[str, Any]) -> 'InputSpec':
+        """Creates an InputSpec from a ComponentInputsSpec message in dict
+        format (pipeline_spec.components.<component-
+        key>.inputDefinitions.parameters.<input-key>).
+
+        Args:
+            ir_parameter_dict (Dict[str, Any]): The ComponentInputsSpec message in dict format.
+
+        Returns:
+            InputSpec: The InputSpec object.
+        """
+        type_ = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE.get(
+            ir_parameter_dict['parameterType'])
+        if type_ is None:
+            raise ValueError(
+                f'Unknown type {ir_parameter_dict["parameterType"]} found in IR.'
+            )
+        default = ir_parameter_dict.get('defaultValue')
+        return InputSpec(type=type_, default=default)
+
+    def __eq__(self, other: Any) -> bool:
+        """Equality comparison for InputSpec. Robust to different type
+        representations, such that it respects the maximum amount of
+        information possible to encode in IR. That is, because
+        `typing.List[str]` can only be represented a `List` in IR,
+        'typing.List' == 'List' in this comparison.
+
+        Args:
+            other (Any): The object to compare to InputSpec.
+
+        Returns:
+            bool: True if the objects are equal, False otherwise.
+        """
+        if isinstance(other, InputSpec):
+            return type_utils.get_canonical_name_for_outer_generic(
+                self.type) == type_utils.get_canonical_name_for_outer_generic(
+                    other.type) and self.default == other.default
+        else:
+            return False
 
 
-class OutputSpec(BaseModel):
+class OutputSpec(base_model.BaseModel):
     """Component output definitions.
 
     Attributes:
         type: The type of the output.
-        description: Optional: the user description of the output.
     """
     type: Union[str, dict]
-    description: Optional[str] = None
+
+    @classmethod
+    def from_ir_parameter_dict(
+            cls, ir_parameter_dict: Dict[str, Any]) -> 'OutputSpec':
+        """Creates an OutputSpec from a ComponentOutputsSpec message in dict
+        format (pipeline_spec.components.<component-
+        key>.outputDefinitions.parameters|artifacts.<output-key>).
+
+        Args:
+            ir_parameter_dict (Dict[str, Any]): The ComponentOutputsSpec in dict format.
+
+        Returns:
+            OutputSpec: The OutputSpec object.
+        """
+        type_string = ir_parameter_dict[
+            'parameterType'] if 'parameterType' in ir_parameter_dict else ir_parameter_dict[
+                'artifactType']['schemaTitle']
+        type_ = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE.get(type_string)
+        if type_ is None:
+            raise ValueError(
+                f'Unknown type {ir_parameter_dict["parameterType"]} found in IR.'
+            )
+        return OutputSpec(type=type_)
+
+    def __eq__(self, other: Any) -> bool:
+        """Equality comparison for OutputSpec. Robust to different type
+        representations, such that it respects the maximum amount of
+        information possible to encode in IR. That is, because
+        `typing.List[str]` can only be represented a `List` in IR,
+        'typing.List' == 'List' in this comparison.
+
+        Args:
+            other (Any): The object to compare to OutputSpec.
+
+        Returns:
+            bool: True if the objects are equal, False otherwise.
+        """
+        if isinstance(other, OutputSpec):
+            return type_utils.get_canonical_name_for_outer_generic(
+                self.type) == type_utils.get_canonical_name_for_outer_generic(
+                    other.type)
+        else:
+            return False
 
 
-class BasePlaceholder(BaseModel):
-    """Base class for placeholders that could appear in container cmd and
-    args."""
-    pass
-
-
-class InputValuePlaceholder(BasePlaceholder):
-    """Class that holds input value for conditional cases.
-
-    Attributes:
-        input_name: name of the input.
-    """
-    input_name: str = pydantic.Field(alias='inputValue')
-
-
-class InputPathPlaceholder(BasePlaceholder):
-    """Class that holds input path for conditional cases.
-
-    Attributes:
-        input_name: name of the input.
-    """
-    input_name: str = pydantic.Field(alias='inputPath')
-
-
-class InputUriPlaceholder(BasePlaceholder):
-    """Class that holds input uri for conditional cases.
-
-    Attributes:
-        input_name: name of the input.
-    """
-    input_name: str = pydantic.Field(alias='inputUri')
-
-
-class OutputPathPlaceholder(BasePlaceholder):
-    """Class that holds output path for conditional cases.
-
-    Attributes:
-        output_name: name of the output.
-    """
-    output_name: str = pydantic.Field(alias='outputPath')
-
-
-class OutputUriPlaceholder(BasePlaceholder):
-    """Class that holds output uri for conditional cases.
-
-    Attributes:
-        output_name: name of the output.
-    """
-    output_name: str = pydantic.Field(alias='outputUri')
-
-
-ValidCommandArgs = Union[str, InputValuePlaceholder, InputPathPlaceholder,
-                         InputUriPlaceholder, OutputPathPlaceholder,
-                         OutputUriPlaceholder, 'IfPresentPlaceholder',
-                         'ConcatPlaceholder']
-
-
-class ConcatPlaceholder(BasePlaceholder):
-    """Class that extends basePlaceholders for concatenation.
-
-    Attributes:
-        items: string or ValidCommandArgs for concatenation.
-    """
-    items: Sequence[ValidCommandArgs] = pydantic.Field(alias='concat')
-
-
-class IfPresentPlaceholderStructure(BaseModel):
-    """Class that holds structure for conditional cases.
-
-    Attributes:
-        input_name: name of the input/output.
-        then: If the input/output specified in name is present,
-            the command-line argument will be replaced at run-time by the
-            expanded value of then.
-        otherwise: If the input/output specified in name is not present,
-            the command-line argument will be replaced at run-time by the
-            expanded value of otherwise.
-    """
-    input_name: str = pydantic.Field(alias='inputName')
-    then: Sequence[ValidCommandArgs]
-    otherwise: Optional[Sequence[ValidCommandArgs]] = pydantic.Field(
-        None, alias='else')
-
-    @pydantic.validator('otherwise', allow_reuse=True)
-    def empty_otherwise_sequence(cls, v):
-        if v == []:
-            return None
-        return v
-
-
-class IfPresentPlaceholder(BasePlaceholder):
-    """Class that extends basePlaceholders for conditional cases.
-
-    Attributes:
-        if_present (ifPresent): holds structure for conditional cases.
-    """
-    if_structure: IfPresentPlaceholderStructure = pydantic.Field(
-        alias='ifPresent')
-
-
-IfPresentPlaceholderStructure.update_forward_refs()
-IfPresentPlaceholder.update_forward_refs()
-ConcatPlaceholder.update_forward_refs()
-
-
-@dataclasses.dataclass
-class ResourceSpec:
+class ResourceSpec(base_model.BaseModel):
     """The resource requirements of a container execution.
 
     Attributes:
-        cpu_limit: Optional; the limit of the number of vCPU cores.
-        memory_limit: Optional; the memory limit in GB.
-        accelerator_type: Optional; the type of accelerators attached to the
+        cpu_limit (optional): the limit of the number of vCPU cores.
+        memory_limit (optional): the memory limit in GB.
+        accelerator_type (optional): the type of accelerators attached to the
             container.
-        accelerator_count: Optional; the number of accelerators attached.
+        accelerator_count (optional): the number of accelerators attached.
     """
     cpu_limit: Optional[float] = None
     memory_limit: Optional[float] = None
@@ -190,36 +175,68 @@ class ResourceSpec:
     accelerator_count: Optional[int] = None
 
 
-class ContainerSpec(BaseModel):
+class ContainerSpec(base_model.BaseModel):
     """Container implementation definition.
 
     Attributes:
         image: The container image.
-        command: Optional; the container entrypoint.
-        args: Optional; the arguments to the container entrypoint.
-        env: Optional; the environment variables to be passed to the container.
-        resources: Optional; the specification on the resource requirements.
+        command (optional): the container entrypoint.
+        args (optional): the arguments to the container entrypoint.
+        env (optional): the environment variables to be passed to the container.
+        resources (optional): the specification on the resource requirements.
     """
     image: str
-    command: Optional[Sequence[ValidCommandArgs]] = None
-    args: Optional[Sequence[ValidCommandArgs]] = None
-    env: Optional[Mapping[str, ValidCommandArgs]] = None
+    command: Optional[List[placeholders.CommandLineElement]] = None
+    args: Optional[List[placeholders.CommandLineElement]] = None
+    env: Optional[Mapping[str, placeholders.CommandLineElement]] = None
     resources: Optional[ResourceSpec] = None
 
-    @pydantic.validator('command', 'args', allow_reuse=True)
-    def empty_sequence(cls, v):
-        if v == []:
-            return None
-        return v
+    def transform_command(self) -> None:
+        """Use None instead of empty list for command."""
+        self.command = None if self.command == [] else self.command
 
-    @pydantic.validator('env', allow_reuse=True)
-    def empty_map(cls, v):
-        if v == {}:
-            return None
-        return v
+    def transform_args(self) -> None:
+        """Use None instead of empty list for args."""
+        self.args = None if self.args == [] else self.args
+
+    def transform_env(self) -> None:
+        """Use None instead of empty dict for env."""
+        self.env = None if self.env == {} else self.env
+
+    @classmethod
+    def from_container_dict(cls, container_dict: Dict[str,
+                                                      Any]) -> 'ContainerSpec':
+        """Creates a ContainerSpec from a PipelineContainerSpec message in dict
+        format (pipeline_spec.deploymentSpec.executors.<executor-
+        key>.container).
+
+        Args:
+            container_dict (Dict[str, Any]): PipelineContainerSpec message in dict format.
+
+        Returns:
+            ContainerSpec: The ContainerSpec instance.
+        """
+        args = container_dict.get('args')
+        if args is not None:
+            args = [
+                placeholders.maybe_convert_placeholder_string_to_placeholder(
+                    arg) for arg in args
+            ]
+        command = container_dict.get('command')
+        if command is not None:
+            command = [
+                placeholders.maybe_convert_placeholder_string_to_placeholder(c)
+                for c in command
+            ]
+        return ContainerSpec(
+            image=container_dict['image'],
+            command=command,
+            args=args,
+            env=None,  # can only be set on tasks
+            resources=None)  # can only be set on tasks
 
 
-class TaskSpec(BaseModel):
+class TaskSpec(base_model.BaseModel):
     """The spec of a pipeline task.
 
     Attributes:
@@ -227,23 +244,23 @@ class TaskSpec(BaseModel):
         inputs: The sources of task inputs. Constant values or PipelineParams.
         dependent_tasks: The list of upstream tasks.
         component_ref: The name of a component spec this task is based on.
-        trigger_condition: Optional; an expression which will be evaluated into
+        trigger_condition (optional): an expression which will be evaluated into
             a boolean value. True to trigger the task to run.
-        trigger_strategy: Optional; when the task will be ready to be triggered.
+        trigger_strategy (optional): when the task will be ready to be triggered.
             Valid values include: "TRIGGER_STRATEGY_UNSPECIFIED",
             "ALL_UPSTREAM_TASKS_SUCCEEDED", and "ALL_UPSTREAM_TASKS_COMPLETED".
-        iterator_items: Optional; the items to iterate on. A constant value or
+        iterator_items (optional): the items to iterate on. A constant value or
             a PipelineParam.
-        iterator_item_input: Optional; the name of the input which has the item
+        iterator_item_input (optional): the name of the input which has the item
             from the [items][] collection.
-        enable_caching: Optional; whether or not to enable caching for the task.
+        enable_caching (optional): whether or not to enable caching for the task.
             Default is True.
-        display_name: Optional; the display name of the task. If not specified,
+        display_name (optional): the display name of the task. If not specified,
             the task name will be used as the display name.
     """
     name: str
     inputs: Mapping[str, Any]
-    dependent_tasks: Sequence[str]
+    dependent_tasks: List[str]
     component_ref: str
     trigger_condition: Optional[str] = None
     trigger_strategy: Optional[str] = None
@@ -253,7 +270,7 @@ class TaskSpec(BaseModel):
     display_name: Optional[str] = None
 
 
-class DagSpec(BaseModel):
+class DagSpec(base_model.BaseModel):
     """DAG(graph) implementation definition.
 
     Attributes:
@@ -261,11 +278,10 @@ class DagSpec(BaseModel):
         outputs: Defines how the outputs of the dag are linked to the sub tasks.
     """
     tasks: Mapping[str, TaskSpec]
-    # TODO(chensun): revisit if we need a DagOutputsSpec class.
     outputs: Mapping[str, Any]
 
 
-class ImporterSpec(BaseModel):
+class ImporterSpec(base_model.BaseModel):
     """ImporterSpec definition.
 
     Attributes:
@@ -273,7 +289,7 @@ class ImporterSpec(BaseModel):
         type_schema: The type of the artifact.
         reimport: Whether or not import an artifact regardless it has been
          imported before.
-        metadata: Optional; the properties of the artifact.
+        metadata (optional): the properties of the artifact.
     """
     artifact_uri: str
     type_schema: str
@@ -281,7 +297,7 @@ class ImporterSpec(BaseModel):
     metadata: Optional[Mapping[str, Any]] = None
 
 
-class Implementation(BaseModel):
+class Implementation(base_model.BaseModel):
     """Implementation definition.
 
     Attributes:
@@ -293,98 +309,232 @@ class Implementation(BaseModel):
     graph: Optional[DagSpec] = None
     importer: Optional[ImporterSpec] = None
 
+    @classmethod
+    def from_deployment_spec_dict(cls, deployment_spec_dict: Dict[str, Any],
+                                  component_name: str) -> 'Implementation':
+        """Creates an Implmentation object from a deployment spec message in
+        dict format (pipeline_spec.deploymentSpec).
 
-class ComponentSpec(BaseModel):
+        Args:
+            deployment_spec_dict (Dict[str, Any]): PipelineDeploymentConfig message in dict format.
+            component_name (str): The name of the component.
+
+        Returns:
+            Implementation: An implementation object.
+        """
+        executor_key = utils._EXECUTOR_LABEL_PREFIX + component_name
+        container = deployment_spec_dict['executors'][executor_key]['container']
+        container_spec = ContainerSpec.from_container_dict(container)
+        return Implementation(container=container_spec)
+
+
+def try_to_get_dict_from_string(string: str) -> Union[dict, str]:
+    """Tries to parse a dictionary from a string if possible, else returns the
+    string.
+
+    Args:
+        string (str): The string to parse.
+
+    Returns:
+        Union[dict, str]: The dictionary if one was successfully parsed, else the original string.
+    """
+    try:
+        res = ast.literal_eval(string)
+    except (ValueError, SyntaxError):
+        return string
+
+    if not isinstance(res, dict):
+        return string
+    return res
+
+
+def convert_str_or_dict_to_placeholder(
+        element: Union[str,
+                       dict]) -> Union[str, placeholders.CommandLineElement]:
+    """Converts command and args elements to a placholder type based on value
+    of the key of the placeholder string, else returns the input.
+
+    Args:
+        element (Union[str, dict, placeholders.CommandLineElement]): A ContainerSpec.command or ContainerSpec.args element.
+
+    Returns:
+        Union[str, placeholders.CommandLineElement]: Possibly converted placeholder or original input.
+    """
+
+    if not isinstance(element, dict):
+        return element
+
+    has_one_entry = len(element) == 1
+
+    if not has_one_entry:
+        raise ValueError(
+            f'Got unexpected dictionary {element}. Expected a dictionary with one entry.'
+        )
+
+    first_key = list(element.keys())[0]
+    first_value = list(element.values())[0]
+    if first_key == 'inputValue':
+        return placeholders.InputValuePlaceholder(
+            input_name=utils.sanitize_input_name(first_value))
+
+    elif first_key == 'inputPath':
+        return placeholders.InputPathPlaceholder(
+            input_name=utils.sanitize_input_name(first_value))
+
+    elif first_key == 'inputUri':
+        return placeholders.InputUriPlaceholder(
+            input_name=utils.sanitize_input_name(first_value))
+
+    elif first_key == 'outputPath':
+        return placeholders.OutputPathPlaceholder(
+            output_name=utils.sanitize_input_name(first_value))
+
+    elif first_key == 'outputUri':
+        return placeholders.OutputUriPlaceholder(
+            output_name=utils.sanitize_input_name(first_value))
+
+    elif first_key == 'ifPresent':
+        structure_kwargs = element['ifPresent']
+        structure_kwargs['input_name'] = structure_kwargs.pop('inputName')
+        structure_kwargs['otherwise'] = structure_kwargs.pop('else')
+        structure_kwargs['then'] = [
+            convert_str_or_dict_to_placeholder(e)
+            for e in structure_kwargs['then']
+        ]
+        structure_kwargs['otherwise'] = [
+            convert_str_or_dict_to_placeholder(e)
+            for e in structure_kwargs['otherwise']
+        ]
+        return placeholders.IfPresentPlaceholder(**structure_kwargs)
+
+    elif first_key == 'concat':
+        return placeholders.ConcatPlaceholder(items=[
+            convert_str_or_dict_to_placeholder(e) for e in element['concat']
+        ])
+
+    else:
+        raise TypeError(
+            f'Unexpected command/argument type: "{element}" of type "{type(element)}".'
+        )
+
+
+def _check_valid_placeholder_reference(
+        valid_inputs: List[str], valid_outputs: List[str],
+        placeholder: placeholders.CommandLineElement) -> None:
+    """Validates input/output placeholders refer to an existing input/output.
+
+    Args:
+        valid_inputs: The existing input names.
+        valid_outputs: The existing output names.
+        arg: The placeholder argument for checking.
+
+    Raises:
+        ValueError: if any placeholder references a non-existing input or
+            output.
+        TypeError: if any argument is neither a str nor a placeholder
+            instance.
+    """
+    if isinstance(
+            placeholder,
+        (placeholders.InputValuePlaceholder, placeholders.InputPathPlaceholder,
+         placeholders.InputUriPlaceholder)):
+        if placeholder.input_name not in valid_inputs:
+            raise ValueError(
+                f'Argument "{placeholder}" references non-existing input.')
+    elif isinstance(placeholder, (placeholders.OutputParameterPlaceholder,
+                                  placeholders.OutputPathPlaceholder,
+                                  placeholders.OutputUriPlaceholder)):
+        if placeholder.output_name not in valid_outputs:
+            raise ValueError(
+                f'Argument "{placeholder}" references non-existing output.')
+    elif isinstance(placeholder, placeholders.IfPresentPlaceholder):
+        if placeholder.input_name not in valid_inputs:
+            raise ValueError(
+                f'Argument "{placeholder}" references non-existing input.')
+        for placeholder in itertools.chain(placeholder.then or [],
+                                           placeholder.else_ or []):
+            _check_valid_placeholder_reference(valid_inputs, valid_outputs,
+                                               placeholder)
+    elif isinstance(placeholder, placeholders.ConcatPlaceholder):
+        for placeholder in placeholder.items:
+            _check_valid_placeholder_reference(valid_inputs, valid_outputs,
+                                               placeholder)
+    elif not isinstance(placeholder, str):
+        raise TypeError(
+            f'Unexpected argument "{placeholder}" of type {type(placeholder)}.')
+
+
+ValidCommandArgTypes = (str, placeholders.InputValuePlaceholder,
+                        placeholders.InputPathPlaceholder,
+                        placeholders.InputUriPlaceholder,
+                        placeholders.OutputPathPlaceholder,
+                        placeholders.OutputUriPlaceholder,
+                        placeholders.IfPresentPlaceholder,
+                        placeholders.ConcatPlaceholder)
+
+
+class ComponentSpec(base_model.BaseModel):
     """The definition of a component.
 
     Attributes:
         name: The name of the component.
-        description: Optional; the description of the component.
-        inputs: Optional; the input definitions of the component.
-        outputs: Optional; the output definitions of the component.
+        description (optional): the description of the component.
+        inputs (optional): the input definitions of the component.
+        outputs (optional): the output definitions of the component.
         implementation: The implementation of the component. Either an executor
             (container, importer) or a DAG consists of other components.
     """
     name: str
+    implementation: Implementation
     description: Optional[str] = None
     inputs: Optional[Dict[str, InputSpec]] = None
     outputs: Optional[Dict[str, OutputSpec]] = None
-    implementation: Implementation
 
-    @pydantic.validator('inputs', 'outputs', allow_reuse=True)
-    def empty_map(cls, v):
-        if v == {}:
-            return None
-        return v
+    def transform_name(self) -> None:
+        """Converts the name to a valid name."""
+        self.name = utils.maybe_rename_for_k8s(self.name)
 
-    @pydantic.root_validator(allow_reuse=True)
-    def validate_placeholders(cls, values):
-        if values.get('implementation').container is None:
-            return values
-        containerSpec: ContainerSpec = values.get('implementation').container
+    def transform_inputs(self) -> None:
+        """Use None instead of empty list for inputs."""
+        self.inputs = None if self.inputs == {} else self.inputs
 
-        try:
-            valid_inputs = values.get('inputs').keys()
-        except AttributeError:
-            valid_inputs = []
+    def transform_outputs(self) -> None:
+        """Use None instead of empty list for outputs."""
+        self.outputs = None if self.outputs == {} else self.outputs
 
-        try:
-            valid_outputs = values.get('outputs').keys()
-        except AttributeError:
-            valid_outputs = []
+    def transform_command_input_placeholders(self) -> None:
+        """Converts command and args elements to a placholder type where
+        applicable."""
+        if self.implementation.container is not None:
+
+            if self.implementation.container.command is not None:
+                self.implementation.container.command = [
+                    convert_str_or_dict_to_placeholder(e)
+                    for e in self.implementation.container.command
+                ]
+
+            if self.implementation.container.args is not None:
+                self.implementation.container.args = [
+                    convert_str_or_dict_to_placeholder(e)
+                    for e in self.implementation.container.args
+                ]
+
+    def validate_placeholders(self):
+        """Validates that input/output placeholders refer to an existing
+        input/output."""
+        implementation = self.implementation
+        if getattr(implementation, 'container', None) is None:
+            return
+
+        containerSpec: ContainerSpec = implementation.container
+
+        valid_inputs = [] if self.inputs is None else list(self.inputs.keys())
+        valid_outputs = [] if self.outputs is None else list(
+            self.outputs.keys())
 
         for arg in itertools.chain((containerSpec.command or []),
                                    (containerSpec.args or [])):
-            cls._check_valid_placeholder_reference(valid_inputs, valid_outputs,
-                                                   arg)
-
-        return values
-
-    @classmethod
-    def _check_valid_placeholder_reference(cls, valid_inputs: Sequence[str],
-                                           valid_outputs: Sequence[str],
-                                           arg: ValidCommandArgs) -> None:
-        """Validates placeholder reference existing input/output names.
-
-        Args:
-            valid_inputs: The existing input names.
-            valid_outputs: The existing output names.
-            arg: The placeholder argument for checking.
-
-        Raises:
-            ValueError: if any placeholder references a non-existing input or
-                output.
-            TypeError: if any argument is neither a str nor a placeholder
-                instance.
-        """
-
-        if isinstance(
-                arg,
-            (InputValuePlaceholder, InputPathPlaceholder, InputUriPlaceholder)):
-            if arg.input_name not in valid_inputs:
-                raise ValueError(
-                    f'Argument "{arg}" references non-existing input.')
-        elif isinstance(arg, (OutputPathPlaceholder, OutputUriPlaceholder)):
-            if arg.output_name not in valid_outputs:
-                raise ValueError(
-                    f'Argument "{arg}" references non-existing output.')
-        elif isinstance(arg, IfPresentPlaceholder):
-            if arg.if_structure.input_name not in valid_inputs:
-                raise ValueError(
-                    f'Argument "{arg}" references non-existing input.')
-            for placeholder in itertools.chain(arg.if_structure.then or [],
-                                               arg.if_structure.otherwise or
-                                               []):
-                cls._check_valid_placeholder_reference(valid_inputs,
-                                                       valid_outputs,
-                                                       placeholder)
-        elif isinstance(arg, ConcatPlaceholder):
-            for placeholder in arg.items:
-                cls._check_valid_placeholder_reference(valid_inputs,
-                                                       valid_outputs,
-                                                       placeholder)
-        elif not isinstance(arg, str):
-            raise TypeError(f'Unexpected argument "{arg}".')
+            _check_valid_placeholder_reference(valid_inputs, valid_outputs, arg)
 
     @classmethod
     def from_v1_component_spec(
@@ -400,96 +550,76 @@ class ComponentSpec(BaseModel):
 
         Raises:
             ValueError: If implementation is not found.
-            TypeError: if any argument is neither a str nor Dict.
+            TypeError: If any argument is neither a str nor Dict.
         """
         component_dict = v1_component_spec.to_dict()
         if component_dict.get('implementation') is None:
             raise ValueError('Implementation field not found')
-        if 'container' not in component_dict.get('implementation'):
-            raise NotImplementedError
 
-        def _transform_arg(arg: Union[str, Dict[str, str]]) -> ValidCommandArgs:
+        if 'container' not in component_dict.get(
+                'implementation'):  # type: ignore
+            raise NotImplementedError('Container implementation not found.')
+
+        def convert_v1_if_present_placholder_to_v2(
+            arg: Dict[str, Any]
+        ) -> Union[Dict[str, Any], placeholders.CommandLineElement]:
+            if isinstance(arg, str):
+                arg = try_to_get_dict_from_string(arg)
             if isinstance(arg, str):
                 return arg
-            if 'inputValue' in arg:
-                return InputValuePlaceholder(
-                    input_name=utils.sanitize_input_name(arg['inputValue']))
-            if 'inputPath' in arg:
-                return InputPathPlaceholder(
-                    input_name=utils.sanitize_input_name(arg['inputPath']))
-            if 'inputUri' in arg:
-                return InputUriPlaceholder(
-                    input_name=utils.sanitize_input_name(arg['inputUri']))
-            if 'outputPath' in arg:
-                return OutputPathPlaceholder(
-                    output_name=utils.sanitize_input_name(arg['outputPath']))
-            if 'outputUri' in arg:
-                return OutputUriPlaceholder(
-                    output_name=utils.sanitize_input_name(arg['outputUri']))
+
             if 'if' in arg:
-                if_placeholder_values = arg['if']
-                if_placeholder_values_then = list(if_placeholder_values['then'])
-                try:
-                    if_placeholder_values_else = list(
-                        if_placeholder_values['else'])
-                except KeyError:
-                    if_placeholder_values_else = []
+                if_ = arg['if']
+                input_name = utils.sanitize_input_name(if_['cond']['isPresent'])
+                then_ = if_['then']
+                else_ = if_.get('else', [])
+                return placeholders.IfPresentPlaceholder(
+                    input_name=input_name,
+                    then=[
+                        convert_str_or_dict_to_placeholder(
+                            convert_v1_if_present_placholder_to_v2(val))
+                        for val in then_
+                    ],
+                    else_=[
+                        convert_str_or_dict_to_placeholder(
+                            convert_v1_if_present_placholder_to_v2(val))
+                        for val in else_
+                    ])
 
-                IfPresentPlaceholderStructure.update_forward_refs()
-                return IfPresentPlaceholder(
-                    if_structure=IfPresentPlaceholderStructure(
-                        input_name=utils.sanitize_input_name(
-                            if_placeholder_values['cond']['isPresent']),
-                        then=list(
-                            _transform_arg(val)
-                            for val in if_placeholder_values_then),
-                        otherwise=list(
-                            _transform_arg(val)
-                            for val in if_placeholder_values_else)))
-            if 'concat' in arg:
-                ConcatPlaceholder.update_forward_refs()
+            elif 'concat' in arg:
 
-                return ConcatPlaceholder(
-                    concat=list(_transform_arg(val) for val in arg['concat']))
-            raise ValueError(
-                f'Unexpected command/argument type: "{arg}" of type "{type(arg)}".'
-            )
+                return placeholders.ConcatPlaceholder(items=[
+                    convert_str_or_dict_to_placeholder(
+                        convert_v1_if_present_placholder_to_v2(val))
+                    for val in arg['concat']
+                ])
+            elif isinstance(arg, (ValidCommandArgTypes, dict)):
+                return arg
+            else:
+                raise TypeError(
+                    f'Unexpected argument {arg} of type {type(arg)}.')
 
         implementation = component_dict['implementation']['container']
         implementation['command'] = [
-            _transform_arg(command)
-            for command in implementation.pop('command', [])
+            convert_v1_if_present_placholder_to_v2(command)
+            for command in implementation.get('command', [])
         ]
         implementation['args'] = [
-            _transform_arg(command)
-            for command in implementation.pop('args', [])
+            convert_v1_if_present_placholder_to_v2(command)
+            for command in implementation.get('args', [])
         ]
         implementation['env'] = {
-            key: _transform_arg(command)
-            for key, command in implementation.pop('env', {}).items()
+            key: convert_v1_if_present_placholder_to_v2(command)
+            for key, command in implementation.get('env', {}).items()
         }
-
         container_spec = ContainerSpec(image=implementation['image'])
-
-        # Workaround for https://github.com/samuelcolvin/pydantic/issues/2079
-        def _copy_model(obj):
-            if isinstance(obj, BaseModel):
-                return obj.copy(deep=True)
-            return obj
-
         # Must assign these after the constructor call, otherwise it won't work.
         if implementation['command']:
-            container_spec.command = [
-                _copy_model(cmd) for cmd in implementation['command']
-            ]
+            container_spec.command = implementation['command']
         if implementation['args']:
-            container_spec.args = [
-                _copy_model(arg) for arg in implementation['args']
-            ]
+            container_spec.args = implementation['args']
         if implementation['env']:
-            container_spec.env = {
-                k: _copy_model(v) for k, v in implementation['env']
-            }
+            container_spec.env = implementation['env']
 
         return ComponentSpec(
             name=component_dict.get('name', 'name'),
@@ -507,68 +637,78 @@ class ComponentSpec(BaseModel):
                 for spec in component_dict.get('outputs', [])
             })
 
-    def to_v1_component_spec(self) -> v1_structures.ComponentSpec:
-        """Converts to v1 ComponentSpec.
+    @classmethod
+    def from_pipeline_spec_dict(
+            cls, pipeline_spec_dict: Dict[str, Any]) -> 'ComponentSpec':
+        raw_name = pipeline_spec_dict['pipelineInfo']['name']
+
+        implementation = Implementation.from_deployment_spec_dict(
+            pipeline_spec_dict['deploymentSpec'], raw_name)
+
+        def inputs_dict_from_components_dict(
+                components_dict: Dict[str, Any],
+                component_name: str) -> Dict[str, InputSpec]:
+            component_key = utils._COMPONENT_NAME_PREFIX + component_name
+            parameters = components_dict[component_key].get(
+                'inputDefinitions', {}).get('parameters', {})
+            return {
+                name: InputSpec.from_ir_parameter_dict(parameter_dict)
+                for name, parameter_dict in parameters.items()
+            }
+
+        def outputs_dict_from_components_dict(
+                components_dict: Dict[str, Any],
+                component_name: str) -> Dict[str, OutputSpec]:
+            component_key = utils._COMPONENT_NAME_PREFIX + component_name
+            parameters = components_dict[component_key].get(
+                'outputDefinitions', {}).get('parameters', {})
+            artifacts = components_dict[component_key].get(
+                'outputDefinitions', {}).get('artifacts', {})
+            all_outputs = {**parameters, **artifacts}
+            return {
+                name: OutputSpec.from_ir_parameter_dict(parameter_dict)
+                for name, parameter_dict in all_outputs.items()
+            }
+
+        def extract_description_from_command(commands: List[str]) -> str:
+            for command in commands:
+                if isinstance(command, str) and 'import kfp' in command:
+                    for node in ast.walk(ast.parse(command)):
+                        if isinstance(
+                                node,
+                            (ast.FunctionDef, ast.ClassDef, ast.Module)):
+                            docstring = ast.get_docstring(node)
+                            if docstring:
+                                return docstring
+            return ''
+
+        inputs = inputs_dict_from_components_dict(
+            pipeline_spec_dict['components'], raw_name)
+        outputs = outputs_dict_from_components_dict(
+            pipeline_spec_dict['components'], raw_name)
+
+        description = extract_description_from_command(
+            implementation.container.command) or None
+        return ComponentSpec(
+            name=raw_name,
+            implementation=implementation,
+            description=description,
+            inputs=inputs,
+            outputs=outputs)
+
+    @classmethod
+    def from_pipeline_spec_yaml(cls,
+                                pipeline_spec_yaml: str) -> 'ComponentSpec':
+        """Creates a ComponentSpec from a pipeline spec in YAML format.
+
+        Args:
+            component_yaml (str): Component spec in YAML format.
 
         Returns:
-            Component spec in the form of V1 ComponentSpec.
-
-        Needed until downstream accept new ComponentSpec.
+            ComponentSpec: The component spec object.
         """
-
-        def _transform_arg(arg: ValidCommandArgs) -> Any:
-            if isinstance(arg, str):
-                return arg
-            if isinstance(arg, InputValuePlaceholder):
-                return v1_structures.InputValuePlaceholder(arg.input_name)
-            if isinstance(arg, InputPathPlaceholder):
-                return v1_structures.InputPathPlaceholder(arg.input_name)
-            if isinstance(arg, InputUriPlaceholder):
-                return v1_structures.InputUriPlaceholder(arg.input_name)
-            if isinstance(arg, OutputPathPlaceholder):
-                return v1_structures.OutputPathPlaceholder(arg.output_name)
-            if isinstance(arg, OutputUriPlaceholder):
-                return v1_structures.OutputUriPlaceholder(arg.output_name)
-            if isinstance(arg, IfPresentPlaceholder):
-                return v1_structures.IfPlaceholder(arg.if_structure)
-            if isinstance(arg, ConcatPlaceholder):
-                return v1_structures.ConcatPlaceholder(arg.concat)
-            raise ValueError(
-                f'Unexpected command/argument type: "{arg}" of type "{type(arg)}".'
-            )
-
-        return v1_structures.ComponentSpec(
-            name=self.name,
-            inputs=[
-                v1_structures.InputSpec(
-                    name=name,
-                    type=input_spec.type,
-                    default=input_spec.default,
-                ) for name, input_spec in self.inputs.items()
-            ],
-            outputs=[
-                v1_structures.OutputSpec(
-                    name=name,
-                    type=output_spec.type,
-                ) for name, output_spec in self.outputs.items()
-            ],
-            implementation=v1_structures.ContainerImplementation(
-                container=v1_structures.ContainerSpec(
-                    image=self.implementation.container.image,
-                    command=[
-                        _transform_arg(cmd)
-                        for cmd in self.implementation.container.command or []
-                    ],
-                    args=[
-                        _transform_arg(arg)
-                        for arg in self.implementation.container.args or []
-                    ],
-                    env={
-                        name: _transform_arg(value) for name, value in
-                        self.implementation.container.env or {}
-                    },
-                )),
-        )
+        return ComponentSpec.from_pipeline_spec_dict(
+            yaml.safe_load(pipeline_spec_yaml))
 
     @classmethod
     def load_from_component_yaml(cls, component_yaml: str) -> 'ComponentSpec':
@@ -582,17 +722,119 @@ class ComponentSpec(BaseModel):
         """
 
         json_component = yaml.safe_load(component_yaml)
-        try:
-            return ComponentSpec.parse_obj(json_component)
-        except (pydantic.ValidationError, AttributeError):
+        is_v1 = 'implementation' in set(json_component.keys())
+        if is_v1:
             v1_component = v1_components._load_component_spec_from_component_text(
                 component_yaml)
             return cls.from_v1_component_spec(v1_component)
+        else:
+            return ComponentSpec.from_pipeline_spec_dict(json_component)
 
     def save_to_component_yaml(self, output_file: str) -> None:
-        """Saves ComponentSpec into yaml file.
+        """Saves ComponentSpec into IR YAML file.
 
         Args:
             output_file: File path to store the component yaml.
         """
-        ir_utils._write_ir_to_file(self.dict(), output_file)
+
+        pipeline_spec = self.to_pipeline_spec()
+        compiler.write_pipeline_spec_to_file(pipeline_spec, output_file)
+
+    def to_pipeline_spec(self) -> pipeline_spec_pb2.PipelineSpec:
+        """Creates a pipeline instance and constructs the pipeline spec for a
+        single component.
+
+        Args:
+            component_spec: The ComponentSpec to convert to PipelineSpec.
+
+        Returns:
+            A PipelineSpec proto representing the compiled component.
+        """
+        # import here to aviod circular module dependency
+        from kfp.compiler import pipeline_spec_builder as builder
+        from kfp.components import pipeline_task
+        from kfp.components import tasks_group
+        from kfp.components.types import type_utils
+
+        args_dict = {}
+        pipeline_inputs = self.inputs or {}
+
+        for arg_name, input_spec in pipeline_inputs.items():
+            arg_type = input_spec.type
+            if not type_utils.is_parameter_type(
+                    arg_type) or type_utils.is_task_final_status_type(arg_type):
+                raise TypeError(
+                    builder.make_invalid_input_type_error_msg(
+                        arg_name, arg_type))
+            args_dict[arg_name] = dsl.PipelineParameterChannel(
+                name=arg_name, channel_type=arg_type)
+
+        task = pipeline_task.PipelineTask(self, args_dict)
+
+        # instead of constructing a pipeline with pipeline_context.Pipeline,
+        # just build the single task group
+        group = tasks_group.TasksGroup(
+            group_type=tasks_group.TasksGroupType.PIPELINE)
+        group.tasks.append(task)
+
+        # Fill in the default values.
+        args_list_with_defaults = [
+            dsl.PipelineParameterChannel(
+                name=input_name,
+                channel_type=input_spec.type,
+                value=input_spec.default,
+            ) for input_name, input_spec in pipeline_inputs.items()
+        ]
+        group.name = uuid.uuid4().hex
+
+        pipeline_name = self.name
+        pipeline_args = args_list_with_defaults
+        task_group = group
+
+        builder.validate_pipeline_name(pipeline_name)
+
+        pipeline_spec = pipeline_spec_pb2.PipelineSpec()
+        pipeline_spec.pipeline_info.name = pipeline_name
+        pipeline_spec.sdk_version = f'kfp-{kfp.__version__}'
+        # Schema version 2.1.0 is required for kfp-pipeline-spec>0.1.13
+        pipeline_spec.schema_version = '2.1.0'
+        pipeline_spec.root.CopyFrom(
+            builder.build_component_spec_for_group(
+                pipeline_channels=pipeline_args,
+                is_root_group=True,
+            ))
+
+        deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
+        root_group = task_group
+
+        task_name_to_parent_groups, group_name_to_parent_groups = builder.get_parent_groups(
+            root_group)
+
+        def get_inputs(task_group: tasks_group.TasksGroup,
+                       task_name_to_parent_groups):
+            inputs = collections.defaultdict(set)
+            if len(task_group.tasks) != 1:
+                raise ValueError(
+                    f'Error compiling component. Expected one task in task group, got {len(task_group.tasks)}.'
+                )
+            only_task = task_group.tasks[0]
+            if only_task.channel_inputs:
+                for group_name in task_name_to_parent_groups[only_task.name]:
+                    inputs[group_name].add((only_task.channel_inputs[-1], None))
+            return inputs
+
+        inputs = get_inputs(task_group, task_name_to_parent_groups)
+
+        builder.build_spec_by_group(
+            pipeline_spec=pipeline_spec,
+            deployment_config=deployment_config,
+            group=root_group,
+            inputs=inputs,
+            dependencies={},  # no dependencies for single-component pipeline
+            rootgroup_name=root_group.name,
+            task_name_to_parent_groups=task_name_to_parent_groups,
+            group_name_to_parent_groups=group_name_to_parent_groups,
+            name_to_for_loop_group={},  # no for loop for single-component pipeline
+        )
+
+        return pipeline_spec

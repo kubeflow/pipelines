@@ -17,15 +17,14 @@ import itertools
 import pathlib
 import re
 import textwrap
-from typing import Callable, List, Optional, Tuple
 import warnings
+from typing import Callable, List, Optional, Tuple
 
 import docstring_parser
-
-from kfp.components import placeholders
 from kfp.components import python_component
 from kfp.components import structures
-from kfp.components.types import artifact_types, type_annotations 
+from kfp.components.types import artifact_types
+from kfp.components.types import type_annotations
 from kfp.components.types import type_utils
 
 _DEFAULT_BASE_IMAGE = 'python:3.7'
@@ -178,7 +177,6 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
     parameters = list(signature.parameters.values())
 
     parsed_docstring = docstring_parser.parse(inspect.getdoc(func))
-    doc_dict = {p.arg_name: p.description for p in parsed_docstring.params}
 
     inputs = {}
     outputs = {}
@@ -232,8 +230,7 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
         ]:
             io_name = _maybe_make_unique(io_name, output_names)
             output_names.add(io_name)
-            output_spec = structures.OutputSpec(
-                type=type_struct, description=doc_dict.get(parameter.name))
+            output_spec = structures.OutputSpec(type=type_struct)
             outputs[io_name] = output_spec
         else:
             io_name = _maybe_make_unique(io_name, input_names)
@@ -241,14 +238,10 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
             if parameter.default is not inspect.Parameter.empty:
                 input_spec = structures.InputSpec(
                     type=type_struct,
-                    description=doc_dict.get(parameter.name),
                     default=parameter.default,
                 )
             else:
-                input_spec = structures.InputSpec(
-                    type=type_struct,
-                    description=doc_dict.get(parameter.name),
-                )
+                input_spec = structures.InputSpec(type=type_struct)
 
             inputs[io_name] = input_spec
 
@@ -317,6 +310,9 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
     return component_spec
 
 
+EXECUTOR_INPUT_PLACEHOLDER = "{{$}}"
+
+
 def _get_command_and_args_for_lightweight_component(
         func: Callable) -> Tuple[List[str], List[str]]:
     imports_source = [
@@ -348,7 +344,7 @@ def _get_command_and_args_for_lightweight_component(
 
     args = [
         '--executor_input',
-        placeholders.executor_input_placeholder(),
+        EXECUTOR_INPUT_PLACEHOLDER,
         '--function_to_execute',
         func.__name__,
     ]
@@ -366,7 +362,7 @@ def _get_command_and_args_for_containerized_component(
 
     args = [
         '--executor_input',
-        placeholders.executor_input_placeholder(),
+        EXECUTOR_INPUT_PLACEHOLDER,
         '--function_to_execute',
         function_name,
     ]

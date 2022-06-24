@@ -13,13 +13,17 @@
 # limitations under the License.
 """Tests for kfp.compiler.pipeline_spec_builder."""
 
+import os
+import tempfile
 import unittest
 
 from absl.testing import parameterized
+from google.protobuf import json_format
 from google.protobuf import struct_pb2
-from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.compiler import pipeline_spec_builder
 from kfp.components import pipeline_channel
+from kfp.pipeline_spec import pipeline_spec_pb2
+import yaml
 
 
 class PipelineSpecBuilderTest(parameterized.TestCase):
@@ -160,6 +164,49 @@ class PipelineSpecBuilderTest(parameterized.TestCase):
             expected,
             component_spec.input_definitions.parameters['input1'].default_value,
         )
+
+
+class TestValidatePipelineName(parameterized.TestCase):
+
+    @parameterized.parameters(
+        {
+            'pipeline_name': 'my-pipeline',
+            'is_valid': True,
+        },
+        {
+            'pipeline_name': 'p' * 128,
+            'is_valid': True,
+        },
+        {
+            'pipeline_name': 'p' * 129,
+            'is_valid': False,
+        },
+        {
+            'pipeline_name': 'my_pipeline',
+            'is_valid': False,
+        },
+        {
+            'pipeline_name': '-my-pipeline',
+            'is_valid': False,
+        },
+        {
+            'pipeline_name': 'My pipeline',
+            'is_valid': False,
+        },
+    )
+    def test(self, pipeline_name, is_valid):
+
+        if is_valid:
+            pipeline_spec_builder.validate_pipeline_name(pipeline_name)
+        else:
+            with self.assertRaisesRegex(ValueError, 'Invalid pipeline name: '):
+                pipeline_spec_builder.validate_pipeline_name('my_pipeline')
+
+
+def pipeline_spec_from_file(filepath: str) -> str:
+    with open(filepath, 'r') as f:
+        dictionary = yaml.safe_load(f)
+    return json_format.ParseDict(dictionary, pipeline_spec_pb2.PipelineSpec())
 
 
 if __name__ == '__main__':

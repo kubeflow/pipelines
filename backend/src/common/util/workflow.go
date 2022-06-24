@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -31,6 +32,23 @@ type Workflow struct {
 	*workflowapi.Workflow
 }
 
+func NewWorkflowFromBytes(bytes []byte) (*Workflow, error) {
+	var workflow workflowapi.Workflow
+	err := yaml.Unmarshal(bytes, &workflow)
+	if err != nil {
+		return nil, NewInvalidInputErrorWithDetails(err, "Failed to unmarshal the inputs")
+	}
+	return NewWorkflow(&workflow), nil
+}
+
+func NewWorkflowFromInterface(obj interface{}) (*Workflow, error) {
+	workflow, ok := obj.(*workflowapi.Workflow)
+	if ok {
+		return NewWorkflow(workflow), nil
+	}
+	return nil, NewInvalidInputError("not Workflow struct")
+}
+
 // NewWorkflow creates a Workflow.
 func NewWorkflow(workflow *workflowapi.Workflow) *Workflow {
 	return &Workflow{
@@ -38,9 +56,24 @@ func NewWorkflow(workflow *workflowapi.Workflow) *Workflow {
 	}
 }
 
+// Get ExecutionType: ArgoWorkflow
+func (w *Workflow) ExecutionType() ExecutionType {
+	return ArgoWorkflow
+}
+
+// ExecutionSpec interface: Get ExecutionStatus which can be used to
+// access status related information
+func (w *Workflow) ExecutionStatus() ExecutionStatus {
+	return w
+}
+
 // SetServiceAccount Set the service account to run the workflow.
 func (w *Workflow) SetServiceAccount(serviceAccount string) {
 	w.Spec.ServiceAccountName = serviceAccount
+}
+
+func (w *Workflow) ServiceAccount() string {
+	return w.Spec.ServiceAccountName
 }
 
 // OverrideParameters overrides some of the parameters of a Workflow.

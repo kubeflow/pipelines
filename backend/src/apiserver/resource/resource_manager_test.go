@@ -2403,6 +2403,10 @@ func TestReadArtifact_Succeed(t *testing.T) {
 	// 	Enabled:    true,
 	// })
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "argoproj.io/v1alpha1",
+			Kind:       "Workflow",
+		},
 		ObjectMeta: v1.ObjectMeta{
 			Name:              "MY_NAME",
 			Namespace:         "MY_NAMESPACE",
@@ -2448,6 +2452,10 @@ func TestReadArtifact_WorkflowNoStatus_NotFound(t *testing.T) {
 	defer store.Close()
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "argoproj.io/v1alpha1",
+			Kind:       "Workflow",
+		},
 		ObjectMeta: v1.ObjectMeta{
 			Name:              "MY_NAME",
 			Namespace:         "MY_NAMESPACE",

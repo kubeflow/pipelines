@@ -4,6 +4,7 @@
 
 ## kfp ##
 absl-py>=0.9,<2
+click>=7.1.2,<9
 docstring-parser>=0.7.3,<1
 # kfp.Client GCP auth
 # Pin google-api-core version for the bug fixing in 1.31.5
@@ -24,9 +25,9 @@ kfp-pipeline-spec>=0.1.14,<0.2.0
 kfp-server-api>=2.0.0a0,<3.0.0
 kubernetes>=8.0.0,<19
 protobuf>=3.13.0,<4
-pydantic>=1.8.2,<2
 PyYAML>=5.3,<6
 requests-toolbelt>=0.8.0,<1
+tabulate>=0.8.6,<1
 
 ## kfp.deprecated ##
 cloudpickle>=2.0.0,<3
@@ -37,9 +38,7 @@ strip-hints>=0.1.8,<1
 uritemplate>=3.0.1,<4
 
 ## kfp.deprecated.cli ##
-click>=7.1.2,<9
-tabulate>=0.8.6,<1
 typer>=0.3.2,<1.0
 
 ## standard library backports ##
-typing-extensions>=3.7.4,<4; python_version<"3.9"
+typing-extensions>=3.7.4,<5; python_version<"3.9"

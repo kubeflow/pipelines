@@ -1206,10 +1206,3 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     return parameters.some(parameter => !parameter.value);
   }
 }
-
-const EnhancedNewRun: React.FC<PageProps> = props => {
-  const namespace = React.useContext(NamespaceContext);
-  return <NewRun {...props} namespace={namespace} />;
-};
-
-export default EnhancedNewRun;

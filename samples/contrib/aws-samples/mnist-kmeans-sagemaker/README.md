@@ -67,9 +67,18 @@ def np2csv(arr):
     return csv.getvalue().decode().rstrip()
 
 # Prepare input for the model
-urllib.request.urlretrieve("http://deeplearning.net/data/mnist/mnist.pkl.gz", "mnist.pkl.gz")
-with gzip.open('mnist.pkl.gz', 'rb') as f:
-    train_set, _, _ = pickle.load(f, encoding='latin1')
+# Load the dataset
+s3 = boto3.client("s3")
+data_bucket = S3DataConfig(
+    sm_session, "example-notebooks-data-config", "config/data_config.json"
+).get_data_bucket()
+print(f"Using data from {data_bucket}")
+
+s3.download_file(
+    data_bucket, "datasets/image/MNIST/mnist.pkl.gz", "mnist.pkl.gz")
+
+with gzip.open("mnist.pkl.gz", "rb") as f:
+    train_set, _, _ = pickle.load(f, encoding="latin1")
 
 payload = np2csv(train_set[0][30:31])
 

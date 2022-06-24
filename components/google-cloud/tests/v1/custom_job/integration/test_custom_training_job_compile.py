@@ -45,7 +45,7 @@ class CustomTrainingJobCompileTest(unittest.TestCase):
     }]
     self._service_account = "fake_sa"
     self._display_name = "fake_job"
-    self._labels = {'key1':'val1'}
+    self._labels = {'key1': 'val1'}
 
   def tearDown(self):
     super(CustomTrainingJobCompileTest, self).tearDown()
@@ -61,7 +61,7 @@ class CustomTrainingJobCompileTest(unittest.TestCase):
           location=self._location,
           display_name=self._display_name,
           worker_pool_specs=self._worker_pool_specs,
-          reserved_ip_ranges=['1.0.0.0'],
+          reserved_ip_ranges=["my_network"],
           labels=self._labels,
           service_account=self._service_account)
 

@@ -21,10 +21,19 @@ except ImportError:
   from kfp.components import load_component_from_file
 
 __all__ = [
-    'CvTrainerOp', 'InfraValidatorOp', 'Stage1TunerOp', 'EnsembleOp',
-    'StatsAndExampleGenOp', 'FeatureSelectionOp', 'TransformOp', 'FinalizerOp',
-    'WideAndDeepTrainerOp', 'BuiltinAlgorithmHyperparameterTuningJobOp',
-    'TabNetTrainerOp', 'FeatureTransformEngineOp'
+    'CvTrainerOp',
+    'InfraValidatorOp',
+    'Stage1TunerOp',
+    'EnsembleOp',
+    'StatsAndExampleGenOp',
+    'FeatureSelectionOp',
+    'TransformOp',
+    'FinalizerOp',
+    'WideAndDeepTrainerOp',
+    'BuiltinAlgorithmHyperparameterTuningJobOp',
+    'TabNetTrainerOp',
+    'FeatureTransformEngineOp',
+    'TransformConfigurationPlannerOp',
 ]
 
 CvTrainerOp = load_component_from_file(
@@ -43,6 +52,10 @@ TransformOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'transform.yaml'))
 FeatureTransformEngineOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'feature_transform_engine.yaml'))
+TransformConfigurationPlannerOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'transform_configuration_planner.yaml'))
 FinalizerOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'finalizer.yaml'))
 WideAndDeepTrainerOp = load_component_from_file(
