@@ -24,8 +24,8 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
-	api_client "github.com/kubeflow/pipelines/backend/src/apiserver/client"
-	api_storage "github.com/kubeflow/pipelines/backend/src/apiserver/storage"
+	apiserver_client "github.com/kubeflow/pipelines/backend/src/apiserver/client"
+	apiserver_storage "github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/cache/client"
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/cache/storage"
@@ -40,7 +40,7 @@ type ClientManager struct {
 	db            *storage.DB
 	cacheStore    storage.ExecutionCacheStoreInterface
 	k8sCoreClient client.KubernetesCoreInterface
-	minioClient   api_storage.ObjectStoreInterface
+	minioClient   apiserver_storage.ObjectStoreInterface
 	time          util.TimeInterface
 }
 
@@ -52,7 +52,7 @@ func (c *ClientManager) KubernetesCoreClient() client.KubernetesCoreInterface {
 	return c.k8sCoreClient
 }
 
-func (c *ClientManager) MinioClient() api_storage.ObjectStoreInterface {
+func (c *ClientManager) MinioClient() apiserver_storage.ObjectStoreInterface {
 	return c.minioClient
 }
 
@@ -71,11 +71,11 @@ func (c *ClientManager) init(params WhSvrDBParameters, clientParams util.ClientP
 	c.minioClient = NewMinioClient(timeoutDuration, s3params)
 }
 
-func NewMinioClient(initConnectionTimeout time.Duration, params S3Params) api_storage.ObjectStoreInterface {
+func NewMinioClient(initConnectionTimeout time.Duration, params S3Params) apiserver_storage.ObjectStoreInterface {
 	glog.Infof("NewMinioClient %v", params)
-	minioClient := api_client.CreateMinioClientOrFatal(params.serviceHost, params.servicePort,
+	minioClient := apiserver_client.CreateMinioClientOrFatal(params.serviceHost, params.servicePort,
 		params.accessKey, params.secretKey, params.isServiceSecure, params.region, initConnectionTimeout)
-	return api_storage.NewMinioObjectStore(&api_storage.MinioClient{Client: minioClient},
+	return apiserver_storage.NewMinioObjectStore(&apiserver_storage.MinioClient{Client: minioClient},
 		params.region, params.bucketName, params.pipelinePath, params.disableMultipart)
 }
 
