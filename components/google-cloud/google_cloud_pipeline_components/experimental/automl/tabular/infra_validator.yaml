@@ -17,15 +17,13 @@ description: |
   Validates the trained AutoML Tabular model is a valid model.
 
     Args:
-        model (str): Path to the model to be validated.
+        unmanaged_container_model (str): google.UnmanagedContainerModel for model to be validated.
 inputs:
-- {name: model, type: system.Model}
+- {name: unmanaged_container_model, type: google.UnmanagedContainerModel}
 
 implementation:
   container:
     image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod
     args: [
-      --validate_infra_model_path,
-      {inputUri: model},
-      --read_path_from_file
+      --executor_input, "{{$}}",
     ]
