@@ -20,7 +20,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
-	api_storage "github.com/kubeflow/pipelines/backend/src/apiserver/storage"
+	apiserver_storage "github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -44,7 +44,7 @@ type FakeClientManager struct {
 	ArgoClientFake                *client.FakeArgoClient
 	swfClientFake                 *client.FakeSwfClient
 	k8sCoreClientFake             *client.FakeKuberneteCoreClient
-	apiClient                     api_storage.ObjectStoreInterface
+	apiClient                     apiserver_storage.ObjectStoreInterface
 	SubjectAccessReviewClientFake client.SubjectAccessReviewInterface
 	tokenReviewClientFake         client.TokenReviewInterface
 	logArchive                    archive.LogArchiveInterface
@@ -181,7 +181,7 @@ func (f *FakeClientManager) KubernetesCoreClient() client.KubernetesCoreInterfac
 	return f.k8sCoreClientFake
 }
 
-func (f *FakeClientManager) MinioClient() api_storage.ObjectStoreInterface {
+func (f *FakeClientManager) MinioClient() apiserver_storage.ObjectStoreInterface {
 	return f.apiClient
 }
 

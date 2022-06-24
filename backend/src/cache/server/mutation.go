@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"strings"
 
-	api_storage "github.com/kubeflow/pipelines/backend/src/apiserver/storage"
+	apiserver_storage "github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/cache/client"
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/cache/storage"
@@ -63,7 +63,7 @@ var (
 type ClientManagerInterface interface {
 	CacheStore() storage.ExecutionCacheStoreInterface
 	KubernetesCoreClient() client.KubernetesCoreInterface
-	MinioClient() api_storage.ObjectStoreInterface
+	MinioClient() apiserver_storage.ObjectStoreInterface
 }
 
 // MutatePodIfCached will check whether the execution has already been run before from MLMD and apply the output into pod.metadata.output
@@ -226,7 +226,7 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 }
 
 //retrieveCacheItemIfReallyExists checks the objects
-func retrieveCacheItemIfReallyExists(minioClient api_storage.ObjectStoreInterface, execution *model.ExecutionCache, fileName string) (*model.ExecutionCache, error) {
+func retrieveCacheItemIfReallyExists(minioClient apiserver_storage.ObjectStoreInterface, execution *model.ExecutionCache, fileName string) (*model.ExecutionCache, error) {
 	if execution != nil && minioClient != nil {
 		log.Printf("retrieveCacheItemIfReallyExists %s ", execution.ExecutionTemplate)
 		bucket, key := getCacheItemS3Data(execution)
