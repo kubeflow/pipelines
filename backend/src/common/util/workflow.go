@@ -18,10 +18,12 @@ import (
 	"strings"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/workflow/common"
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -35,6 +37,15 @@ type Workflow struct {
 func NewWorkflowFromBytes(bytes []byte) (*Workflow, error) {
 	var workflow workflowapi.Workflow
 	err := yaml.Unmarshal(bytes, &workflow)
+	if err != nil {
+		return nil, NewInvalidInputErrorWithDetails(err, "Failed to unmarshal the inputs")
+	}
+	return NewWorkflow(&workflow), nil
+}
+
+func NewWorkflowFromBytesJSON(bytes []byte) (*Workflow, error) {
+	var workflow workflowapi.Workflow
+	err := json.Unmarshal(bytes, &workflow)
 	if err != nil {
 		return nil, NewInvalidInputErrorWithDetails(err, "Failed to unmarshal the inputs")
 	}
@@ -56,6 +67,51 @@ func NewWorkflow(workflow *workflowapi.Workflow) *Workflow {
 	}
 }
 
+func UnmarshParametersWorkflow(paramsString string) (SpecParameters, error) {
+	if paramsString == "" {
+		return nil, nil
+	}
+	var params []workflowapi.Parameter
+	err := json.Unmarshal([]byte(paramsString), &params)
+	if err != nil {
+		return nil, NewInternalServerError(err, "Parameters have wrong format")
+	}
+	rev := make(SpecParameters, 0, len(params))
+	for _, param := range params {
+		rev = append(rev, SpecParameter{
+			Name:    param.Name,
+			Default: (*string)(param.Default),
+			Value:   (*string)(param.Value)})
+	}
+	return rev, nil
+}
+
+// Marshal parameters to JSON encoded string.
+// This also checks result is not longer than a limit.
+func MarshalParametersWorkflow(params SpecParameters) (string, error) {
+	if params == nil {
+		return "[]", nil
+	}
+
+	inputParams := make([]workflowapi.Parameter, 0)
+	for _, param := range params {
+		newParam := workflowapi.Parameter{
+			Name:    param.Name,
+			Default: ToAnyStringPointer(param.Default),
+			Value:   ToAnyStringPointer(param.Value),
+		}
+		inputParams = append(inputParams, newParam)
+	}
+	paramBytes, err := json.Marshal(inputParams)
+	if err != nil {
+		return "", NewInvalidInputErrorWithDetails(err, "Failed to marshal the parameter.")
+	}
+	if len(paramBytes) > MaxParameterBytes {
+		return "", NewInvalidInputError("The input parameter length exceed maximum size of %v.", MaxParameterBytes)
+	}
+	return string(paramBytes), nil
+}
+
 // Get ExecutionType: ArgoWorkflow
 func (w *Workflow) ExecutionType() ExecutionType {
 	return ArgoWorkflow
@@ -74,6 +130,124 @@ func (w *Workflow) SetServiceAccount(serviceAccount string) {
 
 func (w *Workflow) ServiceAccount() string {
 	return w.Spec.ServiceAccountName
+}
+
+func (w *Workflow) SpecParameters() SpecParameters {
+	rev := make(SpecParameters, 0, len(w.Spec.Arguments.Parameters))
+	for _, currentParam := range w.Spec.Arguments.Parameters {
+		rev = append(rev, SpecParameter{
+			Name:    currentParam.Name,
+			Default: (*string)(currentParam.Default),
+			Value:   (*string)(currentParam.Value)})
+	}
+	return rev
+}
+
+func (w *Workflow) SetSpecParameters(params SpecParameters) {
+	desiredSlice := make([]workflowapi.Parameter, 0)
+	for _, currentParam := range params {
+		newParam := workflowapi.Parameter{
+			Name:    currentParam.Name,
+			Default: ToAnyStringPointer(currentParam.Default),
+			Value:   ToAnyStringPointer(currentParam.Value),
+		}
+		desiredSlice = append(desiredSlice, newParam)
+	}
+	w.Spec.Arguments.Parameters = desiredSlice
+}
+
+func (w *Workflow) GenerateRetryExecution() (ExecutionSpec, []string, error) {
+	switch w.Status.Phase {
+	case workflowapi.WorkflowFailed, workflowapi.WorkflowError:
+		break
+	default:
+		return nil, nil, NewBadRequestError(errors.New("workflow cannot be retried"), "Workflow must be Failed/Error to retry")
+	}
+
+	newWF := w.Workflow.DeepCopy()
+	// Delete/reset fields which indicate workflow completed
+	delete(newWF.Labels, common.LabelKeyCompleted)
+	// Delete/reset fields which indicate workflow is finished being persisted to the database
+	delete(newWF.Labels, LabelKeyWorkflowPersistedFinalState)
+	newWF.ObjectMeta.Labels[common.LabelKeyPhase] = string(workflowapi.NodeRunning)
+	newWF.Status.Phase = workflowapi.WorkflowRunning
+	newWF.Status.Message = ""
+	newWF.Status.FinishedAt = metav1.Time{}
+	if newWF.Spec.ActiveDeadlineSeconds != nil && *newWF.Spec.ActiveDeadlineSeconds == 0 {
+		// if it was terminated, unset the deadline
+		newWF.Spec.ActiveDeadlineSeconds = nil
+	}
+
+	// Iterate the previous nodes. If it was successful Pod carry it forward
+	newWF.Status.Nodes = make(map[string]workflowapi.NodeStatus)
+	onExitNodeName := w.ObjectMeta.Name + ".onExit"
+	var podsToDelete []string
+	for _, node := range w.Status.Nodes {
+		switch node.Phase {
+		case workflowapi.NodeSucceeded, workflowapi.NodeSkipped:
+			if !strings.HasPrefix(node.Name, onExitNodeName) {
+				newWF.Status.Nodes[node.ID] = node
+				continue
+			}
+		case workflowapi.NodeError, workflowapi.NodeFailed, workflowapi.NodeOmitted:
+			if !strings.HasPrefix(node.Name, onExitNodeName) && node.Type == workflowapi.NodeTypeDAG {
+				newNode := node.DeepCopy()
+				newNode.Phase = workflowapi.NodeRunning
+				newNode.Message = ""
+				newNode.FinishedAt = metav1.Time{}
+				newWF.Status.Nodes[newNode.ID] = *newNode
+				continue
+			}
+			// do not add this status to the node. pretend as if this node never existed.
+		default:
+			// Do not allow retry of workflows with pods in Running/Pending phase
+			return nil, nil, NewInternalServerError(
+				errors.New("workflow cannot be retried"),
+				"Workflow cannot be retried with node %s in %s phase", node.ID, node.Phase)
+		}
+		if node.Type == workflowapi.NodeTypePod {
+			podsToDelete = append(podsToDelete, node.ID)
+		}
+	}
+	return NewWorkflow(newWF), podsToDelete, nil
+}
+
+func (w *Workflow) Version() string {
+	return w.ResourceVersion
+}
+
+func (w *Workflow) SetVersion(version string) {
+	w.ResourceVersion = version
+}
+
+func (w *Workflow) ExecutionName() string {
+	return w.Name
+}
+
+func (w *Workflow) SetExecutionName(name string) {
+	w.Name = name
+}
+
+func (w *Workflow) ExecutionNamespace() string {
+	return w.Namespace
+}
+
+func (w *Workflow) SetExecutionNamespace(namespace string) {
+	w.Namespace = namespace
+}
+
+func (w *Workflow) ExecutionUID() string {
+	return string(w.UID)
+}
+
+func (w *Workflow) ExecutionMeta() metav1.ObjectMeta {
+	return w.ObjectMeta
+}
+
+func (w *Workflow) IsTerminating() bool {
+	return w.Spec.ActiveDeadlineSeconds != nil &&
+		*w.Spec.ActiveDeadlineSeconds == 0 &&
+		!w.IsInFinalState()
 }
 
 // OverrideParameters overrides some of the parameters of a Workflow.
@@ -198,8 +372,8 @@ func (w *Workflow) FinishedAt() int64 {
 	return w.Status.FinishedAt.Unix()
 }
 
-func (w *Workflow) Condition() string {
-	return string(w.Status.Phase)
+func (w *Workflow) Condition() ExecutionPhase {
+	return ExecutionPhase(w.Status.Phase)
 }
 
 func (w *Workflow) ToStringForStore() string {
@@ -215,7 +389,7 @@ func (w *Workflow) HasScheduledWorkflowAsParent() bool {
 	return containsScheduledWorkflow(w.Workflow.OwnerReferences)
 }
 
-func (w *Workflow) GetWorkflowSpec() *Workflow {
+func (w *Workflow) GetExecutionSpec() ExecutionSpec {
 	workflow := w.DeepCopy()
 	workflow.Status = workflowapi.WorkflowStatus{}
 	workflow.TypeMeta = metav1.TypeMeta{Kind: w.Kind, APIVersion: w.APIVersion}
