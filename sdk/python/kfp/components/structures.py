@@ -674,7 +674,8 @@ class ComponentSpec(base_model.BaseModel):
                 for name, parameter_dict in all_outputs.items()
             }
 
-        def extract_description_from_command(commands: List[str]) -> str:
+        def extract_description_from_command(
+                commands: List[str]) -> Union[str, None]:
             for command in commands:
                 if isinstance(command, str) and 'import kfp' in command:
                     for node in ast.walk(ast.parse(command)):
@@ -684,7 +685,7 @@ class ComponentSpec(base_model.BaseModel):
                             docstring = ast.get_docstring(node)
                             if docstring:
                                 return docstring
-            return ''
+            return None
 
         inputs = inputs_dict_from_components_dict(
             pipeline_spec_dict['components'], raw_name)
@@ -692,7 +693,7 @@ class ComponentSpec(base_model.BaseModel):
             pipeline_spec_dict['components'], raw_name)
 
         description = extract_description_from_command(
-            implementation.container.command) or None
+            implementation.container.command or [])
         return ComponentSpec(
             name=raw_name,
             implementation=implementation,

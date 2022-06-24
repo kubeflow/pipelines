@@ -69,8 +69,7 @@ CONFIG = {
     },
     'v1_components': {
         'test_cases': [
-            # TODO: this component currently has a bug when extracting the component description from the command
-            # 'concat_placeholder_component',
+            'concat_placeholder_component',
             # TODO: these three currently have placeholder bugs -- uncomment after fix
             # 'if_placeholder_component',
             # 'add_component',
