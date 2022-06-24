@@ -198,23 +198,34 @@ function MetricsDropdown(props: MetricsDropdownProps) {
   const dropdownItems: DropdownItem[] = filteredRunArtifacts.map(x => {
     const subItems: DropdownSubItem[] = [];
     for (const y of x.executionArtifacts) {
-      const executionName: string =
-        y.execution
-          .getCustomPropertiesMap()
-          .get('display_name')
-          ?.getStringValue() || '';
-      const executionLinkedArtifacts: DropdownSubItem[] = y.linkedArtifacts.map(z => {
-        const artifactName: string =
-          z.event
+      const executionName = y.execution
+        .getCustomPropertiesMap()
+        .get('display_name')
+        ?.getStringValue();
+      if (executionName) {
+        const executionLinkedArtifacts: DropdownSubItem[] = [];
+        for (const z of y.linkedArtifacts) {
+          const artifactName = z.event
             .getPath()
             ?.getStepsList()[0]
-            .getKey() || '';
-        return {
-          name: executionName,
-          secondaryName: artifactName,
-        } as DropdownSubItem;
-      });
-      subItems.push(...executionLinkedArtifacts);
+            .getKey();
+          if (artifactName) {
+            executionLinkedArtifacts.push({
+              name: executionName,
+              secondaryName: artifactName,
+            } as DropdownSubItem);
+          } else {
+            logger.warn(
+              `Failed to fetch the display name of the artifact with the following ID: ${z.artifact.getId()}`,
+            );
+          }
+        }
+        subItems.push(...executionLinkedArtifacts);
+      } else {
+        logger.warn(
+          `Failed to fetch the display name of the execution with the following ID: ${y.execution.getId()}`,
+        );
+      }
     }
 
     const runName: string = x.run.run?.name || '';

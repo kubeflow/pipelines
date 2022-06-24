@@ -74,9 +74,16 @@ describe('CompareV2', () => {
     return context;
   }
 
-  function newMockExecution(id: number): Execution {
+  function newMockExecution(id: number, displayName?: string): Execution {
     const execution = new Execution();
     execution.setId(id);
+    if (displayName) {
+      const customPropertiesMap: Map<string, Value> = new Map();
+      const displayNameValue = new Value();
+      displayNameValue.setStringValue(displayName);
+      customPropertiesMap.set('display_name', displayNameValue);
+      jest.spyOn(execution, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
+    }
     return execution;
   }
 
@@ -458,5 +465,64 @@ describe('CompareV2', () => {
 
     fireEvent.click(screen.getByText('Markdown'));
     screen.getByText('There are no Markdown artifacts available on the selected runs.');
+  });
+
+  it('Log warnings when specified execution or artifact does not have a display name', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    const contexts = [
+      newMockContext(MOCK_RUN_1_ID, 1), newMockContext(MOCK_RUN_2_ID, 2)
+    ];
+    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    getContextSpy.mockImplementation((runID: string) =>
+      Promise.resolve(contexts.find(c => c.getName() === runID)),
+    );
+
+    const executions = [[newMockExecution(1)], [newMockExecution(2, "executionName")]];
+    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    getExecutionsSpy.mockImplementation((context: Context) =>
+      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+    );
+
+    const artifacts = [newMockArtifact(1), newMockArtifact(2)];
+    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+
+    const events = [newMockEvent(1), newMockEvent(2)];
+    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
+    getEventsSpy.mockReturnValue(Promise.resolve(events));
+
+    const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
+    getArtifactTypesSpy.mockReturnValue([]);
+  
+    const filterLinkedArtifactsByTypeSpy = jest.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
+    filterLinkedArtifactsByTypeSpy.mockImplementation(
+      (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
+        metricsFilter === 'system.HTML' ? linkedArtifacts : [],
+    );
+
+    const warnSpy = jest.spyOn(Utils.logger, 'warn');
+
+    const props = generateProps();
+    props.location.search = `?${QUERY_PARAMS.runlist}=${MOCK_RUN_1_ID},${MOCK_RUN_2_ID}`;
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...props} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    fireEvent.click(screen.getByText('HTML'));
+    await waitFor(() => {
+      expect(warnSpy).toHaveBeenNthCalledWith(
+        1,
+        'Failed to fetch the display name of the execution with the following ID: 1',
+      );
+      expect(warnSpy).toHaveBeenLastCalledWith(
+        'Failed to fetch the display name of the artifact with the following ID: 2',
+      );
+    });
   });
 });
