@@ -16,7 +16,7 @@ package server
 
 import (
 	"github.com/golang/glog"
-	api_storage "github.com/kubeflow/pipelines/backend/src/apiserver/storage"
+	apiserver_storage "github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/cache/client"
 	"github.com/kubeflow/pipelines/backend/src/cache/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -26,7 +26,7 @@ type FakeClientManager struct {
 	db                *storage.DB
 	cacheStore        storage.ExecutionCacheStoreInterface
 	k8sCoreClientFake *client.FakeKuberneteCoreClient
-	apiClient         api_storage.ObjectStoreInterface
+	apiClient         apiserver_storage.ObjectStoreInterface
 	time              util.TimeInterface
 }
 
@@ -76,6 +76,6 @@ func (f *FakeClientManager) KubernetesCoreClient() client.KubernetesCoreInterfac
 	return f.k8sCoreClientFake
 }
 
-func (f *FakeClientManager) MinioClient() api_storage.ObjectStoreInterface {
+func (f *FakeClientManager) MinioClient() apiserver_storage.ObjectStoreInterface {
 	return f.apiClient
 }
