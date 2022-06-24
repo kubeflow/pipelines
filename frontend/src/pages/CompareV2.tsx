@@ -319,8 +319,8 @@ function CompareV2(props: PageProps) {
   });
 
   useEffect(() => {
-    if (artifactTypes) {
-      const runArtifacts = runs && mlmdPackages ? getRunArtifacts(runs, mlmdPackages) : [];
+    if (runs && mlmdPackages && artifactTypes) {
+      const runArtifacts: RunArtifacts[] = getRunArtifacts(runs, mlmdPackages);
       setConfusionMatrixArtifacts(
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX),
       );
@@ -329,7 +329,7 @@ function CompareV2(props: PageProps) {
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN),
       );
     }
-  }, [mlmdPackages, artifactTypes]);
+  }, [runs, mlmdPackages, artifactTypes]);
 
   useEffect(() => {
     if (isLoadingRunDetails || isLoadingMlmdPackages || isLoadingArtifactTypes) {
