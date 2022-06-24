@@ -191,8 +191,13 @@ function MetricsDropdown(props: MetricsDropdownProps) {
   const { filteredRunArtifacts, metricsTabText } = props;
   const [selectedItem, setSelectedItem] = useState<SelectedItem>({ itemName: '', subItemName: '' });
 
+  if (filteredRunArtifacts.length === 0) {
+    return (
+      <p>There are no {metricsTabText} artifacts available on the selected runs.</p>
+    )
+  }
+
   const dropdownItems: DropdownItem[] = filteredRunArtifacts.map(x => {
-    const runName: string = x.run.run?.name || '';
     const subItems: DropdownSubItem[] = [];
     for (const y of x.executionArtifacts) {
       const executionName: string =
@@ -200,20 +205,21 @@ function MetricsDropdown(props: MetricsDropdownProps) {
           .getCustomPropertiesMap()
           .get('display_name')
           ?.getStringValue() || '';
-      subItems.push(
-        ...y.linkedArtifacts.map(z => {
-          const artifactName: string =
-            z.event
-              .getPath()
-              ?.getStepsList()[0]
-              .getKey() || '';
-          return {
-            name: executionName,
-            secondaryName: artifactName,
-          } as DropdownSubItem;
-        }),
-      );
+      const executionLinkedArtifacts: DropdownSubItem[] = y.linkedArtifacts.map(z => {
+        const artifactName: string =
+          z.event
+            .getPath()
+            ?.getStepsList()[0]
+            .getKey() || '';
+        return {
+          name: executionName,
+          secondaryName: artifactName,
+        } as DropdownSubItem;
+      });
+      subItems.push(...executionLinkedArtifacts);
     }
+
+    const runName: string = x.run.run?.name || '';
     return {
       name: runName,
       subItems,
@@ -227,8 +233,6 @@ function MetricsDropdown(props: MetricsDropdownProps) {
         selectedItem={selectedItem}
         setSelectedItem={setSelectedItem}
       />
-      <br />
-      <p>This is the {metricsTabText} tab.</p>
     </>
   );
 }
@@ -314,7 +318,6 @@ function CompareV2(props: PageProps) {
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN),
       );
     }
-    // TODO(zpChris): This will need to be updated to get the latest info that is up-to-date.
   }, [mlmdPackages, artifactTypes]);
 
   useEffect(() => {
