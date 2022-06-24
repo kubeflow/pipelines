@@ -23,8 +23,7 @@ import { QUERY_PARAMS } from 'src/components/Router';
 import { ApiRunDetail } from 'src/apis/run';
 import Compare from './Compare';
 import * as features from 'src/features';
-import { testBestPractices } from 'src/TestUtils';
-import TestUtils from 'src/TestUtils';
+import TestUtils, { testBestPractices } from 'src/TestUtils';
 
 testBestPractices();
 describe('Switch between v1 and v2 Run Comparison pages', () => {
@@ -114,8 +113,9 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
+    await TestUtils.flushPromises();
 
-    await waitFor(() => screen.getByText('Run overview'));
+    await waitFor(() => expect(screen.queryByText('Parameter Section V2')).toBeNull());
   });
 
   it('Show mixed version runs page error if run versions are mixed between v1 and v2', async () => {
@@ -140,7 +140,6 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
-
     await TestUtils.flushPromises();
 
     await waitFor(() =>
@@ -175,7 +174,6 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...props} />
       </CommonTestWrapper>,
     );
-
     await TestUtils.flushPromises();
 
     await waitFor(() =>
@@ -221,7 +219,6 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...props} />
       </CommonTestWrapper>,
     );
-
     await TestUtils.flushPromises();
 
     await waitFor(() =>
@@ -252,10 +249,9 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
-
     await TestUtils.flushPromises();
 
-    await waitFor(() => screen.getByText('Run overview'));
+    await waitFor(() => expect(screen.queryByText('Parameter Section V2')).toBeNull());
   });
 
   it('Show no error on v1 page if there are less than two runs and v2 feature flag disabled', async () => {
@@ -273,10 +269,9 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...props} />
       </CommonTestWrapper>,
     );
-
     await TestUtils.flushPromises();
 
-    await waitFor(() => screen.getByText('Run overview'));
+    await waitFor(() => expect(screen.queryByText('Parameter Section V2')).toBeNull());
   });
 
   it('Show v2 page if all runs are v2 and the v2 feature flag is enabled', async () => {
@@ -301,8 +296,9 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
+    await TestUtils.flushPromises();
 
-    await waitFor(() => screen.getByText('This is the V2 Run Comparison page.'));
+    await waitFor(() => screen.getByText('Parameter Section V2'));
   });
 
   it('Show v1 page if some runs are v1 and the v2 feature flag is disabled', async () => {
@@ -322,8 +318,9 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
+    await TestUtils.flushPromises();
 
-    await waitFor(() => screen.getByText('Run overview'));
+    await waitFor(() => expect(screen.queryByText('Parameter Section V2')).toBeNull());
   });
 
   it('Show v1 page if all runs are v2 and the v2 feature flag is disabled', async () => {
@@ -343,8 +340,9 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
+    await TestUtils.flushPromises();
 
-    await waitFor(() => screen.getByText('Run overview'));
+    await waitFor(() => expect(screen.queryByText('Parameter Section V2')).toBeNull());
   });
 
   it('Show page error on page when getRun request fails', async () => {
@@ -373,7 +371,6 @@ describe('Switch between v1 and v2 Run Comparison pages', () => {
         <Compare {...generateProps()} />
       </CommonTestWrapper>,
     );
-
     await TestUtils.flushPromises();
 
     await waitFor(() =>

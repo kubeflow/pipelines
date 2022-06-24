@@ -287,6 +287,8 @@ func (r *ResourceManager) CreatePipeline(name string, description string, namesp
 	}
 
 	// Store the pipeline file to a path dependent on pipeline version
+	// TODO(lingqinggan): comments in the yaml files are lost during the coversion;
+	// need to find a way to preserve the original files.
 	err = r.objectStore.AddFile(tmpl.Bytes(),
 		r.objectStore.GetPipelineKey(fmt.Sprint(newPipeline.DefaultVersion.UUID)))
 	if err != nil {
@@ -318,7 +320,7 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 	// Verify pipeline exist
 	pipeline, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
-		return nil, util.Wrap(err, "Get pipeline template failed")
+		return nil, util.Wrap(err, "Get pipeline template failed, pipeline does not exist")
 	}
 
 	if pipeline.DefaultVersion == nil {
@@ -414,6 +416,15 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 
 	// Assign the create at time.
 	runDetail.CreatedAtInSec = runAt
+
+	// Assign the scheduled at time
+	if !apiRun.ScheduledAt.AsTime().IsZero() {
+		// if there is no scheduled time, then we assume this run is scheduled at the same time it is created
+		runDetail.ScheduledAtInSec = runAt
+	} else {
+		runDetail.ScheduledAtInSec = apiRun.ScheduledAt.AsTime().Unix()
+	}
+
 	return r.runStore.CreateRun(runDetail)
 }
 
@@ -866,6 +877,13 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, workflow *
 		if err != nil {
 			return util.Wrap(err, "Failed to retrieve the job name for the job that created the run.")
 		}
+		// Scheduled time equals created time if it is not specified
+		var scheduledTimeInSec int64
+		if workflow.ScheduledAtInSecOr0() == 0 {
+			scheduledTimeInSec = workflow.CreationTimestamp.Unix()
+		} else {
+			scheduledTimeInSec = workflow.ScheduledAtInSecOr0()
+		}
 		runDetail := &model.RunDetail{
 			Run: model.Run{
 				UUID:             runId,
@@ -875,7 +893,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, workflow *
 				StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 				Namespace:        workflow.Namespace,
 				CreatedAtInSec:   workflow.CreationTimestamp.Unix(),
-				ScheduledAtInSec: workflow.ScheduledAtInSecOr0(),
+				ScheduledAtInSec: scheduledTimeInSec,
 				FinishedAtInSec:  workflow.FinishedAt(),
 				Conditions:       condition,
 				PipelineSpec: model.PipelineSpec{
@@ -1241,12 +1259,12 @@ func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, 
 	// Verify pipeline version exist
 	_, err := r.pipelineStore.GetPipelineVersion(versionId)
 	if err != nil {
-		return nil, util.Wrap(err, "Get pipeline version template failed")
+		return nil, util.Wrap(err, "Get pipeline version template failed: cannot get pipeline version")
 	}
 
 	template, err := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(versionId)))
 	if err != nil {
-		return nil, util.Wrap(err, "Get pipeline version template failed")
+		return nil, util.Wrap(err, "Get pipeline version template failed: cannot get file")
 	}
 
 	return template, nil
