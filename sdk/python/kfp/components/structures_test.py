@@ -14,15 +14,12 @@
 """Tests for kfp.components.structures."""
 
 import os
-import sys
 import tempfile
 import textwrap
 import unittest
 
 from absl.testing import parameterized
 from kfp import compiler
-from kfp.compiler.compiler_test import SUPPORTED_COMPONENT_TEST_CASES
-from kfp.compiler.compiler_test import SUPPORTED_COMPONENTS_TEST_DATA_DIR
 from kfp.components import placeholders
 from kfp.components import structures
 
@@ -616,24 +613,6 @@ class TestReadInComponent(parameterized.TestCase):
         self.assertEqual(component_spec.name, 'component-if')
         self.assertEqual(component_spec.implementation.container.image,
                          'alpine')
-
-    @parameterized.parameters(SUPPORTED_COMPONENT_TEST_CASES)
-    def test_read_in_all_v2_components(self, file):
-        try:
-            sys.path.insert(0, SUPPORTED_COMPONENTS_TEST_DATA_DIR)
-            mod = __import__(file, fromlist=[file])
-            component = getattr(mod, file)
-        finally:
-            del sys.path[0]
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            component_file = os.path.join(tmpdir, 'component.yaml')
-            compiler.Compiler().compile(component, component_file)
-            with open(component_file, 'r') as f:
-                yaml_str = f.read()
-        loaded_component_spec = structures.ComponentSpec.load_from_component_yaml(
-            yaml_str)
-        self.assertEqual(component.component_spec, loaded_component_spec)
 
     def test_simple_placeholder(self):
         compiled_yaml = textwrap.dedent("""
