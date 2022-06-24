@@ -191,11 +191,8 @@ function MetricsDropdown(props: MetricsDropdownProps) {
   const { filteredRunArtifacts, metricsTabText } = props;
   const [selectedItem, setSelectedItem] = useState<SelectedItem>({ itemName: '', subItemName: '' });
 
-  if (filteredRunArtifacts.length === 0) {
-    return <p>There are no {metricsTabText} artifacts available on the selected runs.</p>;
-  }
-
-  const dropdownItems: DropdownItem[] = filteredRunArtifacts.map(x => {
+  const dropdownItems: DropdownItem[] = [];
+  for (const x of filteredRunArtifacts) {
     const subItems: DropdownSubItem[] = [];
     for (const y of x.executionArtifacts) {
       const executionName = y.execution
@@ -229,11 +226,18 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     }
 
     const runName: string = x.run.run?.name || '';
-    return {
-      name: runName,
-      subItems,
-    } as DropdownItem;
-  });
+    if (subItems.length > 0) {
+      dropdownItems.push({
+        name: runName,
+        subItems,
+      } as DropdownItem);
+    }
+  }
+
+  if (dropdownItems.length === 0) {
+    return <p>There are no {metricsTabText} artifacts available on the selected runs.</p>;
+  }
+
   return (
     <TwoLevelDropdown
       title={`Choose a first ${metricsTabText} artifact`}

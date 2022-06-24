@@ -87,11 +87,18 @@ describe('CompareV2', () => {
     return execution;
   }
 
-  function newMockEvent(id: number): Event {
+  function newMockEvent(id: number, displayName?: string): Event {
     const event = new Event();
     event.setArtifactId(id);
     event.setExecutionId(id);
     event.setType(Event.Type.OUTPUT);
+    if (displayName) {
+      const path = new Event.Path();
+      const step = new Event.Path.Step();
+      step.setKey(displayName);
+      path.addSteps(step);
+      event.setPath(path);
+    }
     return event;
   }
 
@@ -424,7 +431,11 @@ describe('CompareV2', () => {
       Promise.resolve(contexts.find(c => c.getName() === runID)),
     );
 
-    const executions = [[newMockExecution(1)], [newMockExecution(2)], [newMockExecution(3)]];
+    const executions = [
+      [newMockExecution(1)],
+      [newMockExecution(2, 'executionName')],
+      [newMockExecution(3)],
+    ];
     const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
       Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
@@ -434,7 +445,7 @@ describe('CompareV2', () => {
     const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
     getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
 
-    const events = [newMockEvent(1), newMockEvent(2), newMockEvent(3)];
+    const events = [newMockEvent(1), newMockEvent(2, 'artifactName'), newMockEvent(3)];
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
     getEventsSpy.mockReturnValue(Promise.resolve(events));
 
@@ -472,15 +483,13 @@ describe('CompareV2', () => {
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
 
-    const contexts = [
-      newMockContext(MOCK_RUN_1_ID, 1), newMockContext(MOCK_RUN_2_ID, 2)
-    ];
+    const contexts = [newMockContext(MOCK_RUN_1_ID, 1), newMockContext(MOCK_RUN_2_ID, 2)];
     const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
       Promise.resolve(contexts.find(c => c.getName() === runID)),
     );
 
-    const executions = [[newMockExecution(1)], [newMockExecution(2, "executionName")]];
+    const executions = [[newMockExecution(1)], [newMockExecution(2, 'executionName')]];
     const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
       Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
@@ -496,7 +505,7 @@ describe('CompareV2', () => {
 
     const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
-  
+
     const filterLinkedArtifactsByTypeSpy = jest.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
     filterLinkedArtifactsByTypeSpy.mockImplementation(
       (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
