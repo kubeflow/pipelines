@@ -100,11 +100,11 @@ class RegistryClientTest(parameterized.TestCase):
             'get_version_url':
                 ('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
-                 '/repo/packages/{package_name}/versions/{version}'),
+                 '/repo/packages/{package_name}/versions/{version}?view=FULL'),
             'list_versions_url':
                 ('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
-                 '/repo/packages/{package_name}/versions'),
+                 '/repo/packages/{package_name}/versions?view=FULL'),
             'delete_version_url':
                 ('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
