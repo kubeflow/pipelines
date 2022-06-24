@@ -121,17 +121,17 @@ func main() {
 
 func parseS3Flags() S3Params {
 	var params S3Params
-	flag.StringVar(&params.serviceHost, "s3_service_host", os.Getenv("MINIO_SERVICE_SERVICE_HOST"), "hostname of S3.")
-	flag.StringVar(&params.servicePort, "s3_service_port", os.Getenv("MINIO_SERVICE_SERVICE_PORT"), "port of S3.")
-	flag.StringVar(&params.region, "s3_region", os.Getenv("MINIO_SERVICE_REGION"), "Region of S3 service.")
+	flag.StringVar(&params.serviceHost, "s3_service_host", os.Getenv("SERVICE_HOST"), "hostname of S3.")
+	flag.StringVar(&params.servicePort, "s3_service_port", os.Getenv("SERVICE_PORT"), "port of S3.")
+	flag.StringVar(&params.region, "s3_region", os.Getenv("SERVICE_REGION"), "Region of S3 service.")
 	flag.StringVar(&params.accessKey, "s3_access_key", os.Getenv("OBJECTSTORECONFIG_ACCESSKEY"), "accessKey of S3.")
 	flag.StringVar(&params.secretKey, "s3_secret_key", os.Getenv("OBJECTSTORECONFIG_SECRETACCESSKEY"), "secretKey of S3.")
 	flag.BoolVar(&params.isServiceSecure, "s3_is_service_secure",
-		common.GetBoolFromStringWithDefault(os.Getenv("MINIO_SERVICE_SECURE"), false), "is ssl enabled on S3.")
-	flag.StringVar(&params.bucketName, "s3_bucketname", os.Getenv("MINIO_PIPELINE_BUCKET_NAME"), "default bucketname on S3.")
+		common.GetBoolFromStringWithDefault(os.Getenv("SERVICE_SECURE"), false), "is ssl enabled on S3.")
+	flag.StringVar(&params.bucketName, "s3_bucketname", os.Getenv("PIPELINE_BUCKET_NAME"), "default bucketname on S3.")
 	flag.StringVar(&params.pipelinePath, "s3_pipelinepath", "pipelines", "pipelinepath of S3.")
 	flag.BoolVar(&params.disableMultipart, "s3_disable_multipart",
-		common.GetBoolConfigWithDefault(os.Getenv("MINIO_PIPELINE_BUCKET_DISABLE_MULTIPART"), true), "if multipart request are disabled on S3.")
+		common.GetBoolConfigWithDefault(os.Getenv("PIPELINE_BUCKET_DISABLE_MULTIPART"), true), "if multipart request are disabled on S3.")
 	log.Printf("S3Params %v\n", params)
 	return params
 }

@@ -59,13 +59,13 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-          - name: MINIO_SERVICE_SERVICE_HOST
-          - name: MINIO_SERVICE_SERVICE_PORT
-          - name: MINIO_SERVICE_REGION
-          - name: MINIO_SERVICE_SECURE
-          - name: MINIO_PIPELINE_BUCKET_NAME
-          - name: MINIO_PIPELINE_PATH
-          - name: MINIO_PIPELINE_BUCKET_DISABLE_MULTIPART
+          - name: SERVICE_HOST
+          - name: SERVICE_PORT
+          - name: SERVICE_REGION
+          - name: SERVICE_SECURE
+          - name: PIPELINE_BUCKET_NAME
+          - name: PIPELINE_PATH
+          - name: PIPELINE_BUCKET_DISABLE_MULTIPART
           - name: OBJECTSTORECONFIG_ACCESSKEY
             valueFrom:
               secretKeyRef:
