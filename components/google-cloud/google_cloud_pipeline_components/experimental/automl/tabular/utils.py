@@ -1042,7 +1042,7 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     root_dir: str,
     target_column: str,
     prediction_type: str,
-    transform_config: Dict[str, Any],
+    transform_config: str,
     learning_rate: float,
     dnn_learning_rate: float,
     optimizer_type: str = 'adam',
@@ -1109,7 +1109,8 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     target_column: The target column name.
     prediction_type: The type of prediction the model is to produce.
       'classification' or 'regression'.
-    transform_config: The transformations to apply.
+    transform_config: The path to a GCS file containing the transformations to
+      apply.
     learning_rate: The learning rate used by the linear optimizer.
     dnn_learning_rate: The learning rate for training the deep part of the
       model.
@@ -1215,7 +1216,7 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
       'prediction_type':
           prediction_type,
       'transform_config':
-          json.dumps(transform_config),
+          transform_config,
       'learning_rate':
           learning_rate,
       'dnn_learning_rate':
@@ -1335,7 +1336,7 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     root_dir: str,
     target_column: str,
     prediction_type: str,
-    transform_config: Dict[str, Any],
+    transform_config: str,
     study_spec_metrics: List[Dict[str, Any]],
     study_spec_parameters_override: List[Dict[str, Any]],
     max_trial_count: int,
@@ -1389,7 +1390,8 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     target_column: The target column name.
     prediction_type: The type of prediction the model is to produce.
       "classification" or "regression".
-    transform_config: The transformations to apply.
+    transform_config: The path to a GCS file containing the transformations to
+      apply.
     study_spec_metrics: List of dictionaries representing metrics to optimize.
       The dictionary contains the metric_id, which is reported by the training
       job, ands the optimization goal of the metric. One of "minimize" or
@@ -1486,7 +1488,7 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
       'prediction_type':
           prediction_type,
       'transform_config':
-          json.dumps(transform_config),
+          transform_config,
       'study_spec_metrics':
           study_spec_metrics,
       'study_spec_parameters_override':
@@ -1585,7 +1587,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
     root_dir: str,
     target_column: str,
     prediction_type: str,
-    transform_config: Dict[str, Any],
+    transform_config: str,
     learning_rate: float,
     max_steps: int = -1,
     max_train_secs: int = -1,
@@ -1653,7 +1655,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
     target_column: The target column name.
     prediction_type: The type of prediction the model is to produce.
       "classification" or "regression".
-    transform_config: The transformations to apply.
+    transform_config: The path to a GCS file containing the transformations to
+      apply.
     learning_rate: The learning rate used by the linear optimizer.
     max_steps: Number of steps to run the trainer for.
     max_train_secs: Amount of time in seconds to run the trainer for.
@@ -1766,7 +1769,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
       'prediction_type':
           prediction_type,
       'transform_config':
-          json.dumps(transform_config),
+          transform_config,
       'learning_rate':
           learning_rate,
       'max_steps':
