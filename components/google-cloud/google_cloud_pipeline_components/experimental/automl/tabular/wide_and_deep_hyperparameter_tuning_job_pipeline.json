@@ -2274,7 +2274,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         },
         "exec-automl-tabular-finalizer": {
@@ -2297,7 +2297,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         },
         "exec-automl-tabular-infra-validator": {
@@ -2350,7 +2350,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         },
         "exec-generate-analyze-and-transform-data": {
@@ -2426,7 +2426,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         },
         "exec-model-evaluation": {
@@ -2528,7 +2528,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         },
         "exec-prepare-transform-config": {
@@ -2543,7 +2543,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _prepare_transform_config(\n    root_dir: str, transform_config_str: str,\n    fte_transform_config_path: OutputPath(str)\n):\n  \"\"\"Prepares FTE transformation config.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  import json\n  import os\n  import uuid\n  import pathlib\n  import tensorflow as tf\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\n  transform_config = json.loads(transform_config_str)\n\n  # Save transform config\n  fte_transform_config_output_path = os.path.join(\n      root_dir, 'fte_transform_config-' + str(uuid.uuid4()))\n  tf.io.gfile.makedirs(\n      str(pathlib.Path(fte_transform_config_output_path).parent))\n  with tf.io.gfile.GFile(fte_transform_config_output_path, 'w') as f:\n    json.dump(transform_config, f)\n\n  with tf.io.gfile.GFile(fte_transform_config_path, 'w') as f:\n    f.write(fte_transform_config_output_path)\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _prepare_transform_config(root_dir: str, transform_config_str: str,\n                              fte_transform_config_path: OutputPath(str)):\n  \"\"\"Prepares FTE transformation config.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  import json\n  import os\n  import uuid\n  import pathlib\n  import tensorflow as tf\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\n  transform_config = json.loads(transform_config_str)\n\n  # Save transform config\n  fte_transform_config_output_path = os.path.join(\n      root_dir, 'fte_transform_config-' + str(uuid.uuid4()))\n  tf.io.gfile.makedirs(\n      str(pathlib.Path(fte_transform_config_output_path).parent))\n  with tf.io.gfile.GFile(fte_transform_config_output_path, 'w') as f:\n    json.dump(transform_config, f)\n\n  with tf.io.gfile.GFile(fte_transform_config_path, 'w') as f:\n    f.write(fte_transform_config_output_path)\n\n"
             ],
             "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod"
           }
@@ -2560,7 +2560,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _split_materialized_data(\n    materialized_data: Input[Dataset],\n    materialized_train_split: OutputPath('MaterializedSplit'),\n    materialized_eval_split: OutputPath('MaterializedSplit'),\n    materialized_test_split: OutputPath('MaterializedSplit')\n):\n  \"\"\"Splits materialized_data into materialized_data test, train, and eval splits.\n\n  Necessary adapter between FTE pipeline and trainer.\n\n  Args:\n    materialized_data: materialized_data dataset output by FTE.\n    materialized_train_split: Path patern to materialized_train_split.\n    materialized_eval_split: Path patern to materialized_eval_split.\n    materialized_test_split: Path patern to materialized_test_split.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  import json\n  import tensorflow as tf\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\n  with tf.io.gfile.GFile(materialized_data.path, 'r') as f:\n    artifact_path = f.read()\n\n  # needed to import tf because this is a path in gs://\n  with tf.io.gfile.GFile(artifact_path, 'r') as f:\n    materialized_data_json = json.load(f)\n\n  file_patterns = materialized_data_json['tf_record_data_source'][\n      'file_patterns']\n\n  # we map indicies to file patterns based on the ordering of insertion order\n  # in our transform_data (see above in _generate_analyze_and_transform_data)\n  with tf.io.gfile.GFile(materialized_train_split, 'w') as f:\n    f.write(file_patterns[0])\n\n  with tf.io.gfile.GFile(materialized_eval_split, 'w') as f:\n    f.write(file_patterns[1])\n\n  with tf.io.gfile.GFile(materialized_test_split, 'w') as f:\n    f.write(file_patterns[2])\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _split_materialized_data(\n    materialized_data: Input[Dataset],\n    materialized_train_split: OutputPath('MaterializedSplit'),\n    materialized_eval_split: OutputPath('MaterializedSplit'),\n    materialized_test_split: OutputPath('MaterializedSplit')):\n  \"\"\"Splits materialized_data into materialized_data test, train, and eval splits.\n\n  Necessary adapter between FTE pipeline and trainer.\n\n  Args:\n    materialized_data: materialized_data dataset output by FTE.\n    materialized_train_split: Path patern to materialized_train_split.\n    materialized_eval_split: Path patern to materialized_eval_split.\n    materialized_test_split: Path patern to materialized_test_split.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  import json\n  import tensorflow as tf\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\n  with tf.io.gfile.GFile(materialized_data.path, 'r') as f:\n    artifact_path = f.read()\n\n  # needed to import tf because this is a path in gs://\n  with tf.io.gfile.GFile(artifact_path, 'r') as f:\n    materialized_data_json = json.load(f)\n\n  file_patterns = materialized_data_json['tf_record_data_source'][\n      'file_patterns']\n\n  # we map indicies to file patterns based on the ordering of insertion order\n  # in our transform_data (see above in _generate_analyze_and_transform_data)\n  with tf.io.gfile.GFile(materialized_train_split, 'w') as f:\n    f.write(file_patterns[0])\n\n  with tf.io.gfile.GFile(materialized_eval_split, 'w') as f:\n    f.write(file_patterns[1])\n\n  with tf.io.gfile.GFile(materialized_test_split, 'w') as f:\n    f.write(file_patterns[2])\n\n"
             ],
             "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod"
           }
@@ -2585,7 +2585,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         },
         "exec-transform-configuration-planner": {
@@ -2608,7 +2608,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
           }
         }
       }
