@@ -676,16 +676,15 @@ class ComponentSpec(base_model.BaseModel):
 
         def extract_description_from_command(
                 commands: List[str]) -> Union[str, None]:
-            if commands:
-                for command in commands:
-                    if isinstance(command, str) and 'import kfp' in command:
-                        for node in ast.walk(ast.parse(command)):
-                            if isinstance(
-                                    node,
-                                (ast.FunctionDef, ast.ClassDef, ast.Module)):
-                                docstring = ast.get_docstring(node)
-                                if docstring:
-                                    return docstring
+            for command in commands:
+                if isinstance(command, str) and 'import kfp' in command:
+                    for node in ast.walk(ast.parse(command)):
+                        if isinstance(
+                                node,
+                            (ast.FunctionDef, ast.ClassDef, ast.Module)):
+                            docstring = ast.get_docstring(node)
+                            if docstring:
+                                return docstring
             return None
 
         inputs = inputs_dict_from_components_dict(
