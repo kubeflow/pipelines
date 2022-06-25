@@ -21,7 +21,7 @@ import Hr from 'src/atoms/Hr';
 import Separator from 'src/atoms/Separator';
 import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
-import { commonCss, padding } from 'src/Css';
+import { color, commonCss, fontsize, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import Buttons from 'src/lib/Buttons';
 import { URLParser } from 'src/lib/URLParser';
@@ -50,9 +50,23 @@ import MD2Tabs from 'src/atoms/MD2Tabs';
 const css = stylesheet({
   outputsRow: {
     marginLeft: 15,
-  },
-  overflowRow: {
     overflowX: 'auto',
+  },
+  visualizationPlaceholder: {
+    width: '100%',
+    minWidth: '20rem',
+    maxWidth: '50rem',
+    height: '30rem',
+    backgroundColor: color.lightGrey,
+    borderRadius: '1rem',
+    margin: '1rem 0',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  visualizationPlaceholderText: {
+    fontSize: fontsize.medium,
+    textAlign: 'center',
   },
 });
 
@@ -182,6 +196,21 @@ function getRunArtifacts(runs: ApiRunDetail[], mlmdPackages: MlmdPackage[]): Run
   });
 }
 
+interface VisualizationPlaceholderProps {
+  metricsTabText: string;
+}
+
+function VisualizationPlaceholder(props: VisualizationPlaceholderProps) {
+  const { metricsTabText } = props;
+  return (
+    <div className={classes(css.visualizationPlaceholder)}>
+      <p className={classes(css.visualizationPlaceholderText)}>
+        The selected {metricsTabText} will be displayed here.
+      </p>
+    </div>
+  );
+}
+
 interface MetricsDropdownProps {
   filteredRunArtifacts: RunArtifacts[];
   metricsTabText: string;
@@ -239,12 +268,15 @@ function MetricsDropdown(props: MetricsDropdownProps) {
   }
 
   return (
-    <TwoLevelDropdown
-      title={`Choose a first ${metricsTabText} artifact`}
-      items={dropdownItems}
-      selectedItem={selectedItem}
-      setSelectedItem={setSelectedItem}
-    />
+    <>
+      <TwoLevelDropdown
+        title={`Choose a first ${metricsTabText} artifact`}
+        items={dropdownItems}
+        selectedItem={selectedItem}
+        setSelectedItem={setSelectedItem}
+      />
+      <VisualizationPlaceholder metricsTabText={metricsTabText} />
+    </>
   );
 }
 
@@ -453,7 +485,7 @@ function CompareV2(props: PageProps) {
         collapseSectionUpdate={setIsParamsCollapsed}
       />
       {!isParamsCollapsed && (
-        <div className={classes(commonCss.noShrink, css.outputsRow, css.overflowRow)}>
+        <div className={classes(commonCss.noShrink, css.outputsRow)}>
           <Separator orientation='vertical' />
           <p>Parameter Section V2</p>
           <Hr />
