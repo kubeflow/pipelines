@@ -54,6 +54,8 @@ description: |
             function to given input column. And the result will be used for training. When creating
             transformation for BigQuery Struct column, the column should be flattened using "." as
             the delimiter.
+        transformations_path (str):
+            Path to a GCS file containing JSON string for transformations.
         split_spec (str):
             Quote escaped JSON string for split spec.
         data_source (str):
@@ -100,6 +102,7 @@ inputs:
 - {name: optimization_objective_recall_value, type: Float, default: "-1"}
 - {name: optimization_objective_precision_value, type: Float, default: "-1"}
 - {name: transformations, type: String}
+- {name: transformations_path, type: String, default: ""}
 - {name: split_spec, type: String}
 - {name: data_source, type: String}
 - {name: request_type, type: String, default: "COLUMN_STATS_ONLY"}
@@ -151,7 +154,9 @@ implementation:
         {inputValue: weight_column_name},
         '\", \"transformations\": ',
         {inputValue: transformations},
-        '}", "--split_spec=',
+        '}", "--transformations_override_path=',
+        {inputValue: transformations_path},
+        '", "--split_spec=',
         {inputValue: split_spec},
         '", "--data_source=',
         {inputValue: data_source},
