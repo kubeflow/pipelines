@@ -140,8 +140,7 @@ interface DropdownSubMenuProps {
   setSubDropdownActive: (subDropdownActive: number) => void;
   subDropdownIndex: number;
   item: DropdownItem;
-  setSelectedItem: (selectedItem: SelectedItem) => void;
-  setDropdownActive: (dropdownActive: boolean) => void;
+  deactivateDropdown: (selectedItem: SelectedItem) => void;
 }
 
 function DropdownSubMenu(props: DropdownSubMenuProps) {
@@ -150,8 +149,7 @@ function DropdownSubMenu(props: DropdownSubMenuProps) {
     setSubDropdownActive,
     subDropdownIndex,
     item,
-    setSelectedItem,
-    setDropdownActive,
+    deactivateDropdown,
   } = props;
 
   if (item.subItems.length === 0 || subDropdownActive !== subDropdownIndex) {
@@ -165,12 +163,11 @@ function DropdownSubMenu(props: DropdownSubMenuProps) {
           className={classes(css.dropdownElement)}
           key={subIndex}
           onClick={() => {
-            setSelectedItem({
+            deactivateDropdown({
               itemName: item.name,
               subItemName: subItem.name,
               subItemSecondaryName: subItem.secondaryName,
             });
-            setDropdownActive(false);
             setSubDropdownActive(-1);
           }}
         >
@@ -199,12 +196,11 @@ interface DropdownMenuProps {
   dropdownListRef: Ref<HTMLDivElement>;
   dropdownActive: boolean;
   items: DropdownItem[];
-  setSelectedItem: (selectedItem: SelectedItem) => void;
-  setDropdownActive: (dropdownActive: boolean) => void;
+  deactivateDropdown: (selectedItem: SelectedItem) => void;
 }
 
 function DropdownMenu(props: DropdownMenuProps) {
-  const { dropdownListRef, dropdownActive, items, setSelectedItem, setDropdownActive } = props;
+  const { dropdownListRef, dropdownActive, items, deactivateDropdown } = props;
 
   // Provides the index of the active sub-dropdown, or '-1' if none are active.
   const [subDropdownActive, setSubDropdownActive] = useState<number>(-1);
@@ -233,8 +229,7 @@ function DropdownMenu(props: DropdownMenuProps) {
                 setSubDropdownActive={setSubDropdownActive}
                 subDropdownIndex={index}
                 item={item}
-                setSelectedItem={setSelectedItem}
-                setDropdownActive={setDropdownActive}
+                deactivateDropdown={deactivateDropdown}
               />
             </li>
           );
@@ -273,6 +268,11 @@ function TwoLevelDropdown(props: TwoLevelDropdownProps) {
     setDropdownActive(!dropdownActive);
   };
 
+  const deactivateDropdown = (selectedItem: SelectedItem) => {
+    setSelectedItem(selectedItem);
+    setDropdownActive(false);
+  };
+
   return (
     <div className={classes(css.relativeContainer)}>
       <DropdownButton
@@ -285,8 +285,7 @@ function TwoLevelDropdown(props: TwoLevelDropdownProps) {
         dropdownListRef={dropdownListRef}
         dropdownActive={dropdownActive}
         items={items}
-        setSelectedItem={setSelectedItem}
-        setDropdownActive={setDropdownActive}
+        deactivateDropdown={deactivateDropdown}
       />
     </div>
   );
