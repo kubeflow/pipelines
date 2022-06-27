@@ -1097,6 +1097,12 @@
               ],
               "inputs": {
                 "artifacts": {
+                  "pipelineparam--automl-tabular-ensemble-2-explanation_metadata_artifact": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "explanation_metadata_artifact",
+                      "producerTask": "automl-tabular-ensemble-2"
+                    }
+                  },
                   "pipelineparam--automl-tabular-ensemble-2-unmanaged_container_model": {
                     "taskOutputArtifact": {
                       "outputArtifactKey": "unmanaged_container_model",
@@ -1111,12 +1117,6 @@
                   }
                 },
                 "parameters": {
-                  "pipelineparam--automl-tabular-ensemble-2-explanation_metadata": {
-                    "taskOutputParameter": {
-                      "outputParameterKey": "explanation_metadata",
-                      "producerTask": "automl-tabular-ensemble-2"
-                    }
-                  },
                   "pipelineparam--automl-tabular-ensemble-2-explanation_parameters": {
                     "taskOutputParameter": {
                       "outputParameterKey": "explanation_parameters",
@@ -1189,12 +1189,12 @@
                 "condition": "inputs.parameters['pipelineparam--bool-identity-Output'].string_value == 'true'"
               }
             },
-            "model-batch-predict-3": {
+            "model-batch-predict-2": {
               "cachingOptions": {
                 "enableCache": true
               },
               "componentRef": {
-                "name": "comp-model-batch-predict-3"
+                "name": "comp-model-batch-predict-2"
               },
               "dependentTasks": [
                 "model-upload-2",
@@ -1331,15 +1331,15 @@
                 }
               },
               "taskInfo": {
-                "name": "model-batch-predict-3"
+                "name": "model-batch-predict-2"
               }
             },
-            "model-batch-predict-4": {
+            "model-batch-predict-3": {
               "cachingOptions": {
                 "enableCache": true
               },
               "componentRef": {
-                "name": "comp-model-batch-predict-4"
+                "name": "comp-model-batch-predict-3"
               },
               "dependentTasks": [
                 "model-upload-2",
@@ -1476,7 +1476,7 @@
                 }
               },
               "taskInfo": {
-                "name": "model-batch-predict-4"
+                "name": "model-batch-predict-3"
               }
             },
             "model-upload-2": {
@@ -1823,14 +1823,14 @@
                 "name": "comp-write-bp-result-path"
               },
               "dependentTasks": [
-                "model-batch-predict-3"
+                "model-batch-predict-2"
               ],
               "inputs": {
                 "artifacts": {
                   "bp_job": {
                     "taskOutputArtifact": {
                       "outputArtifactKey": "batchpredictionjob",
-                      "producerTask": "model-batch-predict-3"
+                      "producerTask": "model-batch-predict-2"
                     }
                   }
                 }
@@ -1847,14 +1847,14 @@
                 "name": "comp-write-bp-result-path-2"
               },
               "dependentTasks": [
-                "model-batch-predict-4"
+                "model-batch-predict-3"
               ],
               "inputs": {
                 "artifacts": {
                   "bp_job": {
                     "taskOutputArtifact": {
                       "outputArtifactKey": "batchpredictionjob",
-                      "producerTask": "model-batch-predict-4"
+                      "producerTask": "model-batch-predict-3"
                     }
                   }
                 }
@@ -2055,6 +2055,140 @@
             }
           },
           "tasks": {
+            "model-batch-explanation": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-model-batch-explanation"
+              },
+              "inputs": {
+                "artifacts": {
+                  "explanation_metadata_artifact": {
+                    "componentInputArtifact": "pipelineparam--automl-tabular-ensemble-explanation_metadata_artifact"
+                  },
+                  "unmanaged_container_model": {
+                    "componentInputArtifact": "pipelineparam--automl-tabular-ensemble-unmanaged_container_model"
+                  }
+                },
+                "parameters": {
+                  "accelerator_count": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "0"
+                      }
+                    }
+                  },
+                  "accelerator_type": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "bigquery_destination_output_uri": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "bigquery_source_input_uri": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "encryption_spec_key_name": {
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
+                  },
+                  "explanation_metadata": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "explanation_parameters": {
+                    "componentInputParameter": "pipelineparam--automl-tabular-ensemble-explanation_parameters"
+                  },
+                  "gcs_destination_output_uri_prefix": {
+                    "componentInputParameter": "pipelineparam--root_dir"
+                  },
+                  "gcs_source_uris": {
+                    "componentInputParameter": "pipelineparam--tabular-stats-and-example-gen-downsampled_test_split_json"
+                  },
+                  "generate_explanation": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "1"
+                      }
+                    }
+                  },
+                  "instances_format": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "tf-record"
+                      }
+                    }
+                  },
+                  "job_display_name": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "batch-explain-evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
+                      }
+                    }
+                  },
+                  "labels": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "location": {
+                    "componentInputParameter": "pipelineparam--location"
+                  },
+                  "machine_type": {
+                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_machine_type"
+                  },
+                  "manual_batch_tuning_parameters_batch_size": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "0"
+                      }
+                    }
+                  },
+                  "max_replica_count": {
+                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_max_replica_count"
+                  },
+                  "model_parameters": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "predictions_format": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "jsonl"
+                      }
+                    }
+                  },
+                  "project": {
+                    "componentInputParameter": "pipelineparam--project"
+                  },
+                  "starting_replica_count": {
+                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_starting_replica_count"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "model-batch-explanation"
+              }
+            },
             "model-batch-predict": {
               "cachingOptions": {
                 "enableCache": true
@@ -2188,133 +2322,6 @@
               },
               "taskInfo": {
                 "name": "model-batch-predict"
-              }
-            },
-            "model-batch-predict-2": {
-              "cachingOptions": {
-                "enableCache": true
-              },
-              "componentRef": {
-                "name": "comp-model-batch-predict-2"
-              },
-              "inputs": {
-                "artifacts": {
-                  "unmanaged_container_model": {
-                    "componentInputArtifact": "pipelineparam--automl-tabular-ensemble-unmanaged_container_model"
-                  }
-                },
-                "parameters": {
-                  "accelerator_count": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "intValue": "0"
-                      }
-                    }
-                  },
-                  "accelerator_type": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "bigquery_destination_output_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "bigquery_source_input_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "encryption_spec_key_name": {
-                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
-                  },
-                  "explanation_metadata": {
-                    "componentInputParameter": "pipelineparam--automl-tabular-ensemble-explanation_metadata"
-                  },
-                  "explanation_parameters": {
-                    "componentInputParameter": "pipelineparam--automl-tabular-ensemble-explanation_parameters"
-                  },
-                  "gcs_destination_output_uri_prefix": {
-                    "componentInputParameter": "pipelineparam--root_dir"
-                  },
-                  "gcs_source_uris": {
-                    "componentInputParameter": "pipelineparam--tabular-stats-and-example-gen-downsampled_test_split_json"
-                  },
-                  "generate_explanation": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "intValue": "1"
-                      }
-                    }
-                  },
-                  "instances_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "tf-record"
-                      }
-                    }
-                  },
-                  "job_display_name": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "batch-explain-evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
-                      }
-                    }
-                  },
-                  "labels": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
-                  },
-                  "location": {
-                    "componentInputParameter": "pipelineparam--location"
-                  },
-                  "machine_type": {
-                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_machine_type"
-                  },
-                  "manual_batch_tuning_parameters_batch_size": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "intValue": "0"
-                      }
-                    }
-                  },
-                  "max_replica_count": {
-                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_max_replica_count"
-                  },
-                  "model_parameters": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
-                  },
-                  "predictions_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
-                  },
-                  "project": {
-                    "componentInputParameter": "pipelineparam--project"
-                  },
-                  "starting_replica_count": {
-                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_starting_replica_count"
-                  }
-                }
-              },
-              "taskInfo": {
-                "name": "model-batch-predict-2"
               }
             },
             "model-evaluation": {
@@ -2478,14 +2485,14 @@
                 "name": "comp-model-evaluation-2"
               },
               "dependentTasks": [
-                "model-batch-predict-2"
+                "model-batch-explanation"
               ],
               "inputs": {
                 "artifacts": {
                   "batch_prediction_job": {
                     "taskOutputArtifact": {
                       "outputArtifactKey": "batchpredictionjob",
-                      "producerTask": "model-batch-predict-2"
+                      "producerTask": "model-batch-explanation"
                     }
                   }
                 },
@@ -2666,6 +2673,12 @@
         },
         "inputDefinitions": {
           "artifacts": {
+            "pipelineparam--automl-tabular-ensemble-explanation_metadata_artifact": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
             "pipelineparam--automl-tabular-ensemble-unmanaged_container_model": {
               "artifactType": {
                 "schemaTitle": "google.UnmanagedContainerModel",
@@ -2680,9 +2693,6 @@
             }
           },
           "parameters": {
-            "pipelineparam--automl-tabular-ensemble-explanation_metadata": {
-              "type": "STRING"
-            },
             "pipelineparam--automl-tabular-ensemble-explanation_parameters": {
               "type": "STRING"
             },
@@ -2785,12 +2795,146 @@
             }
           },
           "tasks": {
-            "model-batch-predict-5": {
+            "model-batch-explanation-2": {
               "cachingOptions": {
                 "enableCache": true
               },
               "componentRef": {
-                "name": "comp-model-batch-predict-5"
+                "name": "comp-model-batch-explanation-2"
+              },
+              "inputs": {
+                "artifacts": {
+                  "explanation_metadata_artifact": {
+                    "componentInputArtifact": "pipelineparam--automl-tabular-ensemble-2-explanation_metadata_artifact"
+                  },
+                  "unmanaged_container_model": {
+                    "componentInputArtifact": "pipelineparam--automl-tabular-ensemble-2-unmanaged_container_model"
+                  }
+                },
+                "parameters": {
+                  "accelerator_count": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "0"
+                      }
+                    }
+                  },
+                  "accelerator_type": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "bigquery_destination_output_uri": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "bigquery_source_input_uri": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "encryption_spec_key_name": {
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
+                  },
+                  "explanation_metadata": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "explanation_parameters": {
+                    "componentInputParameter": "pipelineparam--automl-tabular-ensemble-2-explanation_parameters"
+                  },
+                  "gcs_destination_output_uri_prefix": {
+                    "componentInputParameter": "pipelineparam--root_dir"
+                  },
+                  "gcs_source_uris": {
+                    "componentInputParameter": "pipelineparam--tabular-stats-and-example-gen-downsampled_test_split_json"
+                  },
+                  "generate_explanation": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "1"
+                      }
+                    }
+                  },
+                  "instances_format": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "tf-record"
+                      }
+                    }
+                  },
+                  "job_display_name": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "batch-explain-evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
+                      }
+                    }
+                  },
+                  "labels": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "location": {
+                    "componentInputParameter": "pipelineparam--location"
+                  },
+                  "machine_type": {
+                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_machine_type"
+                  },
+                  "manual_batch_tuning_parameters_batch_size": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "0"
+                      }
+                    }
+                  },
+                  "max_replica_count": {
+                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_max_replica_count"
+                  },
+                  "model_parameters": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "predictions_format": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "jsonl"
+                      }
+                    }
+                  },
+                  "project": {
+                    "componentInputParameter": "pipelineparam--project"
+                  },
+                  "starting_replica_count": {
+                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_starting_replica_count"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "model-batch-explanation-2"
+              }
+            },
+            "model-batch-predict-4": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-model-batch-predict-4"
               },
               "inputs": {
                 "artifacts": {
@@ -2917,134 +3061,7 @@
                 }
               },
               "taskInfo": {
-                "name": "model-batch-predict-5"
-              }
-            },
-            "model-batch-predict-6": {
-              "cachingOptions": {
-                "enableCache": true
-              },
-              "componentRef": {
-                "name": "comp-model-batch-predict-6"
-              },
-              "inputs": {
-                "artifacts": {
-                  "unmanaged_container_model": {
-                    "componentInputArtifact": "pipelineparam--automl-tabular-ensemble-2-unmanaged_container_model"
-                  }
-                },
-                "parameters": {
-                  "accelerator_count": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "intValue": "0"
-                      }
-                    }
-                  },
-                  "accelerator_type": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "bigquery_destination_output_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "bigquery_source_input_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "encryption_spec_key_name": {
-                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
-                  },
-                  "explanation_metadata": {
-                    "componentInputParameter": "pipelineparam--automl-tabular-ensemble-2-explanation_metadata"
-                  },
-                  "explanation_parameters": {
-                    "componentInputParameter": "pipelineparam--automl-tabular-ensemble-2-explanation_parameters"
-                  },
-                  "gcs_destination_output_uri_prefix": {
-                    "componentInputParameter": "pipelineparam--root_dir"
-                  },
-                  "gcs_source_uris": {
-                    "componentInputParameter": "pipelineparam--tabular-stats-and-example-gen-downsampled_test_split_json"
-                  },
-                  "generate_explanation": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "intValue": "1"
-                      }
-                    }
-                  },
-                  "instances_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "tf-record"
-                      }
-                    }
-                  },
-                  "job_display_name": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "batch-explain-evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
-                      }
-                    }
-                  },
-                  "labels": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
-                  },
-                  "location": {
-                    "componentInputParameter": "pipelineparam--location"
-                  },
-                  "machine_type": {
-                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_machine_type"
-                  },
-                  "manual_batch_tuning_parameters_batch_size": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "intValue": "0"
-                      }
-                    }
-                  },
-                  "max_replica_count": {
-                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_max_replica_count"
-                  },
-                  "model_parameters": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
-                  },
-                  "predictions_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
-                  },
-                  "project": {
-                    "componentInputParameter": "pipelineparam--project"
-                  },
-                  "starting_replica_count": {
-                    "componentInputParameter": "pipelineparam--evaluation_batch_predict_starting_replica_count"
-                  }
-                }
-              },
-              "taskInfo": {
-                "name": "model-batch-predict-6"
+                "name": "model-batch-predict-4"
               }
             },
             "model-evaluation-3": {
@@ -3055,14 +3072,14 @@
                 "name": "comp-model-evaluation-3"
               },
               "dependentTasks": [
-                "model-batch-predict-5"
+                "model-batch-predict-4"
               ],
               "inputs": {
                 "artifacts": {
                   "batch_prediction_job": {
                     "taskOutputArtifact": {
                       "outputArtifactKey": "batchpredictionjob",
-                      "producerTask": "model-batch-predict-5"
+                      "producerTask": "model-batch-predict-4"
                     }
                   }
                 },
@@ -3208,14 +3225,14 @@
                 "name": "comp-model-evaluation-4"
               },
               "dependentTasks": [
-                "model-batch-predict-6"
+                "model-batch-explanation-2"
               ],
               "inputs": {
                 "artifacts": {
                   "batch_prediction_job": {
                     "taskOutputArtifact": {
                       "outputArtifactKey": "batchpredictionjob",
-                      "producerTask": "model-batch-predict-6"
+                      "producerTask": "model-batch-explanation-2"
                     }
                   }
                 },
@@ -3396,6 +3413,12 @@
         },
         "inputDefinitions": {
           "artifacts": {
+            "pipelineparam--automl-tabular-ensemble-2-explanation_metadata_artifact": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
             "pipelineparam--automl-tabular-ensemble-2-unmanaged_container_model": {
               "artifactType": {
                 "schemaTitle": "google.UnmanagedContainerModel",
@@ -3410,9 +3433,6 @@
             }
           },
           "parameters": {
-            "pipelineparam--automl-tabular-ensemble-2-explanation_metadata": {
-              "type": "STRING"
-            },
             "pipelineparam--automl-tabular-ensemble-2-explanation_parameters": {
               "type": "STRING"
             },
@@ -3524,6 +3544,9 @@
               ],
               "inputs": {
                 "artifacts": {
+                  "pipelineparam--automl-tabular-ensemble-explanation_metadata_artifact": {
+                    "componentInputArtifact": "pipelineparam--automl-tabular-ensemble-explanation_metadata_artifact"
+                  },
                   "pipelineparam--automl-tabular-ensemble-unmanaged_container_model": {
                     "componentInputArtifact": "pipelineparam--automl-tabular-ensemble-unmanaged_container_model"
                   },
@@ -3535,9 +3558,6 @@
                   }
                 },
                 "parameters": {
-                  "pipelineparam--automl-tabular-ensemble-explanation_metadata": {
-                    "componentInputParameter": "pipelineparam--automl-tabular-ensemble-explanation_metadata"
-                  },
                   "pipelineparam--automl-tabular-ensemble-explanation_parameters": {
                     "componentInputParameter": "pipelineparam--automl-tabular-ensemble-explanation_parameters"
                   },
@@ -3744,6 +3764,12 @@
         },
         "inputDefinitions": {
           "artifacts": {
+            "pipelineparam--automl-tabular-ensemble-explanation_metadata_artifact": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
             "pipelineparam--automl-tabular-ensemble-unmanaged_container_model": {
               "artifactType": {
                 "schemaTitle": "google.UnmanagedContainerModel",
@@ -4479,6 +4505,12 @@
               ],
               "inputs": {
                 "artifacts": {
+                  "pipelineparam--automl-tabular-ensemble-explanation_metadata_artifact": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "explanation_metadata_artifact",
+                      "producerTask": "automl-tabular-ensemble"
+                    }
+                  },
                   "pipelineparam--automl-tabular-ensemble-unmanaged_container_model": {
                     "taskOutputArtifact": {
                       "outputArtifactKey": "unmanaged_container_model",
@@ -4914,6 +4946,228 @@
           }
         }
       },
+      "comp-model-batch-explanation": {
+        "executorLabel": "exec-model-batch-explanation",
+        "inputDefinitions": {
+          "artifacts": {
+            "explanation_metadata_artifact": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "unmanaged_container_model": {
+              "artifactType": {
+                "schemaTitle": "google.UnmanagedContainerModel",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "accelerator_count": {
+              "type": "INT"
+            },
+            "accelerator_type": {
+              "type": "STRING"
+            },
+            "bigquery_destination_output_uri": {
+              "type": "STRING"
+            },
+            "bigquery_source_input_uri": {
+              "type": "STRING"
+            },
+            "encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "explanation_metadata": {
+              "type": "STRING"
+            },
+            "explanation_parameters": {
+              "type": "STRING"
+            },
+            "gcs_destination_output_uri_prefix": {
+              "type": "STRING"
+            },
+            "gcs_source_uris": {
+              "type": "STRING"
+            },
+            "generate_explanation": {
+              "type": "STRING"
+            },
+            "instances_format": {
+              "type": "STRING"
+            },
+            "job_display_name": {
+              "type": "STRING"
+            },
+            "labels": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "machine_type": {
+              "type": "STRING"
+            },
+            "manual_batch_tuning_parameters_batch_size": {
+              "type": "INT"
+            },
+            "max_replica_count": {
+              "type": "INT"
+            },
+            "model_parameters": {
+              "type": "STRING"
+            },
+            "predictions_format": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "starting_replica_count": {
+              "type": "INT"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "batchpredictionjob": {
+              "artifactType": {
+                "schemaTitle": "google.VertexBatchPredictionJob",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "bigquery_output_table": {
+              "artifactType": {
+                "schemaTitle": "google.BQTable",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "gcs_output_directory": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "gcp_resources": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-model-batch-explanation-2": {
+        "executorLabel": "exec-model-batch-explanation-2",
+        "inputDefinitions": {
+          "artifacts": {
+            "explanation_metadata_artifact": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "unmanaged_container_model": {
+              "artifactType": {
+                "schemaTitle": "google.UnmanagedContainerModel",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "accelerator_count": {
+              "type": "INT"
+            },
+            "accelerator_type": {
+              "type": "STRING"
+            },
+            "bigquery_destination_output_uri": {
+              "type": "STRING"
+            },
+            "bigquery_source_input_uri": {
+              "type": "STRING"
+            },
+            "encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "explanation_metadata": {
+              "type": "STRING"
+            },
+            "explanation_parameters": {
+              "type": "STRING"
+            },
+            "gcs_destination_output_uri_prefix": {
+              "type": "STRING"
+            },
+            "gcs_source_uris": {
+              "type": "STRING"
+            },
+            "generate_explanation": {
+              "type": "STRING"
+            },
+            "instances_format": {
+              "type": "STRING"
+            },
+            "job_display_name": {
+              "type": "STRING"
+            },
+            "labels": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "machine_type": {
+              "type": "STRING"
+            },
+            "manual_batch_tuning_parameters_batch_size": {
+              "type": "INT"
+            },
+            "max_replica_count": {
+              "type": "INT"
+            },
+            "model_parameters": {
+              "type": "STRING"
+            },
+            "predictions_format": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "starting_replica_count": {
+              "type": "INT"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "batchpredictionjob": {
+              "artifactType": {
+                "schemaTitle": "google.VertexBatchPredictionJob",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "bigquery_output_table": {
+              "artifactType": {
+                "schemaTitle": "google.BQTable",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "gcs_output_directory": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "gcp_resources": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
       "comp-model-batch-predict": {
         "executorLabel": "exec-model-batch-predict",
         "inputDefinitions": {
@@ -5023,9 +5277,9 @@
         "executorLabel": "exec-model-batch-predict-2",
         "inputDefinitions": {
           "artifacts": {
-            "unmanaged_container_model": {
+            "model": {
               "artifactType": {
-                "schemaTitle": "google.UnmanagedContainerModel",
+                "schemaTitle": "google.VertexModel",
                 "schemaVersion": "0.0.1"
               }
             }
@@ -5231,216 +5485,6 @@
       },
       "comp-model-batch-predict-4": {
         "executorLabel": "exec-model-batch-predict-4",
-        "inputDefinitions": {
-          "artifacts": {
-            "model": {
-              "artifactType": {
-                "schemaTitle": "google.VertexModel",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          },
-          "parameters": {
-            "accelerator_count": {
-              "type": "INT"
-            },
-            "accelerator_type": {
-              "type": "STRING"
-            },
-            "bigquery_destination_output_uri": {
-              "type": "STRING"
-            },
-            "bigquery_source_input_uri": {
-              "type": "STRING"
-            },
-            "encryption_spec_key_name": {
-              "type": "STRING"
-            },
-            "explanation_metadata": {
-              "type": "STRING"
-            },
-            "explanation_parameters": {
-              "type": "STRING"
-            },
-            "gcs_destination_output_uri_prefix": {
-              "type": "STRING"
-            },
-            "gcs_source_uris": {
-              "type": "STRING"
-            },
-            "generate_explanation": {
-              "type": "STRING"
-            },
-            "instances_format": {
-              "type": "STRING"
-            },
-            "job_display_name": {
-              "type": "STRING"
-            },
-            "labels": {
-              "type": "STRING"
-            },
-            "location": {
-              "type": "STRING"
-            },
-            "machine_type": {
-              "type": "STRING"
-            },
-            "manual_batch_tuning_parameters_batch_size": {
-              "type": "INT"
-            },
-            "max_replica_count": {
-              "type": "INT"
-            },
-            "model_parameters": {
-              "type": "STRING"
-            },
-            "predictions_format": {
-              "type": "STRING"
-            },
-            "project": {
-              "type": "STRING"
-            },
-            "starting_replica_count": {
-              "type": "INT"
-            }
-          }
-        },
-        "outputDefinitions": {
-          "artifacts": {
-            "batchpredictionjob": {
-              "artifactType": {
-                "schemaTitle": "google.VertexBatchPredictionJob",
-                "schemaVersion": "0.0.1"
-              }
-            },
-            "bigquery_output_table": {
-              "artifactType": {
-                "schemaTitle": "google.BQTable",
-                "schemaVersion": "0.0.1"
-              }
-            },
-            "gcs_output_directory": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          },
-          "parameters": {
-            "gcp_resources": {
-              "type": "STRING"
-            }
-          }
-        }
-      },
-      "comp-model-batch-predict-5": {
-        "executorLabel": "exec-model-batch-predict-5",
-        "inputDefinitions": {
-          "artifacts": {
-            "unmanaged_container_model": {
-              "artifactType": {
-                "schemaTitle": "google.UnmanagedContainerModel",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          },
-          "parameters": {
-            "accelerator_count": {
-              "type": "INT"
-            },
-            "accelerator_type": {
-              "type": "STRING"
-            },
-            "bigquery_destination_output_uri": {
-              "type": "STRING"
-            },
-            "bigquery_source_input_uri": {
-              "type": "STRING"
-            },
-            "encryption_spec_key_name": {
-              "type": "STRING"
-            },
-            "explanation_metadata": {
-              "type": "STRING"
-            },
-            "explanation_parameters": {
-              "type": "STRING"
-            },
-            "gcs_destination_output_uri_prefix": {
-              "type": "STRING"
-            },
-            "gcs_source_uris": {
-              "type": "STRING"
-            },
-            "generate_explanation": {
-              "type": "STRING"
-            },
-            "instances_format": {
-              "type": "STRING"
-            },
-            "job_display_name": {
-              "type": "STRING"
-            },
-            "labels": {
-              "type": "STRING"
-            },
-            "location": {
-              "type": "STRING"
-            },
-            "machine_type": {
-              "type": "STRING"
-            },
-            "manual_batch_tuning_parameters_batch_size": {
-              "type": "INT"
-            },
-            "max_replica_count": {
-              "type": "INT"
-            },
-            "model_parameters": {
-              "type": "STRING"
-            },
-            "predictions_format": {
-              "type": "STRING"
-            },
-            "project": {
-              "type": "STRING"
-            },
-            "starting_replica_count": {
-              "type": "INT"
-            }
-          }
-        },
-        "outputDefinitions": {
-          "artifacts": {
-            "batchpredictionjob": {
-              "artifactType": {
-                "schemaTitle": "google.VertexBatchPredictionJob",
-                "schemaVersion": "0.0.1"
-              }
-            },
-            "bigquery_output_table": {
-              "artifactType": {
-                "schemaTitle": "google.BQTable",
-                "schemaVersion": "0.0.1"
-              }
-            },
-            "gcs_output_directory": {
-              "artifactType": {
-                "schemaTitle": "system.Artifact",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          },
-          "parameters": {
-            "gcp_resources": {
-              "type": "STRING"
-            }
-          }
-        }
-      },
-      "comp-model-batch-predict-6": {
-        "executorLabel": "exec-model-batch-predict-6",
         "inputDefinitions": {
           "artifacts": {
             "unmanaged_container_model": {
@@ -6554,7 +6598,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
           }
         },
         "exec-automl-tabular-ensemble": {
@@ -6577,7 +6621,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
           }
         },
         "exec-automl-tabular-ensemble-2": {
@@ -6600,7 +6644,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
           }
         },
         "exec-automl-tabular-finalizer": {
@@ -6623,7 +6667,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
           }
         },
         "exec-automl-tabular-infra-validator": {
@@ -6672,7 +6716,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
           }
         },
         "exec-automl-tabular-stage-1-tuner-2": {
@@ -6695,7 +6739,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
           }
         },
         "exec-automl-tabular-transform": {
@@ -6718,7 +6762,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
           }
         },
         "exec-automl-tabular-transform-2": {
@@ -6741,7 +6785,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
           }
         },
         "exec-bool-identity": {
@@ -6797,6 +6841,56 @@
             "image": "python:3.7-slim"
           }
         },
+        "exec-model-batch-explanation": {
+          "container": {
+            "args": [
+              "--type",
+              "BatchPredictionJob",
+              "--payload",
+              "{\"display_name\": \"{{$.inputs.parameters['job_display_name']}}\",  \"input_config\": {\"instances_format\": \"{{$.inputs.parameters['instances_format']}}\", \"gcs_source\": {\"uris\":{{$.inputs.parameters['gcs_source_uris']}}}, \"bigquery_source\": {\"input_uri\": \"{{$.inputs.parameters['bigquery_source_input_uri']}}\"}}, \"model_parameters\": {{$.inputs.parameters['model_parameters']}}, \"output_config\": {\"predictions_format\": \"{{$.inputs.parameters['predictions_format']}}\", \"gcs_destination\": {\"output_uri_prefix\": \"{{$.inputs.parameters['gcs_destination_output_uri_prefix']}}\"}, \"bigquery_destination\": {\"output_uri\": \"{{$.inputs.parameters['bigquery_destination_output_uri']}}\"}}, \"dedicated_resources\": {\"machine_spec\": {\"machine_type\": \"{{$.inputs.parameters['machine_type']}}\", \"accelerator_type\": \"{{$.inputs.parameters['accelerator_type']}}\", \"accelerator_count\": {{$.inputs.parameters['accelerator_count']}}}, \"starting_replica_count\": {{$.inputs.parameters['starting_replica_count']}}, \"max_replica_count\": {{$.inputs.parameters['max_replica_count']}}}, \"manual_batch_tuning_parameters\": {\"batch_size\": {{$.inputs.parameters['manual_batch_tuning_parameters_batch_size']}}}, \"generate_explanation\": {{$.inputs.parameters['generate_explanation']}}, \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}, \"explanation_metadata_artifact\": \"{{$.inputs.artifacts['explanation_metadata_artifact'].uri}}\", \"labels\": {{$.inputs.parameters['labels']}}, \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}}",
+              "--project",
+              "{{$.inputs.parameters['project']}}",
+              "--location",
+              "{{$.inputs.parameters['location']}}",
+              "--gcp_resources",
+              "{{$.outputs.parameters['gcp_resources'].output_file}}",
+              "--executor_input",
+              "{{$}}"
+            ],
+            "command": [
+              "python3",
+              "-u",
+              "-m",
+              "launcher"
+            ],
+            "image": "gcr.io/ml-pipeline/automl-tables-private:1.0.10"
+          }
+        },
+        "exec-model-batch-explanation-2": {
+          "container": {
+            "args": [
+              "--type",
+              "BatchPredictionJob",
+              "--payload",
+              "{\"display_name\": \"{{$.inputs.parameters['job_display_name']}}\",  \"input_config\": {\"instances_format\": \"{{$.inputs.parameters['instances_format']}}\", \"gcs_source\": {\"uris\":{{$.inputs.parameters['gcs_source_uris']}}}, \"bigquery_source\": {\"input_uri\": \"{{$.inputs.parameters['bigquery_source_input_uri']}}\"}}, \"model_parameters\": {{$.inputs.parameters['model_parameters']}}, \"output_config\": {\"predictions_format\": \"{{$.inputs.parameters['predictions_format']}}\", \"gcs_destination\": {\"output_uri_prefix\": \"{{$.inputs.parameters['gcs_destination_output_uri_prefix']}}\"}, \"bigquery_destination\": {\"output_uri\": \"{{$.inputs.parameters['bigquery_destination_output_uri']}}\"}}, \"dedicated_resources\": {\"machine_spec\": {\"machine_type\": \"{{$.inputs.parameters['machine_type']}}\", \"accelerator_type\": \"{{$.inputs.parameters['accelerator_type']}}\", \"accelerator_count\": {{$.inputs.parameters['accelerator_count']}}}, \"starting_replica_count\": {{$.inputs.parameters['starting_replica_count']}}, \"max_replica_count\": {{$.inputs.parameters['max_replica_count']}}}, \"manual_batch_tuning_parameters\": {\"batch_size\": {{$.inputs.parameters['manual_batch_tuning_parameters_batch_size']}}}, \"generate_explanation\": {{$.inputs.parameters['generate_explanation']}}, \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}, \"explanation_metadata_artifact\": \"{{$.inputs.artifacts['explanation_metadata_artifact'].uri}}\", \"labels\": {{$.inputs.parameters['labels']}}, \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}}",
+              "--project",
+              "{{$.inputs.parameters['project']}}",
+              "--location",
+              "{{$.inputs.parameters['location']}}",
+              "--gcp_resources",
+              "{{$.outputs.parameters['gcp_resources'].output_file}}",
+              "--executor_input",
+              "{{$}}"
+            ],
+            "command": [
+              "python3",
+              "-u",
+              "-m",
+              "launcher"
+            ],
+            "image": "gcr.io/ml-pipeline/automl-tables-private:1.0.10"
+          }
+        },
         "exec-model-batch-predict": {
           "container": {
             "args": [
@@ -6819,7 +6913,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
           }
         },
         "exec-model-batch-predict-2": {
@@ -6828,7 +6922,7 @@
               "--type",
               "BatchPredictionJob",
               "--payload",
-              "{\"display_name\": \"{{$.inputs.parameters['job_display_name']}}\",  \"input_config\": {\"instances_format\": \"{{$.inputs.parameters['instances_format']}}\", \"gcs_source\": {\"uris\":{{$.inputs.parameters['gcs_source_uris']}}}, \"bigquery_source\": {\"input_uri\": \"{{$.inputs.parameters['bigquery_source_input_uri']}}\"}}, \"model_parameters\": {{$.inputs.parameters['model_parameters']}}, \"output_config\": {\"predictions_format\": \"{{$.inputs.parameters['predictions_format']}}\", \"gcs_destination\": {\"output_uri_prefix\": \"{{$.inputs.parameters['gcs_destination_output_uri_prefix']}}\"}, \"bigquery_destination\": {\"output_uri\": \"{{$.inputs.parameters['bigquery_destination_output_uri']}}\"}}, \"dedicated_resources\": {\"machine_spec\": {\"machine_type\": \"{{$.inputs.parameters['machine_type']}}\", \"accelerator_type\": \"{{$.inputs.parameters['accelerator_type']}}\", \"accelerator_count\": {{$.inputs.parameters['accelerator_count']}}}, \"starting_replica_count\": {{$.inputs.parameters['starting_replica_count']}}, \"max_replica_count\": {{$.inputs.parameters['max_replica_count']}}}, \"manual_batch_tuning_parameters\": {\"batch_size\": {{$.inputs.parameters['manual_batch_tuning_parameters_batch_size']}}}, \"generate_explanation\": {{$.inputs.parameters['generate_explanation']}}, \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}, \"labels\": {{$.inputs.parameters['labels']}}, \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}}",
+              "{\"display_name\": \"{{$.inputs.parameters['job_display_name']}}\", \"model\": \"{{$.inputs.artifacts['model'].metadata['resourceName']}}\", \"input_config\": {\"instances_format\": \"{{$.inputs.parameters['instances_format']}}\", \"gcs_source\": {\"uris\":{{$.inputs.parameters['gcs_source_uris']}}}, \"bigquery_source\": {\"input_uri\": \"{{$.inputs.parameters['bigquery_source_input_uri']}}\"}}, \"model_parameters\": {{$.inputs.parameters['model_parameters']}}, \"output_config\": {\"predictions_format\": \"{{$.inputs.parameters['predictions_format']}}\", \"gcs_destination\": {\"output_uri_prefix\": \"{{$.inputs.parameters['gcs_destination_output_uri_prefix']}}\"}, \"bigquery_destination\": {\"output_uri\": \"{{$.inputs.parameters['bigquery_destination_output_uri']}}\"}}, \"dedicated_resources\": {\"machine_spec\": {\"machine_type\": \"{{$.inputs.parameters['machine_type']}}\", \"accelerator_type\": \"{{$.inputs.parameters['accelerator_type']}}\", \"accelerator_count\": {{$.inputs.parameters['accelerator_count']}}}, \"starting_replica_count\": {{$.inputs.parameters['starting_replica_count']}}, \"max_replica_count\": {{$.inputs.parameters['max_replica_count']}}}, \"manual_batch_tuning_parameters\": {\"batch_size\": {{$.inputs.parameters['manual_batch_tuning_parameters_batch_size']}}}, \"generate_explanation\": {{$.inputs.parameters['generate_explanation']}}, \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}, \"labels\": {{$.inputs.parameters['labels']}}, \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}}",
               "--project",
               "{{$.inputs.parameters['project']}}",
               "--location",
@@ -6844,7 +6938,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
           }
         },
         "exec-model-batch-predict-3": {
@@ -6869,7 +6963,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
           }
         },
         "exec-model-batch-predict-4": {
@@ -6878,31 +6972,6 @@
               "--type",
               "BatchPredictionJob",
               "--payload",
-              "{\"display_name\": \"{{$.inputs.parameters['job_display_name']}}\", \"model\": \"{{$.inputs.artifacts['model'].metadata['resourceName']}}\", \"input_config\": {\"instances_format\": \"{{$.inputs.parameters['instances_format']}}\", \"gcs_source\": {\"uris\":{{$.inputs.parameters['gcs_source_uris']}}}, \"bigquery_source\": {\"input_uri\": \"{{$.inputs.parameters['bigquery_source_input_uri']}}\"}}, \"model_parameters\": {{$.inputs.parameters['model_parameters']}}, \"output_config\": {\"predictions_format\": \"{{$.inputs.parameters['predictions_format']}}\", \"gcs_destination\": {\"output_uri_prefix\": \"{{$.inputs.parameters['gcs_destination_output_uri_prefix']}}\"}, \"bigquery_destination\": {\"output_uri\": \"{{$.inputs.parameters['bigquery_destination_output_uri']}}\"}}, \"dedicated_resources\": {\"machine_spec\": {\"machine_type\": \"{{$.inputs.parameters['machine_type']}}\", \"accelerator_type\": \"{{$.inputs.parameters['accelerator_type']}}\", \"accelerator_count\": {{$.inputs.parameters['accelerator_count']}}}, \"starting_replica_count\": {{$.inputs.parameters['starting_replica_count']}}, \"max_replica_count\": {{$.inputs.parameters['max_replica_count']}}}, \"manual_batch_tuning_parameters\": {\"batch_size\": {{$.inputs.parameters['manual_batch_tuning_parameters_batch_size']}}}, \"generate_explanation\": {{$.inputs.parameters['generate_explanation']}}, \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}, \"labels\": {{$.inputs.parameters['labels']}}, \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}}",
-              "--project",
-              "{{$.inputs.parameters['project']}}",
-              "--location",
-              "{{$.inputs.parameters['location']}}",
-              "--gcp_resources",
-              "{{$.outputs.parameters['gcp_resources'].output_file}}",
-              "--executor_input",
-              "{{$}}"
-            ],
-            "command": [
-              "python3",
-              "-u",
-              "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
-            ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
-          }
-        },
-        "exec-model-batch-predict-5": {
-          "container": {
-            "args": [
-              "--type",
-              "BatchPredictionJob",
-              "--payload",
               "{\"display_name\": \"{{$.inputs.parameters['job_display_name']}}\",  \"input_config\": {\"instances_format\": \"{{$.inputs.parameters['instances_format']}}\", \"gcs_source\": {\"uris\":{{$.inputs.parameters['gcs_source_uris']}}}, \"bigquery_source\": {\"input_uri\": \"{{$.inputs.parameters['bigquery_source_input_uri']}}\"}}, \"model_parameters\": {{$.inputs.parameters['model_parameters']}}, \"output_config\": {\"predictions_format\": \"{{$.inputs.parameters['predictions_format']}}\", \"gcs_destination\": {\"output_uri_prefix\": \"{{$.inputs.parameters['gcs_destination_output_uri_prefix']}}\"}, \"bigquery_destination\": {\"output_uri\": \"{{$.inputs.parameters['bigquery_destination_output_uri']}}\"}}, \"dedicated_resources\": {\"machine_spec\": {\"machine_type\": \"{{$.inputs.parameters['machine_type']}}\", \"accelerator_type\": \"{{$.inputs.parameters['accelerator_type']}}\", \"accelerator_count\": {{$.inputs.parameters['accelerator_count']}}}, \"starting_replica_count\": {{$.inputs.parameters['starting_replica_count']}}, \"max_replica_count\": {{$.inputs.parameters['max_replica_count']}}}, \"manual_batch_tuning_parameters\": {\"batch_size\": {{$.inputs.parameters['manual_batch_tuning_parameters_batch_size']}}}, \"generate_explanation\": {{$.inputs.parameters['generate_explanation']}}, \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}, \"labels\": {{$.inputs.parameters['labels']}}, \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}}",
               "--project",
               "{{$.inputs.parameters['project']}}",
@@ -6919,32 +6988,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
-          }
-        },
-        "exec-model-batch-predict-6": {
-          "container": {
-            "args": [
-              "--type",
-              "BatchPredictionJob",
-              "--payload",
-              "{\"display_name\": \"{{$.inputs.parameters['job_display_name']}}\",  \"input_config\": {\"instances_format\": \"{{$.inputs.parameters['instances_format']}}\", \"gcs_source\": {\"uris\":{{$.inputs.parameters['gcs_source_uris']}}}, \"bigquery_source\": {\"input_uri\": \"{{$.inputs.parameters['bigquery_source_input_uri']}}\"}}, \"model_parameters\": {{$.inputs.parameters['model_parameters']}}, \"output_config\": {\"predictions_format\": \"{{$.inputs.parameters['predictions_format']}}\", \"gcs_destination\": {\"output_uri_prefix\": \"{{$.inputs.parameters['gcs_destination_output_uri_prefix']}}\"}, \"bigquery_destination\": {\"output_uri\": \"{{$.inputs.parameters['bigquery_destination_output_uri']}}\"}}, \"dedicated_resources\": {\"machine_spec\": {\"machine_type\": \"{{$.inputs.parameters['machine_type']}}\", \"accelerator_type\": \"{{$.inputs.parameters['accelerator_type']}}\", \"accelerator_count\": {{$.inputs.parameters['accelerator_count']}}}, \"starting_replica_count\": {{$.inputs.parameters['starting_replica_count']}}, \"max_replica_count\": {{$.inputs.parameters['max_replica_count']}}}, \"manual_batch_tuning_parameters\": {\"batch_size\": {{$.inputs.parameters['manual_batch_tuning_parameters_batch_size']}}}, \"generate_explanation\": {{$.inputs.parameters['generate_explanation']}}, \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}, \"labels\": {{$.inputs.parameters['labels']}}, \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}}",
-              "--project",
-              "{{$.inputs.parameters['project']}}",
-              "--location",
-              "{{$.inputs.parameters['location']}}",
-              "--gcp_resources",
-              "{{$.outputs.parameters['gcp_resources'].output_file}}",
-              "--executor_input",
-              "{{$}}"
-            ],
-            "command": [
-              "python3",
-              "-u",
-              "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
-            ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
           }
         },
         "exec-model-evaluation": {
@@ -7021,7 +7065,7 @@
               "python",
               "/main.py"
             ],
-            "image": "gcr.io/ml-pipeline/model-evaluation:v0.2"
+            "image": "gcr.io/ml-pipeline/model-evaluation:v0.3"
           }
         },
         "exec-model-evaluation-2": {
@@ -7098,7 +7142,7 @@
               "python",
               "/main.py"
             ],
-            "image": "gcr.io/ml-pipeline/model-evaluation:v0.2"
+            "image": "gcr.io/ml-pipeline/model-evaluation:v0.3"
           }
         },
         "exec-model-evaluation-3": {
@@ -7175,7 +7219,7 @@
               "python",
               "/main.py"
             ],
-            "image": "gcr.io/ml-pipeline/model-evaluation:v0.2"
+            "image": "gcr.io/ml-pipeline/model-evaluation:v0.3"
           }
         },
         "exec-model-evaluation-4": {
@@ -7252,7 +7296,7 @@
               "python",
               "/main.py"
             ],
-            "image": "gcr.io/ml-pipeline/model-evaluation:v0.2"
+            "image": "gcr.io/ml-pipeline/model-evaluation:v0.3"
           }
         },
         "exec-model-evaluation-import": {
@@ -7277,7 +7321,7 @@
               "-m",
               "google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
           }
         },
         "exec-model-evaluation-import-2": {
@@ -7302,7 +7346,7 @@
               "-m",
               "google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
           }
         },
         "exec-model-upload": {
@@ -7327,7 +7371,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
           }
         },
         "exec-model-upload-2": {
@@ -7352,7 +7396,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
           }
         },
         "exec-model-upload-3": {
@@ -7377,7 +7421,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
           }
         },
         "exec-read-input-uri": {
@@ -7451,7 +7495,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
           }
         },
         "exec-write-bp-result-path": {
