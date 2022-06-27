@@ -46,6 +46,7 @@ import TwoLevelDropdown, {
   SelectedItem,
 } from 'src/components/TwoLevelDropdown';
 import MD2Tabs from 'src/atoms/MD2Tabs';
+import { ConfusionMatrixSection } from 'src/components/viewers/MetricsVisualizations';
 
 const css = stylesheet({
   outputsRow: {
@@ -219,6 +220,22 @@ interface MetricsDropdownProps {
 function MetricsDropdown(props: MetricsDropdownProps) {
   const { filteredRunArtifacts, metricsTabText } = props;
   const [selectedItem, setSelectedItem] = useState<SelectedItem>({ itemName: '', subItemName: '' });
+  const [selectedArtifact, setSelectedArtifact] = useState<Artifact | undefined>(undefined);
+
+  useEffect(() => {
+    if (selectedItem.itemName && selectedItem.subItemName && selectedItem.subItemSecondaryName) {
+      setSelectedArtifact(filteredRunArtifacts.find(x => x.run.run?.name === selectedItem.itemName)
+        ?.executionArtifacts.find(y => y.execution
+          .getCustomPropertiesMap()
+          .get('display_name')
+          ?.getStringValue())
+        ?.linkedArtifacts.find(z => z.event
+          .getPath()
+          ?.getStepsList()[0]
+          .getKey())
+        ?.artifact);
+    }
+  }, [selectedItem, setSelectedArtifact]);
 
   const dropdownItems: DropdownItem[] = [];
   for (const x of filteredRunArtifacts) {
@@ -255,6 +272,7 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     }
 
     const runName: string = x.run.run?.name || '';
+    // Do logger warn for the run name.
     if (subItems.length > 0) {
       dropdownItems.push({
         name: runName,
@@ -275,7 +293,13 @@ function MetricsDropdown(props: MetricsDropdownProps) {
         selectedItem={selectedItem}
         setSelectedItem={setSelectedItem}
       />
-      <VisualizationPlaceholder metricsTabText={metricsTabText} />
+      {selectedArtifact ? (
+        <React.Fragment key={selectedArtifact.getId()}>
+          <ConfusionMatrixSection artifact={selectedArtifact} />
+        </React.Fragment>
+      ) : (
+        <VisualizationPlaceholder metricsTabText={metricsTabText} />
+      )}
     </>
   );
 }

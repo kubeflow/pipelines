@@ -43,6 +43,7 @@ const css = stylesheet({
     minWidth: '10rem',
     cursor: 'pointer',
     backgroundColor: color.background,
+    zIndex: 1,
   },
   dropdownElement: {
     padding: '1rem',
