@@ -217,6 +217,9 @@ class PipelineTask:
             elif isinstance(arg, (dict, list)):
                 return json.dumps(arg)
 
+            elif isinstance(arg, placeholders.ExecutorInputPlaceholder):
+                return arg.to_placeholder_string()
+
             elif isinstance(arg, placeholders.InputValuePlaceholder):
                 input_name = arg.input_name
                 if not type_utils.is_parameter_type(
@@ -285,26 +288,17 @@ class PipelineTask:
 
                 return arg.to_placeholder_string()
 
-            elif isinstance(arg, placeholders.OutputPathPlaceholder):
+            elif isinstance(arg, (placeholders.OutputPathPlaceholder,
+                                  placeholders.OutputParameterPlaceholder)):
                 output_name = arg.output_name
-
+                # this branching logic adds support for incorrectly typed placeholders
                 if type_utils.is_parameter_type(outputs_dict[output_name].type):
                     output_path = placeholders.OutputParameterPlaceholder(
                         arg.output_name).to_placeholder_string()
                 else:
-                    output_path = arg.to_placeholder_string()
+                    output_path = placeholders.OutputPathPlaceholder(
+                        arg.output_name).to_placeholder_string()
                 return output_path
-
-            elif isinstance(arg, placeholders.OutputParameterPlaceholder):
-                output_name = arg.output_name
-                if not type_utils.is_parameter_type(
-                        outputs_dict[output_name].type):
-                    raise TypeError(
-                        f'Onput "{output_name}" with type '
-                        f'"{outputs_dict[output_name].type}" cannot be paired with '
-                        'OutputUriPlaceholder.')
-
-                return arg.to_placeholder_string()
 
             elif isinstance(arg, placeholders.ConcatPlaceholder):
                 expanded_argument_strings = expand_argument_list(arg.items)

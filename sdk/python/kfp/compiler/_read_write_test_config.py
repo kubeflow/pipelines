@@ -70,10 +70,10 @@ CONFIG = {
     'v1_components': {
         'test_cases': [
             'concat_placeholder_component',
-            # TODO: these three currently have placeholder bugs -- uncomment after fix
+            # TODO: if placeholder is currently lossy on compile. uncomment when fixed.
             # 'if_placeholder_component',
-            # 'add_component',
-            # 'ingestion_component',
+            'add_component',
+            'ingestion_component',
         ],
         'test_data_dir': 'sdk/python/kfp/compiler/test_data/v1_component_yaml',
         'config': {
