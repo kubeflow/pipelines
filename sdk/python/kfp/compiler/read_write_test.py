@@ -26,6 +26,7 @@ from kfp import components
 from kfp.compiler._read_write_test_config import CONFIG
 from kfp.components import pipeline_context
 from kfp.components import python_component
+from kfp.components import structures
 import yaml
 
 PROJECT_ROOT = os.path.abspath(os.path.join(__file__, *([os.path.pardir] * 5)))
@@ -120,6 +121,14 @@ def load_compiled_file(filename: str) -> Dict[str, Any]:
         return ignore_kfp_version_helper(contents)
 
 
+def set_description_in_component_spec_to_none(
+        component_spec: structures.ComponentSpec) -> structures.ComponentSpec:
+    """Sets the description field of a ComponentSpec to None."""
+    # Ignore description when comparing components specs read in from v1 component YAML and from IR YAML, because non lightweight Python components defined in v1 YAML can have a description field, but IR YAML does not preserve this field unless the component is a lightweight Python function-based component
+    component_spec.description = None
+    return component_spec
+
+
 class ReadWriteTest(parameterized.TestCase):
 
     def _compile_and_load_component(
@@ -143,8 +152,11 @@ class ReadWriteTest(parameterized.TestCase):
         original_component = components.load_component_from_file(yaml_file)
         reloaded_component = self._compile_and_load_component(
             original_component)
-        self.assertEqual(original_component.component_spec,
-                         reloaded_component.component_spec)
+        self.assertEqual(
+            set_description_in_component_spec_to_none(
+                original_component.component_spec),
+            set_description_in_component_spec_to_none(
+                reloaded_component.component_spec))
 
     def _test_serialization_correctness(self,
                                         python_file: str,
@@ -170,7 +182,7 @@ class ReadWriteTest(parameterized.TestCase):
         """Tests serialization and deserialization consistency and correctness.
 
         Args:
-            name (str): '{test_grou_name}-{test_case_name}'. Useful for print statements/debugging.
+            name (str): '{test_group_name}-{test_case_name}'. Useful for print statements/debugging.
             test_case (str): Test case name (without file extension).
             test_data_dir (str): The directory containing the test case files.
             function (str, optional): The function name to compile.

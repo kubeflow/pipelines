@@ -406,9 +406,9 @@ sdkVersion: kfp-2.0.0-alpha.2
                             input_name='input_parameter'),
                         placeholders.InputPathPlaceholder(
                             input_name='input_artifact'),
-                        placeholders.OutputPathPlaceholder(
+                        placeholders.OutputParameterPlaceholder(
                             output_name='output_1'),
-                        placeholders.OutputPathPlaceholder(
+                        placeholders.OutputParameterPlaceholder(
                             output_name='output_2'),
                     ],
                     env={},
@@ -462,8 +462,9 @@ class TestContainerSpec(unittest.TestCase):
                         '\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef concat_message(first: str, second: str) -> str:\n    return first + second\n\n'
                     ],
                     args=[
-                        '--executor_input', '{{$}}', '--function_to_execute',
-                        'concat_message'
+                        '--executor_input',
+                        placeholders.ExecutorInputPlaceholder(),
+                        '--function_to_execute', 'concat_message'
                     ],
                     env=None,
                     resources=None),
