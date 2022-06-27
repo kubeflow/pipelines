@@ -12,7 +12,7 @@ deploymentSpec:
       container:
         args:
         - --arg0
-        - '{{$.inputs.parameters[''input_prefix'']}}some value'
+        - '{"Concat": ["{{$.inputs.parameters[''input_prefix'']}}", "some value"]}'
         image: gcr.io/my-project/my-image
 pipelineInfo:
   name: one-step-pipeline-with-concat-placeholder

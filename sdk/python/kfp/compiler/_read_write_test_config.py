@@ -70,8 +70,7 @@ CONFIG = {
     'v1_components': {
         'test_cases': [
             'concat_placeholder_component',
-            # TODO: if placeholder is currently lossy on compile. uncomment when fixed.
-            # 'if_placeholder_component',
+            'if_placeholder_component',
             'add_component',
             'ingestion_component',
         ],
