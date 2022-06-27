@@ -54,14 +54,14 @@ describe('CompareV2', () => {
 
   let runs: ApiRunDetail[] = [];
 
-  function newMockRun(id?: string): ApiRunDetail {
+  function newMockRun(id?: string, hideName?: boolean): ApiRunDetail {
     return {
       pipeline_runtime: {
         workflow_manifest: '{}',
       },
       run: {
         id: id || 'test-run-id',
-        name: 'test run ' + id,
+        name: hideName ? undefined : 'test run ' + id,
         pipeline_spec: { pipeline_manifest: '' },
       },
     };
@@ -478,28 +478,36 @@ describe('CompareV2', () => {
     screen.getByText('There are no Markdown artifacts available on the selected runs.');
   });
 
-  it('Log warnings when specified execution or artifact does not have a display name', async () => {
+  it('Log warnings when specified run, execution, or artifact does not have a name', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
-    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    runs = [newMockRun(MOCK_RUN_1_ID, true), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
 
-    const contexts = [newMockContext(MOCK_RUN_1_ID, 1), newMockContext(MOCK_RUN_2_ID, 2)];
+    const contexts = [
+      newMockContext(MOCK_RUN_1_ID, 1),
+      newMockContext(MOCK_RUN_2_ID, 2),
+      newMockContext(MOCK_RUN_3_ID, 3),
+    ];
     const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
       Promise.resolve(contexts.find(c => c.getName() === runID)),
     );
 
-    const executions = [[newMockExecution(1)], [newMockExecution(2, 'executionName')]];
+    const executions = [
+      [newMockExecution(1)],
+      [newMockExecution(2)],
+      [newMockExecution(3, 'executionName')],
+    ];
     const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
       Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
     );
 
-    const artifacts = [newMockArtifact(1), newMockArtifact(2)];
+    const artifacts = [newMockArtifact(1), newMockArtifact(2), newMockArtifact(3)];
     const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
     getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
 
-    const events = [newMockEvent(1), newMockEvent(2)];
+    const events = [newMockEvent(1), newMockEvent(2), newMockEvent(3)];
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
     getEventsSpy.mockReturnValue(Promise.resolve(events));
 
@@ -514,11 +522,9 @@ describe('CompareV2', () => {
 
     const warnSpy = jest.spyOn(Utils.logger, 'warn');
 
-    const props = generateProps();
-    props.location.search = `?${QUERY_PARAMS.runlist}=${MOCK_RUN_1_ID},${MOCK_RUN_2_ID}`;
     render(
       <CommonTestWrapper>
-        <CompareV2 {...props} />
+        <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
     await TestUtils.flushPromises();
@@ -527,10 +533,14 @@ describe('CompareV2', () => {
     await waitFor(() => {
       expect(warnSpy).toHaveBeenNthCalledWith(
         1,
-        'Failed to fetch the display name of the execution with the following ID: 1',
+        `Failed to fetch the name of the run with the following ID: ${MOCK_RUN_1_ID}`,
+      );
+      expect(warnSpy).toHaveBeenNthCalledWith(
+        2,
+        'Failed to fetch the display name of the execution with the following ID: 2',
       );
       expect(warnSpy).toHaveBeenLastCalledWith(
-        'Failed to fetch the display name of the artifact with the following ID: 2',
+        'Failed to fetch the display name of the artifact with the following ID: 3',
       );
     });
   });

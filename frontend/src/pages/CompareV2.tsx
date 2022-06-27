@@ -222,44 +222,48 @@ function MetricsDropdown(props: MetricsDropdownProps) {
 
   const dropdownItems: DropdownItem[] = [];
   for (const x of filteredRunArtifacts) {
-    const subItems: DropdownSubItem[] = [];
-    for (const y of x.executionArtifacts) {
-      const executionName = y.execution
-        .getCustomPropertiesMap()
-        .get('display_name')
-        ?.getStringValue();
-      if (executionName) {
-        const executionLinkedArtifacts: DropdownSubItem[] = [];
-        for (const z of y.linkedArtifacts) {
-          const artifactName = z.event
-            .getPath()
-            ?.getStepsList()[0]
-            .getKey();
-          if (artifactName) {
-            executionLinkedArtifacts.push({
-              name: executionName,
-              secondaryName: artifactName,
-            } as DropdownSubItem);
-          } else {
-            logger.warn(
-              `Failed to fetch the display name of the artifact with the following ID: ${z.artifact.getId()}`,
-            );
+    const runName = x.run.run?.name;
+    if (runName) {
+      const subItems: DropdownSubItem[] = [];
+      for (const y of x.executionArtifacts) {
+        const executionName = y.execution
+          .getCustomPropertiesMap()
+          .get('display_name')
+          ?.getStringValue();
+        if (executionName) {
+          const executionLinkedArtifacts: DropdownSubItem[] = [];
+          for (const z of y.linkedArtifacts) {
+            const artifactName = z.event
+              .getPath()
+              ?.getStepsList()[0]
+              .getKey();
+            if (artifactName) {
+              executionLinkedArtifacts.push({
+                name: executionName,
+                secondaryName: artifactName,
+              } as DropdownSubItem);
+            } else {
+              logger.warn(
+                `Failed to fetch the display name of the artifact with the following ID: ${z.artifact.getId()}`,
+              );
+            }
           }
+          subItems.push(...executionLinkedArtifacts);
+        } else {
+          logger.warn(
+            `Failed to fetch the display name of the execution with the following ID: ${y.execution.getId()}`,
+          );
         }
-        subItems.push(...executionLinkedArtifacts);
-      } else {
-        logger.warn(
-          `Failed to fetch the display name of the execution with the following ID: ${y.execution.getId()}`,
-        );
       }
-    }
 
-    const runName: string = x.run.run?.name || '';
-    if (subItems.length > 0) {
-      dropdownItems.push({
-        name: runName,
-        subItems,
-      } as DropdownItem);
+      if (subItems.length > 0) {
+        dropdownItems.push({
+          name: runName,
+          subItems,
+        } as DropdownItem);
+      }
+    } else {
+      logger.warn(`Failed to fetch the name of the run with the following ID: ${x.run.run?.id}`);
     }
   }
 
