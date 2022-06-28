@@ -49,9 +49,6 @@ import MD2Tabs from 'src/atoms/MD2Tabs';
 import { ConfusionMatrixSection } from 'src/components/viewers/MetricsVisualizations';
 
 const css = stylesheet({
-  table: {
-    width: '100%',
-  },
   leftCell: {
     borderRight: `3px solid ${color.divider}`,
   },
@@ -64,12 +61,12 @@ const css = stylesheet({
   },
   outputsRow: {
     marginLeft: 15,
+  },
+  outputsOverflow: {
     overflowX: 'auto',
   },
   visualizationPlaceholder: {
-    width: '100%',
-    minWidth: '20rem',
-    maxWidth: '50rem',
+    width: '40rem',
     height: '30rem',
     backgroundColor: color.lightGrey,
     borderRadius: '1rem',
@@ -81,7 +78,7 @@ const css = stylesheet({
   visualizationPlaceholderText: {
     fontSize: fontsize.medium,
     textAlign: 'center',
-    padding: '1rem',
+    padding: '2rem',
   },
 });
 
@@ -226,59 +223,88 @@ function VisualizationPlaceholder(props: VisualizationPlaceholderProps) {
   );
 }
 
+interface SelectedArtifact {
+  selectedItem: SelectedItem;
+  selectedArtifact?: Artifact;
+}
+
 interface MetricsDropdownProps {
   filteredRunArtifacts: RunArtifacts[];
+  metricsTab: MetricsType;
   metricsTabText: string;
+  selectedArtifacts: { [key: string]: SelectedArtifact[] };
+  setSelectedArtifacts: (selectedArtifacts: { [key: string]: SelectedArtifact[] }) => void;
 }
 
 function MetricsDropdown(props: MetricsDropdownProps) {
-  const { filteredRunArtifacts, metricsTabText } = props;
-  const [firstSelectedItem, setFirstSelectedItem] = useState<SelectedItem>({ itemName: '', subItemName: '' });
-  const [secondSelectedItem, setSecondSelectedItem] = useState<SelectedItem>({ itemName: '', subItemName: '' });
-  const [firstSelectedArtifact, setFirstSelectedArtifact] = useState<Artifact | undefined>(undefined);
-  const [secondSelectedArtifact, setSecondSelectedArtifact] = useState<Artifact | undefined>(undefined);
+  const {
+    filteredRunArtifacts,
+    metricsTab,
+    metricsTabText,
+    selectedArtifacts,
+    setSelectedArtifacts,
+  } = props;
+  const firstSelectedArtifact: SelectedArtifact = selectedArtifacts[metricsTab][0];
+  const secondSelectedArtifact: SelectedArtifact = selectedArtifacts[metricsTab][1];
+
+  const [firstSelectedItem, setFirstSelectedItem] = useState<SelectedItem>(
+    firstSelectedArtifact.selectedItem,
+  );
+  const [secondSelectedItem, setSecondSelectedItem] = useState<SelectedItem>(
+    secondSelectedArtifact.selectedItem,
+  );
 
   useEffect(() => {
-    if (firstSelectedItem.itemName && firstSelectedItem.subItemName && firstSelectedItem.subItemSecondaryName) {
-      setFirstSelectedArtifact(
-        filteredRunArtifacts
-          .find(x => x.run.run?.name === firstSelectedItem.itemName)
-          ?.executionArtifacts.find(y =>
-            y.execution
-              .getCustomPropertiesMap()
-              .get('display_name')
-              ?.getStringValue(),
-          )
-          ?.linkedArtifacts.find(z =>
-            z.event
-              .getPath()
-              ?.getStepsList()[0]
-              .getKey(),
-          )?.artifact,
-      );
+    if (
+      firstSelectedItem.itemName &&
+      firstSelectedItem.subItemName &&
+      firstSelectedItem.subItemSecondaryName
+    ) {
+      const artifact = filteredRunArtifacts
+        .find(x => x.run.run?.name === firstSelectedItem.itemName)
+        ?.executionArtifacts.find(y =>
+          y.execution
+            .getCustomPropertiesMap()
+            .get('display_name')
+            ?.getStringValue(),
+        )
+        ?.linkedArtifacts.find(z =>
+          z.event
+            .getPath()
+            ?.getStepsList()[0]
+            .getKey(),
+        )?.artifact;
+      selectedArtifacts[metricsTab][0].selectedItem = firstSelectedItem;
+      selectedArtifacts[metricsTab][0].selectedArtifact = artifact;
+      setSelectedArtifacts({ ...selectedArtifacts });
     }
-  }, [firstSelectedItem, setFirstSelectedArtifact]);
+  }, [firstSelectedItem]);
 
   useEffect(() => {
-    if (secondSelectedItem.itemName && secondSelectedItem.subItemName && secondSelectedItem.subItemSecondaryName) {
-      setSecondSelectedArtifact(
-        filteredRunArtifacts
-          .find(x => x.run.run?.name === secondSelectedItem.itemName)
-          ?.executionArtifacts.find(y =>
-            y.execution
-              .getCustomPropertiesMap()
-              .get('display_name')
-              ?.getStringValue(),
-          )
-          ?.linkedArtifacts.find(z =>
-            z.event
-              .getPath()
-              ?.getStepsList()[0]
-              .getKey(),
-          )?.artifact,
-      );
+    if (
+      secondSelectedItem.itemName &&
+      secondSelectedItem.subItemName &&
+      secondSelectedItem.subItemSecondaryName
+    ) {
+      const artifact = filteredRunArtifacts
+        .find(x => x.run.run?.name === firstSelectedItem.itemName)
+        ?.executionArtifacts.find(y =>
+          y.execution
+            .getCustomPropertiesMap()
+            .get('display_name')
+            ?.getStringValue(),
+        )
+        ?.linkedArtifacts.find(z =>
+          z.event
+            .getPath()
+            ?.getStepsList()[0]
+            .getKey(),
+        )?.artifact;
+      selectedArtifacts[metricsTab][1].selectedItem = secondSelectedItem;
+      selectedArtifacts[metricsTab][1].selectedArtifact = artifact;
+      setSelectedArtifacts({ ...selectedArtifacts });
     }
-  }, [secondSelectedItem, setSecondSelectedArtifact]);
+  }, [secondSelectedItem]);
 
   const dropdownItems: DropdownItem[] = [];
   for (const x of filteredRunArtifacts) {
@@ -332,7 +358,7 @@ function MetricsDropdown(props: MetricsDropdownProps) {
   }
 
   return (
-    <table className={css.table}>
+    <table>
       <tbody>
         <tr>
           <td className={classes(css.cell, css.leftCell)}>
@@ -342,9 +368,10 @@ function MetricsDropdown(props: MetricsDropdownProps) {
               selectedItem={firstSelectedItem}
               setSelectedItem={setFirstSelectedItem}
             />
-            {firstSelectedArtifact ? (
-              <React.Fragment key={firstSelectedArtifact.getId()}>
-                <ConfusionMatrixSection artifact={firstSelectedArtifact} />
+            {metricsTab === MetricsType.CONFUSION_MATRIX &&
+            firstSelectedArtifact.selectedArtifact ? (
+              <React.Fragment key={firstSelectedArtifact.selectedArtifact.getId()}>
+                <ConfusionMatrixSection artifact={firstSelectedArtifact.selectedArtifact} />
               </React.Fragment>
             ) : (
               <VisualizationPlaceholder metricsTabText={metricsTabText} />
@@ -357,9 +384,10 @@ function MetricsDropdown(props: MetricsDropdownProps) {
               selectedItem={secondSelectedItem}
               setSelectedItem={setSecondSelectedItem}
             />
-            {secondSelectedArtifact ? (
-              <React.Fragment key={secondSelectedArtifact.getId()}>
-                <ConfusionMatrixSection artifact={secondSelectedArtifact} />
+            {metricsTab === MetricsType.CONFUSION_MATRIX &&
+            secondSelectedArtifact.selectedArtifact ? (
+              <React.Fragment key={secondSelectedArtifact.selectedArtifact.getId()}>
+                <ConfusionMatrixSection artifact={secondSelectedArtifact.selectedArtifact} />
               </React.Fragment>
             ) : (
               <VisualizationPlaceholder metricsTabText={metricsTabText} />
@@ -384,6 +412,24 @@ function CompareV2(props: PageProps) {
   const [confusionMatrixArtifacts, setConfusionMatrixArtifacts] = useState<RunArtifacts[]>([]);
   const [htmlArtifacts, setHtmlArtifacts] = useState<RunArtifacts[]>([]);
   const [markdownArtifacts, setMarkdownArtifacts] = useState<RunArtifacts[]>([]);
+
+  // Selected artifacts for two-panel layout.
+  const createSelectedArtifactArray = (count: number): SelectedArtifact[] => {
+    const array: SelectedArtifact[] = [];
+    for (let i = 0; i < count; i++) {
+      array.push({
+        selectedItem: { itemName: '', subItemName: '' },
+      });
+    }
+    return array;
+  };
+  const [selectedArtifacts, setSelectedArtifacts] = useState<{ [key: string]: SelectedArtifact[] }>(
+    {
+      [MetricsType.CONFUSION_MATRIX]: createSelectedArtifactArray(2),
+      [MetricsType.HTML]: createSelectedArtifactArray(2),
+      [MetricsType.MARKDOWN]: createSelectedArtifactArray(2),
+    },
+  );
 
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
@@ -576,7 +622,7 @@ function CompareV2(props: PageProps) {
         collapseSectionUpdate={setIsParamsCollapsed}
       />
       {!isParamsCollapsed && (
-        <div className={classes(commonCss.noShrink, css.outputsRow)}>
+        <div className={classes(commonCss.noShrink, css.outputsRow, css.outputsOverflow)}>
           <Separator orientation='vertical' />
           <p>Parameter Section V2</p>
           <Hr />
@@ -597,25 +643,34 @@ function CompareV2(props: PageProps) {
             selectedTab={metricsTab}
             onSwitch={setMetricsTab}
           />
-          <div className={classes(padding(20, 'lrt'))}>
+          <div className={classes(padding(20, 'lrt'), css.outputsOverflow)}>
             {metricsTab === MetricsType.SCALAR_METRICS && <p>This is the Scalar Metrics tab.</p>}
             {metricsTab === MetricsType.CONFUSION_MATRIX && (
               <MetricsDropdown
                 filteredRunArtifacts={confusionMatrixArtifacts}
+                metricsTab={metricsTab}
                 metricsTabText={metricsTabText}
+                selectedArtifacts={selectedArtifacts}
+                setSelectedArtifacts={setSelectedArtifacts}
               />
             )}
             {metricsTab === MetricsType.ROC_CURVE && <p>This is the {metricsTabText} tab.</p>}
             {metricsTab === MetricsType.HTML && (
               <MetricsDropdown
                 filteredRunArtifacts={htmlArtifacts}
+                metricsTab={metricsTab}
                 metricsTabText={metricsTabText}
+                selectedArtifacts={selectedArtifacts}
+                setSelectedArtifacts={setSelectedArtifacts}
               />
             )}
             {metricsTab === MetricsType.MARKDOWN && (
               <MetricsDropdown
                 filteredRunArtifacts={markdownArtifacts}
+                metricsTab={metricsTab}
                 metricsTabText={metricsTabText}
+                selectedArtifacts={selectedArtifacts}
+                setSelectedArtifacts={setSelectedArtifacts}
               />
             )}
           </div>
