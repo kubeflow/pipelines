@@ -58,6 +58,7 @@ const css = stylesheet({
   cell: {
     borderCollapse: 'collapse',
     padding: '1rem',
+    verticalAlign: 'top',
   },
   outputsRow: {
     marginLeft: 15,
@@ -288,7 +289,8 @@ function MetricsDropdown(props: MetricsDropdownProps) {
       );
       setSelectedArtifacts({ ...selectedArtifacts });
     }
-  }, [firstSelectedItem]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstSelectedItem, filteredRunArtifacts, metricsTab, setSelectedArtifacts]);
 
   useEffect(() => {
     if (
@@ -303,7 +305,8 @@ function MetricsDropdown(props: MetricsDropdownProps) {
       );
       setSelectedArtifacts({ ...selectedArtifacts });
     }
-  }, [secondSelectedItem]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [secondSelectedItem, filteredRunArtifacts, metricsTab, setSelectedArtifacts]);
 
   const dropdownItems: DropdownItem[] = [];
   for (const x of filteredRunArtifacts) {
