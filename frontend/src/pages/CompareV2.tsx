@@ -216,43 +216,47 @@ interface MetricsDropdownProps {
   metricsTabText: string;
 }
 
-function MetricsDropdown(props: MetricsDropdownProps) {
-  const { filteredRunArtifacts, metricsTabText } = props;
-  const [selectedItem, setSelectedItem] = useState<SelectedItem>({ itemName: '', subItemName: '' });
+const logDisplayNameWarning = (type: string, id: number | string) =>
+  logger.warn(`Failed to fetch the display name of the ${type} with the following ID: ${id}`);
 
+const getExecutionName = (execution: Execution) =>
+  execution
+    .getCustomPropertiesMap()
+    .get('display_name')
+    ?.getStringValue();
+
+const getArtifactName = (event: Event) =>
+  event
+    .getPath()
+    ?.getStepsList()[0]
+    .getKey();
+
+function getDropdownItems(filteredRunArtifacts: RunArtifact[]) {
   const dropdownItems: DropdownItem[] = [];
   for (const runArtifact of filteredRunArtifacts) {
     const runName = runArtifact.run.run?.name;
     if (runName) {
+      // Combine execution names and artifact names into the same dropdown sub item.
       const subItems: DropdownSubItem[] = [];
       for (const executionArtifact of runArtifact.executionArtifacts) {
-        const executionName = executionArtifact.execution
-          .getCustomPropertiesMap()
-          .get('display_name')
-          ?.getStringValue();
+        const executionName = getExecutionName(executionArtifact.execution);
         if (executionName) {
+          // Group each artifact name with its parent execution name.
           const executionLinkedArtifacts: DropdownSubItem[] = [];
           for (const linkedArtifact of executionArtifact.linkedArtifacts) {
-            const artifactName = linkedArtifact.event
-              .getPath()
-              ?.getStepsList()[0]
-              .getKey();
+            const artifactName = getArtifactName(linkedArtifact.event);
             if (artifactName) {
               executionLinkedArtifacts.push({
                 name: executionName,
                 secondaryName: artifactName,
               } as DropdownSubItem);
             } else {
-              logger.warn(
-                `Failed to fetch the display name of the artifact with the following ID: ${linkedArtifact.artifact.getId()}`,
-              );
+              logDisplayNameWarning('artifact', linkedArtifact.artifact.getId());
             }
           }
           subItems.push(...executionLinkedArtifacts);
         } else {
-          logger.warn(
-            `Failed to fetch the display name of the execution with the following ID: ${executionArtifact.execution.getId()}`,
-          );
+          logDisplayNameWarning('execution', executionArtifact.execution.getId());
         }
       }
 
@@ -263,11 +267,18 @@ function MetricsDropdown(props: MetricsDropdownProps) {
         } as DropdownItem);
       }
     } else {
-      logger.warn(
-        `Failed to fetch the name of the run with the following ID: ${runArtifact.run.run?.id}`,
-      );
+      logDisplayNameWarning('run', runArtifact.run.run!.id!);
     }
   }
+
+  return dropdownItems;
+}
+
+function MetricsDropdown(props: MetricsDropdownProps) {
+  const { filteredRunArtifacts, metricsTabText } = props;
+  const [selectedItem, setSelectedItem] = useState<SelectedItem>({ itemName: '', subItemName: '' });
+
+  const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
 
   if (dropdownItems.length === 0) {
     return <p>There are no {metricsTabText} artifacts available on the selected runs.</p>;

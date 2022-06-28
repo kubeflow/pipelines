@@ -533,7 +533,7 @@ describe('CompareV2', () => {
     await waitFor(() => {
       expect(warnSpy).toHaveBeenNthCalledWith(
         1,
-        `Failed to fetch the name of the run with the following ID: ${MOCK_RUN_1_ID}`,
+        `Failed to fetch the display name of the run with the following ID: ${MOCK_RUN_1_ID}`,
       );
       expect(warnSpy).toHaveBeenNthCalledWith(
         2,
