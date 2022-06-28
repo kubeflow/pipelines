@@ -210,6 +210,72 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	return patches, nil
 }
 
+//retrieveCacheItemIfReallyExists checks the objects on object storage with readArtifact as the persistenceagent does
+func retrieveCacheItemIfReallyExists(TODO API client, execution *model.ExecutionCache, fileName string) (*model.ExecutionCache, error) {
+	if execution != nil && client != nil {
+		log.Printf("retrieveCacheItemIfReallyExists %s ", execution.ExecutionTemplate)
+		bucket, key := getCacheItemS3Data(execution)
+		log.Printf("bucket %s , key: %s, filename: %s", bucket, key, fileName)
+		TODO use https://github.com/kubeflow/pipelines/blob/a294e75b3a1ac52028f7c9fb3308add389194619/backend/src/apiserver/client_manager.go#L37-L60
+		result, err := client.GetFile(fileName)
+		log.Printf("cache retrieve result length %d %v", len(result), err)
+		if len(result) == 0 || err != nil {
+			return nil, util.NewInternalServerError(err, "Failed to get %v", key)
+		}
+	}
+	return execution, nil
+}
+
+func getCacheItemS3Data(execution *model.ExecutionCache) (string, string) {
+	key := ""
+	bucket := ""
+	var executionTemplate map[string]interface{}
+	b := []byte(execution.ExecutionTemplate)
+	err := json.Unmarshal(b, &executionTemplate)
+	if err != nil {
+		panic(err)
+		return bucket, key
+	}
+	if archiveLocation, ok := executionTemplate["archiveLocation"]; ok {
+		if s3, ok := archiveLocation.(map[string]interface{})["s3"]; ok {
+			if s3key, ok := s3.(map[string]interface{})["key"]; ok {
+				key = s3key.(string)
+			}
+			if s3bucket, ok := s3.(map[string]interface{})["bucket"]; ok {
+				bucket = s3bucket.(string)
+			}
+		}
+	}
+	return bucket, key
+}
+
+func getCacheItemKey(execution *model.ExecutionCache) string {
+	var output map[string]interface{}
+	if execution != nil {
+		b := []byte(execution.ExecutionOutput)
+		err := json.Unmarshal(b, &output)
+		if err != nil {
+			panic(err)
+		}
+		if output, ok := output["workflows.argoproj.io/outputs"]; ok {
+			var artifacts map[string]interface{}
+			if err := json.Unmarshal([]byte(output.(string)), &artifacts); err != nil {
+				panic(err)
+			}
+			if artifacts, ok := artifacts["artifacts"]; ok {
+				for _, artifact := range artifacts.([]interface{}) {
+					if s3, ok := artifact.(map[string]interface{})["s3"]; ok {
+						if s3key, ok := s3.(map[string]interface{})["key"]; ok {
+							return s3key.(string)
+						}
+					}
+				}
+			}
+		}
+	}
+	return ""
+}
+
 // intersectStructureWithSkeleton recursively intersects two maps
 // nil values in the skeleton map mean that the whole value (which can also be a map) should be kept.
 func intersectStructureWithSkeleton(src map[string]interface{}, skeleton map[string]interface{}) map[string]interface{} {
