@@ -670,12 +670,18 @@ def get_skip_architecture_search_pipeline_and_parameters(
     prediction_type: str,
     optimization_objective: str,
     transformations: Dict[str, Any],
-    split_spec: Dict[str, Any],
-    data_source: Dict[str, Any],
     train_budget_milli_node_hours: float,
     stage_1_tuning_result_artifact_uri: str,
     stage_2_num_parallel_trials: int = _DEFAULT_NUM_PARALLEL_TRAILS,
     stage_2_num_selected_trials: int = _DEFAULT_STAGE_2_NUM_SELECTED_TRAILS,
+    data_source_csv_filenames: Optional[str] = None,
+    data_source_bigquery_table_path: Optional[str] = None,
+    predefined_split_key: Optional[str] = None,
+    timestamp_split_key: Optional[str] = None,
+    stratified_split_key: Optional[str] = None,
+    training_fraction: Optional[float] = None,
+    validation_fraction: Optional[float] = None,
+    test_fraction: Optional[float] = None,
     weight_column_name: str = '',
     optimization_objective_recall_value: float = -1,
     optimization_objective_precision_value: float = -1,
@@ -683,11 +689,27 @@ def get_skip_architecture_search_pipeline_and_parameters(
     export_additional_model_without_custom_ops: bool = False,
     stats_and_example_gen_dataflow_machine_type: str = 'n1-standard-16',
     stats_and_example_gen_dataflow_max_num_workers: int = 25,
+    stats_and_example_gen_dataflow_disk_size_gb: int = 40,
     transform_dataflow_machine_type: str = 'n1-standard-16',
     transform_dataflow_max_num_workers: int = 25,
+    transform_dataflow_disk_size_gb: int = 40,
     dataflow_subnetwork: str = '',
     dataflow_use_public_ips: bool = True,
-    encryption_spec_key_name: str = '') -> Tuple[str, Dict[str, Any]]:
+    encryption_spec_key_name: str = '',
+    additional_experiments: Optional[Dict[str, Any]] = None,
+    dataflow_service_account: str = '',
+    run_evaluation: bool = True,
+    evaluation_batch_predict_machine_type:
+    str = _EVALUATION_BATCH_PREDICT_MACHINE_TYPE,
+    evaluation_batch_predict_starting_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_STARTING_REPLICA_COUNT,
+    evaluation_batch_predict_max_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT,
+    evaluation_dataflow_machine_type: str = _EVALUATION_DATAFLOW_MACHINE_TYPE,
+    evaluation_dataflow_max_num_workers:
+    int = _EVALUATION_DATAFLOW_MAX_NUM_WORKERS,
+    evaluation_dataflow_disk_size_gb: int = _EVALUATION_DATAFLOW_DISK_SIZE_GB
+    ) -> Tuple[str, Dict[str, Any]]:
   """Get the AutoML Tabular training pipeline that skips architecture search.
 
   Args:
@@ -703,15 +725,21 @@ def get_skip_architecture_search_pipeline_and_parameters(
       "minimize-log-loss". For regression, "minimize-rmse", "minimize-mae", or
       "minimize-rmsle".
     transformations: The transformations to apply.
-    split_spec: The split spec.
-    data_source: The data source.
     train_budget_milli_node_hours: The train budget of creating this model,
       expressed in milli node hours i.e. 1,000 value in this field means 1 node
       hour.
     stage_1_tuning_result_artifact_uri: The stage 1 tuning result artifact GCS
       URI.
-    stage_2_num_parallel_trials: Number of parallel trail for stage 2.
+    stage_2_num_parallel_trials: Number of parallel trails for stage 2.
     stage_2_num_selected_trials: Number of selected trials for stage 2.
+    data_source_csv_filenames: The CSV data source.
+    data_source_bigquery_table_path: The BigQuery data source.
+    predefined_split_key: The predefined_split column name.
+    timestamp_split_key: The timestamp_split column name.
+    stratified_split_key: The stratified_split column name.
+    training_fraction: The training fraction.
+    validation_fraction: The validation fraction.
+    test_fraction: float = The test fraction.
     weight_column_name: The weight column name.
     optimization_objective_recall_value: Required when optimization_objective is
       "maximize-precision-at-recall". Must be between 0 and 1, inclusive.
@@ -726,9 +754,13 @@ def get_skip_architecture_search_pipeline_and_parameters(
       stats_and_example_gen component.
     stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
       workers for stats_and_example_gen component.
+    stats_and_example_gen_dataflow_disk_size_gb: Dataflow worker's disk size in
+      GB for stats_and_example_gen component.
     transform_dataflow_machine_type: The dataflow machine type for transform
       component.
     transform_dataflow_max_num_workers: The max number of Dataflow workers for
+      transform component.
+    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
       transform component.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
@@ -736,6 +768,21 @@ def get_skip_architecture_search_pipeline_and_parameters(
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
     encryption_spec_key_name: The KMS key name.
+    additional_experiments: Use this field to config private preview features.
+    dataflow_service_account: Custom service account to run dataflow jobs.
+    run_evaluation: Whether to run evaluation in the training pipeline.
+    evaluation_batch_predict_machine_type: The prediction server machine type
+      for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count: The initial number of
+      prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count: The max number of prediction
+      server for batch predict components during evaluation.
+    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
+      components.
+    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
+      evaluation components.
+    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+      evaluation components.
 
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
@@ -745,6 +792,11 @@ def get_skip_architecture_search_pipeline_and_parameters(
 
   stage_2_deadline_hours = train_budget_milli_node_hours / 1000.0
   stage_2_single_run_max_secs = int(stage_2_deadline_hours * 3600.0 / 1.3)
+
+  if not cv_trainer_worker_pool_specs_override:
+    cv_trainer_worker_pool_specs_override = []
+  if not additional_experiments:
+    additional_experiments = {}
 
   parameter_values = {
       'project':
@@ -760,11 +812,7 @@ def get_skip_architecture_search_pipeline_and_parameters(
       'optimization_objective':
           optimization_objective,
       'transformations':
-          input_dictionary_to_parameter(transformations),
-      'split_spec':
-          input_dictionary_to_parameter(split_spec),
-      'data_source':
-          input_dictionary_to_parameter(data_source),
+          transformations,
       'stage_1_tuning_result_artifact_uri':
           stage_1_tuning_result_artifact_uri,
       'stage_2_deadline_hours':
@@ -782,24 +830,65 @@ def get_skip_architecture_search_pipeline_and_parameters(
       'optimization_objective_precision_value':
           optimization_objective_precision_value,
       'cv_trainer_worker_pool_specs_override':
-          input_dictionary_to_parameter(cv_trainer_worker_pool_specs_override),
+          cv_trainer_worker_pool_specs_override,
       'export_additional_model_without_custom_ops':
           export_additional_model_without_custom_ops,
       'stats_and_example_gen_dataflow_machine_type':
           stats_and_example_gen_dataflow_machine_type,
       'stats_and_example_gen_dataflow_max_num_workers':
           stats_and_example_gen_dataflow_max_num_workers,
+      'stats_and_example_gen_dataflow_disk_size_gb':
+          stats_and_example_gen_dataflow_disk_size_gb,
       'transform_dataflow_machine_type':
           transform_dataflow_machine_type,
       'transform_dataflow_max_num_workers':
           transform_dataflow_max_num_workers,
+      'transform_dataflow_disk_size_gb':
+          transform_dataflow_disk_size_gb,
       'dataflow_subnetwork':
           dataflow_subnetwork,
       'dataflow_use_public_ips':
           dataflow_use_public_ips,
       'encryption_spec_key_name':
           encryption_spec_key_name,
+      'additional_experiments':
+          additional_experiments,
   }
+  data_source_and_split_parameters = {
+      'data_source_csv_filenames': data_source_csv_filenames,
+      'data_source_bigquery_table_path': data_source_bigquery_table_path,
+      'predefined_split_key': predefined_split_key,
+      'timestamp_split_key': timestamp_split_key,
+      'stratified_split_key': stratified_split_key,
+      'training_fraction': training_fraction,
+      'validation_fraction': validation_fraction,
+      'test_fraction': test_fraction
+  }
+  parameter_values.update({
+      param: value
+      for param, value in data_source_and_split_parameters.items()
+      if value is not None
+  })
+
+  if run_evaluation:
+    parameter_values.update({
+        'dataflow_service_account':
+            dataflow_service_account,
+        'evaluation_batch_predict_machine_type':
+            evaluation_batch_predict_machine_type,
+        'evaluation_batch_predict_starting_replica_count':
+            evaluation_batch_predict_starting_replica_count,
+        'evaluation_batch_predict_max_replica_count':
+            evaluation_batch_predict_max_replica_count,
+        'evaluation_dataflow_machine_type':
+            evaluation_dataflow_machine_type,
+        'evaluation_dataflow_max_num_workers':
+            evaluation_dataflow_max_num_workers,
+        'evaluation_dataflow_disk_size_gb':
+            evaluation_dataflow_disk_size_gb,
+        'run_evaluation':
+            run_evaluation,
+    })
 
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
