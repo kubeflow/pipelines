@@ -507,7 +507,8 @@ class UtilsTest(unittest.TestCase):
         training_fraction=0.8,
         validation_fraction=0.2,
         test_fraction=0.0,
-        data_source_csv_filenames='gs://foo/bar.csv')
+        data_source_csv_filenames='gs://foo/bar.csv',
+        dataflow_service_account='service-account')
 
     self.assertEqual(
         parameter_values, {
@@ -564,7 +565,7 @@ class UtilsTest(unittest.TestCase):
             'evaluation_dataflow_machine_type': 'n1-standard-4',
             'evaluation_dataflow_max_num_workers': 25,
             'evaluation_dataflow_disk_size_gb': 50,
-            'dataflow_service_account': '',
+            'dataflow_service_account': 'service-account',
             'dataflow_subnetwork': '',
             'dataflow_use_public_ips': True,
             'encryption_spec_key_name': ''
@@ -605,7 +606,8 @@ class UtilsTest(unittest.TestCase):
         training_fraction=0.8,
         validation_fraction=0.2,
         test_fraction=0.0,
-        data_source_csv_filenames='gs://foo/bar.csv')
+        data_source_csv_filenames='gs://foo/bar.csv',
+        dataflow_service_account='service-account')
     self.assertEqual(
         parameter_values, {
             'project': 'project',
@@ -670,7 +672,7 @@ class UtilsTest(unittest.TestCase):
             'evaluation_dataflow_machine_type': 'n1-standard-4',
             'evaluation_dataflow_max_num_workers': 25,
             'evaluation_dataflow_disk_size_gb': 50,
-            'dataflow_service_account': '',
+            'dataflow_service_account': 'service-account',
             'dataflow_subnetwork': '',
             'dataflow_use_public_ips': True,
             'encryption_spec_key_name': ''
@@ -712,7 +714,8 @@ class UtilsTest(unittest.TestCase):
         training_fraction=0.8,
         validation_fraction=0.2,
         test_fraction=0.0,
-        data_source_csv_filenames='gs://foo/bar.csv')
+        data_source_csv_filenames='gs://foo/bar.csv',
+        dataflow_service_account='service-account')
     self.assertEqual(
         parameter_values, {
             'project': 'project',
@@ -777,7 +780,7 @@ class UtilsTest(unittest.TestCase):
             'evaluation_dataflow_machine_type': 'n1-standard-4',
             'evaluation_dataflow_max_num_workers': 25,
             'evaluation_dataflow_disk_size_gb': 50,
-            'dataflow_service_account': '',
+            'dataflow_service_account': 'service-account',
             'dataflow_subnetwork': '',
             'dataflow_use_public_ips': True,
             'encryption_spec_key_name': ''
@@ -794,7 +797,8 @@ class UtilsTest(unittest.TestCase):
         training_fraction=0.8,
         validation_fraction=0.2,
         test_fraction=0.0,
-        data_source_csv_filenames='gs://foo/bar.csv')
+        data_source_csv_filenames='gs://foo/bar.csv',
+        dataflow_service_account='service-account')
 
     self.assertEqual(
         parameter_values, {
@@ -852,7 +856,7 @@ class UtilsTest(unittest.TestCase):
             'evaluation_dataflow_machine_type': 'n1-standard-4',
             'evaluation_dataflow_max_num_workers': 25,
             'evaluation_dataflow_disk_size_gb': 50,
-            'dataflow_service_account': '',
+            'dataflow_service_account': 'service-account',
             'dataflow_subnetwork': '',
             'dataflow_use_public_ips': True,
             'encryption_spec_key_name': ''
