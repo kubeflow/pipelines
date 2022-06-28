@@ -342,7 +342,7 @@ def _get_command_and_args_for_lightweight_component(
 
     args = [
         '--executor_input',
-        placeholders.ExecutorInputPlaceholder().to_placeholder_string(),
+        placeholders.ExecutorInputPlaceholder(),
         '--function_to_execute',
         func.__name__,
     ]

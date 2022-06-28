@@ -195,7 +195,8 @@ class RegistryClient:
                 return ApiAuth(auth_token)
         return None
 
-    def load_config(self, host: Optional[str], config_file: Optional[str]) -> dict:
+    def load_config(self, host: Optional[str],
+                    config_file: Optional[str]) -> dict:
         """Loads the config.
 
         Args:
@@ -285,8 +286,9 @@ class RegistryClient:
             return config
         return loaded_config
 
-    def _get_auth(self) -> Optional[Union[requests.auth.AuthBase,
-                                      credentials.Credentials]]:
+    def _get_auth(
+        self
+    ) -> Optional[Union[requests.auth.AuthBase, credentials.Credentials]]:
         """Helper function to convert google credentials to AuthBase class if
         needed.
 

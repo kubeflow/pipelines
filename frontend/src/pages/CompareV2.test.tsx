@@ -102,10 +102,10 @@ describe('CompareV2', () => {
     return event;
   }
 
-  function newMockArtifact(id: number, confusionMatrix?: boolean): Artifact {
+  function newMockArtifact(id: number, isConfusionMatrix?: boolean): Artifact {
     const artifact = new Artifact();
     artifact.setId(id);
-    if (confusionMatrix) {
+    if (isConfusionMatrix) {
       const customPropertiesMap: Map<string, Value> = new Map();
       customPropertiesMap.set('confusionMatrix', new Value());
       jest.spyOn(artifact, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
@@ -533,7 +533,7 @@ describe('CompareV2', () => {
     await waitFor(() => {
       expect(warnSpy).toHaveBeenNthCalledWith(
         1,
-        `Failed to fetch the name of the run with the following ID: ${MOCK_RUN_1_ID}`,
+        `Failed to fetch the display name of the run with the following ID: ${MOCK_RUN_1_ID}`,
       );
       expect(warnSpy).toHaveBeenNthCalledWith(
         2,

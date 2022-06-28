@@ -89,14 +89,14 @@ interface MlmdPackage {
   events: Event[];
 }
 
-interface ExecutionArtifacts {
+interface ExecutionArtifact {
   execution: Execution;
   linkedArtifacts: LinkedArtifact[];
 }
 
-interface RunArtifacts {
+interface RunArtifact {
   run: ApiRunDetail;
-  executionArtifacts: ExecutionArtifacts[];
+  executionArtifacts: ExecutionArtifact[];
 }
 
 enum MetricsType {
@@ -126,10 +126,10 @@ const metricsTypeToString = (metricsType: MetricsType): string => {
 
 // Include only the runs and executions which have artifacts of the specified type.
 function filterRunArtifactsByType(
-  runArtifacts: RunArtifacts[],
+  runArtifacts: RunArtifact[],
   artifactTypes: ArtifactType[],
   metricsType: MetricsType,
-): RunArtifacts[] {
+): RunArtifact[] {
   const metricsFilter =
     metricsType === MetricsType.SCALAR_METRICS
       ? 'system.Metrics'
@@ -140,9 +140,9 @@ function filterRunArtifactsByType(
       : metricsType === MetricsType.MARKDOWN
       ? 'system.Markdown'
       : '';
-  const typeRuns: RunArtifacts[] = [];
+  const typeRuns: RunArtifact[] = [];
   for (const runArtifact of runArtifacts) {
-    const typeExecutions: ExecutionArtifacts[] = [];
+    const typeExecutions: ExecutionArtifact[] = [];
     for (const e of runArtifact.executionArtifacts) {
       let typeArtifacts: LinkedArtifact[] = filterLinkedArtifactsByType(
         metricsFilter,
@@ -162,20 +162,20 @@ function filterRunArtifactsByType(
         typeExecutions.push({
           execution: e.execution,
           linkedArtifacts: typeArtifacts,
-        } as ExecutionArtifacts);
+        } as ExecutionArtifact);
       }
     }
     if (typeExecutions.length > 0) {
       typeRuns.push({
         run: runArtifact.run,
         executionArtifacts: typeExecutions,
-      } as RunArtifacts);
+      } as RunArtifact);
     }
   }
   return typeRuns;
 }
 
-function getRunArtifacts(runs: ApiRunDetail[], mlmdPackages: MlmdPackage[]): RunArtifacts[] {
+function getRunArtifacts(runs: ApiRunDetail[], mlmdPackages: MlmdPackage[]): RunArtifact[] {
   return mlmdPackages.map((mlmdPackage, index) => {
     const events = mlmdPackage.events.filter(e => e.getType() === Event.Type.OUTPUT);
 
@@ -200,12 +200,12 @@ function getRunArtifacts(runs: ApiRunDetail[], mlmdPackages: MlmdPackage[]): Run
       return {
         execution,
         linkedArtifacts,
-      } as ExecutionArtifacts;
+      } as ExecutionArtifact;
     });
     return {
       run: runs[index],
       executionArtifacts,
-    } as RunArtifacts;
+    } as RunArtifact;
   });
 }
 
@@ -230,12 +230,91 @@ interface SelectedArtifact {
 }
 
 interface MetricsDropdownProps {
-  filteredRunArtifacts: RunArtifacts[];
+  filteredRunArtifacts: RunArtifact[];
   metricsTab: MetricsType;
   metricsTabText: string;
   selectedArtifacts: { [key: string]: SelectedArtifact[] };
   setSelectedArtifacts: (selectedArtifacts: { [key: string]: SelectedArtifact[] }) => void;
 }
+
+const logDisplayNameWarning = (type: string, id: number | string) =>
+  logger.warn(`Failed to fetch the display name of the ${type} with the following ID: ${id}`);
+
+const getExecutionName = (execution: Execution) =>
+  execution
+    .getCustomPropertiesMap()
+    .get('display_name')
+    ?.getStringValue();
+
+const getArtifactName = (event: Event) =>
+  event
+    .getPath()
+    ?.getStepsList()[0]
+    .getKey();
+
+function getDropdownItems(filteredRunArtifacts: RunArtifact[]) {
+  const dropdownItems: DropdownItem[] = [];
+  for (const runArtifact of filteredRunArtifacts) {
+    const runName = runArtifact.run.run?.name;
+    if (runName) {
+      // Combine execution names and artifact names into the same dropdown sub item.
+      const subItems: DropdownSubItem[] = [];
+      for (const executionArtifact of runArtifact.executionArtifacts) {
+        const executionName = getExecutionName(executionArtifact.execution);
+        if (executionName) {
+          // Group each artifact name with its parent execution name.
+          const executionLinkedArtifacts: DropdownSubItem[] = [];
+          for (const linkedArtifact of executionArtifact.linkedArtifacts) {
+            const artifactName = getArtifactName(linkedArtifact.event);
+            if (artifactName) {
+              executionLinkedArtifacts.push({
+                name: executionName,
+                secondaryName: artifactName,
+              } as DropdownSubItem);
+            } else {
+              logDisplayNameWarning('artifact', linkedArtifact.artifact.getId());
+            }
+          }
+          subItems.push(...executionLinkedArtifacts);
+        } else {
+          logDisplayNameWarning('execution', executionArtifact.execution.getId());
+        }
+      }
+
+      if (subItems.length > 0) {
+        dropdownItems.push({
+          name: runName,
+          subItems,
+        } as DropdownItem);
+      }
+    } else {
+      logDisplayNameWarning('run', runArtifact.run.run!.id!);
+    }
+  }
+
+  return dropdownItems;
+}
+
+const getArtifact = (
+  filteredRunArtifacts: RunArtifact[],
+  selectedItem: SelectedItem,
+): Artifact | undefined =>
+  filteredRunArtifacts
+    .find(runArtifact => runArtifact.run.run?.name === selectedItem.itemName)
+    ?.executionArtifacts.find(
+      executionArtifact =>
+        executionArtifact.execution
+          .getCustomPropertiesMap()
+          .get('display_name')
+          ?.getStringValue() === selectedItem.subItemName,
+    )
+    ?.linkedArtifacts.find(
+      linkedArtifact =>
+        linkedArtifact.event
+          .getPath()
+          ?.getStepsList()[0]
+          .getKey() === selectedItem.subItemSecondaryName,
+    )?.artifact;
 
 function MetricsDropdown(props: MetricsDropdownProps) {
   const {
@@ -255,27 +334,6 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     secondSelectedArtifact.selectedItem,
   );
 
-  const getArtifact = (
-    filteredRunArtifacts: RunArtifacts[],
-    selectedItem: SelectedItem,
-  ): Artifact | undefined =>
-    filteredRunArtifacts
-      .find(x => x.run.run?.name === selectedItem.itemName)
-      ?.executionArtifacts.find(
-        y =>
-          y.execution
-            .getCustomPropertiesMap()
-            .get('display_name')
-            ?.getStringValue() === selectedItem.subItemName,
-      )
-      ?.linkedArtifacts.find(
-        z =>
-          z.event
-            .getPath()
-            ?.getStepsList()[0]
-            .getKey() === selectedItem.subItemSecondaryName,
-      )?.artifact;
-
   useEffect(() => {
     if (
       firstSelectedItem.itemName &&
@@ -289,7 +347,7 @@ function MetricsDropdown(props: MetricsDropdownProps) {
       );
       setSelectedArtifacts({ ...selectedArtifacts });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firstSelectedItem, filteredRunArtifacts, metricsTab, setSelectedArtifacts]);
 
   useEffect(() => {
@@ -305,55 +363,10 @@ function MetricsDropdown(props: MetricsDropdownProps) {
       );
       setSelectedArtifacts({ ...selectedArtifacts });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [secondSelectedItem, filteredRunArtifacts, metricsTab, setSelectedArtifacts]);
 
-  const dropdownItems: DropdownItem[] = [];
-  for (const x of filteredRunArtifacts) {
-    const runName = x.run.run?.name;
-    if (runName) {
-      const subItems: DropdownSubItem[] = [];
-      for (const y of x.executionArtifacts) {
-        const executionName = y.execution
-          .getCustomPropertiesMap()
-          .get('display_name')
-          ?.getStringValue();
-        if (executionName) {
-          const executionLinkedArtifacts: DropdownSubItem[] = [];
-          for (const z of y.linkedArtifacts) {
-            const artifactName = z.event
-              .getPath()
-              ?.getStepsList()[0]
-              .getKey();
-            if (artifactName) {
-              executionLinkedArtifacts.push({
-                name: executionName,
-                secondaryName: artifactName,
-              } as DropdownSubItem);
-            } else {
-              logger.warn(
-                `Failed to fetch the display name of the artifact with the following ID: ${z.artifact.getId()}`,
-              );
-            }
-          }
-          subItems.push(...executionLinkedArtifacts);
-        } else {
-          logger.warn(
-            `Failed to fetch the display name of the execution with the following ID: ${y.execution.getId()}`,
-          );
-        }
-      }
-
-      if (subItems.length > 0) {
-        dropdownItems.push({
-          name: runName,
-          subItems,
-        } as DropdownItem);
-      }
-    } else {
-      logger.warn(`Failed to fetch the name of the run with the following ID: ${x.run.run?.id}`);
-    }
-  }
+  const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
 
   if (dropdownItems.length === 0) {
     return <p>There are no {metricsTabText} artifacts available on the selected runs.</p>;
@@ -411,9 +424,9 @@ function CompareV2(props: PageProps) {
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
 
-  const [confusionMatrixArtifacts, setConfusionMatrixArtifacts] = useState<RunArtifacts[]>([]);
-  const [htmlArtifacts, setHtmlArtifacts] = useState<RunArtifacts[]>([]);
-  const [markdownArtifacts, setMarkdownArtifacts] = useState<RunArtifacts[]>([]);
+  const [confusionMatrixArtifacts, setConfusionMatrixArtifacts] = useState<RunArtifact[]>([]);
+  const [htmlArtifacts, setHtmlArtifacts] = useState<RunArtifact[]>([]);
+  const [markdownArtifacts, setMarkdownArtifacts] = useState<RunArtifact[]>([]);
 
   // Selected artifacts for two-panel layout.
   const createSelectedArtifactArray = (count: number): SelectedArtifact[] => {
@@ -491,7 +504,7 @@ function CompareV2(props: PageProps) {
 
   useEffect(() => {
     if (runs && mlmdPackages && artifactTypes) {
-      const runArtifacts: RunArtifacts[] = getRunArtifacts(runs, mlmdPackages);
+      const runArtifacts: RunArtifact[] = getRunArtifacts(runs, mlmdPackages);
       setConfusionMatrixArtifacts(
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX),
       );

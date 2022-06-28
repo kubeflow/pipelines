@@ -14,15 +14,12 @@
 """Tests for kfp.components.structures."""
 
 import os
-import sys
 import tempfile
 import textwrap
 import unittest
 
 from absl.testing import parameterized
 from kfp import compiler
-from kfp.compiler.compiler_test import SUPPORTED_COMPONENT_TEST_CASES
-from kfp.compiler.compiler_test import SUPPORTED_COMPONENTS_TEST_DATA_DIR
 from kfp.components import placeholders
 from kfp.components import structures
 
@@ -409,9 +406,9 @@ sdkVersion: kfp-2.0.0-alpha.2
                             input_name='input_parameter'),
                         placeholders.InputPathPlaceholder(
                             input_name='input_artifact'),
-                        placeholders.OutputPathPlaceholder(
+                        placeholders.OutputParameterPlaceholder(
                             output_name='output_1'),
-                        placeholders.OutputPathPlaceholder(
+                        placeholders.OutputParameterPlaceholder(
                             output_name='output_2'),
                     ],
                     env={},
@@ -465,8 +462,9 @@ class TestContainerSpec(unittest.TestCase):
                         '\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import *\n\ndef concat_message(first: str, second: str) -> str:\n    return first + second\n\n'
                     ],
                     args=[
-                        '--executor_input', '{{$}}', '--function_to_execute',
-                        'concat_message'
+                        '--executor_input',
+                        placeholders.ExecutorInputPlaceholder(),
+                        '--function_to_execute', 'concat_message'
                     ],
                     env=None,
                     resources=None),
@@ -616,24 +614,6 @@ class TestReadInComponent(parameterized.TestCase):
         self.assertEqual(component_spec.name, 'component-if')
         self.assertEqual(component_spec.implementation.container.image,
                          'alpine')
-
-    @parameterized.parameters(SUPPORTED_COMPONENT_TEST_CASES)
-    def test_read_in_all_v2_components(self, file):
-        try:
-            sys.path.insert(0, SUPPORTED_COMPONENTS_TEST_DATA_DIR)
-            mod = __import__(file, fromlist=[file])
-            component = getattr(mod, file)
-        finally:
-            del sys.path[0]
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            component_file = os.path.join(tmpdir, 'component.yaml')
-            compiler.Compiler().compile(component, component_file)
-            with open(component_file, 'r') as f:
-                yaml_str = f.read()
-        loaded_component_spec = structures.ComponentSpec.load_from_component_yaml(
-            yaml_str)
-        self.assertEqual(component.component_spec, loaded_component_spec)
 
     def test_simple_placeholder(self):
         compiled_yaml = textwrap.dedent("""

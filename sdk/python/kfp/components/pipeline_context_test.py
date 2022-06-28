@@ -55,6 +55,15 @@ class TestPipeline(unittest.TestCase):
         self.assertFalse(
             pipeline_context.Pipeline.is_pipeline_func(my_pipeline))
 
+    def test_pipeline_decorator_must_be_called(self):
+
+        with self.assertRaisesRegex(RuntimeError,
+                                    r'The @pipeline decorator must be called'):
+
+            @pipeline_context.pipeline
+            def my_pipeline(a: str, b: int):
+                pass
+
 
 if __name__ == '__main__':
     unittest.main()
