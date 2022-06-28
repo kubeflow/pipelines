@@ -129,7 +129,8 @@ class RegistryClient:
         Returns:
             Whether the host is on Artifact Registry.
         """
-        return self._known_host_key in _KNOWN_HOSTS_REGEX.keys()
+        # TODO: Handle multiple known hosts.
+        return self._known_host_key == 'kfp_pkg_dev'
 
     def _is_known_host(self) -> bool:
         """Checks if the host is a known host.
