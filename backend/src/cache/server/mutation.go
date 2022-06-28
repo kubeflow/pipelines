@@ -227,7 +227,9 @@ func retrieveCacheItemIfReallyExists(TODO API client, execution *model.Execution
 		log.Printf("retrieveCacheItemIfReallyExists %s ", execution.ExecutionTemplate)
 		bucket, key := getCacheItemS3Data(execution)
 		log.Printf("bucket %s , key: %s, filename: %s", bucket, key, fileName)
-		TODO use https://github.com/kubeflow/pipelines/blob/a294e75b3a1ac52028f7c9fb3308add389194619/backend/src/apiserver/client_manager.go#L37-L60
+		TODO use https://github.com/kubeflow/pipelines/blob/a294e75b3a1ac52028f7c9fb3308add389194619/backend/src/agent/persistence/worker/metrics_reporter.go#L144-L160
+		api "github.com/kubeflow/pipelines/backend/api/go_client"
+		https://github.com/kubeflow/pipelines/blob/a294e75b3a1ac52028f7c9fb3308add389194619/backend/src/agent/persistence/client/pipeline_client.go#L142
 		result, err := client.GetFile(fileName)
 		log.Printf("cache retrieve result length %d %v", len(result), err)
 		if len(result) == 0 || err != nil {
