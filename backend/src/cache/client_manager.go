@@ -16,14 +16,15 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
 
-	"encoding/json"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	"github.com/jinzhu/gorm"
+	pipelineclient "github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
 	"github.com/kubeflow/pipelines/backend/src/cache/client"
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/cache/storage"
@@ -35,10 +36,11 @@ const (
 )
 
 type ClientManager struct {
-	db            *storage.DB
-	cacheStore    storage.ExecutionCacheStoreInterface
-	k8sCoreClient client.KubernetesCoreInterface
-	time          util.TimeInterface
+	db             *storage.DB
+	cacheStore     storage.ExecutionCacheStoreInterface
+	k8sCoreClient  client.KubernetesCoreInterface
+	pipelineClient pipelineclient.PipelineClientInterface
+	time           util.TimeInterface
 }
 
 func (c *ClientManager) CacheStore() storage.ExecutionCacheStoreInterface {
@@ -49,11 +51,15 @@ func (c *ClientManager) KubernetesCoreClient() client.KubernetesCoreInterface {
 	return c.k8sCoreClient
 }
 
+func (c *ClientManager) PipelineClient() pipelineclient.PipelineClientInterface {
+	return c.pipelineClient
+}
+
 func (c *ClientManager) Close() {
 	c.db.Close()
 }
 
-func (c *ClientManager) init(params WhSvrDBParameters, clientParams util.ClientParameters) {
+func (c *ClientManager) init(params WhSvrDBParameters, clientParams util.ClientParameters, pplParams PipelineClientParameters) {
 	timeoutDuration, _ := time.ParseDuration(DefaultConnectionTimeout)
 	db := initDBClient(params, timeoutDuration)
 
@@ -61,6 +67,18 @@ func (c *ClientManager) init(params WhSvrDBParameters, clientParams util.ClientP
 	c.db = db
 	c.cacheStore = storage.NewExecutionCacheStore(db, c.time)
 	c.k8sCoreClient = client.CreateKubernetesCoreOrFatal(timeoutDuration, clientParams)
+	pipelineClient, err := pipelineclient.NewPipelineClient(
+		pplParams.initializeTimeout,
+		pplParams.timeout,
+		pplParams.mlPipelineAPIServerBasePath,
+		pplParams.mlPipelineAPIServerName,
+		pplParams.mlPipelineServiceHttpPort,
+		pplParams.mlPipelineServiceGRPCPort)
+	if err != nil {
+		log.Fatalf("Error creating ML pipeline API Server client: %v", err)
+	} else {
+		c.pipelineClient = pipelineClient
+	}
 }
 
 func initDBClient(params WhSvrDBParameters, initConnectionTimeout time.Duration) *storage.DB {
@@ -169,9 +187,10 @@ func initMysql(params WhSvrDBParameters, initConnectionTimeout time.Duration) st
 	return mysqlConfig.FormatDSN()
 }
 
-func NewClientManager(params WhSvrDBParameters, clientParams util.ClientParameters) ClientManager {
+func NewClientManager(params WhSvrDBParameters, clientParams util.ClientParameters,
+	pplParams PipelineClientParameters) ClientManager {
 	clientManager := ClientManager{}
-	clientManager.init(params, clientParams)
+	clientManager.init(params, clientParams, pplParams)
 
 	return clientManager
 }

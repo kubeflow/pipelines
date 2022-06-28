@@ -24,9 +24,12 @@ import (
 	"strconv"
 	"strings"
 
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	pipelineclient "github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
 	"github.com/kubeflow/pipelines/backend/src/cache/client"
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
 	"github.com/kubeflow/pipelines/backend/src/cache/storage"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -61,6 +64,7 @@ var (
 type ClientManagerInterface interface {
 	CacheStore() storage.ExecutionCacheStoreInterface
 	KubernetesCoreClient() client.KubernetesCoreInterface
+	PipelineClient() pipelineclient.PipelineClientInterface
 }
 
 // MutatePodIfCached will check whether the execution has already been run before from MLMD and apply the output into pod.metadata.output
@@ -134,7 +138,7 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 		log.Println(err.Error())
 	}
 
-	cachedExecution, err = retrieveCacheItemIfReallyExists(clientMgr.MinioClient(), cachedExecution, cacheKeyWithFileName)
+	cachedExecution, err = retrieveCacheItemIfReallyExists(clientMgr.PipelineClient(), cachedExecution, cacheKeyWithFileName)
 
 	if err != nil {
 		log.Printf("deleteItemFromCacheStore %s ", executionHashKey)
@@ -222,17 +226,24 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 }
 
 //retrieveCacheItemIfReallyExists checks the objects on object storage with readArtifact as the persistenceagent does
-func retrieveCacheItemIfReallyExists(TODO API client, execution *model.ExecutionCache, fileName string) (*model.ExecutionCache, error) {
+func retrieveCacheItemIfReallyExists(client pipelineclient.PipelineClientInterface, execution *model.ExecutionCache, fileName string) (*model.ExecutionCache, error) {
 	if execution != nil && client != nil {
 		log.Printf("retrieveCacheItemIfReallyExists %s ", execution.ExecutionTemplate)
 		bucket, key := getCacheItemS3Data(execution)
 		log.Printf("bucket %s , key: %s, filename: %s", bucket, key, fileName)
-		TODO use https://github.com/kubeflow/pipelines/blob/a294e75b3a1ac52028f7c9fb3308add389194619/backend/src/agent/persistence/worker/metrics_reporter.go#L144-L160
-		api "github.com/kubeflow/pipelines/backend/api/go_client"
-		https://github.com/kubeflow/pipelines/blob/a294e75b3a1ac52028f7c9fb3308add389194619/backend/src/agent/persistence/client/pipeline_client.go#L142
-		result, err := client.GetFile(fileName)
-		log.Printf("cache retrieve result length %d %v", len(result), err)
-		if len(result) == 0 || err != nil {
+		//TODO use https://github.com/kubeflow/pipelines/blob/a294e75b3a1ac52028f7c9fb3308add389194619/backend/src/agent/persistence/worker/metrics_reporter.go#L144-L160
+		//api "github.com/kubeflow/pipelines/backend/api/go_client"
+		//https://github.com/kubeflow/pipelines/blob/a294e75b3a1ac52028f7c9fb3308add389194619/backend/src/agent/persistence/client/pipeline_client.go#L142
+		artifactResponse, err := client.ReadArtifact(&api.ReadArtifactRequest{
+			RunId:        "",
+			NodeId:       "",
+			ArtifactName: "",
+		})
+		if err != nil {
+			return nil, err
+		}
+		if artifactResponse == nil || artifactResponse.GetData() == nil || len(artifactResponse.GetData()) == 0 {
+			// If artifact is not found or empty content, skip the reporting.
 			return nil, util.NewInternalServerError(err, "Failed to get %v", key)
 		}
 	}

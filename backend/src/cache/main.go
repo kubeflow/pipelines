@@ -20,15 +20,22 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"time"
 
 	"github.com/kubeflow/pipelines/backend/src/cache/server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 const (
-	TLSDir             string = "/etc/webhook/certs"
-	TLSCertFileDefault string = "cert.pem"
-	TLSKeyFileDefault  string = "key.pem"
+	TLSDir                              string = "/etc/webhook/certs"
+	TLSCertFileDefault                  string = "cert.pem"
+	TLSKeyFileDefault                   string = "key.pem"
+	initializationTimeoutFlagName              = "initializeTimeout"
+	timeoutFlagName                            = "timeout"
+	mlPipelineAPIServerBasePathFlagName        = "mlPipelineAPIServerBasePath"
+	mlPipelineAPIServerNameFlagName            = "mlPipelineAPIServerName"
+	mlPipelineAPIServerHttpPortFlagName        = "mlPipelineServiceHttpPort"
+	mlPipelineAPIServerGRPCPortFlagName        = "mlPipelineServiceGRPCPort"
 )
 
 const (
@@ -57,9 +64,20 @@ type WhSvrDBParameters struct {
 	namespaceToWatch    string
 }
 
+type PipelineClientParameters struct {
+	initializeTimeout           time.Duration
+	timeout                     time.Duration
+	mlPipelineAPIServerName     string
+	mlPipelineAPIServerPort     string
+	mlPipelineAPIServerBasePath string
+	mlPipelineServiceHttpPort   string
+	mlPipelineServiceGRPCPort   string
+}
+
 func main() {
 	var params WhSvrDBParameters
 	var clientParams util.ClientParameters
+	var pplParams PipelineClientParameters
 	var certFile string
 	var keyFile string
 
@@ -81,10 +99,19 @@ func main() {
 	flag.StringVar(&certFile, "tls_cert_filename", TLSCertFileDefault, "The TLS certificate filename.")
 	flag.StringVar(&keyFile, "tls_key_filename", TLSKeyFileDefault, "The TLS key filename.")
 
+	//pipelineclient params
+	flag.DurationVar(&pplParams.initializeTimeout, initializationTimeoutFlagName, 2*time.Minute, "Duration to wait for initialization of the ML pipeline API server.")
+	flag.DurationVar(&pplParams.timeout, timeoutFlagName, 1*time.Minute, "Duration to wait for calls to complete.")
+	flag.StringVar(&pplParams.mlPipelineAPIServerName, mlPipelineAPIServerNameFlagName, "ml-pipeline", "Name of the ML pipeline API server.")
+	flag.StringVar(&pplParams.mlPipelineServiceHttpPort, mlPipelineAPIServerHttpPortFlagName, "8888", "Http Port of the ML pipeline API server.")
+	flag.StringVar(&pplParams.mlPipelineServiceGRPCPort, mlPipelineAPIServerGRPCPortFlagName, "8887", "GRPC Port of the ML pipeline API server.")
+	flag.StringVar(&pplParams.mlPipelineAPIServerBasePath, mlPipelineAPIServerBasePathFlagName,
+		"/apis/v1beta1", "The base path for the ML pipeline API server.")
+
 	flag.Parse()
 
 	log.Println("Initing client manager....")
-	clientManager := NewClientManager(params, clientParams)
+	clientManager := NewClientManager(params, clientParams, pplParams)
 	ctx := context.Background()
 	go server.WatchPods(ctx, params.namespaceToWatch, &clientManager)
 
