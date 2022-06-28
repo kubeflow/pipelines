@@ -127,8 +127,19 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 
 	var cachedExecution *model.ExecutionCache
 	cachedExecution, err = clientMgr.CacheStore().GetExecutionCache(executionHashKey, maxCacheStalenessInSeconds)
+	cacheKeyWithFileName := getCacheItemKey(cachedExecution)
+	log.Println("cache key extracted from output: " + cacheKeyWithFileName)
+
 	if err != nil {
 		log.Println(err.Error())
+	}
+
+	cachedExecution, err = retrieveCacheItemIfReallyExists(clientMgr.MinioClient(), cachedExecution, cacheKeyWithFileName)
+
+	if err != nil {
+		log.Printf("deleteItemFromCacheStore %s ", executionHashKey)
+		err = clientMgr.CacheStore().DeleteExecutionCache(executionHashKey)
+		log.Println(err)
 	}
 	// Found cached execution, add cached output and cache_id and replace container images.
 	if cachedExecution != nil {
