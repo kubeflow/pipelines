@@ -767,7 +767,7 @@
                     }
                   },
                   "ground_truth_column": {
-                    "componentInputParameter": "pipelineparam--target_column_name"
+                    "componentInputParameter": "pipelineparam--target_column"
                   },
                   "ground_truth_format": {
                     "runtimeValue": {
@@ -920,7 +920,7 @@
                     }
                   },
                   "ground_truth_column": {
-                    "componentInputParameter": "pipelineparam--target_column_name"
+                    "componentInputParameter": "pipelineparam--target_column"
                   },
                   "ground_truth_format": {
                     "runtimeValue": {
@@ -1113,7 +1113,7 @@
             "pipelineparam--tabular-stats-and-example-gen-test_split_json": {
               "type": "STRING"
             },
-            "pipelineparam--target_column_name": {
+            "pipelineparam--target_column": {
               "type": "STRING"
             }
           }
@@ -1584,8 +1584,8 @@
                       "producerTask": "tabular-stats-and-example-gen"
                     }
                   },
-                  "pipelineparam--target_column_name": {
-                    "componentInputParameter": "pipelineparam--target_column_name"
+                  "pipelineparam--target_column": {
+                    "componentInputParameter": "pipelineparam--target_column"
                   }
                 }
               },
@@ -2025,7 +2025,7 @@
                     "componentInputParameter": "pipelineparam--stratified_split_key"
                   },
                   "target_column_name": {
-                    "componentInputParameter": "pipelineparam--target_column_name"
+                    "componentInputParameter": "pipelineparam--target_column"
                   },
                   "test_fraction": {
                     "componentInputParameter": "pipelineparam--test_fraction"
@@ -2050,7 +2050,7 @@
                     "componentInputParameter": "pipelineparam--validation_fraction"
                   },
                   "weight_column_name": {
-                    "componentInputParameter": "pipelineparam--weight_column_name"
+                    "componentInputParameter": "pipelineparam--weight_column"
                   }
                 }
               },
@@ -2158,7 +2158,7 @@
             "pipelineparam--stratified_split_key": {
               "type": "STRING"
             },
-            "pipelineparam--target_column_name": {
+            "pipelineparam--target_column": {
               "type": "STRING"
             },
             "pipelineparam--test_fraction": {
@@ -2188,7 +2188,7 @@
             "pipelineparam--validation_fraction": {
               "type": "DOUBLE"
             },
-            "pipelineparam--weight_column_name": {
+            "pipelineparam--weight_column": {
               "type": "STRING"
             }
           }
@@ -3688,8 +3688,8 @@
                 "pipelineparam--stratified_split_key": {
                   "componentInputParameter": "stratified_split_key"
                 },
-                "pipelineparam--target_column_name": {
-                  "componentInputParameter": "target_column_name"
+                "pipelineparam--target_column": {
+                  "componentInputParameter": "target_column"
                 },
                 "pipelineparam--test_fraction": {
                   "componentInputParameter": "test_fraction"
@@ -3718,8 +3718,8 @@
                 "pipelineparam--validation_fraction": {
                   "componentInputParameter": "validation_fraction"
                 },
-                "pipelineparam--weight_column_name": {
-                  "componentInputParameter": "weight_column_name"
+                "pipelineparam--weight_column": {
+                  "componentInputParameter": "weight_column"
                 }
               }
             },
@@ -3827,7 +3827,7 @@
           "stratified_split_key": {
             "type": "STRING"
           },
-          "target_column_name": {
+          "target_column": {
             "type": "STRING"
           },
           "test_fraction": {
@@ -3857,7 +3857,7 @@
           "validation_fraction": {
             "type": "DOUBLE"
           },
-          "weight_column_name": {
+          "weight_column": {
             "type": "STRING"
           }
         }
@@ -3977,7 +3977,7 @@
       "validation_fraction": {
         "doubleValue": -1.0
       },
-      "weight_column_name": {
+      "weight_column": {
         "stringValue": ""
       }
     }

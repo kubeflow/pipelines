@@ -446,7 +446,7 @@ class UtilsTest(unittest.TestCase):
             'project': 'project',
             'location': 'us-central1',
             'root_dir': 'gs://foo',
-            'target_column_name': 'target',
+            'target_column': 'target',
             'prediction_type': 'classification',
             'data_source_csv_filenames': 'gs://foo/bar.csv',
             'training_fraction': 0.8,

@@ -669,7 +669,7 @@ def get_skip_architecture_search_pipeline_and_parameters(
     project: str,
     location: str,
     root_dir: str,
-    target_column_name: str,
+    target_column: str,
     prediction_type: str,
     optimization_objective: str,
     transformations: Dict[str, Any],
@@ -685,7 +685,7 @@ def get_skip_architecture_search_pipeline_and_parameters(
     training_fraction: Optional[float] = None,
     validation_fraction: Optional[float] = None,
     test_fraction: Optional[float] = None,
-    weight_column_name: Optional[str] = None,
+    weight_column: Optional[str] = None,
     optimization_objective_recall_value: Optional[float] = None,
     optimization_objective_precision_value: Optional[float] = None,
     cv_trainer_worker_pool_specs_override: Optional[Dict[str, Any]] = None,
@@ -715,7 +715,7 @@ def get_skip_architecture_search_pipeline_and_parameters(
     project: The GCP project that runs the pipeline components.
     location: The GCP region that runs the pipeline components.
     root_dir: The root GCS directory for the pipeline components.
-    target_column_name: The target column name.
+    target_column: The target column name.
     prediction_type: The type of prediction the model is to produce.
       "classification" or "regression".
     optimization_objective: For binary classification, "maximize-au-roc",
@@ -739,7 +739,7 @@ def get_skip_architecture_search_pipeline_and_parameters(
     training_fraction: The training fraction.
     validation_fraction: The validation fraction.
     test_fraction: float = The test fraction.
-    weight_column_name: The weight column name.
+    weight_column: The weight column name.
     optimization_objective_recall_value: Required when optimization_objective is
       "maximize-precision-at-recall". Must be between 0 and 1, inclusive.
     optimization_objective_precision_value: Required when optimization_objective
@@ -798,8 +798,8 @@ def get_skip_architecture_search_pipeline_and_parameters(
           location,
       'root_dir':
           root_dir,
-      'target_column_name':
-          target_column_name,
+      'target_column':
+          target_column,
       'prediction_type':
           prediction_type,
       'data_source_csv_filenames':
@@ -830,8 +830,8 @@ def get_skip_architecture_search_pipeline_and_parameters(
           stage_2_num_parallel_trials,
       'stage_2_num_selected_trials':
           stage_2_num_selected_trials,
-      'weight_column_name':
-          weight_column_name,
+      'weight_column':
+          weight_column,
       'optimization_objective_recall_value':
           optimization_objective_recall_value,
       'optimization_objective_precision_value':
