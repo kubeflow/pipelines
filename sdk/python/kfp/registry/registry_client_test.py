@@ -100,11 +100,11 @@ class RegistryClientTest(parameterized.TestCase):
             'get_version_url':
                 ('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
-                 '/repo/packages/{package_name}/versions/{version}'),
+                 '/repo/packages/{package_name}/versions/{version}?view=FULL'),
             'list_versions_url':
                 ('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
-                 '/repo/packages/{package_name}/versions'),
+                 '/repo/packages/{package_name}/versions?view=FULL'),
             'delete_version_url':
                 ('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
@@ -278,7 +278,7 @@ class RegistryClientTest(parameterized.TestCase):
         mock_get.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
-                 '/repo/packages/pack/versions/sha256:abcde12345'),
+                 '/repo/packages/pack/versions/sha256:abcde12345?view=FULL'),
             data='',
             headers=None,
             auth=mock.ANY)
@@ -291,7 +291,7 @@ class RegistryClientTest(parameterized.TestCase):
         mock_get.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
-                 '/repo/packages/pack/versions'),
+                 '/repo/packages/pack/versions?view=FULL'),
             data='',
             headers=None,
             auth=mock.ANY)
@@ -309,7 +309,7 @@ class RegistryClientTest(parameterized.TestCase):
         mock_get.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
-                 '/repo/packages/pack/versions'),
+                 '/repo/packages/pack/versions?view=FULL'),
             data='',
             headers=None,
             auth=mock.ANY)

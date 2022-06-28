@@ -53,6 +53,9 @@ inputs:
 - {name: root_dir, type: String}
 - {name: study_spec_override, type: String, default: ""}
 - {name: worker_pool_specs_override, type: String, default: ""}
+- {name: study_spec_parameters_override, type: JsonArray, default: "[]"}
+- {name: study_spec_parameters_override_json, type: JsonObject, default: "{}"}
+- {name: worker_pool_specs_override_json, type: JsonArray, default: "[]"}
 - {name: reduce_search_space_mode, type: String, default: "regular"}
 - {name: num_selected_trials, type: Integer}
 - {name: deadline_hours, type: Float}
@@ -67,6 +70,7 @@ inputs:
 - {name: tune_feature_selection_rate, type: Boolean, default: "false"}
 - {name: encryption_spec_key_name, type: String, default: ""}
 - {name: run_distillation, type: Boolean, default: "false"}
+
 
 outputs:
 - {name: gcp_resources, type: String}
@@ -135,5 +139,5 @@ implementation:
         {outputUri: tuning_result_output},
         '", "--kms_key_name=',
         {inputValue: encryption_spec_key_name},
-        '", "--use_json=true", "--log_level=ERROR"]}}]}}'
+        '", "--use_json=true", "--log_level=ERROR", "--executor_input={{$.json_escape[1]}}"]}}]}}'
       ]]

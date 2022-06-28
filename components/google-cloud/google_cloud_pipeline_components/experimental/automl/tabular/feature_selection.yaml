@@ -62,6 +62,7 @@ inputs:
 - {name: encryption_spec_key_name, type: String, default: ""}
 - {name: data_source, type: Dataset}
 - {name: target_column_name, type: String}
+- {name: algorithm, type: String, default: "AMI"}
 - {name: prediction_type, type: String, default: "unknown"}
 - {name: binary_classification, type: Boolean, default: "false"}
 - {name: max_selected_features, type: Integer, default: 1000}
@@ -95,6 +96,8 @@ implementation:
         {inputValue: prediction_type},
         '", "--binary_classification=',
         {inputValue: binary_classification},
+        '", "--algorithm=',
+        {inputValue: algorithm},
         '", "--feature_selection_dir=',
         {inputValue: root_dir},
         '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/feature_selection/",

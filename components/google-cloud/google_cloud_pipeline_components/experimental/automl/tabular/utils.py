@@ -121,8 +121,7 @@ def get_skip_evaluation_pipeline_and_parameters(
     transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
       transform component.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
-      the default
-      subnetwork will be used. Example:
+      the default subnetwork will be used. Example:
         https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
@@ -548,8 +547,7 @@ def get_feature_selection_skip_evaluation_pipeline_and_parameters(
     transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
       transform component.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
-      the default
-      subnetwork will be used. Example:
+      the default subnetwork will be used. Example:
         https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
@@ -599,10 +597,49 @@ def get_feature_selection_skip_evaluation_pipeline_and_parameters(
   return pipeline_definition_path, parameter_values
 
 
+def get_feature_selection_pipeline_and_parameters(
+    project: str,
+    location: str,
+    root_dir: str,
+    target_column: str,
+    prediction_type: str,
+    data_source: Dict[str, Any],
+    max_selected_features: int):
+  """Get the feature selection pipeline that generates feature ranking and selected features.
+
+  Args:
+    project: The GCP project that runs the pipeline components.
+    location: The GCP region that runs the pipeline components.
+    root_dir: The root GCS directory for the pipeline components.
+    target_column: The target column name.
+    prediction_type: The type of prediction the model is to produce.
+      "classification" or "regression".
+    data_source: The data source.
+    max_selected_features: number of features to be selected.
+
+  Returns:
+    Tuple of pipeline_definition_path and parameter_values.
+  """
+
+  parameter_values = {
+      'project': project,
+      'location': location,
+      'root_dir': root_dir,
+      'target_column_name': target_column,
+      'prediction_type': prediction_type,
+      'data_source': input_dictionary_to_parameter(data_source),
+      'max_selected_features': max_selected_features,
+  }
+
+  pipeline_definition_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(),
+      'feature_selection_pipeline.json')
+
+  return pipeline_definition_path, parameter_values
+
+
 def get_feature_selection_tuning_skip_evaluation_pipeline_and_parameters(
-    *args,
-    max_selected_features: int,
-    **kwargs) -> Tuple[str, Dict[str, Any]]:
+    *args, max_selected_features: int, **kwargs) -> Tuple[str, Dict[str, Any]]:
   """Get the AutoML Tabular training pipeline that skips evaluation.
 
   Args:
@@ -694,8 +731,7 @@ def get_skip_architecture_search_pipeline_and_parameters(
     transform_dataflow_max_num_workers: The max number of Dataflow workers for
       transform component.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
-      the default
-      subnetwork will be used. Example:
+      the default subnetwork will be used. Example:
         https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
@@ -805,7 +841,7 @@ def get_distill_skip_evaluation_pipeline_and_parameters(
     distill_batch_predict_machine_type: str = 'n1-standard-16',
     distill_batch_predict_starting_replica_count: int = 25,
     distill_batch_predict_max_replica_count: int = 25
-    ) -> Tuple[str, Dict[str, Any]]:
+) -> Tuple[str, Dict[str, Any]]:
   """Get the AutoML Tabular training pipeline that distill and skips evaluation.
 
   Args:
@@ -919,8 +955,6 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     target_column: str,
     prediction_type: str,
     transform_config: Dict[str, Any],
-    split_spec: Dict[str, Any],
-    data_source: Dict[str, Any],
     learning_rate: float,
     dnn_learning_rate: float,
     optimizer_type: str = 'adam',
@@ -946,6 +980,14 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     eval_steps: int = 0,
     batch_size: int = 100,
     eval_frequency_secs: int = 600,
+    data_source_csv_filenames: Optional[str] = None,
+    data_source_bigquery_table_path: Optional[str] = None,
+    predefined_split_key: Optional[str] = None,
+    timestamp_split_key: Optional[str] = None,
+    stratified_split_key: Optional[str] = None,
+    training_fraction: Optional[float] = None,
+    validation_fraction: Optional[float] = None,
+    test_fraction: Optional[float] = None,
     weight_column: str = '',
     stats_and_example_gen_dataflow_machine_type: str = 'n1-standard-16',
     stats_and_example_gen_dataflow_max_num_workers: int = 25,
@@ -980,8 +1022,6 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     prediction_type: The type of prediction the model is to produce.
       'classification' or 'regression'.
     transform_config: The transformations to apply.
-    split_spec: The split spec.
-    data_source: The data source.
     learning_rate: The learning rate used by the linear optimizer.
     dnn_learning_rate: The learning rate for training the deep part of the
       model.
@@ -1024,6 +1064,14 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     batch_size: Batch size for training.
     eval_frequency_secs: Frequency at which evaluation and checkpointing will
       take place.
+    data_source_csv_filenames: The CSV data source.
+    data_source_bigquery_table_path: The BigQuery data source.
+    predefined_split_key: The predefined_split column name.
+    timestamp_split_key: The timestamp_split column name.
+    stratified_split_key: The stratified_split column name.
+    training_fraction: The training fraction.
+    validation_fraction: The validation fraction.
+    test_fraction: The test fraction.
     weight_column: The weight column name.
     stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
       stats_and_example_gen component.
@@ -1055,8 +1103,7 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
       evaluation components.
     dataflow_service_account: Custom service account to run dataflow jobs.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
-      the default
-      subnetwork will be used. Example:
+      the default subnetwork will be used. Example:
         https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
@@ -1081,10 +1128,6 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
           prediction_type,
       'transform_config':
           json.dumps(transform_config),
-      'split_spec':
-          input_dictionary_to_parameter(split_spec),
-      'data_source':
-          input_dictionary_to_parameter(data_source),
       'learning_rate':
           learning_rate,
       'dnn_learning_rate':
@@ -1176,7 +1219,21 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
       'encryption_spec_key_name':
           encryption_spec_key_name,
   }
-
+  data_source_and_split_parameters = {
+      'data_source_csv_filenames': data_source_csv_filenames,
+      'data_source_bigquery_table_path': data_source_bigquery_table_path,
+      'predefined_split_key': predefined_split_key,
+      'timestamp_split_key': timestamp_split_key,
+      'stratified_split_key': stratified_split_key,
+      'training_fraction': training_fraction,
+      'validation_fraction': validation_fraction,
+      'test_fraction': test_fraction
+  }
+  parameter_values.update({
+      param: value
+      for param, value in data_source_and_split_parameters.items()
+      if value is not None
+  })
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
       'wide_and_deep_trainer_pipeline.json')
@@ -1191,8 +1248,6 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     target_column: str,
     prediction_type: str,
     transform_config: Dict[str, Any],
-    split_spec: Dict[str, Any],
-    data_source: Dict[str, Any],
     study_spec_metrics: List[Dict[str, Any]],
     study_spec_parameters_override: List[Dict[str, Any]],
     max_trial_count: int,
@@ -1202,6 +1257,14 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     seed: int = 1,
     eval_steps: int = 0,
     eval_frequency_secs: int = 600,
+    data_source_csv_filenames: Optional[str] = None,
+    data_source_bigquery_table_path: Optional[str] = None,
+    predefined_split_key: Optional[str] = None,
+    timestamp_split_key: Optional[str] = None,
+    stratified_split_key: Optional[str] = None,
+    training_fraction: Optional[float] = None,
+    validation_fraction: Optional[float] = None,
+    test_fraction: Optional[float] = None,
     weight_column: str = '',
     max_failed_trial_count: int = 0,
     study_spec_algorithm: str = 'ALGORITHM_UNSPECIFIED',
@@ -1239,8 +1302,6 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     prediction_type: The type of prediction the model is to produce.
       "classification" or "regression".
     transform_config: The transformations to apply.
-    split_spec: The split spec.
-    data_source: The data source.
     study_spec_metrics: List of dictionaries representing metrics to optimize.
       The dictionary contains the metric_id, which is reported by the training
       job, ands the optimization goal of the metric. One of "minimize" or
@@ -1259,6 +1320,14 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
       to 0, it means run evaluation for a fixed number of samples.
     eval_frequency_secs: Frequency at which evaluation and checkpointing will
       take place.
+    data_source_csv_filenames: The CSV data source.
+    data_source_bigquery_table_path: The BigQuery data source.
+    predefined_split_key: The predefined_split column name.
+    timestamp_split_key: The timestamp_split column name.
+    stratified_split_key: The stratified_split column name.
+    training_fraction: The training fraction.
+    validation_fraction: The validation fraction.
+    test_fraction: The test fraction.
     weight_column: The weight column name.
     max_failed_trial_count: The number of failed trials that need to be seen
       before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides
@@ -1299,8 +1368,7 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
       evaluation components.
     dataflow_service_account: Custom service account to run dataflow jobs.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
-      the default
-      subnetwork will be used. Example:
+      the default subnetwork will be used. Example:
         https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
@@ -1331,10 +1399,6 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
           prediction_type,
       'transform_config':
           json.dumps(transform_config),
-      'split_spec':
-          input_dictionary_to_parameter(split_spec),
-      'data_source':
-          input_dictionary_to_parameter(data_source),
       'study_spec_metrics':
           study_spec_metrics,
       'study_spec_parameters_override':
@@ -1398,7 +1462,21 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
       'encryption_spec_key_name':
           encryption_spec_key_name,
   }
-
+  data_source_and_split_parameters = {
+      'data_source_csv_filenames': data_source_csv_filenames,
+      'data_source_bigquery_table_path': data_source_bigquery_table_path,
+      'predefined_split_key': predefined_split_key,
+      'timestamp_split_key': timestamp_split_key,
+      'stratified_split_key': stratified_split_key,
+      'training_fraction': training_fraction,
+      'validation_fraction': validation_fraction,
+      'test_fraction': test_fraction
+  }
+  parameter_values.update({
+      param: value
+      for param, value in data_source_and_split_parameters.items()
+      if value is not None
+  })
   if algorithm == 'tabnet':
     parameter_values['tabnet'] = True
     pipeline_definition_path = os.path.join(
@@ -1420,8 +1498,6 @@ def get_tabnet_trainer_pipeline_and_parameters(
     target_column: str,
     prediction_type: str,
     transform_config: Dict[str, Any],
-    split_spec: Dict[str, Any],
-    data_source: Dict[str, Any],
     learning_rate: float,
     max_steps: int = -1,
     max_train_secs: int = -1,
@@ -1448,6 +1524,14 @@ def get_tabnet_trainer_pipeline_and_parameters(
     eval_steps: int = 0,
     batch_size: int = 100,
     eval_frequency_secs: int = 600,
+    data_source_csv_filenames: Optional[str] = None,
+    data_source_bigquery_table_path: Optional[str] = None,
+    predefined_split_key: Optional[str] = None,
+    timestamp_split_key: Optional[str] = None,
+    stratified_split_key: Optional[str] = None,
+    training_fraction: Optional[float] = None,
+    validation_fraction: Optional[float] = None,
+    test_fraction: Optional[float] = None,
     weight_column: str = '',
     stats_and_example_gen_dataflow_machine_type: str = 'n1-standard-16',
     stats_and_example_gen_dataflow_max_num_workers: int = 25,
@@ -1482,8 +1566,6 @@ def get_tabnet_trainer_pipeline_and_parameters(
     prediction_type: The type of prediction the model is to produce.
       "classification" or "regression".
     transform_config: The transformations to apply.
-    split_spec: The split spec.
-    data_source: The data source.
     learning_rate: The learning rate used by the linear optimizer.
     max_steps: Number of steps to run the trainer for.
     max_train_secs: Amount of time in seconds to run the trainer for.
@@ -1519,8 +1601,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
       classification.
     loss_function_type: Loss function type. Loss function in classification
       [cross_entropy, weighted_cross_entropy, focal_loss], default is
-      cross_entropy.
-        Loss function in regression: [rmse, mae, mse], default is mse.
+      cross_entropy. Loss function in regression: [rmse, mae, mse], default is
+      mse.
     alpha_focal_loss: Alpha value (balancing factor) in focal_loss function.
       Only used for classification.
     gamma_focal_loss: Gamma value (modulating factor) for focal loss for focal
@@ -1533,6 +1615,14 @@ def get_tabnet_trainer_pipeline_and_parameters(
     batch_size: Batch size for training.
     eval_frequency_secs: Frequency at which evaluation and checkpointing will
       take place.
+    data_source_csv_filenames: The CSV data source.
+    data_source_bigquery_table_path: The BigQuery data source.
+    predefined_split_key: The predefined_split column name.
+    timestamp_split_key: The timestamp_split column name.
+    stratified_split_key: The stratified_split column name.
+    training_fraction: The training fraction.
+    validation_fraction: The validation fraction.
+    test_fraction: The test fraction.
     weight_column: The weight column name.
     stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
       stats_and_example_gen component.
@@ -1564,8 +1654,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
       evaluation components.
     dataflow_service_account: Custom service account to run dataflow jobs.
     dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
-      the default
-      subnetwork will be used. Example:
+      the default subnetwork will be used. Example:
         https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
     dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
@@ -1590,10 +1679,6 @@ def get_tabnet_trainer_pipeline_and_parameters(
           prediction_type,
       'transform_config':
           json.dumps(transform_config),
-      'split_spec':
-          input_dictionary_to_parameter(split_spec),
-      'data_source':
-          input_dictionary_to_parameter(data_source),
       'learning_rate':
           learning_rate,
       'max_steps':
@@ -1687,7 +1772,21 @@ def get_tabnet_trainer_pipeline_and_parameters(
       'encryption_spec_key_name':
           encryption_spec_key_name,
   }
-
+  data_source_and_split_parameters = {
+      'data_source_csv_filenames': data_source_csv_filenames,
+      'data_source_bigquery_table_path': data_source_bigquery_table_path,
+      'predefined_split_key': predefined_split_key,
+      'timestamp_split_key': timestamp_split_key,
+      'stratified_split_key': stratified_split_key,
+      'training_fraction': training_fraction,
+      'validation_fraction': validation_fraction,
+      'test_fraction': test_fraction
+  }
+  parameter_values.update({
+      param: value
+      for param, value in data_source_and_split_parameters.items()
+      if value is not None
+  })
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(), 'tabnet_trainer_pipeline.json')
 
@@ -1724,7 +1823,7 @@ def get_tabnet_study_spec_parameters_override(
   param_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
       f'configs/tabnet_params_{dataset_size_bucket}_data_{training_budget_bucket}_search_space.json'
-    )
+  )
   with open(param_path, 'r') as f:
     param_content = f.read()
     params = json.loads(param_content)
@@ -1792,5 +1891,3 @@ def get_wide_and_deep_study_spec_parameters_override() -> List[Dict[str, Any]]:
     params = json.loads(param_content)
 
   return params
-
-

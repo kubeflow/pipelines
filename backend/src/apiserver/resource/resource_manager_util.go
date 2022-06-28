@@ -16,11 +16,7 @@ package resource
 
 import (
 	"context"
-	"errors"
-	"strings"
 
-	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	"github.com/argoproj/argo-workflows/v3/workflow/common"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -29,60 +25,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func formulateRetryWorkflow(wf *util.Workflow) (*util.Workflow, []string, error) {
-	switch wf.Status.Phase {
-	case wfv1.WorkflowFailed, wfv1.WorkflowError:
-		break
-	default:
-		return nil, nil, util.NewBadRequestError(errors.New("workflow cannot be retried"), "Workflow must be Failed/Error to retry")
-	}
-
-	newWF := wf.DeepCopy()
-	// Delete/reset fields which indicate workflow completed
-	delete(newWF.Labels, common.LabelKeyCompleted)
-	// Delete/reset fields which indicate workflow is finished being persisted to the database
-	delete(newWF.Labels, util.LabelKeyWorkflowPersistedFinalState)
-	newWF.ObjectMeta.Labels[common.LabelKeyPhase] = string(wfv1.NodeRunning)
-	newWF.Status.Phase = wfv1.WorkflowRunning
-	newWF.Status.Message = ""
-	newWF.Status.FinishedAt = metav1.Time{}
-	if newWF.Spec.ActiveDeadlineSeconds != nil && *newWF.Spec.ActiveDeadlineSeconds == 0 {
-		// if it was terminated, unset the deadline
-		newWF.Spec.ActiveDeadlineSeconds = nil
-	}
-
-	// Iterate the previous nodes. If it was successful Pod carry it forward
-	newWF.Status.Nodes = make(map[string]wfv1.NodeStatus)
-	onExitNodeName := wf.ObjectMeta.Name + ".onExit"
-	var podsToDelete []string
-	for _, node := range wf.Status.Nodes {
-		switch node.Phase {
-		case wfv1.NodeSucceeded, wfv1.NodeSkipped:
-			if !strings.HasPrefix(node.Name, onExitNodeName) {
-				newWF.Status.Nodes[node.ID] = node
-				continue
-			}
-		case wfv1.NodeError, wfv1.NodeFailed, wfv1.NodeOmitted:
-			if !strings.HasPrefix(node.Name, onExitNodeName) && node.Type == wfv1.NodeTypeDAG {
-				newNode := node.DeepCopy()
-				newNode.Phase = wfv1.NodeRunning
-				newNode.Message = ""
-				newNode.FinishedAt = metav1.Time{}
-				newWF.Status.Nodes[newNode.ID] = *newNode
-				continue
-			}
-			// do not add this status to the node. pretend as if this node never existed.
-		default:
-			// Do not allow retry of workflows with pods in Running/Pending phase
-			return nil, nil, util.NewInternalServerError(
-				errors.New("workflow cannot be retried"),
-				"Workflow cannot be retried with node %s in %s phase", node.ID, node.Phase)
-		}
-		if node.Type == wfv1.NodeTypePod {
-			podsToDelete = append(podsToDelete, node.ID)
-		}
-	}
-	return util.NewWorkflow(newWF), podsToDelete, nil
+func formulateRetryWorkflow(wf util.ExecutionSpec) (util.ExecutionSpec, []string, error) {
+	return wf.GenerateRetryExecution()
 }
 
 func deletePods(ctx context.Context, k8sCoreClient client.KubernetesCoreInterface, podsToDelete []string, namespace string) error {
