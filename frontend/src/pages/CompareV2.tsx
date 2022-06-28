@@ -263,7 +263,9 @@ function MetricsDropdown(props: MetricsDropdownProps) {
         } as DropdownItem);
       }
     } else {
-      logger.warn(`Failed to fetch the name of the run with the following ID: ${runArtifact.run.run?.id}`);
+      logger.warn(
+        `Failed to fetch the name of the run with the following ID: ${runArtifact.run.run?.id}`,
+      );
     }
   }
 
