@@ -675,8 +675,8 @@ def get_skip_architecture_search_pipeline_and_parameters(
     transformations: Dict[str, Any],
     train_budget_milli_node_hours: float,
     stage_1_tuning_result_artifact_uri: str,
-    stage_2_num_parallel_trials: int = _DEFAULT_NUM_PARALLEL_TRAILS,
-    stage_2_num_selected_trials: int = _DEFAULT_STAGE_2_NUM_SELECTED_TRAILS,
+    stage_2_num_parallel_trials: Optional[int] = None,
+    stage_2_num_selected_trials: Optional[int] = None,
     data_source_csv_filenames: Optional[str] = None,
     data_source_bigquery_table_path: Optional[str] = None,
     predefined_split_key: Optional[str] = None,
@@ -685,33 +685,29 @@ def get_skip_architecture_search_pipeline_and_parameters(
     training_fraction: Optional[float] = None,
     validation_fraction: Optional[float] = None,
     test_fraction: Optional[float] = None,
-    weight_column_name: str = '',
-    optimization_objective_recall_value: float = -1,
-    optimization_objective_precision_value: float = -1,
+    weight_column_name: Optional[str] = None,
+    optimization_objective_recall_value: Optional[float] = None,
+    optimization_objective_precision_value: Optional[float] = None,
     cv_trainer_worker_pool_specs_override: Optional[Dict[str, Any]] = None,
     export_additional_model_without_custom_ops: bool = False,
-    stats_and_example_gen_dataflow_machine_type: str = 'n1-standard-16',
-    stats_and_example_gen_dataflow_max_num_workers: int = 25,
-    stats_and_example_gen_dataflow_disk_size_gb: int = 40,
-    transform_dataflow_machine_type: str = 'n1-standard-16',
-    transform_dataflow_max_num_workers: int = 25,
-    transform_dataflow_disk_size_gb: int = 40,
-    dataflow_subnetwork: str = '',
+    stats_and_example_gen_dataflow_machine_type: Optional[str] = None,
+    stats_and_example_gen_dataflow_max_num_workers: Optional[int] = None,
+    stats_and_example_gen_dataflow_disk_size_gb: Optional[int] = None,
+    transform_dataflow_machine_type: Optional[str] = None,
+    transform_dataflow_max_num_workers: Optional[int] = None,
+    transform_dataflow_disk_size_gb: Optional[int] = None,
+    dataflow_subnetwork: Optional[str] = None,
     dataflow_use_public_ips: bool = True,
-    encryption_spec_key_name: str = '',
+    encryption_spec_key_name: Optional[str] = None,
     additional_experiments: Optional[Dict[str, Any]] = None,
-    dataflow_service_account: str = '',
+    dataflow_service_account: Optional[str] = None,
     run_evaluation: bool = True,
-    evaluation_batch_predict_machine_type:
-    str = _EVALUATION_BATCH_PREDICT_MACHINE_TYPE,
-    evaluation_batch_predict_starting_replica_count:
-    int = _EVALUATION_BATCH_PREDICT_STARTING_REPLICA_COUNT,
-    evaluation_batch_predict_max_replica_count:
-    int = _EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT,
-    evaluation_dataflow_machine_type: str = _EVALUATION_DATAFLOW_MACHINE_TYPE,
-    evaluation_dataflow_max_num_workers:
-    int = _EVALUATION_DATAFLOW_MAX_NUM_WORKERS,
-    evaluation_dataflow_disk_size_gb: int = _EVALUATION_DATAFLOW_DISK_SIZE_GB
+    evaluation_batch_predict_machine_type: Optional[str] = None,
+    evaluation_batch_predict_starting_replica_count: Optional[int] = None,
+    evaluation_batch_predict_max_replica_count: Optional[int] = None,
+    evaluation_dataflow_machine_type: Optional[str] = None,
+    evaluation_dataflow_max_num_workers: Optional[int] = None,
+    evaluation_dataflow_disk_size_gb: Optional[int] = None
     ) -> Tuple[str, Dict[str, Any]]:
   """Get the AutoML Tabular training pipeline that skips architecture search.
 
@@ -790,18 +786,12 @@ def get_skip_architecture_search_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
-  if stage_2_num_parallel_trials <= 0:
-    stage_2_num_parallel_trials = _DEFAULT_NUM_PARALLEL_TRAILS
-
-  stage_2_deadline_hours = train_budget_milli_node_hours / 1000.0
-  stage_2_single_run_max_secs = int(stage_2_deadline_hours * 3600.0 / 1.3)
-
   if not cv_trainer_worker_pool_specs_override:
     cv_trainer_worker_pool_specs_override = []
   if not additional_experiments:
     additional_experiments = {}
-
-  parameter_values = {
+  parameter_values = {}
+  parameters = {
       'project':
           project,
       'location':
@@ -812,20 +802,34 @@ def get_skip_architecture_search_pipeline_and_parameters(
           target_column_name,
       'prediction_type':
           prediction_type,
+      'data_source_csv_filenames':
+          data_source_csv_filenames,
+      'data_source_bigquery_table_path':
+          data_source_bigquery_table_path,
+      'predefined_split_key':
+          predefined_split_key,
+      'timestamp_split_key':
+          timestamp_split_key,
+      'stratified_split_key':
+          stratified_split_key,
+      'training_fraction':
+          training_fraction,
+      'validation_fraction':
+          validation_fraction,
+      'test_fraction':
+          test_fraction,
       'optimization_objective':
           optimization_objective,
       'transformations':
           transformations,
+      'train_budget_milli_node_hours':
+          train_budget_milli_node_hours,
       'stage_1_tuning_result_artifact_uri':
           stage_1_tuning_result_artifact_uri,
-      'stage_2_deadline_hours':
-          stage_2_deadline_hours,
       'stage_2_num_parallel_trials':
           stage_2_num_parallel_trials,
       'stage_2_num_selected_trials':
           stage_2_num_selected_trials,
-      'stage_2_single_run_max_secs':
-          stage_2_single_run_max_secs,
       'weight_column_name':
           weight_column_name,
       'optimization_objective_recall_value':
@@ -857,24 +861,11 @@ def get_skip_architecture_search_pipeline_and_parameters(
       'additional_experiments':
           additional_experiments,
   }
-  data_source_and_split_parameters = {
-      'data_source_csv_filenames': data_source_csv_filenames,
-      'data_source_bigquery_table_path': data_source_bigquery_table_path,
-      'predefined_split_key': predefined_split_key,
-      'timestamp_split_key': timestamp_split_key,
-      'stratified_split_key': stratified_split_key,
-      'training_fraction': training_fraction,
-      'validation_fraction': validation_fraction,
-      'test_fraction': test_fraction
-  }
   parameter_values.update({
-      param: value
-      for param, value in data_source_and_split_parameters.items()
-      if value is not None
+      param: value for param, value in parameters.items() if value is not None
   })
-
   if run_evaluation:
-    parameter_values.update({
+    eval_parameters = {
         'dataflow_service_account':
             dataflow_service_account,
         'evaluation_batch_predict_machine_type':
@@ -890,7 +881,12 @@ def get_skip_architecture_search_pipeline_and_parameters(
         'evaluation_dataflow_disk_size_gb':
             evaluation_dataflow_disk_size_gb,
         'run_evaluation':
-            run_evaluation,
+            run_evaluation
+    }
+    parameter_values.update({
+        param: value
+        for param, value in eval_parameters.items()
+        if value is not None
     })
 
   pipeline_definition_path = os.path.join(
