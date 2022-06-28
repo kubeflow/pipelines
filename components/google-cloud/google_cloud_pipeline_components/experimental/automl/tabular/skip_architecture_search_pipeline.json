@@ -348,6 +348,56 @@
           }
         }
       },
+      "comp-calculate-training-parameters": {
+        "executorLabel": "exec-calculate-training-parameters",
+        "inputDefinitions": {
+          "parameters": {
+            "fast_testing": {
+              "type": "STRING"
+            },
+            "is_skip_architecture_search": {
+              "type": "STRING"
+            },
+            "run_distillation": {
+              "type": "STRING"
+            },
+            "stage_1_num_parallel_trials": {
+              "type": "INT"
+            },
+            "stage_2_num_parallel_trials": {
+              "type": "INT"
+            },
+            "train_budget_milli_node_hours": {
+              "type": "DOUBLE"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "distill_stage_1_deadline_hours": {
+              "type": "DOUBLE"
+            },
+            "reduce_search_space_mode": {
+              "type": "STRING"
+            },
+            "stage_1_deadline_hours": {
+              "type": "DOUBLE"
+            },
+            "stage_1_num_selected_trials": {
+              "type": "INT"
+            },
+            "stage_1_single_run_max_secs": {
+              "type": "INT"
+            },
+            "stage_2_deadline_hours": {
+              "type": "DOUBLE"
+            },
+            "stage_2_single_run_max_secs": {
+              "type": "INT"
+            }
+          }
+        }
+      },
       "comp-condition-is-evaluation-2": {
         "dag": {
           "outputs": {
@@ -1117,6 +1167,7 @@
               },
               "dependentTasks": [
                 "automl-tabular-transform",
+                "calculate-training-parameters",
                 "importer",
                 "merge-materialized-splits",
                 "tabular-stats-and-example-gen"
@@ -1150,7 +1201,10 @@
                 },
                 "parameters": {
                   "deadline_hours": {
-                    "componentInputParameter": "pipelineparam--stage_2_deadline_hours"
+                    "taskOutputParameter": {
+                      "outputParameterKey": "stage_2_deadline_hours",
+                      "producerTask": "calculate-training-parameters"
+                    }
                   },
                   "encryption_spec_key_name": {
                     "componentInputParameter": "pipelineparam--encryption_spec_key_name"
@@ -1171,7 +1225,10 @@
                     "componentInputParameter": "pipelineparam--root_dir"
                   },
                   "single_run_max_secs": {
-                    "componentInputParameter": "pipelineparam--stage_2_single_run_max_secs"
+                    "taskOutputParameter": {
+                      "outputParameterKey": "stage_2_single_run_max_secs",
+                      "producerTask": "calculate-training-parameters"
+                    }
                   },
                   "worker_pool_specs_override": {
                     "runtimeValue": {
@@ -1382,6 +1439,51 @@
               },
               "taskInfo": {
                 "name": "bool-identity"
+              }
+            },
+            "calculate-training-parameters": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-calculate-training-parameters"
+              },
+              "inputs": {
+                "parameters": {
+                  "fast_testing": {
+                    "componentInputParameter": "pipelineparam--fast_testing"
+                  },
+                  "is_skip_architecture_search": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "1"
+                      }
+                    }
+                  },
+                  "run_distillation": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "0"
+                      }
+                    }
+                  },
+                  "stage_1_num_parallel_trials": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "35"
+                      }
+                    }
+                  },
+                  "stage_2_num_parallel_trials": {
+                    "componentInputParameter": "pipelineparam--stage_2_num_parallel_trials"
+                  },
+                  "train_budget_milli_node_hours": {
+                    "componentInputParameter": "pipelineparam--train_budget_milli_node_hours"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "calculate-training-parameters"
               }
             },
             "condition-is-evaluation-2": {
@@ -2005,6 +2107,9 @@
             "pipelineparam--export_additional_model_without_custom_ops": {
               "type": "STRING"
             },
+            "pipelineparam--fast_testing": {
+              "type": "STRING"
+            },
             "pipelineparam--location": {
               "type": "STRING"
             },
@@ -2035,16 +2140,10 @@
             "pipelineparam--stage_1_tuning_result_artifact_uri": {
               "type": "STRING"
             },
-            "pipelineparam--stage_2_deadline_hours": {
-              "type": "DOUBLE"
-            },
             "pipelineparam--stage_2_num_parallel_trials": {
               "type": "INT"
             },
             "pipelineparam--stage_2_num_selected_trials": {
-              "type": "INT"
-            },
-            "pipelineparam--stage_2_single_run_max_secs": {
               "type": "INT"
             },
             "pipelineparam--stats_and_example_gen_dataflow_disk_size_gb": {
@@ -2067,6 +2166,9 @@
             },
             "pipelineparam--timestamp_split_key": {
               "type": "STRING"
+            },
+            "pipelineparam--train_budget_milli_node_hours": {
+              "type": "DOUBLE"
             },
             "pipelineparam--training_fraction": {
               "type": "DOUBLE"
@@ -3073,6 +3175,23 @@
             "image": "python:3.7-slim"
           }
         },
+        "exec-calculate-training-parameters": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "_calculate_training_parameters"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _calculate_training_parameters(\n    stage_1_num_parallel_trials: int,\n    train_budget_milli_node_hours: float,\n    stage_2_num_parallel_trials: int,\n    run_distillation: bool,\n    is_skip_architecture_search: bool = False,\n    fast_testing: bool = False,\n) -> NamedTuple('Outputs', [\n    ('stage_1_deadline_hours', float), ('stage_1_num_selected_trials', int),\n    ('stage_1_single_run_max_secs', int), ('stage_2_deadline_hours', float),\n    ('stage_2_single_run_max_secs', int),\n    ('distill_stage_1_deadline_hours', float), ('reduce_search_space_mode', str)\n]):\n  \"\"\"Calculates training parameters.\n\n  Args:\n    stage_1_num_parallel_trials: Number of parallel trails for stage 1.\n    train_budget_milli_node_hours: The train budget of creating this model,\n      expressed in milli node hours i.e. 1,000 value in this field means 1 node\n      hour.\n    stage_2_num_parallel_trials: Number of parallel trails for stage 2.\n    run_distillation: Whether to run distill in the training pipeline.\n    is_skip_architecture_search: If component is being called in the\n      skip_architecture_search pipeline.\n    fast_testing: Internal flag used for presubmit tests.\n\n  Returns:\n      stage_1_deadline_hours: Maximum number of hours to run stage 1.\n      stage_1_num_selected_trials: Number of selected trails for stage 1.\n      stage_1_single_run_max_secs: Maximum number seconds to for a single stage\n      1\n        training trial.\n      stage_2_deadline_hours: Maximum number of hours to run stage 2.\n      stage_2_single_run_max_secs: Maximum number seconds to for a single stage\n      2\n      training trial.\n      distill_stage_1_deadline_hours: Maximum number of hours to run stage 1 for\n      the model distillation.\n      reduce_search_space_mode: The reduce search space mode. Possible values:\n      minimal, regular, full.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n  import collections\n  import math\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name\n  num_folds = 5\n  distill_total_trials = 100\n\n  stage_1_deadline_hours = -1.0\n  stage_1_num_selected_trials = -1\n  stage_1_single_run_max_secs = -1\n  stage_2_deadline_hours = -1.0\n  stage_2_single_run_max_secs = -1\n  distill_stage_1_deadline_hours = 1.0\n  reduce_search_space_mode = 'regular'\n\n  if is_skip_architecture_search:\n    stage_2_deadline_hours = train_budget_milli_node_hours / 1000.0\n    stage_2_single_run_max_secs = int(stage_2_deadline_hours * 3600.0 / 1.3)\n  else:\n    hours = float(train_budget_milli_node_hours) / 1000.0\n    multiplier = stage_1_num_parallel_trials * hours / 500.0\n    stage_1_single_run_max_secs = int(math.sqrt(multiplier) * 2400.0)\n    phase_2_rounds = int(\n        math.sqrt(multiplier) * 100 / stage_2_num_parallel_trials + 0.5)\n    if phase_2_rounds < 1:\n      phase_2_rounds = 1\n\n    # All of magic number \"1.3\" above is because the trial doesn't\n    # always finish in time_per_trial. 1.3 is an empirical safety margin here.\n    stage_1_deadline_secs = int(hours * 3600.0 - 1.3 *\n                                stage_1_single_run_max_secs * phase_2_rounds)\n\n    if stage_1_deadline_secs < hours * 3600.0 * 0.5:\n      stage_1_deadline_secs = int(hours * 3600.0 * 0.5)\n      # Phase 1 deadline is the same as phase 2 deadline in this case. Phase 2\n      # can't finish in time after the deadline is cut, so adjust the time per\n      # trial to meet the deadline.\n      stage_1_single_run_max_secs = int(stage_1_deadline_secs /\n                                        (1.3 * phase_2_rounds))\n\n    reduce_search_space_mode = 'minimal'\n    if multiplier > 2:\n      reduce_search_space_mode = 'regular'\n    if multiplier > 4:\n      reduce_search_space_mode = 'full'\n\n    # Stage 2 number of trials is stage_1_num_selected_trials *\n    # num_folds, which should be equal to phase_2_rounds *\n    # stage_2_num_parallel_trials. Use this information to calculate\n    # stage_1_num_selected_trials:\n    stage_1_num_selected_trials = int(phase_2_rounds *\n                                      stage_2_num_parallel_trials / num_folds)\n    stage_1_deadline_hours = stage_1_deadline_secs / 3600.0\n\n    stage_2_deadline_hours = hours - stage_1_deadline_hours\n    stage_2_single_run_max_secs = stage_1_single_run_max_secs\n\n    if run_distillation:\n      # All of magic number \"1.3\" above is because the trial doesn't always\n      # finish in time_per_trial. 1.3 is an empirical safety margin here.\n      distill_stage_1_deadline_hours = math.ceil(\n          float(distill_total_trials) / stage_1_num_parallel_trials\n      ) * stage_1_single_run_max_secs * 1.3 / 3600.0\n\n  if fast_testing:\n    distill_stage_1_deadline_hours = 0.2\n    stage_1_deadline_hours = 0.2\n    stage_1_single_run_max_secs = 1\n    stage_2_deadline_hours = 0.2\n    stage_2_single_run_max_secs = 1\n\n  return collections.namedtuple('Outputs', [\n      'stage_1_deadline_hours', 'stage_1_num_selected_trials',\n      'stage_1_single_run_max_secs', 'stage_2_deadline_hours',\n      'stage_2_single_run_max_secs', 'distill_stage_1_deadline_hours',\n      'reduce_search_space_mode'\n  ])(stage_1_deadline_hours, stage_1_num_selected_trials,\n     stage_1_single_run_max_secs, stage_2_deadline_hours,\n     stage_2_single_run_max_secs, distill_stage_1_deadline_hours,\n     reduce_search_space_mode)\n\n"
+            ],
+            "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod"
+          }
+        },
         "exec-importer": {
           "importer": {
             "artifactUri": {
@@ -3518,6 +3637,9 @@
                 "pipelineparam--export_additional_model_without_custom_ops": {
                   "componentInputParameter": "export_additional_model_without_custom_ops"
                 },
+                "pipelineparam--fast_testing": {
+                  "componentInputParameter": "fast_testing"
+                },
                 "pipelineparam--location": {
                   "componentInputParameter": "location"
                 },
@@ -3548,17 +3670,11 @@
                 "pipelineparam--stage_1_tuning_result_artifact_uri": {
                   "componentInputParameter": "stage_1_tuning_result_artifact_uri"
                 },
-                "pipelineparam--stage_2_deadline_hours": {
-                  "componentInputParameter": "stage_2_deadline_hours"
-                },
                 "pipelineparam--stage_2_num_parallel_trials": {
                   "componentInputParameter": "stage_2_num_parallel_trials"
                 },
                 "pipelineparam--stage_2_num_selected_trials": {
                   "componentInputParameter": "stage_2_num_selected_trials"
-                },
-                "pipelineparam--stage_2_single_run_max_secs": {
-                  "componentInputParameter": "stage_2_single_run_max_secs"
                 },
                 "pipelineparam--stats_and_example_gen_dataflow_disk_size_gb": {
                   "componentInputParameter": "stats_and_example_gen_dataflow_disk_size_gb"
@@ -3580,6 +3696,9 @@
                 },
                 "pipelineparam--timestamp_split_key": {
                   "componentInputParameter": "timestamp_split_key"
+                },
+                "pipelineparam--train_budget_milli_node_hours": {
+                  "componentInputParameter": "train_budget_milli_node_hours"
                 },
                 "pipelineparam--training_fraction": {
                   "componentInputParameter": "training_fraction"
@@ -3657,6 +3776,9 @@
           "export_additional_model_without_custom_ops": {
             "type": "STRING"
           },
+          "fast_testing": {
+            "type": "STRING"
+          },
           "location": {
             "type": "STRING"
           },
@@ -3687,16 +3809,10 @@
           "stage_1_tuning_result_artifact_uri": {
             "type": "STRING"
           },
-          "stage_2_deadline_hours": {
-            "type": "DOUBLE"
-          },
           "stage_2_num_parallel_trials": {
             "type": "INT"
           },
           "stage_2_num_selected_trials": {
-            "type": "INT"
-          },
-          "stage_2_single_run_max_secs": {
             "type": "INT"
           },
           "stats_and_example_gen_dataflow_disk_size_gb": {
@@ -3719,6 +3835,9 @@
           },
           "timestamp_split_key": {
             "type": "STRING"
+          },
+          "train_budget_milli_node_hours": {
+            "type": "DOUBLE"
           },
           "training_fraction": {
             "type": "DOUBLE"
@@ -3804,6 +3923,9 @@
       "export_additional_model_without_custom_ops": {
         "stringValue": "False"
       },
+      "fast_testing": {
+        "stringValue": "False"
+      },
       "optimization_objective_precision_value": {
         "doubleValue": -1.0
       },
@@ -3815,6 +3937,12 @@
       },
       "run_evaluation": {
         "stringValue": "False"
+      },
+      "stage_2_num_parallel_trials": {
+        "intValue": "35"
+      },
+      "stage_2_num_selected_trials": {
+        "intValue": "5"
       },
       "stats_and_example_gen_dataflow_disk_size_gb": {
         "intValue": "40"
