@@ -189,11 +189,7 @@
               },
               "parameters": {
                 "algorithm": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "AMI"
-                    }
-                  }
+                  "componentInputParameter": "algorithm"
                 },
                 "binary_classification": {
                   "runtimeValue": {
@@ -256,6 +252,9 @@
       },
       "inputDefinitions": {
         "parameters": {
+          "algorithm": {
+            "type": "STRING"
+          },
           "data_source": {
             "type": "STRING"
           },
@@ -297,6 +296,9 @@
   },
   "runtimeConfig": {
     "parameters": {
+      "algorithm": {
+        "stringValue": "AMI"
+      },
       "encryption_spec_key_name": {
         "stringValue": ""
       },

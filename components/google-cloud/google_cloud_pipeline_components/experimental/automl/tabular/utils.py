@@ -602,6 +602,7 @@ def get_feature_selection_pipeline_and_parameters(
     location: str,
     root_dir: str,
     target_column: str,
+    algorithm: str,
     prediction_type: str,
     data_source: Dict[str, Any],
     max_selected_features: int):
@@ -612,6 +613,7 @@ def get_feature_selection_pipeline_and_parameters(
     location: The GCP region that runs the pipeline components.
     root_dir: The root GCS directory for the pipeline components.
     target_column: The target column name.
+    algorithm: Algorithm to select features, default to be AMI.
     prediction_type: The type of prediction the model is to produce.
       "classification" or "regression".
     data_source: The data source.
@@ -626,6 +628,7 @@ def get_feature_selection_pipeline_and_parameters(
       'location': location,
       'root_dir': root_dir,
       'target_column_name': target_column,
+      'algorithm': algorithm,
       'prediction_type': prediction_type,
       'data_source': input_dictionary_to_parameter(data_source),
       'max_selected_features': max_selected_features,
