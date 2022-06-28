@@ -49,6 +49,19 @@ import MD2Tabs from 'src/atoms/MD2Tabs';
 import { ConfusionMatrixSection } from 'src/components/viewers/MetricsVisualizations';
 
 const css = stylesheet({
+  table: {
+    width: '100%',
+  },
+  leftCell: {
+    borderRight: `3px solid ${color.divider}`,
+  },
+  rightCell: {
+    borderLeft: `3px solid ${color.divider}`,
+  },
+  cell: {
+    borderCollapse: 'collapse',
+    padding: '1rem',
+  },
   outputsRow: {
     marginLeft: 15,
     overflowX: 'auto',
@@ -68,6 +81,7 @@ const css = stylesheet({
   visualizationPlaceholderText: {
     fontSize: fontsize.medium,
     textAlign: 'center',
+    padding: '1rem',
   },
 });
 
@@ -219,14 +233,16 @@ interface MetricsDropdownProps {
 
 function MetricsDropdown(props: MetricsDropdownProps) {
   const { filteredRunArtifacts, metricsTabText } = props;
-  const [selectedItem, setSelectedItem] = useState<SelectedItem>({ itemName: '', subItemName: '' });
-  const [selectedArtifact, setSelectedArtifact] = useState<Artifact | undefined>(undefined);
+  const [firstSelectedItem, setFirstSelectedItem] = useState<SelectedItem>({ itemName: '', subItemName: '' });
+  const [secondSelectedItem, setSecondSelectedItem] = useState<SelectedItem>({ itemName: '', subItemName: '' });
+  const [firstSelectedArtifact, setFirstSelectedArtifact] = useState<Artifact | undefined>(undefined);
+  const [secondSelectedArtifact, setSecondSelectedArtifact] = useState<Artifact | undefined>(undefined);
 
   useEffect(() => {
-    if (selectedItem.itemName && selectedItem.subItemName && selectedItem.subItemSecondaryName) {
-      setSelectedArtifact(
+    if (firstSelectedItem.itemName && firstSelectedItem.subItemName && firstSelectedItem.subItemSecondaryName) {
+      setFirstSelectedArtifact(
         filteredRunArtifacts
-          .find(x => x.run.run?.name === selectedItem.itemName)
+          .find(x => x.run.run?.name === firstSelectedItem.itemName)
           ?.executionArtifacts.find(y =>
             y.execution
               .getCustomPropertiesMap()
@@ -241,7 +257,28 @@ function MetricsDropdown(props: MetricsDropdownProps) {
           )?.artifact,
       );
     }
-  }, [selectedItem, setSelectedArtifact]);
+  }, [firstSelectedItem, setFirstSelectedArtifact]);
+
+  useEffect(() => {
+    if (secondSelectedItem.itemName && secondSelectedItem.subItemName && secondSelectedItem.subItemSecondaryName) {
+      setSecondSelectedArtifact(
+        filteredRunArtifacts
+          .find(x => x.run.run?.name === secondSelectedItem.itemName)
+          ?.executionArtifacts.find(y =>
+            y.execution
+              .getCustomPropertiesMap()
+              .get('display_name')
+              ?.getStringValue(),
+          )
+          ?.linkedArtifacts.find(z =>
+            z.event
+              .getPath()
+              ?.getStepsList()[0]
+              .getKey(),
+          )?.artifact,
+      );
+    }
+  }, [secondSelectedItem, setSecondSelectedArtifact]);
 
   const dropdownItems: DropdownItem[] = [];
   for (const x of filteredRunArtifacts) {
@@ -295,21 +332,42 @@ function MetricsDropdown(props: MetricsDropdownProps) {
   }
 
   return (
-    <>
-      <TwoLevelDropdown
-        title={`Choose a first ${metricsTabText} artifact`}
-        items={dropdownItems}
-        selectedItem={selectedItem}
-        setSelectedItem={setSelectedItem}
-      />
-      {selectedArtifact ? (
-        <React.Fragment key={selectedArtifact.getId()}>
-          <ConfusionMatrixSection artifact={selectedArtifact} />
-        </React.Fragment>
-      ) : (
-        <VisualizationPlaceholder metricsTabText={metricsTabText} />
-      )}
-    </>
+    <table className={css.table}>
+      <tbody>
+        <tr>
+          <td className={classes(css.cell, css.leftCell)}>
+            <TwoLevelDropdown
+              title={`Choose a first ${metricsTabText} artifact`}
+              items={dropdownItems}
+              selectedItem={firstSelectedItem}
+              setSelectedItem={setFirstSelectedItem}
+            />
+            {firstSelectedArtifact ? (
+              <React.Fragment key={firstSelectedArtifact.getId()}>
+                <ConfusionMatrixSection artifact={firstSelectedArtifact} />
+              </React.Fragment>
+            ) : (
+              <VisualizationPlaceholder metricsTabText={metricsTabText} />
+            )}
+          </td>
+          <td className={classes(css.cell, css.rightCell)}>
+            <TwoLevelDropdown
+              title={`Choose a second ${metricsTabText} artifact`}
+              items={dropdownItems}
+              selectedItem={secondSelectedItem}
+              setSelectedItem={setSecondSelectedItem}
+            />
+            {secondSelectedArtifact ? (
+              <React.Fragment key={secondSelectedArtifact.getId()}>
+                <ConfusionMatrixSection artifact={secondSelectedArtifact} />
+              </React.Fragment>
+            ) : (
+              <VisualizationPlaceholder metricsTabText={metricsTabText} />
+            )}
+          </td>
+        </tr>
+      </tbody>
+    </table>
   );
 }
 
