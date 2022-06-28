@@ -59,13 +59,6 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-          - name: SERVICE_HOST
-          - name: SERVICE_PORT
-          - name: SERVICE_REGION
-          - name: SERVICE_SECURE
-          - name: PIPELINE_BUCKET_NAME
-          - name: PIPELINE_PATH
-          - name: PIPELINE_BUCKET_DISABLE_MULTIPART
           - name: OBJECTSTORECONFIG_ACCESSKEY
             valueFrom:
               secretKeyRef:
