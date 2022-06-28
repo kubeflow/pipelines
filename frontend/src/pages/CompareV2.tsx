@@ -254,28 +254,38 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     secondSelectedArtifact.selectedItem,
   );
 
+  const getArtifact = (
+    filteredRunArtifacts: RunArtifacts[],
+    selectedItem: SelectedItem,
+  ): Artifact | undefined =>
+    filteredRunArtifacts
+      .find(x => x.run.run?.name === selectedItem.itemName)
+      ?.executionArtifacts.find(
+        y =>
+          y.execution
+            .getCustomPropertiesMap()
+            .get('display_name')
+            ?.getStringValue() === selectedItem.subItemName,
+      )
+      ?.linkedArtifacts.find(
+        z =>
+          z.event
+            .getPath()
+            ?.getStepsList()[0]
+            .getKey() === selectedItem.subItemSecondaryName,
+      )?.artifact;
+
   useEffect(() => {
     if (
       firstSelectedItem.itemName &&
       firstSelectedItem.subItemName &&
       firstSelectedItem.subItemSecondaryName
     ) {
-      const artifact = filteredRunArtifacts
-        .find(x => x.run.run?.name === firstSelectedItem.itemName)
-        ?.executionArtifacts.find(y =>
-          y.execution
-            .getCustomPropertiesMap()
-            .get('display_name')
-            ?.getStringValue(),
-        )
-        ?.linkedArtifacts.find(z =>
-          z.event
-            .getPath()
-            ?.getStepsList()[0]
-            .getKey(),
-        )?.artifact;
       selectedArtifacts[metricsTab][0].selectedItem = firstSelectedItem;
-      selectedArtifacts[metricsTab][0].selectedArtifact = artifact;
+      selectedArtifacts[metricsTab][0].selectedArtifact = getArtifact(
+        filteredRunArtifacts,
+        firstSelectedItem,
+      );
       setSelectedArtifacts({ ...selectedArtifacts });
     }
   }, [firstSelectedItem]);
@@ -286,22 +296,11 @@ function MetricsDropdown(props: MetricsDropdownProps) {
       secondSelectedItem.subItemName &&
       secondSelectedItem.subItemSecondaryName
     ) {
-      const artifact = filteredRunArtifacts
-        .find(x => x.run.run?.name === firstSelectedItem.itemName)
-        ?.executionArtifacts.find(y =>
-          y.execution
-            .getCustomPropertiesMap()
-            .get('display_name')
-            ?.getStringValue(),
-        )
-        ?.linkedArtifacts.find(z =>
-          z.event
-            .getPath()
-            ?.getStepsList()[0]
-            .getKey(),
-        )?.artifact;
       selectedArtifacts[metricsTab][1].selectedItem = secondSelectedItem;
-      selectedArtifacts[metricsTab][1].selectedArtifact = artifact;
+      selectedArtifacts[metricsTab][1].selectedArtifact = getArtifact(
+        filteredRunArtifacts,
+        secondSelectedItem,
+      );
       setSelectedArtifacts({ ...selectedArtifacts });
     }
   }, [secondSelectedItem]);
