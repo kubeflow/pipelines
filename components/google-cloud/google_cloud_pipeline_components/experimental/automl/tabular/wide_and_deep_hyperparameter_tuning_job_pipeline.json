@@ -1162,34 +1162,6 @@
                 "name": "model-upload"
               }
             },
-            "prepare-transform-config": {
-              "cachingOptions": {
-                "enableCache": true
-              },
-              "componentRef": {
-                "name": "comp-prepare-transform-config"
-              },
-              "inputs": {
-                "parameters": {
-                  "pipelineparam--root_dir": {
-                    "componentInputParameter": "pipelineparam--root_dir"
-                  },
-                  "root_dir": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{{$.inputs.parameters['pipelineparam--root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}"
-                      }
-                    }
-                  },
-                  "transform_config_str": {
-                    "componentInputParameter": "pipelineparam--transform_config"
-                  }
-                }
-              },
-              "taskInfo": {
-                "name": "prepare-transform-config"
-              }
-            },
             "split-materialized-data": {
               "cachingOptions": {
                 "enableCache": true
@@ -1364,7 +1336,6 @@
               },
               "dependentTasks": [
                 "generate-analyze-and-transform-data",
-                "prepare-transform-config",
                 "tabular-stats-and-example-gen"
               ],
               "inputs": {
@@ -1409,10 +1380,7 @@
                     "componentInputParameter": "pipelineparam--target_column"
                   },
                   "transform_config": {
-                    "taskOutputParameter": {
-                      "outputParameterKey": "fte_transform_config_path",
-                      "producerTask": "prepare-transform-config"
-                    }
+                    "componentInputParameter": "pipelineparam--transform_config"
                   },
                   "weight_column": {
                     "componentInputParameter": "pipelineparam--weight_column"
@@ -2040,26 +2008,6 @@
           }
         }
       },
-      "comp-prepare-transform-config": {
-        "executorLabel": "exec-prepare-transform-config",
-        "inputDefinitions": {
-          "parameters": {
-            "root_dir": {
-              "type": "STRING"
-            },
-            "transform_config_str": {
-              "type": "STRING"
-            }
-          }
-        },
-        "outputDefinitions": {
-          "parameters": {
-            "fte_transform_config_path": {
-              "type": "STRING"
-            }
-          }
-        }
-      },
       "comp-split-materialized-data": {
         "executorLabel": "exec-split-materialized-data",
         "inputDefinitions": {
@@ -2599,23 +2547,6 @@
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
             "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
-          }
-        },
-        "exec-prepare-transform-config": {
-          "container": {
-            "args": [
-              "--executor_input",
-              "{{$}}",
-              "--function_to_execute",
-              "_prepare_transform_config"
-            ],
-            "command": [
-              "sh",
-              "-ec",
-              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _prepare_transform_config(root_dir: str, transform_config_str: str,\n                              fte_transform_config_path: OutputPath(str)):\n  \"\"\"Prepares FTE transformation config.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  import json\n  import os\n  import uuid\n  import pathlib\n  import tensorflow as tf\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\n  transform_config = json.loads(transform_config_str)\n\n  # Save transform config\n  fte_transform_config_output_path = os.path.join(\n      root_dir, 'fte_transform_config-' + str(uuid.uuid4()))\n  tf.io.gfile.makedirs(\n      str(pathlib.Path(fte_transform_config_output_path).parent))\n  with tf.io.gfile.GFile(fte_transform_config_output_path, 'w') as f:\n    json.dump(transform_config, f)\n\n  with tf.io.gfile.GFile(fte_transform_config_path, 'w') as f:\n    f.write(fte_transform_config_output_path)\n\n"
-            ],
-            "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod"
           }
         },
         "exec-split-materialized-data": {

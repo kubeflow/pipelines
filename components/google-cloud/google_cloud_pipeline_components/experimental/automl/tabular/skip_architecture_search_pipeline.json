@@ -1022,7 +1022,7 @@
                     }
                   },
                   "model": {
-                    "componentInputArtifact": "pipelineparam--model-upload-2-model"
+                    "componentInputArtifact": "pipelineparam--model-upload-model"
                   }
                 },
                 "parameters": {
@@ -1051,7 +1051,7 @@
                 "schemaVersion": "0.0.1"
               }
             },
-            "pipelineparam--model-upload-2-model": {
+            "pipelineparam--model-upload-model": {
               "artifactType": {
                 "schemaTitle": "google.VertexModel",
                 "schemaVersion": "0.0.1"
@@ -1493,7 +1493,7 @@
               "dependentTasks": [
                 "automl-tabular-ensemble",
                 "bool-identity",
-                "model-upload-2",
+                "model-upload",
                 "tabular-stats-and-example-gen"
               ],
               "inputs": {
@@ -1510,10 +1510,10 @@
                       "producerTask": "automl-tabular-ensemble"
                     }
                   },
-                  "pipelineparam--model-upload-2-model": {
+                  "pipelineparam--model-upload-model": {
                     "taskOutputArtifact": {
                       "outputArtifactKey": "model",
-                      "producerTask": "model-upload-2"
+                      "producerTask": "model-upload"
                     }
                   }
                 },
@@ -1652,152 +1652,6 @@
                 "name": "comp-model-upload"
               },
               "dependentTasks": [
-                "automl-tabular-ensemble",
-                "automl-tabular-infra-validator"
-              ],
-              "inputs": {
-                "artifacts": {
-                  "unmanaged_container_model": {
-                    "taskOutputArtifact": {
-                      "outputArtifactKey": "unmanaged_container_model",
-                      "producerTask": "automl-tabular-ensemble"
-                    }
-                  }
-                },
-                "parameters": {
-                  "artifact_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "description": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "display_name": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "automl-tabular-model-upload-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
-                      }
-                    }
-                  },
-                  "encryption_spec_key_name": {
-                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
-                  },
-                  "explanation_metadata": {
-                    "taskOutputParameter": {
-                      "outputParameterKey": "explanation_metadata",
-                      "producerTask": "automl-tabular-ensemble"
-                    }
-                  },
-                  "explanation_parameters": {
-                    "taskOutputParameter": {
-                      "outputParameterKey": "explanation_parameters",
-                      "producerTask": "automl-tabular-ensemble"
-                    }
-                  },
-                  "instance_schema_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "labels": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
-                  },
-                  "location": {
-                    "componentInputParameter": "pipelineparam--location"
-                  },
-                  "parameters_schema_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "prediction_schema_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "project": {
-                    "componentInputParameter": "pipelineparam--project"
-                  },
-                  "serving_container_args": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "[]"
-                      }
-                    }
-                  },
-                  "serving_container_command": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "[]"
-                      }
-                    }
-                  },
-                  "serving_container_environment_variables": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "[]"
-                      }
-                    }
-                  },
-                  "serving_container_health_route": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "serving_container_image_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "serving_container_ports": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "[]"
-                      }
-                    }
-                  },
-                  "serving_container_predict_route": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  }
-                }
-              },
-              "taskInfo": {
-                "name": "model-upload"
-              }
-            },
-            "model-upload-2": {
-              "cachingOptions": {
-                "enableCache": true
-              },
-              "componentRef": {
-                "name": "comp-model-upload-2"
-              },
-              "dependentTasks": [
                 "automl-tabular-ensemble"
               ],
               "inputs": {
@@ -1934,7 +1788,7 @@
                 }
               },
               "taskInfo": {
-                "name": "model-upload-2"
+                "name": "model-upload"
               }
             },
             "tabular-stats-and-example-gen": {
@@ -2809,93 +2663,6 @@
           }
         }
       },
-      "comp-model-upload-2": {
-        "executorLabel": "exec-model-upload-2",
-        "inputDefinitions": {
-          "artifacts": {
-            "unmanaged_container_model": {
-              "artifactType": {
-                "schemaTitle": "google.UnmanagedContainerModel",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          },
-          "parameters": {
-            "artifact_uri": {
-              "type": "STRING"
-            },
-            "description": {
-              "type": "STRING"
-            },
-            "display_name": {
-              "type": "STRING"
-            },
-            "encryption_spec_key_name": {
-              "type": "STRING"
-            },
-            "explanation_metadata": {
-              "type": "STRING"
-            },
-            "explanation_parameters": {
-              "type": "STRING"
-            },
-            "instance_schema_uri": {
-              "type": "STRING"
-            },
-            "labels": {
-              "type": "STRING"
-            },
-            "location": {
-              "type": "STRING"
-            },
-            "parameters_schema_uri": {
-              "type": "STRING"
-            },
-            "prediction_schema_uri": {
-              "type": "STRING"
-            },
-            "project": {
-              "type": "STRING"
-            },
-            "serving_container_args": {
-              "type": "STRING"
-            },
-            "serving_container_command": {
-              "type": "STRING"
-            },
-            "serving_container_environment_variables": {
-              "type": "STRING"
-            },
-            "serving_container_health_route": {
-              "type": "STRING"
-            },
-            "serving_container_image_uri": {
-              "type": "STRING"
-            },
-            "serving_container_ports": {
-              "type": "STRING"
-            },
-            "serving_container_predict_route": {
-              "type": "STRING"
-            }
-          }
-        },
-        "outputDefinitions": {
-          "artifacts": {
-            "model": {
-              "artifactType": {
-                "schemaTitle": "google.VertexModel",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          },
-          "parameters": {
-            "gcp_resources": {
-              "type": "STRING"
-            }
-          }
-        }
-      },
       "comp-tabular-stats-and-example-gen": {
         "executorLabel": "exec-tabular-stats-and-example-gen",
         "inputDefinitions": {
@@ -3452,31 +3219,6 @@
           }
         },
         "exec-model-upload": {
-          "container": {
-            "args": [
-              "--type",
-              "UploadModel",
-              "--payload",
-              "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"description\": \"{{$.inputs.parameters['description']}}\", \"predict_schemata\": {\"instance_schema_uri\": \"{{$.inputs.parameters['instance_schema_uri']}}\", \"parameters_schema_uri\": \"{{$.inputs.parameters['parameters_schema_uri']}}\", \"prediction_schema_uri\": \"{{$.inputs.parameters['prediction_schema_uri']}}\"}, \"container_spec\": {\"image_uri\": \"{{$.inputs.parameters['serving_container_image_uri']}}\", \"command\": {{$.inputs.parameters['serving_container_command']}}, \"args\": {{$.inputs.parameters['serving_container_args']}}, \"env\": {{$.inputs.parameters['serving_container_environment_variables']}}, \"ports\": {{$.inputs.parameters['serving_container_ports']}}, \"predict_route\": \"{{$.inputs.parameters['serving_container_predict_route']}}\", \"health_route\": \"{{$.inputs.parameters['serving_container_health_route']}}\"}, \"artifact_uri\": \"{{$.inputs.parameters['artifact_uri']}}\", \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}, \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"labels\": {{$.inputs.parameters['labels']}}}",
-              "--project",
-              "{{$.inputs.parameters['project']}}",
-              "--location",
-              "{{$.inputs.parameters['location']}}",
-              "--gcp_resources",
-              "{{$.outputs.parameters['gcp_resources'].output_file}}",
-              "--executor_input",
-              "{{$}}"
-            ],
-            "command": [
-              "python3",
-              "-u",
-              "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
-            ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
-          }
-        },
-        "exec-model-upload-2": {
           "container": {
             "args": [
               "--type",
