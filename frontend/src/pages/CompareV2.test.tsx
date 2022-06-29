@@ -27,7 +27,7 @@ import CompareV2 from './CompareV2';
 import { PageProps } from './Page';
 import { ApiRunDetail } from 'src/apis/run';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
-import { Value } from 'google-protobuf/google/protobuf/struct_pb';
+import { Struct, Value } from 'google-protobuf/google/protobuf/struct_pb';
 
 testBestPractices();
 describe('CompareV2', () => {
@@ -102,14 +102,31 @@ describe('CompareV2', () => {
     return event;
   }
 
-  function newMockArtifact(id: number, isConfusionMatrix?: boolean): Artifact {
+  function newMockArtifact(id: number, isConfusionMatrix?: boolean, displayName?: string): Artifact {
     const artifact = new Artifact();
     artifact.setId(id);
+    const customPropertiesMap: Map<string, Value> = new Map();
     if (isConfusionMatrix) {
-      const customPropertiesMap: Map<string, Value> = new Map();
-      customPropertiesMap.set('confusionMatrix', new Value());
-      jest.spyOn(artifact, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
+      
+      const confusionMatrix: Value = new Value();
+      confusionMatrix.setStructValue(Struct.fromJavaScript({
+        struct: {
+          annotationSpecs: [
+            { displayName: 'Setosa' },
+            { displayName: 'Versicolour' },
+            { displayName: 'Virginica' },
+          ],
+          rows: [{ row: [31, 0, 0] }, { row: [1, 8, 12] }, { row: [0, 0, 23] }],
+        },
+      }));
+      customPropertiesMap.set('confusionMatrix', confusionMatrix);
     }
+    if (displayName) {
+      const displayNameValue = new Value();
+      displayNameValue.setStringValue(displayName);
+      customPropertiesMap.set('display_name', displayNameValue);
+    }
+    jest.spyOn(artifact, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
     return artifact;
   }
 
@@ -543,5 +560,68 @@ describe('CompareV2', () => {
         'Failed to fetch the display name of the artifact with the following ID: 3',
       );
     });
+  });
+
+  it('Confusion matrix shown when selected', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    const contexts = [
+      newMockContext(MOCK_RUN_1_ID, 1),
+      newMockContext(MOCK_RUN_2_ID, 2),
+      newMockContext(MOCK_RUN_3_ID, 3),
+    ];
+    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    getContextSpy.mockImplementation((runID: string) =>
+      Promise.resolve(contexts.find(c => c.getName() === runID)),
+    );
+
+    const executions = [
+      [newMockExecution(1)],
+      [newMockExecution(2, 'executionName')],
+      [newMockExecution(3)],
+    ];
+    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    getExecutionsSpy.mockImplementation((context: Context) =>
+      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+    );
+
+    const artifacts = [newMockArtifact(1), newMockArtifact(2, true, 'artifactName'), newMockArtifact(3)];
+    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+
+    const events = [newMockEvent(1), newMockEvent(2, 'artifactName'), newMockEvent(3)];
+    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
+    getEventsSpy.mockReturnValue(Promise.resolve(events));
+
+    const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
+    getArtifactTypesSpy.mockReturnValue([]);
+
+    // Simulate all artifacts as type "ClassificationMetrics" (Confusion Matrix or ROC Curve).
+    const filterLinkedArtifactsByTypeSpy = jest.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
+    filterLinkedArtifactsByTypeSpy.mockImplementation(
+      (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
+        metricsFilter === 'system.ClassificationMetrics' ? linkedArtifacts : [],
+    );
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    await waitFor(() => expect(filterLinkedArtifactsByTypeSpy).toHaveBeenCalledTimes(9));
+
+    expect(screen.queryByText('Confusion matrix: metrics')).toBeNull();
+
+    fireEvent.click(screen.getByText('Confusion Matrix'));
+    fireEvent.click(screen.getByText('Choose a first Confusion Matrix artifact'));
+
+    // Get the second element that has run text: first will be the run list.
+    fireEvent.mouseEnter(screen.queryAllByText(`test run ${MOCK_RUN_2_ID}`)[1]);
+    fireEvent.click(screen.getByText(/artifactName/));
+    screen.getByText(/Confusion Matrix: artifactName/)
   });
 });
