@@ -12,11 +12,14 @@ description: |
     problem_type (str):
       The problem type of the metrics being imported to the VertexModel.
         `classification`, `regression`, and `forecasting` are the currently supported problem types.
+    display_name (str):
+      The display name for the uploaded model evaluation resource.
 inputs:
   - {name: metrics, type: Metrics}
   - {name: explanation, type: Metrics, optional: True}
   - {name: model, type: google.VertexModel}
   - {name: problem_type, type: String}
+  - {name: display_name, type: String, default: ''}
 outputs:
 - {name: gcp_resources, type: String}
 implementation:
@@ -35,6 +38,8 @@ implementation:
           - "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}"
       - --problem_type
       - {inputValue: problem_type}
+      - --display_name
+      - {inputValue: display_name}
       - --model_name
       - "{{$.inputs.artifacts['model'].metadata['resourceName']}}"
       - --gcp_resources

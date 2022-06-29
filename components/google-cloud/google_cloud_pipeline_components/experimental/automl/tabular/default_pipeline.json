@@ -2673,6 +2673,13 @@
                   }
                 },
                 "parameters": {
+                  "display_name": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
                   "problem_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
                   }
@@ -3413,6 +3420,13 @@
                   }
                 },
                 "parameters": {
+                  "display_name": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
                   "problem_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
                   }
@@ -6115,6 +6129,9 @@
             }
           },
           "parameters": {
+            "display_name": {
+              "type": "STRING"
+            },
             "problem_type": {
               "type": "STRING"
             }
@@ -6152,6 +6169,9 @@
             }
           },
           "parameters": {
+            "display_name": {
+              "type": "STRING"
+            },
             "problem_type": {
               "type": "STRING"
             }
@@ -7420,6 +7440,8 @@
               "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}",
               "--problem_type",
               "{{$.inputs.parameters['problem_type']}}",
+              "--display_name",
+              "{{$.inputs.parameters['display_name']}}",
               "--model_name",
               "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
               "--gcp_resources",
@@ -7445,6 +7467,8 @@
               "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}",
               "--problem_type",
               "{{$.inputs.parameters['problem_type']}}",
+              "--display_name",
+              "{{$.inputs.parameters['display_name']}}",
               "--model_name",
               "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
               "--gcp_resources",
