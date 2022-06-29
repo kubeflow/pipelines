@@ -11,13 +11,6 @@ rules:
   - get
   - list
   - watch
-  - patch
-- apiGroups:
-  - ''
-  resources:
-  - namespaces
-  verbs:
-  - get
 - apiGroups:
   - kubeflow.org
   resources:
@@ -26,3 +19,9 @@ rules:
   - get
   - list
   - watch
+- apiGroups:
+  - ''
+  resources:
+  - namespaces
+  verbs:
+  - get

@@ -7,6 +7,9 @@ spec:
     spec:
       containers:
       - name: ml-pipeline-persistenceagent
+        envFrom:
+        - configMapRef:
+            name: persistenceagent-config
         env:
         - name: NAMESPACE
           value: ''

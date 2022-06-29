@@ -143,8 +143,11 @@ func (p *PipelineClient) ReportScheduledWorkflow(swf *util.ScheduledWorkflow) er
 // ReadArtifact reads artifact content from run service. If the artifact is not present, returns
 // nil response.
 func (p *PipelineClient) ReadArtifact(request *api.ReadArtifactRequest, user string) (*api.ReadArtifactResponse, error) {
-	pctx := metadata.AppendToOutgoingContext(context.Background(), getKubeflowUserIDHeader(),
-		getKubeflowUserIDPrefix()+user)
+	pctx := context.Background()
+	if user != "" {
+		pctx = metadata.AppendToOutgoingContext(pctx, getKubeflowUserIDHeader(),
+			getKubeflowUserIDPrefix()+user)
+	}
 	ctx, cancel := context.WithTimeout(pctx, time.Minute)
 	defer cancel()
 
@@ -159,8 +162,11 @@ func (p *PipelineClient) ReadArtifact(request *api.ReadArtifactRequest, user str
 
 // ReportRunMetrics reports run metrics to run service.
 func (p *PipelineClient) ReportRunMetrics(request *api.ReportRunMetricsRequest, user string) (*api.ReportRunMetricsResponse, error) {
-	pctx := metadata.AppendToOutgoingContext(context.Background(), getKubeflowUserIDHeader(),
-		getKubeflowUserIDPrefix()+user)
+	pctx := context.Background()
+	if user != "" {
+		pctx = metadata.AppendToOutgoingContext(pctx, getKubeflowUserIDHeader(),
+			getKubeflowUserIDPrefix()+user)
+	}
 	ctx, cancel := context.WithTimeout(pctx, time.Minute)
 	defer cancel()
 

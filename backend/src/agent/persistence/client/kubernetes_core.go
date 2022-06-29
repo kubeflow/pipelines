@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/cenkalti/backoff"
@@ -30,9 +31,12 @@ func (c *KubernetesCore) NamespaceClient() v1.NamespaceInterface {
 }
 
 func (c *KubernetesCore) GetNamespaceOwner(namespace string) (string, error) {
+	if os.Getenv("MULTIUSER") == "" || os.Getenv("MULTIUSER") == "false" {
+		return "", nil
+	}
 	ns, err := c.NamespaceClient().Get(context.Background(), namespace, metav1.GetOptions{})
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, fmt.Sprintf("failed to get namespace '%v'", namespace))
 	}
 	owner, ok := ns.Annotations["owner"]
 	if !ok {
