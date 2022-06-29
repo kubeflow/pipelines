@@ -35,6 +35,7 @@ import {
   getExecutionsFromContext,
   getKfpV2RunContext,
   LinkedArtifact,
+  getArtifactName,
 } from 'src/mlmd/MlmdUtils';
 import { Artifact, ArtifactType, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
@@ -233,12 +234,6 @@ const getExecutionName = (execution: Execution) =>
     .get('display_name')
     ?.getStringValue();
 
-const getArtifactName = (event: Event) =>
-  event
-    .getPath()
-    ?.getStepsList()[0]
-    .getKey();
-
 function getDropdownItems(filteredRunArtifacts: RunArtifact[]) {
   const dropdownItems: DropdownItem[] = [];
   for (const runArtifact of filteredRunArtifacts) {
@@ -252,7 +247,7 @@ function getDropdownItems(filteredRunArtifacts: RunArtifact[]) {
           // Group each artifact name with its parent execution name.
           const executionLinkedArtifacts: DropdownSubItem[] = [];
           for (const linkedArtifact of executionArtifact.linkedArtifacts) {
-            const artifactName = getArtifactName(linkedArtifact.event);
+            const artifactName = getArtifactName(linkedArtifact);
             if (artifactName) {
               executionLinkedArtifacts.push({
                 name: executionName,
