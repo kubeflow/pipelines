@@ -469,7 +469,7 @@ class UtilsTest(unittest.TestCase):
         'us-central1',
         'gs://foo',
         'target',
-        'classification', {'auto_transforms': ['feature_1']},
+        'classification', 'gs://foo/transform_config',
         0.01,
         0.01,
         training_fraction=0.8,
@@ -485,7 +485,7 @@ class UtilsTest(unittest.TestCase):
             'root_dir': 'gs://foo',
             'target_column': 'target',
             'prediction_type': 'classification',
-            'transform_config': '{"auto_transforms": ["feature_1"]}',
+            'transform_config': 'gs://foo/transform_config',
             'data_source_csv_filenames': 'gs://foo/bar.csv',
             'training_fraction': 0.8,
             'validation_fraction': 0.2,
@@ -545,7 +545,7 @@ class UtilsTest(unittest.TestCase):
         'us-central1',
         'gs://foo',
         'target',
-        'classification', {'auto_transforms': ['feature_1']}, [{
+        'classification', 'gs://foo/transform_config', [{
             'metric_id': 'loss',
             'goal': 'MINIMIZE'
         }], [{
@@ -583,7 +583,7 @@ class UtilsTest(unittest.TestCase):
             'root_dir': 'gs://foo',
             'target_column': 'target',
             'prediction_type': 'classification',
-            'transform_config': '{"auto_transforms": ["feature_1"]}',
+            'transform_config': 'gs://foo/transform_config',
             'data_source_csv_filenames': 'gs://foo/bar.csv',
             'training_fraction': 0.8,
             'validation_fraction': 0.2,
@@ -653,7 +653,8 @@ class UtilsTest(unittest.TestCase):
         'us-central1',
         'gs://foo',
         'target',
-        'classification', {'auto_transforms': ['feature_1']}, [{
+        'classification',
+        'gs://foo/transform_config', [{
             'metric_id': 'loss',
             'goal': 'MINIMIZE'
         }], [{
@@ -691,7 +692,7 @@ class UtilsTest(unittest.TestCase):
             'root_dir': 'gs://foo',
             'target_column': 'target',
             'prediction_type': 'classification',
-            'transform_config': '{"auto_transforms": ["feature_1"]}',
+            'transform_config': 'gs://foo/transform_config',
             'data_source_csv_filenames': 'gs://foo/bar.csv',
             'training_fraction': 0.8,
             'validation_fraction': 0.2,
@@ -760,7 +761,7 @@ class UtilsTest(unittest.TestCase):
         'us-central1',
         'gs://foo',
         'target',
-        'classification', {'auto_transforms': ['feature_1']},
+        'classification', 'gs://foo/transform_config',
         0.01,
         training_fraction=0.8,
         validation_fraction=0.2,
@@ -775,7 +776,7 @@ class UtilsTest(unittest.TestCase):
             'root_dir': 'gs://foo',
             'target_column': 'target',
             'prediction_type': 'classification',
-            'transform_config': '{"auto_transforms": ["feature_1"]}',
+            'transform_config': 'gs://foo/transform_config',
             'data_source_csv_filenames': 'gs://foo/bar.csv',
             'training_fraction': 0.8,
             'validation_fraction': 0.2,
