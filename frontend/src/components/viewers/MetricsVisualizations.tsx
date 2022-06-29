@@ -565,7 +565,7 @@ async function getViewConfig(
   return [];
 }
 
-async function getHtmlViewerConfig(
+export async function getHtmlViewerConfig(
   htmlArtifacts: LinkedArtifact[] | undefined,
   namespace: string | undefined,
 ): Promise<HTMLViewerConfig[]> {
@@ -591,7 +591,7 @@ async function getHtmlViewerConfig(
   return Promise.all(htmlViewerConfigs);
 }
 
-async function getMarkdownViewerConfig(
+export async function getMarkdownViewerConfig(
   markdownArtifacts: LinkedArtifact[] | undefined,
   namespace: string | undefined,
 ): Promise<MarkdownViewerConfig[]> {

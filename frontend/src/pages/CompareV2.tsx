@@ -34,8 +34,8 @@ import {
   getEventsByExecutions,
   getExecutionsFromContext,
   getKfpV2RunContext,
-  LinkedArtifact,
   getArtifactName,
+  LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
 import { Artifact, ArtifactType, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
@@ -47,7 +47,10 @@ import TwoLevelDropdown, {
   SelectedItem,
 } from 'src/components/TwoLevelDropdown';
 import MD2Tabs from 'src/atoms/MD2Tabs';
-import { ConfusionMatrixSection } from 'src/components/viewers/MetricsVisualizations';
+import { ConfusionMatrixSection, getHtmlViewerConfig, getMarkdownViewerConfig } from 'src/components/viewers/MetricsVisualizations';
+import PlotCard from 'src/components/PlotCard';
+import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
+import { MarkdownViewerConfig } from 'src/components/viewers/MarkdownViewer';
 
 const css = stylesheet({
   leftCell: {
@@ -233,9 +236,66 @@ function VisualizationPlaceholder(props: VisualizationPlaceholderProps) {
   );
 }
 
+interface VisualizationPanelItemProps {
+  metricsTab: MetricsType;
+  metricsTabText: string;
+  linkedArtifact: LinkedArtifact;
+  namespace: string | undefined;
+}
+
+function VisualizationPanelItem(props: VisualizationPanelItemProps) {
+  const { metricsTab, metricsTabText, linkedArtifact, namespace } = props;
+  const { isLoading, error, data: viewerConfigs } = useQuery<
+    HTMLViewerConfig[] | MarkdownViewerConfig[],
+    Error
+  >(
+    [
+      'viewerConfig',
+      {
+        artifact: linkedArtifact.artifact.getId(),
+        namespace: namespace,
+      },
+    ],
+    () => {
+      if (metricsTab === MetricsType.HTML) {
+        return getHtmlViewerConfig([linkedArtifact], namespace);
+      } else if (metricsTab === MetricsType.MARKDOWN) {
+        return getMarkdownViewerConfig([linkedArtifact], namespace);
+      } else {
+        return [];
+      }
+    },
+    { staleTime: Infinity },
+  );
+
+  if (metricsTab === MetricsType.CONFUSION_MATRIX) {
+    return (
+      <React.Fragment key={linkedArtifact.artifact.getId()}>
+        <ConfusionMatrixSection artifact={linkedArtifact.artifact} />
+      </React.Fragment>
+    );
+  }
+
+  if (isLoading) {
+    return <p>Data is currently loading.</p>;
+  } else if (error) {
+    return <p>There was an error in loading the data.</p>;
+  }
+
+  if (viewerConfigs && (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN)) {
+    return (
+      <div className={padding(20, 'lrt')}>
+        <PlotCard configs={viewerConfigs} title={`Static ${metricsTabText}`} />
+      </div>
+    );
+  }
+
+  return <></>;
+}
+
 interface SelectedArtifact {
   selectedItem: SelectedItem;
-  selectedArtifact?: Artifact;
+  linkedArtifact?: LinkedArtifact;
 }
 
 interface MetricsDropdownProps {
@@ -298,10 +358,10 @@ function getDropdownItems(filteredRunArtifacts: RunArtifact[]) {
   return dropdownItems;
 }
 
-const getArtifact = (
+const getLinkedArtifact = (
   filteredRunArtifacts: RunArtifact[],
   selectedItem: SelectedItem,
-): Artifact | undefined =>
+): LinkedArtifact | undefined =>
   filteredRunArtifacts
     .find(runArtifact => runArtifact.run.run?.name === selectedItem.itemName)
     ?.executionArtifacts.find(
@@ -317,7 +377,16 @@ const getArtifact = (
           .getPath()
           ?.getStepsList()[0]
           .getKey() === selectedItem.subItemSecondaryName,
-    )?.artifact;
+    );
+
+const getNamespace = (selectedItem: SelectedItem, filteredRunArtifacts: RunArtifact[]) => {
+  const selectedRun = filteredRunArtifacts
+    .find(runArtifact => runArtifact.run.run?.name === selectedItem.itemName)?.run;
+  if (selectedRun) {
+    const jsonWorkflow = JSON.parse(selectedRun.pipeline_runtime!.workflow_manifest || '{}');
+    return jsonWorkflow.metadata?.namespace;
+  }
+}
 
 function MetricsDropdown(props: MetricsDropdownProps) {
   const {
@@ -336,6 +405,8 @@ function MetricsDropdown(props: MetricsDropdownProps) {
   const [secondSelectedItem, setSecondSelectedItem] = useState<SelectedItem>(
     secondSelectedArtifact.selectedItem,
   );
+  const [firstSelectedNamespace, setFirstSelectedNamespace] = useState<string | undefined>();
+  const [secondSelectedNamespace, setSecondSelectedNamespace] = useState<string | undefined>();
 
   useEffect(() => {
     if (
@@ -345,11 +416,16 @@ function MetricsDropdown(props: MetricsDropdownProps) {
       selectedArtifacts[metricsTab][0].selectedItem !== firstSelectedItem
     ) {
       selectedArtifacts[metricsTab][0].selectedItem = firstSelectedItem;
-      selectedArtifacts[metricsTab][0].selectedArtifact = getArtifact(
+      selectedArtifacts[metricsTab][0].linkedArtifact = getLinkedArtifact(
         filteredRunArtifacts,
         firstSelectedItem,
       );
       setSelectedArtifacts({ ...selectedArtifacts });
+
+      if (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN) {
+        const namespace = getNamespace(firstSelectedItem, filteredRunArtifacts);
+        setFirstSelectedNamespace(namespace);
+      }
     }
   }, [
     firstSelectedItem,
@@ -357,6 +433,8 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     metricsTab,
     selectedArtifacts,
     setSelectedArtifacts,
+    getNamespace,
+    setFirstSelectedNamespace
   ]);
 
   useEffect(() => {
@@ -367,11 +445,16 @@ function MetricsDropdown(props: MetricsDropdownProps) {
       selectedArtifacts[metricsTab][1].selectedItem !== secondSelectedItem
     ) {
       selectedArtifacts[metricsTab][1].selectedItem = secondSelectedItem;
-      selectedArtifacts[metricsTab][1].selectedArtifact = getArtifact(
+      selectedArtifacts[metricsTab][1].linkedArtifact = getLinkedArtifact(
         filteredRunArtifacts,
         secondSelectedItem,
       );
       setSelectedArtifacts({ ...selectedArtifacts });
+
+      if (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN) {
+        const namespace = getNamespace(firstSelectedItem, filteredRunArtifacts);
+        setSecondSelectedNamespace(namespace);
+      }
     }
   }, [
     secondSelectedItem,
@@ -379,12 +462,19 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     metricsTab,
     selectedArtifacts,
     setSelectedArtifacts,
+    getNamespace,
+    setSecondSelectedNamespace,
   ]);
 
   const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
 
   if (dropdownItems.length === 0) {
     return <p>There are no {metricsTabText} artifacts available on the selected runs.</p>;
+  }
+
+  if (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN) {
+    // Check if you have that selected item.
+    getNamespace(firstSelectedItem, filteredRunArtifacts);
   }
 
   return (
@@ -398,11 +488,13 @@ function MetricsDropdown(props: MetricsDropdownProps) {
               selectedItem={firstSelectedItem}
               setSelectedItem={setFirstSelectedItem}
             />
-            {metricsTab === MetricsType.CONFUSION_MATRIX &&
-            firstSelectedArtifact.selectedArtifact ? (
-              <React.Fragment key={firstSelectedArtifact.selectedArtifact.getId()}>
-                <ConfusionMatrixSection artifact={firstSelectedArtifact.selectedArtifact} />
-              </React.Fragment>
+            {firstSelectedArtifact.linkedArtifact ? (
+              <VisualizationPanelItem
+                metricsTab={metricsTab}
+                metricsTabText={metricsTabText}
+                linkedArtifact={firstSelectedArtifact.linkedArtifact}
+                namespace={secondSelectedNamespace}
+              />
             ) : (
               <VisualizationPlaceholder metricsTabText={metricsTabText} />
             )}
@@ -414,11 +506,13 @@ function MetricsDropdown(props: MetricsDropdownProps) {
               selectedItem={secondSelectedItem}
               setSelectedItem={setSecondSelectedItem}
             />
-            {metricsTab === MetricsType.CONFUSION_MATRIX &&
-            secondSelectedArtifact.selectedArtifact ? (
-              <React.Fragment key={secondSelectedArtifact.selectedArtifact.getId()}>
-                <ConfusionMatrixSection artifact={secondSelectedArtifact.selectedArtifact} />
-              </React.Fragment>
+            {secondSelectedArtifact.linkedArtifact ? (
+              <VisualizationPanelItem
+                metricsTab={metricsTab}
+                metricsTabText={metricsTabText}
+                linkedArtifact={secondSelectedArtifact.linkedArtifact}
+                namespace={secondSelectedNamespace}
+              />
             ) : (
               <VisualizationPlaceholder metricsTabText={metricsTabText} />
             )}
