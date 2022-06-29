@@ -121,9 +121,9 @@ func main() {
 
 func parseS3Flags() S3Params {
 	var params S3Params
-	flag.StringVar(&params.serviceHost, "s3_service_host", os.Getenv("SERVICE_HOST"), "hostname of S3.")
-	flag.StringVar(&params.servicePort, "s3_service_port", os.Getenv("SERVICE_PORT"), "port of S3.")
-	flag.StringVar(&params.region, "s3_region", os.Getenv("SERVICE_REGION"), "Region of S3 service.")
+	flag.StringVar(&params.serviceHost, "s3_service_host", common.GetFromStringWithDefault(os.Getenv("SERVICE_HOST"), "minio-service.kubeflow.svc"), "hostname of S3.")
+	flag.StringVar(&params.servicePort, "s3_service_port", common.GetFromStringWithDefault(os.Getenv("SERVICE_PORT"), "9000"), "port of S3.")
+	flag.StringVar(&params.region, "s3_region", common.GetFromStringWithDefault(os.Getenv("SERVICE_REGION"), ""), "Region of S3 service.")
 	flag.StringVar(&params.accessKey, "s3_access_key", os.Getenv("OBJECTSTORECONFIG_ACCESSKEY"), "accessKey of S3.")
 	flag.StringVar(&params.secretKey, "s3_secret_key", os.Getenv("OBJECTSTORECONFIG_SECRETACCESSKEY"), "secretKey of S3.")
 	flag.BoolVar(&params.isServiceSecure, "s3_is_service_secure",

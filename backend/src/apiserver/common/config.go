@@ -104,6 +104,13 @@ func GetPodNamespace() string {
 	return GetStringConfig(PodNamespace)
 }
 
+func GetFromStringWithDefault(value string, defaultValue string) string {
+	if len(value) == 0 {
+		return defaultValue
+	}
+	return value
+}
+
 func GetBoolFromStringWithDefault(value string, defaultValue bool) bool {
 	boolVal, err := strconv.ParseBool(value)
 	if err != nil {
