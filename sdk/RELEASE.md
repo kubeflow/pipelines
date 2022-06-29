@@ -13,6 +13,21 @@
 ## Bug Fixes and Other Changes
 
 ## Documentation Updates
+# Current Version (2.0.0-beta.0)
+
+## Major Features and Improvements
+
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+
+## Documentation Updates
 
 # 2.0.0-alpha.5
 

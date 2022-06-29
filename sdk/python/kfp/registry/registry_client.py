@@ -15,6 +15,7 @@
 
 import json
 import logging
+import os
 import re
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -23,8 +24,9 @@ import requests
 from google.auth import credentials
 
 _KNOWN_HOSTS_REGEX = {
-    'kfp_pkg_dev':
+    'kfp_pkg_dev': (
         r'(^https\:\/\/(?P<location>[\w\-]+)\-kfp\.pkg\.dev\/(?P<project_id>.*)\/(?P<repo_id>.*))',
+        os.path.join(os.path.dirname(__file__), 'context/kfp_pkg_dev.json'))
 }
 
 _DEFAULT_JSON_HEADER = {
@@ -32,6 +34,10 @@ _DEFAULT_JSON_HEADER = {
 }
 
 _VERSION_PREFIX = 'sha256:'
+
+LOCAL_REGISTRY_CREDENTIAL = os.path.expanduser(
+    '~/.config/kfp/registry_credentials.json')
+LOCAL_REGISTRY_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
 
 
 class _SafeDict(dict):
@@ -64,34 +70,33 @@ class ApiAuth(requests.auth.AuthBase):
 class RegistryClient:
     """Registry Client class for communicating with registry hosts."""
 
-    def __init__(
-        self,
-        host: str,
-        auth: Optional[Union[requests.auth.AuthBase,
-                             credentials.Credentials]] = None
-    ) -> None:
+    def __init__(self,
+                 host: Optional[str],
+                 auth: Optional[Union[requests.auth.AuthBase,
+                                      credentials.Credentials]] = None,
+                 config_file: Optional[str] = None,
+                 auth_file: Optional[str] = None) -> None:
         """Initializes the RegistryClient.
 
         Args:
-            host: The address of the registry host.
-            auth: Authentication using python requests or google.auth credentials.
+            host: The address of the registry host. The host needs to be specified here
+                or in the config file.
+            auth: Optional. Authentication using python requests or google.auth.credentials.
+            config_file: Optional. The location of the local config file. If not specified,
+                defaults to ~/.config/kfp/context.json (if it exists).
+            auth_file: Optional. The location of the local config file that contains the
+                authentication token. If not specified, defaults to
+                ~/.config/kfp/registry_credentials.json (if it exists).
         """
-        self._host = host.rstrip('/')
+        self._host = ''
         self._known_host_key = ''
-        for key in _KNOWN_HOSTS_REGEX.keys():
-            if re.match(_KNOWN_HOSTS_REGEX[key], self._host):
-                self._known_host_key = key
-                break
-        self._config = self.load_config()
-        if auth:
-            self._auth = auth
-        elif self._is_ar_host():
-            self._auth, _ = google.auth.default()
+        self._config = self.load_config(host, config_file)
+        self._auth = self.load_auth(auth, auth_file)
 
     def _request(self,
                  request_url: str,
                  request_body: Optional[str] = '',
-                 http_request: Optional[str] = 'get',
+                 http_request: Optional[str] = None,
                  extra_headers: Optional[dict] = None) -> requests.Response:
         """Calls the HTTP request.
 
@@ -106,6 +111,7 @@ class RegistryClient:
         """
         self._refresh_creds()
         auth = self._get_auth()
+        http_request = http_request or 'get'
         http_request_fn = getattr(requests, http_request)
 
         response = http_request_fn(
@@ -152,74 +158,137 @@ class RegistryClient:
         if tag.startswith(_VERSION_PREFIX):
             raise ValueError('Tag should not start with \"sha256:\".')
 
-    def load_config(self) -> dict:
-        """Loads the config.
+    def load_auth(
+        self,
+        auth: Optional[Union[requests.auth.AuthBase,
+                             credentials.Credentials]] = None,
+        auth_file: Optional[str] = None
+    ) -> Optional[Union[requests.auth.AuthBase, credentials.Credentials]]:
+        """Loads the credentials for authentication.
+
+        Args:
+            auth: Optional. Authentication using python requests or google.auth credentials.
+            auth_file: Optional. The location of the local config file that contains the
+                authentication token. If not specified, defaults to
+                ~/.config/kfp/registry_credentials.json (if it exists).
 
         Returns:
-            The loaded config if it's a known host, otherwise None.
+            The loaded authentication token.
         """
-        # TODO: Move config file code to its own file.
-        config = {}
-        if self._is_ar_host():
-            repo_resource_format = ''
-            matched = re.match(_KNOWN_HOSTS_REGEX[self._known_host_key],
-                               self._host)
-            if matched:
-                repo_resource_format = ('projects/'
-                                        '{project_id}/locations/{location}/'
-                                        'repositories/{repo_id}'.format_map(
-                                            _SafeDict(matched.groupdict())))
+        if auth:
+            return auth
+        elif self._is_ar_host():
+            auth, _ = google.auth.default()
+            return auth
+        elif auth_file:
+            if os.path.exists(auth_file):
+                # Fetch auth token using the locally stored credentials.
+                with open(auth_file, 'r') as f:
+                    auth_token = json.load(f)
+                    return ApiAuth(auth_token)
             else:
-                raise ValueError(f'Invalid host URL: {self._host}.')
-            registry_endpoint = 'https://artifactregistry.googleapis.com/v1'
-            api_endpoint = f'{registry_endpoint}/{repo_resource_format}'
-            package_endpoint = f'{api_endpoint}/packages'
-            package_name_endpoint = f'{package_endpoint}/{{package_name}}'
-            tags_endpoint = f'{package_name_endpoint}/tags'
-            versions_endpoint = f'{package_name_endpoint}/versions'
-            config = {
-                'host':
-                    self._host,
-                'upload_url':
-                    self._host,
-                'download_version_url':
-                    f'{self._host}/{{package_name}}/{{version}}',
-                'download_tag_url':
-                    f'{self._host}/{{package_name}}/{{tag}}',
-                'get_package_url':
-                    f'{package_name_endpoint}',
-                'list_packages_url':
-                    package_endpoint,
-                'delete_package_url':
-                    f'{package_name_endpoint}',
-                'get_tag_url':
-                    f'{tags_endpoint}/{{tag}}',
-                'list_tags_url':
-                    f'{tags_endpoint}',
-                'delete_tag_url':
-                    f'{tags_endpoint}/{{tag}}',
-                'create_tag_url':
-                    f'{tags_endpoint}?tagId={{tag}}',
-                'update_tag_url':
-                    f'{tags_endpoint}/{{tag}}?updateMask=version',
-                'get_version_url':
-                    f'{versions_endpoint}/{{version}}',
-                'list_versions_url':
-                    f'{versions_endpoint}',
-                'delete_version_url':
-                    f'{versions_endpoint}/{{version}}',
-                'package_format':
-                    f'{repo_resource_format}/packages/{{package_name}}',
-                'tag_format':
-                    f'{repo_resource_format}/packages/{{package_name}}/tags/{{tag}}',
-                'version_format':
-                    f'{repo_resource_format}/packages/{{package_name}}/versions/{{version}}',
-            }
+                raise ValueError(f'Auth file not found: {auth_file}.')
+        elif os.path.exists(LOCAL_REGISTRY_CREDENTIAL):
+            # Fetch auth token using the locally stored credentials.
+            with open(LOCAL_REGISTRY_CREDENTIAL, 'r') as f:
+                auth_token = json.load(f)
+                return ApiAuth(auth_token)
+        return None
+
+    def load_config(self, host: Optional[str],
+                    config_file: Optional[str]) -> dict:
+        """Loads the config.
+
+        Args:
+            host: The address of the registry host. The host needs to be specified here
+                or in the config file.
+            config_file: Optional. The location of the local config file. If not specified,
+                defaults to ~/.config/kfp/context.json (if it exists).
+
+        Returns:
+            The loaded config.
+        """
+        if host:
+            self._host = host.rstrip('/')
         else:
-            logging.info(f'load_config not implemented for host: {self._host}')
+            # Check config file exists
+            config_file_path = ''
+            if config_file:
+                if os.path.exists(config_file):
+                    config_file_path = config_file
+                else:
+                    raise ValueError(f'Config file not found: {config_file}.')
+            elif os.path.exists(LOCAL_REGISTRY_CONTEXT):
+                config_file_path = LOCAL_REGISTRY_CONTEXT
+            # Try loading host from config file
+            if config_file_path:
+                with open(config_file_path, 'r') as f:
+                    data = json.load(f)
+                    if 'host' in data:
+                        self._host = data['host']
+        if not self._host:
+            raise ValueError('No host found.')
+
+        # Check if it's a known host
+        for key in _KNOWN_HOSTS_REGEX.keys():
+            if re.match(_KNOWN_HOSTS_REGEX[key][0], self._host):
+                self._known_host_key = key
+                break
+
+        # Try loading config from known contexts or local context
+        if self._is_known_host():
+            config = self._load_context(
+                _KNOWN_HOSTS_REGEX[self._known_host_key][1])
+        elif os.path.exists(LOCAL_REGISTRY_CONTEXT):
+            config = self._load_context(LOCAL_REGISTRY_CONTEXT)
+        else:
+            config = {}
+
+        # If config file is specified, add/override any extra context info needed
+        if config_file and os.path.exists(config_file):
+            config = self._load_context(config_file, config)
+
+        matched = None
+        if self._is_known_host():
+            matched = re.match(_KNOWN_HOSTS_REGEX[self._known_host_key][0],
+                               self._host)
+        elif 'regex' in config:
+            matched = re.match(config['regex'], self._host)
+
+        if matched is None:
+            raise ValueError(f'Invalid host URL: {self._host}.')
+
+        # Replace all currently known variables with values
+        map_dict = _SafeDict(**matched.groupdict(), host=self._host)
+        for config_key in config:
+            config[config_key] = config[config_key].format_map(map_dict)
+
         return config
 
-    def _get_auth(self) -> requests.auth.AuthBase:
+    def _load_context(self,
+                      config_file: str,
+                      config: Optional[dict] = None) -> dict:
+        """Loads the context from the given config_file.
+
+        Args:
+            config_file: The location of the config file.
+            config: Optional. An existing config to set as the default config.
+
+        Returns:
+            The loaded config.
+        """
+        if not os.path.exists(config_file):
+            raise ValueError(f'Config file not found: {config_file}.')
+        with open(config_file, 'r') as f:
+            loaded_config = json.load(f)
+        if config:
+            config.update(loaded_config)
+            return config
+        return loaded_config
+
+    def _get_auth(
+        self
+    ) -> Optional[Union[requests.auth.AuthBase, credentials.Credentials]]:
         """Helper function to convert google credentials to AuthBase class if
         needed.
 

@@ -45,7 +45,6 @@ __all__ = [
     'ModelDeleteOp',
     'ModelExportOp',
     'ModelUploadOp',
-    'ModelImportEvaluationOp',
     'EndpointCreateOp',
     'EndpointDeleteOp',
     'TimeSeriesDatasetCreateOp',
@@ -183,8 +182,3 @@ EndpointCreateOp = load_component_from_file(
 EndpointDeleteOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'endpoint/delete_endpoint/component.yaml'))
-
-ModelImportEvaluationOp = load_component_from_file(
-    os.path.join(
-        os.path.dirname(__file__),
-        'model/evaluation/import_model_evaluation/component.yaml'))

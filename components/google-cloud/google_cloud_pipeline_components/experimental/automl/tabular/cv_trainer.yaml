@@ -46,6 +46,7 @@ inputs:
 - {name: location, type: String}
 - {name: root_dir, type: String}
 - {name: worker_pool_specs_override, type: String, default: ""}
+- {name: worker_pool_specs_override_json, type: JsonArray, default: "[]"}
 - {name: deadline_hours, type: Float}
 - {name: num_parallel_trials, type: Integer}
 - {name: single_run_max_secs, type: Integer}
@@ -105,5 +106,5 @@ implementation:
         {outputUri: tuning_result_output},
         '", "--kms_key_name=',
         {inputValue: encryption_spec_key_name},
-        '", "--use_custom_job=true", "--use_json=true", "--log_level=ERROR"]}}]}}'
+        '", "--use_custom_job=true", "--use_json=true", "--log_level=ERROR", "--executor_input={{$.json_escape[1]}}"]}}]}}'
       ]]

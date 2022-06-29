@@ -15,6 +15,7 @@
 
 import builtins
 import json
+import os
 import requests
 from unittest import mock
 
@@ -23,23 +24,34 @@ from kfp.registry import ApiAuth
 from kfp.registry import RegistryClient
 
 _DEFAULT_HOST = 'https://us-central1-kfp.pkg.dev/proj/repo'
+_KFP_CONFIG_FILE = os.path.join(
+    os.path.dirname(__file__), 'context/kfp_pkg_dev.json')
 
 
 class RegistryClientTest(parameterized.TestCase):
 
-    @parameterized.parameters(
-        {
-            'host': 'https://us-central1-kfp.pkg.dev/proj/repo',
-            'expected': True,
-        },
-        {
-            'host': 'https://hub.docker.com/r/google/cloud-sdk',
-            'expected': False,
-        },
-    )
-    def test_is_ar_host(self, host, expected):
-        client = RegistryClient(host=host, auth=ApiAuth(''))
-        self.assertEqual(client._is_ar_host(), expected)
+    def setUp(self):
+        super(RegistryClientTest, self).setUp()
+        with open(_KFP_CONFIG_FILE, 'r') as f:
+            read_value = f.read()
+        self._mock_open = self.enter_context(
+            mock.patch(
+                'builtins.open',
+                side_effect=[
+                    mock.mock_open(read_data=read_value).return_value,
+                    mock.mock_open(read_data='file_content').return_value
+                ]))
+
+    def test_is_ar_host_kfp(self):
+        client = RegistryClient(
+            host='https://us-central1-kfp.pkg.dev/proj/repo', auth=ApiAuth(''))
+        self.assertEqual(client._is_ar_host(), True)
+
+    def test_is_ar_host_error(self):
+        with self.assertRaises(ValueError):
+            client = RegistryClient(
+                host='https://hub.docker.com/r/google/cloud-sdk',
+                auth=ApiAuth(''))
 
     def test_load_config(self):
         host = _DEFAULT_HOST
@@ -88,11 +100,11 @@ class RegistryClientTest(parameterized.TestCase):
             'get_version_url':
                 ('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
-                 '/repo/packages/{package_name}/versions/{version}'),
+                 '/repo/packages/{package_name}/versions/{version}?view=FULL'),
             'list_versions_url':
                 ('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
-                 '/repo/packages/{package_name}/versions'),
+                 '/repo/packages/{package_name}/versions?view=FULL'),
             'delete_version_url':
                 ('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
@@ -106,6 +118,8 @@ class RegistryClientTest(parameterized.TestCase):
                 ('projects/proj/locations/us-central1/repositories'
                  '/repo/packages/{package_name}/versions/{version}')
         }
+        self.assertEqual(self._mock_open.call_args_list[0][0],
+                         (_KFP_CONFIG_FILE, 'r'))
         self.assertEqual(expected_config, client._config)
 
     @parameterized.parameters(
@@ -147,17 +161,16 @@ class RegistryClientTest(parameterized.TestCase):
         },
     )
     @mock.patch('requests.get', autospec=True)
-    @mock.patch('builtins.open', new_callable=mock.mock_open())
-    def test_download_pipeline(self, mock_open, mock_get, version, tag,
-                               file_name, expected_url, expected_file_name):
-        mock_open.reset_mock()
+    def test_download_pipeline(self, mock_get, version, tag, file_name,
+                               expected_url, expected_file_name):
         host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(''))
         client.download_pipeline(
             package_name='pack', version=version, tag=tag, file_name=file_name)
         mock_get.assert_called_once_with(
             url=expected_url, data='', headers=None, auth=mock.ANY)
-        mock_open.assert_called_once_with(expected_file_name, 'wb')
+        self.assertEqual(self._mock_open.call_args_list[1][0],
+                         (expected_file_name, 'wb'))
 
     def test_download_pipeline_version_error(self):
         client = RegistryClient(host=_DEFAULT_HOST, auth=ApiAuth(''))
@@ -181,12 +194,8 @@ class RegistryClientTest(parameterized.TestCase):
         },
     )
     @mock.patch('requests.post', autospec=True)
-    @mock.patch('builtins.open', new_callable=mock.mock_open())
-    def test_upload_pipeline(self, mock_open, mock_post, tags, expected_tags):
-        mock_open.reset_mock()
+    def test_upload_pipeline(self, mock_post, tags, expected_tags):
         mock_post.return_value.text = 'package_name/sha256:abcde12345'
-        mock_open.return_value.__enter__.return_value = 'file_content'
-        mock_open.return_value.__exit__.return_value = False
         host = _DEFAULT_HOST
         client = RegistryClient(host=host, auth=ApiAuth(''))
         package_name, version = client.upload_pipeline(
@@ -197,9 +206,10 @@ class RegistryClientTest(parameterized.TestCase):
             url=host,
             data={'tags': expected_tags},
             headers={'description': 'nothing'},
-            files={'content': 'file_content'},
+            files={'content': mock.ANY},
             auth=mock.ANY)
-        mock_open.assert_called_once_with('pipeline.yaml', 'rb')
+        self.assertEqual(self._mock_open.call_args_list[1][0],
+                         ('pipeline.yaml', 'rb'))
         self.assertEqual(package_name, 'package_name')
         self.assertEqual(version, 'sha256:abcde12345')
 
@@ -268,7 +278,7 @@ class RegistryClientTest(parameterized.TestCase):
         mock_get.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
-                 '/repo/packages/pack/versions/sha256:abcde12345'),
+                 '/repo/packages/pack/versions/sha256:abcde12345?view=FULL'),
             data='',
             headers=None,
             auth=mock.ANY)
@@ -281,7 +291,7 @@ class RegistryClientTest(parameterized.TestCase):
         mock_get.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
-                 '/repo/packages/pack/versions'),
+                 '/repo/packages/pack/versions?view=FULL'),
             data='',
             headers=None,
             auth=mock.ANY)
@@ -299,7 +309,7 @@ class RegistryClientTest(parameterized.TestCase):
         mock_get.assert_called_once_with(
             url=('https://artifactregistry.googleapis.com/v1/projects/'
                  'proj/locations/us-central1/repositories'
-                 '/repo/packages/pack/versions'),
+                 '/repo/packages/pack/versions?view=FULL'),
             data='',
             headers=None,
             auth=mock.ANY)

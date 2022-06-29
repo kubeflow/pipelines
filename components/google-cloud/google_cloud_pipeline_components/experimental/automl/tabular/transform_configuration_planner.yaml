@@ -40,6 +40,7 @@ inputs:
 - {name: project, type: String}
 - {name: location, type: String}
 - {name: root_dir, type: String}
+- {name: analyze_data, type: Dataset, default: ""}
 - {name: transform_config, type: String}
 - {name: target_column, type: String}
 - {name: weight_column, type: String, default: ""}
@@ -50,6 +51,8 @@ inputs:
 
 outputs:
 - {name: fte_transform_configuration_path, type: String}
+- {name: training_schema, type: TrainingSchema}
+- {name: instance_baseline, type: AutoMLTabularInstanceBaseline}
 - {name: gcp_resources, type: String}
 
 implementation:
@@ -66,7 +69,7 @@ implementation:
         '{"display_name": "automl-tabular-transform-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod',
+        'us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:prod',
         '", "args": ["transform_configuration_planner", "--fte_transform_configuration_path=',
         {inputValue: root_dir},
         '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform_configuration", "--fte_transform_configuration_output_path=',
@@ -75,6 +78,8 @@ implementation:
         {inputValue: transform_config},
         '", "--target_column=',
         {inputValue: target_column},
+        '", "--analyze_data_path=',
+        {inputUri: analyze_data},
         '", "--weight_column=',
         {inputValue: weight_column},
         '", "--prediction_type=',
@@ -83,5 +88,9 @@ implementation:
         {inputValue: is_distillation},
         '", "--dataset_stats_path=',
         {inputUri: dataset_stats},
+        '", "--training_schema_path=',
+        {outputUri: training_schema},
+        '", "--instance_baseline_path=',
+        {outputUri: instance_baseline},
         '"]}}]}}'
       ]]

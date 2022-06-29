@@ -137,7 +137,7 @@ outputs:
 - {name: gcp_resources, type: String}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/model-evaluation:v0.2
+    image: gcr.io/ml-pipeline/model-evaluation:v0.3
     command:
     - python
     - /main.py

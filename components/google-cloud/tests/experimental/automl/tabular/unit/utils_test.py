@@ -427,196 +427,116 @@ class UtilsTest(unittest.TestCase):
 
   def test_get_skip_architecture_search_pipeline_and_parameters(self):
     _, parameter_values = utils.get_skip_architecture_search_pipeline_and_parameters(
-        'project', 'us-central1', 'gs://foo', 'target', 'classification',
-        'maximize-au-prc', {'auto': {
-            'column_name': 'feature_1'
-        }}, {
-            'fraction_split': {
-                'training_fraction': 0.8,
-                'validation_fraction': 0.2,
-                'test_fraction': 0.0
-            }
-        }, {'csv_data_source': {
-            'csv_filenames': ['gs://foo/bar.csv']
-        }}, 1000, 'gs://bar')
+        'project',
+        'us-central1',
+        'gs://foo',
+        'target',
+        'classification',
+        'maximize-au-prc',
+        'gs://foo',
+        1000,
+        'gs://bar',
+        training_fraction=0.8,
+        validation_fraction=0.2,
+        test_fraction=0.0,
+        data_source_csv_filenames='gs://foo/bar.csv')
+
     self.assertEqual(
         parameter_values, {
-            'cv_trainer_worker_pool_specs_override':
-                '',
-            'data_source':
-                '{\\"csv_data_source\\": {\\"csv_filenames\\": [\\"gs://foo/bar.csv\\"]}}',
-            'encryption_spec_key_name':
-                '',
-            'export_additional_model_without_custom_ops':
-                False,
-            'location':
-                'us-central1',
-            'optimization_objective':
-                'maximize-au-prc',
-            'optimization_objective_precision_value':
-                -1,
-            'optimization_objective_recall_value':
-                -1,
-            'prediction_type':
-                'classification',
-            'project':
-                'project',
-            'root_dir':
-                'gs://foo',
-            'split_spec':
-                '{\\"fraction_split\\": {\\"training_fraction\\": 0.8, \\"validation_fraction\\": 0.2, \\"test_fraction\\": 0.0}}',
-            'stage_1_tuning_result_artifact_uri':
-                'gs://bar',
-            'stage_2_deadline_hours':
-                1.0,
-            'stage_2_num_parallel_trials':
-                35,
-            'stage_2_num_selected_trials':
-                5,
-            'stage_2_single_run_max_secs':
-                2769,
-            'stats_and_example_gen_dataflow_machine_type':
-                'n1-standard-16',
-            'stats_and_example_gen_dataflow_max_num_workers':
-                25,
-            'target_column_name':
-                'target',
-            'transform_dataflow_machine_type':
-                'n1-standard-16',
-            'transform_dataflow_max_num_workers':
-                25,
-            'transformations':
-                '{\\"auto\\": {\\"column_name\\": \\"feature_1\\"}}',
-            'weight_column_name':
-                '',
-            'dataflow_subnetwork':
-                '',
-            'dataflow_use_public_ips':
-                True
+            'project': 'project',
+            'location': 'us-central1',
+            'root_dir': 'gs://foo',
+            'target_column': 'target',
+            'prediction_type': 'classification',
+            'data_source_csv_filenames': 'gs://foo/bar.csv',
+            'training_fraction': 0.8,
+            'validation_fraction': 0.2,
+            'test_fraction': 0.0,
+            'optimization_objective': 'maximize-au-prc',
+            'transformations': 'gs://foo',
+            'train_budget_milli_node_hours': 1000,
+            'stage_1_tuning_result_artifact_uri': 'gs://bar',
+            'cv_trainer_worker_pool_specs_override': [],
+            'export_additional_model_without_custom_ops': False,
+            'dataflow_use_public_ips': True,
+            'additional_experiments': {},
+            'run_evaluation': True
         })
 
   def test_get_wide_and_deep_trainer_pipeline_and_parameters(self):
     _, parameter_values = utils.get_wide_and_deep_trainer_pipeline_and_parameters(
-        'project', 'us-central1', 'gs://foo', 'target', 'classification',
-        {'auto_transforms': ['feature_1']}, {
-            'fraction_split': {
-                'training_fraction': 0.8,
-                'validation_fraction': 0.2,
-                'test_fraction': 0.0
-            }
-        }, {'csv_data_source': {
-            'csv_filenames': ['gs://foo/bar.csv']
-        }}, 0.01, 0.01)
+        'project',
+        'us-central1',
+        'gs://foo',
+        'target',
+        'classification', 'gs://foo/transform_config',
+        0.01,
+        0.01,
+        training_fraction=0.8,
+        validation_fraction=0.2,
+        test_fraction=0.0,
+        data_source_csv_filenames='gs://foo/bar.csv',
+        dataflow_service_account='service-account')
 
     self.assertEqual(
         parameter_values, {
-            'project':
-                'project',
-            'location':
-                'us-central1',
-            'root_dir':
-                'gs://foo',
-            'target_column':
-                'target',
-            'prediction_type':
-                'classification',
-            'transform_config':
-                '{"auto_transforms": ["feature_1"]}',
-            'split_spec':
-                '{\\"fraction_split\\": {\\"training_fraction\\": 0.8, \\"validation_fraction\\": 0.2, \\"test_fraction\\": 0.0}}',
-            'data_source':
-                '{\\"csv_data_source\\": {\\"csv_filenames\\": [\\"gs://foo/bar.csv\\"]}}',
-            'learning_rate':
-                0.01,
-            'dnn_learning_rate':
-                0.01,
-            'optimizer_type':
-                'adam',
-            'max_steps':
-                -1,
-            'max_train_secs':
-                -1,
-            'l1_regularization_strength':
-                0,
-            'l2_regularization_strength':
-                0,
-            'l2_shrinkage_regularization_strength':
-                0,
-            'beta_1':
-                0.9,
-            'beta_2':
-                0.999,
-            'hidden_units':
-                '30,30,30',
-            'use_wide':
-                True,
-            'embed_categories':
-                True,
-            'dnn_dropout':
-                0,
-            'dnn_optimizer_type':
-                'ftrl',
-            'dnn_l1_regularization_strength':
-                0,
-            'dnn_l2_regularization_strength':
-                0,
-            'dnn_l2_shrinkage_regularization_strength':
-                0,
-            'dnn_beta_1':
-                0.9,
-            'dnn_beta_2':
-                0.999,
-            'enable_profiler':
-                False,
-            'seed':
-                1,
-            'eval_steps':
-                0,
-            'batch_size':
-                100,
-            'eval_frequency_secs':
-                600,
-            'weight_column':
-                '',
-            'stats_and_example_gen_dataflow_machine_type':
-                'n1-standard-16',
-            'stats_and_example_gen_dataflow_max_num_workers':
-                25,
-            'stats_and_example_gen_dataflow_disk_size_gb':
-                40,
-            'transform_dataflow_machine_type':
-                'n1-standard-16',
-            'transform_dataflow_max_num_workers':
-                25,
-            'transform_dataflow_disk_size_gb':
-                40,
+            'project': 'project',
+            'location': 'us-central1',
+            'root_dir': 'gs://foo',
+            'target_column': 'target',
+            'prediction_type': 'classification',
+            'transform_config': 'gs://foo/transform_config',
+            'data_source_csv_filenames': 'gs://foo/bar.csv',
+            'training_fraction': 0.8,
+            'validation_fraction': 0.2,
+            'test_fraction': 0.0,
+            'learning_rate': 0.01,
+            'dnn_learning_rate': 0.01,
+            'optimizer_type': 'adam',
+            'max_steps': -1,
+            'max_train_secs': -1,
+            'l1_regularization_strength': 0,
+            'l2_regularization_strength': 0,
+            'l2_shrinkage_regularization_strength': 0,
+            'beta_1': 0.9,
+            'beta_2': 0.999,
+            'hidden_units': '30,30,30',
+            'use_wide': True,
+            'embed_categories': True,
+            'dnn_dropout': 0,
+            'dnn_optimizer_type': 'ftrl',
+            'dnn_l1_regularization_strength': 0,
+            'dnn_l2_regularization_strength': 0,
+            'dnn_l2_shrinkage_regularization_strength': 0,
+            'dnn_beta_1': 0.9,
+            'dnn_beta_2': 0.999,
+            'enable_profiler': False,
+            'seed': 1,
+            'eval_steps': 0,
+            'batch_size': 100,
+            'eval_frequency_secs': 600,
+            'weight_column': '',
+            'stats_and_example_gen_dataflow_machine_type': 'n1-standard-16',
+            'stats_and_example_gen_dataflow_max_num_workers': 25,
+            'stats_and_example_gen_dataflow_disk_size_gb': 40,
+            'transform_dataflow_machine_type': 'n1-standard-16',
+            'transform_dataflow_max_num_workers': 25,
+            'transform_dataflow_disk_size_gb': 40,
             'training_machine_spec': {
                 'machine_type': 'c2-standard-16'
             },
-            'training_replica_count':
-                1,
-            'run_evaluation':
-                True,
-            'evaluation_batch_predict_machine_type':
-                'n1-standard-16',
-            'evaluation_batch_predict_starting_replica_count':
-                25,
-            'evaluation_batch_predict_max_replica_count':
-                25,
-            'evaluation_dataflow_machine_type':
-                'n1-standard-4',
-            'evaluation_dataflow_max_num_workers':
-                25,
-            'evaluation_dataflow_disk_size_gb':
-                50,
-            'dataflow_service_account':
-                '',
-            'dataflow_subnetwork':
-                '',
-            'dataflow_use_public_ips':
-                True,
-            'encryption_spec_key_name':
-                ''
+            'training_replica_count': 1,
+            'run_evaluation': True,
+            'evaluation_batch_predict_machine_type': 'n1-standard-16',
+            'evaluation_batch_predict_starting_replica_count': 25,
+            'evaluation_batch_predict_max_replica_count': 25,
+            'evaluation_dataflow_machine_type': 'n1-standard-4',
+            'evaluation_dataflow_max_num_workers': 25,
+            'evaluation_dataflow_disk_size_gb': 50,
+            'dataflow_service_account': 'service-account',
+            'dataflow_subnetwork': '',
+            'dataflow_use_public_ips': True,
+            'encryption_spec_key_name': ''
         })
 
   def test_get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(self):
@@ -625,15 +545,7 @@ class UtilsTest(unittest.TestCase):
         'us-central1',
         'gs://foo',
         'target',
-        'classification', {'auto_transforms': ['feature_1']}, {
-            'fraction_split': {
-                'training_fraction': 0.8,
-                'validation_fraction': 0.2,
-                'test_fraction': 0.0
-            }
-        }, {'csv_data_source': {
-            'csv_filenames': ['gs://foo/bar.csv']
-        }}, [{
+        'classification', 'gs://foo/transform_config', [{
             'metric_id': 'loss',
             'goal': 'MINIMIZE'
         }], [{
@@ -658,25 +570,24 @@ class UtilsTest(unittest.TestCase):
         }],
         2,
         1,
-        algorithm='tabnet')
+        algorithm='tabnet',
+        training_fraction=0.8,
+        validation_fraction=0.2,
+        test_fraction=0.0,
+        data_source_csv_filenames='gs://foo/bar.csv',
+        dataflow_service_account='service-account')
     self.assertEqual(
         parameter_values, {
-            'project':
-                'project',
-            'location':
-                'us-central1',
-            'root_dir':
-                'gs://foo',
-            'target_column':
-                'target',
-            'prediction_type':
-                'classification',
-            'transform_config':
-                '{"auto_transforms": ["feature_1"]}',
-            'split_spec':
-                '{\\"fraction_split\\": {\\"training_fraction\\": 0.8, \\"validation_fraction\\": 0.2, \\"test_fraction\\": 0.0}}',
-            'data_source':
-                '{\\"csv_data_source\\": {\\"csv_filenames\\": [\\"gs://foo/bar.csv\\"]}}',
+            'project': 'project',
+            'location': 'us-central1',
+            'root_dir': 'gs://foo',
+            'target_column': 'target',
+            'prediction_type': 'classification',
+            'transform_config': 'gs://foo/transform_config',
+            'data_source_csv_filenames': 'gs://foo/bar.csv',
+            'training_fraction': 0.8,
+            'validation_fraction': 0.2,
+            'test_fraction': 0.0,
             'study_spec_metrics': [{
                 'metric_id': 'loss',
                 'goal': 'MINIMIZE'
@@ -701,67 +612,38 @@ class UtilsTest(unittest.TestCase):
                     'values': [2]
                 }
             }],
-            'max_trial_count':
-                2,
-            'parallel_trial_count':
-                1,
-            'tabnet':
-                True,
-            'enable_profiler':
-                False,
-            'seed':
-                1,
-            'eval_steps':
-                0,
-            'eval_frequency_secs':
-                600,
-            'weight_column':
-                '',
-            'max_failed_trial_count':
-                0,
-            'study_spec_algorithm':
-                'ALGORITHM_UNSPECIFIED',
-            'study_spec_measurement_selection_type':
-                'BEST_MEASUREMENT',
-            'stats_and_example_gen_dataflow_machine_type':
-                'n1-standard-16',
-            'stats_and_example_gen_dataflow_max_num_workers':
-                25,
-            'stats_and_example_gen_dataflow_disk_size_gb':
-                40,
-            'transform_dataflow_machine_type':
-                'n1-standard-16',
-            'transform_dataflow_max_num_workers':
-                25,
-            'transform_dataflow_disk_size_gb':
-                40,
+            'max_trial_count': 2,
+            'parallel_trial_count': 1,
+            'tabnet': True,
+            'enable_profiler': False,
+            'seed': 1,
+            'eval_steps': 0,
+            'eval_frequency_secs': 600,
+            'weight_column': '',
+            'max_failed_trial_count': 0,
+            'study_spec_algorithm': 'ALGORITHM_UNSPECIFIED',
+            'study_spec_measurement_selection_type': 'BEST_MEASUREMENT',
+            'stats_and_example_gen_dataflow_machine_type': 'n1-standard-16',
+            'stats_and_example_gen_dataflow_max_num_workers': 25,
+            'stats_and_example_gen_dataflow_disk_size_gb': 40,
+            'transform_dataflow_machine_type': 'n1-standard-16',
+            'transform_dataflow_max_num_workers': 25,
+            'transform_dataflow_disk_size_gb': 40,
             'training_machine_spec': {
                 'machine_type': 'c2-standard-16'
             },
-            'training_replica_count':
-                1,
-            'run_evaluation':
-                True,
-            'evaluation_batch_predict_machine_type':
-                'n1-standard-16',
-            'evaluation_batch_predict_starting_replica_count':
-                25,
-            'evaluation_batch_predict_max_replica_count':
-                25,
-            'evaluation_dataflow_machine_type':
-                'n1-standard-4',
-            'evaluation_dataflow_max_num_workers':
-                25,
-            'evaluation_dataflow_disk_size_gb':
-                50,
-            'dataflow_service_account':
-                '',
-            'dataflow_subnetwork':
-                '',
-            'dataflow_use_public_ips':
-                True,
-            'encryption_spec_key_name':
-                ''
+            'training_replica_count': 1,
+            'run_evaluation': True,
+            'evaluation_batch_predict_machine_type': 'n1-standard-16',
+            'evaluation_batch_predict_starting_replica_count': 25,
+            'evaluation_batch_predict_max_replica_count': 25,
+            'evaluation_dataflow_machine_type': 'n1-standard-4',
+            'evaluation_dataflow_max_num_workers': 25,
+            'evaluation_dataflow_disk_size_gb': 50,
+            'dataflow_service_account': 'service-account',
+            'dataflow_subnetwork': '',
+            'dataflow_use_public_ips': True,
+            'encryption_spec_key_name': ''
         })
 
   def test_get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
@@ -771,15 +653,8 @@ class UtilsTest(unittest.TestCase):
         'us-central1',
         'gs://foo',
         'target',
-        'classification', {'auto_transforms': ['feature_1']}, {
-            'fraction_split': {
-                'training_fraction': 0.8,
-                'validation_fraction': 0.2,
-                'test_fraction': 0.0
-            }
-        }, {'csv_data_source': {
-            'csv_filenames': ['gs://foo/bar.csv']
-        }}, [{
+        'classification',
+        'gs://foo/transform_config', [{
             'metric_id': 'loss',
             'goal': 'MINIMIZE'
         }], [{
@@ -804,25 +679,24 @@ class UtilsTest(unittest.TestCase):
         }],
         2,
         1,
-        algorithm='wide_and_deep')
+        algorithm='wide_and_deep',
+        training_fraction=0.8,
+        validation_fraction=0.2,
+        test_fraction=0.0,
+        data_source_csv_filenames='gs://foo/bar.csv',
+        dataflow_service_account='service-account')
     self.assertEqual(
         parameter_values, {
-            'project':
-                'project',
-            'location':
-                'us-central1',
-            'root_dir':
-                'gs://foo',
-            'target_column':
-                'target',
-            'prediction_type':
-                'classification',
-            'transform_config':
-                '{"auto_transforms": ["feature_1"]}',
-            'split_spec':
-                '{\\"fraction_split\\": {\\"training_fraction\\": 0.8, \\"validation_fraction\\": 0.2, \\"test_fraction\\": 0.0}}',
-            'data_source':
-                '{\\"csv_data_source\\": {\\"csv_filenames\\": [\\"gs://foo/bar.csv\\"]}}',
+            'project': 'project',
+            'location': 'us-central1',
+            'root_dir': 'gs://foo',
+            'target_column': 'target',
+            'prediction_type': 'classification',
+            'transform_config': 'gs://foo/transform_config',
+            'data_source_csv_filenames': 'gs://foo/bar.csv',
+            'training_fraction': 0.8,
+            'validation_fraction': 0.2,
+            'test_fraction': 0.0,
             'study_spec_metrics': [{
                 'metric_id': 'loss',
                 'goal': 'MINIMIZE'
@@ -847,193 +721,114 @@ class UtilsTest(unittest.TestCase):
                     'values': [2]
                 }
             }],
-            'max_trial_count':
-                2,
-            'parallel_trial_count':
-                1,
-            'wide_and_deep':
-                True,
-            'enable_profiler':
-                False,
-            'seed':
-                1,
-            'eval_steps':
-                0,
-            'eval_frequency_secs':
-                600,
-            'weight_column':
-                '',
-            'max_failed_trial_count':
-                0,
-            'study_spec_algorithm':
-                'ALGORITHM_UNSPECIFIED',
-            'study_spec_measurement_selection_type':
-                'BEST_MEASUREMENT',
-            'stats_and_example_gen_dataflow_machine_type':
-                'n1-standard-16',
-            'stats_and_example_gen_dataflow_max_num_workers':
-                25,
-            'stats_and_example_gen_dataflow_disk_size_gb':
-                40,
-            'transform_dataflow_machine_type':
-                'n1-standard-16',
-            'transform_dataflow_max_num_workers':
-                25,
-            'transform_dataflow_disk_size_gb':
-                40,
+            'max_trial_count': 2,
+            'parallel_trial_count': 1,
+            'wide_and_deep': True,
+            'enable_profiler': False,
+            'seed': 1,
+            'eval_steps': 0,
+            'eval_frequency_secs': 600,
+            'weight_column': '',
+            'max_failed_trial_count': 0,
+            'study_spec_algorithm': 'ALGORITHM_UNSPECIFIED',
+            'study_spec_measurement_selection_type': 'BEST_MEASUREMENT',
+            'stats_and_example_gen_dataflow_machine_type': 'n1-standard-16',
+            'stats_and_example_gen_dataflow_max_num_workers': 25,
+            'stats_and_example_gen_dataflow_disk_size_gb': 40,
+            'transform_dataflow_machine_type': 'n1-standard-16',
+            'transform_dataflow_max_num_workers': 25,
+            'transform_dataflow_disk_size_gb': 40,
             'training_machine_spec': {
                 'machine_type': 'c2-standard-16'
             },
-            'training_replica_count':
-                1,
-            'run_evaluation':
-                True,
-            'evaluation_batch_predict_machine_type':
-                'n1-standard-16',
-            'evaluation_batch_predict_starting_replica_count':
-                25,
-            'evaluation_batch_predict_max_replica_count':
-                25,
-            'evaluation_dataflow_machine_type':
-                'n1-standard-4',
-            'evaluation_dataflow_max_num_workers':
-                25,
-            'evaluation_dataflow_disk_size_gb':
-                50,
-            'dataflow_service_account':
-                '',
-            'dataflow_subnetwork':
-                '',
-            'dataflow_use_public_ips':
-                True,
-            'encryption_spec_key_name':
-                ''
+            'training_replica_count': 1,
+            'run_evaluation': True,
+            'evaluation_batch_predict_machine_type': 'n1-standard-16',
+            'evaluation_batch_predict_starting_replica_count': 25,
+            'evaluation_batch_predict_max_replica_count': 25,
+            'evaluation_dataflow_machine_type': 'n1-standard-4',
+            'evaluation_dataflow_max_num_workers': 25,
+            'evaluation_dataflow_disk_size_gb': 50,
+            'dataflow_service_account': 'service-account',
+            'dataflow_subnetwork': '',
+            'dataflow_use_public_ips': True,
+            'encryption_spec_key_name': ''
         })
 
   def test_get_tabnet_trainer_pipeline_and_parameters(self):
     _, parameter_values = utils.get_tabnet_trainer_pipeline_and_parameters(
-        'project', 'us-central1', 'gs://foo', 'target', 'classification',
-        {'auto_transforms': ['feature_1']}, {
-            'fraction_split': {
-                'training_fraction': 0.8,
-                'validation_fraction': 0.2,
-                'test_fraction': 0.0
-            }
-        }, {'csv_data_source': {
-            'csv_filenames': ['gs://foo/bar.csv']
-        }}, 0.01)
+        'project',
+        'us-central1',
+        'gs://foo',
+        'target',
+        'classification', 'gs://foo/transform_config',
+        0.01,
+        training_fraction=0.8,
+        validation_fraction=0.2,
+        test_fraction=0.0,
+        data_source_csv_filenames='gs://foo/bar.csv',
+        dataflow_service_account='service-account')
 
     self.assertEqual(
         parameter_values, {
-            'project':
-                'project',
-            'location':
-                'us-central1',
-            'root_dir':
-                'gs://foo',
-            'target_column':
-                'target',
-            'prediction_type':
-                'classification',
-            'transform_config':
-                '{"auto_transforms": ["feature_1"]}',
-            'split_spec':
-                '{\\"fraction_split\\": {\\"training_fraction\\": 0.8, \\"validation_fraction\\": 0.2, \\"test_fraction\\": 0.0}}',
-            'data_source':
-                '{\\"csv_data_source\\": {\\"csv_filenames\\": [\\"gs://foo/bar.csv\\"]}}',
-            'learning_rate':
-                0.01,
-            'max_steps':
-                -1,
-            'max_train_secs':
-                -1,
-            'large_category_dim':
-                1,
-            'large_category_thresh':
-                300,
-            'yeo_johnson_transform':
-                True,
-            'feature_dim':
-                64,
-            'feature_dim_ratio':
-                0.5,
-            'num_decision_steps':
-                6,
-            'relaxation_factor':
-                1.5,
-            'decay_every':
-                100,
-            'gradient_thresh':
-                2000,
-            'sparsity_loss_weight':
-                1e-05,
-            'batch_momentum':
-                0.95,
-            'batch_size_ratio':
-                0.25,
-            'num_transformer_layers':
-                4,
-            'num_transformer_layers_ratio':
-                0.25,
-            'class_weight':
-                1.0,
-            'loss_function_type':
-                'default',
-            'alpha_focal_loss':
-                0.25,
-            'gamma_focal_loss':
-                2.0,
-            'enable_profiler':
-                False,
-            'seed':
-                1,
-            'eval_steps':
-                0,
-            'batch_size':
-                100,
-            'eval_frequency_secs':
-                600,
-            'weight_column':
-                '',
-            'stats_and_example_gen_dataflow_machine_type':
-                'n1-standard-16',
-            'stats_and_example_gen_dataflow_max_num_workers':
-                25,
-            'stats_and_example_gen_dataflow_disk_size_gb':
-                40,
-            'transform_dataflow_machine_type':
-                'n1-standard-16',
-            'transform_dataflow_max_num_workers':
-                25,
-            'transform_dataflow_disk_size_gb':
-                40,
+            'project': 'project',
+            'location': 'us-central1',
+            'root_dir': 'gs://foo',
+            'target_column': 'target',
+            'prediction_type': 'classification',
+            'transform_config': 'gs://foo/transform_config',
+            'data_source_csv_filenames': 'gs://foo/bar.csv',
+            'training_fraction': 0.8,
+            'validation_fraction': 0.2,
+            'test_fraction': 0.0,
+            'learning_rate': 0.01,
+            'max_steps': -1,
+            'max_train_secs': -1,
+            'large_category_dim': 1,
+            'large_category_thresh': 300,
+            'yeo_johnson_transform': True,
+            'feature_dim': 64,
+            'feature_dim_ratio': 0.5,
+            'num_decision_steps': 6,
+            'relaxation_factor': 1.5,
+            'decay_every': 100,
+            'gradient_thresh': 2000,
+            'sparsity_loss_weight': 1e-05,
+            'batch_momentum': 0.95,
+            'batch_size_ratio': 0.25,
+            'num_transformer_layers': 4,
+            'num_transformer_layers_ratio': 0.25,
+            'class_weight': 1.0,
+            'loss_function_type': 'default',
+            'alpha_focal_loss': 0.25,
+            'gamma_focal_loss': 2.0,
+            'enable_profiler': False,
+            'seed': 1,
+            'eval_steps': 0,
+            'batch_size': 100,
+            'eval_frequency_secs': 600,
+            'weight_column': '',
+            'stats_and_example_gen_dataflow_machine_type': 'n1-standard-16',
+            'stats_and_example_gen_dataflow_max_num_workers': 25,
+            'stats_and_example_gen_dataflow_disk_size_gb': 40,
+            'transform_dataflow_machine_type': 'n1-standard-16',
+            'transform_dataflow_max_num_workers': 25,
+            'transform_dataflow_disk_size_gb': 40,
             'training_machine_spec': {
                 'machine_type': 'c2-standard-16'
             },
-            'training_replica_count':
-                1,
-            'run_evaluation':
-                True,
-            'evaluation_batch_predict_machine_type':
-                'n1-standard-16',
-            'evaluation_batch_predict_starting_replica_count':
-                25,
-            'evaluation_batch_predict_max_replica_count':
-                25,
-            'evaluation_dataflow_machine_type':
-                'n1-standard-4',
-            'evaluation_dataflow_max_num_workers':
-                25,
-            'evaluation_dataflow_disk_size_gb':
-                50,
-            'dataflow_service_account':
-                '',
-            'dataflow_subnetwork':
-                '',
-            'dataflow_use_public_ips':
-                True,
-            'encryption_spec_key_name':
-                ''
+            'training_replica_count': 1,
+            'run_evaluation': True,
+            'evaluation_batch_predict_machine_type': 'n1-standard-16',
+            'evaluation_batch_predict_starting_replica_count': 25,
+            'evaluation_batch_predict_max_replica_count': 25,
+            'evaluation_dataflow_machine_type': 'n1-standard-4',
+            'evaluation_dataflow_max_num_workers': 25,
+            'evaluation_dataflow_disk_size_gb': 50,
+            'dataflow_service_account': 'service-account',
+            'dataflow_subnetwork': '',
+            'dataflow_use_public_ips': True,
+            'encryption_spec_key_name': ''
         })
 
   def test_get_tabnet_study_spec_parameters_override_classification(self):
