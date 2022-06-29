@@ -1084,10 +1084,10 @@ class Client(object):
                 self.run_info = run_info
                 self.run_id = run_info.id
 
-            def wait_for_run_completion(self, timeout=None):
+            def wait_for_run_completion(self, timeout=None, poll_interval = 5):
                 timeout = timeout or datetime.timedelta.max
                 return self._client.wait_for_run_completion(
-                    self.run_id, timeout)
+                    self.run_id, timeout, poll_interval=poll_interval)
 
             def __repr__(self):
                 return 'RunPipelineResult(run_id={})'.format(self.run_id)
@@ -1301,7 +1301,7 @@ class Client(object):
         """
         return self._run_api.get_run(run_id=run_id)
 
-    def wait_for_run_completion(self, run_id: str, timeout: int):
+    def wait_for_run_completion(self, run_id: str, timeout: int, poll_interval=5):
         """Waits for a run to complete.
 
         Args:
@@ -1339,7 +1339,7 @@ class Client(object):
             logging.info('Waiting for the job to complete...')
             if elapsed_time > timeout:
                 raise TimeoutError('Run timeout')
-            time.sleep(5)
+            time.sleep(poll_interval)
         return get_run_response
 
     def _get_workflow_json(self, run_id):

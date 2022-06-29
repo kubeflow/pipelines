@@ -146,7 +146,7 @@ def main(
     )
     print("Run details page URL:")
     print(f"{host}/#/runs/details/{run_result.run_id}")
-    run_response = run_result.wait_for_run_completion(timeout_mins * _MINUTE)
+    run_response = run_result.wait_for_run_completion(timeout_mins * _MINUTE, poll_interval=60)
     run = run_response.run
     from pprint import pprint
     # Hide verbose content
