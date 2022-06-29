@@ -111,22 +111,30 @@ const metricsTypeToString = (metricsType: MetricsType): string => {
   }
 };
 
+const metricsTypeToFilter = (metricsType: MetricsType): string => {
+  switch (metricsType) {
+    case MetricsType.SCALAR_METRICS:
+      return 'system.Metrics';
+    case MetricsType.CONFUSION_MATRIX:
+      return 'system.ClassificationMetrics';
+    case MetricsType.ROC_CURVE:
+      return 'system.ClassificationMetrics';
+    case MetricsType.HTML:
+      return 'system.HTML';
+    case MetricsType.MARKDOWN:
+      return 'system.Markdown';
+    default:
+      return '';
+  }
+};
+
 // Include only the runs and executions which have artifacts of the specified type.
 function filterRunArtifactsByType(
   runArtifacts: RunArtifact[],
   artifactTypes: ArtifactType[],
   metricsType: MetricsType,
 ): RunArtifact[] {
-  const metricsFilter =
-    metricsType === MetricsType.SCALAR_METRICS
-      ? 'system.Metrics'
-      : metricsType === MetricsType.CONFUSION_MATRIX || metricsType === MetricsType.ROC_CURVE
-      ? 'system.ClassificationMetrics'
-      : metricsType === MetricsType.HTML
-      ? 'system.HTML'
-      : metricsType === MetricsType.MARKDOWN
-      ? 'system.Markdown'
-      : '';
+  const metricsFilter = metricsTypeToFilter(metricsType);
   const typeRuns: RunArtifact[] = [];
   for (const runArtifact of runArtifacts) {
     const typeExecutions: ExecutionArtifact[] = [];
