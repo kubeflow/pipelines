@@ -21,7 +21,6 @@ import { CommonTestWrapper } from 'src/TestWrapper';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ParameterType_ParameterTypeEnum } from 'src/generated/pipeline_spec/pipeline_spec';
 import NewRunParametersV2 from 'src/components/NewRunParametersV2';
-import { inputConverter } from 'src/components/NewRunParametersV2';
 
 testBestPractices();
 
@@ -95,15 +94,90 @@ describe('NewRunParametersV2', () => {
     expect(boolParam.closest('input').value).toEqual('false');
   });
 
-  it('convert string-type user input to real type', () => {
-    expect(inputConverter('string value', ParameterType_ParameterTypeEnum.STRING)).toEqual(
-      'string value',
-    );
-    expect(inputConverter('True', ParameterType_ParameterTypeEnum.BOOLEAN)).toEqual(true);
-    expect(inputConverter('123', ParameterType_ParameterTypeEnum.NUMBER_INTEGER)).toEqual(123);
-    expect(inputConverter('True', ParameterType_ParameterTypeEnum.STRING)).toEqual('True');
-    expect(inputConverter('123', ParameterType_ParameterTypeEnum.STRING)).toEqual('123');
-    expect(inputConverter('true', ParameterType_ParameterTypeEnum.BOOLEAN)).toEqual(null);
+  it('test convertInput function', () => {
+    const handleParameterChangeSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        strParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRING,
+          defaultValue: 'string value',
+        },
+        intParam: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+          defaultValue: 123,
+        },
+        boolParam: {
+          parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
+          defaultValue: true,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: handleParameterChangeSpy,
+    };
+
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    let strParam = screen.getByDisplayValue('string value');
+    let boolParam = screen.getByDisplayValue('true');
+    let intParam = screen.getByDisplayValue('123');
+
+    fireEvent.change(strParam, { target: { value: 'new string' } });
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      strParam: 'new string',
+      boolParam: true,
+      intParam: 123,
+    });
+
+    fireEvent.change(boolParam, { target: { value: 'false' } });
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(2);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      boolParam: false,
+      strParam: 'new string',
+      intParam: 123,
+    });
+
+    fireEvent.change(boolParam, { target: { value: 'True' } });
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(3);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      boolParam: null,
+      strParam: 'new string',
+      intParam: 123,
+    });
+
+    fireEvent.change(intParam, { target: { value: '456' } });
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(4);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      intParam: 456,
+      boolParam: null,
+      strParam: 'new string',
+    });
+
+    fireEvent.change(strParam, { target: { value: 'true' } });
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(5);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      strParam: 'true',
+      intParam: 456,
+      boolParam: null,
+    });
+
+    fireEvent.change(boolParam, { target: { value: 'true' } });
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(6);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      boolParam: true,
+      strParam: 'true',
+      intParam: 456,
+    });
+
+    fireEvent.change(intParam, { target: { value: 'another string' } });
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(7);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      intParam: null,
+      boolParam: true,
+      strParam: 'true',
+    });
   });
 
   it('does not display any text fields if there are no parameters', () => {
