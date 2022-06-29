@@ -341,7 +341,8 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     if (
       firstSelectedItem.itemName &&
       firstSelectedItem.subItemName &&
-      firstSelectedItem.subItemSecondaryName
+      firstSelectedItem.subItemSecondaryName &&
+      selectedArtifacts[metricsTab][0].selectedItem !== firstSelectedItem
     ) {
       selectedArtifacts[metricsTab][0].selectedItem = firstSelectedItem;
       selectedArtifacts[metricsTab][0].selectedArtifact = getArtifact(
@@ -350,14 +351,20 @@ function MetricsDropdown(props: MetricsDropdownProps) {
       );
       setSelectedArtifacts({ ...selectedArtifacts });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firstSelectedItem, filteredRunArtifacts, metricsTab, setSelectedArtifacts]);
+  }, [
+    firstSelectedItem,
+    filteredRunArtifacts,
+    metricsTab,
+    selectedArtifacts,
+    setSelectedArtifacts,
+  ]);
 
   useEffect(() => {
     if (
       secondSelectedItem.itemName &&
       secondSelectedItem.subItemName &&
-      secondSelectedItem.subItemSecondaryName
+      secondSelectedItem.subItemSecondaryName &&
+      selectedArtifacts[metricsTab][1].selectedItem !== secondSelectedItem
     ) {
       selectedArtifacts[metricsTab][1].selectedItem = secondSelectedItem;
       selectedArtifacts[metricsTab][1].selectedArtifact = getArtifact(
@@ -366,8 +373,13 @@ function MetricsDropdown(props: MetricsDropdownProps) {
       );
       setSelectedArtifacts({ ...selectedArtifacts });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [secondSelectedItem, filteredRunArtifacts, metricsTab, setSelectedArtifacts]);
+  }, [
+    secondSelectedItem,
+    filteredRunArtifacts,
+    metricsTab,
+    selectedArtifacts,
+    setSelectedArtifacts,
+  ]);
 
   const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
 

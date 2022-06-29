@@ -102,23 +102,28 @@ describe('CompareV2', () => {
     return event;
   }
 
-  function newMockArtifact(id: number, isConfusionMatrix?: boolean, displayName?: string): Artifact {
+  function newMockArtifact(
+    id: number,
+    isConfusionMatrix?: boolean,
+    displayName?: string,
+  ): Artifact {
     const artifact = new Artifact();
     artifact.setId(id);
     const customPropertiesMap: Map<string, Value> = new Map();
     if (isConfusionMatrix) {
-      
       const confusionMatrix: Value = new Value();
-      confusionMatrix.setStructValue(Struct.fromJavaScript({
-        struct: {
-          annotationSpecs: [
-            { displayName: 'Setosa' },
-            { displayName: 'Versicolour' },
-            { displayName: 'Virginica' },
-          ],
-          rows: [{ row: [31, 0, 0] }, { row: [1, 8, 12] }, { row: [0, 0, 23] }],
-        },
-      }));
+      confusionMatrix.setStructValue(
+        Struct.fromJavaScript({
+          struct: {
+            annotationSpecs: [
+              { displayName: 'Setosa' },
+              { displayName: 'Versicolour' },
+              { displayName: 'Virginica' },
+            ],
+            rows: [{ row: [31, 0, 0] }, { row: [1, 8, 12] }, { row: [0, 0, 23] }],
+          },
+        }),
+      );
       customPropertiesMap.set('confusionMatrix', confusionMatrix);
     }
     if (displayName) {
@@ -587,7 +592,11 @@ describe('CompareV2', () => {
       Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
     );
 
-    const artifacts = [newMockArtifact(1), newMockArtifact(2, true, 'artifactName'), newMockArtifact(3)];
+    const artifacts = [
+      newMockArtifact(1),
+      newMockArtifact(2, true, 'artifactName'),
+      newMockArtifact(3),
+    ];
     const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
     getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
 
