@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from kfp.components.component_decorator import component
+from kfp.components.container_component_decorator import container_component
 
 from kfp.components.importer_node import importer
 
