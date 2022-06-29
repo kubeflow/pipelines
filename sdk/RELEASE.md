@@ -11,9 +11,10 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
+* Enable overriding caching options at submission time [\#7912](https://github.com/kubeflow/pipelines/pull/7912)
 
 ## Documentation Updates
-# Current Version (2.0.0-beta.0)
+# 2.0.0-beta.0
 
 ## Major Features and Improvements
 
