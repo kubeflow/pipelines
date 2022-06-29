@@ -59,6 +59,11 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
+          - name: PIPELINE_BUCKET_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: bucketName
           - name: OBJECTSTORECONFIG_ACCESSKEY
             valueFrom:
               secretKeyRef:
