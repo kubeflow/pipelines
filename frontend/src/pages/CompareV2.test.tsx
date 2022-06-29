@@ -562,7 +562,7 @@ describe('CompareV2', () => {
     });
   });
 
-  it('Confusion matrix shown when selected', async () => {
+  it('Confusion matrix shown on select, stays after tab change or section collapse', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
@@ -612,9 +612,7 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    await waitFor(() => expect(filterLinkedArtifactsByTypeSpy).toHaveBeenCalledTimes(9));
-
-    expect(screen.queryByText('Confusion matrix: metrics')).toBeNull();
+    expect(screen.queryByText(/Confusion matrix: artifactName/)).toBeNull();
 
     fireEvent.click(screen.getByText('Confusion Matrix'));
     fireEvent.click(screen.getByText('Choose a first Confusion Matrix artifact'));
@@ -622,6 +620,19 @@ describe('CompareV2', () => {
     // Get the second element that has run text: first will be the run list.
     fireEvent.mouseEnter(screen.queryAllByText(`test run ${MOCK_RUN_2_ID}`)[1]);
     fireEvent.click(screen.getByText(/artifactName/));
-    screen.getByText(/Confusion Matrix: artifactName/)
+    screen.getByText(/Confusion Matrix: artifactName/);
+    screen.getByText(/executionName/);
+
+    // Change the tab and return, ensure that the confusion matrix and selected item are present.
+    fireEvent.click(screen.getByText('HTML'));
+    fireEvent.click(screen.getByText('Confusion Matrix'));
+    screen.getByText(/Confusion Matrix: artifactName/);
+    screen.getByText(/executionName/);
+
+    // Collapse and expand Metrics, ensure that the confusion matrix and selected item are present.
+    fireEvent.click(screen.getByText('Metrics'));
+    fireEvent.click(screen.getByText('Metrics'));
+    screen.getByText(/Confusion Matrix: artifactName/);
+    screen.getByText(/executionName/);
   });
 });
