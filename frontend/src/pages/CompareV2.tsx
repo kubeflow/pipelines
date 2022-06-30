@@ -265,8 +265,6 @@ function getDropdownSubLinkedArtifacts(linkedArtifacts: LinkedArtifact[], subIte
       logDisplayNameWarning('artifact', linkedArtifact.artifact.getId());
     }
 
-    console.log(subItemName);
-    console.log(artifactName || artifactId.toString());
     executionLinkedArtifacts.push({
       name: subItemName,
       secondaryName: artifactName || artifactId.toString(),
