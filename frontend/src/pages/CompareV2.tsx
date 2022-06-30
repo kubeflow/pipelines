@@ -53,8 +53,6 @@ import {
   getMarkdownViewerConfig,
 } from 'src/components/viewers/MetricsVisualizations';
 import PlotCard from 'src/components/PlotCard';
-import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
-import { MarkdownViewerConfig } from 'src/components/viewers/MarkdownViewer';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
 
 const css = stylesheet({
@@ -362,7 +360,7 @@ const getNamespace = (selectedItem: SelectedItem, filteredRunArtifacts: RunArtif
   }
 };
 
-function getLinkedArtifact(
+function getLinkedArtifactFromSelectedItem(
   filteredRunArtifacts: RunArtifact[],
   selectedItem: SelectedItem,
 ): LinkedArtifact | undefined {
@@ -428,7 +426,10 @@ function MetricsDropdown(props: MetricsDropdownProps) {
       selectedArtifacts[metricsTab][0].selectedItem !== firstSelectedItem
     ) {
       selectedArtifacts[metricsTab][0].selectedItem = firstSelectedItem;
-      const linkedArtifact = getLinkedArtifact(filteredRunArtifacts, firstSelectedItem);
+      const linkedArtifact = getLinkedArtifactFromSelectedItem(
+        filteredRunArtifacts,
+        firstSelectedItem,
+      );
       selectedArtifacts[metricsTab][0].linkedArtifact = linkedArtifact;
       setSelectedArtifacts({ ...selectedArtifacts });
 
@@ -454,7 +455,6 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     metricsTab,
     selectedArtifacts,
     setSelectedArtifacts,
-    getNamespace,
     viewerConfigs,
     setViewerConfigs,
   ]);
@@ -467,7 +467,10 @@ function MetricsDropdown(props: MetricsDropdownProps) {
       selectedArtifacts[metricsTab][1].selectedItem !== secondSelectedItem
     ) {
       selectedArtifacts[metricsTab][1].selectedItem = secondSelectedItem;
-      const linkedArtifact = getLinkedArtifact(filteredRunArtifacts, secondSelectedItem);
+      const linkedArtifact = getLinkedArtifactFromSelectedItem(
+        filteredRunArtifacts,
+        secondSelectedItem,
+      );
       selectedArtifacts[metricsTab][1].linkedArtifact = linkedArtifact;
       setSelectedArtifacts({ ...selectedArtifacts });
 
@@ -476,7 +479,7 @@ function MetricsDropdown(props: MetricsDropdownProps) {
         !viewerConfigs[linkedArtifact.artifact.getId()] &&
         (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN)
       ) {
-        const namespace = getNamespace(firstSelectedItem, filteredRunArtifacts);
+        const namespace = getNamespace(secondSelectedItem, filteredRunArtifacts);
         (async () => {
           viewerConfigs[linkedArtifact.artifact.getId()] = await getViewerConfigs(
             metricsTab,
@@ -493,7 +496,6 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     metricsTab,
     selectedArtifacts,
     setSelectedArtifacts,
-    getNamespace,
     viewerConfigs,
     setViewerConfigs,
   ]);

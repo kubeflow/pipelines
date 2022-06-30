@@ -14,7 +14,7 @@ from google.protobuf import json_format
 import unittest
 
 SCHEMA_URI = 'gs://google-cloud-aiplatform/schema/modelevaluation/classification_metrics_1.0.0.yaml'
-
+DISPLAY_NAME = 'sheesh'
 METRICS = ('{"slicedMetrics": [{"singleOutputSlicingSpec": {},"metrics": '
            '{"regression": {"rootMeanSquaredError": '
            '49.40016,"meanAbsoluteError": '
@@ -84,7 +84,8 @@ class ImportModelEvaluationTest(unittest.TestCase):
   def test_import_model_evaluation(self, mock_api):
     main([
         '--metrics', self.metrics_path, '--problem_type', 'classification',
-        '--model_name', self._model_name, '--gcp_resources', self._gcp_resources
+        '--model_name', self._model_name, '--gcp_resources',
+        self._gcp_resources, '--display_name', DISPLAY_NAME
     ])
     mock_api.assert_called_with(
         mock.ANY,
@@ -96,6 +97,8 @@ class ImportModelEvaluationTest(unittest.TestCase):
                     ['regression']),
             'metrics_schema_uri':
                 SCHEMA_URI,
+            'display_name':
+                DISPLAY_NAME,
         })
 
   @mock_api_call
