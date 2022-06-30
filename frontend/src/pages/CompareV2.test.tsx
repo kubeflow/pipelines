@@ -506,9 +506,9 @@ describe('CompareV2', () => {
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
 
     const contexts = [
-      newMockContext(MOCK_RUN_1_ID, 1),
-      newMockContext(MOCK_RUN_2_ID, 2),
-      newMockContext(MOCK_RUN_3_ID, 3),
+      newMockContext(MOCK_RUN_1_ID, 100),
+      newMockContext(MOCK_RUN_2_ID, 200),
+      newMockContext(MOCK_RUN_3_ID, 300),
     ];
     const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
     getContextSpy.mockImplementation((runID: string) =>
@@ -516,20 +516,20 @@ describe('CompareV2', () => {
     );
 
     const executions = [
-      [newMockExecution(1)],
-      [newMockExecution(2)],
-      [newMockExecution(3, 'executionName')],
+      [newMockExecution(100)],
+      [newMockExecution(200)],
+      [newMockExecution(300, 'executionName')],
     ];
     const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
       Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
     );
 
-    const artifacts = [newMockArtifact(1), newMockArtifact(2), newMockArtifact(3)];
+    const artifacts = [newMockArtifact(100), newMockArtifact(200), newMockArtifact(300)];
     const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
     getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
 
-    const events = [newMockEvent(1), newMockEvent(2), newMockEvent(3)];
+    const events = [newMockEvent(100), newMockEvent(200), newMockEvent(300)];
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
     getEventsSpy.mockReturnValue(Promise.resolve(events));
 
@@ -559,12 +559,25 @@ describe('CompareV2', () => {
       );
       expect(warnSpy).toHaveBeenNthCalledWith(
         2,
-        'Failed to fetch the display name of the execution with the following ID: 2',
+        'Failed to fetch the display name of the execution with the following ID: 200',
       );
       expect(warnSpy).toHaveBeenLastCalledWith(
-        'Failed to fetch the display name of the artifact with the following ID: 3',
+        'Failed to fetch the display name of the artifact with the following ID: 300',
       );
     });
+
+    // Ensure that the dropdown appropriately replaces display names with IDs.
+    fireEvent.click(screen.getByText('Choose a first HTML artifact'));
+    expect(screen.queryByText(`test run ${MOCK_RUN_1_ID}`)).toBeNull();
+
+    // Get second element: first is run list. Execution and Artifact ID = 200, both in same item.
+    fireEvent.mouseOver(screen.queryAllByText(`test run ${MOCK_RUN_2_ID}`)[1]);
+    screen.getByText(/200/);
+
+    // Execution name = 'executionName', Artifact ID = 300
+    fireEvent.mouseOver(screen.queryAllByText(`test run ${MOCK_RUN_3_ID}`)[1]);
+    screen.getByText(/executionName/);
+    screen.getByText(/300/);
   });
 
   it('Confusion matrix shown on select, stays after tab change or section collapse', async () => {

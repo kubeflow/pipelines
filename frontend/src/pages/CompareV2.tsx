@@ -255,43 +255,60 @@ const getExecutionName = (execution: Execution) =>
     .get('display_name')
     ?.getStringValue();
 
+// Group each artifact name with its parent execution name.
+function getDropdownSubLinkedArtifacts(linkedArtifacts: LinkedArtifact[], subItemName: string) {
+  const executionLinkedArtifacts: DropdownSubItem[] = [];
+  for (const linkedArtifact of linkedArtifacts) {
+    const artifactName = getArtifactName(linkedArtifact);
+    const artifactId = linkedArtifact.artifact.getId();
+    if (!artifactName) {
+      logDisplayNameWarning('artifact', linkedArtifact.artifact.getId());
+    }
+
+    console.log(subItemName);
+    console.log(artifactName || artifactId.toString());
+    executionLinkedArtifacts.push({
+      name: subItemName,
+      secondaryName: artifactName || artifactId.toString(),
+    } as DropdownSubItem);
+  }
+  return executionLinkedArtifacts;
+}
+
+// Combine execution names and artifact names into the same dropdown sub item list.
+function getDropdownSubItems(executionArtifacts: ExecutionArtifact[]) {
+  const subItems: DropdownSubItem[] = [];
+  for (const executionArtifact of executionArtifacts) {
+    const executionName = getExecutionName(executionArtifact.execution);
+    const executionId = executionArtifact.execution.getId();
+    if (!executionName) {
+      logDisplayNameWarning('execution', executionId);
+    }
+
+    const executionLinkedArtifacts: DropdownSubItem[] = getDropdownSubLinkedArtifacts(
+      executionArtifact.linkedArtifacts,
+      executionName || executionId.toString(),
+    );
+    subItems.push(...executionLinkedArtifacts);
+  }
+  return subItems;
+}
+
 function getDropdownItems(filteredRunArtifacts: RunArtifact[]) {
   const dropdownItems: DropdownItem[] = [];
   for (const runArtifact of filteredRunArtifacts) {
-    const runName = runArtifact.run.run?.name;
-    if (runName) {
-      // Combine execution names and artifact names into the same dropdown sub item.
-      const subItems: DropdownSubItem[] = [];
-      for (const executionArtifact of runArtifact.executionArtifacts) {
-        const executionName = getExecutionName(executionArtifact.execution);
-        if (executionName) {
-          // Group each artifact name with its parent execution name.
-          const executionLinkedArtifacts: DropdownSubItem[] = [];
-          for (const linkedArtifact of executionArtifact.linkedArtifacts) {
-            const artifactName = getArtifactName(linkedArtifact);
-            if (artifactName) {
-              executionLinkedArtifacts.push({
-                name: executionName,
-                secondaryName: artifactName,
-              } as DropdownSubItem);
-            } else {
-              logDisplayNameWarning('artifact', linkedArtifact.artifact.getId());
-            }
-          }
-          subItems.push(...executionLinkedArtifacts);
-        } else {
-          logDisplayNameWarning('execution', executionArtifact.execution.getId());
-        }
-      }
-
-      if (subItems.length > 0) {
-        dropdownItems.push({
-          name: runName,
-          subItems,
-        } as DropdownItem);
-      }
-    } else {
+    const runName = runArtifact.run.run!.name!;
+    if (!runName) {
       logDisplayNameWarning('run', runArtifact.run.run!.id!);
+      continue;
+    }
+
+    const subItems: DropdownSubItem[] = getDropdownSubItems(runArtifact.executionArtifacts);
+    if (subItems.length > 0) {
+      dropdownItems.push({
+        name: runName,
+        subItems,
+      } as DropdownItem);
     }
   }
 
