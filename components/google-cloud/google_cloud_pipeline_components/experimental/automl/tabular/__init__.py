@@ -33,6 +33,8 @@ __all__ = [
     'BuiltinAlgorithmHyperparameterTuningJobOp',
     'TabNetTrainerOp',
     'FeatureTransformEngineOp',
+    'GenerateAnalyzeAndTransformDataOp',
+    'SplitMaterializedDataOp',
     'TransformConfigurationPlannerOp',
 ]
 
@@ -52,6 +54,11 @@ TransformOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'transform.yaml'))
 FeatureTransformEngineOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'feature_transform_engine.yaml'))
+GenerateAnalyzeAndTransformDataOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'generate_analyze_and_transform_data.yaml'))
+SplitMaterializedDataOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'split_materialized_data.yaml'))
 TransformConfigurationPlannerOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__),

@@ -1,5 +1,11 @@
-# Current Version 1.0.11.dev (Still in Development)
+# Current Version 1.0.12.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.11
+* Add custom component to automl_tabular default pipeline
+* Add transformations_path to stats_and_example_gen and enable for v1 default pipeline and testing pipeline
+* Use 'unmanaged_container_model' instead of 'model' in infra validator component for automl tabular
+* Update evaluation component to v0.3
 
 # Release 1.0.10
 * Add new Evaluation components 'evaluation_data_sampler' and 'evaluation_data_splitter'

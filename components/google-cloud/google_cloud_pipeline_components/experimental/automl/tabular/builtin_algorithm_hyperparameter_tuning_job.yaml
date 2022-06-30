@@ -148,11 +148,11 @@ implementation:
           ', "container_spec": {"image_uri":"',
           {if: {
             cond: {isPresent: tabnet},
-            then: ['us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:prod']
+            then: ['us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20220629_0725_RC00']
           }},
           {if: {
             cond: {isPresent: wide_and_deep},
-            then: ['us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:prod']
+            then: ['us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:20220629_0725_RC00']
           }},
           '", "args": ["--target_column=',
           { inputValue: target_column },
@@ -161,7 +161,7 @@ implementation:
           '", "--model_type=',
           { inputValue: prediction_type },
           '", "--prediction_docker_uri=',
-          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod',
+          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20220629_0725_RC00',
           '", "--prediction_docker_uri_artifact_path=',
           { outputPath: prediction_docker_uri_output },
           '", "--baseline_path=',

@@ -68,6 +68,8 @@ def main(argv):
       required=True,
       default=argparse.SUPPRESS)
   parser.add_argument(
+      '--display_name', dest='display_name', type=str, default=None)
+  parser.add_argument(
       '--model_name',
       dest='model_name',
       type=str,
@@ -120,6 +122,9 @@ def main(argv):
                       ['attributions'][0]['featureAttributions'])
           }]
       }
+
+  if parsed_args.display_name:
+    model_evaluation['display_name'] = parsed_args.display_name
 
   import_model_evaluation_response = aiplatform.gapic.ModelServiceClient(
       client_info=gapic_v1.client_info.ClientInfo(
