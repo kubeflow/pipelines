@@ -225,7 +225,7 @@ interface MetricsDropdownProps {
   metricsTabText: string;
 }
 
-const logDisplayNameWarning = (type: string, id: number | string) =>
+const logDisplayNameWarning = (type: string, id: string) =>
   logger.warn(`Failed to fetch the display name of the ${type} with the following ID: ${id}`);
 
 const getExecutionName = (execution: Execution) =>
@@ -239,14 +239,14 @@ function getDropdownSubLinkedArtifacts(linkedArtifacts: LinkedArtifact[], subIte
   const executionLinkedArtifacts: DropdownSubItem[] = [];
   for (const linkedArtifact of linkedArtifacts) {
     const artifactName = getArtifactName(linkedArtifact);
-    const artifactId = linkedArtifact.artifact.getId();
+    const artifactId = linkedArtifact.artifact.getId().toString();
     if (!artifactName) {
-      logDisplayNameWarning('artifact', linkedArtifact.artifact.getId());
+      logDisplayNameWarning('artifact', artifactId);
     }
 
     executionLinkedArtifacts.push({
       name: subItemName,
-      secondaryName: artifactName || artifactId.toString(),
+      secondaryName: artifactName || artifactId,
     } as DropdownSubItem);
   }
   return executionLinkedArtifacts;
@@ -257,14 +257,14 @@ function getDropdownSubItems(executionArtifacts: ExecutionArtifact[]) {
   const subItems: DropdownSubItem[] = [];
   for (const executionArtifact of executionArtifacts) {
     const executionName = getExecutionName(executionArtifact.execution);
-    const executionId = executionArtifact.execution.getId();
+    const executionId = executionArtifact.execution.getId().toString();
     if (!executionName) {
       logDisplayNameWarning('execution', executionId);
     }
 
     const executionLinkedArtifacts: DropdownSubItem[] = getDropdownSubLinkedArtifacts(
       executionArtifact.linkedArtifacts,
-      executionName || executionId.toString(),
+      executionName || executionId,
     );
     subItems.push(...executionLinkedArtifacts);
   }
