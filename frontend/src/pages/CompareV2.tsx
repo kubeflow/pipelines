@@ -313,7 +313,7 @@ function getDropdownItems(filteredRunArtifacts: RunArtifact[]) {
   return dropdownItems;
 }
 
-function getArtifact(
+function getArtifactFromSelectedItem(
   filteredRunArtifacts: RunArtifact[],
   selectedItem: SelectedItem,
 ): Artifact | undefined {
@@ -363,7 +363,7 @@ function MetricsDropdown(props: MetricsDropdownProps) {
       selectedArtifacts[metricsTab][0].selectedItem !== firstSelectedItem
     ) {
       selectedArtifacts[metricsTab][0].selectedItem = firstSelectedItem;
-      selectedArtifacts[metricsTab][0].selectedArtifact = getArtifact(
+      selectedArtifacts[metricsTab][0].selectedArtifact = getArtifactFromSelectedItem(
         filteredRunArtifacts,
         firstSelectedItem,
       );
@@ -385,7 +385,7 @@ function MetricsDropdown(props: MetricsDropdownProps) {
       selectedArtifacts[metricsTab][1].selectedItem !== secondSelectedItem
     ) {
       selectedArtifacts[metricsTab][1].selectedItem = secondSelectedItem;
-      selectedArtifacts[metricsTab][1].selectedArtifact = getArtifact(
+      selectedArtifacts[metricsTab][1].selectedArtifact = getArtifactFromSelectedItem(
         filteredRunArtifacts,
         secondSelectedItem,
       );
