@@ -1,5 +1,19 @@
-# Current Version 1.0.12.dev (Still in Development)
-* Add notes for next release here.
+# Release 1.0.12
+* Move generating feature ranking to utils to be available in SDK
+* Change JSON to primitive types for Tables v1, built-in algorithm and internal pipelines
+* AutoML Tables - update Tabular workflow to reference 1.0.10 launcher image
+* AutoML Tables - Add dataflow_service_account to specify custom service account to run dataflow jobs for stats_and_example_gen and transform components.
+* AutoML Tables - Update skip_architecture_search pipeline
+* AutoML Tables - Add algorithm to pipeline, also switch the default algorithm to be AMI
+* AutoML Tables - Use feature transform engine docker image for related components
+* AutoML Tables - Make calculation logic in SDK helper function run inside a component for Tables v1 and skip_architecture_search pipelines
+* AutoML Tables - weight_column_name -> weight_column and target_column_name -> target_column for Tables v1 and skip_architecture_search pipelines
+* AutoML Tables - For built-in algorithms, the transform_config input is expected to be a GCS file path.
+* AutoML Tables - Make generate analyze/transform data and split materialized data as components
+* AutoML Tables - Add automl_tabular_pipeline pipeline for Tabular Workflow.
+* AutoML Tables - Use FTE image directly to launch FTE component
+* Model Evaluation - Add display name to import model evaluation component
+* Model Evaluation - Update default number of workers.
 
 # Release 1.0.11
 * Add custom component to automl_tabular default pipeline
