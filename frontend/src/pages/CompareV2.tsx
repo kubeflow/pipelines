@@ -47,10 +47,15 @@ import TwoLevelDropdown, {
   SelectedItem,
 } from 'src/components/TwoLevelDropdown';
 import MD2Tabs from 'src/atoms/MD2Tabs';
-import { ConfusionMatrixSection, getHtmlViewerConfig, getMarkdownViewerConfig } from 'src/components/viewers/MetricsVisualizations';
+import {
+  ConfusionMatrixSection,
+  getHtmlViewerConfig,
+  getMarkdownViewerConfig,
+} from 'src/components/viewers/MetricsVisualizations';
 import PlotCard from 'src/components/PlotCard';
 import { HTMLViewerConfig } from 'src/components/viewers/HTMLViewer';
 import { MarkdownViewerConfig } from 'src/components/viewers/MarkdownViewer';
+import { ViewerConfig } from 'src/components/viewers/Viewer';
 
 const css = stylesheet({
   leftCell: {
@@ -240,33 +245,11 @@ interface VisualizationPanelItemProps {
   metricsTab: MetricsType;
   metricsTabText: string;
   linkedArtifact: LinkedArtifact;
-  namespace: string | undefined;
+  viewerConfigs: ViewerConfig[];
 }
 
 function VisualizationPanelItem(props: VisualizationPanelItemProps) {
-  const { metricsTab, metricsTabText, linkedArtifact, namespace } = props;
-  const { isLoading, error, data: viewerConfigs } = useQuery<
-    HTMLViewerConfig[] | MarkdownViewerConfig[],
-    Error
-  >(
-    [
-      'viewerConfig',
-      {
-        artifact: linkedArtifact.artifact.getId(),
-        namespace: namespace,
-      },
-    ],
-    () => {
-      if (metricsTab === MetricsType.HTML) {
-        return getHtmlViewerConfig([linkedArtifact], namespace);
-      } else if (metricsTab === MetricsType.MARKDOWN) {
-        return getMarkdownViewerConfig([linkedArtifact], namespace);
-      } else {
-        return [];
-      }
-    },
-    { staleTime: Infinity },
-  );
+  const { metricsTab, metricsTabText, linkedArtifact, viewerConfigs } = props;
 
   if (metricsTab === MetricsType.CONFUSION_MATRIX) {
     return (
@@ -274,12 +257,6 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
         <ConfusionMatrixSection artifact={linkedArtifact.artifact} />
       </React.Fragment>
     );
-  }
-
-  if (isLoading) {
-    return <p>Data is currently loading.</p>;
-  } else if (error) {
-    return <p>There was an error in loading the data.</p>;
   }
 
   if (viewerConfigs && (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN)) {
@@ -304,9 +281,11 @@ interface MetricsDropdownProps {
   metricsTabText: string;
   selectedArtifacts: { [key: string]: SelectedArtifact[] };
   setSelectedArtifacts: (selectedArtifacts: { [key: string]: SelectedArtifact[] }) => void;
+  viewerConfigs: { [id: number]: ViewerConfig[] };
+  setViewerConfigs: (viewerConfigs: { [id: number]: ViewerConfig[] }) => void;
 }
 
-const logDisplayNameWarning = (type: string, id: number | string) =>
+const logDisplayNameWarning = (type: string, id: string) =>
   logger.warn(`Failed to fetch the display name of the ${type} with the following ID: ${id}`);
 
 const getExecutionName = (execution: Execution) =>
@@ -315,77 +294,110 @@ const getExecutionName = (execution: Execution) =>
     .get('display_name')
     ?.getStringValue();
 
+// Group each artifact name with its parent execution name.
+function getDropdownSubLinkedArtifacts(linkedArtifacts: LinkedArtifact[], subItemName: string) {
+  const executionLinkedArtifacts: DropdownSubItem[] = [];
+  for (const linkedArtifact of linkedArtifacts) {
+    const artifactName = getArtifactName(linkedArtifact);
+    const artifactId = linkedArtifact.artifact.getId().toString();
+    if (!artifactName) {
+      logDisplayNameWarning('artifact', artifactId);
+    }
+
+    executionLinkedArtifacts.push({
+      name: subItemName,
+      secondaryName: artifactName || artifactId,
+    } as DropdownSubItem);
+  }
+  return executionLinkedArtifacts;
+}
+
+// Combine execution names and artifact names into the same dropdown sub item list.
+function getDropdownSubItems(executionArtifacts: ExecutionArtifact[]) {
+  const subItems: DropdownSubItem[] = [];
+  for (const executionArtifact of executionArtifacts) {
+    const executionName = getExecutionName(executionArtifact.execution);
+    const executionId = executionArtifact.execution.getId().toString();
+    if (!executionName) {
+      logDisplayNameWarning('execution', executionId);
+    }
+
+    const executionLinkedArtifacts: DropdownSubItem[] = getDropdownSubLinkedArtifacts(
+      executionArtifact.linkedArtifacts,
+      executionName || executionId,
+    );
+    subItems.push(...executionLinkedArtifacts);
+  }
+  return subItems;
+}
+
 function getDropdownItems(filteredRunArtifacts: RunArtifact[]) {
   const dropdownItems: DropdownItem[] = [];
   for (const runArtifact of filteredRunArtifacts) {
     const runName = runArtifact.run.run?.name;
-    if (runName) {
-      // Combine execution names and artifact names into the same dropdown sub item.
-      const subItems: DropdownSubItem[] = [];
-      for (const executionArtifact of runArtifact.executionArtifacts) {
-        const executionName = getExecutionName(executionArtifact.execution);
-        if (executionName) {
-          // Group each artifact name with its parent execution name.
-          const executionLinkedArtifacts: DropdownSubItem[] = [];
-          for (const linkedArtifact of executionArtifact.linkedArtifacts) {
-            const artifactName = getArtifactName(linkedArtifact);
-            if (artifactName) {
-              executionLinkedArtifacts.push({
-                name: executionName,
-                secondaryName: artifactName,
-              } as DropdownSubItem);
-            } else {
-              logDisplayNameWarning('artifact', linkedArtifact.artifact.getId());
-            }
-          }
-          subItems.push(...executionLinkedArtifacts);
-        } else {
-          logDisplayNameWarning('execution', executionArtifact.execution.getId());
-        }
-      }
-
-      if (subItems.length > 0) {
-        dropdownItems.push({
-          name: runName,
-          subItems,
-        } as DropdownItem);
-      }
-    } else {
+    if (!runName) {
       logDisplayNameWarning('run', runArtifact.run.run!.id!);
+      continue;
+    }
+
+    const subItems: DropdownSubItem[] = getDropdownSubItems(runArtifact.executionArtifacts);
+    if (subItems.length > 0) {
+      dropdownItems.push({
+        name: runName,
+        subItems,
+      } as DropdownItem);
     }
   }
 
   return dropdownItems;
 }
 
-const getLinkedArtifact = (
-  filteredRunArtifacts: RunArtifact[],
-  selectedItem: SelectedItem,
-): LinkedArtifact | undefined =>
-  filteredRunArtifacts
-    .find(runArtifact => runArtifact.run.run?.name === selectedItem.itemName)
-    ?.executionArtifacts.find(
-      executionArtifact =>
-        executionArtifact.execution
-          .getCustomPropertiesMap()
-          .get('display_name')
-          ?.getStringValue() === selectedItem.subItemName,
-    )
-    ?.linkedArtifacts.find(
-      linkedArtifact =>
-        linkedArtifact.event
-          .getPath()
-          ?.getStepsList()[0]
-          .getKey() === selectedItem.subItemSecondaryName,
-    );
-
 const getNamespace = (selectedItem: SelectedItem, filteredRunArtifacts: RunArtifact[]) => {
-  const selectedRun = filteredRunArtifacts
-    .find(runArtifact => runArtifact.run.run?.name === selectedItem.itemName)?.run;
+  const selectedRun = filteredRunArtifacts.find(
+    runArtifact => runArtifact.run.run?.name === selectedItem.itemName,
+  )?.run;
   if (selectedRun) {
     const jsonWorkflow = JSON.parse(selectedRun.pipeline_runtime!.workflow_manifest || '{}');
     return jsonWorkflow.metadata?.namespace;
   }
+};
+
+function getLinkedArtifact(
+  filteredRunArtifacts: RunArtifact[],
+  selectedItem: SelectedItem,
+): LinkedArtifact | undefined {
+  const filteredRunArtifact = filteredRunArtifacts.find(
+    runArtifact => runArtifact.run.run?.name === selectedItem.itemName,
+  );
+
+  const executionArtifact = filteredRunArtifact?.executionArtifacts.find(executionArtifact => {
+    const executionText: string =
+      getExecutionName(executionArtifact.execution) ||
+      executionArtifact.execution.getId().toString();
+    return executionText === selectedItem.subItemName;
+  });
+
+  const linkedArtifact = executionArtifact?.linkedArtifacts.find(linkedArtifact => {
+    const linkedArtifactText: string =
+      getArtifactName(linkedArtifact) || linkedArtifact.artifact.getId().toString();
+    return linkedArtifactText === selectedItem.subItemSecondaryName;
+  });
+
+  return linkedArtifact;
+}
+
+async function getViewerConfigs(
+  metricsTab: MetricsType,
+  linkedArtifact: LinkedArtifact,
+  namespace: string | undefined,
+): Promise<ViewerConfig[]> {
+  if (metricsTab === MetricsType.HTML) {
+    return await getHtmlViewerConfig([linkedArtifact], namespace);
+  } else if (metricsTab === MetricsType.MARKDOWN) {
+    return await getMarkdownViewerConfig([linkedArtifact], namespace);
+  }
+
+  return [];
 }
 
 function MetricsDropdown(props: MetricsDropdownProps) {
@@ -395,6 +407,8 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     metricsTabText,
     selectedArtifacts,
     setSelectedArtifacts,
+    viewerConfigs,
+    setViewerConfigs,
   } = props;
   const firstSelectedArtifact: SelectedArtifact = selectedArtifacts[metricsTab][0];
   const secondSelectedArtifact: SelectedArtifact = selectedArtifacts[metricsTab][1];
@@ -405,8 +419,6 @@ function MetricsDropdown(props: MetricsDropdownProps) {
   const [secondSelectedItem, setSecondSelectedItem] = useState<SelectedItem>(
     secondSelectedArtifact.selectedItem,
   );
-  const [firstSelectedNamespace, setFirstSelectedNamespace] = useState<string | undefined>();
-  const [secondSelectedNamespace, setSecondSelectedNamespace] = useState<string | undefined>();
 
   useEffect(() => {
     if (
@@ -416,15 +428,24 @@ function MetricsDropdown(props: MetricsDropdownProps) {
       selectedArtifacts[metricsTab][0].selectedItem !== firstSelectedItem
     ) {
       selectedArtifacts[metricsTab][0].selectedItem = firstSelectedItem;
-      selectedArtifacts[metricsTab][0].linkedArtifact = getLinkedArtifact(
-        filteredRunArtifacts,
-        firstSelectedItem,
-      );
+      const linkedArtifact = getLinkedArtifact(filteredRunArtifacts, firstSelectedItem);
+      selectedArtifacts[metricsTab][0].linkedArtifact = linkedArtifact;
       setSelectedArtifacts({ ...selectedArtifacts });
 
-      if (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN) {
+      if (
+        linkedArtifact &&
+        !viewerConfigs[linkedArtifact.artifact.getId()] &&
+        (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN)
+      ) {
         const namespace = getNamespace(firstSelectedItem, filteredRunArtifacts);
-        setFirstSelectedNamespace(namespace);
+        (async () => {
+          viewerConfigs[linkedArtifact.artifact.getId()] = await getViewerConfigs(
+            metricsTab,
+            linkedArtifact,
+            namespace,
+          );
+          setViewerConfigs({ ...viewerConfigs });
+        })();
       }
     }
   }, [
@@ -434,7 +455,8 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     selectedArtifacts,
     setSelectedArtifacts,
     getNamespace,
-    setFirstSelectedNamespace
+    viewerConfigs,
+    setViewerConfigs,
   ]);
 
   useEffect(() => {
@@ -445,15 +467,24 @@ function MetricsDropdown(props: MetricsDropdownProps) {
       selectedArtifacts[metricsTab][1].selectedItem !== secondSelectedItem
     ) {
       selectedArtifacts[metricsTab][1].selectedItem = secondSelectedItem;
-      selectedArtifacts[metricsTab][1].linkedArtifact = getLinkedArtifact(
-        filteredRunArtifacts,
-        secondSelectedItem,
-      );
+      const linkedArtifact = getLinkedArtifact(filteredRunArtifacts, secondSelectedItem);
+      selectedArtifacts[metricsTab][1].linkedArtifact = linkedArtifact;
       setSelectedArtifacts({ ...selectedArtifacts });
 
-      if (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN) {
+      if (
+        linkedArtifact &&
+        !viewerConfigs[linkedArtifact.artifact.getId()] &&
+        (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN)
+      ) {
         const namespace = getNamespace(firstSelectedItem, filteredRunArtifacts);
-        setSecondSelectedNamespace(namespace);
+        (async () => {
+          viewerConfigs[linkedArtifact.artifact.getId()] = await getViewerConfigs(
+            metricsTab,
+            linkedArtifact,
+            namespace,
+          );
+          setViewerConfigs({ ...viewerConfigs });
+        })();
       }
     }
   }, [
@@ -463,18 +494,14 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     selectedArtifacts,
     setSelectedArtifacts,
     getNamespace,
-    setSecondSelectedNamespace,
+    viewerConfigs,
+    setViewerConfigs,
   ]);
 
   const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
 
   if (dropdownItems.length === 0) {
     return <p>There are no {metricsTabText} artifacts available on the selected runs.</p>;
-  }
-
-  if (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN) {
-    // Check if you have that selected item.
-    getNamespace(firstSelectedItem, filteredRunArtifacts);
   }
 
   return (
@@ -493,7 +520,7 @@ function MetricsDropdown(props: MetricsDropdownProps) {
                 metricsTab={metricsTab}
                 metricsTabText={metricsTabText}
                 linkedArtifact={firstSelectedArtifact.linkedArtifact}
-                namespace={secondSelectedNamespace}
+                viewerConfigs={viewerConfigs[firstSelectedArtifact.linkedArtifact.artifact.getId()]}
               />
             ) : (
               <VisualizationPlaceholder metricsTabText={metricsTabText} />
@@ -511,7 +538,9 @@ function MetricsDropdown(props: MetricsDropdownProps) {
                 metricsTab={metricsTab}
                 metricsTabText={metricsTabText}
                 linkedArtifact={secondSelectedArtifact.linkedArtifact}
-                namespace={secondSelectedNamespace}
+                viewerConfigs={
+                  viewerConfigs[secondSelectedArtifact.linkedArtifact.artifact.getId()]
+                }
               />
             ) : (
               <VisualizationPlaceholder metricsTabText={metricsTabText} />
@@ -554,6 +583,9 @@ function CompareV2(props: PageProps) {
       [MetricsType.MARKDOWN]: createSelectedArtifactArray(2),
     },
   );
+
+  // Map artifact ID to the viewer config.
+  const [viewerConfigs, setViewerConfigs] = useState<{ [id: number]: ViewerConfig[] }>({});
 
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
@@ -776,6 +808,8 @@ function CompareV2(props: PageProps) {
                 metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifacts}
                 setSelectedArtifacts={setSelectedArtifacts}
+                viewerConfigs={viewerConfigs}
+                setViewerConfigs={setViewerConfigs}
               />
             )}
             {metricsTab === MetricsType.ROC_CURVE && <p>This is the {metricsTabText} tab.</p>}
@@ -786,6 +820,8 @@ function CompareV2(props: PageProps) {
                 metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifacts}
                 setSelectedArtifacts={setSelectedArtifacts}
+                viewerConfigs={viewerConfigs}
+                setViewerConfigs={setViewerConfigs}
               />
             )}
             {metricsTab === MetricsType.MARKDOWN && (
@@ -795,6 +831,8 @@ function CompareV2(props: PageProps) {
                 metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifacts}
                 setSelectedArtifacts={setSelectedArtifacts}
+                viewerConfigs={viewerConfigs}
+                setViewerConfigs={setViewerConfigs}
               />
             )}
           </div>
