@@ -313,26 +313,29 @@ function getDropdownItems(filteredRunArtifacts: RunArtifact[]) {
   return dropdownItems;
 }
 
-const getArtifact = (
+function getArtifact(
   filteredRunArtifacts: RunArtifact[],
   selectedItem: SelectedItem,
-): Artifact | undefined =>
-  filteredRunArtifacts
-    .find(runArtifact => runArtifact.run.run?.name === selectedItem.itemName)
-    ?.executionArtifacts.find(
-      executionArtifact =>
-        executionArtifact.execution
-          .getCustomPropertiesMap()
-          .get('display_name')
-          ?.getStringValue() === selectedItem.subItemName,
-    )
-    ?.linkedArtifacts.find(
-      linkedArtifact =>
-        linkedArtifact.event
-          .getPath()
-          ?.getStepsList()[0]
-          .getKey() === selectedItem.subItemSecondaryName,
-    )?.artifact;
+): Artifact | undefined {
+  const filteredRunArtifact = filteredRunArtifacts.find(
+    runArtifact => runArtifact.run.run?.name === selectedItem.itemName,
+  );
+
+  const executionArtifact = filteredRunArtifact?.executionArtifacts.find(executionArtifact => {
+    const executionText: string =
+      getExecutionName(executionArtifact.execution) ||
+      executionArtifact.execution.getId().toString();
+    return executionText === selectedItem.subItemName;
+  });
+
+  const artifact = executionArtifact?.linkedArtifacts.find(linkedArtifact => {
+    const linkedArtifactText: string =
+      getArtifactName(linkedArtifact) || linkedArtifact.artifact.getId().toString();
+    return linkedArtifactText === selectedItem.subItemSecondaryName;
+  })?.artifact;
+
+  return artifact;
+}
 
 function MetricsDropdown(props: MetricsDropdownProps) {
   const {

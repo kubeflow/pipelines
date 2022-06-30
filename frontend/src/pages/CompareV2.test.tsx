@@ -587,7 +587,7 @@ describe('CompareV2', () => {
 
     const contexts = [
       newMockContext(MOCK_RUN_1_ID, 1),
-      newMockContext(MOCK_RUN_2_ID, 2),
+      newMockContext(MOCK_RUN_2_ID, 200),
       newMockContext(MOCK_RUN_3_ID, 3),
     ];
     const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
@@ -595,11 +595,8 @@ describe('CompareV2', () => {
       Promise.resolve(contexts.find(c => c.getName() === runID)),
     );
 
-    const executions = [
-      [newMockExecution(1)],
-      [newMockExecution(2, 'executionName')],
-      [newMockExecution(3)],
-    ];
+    // No execution name is provided to ensure that it can be selected by ID.
+    const executions = [[newMockExecution(1)], [newMockExecution(200)], [newMockExecution(3)]];
     const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
       Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
@@ -607,13 +604,13 @@ describe('CompareV2', () => {
 
     const artifacts = [
       newMockArtifact(1),
-      newMockArtifact(2, true, 'artifactName'),
+      newMockArtifact(200, true, 'artifactName'),
       newMockArtifact(3),
     ];
     const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
     getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
 
-    const events = [newMockEvent(1), newMockEvent(2, 'artifactName'), newMockEvent(3)];
+    const events = [newMockEvent(1), newMockEvent(200, 'artifactName'), newMockEvent(3)];
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
     getEventsSpy.mockReturnValue(Promise.resolve(events));
 
@@ -643,18 +640,18 @@ describe('CompareV2', () => {
     fireEvent.mouseEnter(screen.queryAllByText(`test run ${MOCK_RUN_2_ID}`)[1]);
     fireEvent.click(screen.getByText(/artifactName/));
     screen.getByText(/Confusion Matrix: artifactName/);
-    screen.getByText(/executionName/);
+    screen.getByText(/200/);
 
     // Change the tab and return, ensure that the confusion matrix and selected item are present.
     fireEvent.click(screen.getByText('HTML'));
     fireEvent.click(screen.getByText('Confusion Matrix'));
     screen.getByText(/Confusion Matrix: artifactName/);
-    screen.getByText(/executionName/);
+    screen.getByText(/200/);
 
     // Collapse and expand Metrics, ensure that the confusion matrix and selected item are present.
     fireEvent.click(screen.getByText('Metrics'));
     fireEvent.click(screen.getByText('Metrics'));
     screen.getByText(/Confusion Matrix: artifactName/);
-    screen.getByText(/executionName/);
+    screen.getByText(/200/);
   });
 });
