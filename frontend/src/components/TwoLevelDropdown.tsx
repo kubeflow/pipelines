@@ -82,7 +82,7 @@ export interface SelectedItem {
   subItemSecondaryName?: string;
 }
 
-interface DropdownSubItem {
+export interface DropdownSubItem {
   name: string;
   secondaryName?: string;
 }
