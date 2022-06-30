@@ -35,9 +35,9 @@ _DEFAULT_JSON_HEADER = {
 
 _VERSION_PREFIX = 'sha256:'
 
-LOCAL_REGISTRY_CREDENTIAL = os.path.expanduser(
-    '~/.config/kfp/registry_credentials.json')
-LOCAL_REGISTRY_CONTEXT = os.path.expanduser('~/.config/kfp/context.json')
+LOCAL_REGISTRY_CREDENTIAL = os.path.expanduser('~/.config/kfp/registry_credentials.json')
+LOCAL_REGISTRY_CONTEXT = os.path.expanduser('~/.config/kfp/registry_context.json')
+DEFAULT_REGISTRY_CONTEXT = os.path.join(os.path.dirname(__file__), 'context/default_pkg_dev.json')
 
 
 class _SafeDict(dict):
@@ -242,7 +242,7 @@ class RegistryClient:
         elif os.path.exists(LOCAL_REGISTRY_CONTEXT):
             config = self._load_context(LOCAL_REGISTRY_CONTEXT)
         else:
-            config = {}
+            config = self._load_context(DEFAULT_REGISTRY_CONTEXT)
 
         # If config file is specified, add/override any extra context info needed
         if config_file and os.path.exists(config_file):
@@ -255,11 +255,12 @@ class RegistryClient:
         elif 'regex' in config:
             matched = re.match(config['regex'], self._host)
 
-        if matched is None:
-            raise ValueError(f'Invalid host URL: {self._host}.')
+        if matched:
+            map_dict = _SafeDict(**matched.groupdict(), host=self._host)
+        else:
+            map_dict = _SafeDict(host=self._host)
 
         # Replace all currently known variables with values
-        map_dict = _SafeDict(**matched.groupdict(), host=self._host)
         for config_key in config:
             config[config_key] = config[config_key].format_map(map_dict)
 
