@@ -12,7 +12,7 @@ outputs:
 - {name: transform_data, type: Dataset, description: Transform data for FTE.}
 implementation:
   container:
-    image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod
+    image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220629_0725_RC00
     command:
     - sh
     - -ec
