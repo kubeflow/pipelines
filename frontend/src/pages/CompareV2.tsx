@@ -274,7 +274,7 @@ function getDropdownSubItems(executionArtifacts: ExecutionArtifact[]) {
 function getDropdownItems(filteredRunArtifacts: RunArtifact[]) {
   const dropdownItems: DropdownItem[] = [];
   for (const runArtifact of filteredRunArtifacts) {
-    const runName = runArtifact.run.run!.name!;
+    const runName = runArtifact.run.run?.name;
     if (!runName) {
       logDisplayNameWarning('run', runArtifact.run.run!.id!);
       continue;
