@@ -80,7 +80,7 @@
                  "-m",
                  "google_cloud_pipeline_components.container.experimental.notebooks.executor"
               ],
-              "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:latest"
+              "image":"gcr.io/ml-pipeline/google-cloud-pipeline-components:1.10.13"
            }
         }
      }

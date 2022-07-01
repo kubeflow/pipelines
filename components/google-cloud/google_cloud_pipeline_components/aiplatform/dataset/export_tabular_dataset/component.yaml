@@ -31,7 +31,7 @@ outputs:
 - {name: exported_dataset, type: google.VertexDataset}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.10.13
     command: [python3, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner,
       --cls_name, TabularDataset, --method_name, export_data]
     args:
