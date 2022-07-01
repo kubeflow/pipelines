@@ -395,7 +395,7 @@
                   "dataflow_workers_num": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "10"
+                        "intValue": "1"
                       }
                     }
                   },
@@ -1052,13 +1052,6 @@
                   }
                 },
                 "parameters": {
-                  "artifact_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
                   "description": {
                     "runtimeValue": {
                       "constantValue": {
@@ -1090,13 +1083,6 @@
                       }
                     }
                   },
-                  "instance_schema_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
                   "labels": {
                     "runtimeValue": {
                       "constantValue": {
@@ -1107,71 +1093,8 @@
                   "location": {
                     "componentInputParameter": "pipelineparam--location"
                   },
-                  "parameters_schema_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "prediction_schema_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
                   "project": {
                     "componentInputParameter": "pipelineparam--project"
-                  },
-                  "serving_container_args": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "[]"
-                      }
-                    }
-                  },
-                  "serving_container_command": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "[]"
-                      }
-                    }
-                  },
-                  "serving_container_environment_variables": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "[]"
-                      }
-                    }
-                  },
-                  "serving_container_health_route": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "serving_container_image_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "serving_container_ports": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "[]"
-                      }
-                    }
-                  },
-                  "serving_container_predict_route": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
                   }
                 }
               },
@@ -1964,9 +1887,6 @@
             }
           },
           "parameters": {
-            "artifact_uri": {
-              "type": "STRING"
-            },
             "description": {
               "type": "STRING"
             },
@@ -1982,43 +1902,13 @@
             "explanation_parameters": {
               "type": "STRING"
             },
-            "instance_schema_uri": {
-              "type": "STRING"
-            },
             "labels": {
               "type": "STRING"
             },
             "location": {
               "type": "STRING"
             },
-            "parameters_schema_uri": {
-              "type": "STRING"
-            },
-            "prediction_schema_uri": {
-              "type": "STRING"
-            },
             "project": {
-              "type": "STRING"
-            },
-            "serving_container_args": {
-              "type": "STRING"
-            },
-            "serving_container_command": {
-              "type": "STRING"
-            },
-            "serving_container_environment_variables": {
-              "type": "STRING"
-            },
-            "serving_container_health_route": {
-              "type": "STRING"
-            },
-            "serving_container_image_uri": {
-              "type": "STRING"
-            },
-            "serving_container_ports": {
-              "type": "STRING"
-            },
-            "serving_container_predict_route": {
               "type": "STRING"
             }
           }
@@ -2374,7 +2264,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
-              "def _bool_identity(value):\n  \"\"\"Returns boolean value.\n\n  Args:\n    value: Boolean value to return\n\n  Returns:\n    Boolean value.\n  \"\"\"\n  return 'true' if value else 'false'\n\ndef _deserialize_bool(s) -> bool:\n    from distutils.util import strtobool\n    return strtobool(s) == 1\n\ndef _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError('Value \"{}\" has type \"{}\" instead of str.'.format(\n            str(str_value), str(type(str_value))))\n    return str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Bool identity', description='Returns boolean value.')\n_parser.add_argument(\"--value\", dest=\"value\", type=_deserialize_bool, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\", dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = _bool_identity(**_parsed_args)\n\n_outputs = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
+              "def _bool_identity(value):\n    \"\"\"Returns boolean value.\n\n    Args:\n      value: Boolean value to return\n\n    Returns:\n      Boolean value.\n    \"\"\"\n    return \"true\" if value else \"false\"\n\ndef _deserialize_bool(s) -> bool:\n    from distutils.util import strtobool\n    return strtobool(s) == 1\n\ndef _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError('Value \"{}\" has type \"{}\" instead of str.'.format(\n            str(str_value), str(type(str_value))))\n    return str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Bool identity', description='Returns boolean value.')\n_parser.add_argument(\"--value\", dest=\"value\", type=_deserialize_bool, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\", dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = _bool_identity(**_parsed_args)\n\n_outputs = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
             ],
             "image": "python:3.7-slim"
           }
@@ -2456,7 +2346,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _get_best_hyperparameter_tuning_job_trial(\n    gcp_resources: str, study_spec_metrics: list, trials_dir: str,\n    instance_schema_uri: str, prediction_schema_uri: str,\n    prediction_docker_uri: str,\n    unmanaged_container_model: dsl.Output[dsl.Artifact]):\n  \"\"\"Gets best HyperparameterTuningJob trial.\n\n  Args:\n    gcp_resources: Proto tracking the hyperparameter tuning job.\n    study_spec_metrics: List of dictionaries representing metrics to optimize.\n      The dictionary contains the metric_id, which is reported by the training\n      job, ands the optimization goal of the metric. One of \"minimize\" or\n      \"maximize\".\n    trials_dir: The path to the hyperparameter tuning trials.\n    instance_schema_uri: The instance schema uri.\n    prediction_schema_uri: The prediction schema_uri.\n    prediction_docker_uri: The prediction docker container uri\n    unmanaged_container_model: The unmanaged model.\n\n  Raises:\n    RuntimeError: If there are multiple metrics.\n  \"\"\"\n\n  import os\n  from google.api_core.retry import Retry\n  from google.cloud import aiplatform_v1beta1 as aip\n  from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources\n  from google.protobuf import json_format\n\n  if len(study_spec_metrics) > 1:\n    raise RuntimeError('Unable to determine best trial for multi-objective'\n                       ' hyperparameter tuning.')\n\n  api_endpoint_suffix = '-aiplatform.googleapis.com'\n  gcp_resources_proto = json_format.Parse(gcp_resources, GcpResources())\n  gcp_resources_split = gcp_resources_proto.resources[0].resource_uri.partition(\n      'projects')\n  resource_name = gcp_resources_split[1] + gcp_resources_split[2]\n  prefix_str = gcp_resources_split[0]\n  prefix_str = prefix_str[:prefix_str.find(api_endpoint_suffix)]\n  api_endpoint = prefix_str[(prefix_str.rfind('//') + 2):] + api_endpoint_suffix\n\n  job_client = aip.JobServiceClient(\n      client_options={'api_endpoint': api_endpoint})\n  response = job_client.get_hyperparameter_tuning_job(\n      name=resource_name,\n      retry=Retry(initial=10.0, maximum=60.0, deadline=10.0 * 60.0))\n\n  # Get best trial\n  trials_list = []\n  for trial in response.trials:\n    trials_list.append({\n        'id': trial.id,\n        'objective_value': trial.final_measurement.metrics[0].value\n    })\n\n  best_trial = None\n  goal = study_spec_metrics[0]['goal']\n  best_fn = None\n  if goal == 'MAXIMIZE':\n    best_fn = max\n  elif goal == 'MINIMIZE':\n    best_fn = min\n  best_trial = best_fn(trials_list, key=lambda trial: trial['objective_value'])\n\n  # Build unmanaged_container_model\n  unmanaged_container_model.metadata['containerSpec'] = {\n      'imageUri': prediction_docker_uri\n  }\n  unmanaged_container_model.metadata['predictSchemata'] = {\n      'instanceSchemaUri': instance_schema_uri,\n      'predictionSchemaUri': prediction_schema_uri\n  }\n  unmanaged_container_model.uri = os.path.join(\n      trials_dir, 'trial_{}'.format(best_trial['id']), 'model')\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _get_best_hyperparameter_tuning_job_trial(\n    gcp_resources: str,\n    study_spec_metrics: list,\n    trials_dir: str,\n    instance_schema_uri: str,\n    prediction_schema_uri: str,\n    prediction_docker_uri: str,\n    unmanaged_container_model: dsl.Output[dsl.Artifact],\n):\n    \"\"\"Gets best HyperparameterTuningJob trial.\n\n    Args:\n      gcp_resources: Proto tracking the hyperparameter tuning job.\n      study_spec_metrics: List of dictionaries representing metrics to optimize.\n        The dictionary contains the metric_id, which is reported by the training\n        job, ands the optimization goal of the metric. One of \"minimize\" or\n        \"maximize\".\n      trials_dir: The path to the hyperparameter tuning trials.\n      instance_schema_uri: The instance schema uri.\n      prediction_schema_uri: The prediction schema_uri.\n      prediction_docker_uri: The prediction docker container uri\n      unmanaged_container_model: The unmanaged model.\n\n    Raises:\n      RuntimeError: If there are multiple metrics.\n    \"\"\"\n\n    import os\n    from google.api_core.retry import Retry\n    from google.cloud import aiplatform_v1beta1 as aip\n    from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources\n    from google.protobuf import json_format\n\n    if len(study_spec_metrics) > 1:\n        raise RuntimeError(\n            \"Unable to determine best trial for multi-objective\"\n            \" hyperparameter tuning.\"\n        )\n\n    api_endpoint_suffix = \"-aiplatform.googleapis.com\"\n    gcp_resources_proto = json_format.Parse(gcp_resources, GcpResources())\n    gcp_resources_split = gcp_resources_proto.resources[0].resource_uri.partition(\n        \"projects\"\n    )\n    resource_name = gcp_resources_split[1] + gcp_resources_split[2]\n    prefix_str = gcp_resources_split[0]\n    prefix_str = prefix_str[: prefix_str.find(api_endpoint_suffix)]\n    api_endpoint = prefix_str[(prefix_str.rfind(\"//\") + 2) :] + api_endpoint_suffix\n\n    job_client = aip.JobServiceClient(client_options={\"api_endpoint\": api_endpoint})\n    response = job_client.get_hyperparameter_tuning_job(\n        name=resource_name,\n        retry=Retry(initial=10.0, maximum=60.0, deadline=10.0 * 60.0),\n    )\n\n    # Get best trial\n    trials_list = []\n    for trial in response.trials:\n        trials_list.append(\n            {\n                \"id\": trial.id,\n                \"objective_value\": trial.final_measurement.metrics[0].value,\n            }\n        )\n\n    best_trial = None\n    goal = study_spec_metrics[0][\"goal\"]\n    best_fn = None\n    if goal == \"MAXIMIZE\":\n        best_fn = max\n    elif goal == \"MINIMIZE\":\n        best_fn = min\n    best_trial = best_fn(trials_list, key=lambda trial: trial[\"objective_value\"])\n\n    # Build unmanaged_container_model\n    unmanaged_container_model.metadata[\"containerSpec\"] = {\n        \"imageUri\": prediction_docker_uri\n    }\n    unmanaged_container_model.metadata[\"predictSchemata\"] = {\n        \"instanceSchemaUri\": instance_schema_uri,\n        \"predictionSchemaUri\": prediction_schema_uri,\n    }\n    unmanaged_container_model.uri = os.path.join(\n        trials_dir, \"trial_{}\".format(best_trial[\"id\"]), \"model\"\n    )\n\n"
             ],
             "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220629_0725_RC00"
           }
@@ -2592,7 +2482,7 @@
               "--type",
               "UploadModel",
               "--payload",
-              "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"description\": \"{{$.inputs.parameters['description']}}\", \"predict_schemata\": {\"instance_schema_uri\": \"{{$.inputs.parameters['instance_schema_uri']}}\", \"parameters_schema_uri\": \"{{$.inputs.parameters['parameters_schema_uri']}}\", \"prediction_schema_uri\": \"{{$.inputs.parameters['prediction_schema_uri']}}\"}, \"container_spec\": {\"image_uri\": \"{{$.inputs.parameters['serving_container_image_uri']}}\", \"command\": {{$.inputs.parameters['serving_container_command']}}, \"args\": {{$.inputs.parameters['serving_container_args']}}, \"env\": {{$.inputs.parameters['serving_container_environment_variables']}}, \"ports\": {{$.inputs.parameters['serving_container_ports']}}, \"predict_route\": \"{{$.inputs.parameters['serving_container_predict_route']}}\", \"health_route\": \"{{$.inputs.parameters['serving_container_health_route']}}\"}, \"artifact_uri\": \"{{$.inputs.parameters['artifact_uri']}}\", \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}, \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"labels\": {{$.inputs.parameters['labels']}}}",
+              "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"description\": \"{{$.inputs.parameters['description']}}\", \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}, \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"labels\": {{$.inputs.parameters['labels']}}}",
               "--project",
               "{{$.inputs.parameters['project']}}",
               "--location",
@@ -2606,9 +2496,9 @@
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
+            "image": "gcr.io/ml-pipeline/automl-tables-private:1.0.11"
           }
         },
         "exec-split-materialized-data": {
@@ -3090,7 +2980,7 @@
         "stringValue": ""
       },
       "run_evaluation": {
-        "stringValue": "True"
+        "stringValue": "False"
       },
       "seed": {
         "intValue": "1"

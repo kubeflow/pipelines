@@ -1504,18 +1504,14 @@
               ],
               "inputs": {
                 "artifacts": {
+                  "explanation_metadata_artifact": {
+                    "componentInputArtifact": "pipelineparam--automl-tabular-ensemble-explanation_metadata_artifact"
+                  },
                   "unmanaged_container_model": {
                     "componentInputArtifact": "pipelineparam--automl-tabular-ensemble-unmanaged_container_model"
                   }
                 },
                 "parameters": {
-                  "artifact_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
                   "description": {
                     "runtimeValue": {
                       "constantValue": {
@@ -1539,13 +1535,6 @@
                   "explanation_parameters": {
                     "componentInputParameter": "pipelineparam--automl-tabular-ensemble-explanation_parameters"
                   },
-                  "instance_schema_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
                   "labels": {
                     "runtimeValue": {
                       "constantValue": {
@@ -1556,71 +1545,8 @@
                   "location": {
                     "componentInputParameter": "pipelineparam--location"
                   },
-                  "parameters_schema_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "prediction_schema_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
                   "project": {
                     "componentInputParameter": "pipelineparam--project"
-                  },
-                  "serving_container_args": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "[]"
-                      }
-                    }
-                  },
-                  "serving_container_command": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "[]"
-                      }
-                    }
-                  },
-                  "serving_container_environment_variables": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "[]"
-                      }
-                    }
-                  },
-                  "serving_container_health_route": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "serving_container_image_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "serving_container_ports": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "[]"
-                      }
-                    }
-                  },
-                  "serving_container_predict_route": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
                   }
                 }
               },
@@ -1641,6 +1567,12 @@
               ],
               "inputs": {
                 "artifacts": {
+                  "explanation_metadata_artifact": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "explanation_metadata_artifact",
+                      "producerTask": "automl-tabular-ensemble-2"
+                    }
+                  },
                   "unmanaged_container_model": {
                     "taskOutputArtifact": {
                       "outputArtifactKey": "unmanaged_container_model",
@@ -1649,13 +1581,6 @@
                   }
                 },
                 "parameters": {
-                  "artifact_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
                   "description": {
                     "runtimeValue": {
                       "constantValue": {
@@ -1685,13 +1610,6 @@
                       "producerTask": "automl-tabular-ensemble-2"
                     }
                   },
-                  "instance_schema_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
                   "labels": {
                     "runtimeValue": {
                       "constantValue": {
@@ -1702,71 +1620,8 @@
                   "location": {
                     "componentInputParameter": "pipelineparam--location"
                   },
-                  "parameters_schema_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "prediction_schema_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
                   "project": {
                     "componentInputParameter": "pipelineparam--project"
-                  },
-                  "serving_container_args": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "[]"
-                      }
-                    }
-                  },
-                  "serving_container_command": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "[]"
-                      }
-                    }
-                  },
-                  "serving_container_environment_variables": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "[]"
-                      }
-                    }
-                  },
-                  "serving_container_health_route": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "serving_container_image_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "serving_container_ports": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "[]"
-                      }
-                    }
-                  },
-                  "serving_container_predict_route": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
                   }
                 }
               },
@@ -1880,6 +1735,12 @@
         },
         "inputDefinitions": {
           "artifacts": {
+            "pipelineparam--automl-tabular-ensemble-explanation_metadata_artifact": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
             "pipelineparam--automl-tabular-ensemble-unmanaged_container_model": {
               "artifactType": {
                 "schemaTitle": "google.UnmanagedContainerModel",
@@ -2392,7 +2253,7 @@
                   "dataflow_workers_num": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "10"
+                        "intValue": "1"
                       }
                     }
                   },
@@ -2545,7 +2406,7 @@
                   "dataflow_workers_num": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "10"
+                        "intValue": "1"
                       }
                     }
                   },
@@ -2673,6 +2534,20 @@
                   }
                 },
                 "parameters": {
+                  "dataset_path": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "dataset_type": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
                   "display_name": {
                     "runtimeValue": {
                       "constantValue": {
@@ -3139,7 +3014,7 @@
                   "dataflow_workers_num": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "10"
+                        "intValue": "1"
                       }
                     }
                   },
@@ -3292,7 +3167,7 @@
                   "dataflow_workers_num": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "10"
+                        "intValue": "1"
                       }
                     }
                   },
@@ -3420,6 +3295,20 @@
                   }
                 },
                 "parameters": {
+                  "dataset_path": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "dataset_type": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
                   "display_name": {
                     "runtimeValue": {
                       "constantValue": {
@@ -3663,18 +3552,14 @@
               },
               "inputs": {
                 "artifacts": {
+                  "explanation_metadata_artifact": {
+                    "componentInputArtifact": "pipelineparam--automl-tabular-ensemble-explanation_metadata_artifact"
+                  },
                   "unmanaged_container_model": {
                     "componentInputArtifact": "pipelineparam--automl-tabular-ensemble-unmanaged_container_model"
                   }
                 },
                 "parameters": {
-                  "artifact_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
                   "description": {
                     "runtimeValue": {
                       "constantValue": {
@@ -3698,13 +3583,6 @@
                   "explanation_parameters": {
                     "componentInputParameter": "pipelineparam--automl-tabular-ensemble-explanation_parameters"
                   },
-                  "instance_schema_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
                   "labels": {
                     "runtimeValue": {
                       "constantValue": {
@@ -3715,71 +3593,8 @@
                   "location": {
                     "componentInputParameter": "pipelineparam--location"
                   },
-                  "parameters_schema_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "prediction_schema_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
                   "project": {
                     "componentInputParameter": "pipelineparam--project"
-                  },
-                  "serving_container_args": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "[]"
-                      }
-                    }
-                  },
-                  "serving_container_command": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "[]"
-                      }
-                    }
-                  },
-                  "serving_container_environment_variables": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "[]"
-                      }
-                    }
-                  },
-                  "serving_container_health_route": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "serving_container_image_uri": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "serving_container_ports": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "[]"
-                      }
-                    }
-                  },
-                  "serving_container_predict_route": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
                   }
                 }
               },
@@ -4353,6 +4168,12 @@
               ],
               "inputs": {
                 "artifacts": {
+                  "pipelineparam--automl-tabular-ensemble-explanation_metadata_artifact": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "explanation_metadata_artifact",
+                      "producerTask": "automl-tabular-ensemble"
+                    }
+                  },
                   "pipelineparam--automl-tabular-ensemble-unmanaged_container_model": {
                     "taskOutputArtifact": {
                       "outputArtifactKey": "unmanaged_container_model",
@@ -6129,6 +5950,12 @@
             }
           },
           "parameters": {
+            "dataset_path": {
+              "type": "STRING"
+            },
+            "dataset_type": {
+              "type": "STRING"
+            },
             "display_name": {
               "type": "STRING"
             },
@@ -6169,6 +5996,12 @@
             }
           },
           "parameters": {
+            "dataset_path": {
+              "type": "STRING"
+            },
+            "dataset_type": {
+              "type": "STRING"
+            },
             "display_name": {
               "type": "STRING"
             },
@@ -6189,6 +6022,12 @@
         "executorLabel": "exec-model-upload",
         "inputDefinitions": {
           "artifacts": {
+            "explanation_metadata_artifact": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
             "unmanaged_container_model": {
               "artifactType": {
                 "schemaTitle": "google.UnmanagedContainerModel",
@@ -6197,9 +6036,6 @@
             }
           },
           "parameters": {
-            "artifact_uri": {
-              "type": "STRING"
-            },
             "description": {
               "type": "STRING"
             },
@@ -6215,43 +6051,13 @@
             "explanation_parameters": {
               "type": "STRING"
             },
-            "instance_schema_uri": {
-              "type": "STRING"
-            },
             "labels": {
               "type": "STRING"
             },
             "location": {
               "type": "STRING"
             },
-            "parameters_schema_uri": {
-              "type": "STRING"
-            },
-            "prediction_schema_uri": {
-              "type": "STRING"
-            },
             "project": {
-              "type": "STRING"
-            },
-            "serving_container_args": {
-              "type": "STRING"
-            },
-            "serving_container_command": {
-              "type": "STRING"
-            },
-            "serving_container_environment_variables": {
-              "type": "STRING"
-            },
-            "serving_container_health_route": {
-              "type": "STRING"
-            },
-            "serving_container_image_uri": {
-              "type": "STRING"
-            },
-            "serving_container_ports": {
-              "type": "STRING"
-            },
-            "serving_container_predict_route": {
               "type": "STRING"
             }
           }
@@ -6276,6 +6082,12 @@
         "executorLabel": "exec-model-upload-2",
         "inputDefinitions": {
           "artifacts": {
+            "explanation_metadata_artifact": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
             "unmanaged_container_model": {
               "artifactType": {
                 "schemaTitle": "google.UnmanagedContainerModel",
@@ -6284,9 +6096,6 @@
             }
           },
           "parameters": {
-            "artifact_uri": {
-              "type": "STRING"
-            },
             "description": {
               "type": "STRING"
             },
@@ -6302,43 +6111,13 @@
             "explanation_parameters": {
               "type": "STRING"
             },
-            "instance_schema_uri": {
-              "type": "STRING"
-            },
             "labels": {
               "type": "STRING"
             },
             "location": {
               "type": "STRING"
             },
-            "parameters_schema_uri": {
-              "type": "STRING"
-            },
-            "prediction_schema_uri": {
-              "type": "STRING"
-            },
             "project": {
-              "type": "STRING"
-            },
-            "serving_container_args": {
-              "type": "STRING"
-            },
-            "serving_container_command": {
-              "type": "STRING"
-            },
-            "serving_container_environment_variables": {
-              "type": "STRING"
-            },
-            "serving_container_health_route": {
-              "type": "STRING"
-            },
-            "serving_container_image_uri": {
-              "type": "STRING"
-            },
-            "serving_container_ports": {
-              "type": "STRING"
-            },
-            "serving_container_predict_route": {
               "type": "STRING"
             }
           }
@@ -6363,6 +6142,12 @@
         "executorLabel": "exec-model-upload-3",
         "inputDefinitions": {
           "artifacts": {
+            "explanation_metadata_artifact": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
             "unmanaged_container_model": {
               "artifactType": {
                 "schemaTitle": "google.UnmanagedContainerModel",
@@ -6371,9 +6156,6 @@
             }
           },
           "parameters": {
-            "artifact_uri": {
-              "type": "STRING"
-            },
             "description": {
               "type": "STRING"
             },
@@ -6389,43 +6171,13 @@
             "explanation_parameters": {
               "type": "STRING"
             },
-            "instance_schema_uri": {
-              "type": "STRING"
-            },
             "labels": {
               "type": "STRING"
             },
             "location": {
               "type": "STRING"
             },
-            "parameters_schema_uri": {
-              "type": "STRING"
-            },
-            "prediction_schema_uri": {
-              "type": "STRING"
-            },
             "project": {
-              "type": "STRING"
-            },
-            "serving_container_args": {
-              "type": "STRING"
-            },
-            "serving_container_command": {
-              "type": "STRING"
-            },
-            "serving_container_environment_variables": {
-              "type": "STRING"
-            },
-            "serving_container_health_route": {
-              "type": "STRING"
-            },
-            "serving_container_image_uri": {
-              "type": "STRING"
-            },
-            "serving_container_ports": {
-              "type": "STRING"
-            },
-            "serving_container_predict_route": {
               "type": "STRING"
             }
           }
@@ -6930,7 +6682,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
-              "def _bool_identity(value):\n  \"\"\"Returns boolean value.\n\n  Args:\n    value: Boolean value to return\n\n  Returns:\n    Boolean value.\n  \"\"\"\n  return 'true' if value else 'false'\n\ndef _deserialize_bool(s) -> bool:\n    from distutils.util import strtobool\n    return strtobool(s) == 1\n\ndef _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError('Value \"{}\" has type \"{}\" instead of str.'.format(\n            str(str_value), str(type(str_value))))\n    return str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Bool identity', description='Returns boolean value.')\n_parser.add_argument(\"--value\", dest=\"value\", type=_deserialize_bool, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\", dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = _bool_identity(**_parsed_args)\n\n_outputs = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
+              "def _bool_identity(value):\n    \"\"\"Returns boolean value.\n\n    Args:\n      value: Boolean value to return\n\n    Returns:\n      Boolean value.\n    \"\"\"\n    return \"true\" if value else \"false\"\n\ndef _deserialize_bool(s) -> bool:\n    from distutils.util import strtobool\n    return strtobool(s) == 1\n\ndef _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError('Value \"{}\" has type \"{}\" instead of str.'.format(\n            str(str_value), str(type(str_value))))\n    return str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Bool identity', description='Returns boolean value.')\n_parser.add_argument(\"--value\", dest=\"value\", type=_deserialize_bool, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\", dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = _bool_identity(**_parsed_args)\n\n_outputs = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
             ],
             "image": "python:3.7-slim"
           }
@@ -6947,7 +6699,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
-              "def _bool_identity(value):\n  \"\"\"Returns boolean value.\n\n  Args:\n    value: Boolean value to return\n\n  Returns:\n    Boolean value.\n  \"\"\"\n  return 'true' if value else 'false'\n\ndef _deserialize_bool(s) -> bool:\n    from distutils.util import strtobool\n    return strtobool(s) == 1\n\ndef _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError('Value \"{}\" has type \"{}\" instead of str.'.format(\n            str(str_value), str(type(str_value))))\n    return str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Bool identity', description='Returns boolean value.')\n_parser.add_argument(\"--value\", dest=\"value\", type=_deserialize_bool, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\", dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = _bool_identity(**_parsed_args)\n\n_outputs = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
+              "def _bool_identity(value):\n    \"\"\"Returns boolean value.\n\n    Args:\n      value: Boolean value to return\n\n    Returns:\n      Boolean value.\n    \"\"\"\n    return \"true\" if value else \"false\"\n\ndef _deserialize_bool(s) -> bool:\n    from distutils.util import strtobool\n    return strtobool(s) == 1\n\ndef _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError('Value \"{}\" has type \"{}\" instead of str.'.format(\n            str(str_value), str(type(str_value))))\n    return str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Bool identity', description='Returns boolean value.')\n_parser.add_argument(\"--value\", dest=\"value\", type=_deserialize_bool, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\", dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = _bool_identity(**_parsed_args)\n\n_outputs = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
             ],
             "image": "python:3.7-slim"
           }
@@ -6966,7 +6718,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
-              "def _make_parent_dirs_and_return_path(file_path: str):\n    import os\n    os.makedirs(os.path.dirname(file_path), exist_ok=True)\n    return file_path\n\ndef _merge_materialized_splits(\n    split_0,\n    split_1,\n    splits,\n):\n  \"\"\"Merge two materialized splits.\n\n  Args:\n    split_0: The first materialized split.\n    split_1: The second materialized split.\n    splits: The merged materialized split.\n  \"\"\"\n  with open(split_0, 'r') as f:\n    split_0_content = f.read()\n  with open(split_1, 'r') as f:\n    split_1_content = f.read()\n  with open(splits, 'w') as f:\n    f.write(','.join([split_0_content, split_1_content]))\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Merge materialized splits', description='Merge two materialized splits.')\n_parser.add_argument(\"--split-0\", dest=\"split_0\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--split-1\", dest=\"split_1\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--splits\", dest=\"splits\", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = _merge_materialized_splits(**_parsed_args)\n"
+              "def _make_parent_dirs_and_return_path(file_path: str):\n    import os\n    os.makedirs(os.path.dirname(file_path), exist_ok=True)\n    return file_path\n\ndef _merge_materialized_splits(\n    split_0,\n    split_1,\n    splits,\n):\n    \"\"\"Merge two materialized splits.\n\n    Args:\n      split_0: The first materialized split.\n      split_1: The second materialized split.\n      splits: The merged materialized split.\n    \"\"\"\n    with open(split_0, \"r\") as f:\n        split_0_content = f.read()\n    with open(split_1, \"r\") as f:\n        split_1_content = f.read()\n    with open(splits, \"w\") as f:\n        f.write(\",\".join([split_0_content, split_1_content]))\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Merge materialized splits', description='Merge two materialized splits.')\n_parser.add_argument(\"--split-0\", dest=\"split_0\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--split-1\", dest=\"split_1\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--splits\", dest=\"splits\", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = _merge_materialized_splits(**_parsed_args)\n"
             ],
             "image": "python:3.7-slim"
           }
@@ -6993,7 +6745,7 @@
               "-m",
               "launcher"
             ],
-            "image": "gcr.io/ml-pipeline/automl-tables-private:1.0.10"
+            "image": "gcr.io/ml-pipeline/automl-tables-private:1.0.11"
           }
         },
         "exec-model-batch-explanation-2": {
@@ -7018,7 +6770,7 @@
               "-m",
               "launcher"
             ],
-            "image": "gcr.io/ml-pipeline/automl-tables-private:1.0.10"
+            "image": "gcr.io/ml-pipeline/automl-tables-private:1.0.11"
           }
         },
         "exec-model-batch-predict": {
@@ -7442,6 +7194,12 @@
               "{{$.inputs.parameters['problem_type']}}",
               "--display_name",
               "{{$.inputs.parameters['display_name']}}",
+              "--dataset_path",
+              "{{$.inputs.parameters['dataset_path']}}",
+              "--dataset_type",
+              "{{$.inputs.parameters['dataset_type']}}",
+              "--pipeline_job_id",
+              "{{$.pipeline_job_uuid}}",
               "--model_name",
               "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
               "--gcp_resources",
@@ -7469,6 +7227,12 @@
               "{{$.inputs.parameters['problem_type']}}",
               "--display_name",
               "{{$.inputs.parameters['display_name']}}",
+              "--dataset_path",
+              "{{$.inputs.parameters['dataset_path']}}",
+              "--dataset_type",
+              "{{$.inputs.parameters['dataset_type']}}",
+              "--pipeline_job_id",
+              "{{$.pipeline_job_uuid}}",
               "--model_name",
               "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
               "--gcp_resources",
@@ -7489,7 +7253,7 @@
               "--type",
               "UploadModel",
               "--payload",
-              "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"description\": \"{{$.inputs.parameters['description']}}\", \"predict_schemata\": {\"instance_schema_uri\": \"{{$.inputs.parameters['instance_schema_uri']}}\", \"parameters_schema_uri\": \"{{$.inputs.parameters['parameters_schema_uri']}}\", \"prediction_schema_uri\": \"{{$.inputs.parameters['prediction_schema_uri']}}\"}, \"container_spec\": {\"image_uri\": \"{{$.inputs.parameters['serving_container_image_uri']}}\", \"command\": {{$.inputs.parameters['serving_container_command']}}, \"args\": {{$.inputs.parameters['serving_container_args']}}, \"env\": {{$.inputs.parameters['serving_container_environment_variables']}}, \"ports\": {{$.inputs.parameters['serving_container_ports']}}, \"predict_route\": \"{{$.inputs.parameters['serving_container_predict_route']}}\", \"health_route\": \"{{$.inputs.parameters['serving_container_health_route']}}\"}, \"artifact_uri\": \"{{$.inputs.parameters['artifact_uri']}}\", \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}, \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"labels\": {{$.inputs.parameters['labels']}}}",
+              "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"description\": \"{{$.inputs.parameters['description']}}\", \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}, \"explanation_metadata_artifact\": \"{{$.inputs.artifacts['explanation_metadata_artifact'].uri}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"labels\": {{$.inputs.parameters['labels']}}}",
               "--project",
               "{{$.inputs.parameters['project']}}",
               "--location",
@@ -7503,9 +7267,9 @@
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
+            "image": "gcr.io/ml-pipeline/automl-tables-private:1.0.11"
           }
         },
         "exec-model-upload-2": {
@@ -7514,7 +7278,7 @@
               "--type",
               "UploadModel",
               "--payload",
-              "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"description\": \"{{$.inputs.parameters['description']}}\", \"predict_schemata\": {\"instance_schema_uri\": \"{{$.inputs.parameters['instance_schema_uri']}}\", \"parameters_schema_uri\": \"{{$.inputs.parameters['parameters_schema_uri']}}\", \"prediction_schema_uri\": \"{{$.inputs.parameters['prediction_schema_uri']}}\"}, \"container_spec\": {\"image_uri\": \"{{$.inputs.parameters['serving_container_image_uri']}}\", \"command\": {{$.inputs.parameters['serving_container_command']}}, \"args\": {{$.inputs.parameters['serving_container_args']}}, \"env\": {{$.inputs.parameters['serving_container_environment_variables']}}, \"ports\": {{$.inputs.parameters['serving_container_ports']}}, \"predict_route\": \"{{$.inputs.parameters['serving_container_predict_route']}}\", \"health_route\": \"{{$.inputs.parameters['serving_container_health_route']}}\"}, \"artifact_uri\": \"{{$.inputs.parameters['artifact_uri']}}\", \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}, \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"labels\": {{$.inputs.parameters['labels']}}}",
+              "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"description\": \"{{$.inputs.parameters['description']}}\", \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}, \"explanation_metadata_artifact\": \"{{$.inputs.artifacts['explanation_metadata_artifact'].uri}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"labels\": {{$.inputs.parameters['labels']}}}",
               "--project",
               "{{$.inputs.parameters['project']}}",
               "--location",
@@ -7528,9 +7292,9 @@
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
+            "image": "gcr.io/ml-pipeline/automl-tables-private:1.0.11"
           }
         },
         "exec-model-upload-3": {
@@ -7539,7 +7303,7 @@
               "--type",
               "UploadModel",
               "--payload",
-              "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"description\": \"{{$.inputs.parameters['description']}}\", \"predict_schemata\": {\"instance_schema_uri\": \"{{$.inputs.parameters['instance_schema_uri']}}\", \"parameters_schema_uri\": \"{{$.inputs.parameters['parameters_schema_uri']}}\", \"prediction_schema_uri\": \"{{$.inputs.parameters['prediction_schema_uri']}}\"}, \"container_spec\": {\"image_uri\": \"{{$.inputs.parameters['serving_container_image_uri']}}\", \"command\": {{$.inputs.parameters['serving_container_command']}}, \"args\": {{$.inputs.parameters['serving_container_args']}}, \"env\": {{$.inputs.parameters['serving_container_environment_variables']}}, \"ports\": {{$.inputs.parameters['serving_container_ports']}}, \"predict_route\": \"{{$.inputs.parameters['serving_container_predict_route']}}\", \"health_route\": \"{{$.inputs.parameters['serving_container_health_route']}}\"}, \"artifact_uri\": \"{{$.inputs.parameters['artifact_uri']}}\", \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}, \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"labels\": {{$.inputs.parameters['labels']}}}",
+              "{\"display_name\": \"{{$.inputs.parameters['display_name']}}\", \"description\": \"{{$.inputs.parameters['description']}}\", \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}, \"explanation_metadata_artifact\": \"{{$.inputs.artifacts['explanation_metadata_artifact'].uri}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"labels\": {{$.inputs.parameters['labels']}}}",
               "--project",
               "{{$.inputs.parameters['project']}}",
               "--location",
@@ -7553,9 +7317,9 @@
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
+            "image": "gcr.io/ml-pipeline/automl-tables-private:1.0.11"
           }
         },
         "exec-read-input-uri": {
@@ -7570,7 +7334,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
-              "def _read_input_uri(split_uri):\n  \"\"\"Construct Dataset based on the batch prediction job.\n\n  Args:\n    split_uri: Tbe path to the file that contains Dataset data.\n\n  Returns:\n    The list of string that represents the batch prediction input files.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  import json\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  with open(split_uri, 'r') as f:\n    data_source = json.loads(f.read())\n    return data_source['tf_record_data_source']['file_patterns']\n\ndef _serialize_json(obj) -> str:\n    if isinstance(obj, str):\n        return obj\n    import json\n\n    def default_serializer(obj):\n        if hasattr(obj, 'to_struct'):\n            return obj.to_struct()\n        else:\n            raise TypeError(\n                \"Object of type '%s' is not JSON serializable and does not have .to_struct() method.\"\n                % obj.__class__.__name__)\n\n    return json.dumps(obj, default=default_serializer, sort_keys=True)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Read input uri', description='Construct Dataset based on the batch prediction job.')\n_parser.add_argument(\"--split-uri\", dest=\"split_uri\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\", dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = _read_input_uri(**_parsed_args)\n\n_outputs = [_outputs]\n\n_output_serializers = [\n    _serialize_json,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
+              "def _read_input_uri(split_uri):\n    \"\"\"Construct Dataset based on the batch prediction job.\n\n    Args:\n      split_uri: Tbe path to the file that contains Dataset data.\n\n    Returns:\n      The list of string that represents the batch prediction input files.\n    \"\"\"\n    # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n    import json\n\n    # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n    with open(split_uri, \"r\") as f:\n        data_source = json.loads(f.read())\n        return data_source[\"tf_record_data_source\"][\"file_patterns\"]\n\ndef _serialize_json(obj) -> str:\n    if isinstance(obj, str):\n        return obj\n    import json\n\n    def default_serializer(obj):\n        if hasattr(obj, 'to_struct'):\n            return obj.to_struct()\n        else:\n            raise TypeError(\n                \"Object of type '%s' is not JSON serializable and does not have .to_struct() method.\"\n                % obj.__class__.__name__)\n\n    return json.dumps(obj, default=default_serializer, sort_keys=True)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Read input uri', description='Construct Dataset based on the batch prediction job.')\n_parser.add_argument(\"--split-uri\", dest=\"split_uri\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\", dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = _read_input_uri(**_parsed_args)\n\n_outputs = [_outputs]\n\n_output_serializers = [\n    _serialize_json,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
             ],
             "image": "python:3.7-slim"
           }
@@ -7587,7 +7351,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
-              "def _read_input_uri(split_uri):\n  \"\"\"Construct Dataset based on the batch prediction job.\n\n  Args:\n    split_uri: Tbe path to the file that contains Dataset data.\n\n  Returns:\n    The list of string that represents the batch prediction input files.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  import json\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  with open(split_uri, 'r') as f:\n    data_source = json.loads(f.read())\n    return data_source['tf_record_data_source']['file_patterns']\n\ndef _serialize_json(obj) -> str:\n    if isinstance(obj, str):\n        return obj\n    import json\n\n    def default_serializer(obj):\n        if hasattr(obj, 'to_struct'):\n            return obj.to_struct()\n        else:\n            raise TypeError(\n                \"Object of type '%s' is not JSON serializable and does not have .to_struct() method.\"\n                % obj.__class__.__name__)\n\n    return json.dumps(obj, default=default_serializer, sort_keys=True)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Read input uri', description='Construct Dataset based on the batch prediction job.')\n_parser.add_argument(\"--split-uri\", dest=\"split_uri\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\", dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = _read_input_uri(**_parsed_args)\n\n_outputs = [_outputs]\n\n_output_serializers = [\n    _serialize_json,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
+              "def _read_input_uri(split_uri):\n    \"\"\"Construct Dataset based on the batch prediction job.\n\n    Args:\n      split_uri: Tbe path to the file that contains Dataset data.\n\n    Returns:\n      The list of string that represents the batch prediction input files.\n    \"\"\"\n    # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n    import json\n\n    # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n    with open(split_uri, \"r\") as f:\n        data_source = json.loads(f.read())\n        return data_source[\"tf_record_data_source\"][\"file_patterns\"]\n\ndef _serialize_json(obj) -> str:\n    if isinstance(obj, str):\n        return obj\n    import json\n\n    def default_serializer(obj):\n        if hasattr(obj, 'to_struct'):\n            return obj.to_struct()\n        else:\n            raise TypeError(\n                \"Object of type '%s' is not JSON serializable and does not have .to_struct() method.\"\n                % obj.__class__.__name__)\n\n    return json.dumps(obj, default=default_serializer, sort_keys=True)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Read input uri', description='Construct Dataset based on the batch prediction job.')\n_parser.add_argument(\"--split-uri\", dest=\"split_uri\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\", dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = _read_input_uri(**_parsed_args)\n\n_outputs = [_outputs]\n\n_output_serializers = [\n    _serialize_json,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
             ],
             "image": "python:3.7-slim"
           }
@@ -7604,7 +7368,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _set_model_can_skip_validation(model: Input[Artifact]):\n  \"\"\"Construct Dataset based on the batch prediction job.\n\n  Args:\n    model: The model artifact.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  import os\n  import tensorflow as tf\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\n  # create an empty CAN_SKIP_VALIDATION file\n  with tf.io.gfile.GFile(os.path.join(model.uri, 'CAN_SKIP_VALIDATION'),\n                         'w') as f:\n    f.write('')\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _set_model_can_skip_validation(model: Input[Artifact]):\n    \"\"\"Construct Dataset based on the batch prediction job.\n\n    Args:\n      model: The model artifact.\n    \"\"\"\n    # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n    import os\n    import tensorflow as tf\n\n    # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\n    # create an empty CAN_SKIP_VALIDATION file\n    with tf.io.gfile.GFile(os.path.join(model.uri, \"CAN_SKIP_VALIDATION\"), \"w\") as f:\n        f.write(\"\")\n\n"
             ],
             "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod"
           }
@@ -7644,7 +7408,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _write_bp_result_path(\n    bp_job: Input[Artifact],\n    result: OutputPath('Dataset'),\n):\n  \"\"\"Construct Dataset based on the batch prediction job.\n\n  Args:\n    bp_job: The batch prediction job artifact.\n    result: Tbe path to the file that contains Dataset data.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  import json\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  directory = bp_job.metadata['gcsOutputDirectory']\n  data_source = {\n      'tf_record_data_source': {\n          'file_patterns': [f'{directory}/prediction.results-*',],\n          'coder': 'PROTO_VALUE',\n      },\n  }\n  with open(result, 'w') as f:\n    f.write(json.dumps(data_source))\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _write_bp_result_path(\n    bp_job: Input[Artifact],\n    result: OutputPath(\"Dataset\"),\n):\n    \"\"\"Construct Dataset based on the batch prediction job.\n\n    Args:\n      bp_job: The batch prediction job artifact.\n      result: Tbe path to the file that contains Dataset data.\n    \"\"\"\n    # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n    import json\n\n    # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n    directory = bp_job.metadata[\"gcsOutputDirectory\"]\n    data_source = {\n        \"tf_record_data_source\": {\n            \"file_patterns\": [\n                f\"{directory}/prediction.results-*\",\n            ],\n            \"coder\": \"PROTO_VALUE\",\n        },\n    }\n    with open(result, \"w\") as f:\n        f.write(json.dumps(data_source))\n\n"
             ],
             "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod"
           }
@@ -7661,7 +7425,7 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _write_bp_result_path(\n    bp_job: Input[Artifact],\n    result: OutputPath('Dataset'),\n):\n  \"\"\"Construct Dataset based on the batch prediction job.\n\n  Args:\n    bp_job: The batch prediction job artifact.\n    result: Tbe path to the file that contains Dataset data.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  import json\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  directory = bp_job.metadata['gcsOutputDirectory']\n  data_source = {\n      'tf_record_data_source': {\n          'file_patterns': [f'{directory}/prediction.results-*',],\n          'coder': 'PROTO_VALUE',\n      },\n  }\n  with open(result, 'w') as f:\n    f.write(json.dumps(data_source))\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef _write_bp_result_path(\n    bp_job: Input[Artifact],\n    result: OutputPath(\"Dataset\"),\n):\n    \"\"\"Construct Dataset based on the batch prediction job.\n\n    Args:\n      bp_job: The batch prediction job artifact.\n      result: Tbe path to the file that contains Dataset data.\n    \"\"\"\n    # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n    import json\n\n    # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n    directory = bp_job.metadata[\"gcsOutputDirectory\"]\n    data_source = {\n        \"tf_record_data_source\": {\n            \"file_patterns\": [\n                f\"{directory}/prediction.results-*\",\n            ],\n            \"coder\": \"PROTO_VALUE\",\n        },\n    }\n    with open(result, \"w\") as f:\n        f.write(json.dumps(data_source))\n\n"
             ],
             "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod"
           }
