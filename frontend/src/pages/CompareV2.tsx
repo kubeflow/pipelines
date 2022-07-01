@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery } from 'react-query';
 import { ApiRunDetail } from 'src/apis/run';
 import Hr from 'src/atoms/Hr';
@@ -418,87 +418,56 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     secondSelectedArtifact.selectedItem,
   );
 
-  useEffect(() => {
-    if (
-      firstSelectedItem.itemName &&
-      firstSelectedItem.subItemName &&
-      firstSelectedItem.subItemSecondaryName &&
-      selectedArtifacts[metricsTab][0].selectedItem !== firstSelectedItem
-    ) {
-      selectedArtifacts[metricsTab][0].selectedItem = firstSelectedItem;
-      const linkedArtifact = getLinkedArtifactFromSelectedItem(
-        filteredRunArtifacts,
-        firstSelectedItem,
-      );
-      selectedArtifacts[metricsTab][0].linkedArtifact = linkedArtifact;
-      setSelectedArtifacts({ ...selectedArtifacts });
-
+  const updateSelectedArtifacts = useCallback(
+    (selectedItem: SelectedItem, panelIndex: number): void => {
       if (
-        linkedArtifact &&
-        !viewerConfigs[linkedArtifact.artifact.getId()] &&
-        (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN)
+        selectedItem.itemName &&
+        selectedItem.subItemName &&
+        selectedItem.subItemSecondaryName &&
+        selectedArtifacts[metricsTab][panelIndex].selectedItem !== selectedItem
       ) {
-        const namespace = getNamespace(firstSelectedItem, filteredRunArtifacts);
-        (async () => {
-          viewerConfigs[linkedArtifact.artifact.getId()] = await getViewerConfigs(
-            metricsTab,
-            linkedArtifact,
-            namespace,
-          );
-          setViewerConfigs({ ...viewerConfigs });
-        })();
+        selectedArtifacts[metricsTab][panelIndex].selectedItem = selectedItem;
+        const linkedArtifact = getLinkedArtifactFromSelectedItem(
+          filteredRunArtifacts,
+          selectedItem,
+        );
+        selectedArtifacts[metricsTab][panelIndex].linkedArtifact = linkedArtifact;
+        setSelectedArtifacts({ ...selectedArtifacts });
+
+        if (
+          linkedArtifact &&
+          !viewerConfigs[linkedArtifact.artifact.getId()] &&
+          (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN)
+        ) {
+          const namespace = getNamespace(selectedItem, filteredRunArtifacts);
+          (async () => {
+            viewerConfigs[linkedArtifact.artifact.getId()] = await getViewerConfigs(
+              metricsTab,
+              linkedArtifact,
+              namespace,
+            );
+            setViewerConfigs({ ...viewerConfigs });
+          })();
+        }
       }
-    }
-  }, [
-    firstSelectedItem,
-    filteredRunArtifacts,
-    metricsTab,
-    selectedArtifacts,
-    setSelectedArtifacts,
-    viewerConfigs,
-    setViewerConfigs,
-  ]);
+    },
+    [
+      filteredRunArtifacts,
+      metricsTab,
+      selectedArtifacts,
+      setSelectedArtifacts,
+      viewerConfigs,
+      setViewerConfigs,
+    ],
+  );
 
   useEffect(() => {
-    if (
-      secondSelectedItem.itemName &&
-      secondSelectedItem.subItemName &&
-      secondSelectedItem.subItemSecondaryName &&
-      selectedArtifacts[metricsTab][1].selectedItem !== secondSelectedItem
-    ) {
-      selectedArtifacts[metricsTab][1].selectedItem = secondSelectedItem;
-      const linkedArtifact = getLinkedArtifactFromSelectedItem(
-        filteredRunArtifacts,
-        secondSelectedItem,
-      );
-      selectedArtifacts[metricsTab][1].linkedArtifact = linkedArtifact;
-      setSelectedArtifacts({ ...selectedArtifacts });
+    updateSelectedArtifacts(firstSelectedItem, 0);
+  }, [firstSelectedItem, updateSelectedArtifacts]);
 
-      if (
-        linkedArtifact &&
-        !viewerConfigs[linkedArtifact.artifact.getId()] &&
-        (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN)
-      ) {
-        const namespace = getNamespace(secondSelectedItem, filteredRunArtifacts);
-        (async () => {
-          viewerConfigs[linkedArtifact.artifact.getId()] = await getViewerConfigs(
-            metricsTab,
-            linkedArtifact,
-            namespace,
-          );
-          setViewerConfigs({ ...viewerConfigs });
-        })();
-      }
-    }
-  }, [
-    secondSelectedItem,
-    filteredRunArtifacts,
-    metricsTab,
-    selectedArtifacts,
-    setSelectedArtifacts,
-    viewerConfigs,
-    setViewerConfigs,
-  ]);
+  useEffect(() => {
+    updateSelectedArtifacts(secondSelectedItem, 1);
+  }, [secondSelectedItem, updateSelectedArtifacts]);
 
   const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
 
