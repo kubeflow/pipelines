@@ -249,7 +249,7 @@ interface VisualizationPanelItemProps {
 function VisualizationPanelItem(props: VisualizationPanelItemProps) {
   const { metricsTab, metricsTabText, linkedArtifact, namespace } = props;
 
-  const { isLoading, isError, error, data: viewerConfigs } = useQuery<ViewerConfig[], Error>(
+  const { data: viewerConfigs } = useQuery<ViewerConfig[], Error>(
     [
       'viewerConfig',
       {
