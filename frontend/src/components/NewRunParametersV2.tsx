@@ -75,6 +75,13 @@ export function inputConverter(paramStr: string, paramType: ParameterType_Parame
         console.log('Invalid input for ' + paramType + ' type.');
         return null;
       }
+    case ParameterType_ParameterTypeEnum.LIST:
+    case ParameterType_ParameterTypeEnum.STRUCT:
+      try {
+        return JSON.parse(paramStr);
+      } catch (err) {
+        return null;
+      }
     default:
       // TODO: (jlyaoyuli) Validate if the type of parameters matches the value
       // If it doesn't throw an error message next to the TextField.
@@ -160,6 +167,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                   Object.assign(nextUpdatedParameters, updatedParameters);
                   nextUpdatedParameters[k] = value;
                   setUpdatedParameters(nextUpdatedParameters);
+                  // make some changes
                   if (props.handleParameterChange) {
                     let parametersInRealType: RuntimeParameters = {};
                     Object.entries(nextUpdatedParameters).map(([k, v1]) => {
@@ -206,16 +214,22 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
     prevState: ParamEditorState,
   ): { isInJsonForm: boolean; isJsonField: boolean } {
     let isJson = true;
-    try {
-      const displayValue = JSON.parse('');
-      // Nulls, booleans, strings, and numbers can all be parsed as JSON, but we don't care
-      // about rendering. Note that `typeOf null` returns 'object'
-      if (displayValue === null || typeof displayValue !== 'object') {
-        throw new Error('Parsed JSON was neither an array nor an object. Using default renderer');
-      }
-    } catch (err) {
-      isJson = false;
+    let paramType = nextProps.param.key.substring(nextProps.id.length + 3);
+    
+    switch(paramType) {
+      case 'LIST':
+      case 'STRUCT':
+        isJson = true;
+        break;
+      case 'STRING':
+      case 'BOOLEAN':
+      case 'NUMBER_INTEGER':
+        isJson = false;
+        break;
+      default:
+        isJson = false;
     }
+
     return {
       isInJsonForm: isJson,
       isJsonField: prevState.isJsonField || isJson,
@@ -233,8 +247,23 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
 
     const onClick = () => {
       if (this.state.isInJsonForm) {
+        let paramType = param.key.substring(id.length + 3);
+        let displayValue;
+        switch(paramType) {
+          case 'LIST':
+            displayValue = JSON.parse(param.value || '[]');
+            break;
+          case 'STRUCT':
+            displayValue = JSON.parse(param.value || '{}');
+            break;
+          default:
+            // TODO(jlyaoyuli): If the type from PipelineSpec is either LIST or STURCT,
+            // but the user-input or default value is invalid JSON form, show error message.
+            displayValue = JSON.parse('');
+        }
+
         // TODO(zijianjoy): JSON format needs to be struct or list type.
-        const displayValue = JSON.parse(param.value?.string_value || '');
+        // const displayValue = JSON.parse(param.value?.string_value || '');
         if (this.state.isEditorOpen) {
           onChange(JSON.stringify(displayValue) || '');
         } else {
@@ -253,8 +282,8 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
             id={id}
             disabled={this.state.isEditorOpen}
             variant='outlined'
-            // label={param.name}
-            // value={param.value || ''}
+            label={param.key}
+            value={param.value || ''}
             onChange={ev => onChange(ev.target.value || '')}
             className={classes(commonCss.textField, css.textfield)}
             InputProps={{

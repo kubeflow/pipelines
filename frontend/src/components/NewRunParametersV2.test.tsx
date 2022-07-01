@@ -106,6 +106,54 @@ describe('NewRunParametersV2', () => {
     expect(inputConverter('true', ParameterType_ParameterTypeEnum.BOOLEAN)).toEqual(null);
   });
 
+  it('test convertInput function for LIST type', () => {
+    const handleParameterChangeSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        listParam: {
+          parameterType: ParameterType_ParameterTypeEnum.LIST,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: handleParameterChangeSpy,
+    };
+
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const listParam = screen.getByLabelText('listParam - LIST');
+    fireEvent.change(listParam, {target: {value : '[4,5,6]'}});
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      listParam: [4,5,6],
+    })
+  });
+
+  it('test convertInput function for STRUCT type', () => {
+    const handleParameterChangeSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        structParam: {
+          parameterType: ParameterType_ParameterTypeEnum.LIST,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: handleParameterChangeSpy,
+    };
+
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const listParam = screen.getByLabelText('structParam - STRUCT');
+    fireEvent.change(listParam, {target: {value : '{A:1'}});
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      listParam: [4,5,6],
+    })
+  });
+
   it('does not display any text fields if there are no parameters', () => {
     const { container } = render(
       <CommonTestWrapper>
