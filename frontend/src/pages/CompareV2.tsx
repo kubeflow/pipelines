@@ -243,11 +243,37 @@ interface VisualizationPanelItemProps {
   metricsTab: MetricsType;
   metricsTabText: string;
   linkedArtifact: LinkedArtifact | undefined;
-  viewerConfigs: { [id: number]: ViewerConfig[] };
+  namespace: string | undefined;
 }
 
 function VisualizationPanelItem(props: VisualizationPanelItemProps) {
-  const { metricsTab, metricsTabText, linkedArtifact, viewerConfigs } = props;
+  const { metricsTab, metricsTabText, linkedArtifact, namespace } = props;
+
+  const { isLoading, isError, error, data: viewerConfigs } = useQuery<ViewerConfig[], Error>(
+    [
+      'viewerConfig',
+      {
+        artifact: linkedArtifact?.artifact.getId(),
+        namespace,
+      },
+    ],
+    async () => {
+      let viewerConfigs: ViewerConfig[] = [];
+      if (linkedArtifact) {
+        try {
+          if (metricsTab === MetricsType.HTML) {
+            viewerConfigs = await getHtmlViewerConfig([linkedArtifact], namespace);
+          } else if (metricsTab === MetricsType.MARKDOWN) {
+            viewerConfigs = await getMarkdownViewerConfig([linkedArtifact], namespace);
+          }
+        } catch (err) {
+          throw err;
+        }
+      }
+      return viewerConfigs;
+    },
+    { staleTime: Infinity },
+  );
 
   if (!linkedArtifact) {
     return <VisualizationPlaceholder metricsTabText={metricsTabText} />;
@@ -261,11 +287,11 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
     );
   }
 
-  const configs = viewerConfigs[linkedArtifact.artifact.getId()];
-  if (configs && (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN)) {
+  // TODO(zpChris): Show loading and error pages for HTML and Markdown.
+  if (viewerConfigs && (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN)) {
     return (
       <div className={padding(20, 'lrt')}>
-        <PlotCard configs={configs} title={`Static ${metricsTabText}`} />
+        <PlotCard configs={viewerConfigs} title={`Static ${metricsTabText}`} />
       </div>
     );
   }
@@ -284,8 +310,6 @@ interface MetricsDropdownProps {
   metricsTabText: string;
   selectedArtifacts: { [key: string]: SelectedArtifact[] };
   setSelectedArtifacts: (selectedArtifacts: { [key: string]: SelectedArtifact[] }) => void;
-  viewerConfigs: { [id: number]: ViewerConfig[] };
-  setViewerConfigs: (viewerConfigs: { [id: number]: ViewerConfig[] }) => void;
 }
 
 const logDisplayNameWarning = (type: string, id: string) =>
@@ -389,20 +413,6 @@ function getLinkedArtifactFromSelectedItem(
   return linkedArtifact;
 }
 
-async function getViewerConfigs(
-  metricsTab: MetricsType,
-  linkedArtifact: LinkedArtifact,
-  namespace: string | undefined,
-): Promise<ViewerConfig[]> {
-  if (metricsTab === MetricsType.HTML) {
-    return await getHtmlViewerConfig([linkedArtifact], namespace);
-  } else if (metricsTab === MetricsType.MARKDOWN) {
-    return await getMarkdownViewerConfig([linkedArtifact], namespace);
-  }
-
-  return [];
-}
-
 function MetricsDropdown(props: MetricsDropdownProps) {
   const {
     filteredRunArtifacts,
@@ -410,8 +420,6 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     metricsTabText,
     selectedArtifacts,
     setSelectedArtifacts,
-    viewerConfigs,
-    setViewerConfigs,
   } = props;
   const firstSelectedArtifact: SelectedArtifact = selectedArtifacts[metricsTab][0];
   const secondSelectedArtifact: SelectedArtifact = selectedArtifacts[metricsTab][1];
@@ -422,9 +430,15 @@ function MetricsDropdown(props: MetricsDropdownProps) {
   const [secondSelectedItem, setSecondSelectedItem] = useState<SelectedItem>(
     secondSelectedArtifact.selectedItem,
   );
+  const [firstSelectedNamespace, setFirstSelectedNamespace] = useState<string | undefined>();
+  const [secondSelectedNamespace, setSecondSelectedNamespace] = useState<string | undefined>();
 
   const updateSelectedArtifacts = useCallback(
-    (selectedItem: SelectedItem, panelIndex: number): void => {
+    (
+      selectedItem: SelectedItem,
+      panelIndex: number,
+      setSelectedNamespace: (selectedNamespace: string | undefined) => void,
+    ): void => {
       if (
         selectedItem.itemName &&
         selectedItem.subItemName &&
@@ -438,41 +452,19 @@ function MetricsDropdown(props: MetricsDropdownProps) {
         );
         selectedArtifacts[metricsTab][panelIndex].linkedArtifact = linkedArtifact;
         setSelectedArtifacts({ ...selectedArtifacts });
-
-        if (
-          linkedArtifact &&
-          !viewerConfigs[linkedArtifact.artifact.getId()] &&
-          (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN)
-        ) {
-          const namespace = getNamespace(selectedItem, filteredRunArtifacts);
-          (async () => {
-            viewerConfigs[linkedArtifact.artifact.getId()] = await getViewerConfigs(
-              metricsTab,
-              linkedArtifact,
-              namespace,
-            );
-            setViewerConfigs({ ...viewerConfigs });
-          })();
-        }
+        setSelectedNamespace(getNamespace(selectedItem, filteredRunArtifacts));
       }
     },
-    [
-      filteredRunArtifacts,
-      metricsTab,
-      selectedArtifacts,
-      setSelectedArtifacts,
-      viewerConfigs,
-      setViewerConfigs,
-    ],
+    [filteredRunArtifacts, metricsTab, selectedArtifacts, setSelectedArtifacts],
   );
 
   useEffect(() => {
-    updateSelectedArtifacts(firstSelectedItem, 0);
-  }, [firstSelectedItem, updateSelectedArtifacts]);
+    updateSelectedArtifacts(firstSelectedItem, 0, setFirstSelectedNamespace);
+  }, [firstSelectedItem, updateSelectedArtifacts, setFirstSelectedNamespace]);
 
   useEffect(() => {
-    updateSelectedArtifacts(secondSelectedItem, 1);
-  }, [secondSelectedItem, updateSelectedArtifacts]);
+    updateSelectedArtifacts(secondSelectedItem, 1, setSecondSelectedNamespace);
+  }, [secondSelectedItem, updateSelectedArtifacts, setSecondSelectedNamespace]);
 
   const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
 
@@ -495,7 +487,7 @@ function MetricsDropdown(props: MetricsDropdownProps) {
               metricsTab={metricsTab}
               metricsTabText={metricsTabText}
               linkedArtifact={firstSelectedArtifact.linkedArtifact}
-              viewerConfigs={viewerConfigs}
+              namespace={firstSelectedNamespace}
             />
           </td>
           <td className={classes(css.cell, css.rightCell)}>
@@ -509,7 +501,7 @@ function MetricsDropdown(props: MetricsDropdownProps) {
               metricsTab={metricsTab}
               metricsTabText={metricsTabText}
               linkedArtifact={secondSelectedArtifact.linkedArtifact}
-              viewerConfigs={viewerConfigs}
+              namespace={secondSelectedNamespace}
             />
           </td>
         </tr>
@@ -549,9 +541,6 @@ function CompareV2(props: PageProps) {
       [MetricsType.MARKDOWN]: createSelectedArtifactArray(2),
     },
   );
-
-  // Map artifact ID to the viewer config.
-  const [viewerConfigs, setViewerConfigs] = useState<{ [id: number]: ViewerConfig[] }>({});
 
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
@@ -774,8 +763,6 @@ function CompareV2(props: PageProps) {
                 metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifacts}
                 setSelectedArtifacts={setSelectedArtifacts}
-                viewerConfigs={viewerConfigs}
-                setViewerConfigs={setViewerConfigs}
               />
             )}
             {metricsTab === MetricsType.ROC_CURVE && <p>This is the {metricsTabText} tab.</p>}
@@ -786,8 +773,6 @@ function CompareV2(props: PageProps) {
                 metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifacts}
                 setSelectedArtifacts={setSelectedArtifacts}
-                viewerConfigs={viewerConfigs}
-                setViewerConfigs={setViewerConfigs}
               />
             )}
             {metricsTab === MetricsType.MARKDOWN && (
@@ -797,8 +782,6 @@ function CompareV2(props: PageProps) {
                 metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifacts}
                 setSelectedArtifacts={setSelectedArtifacts}
-                viewerConfigs={viewerConfigs}
-                setViewerConfigs={setViewerConfigs}
               />
             )}
           </div>
