@@ -826,7 +826,7 @@ class TestCompileComponent(parameterized.TestCase):
         self.assertEqual(
             pipeline_spec['components']['comp-hello-world-container']
             ['outputDefinitions']['parameters']['Output']['parameterType'],
-            "STRING")
+            'STRING')
 
 
 class TestCompileBadInput(unittest.TestCase):

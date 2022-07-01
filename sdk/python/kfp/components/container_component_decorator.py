@@ -1,4 +1,4 @@
-# Copyright 2021-2022 The Kubeflow Authors
+# Copyright 2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import inspect
-from typing import Callable, List, Optional
+from typing import Callable
 
-from kfp.components.structures import Implementation, ComponentSpec
+from kfp.components.structures import Implementation
 from kfp.components import component_factory
 from kfp.components.container_component import ContainerComponent
 
