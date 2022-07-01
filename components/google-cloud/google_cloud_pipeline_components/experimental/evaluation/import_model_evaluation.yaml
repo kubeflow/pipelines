@@ -20,6 +20,8 @@ inputs:
   - {name: model, type: google.VertexModel}
   - {name: problem_type, type: String}
   - {name: display_name, type: String, default: ''}
+  - {name: dataset_path, type: String, default: ''}
+  - {name: dataset_type, type: String, default: ''}
 outputs:
 - {name: gcp_resources, type: String}
 implementation:
@@ -40,6 +42,12 @@ implementation:
       - {inputValue: problem_type}
       - --display_name
       - {inputValue: display_name}
+      - --dataset_path
+      - {inputValue: dataset_path}
+      - --dataset_type
+      - {inputValue: dataset_type}
+      - --pipeline_job_id
+      - "{{$.pipeline_job_uuid}}"
       - --model_name
       - "{{$.inputs.artifacts['model'].metadata['resourceName']}}"
       - --gcp_resources
