@@ -34,8 +34,8 @@ import {
   getEventsByExecutions,
   getExecutionsFromContext,
   getKfpV2RunContext,
-  getArtifactName,
   LinkedArtifact,
+  getArtifactName,
 } from 'src/mlmd/MlmdUtils';
 import { Artifact, ArtifactType, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
