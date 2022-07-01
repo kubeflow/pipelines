@@ -242,12 +242,16 @@ function VisualizationPlaceholder(props: VisualizationPlaceholderProps) {
 interface VisualizationPanelItemProps {
   metricsTab: MetricsType;
   metricsTabText: string;
-  linkedArtifact: LinkedArtifact;
-  viewerConfigs: ViewerConfig[];
+  linkedArtifact: LinkedArtifact | undefined;
+  viewerConfigs: { [id: number]: ViewerConfig[] };
 }
 
 function VisualizationPanelItem(props: VisualizationPanelItemProps) {
   const { metricsTab, metricsTabText, linkedArtifact, viewerConfigs } = props;
+
+  if (!linkedArtifact) {
+    return <VisualizationPlaceholder metricsTabText={metricsTabText} />;
+  }
 
   if (metricsTab === MetricsType.CONFUSION_MATRIX) {
     return (
@@ -257,10 +261,11 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
     );
   }
 
-  if (viewerConfigs && (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN)) {
+  const configs = viewerConfigs[linkedArtifact.artifact.getId()];
+  if (configs && (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN)) {
     return (
       <div className={padding(20, 'lrt')}>
-        <PlotCard configs={viewerConfigs} title={`Static ${metricsTabText}`} />
+        <PlotCard configs={configs} title={`Static ${metricsTabText}`} />
       </div>
     );
   }
@@ -486,16 +491,12 @@ function MetricsDropdown(props: MetricsDropdownProps) {
               selectedItem={firstSelectedItem}
               setSelectedItem={setFirstSelectedItem}
             />
-            {firstSelectedArtifact.linkedArtifact ? (
-              <VisualizationPanelItem
-                metricsTab={metricsTab}
-                metricsTabText={metricsTabText}
-                linkedArtifact={firstSelectedArtifact.linkedArtifact}
-                viewerConfigs={viewerConfigs[firstSelectedArtifact.linkedArtifact.artifact.getId()]}
-              />
-            ) : (
-              <VisualizationPlaceholder metricsTabText={metricsTabText} />
-            )}
+            <VisualizationPanelItem
+              metricsTab={metricsTab}
+              metricsTabText={metricsTabText}
+              linkedArtifact={firstSelectedArtifact.linkedArtifact}
+              viewerConfigs={viewerConfigs}
+            />
           </td>
           <td className={classes(css.cell, css.rightCell)}>
             <TwoLevelDropdown
@@ -504,18 +505,12 @@ function MetricsDropdown(props: MetricsDropdownProps) {
               selectedItem={secondSelectedItem}
               setSelectedItem={setSecondSelectedItem}
             />
-            {secondSelectedArtifact.linkedArtifact ? (
-              <VisualizationPanelItem
-                metricsTab={metricsTab}
-                metricsTabText={metricsTabText}
-                linkedArtifact={secondSelectedArtifact.linkedArtifact}
-                viewerConfigs={
-                  viewerConfigs[secondSelectedArtifact.linkedArtifact.artifact.getId()]
-                }
-              />
-            ) : (
-              <VisualizationPlaceholder metricsTabText={metricsTabText} />
-            )}
+            <VisualizationPanelItem
+              metricsTab={metricsTab}
+              metricsTabText={metricsTabText}
+              linkedArtifact={secondSelectedArtifact.linkedArtifact}
+              viewerConfigs={viewerConfigs}
+            />
           </td>
         </tr>
       </tbody>
