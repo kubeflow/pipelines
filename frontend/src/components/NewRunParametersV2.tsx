@@ -62,17 +62,15 @@ function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEn
     case ParameterType_ParameterTypeEnum.BOOLEAN:
       if (paramStr === 'true' || paramStr === 'false') {
         return paramStr === 'true';
-      } else {
-        return null;
       }
+      return null;
     case ParameterType_ParameterTypeEnum.STRING:
       return paramStr;
     case ParameterType_ParameterTypeEnum.NUMBER_INTEGER:
       if (Number.isInteger(Number(paramStr))) {
         return Number(paramStr);
-      } else {
-        return null;
       }
+      return null;
     default:
       // TODO: (jlyaoyuli) Validate if the type of parameters matches the value
       // If it doesn't throw an error message next to the TextField.
