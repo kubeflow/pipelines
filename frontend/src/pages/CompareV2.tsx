@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery } from 'react-query';
 import { ApiRunDetail } from 'src/apis/run';
 import Hr from 'src/atoms/Hr';
@@ -355,49 +355,32 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     secondSelectedArtifact.selectedItem,
   );
 
-  useEffect(() => {
-    if (
-      firstSelectedItem.itemName &&
-      firstSelectedItem.subItemName &&
-      firstSelectedItem.subItemSecondaryName &&
-      selectedArtifacts[metricsTab][0].selectedItem !== firstSelectedItem
-    ) {
-      selectedArtifacts[metricsTab][0].selectedItem = firstSelectedItem;
-      selectedArtifacts[metricsTab][0].selectedArtifact = getArtifactFromSelectedItem(
-        filteredRunArtifacts,
-        firstSelectedItem,
-      );
-      setSelectedArtifacts({ ...selectedArtifacts });
-    }
-  }, [
-    firstSelectedItem,
-    filteredRunArtifacts,
-    metricsTab,
-    selectedArtifacts,
-    setSelectedArtifacts,
-  ]);
+  const updateSelectedArtifacts = useCallback(
+    (selectedItem: SelectedItem, panelIndex: number): void => {
+      if (
+        selectedItem.itemName &&
+        selectedItem.subItemName &&
+        selectedItem.subItemSecondaryName &&
+        selectedArtifacts[metricsTab][panelIndex].selectedItem !== selectedItem
+      ) {
+        selectedArtifacts[metricsTab][panelIndex].selectedItem = selectedItem;
+        selectedArtifacts[metricsTab][panelIndex].selectedArtifact = getArtifactFromSelectedItem(
+          filteredRunArtifacts,
+          selectedItem,
+        );
+        setSelectedArtifacts({ ...selectedArtifacts });
+      }
+    },
+    [filteredRunArtifacts, metricsTab, selectedArtifacts, setSelectedArtifacts],
+  );
 
   useEffect(() => {
-    if (
-      secondSelectedItem.itemName &&
-      secondSelectedItem.subItemName &&
-      secondSelectedItem.subItemSecondaryName &&
-      selectedArtifacts[metricsTab][1].selectedItem !== secondSelectedItem
-    ) {
-      selectedArtifacts[metricsTab][1].selectedItem = secondSelectedItem;
-      selectedArtifacts[metricsTab][1].selectedArtifact = getArtifactFromSelectedItem(
-        filteredRunArtifacts,
-        secondSelectedItem,
-      );
-      setSelectedArtifacts({ ...selectedArtifacts });
-    }
-  }, [
-    secondSelectedItem,
-    filteredRunArtifacts,
-    metricsTab,
-    selectedArtifacts,
-    setSelectedArtifacts,
-  ]);
+    updateSelectedArtifacts(firstSelectedItem, 0);
+  }, [firstSelectedItem, updateSelectedArtifacts]);
+
+  useEffect(() => {
+    updateSelectedArtifacts(secondSelectedItem, 1);
+  }, [secondSelectedItem, updateSelectedArtifacts]);
 
   const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
 
