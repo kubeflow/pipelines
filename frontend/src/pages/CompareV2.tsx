@@ -315,27 +315,28 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
     );
   }
 
-  if (isLoading) {
+  if (errorMessage || isLoading) {
     return (
-      <div className={css.relativeContainer}>
-        <CircularProgress
-          size={25}
-          className={commonCss.absoluteCenter}
-          style={{ zIndex: zIndex.BUSY_OVERLAY }}
-        />
-      </div>
-    );
-  }
-
-  if (isError && errorMessage) {
-    return (
-      <div className={css.errorBanner}>
-        <Banner
-          message={`Error: failed loading ${metricsTabText} file. Click Details for more information.`}
-          mode="error"
-          additionalInfo={errorMessage}
-        />
-      </div>
+      <React.Fragment>
+        {errorMessage && (
+          <div className={css.errorBanner}>
+            <Banner
+              message={`Error: failed loading ${metricsTabText} file. Click Details for more information.`}
+              mode="error"
+              additionalInfo={errorMessage}
+            />
+          </div>
+        )}
+        {isLoading && (
+          <div className={css.relativeContainer}>
+            <CircularProgress
+              size={25}
+              className={commonCss.absoluteCenter}
+              style={{ zIndex: zIndex.BUSY_OVERLAY }}
+            />
+          </div>
+        )}
+      </React.Fragment>
     );
   }
 
