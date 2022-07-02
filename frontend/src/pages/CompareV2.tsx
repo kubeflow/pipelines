@@ -21,7 +21,7 @@ import Hr from 'src/atoms/Hr';
 import Separator from 'src/atoms/Separator';
 import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
-import { color, commonCss, fontsize, padding, zIndex } from 'src/Css';
+import { color, commonCss, fontsize, padding, spacing, zIndex } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import Buttons from 'src/lib/Buttons';
 import { URLParser } from 'src/lib/URLParser';
@@ -70,6 +70,8 @@ const css = stylesheet({
     verticalAlign: 'top',
   },
   errorBanner: {
+    // TODO(zpChris): Develop better way to offset margin.
+    marginLeft: -spacing.units(-1),
     maxWidth: '40rem',
   },
   outputsRow: {
