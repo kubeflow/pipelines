@@ -21,7 +21,7 @@ import Hr from 'src/atoms/Hr';
 import Separator from 'src/atoms/Separator';
 import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
-import { color, commonCss, fontsize, padding, zIndex } from 'src/Css';
+import { color, commonCss, fontsize, padding } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import Buttons from 'src/lib/Buttons';
 import { URLParser } from 'src/lib/URLParser';
@@ -54,8 +54,6 @@ import {
 } from 'src/components/viewers/MetricsVisualizations';
 import PlotCard from 'src/components/PlotCard';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
-import CircularProgress from '@material-ui/core/CircularProgress';
-import Banner from 'src/components/Banner';
 
 const css = stylesheet({
   leftCell: {
@@ -69,18 +67,11 @@ const css = stylesheet({
     padding: '1rem',
     verticalAlign: 'top',
   },
-  errorBanner: {
-    maxWidth: '40rem',
-  },
   outputsRow: {
     marginLeft: 15,
   },
   outputsOverflow: {
     overflowX: 'auto',
-  },
-  relativeContainer: {
-    position: 'relative',
-    height: '30rem',
   },
   visualizationPlaceholder: {
     width: '40rem',
@@ -257,9 +248,8 @@ interface VisualizationPanelItemProps {
 
 function VisualizationPanelItem(props: VisualizationPanelItemProps) {
   const { metricsTab, metricsTabText, linkedArtifact, namespace } = props;
-  const [errorMessage, setErrorMessage] = useState<string>('');
 
-  const { isLoading, isError, error, data: viewerConfigs } = useQuery<ViewerConfig[], Error>(
+  const { data: viewerConfigs } = useQuery<ViewerConfig[], Error>(
     [
       'viewerConfig',
       {
@@ -285,22 +275,6 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
     { staleTime: Infinity },
   );
 
-  // TODO: Update this - if re-loading, do not show reload. May or may not be necessary.
-  useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-
-    if (isError) {
-      (async function() {
-        const errorMessage = await errorToMessage(error);
-        setErrorMessage(errorMessage);
-      })();
-    } else {
-      setErrorMessage('');
-    }
-  }, [isLoading, isError, setErrorMessage]);
-
   if (!linkedArtifact) {
     return <VisualizationPlaceholder metricsTabText={metricsTabText} />;
   }
@@ -310,30 +284,6 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
       <React.Fragment key={linkedArtifact.artifact.getId()}>
         <ConfusionMatrixSection artifact={linkedArtifact.artifact} />
       </React.Fragment>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className={css.relativeContainer}>
-        <CircularProgress
-          size={25}
-          className={commonCss.absoluteCenter}
-          style={{ zIndex: zIndex.BUSY_OVERLAY }}
-        />
-      </div>
-    );
-  }
-
-  if (isError && errorMessage) {
-    return (
-      <div className={css.errorBanner}>
-        <Banner
-          message={`Error: failed loading ${metricsTabText} file. Click Details for more information.`}
-          mode="error"
-          additionalInfo={errorMessage}
-        />
-      </div>
     );
   }
 
