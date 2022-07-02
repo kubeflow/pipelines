@@ -701,7 +701,7 @@ describe('CompareV2', () => {
     const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
 
-    // Simulate all artifacts as type "ClassificationMetrics" (Confusion Matrix or ROC Curve).
+    // Simulate all artifacts as type HTML.
     const filterLinkedArtifactsByTypeSpy = jest.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
     filterLinkedArtifactsByTypeSpy.mockImplementation(
       (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
@@ -808,7 +808,7 @@ describe('CompareV2', () => {
     const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
 
-    // Simulate all artifacts as type "ClassificationMetrics" (Confusion Matrix or ROC Curve).
+    // Simulate all artifacts as type Markdown.
     const filterLinkedArtifactsByTypeSpy = jest.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
     filterLinkedArtifactsByTypeSpy.mockImplementation(
       (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
