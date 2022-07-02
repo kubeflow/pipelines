@@ -290,9 +290,7 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
   // TODO(zpChris): Show loading and error pages for HTML and Markdown.
   if (viewerConfigs && (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN)) {
     return (
-      <div className={padding(20, 'lrt')}>
-        <PlotCard configs={viewerConfigs} title={`Static ${metricsTabText}`} />
-      </div>
+      <PlotCard configs={viewerConfigs} title={`Static ${metricsTabText}`} />
     );
   }
 
