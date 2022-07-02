@@ -260,6 +260,7 @@ interface VisualizationPanelItemProps {
 function VisualizationPanelItem(props: VisualizationPanelItemProps) {
   const { metricsTab, metricsTabText, linkedArtifact, namespace } = props;
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [showError, setShowError] = useState<boolean>(false);
 
   const { isLoading, isError, error, data: viewerConfigs } = useQuery<ViewerConfig[], Error>(
     [
@@ -297,11 +298,12 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
       (async function() {
         const updatedMessage = await errorToMessage(error);
         setErrorMessage(updatedMessage);
+        setShowError(true);
       })();
     } else {
-      setErrorMessage('');
+      setShowError(false);
     }
-  }, [isLoading, isError, error, setErrorMessage]);
+  }, [isLoading, isError, error, setErrorMessage, setShowError]);
 
   if (!linkedArtifact) {
     return <VisualizationPlaceholder metricsTabText={metricsTabText} />;
@@ -315,14 +317,15 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
     );
   }
 
-  if (errorMessage || isLoading) {
+  if (showError || isLoading) {
     return (
       <React.Fragment>
-        {errorMessage && (
+        {showError && (
           <div className={css.errorBanner}>
             <Banner
-              message={`Error: failed loading ${metricsTabText} file. Click Details for more information.`}
-              mode="error"
+              message={`Error: failed loading ${metricsTabText} file.${errorMessage &&
+                ' Click Details for more information.'}`}
+              mode='error'
               additionalInfo={errorMessage}
             />
           </div>
@@ -340,11 +343,8 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
     );
   }
 
-  // TODO(zpChris): Show loading and error pages for HTML and Markdown.
   if (viewerConfigs && (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN)) {
-    return (
-      <PlotCard configs={viewerConfigs} title={`Static ${metricsTabText}`} />
-    );
+    return <PlotCard configs={viewerConfigs} title={`Static ${metricsTabText}`} />;
   }
 
   return <></>;
