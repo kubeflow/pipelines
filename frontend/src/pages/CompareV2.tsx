@@ -336,6 +336,7 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
               size={25}
               className={commonCss.absoluteCenter}
               style={{ zIndex: zIndex.BUSY_OVERLAY }}
+              role="circularprogress"
             />
           </div>
         )}
