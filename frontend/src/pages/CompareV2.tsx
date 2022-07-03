@@ -70,7 +70,6 @@ const css = stylesheet({
     verticalAlign: 'top',
   },
   errorBanner: {
-    // TODO(zpChris): Develop better way to offset margin.
     marginLeft: -spacing.units(-1),
     maxWidth: '40rem',
   },
@@ -288,7 +287,6 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
     { staleTime: Infinity },
   );
 
-  // TODO: Update this - if re-loading, do not show reload. May or may not be necessary.
   useEffect(() => {
     if (isLoading) {
       return;
@@ -336,7 +334,7 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
               size={25}
               className={commonCss.absoluteCenter}
               style={{ zIndex: zIndex.BUSY_OVERLAY }}
-              role="circularprogress"
+              role='circularprogress'
             />
           </div>
         )}

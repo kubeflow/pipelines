@@ -886,11 +886,7 @@ describe('CompareV2', () => {
     );
 
     // No execution name is provided to ensure that it can be selected by ID.
-    const executions = [
-      [newMockExecution(1)],
-      [newMockExecution(200)],
-      [newMockExecution(3, 'executionName')],
-    ];
+    const executions = [[newMockExecution(1)], [newMockExecution(200)], [newMockExecution(3)]];
     const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
       Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
@@ -899,16 +895,12 @@ describe('CompareV2', () => {
     const artifacts = [
       newMockArtifact(1),
       newMockArtifact(200, false, 'firstArtifactName'),
-      newMockArtifact(3, false, 'secondArtifactName'),
+      newMockArtifact(3),
     ];
     const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
     getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
 
-    const events = [
-      newMockEvent(1),
-      newMockEvent(200, 'firstArtifactName'),
-      newMockEvent(3, 'secondArtifactName'),
-    ];
+    const events = [newMockEvent(1), newMockEvent(200, 'firstArtifactName'), newMockEvent(3)];
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
     getEventsSpy.mockReturnValue(Promise.resolve(events));
 
