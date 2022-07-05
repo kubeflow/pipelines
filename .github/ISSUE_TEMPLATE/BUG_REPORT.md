@@ -5,30 +5,32 @@ about: Report any other issue encountered with Kubeflow Pipelines
 labels: kind/bug
 ---
 
-### What steps did you take
-
-<!-- A clear and concise description of what the bug is.-->
-
-### What happened:
-
-### What did you expect to happen:
-
-### Environment:
+### Environment
 
 <!-- Please fill in those that seem relevant. -->
 
-*  How do you deploy Kubeflow Pipelines (KFP)? 
+*  How do you deploy Kubeflow Pipelines (KFP)?
 <!-- For more information, see an overview of KFP installation options: https://www.kubeflow.org/docs/pipelines/installation/overview/. -->
-*  KFP version: 
+*  KFP version:
 <!-- Specify the version of Kubeflow Pipelines that you are using. The version number appears in the left side navigation of user interface.
 To find the version number, See version number shows on bottom of KFP UI left sidenav. -->
-*  KFP SDK version: 
+*  KFP SDK version:
 <!-- Specify the output of the following shell command: $pip list | grep kfp -->
 
+### Steps to reproduce
 
-### Anything else you would like to add:
-<!-- Miscellaneous information that will assist in solving the issue.-->
+<!--
+Specify how to reproduce the problem.
+This may include information such as: a description of the process, code snippets, log output, or screenshots.
+-->
 
+### Expected result
+
+<!-- What should the correct behavior be? -->
+
+### Materials and reference
+
+<!-- Help us debug this issue by providing resources such as: sample code, background context, or links to references. -->
 
 ### Labels
 <!-- Please include labels below by uncommenting them to help us better triage issues -->
@@ -39,7 +41,6 @@ To find the version number, See version number shows on bottom of KFP UI left si
 <!-- /area testing -->
 <!-- /area samples -->
 <!-- /area components -->
-
 
 ---
 
