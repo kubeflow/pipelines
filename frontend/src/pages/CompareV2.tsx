@@ -242,12 +242,8 @@ interface MetricsDropdownProps {
   filteredRunArtifacts: RunArtifact[];
   metricsTab: MetricsType;
   metricsTabText: string;
-  selectedArtifacts: { [key: string]: SelectedArtifact[] };
-  updateSelectedArtifacts: (
-    setSelectedItem: (selectedItem: SelectedItem) => void,
-    panelIndex: number,
-    selectedItem: SelectedItem,
-  ) => void;
+  selectedArtifacts: SelectedArtifact[];
+  updateSelectedArtifacts: (selectedArtifacts: SelectedArtifact[]) => void;
 }
 
 const logDisplayNameWarning = (type: string, id: string) =>
@@ -349,15 +345,26 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     selectedArtifacts,
     updateSelectedArtifacts,
   } = props;
-  const firstSelectedArtifact: SelectedArtifact = selectedArtifacts[metricsTab][0];
-  const secondSelectedArtifact: SelectedArtifact = selectedArtifacts[metricsTab][1];
-
   const [firstSelectedItem, setFirstSelectedItem] = useState<SelectedItem>(
-    firstSelectedArtifact.selectedItem,
+    selectedArtifacts[0].selectedItem,
   );
   const [secondSelectedItem, setSecondSelectedItem] = useState<SelectedItem>(
-    secondSelectedArtifact.selectedItem,
+    selectedArtifacts[1].selectedItem,
   );
+
+  const updateSelectedItemAndArtifact = (
+    setSelectedItem: (selectedItem: SelectedItem) => void,
+    panelIndex: number,
+    selectedItem: SelectedItem,
+  ): void => {
+    setSelectedItem(selectedItem);
+    selectedArtifacts[panelIndex].selectedItem = selectedItem;
+    selectedArtifacts[panelIndex].artifact = getArtifactFromSelectedItem(
+      filteredRunArtifacts,
+      selectedItem,
+    );
+    updateSelectedArtifacts(selectedArtifacts);
+  };
 
   const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
 
@@ -374,11 +381,11 @@ function MetricsDropdown(props: MetricsDropdownProps) {
               title={`Choose a first ${metricsTabText} artifact`}
               items={dropdownItems}
               selectedItem={firstSelectedItem}
-              setSelectedItem={updateSelectedArtifacts.bind(null, setFirstSelectedItem, 0)}
+              setSelectedItem={updateSelectedItemAndArtifact.bind(null, setFirstSelectedItem, 0)}
             />
-            {metricsTab === MetricsType.CONFUSION_MATRIX && firstSelectedArtifact.artifact ? (
-              <React.Fragment key={firstSelectedArtifact.artifact.getId()}>
-                <ConfusionMatrixSection artifact={firstSelectedArtifact.artifact} />
+            {metricsTab === MetricsType.CONFUSION_MATRIX && selectedArtifacts[0].artifact ? (
+              <React.Fragment key={selectedArtifacts[0].artifact.getId()}>
+                <ConfusionMatrixSection artifact={selectedArtifacts[0].artifact} />
               </React.Fragment>
             ) : (
               <VisualizationPlaceholder metricsTabText={metricsTabText} />
@@ -389,11 +396,11 @@ function MetricsDropdown(props: MetricsDropdownProps) {
               title={`Choose a second ${metricsTabText} artifact`}
               items={dropdownItems}
               selectedItem={secondSelectedItem}
-              setSelectedItem={updateSelectedArtifacts.bind(null, setSecondSelectedItem, 1)}
+              setSelectedItem={updateSelectedItemAndArtifact.bind(null, setSecondSelectedItem, 1)}
             />
-            {metricsTab === MetricsType.CONFUSION_MATRIX && secondSelectedArtifact.artifact ? (
-              <React.Fragment key={secondSelectedArtifact.artifact.getId()}>
-                <ConfusionMatrixSection artifact={secondSelectedArtifact.artifact} />
+            {metricsTab === MetricsType.CONFUSION_MATRIX && selectedArtifacts[1].artifact ? (
+              <React.Fragment key={selectedArtifacts[1].artifact.getId()}>
+                <ConfusionMatrixSection artifact={selectedArtifacts[1].artifact} />
               </React.Fragment>
             ) : (
               <VisualizationPlaceholder metricsTabText={metricsTabText} />
@@ -429,13 +436,13 @@ function CompareV2(props: PageProps) {
     }
     return array;
   };
-  const [selectedArtifacts, setSelectedArtifacts] = useState<{ [key: string]: SelectedArtifact[] }>(
-    {
-      [MetricsType.CONFUSION_MATRIX]: createSelectedArtifactArray(2),
-      [MetricsType.HTML]: createSelectedArtifactArray(2),
-      [MetricsType.MARKDOWN]: createSelectedArtifactArray(2),
-    },
-  );
+  const [selectedArtifactsMap, setSelectedArtifactsMap] = useState<{
+    [key: string]: SelectedArtifact[];
+  }>({
+    [MetricsType.CONFUSION_MATRIX]: createSelectedArtifactArray(2),
+    [MetricsType.HTML]: createSelectedArtifactArray(2),
+    [MetricsType.MARKDOWN]: createSelectedArtifactArray(2),
+  });
 
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
@@ -596,26 +603,9 @@ function CompareV2(props: PageProps) {
     setSelectedIds(selectedIds);
   };
 
-  const updateSelectedArtifacts = (
-    filteredRunArtifacts: RunArtifact[],
-    setSelectedItem: (selectedItem: SelectedItem) => void,
-    panelIndex: number,
-    selectedItem: SelectedItem,
-  ): void => {
-    setSelectedItem(selectedItem);
-    if (
-      selectedItem.itemName &&
-      selectedItem.subItemName &&
-      selectedItem.subItemSecondaryName &&
-      selectedArtifacts[metricsTab][panelIndex].selectedItem !== selectedItem
-    ) {
-      selectedArtifacts[metricsTab][panelIndex].selectedItem = selectedItem;
-      selectedArtifacts[metricsTab][panelIndex].artifact = getArtifactFromSelectedItem(
-        filteredRunArtifacts,
-        selectedItem,
-      );
-      setSelectedArtifacts({ ...selectedArtifacts });
-    }
+  const updateSelectedArtifacts = (newArtifacts: SelectedArtifact[]) => {
+    selectedArtifactsMap[metricsTab] = newArtifacts;
+    setSelectedArtifactsMap(selectedArtifactsMap);
   };
 
   const metricsTabText = metricsTypeToString(metricsTab);
@@ -678,11 +668,8 @@ function CompareV2(props: PageProps) {
                 filteredRunArtifacts={confusionMatrixArtifacts}
                 metricsTab={metricsTab}
                 metricsTabText={metricsTabText}
-                selectedArtifacts={selectedArtifacts}
-                updateSelectedArtifacts={updateSelectedArtifacts.bind(
-                  null,
-                  confusionMatrixArtifacts,
-                )}
+                selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                updateSelectedArtifacts={updateSelectedArtifacts}
               />
             )}
             {metricsTab === MetricsType.ROC_CURVE && <p>This is the {metricsTabText} tab.</p>}
@@ -691,8 +678,8 @@ function CompareV2(props: PageProps) {
                 filteredRunArtifacts={htmlArtifacts}
                 metricsTab={metricsTab}
                 metricsTabText={metricsTabText}
-                selectedArtifacts={selectedArtifacts}
-                updateSelectedArtifacts={updateSelectedArtifacts.bind(null, htmlArtifacts)}
+                selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                updateSelectedArtifacts={updateSelectedArtifacts}
               />
             )}
             {metricsTab === MetricsType.MARKDOWN && (
@@ -700,8 +687,8 @@ function CompareV2(props: PageProps) {
                 filteredRunArtifacts={markdownArtifacts}
                 metricsTab={metricsTab}
                 metricsTabText={metricsTabText}
-                selectedArtifacts={selectedArtifacts}
-                updateSelectedArtifacts={updateSelectedArtifacts.bind(null, markdownArtifacts)}
+                selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                updateSelectedArtifacts={updateSelectedArtifacts}
               />
             )}
           </div>
