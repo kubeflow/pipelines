@@ -21,7 +21,7 @@ import { ExternalLink } from 'src/atoms/ExternalLink';
 import { ParameterType_ParameterTypeEnum } from 'src/generated/pipeline_spec/pipeline_spec';
 import { RuntimeParameters, SpecParameters } from 'src/pages/NewRunV2';
 import { classes, stylesheet } from 'typestyle';
-import { color, commonCss, spacing } from '../Css';
+import { color, commonCss, spacing, padding } from '../Css';
 import Editor from './Editor';
 
 const css = stylesheet({
@@ -93,6 +93,7 @@ export function inputConverter(paramStr: string, paramType: ParameterType_Parame
 function NewRunParametersV2(props: NewRunParametersProps) {
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
   const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const [updatedParameters, setUpdatedParameters] = useState({});
   useEffect(() => {
@@ -172,27 +173,32 @@ function NewRunParametersV2(props: NewRunParametersProps) {
             };
 
             return (
-              <ParamEditor
-                key={k}
-                id={k}
-                onChange={value => {
-                  const nextUpdatedParameters: RuntimeParameters = {};
-                  Object.assign(nextUpdatedParameters, updatedParameters);
-                  nextUpdatedParameters[k] = value;
-                  setUpdatedParameters(nextUpdatedParameters);
-                  if (props.handleParameterChange) {
-                    let parametersInRealType: RuntimeParameters = {};
-                    Object.entries(nextUpdatedParameters).map(([k, v1]) => {
-                      parametersInRealType[k] = inputConverter(
-                        v1,
-                        props.specParameters[k].parameterType,
-                      );
-                    });
-                    props.handleParameterChange(parametersInRealType);
-                  }
-                }}
-                param={param}
-              />
+              <div>
+                <ParamEditor
+                  key={k}
+                  id={k}
+                  onChange={value => {
+                    const nextUpdatedParameters: RuntimeParameters = {};
+                    Object.assign(nextUpdatedParameters, updatedParameters);
+                    nextUpdatedParameters[k] = value;
+                    setUpdatedParameters(nextUpdatedParameters);
+                    if (props.handleParameterChange) {
+                      let parametersInRealType: RuntimeParameters = {};
+                      Object.entries(nextUpdatedParameters).map(([k, v1]) => {
+                        parametersInRealType[k] = inputConverter(
+                          v1,
+                          props.specParameters[k].parameterType,
+                        );
+                      });
+                      props.handleParameterChange(parametersInRealType);
+                    }
+                  }}
+                  param={param}
+                />
+                <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
+                  {errorMessage}
+                </div>
+              </div>
             );
           })}
         </div>
