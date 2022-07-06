@@ -44,41 +44,46 @@ def _make_parent_dirs_and_return_path(file_path: str):
   return file_path
 
 
+parser = argparse.ArgumentParser(
+    prog='Vertex Model Service evaluation importer', description='')
+parser.add_argument(
+    '--metrics',
+    dest='metrics',
+    type=str,
+    required=True,
+    default=argparse.SUPPRESS)
+parser.add_argument(
+    '--metrics_explanation', dest='metrics_explanation', type=str, default=None)
+parser.add_argument('--explanation', dest='explanation', type=str, default=None)
+parser.add_argument(
+    '--problem_type',
+    dest='problem_type',
+    type=str,
+    required=True,
+    default=argparse.SUPPRESS)
+parser.add_argument(
+    '--display_name', dest='display_name', type=str, default=None)
+parser.add_argument(
+    '--pipeline_job_id', dest='pipeline_job_id', type=str, default=None)
+parser.add_argument(
+    '--dataset_path', dest='dataset_path', type=str, default=None)
+parser.add_argument(
+    '--dataset_type', dest='dataset_type', type=str, default=None)
+parser.add_argument(
+    '--model_name',
+    dest='model_name',
+    type=str,
+    required=True,
+    default=argparse.SUPPRESS)
+parser.add_argument(
+    '--gcp_resources',
+    dest='gcp_resources',
+    type=_make_parent_dirs_and_return_path,
+    required=True,
+    default=argparse.SUPPRESS)
+
 def main(argv):
   """Calls ModelService.ImportModelEvaluation."""
-  parser = argparse.ArgumentParser(
-      prog='Vertex Model Service evaluation importer', description='')
-  parser.add_argument(
-      '--metrics',
-      dest='metrics',
-      type=str,
-      required=True,
-      default=argparse.SUPPRESS)
-  parser.add_argument(
-      '--metrics_explanation',
-      dest='metrics_explanation',
-      type=str,
-      default=None)
-  parser.add_argument(
-      '--explanation', dest='explanation', type=str, default=None)
-  parser.add_argument(
-      '--problem_type',
-      dest='problem_type',
-      type=str,
-      required=True,
-      default=argparse.SUPPRESS)
-  parser.add_argument(
-      '--model_name',
-      dest='model_name',
-      type=str,
-      required=True,
-      default=argparse.SUPPRESS)
-  parser.add_argument(
-      '--gcp_resources',
-      dest='gcp_resources',
-      type=_make_parent_dirs_and_return_path,
-      required=True,
-      default=argparse.SUPPRESS)
   parsed_args, _ = parser.parse_known_args(argv)
 
   _, project_id, _, location, _, model_id = parsed_args.model_name.split('/')
@@ -120,6 +125,19 @@ def main(argv):
                       ['attributions'][0]['featureAttributions'])
           }]
       }
+
+  if parsed_args.display_name:
+    model_evaluation['display_name'] = parsed_args.display_name
+
+  metadata = {
+      key: value for key, value in {
+          'pipeline_job_id': parsed_args.pipeline_job_id,
+          'evaluation_dataset_type': parsed_args.dataset_type,
+          'evaluation_dataset_path': parsed_args.dataset_path,
+      }.items() if value is not None
+  }
+  if metadata:
+    model_evaluation['metadata'] = to_value(metadata)
 
   import_model_evaluation_response = aiplatform.gapic.ModelServiceClient(
       client_info=gapic_v1.client_info.ClientInfo(

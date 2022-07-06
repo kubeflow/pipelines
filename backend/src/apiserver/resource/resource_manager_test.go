@@ -2047,7 +2047,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 			ScheduledAtInSec: 11,
 			FinishedAtInSec:  0,
 			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: workflow.GetWorkflowSpec().ToStringForStore(),
+				WorkflowSpecManifest: workflow.GetExecutionSpec().ToStringForStore(),
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -2121,7 +2121,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 			ScheduledAtInSec: 11,
 			FinishedAtInSec:  0,
 			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: workflow.GetWorkflowSpec().ToStringForStore(),
+				WorkflowSpecManifest: workflow.GetExecutionSpec().ToStringForStore(),
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{

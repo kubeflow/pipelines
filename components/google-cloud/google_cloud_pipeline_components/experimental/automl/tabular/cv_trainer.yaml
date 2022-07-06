@@ -46,6 +46,7 @@ inputs:
 - {name: location, type: String}
 - {name: root_dir, type: String}
 - {name: worker_pool_specs_override, type: String, default: ""}
+- {name: worker_pool_specs_override_json, type: JsonArray, default: "[]"}
 - {name: deadline_hours, type: Float}
 - {name: num_parallel_trials, type: Integer}
 - {name: single_run_max_secs, type: Integer}
@@ -74,11 +75,11 @@ implementation:
         '{"display_name": "automl-tabular-cv-tuner-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20220629_0725_RC00',
         '", "args": ["l2l_cv_tuner", "--transform_output_path=',
         {inputUri: transform_output},
         '", "--training_docker_uri=',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20220629_0725_RC00',
         '", "--component_id={{$.pipeline_task_uuid}}", "--training_base_dir=',
         {inputValue: root_dir},
         '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train", "--worker_pool_specs_override=',
@@ -105,5 +106,5 @@ implementation:
         {outputUri: tuning_result_output},
         '", "--kms_key_name=',
         {inputValue: encryption_spec_key_name},
-        '", "--use_custom_job=true", "--use_json=true", "--log_level=ERROR"]}}]}}'
+        '", "--use_custom_job=true", "--use_json=true", "--log_level=ERROR", "--executor_input={{$.json_escape[1]}}"]}}]}}'
       ]]

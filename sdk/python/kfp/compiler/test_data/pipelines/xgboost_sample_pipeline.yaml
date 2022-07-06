@@ -261,8 +261,8 @@ deploymentSpec:
         - '{{$.inputs.artifacts[''data''].path}}'
         - --model
         - '{{$.inputs.artifacts[''model''].path}}'
-        - --label-column
-        - '{{$.inputs.parameters[''label_column'']}}'
+        - '{"IfPresent": {"InputName": "label_column", "Then": ["--label-column",
+          "{{$.inputs.parameters[''label_column'']}}"]}}'
         - --predictions
         - '{{$.outputs.artifacts[''predictions''].path}}'
         command:
@@ -312,8 +312,8 @@ deploymentSpec:
         - '{{$.inputs.artifacts[''data''].path}}'
         - --model
         - '{{$.inputs.artifacts[''model''].path}}'
-        - --label-column-name
-        - '{{$.inputs.parameters[''label_column_name'']}}'
+        - '{"IfPresent": {"InputName": "label_column_name", "Then": ["--label-column-name",
+          "{{$.inputs.parameters[''label_column_name'']}}"]}}'
         - --predictions
         - '{{$.outputs.artifacts[''predictions''].path}}'
         command:
@@ -366,8 +366,8 @@ deploymentSpec:
         - '{{$.inputs.artifacts[''data''].path}}'
         - --model
         - '{{$.inputs.artifacts[''model''].path}}'
-        - --label-column-name
-        - '{{$.inputs.parameters[''label_column_name'']}}'
+        - '{"IfPresent": {"InputName": "label_column_name", "Then": ["--label-column-name",
+          "{{$.inputs.parameters[''label_column_name'']}}"]}}'
         - --predictions
         - '{{$.outputs.artifacts[''predictions''].path}}'
         command:
@@ -420,8 +420,8 @@ deploymentSpec:
         - '{{$.inputs.artifacts[''data''].path}}'
         - --model
         - '{{$.inputs.artifacts[''model''].path}}'
-        - --label-column
-        - '{{$.inputs.parameters[''label_column'']}}'
+        - '{"IfPresent": {"InputName": "label_column", "Then": ["--label-column",
+          "{{$.inputs.parameters[''label_column'']}}"]}}'
         - --predictions
         - '{{$.outputs.artifacts[''predictions''].path}}'
         command:
@@ -469,12 +469,21 @@ deploymentSpec:
         args:
         - --training-data
         - '{{$.inputs.artifacts[''training_data''].path}}'
-        - --label-column
-        - '{{$.inputs.parameters[''label_column'']}}'
-        - --num-iterations
-        - '{{$.inputs.parameters[''num_iterations'']}}'
-        - --objective
-        - '{{$.inputs.parameters[''objective'']}}'
+        - '{"IfPresent": {"InputName": "starting_model", "Then": ["--starting-model",
+          "{{$.inputs.artifacts[''starting_model''].path}}"]}}'
+        - '{"IfPresent": {"InputName": "label_column", "Then": ["--label-column",
+          "{{$.inputs.parameters[''label_column'']}}"]}}'
+        - '{"IfPresent": {"InputName": "num_iterations", "Then": ["--num-iterations",
+          "{{$.inputs.parameters[''num_iterations'']}}"]}}'
+        - '{"IfPresent": {"InputName": "booster_params", "Then": ["--booster-params",
+          "{{$.inputs.parameters[''booster_params'']}}"]}}'
+        - '{"IfPresent": {"InputName": "objective", "Then": ["--objective", "{{$.inputs.parameters[''objective'']}}"]}}'
+        - '{"IfPresent": {"InputName": "booster", "Then": ["--booster", "{{$.inputs.parameters[''booster'']}}"]}}'
+        - '{"IfPresent": {"InputName": "learning_rate", "Then": ["--learning-rate",
+          "{{$.inputs.parameters[''learning_rate'']}}"]}}'
+        - '{"IfPresent": {"InputName": "min_split_loss", "Then": ["--min-split-loss",
+          "{{$.inputs.parameters[''min_split_loss'']}}"]}}'
+        - '{"IfPresent": {"InputName": "max_depth", "Then": ["--max-depth", "{{$.inputs.parameters[''max_depth'']}}"]}}'
         - --model
         - '{{$.outputs.artifacts[''model''].path}}'
         - --model-config
@@ -579,10 +588,19 @@ deploymentSpec:
         - '{{$.inputs.artifacts[''training_data''].path}}'
         - --label-column-name
         - '{{$.inputs.parameters[''label_column_name'']}}'
-        - --num-iterations
-        - '{{$.inputs.parameters[''num_iterations'']}}'
-        - --objective
-        - '{{$.inputs.parameters[''objective'']}}'
+        - '{"IfPresent": {"InputName": "starting_model", "Then": ["--starting-model",
+          "{{$.inputs.artifacts[''starting_model''].path}}"]}}'
+        - '{"IfPresent": {"InputName": "num_iterations", "Then": ["--num-iterations",
+          "{{$.inputs.parameters[''num_iterations'']}}"]}}'
+        - '{"IfPresent": {"InputName": "booster_params", "Then": ["--booster-params",
+          "{{$.inputs.parameters[''booster_params'']}}"]}}'
+        - '{"IfPresent": {"InputName": "objective", "Then": ["--objective", "{{$.inputs.parameters[''objective'']}}"]}}'
+        - '{"IfPresent": {"InputName": "booster", "Then": ["--booster", "{{$.inputs.parameters[''booster'']}}"]}}'
+        - '{"IfPresent": {"InputName": "learning_rate", "Then": ["--learning-rate",
+          "{{$.inputs.parameters[''learning_rate'']}}"]}}'
+        - '{"IfPresent": {"InputName": "min_split_loss", "Then": ["--min-split-loss",
+          "{{$.inputs.parameters[''min_split_loss'']}}"]}}'
+        - '{"IfPresent": {"InputName": "max_depth", "Then": ["--max-depth", "{{$.inputs.parameters[''max_depth'']}}"]}}'
         - --model
         - '{{$.outputs.artifacts[''model''].path}}'
         - --model-config

@@ -1,5 +1,39 @@
-# Current Version 1.0.10.dev (Still in Development)
+# Current Version 1.0.14.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.13
+* AutoML Tables - Fix AutoML Tabular pipeline always running evaluation.
+* AutoML Tables - Fix AutoML Tabular pipeline when there are a large set of input features.
+* Model Evaluation - Evaluation preprocessing component change output GCS artifact to JsonArray.
+
+# Release 1.0.12
+* Move generating feature ranking to utils to be available in SDK
+* Change JSON to primitive types for Tables v1, built-in algorithm and internal pipelines
+* AutoML Tables - update Tabular workflow to reference 1.0.10 launcher image
+* AutoML Tables - Add dataflow_service_account to specify custom service account to run dataflow jobs for stats_and_example_gen and transform components.
+* AutoML Tables - Update skip_architecture_search pipeline
+* AutoML Tables - Add algorithm to pipeline, also switch the default algorithm to be AMI
+* AutoML Tables - Use feature transform engine docker image for related components
+* AutoML Tables - Make calculation logic in SDK helper function run inside a component for Tables v1 and skip_architecture_search pipelines
+* AutoML Tables - weight_column_name -> weight_column and target_column_name -> target_column for Tables v1 and skip_architecture_search pipelines
+* AutoML Tables - For built-in algorithms, the transform_config input is expected to be a GCS file path.
+* AutoML Tables - Make generate analyze/transform data and split materialized data as components
+* AutoML Tables - Add automl_tabular_pipeline pipeline for Tabular Workflow.
+* AutoML Tables - Use FTE image directly to launch FTE component
+* Model Evaluation - Add display name to import model evaluation component
+* Model Evaluation - Update default number of workers.
+
+# Release 1.0.11
+* Add custom component to automl_tabular default pipeline
+* Add transformations_path to stats_and_example_gen and enable for v1 default pipeline and testing pipeline
+* Use 'unmanaged_container_model' instead of 'model' in infra validator component for automl tabular
+* Update evaluation component to v0.3
+
+# Release 1.0.10
+* Add new Evaluation components 'evaluation_data_sampler' and 'evaluation_data_splitter'
+* Make AutoML Tables ensemble also output explanation_metadata artifact
+* AutoML Tables - decouple transform config planner from metadata
+* AutoML Tables - Feature transform engine config planner to generate training schema & instance baseline
 
 # Release 1.0.9
 * FTE transform config passed as path to config file instead of directly as string to FTE
