@@ -100,13 +100,14 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     Object.keys(props.specParameters).map(key => {
       if (props.specParameters[key].defaultValue) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.
-        let defaultValStr;
+        let defaultValStr; // Convert default to string type first to avoid error from convertInput
         switch (props.specParameters[key].parameterType) {
           case ParameterType_ParameterTypeEnum.STRUCT:
           case ParameterType_ParameterTypeEnum.LIST:
             defaultValStr = JSON.stringify(props.specParameters[key].defaultValue);
             break;
           case ParameterType_ParameterTypeEnum.BOOLEAN:
+          case ParameterType_ParameterTypeEnum.NUMBER_INTEGER:
             defaultValStr = props.specParameters[key].defaultValue.toString();
             break;
           default:
