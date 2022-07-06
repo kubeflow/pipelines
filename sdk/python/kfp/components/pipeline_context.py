@@ -13,6 +13,7 @@
 # limitations under the License.
 """Definition for Pipeline."""
 
+import textwrap
 from typing import Callable, Optional
 
 from kfp.components import pipeline_task
@@ -49,6 +50,17 @@ def pipeline(name: Optional[str] = None,
             pipeline. This is required if input/output URI placeholder is used in
             this pipeline.
     """
+    if callable(name):
+        strikethrough_decorator = '\u0336'.join('@pipeline') + '\u0336'
+        raise RuntimeError(
+            textwrap.dedent(
+                f"""The @pipeline decorator must be called (optionally with arguments) in order to construct a pipeline. For example:
+
+                {strikethrough_decorator}
+                @pipeline()
+                def my_pipeline():
+                    ...
+            """))
 
     def _pipeline(func: Callable):
         func._is_pipeline = True

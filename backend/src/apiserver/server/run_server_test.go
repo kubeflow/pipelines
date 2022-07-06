@@ -60,7 +60,7 @@ func TestCreateRun(t *testing.T) {
 			ServiceAccount: "pipeline-runner",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-			ScheduledAt:    &timestamp.Timestamp{},
+			ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
 			FinishedAt:     &timestamp.Timestamp{},
 			Status:         "Running",
 			PipelineSpec: &api.PipelineSpec{
@@ -122,7 +122,7 @@ func TestCreateRunPatch(t *testing.T) {
 			ServiceAccount: "pipeline-runner",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-			ScheduledAt:    &timestamp.Timestamp{},
+			ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
 			FinishedAt:     &timestamp.Timestamp{},
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: testWorkflowPatch.ToStringForStore(),
@@ -227,7 +227,7 @@ func TestCreateRun_Multiuser(t *testing.T) {
 			ServiceAccount: "default-editor",
 			StorageState:   api.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-			ScheduledAt:    &timestamp.Timestamp{},
+			ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
 			FinishedAt:     &timestamp.Timestamp{},
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: testWorkflow.ToStringForStore(),
@@ -268,7 +268,7 @@ func TestListRun(t *testing.T) {
 		ServiceAccount: "pipeline-runner",
 		StorageState:   api.Run_STORAGESTATE_AVAILABLE,
 		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-		ScheduledAt:    &timestamp.Timestamp{},
+		ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
 		FinishedAt:     &timestamp.Timestamp{},
 		Status:         "Running",
 		PipelineSpec: &api.PipelineSpec{
@@ -350,7 +350,7 @@ func TestListRuns_Multiuser(t *testing.T) {
 		ServiceAccount: "pipeline-runner",
 		StorageState:   api.Run_STORAGESTATE_AVAILABLE,
 		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
-		ScheduledAt:    &timestamp.Timestamp{},
+		ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
 		FinishedAt:     &timestamp.Timestamp{},
 		Status:         "Running",
 		PipelineSpec: &api.PipelineSpec{

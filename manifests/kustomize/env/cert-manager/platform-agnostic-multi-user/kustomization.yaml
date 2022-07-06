@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+bases:
+  - ../../platform-agnostic-multi-user
+  - ../base
+namespace: kubeflow
+
+# Delete the cache deployer as we use the cert-manager instead 
+patchesStrategicMerge:
+  - ./delete-cache-deployer.yaml
+
+# Pass proper arguments to cache-server to use cert-manager certificate
+patches:
+- patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/args/-
+      value: "--tls_cert_filename=tls.crt"
+  target:
+    kind: Deployment
+    name: cache-server
+- patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/args/-
+      value: "--tls_key_filename=tls.key"
+  target:
+    kind: Deployment
+    name: cache-server

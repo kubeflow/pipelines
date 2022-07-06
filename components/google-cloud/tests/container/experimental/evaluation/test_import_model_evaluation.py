@@ -1,20 +1,21 @@
 """Tests for importing model evaluations."""
 
 import json
-from unittest import mock
 import os
+from unittest import mock
 
 import google.auth
 from google.cloud import aiplatform
 from google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation import main
 from google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation import to_value
-from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
+from google_cloud_pipeline_components.proto import gcp_resources_pb2
 
 from google.protobuf import json_format
-from google3.testing.pybase.googletest import TestCase
+import unittest
 
 SCHEMA_URI = 'gs://google-cloud-aiplatform/schema/modelevaluation/classification_metrics_1.0.0.yaml'
-
+DISPLAY_NAME = 'sheesh'
+PIPELINE_JOB_ID = 'thisisanid'
 METRICS = ('{"slicedMetrics": [{"singleOutputSlicingSpec": {},"metrics": '
            '{"regression": {"rootMeanSquaredError": '
            '49.40016,"meanAbsoluteError": '
@@ -60,7 +61,8 @@ def mock_api_call(test_func):
 
   return mocked_test
 
-class ImportModelEvaluationTest(TestCase):
+
+class ImportModelEvaluationTest(unittest.TestCase):
 
   def setUp(self):
     super(ImportModelEvaluationTest, self).setUp()
@@ -83,7 +85,8 @@ class ImportModelEvaluationTest(TestCase):
   def test_import_model_evaluation(self, mock_api):
     main([
         '--metrics', self.metrics_path, '--problem_type', 'classification',
-        '--model_name', self._model_name, '--gcp_resources', self._gcp_resources
+        '--model_name', self._model_name, '--gcp_resources',
+        self._gcp_resources, '--display_name', DISPLAY_NAME
     ])
     mock_api.assert_called_with(
         mock.ANY,
@@ -95,6 +98,8 @@ class ImportModelEvaluationTest(TestCase):
                     ['regression']),
             'metrics_schema_uri':
                 SCHEMA_URI,
+            'display_name':
+                DISPLAY_NAME,
         })
 
   @mock_api_call
@@ -210,8 +215,8 @@ class ImportModelEvaluationTest(TestCase):
       serialized_gcp_resources = f.read()
 
       # Instantiate GCPResources Proto
-      model_evaluation_resources = json_format.Parse(serialized_gcp_resources,
-                                                     GcpResources())
+      model_evaluation_resources = json_format.Parse(
+          serialized_gcp_resources, gcp_resources_pb2.GcpResources())
 
       self.assertLen(model_evaluation_resources.resources, 1)
       model_evaluation_name = model_evaluation_resources.resources[
@@ -321,4 +326,25 @@ class ImportModelEvaluationTest(TestCase):
                             ['attributions'][0]['featureAttributions'])
                 }]
             },
+        })
+
+  @mock_api_call
+  def test_import_model_evaluation_with_pipeline_id(self, mock_api):
+    main([
+        '--metrics', self.metrics_path, '--problem_type', 'classification',
+        '--model_name', self._model_name, '--pipeline_job_id', PIPELINE_JOB_ID,
+        '--gcp_resources', self._gcp_resources
+    ])
+    mock_api.assert_called_with(
+        mock.ANY,
+        parent=self._model_name,
+        model_evaluation={
+            'metrics':
+                to_value(
+                    json.loads(METRICS)['slicedMetrics'][0]['metrics']
+                    ['regression']),
+            'metrics_schema_uri':
+                SCHEMA_URI,
+            'metadata':
+                to_value({'pipeline_job_id': PIPELINE_JOB_ID})
         })

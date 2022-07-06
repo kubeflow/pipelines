@@ -19,9 +19,9 @@ import textwrap
 import unittest
 from unittest import mock
 
-import requests
 from kfp.components import structures
 from kfp.components import yaml_component
+import requests
 
 SAMPLE_YAML = textwrap.dedent("""\
 components:
@@ -71,6 +71,19 @@ root:
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-alpha.3
         """)
+
+V1_COMPONENTS_TEST_DATA_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), 'compiler', 'test_data',
+    'v1_component_yaml')
+
+V1_COMPONENT_YAML_TEST_CASES = [
+    'concat_placeholder_component.yaml',
+    'ingestion_component.yaml',
+    'serving_component.yaml',
+    'if_placeholder_component.yaml',
+    'trainer_component.yaml',
+    'add_component.yaml',
+]
 
 
 class YamlComponentTest(unittest.TestCase):

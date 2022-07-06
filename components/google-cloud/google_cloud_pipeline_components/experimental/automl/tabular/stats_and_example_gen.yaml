@@ -54,6 +54,8 @@ description: |
             function to given input column. And the result will be used for training. When creating
             transformation for BigQuery Struct column, the column should be flattened using "." as
             the delimiter.
+        transformations_path (Optional[str]):
+            Path to a GCS file containing JSON string for transformations.
         split_spec (str):
             Quote escaped JSON string for split spec.
         data_source (str):
@@ -71,9 +73,11 @@ description: |
             https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
         dataflow_use_public_ips (Optional[bool]):
             Specifies whether Dataflow workers use public IP addresses.
+        dataflow_service_account (Optional[str]):
+            Custom service account to run dataflow jobs.
         encryption_spec_key_name (Optional[str]):
             Customer-managed encryption key.
-        is_distill (bool): True if in distillation mode. The default value is false.
+        run_distillation (bool): True if in distillation mode. The default value is false.
 
     Returns:
         dataset_schema (DatasetSchema): The schema of the dataset.
@@ -100,16 +104,28 @@ inputs:
 - {name: optimization_objective_recall_value, type: Float, default: "-1"}
 - {name: optimization_objective_precision_value, type: Float, default: "-1"}
 - {name: transformations, type: String}
-- {name: split_spec, type: String}
-- {name: data_source, type: String}
+- {name: transformations_path, type: String, default: ""}
+- {name: split_spec, type: String, optional: true}
+- {name: data_source, type: String, optional: true}
+- {name: request_type, type: String, default: "COLUMN_STATS_ONLY"}
 - {name: dataflow_machine_type, type: String, default: "n1-standard-16"}
 - {name: dataflow_max_num_workers, type: Integer, default: "25"}
 - {name: dataflow_disk_size_gb, type: Integer, default: "40"}
 - {name: dataflow_subnetwork, type: String, default: ""}
 - {name: dataflow_use_public_ips, type: Boolean, default: "true"}
+- {name: dataflow_service_account, type: String, default: ""}
 - {name: encryption_spec_key_name, type: String, default: ""}
-- {name: is_distill, type: Boolean, default: "false"}
+- {name: run_distillation, type: Boolean, default: "false"}
 - {name: additional_experiments, type: String, default: ""}
+- {name: additional_experiments_json, type: JsonObject, default: "{}"}
+- {name: data_source_csv_filenames, type: String, default: ""}
+- {name: data_source_bigquery_table_path, type: String, default: ""}
+- {name: predefined_split_key, type: String, default: ""}
+- {name: timestamp_split_key, type: String, default: ""}
+- {name: stratified_split_key, type: String, default: ""}
+- {name: training_fraction, type: Float, default: "-1"}
+- {name: validation_fraction, type: Float, default: "-1"}
+- {name: test_fraction, type: Float, default: "-1"}
 
 outputs:
 - {name: dataset_schema, type: DatasetSchema}
@@ -137,7 +153,7 @@ implementation:
         '{"display_name": "tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20220629_0725_RC00',
         '", "args": ["stats_generator",',
         '"--train_spec={\"prediction_type\": \"',
         {inputValue: prediction_type},
@@ -149,13 +165,32 @@ implementation:
         {inputValue: weight_column_name},
         '\", \"transformations\": ',
         {inputValue: transformations},
-        '}", "--split_spec=',
+        '}", "--transformations_override_path=',
+        {inputValue: transformations_path},
+        '", "--split_spec=',
         {inputValue: split_spec},
         '", "--data_source=',
         {inputValue: data_source},
+        '", "--data_source_csv_filenames=',
+        {inputValue: data_source_csv_filenames},
+        '", "--data_source_bigquery_table_path=',
+        {inputValue: data_source_bigquery_table_path},
+        '", "--predefined_split_key=',
+        {inputValue: predefined_split_key},
+        '", "--timestamp_split_key=',
+        {inputValue: timestamp_split_key},
+        '", "--stratified_split_key=',
+        {inputValue: stratified_split_key},
+        '", "--training_fraction=',
+        {inputValue: training_fraction},
+        '", "--validation_fraction=',
+        {inputValue: validation_fraction},
+        '", "--test_fraction=',
+        {inputValue: test_fraction},
         '", "--target_column=',
         {inputValue: target_column_name},
-        '", "--request_type=COLUMN_STATS_ONLY',
+        '", "--request_type=',
+        {inputValue: request_type},
         '", "--optimization_objective_recall_value=',
         {inputValue: optimization_objective_recall_value},
         '", "--optimization_objective_precision_value=',
@@ -180,7 +215,7 @@ implementation:
         '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp", "--dataflow_max_num_workers=',
         {inputValue: dataflow_max_num_workers},
         '", "--dataflow_worker_container_image=',
-        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod',
+        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220629_0725_RC00',
         '", "--dataflow_machine_type=',
         {inputValue: dataflow_machine_type},
         '", "--dataflow_disk_size_gb=',
@@ -191,8 +226,10 @@ implementation:
         {inputValue: dataflow_subnetwork},
         '", "--dataflow_use_public_ips=',
         {inputValue: dataflow_use_public_ips},
+        '", "--dataflow_service_account=',
+        {inputValue: dataflow_service_account},
         '", "--is_distill=',
-        {inputValue: is_distill},
+        {inputValue: run_distillation},
          '", "--additional_experiments=',
         {inputValue: additional_experiments},
         '", "--metadata_path=',
@@ -209,5 +246,5 @@ implementation:
         {outputPath: downsampled_test_split_json},
         '", "--instance_baseline_path=',
         {outputUri: instance_baseline},
-        '", "--parse_json=true", "--generate_additional_downsample_test_split=true"]}}]}}'
+        '", "--parse_json=true", "--generate_additional_downsample_test_split=true", "--executor_input={{$.json_escape[1]}}"]}}]}}'
       ]]

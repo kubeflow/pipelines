@@ -1,7 +1,83 @@
-# Current Version 1.0.8.dev (Still in Development)
+# Current Version 1.0.14.dev (Still in Development)
 * Add notes for next release here.
 
-# Current Version 1.0.7
+# Release 1.0.13
+* AutoML Tables - Fix AutoML Tabular pipeline always running evaluation.
+* AutoML Tables - Fix AutoML Tabular pipeline when there are a large set of input features.
+* Model Evaluation - Evaluation preprocessing component change output GCS artifact to JsonArray.
+
+# Release 1.0.12
+* Move generating feature ranking to utils to be available in SDK
+* Change JSON to primitive types for Tables v1, built-in algorithm and internal pipelines
+* AutoML Tables - update Tabular workflow to reference 1.0.10 launcher image
+* AutoML Tables - Add dataflow_service_account to specify custom service account to run dataflow jobs for stats_and_example_gen and transform components.
+* AutoML Tables - Update skip_architecture_search pipeline
+* AutoML Tables - Add algorithm to pipeline, also switch the default algorithm to be AMI
+* AutoML Tables - Use feature transform engine docker image for related components
+* AutoML Tables - Make calculation logic in SDK helper function run inside a component for Tables v1 and skip_architecture_search pipelines
+* AutoML Tables - weight_column_name -> weight_column and target_column_name -> target_column for Tables v1 and skip_architecture_search pipelines
+* AutoML Tables - For built-in algorithms, the transform_config input is expected to be a GCS file path.
+* AutoML Tables - Make generate analyze/transform data and split materialized data as components
+* AutoML Tables - Add automl_tabular_pipeline pipeline for Tabular Workflow.
+* AutoML Tables - Use FTE image directly to launch FTE component
+* Model Evaluation - Add display name to import model evaluation component
+* Model Evaluation - Update default number of workers.
+
+# Release 1.0.11
+* Add custom component to automl_tabular default pipeline
+* Add transformations_path to stats_and_example_gen and enable for v1 default pipeline and testing pipeline
+* Use 'unmanaged_container_model' instead of 'model' in infra validator component for automl tabular
+* Update evaluation component to v0.3
+
+# Release 1.0.10
+* Add new Evaluation components 'evaluation_data_sampler' and 'evaluation_data_splitter'
+* Make AutoML Tables ensemble also output explanation_metadata artifact
+* AutoML Tables - decouple transform config planner from metadata
+* AutoML Tables - Feature transform engine config planner to generate training schema & instance baseline
+
+# Release 1.0.9
+* FTE transform config passed as path to config file instead of directly as string to FTE
+* Support BigQuery ML weights job component
+* FTE now outputs training schema.
+* Support BigQuery ML reconstruction loss and trial info job components
+* Adding ML.TRAINING_INFO KFP and ML.EXPLAIN_PREDICT BQ Component.
+* Add additional experiments in distillation pipeline.
+* Support BigQuery ML advanced weights job component.
+* Support BigQuery drop model job components.
+* Support BigQuery ML centroids job components.
+* Wide and Deep and Tabnet models both now use the Feature Transform Engine pipeline instead of the Transform component.
+* Adding ML.CONFUSION_MATRIX KFP BQ Component.
+* Adding ML.FEATURE_INFO KFP BQ Component.
+* Merge distill_skip_evaluation and skip_evaluation pipelines with default pipeline using dsl.Condition
+* Adding ML.ROC_CURVE KFP BQ Component.
+* Adding ML.PRINCIPAL_COMPONENTS and ML.PRINCIPAL_COMPONENT_INFO KFP BQ component.
+* Adding ML.FEATURE_IMPORTANCE KFP BQ Component.
+* Add ML.ARIMA_COEFFICIENTS in component.yaml
+* Adding ML.Recommend KFP BQ component.
+* Add ML.ARIMA_EVALUATE in component.yaml
+* KFP component for ml.explain_forecast
+* KFP component for ml.forecast
+* Add distill + evaluation pipeline for Tables
+* Adding ML.GLOBAL_EXPLAIN KFP BQ Component.
+* KFP component for ml.detect_anomalies
+* Make stats-gen component to support running with example-gen only mode
+* Fix AutoML Tables pipeline and builtin pipelines on VPC-SC environment.
+* Preserve empty features in explanation_spec
+
+# Release 1.0.8
+* Use BigQuery batch queries in ARIMA pipeline after first 50 queries
+* Stats Gen and Feature Transform Engine pipeline integration.
+* Add window config to ARIMA pipeline
+* Removed default location setting from AutoML components and documentation.
+* Update default machine type to c2-standard-16 for built-in algorithms Custom and HyperparameterTuning Jobs
+* Use float instead of int max windows, which caused ARIMA pipeline failure
+* Renamed "Feature Transform Engine Transform Configuration" component to "Transform Configuration Planner" for clarity.
+* Preserve empty features in explanation_spec
+* Change json util to not remove empty primitives in a list.
+* Add model eval component to built-in algorithm default pipelines
+* Quick fix to Batch Prediction component input "bigquery_source_input_uri"
+
+# Release 1.0.7
 * Allow metrics and evaluated examples tables to be overwritten.
 * Replace custom copy_table component with BQ first-party query component.
 * Support vpc in feature selection.
@@ -37,8 +113,8 @@
 
 # Release 1.0.2
 * Dataproc Serverless components v1.0 launch.
-* Bump google-cloud-aiplatform version 
-* Fix HP Tuning documentation, fixes #7460 
+* Bump google-cloud-aiplatform version
+* Fix HP Tuning documentation, fixes #7460
 * Use feature ranking and selected features in AutoML Tables stage 1 tuning component.
 * Update distill_skip_evaluation_pipeline for performance improvement.
 

@@ -30,6 +30,7 @@ import { ButtonKeys } from '../lib/Buttons';
 import { render } from '@testing-library/react';
 import { Router } from 'react-router-dom';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 
 const CompareV1 = TEST_ONLY.CompareV1;
 class TestCompare extends CompareV1 {
@@ -75,7 +76,7 @@ describe('CompareV1', () => {
 
   let runs: ApiRunDetail[] = [];
 
-  function newMockRun(id?: string): ApiRunDetail {
+  function newMockRun(id?: string, v2?: boolean): ApiRunDetail {
     return {
       pipeline_runtime: {
         workflow_manifest: '{}',
@@ -83,6 +84,7 @@ describe('CompareV1', () => {
       run: {
         id: id || 'test-run-id',
         name: 'test run ' + id,
+        pipeline_spec: v2 ? { pipeline_manifest: '' } : { workflow_manifest: '' },
       },
     };
   }
@@ -209,6 +211,27 @@ describe('CompareV1', () => {
         mode: 'error',
       }),
     );
+  });
+
+  it('shows an info banner if all runs are v2', async () => {
+    runs = [
+      newMockRun(MOCK_RUN_1_ID, true),
+      newMockRun(MOCK_RUN_2_ID, true),
+      newMockRun(MOCK_RUN_3_ID, true),
+    ];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    tree = shallow(<CompareV1 {...generateProps()} />);
+    await TestUtils.flushPromises();
+
+    expect(updateBannerSpy).toHaveBeenLastCalledWith({
+      additionalInfo:
+        'The selected runs are all V2, but the V2_ALPHA feature flag is disabled.' +
+        ' The V1 page will not show any useful information for these runs.',
+      message:
+        'Info: enable the V2_ALPHA feature flag in order to view the updated Run Comparison page.',
+      mode: 'info',
+    });
   });
 
   it('shows an error banner indicating the number of getRun calls that failed', async () => {
@@ -421,7 +444,7 @@ describe('CompareV1', () => {
 
   it('collapses all sections', async () => {
     await setUpViewersAndShallowMount();
-    const instance = tree.instance() as Compare;
+    const instance = tree.instance() as CompareV1;
     const collapseBtn = instance.getInitialToolbarState().actions[ButtonKeys.COLLAPSE];
 
     expect(tree.state('collapseSections')).toEqual({});
@@ -429,9 +452,9 @@ describe('CompareV1', () => {
     collapseBtn!.action();
 
     expect(tree.state('collapseSections')).toEqual({
-      Metrics: true,
-      Parameters: true,
-      'Run overview': true,
+      [METRICS_SECTION_NAME]: true,
+      [PARAMS_SECTION_NAME]: true,
+      [OVERVIEW_SECTION_NAME]: true,
       Table: true,
       Tensorboard: true,
     });
@@ -441,7 +464,7 @@ describe('CompareV1', () => {
 
   it('expands all sections if they were collapsed', async () => {
     await setUpViewersAndShallowMount();
-    const instance = tree.instance() as Compare;
+    const instance = tree.instance() as CompareV1;
     const collapseBtn = instance.getInitialToolbarState().actions[ButtonKeys.COLLAPSE];
     const expandBtn = instance.getInitialToolbarState().actions[ButtonKeys.EXPAND];
 
@@ -450,9 +473,9 @@ describe('CompareV1', () => {
     collapseBtn!.action();
 
     expect(tree.state('collapseSections')).toEqual({
-      Metrics: true,
-      Parameters: true,
-      'Run overview': true,
+      [METRICS_SECTION_NAME]: true,
+      [PARAMS_SECTION_NAME]: true,
+      [OVERVIEW_SECTION_NAME]: true,
       Table: true,
       Tensorboard: true,
     });
@@ -477,7 +500,7 @@ describe('CompareV1', () => {
       .find('button')
       .simulate('click');
 
-    expect(tree.state('collapseSections')).toEqual({ 'Run overview': true });
+    expect(tree.state('collapseSections')).toEqual({ [OVERVIEW_SECTION_NAME]: true });
 
     // Collapse run parameters
     tree
@@ -487,8 +510,8 @@ describe('CompareV1', () => {
       .simulate('click');
 
     expect(tree.state('collapseSections')).toEqual({
-      Parameters: true,
-      'Run overview': true,
+      [PARAMS_SECTION_NAME]: true,
+      [OVERVIEW_SECTION_NAME]: true,
     });
 
     // Re-expand run overview and parameters
@@ -504,8 +527,8 @@ describe('CompareV1', () => {
       .simulate('click');
 
     expect(tree.state('collapseSections')).toEqual({
-      Parameters: false,
-      'Run overview': false,
+      [PARAMS_SECTION_NAME]: false,
+      [OVERVIEW_SECTION_NAME]: false,
     });
   });
 

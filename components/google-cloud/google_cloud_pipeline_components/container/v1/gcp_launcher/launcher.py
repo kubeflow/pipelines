@@ -62,12 +62,20 @@ _JOB_TYPE_TO_ACTION_MAP = {
         bigquery_job_remote_runner.bigquery_drop_model_job,
     'BigqueryPredictModelJob':
         bigquery_job_remote_runner.bigquery_predict_model_job,
+    'BigqueryMLForecastJob':
+        bigquery_job_remote_runner.bigquery_forecast_model_job,
     'BigqueryExplainPredictModelJob':
         bigquery_job_remote_runner.bigquery_explain_predict_model_job,
+    'BigqueryExplainForecastModelJob':
+        bigquery_job_remote_runner.bigquery_explain_forecast_model_job,
     'BigqueryExportModelJob':
         bigquery_job_remote_runner.bigquery_export_model_job,
     'BigqueryEvaluateModelJob':
         bigquery_job_remote_runner.bigquery_evaluate_model_job,
+    'BigqueryMLArimaCoefficientsJob':
+        bigquery_job_remote_runner.bigquery_ml_arima_coefficients,
+    'BigqueryMLArimaEvaluateJob':
+        bigquery_job_remote_runner.bigquery_ml_arima_evaluate_job,
     'BigqueryMLCentroidsJob':
         bigquery_job_remote_runner.bigquery_ml_centroids_job,
     'BigqueryMLWeightsJob':
@@ -84,6 +92,20 @@ _JOB_TYPE_TO_ACTION_MAP = {
         bigquery_job_remote_runner.bigquery_ml_confusion_matrix_job,
     'BigqueryMLFeatureInfoJob':
         bigquery_job_remote_runner.bigquery_ml_feature_info_job,
+    'BigqueryMLRocCurveJob':
+        bigquery_job_remote_runner.bigquery_ml_roc_curve_job,
+    'BigqueryMLPrincipalComponentsJob':
+        bigquery_job_remote_runner.bigquery_ml_principal_components_job,
+    'BigqueryMLPrincipalComponentInfoJob':
+        bigquery_job_remote_runner.bigquery_ml_principal_component_info_job,
+    'BigqueryMLFeatureImportanceJob':
+        bigquery_job_remote_runner.bigquery_ml_feature_importance_job,
+    'BigqueryMLRecommendJob':
+        bigquery_job_remote_runner.bigquery_ml_recommend_job,
+    'BigqueryMLGlobalExplainJob':
+        bigquery_job_remote_runner.bigquery_ml_global_explain_job,
+    'BigqueryDetectAnomaliesModelJob':
+        bigquery_job_remote_runner.bigquery_detect_anomalies_model_job,
     'DataprocPySparkBatch':
         dataproc_batch_remote_runner.create_pyspark_batch,
     'DataprocSparkBatch':
@@ -140,14 +162,31 @@ def _parse_args(args):
       type=str,
       # executor_input is only needed for components that emit output artifacts.
       required=(parsed_args.type in {
-          'UploadModel', 'CreateEndpoint', 'BatchPredictionJob',
-          'BigqueryQueryJob', 'BigqueryCreateModelJob',
-          'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob',
-          'BigQueryMLWeightsJob', 'BigqueryMLTrialInfoJob',
-          'BigqueryMLReconstructionLossJob', 'BigqueryMLTrainingInfoJob',
-          'BigqueryMLAdvancedWeightsJob', 'BigqueryDropModelJob',
-          'BigqueryMLCentroidsJob', 'BigqueryMLConfusionMatrixJob',
-          'BigqueryMLFeatureInfoJob'
+          'UploadModel',
+          'CreateEndpoint',
+          'BatchPredictionJob',
+          'BigqueryQueryJob',
+          'BigqueryCreateModelJob',
+          'BigqueryPredictModelJob',
+          'BigQueryEvaluateModelJob',
+          'BigQueryMLArimaCoefficientsJob',
+          'BigQueryMLArimaEvaluateJob',
+          'BigQueryMLWeightsJob',
+          'BigqueryMLTrialInfoJob',
+          'BigqueryMLReconstructionLossJob',
+          'BigqueryMLTrainingInfoJob',
+          'BigqueryMLAdvancedWeightsJob',
+          'BigqueryDropModelJob',
+          'BigqueryMLCentroidsJob',
+          'BigqueryMLConfusionMatrixJob',
+          'BigqueryMLFeatureInfoJob',
+          'BigqueryMLRocCurveJob',
+          'BigQueryMLPrincipalComponentsJob',
+          'BigQueryMLPrincipalComponentInfoJob',
+          'BigqueryMLRecommendJob',
+          'BigqueryExplainForecastModelJob'
+          'BigqueryMLForecastJob',
+          'BigqueryDetectAnomaliesModelJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -162,13 +201,27 @@ def _parse_args(args):
       dest='job_configuration_query_override',
       type=str,
       required=(parsed_args.type in {
-          'BigqueryQueryJob', 'BigqueryCreateModelJob',
-          'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob',
-          'BigQueryMLWeightsJob', 'BigqueryMLTrialInfoJob',
-          'BigqueryMLReconstructionLossJob', 'BigqueryMLTrainingInfoJob',
-          'BigqueryMLAdvancedWeightsJob', 'BigqueryDropModelJob',
-          'BigqueryMLCentroidsJob', 'BigqueryMLConfusionMatrixJob',
-          'BigqueryMLFeatureInfoJob'
+          'BigqueryQueryJob',
+          'BigqueryCreateModelJob',
+          'BigqueryPredictModelJob',
+          'BigQueryEvaluateModelJob',
+          'BigQueryMLWeightsJob',
+          'BigqueryMLTrialInfoJob',
+          'BigqueryMLReconstructionLossJob',
+          'BigqueryMLTrainingInfoJob',
+          'BigqueryMLAdvancedWeightsJob',
+          'BigqueryDropModelJob',
+          'BigqueryMLCentroidsJob',
+          'BigqueryMLConfusionMatrixJob',
+          'BigqueryMLFeatureInfoJob',
+          'BigqueryMLRocCurveJob',
+          'BigQueryMLPrincipalComponentsJob',
+          'BigQueryMLPrincipalComponentInfoJob',
+          'BigQueryMLPrincipalComponentInfoJob',
+          'BigqueryMLRecommendJob',
+          'BigqueryExplainForecastModelJob',
+          'BigqueryMLForecastJob',
+          'BigqueryDetectAnomaliesModelJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -176,12 +229,28 @@ def _parse_args(args):
       dest='model_name',
       type=str,
       required=(parsed_args.type in {
-          'BigqueryPredictModelJob', 'BigqueryExportModelJob',
-          'BigQueryEvaluateModelJob', 'BigQueryMLWeightsJob',
-          'BigqueryMLTrialInfoJob', 'BigqueryMLReconstructionLossJob',
-          'BigqueryMLTrainingInfoJob', 'BigqueryMLAdvancedWeightsJob',
-          'BigqueryDropModelJob', 'BigqueryMLCentroidsJob',
-          'BigqueryMLConfusionMatrixJob', 'BigqueryMLFeatureInfoJob'
+          'BigqueryPredictModelJob',
+          'BigqueryExportModelJob',
+          'BigQueryEvaluateModelJob',
+          'BigQueryMLArimaCoefficientsJob',
+          'BigQueryMLArimaEvaluateJob',
+          'BigQueryMLWeightsJob',
+          'BigqueryMLTrialInfoJob',
+          'BigqueryMLReconstructionLossJob',
+          'BigqueryMLTrainingInfoJob',
+          'BigqueryMLAdvancedWeightsJob',
+          'BigqueryDropModelJob',
+          'BigqueryMLCentroidsJob',
+          'BigqueryMLConfusionMatrixJob',
+          'BigqueryMLFeatureInfoJob',
+          'BigqueryMLRocCurveJob',
+          'BigQueryMLPrincipalComponentsJob',
+          'BigQueryMLPrincipalComponentInfoJob',
+          'BigqueryMLFeatureImportanceJob',
+          'BigqueryMLRecommendJob',
+          'BigqueryExplainForecastModelJob',
+          'BigqueryMLForecastJob',
+          'BigqueryDetectAnomaliesModelJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -203,7 +272,8 @@ def _parse_args(args):
       # table_name is only needed for BigQuery tvf model job component.
       required=(parsed_args.type in {
           'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob',
-          'BigqueryMLReconstructionLossJob', 'BigqueryMLConfusionMatrixJob'
+          'BigqueryMLReconstructionLossJob', 'BigqueryMLConfusionMatrixJob',
+          'BigqueryMLRocCurveJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -213,7 +283,8 @@ def _parse_args(args):
       # query_statement is only needed for BigQuery predict model job component.
       required=(parsed_args.type in {
           'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob',
-          'BigqueryMLReconstructionLossJob', 'BigqueryMLConfusionMatrixJob'
+          'BigqueryMLReconstructionLossJob', 'BigqueryMLConfusionMatrixJob',
+          'BigqueryMLRocCurveJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
@@ -225,6 +296,13 @@ def _parse_args(args):
           'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob',
           'BigqueryMLConfusionMatrixJob'
       }),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--thresholds',
+      dest='thresholds',
+      type=str,
+      # thresholds is only needed for BigQuery tvf model job component.
+      required=(parsed_args.type in {'BigqueryMLRocCurveJob'}),
       default=argparse.SUPPRESS)
   parser.add_argument(
       '--batch_id',
@@ -240,6 +318,46 @@ def _parse_args(args):
       dest='standardize',
       type=bool,
       required=(parsed_args.type in {'BigqueryMLCentroidsJob'}),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--class_level_explain',
+      dest='class_level_explain',
+      type=bool,
+      required=False,
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--show_all_candidate_models',
+      dest='show_all_candidate_models',
+      type=bool,
+      required=(parsed_args.type in {'BigqueryMLArimaEvaluateJob'}),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--horizon',
+      dest='horizon',
+      type=int,
+      required=(parsed_args.type
+                in {'BigqueryMLForecastJob',
+                    'BigqueryExplainForecastModelJob'}),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--confidence_level',
+      dest='confidence_level',
+      type=float,
+      required=(parsed_args.type
+                in {'BigqueryMLForecastJob',
+                    'BigqueryExplainForecastModelJob'}),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--contamination',
+      dest='contamination',
+      type=float,
+      required=(parsed_args.type in {'BigqueryDetectAnomaliesModelJob'}),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--anomaly_prob_threshold',
+      dest='anomaly_prob_threshold',
+      type=float,
+      required=(parsed_args.type in {'BigqueryDetectAnomaliesModelJob'}),
       default=argparse.SUPPRESS)
   parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)

@@ -24,39 +24,60 @@ __all__ = [
     'BigqueryQueryJobOp',
     'BigqueryCreateModelJobOp',
     'BigqueryExportModelJobOp',
+    'BigqueryMLArimaEvaluateJobOp',
     'BigqueryPredictModelJobOp',
     'BigqueryEvaluateModelJobOp',
+    'BigqueryMLArimaCoefficientsJobOp',
     'BigqueryMLWeightsJobOp',
     'BigqueryMLReconstructionLossJobOp',
     'BigqueryMLTrialInfoJobOp',
     'BigqueryMLTrainingInfoJobOp',
     'BigqueryExplainPredictModelJobOp',
+    'BigqueryExplainForecastModelJobOp',
     'BigqueryMLAdvancedWeightsJobOp',
     'BigqueryDropModelJobOp',
     'BigqueryMLCentroidsJobOp',
     'BigqueryMLConfusionMatrixJobOp',
     'BigqueryMLFeatureInfoJobOp',
+    'BigqueryMLRocCurveJobOp',
+    'BigqueryMLPrincipalComponentsJobOp',
+    'BigqueryMLPrincipalComponentInfoJobOp',
+    'BigqueryMLFeatureImportanceJobOp',
+    'BigqueryMLRecommendJobOp',
+    'BigqueryForecastModelJobOp',
+    'BigqueryForecastModelJobOp',
+    'BigqueryMLGlobalExplainJobOp',
+    'BigqueryDetectAnomaliesModelJobOp',
 ]
 
 BigqueryQueryJobOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'query_job/component.yaml'))
-
-
+    os.path.join(os.path.dirname(__file__), 'query_job/component.yaml'))
 BigqueryCreateModelJobOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'create_model/component.yaml'))
+    os.path.join(os.path.dirname(__file__), 'create_model/component.yaml'))
 
 BigqueryExportModelJobOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'export_model/component.yaml'))
+    os.path.join(os.path.dirname(__file__), 'export_model/component.yaml'))
 
 BigqueryPredictModelJobOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'predict_model/component.yaml'))
+    os.path.join(os.path.dirname(__file__), 'predict_model/component.yaml'))
 
 BigqueryExplainPredictModelJobOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'explain_predict_model/component.yaml'))
 
+BigqueryExplainForecastModelJobOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'explain_forecast_model/component.yaml'))
+
 BigqueryEvaluateModelJobOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'evaluate_model/component.yaml'))
+
+BigqueryMLArimaCoefficientsJobOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'ml_arima_coefficients/component.yaml'))
+
+BigqueryMLArimaEvaluateJobOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'ml_arima_evaluate/component.yaml'))
 
 BigqueryMLReconstructionLossJobOp = load_component_from_file(
     os.path.join(
@@ -80,8 +101,36 @@ BigqueryDropModelJobOp = load_component_from_file(
 
 BigqueryMLCentroidsJobOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'ml_centroids/component.yaml'))
+
 BigqueryMLConfusionMatrixJobOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__), 'ml_confusion_matrix/component.yaml'))
+
 BigqueryMLFeatureInfoJobOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'ml_feature_info/component.yaml'))
+BigqueryMLRocCurveJobOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'ml_roc_curve/component.yaml'))
+
+BigqueryMLPrincipalComponentsJobOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'ml_principal_components/component.yaml'))
+
+BigqueryMLPrincipalComponentInfoJobOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'ml_principal_component_info/component.yaml'))
+
+BigqueryMLFeatureImportanceJobOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__), 'feature_importance/component.yaml'))
+
+BigqueryMLRecommendJobOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'ml_recommend/component.yaml'))
+
+BigqueryForecastModelJobOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'forecast_model/component.yaml'))
+BigqueryMLGlobalExplainJobOp = load_component_from_file(
+        os.path.join(os.path.dirname(__file__), 'global_explain/component.yaml'))
+
+BigqueryDetectAnomaliesModelJobOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'detect_anomalies_model/component.yaml'))

@@ -70,6 +70,7 @@ outputs:
 - {name: unmanaged_container_model, type: google.UnmanagedContainerModel}
 - {name: model_without_custom_ops, type: system.Model}
 - {name: explanation_metadata, type: JsonObject}
+- {name: explanation_metadata_artifact, type: Artifact}
 - {name: explanation_parameters, type: JsonObject}
 
 implementation:
@@ -86,7 +87,7 @@ implementation:
         '{"display_name": "automl-tabular-ensemble-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-highmem-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20220629_0725_RC00',
         '", "args": ["ensemble", "--transform_output_path=',
         {inputUri: transform_output},
         '", "--model_output_path=',
@@ -108,13 +109,13 @@ implementation:
         '", "--warmup_data=',
         {inputUri: warmup_data},
         '", "--prediction_docker_uri=',
-        'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:prod',
+        'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20220629_0725_RC00',
         '", "--model_path=',
         {outputUri: model},
         '", "--custom_model_path=',
         {outputUri: model_without_custom_ops},
         '", "--explanation_metadata_path=',
-        {outputPath: explanation_metadata},
+        {outputPath: explanation_metadata}, ',', {outputUri: explanation_metadata_artifact},
         '", "--explanation_parameters_path=',
         {outputPath: explanation_parameters},
         '", "--model_architecture_path=',

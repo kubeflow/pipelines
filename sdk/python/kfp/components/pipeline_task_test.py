@@ -18,6 +18,7 @@ import unittest
 
 from absl.testing import parameterized
 from kfp.components import pipeline_task
+from kfp.components import placeholders
 from kfp.components import structures
 
 V2_YAML = textwrap.dedent("""\
@@ -81,8 +82,9 @@ class PipelineTaskTest(parameterized.TestCase):
                     image='alpine',
                     command=['sh', '-c', 'echo "$0" >> "$1"'],
                     args=[
-                        structures.InputValuePlaceholder(input_name='input1'),
-                        structures.OutputPathPlaceholder(output_name='output1'),
+                        placeholders.InputValuePlaceholder(input_name='input1'),
+                        placeholders.OutputPathPlaceholder(
+                            output_name='output1'),
                     ],
                 )),
             inputs={

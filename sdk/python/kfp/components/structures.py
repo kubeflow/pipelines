@@ -15,17 +15,16 @@
 
 import ast
 import collections
-import dataclasses
 import functools
 import itertools
-import re
-from typing import Any, Dict, List, Mapping, Optional, Type, TypeVar, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 import uuid
 
 import kfp
 from kfp import dsl
 from kfp.compiler import compiler
 from kfp.components import base_model
+from kfp.components import placeholders
 from kfp.components import utils
 from kfp.components import v1_components
 from kfp.components import v1_structures
@@ -160,221 +159,6 @@ class OutputSpec(base_model.BaseModel):
             return False
 
 
-P = TypeVar('P', bound='PlaceholderSerializationMixin')
-
-
-class PlaceholderSerializationMixin:
-    """Mixin for *Placeholder objects that handles the
-    serialization/deserialization of the placeholder."""
-    _FROM_PLACEHOLDER_REGEX: Union[str, type(NotImplemented)] = NotImplemented
-    _TO_PLACEHOLDER_TEMPLATE_STRING: Union[
-        str, type(NotImplemented)] = NotImplemented
-
-    @classmethod
-    def _is_input_placeholder(cls) -> bool:
-        """Checks if the class is an InputPlaceholder (rather than an
-        OutputPlaceholder).
-
-        Returns:
-            bool: True if the class is an InputPlaceholder, False otherwise.
-        """
-        field_names = {field.name for field in dataclasses.fields(cls)}
-        return "input_name" in field_names
-
-    @classmethod
-    def is_match(cls: Type[P], placeholder_string: str) -> bool:
-        """Determines if the placeholder_string matches the placeholder
-        pattern.
-
-        Args:
-            placeholder_string (str): The string (often "{{$.inputs/outputs...}}") to check.
-
-        Returns:
-            bool: Determines if the placeholder_string matches the placeholder pattern.
-        """
-        return re.match(cls._FROM_PLACEHOLDER_REGEX,
-                        placeholder_string) is not None
-
-    @classmethod
-    def from_placeholder(cls: Type[P], placeholder_string: str) -> P:
-        """Converts a placeholder string into a placeholder object.
-
-        Args:
-            placeholder_string (str): The placeholder.
-
-        Returns:
-            PlaceholderSerializationMixin subclass: The placeholder object.
-        """
-        if cls._FROM_PLACEHOLDER_REGEX == NotImplemented:
-            raise NotImplementedError(
-                f'{cls.__name__} does not support placeholder parsing.')
-
-        matches = re.search(cls._FROM_PLACEHOLDER_REGEX, placeholder_string)
-        if matches is None:
-            raise ValueError(
-                f'Could not parse placeholder: {placeholder_string} into {cls.__name__}'
-            )
-        if cls._is_input_placeholder():
-            return cls(input_name=matches[1])  # type: ignore
-        else:
-            return cls(output_name=matches[1])  # type: ignore
-
-    def to_placeholder(self: P) -> str:
-        """Converts a placeholder object into a placeholder string.
-
-        Returns:
-            str: The placeholder string.
-        """
-        if self._TO_PLACEHOLDER_TEMPLATE_STRING == NotImplemented:
-            raise NotImplementedError(
-                f'{self.__class__.__name__} does not support creating placeholder strings.'
-            )
-        attr_name = 'input_name' if self._is_input_placeholder(
-        ) else 'output_name'
-        value = getattr(self, attr_name)
-        return self._TO_PLACEHOLDER_TEMPLATE_STRING.format(value)
-
-
-class InputValuePlaceholder(base_model.BaseModel,
-                            PlaceholderSerializationMixin):
-    """Class that holds input value for conditional cases.
-
-    Attributes:
-        input_name: name of the input.
-    """
-    input_name: str
-    _aliases = {'input_name': 'inputValue'}
-    _TO_PLACEHOLDER_TEMPLATE_STRING = "{{{{$.inputs.parameters['{}']}}}}"
-    _FROM_PLACEHOLDER_REGEX = r"\{\{\$\.inputs\.parameters\[(?:''|'|\")(.+?)(?:''|'|\")]\}\}"
-
-
-class InputPathPlaceholder(base_model.BaseModel, PlaceholderSerializationMixin):
-    """Class that holds input path for conditional cases.
-
-    Attributes:
-        input_name: name of the input.
-    """
-    input_name: str
-    _aliases = {'input_name': 'inputPath'}
-    _TO_PLACEHOLDER_TEMPLATE_STRING = "{{{{$.inputs.artifacts['{}'].path}}}}"
-    _FROM_PLACEHOLDER_REGEX = r"\{\{\$\.inputs\.artifacts\[(?:''|'|\")(.+?)(?:''|'|\")]\.path\}\}"
-
-
-class InputUriPlaceholder(base_model.BaseModel, PlaceholderSerializationMixin):
-    """Class that holds input uri for conditional cases.
-
-    Attributes:
-        input_name: name of the input.
-    """
-    input_name: str
-    _aliases = {'input_name': 'inputUri'}
-    _TO_PLACEHOLDER_TEMPLATE_STRING = "{{{{$.inputs.artifacts['{}'].uri}}}}"
-    _FROM_PLACEHOLDER_REGEX = r"\{\{\$\.inputs\.artifacts\[(?:''|'|\")(.+?)(?:''|'|\")]\.uri\}\}"
-
-
-class OutputParameterPlaceholder(base_model.BaseModel,
-                                 PlaceholderSerializationMixin):
-    """Class that holds output path for conditional cases.
-
-    Attributes:
-        output_name: name of the output.
-    """
-    output_name: str
-    _aliases = {'output_name': 'outputPath'}
-    _TO_PLACEHOLDER_TEMPLATE_STRING = "{{{{$.outputs.parameters['{}'].output_file}}}}"
-    _FROM_PLACEHOLDER_REGEX = r"\{\{\$\.outputs\.parameters\[(?:''|'|\")(.+?)(?:''|'|\")]\.output_file\}\}"
-
-
-class OutputPathPlaceholder(base_model.BaseModel,
-                            PlaceholderSerializationMixin):
-    """Class that holds output path for conditional cases.
-
-    Attributes:
-        output_name: name of the output.
-    """
-    output_name: str
-    _aliases = {'output_name': 'outputPath'}
-    _TO_PLACEHOLDER_TEMPLATE_STRING = "{{{{$.outputs.artifacts['{}'].path}}}}"
-    _FROM_PLACEHOLDER_REGEX = r"\{\{\$\.outputs\.artifacts\[(?:''|'|\")(.+?)(?:''|'|\")]\.path\}\}"
-
-
-class OutputUriPlaceholder(base_model.BaseModel, PlaceholderSerializationMixin):
-    """Class that holds output uri for conditional cases.
-
-    Attributes:
-        output_name: name of the output.
-    """
-    output_name: str
-    _aliases = {'output_name': 'outputUri'}
-    _TO_PLACEHOLDER_TEMPLATE_STRING = "{{{{$.outputs.artifacts['{}'].uri}}}}"
-    _FROM_PLACEHOLDER_REGEX = r"\{\{\$\.outputs\.artifacts\[(?:''|'|\")(.+?)(?:''|'|\")]\.uri\}\}"
-
-
-ValidCommandArgs = Union[str, InputValuePlaceholder, InputPathPlaceholder,
-                         InputUriPlaceholder, OutputPathPlaceholder,
-                         OutputUriPlaceholder, OutputParameterPlaceholder,
-                         'IfPresentPlaceholder', 'ConcatPlaceholder']
-
-
-class ConcatPlaceholder(base_model.BaseModel):
-    """Class that extends basePlaceholders for concatenation.
-
-    Attributes:
-        items: string or ValidCommandArgs for concatenation.
-    """
-    items: List[ValidCommandArgs]
-    _aliases = {'items': 'concat'}
-
-    @classmethod
-    def from_concat_string(cls, concat_string: str) -> 'ConcatPlaceholder':
-        """Creates a concat placeholder from an IR string indicating
-        concatenation.
-
-        Args:
-            concat_string (str): The IR string (e.g. {{$.inputs.parameters['input1']}}+{{$.inputs.parameters['input2']}})
-
-        Returns:
-            ConcatPlaceholder: The ConcatPlaceholder instance.
-        """
-        items = []
-        for a in concat_string.split('+'):
-            items.extend([maybe_convert_command_arg_to_placeholder(a), '+'])
-        del items[-1]
-        return ConcatPlaceholder(items=items)
-
-
-class IfPresentPlaceholderStructure(base_model.BaseModel):
-    """Class that holds structure for conditional cases.
-
-    Attributes:
-        input_name: name of the input/output.
-        then: If the input/output specified in name is present,
-            the command-line argument will be replaced at run-time by the
-            expanded value of then.
-        otherwise: If the input/output specified in name is not present,
-            the command-line argument will be replaced at run-time by the
-            expanded value of otherwise.
-    """
-    input_name: str
-    then: List[ValidCommandArgs]
-    otherwise: Optional[List[ValidCommandArgs]] = None
-    _aliases = {'input_name': 'inputName', 'otherwise': 'else'}
-
-    def transform_otherwise(self) -> None:
-        """Use None instead of empty list for optional."""
-        self.otherwise = None if self.otherwise == [] else self.otherwise
-
-
-class IfPresentPlaceholder(base_model.BaseModel):
-    """Class that extends basePlaceholders for conditional cases.
-
-    Attributes:
-        if_present (ifPresent): holds structure for conditional cases.
-    """
-    if_structure: IfPresentPlaceholderStructure
-    _aliases = {'if_structure': 'ifPresent'}
-
-
 class ResourceSpec(base_model.BaseModel):
     """The resource requirements of a container execution.
 
@@ -402,9 +186,9 @@ class ContainerSpec(base_model.BaseModel):
         resources (optional): the specification on the resource requirements.
     """
     image: str
-    command: Optional[List[ValidCommandArgs]] = None
-    args: Optional[List[ValidCommandArgs]] = None
-    env: Optional[Mapping[str, ValidCommandArgs]] = None
+    command: Optional[List[placeholders.CommandLineElement]] = None
+    args: Optional[List[placeholders.CommandLineElement]] = None
+    env: Optional[Mapping[str, placeholders.CommandLineElement]] = None
     resources: Optional[ResourceSpec] = None
 
     def transform_command(self) -> None:
@@ -432,16 +216,17 @@ class ContainerSpec(base_model.BaseModel):
         Returns:
             ContainerSpec: The ContainerSpec instance.
         """
-
         args = container_dict.get('args')
         if args is not None:
             args = [
-                maybe_convert_command_arg_to_placeholder(arg) for arg in args
+                placeholders.maybe_convert_placeholder_string_to_placeholder(
+                    arg) for arg in args
             ]
         command = container_dict.get('command')
         if command is not None:
             command = [
-                maybe_convert_command_arg_to_placeholder(c) for c in command
+                placeholders.maybe_convert_placeholder_string_to_placeholder(c)
+                for c in command
             ]
         return ContainerSpec(
             image=container_dict['image'],
@@ -449,40 +234,6 @@ class ContainerSpec(base_model.BaseModel):
             args=args,
             env=None,  # can only be set on tasks
             resources=None)  # can only be set on tasks
-
-
-def maybe_convert_command_arg_to_placeholder(arg: str) -> ValidCommandArgs:
-    """Infers if a command is a placeholder and converts it to the correct
-    Placeholder object.
-
-    Args:
-        arg (str): The arg or command to possibly convert.
-
-    Returns:
-        ValidCommandArgs: The converted command or original string.
-    """
-    # short path to avoid checking all regexs
-    if not arg.startswith('{{$'):
-        return arg
-
-    # handle concat placeholder
-    # TODO: change when support for concat is added to IR
-    if '}}+{{' in arg:
-        return ConcatPlaceholder.from_concat_string(arg)
-
-    placeholders = {
-        InputValuePlaceholder,
-        InputPathPlaceholder,
-        InputUriPlaceholder,
-        OutputPathPlaceholder,
-        OutputUriPlaceholder,
-        OutputParameterPlaceholder,
-    }
-    for placeholder_struct in placeholders:
-        if placeholder_struct.is_match(arg):
-            return placeholder_struct.from_placeholder(arg)
-
-    return arg
 
 
 class TaskSpec(base_model.BaseModel):
@@ -577,115 +328,9 @@ class Implementation(base_model.BaseModel):
         return Implementation(container=container_spec)
 
 
-def try_to_get_dict_from_string(string: str) -> Union[dict, str]:
-    """Tries to parse a dictionary from a string if possible, else returns the
-    string.
-
-    Args:
-        string (str): The string to parse.
-
-    Returns:
-        Union[dict, str]: The dictionary if one was successfully parsed, else the original string.
-    """
-    try:
-        res = ast.literal_eval(string)
-    except (ValueError, SyntaxError):
-        return string
-
-    if not isinstance(res, dict):
-        return string
-    return res
-
-
-def convert_str_or_dict_to_placeholder(
-    element: Union[str, dict,
-                   ValidCommandArgs]) -> Union[str, ValidCommandArgs]:
-    """Converts command and args elements to a placholder type based on value
-    of the key of the placeholder string, else returns the input.
-
-    Args:
-        element (Union[str, dict, ValidCommandArgs]): A ContainerSpec.command or ContainerSpec.args element.
-
-    Raises:
-        TypeError: If `element` is invalid.
-
-    Returns:
-        Union[str, ValidCommandArgs]: Possibly converted placeholder or original input.
-    """
-
-    if not isinstance(element, (dict, str)):
-        return element
-
-    elif isinstance(element, str):
-        res = try_to_get_dict_from_string(element)
-        if not isinstance(res, dict):
-            return element
-
-    elif isinstance(element, dict):
-        res = element
-    else:
-        raise TypeError(
-            f'Invalid type for arg: {type(element)}. Expected str or dict.')
-
-    has_one_entry = len(res) == 1
-
-    if not has_one_entry:
-        raise ValueError(
-            f'Got unexpected dictionary {res}. Expected a dictionary with one entry.'
-        )
-
-    first_key = list(res.keys())[0]
-    first_value = list(res.values())[0]
-    if first_key == 'inputValue':
-        return InputValuePlaceholder(
-            input_name=utils.sanitize_input_name(first_value))
-
-    elif first_key == 'inputPath':
-        return InputPathPlaceholder(
-            input_name=utils.sanitize_input_name(first_value))
-
-    elif first_key == 'inputUri':
-        return InputUriPlaceholder(
-            input_name=utils.sanitize_input_name(first_value))
-
-    elif first_key == 'outputPath':
-        return OutputPathPlaceholder(
-            output_name=utils.sanitize_input_name(first_value))
-
-    elif first_key == 'outputUri':
-        return OutputUriPlaceholder(
-            output_name=utils.sanitize_input_name(first_value))
-
-    elif first_key == 'ifPresent':
-        structure_kwargs = res['ifPresent']
-        structure_kwargs['input_name'] = structure_kwargs.pop('inputName')
-        structure_kwargs['otherwise'] = structure_kwargs.pop('else')
-        structure_kwargs['then'] = [
-            convert_str_or_dict_to_placeholder(e)
-            for e in structure_kwargs['then']
-        ]
-        structure_kwargs['otherwise'] = [
-            convert_str_or_dict_to_placeholder(e)
-            for e in structure_kwargs['otherwise']
-        ]
-        if_structure = IfPresentPlaceholderStructure(**structure_kwargs)
-
-        return IfPresentPlaceholder(if_structure=if_structure)
-
-    elif first_key == 'concat':
-        return ConcatPlaceholder(items=[
-            convert_str_or_dict_to_placeholder(e) for e in res['concat']
-        ])
-
-    else:
-        raise TypeError(
-            f'Unexpected command/argument type: "{element}" of type "{type(element)}".'
-        )
-
-
-def _check_valid_placeholder_reference(valid_inputs: List[str],
-                                       valid_outputs: List[str],
-                                       placeholder: ValidCommandArgs) -> None:
+def _check_valid_placeholder_reference(
+        valid_inputs: List[str], valid_outputs: List[str],
+        placeholder: placeholders.CommandLineElement) -> None:
     """Validates input/output placeholders refer to an existing input/output.
 
     Args:
@@ -701,37 +346,42 @@ def _check_valid_placeholder_reference(valid_inputs: List[str],
     """
     if isinstance(
             placeholder,
-        (InputValuePlaceholder, InputPathPlaceholder, InputUriPlaceholder)):
+        (placeholders.InputValuePlaceholder, placeholders.InputPathPlaceholder,
+         placeholders.InputUriPlaceholder)):
         if placeholder.input_name not in valid_inputs:
             raise ValueError(
                 f'Argument "{placeholder}" references non-existing input.')
-    elif isinstance(placeholder, (OutputParameterPlaceholder,
-                                  OutputPathPlaceholder, OutputUriPlaceholder)):
+    elif isinstance(placeholder, (placeholders.OutputParameterPlaceholder,
+                                  placeholders.OutputPathPlaceholder,
+                                  placeholders.OutputUriPlaceholder)):
         if placeholder.output_name not in valid_outputs:
             raise ValueError(
                 f'Argument "{placeholder}" references non-existing output.')
-    elif isinstance(placeholder, IfPresentPlaceholder):
-        if placeholder.if_structure.input_name not in valid_inputs:
+    elif isinstance(placeholder, placeholders.IfPresentPlaceholder):
+        if placeholder.input_name not in valid_inputs:
             raise ValueError(
                 f'Argument "{placeholder}" references non-existing input.')
-        for placeholder in itertools.chain(
-                placeholder.if_structure.then or [],
-                placeholder.if_structure.otherwise or []):
+        for placeholder in itertools.chain(placeholder.then or [],
+                                           placeholder.else_ or []):
             _check_valid_placeholder_reference(valid_inputs, valid_outputs,
                                                placeholder)
-    elif isinstance(placeholder, ConcatPlaceholder):
+    elif isinstance(placeholder, placeholders.ConcatPlaceholder):
         for placeholder in placeholder.items:
             _check_valid_placeholder_reference(valid_inputs, valid_outputs,
                                                placeholder)
-    elif not isinstance(placeholder, str):
+    elif not isinstance(placeholder, placeholders.ExecutorInputPlaceholder
+                       ) and not isinstance(placeholder, str):
         raise TypeError(
             f'Unexpected argument "{placeholder}" of type {type(placeholder)}.')
 
 
-ValidCommandArgTypes = (str, InputValuePlaceholder, InputPathPlaceholder,
-                        InputUriPlaceholder, OutputPathPlaceholder,
-                        OutputUriPlaceholder, IfPresentPlaceholder,
-                        ConcatPlaceholder)
+ValidCommandArgTypes = (str, placeholders.InputValuePlaceholder,
+                        placeholders.InputPathPlaceholder,
+                        placeholders.InputUriPlaceholder,
+                        placeholders.OutputPathPlaceholder,
+                        placeholders.OutputUriPlaceholder,
+                        placeholders.IfPresentPlaceholder,
+                        placeholders.ConcatPlaceholder)
 
 
 class ComponentSpec(base_model.BaseModel):
@@ -762,23 +412,6 @@ class ComponentSpec(base_model.BaseModel):
     def transform_outputs(self) -> None:
         """Use None instead of empty list for outputs."""
         self.outputs = None if self.outputs == {} else self.outputs
-
-    def transform_command_input_placeholders(self) -> None:
-        """Converts command and args elements to a placholder type where
-        applicable."""
-        if self.implementation.container is not None:
-
-            if self.implementation.container.command is not None:
-                self.implementation.container.command = [
-                    convert_str_or_dict_to_placeholder(e)
-                    for e in self.implementation.container.command
-                ]
-
-            if self.implementation.container.args is not None:
-                self.implementation.container.args = [
-                    convert_str_or_dict_to_placeholder(e)
-                    for e in self.implementation.container.args
-                ]
 
     def validate_placeholders(self):
         """Validates that input/output placeholders refer to an existing
@@ -811,7 +444,7 @@ class ComponentSpec(base_model.BaseModel):
 
         Raises:
             ValueError: If implementation is not found.
-            TypeError: if any argument is neither a str nor Dict.
+            TypeError: If any argument is neither a str nor Dict.
         """
         component_dict = v1_component_spec.to_dict()
         if component_dict.get('implementation') is None:
@@ -819,72 +452,33 @@ class ComponentSpec(base_model.BaseModel):
 
         if 'container' not in component_dict.get(
                 'implementation'):  # type: ignore
-            raise NotImplementedError
+            raise NotImplementedError('Container implementation not found.')
 
-        def convert_v1_if_present_placholder_to_v2(
-                arg: Dict[str, Any]) -> Union[Dict[str, Any], ValidCommandArgs]:
-            if isinstance(arg, str):
-                arg = try_to_get_dict_from_string(arg)
-            if not isinstance(arg, dict):
-                return arg
-
-            if 'if' in arg:
-                if_placeholder_values = arg['if']
-                if_placeholder_values_then = list(if_placeholder_values['then'])
-                try:
-                    if_placeholder_values_else = list(
-                        if_placeholder_values['else'])
-                except KeyError:
-                    if_placeholder_values_else = []
-                return IfPresentPlaceholder(
-                    if_structure=IfPresentPlaceholderStructure(
-                        input_name=utils.sanitize_input_name(
-                            if_placeholder_values['cond']['isPresent']),
-                        then=[
-                            convert_str_or_dict_to_placeholder(
-                                convert_v1_if_present_placholder_to_v2(val))
-                            for val in if_placeholder_values_then
-                        ],
-                        otherwise=[
-                            convert_str_or_dict_to_placeholder(
-                                convert_v1_if_present_placholder_to_v2(val))
-                            for val in if_placeholder_values_else
-                        ]))
-
-            elif 'concat' in arg:
-                return ConcatPlaceholder(items=[
-                    convert_str_or_dict_to_placeholder(
-                        convert_v1_if_present_placholder_to_v2(val))
-                    for val in arg['concat']
-                ])
-            elif isinstance(arg, (ValidCommandArgTypes, dict)):
-                return arg
-            else:
-                raise TypeError(
-                    f'Unexpected argument {arg} of type {type(arg)}.')
-
-        implementation = component_dict['implementation']['container']
-        implementation['command'] = [
-            convert_v1_if_present_placholder_to_v2(command)
-            for command in implementation.pop('command', [])
+        container = component_dict['implementation']['container']
+        container['command'] = [
+            placeholders
+            .maybe_convert_v1_yaml_placeholder_to_v2_placeholder_str(
+                command, component_dict=component_dict)
+            for command in container.get('command', [])
         ]
-        implementation['args'] = [
-            convert_v1_if_present_placholder_to_v2(command)
-            for command in implementation.pop('args', [])
+        container['args'] = [
+            placeholders
+            .maybe_convert_v1_yaml_placeholder_to_v2_placeholder_str(
+                command, component_dict=component_dict)
+            for command in container.get('args', [])
         ]
-        implementation['env'] = {
-            key: convert_v1_if_present_placholder_to_v2(command)
-            for key, command in implementation.pop('env', {}).items()
+        container['env'] = {
+            key: placeholders
+            .maybe_convert_v1_yaml_placeholder_to_v2_placeholder_str(
+                command, component_dict=component_dict)
+            for key, command in container.get('env', {}).items()
         }
-        container_spec = ContainerSpec(image=implementation['image'])
-
-        # Must assign these after the constructor call, otherwise it won't work.
-        if implementation['command']:
-            container_spec.command = implementation['command']
-        if implementation['args']:
-            container_spec.args = implementation['args']
-        if implementation['env']:
-            container_spec.env = implementation['env']
+        container_spec = ContainerSpec.from_container_dict({
+            'image': container['image'],
+            'command': container['command'],
+            'args': container['args'],
+            'env': container['env']
+        })
 
         return ComponentSpec(
             name=component_dict.get('name', 'name'),
@@ -935,7 +529,8 @@ class ComponentSpec(base_model.BaseModel):
                 for name, parameter_dict in all_outputs.items()
             }
 
-        def extract_description_from_command(commands: List[str]) -> str:
+        def extract_description_from_command(
+                commands: List[str]) -> Union[str, None]:
             for command in commands:
                 if isinstance(command, str) and 'import kfp' in command:
                     for node in ast.walk(ast.parse(command)):
@@ -945,7 +540,7 @@ class ComponentSpec(base_model.BaseModel):
                             docstring = ast.get_docstring(node)
                             if docstring:
                                 return docstring
-            return ''
+            return None
 
         inputs = inputs_dict_from_components_dict(
             pipeline_spec_dict['components'], raw_name)
@@ -953,7 +548,7 @@ class ComponentSpec(base_model.BaseModel):
             pipeline_spec_dict['components'], raw_name)
 
         description = extract_description_from_command(
-            implementation.container.command) or None
+            implementation.container.command or [])
         return ComponentSpec(
             name=raw_name,
             implementation=implementation,

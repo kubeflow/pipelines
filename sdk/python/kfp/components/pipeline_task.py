@@ -19,6 +19,7 @@ from typing import Any, List, Mapping, Optional, Union
 
 from kfp.components import constants
 from kfp.components import pipeline_channel
+from kfp.components import placeholders
 from kfp.components import structures
 from kfp.components import utils
 from kfp.components.types import type_utils
@@ -206,17 +207,16 @@ class PipelineTask:
             for output_name, output_spec in component_outputs.items()
         }
 
-        def expand_command_part(arg) -> Union[str, List[str], None]:
+        def check_input_type_and_convert_to_placeholder(
+                arg) -> Union[str, List[str], None]:
+            # TODO: separate input type-checking logic from placeholder-conversion/.to_placeholder() logic
             if arg is None:
                 return None
 
-            if isinstance(arg, (str, int, float, bool)):
+            elif isinstance(arg, (str, int, float, bool)):
                 return str(arg)
 
-            elif isinstance(arg, (dict, list)):
-                return json.dumps(arg)
-
-            elif isinstance(arg, structures.InputValuePlaceholder):
+            elif isinstance(arg, placeholders.InputValuePlaceholder):
                 input_name = arg.input_name
                 if not type_utils.is_parameter_type(
                         inputs_dict[input_name].type):
@@ -227,16 +227,17 @@ class PipelineTask:
 
                 if input_name in args or type_utils.is_task_final_status_type(
                         inputs_dict[input_name].type):
-                    return arg.to_placeholder()
-                else:
-                    input_spec = inputs_dict[input_name]
-                    if input_spec.default is not None:
-                        return None
-                    else:
-                        raise ValueError(
-                            f'No value provided for input: {input_name}.')
+                    return arg.to_placeholder_string()
 
-            elif isinstance(arg, structures.InputUriPlaceholder):
+                input_spec = inputs_dict[input_name]
+                if input_spec.default is None:
+                    raise ValueError(
+                        f'No value provided for input: {input_name}.')
+
+                else:
+                    return None
+
+            elif isinstance(arg, placeholders.InputUriPlaceholder):
                 input_name = arg.input_name
                 if type_utils.is_parameter_type(inputs_dict[input_name].type):
                     raise TypeError(
@@ -245,17 +246,16 @@ class PipelineTask:
                         'InputUriPlaceholder.')
 
                 if input_name in args:
-                    input_uri = arg.to_placeholder()
-                    return input_uri
-                else:
-                    input_spec = inputs_dict[input_name]
-                    if input_spec.default is not None:
-                        return None
-                    else:
-                        raise ValueError(
-                            f'No value provided for input: {input_name}.')
+                    return arg.to_placeholder_string()
+                input_spec = inputs_dict[input_name]
+                if input_spec.default is None:
+                    raise ValueError(
+                        f'No value provided for input: {input_name}.')
 
-            elif isinstance(arg, structures.InputPathPlaceholder):
+                else:
+                    return None
+
+            elif isinstance(arg, placeholders.InputPathPlaceholder):
                 input_name = arg.input_name
                 if type_utils.is_parameter_type(inputs_dict[input_name].type):
                     raise TypeError(
@@ -264,17 +264,15 @@ class PipelineTask:
                         'InputPathPlaceholder.')
 
                 if input_name in args:
-                    input_path = arg.to_placeholder()
-                    return input_path
+                    return arg.to_placeholder_string()
+                input_spec = inputs_dict[input_name]
+                if input_spec._optional:
+                    return None
                 else:
-                    input_spec = inputs_dict[input_name]
-                    if input_spec._optional:
-                        return None
-                    else:
-                        raise ValueError(
-                            f'No value provided for input: {input_name}.')
+                    raise ValueError(
+                        f'No value provided for input: {input_name}.')
 
-            elif isinstance(arg, structures.OutputUriPlaceholder):
+            elif isinstance(arg, placeholders.OutputUriPlaceholder):
                 output_name = arg.output_name
                 if type_utils.is_parameter_type(outputs_dict[output_name].type):
                     raise TypeError(
@@ -282,50 +280,23 @@ class PipelineTask:
                         f'"{outputs_dict[output_name].type}" cannot be paired with '
                         'OutputUriPlaceholder.')
 
-                return arg.to_placeholder()
+                return arg.to_placeholder_string()
 
-            elif isinstance(arg, structures.OutputPathPlaceholder):
+            elif isinstance(arg, (placeholders.OutputPathPlaceholder,
+                                  placeholders.OutputParameterPlaceholder)):
                 output_name = arg.output_name
+                return placeholders.OutputParameterPlaceholder(
+                    arg.output_name).to_placeholder_string(
+                    ) if type_utils.is_parameter_type(
+                        outputs_dict[output_name].type
+                    ) else placeholders.OutputPathPlaceholder(
+                        arg.output_name).to_placeholder_string()
 
-                if type_utils.is_parameter_type(outputs_dict[output_name].type):
-                    output_path = structures.OutputParameterPlaceholder(
-                        arg.output_name).to_placeholder()
-                else:
-                    output_path = arg.to_placeholder()
-                return output_path
-
-            elif isinstance(arg, structures.OutputParameterPlaceholder):
-                output_name = arg.output_name
-                if not type_utils.is_parameter_type(
-                        outputs_dict[output_name].type):
-                    raise TypeError(
-                        f'Onput "{output_name}" with type '
-                        f'"{outputs_dict[output_name].type}" cannot be paired with '
-                        'OutputUriPlaceholder.')
-
-                return arg.to_placeholder()
-
-            elif isinstance(arg, structures.ConcatPlaceholder):
-                expanded_argument_strings = expand_argument_list(arg.items)
-                return ''.join(expanded_argument_strings)
-
-            elif isinstance(arg, structures.IfPresentPlaceholder):
-                if arg.if_structure.input_name in argument_values:
-                    result_node = arg.if_structure.then
-                else:
-                    result_node = arg.if_structure.otherwise
-
-                if result_node is None:
-                    return []
-
-                if isinstance(result_node, list):
-                    expanded_result = expand_argument_list(result_node)
-                else:
-                    expanded_result = expand_command_part(result_node)
-                return expanded_result
+            elif isinstance(arg, placeholders.Placeholder):
+                return arg.to_placeholder_string()
 
             else:
-                raise TypeError(f'Unrecognized argument type: {arg}')
+                raise TypeError(f'Unrecognized argument type: {arg}.')
 
         def expand_argument_list(argument_list) -> Optional[List[str]]:
             if argument_list is None:
@@ -333,7 +304,8 @@ class PipelineTask:
 
             expanded_list = []
             for part in argument_list:
-                expanded_part = expand_command_part(part)
+                expanded_part = check_input_type_and_convert_to_placeholder(
+                    part)
                 if expanded_part is not None:
                     if isinstance(expanded_part, list):
                         expanded_list.extend(expanded_part)

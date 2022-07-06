@@ -127,8 +127,8 @@ inputs:
 - {name: dataflow_service_account, type: String, default: ''}
 - {name: dataflow_disk_size, type: Integer, default: 50}
 - {name: dataflow_machine_type, type: String, default: 'n1-standard-4'}
-- {name: dataflow_workers_num, type: Integer, default: '10'}
-- {name: dataflow_max_workers_num, type: Integer, default: '25'}
+- {name: dataflow_workers_num, type: Integer, default: 1}
+- {name: dataflow_max_workers_num, type: Integer, default: 5}
 - {name: dataflow_subnetwork, type: String, default: ""}
 - {name: dataflow_use_public_ips, type: Boolean, default: "true"}
 - {name: encryption_spec_key_name, type: String, default: ""}
@@ -137,7 +137,7 @@ outputs:
 - {name: gcp_resources, type: String}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/model-evaluation:v0.2
+    image: gcr.io/ml-pipeline/model-evaluation:v0.3
     command:
     - python
     - /main.py

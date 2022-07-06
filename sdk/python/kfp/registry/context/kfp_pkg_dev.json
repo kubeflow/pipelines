@@ -1,0 +1,20 @@
+{
+   "host":"{host}",
+   "upload_url":"{host}",
+   "download_version_url":"{host}/{package_name}/{version}",
+   "download_tag_url":"{host}/{package_name}/{tag}",
+   "get_package_url":"https://artifactregistry.googleapis.com/v1/projects/{project_id}/locations/{location}/repositories/{repo_id}/packages/{package_name}",
+   "list_packages_url":"https://artifactregistry.googleapis.com/v1/projects/{project_id}/locations/{location}/repositories/{repo_id}/packages",
+   "delete_package_url":"https://artifactregistry.googleapis.com/v1/projects/{project_id}/locations/{location}/repositories/{repo_id}/packages/{package_name}",
+   "get_tag_url":"https://artifactregistry.googleapis.com/v1/projects/{project_id}/locations/{location}/repositories/{repo_id}/packages/{package_name}/tags/{tag}",
+   "list_tags_url":"https://artifactregistry.googleapis.com/v1/projects/{project_id}/locations/{location}/repositories/{repo_id}/packages/{package_name}/tags",
+   "delete_tag_url":"https://artifactregistry.googleapis.com/v1/projects/{project_id}/locations/{location}/repositories/{repo_id}/packages/{package_name}/tags/{tag}",
+   "create_tag_url":"https://artifactregistry.googleapis.com/v1/projects/{project_id}/locations/{location}/repositories/{repo_id}/packages/{package_name}/tags?tagId={tag}",
+   "update_tag_url":"https://artifactregistry.googleapis.com/v1/projects/{project_id}/locations/{location}/repositories/{repo_id}/packages/{package_name}/tags/{tag}?updateMask=version",
+   "get_version_url":"https://artifactregistry.googleapis.com/v1/projects/{project_id}/locations/{location}/repositories/{repo_id}/packages/{package_name}/versions/{version}?view=FULL",
+   "list_versions_url":"https://artifactregistry.googleapis.com/v1/projects/{project_id}/locations/{location}/repositories/{repo_id}/packages/{package_name}/versions?view=FULL",
+   "delete_version_url":"https://artifactregistry.googleapis.com/v1/projects/{project_id}/locations/{location}/repositories/{repo_id}/packages/{package_name}/versions/{version}",
+   "package_format":"projects/{project_id}/locations/{location}/repositories/{repo_id}/packages/{package_name}",
+   "tag_format":"projects/{project_id}/locations/{location}/repositories/{repo_id}/packages/{package_name}/tags/{tag}",
+   "version_format":"projects/{project_id}/locations/{location}/repositories/{repo_id}/packages/{package_name}/versions/{version}"
+}

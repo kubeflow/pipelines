@@ -39,6 +39,7 @@ import { logger } from '../lib/Utils';
 import WorkflowParser from '../lib/WorkflowParser';
 import { Page, PageProps } from './Page';
 import RunList from './RunList';
+import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 
 const css = stylesheet({
   outputsRow: {
@@ -64,11 +65,9 @@ export interface CompareState {
   workflowObjects: Workflow[];
 }
 
-const overviewSectionName = 'Run overview';
-const paramsSectionName = 'Parameters';
-const metricsSectionName = 'Metrics';
-
 class CompareV1 extends Page<{}, CompareState> {
+  private _runlistRef = React.createRef<RunList>();
+
   constructor(props: any) {
     super(props);
 
@@ -113,16 +112,17 @@ class CompareV1 extends Page<{}, CompareState> {
       <div className={classes(commonCss.page, padding(20, 'lrt'))}>
         {/* Overview section */}
         <CollapseButton
-          sectionName={overviewSectionName}
+          sectionName={OVERVIEW_SECTION_NAME}
           collapseSections={collapseSections}
           collapseSectionsUpdate={this._collapseSectionsUpdate.bind(this)}
         />
-        {!collapseSections[overviewSectionName] && (
+        {!collapseSections[OVERVIEW_SECTION_NAME] && (
           <div className={commonCss.noShrink}>
             <RunList
               onError={this.showPageError.bind(this)}
               {...this.props}
               selectedIds={selectedIds}
+              ref={this._runlistRef}
               runIdListMask={runIds}
               disablePaging={true}
               onSelectionChange={this._selectionChanged.bind(this)}
@@ -134,11 +134,11 @@ class CompareV1 extends Page<{}, CompareState> {
 
         {/* Parameters section */}
         <CollapseButton
-          sectionName={paramsSectionName}
+          sectionName={PARAMS_SECTION_NAME}
           collapseSections={collapseSections}
           collapseSectionsUpdate={this._collapseSectionsUpdate.bind(this)}
         />
-        {!collapseSections[paramsSectionName] && (
+        {!collapseSections[PARAMS_SECTION_NAME] && (
           <div className={classes(commonCss.noShrink, css.outputsRow)}>
             <Separator orientation='vertical' />
             <CompareTable {...this.state.paramsCompareProps} />
@@ -148,11 +148,11 @@ class CompareV1 extends Page<{}, CompareState> {
 
         {/* Metrics section */}
         <CollapseButton
-          sectionName={metricsSectionName}
+          sectionName={METRICS_SECTION_NAME}
           collapseSections={collapseSections}
           collapseSectionsUpdate={this._collapseSectionsUpdate.bind(this)}
         />
-        {!collapseSections[metricsSectionName] && (
+        {!collapseSections[METRICS_SECTION_NAME] && (
           <div className={classes(commonCss.noShrink, css.outputsRow)}>
             <Separator orientation='vertical' />
             <CompareTable {...this.state.metricsCompareProps} />
@@ -208,6 +208,9 @@ class CompareV1 extends Page<{}, CompareState> {
   }
 
   public async refresh(): Promise<void> {
+    if (this._runlistRef.current) {
+      await this._runlistRef.current.refresh();
+    }
     return this.load();
   }
 
@@ -244,6 +247,18 @@ class CompareV1 extends Page<{}, CompareState> {
         `Failed loading ${failingRuns.length} runs, last failed with the error: ${lastError}`,
       );
       return;
+    } else if (
+      runs.length > 0 &&
+      runs.every(runDetail => runDetail.run?.pipeline_spec?.hasOwnProperty('pipeline_manifest'))
+    ) {
+      this.props.updateBanner({
+        additionalInfo:
+          'The selected runs are all V2, but the V2_ALPHA feature flag is disabled.' +
+          ' The V1 page will not show any useful information for these runs.',
+        message:
+          'Info: enable the V2_ALPHA feature flag in order to view the updated Run Comparison page.',
+        mode: 'info',
+      });
     }
 
     const selectedIds = runs.map(r => r.run!.id!);
@@ -295,9 +310,9 @@ class CompareV1 extends Page<{}, CompareState> {
 
   private _collapseAllSections(): void {
     const collapseSections = {
-      [overviewSectionName]: true,
-      [paramsSectionName]: true,
-      [metricsSectionName]: true,
+      [OVERVIEW_SECTION_NAME]: true,
+      [PARAMS_SECTION_NAME]: true,
+      [METRICS_SECTION_NAME]: true,
     };
     Array.from(this.state.viewersMap.keys()).forEach(t => {
       const sectionName = componentMap[t].prototype.getDisplayName();
