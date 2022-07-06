@@ -101,7 +101,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
       if (props.specParameters[key].defaultValue) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.
         let defaultValStr;
-        switch(props.specParameters[key].parameterType) {
+        switch (props.specParameters[key].parameterType) {
           case ParameterType_ParameterTypeEnum.STRUCT:
           case ParameterType_ParameterTypeEnum.LIST:
             defaultValStr = JSON.stringify(props.specParameters[key].defaultValue);
@@ -168,6 +168,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
             const param = {
               key: `${k} - ${ParameterType_ParameterTypeEnum[v.parameterType]}`,
               value: updatedParameters[k],
+              type: v.parameterType,
             };
 
             return (
@@ -179,7 +180,6 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                   Object.assign(nextUpdatedParameters, updatedParameters);
                   nextUpdatedParameters[k] = value;
                   setUpdatedParameters(nextUpdatedParameters);
-                  // make some changes
                   if (props.handleParameterChange) {
                     let parametersInRealType: RuntimeParameters = {};
                     Object.entries(nextUpdatedParameters).map(([k, v1]) => {
@@ -206,6 +206,7 @@ export default NewRunParametersV2;
 interface Param {
   key: string;
   value: any;
+  type: ParameterType_ParameterTypeEnum;
 }
 
 interface ParamEditorProps {
@@ -226,16 +227,16 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
     prevState: ParamEditorState,
   ): { isInJsonForm: boolean; isJsonField: boolean } {
     let isJson = true;
-    let paramType = nextProps.param.key.substring(nextProps.id.length + 3);
-    
-    switch(paramType) {
-      case 'LIST':
-      case 'STRUCT':
+    let paramType = nextProps.param.type;
+
+    switch (paramType) {
+      case ParameterType_ParameterTypeEnum.LIST:
+      case ParameterType_ParameterTypeEnum.STRUCT:
         isJson = true;
         break;
-      case 'STRING':
-      case 'BOOLEAN':
-      case 'NUMBER_INTEGER':
+      case ParameterType_ParameterTypeEnum.STRING:
+      case ParameterType_ParameterTypeEnum.BOOLEAN:
+      case ParameterType_ParameterTypeEnum.NUMBER_INTEGER:
         isJson = false;
         break;
       default:
@@ -259,13 +260,13 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
 
     const onClick = () => {
       if (this.state.isInJsonForm) {
-        let paramType = param.key.substring(id.length + 3);
+        let paramType = param.type;
         let displayValue;
-        switch(paramType) {
-          case 'LIST':
+        switch (paramType) {
+          case ParameterType_ParameterTypeEnum.LIST:
             displayValue = JSON.parse(param.value || '[]');
             break;
-          case 'STRUCT':
+          case ParameterType_ParameterTypeEnum.STRUCT:
             displayValue = JSON.parse(param.value || '{}');
             break;
           default:
