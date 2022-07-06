@@ -70,7 +70,6 @@ const css = stylesheet({
     verticalAlign: 'top',
   },
   errorBanner: {
-    marginLeft: -spacing.units(-1),
     maxWidth: '40rem',
   },
   outputsRow: {
@@ -325,6 +324,7 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
                 ' Click Details for more information.'}`}
               mode='error'
               additionalInfo={errorMessage}
+              leftAlign
             />
           </div>
         )}
