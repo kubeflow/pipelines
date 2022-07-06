@@ -235,7 +235,7 @@ function VisualizationPlaceholder(props: VisualizationPlaceholderProps) {
 
 interface SelectedArtifact {
   selectedItem: SelectedItem;
-  selectedArtifact?: Artifact;
+  artifact?: Artifact;
 }
 
 interface MetricsDropdownProps {
@@ -364,7 +364,7 @@ function MetricsDropdown(props: MetricsDropdownProps) {
         selectedArtifacts[metricsTab][panelIndex].selectedItem !== selectedItem
       ) {
         selectedArtifacts[metricsTab][panelIndex].selectedItem = selectedItem;
-        selectedArtifacts[metricsTab][panelIndex].selectedArtifact = getArtifactFromSelectedItem(
+        selectedArtifacts[metricsTab][panelIndex].artifact = getArtifactFromSelectedItem(
           filteredRunArtifacts,
           selectedItem,
         );
@@ -399,10 +399,9 @@ function MetricsDropdown(props: MetricsDropdownProps) {
               selectedItem={firstSelectedItem}
               setSelectedItem={setFirstSelectedItem}
             />
-            {metricsTab === MetricsType.CONFUSION_MATRIX &&
-            firstSelectedArtifact.selectedArtifact ? (
-              <React.Fragment key={firstSelectedArtifact.selectedArtifact.getId()}>
-                <ConfusionMatrixSection artifact={firstSelectedArtifact.selectedArtifact} />
+            {metricsTab === MetricsType.CONFUSION_MATRIX && firstSelectedArtifact.artifact ? (
+              <React.Fragment key={firstSelectedArtifact.artifact.getId()}>
+                <ConfusionMatrixSection artifact={firstSelectedArtifact.artifact} />
               </React.Fragment>
             ) : (
               <VisualizationPlaceholder metricsTabText={metricsTabText} />
@@ -415,10 +414,9 @@ function MetricsDropdown(props: MetricsDropdownProps) {
               selectedItem={secondSelectedItem}
               setSelectedItem={setSecondSelectedItem}
             />
-            {metricsTab === MetricsType.CONFUSION_MATRIX &&
-            secondSelectedArtifact.selectedArtifact ? (
-              <React.Fragment key={secondSelectedArtifact.selectedArtifact.getId()}>
-                <ConfusionMatrixSection artifact={secondSelectedArtifact.selectedArtifact} />
+            {metricsTab === MetricsType.CONFUSION_MATRIX && secondSelectedArtifact.artifact ? (
+              <React.Fragment key={secondSelectedArtifact.artifact.getId()}>
+                <ConfusionMatrixSection artifact={secondSelectedArtifact.artifact} />
               </React.Fragment>
             ) : (
               <VisualizationPlaceholder metricsTabText={metricsTabText} />
