@@ -4,7 +4,7 @@
 
 ## Breaking Changes
 
-### For Pipeline Authors]
+### For Pipeline Authors
 * Add support for task-level retry policy [\#7867](https://github.com/kubeflow/pipelines/pull/7867)
 
 ### For Component Authors
