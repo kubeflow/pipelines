@@ -186,7 +186,6 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                       );
                     });
                     props.handleParameterChange(parametersInRealType);
-                    console.log(parametersInRealType);
                   }
                 }}
                 param={param}

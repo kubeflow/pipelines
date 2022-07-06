@@ -329,6 +329,29 @@ describe('NewRunParametersV2', () => {
     });
   });
 
+  it('test convertInput function for LIST type with invalid input (invalid JSON form)', () => {
+    const handleParameterChangeSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        listParam: {
+          parameterType: ParameterType_ParameterTypeEnum.LIST,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: handleParameterChangeSpy,
+    };
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const listParam = screen.getByLabelText('listParam - LIST');
+    fireEvent.change(listParam, { target: { value: '[4,5,6' } });
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      listParam: null,
+    });
+  });
+
   it('test convertInput function for STRUCT type with default value', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
@@ -373,6 +396,29 @@ describe('NewRunParametersV2', () => {
     expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
       structParam: { A: 1, B: 2 },
+    });
+  });
+
+  it('test convertInput function for STRUCT type with invalid input (invalid JSON form)', () => {
+    const handleParameterChangeSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        structParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRUCT,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: handleParameterChangeSpy,
+    };
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const structParam = screen.getByLabelText('structParam - STRUCT');
+    fireEvent.change(structParam, { target: { value: '"A":1,"B":2' } });
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      structParam: null,
     });
   });
 
