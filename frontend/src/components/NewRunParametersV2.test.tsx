@@ -21,7 +21,6 @@ import { CommonTestWrapper } from 'src/TestWrapper';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ParameterType_ParameterTypeEnum } from 'src/generated/pipeline_spec/pipeline_spec';
 import NewRunParametersV2 from 'src/components/NewRunParametersV2';
-import { inputConverter } from 'src/components/NewRunParametersV2';
 
 testBestPractices();
 
