@@ -1,0 +1,29 @@
+components:
+  comp-hello-world-container:
+    executorLabel: exec-hello-world-container
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-hello-world-container:
+      container:
+        command:
+        - echo
+        - hello world
+        image: python3.7
+pipelineInfo:
+  name: hello-world-container
+root:
+  dag:
+    tasks:
+      hello-world-container:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-hello-world-container
+        taskInfo:
+          name: hello-world-container
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.0
