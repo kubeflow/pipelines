@@ -100,7 +100,19 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     Object.keys(props.specParameters).map(key => {
       if (props.specParameters[key].defaultValue) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.
-        runtimeParametersWithDefault[key] = props.specParameters[key].defaultValue;
+        let defaultValStr;
+        switch(props.specParameters[key].parameterType) {
+          case ParameterType_ParameterTypeEnum.STRUCT:
+          case ParameterType_ParameterTypeEnum.LIST:
+            defaultValStr = JSON.stringify(props.specParameters[key].defaultValue);
+            break;
+          case ParameterType_ParameterTypeEnum.BOOLEAN:
+            defaultValStr = props.specParameters[key].defaultValue.toString();
+            break;
+          default:
+            defaultValStr = props.specParameters[key].defaultValue;
+        }
+        runtimeParametersWithDefault[key] = defaultValStr;
       }
     });
     setUpdatedParameters(runtimeParametersWithDefault);

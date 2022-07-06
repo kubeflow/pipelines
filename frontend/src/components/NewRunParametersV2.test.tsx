@@ -106,7 +106,32 @@ describe('NewRunParametersV2', () => {
     expect(inputConverter('true', ParameterType_ParameterTypeEnum.BOOLEAN)).toEqual(null);
   });
 
-  it('test convertInput function for LIST type', () => {
+  it('test convertInput function for LIST type with default value', () => {
+    const handleParameterChangeSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        listParam: {
+          parameterType: ParameterType_ParameterTypeEnum.LIST,
+          defaultValue: [1,2,3],
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: handleParameterChangeSpy,
+    };
+
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const listParam = screen.getByDisplayValue('[1,2,3]');
+    fireEvent.change(listParam, {target: {value : '[4,5,6]'}});
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      listParam: [4,5,6],
+    })
+  });
+
+  it('test convertInput function for LIST type without default value', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
@@ -130,14 +155,15 @@ describe('NewRunParametersV2', () => {
     })
   });
 
-  it('test convertInput function for STRUCT type', () => {
+  it('test convertInput function for STRUCT type with default value', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'defalut pipelineRoot',
       specParameters: {
         structParam: {
-          parameterType: ParameterType_ParameterTypeEnum.LIST,
+          parameterType: ParameterType_ParameterTypeEnum.STRUCT,
+          defaultValue: {"A": 1, "B": 2},
         },
       },
       handlePipelineRootChange: jest.fn(),
@@ -146,11 +172,35 @@ describe('NewRunParametersV2', () => {
 
     render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
 
-    const listParam = screen.getByLabelText('structParam - STRUCT');
-    fireEvent.change(listParam, {target: {value : '{A:1'}});
+    const structParam = screen.getByDisplayValue('{"A":1,"B":2}');
+    fireEvent.change(structParam, {target: {value : '{"C":3,"D":4}'}});
     expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
-      listParam: [4,5,6],
+      structParam: {"C": 3, "D": 4},
+    })
+  });
+
+  it('test convertInput function for STRUCT type without default value', () => {
+    const handleParameterChangeSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        structParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRUCT,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: handleParameterChangeSpy,
+    };
+
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const structParam = screen.getByLabelText('structParam - STRUCT');
+    fireEvent.change(structParam, {target: {value : '{"A":1,"B":2}'}});
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      structParam: {"A": 1, "B": 2},
     })
   });
 
