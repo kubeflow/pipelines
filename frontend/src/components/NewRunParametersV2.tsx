@@ -93,7 +93,8 @@ export function inputConverter(paramStr: string, paramType: ParameterType_Parame
 function NewRunParametersV2(props: NewRunParametersProps) {
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
   const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [validInputs, setValidInputs] = useState([]);
+  const [errorMessage, setErrorMessage] = useState(['']);
 
   const [updatedParameters, setUpdatedParameters] = useState({});
   useEffect(() => {
@@ -170,7 +171,11 @@ function NewRunParametersV2(props: NewRunParametersProps) {
               key: `${k} - ${ParameterType_ParameterTypeEnum[v.parameterType]}`,
               value: updatedParameters[k],
               type: v.parameterType,
+              validInput: validInputs[k],
+              errorMsg: errorMessage[k],
             };
+            // console.log('initial');
+            // console.log(param);
 
             return (
               <div>
@@ -179,6 +184,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                   id={k}
                   onChange={value => {
                     const nextUpdatedParameters: RuntimeParameters = {};
+                    const updatedErrorMsgArr: string[] = [];
                     Object.assign(nextUpdatedParameters, updatedParameters);
                     nextUpdatedParameters[k] = value;
                     setUpdatedParameters(nextUpdatedParameters);
@@ -189,15 +195,24 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                           v1,
                           props.specParameters[k].parameterType,
                         );
+                        if (!parametersInRealType[k]) {
+                          validInputs[k] = false;
+                          updatedErrorMsgArr[k] = 'Invalid input! This parameter should be in ' + ParameterType_ParameterTypeEnum[props.specParameters[k].parameterType] + ' type';
+                          setErrorMessage(updatedErrorMsgArr);
+                          setValidInputs(validInputs);
+                        }
                       });
+                      console.log(parametersInRealType);
+                      // console.log('change')
+                      // console.log(param);
                       props.handleParameterChange(parametersInRealType);
                     }
                   }}
                   param={param}
                 />
-                <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
+                {/* <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
                   {errorMessage}
-                </div>
+                </div> */}
               </div>
             );
           })}
@@ -213,6 +228,8 @@ interface Param {
   key: string;
   value: any;
   type: ParameterType_ParameterTypeEnum;
+  validInput: boolean;
+  errorMsg: string;
 }
 
 interface ParamEditorProps {
@@ -318,15 +335,20 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
             }}
           />
         ) : (
-          <TextField
-            id={id}
-            variant='outlined'
-            label={param.key}
-            //TODO(zijianjoy): Convert defaultValue to correct type.
-            value={param.value || ''}
-            onChange={ev => onChange(ev.target.value || '')}
-            className={classes(commonCss.textField, css.textfield)}
-          />
+          <div>
+            <TextField
+              id={id}
+              variant='outlined'
+              label={param.key}
+              //TODO(zijianjoy): Convert defaultValue to correct type.
+              value={param.value || ''}
+              onChange={ev => onChange(ev.target.value || '')}
+              className={classes(commonCss.textField, css.textfield)}
+            />
+            <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
+              {param.validInput ? '' : param.errorMsg}
+            </div>
+          </div>
         )}
         {this.state.isJsonField && this.state.isEditorOpen && (
           <div className={css.row}>
