@@ -49,7 +49,7 @@ const css = stylesheet({
   },
 });
 
-interface xParentLabel {
+export interface xParentLabel {
   label: string;
   colSpan: number;
 }
@@ -72,7 +72,7 @@ class CompareTable extends React.PureComponent<CompareTableProps> {
     const xParentLabelsLength =
       xParentLabels &&
       xParentLabels.reduce((length, xParentLabel) => length + xParentLabel.colSpan, 0);
-    if (xParentLabelsLength !== xLabels.length) {
+    if (xParentLabels && xParentLabelsLength !== xLabels.length) {
       logger.error(
         `Number of columns with data (${xLabels.length}) should match the aggregated length of parent columns (${xParentLabelsLength}).`,
       );

@@ -47,6 +47,9 @@ import TwoLevelDropdown, {
   SelectedItem,
 } from 'src/components/TwoLevelDropdown';
 import MD2Tabs from 'src/atoms/MD2Tabs';
+import CompareTable, { CompareTableProps, xParentLabel } from 'src/components/CompareTable';
+import { getMetadataValue } from 'src/mlmd/Utils';
+import { chain, flatten } from 'lodash';
 
 const css = stylesheet({
   outputsRow: {
@@ -325,9 +328,12 @@ function CompareV2(props: PageProps) {
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
 
+  const [scalarMetricsArtifacts, setScalarMetricsArtifacts] = useState<RunArtifact[]>([]);
   const [confusionMatrixArtifacts, setConfusionMatrixArtifacts] = useState<RunArtifact[]>([]);
   const [htmlArtifacts, setHtmlArtifacts] = useState<RunArtifact[]>([]);
   const [markdownArtifacts, setMarkdownArtifacts] = useState<RunArtifact[]>([]);
+
+  const [scalarMetricsTableData, setScalarMetricsTableData] = useState<CompareTableProps | undefined>(undefined);
 
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
@@ -388,6 +394,9 @@ function CompareV2(props: PageProps) {
   useEffect(() => {
     if (runs && mlmdPackages && artifactTypes) {
       const runArtifacts: RunArtifact[] = getRunArtifacts(runs, mlmdPackages);
+      setScalarMetricsArtifacts(
+        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.SCALAR_METRICS),
+      );
       setConfusionMatrixArtifacts(
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX),
       );
@@ -488,6 +497,109 @@ function CompareV2(props: PageProps) {
     setSelectedIds(selectedIds);
   };
 
+  // TODO: Place this metrics calculation in a separate component?
+  useEffect(() => {
+    console.log(scalarMetricsArtifacts);
+    const yLabels: string[] = [];
+    const xParentLabels: xParentLabel[] = [];
+    interface xTupleLabel {
+      xLabel: string;
+      xParentLabelName: string;
+    }
+    const xTupleLabels: xTupleLabel[] = [];
+    interface MapCoordinate {
+      xLabel: string;
+      yLabel: string;
+      xParentLabel: string;
+    }
+    const dataMap: Map<string, string> = new Map();
+    for (const runArtifact of scalarMetricsArtifacts) {
+      // however many execution artifacts that have the display name - or no? we just need the metadata value i think, we can do "-"
+      // runArtifact.executionArtifacts.length
+      const runName = runArtifact.run.run?.name || '-';
+      xParentLabels.push({
+        label: runName,
+        colSpan: runArtifact.executionArtifacts.length,
+      } as xParentLabel);
+      for (const executionArtifact of runArtifact.executionArtifacts) {
+        const executionText: string = getExecutionName(executionArtifact.execution) || '-';
+        for (const linkedArtifact of executionArtifact.linkedArtifacts) {
+          const linkedArtifactText: string = getArtifactName(linkedArtifact) || '-';
+          const columnTitle = `${executionText} > ${linkedArtifactText}`;
+          xTupleLabels.push({
+            xLabel: columnTitle,
+            xParentLabelName: runName,
+          } as xTupleLabel);
+          const customProperties = linkedArtifact.artifact.getCustomPropertiesMap();
+          // The key should be added to a set perhaps?
+          // This should be ordered by first properties retrieved.
+          // What if this is actually a map?
+          // Or wait how do we order this...
+          // All of the yLabels are retrieved. I have rows, which we sync up here.
+          for (const entry of customProperties.getEntryList()) {
+            if (entry[0] === 'display_name') {
+              continue;
+            }
+            const key: MapCoordinate = {
+              xLabel: columnTitle,
+              yLabel: entry[0],
+              xParentLabel: runName,
+            }
+            dataMap.set(JSON.stringify(key), JSON.stringify(getMetadataValue(customProperties.get(entry[0]))));
+          }
+          const data = customProperties
+            .getEntryList()
+            .map(([key]) => ({
+              key,
+              value: JSON.stringify(getMetadataValue(customProperties.get(key))),
+            }))
+            .filter(metric => metric.key !== 'display_name');
+          console.log(yLabels.push(...data.map(el => el.key)));
+          console.log(columnTitle);
+          console.log(data);
+        }
+      }
+    }
+    const groupedYLabels = chain(flatten(yLabels))
+      .countBy(p => p) // count by parameter name
+      .map((k, v) => ({ name: v, count: k })) // convert to counter objects
+      .orderBy('count', 'desc') // sort on count field, descending
+      .map(o => o.name)
+      .value();
+    console.log(groupedYLabels);
+    console.log(xParentLabels);
+    console.log(xTupleLabels);
+    console.log(dataMap);
+
+    const rows = groupedYLabels.map(yLabel => {
+      return xTupleLabels.map(xTupleLabel => {
+        const labelThingy = JSON.stringify({
+          xLabel: xTupleLabel.xLabel,
+          yLabel,
+          xParentLabel: xTupleLabel.xParentLabelName,
+        }  as MapCoordinate);
+        for (const entryThing of dataMap) {
+          console.log(entryThing);
+          console.log(dataMap.get(entryThing[0]));
+          console.log(labelThingy);
+          console.log(dataMap.get(labelThingy));
+        }
+        return dataMap.get(labelThingy);
+      })
+    });    
+
+    console.log(rows);
+
+    setScalarMetricsTableData({
+      xLabels: xTupleLabels.map(xTupleLabel => xTupleLabel.xLabel),
+      yLabels: groupedYLabels,
+      xParentLabels,
+      rows,
+    } as CompareTableProps);
+
+    // Now that we have the grouped y labels, we need to get the rows. And the x labels too right, those are the parent run names and each of the artifact + execution names. There is no case where I do not include right?
+  }, [scalarMetricsArtifacts]);
+
   const metricsTabText = metricsTypeToString(metricsTab);
   return (
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
@@ -542,7 +654,9 @@ function CompareV2(props: PageProps) {
             onSwitch={setMetricsTab}
           />
           <div className={classes(padding(20, 'lrt'))}>
-            {metricsTab === MetricsType.SCALAR_METRICS && <p>This is the Scalar Metrics tab.</p>}
+            {metricsTab === MetricsType.SCALAR_METRICS && scalarMetricsTableData && (
+              <CompareTable {...scalarMetricsTableData} />
+            )}
             {metricsTab === MetricsType.CONFUSION_MATRIX && (
               <MetricsDropdown
                 filteredRunArtifacts={confusionMatrixArtifacts}
