@@ -17,6 +17,7 @@
 import { Button, Checkbox, FormControlLabel, InputAdornment, TextField } from '@material-ui/core';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
+import { Handle } from 'react-flow-renderer';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { ParameterType_ParameterTypeEnum } from 'src/generated/pipeline_spec/pipeline_spec';
 import { RuntimeParameters, SpecParameters } from 'src/pages/NewRunV2';
@@ -55,6 +56,7 @@ interface NewRunParametersProps {
   specParameters: SpecParameters;
   handlePipelineRootChange?: (pipelineRoot: string) => void;
   handleParameterChange?: (parameters: RuntimeParameters) => void;
+  handleValidInput?: (validinput: boolean) => void;
 }
 
 function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEnum): any {
@@ -98,6 +100,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
   const [updatedParameters, setUpdatedParameters] = useState({});
   useEffect(() => {
     const runtimeParametersWithDefault: RuntimeParameters = {};
+    let allParamtersWithDefault = true;
     Object.keys(props.specParameters).map(key => {
       if (props.specParameters[key].defaultValue) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.    
@@ -118,12 +121,16 @@ function NewRunParametersV2(props: NewRunParametersProps) {
         validInputs[key] = true;
       } else {
         validInputs[key] = false;
-        errorMessages[key] = 'Missing input.'
+        allParamtersWithDefault = false;
+        errorMessages[key] = 'Missing parameter.'
       }
     });
     setUpdatedParameters(runtimeParametersWithDefault);
     setErrorMessages(errorMessages);
     setValidInputs(validInputs);
+    if (props.handleValidInput) {
+      props.handleValidInput(allParamtersWithDefault);
+    }
   }, [props.specParameters]);
 
   return (
@@ -202,8 +209,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                         );
                         switch (parametersInRealType[k]) {
                           case undefined:
-                            //updatedErrorMsgArr[k] = 'Missing Input. '
-                            errorMessages[k] = 'Missing Input. '
+                            errorMessages[k] = 'Missing parameter.'
                             validInputs[k] = false;
                             break;
                           case null:
@@ -218,6 +224,13 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                         setValidInputs(validInputs);
                       });
                       props.handleParameterChange(parametersInRealType);
+                    }
+                    if (props.handleValidInput) {
+                      let allInputsValid: boolean = true;
+                      Object.values(validInputs).map((v) => {
+                        allInputsValid = allInputsValid && v;
+                      })
+                      props.handleValidInput(allInputsValid);
                     }
                   }}
                   param={param}
