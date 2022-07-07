@@ -103,7 +103,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     let allParamtersWithDefault = true;
     Object.keys(props.specParameters).map(key => {
       if (props.specParameters[key].defaultValue) {
-        // TODO(zijianjoy): Make sure to consider all types of parameters.    
+        // TODO(zijianjoy): Make sure to consider all types of parameters.
         let defaultValStr; // Convert default to string type first to avoid error from convertInput
         switch (props.specParameters[key].parameterType) {
           case ParameterType_ParameterTypeEnum.STRUCT:
@@ -122,7 +122,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
       } else {
         validInputs[key] = false;
         allParamtersWithDefault = false;
-        errorMessages[key] = 'Missing parameter.'
+        errorMessages[key] = 'Missing parameter.';
       }
     });
     setUpdatedParameters(runtimeParametersWithDefault);
@@ -187,8 +187,6 @@ function NewRunParametersV2(props: NewRunParametersProps) {
               validInput: validInputs[k],
               errorMsg: errorMessages[k],
             };
-            // console.log('initial');
-            // console.log(param);
 
             return (
               <div>
@@ -196,6 +194,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                   key={k}
                   id={k}
                   onChange={value => {
+                    let allInputsValid: boolean = true;
                     const nextUpdatedParameters: RuntimeParameters = {};
                     Object.assign(nextUpdatedParameters, updatedParameters);
                     nextUpdatedParameters[k] = value;
@@ -209,12 +208,19 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                         );
                         switch (parametersInRealType[k]) {
                           case undefined:
-                            errorMessages[k] = 'Missing parameter.'
+                            allInputsValid = false;
                             validInputs[k] = false;
+                            errorMessages[k] = 'Missing parameter.';
                             break;
                           case null:
+                            allInputsValid = false;
                             validInputs[k] = false;
-                            errorMessages[k] = 'Invalid input. This parameter should be in ' + ParameterType_ParameterTypeEnum[props.specParameters[k].parameterType] + ' type';
+                            errorMessages[k] =
+                              'Invalid input. This parameter should be in ' +
+                              ParameterType_ParameterTypeEnum[
+                                props.specParameters[k].parameterType
+                              ] +
+                              ' type';
                             break;
                           default:
                             validInputs[k] = true;
@@ -226,10 +232,6 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                       props.handleParameterChange(parametersInRealType);
                     }
                     if (props.handleValidInput) {
-                      let allInputsValid: boolean = true;
-                      Object.values(validInputs).map((v) => {
-                        allInputsValid = allInputsValid && v;
-                      })
                       props.handleValidInput(allInputsValid);
                     }
                   }}
