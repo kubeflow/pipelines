@@ -421,6 +421,119 @@ describe('NewRunParametersV2', () => {
     });
   });
 
+  it('test Start button is enabled for valid default integer input', () => {
+    const handleValidInputSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        intParam: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+          defaultValue: 123,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: jest.fn(),
+      handleValidInput: handleValidInputSpy,
+    };
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    expect(handleValidInputSpy).toHaveBeenCalledTimes(1);
+    expect(handleValidInputSpy).toHaveBeenLastCalledWith(true);
+  })
+
+  it('test error message for invalid integer input', async () => {
+    const handleValidInputSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        intParam: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: jest.fn(),
+      handleValidInput: handleValidInputSpy,
+    };
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const intParam = screen.getByLabelText('intParam - NUMBER_INTEGER');
+    fireEvent.change(intParam, { target: { value: '123b' } });
+    expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
+    expect(handleValidInputSpy).toHaveBeenLastCalledWith(false);
+    expect(await screen.findByText('Invalid input. This parameter should be in NUMBER_INTEGER type'));
+  })
+
+  it('test error message for missing integer input', async () => {
+    const handleValidInputSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        intParam: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+          defaultValue: 123,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: jest.fn(),
+      handleValidInput: handleValidInputSpy,
+    };
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const intParam = screen.getByDisplayValue('123');
+    fireEvent.change(intParam, { target: { value: '' } });
+    expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
+    expect(handleValidInputSpy).toHaveBeenLastCalledWith(false);
+    expect(await screen.findByText('Missing parameter.'));
+  })
+
+  it('test error message for invalid boolean input', async () => {
+    const handleValidInputSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        boolParam: {
+          parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: jest.fn(),
+      handleValidInput: handleValidInputSpy,
+    };
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const boolParam = screen.getByLabelText('boolParam - BOOLEAN');
+    fireEvent.change(boolParam, { target: { value: '123' } });
+    expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
+    expect(handleValidInputSpy).toHaveBeenLastCalledWith(false);
+    expect(await screen.findByText('Invalid input. This parameter should be in BOOLEAN type'));
+  })
+
+  it('test start button is enabled for valid boolean input', () => {
+    const handleValidInputSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        boolParam: {
+          parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: jest.fn(),
+      handleValidInput: handleValidInputSpy,
+    };
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const boolParam = screen.getByLabelText('boolParam - BOOLEAN');
+    fireEvent.change(boolParam, { target: { value: 'true' } });
+    expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
+    expect(handleValidInputSpy).toHaveBeenLastCalledWith(true);
+  })
+
   it('does not display any text fields if there are no parameters', () => {
     const { container } = render(
       <CommonTestWrapper>
