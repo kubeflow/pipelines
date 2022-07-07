@@ -440,7 +440,7 @@ describe('NewRunParametersV2', () => {
 
     expect(handleValidInputSpy).toHaveBeenCalledTimes(1);
     expect(handleValidInputSpy).toHaveBeenLastCalledWith(true);
-  })
+  });
 
   it('test error message for invalid integer input', async () => {
     const handleValidInputSpy = jest.fn();
@@ -462,8 +462,10 @@ describe('NewRunParametersV2', () => {
     fireEvent.change(intParam, { target: { value: '123b' } });
     expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
     expect(handleValidInputSpy).toHaveBeenLastCalledWith(false);
-    expect(await screen.findByText('Invalid input. This parameter should be in NUMBER_INTEGER type'));
-  })
+    expect(
+      await screen.findByText('Invalid input. This parameter should be in NUMBER_INTEGER type'),
+    );
+  });
 
   it('test error message for missing integer input', async () => {
     const handleValidInputSpy = jest.fn();
@@ -487,7 +489,7 @@ describe('NewRunParametersV2', () => {
     expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
     expect(handleValidInputSpy).toHaveBeenLastCalledWith(false);
     expect(await screen.findByText('Missing parameter.'));
-  })
+  });
 
   it('test error message for invalid boolean input', async () => {
     const handleValidInputSpy = jest.fn();
@@ -510,7 +512,7 @@ describe('NewRunParametersV2', () => {
     expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
     expect(handleValidInputSpy).toHaveBeenLastCalledWith(false);
     expect(await screen.findByText('Invalid input. This parameter should be in BOOLEAN type'));
-  })
+  });
 
   it('test start button is enabled for valid boolean input', () => {
     const handleValidInputSpy = jest.fn();
@@ -532,7 +534,7 @@ describe('NewRunParametersV2', () => {
     fireEvent.change(boolParam, { target: { value: 'true' } });
     expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
     expect(handleValidInputSpy).toHaveBeenLastCalledWith(true);
-  })
+  });
 
   it('does not display any text fields if there are no parameters', () => {
     const { container } = render(

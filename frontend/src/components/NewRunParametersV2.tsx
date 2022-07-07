@@ -216,7 +216,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
               validInput: validInputs[k],
               errorMsg: errorMessages[k],
             };
-            console.log(param);
+
             return (
               <div>
                 <ParamEditor
@@ -251,7 +251,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
 
                     Object.values(validInputs).map(v2 => {
                       allInputsValid = allInputsValid && v2;
-                    })
+                    });
                     if (props.handleValidInput) {
                       props.handleValidInput(allInputsValid);
                     }
