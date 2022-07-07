@@ -239,6 +239,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                     if (props.handleParameterChange) {
                       props.handleParameterChange(parametersInRealType);
                     }
+                    console.log(parametersInRealType);
 
                     const { validInput, errorMessage } = checkInput(
                       parametersInRealType[k],
@@ -383,20 +384,15 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
             }}
           />
         ) : (
-          <div>
-            <TextField
-              id={id}
-              variant='outlined'
-              label={param.key}
-              //TODO(zijianjoy): Convert defaultValue to correct type.
-              value={param.value || ''}
-              onChange={ev => onChange(ev.target.value || '')}
-              className={classes(commonCss.textField, css.textfield)}
-            />
-            {/* <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
-              {param.validInput ? '' : param.errorMsg}
-            </div> */}
-          </div>
+          <TextField
+            id={id}
+            variant='outlined'
+            label={param.key}
+            //TODO(zijianjoy): Convert defaultValue to correct type.
+            value={param.value || ''}
+            onChange={ev => onChange(ev.target.value || '')}
+            className={classes(commonCss.textField, css.textfield)}
+          />
         )}
         {this.state.isJsonField && this.state.isEditorOpen && (
           <div className={css.row}>
