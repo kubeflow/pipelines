@@ -435,7 +435,7 @@ const CONFUSION_MATRIX_DEFINITION =
   'The higher value on cell where Predicted label matches True label, ' +
   'the better prediction performance of this model is.';
 
-function ConfusionMatrixSection({ artifact }: ConfusionMatrixProps) {
+export function ConfusionMatrixSection({ artifact }: ConfusionMatrixProps) {
   const customProperties = artifact.getCustomPropertiesMap();
   const name = customProperties.get('display_name')?.getStringValue();
 
