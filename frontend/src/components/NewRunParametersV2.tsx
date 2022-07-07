@@ -71,6 +71,11 @@ function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEn
         return Number(paramStr);
       }
       return null;
+    case ParameterType_ParameterTypeEnum.NUMBER_DOUBLE:
+      if (!Number.isNaN(Number(paramStr))) {
+        return Number(paramStr);
+      }
+      return null;
     case ParameterType_ParameterTypeEnum.LIST:
     case ParameterType_ParameterTypeEnum.STRUCT:
       try {
@@ -104,6 +109,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
             break;
           case ParameterType_ParameterTypeEnum.BOOLEAN:
           case ParameterType_ParameterTypeEnum.NUMBER_INTEGER:
+          case ParameterType_ParameterTypeEnum.NUMBER_DOUBLE:
             defaultValStr = props.specParameters[key].defaultValue.toString();
             break;
           default:
@@ -234,6 +240,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
       case ParameterType_ParameterTypeEnum.STRING:
       case ParameterType_ParameterTypeEnum.BOOLEAN:
       case ParameterType_ParameterTypeEnum.NUMBER_INTEGER:
+      case ParameterType_ParameterTypeEnum.NUMBER_DOUBLE:
         isJson = false;
         break;
       default:
@@ -273,7 +280,6 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
         }
 
         // TODO(zijianjoy): JSON format needs to be struct or list type.
-        // const displayValue = JSON.parse(param.value?.string_value || '');
         if (this.state.isEditorOpen) {
           onChange(JSON.stringify(displayValue) || '');
         } else {
