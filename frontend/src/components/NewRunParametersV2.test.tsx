@@ -21,7 +21,6 @@ import { CommonTestWrapper } from 'src/TestWrapper';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ParameterType_ParameterTypeEnum } from 'src/generated/pipeline_spec/pipeline_spec';
 import NewRunParametersV2 from 'src/components/NewRunParametersV2';
-import { inputConverter } from 'src/components/NewRunParametersV2';
 
 testBestPractices();
 
@@ -279,6 +278,146 @@ describe('NewRunParametersV2', () => {
     expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
       intParam: null,
+    });
+  });
+
+  it('test convertInput function for LIST type with default value', () => {
+    const handleParameterChangeSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        listParam: {
+          parameterType: ParameterType_ParameterTypeEnum.LIST,
+          defaultValue: [1, 2, 3],
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: handleParameterChangeSpy,
+    };
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const listParam = screen.getByDisplayValue('[1,2,3]');
+    fireEvent.change(listParam, { target: { value: '[4,5,6]' } });
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      listParam: [4, 5, 6],
+    });
+  });
+
+  it('test convertInput function for LIST type without default value', () => {
+    const handleParameterChangeSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        listParam: {
+          parameterType: ParameterType_ParameterTypeEnum.LIST,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: handleParameterChangeSpy,
+    };
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const listParam = screen.getByLabelText('listParam - LIST');
+    fireEvent.change(listParam, { target: { value: '[4,5,6]' } });
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      listParam: [4, 5, 6],
+    });
+  });
+
+  it('test convertInput function for LIST type with invalid input (invalid JSON form)', () => {
+    const handleParameterChangeSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        listParam: {
+          parameterType: ParameterType_ParameterTypeEnum.LIST,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: handleParameterChangeSpy,
+    };
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const listParam = screen.getByLabelText('listParam - LIST');
+    fireEvent.change(listParam, { target: { value: '[4,5,6' } });
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      listParam: null,
+    });
+  });
+
+  it('test convertInput function for STRUCT type with default value', () => {
+    const handleParameterChangeSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        structParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRUCT,
+          defaultValue: { A: 1, B: 2 },
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: handleParameterChangeSpy,
+    };
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const structParam = screen.getByDisplayValue('{"A":1,"B":2}');
+    fireEvent.change(structParam, { target: { value: '{"C":3,"D":4}' } });
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      structParam: { C: 3, D: 4 },
+    });
+  });
+
+  it('test convertInput function for STRUCT type without default value', () => {
+    const handleParameterChangeSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        structParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRUCT,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: handleParameterChangeSpy,
+    };
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const structParam = screen.getByLabelText('structParam - STRUCT');
+    fireEvent.change(structParam, { target: { value: '{"A":1,"B":2}' } });
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      structParam: { A: 1, B: 2 },
+    });
+  });
+
+  it('test convertInput function for STRUCT type with invalid input (invalid JSON form)', () => {
+    const handleParameterChangeSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        structParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRUCT,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: handleParameterChangeSpy,
+    };
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const structParam = screen.getByLabelText('structParam - STRUCT');
+    fireEvent.change(structParam, { target: { value: '"A":1,"B":2' } });
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      structParam: null,
     });
   });
 

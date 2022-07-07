@@ -74,6 +74,13 @@ function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEn
         return Number(paramStr);
       }
       return null;
+    case ParameterType_ParameterTypeEnum.LIST:
+    case ParameterType_ParameterTypeEnum.STRUCT:
+      try {
+        return JSON.parse(paramStr);
+      } catch (err) {
+        return null;
+      }
     default:
       // TODO: (jlyaoyuli) Validate if the type of parameters matches the value
       // If it doesn't throw an error message next to the TextField.
@@ -93,8 +100,22 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     const runtimeParametersWithDefault: RuntimeParameters = {};
     Object.keys(props.specParameters).map(key => {
       if (props.specParameters[key].defaultValue) {
-        // TODO(zijianjoy): Make sure to consider all types of parameters.
-        runtimeParametersWithDefault[key] = props.specParameters[key].defaultValue;
+        // TODO(zijianjoy): Make sure to consider all types of parameters.    
+        let defaultValStr; // Convert default to string type first to avoid error from convertInput
+        switch (props.specParameters[key].parameterType) {
+          case ParameterType_ParameterTypeEnum.STRUCT:
+          case ParameterType_ParameterTypeEnum.LIST:
+            defaultValStr = JSON.stringify(props.specParameters[key].defaultValue);
+            break;
+          case ParameterType_ParameterTypeEnum.BOOLEAN:
+          case ParameterType_ParameterTypeEnum.NUMBER_INTEGER:
+            defaultValStr = props.specParameters[key].defaultValue.toString();
+            break;
+          default:
+            defaultValStr = props.specParameters[key].defaultValue;
+        }
+        runtimeParametersWithDefault[key] = defaultValStr;
+        validInputs[key] = true;
       } else {
         validInputs[key] = false;
         errorMessages[key] = 'Missing input.'
