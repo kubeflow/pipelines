@@ -36,4 +36,4 @@ class PythonComponent(base_component.BaseComponent):
         self.python_func = python_func
 
     def execute(self, **kwargs):
-        return python_func(**kwargs)
+        return self.python_func(**kwargs)

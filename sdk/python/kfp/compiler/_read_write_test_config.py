@@ -42,6 +42,7 @@ CONFIG = {
             'pipeline_with_task_final_status',
             'pipeline_with_task_final_status_yaml',
             'component_with_pip_index_urls',
+            'container_component_with_no_inputs',
         ],
         'test_data_dir': 'sdk/python/kfp/compiler/test_data/pipelines',
         'config': {
@@ -60,6 +61,7 @@ CONFIG = {
             'output_artifact',
             'output_metrics',
             'preprocess',
+            'container_no_input',
         ],
         'test_data_dir': 'sdk/python/kfp/compiler/test_data/components',
         'config': {
