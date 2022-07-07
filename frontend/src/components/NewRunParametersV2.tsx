@@ -58,6 +58,9 @@ interface NewRunParametersProps {
 }
 
 function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEnum): any {
+  if (paramStr === '') {
+    return undefined;
+  }
   switch (paramType) {
     case ParameterType_ParameterTypeEnum.BOOLEAN:
       if (paramStr === 'true' || paramStr === 'false') {
@@ -83,7 +86,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
   const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
   const [validInputs, setValidInputs] = useState([]);
-  const [errorMessage, setErrorMessage] = useState(['']);
+  const [errorMessages, setErrorMessages] = useState(['']);
 
   const [updatedParameters, setUpdatedParameters] = useState({});
   useEffect(() => {
@@ -92,9 +95,14 @@ function NewRunParametersV2(props: NewRunParametersProps) {
       if (props.specParameters[key].defaultValue) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.
         runtimeParametersWithDefault[key] = props.specParameters[key].defaultValue;
+      } else {
+        validInputs[key] = false;
+        errorMessages[key] = 'Missing input.'
       }
     });
     setUpdatedParameters(runtimeParametersWithDefault);
+    setErrorMessages(errorMessages);
+    setValidInputs(validInputs);
   }, [props.specParameters]);
 
   return (
@@ -149,7 +157,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
               value: updatedParameters[k],
               type: v.parameterType,
               validInput: validInputs[k],
-              errorMsg: errorMessage[k],
+              errorMsg: errorMessages[k],
             };
             // console.log('initial');
             // console.log(param);
@@ -161,7 +169,6 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                   id={k}
                   onChange={value => {
                     const nextUpdatedParameters: RuntimeParameters = {};
-                    const updatedErrorMsgArr: string[] = [];
                     Object.assign(nextUpdatedParameters, updatedParameters);
                     nextUpdatedParameters[k] = value;
                     setUpdatedParameters(nextUpdatedParameters);
@@ -172,24 +179,31 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                           v1,
                           props.specParameters[k].parameterType,
                         );
-                        if (!parametersInRealType[k]) {
-                          validInputs[k] = false;
-                          updatedErrorMsgArr[k] = 'Invalid input! This parameter should be in ' + ParameterType_ParameterTypeEnum[props.specParameters[k].parameterType] + ' type';
-                          setErrorMessage(updatedErrorMsgArr);
-                          setValidInputs(validInputs);
+                        switch (parametersInRealType[k]) {
+                          case undefined:
+                            //updatedErrorMsgArr[k] = 'Missing Input. '
+                            errorMessages[k] = 'Missing Input. '
+                            validInputs[k] = false;
+                            break;
+                          case null:
+                            validInputs[k] = false;
+                            errorMessages[k] = 'Invalid input. This parameter should be in ' + ParameterType_ParameterTypeEnum[props.specParameters[k].parameterType] + ' type';
+                            break;
+                          default:
+                            validInputs[k] = true;
+                            errorMessages[k] = '';
                         }
+                        setErrorMessages(errorMessages);
+                        setValidInputs(validInputs);
                       });
-                      console.log(parametersInRealType);
-                      // console.log('change')
-                      // console.log(param);
                       props.handleParameterChange(parametersInRealType);
                     }
                   }}
                   param={param}
                 />
-                {/* <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
-                  {errorMessage}
-                </div> */}
+                <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
+                  {param.validInput ? '' : param.errorMsg}
+                </div>
               </div>
             );
           })}
@@ -322,9 +336,9 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
               onChange={ev => onChange(ev.target.value || '')}
               className={classes(commonCss.textField, css.textfield)}
             />
-            <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
+            {/* <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
               {param.validInput ? '' : param.errorMsg}
-            </div>
+            </div> */}
           </div>
         )}
         {this.state.isJsonField && this.state.isEditorOpen && (
