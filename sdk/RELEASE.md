@@ -13,6 +13,22 @@
 ## Bug Fixes and Other Changes
 
 ## Documentation Updates
+# Current Version (2.0.0-beta.1)
+
+## Major Features and Improvements
+
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+* Include default registry context JSON in package distribution [\#7987](https://github.com/kubeflow/pipelines/pull/7987)
+
+## Documentation Updates
 # Current Version (2.0.0-beta.0)
 
 ## Major Features and Improvements
