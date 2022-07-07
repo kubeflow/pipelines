@@ -807,7 +807,7 @@ class TestCompileComponent(parameterized.TestCase):
     def test_compile_container_component_simple(self):
 
         @dsl.container_component
-        def hello_world_container() -> str:
+        def hello_world_container() -> None:
             """Hello world component."""
             return ContainerSpec(
                 image='python3.7',

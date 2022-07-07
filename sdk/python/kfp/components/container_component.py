@@ -27,7 +27,7 @@ class ContainerComponent(base_component.BaseComponent):
     """
 
     def __init__(self, component_spec: structures.ComponentSpec,
-                 pipeline_func: Callable):
+                 pipeline_func: Callable) -> None:
         super().__init__(component_spec=component_spec)
         self.pipeline_func = pipeline_func
 

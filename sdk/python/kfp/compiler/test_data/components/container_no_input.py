@@ -11,13 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from kfp.dsl import container_component, ContainerSpec
+from kfp.dsl import container_component
+from kfp.dsl import ContainerSpec
 
 
 @container_component
-def hello_world_container() -> str:
+def hello_world_container() -> None:
     return ContainerSpec(
-        image='python3.7',
+        image='python:3.7',
         command=['echo', 'hello world'],
         args=[],
     )

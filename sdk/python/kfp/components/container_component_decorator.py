@@ -14,12 +14,12 @@
 
 from typing import Callable
 
-from kfp.components.structures import Implementation
+from kfp.components import structures 
 from kfp.components import component_factory
-from kfp.components.container_component import ContainerComponent
+from kfp.components import container_component
 
 
-def container_component(func: Callable):
+def container_component(func: Callable) -> container_component.ContainerComponent:
     """Decorator for container-based components in KFP v2.
 
     Sample usage:
@@ -51,6 +51,6 @@ def container_component(func: Callable):
     """
 
     component_spec = component_factory.extract_component_interface(func)
-    component_spec.implementation = Implementation(
+    component_spec.implementation = structures.Implementation(
         func())  # TODO: add compatability for placeholder
-    return ContainerComponent(component_spec, func)
+    return container_component.ContainerComponent(component_spec, func)
