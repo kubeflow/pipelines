@@ -95,112 +95,190 @@ describe('NewRunParametersV2', () => {
     expect(boolParam.closest('input').value).toEqual('false');
   });
 
-  it('convert string-type user input to real type', () => {
-    expect(inputConverter('string value', ParameterType_ParameterTypeEnum.STRING)).toEqual(
-      'string value',
-    );
-    expect(inputConverter('True', ParameterType_ParameterTypeEnum.BOOLEAN)).toEqual(true);
-    expect(inputConverter('123', ParameterType_ParameterTypeEnum.NUMBER_INTEGER)).toEqual(123);
-    expect(inputConverter('True', ParameterType_ParameterTypeEnum.STRING)).toEqual('True');
-    expect(inputConverter('123', ParameterType_ParameterTypeEnum.STRING)).toEqual('123');
-    expect(inputConverter('true', ParameterType_ParameterTypeEnum.BOOLEAN)).toEqual(null);
-  });
-
-  it('test convertInput function for LIST type with default value', () => {
+  it('test convertInput function for string type with default value', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'defalut pipelineRoot',
       specParameters: {
-        listParam: {
-          parameterType: ParameterType_ParameterTypeEnum.LIST,
-          defaultValue: [1, 2, 3],
+        strParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRING,
+          defaultValue: 'string value',
         },
       },
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
-
     render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
 
-    const listParam = screen.getByDisplayValue('[1,2,3]');
-    fireEvent.change(listParam, { target: { value: '[4,5,6]' } });
+    const strParam = screen.getByDisplayValue('string value');
+    fireEvent.change(strParam, { target: { value: 'new string' } });
     expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
-      listParam: [4, 5, 6],
+      strParam: 'new string',
     });
   });
 
-  it('test convertInput function for LIST type without default value', () => {
+  it('test convertInput function for string type without default value', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'defalut pipelineRoot',
       specParameters: {
-        listParam: {
-          parameterType: ParameterType_ParameterTypeEnum.LIST,
+        strParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRING,
         },
       },
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
-
     render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
 
-    const listParam = screen.getByLabelText('listParam - LIST');
-    fireEvent.change(listParam, { target: { value: '[4,5,6]' } });
+    const strParam = screen.getByLabelText('strParam - STRING');
+    fireEvent.change(strParam, { target: { value: 'new string' } });
     expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
-      listParam: [4, 5, 6],
+      strParam: 'new string',
     });
   });
 
-  it('test convertInput function for STRUCT type with default value', () => {
+  it('test convertInput function for boolean type with default value', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'defalut pipelineRoot',
       specParameters: {
-        structParam: {
-          parameterType: ParameterType_ParameterTypeEnum.STRUCT,
-          defaultValue: { A: 1, B: 2 },
+        boolParam: {
+          parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
+          defaultValue: true,
         },
       },
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
-
     render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
 
-    const structParam = screen.getByDisplayValue('{"A":1,"B":2}');
-    fireEvent.change(structParam, { target: { value: '{"C":3,"D":4}' } });
+    const boolParam = screen.getByDisplayValue('true');
+    fireEvent.change(boolParam, { target: { value: 'false' } });
     expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
-      structParam: { C: 3, D: 4 },
+      boolParam: false,
     });
   });
 
-  it('test convertInput function for STRUCT type without default value', () => {
+  it('test convertInput function for boolean type without default value', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
       pipelineRoot: 'defalut pipelineRoot',
       specParameters: {
-        structParam: {
-          parameterType: ParameterType_ParameterTypeEnum.STRUCT,
+        boolParam: {
+          parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
         },
       },
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
-
     render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
 
-    const structParam = screen.getByLabelText('structParam - STRUCT');
-    fireEvent.change(structParam, { target: { value: '{"A":1,"B":2}' } });
+    const boolParam = screen.getByLabelText('boolParam - BOOLEAN');
+    fireEvent.change(boolParam, { target: { value: 'true' } });
     expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
-      structParam: { A: 1, B: 2 },
+      boolParam: true,
+    });
+  });
+
+  it('test convertInput function for boolean type with invalid input (Uppercase)', () => {
+    const handleParameterChangeSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        boolParam: {
+          parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: handleParameterChangeSpy,
+    };
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const boolParam = screen.getByLabelText('boolParam - BOOLEAN');
+    fireEvent.change(boolParam, { target: { value: 'True' } });
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      boolParam: null,
+    });
+  });
+
+  it('test convertInput function for integer type with default value', () => {
+    const handleParameterChangeSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        intParam: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+          defaultValue: 123,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: handleParameterChangeSpy,
+    };
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const intParam = screen.getByDisplayValue('123');
+    fireEvent.change(intParam, { target: { value: '456' } });
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      intParam: 456,
+    });
+  });
+
+  it('test convertInput function for integer type without default value', () => {
+    const handleParameterChangeSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        intParam: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: handleParameterChangeSpy,
+    };
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const intParam = screen.getByLabelText('intParam - NUMBER_INTEGER');
+    fireEvent.change(intParam, { target: { value: '789' } });
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      intParam: 789,
+    });
+  });
+
+  it('test convertInput function for integer type with invalid input (float)', () => {
+    const handleParameterChangeSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        intParam: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: handleParameterChangeSpy,
+    };
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const intParam = screen.getByLabelText('intParam - NUMBER_INTEGER');
+    fireEvent.change(intParam, { target: { value: '7.89' } });
+    expect(handleParameterChangeSpy).toHaveBeenCalledTimes(1);
+    expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
+      intParam: null,
     });
   });
 

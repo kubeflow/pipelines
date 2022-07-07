@@ -57,31 +57,20 @@ interface NewRunParametersProps {
   handleParameterChange?: (parameters: RuntimeParameters) => void;
 }
 
-export function inputConverter(paramStr: string, paramType: ParameterType_ParameterTypeEnum): any {
+function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEnum): any {
   switch (paramType) {
     case ParameterType_ParameterTypeEnum.BOOLEAN:
-      if (paramStr !== 'True' && paramStr !== 'False') {
-        console.log('Invalid input for ' + paramType + ' type.');
-        return null;
-      } else {
-        return paramStr === 'True';
+      if (paramStr === 'true' || paramStr === 'false') {
+        return paramStr === 'true';
       }
+      return null;
     case ParameterType_ParameterTypeEnum.STRING:
       return paramStr;
     case ParameterType_ParameterTypeEnum.NUMBER_INTEGER:
       if (Number.isInteger(Number(paramStr))) {
         return Number(paramStr);
-      } else {
-        console.log('Invalid input for ' + paramType + ' type.');
-        return null;
       }
-    case ParameterType_ParameterTypeEnum.LIST:
-    case ParameterType_ParameterTypeEnum.STRUCT:
-      try {
-        return JSON.parse(paramStr);
-      } catch (err) {
-        return null;
-      }
+      return null;
     default:
       // TODO: (jlyaoyuli) Validate if the type of parameters matches the value
       // If it doesn't throw an error message next to the TextField.
@@ -102,19 +91,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     Object.keys(props.specParameters).map(key => {
       if (props.specParameters[key].defaultValue) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.
-        let defaultValStr;
-        switch (props.specParameters[key].parameterType) {
-          case ParameterType_ParameterTypeEnum.STRUCT:
-          case ParameterType_ParameterTypeEnum.LIST:
-            defaultValStr = JSON.stringify(props.specParameters[key].defaultValue);
-            break;
-          case ParameterType_ParameterTypeEnum.BOOLEAN:
-            defaultValStr = props.specParameters[key].defaultValue.toString();
-            break;
-          default:
-            defaultValStr = props.specParameters[key].defaultValue;
-        }
-        runtimeParametersWithDefault[key] = defaultValStr;
+        runtimeParametersWithDefault[key] = props.specParameters[key].defaultValue;
       }
     });
     setUpdatedParameters(runtimeParametersWithDefault);
@@ -191,7 +168,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                     if (props.handleParameterChange) {
                       let parametersInRealType: RuntimeParameters = {};
                       Object.entries(nextUpdatedParameters).map(([k, v1]) => {
-                        parametersInRealType[k] = inputConverter(
+                        parametersInRealType[k] = convertInput(
                           v1,
                           props.specParameters[k].parameterType,
                         );
