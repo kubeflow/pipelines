@@ -17,7 +17,7 @@ from kfp import dsl
 
 
 @dsl.container_component
-def hello_world_container() -> str:
+def hello_world_container():
     return dsl.ContainerSpec(
         image='python3.7',
         command=['echo', 'hello world'],

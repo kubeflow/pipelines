@@ -1,10 +1,6 @@
 components:
   comp-hello-world-container:
     executorLabel: exec-hello-world-container
-    outputDefinitions:
-      parameters:
-        Output:
-          parameterType: STRING
 deploymentSpec:
   executors:
     exec-hello-world-container:
