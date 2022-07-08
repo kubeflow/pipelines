@@ -47,28 +47,7 @@ class TestValidatePipelineName(parameterized.TestCase):
             client.validate_pipeline_resource_name(name)
 
 
-PIPELINES_TEST_DATA_DIR = os.path.join(
-    os.path.abspath(os.path.join(__file__, os.path.pardir, os.path.pardir)),
-    'compiler', 'test_data', 'pipelines')
-
-
 class TestOverrideCachingOptions(parameterized.TestCase):
-
-    @parameterized.parameters([
-        'pipeline_with_importer',
-        'pipeline_with_after',
-        'pipeline_with_nested_conditions',
-        'pipeline_with_loops',
-    ])
-    def test_override_caching_from_yaml(self, pipeline_base_name: str):
-        pipeline_path = os.path.join(PIPELINES_TEST_DATA_DIR,
-                                     f'{pipeline_base_name}.yaml')
-        with open(pipeline_path) as f:
-            yaml_dict = yaml.safe_load(f)
-            test_client = client.Client(namespace='dummy_namespace')
-            test_client._override_caching_options(yaml_dict, False)
-            for _, task in yaml_dict['root']['dag']['tasks'].items():
-                self.assertFalse(task['cachingOptions']['enableCache'])
 
     def test_override_caching_from_pipeline(self):
 

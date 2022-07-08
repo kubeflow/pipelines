@@ -696,9 +696,6 @@ class Client:
         Args:
             pipeline_obj (dict): Dict object parsed from the yaml file.
             enable_caching (bool): Overrides options, one of 'True', 'False'.
-        
-        Returns:
-            None
         """
         for _, task in pipeline_obj['root']['dag']['tasks'].items():
             if 'cachingOptions' in task:
