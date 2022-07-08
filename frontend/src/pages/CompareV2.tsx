@@ -380,6 +380,7 @@ const getNamespace = (selectedItem: SelectedItem, filteredRunArtifacts: RunArtif
     runArtifact => runArtifact.run.run?.name === selectedItem.itemName,
   )?.run;
   if (selectedRun) {
+    // TODO(zpChris): Move away from workflow_manifest as this is V1 specific.
     const jsonWorkflow = JSON.parse(selectedRun.pipeline_runtime!.workflow_manifest || '{}');
     return jsonWorkflow.metadata?.namespace;
   }
