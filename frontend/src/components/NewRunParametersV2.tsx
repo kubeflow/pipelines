@@ -245,7 +245,6 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                     if (props.handleParameterChange) {
                       props.handleParameterChange(parametersInRealType);
                     }
-                    console.log(parametersInRealType);
 
                     const { validInput, errorMessage } = checkInput(
                       parametersInRealType[k],

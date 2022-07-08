@@ -505,7 +505,7 @@ describe('NewRunParametersV2', () => {
     expect(handleValidInputSpy).toHaveBeenLastCalledWith(true);
   });
 
-  it('test error message for invalid integer input', async () => {
+  it('test error message for invalid integer input', () => {
     const handleValidInputSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
@@ -525,12 +525,10 @@ describe('NewRunParametersV2', () => {
     fireEvent.change(intParam, { target: { value: '123b' } });
     expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
     expect(handleValidInputSpy).toHaveBeenLastCalledWith(false);
-    expect(
-      await screen.findByText('Invalid input. This parameter should be in NUMBER_INTEGER type'),
-    );
+    screen.getByText('Invalid input. This parameter should be in NUMBER_INTEGER type');
   });
 
-  it('test error message for missing integer input', async () => {
+  it('test error message for missing integer input', () => {
     const handleValidInputSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
@@ -551,10 +549,10 @@ describe('NewRunParametersV2', () => {
     fireEvent.change(intParam, { target: { value: '' } });
     expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
     expect(handleValidInputSpy).toHaveBeenLastCalledWith(false);
-    expect(await screen.findByText('Missing parameter.'));
+    screen.getByText('Missing parameter.');
   });
 
-  it('test error message for invalid boolean input', async () => {
+  it('test error message for invalid boolean input', () => {
     const handleValidInputSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
@@ -574,7 +572,7 @@ describe('NewRunParametersV2', () => {
     fireEvent.change(boolParam, { target: { value: '123' } });
     expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
     expect(handleValidInputSpy).toHaveBeenLastCalledWith(false);
-    expect(await screen.findByText('Invalid input. This parameter should be in BOOLEAN type'));
+    screen.getByText('Invalid input. This parameter should be in BOOLEAN type');
   });
 
   it('test start button is enabled for valid boolean input', () => {
@@ -597,6 +595,29 @@ describe('NewRunParametersV2', () => {
     fireEvent.change(boolParam, { target: { value: 'true' } });
     expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
     expect(handleValidInputSpy).toHaveBeenLastCalledWith(true);
+  });
+
+  it('test error message for invalid double input', () => {
+    const handleValidInputSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        doubleParam: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_DOUBLE,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: jest.fn(),
+      handleValidInput: handleValidInputSpy,
+    };
+    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+
+    const doubleParam = screen.getByLabelText('doubleParam - NUMBER_DOUBLE');
+    fireEvent.change(doubleParam, { target: { value: '123b' } });
+    expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
+    expect(handleValidInputSpy).toHaveBeenLastCalledWith(false);
+    screen.getByText('Invalid input. This parameter should be in NUMBER_DOUBLE type');
   });
 
   it('does not display any text fields if there are no parameters', () => {
