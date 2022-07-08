@@ -499,14 +499,12 @@ function CompareV2(props: PageProps) {
 
   // TODO: Place this metrics calculation in a separate component?
   useEffect(() => {
-    console.log(scalarMetricsArtifacts);
     const yLabels: string[] = [];
-    const xParentLabels: xParentLabel[] = [];
-    interface xTupleLabel {
+    interface xFullLabel {
       xLabel: string;
-      xParentLabelName: string;
+      xParentLabel: xParentLabel;
     }
-    const xTupleLabels: xTupleLabel[] = [];
+    const xFullLabels: xFullLabel[] = [];
     interface MapCoordinate {
       xLabel: string;
       yLabel: string;
@@ -514,22 +512,19 @@ function CompareV2(props: PageProps) {
     }
     const dataMap: Map<string, string> = new Map();
     for (const runArtifact of scalarMetricsArtifacts) {
-      // however many execution artifacts that have the display name - or no? we just need the metadata value i think, we can do "-"
-      // runArtifact.executionArtifacts.length
       const runName = runArtifact.run.run?.name || '-';
-      xParentLabels.push({
-        label: runName,
-        colSpan: runArtifact.executionArtifacts.length,
-      } as xParentLabel);
       for (const executionArtifact of runArtifact.executionArtifacts) {
         const executionText: string = getExecutionName(executionArtifact.execution) || '-';
         for (const linkedArtifact of executionArtifact.linkedArtifacts) {
           const linkedArtifactText: string = getArtifactName(linkedArtifact) || '-';
           const columnTitle = `${executionText} > ${linkedArtifactText}`;
-          xTupleLabels.push({
+          xFullLabels.push({
             xLabel: columnTitle,
-            xParentLabelName: runName,
-          } as xTupleLabel);
+            xParentLabel: {
+              label: runName,
+              colSpan: runArtifact.executionArtifacts.length,
+            } as xParentLabel,
+          } as xFullLabel);
           const customProperties = linkedArtifact.artifact.getCustomPropertiesMap();
           for (const entry of customProperties.getEntryList()) {
             if (entry[0] === 'display_name') {
@@ -561,38 +556,24 @@ function CompareV2(props: PageProps) {
       .orderBy('count', 'desc') // sort on count field, descending
       .map(o => o.name)
       .value();
-    console.log(groupedYLabels);
-    console.log(xParentLabels);
-    console.log(xTupleLabels);
-    console.log(dataMap);
 
     const rows = groupedYLabels.map(yLabel => {
-      return xTupleLabels.map(xTupleLabel => {
-        const labelThingy = JSON.stringify({
-          xLabel: xTupleLabel.xLabel,
+      return xFullLabels.map(xFullLabel => {
+        const key = JSON.stringify({
+          xLabel: xFullLabel.xLabel,
           yLabel,
-          xParentLabel: xTupleLabel.xParentLabelName,
+          xParentLabel: xFullLabel.xParentLabel.label,
         }  as MapCoordinate);
-        for (const entryThing of dataMap) {
-          console.log(entryThing);
-          console.log(dataMap.get(entryThing[0]));
-          console.log(labelThingy);
-          console.log(dataMap.get(labelThingy));
-        }
-        return dataMap.get(labelThingy);
+        return dataMap.get(key);
       })
-    });    
-
-    console.log(rows);
+    });
 
     setScalarMetricsTableData({
-      xLabels: xTupleLabels.map(xTupleLabel => xTupleLabel.xLabel),
+      xLabels: xFullLabels.map(xFullLabel => xFullLabel.xLabel),
       yLabels: groupedYLabels,
-      xParentLabels,
+      xParentLabels: xFullLabels.map(xFullLabel => xFullLabel.xParentLabel),
       rows,
     } as CompareTableProps);
-
-    // Now that we have the grouped y labels, we need to get the rows. And the x labels too right, those are the parent run names and each of the artifact + execution names. There is no case where I do not include right?
   }, [scalarMetricsArtifacts]);
 
   const metricsTabText = metricsTypeToString(metricsTab);
