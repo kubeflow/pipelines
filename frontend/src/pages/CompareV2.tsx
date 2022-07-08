@@ -429,15 +429,20 @@ function getDropdownItems(filteredRunArtifacts: RunArtifact[]) {
   return dropdownItems;
 }
 
-const getNamespace = (selectedItem: SelectedItem, filteredRunArtifacts: RunArtifact[]) => {
+const getNamespace = (
+  selectedItem: SelectedItem,
+  filteredRunArtifacts: RunArtifact[],
+): string | undefined => {
   const selectedRun = filteredRunArtifacts.find(
     runArtifact => runArtifact.run.run?.name === selectedItem.itemName,
   )?.run;
+  let namespace: string | undefined;
   if (selectedRun) {
     // TODO(zpChris): Move away from workflow_manifest as this is V1 specific.
     const jsonWorkflow = JSON.parse(selectedRun.pipeline_runtime!.workflow_manifest || '{}');
-    return jsonWorkflow.metadata?.namespace;
+    namespace = jsonWorkflow.metadata?.namespace;
   }
+  return namespace;
 };
 
 function getLinkedArtifactFromSelectedItem(
