@@ -30,7 +30,7 @@ There are two ways you can give them access to SageMaker.
       ```
    2. Take note of the OIDC issuer URL. This URL is in the form `oidc.eks.<region>.amazonaws.com/id/<OIDC_ID>` . Note down the URL.
       ```
-      aws eks describe-cluster --name <cluster_name> --query "cluster.identity.oidc.issuer" --output text
+      aws eks describe-cluster --name <cluster_name> --region <cluster-region> --query "cluster.identity.oidc.issuer" --output text
       ```
    3. Create a file named trust.json with the following content.   
       Replace `<OIDC_URL>` with your OIDC issuer URL **(Don’t include https://)** and `<AWS_ACCOUNT_NUMBER>` with your AWS account number. 
@@ -47,13 +47,13 @@ There are two ways you can give them access to SageMaker.
           {
             "Effect": "Allow",
             "Principal": {
-              "Federated": "arn:aws:iam::$AWS_ACC_NUM:oidc-provider/$OIDC_URL"
+              "Federated": "arn:aws:iam::${AWS_ACC_NUM}:oidc-provider/${OIDC_URL}"
             },
             "Action": "sts:AssumeRoleWithWebIdentity",
             "Condition": {
               "StringEquals": {
-                "$OIDC_URL:aud": "sts.amazonaws.com",
-                "$OIDC_URL:sub": "system:serviceaccount:kubeflow:pipeline-runner"
+                "${OIDC_URL}:aud": "sts.amazonaws.com",
+                "${OIDC_URL}:sub": "system:serviceaccount:kubeflow:pipeline-runner"
               }
             }
           }
