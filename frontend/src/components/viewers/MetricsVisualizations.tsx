@@ -435,7 +435,7 @@ const CONFUSION_MATRIX_DEFINITION =
   'The higher value on cell where Predicted label matches True label, ' +
   'the better prediction performance of this model is.';
 
-function ConfusionMatrixSection({ artifact }: ConfusionMatrixProps) {
+export function ConfusionMatrixSection({ artifact }: ConfusionMatrixProps) {
   const customProperties = artifact.getCustomPropertiesMap();
   const name = customProperties.get('display_name')?.getStringValue();
 
@@ -565,7 +565,7 @@ async function getViewConfig(
   return [];
 }
 
-async function getHtmlViewerConfig(
+export async function getHtmlViewerConfig(
   htmlArtifacts: LinkedArtifact[] | undefined,
   namespace: string | undefined,
 ): Promise<HTMLViewerConfig[]> {
@@ -591,7 +591,7 @@ async function getHtmlViewerConfig(
   return Promise.all(htmlViewerConfigs);
 }
 
-async function getMarkdownViewerConfig(
+export async function getMarkdownViewerConfig(
   markdownArtifacts: LinkedArtifact[] | undefined,
   namespace: string | undefined,
 ): Promise<MarkdownViewerConfig[]> {

@@ -43,6 +43,7 @@ const css = stylesheet({
     minWidth: '10rem',
     cursor: 'pointer',
     backgroundColor: color.background,
+    zIndex: 1,
   },
   dropdownElement: {
     padding: '1rem',
@@ -253,7 +254,7 @@ function TwoLevelDropdown(props: TwoLevelDropdownProps) {
   // Close dropdown if the user clicks outside of the dropdown button or main menu.
   const dropdownRef = useRef<HTMLDivElement>(null);
   const dropdownListRef = useRef<HTMLDivElement>(null);
-  window.onclick = (event: MouseEvent) => {
+  window.addEventListener('click', (event: MouseEvent) => {
     if (
       dropdownRef.current &&
       !dropdownRef.current.contains(event.target as Node) &&
@@ -262,7 +263,7 @@ function TwoLevelDropdown(props: TwoLevelDropdownProps) {
     ) {
       setDropdownActive(false);
     }
-  };
+  });
 
   const toggleDropdown = (_: React.MouseEvent) => {
     setDropdownActive(!dropdownActive);

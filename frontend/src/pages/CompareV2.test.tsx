@@ -22,12 +22,13 @@ import { Artifact, Context, Event, Execution } from 'src/third_party/mlmd';
 import { Apis } from 'src/lib/Apis';
 import { QUERY_PARAMS } from 'src/components/Router';
 import * as mlmdUtils from 'src/mlmd/MlmdUtils';
+import * as metricsVisualizations from 'src/components/viewers/MetricsVisualizations';
 import * as Utils from 'src/lib/Utils';
 import CompareV2 from './CompareV2';
 import { PageProps } from './Page';
 import { ApiRunDetail } from 'src/apis/run';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
-import { Value } from 'google-protobuf/google/protobuf/struct_pb';
+import { Struct, Value } from 'google-protobuf/google/protobuf/struct_pb';
 
 testBestPractices();
 describe('CompareV2', () => {
@@ -102,14 +103,36 @@ describe('CompareV2', () => {
     return event;
   }
 
-  function newMockArtifact(id: number, isConfusionMatrix?: boolean): Artifact {
+  function newMockArtifact(
+    id: number,
+    isConfusionMatrix?: boolean,
+    displayName?: string,
+  ): Artifact {
     const artifact = new Artifact();
     artifact.setId(id);
+    const customPropertiesMap: Map<string, Value> = new Map();
     if (isConfusionMatrix) {
-      const customPropertiesMap: Map<string, Value> = new Map();
-      customPropertiesMap.set('confusionMatrix', new Value());
-      jest.spyOn(artifact, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
+      const confusionMatrix: Value = new Value();
+      confusionMatrix.setStructValue(
+        Struct.fromJavaScript({
+          struct: {
+            annotationSpecs: [
+              { displayName: 'Setosa' },
+              { displayName: 'Versicolour' },
+              { displayName: 'Virginica' },
+            ],
+            rows: [{ row: [31, 0, 0] }, { row: [1, 8, 12] }, { row: [0, 0, 23] }],
+          },
+        }),
+      );
+      customPropertiesMap.set('confusionMatrix', confusionMatrix);
     }
+    if (displayName) {
+      const displayNameValue = new Value();
+      displayNameValue.setStringValue(displayName);
+      customPropertiesMap.set('display_name', displayNameValue);
+    }
+    jest.spyOn(artifact, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
     return artifact;
   }
 
@@ -556,5 +579,294 @@ describe('CompareV2', () => {
     fireEvent.mouseOver(screen.queryAllByText(`test run ${MOCK_RUN_3_ID}`)[1]);
     screen.getByText(/executionName/);
     screen.getByText(/300/);
+  });
+
+  it('Confusion matrix shown on select, stays after tab change or section collapse', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    const contexts = [
+      newMockContext(MOCK_RUN_1_ID, 1),
+      newMockContext(MOCK_RUN_2_ID, 200),
+      newMockContext(MOCK_RUN_3_ID, 3),
+    ];
+    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    getContextSpy.mockImplementation((runID: string) =>
+      Promise.resolve(contexts.find(c => c.getName() === runID)),
+    );
+
+    // No execution name is provided to ensure that it can be selected by ID.
+    const executions = [[newMockExecution(1)], [newMockExecution(200)], [newMockExecution(3)]];
+    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    getExecutionsSpy.mockImplementation((context: Context) =>
+      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+    );
+
+    const artifacts = [
+      newMockArtifact(1),
+      newMockArtifact(200, true, 'artifactName'),
+      newMockArtifact(3),
+    ];
+    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+
+    const events = [newMockEvent(1), newMockEvent(200, 'artifactName'), newMockEvent(3)];
+    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
+    getEventsSpy.mockReturnValue(Promise.resolve(events));
+
+    const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
+    getArtifactTypesSpy.mockReturnValue([]);
+
+    // Simulate all artifacts as type "ClassificationMetrics" (Confusion Matrix or ROC Curve).
+    const filterLinkedArtifactsByTypeSpy = jest.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
+    filterLinkedArtifactsByTypeSpy.mockImplementation(
+      (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
+        metricsFilter === 'system.ClassificationMetrics' ? linkedArtifacts : [],
+    );
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    expect(screen.queryByText(/Confusion matrix: artifactName/)).toBeNull();
+
+    fireEvent.click(screen.getByText('Confusion Matrix'));
+    fireEvent.click(screen.getByText('Choose a first Confusion Matrix artifact'));
+
+    // Get the second element that has run text: first will be the run list.
+    fireEvent.mouseEnter(screen.queryAllByText(`test run ${MOCK_RUN_2_ID}`)[1]);
+    fireEvent.click(screen.getByText(/artifactName/));
+    screen.getByText(/Confusion Matrix: artifactName/);
+    screen.getByText(/200/);
+
+    // Change the tab and return, ensure that the confusion matrix and selected item are present.
+    fireEvent.click(screen.getByText('HTML'));
+    fireEvent.click(screen.getByText('Confusion Matrix'));
+    screen.getByText(/Confusion Matrix: artifactName/);
+    screen.getByText(/200/);
+
+    // Collapse and expand Metrics, ensure that the confusion matrix and selected item are present.
+    fireEvent.click(screen.getByText('Metrics'));
+    fireEvent.click(screen.getByText('Metrics'));
+    screen.getByText(/Confusion Matrix: artifactName/);
+    screen.getByText(/200/);
+  });
+
+  it('HTML files read only on initial select', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    const contexts = [
+      newMockContext(MOCK_RUN_1_ID, 1),
+      newMockContext(MOCK_RUN_2_ID, 200),
+      newMockContext(MOCK_RUN_3_ID, 3),
+    ];
+    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    getContextSpy.mockImplementation((runID: string) =>
+      Promise.resolve(contexts.find(c => c.getName() === runID)),
+    );
+
+    // No execution name is provided to ensure that it can be selected by ID.
+    const executions = [
+      [newMockExecution(1)],
+      [newMockExecution(200)],
+      [newMockExecution(3, 'executionName')],
+    ];
+    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    getExecutionsSpy.mockImplementation((context: Context) =>
+      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+    );
+
+    const artifacts = [
+      newMockArtifact(1),
+      newMockArtifact(200, false, 'firstArtifactName'),
+      newMockArtifact(3, false, 'secondArtifactName'),
+    ];
+    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+
+    const events = [
+      newMockEvent(1),
+      newMockEvent(200, 'firstArtifactName'),
+      newMockEvent(3, 'secondArtifactName'),
+    ];
+    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
+    getEventsSpy.mockReturnValue(Promise.resolve(events));
+
+    const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
+    getArtifactTypesSpy.mockReturnValue([]);
+
+    // Simulate all artifacts as type HTML.
+    const filterLinkedArtifactsByTypeSpy = jest.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
+    filterLinkedArtifactsByTypeSpy.mockImplementation(
+      (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
+        metricsFilter === 'system.HTML' ? linkedArtifacts : [],
+    );
+
+    const getHtmlViewerConfigSpy = jest.spyOn(metricsVisualizations, 'getHtmlViewerConfig');
+    getHtmlViewerConfigSpy.mockReturnValue(Promise.resolve([]));
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    fireEvent.click(screen.getByText('HTML'));
+
+    // Get the second element that has run text: first will be the run list.
+    fireEvent.click(screen.getByText('Choose a first HTML artifact'));
+    fireEvent.mouseEnter(screen.queryAllByText(`test run ${MOCK_RUN_2_ID}`)[1]);
+    fireEvent.click(screen.getByText(/firstArtifactName/));
+
+    const firstSelectedLinkedArtifact: mlmdUtils.LinkedArtifact = {
+      event: events[1],
+      artifact: artifacts[1],
+    };
+    await waitFor(() => {
+      expect(getHtmlViewerConfigSpy).toHaveBeenLastCalledWith(
+        [firstSelectedLinkedArtifact],
+        undefined,
+      );
+    });
+
+    // Choose another HTML element.
+    fireEvent.click(screen.getByText(/firstArtifactName/));
+    fireEvent.mouseEnter(screen.queryAllByText(`test run ${MOCK_RUN_3_ID}`)[1]);
+    fireEvent.click(screen.getByText(/secondArtifactName/));
+
+    const secondSelectedLinkedArtifact: mlmdUtils.LinkedArtifact = {
+      event: events[2],
+      artifact: artifacts[2],
+    };
+    await waitFor(() => {
+      expect(getHtmlViewerConfigSpy).toHaveBeenLastCalledWith(
+        [secondSelectedLinkedArtifact],
+        undefined,
+      );
+    });
+
+    // Return and re-select the first HTML element.
+    fireEvent.click(screen.getByText(/secondArtifactName/));
+    fireEvent.mouseEnter(screen.queryAllByText(`test run ${MOCK_RUN_2_ID}`)[1]);
+    fireEvent.click(screen.getByText(/firstArtifactName/));
+
+    // File is not re-read if that artifact has already been selected.
+    await waitFor(() => {
+      expect(getHtmlViewerConfigSpy).toBeCalledTimes(2);
+    });
+  });
+
+  it('Markdown files read only on initial select', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    const contexts = [
+      newMockContext(MOCK_RUN_1_ID, 1),
+      newMockContext(MOCK_RUN_2_ID, 200),
+      newMockContext(MOCK_RUN_3_ID, 3),
+    ];
+    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    getContextSpy.mockImplementation((runID: string) =>
+      Promise.resolve(contexts.find(c => c.getName() === runID)),
+    );
+
+    // No execution name is provided to ensure that it can be selected by ID.
+    const executions = [
+      [newMockExecution(1)],
+      [newMockExecution(200)],
+      [newMockExecution(3, 'executionName')],
+    ];
+    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    getExecutionsSpy.mockImplementation((context: Context) =>
+      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+    );
+
+    const artifacts = [
+      newMockArtifact(1),
+      newMockArtifact(200, false, 'firstArtifactName'),
+      newMockArtifact(3, false, 'secondArtifactName'),
+    ];
+    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+
+    const events = [
+      newMockEvent(1),
+      newMockEvent(200, 'firstArtifactName'),
+      newMockEvent(3, 'secondArtifactName'),
+    ];
+    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
+    getEventsSpy.mockReturnValue(Promise.resolve(events));
+
+    const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
+    getArtifactTypesSpy.mockReturnValue([]);
+
+    // Simulate all artifacts as type Markdown.
+    const filterLinkedArtifactsByTypeSpy = jest.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
+    filterLinkedArtifactsByTypeSpy.mockImplementation(
+      (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
+        metricsFilter === 'system.Markdown' ? linkedArtifacts : [],
+    );
+
+    const getMarkdownViewerConfigSpy = jest.spyOn(metricsVisualizations, 'getMarkdownViewerConfig');
+    getMarkdownViewerConfigSpy.mockReturnValue(Promise.resolve([]));
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    fireEvent.click(screen.getByText('Markdown'));
+
+    // Get the second element that has run text: first will be the run list.
+    fireEvent.click(screen.getByText('Choose a first Markdown artifact'));
+    fireEvent.mouseEnter(screen.queryAllByText(`test run ${MOCK_RUN_2_ID}`)[1]);
+    fireEvent.click(screen.getByText(/firstArtifactName/));
+
+    const firstSelectedLinkedArtifact: mlmdUtils.LinkedArtifact = {
+      event: events[1],
+      artifact: artifacts[1],
+    };
+    await waitFor(() => {
+      expect(getMarkdownViewerConfigSpy).toHaveBeenLastCalledWith(
+        [firstSelectedLinkedArtifact],
+        undefined,
+      );
+    });
+
+    // Choose another Markdown element.
+    fireEvent.click(screen.getByText(/firstArtifactName/));
+    fireEvent.mouseEnter(screen.queryAllByText(`test run ${MOCK_RUN_3_ID}`)[1]);
+    fireEvent.click(screen.getByText(/secondArtifactName/));
+
+    const secondSelectedLinkedArtifact: mlmdUtils.LinkedArtifact = {
+      event: events[2],
+      artifact: artifacts[2],
+    };
+    await waitFor(() => {
+      expect(getMarkdownViewerConfigSpy).toHaveBeenLastCalledWith(
+        [secondSelectedLinkedArtifact],
+        undefined,
+      );
+    });
+
+    // Return and re-select the first Markdown element.
+    fireEvent.click(screen.getByText(/secondArtifactName/));
+    fireEvent.mouseEnter(screen.queryAllByText(`test run ${MOCK_RUN_2_ID}`)[1]);
+    fireEvent.click(screen.getByText(/firstArtifactName/));
+
+    // File is not re-read if that artifact has already been selected.
+    await waitFor(() => {
+      expect(getMarkdownViewerConfigSpy).toBeCalledTimes(2);
+    });
   });
 });

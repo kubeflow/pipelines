@@ -47,16 +47,34 @@ import TwoLevelDropdown, {
   SelectedItem,
 } from 'src/components/TwoLevelDropdown';
 import MD2Tabs from 'src/atoms/MD2Tabs';
+import {
+  ConfusionMatrixSection,
+  getHtmlViewerConfig,
+  getMarkdownViewerConfig,
+} from 'src/components/viewers/MetricsVisualizations';
+import PlotCard from 'src/components/PlotCard';
+import { ViewerConfig } from 'src/components/viewers/Viewer';
 
 const css = stylesheet({
+  leftCell: {
+    borderRight: `3px solid ${color.divider}`,
+  },
+  rightCell: {
+    borderLeft: `3px solid ${color.divider}`,
+  },
+  cell: {
+    borderCollapse: 'collapse',
+    padding: '1rem',
+    verticalAlign: 'top',
+  },
   outputsRow: {
     marginLeft: 15,
+  },
+  outputsOverflow: {
     overflowX: 'auto',
   },
   visualizationPlaceholder: {
-    width: '100%',
-    minWidth: '20rem',
-    maxWidth: '50rem',
+    width: '40rem',
     height: '30rem',
     backgroundColor: color.lightGrey,
     borderRadius: '1rem',
@@ -68,6 +86,7 @@ const css = stylesheet({
   visualizationPlaceholderText: {
     fontSize: fontsize.medium,
     textAlign: 'center',
+    padding: '2rem',
   },
 });
 
@@ -220,9 +239,73 @@ function VisualizationPlaceholder(props: VisualizationPlaceholderProps) {
   );
 }
 
+interface VisualizationPanelItemProps {
+  metricsTab: MetricsType;
+  metricsTabText: string;
+  linkedArtifact: LinkedArtifact | undefined;
+  namespace: string | undefined;
+}
+
+function VisualizationPanelItem(props: VisualizationPanelItemProps) {
+  const { metricsTab, metricsTabText, linkedArtifact, namespace } = props;
+
+  const { data: viewerConfigs } = useQuery<ViewerConfig[], Error>(
+    [
+      'viewerConfig',
+      {
+        artifact: linkedArtifact?.artifact.getId(),
+        namespace,
+      },
+    ],
+    async () => {
+      let viewerConfigs: ViewerConfig[] = [];
+      if (linkedArtifact) {
+        try {
+          if (metricsTab === MetricsType.HTML) {
+            viewerConfigs = await getHtmlViewerConfig([linkedArtifact], namespace);
+          } else if (metricsTab === MetricsType.MARKDOWN) {
+            viewerConfigs = await getMarkdownViewerConfig([linkedArtifact], namespace);
+          }
+        } catch (err) {
+          throw err;
+        }
+      }
+      return viewerConfigs;
+    },
+    { staleTime: Infinity },
+  );
+
+  if (!linkedArtifact) {
+    return <VisualizationPlaceholder metricsTabText={metricsTabText} />;
+  }
+
+  if (metricsTab === MetricsType.CONFUSION_MATRIX) {
+    return (
+      <React.Fragment key={linkedArtifact.artifact.getId()}>
+        <ConfusionMatrixSection artifact={linkedArtifact.artifact} />
+      </React.Fragment>
+    );
+  }
+
+  // TODO(zpChris): Show loading and error pages for HTML and Markdown.
+  if (viewerConfigs && (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN)) {
+    return <PlotCard configs={viewerConfigs} title={`Static ${metricsTabText}`} />;
+  }
+
+  return <></>;
+}
+
+interface SelectedArtifact {
+  selectedItem: SelectedItem;
+  linkedArtifact?: LinkedArtifact;
+}
+
 interface MetricsDropdownProps {
   filteredRunArtifacts: RunArtifact[];
+  metricsTab: MetricsType;
   metricsTabText: string;
+  selectedArtifacts: SelectedArtifact[];
+  updateSelectedArtifacts: (selectedArtifacts: SelectedArtifact[]) => void;
 }
 
 const logDisplayNameWarning = (type: string, id: string) =>
@@ -292,9 +375,71 @@ function getDropdownItems(filteredRunArtifacts: RunArtifact[]) {
   return dropdownItems;
 }
 
+const getNamespace = (selectedItem: SelectedItem, filteredRunArtifacts: RunArtifact[]) => {
+  const selectedRun = filteredRunArtifacts.find(
+    runArtifact => runArtifact.run.run?.name === selectedItem.itemName,
+  )?.run;
+  if (selectedRun) {
+    // TODO(zpChris): Move away from workflow_manifest as this is V1 specific.
+    const jsonWorkflow = JSON.parse(selectedRun.pipeline_runtime!.workflow_manifest || '{}');
+    return jsonWorkflow.metadata?.namespace;
+  }
+};
+
+function getLinkedArtifactFromSelectedItem(
+  filteredRunArtifacts: RunArtifact[],
+  selectedItem: SelectedItem,
+): LinkedArtifact | undefined {
+  const filteredRunArtifact = filteredRunArtifacts.find(
+    runArtifact => runArtifact.run.run?.name === selectedItem.itemName,
+  );
+
+  const executionArtifact = filteredRunArtifact?.executionArtifacts.find(executionArtifact => {
+    const executionText: string =
+      getExecutionName(executionArtifact.execution) ||
+      executionArtifact.execution.getId().toString();
+    return executionText === selectedItem.subItemName;
+  });
+
+  const linkedArtifact = executionArtifact?.linkedArtifacts.find(linkedArtifact => {
+    const linkedArtifactText: string =
+      getArtifactName(linkedArtifact) || linkedArtifact.artifact.getId().toString();
+    return linkedArtifactText === selectedItem.subItemSecondaryName;
+  });
+
+  return linkedArtifact;
+}
+
 function MetricsDropdown(props: MetricsDropdownProps) {
-  const { filteredRunArtifacts, metricsTabText } = props;
-  const [selectedItem, setSelectedItem] = useState<SelectedItem>({ itemName: '', subItemName: '' });
+  const {
+    filteredRunArtifacts,
+    metricsTab,
+    metricsTabText,
+    selectedArtifacts,
+    updateSelectedArtifacts,
+  } = props;
+  const [firstSelectedItem, setFirstSelectedItem] = useState<SelectedItem>(
+    selectedArtifacts[0].selectedItem,
+  );
+  const [secondSelectedItem, setSecondSelectedItem] = useState<SelectedItem>(
+    selectedArtifacts[1].selectedItem,
+  );
+  const [firstSelectedNamespace, setFirstSelectedNamespace] = useState<string | undefined>();
+  const [secondSelectedNamespace, setSecondSelectedNamespace] = useState<string | undefined>();
+
+  const updateSelectedItemAndArtifact = (
+    setSelectedItem: (selectedItem: SelectedItem) => void,
+    setSelectedNamespace: (selectedNamespace: string | undefined) => void,
+    panelIndex: number,
+    selectedItem: SelectedItem,
+  ): void => {
+    setSelectedItem(selectedItem);
+    selectedArtifacts[panelIndex].selectedItem = selectedItem;
+    const linkedArtifact = getLinkedArtifactFromSelectedItem(filteredRunArtifacts, selectedItem);
+    selectedArtifacts[panelIndex].linkedArtifact = linkedArtifact;
+    setSelectedNamespace(getNamespace(selectedItem, filteredRunArtifacts));
+    updateSelectedArtifacts(selectedArtifacts);
+  };
 
   const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
 
@@ -303,15 +448,50 @@ function MetricsDropdown(props: MetricsDropdownProps) {
   }
 
   return (
-    <>
-      <TwoLevelDropdown
-        title={`Choose a first ${metricsTabText} artifact`}
-        items={dropdownItems}
-        selectedItem={selectedItem}
-        setSelectedItem={setSelectedItem}
-      />
-      <VisualizationPlaceholder metricsTabText={metricsTabText} />
-    </>
+    <table>
+      <tbody>
+        <tr>
+          <td className={classes(css.cell, css.leftCell)}>
+            <TwoLevelDropdown
+              title={`Choose a first ${metricsTabText} artifact`}
+              items={dropdownItems}
+              selectedItem={firstSelectedItem}
+              setSelectedItem={updateSelectedItemAndArtifact.bind(
+                null,
+                setFirstSelectedItem,
+                setFirstSelectedNamespace,
+                0,
+              )}
+            />
+            <VisualizationPanelItem
+              metricsTab={metricsTab}
+              metricsTabText={metricsTabText}
+              linkedArtifact={selectedArtifacts[0].linkedArtifact}
+              namespace={firstSelectedNamespace}
+            />
+          </td>
+          <td className={classes(css.cell, css.rightCell)}>
+            <TwoLevelDropdown
+              title={`Choose a second ${metricsTabText} artifact`}
+              items={dropdownItems}
+              selectedItem={secondSelectedItem}
+              setSelectedItem={updateSelectedItemAndArtifact.bind(
+                null,
+                setSecondSelectedItem,
+                setSecondSelectedNamespace,
+                1,
+              )}
+            />
+            <VisualizationPanelItem
+              metricsTab={metricsTab}
+              metricsTabText={metricsTabText}
+              linkedArtifact={selectedArtifacts[1].linkedArtifact}
+              namespace={secondSelectedNamespace}
+            />
+          </td>
+        </tr>
+      </tbody>
+    </table>
   );
 }
 
@@ -328,6 +508,24 @@ function CompareV2(props: PageProps) {
   const [confusionMatrixArtifacts, setConfusionMatrixArtifacts] = useState<RunArtifact[]>([]);
   const [htmlArtifacts, setHtmlArtifacts] = useState<RunArtifact[]>([]);
   const [markdownArtifacts, setMarkdownArtifacts] = useState<RunArtifact[]>([]);
+
+  // Selected artifacts for two-panel layout.
+  const createSelectedArtifactArray = (count: number): SelectedArtifact[] => {
+    const array: SelectedArtifact[] = [];
+    for (let i = 0; i < count; i++) {
+      array.push({
+        selectedItem: { itemName: '', subItemName: '' },
+      });
+    }
+    return array;
+  };
+  const [selectedArtifactsMap, setSelectedArtifactsMap] = useState<{
+    [key: string]: SelectedArtifact[];
+  }>({
+    [MetricsType.CONFUSION_MATRIX]: createSelectedArtifactArray(2),
+    [MetricsType.HTML]: createSelectedArtifactArray(2),
+    [MetricsType.MARKDOWN]: createSelectedArtifactArray(2),
+  });
 
   const queryParamRunIds = new URLParser(props).get(QUERY_PARAMS.runlist);
   const runIds = (queryParamRunIds && queryParamRunIds.split(',')) || [];
@@ -488,6 +686,11 @@ function CompareV2(props: PageProps) {
     setSelectedIds(selectedIds);
   };
 
+  const updateSelectedArtifacts = (newArtifacts: SelectedArtifact[]) => {
+    selectedArtifactsMap[metricsTab] = newArtifacts;
+    setSelectedArtifactsMap(selectedArtifactsMap);
+  };
+
   const metricsTabText = metricsTypeToString(metricsTab);
   return (
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
@@ -520,7 +723,7 @@ function CompareV2(props: PageProps) {
         collapseSectionUpdate={setIsParamsCollapsed}
       />
       {!isParamsCollapsed && (
-        <div className={classes(commonCss.noShrink, css.outputsRow)}>
+        <div className={classes(commonCss.noShrink, css.outputsRow, css.outputsOverflow)}>
           <Separator orientation='vertical' />
           <p>Parameter Section V2</p>
           <Hr />
@@ -541,25 +744,34 @@ function CompareV2(props: PageProps) {
             selectedTab={metricsTab}
             onSwitch={setMetricsTab}
           />
-          <div className={classes(padding(20, 'lrt'))}>
+          <div className={classes(padding(20, 'lrt'), css.outputsOverflow)}>
             {metricsTab === MetricsType.SCALAR_METRICS && <p>This is the Scalar Metrics tab.</p>}
             {metricsTab === MetricsType.CONFUSION_MATRIX && (
               <MetricsDropdown
                 filteredRunArtifacts={confusionMatrixArtifacts}
+                metricsTab={metricsTab}
                 metricsTabText={metricsTabText}
+                selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                updateSelectedArtifacts={updateSelectedArtifacts}
               />
             )}
             {metricsTab === MetricsType.ROC_CURVE && <p>This is the {metricsTabText} tab.</p>}
             {metricsTab === MetricsType.HTML && (
               <MetricsDropdown
                 filteredRunArtifacts={htmlArtifacts}
+                metricsTab={metricsTab}
                 metricsTabText={metricsTabText}
+                selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                updateSelectedArtifacts={updateSelectedArtifacts}
               />
             )}
             {metricsTab === MetricsType.MARKDOWN && (
               <MetricsDropdown
                 filteredRunArtifacts={markdownArtifacts}
+                metricsTab={metricsTab}
                 metricsTabText={metricsTabText}
+                selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                updateSelectedArtifacts={updateSelectedArtifacts}
               />
             )}
           </div>
