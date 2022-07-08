@@ -11,53 +11,46 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# pylint: disable=no-self-use,too-many-arguments,unused-argument,not-callable
-"""Bert Custom Handler."""
+# pylint: disable=no-self-use,too-many-arguments,unused-argument,not-callable,no-member,attribute-defined-outside-init
+""" Bert Custom Handler."""
+from captum.attr import IntegratedGradients
 import json
 import logging
 import os
-from captum.attr import IntegratedGradients
-from captum.attr import visualization
 import numpy as np
 import torch
-import torch.nn.functional as F
 from transformers import BertTokenizer
 from ts.torch_handler.base_handler import BaseHandler
+from captum.attr import visualization
+import torch.nn.functional as F
 from bert_train import BertNewsClassifier
 from wrapper import AGNewsmodelWrapper
 
 logger = logging.getLogger(__name__)
 
 
-class NewsClassifierHandler(BaseHandler):  # pylint: disable=too-many-instance-attributes
-    """NewsClassifierHandler class.
-
-    This handler takes a review / sentence and returns the label as
-    either world / sports / business /sci-tech.
+class NewsClassifierHandler(BaseHandler):
+    """
+    NewsClassifierHandler class. This handler takes a review / sentence
+    and returns the label as either world / sports / business /sci-tech
     """
 
-    def __init__(self):  # pylint: disable=super-init-not-called
+    def __init__(self):
         self.model = None
         self.mapping = None
         self.device = None
         self.initialized = False
         self.class_mapping_file = None
-        self.vocab_file = None
+        self.VOCAB_FILE = None
 
-    def initialize(self, ctx):  # pylint: disable=arguments-differ
-        """First try to load torchscript else load eager mode state_dict based
-        model.
-
-        Args:
-             ctx: System properties
+    def initialize(self, ctx):
+        """
+        First try to load torchscript else load eager mode state_dict based model
+        :param ctx: System properties
         """
 
         properties = ctx.system_properties
-        self.device = torch.device(  # pylint: disable=no-member
-            "cuda:" + str(properties.get("gpu_id"))
-            if torch.cuda.is_available()
-            else "cpu"
-        )
+        self.device = torch.device("cuda") if torch.cuda.is_available() else "cpu"
         model_dir = properties.get("model_dir")
 
         # Read model serialize/pt file
@@ -66,16 +59,15 @@ class NewsClassifierHandler(BaseHandler):  # pylint: disable=too-many-instance-a
         model_def_path = os.path.join(model_dir, "bert_train.py")
         if not os.path.isfile(model_def_path):
             raise RuntimeError("Missing the model definition file")
-
-        self.vocab_file = os.path.join(model_dir, "bert-base-uncased-vocab.txt")
-        if not os.path.isfile(self.vocab_file):
+        self.VOCAB_FILE = os.path.join(model_dir, "bert-base-uncased-vocab.txt")
+        if not os.path.isfile(self.VOCAB_FILE):
             raise RuntimeError("Missing the vocab file")
 
         self.class_mapping_file = os.path.join(model_dir, "index_to_name.json")
 
         state_dict = torch.load(model_pt_path, map_location=self.device)
         self.model = BertNewsClassifier()
-        self.model.load_state_dict(state_dict, strict=False)
+        self.model.load_state_dict(state_dict)
         self.model.to(self.device)
         self.model.eval()
 
@@ -83,60 +75,40 @@ class NewsClassifierHandler(BaseHandler):  # pylint: disable=too-many-instance-a
         self.initialized = True
 
     def preprocess(self, data):
-        """Receives text in form of json and converts it into an encoding for
-        the inference stage.
-
-        Args:
-            data: Input to be passed through the layers for prediction
-
-        Returns:
-            output - preprocessed encoding
+        """
+        Receives text in form of json and converts it into an encoding for the inference stage
+        :param data: Input to be passed through the layers for prediction
+        :return: output - preprocessed encoding
         """
 
         text = data[0].get("data")
         if text is None:
             text = data[0].get("body")
 
-        self.text = text  # pylint: disable=attribute-defined-outside-init
-        self.tokenizer = (  # pylint: disable=attribute-defined-outside-init
-            BertTokenizer(
-                self.vocab_file
-            )
-        )
-        self.input_ids = torch.tensor(  # pylint: disable=attribute-defined-outside-init,not-callable,no-member
-            [
-                self.tokenizer.encode(self.text, add_special_tokens=True)
-            ]
-        )  # pylint: disable=attribute-defined-outside-init
+        self.text = text
+        self.tokenizer = BertTokenizer(self.VOCAB_FILE)
+        self.input_ids = torch.tensor(
+            [self.tokenizer.encode(self.text, add_special_tokens=True)]
+        ).to(self.device)
         return self.input_ids
 
-    def inference(self, input_ids):  # pylint: disable=arguments-differ,unused-argument
-        """Predict the class  for a review / sentence whether
-        it is belong to world / sports / business /sci-tech.
-        Args:
-             encoding:
-             Input encoding to be passed through the layers for prediction
-
-        Returns:
-             output - predicted output
+    def inference(self, input_ids):
+        """
+        Predict the class  for a review / sentence whether
+        it is belong to world / sports / business /sci-tech
+        :param encoding: Input encoding to be passed through the layers for prediction
+        :return: output - predicted output
         """
         inputs = self.input_ids.to(self.device)
-        self.outputs = self.model.forward(  # pylint: disable=attribute-defined-outside-init
-            inputs
-        )
-        self.out = np.argmax(  # pylint: disable=attribute-defined-outside-init
-            self.outputs.cpu().detach()
-        )  # pylint: disable=attribute-defined-outside-init
+        self.outputs = self.model.forward(inputs)
+        self.out = np.argmax(self.outputs.cpu().detach())
         return [self.out.item()]
 
-    def postprocess(self, inference_output):  # pylint: disable=arguments-differ
-        """Does postprocess after inference to be returned to user.
-
-        Args:
-            inference_output: Output of inference
-
-        Returns:
-             output - Output after post processing
+    def postprocess(self, inference_output):
+        """
+        Does postprocess after inference to be returned to user
+        :param inference_output: Output of inference
+        :return: output - Output after post processing
         """
         if os.path.exists(self.class_mapping_file):
             with open(self.class_mapping_file) as json_file:
@@ -157,7 +129,6 @@ class NewsClassifierHandler(BaseHandler):  # pylint: disable=too-many-instance-a
         delta,
         vis_data_records,
     ):
-        """Adds attribution to visualizer."""
         attributions = attributions.sum(dim=2).squeeze(0)
         attributions = attributions / torch.norm(attributions)
         attributions = attributions.cpu().detach().numpy()
@@ -176,15 +147,13 @@ class NewsClassifierHandler(BaseHandler):  # pylint: disable=too-many-instance-a
             )
         )
 
-    def score_func(self, out):
-        """Defining score function."""
-        output = F.softmax(out, dim=1)
+    def score_func(self, o):
+        output = F.softmax(o, dim=1)
         pre_pro = np.argmax(output.cpu().detach())
         return pre_pro
 
     def summarize_attributions(self, attributions):
-        """Summarises the attribution across multiple runs.
-
+        """Summarises the attribution across multiple runs
         Args:
             attributions ([list): attributions from the Integrated Gradients
         Returns:
@@ -194,9 +163,8 @@ class NewsClassifierHandler(BaseHandler):  # pylint: disable=too-many-instance-a
         attributions = attributions / torch.norm(attributions)
         return attributions
 
-    def explain_handle(self, model_wraper, text, target=1):  # pylint: disable=too-many-locals,unused-argument,arguments-differ
-        """Captum explanations handler.
-
+    def explain_handle(self, model_wraper, text, target=1):
+        """Captum explanations handler
         Args:
             data_preprocess (Torch Tensor):
             Preprocessed data to be used for captum
@@ -204,23 +172,19 @@ class NewsClassifierHandler(BaseHandler):  # pylint: disable=too-many-instance-a
         Returns:
             dict : A dictionary response with the explanations response.
         """
+        vis_data_records_base = []
         model_wrapper = AGNewsmodelWrapper(self.model)
-        tokenizer = BertTokenizer(self.vocab_file)
+        tokenizer = BertTokenizer(self.VOCAB_FILE)
         model_wrapper.eval()
         model_wrapper.zero_grad()
         encoding = tokenizer.encode_plus(
-            self.text,
-            return_attention_mask=True,
-            return_tensors="pt",
-            add_special_tokens=False
+            self.text, return_attention_mask=True, return_tensors="pt", add_special_tokens=False
         )
         input_ids = encoding["input_ids"]
         attention_mask = encoding["attention_mask"]
         input_ids = input_ids.to(self.device)
         attention_mask = attention_mask.to(self.device)
-        input_embedding_test = model_wrapper.model.bert_model.embeddings(
-            input_ids
-        )
+        input_embedding_test = model_wrapper.model.bert_model.embeddings(input_ids)
         preds = model_wrapper(input_embedding_test, attention_mask)
         out = np.argmax(preds.cpu().detach(), axis=1)
         out = out.item()
@@ -231,12 +195,13 @@ class NewsClassifierHandler(BaseHandler):  # pylint: disable=too-many-instance-a
             return_convergence_delta=True,
             target=1,
         )
-        tokens = tokenizer.convert_ids_to_tokens(
-            input_ids[0].cpu().numpy().tolist()
-        )
+        tokens = tokenizer.convert_ids_to_tokens(input_ids[0].cpu().numpy().tolist())
         feature_imp_dict = {}
         feature_imp_dict["words"] = tokens
         attributions_sum = self.summarize_attributions(attributions)
         feature_imp_dict["importances"] = attributions_sum.tolist()
         feature_imp_dict["delta"] = delta[0].tolist()
+        self.add_attributions_to_visualizer(
+            attributions, tokens, self.score_func(preds), out, 2, 1, delta, vis_data_records_base
+        )
         return [feature_imp_dict]

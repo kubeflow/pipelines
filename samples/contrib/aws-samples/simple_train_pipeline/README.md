@@ -29,13 +29,8 @@ bucket = '<bucket-name>'
 
 # Load the dataset
 s3 = boto3.client("s3")
-data_bucket = S3DataConfig(
-    sm_session, "example-notebooks-data-config", "config/data_config.json"
-).get_data_bucket()
-print(f"Using data from {data_bucket}")
-
 s3.download_file(
-    data_bucket, "datasets/image/MNIST/mnist.pkl.gz", "mnist.pkl.gz")
+    "sagemaker-sample-files", "datasets/image/MNIST/mnist.pkl.gz", "mnist.pkl.gz")
 
 with gzip.open("mnist.pkl.gz", "rb") as f:
     train_set, valid_set, test_set = pickle.load(f, encoding="latin1")
