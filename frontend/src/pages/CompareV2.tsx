@@ -531,11 +531,6 @@ function CompareV2(props: PageProps) {
             xParentLabelName: runName,
           } as xTupleLabel);
           const customProperties = linkedArtifact.artifact.getCustomPropertiesMap();
-          // The key should be added to a set perhaps?
-          // This should be ordered by first properties retrieved.
-          // What if this is actually a map?
-          // Or wait how do we order this...
-          // All of the yLabels are retrieved. I have rows, which we sync up here.
           for (const entry of customProperties.getEntryList()) {
             if (entry[0] === 'display_name') {
               continue;
