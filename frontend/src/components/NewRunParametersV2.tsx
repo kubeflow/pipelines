@@ -57,6 +57,28 @@ interface NewRunParametersProps {
   handleParameterChange?: (parameters: RuntimeParameters) => void;
 }
 
+function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEnum): any {
+  switch (paramType) {
+    case ParameterType_ParameterTypeEnum.BOOLEAN:
+      if (paramStr === 'true' || paramStr === 'false') {
+        return paramStr === 'true';
+      }
+      return null;
+    case ParameterType_ParameterTypeEnum.STRING:
+      return paramStr;
+    case ParameterType_ParameterTypeEnum.NUMBER_INTEGER:
+      if (Number.isInteger(Number(paramStr))) {
+        return Number(paramStr);
+      }
+      return null;
+    default:
+      // TODO: (jlyaoyuli) Validate if the type of parameters matches the value
+      // If it doesn't throw an error message next to the TextField.
+      console.log('Unknown paramter type: ' + paramType);
+      return null;
+  }
+}
+
 function NewRunParametersV2(props: NewRunParametersProps) {
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
   const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
@@ -67,9 +89,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     Object.keys(props.specParameters).map(key => {
       if (props.specParameters[key].defaultValue) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.
-        runtimeParametersWithDefault[key] = {
-          string_value: props.specParameters[key].defaultValue,
-        };
+        runtimeParametersWithDefault[key] = props.specParameters[key].defaultValue;
       }
     });
     setUpdatedParameters(runtimeParametersWithDefault);
@@ -121,9 +141,9 @@ function NewRunParametersV2(props: NewRunParametersProps) {
 
       {!!Object.keys(props.specParameters).length && (
         <div>
-          {Object.entries(props.specParameters).map(([k, value]) => {
+          {Object.entries(props.specParameters).map(([k, v]) => {
             const param = {
-              key: `${k} - ${ParameterType_ParameterTypeEnum[value.parameterType]}`,
+              key: `${k} - ${ParameterType_ParameterTypeEnum[v.parameterType]}`,
               value: updatedParameters[k],
             };
 
@@ -134,10 +154,17 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                 onChange={value => {
                   const nextUpdatedParameters: RuntimeParameters = {};
                   Object.assign(nextUpdatedParameters, updatedParameters);
-                  nextUpdatedParameters[k] = { string_value: value };
+                  nextUpdatedParameters[k] = value;
                   setUpdatedParameters(nextUpdatedParameters);
                   if (props.handleParameterChange) {
-                    props.handleParameterChange(nextUpdatedParameters);
+                    let parametersInRealType: RuntimeParameters = {};
+                    Object.entries(nextUpdatedParameters).map(([k, v1]) => {
+                      parametersInRealType[k] = convertInput(
+                        v1.toString(),
+                        props.specParameters[k].parameterType,
+                      );
+                    });
+                    props.handleParameterChange(parametersInRealType);
                   }
                 }}
                 param={param}
@@ -244,7 +271,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
             variant='outlined'
             label={param.key}
             //TODO(zijianjoy): Convert defaultValue to correct type.
-            value={param.value?.string_value || ''}
+            value={param.value || ''}
             onChange={ev => onChange(ev.target.value || '')}
             className={classes(commonCss.textField, css.textfield)}
           />
@@ -261,7 +288,7 @@ class ParamEditor extends React.Component<ParamEditorProps, ParamEditorState> {
               showGutter={true}
               readOnly={false}
               onChange={text => onChange(text || '')}
-              value={param.value?.string_value || ''}
+              value={param.value || ''}
             />
           </div>
         )}
