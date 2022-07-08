@@ -2,12 +2,12 @@
 
 ## Below are the prerequisites to be satisfied for running the samples.
 
-For running the samples you will need a cluster with Kubeflow 1.3.xxx (or later)  installed, 
+For running the samples you will need a cluster with Kubeflow 1.4.xxx (or later)  installed,
 refer https://github.com/kubeflow/manifests for details.
 
-### Add Minio secret for KFServing 
+### Add Minio secret for KServe
 
-Apply below secret and service account for KFServing to access minio server
+Apply below secret and service account for KServe to access minio server
 
 minio-secret.yaml
 
@@ -17,10 +17,10 @@ kind: Secret
 metadata:
   name: mysecret
   annotations:
-     serving.kubeflow.org/s3-endpoint: minio-service.kubeflow:9000 # replace with your s3 endpoint
-     serving.kubeflow.org/s3-usehttps: "0" # by default 1, for testing with minio you need to set to 0
-     serving.kubeflow.org/s3-region: "minio" # replace with the region the bucket is created in
-     serving.kubeflow.org/s3-useanoncredential: "false" # omitting this is the same as false, if true will ignore credential provided and use anonymous credentials
+     serving.kserve.io/s3-endpoint: minio-service.kubeflow:9000 # replace with your s3 endpoint
+     serving.kserve.io/s3-usehttps: "0" # by default 1, for testing with minio you need to set to 0
+     serving.kserve.io/s3-region: "minio" # replace with the region the bucket is created in
+     serving.kserve.io/s3-useanoncredential: "false" # omitting this is the same as false, if true will ignore credential provided and use anonymous credentials
 type: Opaque
 data:
   AWS_ACCESS_KEY_ID: <base-64-minio-access-key> # replace with your base64 encoded minio credential
@@ -44,33 +44,22 @@ Run the following command to disable sidecar injection
 
 ```kubectl label namespace kubeflow-user-example-com istio-injection=disabled --overwrite```
 
-**The below changes are required only for kubeflow 1.3.x **
+## Migrate to KServe 0.8.0
 
-### Modify KFServing torchserve image
+Refer: https://kserve.github.io/website/admin/migration/#migrating-from-kubeflow-based-kfserving
+
+Note: Install KServe 0.8.0
+
+### Modify KServe predictor image
 
 Edit inferenceservice-config configmap
 
 ```kubectl edit cm inferenceservice-config -n kubeflow```
 
-Update the following keys under `predictors -> pytorch -> v2` block
+Update the following keys under `predictors -> pytorch` block
 
 ```yaml
 "image": "pytorch/torchserve-kfs",
-"defaultImageVersion": "0.4.1",
-"defaultGpuImageVersion": "0.4.1-gpu",
+"defaultImageVersion": "0.5.1",
+"defaultGpuImageVersion": "0.5.1-gpu",
 ```
-
-### Modify ml-pipeline-ui image
-
-Edit deployment ml-pipeline-ui
-
-```kubectl edit deploy ml-pipeline-ui -n kubeflow```
-
-Edit the image field with below image:  
-
-```yaml
-image: gcr.io/ml-pipeline/frontend:1.6.0
-```
-
-Save and exit the edit.
-
