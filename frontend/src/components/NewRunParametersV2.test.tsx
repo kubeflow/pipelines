@@ -48,14 +48,14 @@ describe('NewRunParametersV2', () => {
       </CommonTestWrapper>,
     );
 
-    expect(screen.getByText('Run parameters'));
-    expect(screen.getByText('Specify parameters required by the pipeline'));
-    expect(screen.getByText('strParam - STRING'));
-    expect(screen.getByDisplayValue('string value'));
-    expect(screen.getByText('boolParam - BOOLEAN'));
-    expect(screen.getByDisplayValue('true'));
-    expect(screen.getByText('intParam - NUMBER_INTEGER'));
-    expect(screen.getByDisplayValue('123'));
+    screen.getByText('Run parameters');
+    screen.getByText('Specify parameters required by the pipeline');
+    screen.getByText('strParam - STRING');
+    screen.getByDisplayValue('string value');
+    screen.getByText('boolParam - BOOLEAN');
+    screen.getByDisplayValue('true');
+    screen.getByText('intParam - NUMBER_INTEGER');
+    screen.getByDisplayValue('123');
   });
 
   it('edits parameters', () => {
@@ -350,7 +350,7 @@ describe('NewRunParametersV2', () => {
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
       listParam: [4, 5, 6],
     });
-    expect(screen.getByDisplayValue('[4,5,6]'));
+    screen.getByDisplayValue('[4,5,6]');
   });
 
   it('test convertInput function for LIST type without default value', () => {
@@ -374,7 +374,7 @@ describe('NewRunParametersV2', () => {
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
       listParam: [4, 5, 6],
     });
-    expect(screen.getByDisplayValue('[4,5,6]'));
+    screen.getByDisplayValue('[4,5,6]');
   });
 
   it('test convertInput function for LIST type with invalid input (invalid JSON form)', () => {
@@ -422,7 +422,7 @@ describe('NewRunParametersV2', () => {
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
       structParam: { C: 3, D: 4 },
     });
-    expect(screen.getByDisplayValue('{"C":3,"D":4}'));
+    screen.getByDisplayValue('{"C":3,"D":4}');
   });
 
   it('test convertInput function for STRUCT type without default value', () => {
@@ -446,7 +446,7 @@ describe('NewRunParametersV2', () => {
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
       structParam: { A: 1, B: 2 },
     });
-    expect(screen.getByDisplayValue('{"A":1,"B":2}'));
+    screen.getByDisplayValue('{"A":1,"B":2}');
   });
 
   it('test convertInput function for STRUCT type with invalid input (invalid JSON form)', () => {
