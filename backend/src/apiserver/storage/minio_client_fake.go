@@ -18,7 +18,7 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/minio/minio-go"
+	"github.com/minio/minio-go/v6"
 	"github.com/pkg/errors"
 )
 

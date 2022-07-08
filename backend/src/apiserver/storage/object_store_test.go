@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	minio "github.com/minio/minio-go"
+	minio "github.com/minio/minio-go/v6"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
