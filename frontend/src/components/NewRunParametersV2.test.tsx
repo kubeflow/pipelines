@@ -116,6 +116,7 @@ describe('NewRunParametersV2', () => {
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
       strParam: 'new string',
     });
+    screen.getByDisplayValue('new string');
   });
 
   it('test convertInput function for string type without default value', () => {
@@ -139,6 +140,7 @@ describe('NewRunParametersV2', () => {
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
       strParam: 'new string',
     });
+    screen.getByDisplayValue('new string');
   });
 
   it('test convertInput function for boolean type with default value', () => {
@@ -163,6 +165,7 @@ describe('NewRunParametersV2', () => {
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
       boolParam: false,
     });
+    screen.getByDisplayValue('false');
   });
 
   it('test convertInput function for boolean type without default value', () => {
@@ -186,6 +189,7 @@ describe('NewRunParametersV2', () => {
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
       boolParam: true,
     });
+    screen.getByDisplayValue('true');
   });
 
   it('test convertInput function for boolean type with invalid input (Uppercase)', () => {
@@ -209,6 +213,7 @@ describe('NewRunParametersV2', () => {
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
       boolParam: null,
     });
+    screen.getByDisplayValue('True');
   });
 
   it('test convertInput function for integer type with default value', () => {
@@ -233,6 +238,7 @@ describe('NewRunParametersV2', () => {
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
       intParam: 456,
     });
+    screen.getByDisplayValue('456');
   });
 
   it('test convertInput function for integer type without default value', () => {
@@ -256,6 +262,7 @@ describe('NewRunParametersV2', () => {
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
       intParam: 789,
     });
+    screen.getByDisplayValue('789');
   });
 
   it('test convertInput function for integer type with invalid input (float)', () => {
@@ -279,6 +286,7 @@ describe('NewRunParametersV2', () => {
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
       intParam: null,
     });
+    screen.getByDisplayValue('7.89');
   });
 
   it('test convertInput function for double type with default value', () => {
@@ -303,6 +311,7 @@ describe('NewRunParametersV2', () => {
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
       doubleParam: 4.56,
     });
+    screen.getByDisplayValue('4.56');
   });
 
   it('test convertInput function for double type without default value', () => {
@@ -326,6 +335,7 @@ describe('NewRunParametersV2', () => {
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
       doubleParam: 7.89,
     });
+    screen.getByDisplayValue('7.89');
   });
 
   it('test convertInput function for LIST type with default value', () => {
@@ -398,6 +408,7 @@ describe('NewRunParametersV2', () => {
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
       listParam: null,
     });
+    screen.getByDisplayValue('[4,5,6');
   });
 
   it('test convertInput function for STRUCT type with default value', () => {
@@ -470,6 +481,7 @@ describe('NewRunParametersV2', () => {
     expect(handleParameterChangeSpy).toHaveBeenLastCalledWith({
       structParam: null,
     });
+    screen.getByDisplayValue('"A":1,"B":2');
   });
 
   it('does not display any text fields if there are no parameters', () => {
