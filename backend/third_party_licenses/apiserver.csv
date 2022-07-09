@@ -22,7 +22,6 @@ github.com/doublerebel/bellows,https://github.com/doublerebel/bellows/blob/f177d
 github.com/emicklei/go-restful,https://github.com/emicklei/go-restful/blob/v2.15.0/LICENSE,MIT
 github.com/fsnotify/fsnotify,https://github.com/fsnotify/fsnotify/blob/v1.4.9/LICENSE,BSD-3-Clause
 github.com/ghodss/yaml,https://github.com/ghodss/yaml/blob/25d852aebe32/LICENSE,MIT
-github.com/go-ini/ini,https://github.com/go-ini/ini/blob/v1.51.1/LICENSE,Apache-2.0
 github.com/go-logr/logr,https://github.com/go-logr/logr/blob/v0.4.0/LICENSE,Apache-2.0
 github.com/go-openapi/errors,https://github.com/go-openapi/errors/blob/v0.19.9/LICENSE,Apache-2.0
 github.com/go-openapi/jsonpointer,https://github.com/go-openapi/jsonpointer/blob/v0.19.5/LICENSE,Apache-2.0
@@ -59,6 +58,7 @@ github.com/jmespath/go-jmespath,https://github.com/jmespath/go-jmespath/blob/v0.
 github.com/josharian/intern,https://github.com/josharian/intern/blob/v1.0.0/license.md,MIT
 github.com/json-iterator/go,https://github.com/json-iterator/go/blob/v1.1.11/LICENSE,MIT
 github.com/klauspost/compress/flate,https://github.com/klauspost/compress/blob/v1.13.1/LICENSE,BSD-3-Clause
+github.com/klauspost/cpuid,https://github.com/klauspost/cpuid/blob/v1.2.3/LICENSE,MIT
 github.com/klauspost/pgzip,https://github.com/klauspost/pgzip/blob/v1.2.5/LICENSE,MIT
 github.com/kubeflow/pipelines/api/v2alpha1/go,https://github.com/kubeflow/pipelines/blob/11635101d944/api/LICENSE,Apache-2.0
 github.com/kubeflow/pipelines/backend,https://github.com/kubeflow/pipelines/blob/HEAD/LICENSE,Apache-2.0
@@ -70,7 +70,9 @@ github.com/magiconair/properties,https://github.com/magiconair/properties/blob/v
 github.com/mailru/easyjson,https://github.com/mailru/easyjson/blob/v0.7.6/LICENSE,MIT
 github.com/mattn/go-sqlite3,https://github.com/mattn/go-sqlite3/blob/v1.9.0/LICENSE,MIT
 github.com/matttproud/golang_protobuf_extensions/pbutil,https://github.com/matttproud/golang_protobuf_extensions/blob/c182affec369/LICENSE,Apache-2.0
-github.com/minio/minio-go,https://github.com/minio/minio-go/blob/v6.0.14/LICENSE,Apache-2.0
+github.com/minio/md5-simd,https://github.com/minio/md5-simd/blob/v1.1.0/LICENSE,Apache-2.0
+github.com/minio/minio-go/v6,https://github.com/minio/minio-go/blob/v6.0.57/LICENSE,Apache-2.0
+github.com/minio/sha256-simd,https://github.com/minio/sha256-simd/blob/v0.1.1/LICENSE,Apache-2.0
 github.com/mitchellh/copystructure,https://github.com/mitchellh/copystructure/blob/v1.2.0/LICENSE,MIT
 github.com/mitchellh/go-homedir,https://github.com/mitchellh/go-homedir/blob/v1.1.0/LICENSE,MIT
 github.com/mitchellh/mapstructure,https://github.com/mitchellh/mapstructure/blob/v1.4.1/LICENSE,MIT
