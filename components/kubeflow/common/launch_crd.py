@@ -107,11 +107,10 @@ class K8sCR(object):
 
   def delete(self, name, namespace):
     try:
-      body = {
-        # Set garbage collection so that CR won't be deleted until all
-        # owned references are deleted.
-        "propagationPolicy": "Foreground",
-      }
+      # Set garbage collection so that CR won't be deleted until all
+      # owned references are deleted.
+      propagation_policy = "Foreground"
+
       logger.info("Deleteing %s/%s %s in namespace %s.",
         self.group, self.plural, name, namespace)
       api_response = self.client.delete_namespaced_custom_object(
@@ -120,7 +119,7 @@ class K8sCR(object):
         namespace,
         self.plural,
         name,
-        body)
+        propagation_policy=propagation_policy)
       logger.info("Deleted %s/%s %s in namespace %s.",
         self.group, self.plural, name, namespace)
       return api_response
