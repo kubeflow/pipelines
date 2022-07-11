@@ -994,5 +994,38 @@ def load_compiled_file(filename: str) -> Dict[str, Any]:
         return ignore_kfp_version_helper(contents)
 
 
+class TestSetRetryCompilation(unittest.TestCase):
+
+    def test_set_retry(self):
+
+        @dsl.component
+        def hello_world(text: str) -> str:
+            """Hello world component."""
+            return text
+
+        @dsl.pipeline(name='hello-world', description='A simple intro pipeline')
+        def pipeline_hello_world(text: str = 'hi there'):
+            """Hello world pipeline."""
+
+            hello_world(text=text).set_retry(
+                num_retries=3,
+                backoff_duration='30s',
+                backoff_factor=1.0,
+                backoff_max_duration='3h',
+            )
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_hello_world, package_path=package_path)
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        retry_policy = pipeline_spec.root.dag.tasks['hello-world'].retry_policy
+        self.assertEqual(retry_policy.max_retry_count, 3)
+        self.assertEqual(retry_policy.backoff_duration.seconds, 30)
+        self.assertEqual(retry_policy.backoff_factor, 1.0)
+        self.assertEqual(retry_policy.backoff_max_duration.seconds, 3600)
+
+
 if __name__ == '__main__':
     unittest.main()

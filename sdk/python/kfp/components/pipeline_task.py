@@ -450,6 +450,30 @@ class PipelineTask:
 
         return self
 
+    def set_retry(self,
+                  num_retries: int,
+                  backoff_duration: Optional[str] = None,
+                  backoff_factor: Optional[float] = None,
+                  backoff_max_duration: Optional[str] = None) -> 'PipelineTask':
+        """Sets task retry parameters.
+
+        Args:
+            num_retries (int): Number of times to retry on failure.
+            backoff_duration (Optional[int]): The the number of seconds to wait before triggering a retry. Defaults to '0s' (immediate retry).
+            backoff_factor (Optional[float]): The exponential backoff factor applied to backoff_duration. For example, if backoff_duration="60" (60 seconds) and backoff_factor=2, the first retry will happen after 60 seconds, then after 120, 240, and so on. Defaults to 2.0.
+            backoff_max_duration (Optional[int]): The maximum duration during which the task will be retried. Maximum duration is 1 hour (3600s). Defaults to '3600s'.
+
+        Returns:
+            Self return to allow chained setting calls.
+        """
+        self.task_spec.retry_policy = structures.RetryPolicy(
+            max_retry_count=num_retries,
+            backoff_duration=backoff_duration,
+            backoff_factor=backoff_factor,
+            backoff_max_duration=backoff_max_duration,
+        )
+        return self
+
     def add_node_selector_constraint(self, accelerator: str) -> 'PipelineTask':
         """Sets accelerator type requirement for this task.
 
