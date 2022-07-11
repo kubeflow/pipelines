@@ -802,12 +802,16 @@ function CompareV2(props: PageProps) {
       return row;
     });
 
-    setScalarMetricsTableData({
-      xLabels,
-      yLabels,
-      xParentLabels,
-      rows,
-    } as CompareTableProps);
+    if (yLabels.length === 0) {
+      setScalarMetricsTableData(undefined);
+    } else {
+      setScalarMetricsTableData({
+        xLabels,
+        yLabels,
+        xParentLabels,
+        rows,
+      } as CompareTableProps);
+    }
   }, [scalarMetricsArtifacts]);
 
   const updateSelectedArtifacts = (newArtifacts: SelectedArtifact[]) => {
@@ -869,8 +873,12 @@ function CompareV2(props: PageProps) {
             onSwitch={setMetricsTab}
           />
           <div className={classes(padding(20, 'lrt'), css.outputsOverflow)}>
-            {metricsTab === MetricsType.SCALAR_METRICS && scalarMetricsTableData && (
-              <CompareTable {...scalarMetricsTableData} />
+            {metricsTab === MetricsType.SCALAR_METRICS && (
+              scalarMetricsTableData ? (
+                <CompareTable {...scalarMetricsTableData} />
+              ) : (
+                <p>There are no {metricsTabText} artifacts available on the selected runs.</p>
+              )
             )}
             {metricsTab === MetricsType.CONFUSION_MATRIX && (
               <MetricsDropdown
