@@ -4,6 +4,21 @@
 ## Breaking Changes
 
 ### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+
+## Documentation Updates
+
+# 1.8.13
+## Major Features and Improvements
+
+## Breaking Changes
+
+### For Pipeline Authors
 * Add support for task-level retry policy when compiling pipeline to IR [\#7875](https://github.com/kubeflow/pipelines/pull/7875)
 
 ### For Component Authors
@@ -13,6 +28,7 @@
 ## Bug Fixes and Other Changes
 * Depends on `google-cloud-storage>=2.2.1,<3` [\#7502](https://github.com/kubeflow/pipelines/pull/7502)
 * Accepts `typing-extensions>=4,<5` in addition to `typing-extensions>=3.7.4,<4` [\#7801](https://github.com/kubeflow/pipelines/pull/7801)
+* Fixes 'ComponentStore' object has no attribute 'uri_search_template'. [\#8002](https://github.com/kubeflow/pipelines/pull/8002)
 
 ## Documentation Updates
 
