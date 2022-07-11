@@ -503,6 +503,7 @@ describe('NewRunParametersV2', () => {
 
     expect(handleValidInputSpy).toHaveBeenCalledTimes(1);
     expect(handleValidInputSpy).toHaveBeenLastCalledWith(true);
+    screen.getByDisplayValue('123');
   });
 
   it('test error message for invalid integer input', () => {
@@ -525,6 +526,7 @@ describe('NewRunParametersV2', () => {
     fireEvent.change(intParam, { target: { value: '123b' } });
     expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
     expect(handleValidInputSpy).toHaveBeenLastCalledWith(false);
+    screen.getByDisplayValue('123b');
     screen.getByText('Invalid input. This parameter should be in NUMBER_INTEGER type');
   });
 
@@ -572,6 +574,7 @@ describe('NewRunParametersV2', () => {
     fireEvent.change(boolParam, { target: { value: '123' } });
     expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
     expect(handleValidInputSpy).toHaveBeenLastCalledWith(false);
+    screen.getByDisplayValue('123');
     screen.getByText('Invalid input. This parameter should be in BOOLEAN type');
   });
 
@@ -595,6 +598,7 @@ describe('NewRunParametersV2', () => {
     fireEvent.change(boolParam, { target: { value: 'true' } });
     expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
     expect(handleValidInputSpy).toHaveBeenLastCalledWith(true);
+    screen.getByDisplayValue('true');
   });
 
   it('test error message for invalid double input', () => {
@@ -617,6 +621,7 @@ describe('NewRunParametersV2', () => {
     fireEvent.change(doubleParam, { target: { value: '123b' } });
     expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
     expect(handleValidInputSpy).toHaveBeenLastCalledWith(false);
+    screen.getByDisplayValue('123b');
     screen.getByText('Invalid input. This parameter should be in NUMBER_DOUBLE type');
   });
 
