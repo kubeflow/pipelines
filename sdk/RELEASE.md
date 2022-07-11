@@ -4,6 +4,20 @@
 ## Breaking Changes
 
 ### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+
+## Documentation Updates
+# 1.8.13
+## Major Features and Improvements
+
+## Breaking Changes
+
+### For Pipeline Authors
 * Add support for task-level retry policy when compiling pipeline to IR [\#7875](https://github.com/kubeflow/pipelines/pull/7875)
 
 ### For Component Authors
