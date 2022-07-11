@@ -60,6 +60,7 @@ interface NewRunParametersProps {
 }
 
 function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEnum): any {
+  // TBD (jlyaoyuli): Currently, empty string is not allowed.
   if (paramStr === '') {
     return undefined;
   }
@@ -82,7 +83,18 @@ function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEn
       }
       return null;
     case ParameterType_ParameterTypeEnum.LIST:
+      if (!paramStr.trim().startsWith('[')) {
+        return null;
+      }
+      try {
+        return JSON.parse(paramStr);
+      } catch (err) {
+        return null;
+      }
     case ParameterType_ParameterTypeEnum.STRUCT:
+      if (!paramStr.trim().startsWith('{')) {
+        return null;
+      }
       try {
         return JSON.parse(paramStr);
       } catch (err) {

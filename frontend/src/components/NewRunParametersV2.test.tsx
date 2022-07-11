@@ -499,7 +499,7 @@ describe('NewRunParametersV2', () => {
       handleParameterChange: jest.fn(),
       handleValidInput: handleValidInputSpy,
     };
-    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+    render(<NewRunParametersV2 {...props} />);
 
     expect(handleValidInputSpy).toHaveBeenCalledTimes(1);
     expect(handleValidInputSpy).toHaveBeenLastCalledWith(true);
@@ -519,7 +519,7 @@ describe('NewRunParametersV2', () => {
       handleParameterChange: jest.fn(),
       handleValidInput: handleValidInputSpy,
     };
-    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+    render(<NewRunParametersV2 {...props} />);
 
     const intParam = screen.getByLabelText('intParam - NUMBER_INTEGER');
     fireEvent.change(intParam, { target: { value: '123b' } });
@@ -543,7 +543,7 @@ describe('NewRunParametersV2', () => {
       handleParameterChange: jest.fn(),
       handleValidInput: handleValidInputSpy,
     };
-    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+    render(<NewRunParametersV2 {...props} />);
 
     const intParam = screen.getByDisplayValue('123');
     fireEvent.change(intParam, { target: { value: '' } });
@@ -566,7 +566,7 @@ describe('NewRunParametersV2', () => {
       handleParameterChange: jest.fn(),
       handleValidInput: handleValidInputSpy,
     };
-    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+    render(<NewRunParametersV2 {...props} />);
 
     const boolParam = screen.getByLabelText('boolParam - BOOLEAN');
     fireEvent.change(boolParam, { target: { value: '123' } });
@@ -589,7 +589,7 @@ describe('NewRunParametersV2', () => {
       handleParameterChange: jest.fn(),
       handleValidInput: handleValidInputSpy,
     };
-    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+    render(<NewRunParametersV2 {...props} />);
 
     const boolParam = screen.getByLabelText('boolParam - BOOLEAN');
     fireEvent.change(boolParam, { target: { value: 'true' } });
@@ -611,13 +611,132 @@ describe('NewRunParametersV2', () => {
       handleParameterChange: jest.fn(),
       handleValidInput: handleValidInputSpy,
     };
-    render(<NewRunParametersV2 {...props}></NewRunParametersV2>);
+    render(<NewRunParametersV2 {...props} />);
 
     const doubleParam = screen.getByLabelText('doubleParam - NUMBER_DOUBLE');
     fireEvent.change(doubleParam, { target: { value: '123b' } });
     expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
     expect(handleValidInputSpy).toHaveBeenLastCalledWith(false);
     screen.getByText('Invalid input. This parameter should be in NUMBER_DOUBLE type');
+  });
+
+  it('test error message for invalid list input', () => {
+    const handleValidInputSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        listParam: {
+          parameterType: ParameterType_ParameterTypeEnum.LIST,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: jest.fn(),
+      handleValidInput: handleValidInputSpy,
+    };
+    render(<NewRunParametersV2 {...props} />);
+
+    const listParam = screen.getByLabelText('listParam - LIST');
+    fireEvent.change(listParam, { target: { value: '123' } });
+    expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
+    expect(handleValidInputSpy).toHaveBeenLastCalledWith(false);
+    screen.getByDisplayValue('123');
+    screen.getByText('Invalid input. This parameter should be in LIST type');
+  });
+
+  it('test error message for invalid list input', () => {
+    const handleValidInputSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        listParam: {
+          parameterType: ParameterType_ParameterTypeEnum.LIST,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: jest.fn(),
+      handleValidInput: handleValidInputSpy,
+    };
+    render(<NewRunParametersV2 {...props} />);
+
+    const listParam = screen.getByLabelText('listParam - LIST');
+    fireEvent.change(listParam, { target: { value: '[1,2,3' } });
+    expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
+    expect(handleValidInputSpy).toHaveBeenLastCalledWith(false);
+    screen.getByDisplayValue('[1,2,3');
+    screen.getByText('Invalid input. This parameter should be in LIST type');
+  });
+
+  it('test error message for invalid struct input', () => {
+    const handleValidInputSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        structParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRUCT,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: jest.fn(),
+      handleValidInput: handleValidInputSpy,
+    };
+    render(<NewRunParametersV2 {...props} />);
+
+    const structParam = screen.getByLabelText('structParam - STRUCT');
+    fireEvent.change(structParam, { target: { value: '123' } });
+    expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
+    expect(handleValidInputSpy).toHaveBeenLastCalledWith(false);
+    screen.getByDisplayValue('123');
+    screen.getByText('Invalid input. This parameter should be in STRUCT type');
+  });
+
+  it('test error message for invalid struct input', () => {
+    const handleValidInputSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        structParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRUCT,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: jest.fn(),
+      handleValidInput: handleValidInputSpy,
+    };
+    render(<NewRunParametersV2 {...props} />);
+
+    const structParam = screen.getByLabelText('structParam - STRUCT');
+    fireEvent.change(structParam, { target: { value: '[1,2,3]' } });
+    expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
+    expect(handleValidInputSpy).toHaveBeenLastCalledWith(false);
+    screen.getByDisplayValue('[1,2,3]');
+    screen.getByText('Invalid input. This parameter should be in STRUCT type');
+  });
+
+  it('test valid struct input', () => {
+    const handleValidInputSpy = jest.fn();
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        structParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRUCT,
+        },
+      },
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: jest.fn(),
+      handleValidInput: handleValidInputSpy,
+    };
+    render(<NewRunParametersV2 {...props} />);
+
+    const structParam = screen.getByLabelText('structParam - STRUCT');
+    fireEvent.change(structParam, { target: { value: '{"A":1,"B":2}' } });
+    expect(handleValidInputSpy).toHaveBeenCalledTimes(2);
+    expect(handleValidInputSpy).toHaveBeenLastCalledWith(true);
+    screen.getByDisplayValue('{"A":1,"B":2}');
   });
 
   it('does not display any text fields if there are no parameters', () => {
