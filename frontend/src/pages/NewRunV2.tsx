@@ -334,7 +334,7 @@ function NewRunV2(props: NewRunV2Props) {
           }
           specParameters={specParameters}
           handleParameterChange={setRuntimeParameters}
-          handleValidInput={setIsStartButtonEnabled}
+          setIsValidInput={setIsStartButtonEnabled}
         />
 
         {/* Create/Cancel buttons */}

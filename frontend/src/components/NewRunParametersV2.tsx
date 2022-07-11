@@ -55,7 +55,7 @@ interface NewRunParametersProps {
   specParameters: SpecParameters;
   handlePipelineRootChange?: (pipelineRoot: string) => void;
   handleParameterChange?: (parameters: RuntimeParameters) => void;
-  handleValidInput?: (validinput: boolean) => void;
+  setIsValidInput?: (isValid: boolean) => void;
 }
 
 function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEnum): any {
@@ -174,8 +174,8 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     setUpdatedParameters(runtimeParametersWithDefault);
     setErrorMessages(errorMessages);
     setValidInputs(validInputs);
-    if (props.handleValidInput) {
-      props.handleValidInput(allParamtersWithDefault);
+    if (props.setIsValidInput) {
+      props.setIsValidInput(allParamtersWithDefault);
     }
   }, [props.specParameters]);
 
@@ -269,8 +269,8 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                     Object.values(validInputs).map(v2 => {
                       allInputsValid = allInputsValid && v2;
                     });
-                    if (props.handleValidInput) {
-                      props.handleValidInput(allInputsValid);
+                    if (props.setIsValidInput) {
+                      props.setIsValidInput(allInputsValid);
                     }
                   }}
                   param={param}
