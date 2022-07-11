@@ -21,7 +21,7 @@ import Hr from 'src/atoms/Hr';
 import Separator from 'src/atoms/Separator';
 import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
-import { color, commonCss, fontsize, padding } from 'src/Css';
+import { color, commonCss, fontsize, padding, zIndex } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import Buttons from 'src/lib/Buttons';
 import { URLParser } from 'src/lib/URLParser';
@@ -58,6 +58,7 @@ import {
 } from 'src/components/viewers/MetricsVisualizations';
 import PlotCard from 'src/components/PlotCard';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
+import CircularProgress from '@material-ui/core/CircularProgress';
 
 const css = stylesheet({
   leftCell: {
@@ -76,6 +77,10 @@ const css = stylesheet({
   },
   outputsOverflow: {
     overflowX: 'auto',
+  },
+  relativeContainer: {
+    position: 'relative',
+    height: '30rem',
   },
   visualizationPlaceholder: {
     width: '40rem',
@@ -305,6 +310,8 @@ interface SelectedArtifact {
 }
 
 interface MetricsDropdownProps {
+  isErrorArtifacts: boolean;
+  isLoadingArtifacts: boolean;
   filteredRunArtifacts: RunArtifact[];
   metricsTab: MetricsType;
   metricsTabText: string;
@@ -416,6 +423,8 @@ function getLinkedArtifactFromSelectedItem(
 
 function MetricsDropdown(props: MetricsDropdownProps) {
   const {
+    isErrorArtifacts,
+    isLoadingArtifacts,
     filteredRunArtifacts,
     metricsTab,
     metricsTabText,
@@ -444,6 +453,23 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     setSelectedNamespace(getNamespace(selectedItem, filteredRunArtifacts));
     updateSelectedArtifacts(selectedArtifacts);
   };
+
+  if (isErrorArtifacts) {
+    return <p>An error is preventing the {metricsTabText} from being displayed.</p>;
+  }
+
+  if (isLoadingArtifacts) {
+    return (
+      <div className={css.relativeContainer}>
+        <CircularProgress
+          size={25}
+          className={commonCss.absoluteCenter}
+          style={{ zIndex: zIndex.BUSY_OVERLAY }}
+          role='circularprogress'
+        />
+      </div>
+    );
+  }
 
   const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
 
@@ -499,6 +525,45 @@ function MetricsDropdown(props: MetricsDropdownProps) {
   );
 }
 
+interface ScalarMetricsTableParams {
+  isErrorArtifacts: boolean;
+  isLoadingArtifacts: boolean;
+  scalarMetricsTableData: CompareTableProps | undefined;
+  metricsTabText: string;
+}
+
+function ScalarMetricsTable(props: ScalarMetricsTableParams) {
+  const {
+    isErrorArtifacts,
+    isLoadingArtifacts,
+    scalarMetricsTableData,
+    metricsTabText,
+  } = props;
+
+  if (isErrorArtifacts) {
+    return <p>An error is preventing the {metricsTabText} from being displayed.</p>;
+  }
+
+  if (isLoadingArtifacts) {
+    return (
+      <div className={css.relativeContainer}>
+        <CircularProgress
+          size={25}
+          className={commonCss.absoluteCenter}
+          style={{ zIndex: zIndex.BUSY_OVERLAY }}
+          role='circularprogress'
+        />
+      </div>
+    );
+  }
+
+  if (!scalarMetricsTableData) {
+    return <p>There are no {metricsTabText} artifacts available on the selected runs.</p>;
+  }
+
+  return <CompareTable {...scalarMetricsTableData} />;
+}
+
 function CompareV2(props: PageProps) {
   const { updateBanner, updateToolbar } = props;
 
@@ -509,6 +574,7 @@ function CompareV2(props: PageProps) {
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
 
+  const [isLoadingArtifacts, setIsLoadingArtifacts] = useState<boolean>(true);
   const [scalarMetricsArtifacts, setScalarMetricsArtifacts] = useState<RunArtifact[]>([]);
   const [confusionMatrixArtifacts, setConfusionMatrixArtifacts] = useState<RunArtifact[]>([]);
   const [htmlArtifacts, setHtmlArtifacts] = useState<RunArtifact[]>([]);
@@ -605,6 +671,7 @@ function CompareV2(props: PageProps) {
       setMarkdownArtifacts(
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN),
       );
+      setIsLoadingArtifacts(false);
     }
   }, [runs, mlmdPackages, artifactTypes]);
 
@@ -820,6 +887,7 @@ function CompareV2(props: PageProps) {
   };
 
   const metricsTabText = metricsTypeToString(metricsTab);
+  const isErrorArtifacts = isErrorRunDetails || isErrorMlmdPackages || isErrorArtifactTypes;
   return (
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
       {/* Overview section */}
@@ -874,14 +942,17 @@ function CompareV2(props: PageProps) {
           />
           <div className={classes(padding(20, 'lrt'), css.outputsOverflow)}>
             {metricsTab === MetricsType.SCALAR_METRICS && (
-              scalarMetricsTableData ? (
-                <CompareTable {...scalarMetricsTableData} />
-              ) : (
-                <p>There are no {metricsTabText} artifacts available on the selected runs.</p>
-              )
+              <ScalarMetricsTable
+                isErrorArtifacts={isErrorArtifacts}
+                isLoadingArtifacts={isLoadingArtifacts}
+                scalarMetricsTableData={scalarMetricsTableData}
+                metricsTabText={metricsTabText}
+              />
             )}
             {metricsTab === MetricsType.CONFUSION_MATRIX && (
               <MetricsDropdown
+                isErrorArtifacts={isErrorArtifacts}
+                isLoadingArtifacts={isLoadingArtifacts}
                 filteredRunArtifacts={confusionMatrixArtifacts}
                 metricsTab={metricsTab}
                 metricsTabText={metricsTabText}
@@ -892,6 +963,8 @@ function CompareV2(props: PageProps) {
             {metricsTab === MetricsType.ROC_CURVE && <p>This is the {metricsTabText} tab.</p>}
             {metricsTab === MetricsType.HTML && (
               <MetricsDropdown
+                isErrorArtifacts={isErrorArtifacts}
+                isLoadingArtifacts={isLoadingArtifacts}
                 filteredRunArtifacts={htmlArtifacts}
                 metricsTab={metricsTab}
                 metricsTabText={metricsTabText}
@@ -901,6 +974,8 @@ function CompareV2(props: PageProps) {
             )}
             {metricsTab === MetricsType.MARKDOWN && (
               <MetricsDropdown
+                isErrorArtifacts={isErrorArtifacts}
+                isLoadingArtifacts={isLoadingArtifacts}
                 filteredRunArtifacts={markdownArtifacts}
                 metricsTab={metricsTab}
                 metricsTabText={metricsTabText}
