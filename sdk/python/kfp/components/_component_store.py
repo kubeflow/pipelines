@@ -45,8 +45,7 @@ class ComponentStore:
             uri_search_template: A URI template for components, which may include {name}, {digest} and {tag} variables.
         """
         self.local_search_paths = local_search_paths or ['.']
-        if uri_search_template:
-            self.uri_search_template = URITemplate(uri_search_template)
+        self.uri_search_template = URITemplate(uri_search_template) if uri_search_template else None
         self.url_search_prefixes = url_search_prefixes or []
         self._auth = auth
 
