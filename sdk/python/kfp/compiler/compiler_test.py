@@ -30,8 +30,9 @@ from kfp.compiler import compiler
 from kfp.components.types import type_utils
 from kfp.dsl import PipelineTaskFinalStatus
 from kfp.pipeline_spec import pipeline_spec_pb2
-from kfp.components.structures import ContainerSpec
 import yaml
+
+from pipelines.sdk.python.kfp.components import container_component
 
 VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
     name: producer
@@ -807,10 +808,10 @@ class TestCompileComponent(parameterized.TestCase):
     def test_compile_container_component_simple(self):
 
         @dsl.container_component
-        def hello_world_container() -> None:
+        def hello_world_container() -> dsl.ContainerSpec:
             """Hello world component."""
-            return ContainerSpec(
-                image='python3.7',
+            return dsl.ContainerSpec(
+                image='python:3.7',
                 command=['echo', 'hello world'],
                 args=[],
             )
@@ -826,7 +827,7 @@ class TestCompileComponent(parameterized.TestCase):
         self.assertEqual(
             pipeline_spec['components']['comp-hello-world-container']
             ['outputDefinitions']['parameters']['Output']['parameterType'],
-            'STRING')
+            'None')
 
 
 class TestCompileBadInput(unittest.TestCase):
