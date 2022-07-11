@@ -447,8 +447,8 @@ func DAG(ctx context.Context, opts Options, mlmd *metadata.Client) (execution *E
 		// It can be "inputParameter" or "Raw"
 		var value *structpb.Value
 		switch iterator.GetItems().GetKind().(type) {
+		var ok bool
 		case *pipelinespec.ParameterIteratorSpec_ItemsSpec_InputParameter:
-			var ok bool
 			value, ok = executorInput.GetInputs().GetParameterValues()[iterator.GetItems().GetInputParameter()]
 			if !ok {
 				return execution, report(fmt.Errorf("cannot find input parameter"))
