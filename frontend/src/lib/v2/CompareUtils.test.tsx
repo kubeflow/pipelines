@@ -141,7 +141,7 @@ describe('CompareUtils', () => {
         ],
         yLabels: ['scalarMetric0', 'scalarMetric1'],
         xParentLabels: [
-          { colSpan: 2, label: 'run1' },
+          { colSpan: 3, label: 'run1' },
           { colSpan: 1, label: 'run2' },
         ],
         rows: [
@@ -197,7 +197,7 @@ describe('CompareUtils', () => {
         ],
         yLabels: ['scalarMetric0', 'scalarMetric1'],
         xParentLabels: [
-          { colSpan: 2, label: '-' },
+          { colSpan: 3, label: '-' },
           { colSpan: 1, label: '-' },
         ],
         rows: [

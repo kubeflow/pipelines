@@ -82,18 +82,21 @@ const getScalarTableData = (
   let artifactIndex = 0;
   for (const runArtifact of scalarMetricsArtifacts) {
     const runName = runArtifact.run.run?.name || '-';
-    const xParentLabel: xParentLabel = {
-      label: runName,
-      colSpan: runArtifact.executionArtifacts.length,
-    };
-    xParentLabels.push(xParentLabel);
-    artifactIndex = loadScalarExecutionArtifacts(
+
+    const artifactCount = loadScalarExecutionArtifacts(
       runArtifact.executionArtifacts,
       xLabels,
       scalarMetricNames,
       dataMap,
       artifactIndex,
     );
+
+    const xParentLabel: xParentLabel = {
+      label: runName,
+      colSpan: artifactCount - artifactIndex,
+    };
+    xParentLabels.push(xParentLabel);
+    artifactIndex = artifactCount;
   }
 
   return {
