@@ -69,7 +69,7 @@ outputs:
 
 implementation:
   container:
-    image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20220629_0725_RC00
+    image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20220707_0325_RC00
     args: [
       feature_transform_engine,
       --transform_output_artifact_path, {outputUri: transform_output},
@@ -101,7 +101,7 @@ implementation:
       ],
       --dataflow_max_num_workers, {inputValue: dataflow_max_num_workers},
       --dataflow_machine_type, {inputValue: dataflow_machine_type},
-      --dataflow_worker_container_image, us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220629_0725_RC00,
+      --dataflow_worker_container_image, us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220707_0325_RC00,
       --dataflow_disk_size_gb, {inputValue: dataflow_disk_size_gb},
       --dataflow_subnetwork_fully_qualified, {inputValue: dataflow_subnetwork},
       --dataflow_use_public_ips, {inputValue: dataflow_use_public_ips},

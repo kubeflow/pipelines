@@ -1,0 +1,99 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: bigquery_ml_weights_job
+description: |
+  Launch a BigQuery ml weights job and waits for it to finish.
+
+    Args:
+        project (str):
+            Required. Project to run BigQuery ml weights job.
+        location (Optional[str]):
+            Location of the job to create the BigQuery model. If not set,
+            default to `US` multi-region.
+
+            For more details, see https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+        query (str):
+            Required. SQL query text to execute. Only standard SQL is supported.
+
+            If query are both specified in here and in job_configuration_query,
+            the value in here will override the other one.
+        query_parameters (Optional[Sequence]):
+            jobs.query parameters for standard SQL queries.
+
+            If query_parameters are both specified in here and in job_configuration_query,
+            the value in here will override the other one.
+        job_configuration_query (Optional[dict]):
+            A json formatted string describing the rest of the job configuration.
+
+            For more details, see https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+        labels (Optional[dict]):
+            The labels associated with this job. You can use these to organize and group your jobs.
+            Label keys and values can be no longer than 63 characters, can only containlowercase
+            letters, numeric characters, underscores and dashes. International characters are
+            allowed. Label values are optional. Label keys must start with a letter and each label
+            in the list must have a different key.
+
+            Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
+    Returns:
+        weights (system.Artifact):
+          Describes different output columns for different models.
+          For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-weights#mlweights_output.
+        gcp_resources (str):
+            Serialized gcp_resources proto tracking the BigQuery job.
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+inputs:
+- {name: project, type: String}
+- {name: location, type: String, default: "us-central1"}
+- {name: model, type: google.BQMLModel}
+- {name: query_parameters, type: JsonArray, optional: true, default: '[]' }
+- {name: job_configuration_query, type: JsonObject, optional: true, default: '{}'}
+- {name: labels, type: JsonObject, optional: true, default: '{}'}
+outputs:
+- {name: weights, type: system.Artifact}
+- {name: gcp_resources, type: String}
+implementation:
+  container:
+    image: gcr.io/managed-pipeline-test/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.gcp_launcher.launcher]
+    args: [
+      --type, BigqueryMLWeightsJob,
+      --project, {inputValue: project},
+      --location, {inputValue: location},
+      --model_name,
+      concat: [
+          "{{$.inputs.artifacts['model'].metadata['projectId']}}",
+          '.',
+          "{{$.inputs.artifacts['model'].metadata['datasetId']}}",
+          '.',
+          "{{$.inputs.artifacts['model'].metadata['modelId']}}"
+          ],
+      --payload,
+      concat: [
+          '{',
+            '"configuration": {',
+              '"query": ', {inputValue: job_configuration_query},
+              ', "labels": ', {inputValue: labels},
+            '}',
+          '}'
+      ],
+      --job_configuration_query_override,
+      concat: [
+          '{',
+            '"query_parameters": ', {inputValue: query_parameters},
+          '}'
+      ],
+      --gcp_resources, {outputPath: gcp_resources},
+      --executor_input, "{{$}}",
+    ]
