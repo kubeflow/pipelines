@@ -36,9 +36,9 @@ import {
   getKfpV2RunContext,
   LinkedArtifact,
   getArtifactName,
+  getExecutionName,
 } from 'src/mlmd/MlmdUtils';
-import * as jspb from 'google-protobuf';
-import { Artifact, ArtifactType, Event, Execution, Value } from 'src/third_party/mlmd';
+import { Artifact, ArtifactType, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
 import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
@@ -48,8 +48,7 @@ import TwoLevelDropdown, {
   SelectedItem,
 } from 'src/components/TwoLevelDropdown';
 import MD2Tabs from 'src/atoms/MD2Tabs';
-import CompareTable, { CompareTableProps, xParentLabel } from 'src/components/CompareTable';
-import { getMetadataValue } from 'src/mlmd/Utils';
+import CompareTable, { CompareTableProps } from 'src/components/CompareTable';
 import { chain, flatten } from 'lodash';
 import {
   ConfusionMatrixSection,
@@ -60,6 +59,7 @@ import PlotCard from 'src/components/PlotCard';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Banner from 'src/components/Banner';
+import { getScalarTableData } from 'src/lib/v2/CompareUtils';
 
 const css = stylesheet({
   leftCell: {
@@ -109,12 +109,12 @@ interface MlmdPackage {
   events: Event[];
 }
 
-interface ExecutionArtifact {
+export interface ExecutionArtifact {
   execution: Execution;
   linkedArtifacts: LinkedArtifact[];
 }
 
-interface RunArtifact {
+export interface RunArtifact {
   run: ApiRunDetail;
   executionArtifacts: ExecutionArtifact[];
 }
@@ -368,12 +368,6 @@ interface MetricsDropdownProps {
 
 const logDisplayNameWarning = (type: string, id: string) =>
   logger.warn(`Failed to fetch the display name of the ${type} with the following ID: ${id}`);
-
-const getExecutionName = (execution: Execution) =>
-  execution
-    .getCustomPropertiesMap()
-    .get('display_name')
-    ?.getStringValue();
 
 // Group each artifact name with its parent execution name.
 function getDropdownSubLinkedArtifacts(linkedArtifacts: LinkedArtifact[], subItemName: string) {
@@ -755,87 +749,6 @@ function CompareV2(props: PageProps) {
 
   const selectionChanged = (selectedIds: string[]): void => {
     setSelectedIds(selectedIds);
-  };
-
-  // Global artifact index variable used to update the data keys.
-  let artifactIndex = 0;
-
-  // Add the scalar metric names and data items.
-  const addScalarDataItems = (
-    customProperties: jspb.Map<string, Value>,
-    scalarMetricNames: string[],
-    dataMap: { [key: string]: string },
-  ) => {
-    for (const entry of customProperties.getEntryList()) {
-      const scalarMetricName: string = entry[0];
-      if (scalarMetricName === 'display_name') {
-        continue;
-      }
-      scalarMetricNames.push(scalarMetricName);
-
-      // The scalar metric name and artifact index create a unique key per data item.
-      const key: string = `${scalarMetricName}-${artifactIndex}`;
-      dataMap[key] = JSON.stringify(getMetadataValue(customProperties.get(scalarMetricName)));
-    }
-  };
-
-  // Load the data as well as row and column labels from execution artifacts.
-  const loadScalarExecutionArtifacts = (
-    executionArtifacts: ExecutionArtifact[],
-    xLabels: string[],
-    scalarMetricNames: string[],
-    dataMap: { [key: string]: string },
-  ) => {
-    for (const executionArtifact of executionArtifacts) {
-      const executionText: string = getExecutionName(executionArtifact.execution) || '-';
-      for (const linkedArtifact of executionArtifact.linkedArtifacts) {
-        const linkedArtifactText: string = getArtifactName(linkedArtifact) || '-';
-        const xLabel = `${executionText} > ${linkedArtifactText}`;
-        xLabels.push(xLabel);
-
-        const customProperties = linkedArtifact.artifact.getCustomPropertiesMap();
-        addScalarDataItems(customProperties, scalarMetricNames, dataMap);
-        artifactIndex++;
-      }
-    }
-  };
-
-  // Get different components needed to construct the scalar metrics table.
-  const getScalarTableData = (
-    scalarMetricsArtifacts: RunArtifact[],
-  ): {
-    xLabels: string[];
-    scalarMetricNames: string[];
-    xParentLabels: xParentLabel[];
-    dataMap: { [key: string]: string };
-  } => {
-    const xLabels: string[] = [];
-    const scalarMetricNames: string[] = [];
-    const xParentLabels: xParentLabel[] = [];
-    const dataMap: { [key: string]: string } = {};
-
-    artifactIndex = 0;
-    for (const runArtifact of scalarMetricsArtifacts) {
-      const runName = runArtifact.run.run?.name || '-';
-      const xParentLabel: xParentLabel = {
-        label: runName,
-        colSpan: runArtifact.executionArtifacts.length,
-      };
-      xParentLabels.push(xParentLabel);
-      loadScalarExecutionArtifacts(
-        runArtifact.executionArtifacts,
-        xLabels,
-        scalarMetricNames,
-        dataMap,
-      );
-    }
-
-    return {
-      xLabels,
-      scalarMetricNames,
-      xParentLabels,
-      dataMap,
-    };
   };
 
   useEffect(() => {
