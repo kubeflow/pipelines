@@ -36,7 +36,6 @@ import {
   getKfpV2RunContext,
   LinkedArtifact,
   getArtifactName,
-  getExecutionName,
 } from 'src/mlmd/MlmdUtils';
 import { Artifact, ArtifactType, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
@@ -48,7 +47,6 @@ import TwoLevelDropdown, {
   SelectedItem,
 } from 'src/components/TwoLevelDropdown';
 import MD2Tabs from 'src/atoms/MD2Tabs';
-import CompareTable, { CompareTableProps } from 'src/components/CompareTable';
 import {
   ConfusionMatrixSection,
   getHtmlViewerConfig,
@@ -58,7 +56,6 @@ import PlotCard from 'src/components/PlotCard';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Banner from 'src/components/Banner';
-import { getCompareTableProps } from 'src/lib/v2/CompareUtils';
 
 const css = stylesheet({
   leftCell: {
@@ -108,12 +105,12 @@ interface MlmdPackage {
   events: Event[];
 }
 
-export interface ExecutionArtifact {
+interface ExecutionArtifact {
   execution: Execution;
   linkedArtifacts: LinkedArtifact[];
 }
 
-export interface RunArtifact {
+interface RunArtifact {
   run: ApiRunDetail;
   executionArtifacts: ExecutionArtifact[];
 }
@@ -368,6 +365,12 @@ interface MetricsDropdownProps {
 const logDisplayNameWarning = (type: string, id: string) =>
   logger.warn(`Failed to fetch the display name of the ${type} with the following ID: ${id}`);
 
+const getExecutionName = (execution: Execution) =>
+  execution
+    .getCustomPropertiesMap()
+    .get('display_name')
+    ?.getStringValue();
+
 // Group each artifact name with its parent execution name.
 function getDropdownSubLinkedArtifacts(linkedArtifacts: LinkedArtifact[], subItemName: string) {
   const executionLinkedArtifacts: DropdownSubItem[] = [];
@@ -561,14 +564,9 @@ function CompareV2(props: PageProps) {
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
 
-  const [scalarMetricsArtifacts, setScalarMetricsArtifacts] = useState<RunArtifact[]>([]);
   const [confusionMatrixArtifacts, setConfusionMatrixArtifacts] = useState<RunArtifact[]>([]);
   const [htmlArtifacts, setHtmlArtifacts] = useState<RunArtifact[]>([]);
   const [markdownArtifacts, setMarkdownArtifacts] = useState<RunArtifact[]>([]);
-
-  const [scalarMetricsTableData, setScalarMetricsTableData] = useState<
-    CompareTableProps | undefined
-  >(undefined);
 
   // Selected artifacts for two-panel layout.
   const createSelectedArtifactArray = (count: number): SelectedArtifact[] => {
@@ -647,9 +645,6 @@ function CompareV2(props: PageProps) {
   useEffect(() => {
     if (runs && mlmdPackages && artifactTypes) {
       const runArtifacts: RunArtifact[] = getRunArtifacts(runs, mlmdPackages);
-      setScalarMetricsArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.SCALAR_METRICS),
-      );
       setConfusionMatrixArtifacts(
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX),
       );
@@ -750,16 +745,6 @@ function CompareV2(props: PageProps) {
     setSelectedIds(selectedIds);
   };
 
-  useEffect(() => {
-    const compareTableProps: CompareTableProps = getCompareTableProps(scalarMetricsArtifacts);
-
-    if (compareTableProps.yLabels.length === 0) {
-      setScalarMetricsTableData(undefined);
-    } else {
-      setScalarMetricsTableData(compareTableProps);
-    }
-  }, [scalarMetricsArtifacts]);
-
   const updateSelectedArtifacts = (newArtifacts: SelectedArtifact[]) => {
     selectedArtifactsMap[metricsTab] = newArtifacts;
     setSelectedArtifactsMap(selectedArtifactsMap);
@@ -819,12 +804,8 @@ function CompareV2(props: PageProps) {
             onSwitch={setMetricsTab}
           />
           <div className={classes(padding(20, 'lrt'), css.outputsOverflow)}>
-            {metricsTab === MetricsType.SCALAR_METRICS &&
-              (scalarMetricsTableData ? (
-                <CompareTable {...scalarMetricsTableData} />
-              ) : (
-                <p>There are no {metricsTabText} artifacts available on the selected runs.</p>
-              ))}
+            {/* TODO(zpChris): Add the scalar metrics table. */}
+            {metricsTab === MetricsType.SCALAR_METRICS && <p>This is the Scalar Metrics tab.</p>}
             {metricsTab === MetricsType.CONFUSION_MATRIX && (
               <MetricsDropdown
                 filteredRunArtifacts={confusionMatrixArtifacts}
