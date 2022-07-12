@@ -401,14 +401,18 @@ describe('CompareV2', () => {
 
     fireEvent.click(screen.getByText('Confusion Matrix'));
     screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
-    expect(screen.queryByText('There are no Scalar Metrics artifacts available on the selected runs.')).toBeNull();
+    expect(
+      screen.queryByText('There are no Scalar Metrics artifacts available on the selected runs.'),
+    ).toBeNull();
 
     fireEvent.click(screen.getByText('Confusion Matrix'));
     screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
 
     fireEvent.click(screen.getByText('Scalar Metrics'));
     screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
-    expect(screen.queryByText('There are no Confusion Matrix artifacts available on the selected runs.')).toBeNull();
+    expect(
+      screen.queryByText('There are no Confusion Matrix artifacts available on the selected runs.'),
+    ).toBeNull();
   });
 
   it('Metrics tabs have no content loaded as artifacts are not present', async () => {

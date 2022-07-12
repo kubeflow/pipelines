@@ -932,13 +932,12 @@ function CompareV2(props: PageProps) {
             onSwitch={setMetricsTab}
           />
           <div className={classes(padding(20, 'lrt'), css.outputsOverflow)}>
-            {metricsTab === MetricsType.SCALAR_METRICS && (
-              scalarMetricsTableData ? (
+            {metricsTab === MetricsType.SCALAR_METRICS &&
+              (scalarMetricsTableData ? (
                 <CompareTable {...scalarMetricsTableData} />
               ) : (
                 <p>There are no {metricsTabText} artifacts available on the selected runs.</p>
-              )
-            )}
+              ))}
             {metricsTab === MetricsType.CONFUSION_MATRIX && (
               <MetricsDropdown
                 filteredRunArtifacts={confusionMatrixArtifacts}
