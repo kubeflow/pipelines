@@ -49,7 +49,6 @@ import TwoLevelDropdown, {
 } from 'src/components/TwoLevelDropdown';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import CompareTable, { CompareTableProps } from 'src/components/CompareTable';
-import { chain, flatten } from 'lodash';
 import {
   ConfusionMatrixSection,
   getHtmlViewerConfig,
@@ -59,7 +58,7 @@ import PlotCard from 'src/components/PlotCard';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Banner from 'src/components/Banner';
-import { getScalarTableData } from 'src/lib/v2/CompareUtils';
+import { getCompareTableProps } from 'src/lib/v2/CompareUtils';
 
 const css = stylesheet({
   leftCell: {
@@ -752,37 +751,12 @@ function CompareV2(props: PageProps) {
   };
 
   useEffect(() => {
-    const { xLabels, scalarMetricNames, xParentLabels, dataMap } = getScalarTableData(
-      scalarMetricsArtifacts,
-    );
+    const compareTableProps: CompareTableProps = getCompareTableProps(scalarMetricsArtifacts);
 
-    // Order the scalar metric names by decreasing count for table y-labels.
-    const yLabels = chain(flatten(scalarMetricNames))
-      .countBy(p => p)
-      .map((k, v) => ({ name: v, count: k }))
-      .orderBy('count', 'desc')
-      .map(o => o.name)
-      .value();
-
-    // Create a row of data items for each y-label.
-    const rows: string[][] = yLabels.map(yLabel => {
-      const row = [];
-      for (let artifactIndex = 0; artifactIndex < xLabels.length; artifactIndex++) {
-        const key: string = `${yLabel}-${artifactIndex}`;
-        row.push(dataMap[key] || '');
-      }
-      return row;
-    });
-
-    if (yLabels.length === 0) {
+    if (compareTableProps.yLabels.length === 0) {
       setScalarMetricsTableData(undefined);
     } else {
-      setScalarMetricsTableData({
-        xLabels,
-        yLabels,
-        xParentLabels,
-        rows,
-      } as CompareTableProps);
+      setScalarMetricsTableData(compareTableProps);
     }
   }, [scalarMetricsArtifacts]);
 
