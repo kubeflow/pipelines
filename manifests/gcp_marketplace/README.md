@@ -1,4 +1,4 @@
-# Kubeflow Pipelines for GKE Marketplace
+# Kubeflow Pipelines for GKE Marketplace 
 
 ## <a name="using-install-platform-console"></a>Using the Google Cloud Platform Marketplace
 
