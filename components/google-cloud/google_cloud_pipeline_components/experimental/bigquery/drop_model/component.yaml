@@ -40,12 +40,6 @@ description: |
             allowed. Label values are optional. Label keys must start with a letter and each label
             in the list must have a different key.
             Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
-        encryption_spec_key_name(Optional[List[str]]):
-            Describes the Cloud KMS encryption key that will be used to protect
-            destination BigQuery table. The BigQuery Service Account associated with
-            your project requires access to this encryption key.
-            If encryption_spec_key_name are both specified in here and in job_configuration_query,
-            the value in here will override the other one.
     Returns:
         gcp_resources (str):
             Serialized gcp_resources proto tracking the BigQuery job.
@@ -57,7 +51,6 @@ inputs:
 - {name: query_parameters, type: JsonArray, optional: true, default: '[]' }
 - {name: job_configuration_query, type: JsonObject, optional: true, default: '{}'}
 - {name: labels, type: JsonObject, optional: true, default: '{}'}
-- {name: encryption_spec_key_name, type: String, optional: true}
 outputs:
 - {name: gcp_resources, type: String}
 implementation:
@@ -89,8 +82,6 @@ implementation:
       concat: [
           '{',
             '"query_parameters": ', {inputValue: query_parameters},
-            ', "destination_encryption_configuration": {',
-            '"kmsKeyName": "', {inputValue: encryption_spec_key_name}, '"}',
           '}'
       ],
       --gcp_resources, {outputPath: gcp_resources},

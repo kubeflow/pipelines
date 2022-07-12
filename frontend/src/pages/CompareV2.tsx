@@ -59,6 +59,7 @@ import {
 import PlotCard from 'src/components/PlotCard';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
 import CircularProgress from '@material-ui/core/CircularProgress';
+import Banner from 'src/components/Banner';
 
 const css = stylesheet({
   leftCell: {
@@ -71,6 +72,9 @@ const css = stylesheet({
     borderCollapse: 'collapse',
     padding: '1rem',
     verticalAlign: 'top',
+  },
+  errorBanner: {
+    maxWidth: '40rem',
   },
   outputsRow: {
     marginLeft: 15,
@@ -257,8 +261,10 @@ interface VisualizationPanelItemProps {
 
 function VisualizationPanelItem(props: VisualizationPanelItemProps) {
   const { metricsTab, metricsTabText, linkedArtifact, namespace } = props;
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [showError, setShowError] = useState<boolean>(false);
 
-  const { data: viewerConfigs } = useQuery<ViewerConfig[], Error>(
+  const { isLoading, isError, error, data: viewerConfigs } = useQuery<ViewerConfig[], Error>(
     [
       'viewerConfig',
       {
@@ -284,6 +290,22 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
     { staleTime: Infinity },
   );
 
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    if (isError) {
+      (async function() {
+        const updatedMessage = await errorToMessage(error);
+        setErrorMessage(updatedMessage);
+        setShowError(true);
+      })();
+    } else {
+      setShowError(false);
+    }
+  }, [isLoading, isError, error, setErrorMessage, setShowError]);
+
   if (!linkedArtifact) {
     return <VisualizationPlaceholder metricsTabText={metricsTabText} />;
   }
@@ -296,7 +318,34 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
     );
   }
 
-  // TODO(zpChris): Show loading and error pages for HTML and Markdown.
+  if (showError || isLoading) {
+    return (
+      <React.Fragment>
+        {showError && (
+          <div className={css.errorBanner}>
+            <Banner
+              message={`Error: failed loading ${metricsTabText} file.${errorMessage &&
+                ' Click Details for more information.'}`}
+              mode='error'
+              additionalInfo={errorMessage}
+              leftAlign
+            />
+          </div>
+        )}
+        {isLoading && (
+          <div className={css.relativeContainer}>
+            <CircularProgress
+              size={25}
+              className={commonCss.absoluteCenter}
+              style={{ zIndex: zIndex.BUSY_OVERLAY }}
+              role='circularprogress'
+            />
+          </div>
+        )}
+      </React.Fragment>
+    );
+  }
+
   if (viewerConfigs && (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN)) {
     return <PlotCard configs={viewerConfigs} title={`Static ${metricsTabText}`} />;
   }
@@ -386,15 +435,20 @@ function getDropdownItems(filteredRunArtifacts: RunArtifact[]) {
   return dropdownItems;
 }
 
-const getNamespace = (selectedItem: SelectedItem, filteredRunArtifacts: RunArtifact[]) => {
+const getNamespace = (
+  selectedItem: SelectedItem,
+  filteredRunArtifacts: RunArtifact[],
+): string | undefined => {
   const selectedRun = filteredRunArtifacts.find(
     runArtifact => runArtifact.run.run?.name === selectedItem.itemName,
   )?.run;
+  let namespace: string | undefined;
   if (selectedRun) {
     // TODO(zpChris): Move away from workflow_manifest as this is V1 specific.
     const jsonWorkflow = JSON.parse(selectedRun.pipeline_runtime!.workflow_manifest || '{}');
-    return jsonWorkflow.metadata?.namespace;
+    namespace = jsonWorkflow.metadata?.namespace;
   }
+  return namespace;
 };
 
 function getLinkedArtifactFromSelectedItem(
@@ -765,12 +819,14 @@ function CompareV2(props: PageProps) {
     setSelectedIds(selectedIds);
   };
 
+  // Global artifact index variable used to update the data keys.
+  let artifactIndex = 0;
+
   // Add the scalar metric names and data items.
   const addScalarDataItems = (
     customProperties: jspb.Map<string, Value>,
     scalarMetricNames: string[],
     dataMap: { [key: string]: string },
-    artifactIndex: number,
   ) => {
     for (const entry of customProperties.getEntryList()) {
       const scalarMetricName: string = entry[0];
@@ -791,7 +847,6 @@ function CompareV2(props: PageProps) {
     xLabels: string[],
     scalarMetricNames: string[],
     dataMap: { [key: string]: string },
-    artifactIndex: number,
   ) => {
     for (const executionArtifact of executionArtifacts) {
       const executionText: string = getExecutionName(executionArtifact.execution) || '-';
@@ -801,7 +856,7 @@ function CompareV2(props: PageProps) {
         xLabels.push(xLabel);
 
         const customProperties = linkedArtifact.artifact.getCustomPropertiesMap();
-        addScalarDataItems(customProperties, scalarMetricNames, dataMap, artifactIndex);
+        addScalarDataItems(customProperties, scalarMetricNames, dataMap);
         artifactIndex++;
       }
     }
@@ -821,7 +876,7 @@ function CompareV2(props: PageProps) {
     const xParentLabels: xParentLabel[] = [];
     const dataMap: { [key: string]: string } = {};
 
-    let artifactIndex = 0;
+    artifactIndex = 0;
     for (const runArtifact of scalarMetricsArtifacts) {
       const runName = runArtifact.run.run?.name || '-';
       const xParentLabel: xParentLabel = {
@@ -834,7 +889,6 @@ function CompareV2(props: PageProps) {
         xLabels,
         scalarMetricNames,
         dataMap,
-        artifactIndex,
       );
     }
 

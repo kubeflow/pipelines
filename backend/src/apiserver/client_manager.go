@@ -31,7 +31,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	"github.com/minio/minio-go"
+	"github.com/minio/minio-go/v6"
 )
 
 const (

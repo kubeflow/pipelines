@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2021-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -132,6 +132,10 @@ def build_task_spec_for_task(
         component_utils.sanitize_component_name(task.name))
     pipeline_task_spec.caching_options.enable_cache = (
         task.task_spec.enable_caching)
+
+    if task.task_spec.retry_policy is not None:
+        pipeline_task_spec.retry_policy.CopyFrom(
+            task.task_spec.retry_policy.to_proto())
 
     for input_name, input_value in task.inputs.items():
         if isinstance(input_value, pipeline_channel.PipelineArtifactChannel):
