@@ -1,4 +1,4 @@
-# Copyright 2020 The Kubeflow Authors
+# Copyright 2020-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ from kfp.v2.compiler import compiler_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 from google.protobuf import json_format
 from google.protobuf import message
+from absl.testing import parameterized
 
 
 class CompilerUtilsTest(unittest.TestCase):
@@ -96,6 +97,67 @@ class CompilerUtilsTest(unittest.TestCase):
             ])
         compiler_utils.refactor_v2_container_spec(test_v2_container_spec)
         self.assertProtoEquals(expected_container_spec, test_v2_container_spec)
+
+
+class TestNormalizeTimeString(parameterized.TestCase):
+
+    @parameterized.parameters([
+        ('1 hour', '1h'),
+        ('2 hours', '2h'),
+        ('2hours', '2h'),
+        ('2 w', '2w'),
+        ('2d', '2d'),
+    ])
+    def test(self, unnorm: str, norm: str):
+        self.assertEqual(compiler_utils.normalize_time_string(unnorm), norm)
+
+    def test_multipart_duration_raises(self):
+        with self.assertRaisesRegex(ValueError, 'Invalid duration string:'):
+            compiler_utils.convert_duration_to_seconds('1 day 1 hour')
+
+    def test_non_int_value_raises(self):
+        with self.assertRaisesRegex(ValueError, 'Invalid duration string:'):
+            compiler_utils.convert_duration_to_seconds('one hour')
+
+
+class TestConvertDurationToSeconds(parameterized.TestCase):
+
+    @parameterized.parameters([
+        ('1 hour', 3600),
+        ('2 hours', 7200),
+        ('2hours', 7200),
+        ('2 w', 1209600),
+        ('2d', 172800),
+    ])
+    def test(self, duration: str, seconds: int):
+        self.assertEqual(
+            compiler_utils.convert_duration_to_seconds(duration), seconds)
+
+    def test_unsupported_duration_unit(self):
+        with self.assertRaisesRegex(ValueError, 'Unsupported duration unit:'):
+            compiler_utils.convert_duration_to_seconds('1 year')
+
+
+class TestMakeRetryPolicyProto(unittest.TestCase):
+
+    def test_defaults(self):
+        retry_policy_proto = compiler_utils.make_retry_policy_proto()
+        self.assertEqual(retry_policy_proto.max_retry_count, 0)
+        self.assertEqual(retry_policy_proto.backoff_duration.seconds, 0)
+        self.assertEqual(retry_policy_proto.backoff_factor, 2.0)
+        self.assertEqual(retry_policy_proto.backoff_max_duration.seconds, 3600)
+
+    def test_with_args(self):
+        retry_policy_proto = compiler_utils.make_retry_policy_proto(
+            max_retry_count=10,
+            backoff_duration='1h',
+            backoff_factor=1.5,
+            backoff_max_duration='2 weeks')
+        self.assertEqual(retry_policy_proto.max_retry_count, 10)
+        self.assertEqual(retry_policy_proto.backoff_duration.seconds, 3600)
+        self.assertEqual(retry_policy_proto.backoff_factor, 1.5)
+        # tests cap
+        self.assertEqual(retry_policy_proto.backoff_max_duration.seconds, 3600)
 
 
 if __name__ == '__main__':
