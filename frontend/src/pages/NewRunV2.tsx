@@ -75,7 +75,7 @@ function NewRunV2(props: NewRunV2Props) {
   const [isStartButtonEnabled, setIsStartButtonEnabled] = useState(false);
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [isParamaterValid, setIsParameterValid] = useState(false);
+  const [isParameterValid, setIsParameterValid] = useState(false);
 
   // TODO(zijianjoy): If creating run from Experiment Page or RunList Page, there is no pipelineId/Version.
   const urlParser = new URLParser(props);
@@ -147,7 +147,7 @@ function NewRunV2(props: NewRunV2Props) {
       return;
     }
 
-    if (!isParamaterValid) {
+    if (!isParameterValid) {
       setIsStartButtonEnabled(false);
       return;
     }
@@ -170,7 +170,7 @@ function NewRunV2(props: NewRunV2Props) {
     } else {
       setIsStartButtonEnabled(true);
     }
-  }, [errorMessage, templateString, isParamaterValid]);
+  }, [errorMessage, templateString, isParameterValid]);
 
   // Whenever any input value changes, validate and show error if needed.
   // TODO(zijianjoy): Validate run name for now, we need to validate others first.
