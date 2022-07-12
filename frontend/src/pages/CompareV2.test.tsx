@@ -184,11 +184,11 @@ describe('CompareV2', () => {
 
     const artifacts = [newMockArtifact(1), newMockArtifact(2), newMockArtifact(3)];
     const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
-    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+    getArtifactsSpy.mockResolvedValue(artifacts);
 
     const events = [newMockEvent(1), newMockEvent(2), newMockEvent(3)];
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
-    getEventsSpy.mockReturnValue(Promise.resolve(events));
+    getEventsSpy.mockResolvedValue(events);
 
     const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
@@ -233,11 +233,11 @@ describe('CompareV2', () => {
 
     const artifacts = [newMockArtifact(1), newMockArtifact(3)];
     const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
-    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+    getArtifactsSpy.mockResolvedValue(artifacts);
 
     const events = [newMockEvent(1), newMockEvent(2), newMockEvent(3)];
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
-    getEventsSpy.mockReturnValue(Promise.resolve(events));
+    getEventsSpy.mockResolvedValue(events);
 
     const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
@@ -397,18 +397,20 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
+    await waitFor(() => {
+      screen.getByText('An error is preventing the Scalar Metrics from being displayed.');
 
-    fireEvent.click(screen.getByText('Confusion Matrix'));
-    screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
-    expect(screen.queryByText('There are no Scalar Metrics artifacts available on the selected runs.')).toBeNull();
+      fireEvent.click(screen.getByText('Confusion Matrix'));
+      screen.getByText('An error is preventing the Confusion Matrix from being displayed.');
+      expect(screen.queryByText('An error is preventing the Scalar Metrics from being displayed.')).toBeNull();
 
-    fireEvent.click(screen.getByText('Confusion Matrix'));
-    screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
+      fireEvent.click(screen.getByText('Confusion Matrix'));
+      screen.getByText('An error is preventing the Confusion Matrix from being displayed.');
 
-    fireEvent.click(screen.getByText('Scalar Metrics'));
-    screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
-    expect(screen.queryByText('There are no Confusion Matrix artifacts available on the selected runs.')).toBeNull();
+      fireEvent.click(screen.getByText('Scalar Metrics'));
+      screen.getByText('An error is preventing the Scalar Metrics from being displayed.');
+      expect(screen.queryByText('An error is preventing the Confusion Matrix from being displayed.')).toBeNull();
+    });
   });
 
   it('Metrics tabs have no content loaded as artifacts are not present', async () => {
@@ -468,11 +470,11 @@ describe('CompareV2', () => {
 
     const artifacts = [newMockArtifact(1), newMockArtifact(2, true), newMockArtifact(3)];
     const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
-    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+    getArtifactsSpy.mockResolvedValue(artifacts);
 
     const events = [newMockEvent(1), newMockEvent(2, 'artifactName'), newMockEvent(3)];
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
-    getEventsSpy.mockReturnValue(Promise.resolve(events));
+    getEventsSpy.mockResolvedValue(events);
 
     const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
@@ -530,11 +532,11 @@ describe('CompareV2', () => {
 
     const artifacts = [newMockArtifact(100), newMockArtifact(200), newMockArtifact(300)];
     const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
-    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+    getArtifactsSpy.mockResolvedValue(artifacts);
 
     const events = [newMockEvent(100), newMockEvent(200), newMockEvent(300)];
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
-    getEventsSpy.mockReturnValue(Promise.resolve(events));
+    getEventsSpy.mockResolvedValue(events);
 
     const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
@@ -611,11 +613,11 @@ describe('CompareV2', () => {
       newMockArtifact(3),
     ];
     const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
-    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+    getArtifactsSpy.mockResolvedValue(artifacts);
 
     const events = [newMockEvent(1), newMockEvent(200, 'artifactName'), newMockEvent(3)];
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
-    getEventsSpy.mockReturnValue(Promise.resolve(events));
+    getEventsSpy.mockResolvedValue(events);
 
     const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
@@ -690,7 +692,7 @@ describe('CompareV2', () => {
       newMockArtifact(3, false, 'secondArtifactName'),
     ];
     const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
-    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+    getArtifactsSpy.mockResolvedValue(artifacts);
 
     const events = [
       newMockEvent(1),
@@ -698,7 +700,7 @@ describe('CompareV2', () => {
       newMockEvent(3, 'secondArtifactName'),
     ];
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
-    getEventsSpy.mockReturnValue(Promise.resolve(events));
+    getEventsSpy.mockResolvedValue(events);
 
     const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
@@ -711,7 +713,7 @@ describe('CompareV2', () => {
     );
 
     const getHtmlViewerConfigSpy = jest.spyOn(metricsVisualizations, 'getHtmlViewerConfig');
-    getHtmlViewerConfigSpy.mockReturnValue(Promise.resolve([]));
+    getHtmlViewerConfigSpy.mockResolvedValue([]);
 
     render(
       <CommonTestWrapper>
@@ -797,7 +799,7 @@ describe('CompareV2', () => {
       newMockArtifact(3, false, 'secondArtifactName'),
     ];
     const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
-    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+    getArtifactsSpy.mockResolvedValue(artifacts);
 
     const events = [
       newMockEvent(1),
@@ -805,7 +807,7 @@ describe('CompareV2', () => {
       newMockEvent(3, 'secondArtifactName'),
     ];
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
-    getEventsSpy.mockReturnValue(Promise.resolve(events));
+    getEventsSpy.mockResolvedValue(events);
 
     const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
@@ -818,7 +820,7 @@ describe('CompareV2', () => {
     );
 
     const getMarkdownViewerConfigSpy = jest.spyOn(metricsVisualizations, 'getMarkdownViewerConfig');
-    getMarkdownViewerConfigSpy.mockReturnValue(Promise.resolve([]));
+    getMarkdownViewerConfigSpy.mockResolvedValue([]);
 
     render(
       <CommonTestWrapper>
@@ -900,11 +902,11 @@ describe('CompareV2', () => {
       newMockArtifact(3),
     ];
     const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
-    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+    getArtifactsSpy.mockResolvedValue(artifacts);
 
     const events = [newMockEvent(1), newMockEvent(200, 'firstArtifactName'), newMockEvent(3)];
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
-    getEventsSpy.mockReturnValue(Promise.resolve(events));
+    getEventsSpy.mockResolvedValue(events);
 
     const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
