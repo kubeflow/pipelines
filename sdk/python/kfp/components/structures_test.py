@@ -19,9 +19,11 @@ import textwrap
 import unittest
 
 from absl.testing import parameterized
+from google.protobuf import json_format
 from kfp import compiler
 from kfp.components import placeholders
 from kfp.components import structures
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
     implementation:
@@ -831,6 +833,79 @@ sdkVersion: kfp-2.0.0-alpha.2""")
             },
             outputs=None)
         self.assertEqual(loaded_component_spec, component_spec)
+
+
+class TestNormalizeTimeString(parameterized.TestCase):
+
+    @parameterized.parameters([
+        ('1 hour', '1h'),
+        ('2 hours', '2h'),
+        ('2hours', '2h'),
+        ('2 w', '2w'),
+        ('2d', '2d'),
+    ])
+    def test(self, unnorm: str, norm: str):
+        self.assertEqual(structures.normalize_time_string(unnorm), norm)
+
+    def test_multipart_duration_raises(self):
+        with self.assertRaisesRegex(ValueError, 'Invalid duration string:'):
+            structures.convert_duration_to_seconds('1 day 1 hour')
+
+    def test_non_int_value_raises(self):
+        with self.assertRaisesRegex(ValueError, 'Invalid duration string:'):
+            structures.convert_duration_to_seconds('one hour')
+
+
+class TestConvertDurationToSeconds(parameterized.TestCase):
+
+    @parameterized.parameters([
+        ('1 hour', 3600),
+        ('2 hours', 7200),
+        ('2hours', 7200),
+        ('2 w', 1209600),
+        ('2d', 172800),
+    ])
+    def test(self, duration: str, seconds: int):
+        self.assertEqual(
+            structures.convert_duration_to_seconds(duration), seconds)
+
+    def test_unsupported_duration_unit(self):
+        with self.assertRaisesRegex(ValueError, 'Unsupported duration unit:'):
+            structures.convert_duration_to_seconds('1 year')
+
+
+class TestRetryPolicy(unittest.TestCase):
+
+    def test_to_proto(self):
+        retry_policy_struct = structures.RetryPolicy(
+            max_retry_count=10,
+            backoff_duration='1h',
+            backoff_factor=1.5,
+            backoff_max_duration='2 weeks')
+
+        retry_policy_proto = retry_policy_struct.to_proto()
+        self.assertEqual(retry_policy_proto.max_retry_count, 10)
+        self.assertEqual(retry_policy_proto.backoff_duration.seconds, 3600)
+        self.assertEqual(retry_policy_proto.backoff_factor, 1.5)
+        # tests cap
+        self.assertEqual(retry_policy_proto.backoff_max_duration.seconds, 3600)
+
+    def test_from_proto(self):
+        retry_policy_proto = json_format.ParseDict(
+            {
+                'max_retry_count': 3,
+                'backoff_duration': '5s',
+                'backoff_factor': 1.0,
+                'backoff_max_duration': '1s'
+            }, pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy())
+        retry_policy_struct = structures.RetryPolicy.from_proto(
+            retry_policy_proto)
+        print(retry_policy_struct)
+
+        self.assertEqual(retry_policy_struct.max_retry_count, 3)
+        self.assertEqual(retry_policy_struct.backoff_duration, '5s')
+        self.assertEqual(retry_policy_struct.backoff_factor, 1.0)
+        self.assertEqual(retry_policy_struct.backoff_max_duration, '1s')
 
 
 if __name__ == '__main__':

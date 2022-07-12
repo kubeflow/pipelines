@@ -21,7 +21,7 @@ import Hr from 'src/atoms/Hr';
 import Separator from 'src/atoms/Separator';
 import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
-import { color, commonCss, fontsize, padding } from 'src/Css';
+import { color, commonCss, fontsize, padding, zIndex } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import Buttons from 'src/lib/Buttons';
 import { URLParser } from 'src/lib/URLParser';
@@ -58,6 +58,8 @@ import {
 } from 'src/components/viewers/MetricsVisualizations';
 import PlotCard from 'src/components/PlotCard';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
+import CircularProgress from '@material-ui/core/CircularProgress';
+import Banner from 'src/components/Banner';
 
 const css = stylesheet({
   leftCell: {
@@ -71,11 +73,18 @@ const css = stylesheet({
     padding: '1rem',
     verticalAlign: 'top',
   },
+  errorBanner: {
+    maxWidth: '40rem',
+  },
   outputsRow: {
     marginLeft: 15,
   },
   outputsOverflow: {
     overflowX: 'auto',
+  },
+  relativeContainer: {
+    position: 'relative',
+    height: '30rem',
   },
   visualizationPlaceholder: {
     width: '40rem',
@@ -252,8 +261,10 @@ interface VisualizationPanelItemProps {
 
 function VisualizationPanelItem(props: VisualizationPanelItemProps) {
   const { metricsTab, metricsTabText, linkedArtifact, namespace } = props;
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [showError, setShowError] = useState<boolean>(false);
 
-  const { data: viewerConfigs } = useQuery<ViewerConfig[], Error>(
+  const { isLoading, isError, error, data: viewerConfigs } = useQuery<ViewerConfig[], Error>(
     [
       'viewerConfig',
       {
@@ -279,6 +290,22 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
     { staleTime: Infinity },
   );
 
+  useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    if (isError) {
+      (async function() {
+        const updatedMessage = await errorToMessage(error);
+        setErrorMessage(updatedMessage);
+        setShowError(true);
+      })();
+    } else {
+      setShowError(false);
+    }
+  }, [isLoading, isError, error, setErrorMessage, setShowError]);
+
   if (!linkedArtifact) {
     return <VisualizationPlaceholder metricsTabText={metricsTabText} />;
   }
@@ -291,7 +318,34 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
     );
   }
 
-  // TODO(zpChris): Show loading and error pages for HTML and Markdown.
+  if (showError || isLoading) {
+    return (
+      <React.Fragment>
+        {showError && (
+          <div className={css.errorBanner}>
+            <Banner
+              message={`Error: failed loading ${metricsTabText} file.${errorMessage &&
+                ' Click Details for more information.'}`}
+              mode='error'
+              additionalInfo={errorMessage}
+              leftAlign
+            />
+          </div>
+        )}
+        {isLoading && (
+          <div className={css.relativeContainer}>
+            <CircularProgress
+              size={25}
+              className={commonCss.absoluteCenter}
+              style={{ zIndex: zIndex.BUSY_OVERLAY }}
+              role='circularprogress'
+            />
+          </div>
+        )}
+      </React.Fragment>
+    );
+  }
+
   if (viewerConfigs && (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN)) {
     return <PlotCard configs={viewerConfigs} title={`Static ${metricsTabText}`} />;
   }
@@ -379,15 +433,20 @@ function getDropdownItems(filteredRunArtifacts: RunArtifact[]) {
   return dropdownItems;
 }
 
-const getNamespace = (selectedItem: SelectedItem, filteredRunArtifacts: RunArtifact[]) => {
+const getNamespace = (
+  selectedItem: SelectedItem,
+  filteredRunArtifacts: RunArtifact[],
+): string | undefined => {
   const selectedRun = filteredRunArtifacts.find(
     runArtifact => runArtifact.run.run?.name === selectedItem.itemName,
   )?.run;
+  let namespace: string | undefined;
   if (selectedRun) {
     // TODO(zpChris): Move away from workflow_manifest as this is V1 specific.
     const jsonWorkflow = JSON.parse(selectedRun.pipeline_runtime!.workflow_manifest || '{}');
-    return jsonWorkflow.metadata?.namespace;
+    namespace = jsonWorkflow.metadata?.namespace;
   }
+  return namespace;
 };
 
 function getLinkedArtifactFromSelectedItem(

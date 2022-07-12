@@ -872,7 +872,7 @@ describe('CompareV2', () => {
     });
   });
 
-  it('Markdown files read only on initial select', async () => {
+  it('HTML file loading and error display', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
@@ -888,11 +888,7 @@ describe('CompareV2', () => {
     );
 
     // No execution name is provided to ensure that it can be selected by ID.
-    const executions = [
-      [newMockExecution(1)],
-      [newMockExecution(200)],
-      [newMockExecution(3, 'executionName')],
-    ];
+    const executions = [[newMockExecution(1)], [newMockExecution(200)], [newMockExecution(3)]];
     const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
     getExecutionsSpy.mockImplementation((context: Context) =>
       Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
@@ -901,31 +897,27 @@ describe('CompareV2', () => {
     const artifacts = [
       newMockArtifact(1),
       newMockArtifact(200, false, 'firstArtifactName'),
-      newMockArtifact(3, false, 'secondArtifactName'),
+      newMockArtifact(3),
     ];
     const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
     getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
 
-    const events = [
-      newMockEvent(1),
-      newMockEvent(200, 'firstArtifactName'),
-      newMockEvent(3, 'secondArtifactName'),
-    ];
+    const events = [newMockEvent(1), newMockEvent(200, 'firstArtifactName'), newMockEvent(3)];
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
     getEventsSpy.mockReturnValue(Promise.resolve(events));
 
     const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
 
-    // Simulate all artifacts as type Markdown.
+    // Simulate all artifacts as type HTML.
     const filterLinkedArtifactsByTypeSpy = jest.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
     filterLinkedArtifactsByTypeSpy.mockImplementation(
       (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
-        metricsFilter === 'system.Markdown' ? linkedArtifacts : [],
+        metricsFilter === 'system.HTML' ? linkedArtifacts : [],
     );
 
-    const getMarkdownViewerConfigSpy = jest.spyOn(metricsVisualizations, 'getMarkdownViewerConfig');
-    getMarkdownViewerConfigSpy.mockReturnValue(Promise.resolve([]));
+    const getHtmlViewerConfigSpy = jest.spyOn(metricsVisualizations, 'getHtmlViewerConfig');
+    getHtmlViewerConfigSpy.mockRejectedValue(new Error('HTML file not found.'));
 
     render(
       <CommonTestWrapper>
@@ -933,5 +925,17 @@ describe('CompareV2', () => {
       </CommonTestWrapper>,
     );
     await TestUtils.flushPromises();
+
+    fireEvent.click(screen.getByText('HTML'));
+
+    // Get the second element that has run text: first will be the run list.
+    fireEvent.click(screen.getByText('Choose a first HTML artifact'));
+    fireEvent.mouseEnter(screen.queryAllByText(`test run ${MOCK_RUN_2_ID}`)[1]);
+    fireEvent.click(screen.getByText(/firstArtifactName/));
+
+    screen.getByRole('circularprogress');
+    await waitFor(() => {
+      screen.getByText('Error: failed loading HTML file. Click Details for more information.');
+    });
   });
 });
