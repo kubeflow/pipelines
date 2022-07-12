@@ -75,6 +75,7 @@ function NewRunV2(props: NewRunV2Props) {
   const [isStartButtonEnabled, setIsStartButtonEnabled] = useState(false);
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [isParamaterValid, setIsParameterValid] = useState(false);
 
   // TODO(zijianjoy): If creating run from Experiment Page or RunList Page, there is no pipelineId/Version.
   const urlParser = new URLParser(props);
@@ -145,6 +146,12 @@ function NewRunV2(props: NewRunV2Props) {
       setIsStartButtonEnabled(false);
       return;
     }
+
+    if (!isParamaterValid) {
+      setIsStartButtonEnabled(false);
+      return;
+    }
+
     const spec = convertYamlToV2PipelineSpec(templateString);
     setPipelineSpec(spec);
 
@@ -163,7 +170,7 @@ function NewRunV2(props: NewRunV2Props) {
     } else {
       setIsStartButtonEnabled(true);
     }
-  }, [errorMessage, templateString]);
+  }, [errorMessage, templateString, isParamaterValid]);
 
   // Whenever any input value changes, validate and show error if needed.
   // TODO(zijianjoy): Validate run name for now, we need to validate others first.
@@ -334,7 +341,7 @@ function NewRunV2(props: NewRunV2Props) {
           }
           specParameters={specParameters}
           handleParameterChange={setRuntimeParameters}
-          setIsValidInput={setIsStartButtonEnabled}
+          setIsValidInput={setIsParameterValid}
         />
 
         {/* Create/Cancel buttons */}
