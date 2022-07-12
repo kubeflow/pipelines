@@ -93,7 +93,7 @@ describe('CompareUtils', () => {
       });
     });
 
-    it('Scalar metrics artifacts with all data populated', () => {
+    it('Scalar metrics artifacts with all data and names populated', () => {
       const scalarMetricsArtifacts: RunArtifact[] = [
         {
           run: {
@@ -143,6 +143,62 @@ describe('CompareUtils', () => {
         xParentLabels: [
           { colSpan: 2, label: 'run1' },
           { colSpan: 1, label: 'run2' },
+        ],
+        rows: [
+          ['1', '1', '3', '4'],
+          ['2', '', '', ''],
+        ],
+      });
+    });
+
+    it('Scalar metrics artifacts with data populated and no names', () => {
+      const scalarMetricsArtifacts: RunArtifact[] = [
+        {
+          run: {
+            run: {
+              id: '1',
+            },
+          },
+          executionArtifacts: [
+            {
+              execution: newMockExecution(1),
+              linkedArtifacts: [
+                newMockLinkedArtifact(1, [1, 2]),
+                newMockLinkedArtifact(2, [1]),
+              ],
+            },
+            {
+              execution: newMockExecution(2),
+              linkedArtifacts: [newMockLinkedArtifact(3, [3])],
+            },
+          ],
+        },
+        {
+          run: {
+            run: {
+              id: '2',
+            },
+          },
+          executionArtifacts: [
+            {
+              execution: newMockExecution(3),
+              linkedArtifacts: [newMockLinkedArtifact(4, [4])],
+            },
+          ],
+        },
+      ];
+
+      expect(getCompareTableProps(scalarMetricsArtifacts)).toMatchObject({
+        xLabels: [
+          '- > -',
+          '- > -',
+          '- > -',
+          '- > -',
+        ],
+        yLabels: ['scalarMetric0', 'scalarMetric1'],
+        xParentLabels: [
+          { colSpan: 2, label: '-' },
+          { colSpan: 1, label: '-' },
         ],
         rows: [
           ['1', '1', '3', '4'],
