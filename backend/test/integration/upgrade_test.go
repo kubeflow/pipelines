@@ -321,6 +321,7 @@ func (s *UpgradeTests) VerifyRuns() {
 		s.runClient,
 		&runParams.ListRunsParams{SortBy: util.StringPointer("created_at")},
 		s.resourceNamespace)
+	glog.Info(runs)
 	require.Nil(t, err)
 	require.True(t, len(runs) >= 1)
 	require.Equal(t, "hello world", runs[0].Name)
