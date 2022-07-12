@@ -328,7 +328,7 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
                 ' Click Details for more information.'}`}
               mode='error'
               additionalInfo={errorMessage}
-              leftAlign
+              isLeftAlign
             />
           </div>
         )}
