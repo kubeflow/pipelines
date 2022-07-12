@@ -698,12 +698,14 @@ function CompareV2(props: PageProps) {
     setSelectedIds(selectedIds);
   };
 
+  // Global artifact index variable used to update the data keys.
+  let artifactIndex = 0;
+
   // Add the scalar metric names and data items.
   const addScalarDataItems = (
     customProperties: jspb.Map<string, Value>,
     scalarMetricNames: string[],
     dataMap: { [key: string]: string },
-    artifactIndex: number,
   ) => {
     for (const entry of customProperties.getEntryList()) {
       const scalarMetricName: string = entry[0];
@@ -724,7 +726,6 @@ function CompareV2(props: PageProps) {
     xLabels: string[],
     scalarMetricNames: string[],
     dataMap: { [key: string]: string },
-    artifactIndex: number,
   ) => {
     for (const executionArtifact of executionArtifacts) {
       const executionText: string = getExecutionName(executionArtifact.execution) || '-';
@@ -734,7 +735,7 @@ function CompareV2(props: PageProps) {
         xLabels.push(xLabel);
 
         const customProperties = linkedArtifact.artifact.getCustomPropertiesMap();
-        addScalarDataItems(customProperties, scalarMetricNames, dataMap, artifactIndex);
+        addScalarDataItems(customProperties, scalarMetricNames, dataMap);
         artifactIndex++;
       }
     }
@@ -754,7 +755,7 @@ function CompareV2(props: PageProps) {
     const xParentLabels: xParentLabel[] = [];
     const dataMap: { [key: string]: string } = {};
 
-    let artifactIndex = 0;
+    artifactIndex = 0;
     for (const runArtifact of scalarMetricsArtifacts) {
       const runName = runArtifact.run.run?.name || '-';
       const xParentLabel: xParentLabel = {
@@ -767,7 +768,6 @@ function CompareV2(props: PageProps) {
         xLabels,
         scalarMetricNames,
         dataMap,
-        artifactIndex,
       );
     }
 

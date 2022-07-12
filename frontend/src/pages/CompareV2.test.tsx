@@ -397,21 +397,21 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    screen.getByText('This is the Scalar Metrics tab.');
+    screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
 
-    fireEvent.click(screen.getByText('ROC Curve'));
-    screen.getByText('This is the ROC Curve tab.');
-    expect(screen.queryByText('This is the Scalar Metrics Tab')).toBeNull();
+    fireEvent.click(screen.getByText('Confusion Matrix'));
+    screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
+    expect(screen.queryByText('There are no Scalar Metrics artifacts available on the selected runs.')).toBeNull();
 
-    fireEvent.click(screen.getByText('ROC Curve'));
-    screen.getByText('This is the ROC Curve tab.');
+    fireEvent.click(screen.getByText('Confusion Matrix'));
+    screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
 
     fireEvent.click(screen.getByText('Scalar Metrics'));
-    screen.getByText('This is the Scalar Metrics tab.');
-    expect(screen.queryByText('This is the ROC Curve Tab')).toBeNull();
+    screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
+    expect(screen.queryByText('There are no Confusion Matrix artifacts available on the selected runs.')).toBeNull();
   });
 
-  it('Two-panel tabs have no dropdown loaded as content is not present', async () => {
+  it('Metrics tabs have no content loaded as artifacts are not present', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
@@ -428,6 +428,8 @@ describe('CompareV2', () => {
       </CommonTestWrapper>,
     );
     await TestUtils.flushPromises();
+
+    screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
 
     fireEvent.click(screen.getByText('Confusion Matrix'));
     screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
@@ -489,7 +491,7 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    await waitFor(() => expect(filterLinkedArtifactsByTypeSpy).toHaveBeenCalledTimes(9));
+    await waitFor(() => expect(filterLinkedArtifactsByTypeSpy).toHaveBeenCalledTimes(12));
 
     fireEvent.click(screen.getByText('Confusion Matrix'));
     screen.getByText('Choose a first Confusion Matrix artifact');
@@ -868,5 +870,68 @@ describe('CompareV2', () => {
     await waitFor(() => {
       expect(getMarkdownViewerConfigSpy).toBeCalledTimes(2);
     });
+  });
+
+  it('Markdown files read only on initial select', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    const contexts = [
+      newMockContext(MOCK_RUN_1_ID, 1),
+      newMockContext(MOCK_RUN_2_ID, 200),
+      newMockContext(MOCK_RUN_3_ID, 3),
+    ];
+    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    getContextSpy.mockImplementation((runID: string) =>
+      Promise.resolve(contexts.find(c => c.getName() === runID)),
+    );
+
+    // No execution name is provided to ensure that it can be selected by ID.
+    const executions = [
+      [newMockExecution(1)],
+      [newMockExecution(200)],
+      [newMockExecution(3, 'executionName')],
+    ];
+    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    getExecutionsSpy.mockImplementation((context: Context) =>
+      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+    );
+
+    const artifacts = [
+      newMockArtifact(1),
+      newMockArtifact(200, false, 'firstArtifactName'),
+      newMockArtifact(3, false, 'secondArtifactName'),
+    ];
+    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+
+    const events = [
+      newMockEvent(1),
+      newMockEvent(200, 'firstArtifactName'),
+      newMockEvent(3, 'secondArtifactName'),
+    ];
+    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
+    getEventsSpy.mockReturnValue(Promise.resolve(events));
+
+    const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
+    getArtifactTypesSpy.mockReturnValue([]);
+
+    // Simulate all artifacts as type Markdown.
+    const filterLinkedArtifactsByTypeSpy = jest.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
+    filterLinkedArtifactsByTypeSpy.mockImplementation(
+      (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
+        metricsFilter === 'system.Markdown' ? linkedArtifacts : [],
+    );
+
+    const getMarkdownViewerConfigSpy = jest.spyOn(metricsVisualizations, 'getMarkdownViewerConfig');
+    getMarkdownViewerConfigSpy.mockReturnValue(Promise.resolve([]));
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
   });
 });
