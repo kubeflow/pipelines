@@ -587,12 +587,7 @@ interface ScalarMetricsTableParams {
 }
 
 function ScalarMetricsTable(props: ScalarMetricsTableParams) {
-  const {
-    isErrorArtifacts,
-    isLoadingArtifacts,
-    scalarMetricsTableData,
-    metricsTabText,
-  } = props;
+  const { isErrorArtifacts, isLoadingArtifacts, scalarMetricsTableData, metricsTabText } = props;
 
   if (isErrorArtifacts) {
     return <p>An error is preventing the {metricsTabText} from being displayed.</p>;

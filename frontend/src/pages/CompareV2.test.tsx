@@ -402,14 +402,18 @@ describe('CompareV2', () => {
 
       fireEvent.click(screen.getByText('Confusion Matrix'));
       screen.getByText('An error is preventing the Confusion Matrix from being displayed.');
-      expect(screen.queryByText('An error is preventing the Scalar Metrics from being displayed.')).toBeNull();
+      expect(
+        screen.queryByText('An error is preventing the Scalar Metrics from being displayed.'),
+      ).toBeNull();
 
       fireEvent.click(screen.getByText('Confusion Matrix'));
       screen.getByText('An error is preventing the Confusion Matrix from being displayed.');
 
       fireEvent.click(screen.getByText('Scalar Metrics'));
       screen.getByText('An error is preventing the Scalar Metrics from being displayed.');
-      expect(screen.queryByText('An error is preventing the Confusion Matrix from being displayed.')).toBeNull();
+      expect(
+        screen.queryByText('An error is preventing the Confusion Matrix from being displayed.'),
+      ).toBeNull();
     });
   });
 
