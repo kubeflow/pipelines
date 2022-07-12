@@ -205,28 +205,31 @@ steps:
 # gcloud builds submit . --config=cloudbuild.yaml --project=$PROJECT_ID
 # Reference: https://dev.to/amammay/effective-go-on-gcp-lean-containers-with-ko-on-cloud-build-51ek
 
-- name: 'gcr.io/$PROJECT_ID/ko'
-  entrypoint: /bin/sh
-  args:
-    - -c
-    - |
-      cd /workspace/backend/src/v2/
-      /ko publish --bare ./cmd/launcher-v2 -t $COMMIT_SHA
-  env:
-  - 'KO_DOCKER_REPO=gcr.io/$PROJECT_ID/kfp-launcher'
-  id:   'buildLauncher'
-  waitFor: ["-"]
-- name: 'gcr.io/$PROJECT_ID/ko'
-  entrypoint: /bin/sh
-  args:
-    - -c
-    - |
-      cd /workspace/backend/src/v2/
-      /ko publish --bare ./cmd/driver -t $COMMIT_SHA
-  env:
-  - 'KO_DOCKER_REPO=gcr.io/$PROJECT_ID/kfp-driver'
-  id:   'buildDriver'
-  waitFor: ["-"]
+# Temporarily disable v2 image build due to unblock kubeflow-pipeline-mkp-test
+# We aren't building v2 images for MKP at this moment anyway.
+#
+# - name: 'gcr.io/$PROJECT_ID/ko'
+#   entrypoint: /bin/sh
+#   args:
+#     - -c
+#     - |
+#       cd /workspace/backend/src/v2/
+#       /ko publish --bare ./cmd/launcher-v2 -t $COMMIT_SHA
+#   env:
+#   - 'KO_DOCKER_REPO=gcr.io/$PROJECT_ID/kfp-launcher'
+#   id:   'buildLauncher'
+#   waitFor: ["-"]
+# - name: 'gcr.io/$PROJECT_ID/ko'
+#   entrypoint: /bin/sh
+#   args:
+#     - -c
+#     - |
+#       cd /workspace/backend/src/v2/
+#       /ko publish --bare ./cmd/driver -t $COMMIT_SHA
+#   env:
+#   - 'KO_DOCKER_REPO=gcr.io/$PROJECT_ID/kfp-driver'
+#   id:   'buildDriver'
+#   waitFor: ["-"]
 
 # Tag for Hosted - SemVersion to Major.Minor parsing
 - id: "parseMajorMinorVersion"
