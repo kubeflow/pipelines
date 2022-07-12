@@ -162,10 +162,7 @@ describe('CompareUtils', () => {
           executionArtifacts: [
             {
               execution: newMockExecution(1),
-              linkedArtifacts: [
-                newMockLinkedArtifact(1, [1, 2]),
-                newMockLinkedArtifact(2, [1]),
-              ],
+              linkedArtifacts: [newMockLinkedArtifact(1, [1, 2]), newMockLinkedArtifact(2, [1])],
             },
             {
               execution: newMockExecution(2),
@@ -189,12 +186,7 @@ describe('CompareUtils', () => {
       ];
 
       expect(getCompareTableProps(scalarMetricsArtifacts)).toMatchObject({
-        xLabels: [
-          '- > -',
-          '- > -',
-          '- > -',
-          '- > -',
-        ],
+        xLabels: ['- > -', '- > -', '- > -', '- > -'],
         yLabels: ['scalarMetric0', 'scalarMetric1'],
         xParentLabels: [
           { colSpan: 3, label: '-' },

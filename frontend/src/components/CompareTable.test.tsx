@@ -44,6 +44,10 @@ describe('CompareTable', () => {
   ];
   const xLabels = ['col1', 'col2', 'col3'];
   const yLabels = ['row1', 'row2', 'row3'];
+  const xParentLabels = [
+    { colSpan: 2, label: 'parent1' },
+    { colSpan: 1, label: 'parent2' },
+  ];
 
   it('logs error if ylabels and rows have different lengths', () => {
     shallow(<CompareTable rows={[rows[0], rows[1]]} xLabels={xLabels} yLabels={yLabels} />);
@@ -52,8 +56,34 @@ describe('CompareTable', () => {
     );
   });
 
+  it('logs error if xlabels and xparentlabels have different lengths', () => {
+    shallow(
+      <CompareTable
+        rows={rows}
+        xLabels={xLabels}
+        yLabels={yLabels}
+        xParentLabels={[xParentLabels[0]]}
+      />,
+    );
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Number of columns with data (3) should match the aggregated length of parent columns (2).',
+    );
+  });
+
   it('renders one row with three columns', () => {
     const tree = shallow(<CompareTable rows={rows} xLabels={xLabels} yLabels={yLabels} />);
+    expect(tree).toMatchSnapshot();
+  });
+
+  it('renders one row with three columns and parent labels', () => {
+    const tree = shallow(
+      <CompareTable
+        rows={rows}
+        xLabels={xLabels}
+        yLabels={yLabels}
+        xParentLabels={xParentLabels}
+      />,
+    );
     expect(tree).toMatchSnapshot();
   });
 });

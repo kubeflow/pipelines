@@ -950,18 +950,12 @@ describe('CompareV2', () => {
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
 
-    jest.spyOn(compareUtils, 'getCompareTableProps').mockReturnValue(
-      {
-        xLabels: ['execution > artifact'],
-        yLabels: ['scalarMetric0'],
-        xParentLabels: [
-          { colSpan: 1, label: 'run1' },
-        ],
-        rows: [
-          ['1'],
-        ],
-      } as CompareTableProps,
-    );
+    jest.spyOn(compareUtils, 'getCompareTableProps').mockReturnValue({
+      xLabels: ['execution > artifact'],
+      yLabels: ['scalarMetric0'],
+      xParentLabels: [{ colSpan: 1, label: 'run1' }],
+      rows: [['1']],
+    } as CompareTableProps);
 
     render(
       <CommonTestWrapper>
@@ -975,6 +969,6 @@ describe('CompareV2', () => {
       screen.getByText('execution > artifact');
       screen.getByText('scalarMetric0');
       screen.getByText('1');
-    })
+    });
   });
 });
