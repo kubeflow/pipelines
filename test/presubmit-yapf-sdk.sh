@@ -18,4 +18,4 @@ source_root=$(pwd)
 python3 -m pip install --upgrade pip
 python3 -m pip install $(grep 'yapf==' sdk/python/requirements-dev.txt)
 
-yapf --recursive --quiet "${source_root}/sdk/python/kfp/"
+yapf --recursive --diff "${source_root}/sdk/python/" --exclude "${source_root}/sdk/python/kfp/deprecated/"

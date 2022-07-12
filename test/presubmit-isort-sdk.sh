@@ -18,4 +18,4 @@ source_root=$(pwd)
 python3 -m pip install --upgrade pip
 python3 -m pip install $(grep 'isort==' sdk/python/requirements-dev.txt)
 
-isort --check sdk/python/kfp -v
+isort --check "${source_root}/sdk/python" --skip "${source_root}/sdk/python/kfp/deprecated"

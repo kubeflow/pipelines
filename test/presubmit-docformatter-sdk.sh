@@ -18,4 +18,4 @@ source_root=$(pwd)
 python3 -m pip install --upgrade pip
 python3 -m pip install $(grep 'docformatter==' sdk/python/requirements-dev.txt)
 
-docformatter --exclude "${source_root}/sdk/python/kfp/deprecated" --check --recursive "${source_root}/sdk/python/"
+docformatter --check --recursive "${source_root}/sdk/python/" --exclude "${source_root}/sdk/python/kfp/deprecated"
