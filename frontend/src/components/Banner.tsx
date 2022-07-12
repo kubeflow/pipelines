@@ -38,6 +38,9 @@ export const css = stylesheet({
     minHeight: '50px',
     padding: spacing.units(-4),
   },
+  bannerLeftAlign: {
+    marginLeft: 0,
+  },
   button: {
     color: color.secondaryText,
     maxHeight: '32px',
@@ -72,6 +75,7 @@ export interface BannerProps {
   mode?: Mode;
   showTroubleshootingGuideLink?: boolean;
   refresh?: () => void;
+  leftAlign?: boolean;
 }
 
 interface BannerState {
@@ -96,6 +100,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
     let dialogTitle = 'An error occurred';
     let showTroubleshootingGuideLink = false;
     let showRefreshButton = true;
+    let leftAlign = this.props.leftAlign || false;
 
     switch (this.props.mode) {
       case 'error':
@@ -127,7 +132,14 @@ class Banner extends React.Component<BannerProps, BannerState> {
     }
 
     return (
-      <div className={classes(commonCss.flex, css.banner, bannerModeCss.mode)}>
+      <div
+        className={classes(
+          commonCss.flex,
+          css.banner,
+          leftAlign && css.bannerLeftAlign,
+          bannerModeCss.mode,
+        )}
+      >
         <div className={css.message}>
           {bannerIcon}
           {this.props.message}
