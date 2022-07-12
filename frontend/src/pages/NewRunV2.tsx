@@ -127,7 +127,7 @@ function NewRunV2(props: NewRunV2Props) {
   useEffect(() => {
     props.updateToolbar({
       actions: {},
-      pageTitle: 'Start a new run',
+      pageTitle: 'Start a new run v2',
     });
   }, []);
 
