@@ -62,7 +62,7 @@ function newMockArtifact(id: number, scalarMetricValues: number[], displayName?:
 
   scalarMetricValues.forEach((scalarMetricValue, index) => {
     const value = new Value();
-    value.setStringValue(scalarMetricValue);
+    value.setDoubleValue(scalarMetricValue);
     customPropertiesMap.set(`scalarMetric${index}`, value);
   });
 
