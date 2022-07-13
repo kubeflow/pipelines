@@ -490,6 +490,8 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
+    await waitFor(() => expect(filterLinkedArtifactsByTypeSpy).toHaveBeenCalledTimes(9));
+
     expect(screen.queryByText(/Confusion matrix: artifactName/)).toBeNull();
 
     fireEvent.click(screen.getByText('Confusion Matrix'));
