@@ -34,7 +34,7 @@ const (
 )
 
 type PipelineClientInterface interface {
-	ReportWorkflow(workflow *util.Workflow) error
+	ReportWorkflow(workflow util.ExecutionSpec) error
 	ReportScheduledWorkflow(swf *util.ScheduledWorkflow) error
 	ReadArtifact(request *api.ReadArtifactRequest, user string) (*api.ReadArtifactResponse, error)
 	ReportRunMetrics(request *api.ReportRunMetricsRequest, user string) (*api.ReportRunMetricsResponse, error)
@@ -75,7 +75,7 @@ func NewPipelineClient(
 	}, nil
 }
 
-func (p *PipelineClient) ReportWorkflow(workflow *util.Workflow) error {
+func (p *PipelineClient) ReportWorkflow(workflow util.ExecutionSpec) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
@@ -94,7 +94,7 @@ func (p *PipelineClient) ReportWorkflow(workflow *util.Workflow) error {
 				statusCode.Code(),
 				statusCode.Message(),
 				err.Error(),
-				workflow.Workflow)
+				workflow.ToStringForStore())
 		} else {
 			// Retry otherwise
 			return util.NewCustomError(err, util.CUSTOM_CODE_TRANSIENT,
@@ -102,7 +102,7 @@ func (p *PipelineClient) ReportWorkflow(workflow *util.Workflow) error {
 				statusCode.Code(),
 				statusCode.Message(),
 				err.Error(),
-				workflow.Workflow)
+				workflow.ToStringForStore())
 		}
 	}
 	return nil

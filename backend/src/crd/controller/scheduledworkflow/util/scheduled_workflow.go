@@ -22,7 +22,6 @@ import (
 	"strconv"
 	"time"
 
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -152,7 +151,7 @@ func (s *ScheduledWorkflow) getWorkflowParametersAsMap() map[string]string {
 // the appropriate OwnerReferences on the resource so handleObject can discover
 // the Schedule resource that 'owns' it.
 func (s *ScheduledWorkflow) NewWorkflow(
-	nextScheduledEpoch int64, nowEpoch int64) (*commonutil.Workflow, error) {
+	nextScheduledEpoch int64, nowEpoch int64) (commonutil.ExecutionSpec, error) {
 
 	const (
 		workflowKind       = "Workflow"
@@ -160,12 +159,10 @@ func (s *ScheduledWorkflow) NewWorkflow(
 	)
 
 	// Creating the workflow.
-	workflow := &workflowapi.Workflow{
-		Spec: *s.Spec.Workflow.Spec.DeepCopy(),
-	}
-	workflow.Kind = workflowKind
-	workflow.APIVersion = workflowApiVersion
-	result := commonutil.NewWorkflow(workflow)
+	execSpec, err := commonutil.ScheduleSpecToExecutionSpec(commonutil.ArgoWorkflow, s.Spec.Workflow)
+	typeMeta := execSpec.ExecutionTypeMeta()
+	typeMeta.APIVersion = workflowApiVersion
+	typeMeta.Kind = workflowKind
 
 	uuid, err := s.uuid.NewRandom()
 	if err != nil {
@@ -173,28 +170,28 @@ func (s *ScheduledWorkflow) NewWorkflow(
 	}
 
 	// Set the name of the workflow.
-	result.OverrideName(s.NextResourceName())
+	execSpec.SetExecutionName(s.NextResourceName())
 
 	// Get the workflow parameters and format them.
 	formatter := commonutil.NewSWFParameterFormatter(uuid.String(), nextScheduledEpoch, nowEpoch, s.nextIndex())
 	formattedParams := formatter.FormatWorkflowParameters(s.getWorkflowParametersAsMap())
 
 	// Set the parameters.
-	result.OverrideParameters(formattedParams)
+	execSpec.OverrideParameters(formattedParams)
 
-	result.SetCannonicalLabels(s.Name, nextScheduledEpoch, s.nextIndex())
-	result.SetLabels(commonutil.LabelKeyWorkflowRunId, uuid.String())
+	execSpec.SetCannonicalLabels(s.Name, nextScheduledEpoch, s.nextIndex())
+	execSpec.SetLabels(commonutil.LabelKeyWorkflowRunId, uuid.String())
 	// Pod pipeline/runid label is used by v2 compatible mode.
-	result.SetPodMetadataLabels(commonutil.LabelKeyWorkflowRunId, uuid.String())
+	execSpec.SetPodMetadataLabels(commonutil.LabelKeyWorkflowRunId, uuid.String())
 	// Replace {{workflow.uid}} with runId
-	err = result.ReplaceUID(uuid.String())
+	err = execSpec.ReplaceUID(uuid.String())
 	if err != nil {
 		return nil, err
 	}
 	// The the owner references.
-	result.SetOwnerReferences(s.ScheduledWorkflow)
+	execSpec.SetOwnerReferences(s.ScheduledWorkflow)
 
-	return result, nil
+	return execSpec, nil
 }
 
 // GetNextScheduledEpoch returns the next epoch at which a workflow should be scheduled,

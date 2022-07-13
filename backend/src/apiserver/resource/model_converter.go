@@ -133,7 +133,10 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 	}
 	serviceAccount := ""
 	if swf.Spec.Workflow != nil {
-		serviceAccount = swf.Spec.Workflow.Spec.ServiceAccountName
+		execSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, swf.Spec.Workflow)
+		if err == nil {
+			serviceAccount = execSpec.ServiceAccount()
+		}
 	}
 	modelJob := &model.Job{
 		UUID:               string(swf.UID),
