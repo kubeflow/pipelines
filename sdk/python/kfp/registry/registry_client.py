@@ -390,7 +390,7 @@ class RegistryClient:
             package_name: Name of the package.
             version: Version of the package.
             tag: Tag attached to the package.
-            file_name: File name to be saved as. If not specified, the 
+            file_name: File name to be saved as. If not specified, the
                 file name will be based on the package name and version/tag.
 
         Returns:

@@ -251,7 +251,7 @@ def convert_object_to_struct(obj, serialized_names: Mapping[str, str] = {}):
         if python_name.startswith('_'):
             continue
         attr_name = serialized_names.get(python_name, python_name)
-        if hasattr(value, "to_dict"):
+        if hasattr(value, 'to_dict'):
             result[attr_name] = value.to_dict()
         elif isinstance(value, list):
             result[attr_name] = [

@@ -55,29 +55,29 @@ def read_readme() -> str:
 
 
 setuptools.setup(
-    name="kfp",
+    name='kfp',
     version=find_version('kfp', '__init__.py'),
     description='Kubeflow Pipelines SDK',
     long_description=read_readme(),
     long_description_content_type='text/markdown',
     author='The Kubeflow Authors',
-    url="https://github.com/kubeflow/pipelines",
+    url='https://github.com/kubeflow/pipelines',
     project_urls={
-        "Documentation":
-            "https://kubeflow-pipelines.readthedocs.io/en/stable/",
-        "Bug Tracker":
-            "https://github.com/kubeflow/pipelines/issues",
-        "Source":
-            "https://github.com/kubeflow/pipelines/tree/master/sdk",
-        "Changelog":
-            "https://github.com/kubeflow/pipelines/blob/master/sdk/RELEASE.md",
+        'Documentation':
+            'https://kubeflow-pipelines.readthedocs.io/en/stable/',
+        'Bug Tracker':
+            'https://github.com/kubeflow/pipelines/issues',
+        'Source':
+            'https://github.com/kubeflow/pipelines/tree/master/sdk',
+        'Changelog':
+            'https://github.com/kubeflow/pipelines/blob/master/sdk/RELEASE.md',
     },
     install_requires=get_requirements('requirements.in'),
     extras_require={
         'all': ['docker'],
     },
     packages=setuptools.find_packages(
-        where=os.path.dirname(__file__), exclude=["*test*"]),
+        where=os.path.dirname(__file__), exclude=['*test*']),
     classifiers=[
         'Intended Audience :: Developers',
         'Intended Audience :: Education',

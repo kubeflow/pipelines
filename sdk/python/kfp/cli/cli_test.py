@@ -113,8 +113,8 @@ class TestCliAutocomplete(parameterized.TestCase):
                 os.makedirs(os.path.dirname(temp_path), exist_ok=True)
 
                 existing_file_contents = [
-                    "something\n",
-                    "something else" + ('\n' if has_trailing_newline else ''),
+                    'something\n',
+                    'something else' + ('\n' if has_trailing_newline else ''),
                 ]
                 with open(temp_path, 'w') as f:
                     f.writelines(existing_file_contents)
