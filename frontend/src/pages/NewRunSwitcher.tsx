@@ -9,17 +9,35 @@ import { NewRun } from './NewRun';
 import NewRunV2 from './NewRunV2';
 import { PageProps } from './Page';
 import { isTemplateV2 } from 'src/lib/v2/WorkflowUtils';
+import RunUtils from 'src/lib/RunUtils';
 
 function NewRunSwitcher(props: PageProps) {
   const namespace = React.useContext(NamespaceContext);
+  //console.log(props);
 
   const urlParser = new URLParser(props);
+  const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
+  console.log(originalRunId);
+
+
+
+
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
   const pipelineVersionIdParam = urlParser.get(QUERY_PARAMS.pipelineVersionId);
+  //console.log(urlParser)
+  //console.log(pipelineId);
+  // console.log(pipelineVersionIdParam);
 
   const { isSuccess, isFetching, data: templateString } = useQuery<string, Error>(
     [pipelineId, pipelineVersionIdParam],
     async () => {
+      // if (originalRunId) {
+      //     const originalRun = await Apis.runServiceApi.getRun(originalRunId);
+      //     const pipelineID = RunUtils.getPipelineId(originalRun.run);
+      // }
+
+
+
       if (!pipelineId) {
         return '';
       }
@@ -32,6 +50,7 @@ function NewRunSwitcher(props: PageProps) {
 
       await Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionId);
       const template = await Apis.pipelineServiceApi.getPipelineVersionTemplate(pipelineVersionId);
+      console.log(template);
       return template?.template || '';
     },
     { staleTime: Infinity },
@@ -46,6 +65,7 @@ function NewRunSwitcher(props: PageProps) {
   if (isFetching) {
     return <div>Currently loading pipeline information</div>;
   }
+  //console.log(namespace);
 
   return <NewRun {...props} namespace={namespace} />;
 }
