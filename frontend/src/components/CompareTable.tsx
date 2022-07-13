@@ -70,10 +70,9 @@ class CompareTable extends React.PureComponent<CompareTableProps> {
       );
     }
 
-    const xParentLabelsLength = xParentLabels && xParentLabels.reduce(
-      (length, xParentLabel) => length + xParentLabel.colSpan,
-      0,
-    );
+    const xParentLabelsLength =
+      xParentLabels &&
+      xParentLabels.reduce((length, xParentLabel) => length + xParentLabel.colSpan, 0);
     if (xParentLabels && xParentLabelsLength !== xLabels.length) {
       logger.error(
         `Number of columns with data (${xLabels.length}) should match the aggregated length of parent columns (${xParentLabelsLength}).`,
