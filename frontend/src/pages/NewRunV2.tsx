@@ -143,6 +143,7 @@ function NewRunV2(props: NewRunV2Props) {
   // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
   useEffect(() => {
     if (!templateString) {
+      // Think another option to warn the users?
       setIsStartButtonEnabled(false);
       return;
     }
@@ -160,20 +161,20 @@ function NewRunV2(props: NewRunV2Props) {
       setPipelineRoot(root);
     }
 
-    if (errorMessage) {
-      setIsStartButtonEnabled(false);
-    } else {
-      setIsStartButtonEnabled(true);
-    }
-  }, [errorMessage, templateString]);
+    // if (errorMessage) {
+    //   setIsStartButtonEnabled(false);
+    // } else {
+    //   setIsStartButtonEnabled(true);
+    // }
+  }, [templateString]);
 
   useEffect(() => {
-    if (!isParameterValid) {
+    if (errorMessage || !isParameterValid) {
       setIsStartButtonEnabled(false);
     } else {
       setIsStartButtonEnabled(true);
     }
-  }, [isParameterValid]);
+  }, [errorMessage, isParameterValid]);
 
   // Whenever any input value changes, validate and show error if needed.
   // TODO(zijianjoy): Validate run name for now, we need to validate others first.
