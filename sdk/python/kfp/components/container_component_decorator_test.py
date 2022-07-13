@@ -15,8 +15,8 @@
 import unittest
 
 from kfp.components import container_component
-from kfp.components import structures
-from kfp.components import container_component_decorator 
+from kfp.components import container_component_decorator
+from kfp import dsl
 
 
 class TestContainerComponentDecorator(unittest.TestCase):
@@ -24,13 +24,14 @@ class TestContainerComponentDecorator(unittest.TestCase):
     def test_func_with_no_arg(self):
 
         @container_component_decorator.container_component
-        def hello_world() -> None:
+        def hello_world() -> dsl.ContainerSpec:
             """Hello world component."""
-            return structures.ContainerSpec(
+            return dsl.ContainerSpec(
                 image='python3.7',
                 command=['echo', 'hello world'],
                 args=[],
             )
 
-        self.assertIsInstance(hello_world, container_component.ContainerComponent)
+        self.assertIsInstance(hello_world,
+                              container_component.ContainerComponent)
         self.assertIsNone(hello_world.component_spec.inputs)

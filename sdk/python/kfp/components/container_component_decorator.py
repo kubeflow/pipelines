@@ -14,16 +14,16 @@
 
 from typing import Callable
 
-from kfp.components import structures 
 from kfp.components import component_factory
 from kfp.components import container_component
 
 
-def container_component(func: Callable) -> container_component.ContainerComponent:
+def container_component(
+        func: Callable) -> container_component.ContainerComponent:
     """Decorator for container-based components in KFP v2.
 
     Sample usage:
-    from kfp.v2.dsl import container_component, ContainerSpec, InputPath, OutputPath, Output
+    from kfp.dsl import container_component, ContainerSpec, InputPath, OutputPath, Output
 
     @container_component
     def my_component(
@@ -34,7 +34,7 @@ def container_component(func: Callable) -> container_component.ContainerComponen
     ):
         return ContainerSpec(
             image='gcr.io/my-image',
-            command=['python3', 'my_component.py'],
+            command=['sh', 'my_component.sh'],
             arguments=[
             '--dataset_path', dataset_path,
             '--model_path', model.path,
@@ -49,8 +49,4 @@ def container_component(func: Callable) -> container_component.ContainerComponen
             a plain parameter, or a path to a file).
 
     """
-
-    component_spec = component_factory.extract_component_interface(func)
-    component_spec.implementation = structures.Implementation(
-        func())  # TODO: add compatability for placeholder
-    return container_component.ContainerComponent(component_spec, func)
+    return component_factory.create_container_component_from_func(func)
