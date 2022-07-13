@@ -221,7 +221,6 @@ function NewRunParametersV2(props: NewRunParametersProps) {
               type: v.parameterType,
               errorMsg: errorMessages[k],
             };
-            //console.log(param);
 
             return (
               <div>

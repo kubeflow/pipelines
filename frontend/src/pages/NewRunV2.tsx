@@ -143,8 +143,6 @@ function NewRunV2(props: NewRunV2Props) {
   // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
   useEffect(() => {
     if (!templateString) {
-      // Think another option to warn the users?
-      // setIsStartButtonEnabled(false);
       return;
     }
 
@@ -160,14 +158,9 @@ function NewRunV2(props: NewRunV2Props) {
     if (root) {
       setPipelineRoot(root);
     }
-
-    // if (errorMessage) {
-    //   setIsStartButtonEnabled(false);
-    // } else {
-    //   setIsStartButtonEnabled(true);
-    // }
   }, [templateString]);
 
+  // Handle different change that can affect setIsStartButtonEnabled
   useEffect(() => {
     if (!templateString || errorMessage || !isParameterValid) {
       setIsStartButtonEnabled(false);
