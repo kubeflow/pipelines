@@ -19,6 +19,13 @@ function NewRunSwitcher(props: PageProps) {
   const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
   console.log(originalRunId);
 
+  /* 
+  runID
+  if(runID) {
+    templateStr = Apis.runServiceApi.getRun(originalRunId)... pipelineManfest
+  }
+  */
+
 
 
 
@@ -32,7 +39,7 @@ function NewRunSwitcher(props: PageProps) {
     [pipelineId, pipelineVersionIdParam],
     async () => {
       // if (originalRunId) {
-      //     const originalRun = await Apis.runServiceApi.getRun(originalRunId);
+      //     const originalRun = await (await Apis.runServiceApi.getRun(originalRunId)).run?.pipeline_spec.;
       //     const pipelineID = RunUtils.getPipelineId(originalRun.run);
       // }
 
