@@ -253,12 +253,6 @@ func (s *RunStore) addMetricsAndResourceReferences(filteredSelectBuilder sq.Sele
 
 func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, error) {
 	var runs []*model.RunDetail
-
-	allColumns, _ := rows.Columns()
-	for _, colTemp := range allColumns {
-		fmt.Printf(colTemp + "  ")
-	}
-
 	for rows.Next() {
 		var uuid, experimentUUID, displayName, name, storageState, namespace, serviceAccount, description, pipelineId,
 			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, conditions, pipelineRuntimeManifest,
