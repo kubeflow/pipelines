@@ -360,7 +360,6 @@ interface SelectedArtifact {
 interface MetricsDropdownProps {
   filteredRunArtifacts: RunArtifact[];
   metricsTab: MetricsType;
-  metricsTabText: string;
   selectedArtifacts: SelectedArtifact[];
   updateSelectedArtifacts: (selectedArtifacts: SelectedArtifact[]) => void;
 }
@@ -467,13 +466,7 @@ function getLinkedArtifactFromSelectedItem(
 }
 
 function MetricsDropdown(props: MetricsDropdownProps) {
-  const {
-    filteredRunArtifacts,
-    metricsTab,
-    metricsTabText,
-    selectedArtifacts,
-    updateSelectedArtifacts,
-  } = props;
+  const { filteredRunArtifacts, metricsTab, selectedArtifacts, updateSelectedArtifacts } = props;
   const [firstSelectedItem, setFirstSelectedItem] = useState<SelectedItem>(
     selectedArtifacts[0].selectedItem,
   );
@@ -498,6 +491,7 @@ function MetricsDropdown(props: MetricsDropdownProps) {
   };
 
   const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
+  const metricsTabText = metricsTypeToString(metricsTab);
 
   if (dropdownItems.length === 0) {
     return <p>There are no {metricsTabText} artifacts available on the selected runs.</p>;
@@ -764,7 +758,6 @@ function CompareV2(props: PageProps) {
     setSelectedArtifactsMap(selectedArtifactsMap);
   };
 
-  const metricsTabText = metricsTypeToString(metricsTab);
   return (
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
       {/* Overview section */}
@@ -822,23 +815,21 @@ function CompareV2(props: PageProps) {
               (scalarMetricsTableData ? (
                 <CompareTable {...scalarMetricsTableData} />
               ) : (
-                <p>There are no {metricsTabText} artifacts available on the selected runs.</p>
+                <p>There are no Scalar Metrics artifacts available on the selected runs.</p>
               ))}
             {metricsTab === MetricsType.CONFUSION_MATRIX && (
               <MetricsDropdown
                 filteredRunArtifacts={confusionMatrixArtifacts}
                 metricsTab={metricsTab}
-                metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
                 updateSelectedArtifacts={updateSelectedArtifacts}
               />
             )}
-            {metricsTab === MetricsType.ROC_CURVE && <p>This is the {metricsTabText} tab.</p>}
+            {metricsTab === MetricsType.ROC_CURVE && <p>This is the ROC Curve tab.</p>}
             {metricsTab === MetricsType.HTML && (
               <MetricsDropdown
                 filteredRunArtifacts={htmlArtifacts}
                 metricsTab={metricsTab}
-                metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
                 updateSelectedArtifacts={updateSelectedArtifacts}
               />
@@ -847,7 +838,6 @@ function CompareV2(props: PageProps) {
               <MetricsDropdown
                 filteredRunArtifacts={markdownArtifacts}
                 metricsTab={metricsTab}
-                metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
                 updateSelectedArtifacts={updateSelectedArtifacts}
               />
