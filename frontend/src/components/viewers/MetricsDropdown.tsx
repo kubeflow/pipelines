@@ -189,14 +189,6 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
   return <></>;
 }
 
-interface MetricsDropdownProps {
-  filteredRunArtifacts: RunArtifact[];
-  metricsTab: MetricsType;
-  metricsTabText: string;
-  selectedArtifacts: SelectedArtifact[];
-  updateSelectedArtifacts: (selectedArtifacts: SelectedArtifact[]) => void;
-}
-
 const logDisplayNameWarning = (type: string, id: string) =>
   logger.warn(`Failed to fetch the display name of the ${type} with the following ID: ${id}`);
 
@@ -302,6 +294,14 @@ function getLinkedArtifactFromSelectedItem(
   });
 
   return linkedArtifact;
+}
+
+interface MetricsDropdownProps {
+  filteredRunArtifacts: RunArtifact[];
+  metricsTab: MetricsType;
+  metricsTabText: string;
+  selectedArtifacts: SelectedArtifact[];
+  updateSelectedArtifacts: (selectedArtifacts: SelectedArtifact[]) => void;
 }
 
 function MetricsDropdown(props: MetricsDropdownProps) {
