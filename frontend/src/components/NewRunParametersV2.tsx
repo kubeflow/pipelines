@@ -110,8 +110,8 @@ function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEn
 function generateInputValidationErrMsg(
   parametersInRealType: any,
   paramType: ParameterType_ParameterTypeEnum,
-): string {
-  let errorMessage: string;
+) {
+  let errorMessage;
   switch (parametersInRealType) {
     case undefined:
       errorMessage = 'Missing parameter.';
@@ -124,7 +124,7 @@ function generateInputValidationErrMsg(
         ' type';
       break;
     default:
-      errorMessage = '';
+      errorMessage = null;
   }
   return errorMessage;
 }
@@ -221,6 +221,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
               type: v.parameterType,
               errorMsg: errorMessages[k],
             };
+            console.log(param);
 
             return (
               <div>
@@ -252,7 +253,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                     setErrorMessages(errorMessages);
 
                     Object.values(errorMessages).map(errorMessage => {
-                      allInputsValid = allInputsValid && errorMessage === '';
+                      allInputsValid = allInputsValid && errorMessage === null;
                     });
 
                     if (props.setIsValidInput) {
