@@ -29,6 +29,9 @@ import { PageProps } from './Page';
 import { ApiRunDetail } from 'src/apis/run';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { Struct, Value } from 'google-protobuf/google/protobuf/struct_pb';
+import { RunArtifact } from 'src/pages/CompareV2';
+import { LinkedArtifact } from 'src/mlmd/MlmdUtils';
+import * as jspb from 'google-protobuf';
 
 /*
 
@@ -44,10 +47,77 @@ function MetricsDropdown(props: MetricsDropdownProps) {
 
 filteredRunArtifacts: [],
 metricsTab: MetricsType.CONFUSION_MATRIX,
-metricsTabText: 
+selectedArtifacts: [],
+updateSelectedArtifacts: () => {}
 
 
 */
+
+function newMockExecution(id: number, displayName?: string): Execution {
+  const execution = new Execution();
+  execution.setId(id);
+  if (displayName) {
+    const customPropertiesMap: Map<string, Value> = new Map();
+    const displayNameValue = new Value();
+    displayNameValue.setStringValue(displayName);
+    customPropertiesMap.set('display_name', displayNameValue);
+    jest.spyOn(execution, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
+  }
+  return execution;
+}
+
+function newMockEvent(id: number, displayName?: string): Event {
+  const event = new Event();
+  event.setArtifactId(id);
+  event.setExecutionId(id);
+  event.setType(Event.Type.OUTPUT);
+  if (displayName) {
+    const path = new Event.Path();
+    const step = new Event.Path.Step();
+    step.setKey(displayName);
+    path.addSteps(step);
+    event.setPath(path);
+  }
+  return event;
+}
+
+function newMockArtifact(id: number, scalarMetricValues: number[], displayName?: string): Artifact {
+  const artifact = new Artifact();
+  artifact.setId(id);
+
+  const customPropertiesMap: jspb.Map<string, Value> = jspb.Map.fromObject([], null, null);
+  if (displayName) {
+    const displayNameValue = new Value();
+    displayNameValue.setStringValue(displayName);
+    customPropertiesMap.set('display_name', displayNameValue);
+  }
+
+  scalarMetricValues.forEach((scalarMetricValue, index) => {
+    const value = new Value();
+    value.setStringValue(scalarMetricValue);
+    customPropertiesMap.set(`scalarMetric${index}`, value);
+  });
+
+  jest.spyOn(artifact, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
+  return artifact;
+}
+
+function newMockLinkedArtifact(
+  id: number,
+  scalarMetricValues: number[],
+  displayName?: string,
+): LinkedArtifact {
+  return {
+    artifact: newMockArtifact(id, scalarMetricValues, displayName),
+    event: newMockEvent(id, displayName),
+  } as LinkedArtifact;
+}
+
+const filteredRunArtifacts: RunArtifact[] = [
+  {
+
+  }
+];
 
 testBestPractices();
 describe('MetricsDropdown', () => {

@@ -36,6 +36,7 @@ import { ExecutionArtifact, MetricsType, RunArtifact, SelectedArtifact } from 's
 import { useQuery } from 'react-query';
 import { errorToMessage, logger } from 'src/lib/Utils';
 import { Execution } from 'src/third_party/mlmd';
+import { metricsTypeToString } from 'src/lib/v2/CompareUtils';
 
 const css = stylesheet({
   leftCell: {
@@ -299,7 +300,6 @@ function getLinkedArtifactFromSelectedItem(
 interface MetricsDropdownProps {
   filteredRunArtifacts: RunArtifact[];
   metricsTab: MetricsType;
-  metricsTabText: string;
   selectedArtifacts: SelectedArtifact[];
   updateSelectedArtifacts: (selectedArtifacts: SelectedArtifact[]) => void;
 }
@@ -308,7 +308,6 @@ function MetricsDropdown(props: MetricsDropdownProps) {
   const {
     filteredRunArtifacts,
     metricsTab,
-    metricsTabText,
     selectedArtifacts,
     updateSelectedArtifacts,
   } = props;
@@ -336,6 +335,7 @@ function MetricsDropdown(props: MetricsDropdownProps) {
   };
 
   const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
+  const metricsTabText = metricsTypeToString(metricsTab);
 
   if (dropdownItems.length === 0) {
     return <p>There are no {metricsTabText} artifacts available on the selected runs.</p>;

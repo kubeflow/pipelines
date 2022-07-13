@@ -77,23 +77,6 @@ export enum MetricsType {
   MARKDOWN,
 }
 
-const metricsTypeToString = (metricsType: MetricsType): string => {
-  switch (metricsType) {
-    case MetricsType.SCALAR_METRICS:
-      return 'Scalar Metrics';
-    case MetricsType.CONFUSION_MATRIX:
-      return 'Confusion Matrix';
-    case MetricsType.ROC_CURVE:
-      return 'ROC Curve';
-    case MetricsType.HTML:
-      return 'HTML';
-    case MetricsType.MARKDOWN:
-      return 'Markdown';
-    default:
-      return '';
-  }
-};
-
 const metricsTypeToFilter = (metricsType: MetricsType): string => {
   switch (metricsType) {
     case MetricsType.SCALAR_METRICS:
@@ -388,7 +371,6 @@ function CompareV2(props: PageProps) {
     setSelectedArtifactsMap(selectedArtifactsMap);
   };
 
-  const metricsTabText = metricsTypeToString(metricsTab);
   return (
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
       {/* Overview section */}
@@ -447,17 +429,15 @@ function CompareV2(props: PageProps) {
               <MetricsDropdown
                 filteredRunArtifacts={confusionMatrixArtifacts}
                 metricsTab={metricsTab}
-                metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
                 updateSelectedArtifacts={updateSelectedArtifacts}
               />
             )}
-            {metricsTab === MetricsType.ROC_CURVE && <p>This is the {metricsTabText} tab.</p>}
+            {metricsTab === MetricsType.ROC_CURVE && <p>This is the ROC Curve tab.</p>}
             {metricsTab === MetricsType.HTML && (
               <MetricsDropdown
                 filteredRunArtifacts={htmlArtifacts}
                 metricsTab={metricsTab}
-                metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
                 updateSelectedArtifacts={updateSelectedArtifacts}
               />
@@ -466,7 +446,6 @@ function CompareV2(props: PageProps) {
               <MetricsDropdown
                 filteredRunArtifacts={markdownArtifacts}
                 metricsTab={metricsTab}
-                metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
                 updateSelectedArtifacts={updateSelectedArtifacts}
               />
