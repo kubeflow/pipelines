@@ -317,6 +317,11 @@ func (s *UpgradeTests) PrepareRuns() {
 func (s *UpgradeTests) VerifyRuns() {
 	t := s.T()
 
+	/* ---------- Get hello world run ---------- */
+	helloWorldRunDetail, _, err := s.runClient.Get(&runParams.GetRunParams{RunID: runs[0].ID})
+	require.Nil(t, err)
+	checkHelloWorldRunDetail(t, helloWorldRunDetail)
+
 	/* ---------- List the runs, sorted by creation time ---------- */
 	runs, _, _, err := test.ListRuns(
 		s.runClient,
@@ -327,10 +332,6 @@ func (s *UpgradeTests) VerifyRuns() {
 	require.True(t, len(runs) >= 1)
 	require.Equal(t, "hello world", runs[0].Name)
 
-	/* ---------- Get hello world run ---------- */
-	helloWorldRunDetail, _, err := s.runClient.Get(&runParams.GetRunParams{RunID: runs[0].ID})
-	require.Nil(t, err)
-	checkHelloWorldRunDetail(t, helloWorldRunDetail)
 }
 
 func (s *UpgradeTests) PrepareJobs() {
