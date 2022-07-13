@@ -23,6 +23,7 @@ import warnings
 import docstring_parser
 from kfp.components import placeholders
 from kfp.components import python_component
+from kfp.components import container_component
 from kfp.components import structures
 from kfp.components.types import artifact_types
 from kfp.components.types import type_annotations
@@ -435,3 +436,117 @@ def create_component_from_func(func: Callable,
 
     return python_component.PythonComponent(
         component_spec=component_spec, python_func=func)
+
+
+def extract_container_component_interface(
+        func: Callable) -> structures.ComponentSpec:
+    """Extracting the type annotations from function signature, without analyzing return annotation.
+    """
+    signature = inspect.signature(func)
+    parameters = list(signature.parameters.values())
+
+    parsed_docstring = docstring_parser.parse(inspect.getdoc(func))
+
+    inputs = {}
+    outputs = {}
+
+    input_names = set()
+    output_names = set()
+    for parameter in parameters:
+        parameter_type = type_annotations.maybe_strip_optional_from_annotation(
+            parameter.annotation)
+        passing_style = None
+        io_name = parameter.name
+
+        if type_annotations.is_artifact_annotation(parameter_type):
+            # passing_style is either type_annotations.InputAnnotation or
+            # type_annotations.OutputAnnotation.
+            passing_style = type_annotations.get_io_artifact_annotation(
+                parameter_type)
+
+            # parameter_type is type_annotations.Artifact or one of its subclasses.
+            parameter_type = type_annotations.get_io_artifact_class(
+                parameter_type)
+            if not issubclass(parameter_type, artifact_types.Artifact):
+                raise ValueError(
+                    'Input[T] and Output[T] are only supported when T is a '
+                    'subclass of Artifact. Found `{} with type {}`'.format(
+                        io_name, parameter_type))
+
+            if parameter.default is not inspect.Parameter.empty:
+                raise ValueError(
+                    'Default values for Input/Output artifacts are not supported.'
+                )
+        elif isinstance(
+                parameter_type,
+            (type_annotations.InputPath, type_annotations.OutputPath)):
+            passing_style = type(parameter_type)
+            parameter_type = parameter_type.type
+            if parameter.default is not inspect.Parameter.empty and not (
+                    passing_style == type_annotations.InputPath and
+                    parameter.default is None):
+                raise ValueError(
+                    'Path inputs only support default values of None. Default'
+                    ' values for outputs are not supported.')
+
+        type_struct = _annotation_to_type_struct(parameter_type)
+        if type_struct is None:
+            raise TypeError('Missing type annotation for argument: {}'.format(
+                parameter.name))
+
+        if passing_style in [
+                type_annotations.OutputAnnotation, type_annotations.OutputPath
+        ]:
+            io_name = _maybe_make_unique(io_name, output_names)
+            output_names.add(io_name)
+            output_spec = structures.OutputSpec(type=type_struct)
+            outputs[io_name] = output_spec
+        else:
+            io_name = _maybe_make_unique(io_name, input_names)
+            input_names.add(io_name)
+            if parameter.default is not inspect.Parameter.empty:
+                input_spec = structures.InputSpec(
+                    type=type_struct,
+                    default=parameter.default,
+                )
+            else:
+                input_spec = structures.InputSpec(type=type_struct)
+
+            inputs[io_name] = input_spec
+
+    # Component name and description are derived from the function's name and
+    # docstring.  The name can be overridden by setting setting func.__name__
+    # attribute (of the legacy func._component_human_name attribute).  The
+    # description can be overridden by setting the func.__doc__ attribute (or
+    # the legacy func._component_description attribute).
+    component_name = getattr(func, '_component_human_name',
+                             None) or _python_function_name_to_component_name(
+                                 func.__name__)
+    description = getattr(func, '_component_description',
+                          None) or parsed_docstring.short_description
+    if description:
+        description = description.strip()
+
+    component_spec = structures.ComponentSpec(
+        name=component_name,
+        description=description,
+        inputs=inputs if inputs else None,
+        outputs=outputs if outputs else None,
+        # Dummy implementation to bypass model validation.
+        implementation=structures.Implementation(),
+    )
+    return component_spec
+
+
+def create_container_component_from_func(
+        func: Callable) -> container_component.ContainerComponent:
+    """Implementation for the @container_component decorator.
+
+    The decorator is defined under container_component_decorator.py. See the
+    decorator for the canonical documentation for this function.
+    """
+
+    component_spec = extract_container_component_interface(func)
+    component_spec.implementation = structures.Implementation(
+        func())  # TODO: Milestone 1b: add compatability for placeholder in args
+    return container_component.ContainerComponent(component_spec, func)

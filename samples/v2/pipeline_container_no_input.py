@@ -11,13 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import os
 
-from kfp import compiler
 from kfp import dsl
+from kfp import compiler
 
 
 @dsl.container_component
-def hello_world_container():
+def container_no_input():
     return dsl.ContainerSpec(
         image='python:3.7',
         command=['echo', 'hello world'],
@@ -26,10 +27,12 @@ def hello_world_container():
 
 
 @dsl.pipeline(name='v2-container-component-no-input')
-def pipeline():
-    hello_world_container()
+def pipeline_container_no_input():
+    container_no_input()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    # execute only if run as a script
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=pipeline_container_no_input,
+        package_path='pipeline_container_no_input.json')

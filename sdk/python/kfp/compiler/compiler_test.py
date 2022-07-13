@@ -32,8 +32,6 @@ from kfp.dsl import PipelineTaskFinalStatus
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
 
-from pipelines.sdk.python.kfp.components import container_component
-
 VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
     name: producer
     inputs:
@@ -825,9 +823,9 @@ class TestCompileComponent(parameterized.TestCase):
             with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
         self.assertEqual(
-            pipeline_spec['components']['comp-hello-world-container']
-            ['outputDefinitions']['parameters']['Output']['parameterType'],
-            'None')
+            pipeline_spec['deploymentSpec']['executors']
+            ['exec-hello-world-container']['container']['command'],
+            ['echo', 'hello world'])
 
 
 class TestCompileBadInput(unittest.TestCase):
