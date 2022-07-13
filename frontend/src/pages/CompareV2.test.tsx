@@ -21,7 +21,6 @@ import TestUtils, { testBestPractices } from 'src/TestUtils';
 import { Artifact, Context, Event, Execution } from 'src/third_party/mlmd';
 import { Apis } from 'src/lib/Apis';
 import { QUERY_PARAMS } from 'src/components/Router';
-import * as compareUtils from 'src/lib/v2/CompareUtils';
 import * as mlmdUtils from 'src/mlmd/MlmdUtils';
 import * as metricsVisualizations from 'src/components/viewers/MetricsVisualizations';
 import * as Utils from 'src/lib/Utils';
@@ -30,7 +29,6 @@ import { PageProps } from './Page';
 import { ApiRunDetail } from 'src/apis/run';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { Struct, Value } from 'google-protobuf/google/protobuf/struct_pb';
-import { CompareTableProps } from 'src/components/CompareTable';
 
 testBestPractices();
 describe('CompareV2', () => {
@@ -399,25 +397,21 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
+    screen.getByText('This is the Scalar Metrics tab.');
 
-    fireEvent.click(screen.getByText('Confusion Matrix'));
-    screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
-    expect(
-      screen.queryByText('There are no Scalar Metrics artifacts available on the selected runs.'),
-    ).toBeNull();
+    fireEvent.click(screen.getByText('ROC Curve'));
+    screen.getByText('This is the ROC Curve tab.');
+    expect(screen.queryByText('This is the Scalar Metrics Tab')).toBeNull();
 
-    fireEvent.click(screen.getByText('Confusion Matrix'));
-    screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
+    fireEvent.click(screen.getByText('ROC Curve'));
+    screen.getByText('This is the ROC Curve tab.');
 
     fireEvent.click(screen.getByText('Scalar Metrics'));
-    screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
-    expect(
-      screen.queryByText('There are no Confusion Matrix artifacts available on the selected runs.'),
-    ).toBeNull();
+    screen.getByText('This is the Scalar Metrics tab.');
+    expect(screen.queryByText('This is the ROC Curve Tab')).toBeNull();
   });
 
-  it('Metrics tabs have no content loaded as artifacts are not present', async () => {
+  it('Two-panel tabs have no dropdown loaded as content is not present', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
@@ -434,8 +428,6 @@ describe('CompareV2', () => {
       </CommonTestWrapper>,
     );
     await TestUtils.flushPromises();
-
-    screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
 
     fireEvent.click(screen.getByText('Confusion Matrix'));
     screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
@@ -497,7 +489,7 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    await waitFor(() => expect(filterLinkedArtifactsByTypeSpy).toHaveBeenCalledTimes(12));
+    await waitFor(() => expect(filterLinkedArtifactsByTypeSpy).toHaveBeenCalledTimes(9));
 
     fireEvent.click(screen.getByText('Confusion Matrix'));
     screen.getByText('Choose a first Confusion Matrix artifact');
@@ -942,33 +934,6 @@ describe('CompareV2', () => {
     screen.getByRole('circularprogress');
     await waitFor(() => {
       screen.getByText('Error: failed loading HTML file. Click Details for more information.');
-    });
-  });
-
-  it('Scalar metrics table displayed when data present', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
-    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
-
-    jest.spyOn(compareUtils, 'getCompareTableProps').mockReturnValue({
-      xLabels: ['execution > artifact'],
-      yLabels: ['scalarMetric0'],
-      xParentLabels: [{ colSpan: 1, label: 'run1' }],
-      rows: [['1']],
-    } as CompareTableProps);
-
-    render(
-      <CommonTestWrapper>
-        <CompareV2 {...generateProps()} />
-      </CommonTestWrapper>,
-    );
-    await TestUtils.flushPromises();
-
-    await waitFor(() => {
-      screen.getByText('run1');
-      screen.getByText('execution > artifact');
-      screen.getByText('scalarMetric0');
-      screen.getByText('1');
     });
   });
 });
