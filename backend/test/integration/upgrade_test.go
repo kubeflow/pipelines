@@ -312,8 +312,8 @@ func (s *UpgradeTests) PrepareRuns() {
 	}}
 	debugAPIRunDetail, debugWorkflow, err := s.runClient.Create(createRunRequest)
 	require.Nil(t, err)
-	glog.Printf("Logs line 315: debugAPIDetail vaulue: %#v", debugAPIRunDetail)
-	glog.Printf("Logs line 316: debugWorkflow value: %#v", debugWorkflow)
+	glog.Infof("Logs line 315: debugAPIDetail vaulue: %#v", debugAPIRunDetail)
+	glog.Infof("Logs line 316: debugWorkflow value: %#v", debugWorkflow)
 }
 
 func (s *UpgradeTests) VerifyRuns() {
