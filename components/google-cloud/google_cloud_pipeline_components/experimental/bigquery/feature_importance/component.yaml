@@ -54,7 +54,7 @@ outputs:
 - {name: gcp_resources, type: String}
 implementation:
   container:
-    image: gcr.io/managed-pipeline-test/google-cloud-pipeline-components:latest
+    image: gcr.io/managed-pipeline-test/google-cloud-pipeline-components:1.0.14
     command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.gcp_launcher.launcher]
     args: [
       --type, BigqueryMLFeatureImportanceJob,
