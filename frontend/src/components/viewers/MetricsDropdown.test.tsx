@@ -18,7 +18,7 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import TestUtils, { testBestPractices } from 'src/TestUtils';
-import { Artifact, Context, Event, Execution } from 'src/third_party/mlmd';
+import { Artifact, Context, Event, Execution, Value } from 'src/third_party/mlmd';
 import { Apis } from 'src/lib/Apis';
 import { QUERY_PARAMS } from 'src/components/Router';
 import * as mlmdUtils from 'src/mlmd/MlmdUtils';
@@ -28,10 +28,10 @@ import CompareV2 from './CompareV2';
 import { PageProps } from './Page';
 import { ApiRunDetail } from 'src/apis/run';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
-import { Struct, Value } from 'google-protobuf/google/protobuf/struct_pb';
-import { RunArtifact } from 'src/pages/CompareV2';
+import { MetricsType, RunArtifact, SelectedArtifact } from 'src/pages/CompareV2';
 import { LinkedArtifact } from 'src/mlmd/MlmdUtils';
 import * as jspb from 'google-protobuf';
+import MetricsDropdown from './MetricsDropdown';
 
 /*
 
@@ -48,7 +48,7 @@ function MetricsDropdown(props: MetricsDropdownProps) {
 filteredRunArtifacts: [],
 metricsTab: MetricsType.CONFUSION_MATRIX,
 selectedArtifacts: [],
-updateSelectedArtifacts: () => {}
+updateSelectedArtifacts: () => {},
 
 
 */
@@ -81,7 +81,7 @@ function newMockEvent(id: number, displayName?: string): Event {
   return event;
 }
 
-function newMockArtifact(id: number, scalarMetricValues: number[], displayName?: string): Artifact {
+function newMockArtifact(id: number, displayName?: string): Artifact {
   const artifact = new Artifact();
   artifact.setId(id);
 
@@ -92,63 +92,84 @@ function newMockArtifact(id: number, scalarMetricValues: number[], displayName?:
     customPropertiesMap.set('display_name', displayNameValue);
   }
 
-  scalarMetricValues.forEach((scalarMetricValue, index) => {
-    const value = new Value();
-    value.setStringValue(scalarMetricValue);
-    customPropertiesMap.set(`scalarMetric${index}`, value);
-  });
-
   jest.spyOn(artifact, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
   return artifact;
 }
 
 function newMockLinkedArtifact(
   id: number,
-  scalarMetricValues: number[],
   displayName?: string,
 ): LinkedArtifact {
   return {
-    artifact: newMockArtifact(id, scalarMetricValues, displayName),
+    artifact: newMockArtifact(id, displayName),
     event: newMockEvent(id, displayName),
   } as LinkedArtifact;
 }
 
-const filteredRunArtifacts: RunArtifact[] = [
+const scalarMetricsArtifacts: RunArtifact[] = [
   {
+    run: {
+      run: {
+        id: '1',
+        name: 'run1',
+      },
+    },
+    executionArtifacts: [
+      {
+        execution: newMockExecution(1, 'execution1'),
+        linkedArtifacts: [
+          newMockLinkedArtifact(1, 'artifact1'),
+          newMockLinkedArtifact(2, 'artifact2'),
+        ],
+      },
+      {
+        execution: newMockExecution(2, 'execution2'),
+        linkedArtifacts: [newMockLinkedArtifact(3, 'artifact3')],
+      },
+    ],
+  },
+  {
+    run: {
+      run: {
+        id: '2',
+        name: 'run2',
+      },
+    },
+    executionArtifacts: [
+      {
+        execution: newMockExecution(3, 'execution1'),
+        linkedArtifacts: [newMockLinkedArtifact(4, 'artifact1')],
+      },
+    ],
+  },
+];
 
-  }
+const emptySelectedArtifacts: SelectedArtifact[] = [
+  {
+    selectedItem: { itemName: '', subItemName: '' },
+  },
+  {
+    selectedItem: { itemName: '', subItemName: '' },
+  },
 ];
 
 testBestPractices();
 describe('MetricsDropdown', () => {
-  it('Two-panel tabs have no dropdown loaded as content is not present', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
-    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+  const updateSelectedArtifactsSpy = jest.fn();
 
-    jest.spyOn(mlmdUtils, 'getKfpV2RunContext').mockReturnValue(new Context());
-    jest.spyOn(mlmdUtils, 'getExecutionsFromContext').mockReturnValue([]);
-    jest.spyOn(mlmdUtils, 'getArtifactsFromContext').mockReturnValue([]);
-    jest.spyOn(mlmdUtils, 'getEventsByExecutions').mockReturnValue([]);
-    jest.spyOn(mlmdUtils, 'getArtifactTypes').mockReturnValue([]);
-
+  it('Metrics dropdown has no dropdown loaded as content is not present', async () => {
     render(
-      <CommonTestWrapper>
-        <CompareV2 {...generateProps()} />
-      </CommonTestWrapper>,
+      <MetricsDropdown
+        filteredRunArtifacts={[]}
+        metricsTab={MetricsType.CONFUSION_MATRIX}
+        selectedArtifacts={emptySelectedArtifacts}
+        updateSelectedArtifacts={updateSelectedArtifactsSpy}
+      />,
     );
     await TestUtils.flushPromises();
-
-    fireEvent.click(screen.getByText('Confusion Matrix'));
     screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
-
-    fireEvent.click(screen.getByText('HTML'));
-    screen.getByText('There are no HTML artifacts available on the selected runs.');
-
-    fireEvent.click(screen.getByText('Markdown'));
-    screen.getByText('There are no Markdown artifacts available on the selected runs.');
   });
-
+/*
   it('Only confusion matrix tab has dropdown loaded with content', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
@@ -645,5 +666,5 @@ describe('MetricsDropdown', () => {
     await waitFor(() => {
       screen.getByText('Error: failed loading HTML file. Click Details for more information.');
     });
-  });
+  });*/
 });
