@@ -13,7 +13,6 @@
 # limitations under the License.
 """Pipeline with Metrics outputs."""
 
-
 from kfp import compiler
 from kfp import dsl
 from kfp.dsl import component

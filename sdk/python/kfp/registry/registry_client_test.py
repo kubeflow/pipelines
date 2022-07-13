@@ -48,8 +48,7 @@ class RegistryClientTest(parameterized.TestCase):
 
     def test_is_ar_host_false(self):
         client = RegistryClient(
-            host='https://hub.docker.com/r/google/cloud-sdk',
-            auth=ApiAuth(''))
+            host='https://hub.docker.com/r/google/cloud-sdk', auth=ApiAuth(''))
         self.assertFalse(client._is_ar_host())
 
     def test_load_config(self):

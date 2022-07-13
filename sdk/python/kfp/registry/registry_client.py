@@ -35,9 +35,12 @@ _DEFAULT_JSON_HEADER = {
 
 _VERSION_PREFIX = 'sha256:'
 
-LOCAL_REGISTRY_CREDENTIAL = os.path.expanduser('~/.config/kfp/registry_credentials.json')
-LOCAL_REGISTRY_CONTEXT = os.path.expanduser('~/.config/kfp/registry_context.json')
-DEFAULT_REGISTRY_CONTEXT = os.path.join(os.path.dirname(__file__), 'context/default_pkg_dev.json')
+LOCAL_REGISTRY_CREDENTIAL = os.path.expanduser(
+    '~/.config/kfp/registry_credentials.json')
+LOCAL_REGISTRY_CONTEXT = os.path.expanduser(
+    '~/.config/kfp/registry_context.json')
+DEFAULT_REGISTRY_CONTEXT = os.path.join(
+    os.path.dirname(__file__), 'context/default_pkg_dev.json')
 
 
 class _SafeDict(dict):

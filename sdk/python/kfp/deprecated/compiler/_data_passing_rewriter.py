@@ -4,7 +4,6 @@ import re
 from typing import List, Optional, Set
 
 
-
 def fix_big_data_passing(workflow: dict) -> dict:
     '''fix_big_data_passing converts a workflow where some artifact data is passed as parameters and converts it to a workflow where this data is passed as artifacts.
     Args:

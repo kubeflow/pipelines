@@ -22,7 +22,6 @@ import re
 import shutil
 import tempfile
 
-
 from ._cache import calculate_recursive_dir_hash, try_read_value_from_cache, write_value_to_cache
 from ._container_builder import ContainerBuilder
 

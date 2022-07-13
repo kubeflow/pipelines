@@ -17,9 +17,7 @@ import os
 import unittest
 import json
 
-
 from kfp.deprecated.dsl import metrics_utils
-
 
 
 class MetricsUtilsTest(unittest.TestCase):
