@@ -83,7 +83,7 @@ const getScalarTableData = (
   for (const runArtifact of scalarMetricsArtifacts) {
     const runName = runArtifact.run.run?.name || '-';
 
-    const artifactCount = loadScalarExecutionArtifacts(
+    const newArtifactIndex = loadScalarExecutionArtifacts(
       runArtifact.executionArtifacts,
       xLabels,
       scalarMetricNames,
@@ -93,10 +93,10 @@ const getScalarTableData = (
 
     const xParentLabel: xParentLabel = {
       label: runName,
-      colSpan: artifactCount - artifactIndex,
+      colSpan: newArtifactIndex - artifactIndex,
     };
     xParentLabels.push(xParentLabel);
-    artifactIndex = artifactCount;
+    artifactIndex = newArtifactIndex;
   }
 
   return {

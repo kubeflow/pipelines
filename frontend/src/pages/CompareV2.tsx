@@ -809,7 +809,6 @@ function CompareV2(props: PageProps) {
 
   useEffect(() => {
     const compareTableProps: CompareTableProps = getCompareTableProps(scalarMetricsArtifacts);
-
     if (compareTableProps.yLabels.length === 0) {
       setScalarMetricsTableData(undefined);
     } else {

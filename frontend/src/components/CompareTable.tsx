@@ -70,16 +70,13 @@ class CompareTable extends React.PureComponent<CompareTableProps> {
       );
     }
 
-    if (xParentLabels) {
-      const xParentLabelsLength = xParentLabels.reduce(
-        (length, xParentLabel) => length + xParentLabel.colSpan,
-        0,
+    const xParentLabelsLength =
+      xParentLabels &&
+      xParentLabels.reduce((length, xParentLabel) => length + xParentLabel.colSpan, 0);
+    if (xParentLabels && xParentLabelsLength !== xLabels.length) {
+      logger.error(
+        `Number of columns with data (${xLabels.length}) should match the aggregated length of parent columns (${xParentLabelsLength}).`,
       );
-      if (xParentLabelsLength !== xLabels.length) {
-        logger.error(
-          `Number of columns with data (${xLabels.length}) should match the aggregated length of parent columns (${xParentLabelsLength}).`,
-        );
-      }
     }
 
     if (!rows || rows.length === 0) {
@@ -89,7 +86,7 @@ class CompareTable extends React.PureComponent<CompareTableProps> {
     return (
       <table className={css.root}>
         <tbody>
-          {xParentLabels && (
+          {xParentLabels && xParentLabelsLength === xLabels.length && (
             <tr className={css.row}>
               <td className={css.labelCell} />
               {/* X parent labels row */}
