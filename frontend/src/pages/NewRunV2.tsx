@@ -144,7 +144,7 @@ function NewRunV2(props: NewRunV2Props) {
   useEffect(() => {
     if (!templateString) {
       // Think another option to warn the users?
-      setIsStartButtonEnabled(false);
+      // setIsStartButtonEnabled(false);
       return;
     }
 
@@ -169,12 +169,12 @@ function NewRunV2(props: NewRunV2Props) {
   }, [templateString]);
 
   useEffect(() => {
-    if (errorMessage || !isParameterValid) {
+    if (!templateString || errorMessage || !isParameterValid) {
       setIsStartButtonEnabled(false);
     } else {
       setIsStartButtonEnabled(true);
     }
-  }, [errorMessage, isParameterValid]);
+  }, [templateString, errorMessage, isParameterValid]);
 
   // Whenever any input value changes, validate and show error if needed.
   // TODO(zijianjoy): Validate run name for now, we need to validate others first.
