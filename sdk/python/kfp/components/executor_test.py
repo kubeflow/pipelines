@@ -16,8 +16,8 @@
 import json
 import os
 import tempfile
-import unittest
 from typing import Callable, Dict, List, NamedTuple, Optional
+import unittest
 
 from kfp.components import executor
 from kfp.components.task_final_status import PipelineTaskFinalStatus

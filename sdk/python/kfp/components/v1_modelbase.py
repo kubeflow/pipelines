@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import inspect
-from collections import OrderedDict
 from collections import abc
-from typing import (Any, Dict, List, Mapping, MutableMapping, MutableSequence,
-                    Sequence, Type, TypeVar, Union, cast, get_type_hints)
+from collections import OrderedDict
+import inspect
+from typing import (Any, cast, Dict, get_type_hints, List, Mapping,
+                    MutableMapping, MutableSequence, Sequence, Type, TypeVar,
+                    Union)
 
 T = TypeVar('T')
 

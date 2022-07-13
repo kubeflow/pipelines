@@ -13,11 +13,11 @@
 # limitations under the License.
 
 import collections
+from collections import abc
 import dataclasses
 import inspect
 import json
 import pprint
-from collections import abc
 from typing import (Any, Dict, ForwardRef, Iterable, Iterator, Mapping,
                     MutableMapping, MutableSequence, Optional, OrderedDict,
                     Sequence, Tuple, Type, TypeVar, Union)

@@ -12,23 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 import sys
+import unittest
 
 import aws_extensions_tests
-import pipeline_tests
-import pipeline_param_tests
-import container_op_tests
-import ops_group_tests
-import type_tests
-import component_tests
 import component_bridge_tests
-import metadata_tests
-import resource_op_tests
-import volume_op_tests
-import pipeline_volume_tests
-import volume_snapshotop_tests
+import component_tests
+import container_op_tests
 import extensions.test_kubernetes as test_kubernetes
+import metadata_tests
+import ops_group_tests
+import pipeline_param_tests
+import pipeline_tests
+import pipeline_volume_tests
+import resource_op_tests
+import type_tests
+import volume_op_tests
+import volume_snapshotop_tests
 
 if __name__ == '__main__':
     suite = unittest.TestSuite()

@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from pathlib import Path
 import tempfile
 import textwrap
 import unittest
 import warnings
+
 import kfp.deprecated as kfp
-from pathlib import Path
-from kfp.deprecated.components import load_component_from_text, create_component_from_func
+from kfp.deprecated.components import create_component_from_func
+from kfp.deprecated.components import load_component_from_text
 from kfp.deprecated.dsl import PipelineParam
 
 

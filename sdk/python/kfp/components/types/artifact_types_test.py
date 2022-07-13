@@ -13,9 +13,9 @@
 # limitations under the License.
 """Tests for kfp.components.types.artifact_types."""
 
-import unittest
 import json
 import os
+import unittest
 
 from absl.testing import parameterized
 from kfp.components.types import artifact_types

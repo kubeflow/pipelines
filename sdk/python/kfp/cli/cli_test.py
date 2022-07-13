@@ -18,12 +18,12 @@ import os
 import re
 import subprocess
 import tempfile
-import unittest
 from typing import List
+import unittest
 from unittest import mock
 
-import click
 from absl.testing import parameterized
+import click
 from click import testing
 from kfp.cli import cli
 from kfp.cli import dsl_compile

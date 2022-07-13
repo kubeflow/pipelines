@@ -14,9 +14,10 @@
 
 import unittest
 
-import kfp.deprecated.dsl as dsl
 from kfp.deprecated.dsl import graph_component
-from kfp.deprecated.dsl import Pipeline, PipelineParam
+from kfp.deprecated.dsl import Pipeline
+from kfp.deprecated.dsl import PipelineParam
+import kfp.deprecated.dsl as dsl
 
 
 @unittest.skip("deprecated")

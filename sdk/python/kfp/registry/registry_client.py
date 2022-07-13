@@ -20,8 +20,8 @@ import re
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import google.auth
-import requests
 from google.auth import credentials
+import requests
 
 _KNOWN_HOSTS_REGEX = {
     'kfp_pkg_dev': (

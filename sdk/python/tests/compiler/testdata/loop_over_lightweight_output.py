@@ -13,8 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.deprecated as kfp
 from kfp.deprecated import dsl
+import kfp.deprecated as kfp
 
 produce_op = kfp.components.load_component_from_text('''\
 name: Produce list

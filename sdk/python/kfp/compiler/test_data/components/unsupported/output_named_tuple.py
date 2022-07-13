@@ -11,9 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from kfp.dsl import component
-from kfp.dsl import Input, Dataset, Metrics, Model
 from typing import NamedTuple
+
+from kfp.dsl import component
+from kfp.dsl import Dataset
+from kfp.dsl import Input
+from kfp.dsl import Metrics
+from kfp.dsl import Model
 
 
 @component
