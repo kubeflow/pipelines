@@ -310,8 +310,10 @@ func (s *UpgradeTests) PrepareRuns() {
 				Name: helloWorldExperiment.Name, Relationship: run_model.APIRelationshipOWNER},
 		},
 	}}
-	_, _, err := s.runClient.Create(createRunRequest)
+	debugAPIRunDetail, debugWorkflow, err := s.runClient.Create(createRunRequest)
 	require.Nil(t, err)
+	fmt.Printf("Logs line 315: debugAPIDetail vaulue: %#v", debugAPIRunDetail)
+	fmt.Printf("Logs line 316: debugWorkflow value: %#v", debugWorkflow)
 }
 
 func (s *UpgradeTests) VerifyRuns() {
