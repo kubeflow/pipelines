@@ -362,7 +362,6 @@ interface MetricsDropdownProps {
   isLoadingArtifacts: boolean;
   filteredRunArtifacts: RunArtifact[];
   metricsTab: MetricsType;
-  metricsTabText: string;
   selectedArtifacts: SelectedArtifact[];
   updateSelectedArtifacts: (selectedArtifacts: SelectedArtifact[]) => void;
 }
@@ -474,7 +473,6 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     isLoadingArtifacts,
     filteredRunArtifacts,
     metricsTab,
-    metricsTabText,
     selectedArtifacts,
     updateSelectedArtifacts,
   } = props;
@@ -502,7 +500,7 @@ function MetricsDropdown(props: MetricsDropdownProps) {
   };
 
   if (isErrorArtifacts) {
-    return <p>An error is preventing the {metricsTabText} from being displayed.</p>;
+    return <p>An error is preventing the Scalar Metrics from being displayed.</p>;
   }
 
   if (isLoadingArtifacts) {
@@ -519,6 +517,7 @@ function MetricsDropdown(props: MetricsDropdownProps) {
   }
 
   const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
+  const metricsTabText = metricsTypeToString(metricsTab);
 
   if (dropdownItems.length === 0) {
     return <p>There are no {metricsTabText} artifacts available on the selected runs.</p>;
@@ -576,14 +575,13 @@ interface ScalarMetricsTableParams {
   isErrorArtifacts: boolean;
   isLoadingArtifacts: boolean;
   scalarMetricsTableData: CompareTableProps | undefined;
-  metricsTabText: string;
 }
 
 function ScalarMetricsTable(props: ScalarMetricsTableParams) {
-  const { isErrorArtifacts, isLoadingArtifacts, scalarMetricsTableData, metricsTabText } = props;
+  const { isErrorArtifacts, isLoadingArtifacts, scalarMetricsTableData } = props;
 
   if (isErrorArtifacts) {
-    return <p>An error is preventing the {metricsTabText} from being displayed.</p>;
+    return <p>An error is preventing the Scalar Metrics from being displayed.</p>;
   }
 
   if (isLoadingArtifacts) {
@@ -600,7 +598,7 @@ function ScalarMetricsTable(props: ScalarMetricsTableParams) {
   }
 
   if (!scalarMetricsTableData) {
-    return <p>There are no {metricsTabText} artifacts available on the selected runs.</p>;
+    return <p>There are no Scalar Metrics artifacts available on the selected runs.</p>;
   }
 
   return <CompareTable {...scalarMetricsTableData} />;
@@ -821,7 +819,6 @@ function CompareV2(props: PageProps) {
     setSelectedArtifactsMap(selectedArtifactsMap);
   };
 
-  const metricsTabText = metricsTypeToString(metricsTab);
   const isErrorArtifacts = isErrorRunDetails || isErrorMlmdPackages || isErrorArtifactTypes;
   return (
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
@@ -881,7 +878,6 @@ function CompareV2(props: PageProps) {
                 isErrorArtifacts={isErrorArtifacts}
                 isLoadingArtifacts={isLoadingArtifacts}
                 scalarMetricsTableData={scalarMetricsTableData}
-                metricsTabText={metricsTabText}
               />
             )}
             {metricsTab === MetricsType.CONFUSION_MATRIX && (
@@ -890,19 +886,17 @@ function CompareV2(props: PageProps) {
                 isLoadingArtifacts={isLoadingArtifacts}
                 filteredRunArtifacts={confusionMatrixArtifacts}
                 metricsTab={metricsTab}
-                metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
                 updateSelectedArtifacts={updateSelectedArtifacts}
               />
             )}
-            {metricsTab === MetricsType.ROC_CURVE && <p>This is the {metricsTabText} tab.</p>}
+            {metricsTab === MetricsType.ROC_CURVE && <p>This is the ROC Curve tab.</p>}
             {metricsTab === MetricsType.HTML && (
               <MetricsDropdown
                 isErrorArtifacts={isErrorArtifacts}
                 isLoadingArtifacts={isLoadingArtifacts}
                 filteredRunArtifacts={htmlArtifacts}
                 metricsTab={metricsTab}
-                metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
                 updateSelectedArtifacts={updateSelectedArtifacts}
               />
@@ -913,7 +907,6 @@ function CompareV2(props: PageProps) {
                 isLoadingArtifacts={isLoadingArtifacts}
                 filteredRunArtifacts={markdownArtifacts}
                 metricsTab={metricsTab}
-                metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
                 updateSelectedArtifacts={updateSelectedArtifacts}
               />
