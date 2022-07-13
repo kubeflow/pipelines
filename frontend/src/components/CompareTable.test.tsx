@@ -79,14 +79,6 @@ describe('CompareTable xParentLabels', () => {
   });
 
   it('X-axis parent labels present if xlabels and xparentlabels have appropriate lengths', () => {
-    const tree = shallow(
-      <CompareTable
-        rows={rows}
-        xLabels={xLabels}
-        yLabels={yLabels}
-        xParentLabels={xParentLabels}
-      />,
-    );
     render(
       <CompareTable
         rows={rows}
