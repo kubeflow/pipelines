@@ -15,7 +15,6 @@
 from kfp.deprecated.dsl import ContainerOp
 from kfp.deprecated.dsl.extensions.kubernetes import use_secret
 import unittest
-import inspect
 
 
 class TestAddSecrets(unittest.TestCase):

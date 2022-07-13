@@ -20,10 +20,8 @@ import logging
 import os
 import re
 import shutil
-import sys
 import tempfile
 
-import requests
 
 from ._cache import calculate_recursive_dir_hash, try_read_value_from_cache, write_value_to_cache
 from ._container_builder import ContainerBuilder

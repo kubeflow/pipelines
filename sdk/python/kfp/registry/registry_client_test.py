@@ -13,7 +13,6 @@
 # limitations under the License.
 """Tests for KFP Registry RegistryClient."""
 
-import builtins
 import json
 import os
 import requests

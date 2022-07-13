@@ -12,10 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.deprecated as kfp
-from kfp.deprecated.dsl import Pipeline, PipelineParam, ContainerOp, pipeline
+from kfp.deprecated.dsl import ContainerOp, Pipeline, pipeline
 from kfp.deprecated.dsl._metadata import _extract_pipeline_metadata
-from kfp.deprecated.dsl.types import GCSPath, Integer
+from kfp.deprecated.dsl.types import Integer
 from kfp.deprecated.components.structures import ComponentSpec, InputSpec
 import unittest
 

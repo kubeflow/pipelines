@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import kfp.deprecated.dsl as dsl
-from kfp.deprecated.dsl import Pipeline, PipelineParam, ContainerOp, ExitHandler, OpsGroup, Condition
+from kfp.deprecated.dsl import Condition, ContainerOp, ExitHandler, OpsGroup, Pipeline
 import unittest
 
 

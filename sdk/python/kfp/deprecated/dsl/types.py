@@ -114,12 +114,10 @@ class LocalPath(BaseType):
 class InconsistentTypeException(Exception):
     """InconsistencyTypeException is raised when two types are not
     consistent."""
-    pass
 
 
 class InconsistentTypeWarning(Warning):
     """InconsistentTypeWarning is issued when two types are not consistent."""
-    pass
 
 
 TypeSpecType = Union[str, Dict]

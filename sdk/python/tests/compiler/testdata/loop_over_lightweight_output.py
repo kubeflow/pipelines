@@ -15,7 +15,6 @@
 
 import kfp.deprecated as kfp
 from kfp.deprecated import dsl
-from kfp.deprecated.dsl import _for_loop
 
 produce_op = kfp.components.load_component_from_text('''\
 name: Produce list

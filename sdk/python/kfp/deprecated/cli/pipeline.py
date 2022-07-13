@@ -23,7 +23,6 @@ from kfp.deprecated.cli.output import print_output, OutputFormat
 @click.group()
 def pipeline():
     """Manage pipeline resources."""
-    pass
 
 
 @pipeline.command()

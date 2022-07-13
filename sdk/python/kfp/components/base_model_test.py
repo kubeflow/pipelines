@@ -15,7 +15,6 @@
 import dataclasses
 import functools
 import unittest
-from collections import abc
 from typing import (Any, Dict, List, Mapping, MutableMapping, MutableSequence,
                     Optional, OrderedDict, Sequence, Set, Tuple, Union)
 

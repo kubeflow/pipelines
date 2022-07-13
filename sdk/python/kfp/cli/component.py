@@ -325,7 +325,6 @@ class ComponentBuilder():
 @click.group()
 def component():
     """Builds shareable, containerized components."""
-    pass
 
 
 @component.command()

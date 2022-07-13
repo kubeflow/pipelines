@@ -54,7 +54,6 @@ def verify_object_against_type(x: Any, typ: Type[T]) -> T:
                     return x
                 except Exception as ex:
                     exception_map[possible_type] = ex
-                    pass
             #exception_lines = ['Exception for type {}: {}.'.format(t, e) for t, e in exception_map.items()]
             exception_lines = [str(e) for t, e in exception_map.items()]
             exception_lines.append(
@@ -167,7 +166,6 @@ def parse_object_from_struct_based_on_type(struct: Any, typ: Type[T]) -> T:
                         exception_map[
                             possible_type] = 'Unexpected exception when trying to convert structure "{}" to type "{}": {}: {}'.format(
                                 struct, typ, type(ex), ex)
-                    pass
 
             #Single successful parsing.
             if len(results) == 1:

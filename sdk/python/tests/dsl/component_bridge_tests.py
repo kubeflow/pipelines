@@ -19,7 +19,6 @@ import warnings
 import kfp.deprecated as kfp
 from pathlib import Path
 from kfp.deprecated.components import load_component_from_text, create_component_from_func
-from kfp.deprecated.dsl.types import InconsistentTypeException
 from kfp.deprecated.dsl import PipelineParam
 
 
