@@ -83,120 +83,118 @@ function newMockLinkedArtifact(
 
 testBestPractices();
 describe('CompareUtils', () => {
-  describe('getScalarTableData', () => {
-    it('Empty scalar metrics artifacts results in empty table data', () => {
-      expect(getCompareTableProps([])).toMatchObject({
-        xLabels: [],
-        yLabels: [],
-        xParentLabels: [],
-        rows: [],
-      });
+  it('Empty scalar metrics artifacts results in empty table data', () => {
+    expect(getCompareTableProps([])).toMatchObject({
+      xLabels: [],
+      yLabels: [],
+      xParentLabels: [],
+      rows: [],
     });
+  });
 
-    it('Scalar metrics artifacts with all data and names populated', () => {
-      const scalarMetricsArtifacts: RunArtifact[] = [
-        {
+  it('Scalar metrics artifacts with all data and names populated', () => {
+    const scalarMetricsArtifacts: RunArtifact[] = [
+      {
+        run: {
           run: {
-            run: {
-              id: '1',
-              name: 'run1',
-            },
+            id: '1',
+            name: 'run1',
           },
-          executionArtifacts: [
-            {
-              execution: newMockExecution(1, 'execution1'),
-              linkedArtifacts: [
-                newMockLinkedArtifact(1, [1, 2], 'artifact1'),
-                newMockLinkedArtifact(2, [1], 'artifact2'),
-              ],
-            },
-            {
-              execution: newMockExecution(2, 'execution2'),
-              linkedArtifacts: [newMockLinkedArtifact(3, [3], 'artifact3')],
-            },
-          ],
         },
-        {
+        executionArtifacts: [
+          {
+            execution: newMockExecution(1, 'execution1'),
+            linkedArtifacts: [
+              newMockLinkedArtifact(1, [1, 2], 'artifact1'),
+              newMockLinkedArtifact(2, [1], 'artifact2'),
+            ],
+          },
+          {
+            execution: newMockExecution(2, 'execution2'),
+            linkedArtifacts: [newMockLinkedArtifact(3, [3], 'artifact3')],
+          },
+        ],
+      },
+      {
+        run: {
           run: {
-            run: {
-              id: '2',
-              name: 'run2',
-            },
+            id: '2',
+            name: 'run2',
           },
-          executionArtifacts: [
-            {
-              execution: newMockExecution(3, 'execution1'),
-              linkedArtifacts: [newMockLinkedArtifact(4, [4], 'artifact1')],
-            },
-          ],
         },
-      ];
+        executionArtifacts: [
+          {
+            execution: newMockExecution(3, 'execution1'),
+            linkedArtifacts: [newMockLinkedArtifact(4, [4], 'artifact1')],
+          },
+        ],
+      },
+    ];
 
-      expect(getCompareTableProps(scalarMetricsArtifacts)).toMatchObject({
-        xLabels: [
-          'execution1 > artifact1',
-          'execution1 > artifact2',
-          'execution2 > artifact3',
-          'execution1 > artifact1',
-        ],
-        yLabels: ['scalarMetric0', 'scalarMetric1'],
-        xParentLabels: [
-          { colSpan: 3, label: 'run1' },
-          { colSpan: 1, label: 'run2' },
-        ],
-        rows: [
-          ['1', '1', '3', '4'],
-          ['2', '', '', ''],
-        ],
-      });
+    expect(getCompareTableProps(scalarMetricsArtifacts)).toMatchObject({
+      xLabels: [
+        'execution1 > artifact1',
+        'execution1 > artifact2',
+        'execution2 > artifact3',
+        'execution1 > artifact1',
+      ],
+      yLabels: ['scalarMetric0', 'scalarMetric1'],
+      xParentLabels: [
+        { colSpan: 3, label: 'run1' },
+        { colSpan: 1, label: 'run2' },
+      ],
+      rows: [
+        ['1', '1', '3', '4'],
+        ['2', '', '', ''],
+      ],
     });
+  });
 
-    it('Scalar metrics artifacts with data populated and no names', () => {
-      const scalarMetricsArtifacts: RunArtifact[] = [
-        {
+  it('Scalar metrics artifacts with data populated and no names', () => {
+    const scalarMetricsArtifacts: RunArtifact[] = [
+      {
+        run: {
           run: {
-            run: {
-              id: '1',
-            },
+            id: '1',
           },
-          executionArtifacts: [
-            {
-              execution: newMockExecution(1),
-              linkedArtifacts: [newMockLinkedArtifact(1, [1, 2]), newMockLinkedArtifact(2, [1])],
-            },
-            {
-              execution: newMockExecution(2),
-              linkedArtifacts: [newMockLinkedArtifact(3, [3])],
-            },
-          ],
         },
-        {
+        executionArtifacts: [
+          {
+            execution: newMockExecution(1),
+            linkedArtifacts: [newMockLinkedArtifact(1, [1, 2]), newMockLinkedArtifact(2, [1])],
+          },
+          {
+            execution: newMockExecution(2),
+            linkedArtifacts: [newMockLinkedArtifact(3, [3])],
+          },
+        ],
+      },
+      {
+        run: {
           run: {
-            run: {
-              id: '2',
-            },
+            id: '2',
           },
-          executionArtifacts: [
-            {
-              execution: newMockExecution(3),
-              linkedArtifacts: [newMockLinkedArtifact(4, [4])],
-            },
-          ],
         },
-      ];
+        executionArtifacts: [
+          {
+            execution: newMockExecution(3),
+            linkedArtifacts: [newMockLinkedArtifact(4, [4])],
+          },
+        ],
+      },
+    ];
 
-      expect(getCompareTableProps(scalarMetricsArtifacts)).toMatchObject({
-        xLabels: ['- > -', '- > -', '- > -', '- > -'],
-        yLabels: ['scalarMetric0', 'scalarMetric1'],
-        xParentLabels: [
-          { colSpan: 3, label: '-' },
-          { colSpan: 1, label: '-' },
-        ],
-        rows: [
-          ['1', '1', '3', '4'],
-          ['2', '', '', ''],
-        ],
-      });
+    expect(getCompareTableProps(scalarMetricsArtifacts)).toMatchObject({
+      xLabels: ['- > -', '- > -', '- > -', '- > -'],
+      yLabels: ['scalarMetric0', 'scalarMetric1'],
+      xParentLabels: [
+        { colSpan: 3, label: '-' },
+        { colSpan: 1, label: '-' },
+      ],
+      rows: [
+        ['1', '1', '3', '4'],
+        ['2', '', '', ''],
+      ],
     });
   });
 });
