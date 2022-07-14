@@ -1,5 +1,11 @@
-# Current Version 1.0.14.dev (Still in Development)
+# Current Version 1.0.15.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.14
+* Temporarily pin apache_beam version to <2.34.0 due to https://github.com/apache/beam/issues/22208.
+* Remove kms key name from the drop model interface.
+* Move new BQ components from experimental to v1
+* Fix the problem that AutoML Tabular pipeline could fail when using large number of features
 
 # Release 1.0.13
 * AutoML Tables - Fix AutoML Tabular pipeline always running evaluation.
