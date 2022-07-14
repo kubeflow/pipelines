@@ -74,6 +74,93 @@ const css = stylesheet({
   },
 });
 
+interface MetricsDropdownProps {
+  filteredRunArtifacts: RunArtifact[];
+  metricsTab: MetricsType;
+  selectedArtifacts: SelectedArtifact[];
+  updateSelectedArtifacts: (selectedArtifacts: SelectedArtifact[]) => void;
+}
+
+export default function MetricsDropdown(props: MetricsDropdownProps) {
+  const { filteredRunArtifacts, metricsTab, selectedArtifacts, updateSelectedArtifacts } = props;
+  const [firstSelectedItem, setFirstSelectedItem] = useState<SelectedItem>(
+    selectedArtifacts[0].selectedItem,
+  );
+  const [secondSelectedItem, setSecondSelectedItem] = useState<SelectedItem>(
+    selectedArtifacts[1].selectedItem,
+  );
+  const [firstSelectedNamespace, setFirstSelectedNamespace] = useState<string | undefined>();
+  const [secondSelectedNamespace, setSecondSelectedNamespace] = useState<string | undefined>();
+
+  const updateSelectedItemAndArtifact = (
+    setSelectedItem: (selectedItem: SelectedItem) => void,
+    setSelectedNamespace: (selectedNamespace: string | undefined) => void,
+    panelIndex: number,
+    selectedItem: SelectedItem,
+  ): void => {
+    setSelectedItem(selectedItem);
+    selectedArtifacts[panelIndex].selectedItem = selectedItem;
+    const linkedArtifact = getLinkedArtifactFromSelectedItem(filteredRunArtifacts, selectedItem);
+    selectedArtifacts[panelIndex].linkedArtifact = linkedArtifact;
+    setSelectedNamespace(getNamespace(selectedItem, filteredRunArtifacts));
+    updateSelectedArtifacts(selectedArtifacts);
+  };
+
+  const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
+  const metricsTabText = metricsTypeToString(metricsTab);
+
+  if (dropdownItems.length === 0) {
+    return <p>There are no {metricsTabText} artifacts available on the selected runs.</p>;
+  }
+
+  return (
+    <table>
+      <tbody>
+        <tr>
+          <td className={classes(css.cell, css.leftCell)}>
+            <TwoLevelDropdown
+              title={`Choose a first ${metricsTabText} artifact`}
+              items={dropdownItems}
+              selectedItem={firstSelectedItem}
+              setSelectedItem={updateSelectedItemAndArtifact.bind(
+                null,
+                setFirstSelectedItem,
+                setFirstSelectedNamespace,
+                0,
+              )}
+            />
+            <VisualizationPanelItem
+              metricsTab={metricsTab}
+              metricsTabText={metricsTabText}
+              linkedArtifact={selectedArtifacts[0].linkedArtifact}
+              namespace={firstSelectedNamespace}
+            />
+          </td>
+          <td className={classes(css.cell, css.rightCell)}>
+            <TwoLevelDropdown
+              title={`Choose a second ${metricsTabText} artifact`}
+              items={dropdownItems}
+              selectedItem={secondSelectedItem}
+              setSelectedItem={updateSelectedItemAndArtifact.bind(
+                null,
+                setSecondSelectedItem,
+                setSecondSelectedNamespace,
+                1,
+              )}
+            />
+            <VisualizationPanelItem
+              metricsTab={metricsTab}
+              metricsTabText={metricsTabText}
+              linkedArtifact={selectedArtifacts[1].linkedArtifact}
+              namespace={secondSelectedNamespace}
+            />
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
 interface VisualizationPlaceholderProps {
   metricsTabText: string;
 }
@@ -296,92 +383,3 @@ function getLinkedArtifactFromSelectedItem(
 
   return linkedArtifact;
 }
-
-interface MetricsDropdownProps {
-  filteredRunArtifacts: RunArtifact[];
-  metricsTab: MetricsType;
-  selectedArtifacts: SelectedArtifact[];
-  updateSelectedArtifacts: (selectedArtifacts: SelectedArtifact[]) => void;
-}
-
-function MetricsDropdown(props: MetricsDropdownProps) {
-  const { filteredRunArtifacts, metricsTab, selectedArtifacts, updateSelectedArtifacts } = props;
-  const [firstSelectedItem, setFirstSelectedItem] = useState<SelectedItem>(
-    selectedArtifacts[0].selectedItem,
-  );
-  const [secondSelectedItem, setSecondSelectedItem] = useState<SelectedItem>(
-    selectedArtifacts[1].selectedItem,
-  );
-  const [firstSelectedNamespace, setFirstSelectedNamespace] = useState<string | undefined>();
-  const [secondSelectedNamespace, setSecondSelectedNamespace] = useState<string | undefined>();
-
-  const updateSelectedItemAndArtifact = (
-    setSelectedItem: (selectedItem: SelectedItem) => void,
-    setSelectedNamespace: (selectedNamespace: string | undefined) => void,
-    panelIndex: number,
-    selectedItem: SelectedItem,
-  ): void => {
-    setSelectedItem(selectedItem);
-    selectedArtifacts[panelIndex].selectedItem = selectedItem;
-    const linkedArtifact = getLinkedArtifactFromSelectedItem(filteredRunArtifacts, selectedItem);
-    selectedArtifacts[panelIndex].linkedArtifact = linkedArtifact;
-    setSelectedNamespace(getNamespace(selectedItem, filteredRunArtifacts));
-    updateSelectedArtifacts(selectedArtifacts);
-  };
-
-  const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
-  const metricsTabText = metricsTypeToString(metricsTab);
-
-  if (dropdownItems.length === 0) {
-    return <p>There are no {metricsTabText} artifacts available on the selected runs.</p>;
-  }
-
-  return (
-    <table>
-      <tbody>
-        <tr>
-          <td className={classes(css.cell, css.leftCell)}>
-            <TwoLevelDropdown
-              title={`Choose a first ${metricsTabText} artifact`}
-              items={dropdownItems}
-              selectedItem={firstSelectedItem}
-              setSelectedItem={updateSelectedItemAndArtifact.bind(
-                null,
-                setFirstSelectedItem,
-                setFirstSelectedNamespace,
-                0,
-              )}
-            />
-            <VisualizationPanelItem
-              metricsTab={metricsTab}
-              metricsTabText={metricsTabText}
-              linkedArtifact={selectedArtifacts[0].linkedArtifact}
-              namespace={firstSelectedNamespace}
-            />
-          </td>
-          <td className={classes(css.cell, css.rightCell)}>
-            <TwoLevelDropdown
-              title={`Choose a second ${metricsTabText} artifact`}
-              items={dropdownItems}
-              selectedItem={secondSelectedItem}
-              setSelectedItem={updateSelectedItemAndArtifact.bind(
-                null,
-                setSecondSelectedItem,
-                setSecondSelectedNamespace,
-                1,
-              )}
-            />
-            <VisualizationPanelItem
-              metricsTab={metricsTab}
-              metricsTabText={metricsTabText}
-              linkedArtifact={selectedArtifacts[1].linkedArtifact}
-              namespace={secondSelectedNamespace}
-            />
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  );
-}
-
-export default MetricsDropdown;
