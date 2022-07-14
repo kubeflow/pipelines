@@ -32,13 +32,18 @@ export interface RunArtifact {
   executionArtifacts: ExecutionArtifact[];
 }
 
+interface ScalarTableData {
+  xLabels: string[];
+  scalarMetricNames: string[];
+  xParentLabels: xParentLabel[];
+  dataMap: { [key: string]: string };
+}
+
 export const getCompareTableProps = (scalarMetricsArtifacts: RunArtifact[]): CompareTableProps => {
-  const { xLabels, scalarMetricNames, xParentLabels, dataMap } = getScalarTableData(
-    scalarMetricsArtifacts,
-  );
+  const scalarTableData = getScalarTableData(scalarMetricsArtifacts);
 
   // Order the scalar metric names by decreasing count for table y-labels.
-  const yLabels = chain(flatten(scalarMetricNames))
+  const yLabels = chain(flatten(scalarTableData.scalarMetricNames))
     .countBy(p => p)
     .map((k, v) => ({ name: v, count: k }))
     .orderBy('count', 'desc')
@@ -48,30 +53,23 @@ export const getCompareTableProps = (scalarMetricsArtifacts: RunArtifact[]): Com
   // Create a row of data items for each y-label.
   const rows: string[][] = yLabels.map(yLabel => {
     const row = [];
-    for (let artifactIndex = 0; artifactIndex < xLabels.length; artifactIndex++) {
+    for (let artifactIndex = 0; artifactIndex < scalarTableData.xLabels.length; artifactIndex++) {
       const key: string = `${yLabel}-${artifactIndex}`;
-      row.push(dataMap[key] || '');
+      row.push(scalarTableData.dataMap[key] || '');
     }
     return row;
   });
 
   return {
-    xLabels,
+    xLabels: scalarTableData.xLabels,
     yLabels,
-    xParentLabels,
+    xParentLabels: scalarTableData.xParentLabels,
     rows,
   } as CompareTableProps;
 };
 
 // Get different components needed to construct the scalar metrics table.
-const getScalarTableData = (
-  scalarMetricsArtifacts: RunArtifact[],
-): {
-  xLabels: string[];
-  scalarMetricNames: string[];
-  xParentLabels: xParentLabel[];
-  dataMap: { [key: string]: string };
-} => {
+const getScalarTableData = (scalarMetricsArtifacts: RunArtifact[]): ScalarTableData => {
   const xLabels: string[] = [];
   const scalarMetricNames: string[] = [];
   const xParentLabels: xParentLabel[] = [];
@@ -102,7 +100,7 @@ const getScalarTableData = (
     scalarMetricNames,
     xParentLabels,
     dataMap,
-  };
+  } as ScalarTableData;
 };
 
 // Load the data as well as row and column labels from execution artifacts.
