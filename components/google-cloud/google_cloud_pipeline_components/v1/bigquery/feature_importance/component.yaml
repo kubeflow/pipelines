@@ -1,0 +1,90 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: bigquery_ml_feature_importance_job
+description: |
+  Launch a BigQuery feature importance fetching job and waits for it to finish.
+
+    Args:
+        project (str):
+            Required. Project to run BigQuery model creation job.
+        location (Optional[str]):
+            Location of the job to create the BigQuery model. If not set,
+            default to `US` multi-region.
+            For more details, see https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+        model (google.BQMLModel):
+            Required. BigQuery ML model for feature importance.
+            For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#predict_model_name
+        query_parameters (Optional[Sequence]):
+            jobs.query parameters for standard SQL queries.
+            If query_parameters are both specified in here and in job_configuration_query,
+            the value in here will override the other one.
+        job_configuration_query (Optional[dict]):
+            A json formatted string describing the rest of the job configuration.
+
+            For more details, see https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+    Returns:
+        feature_importance (system.Artifact):
+          Describes common metrics applicable to the type of model supplied.
+          For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-importance
+        gcp_resources (str):
+            Serialized gcp_resources proto tracking the BigQuery job.
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+inputs:
+- {name: project, type: String}
+- {name: location, type: String, default: "us-central1"}
+- {name: model, type: google.BQMLModel}
+- {name: query_parameters, type: JsonArray, optional: true, default: '[]' }
+- {name: job_configuration_query, type: JsonObject, optional: true, default: '{}'}
+- {name: labels, type: JsonObject, optional: true, default: "{}" }
+- {name: encryption_spec_key_name, type: String, optional: true}
+outputs:
+- {name: feature_importance, type: system.Artifact}
+- {name: gcp_resources, type: String}
+implementation:
+  container:
+    image: gcr.io/managed-pipeline-test/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.gcp_launcher.launcher]
+    args: [
+      --type, BigqueryMLFeatureImportanceJob,
+      --project, {inputValue: project},
+      --location, {inputValue: location},
+      --model_name,
+      concat: [
+          "{{$.inputs.artifacts['model'].metadata['projectId']}}",
+          '.',
+          "{{$.inputs.artifacts['model'].metadata['datasetId']}}",
+          '.',
+          "{{$.inputs.artifacts['model'].metadata['modelId']}}"
+          ],
+      --gcp_resources, {outputPath: gcp_resources},
+      --payload,
+      concat: [
+          '{',
+            '"configuration": {',
+              '"query": ', {inputValue: job_configuration_query},
+              ', "labels": ', {inputValue: labels},
+            '}',
+          '}'
+      ],
+      --job_configuration_query_override,
+      concat: [
+          '{',
+            '"query_parameters": ', {inputValue: query_parameters},
+            ', "destination_encryption_configuration": {',
+            '"kmsKeyName": "', {inputValue: encryption_spec_key_name}, '"}',
+          '}'
+      ],
+      --executor_input, "{{$}}",
+    ]

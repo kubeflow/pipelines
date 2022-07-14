@@ -15,7 +15,11 @@
 package client
 
 import (
+	"context"
+
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	policyv1 "k8s.io/api/policy/v1"
+	policyv1beta1 "k8s.io/api/policy/v1beta1"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
@@ -44,4 +48,12 @@ func NewFakeKubernetesCoreClientWithBadPodClient() *FakeKubernetesCoreClientWith
 
 func (c *FakeKubernetesCoreClientWithBadPodClient) PodClient(namespace string) v1.PodInterface {
 	return c.podClientFake
+}
+
+func (c *FakePodClient) EvictV1(context.Context, *policyv1.Eviction) error {
+	return nil
+}
+
+func (c *FakePodClient) EvictV1beta1(context.Context, *policyv1beta1.Eviction) error {
+	return nil
 }

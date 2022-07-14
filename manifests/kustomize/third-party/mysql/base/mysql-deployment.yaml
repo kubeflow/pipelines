@@ -26,7 +26,7 @@ spec:
         env:
         - name: MYSQL_ALLOW_EMPTY_PASSWORD
           value: "true"
-        image: gcr.io/ml-pipeline/mysql:5.7
+        image: gcr.io/ml-pipeline/mysql:5.7-debian
         name: mysql
         ports:
         - containerPort: 3306

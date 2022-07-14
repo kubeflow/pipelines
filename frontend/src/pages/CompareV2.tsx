@@ -36,7 +36,7 @@ import {
   getKfpV2RunContext,
   LinkedArtifact,
   getArtifactName,
-  getExecutionName,
+  getExecutionDisplayName,
 } from 'src/mlmd/MlmdUtils';
 import { Artifact, ArtifactType, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
@@ -58,7 +58,7 @@ import PlotCard from 'src/components/PlotCard';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Banner from 'src/components/Banner';
-import { getCompareTableProps } from 'src/lib/v2/CompareUtils';
+import { ExecutionArtifact, getCompareTableProps, RunArtifact } from 'src/lib/v2/CompareUtils';
 
 const css = stylesheet({
   leftCell: {
@@ -106,16 +106,6 @@ interface MlmdPackage {
   executions: Execution[];
   artifacts: Artifact[];
   events: Event[];
-}
-
-export interface ExecutionArtifact {
-  execution: Execution;
-  linkedArtifacts: LinkedArtifact[];
-}
-
-export interface RunArtifact {
-  run: ApiRunDetail;
-  executionArtifacts: ExecutionArtifact[];
 }
 
 enum MetricsType {
@@ -391,7 +381,7 @@ function getDropdownSubLinkedArtifacts(linkedArtifacts: LinkedArtifact[], subIte
 function getDropdownSubItems(executionArtifacts: ExecutionArtifact[]) {
   const subItems: DropdownSubItem[] = [];
   for (const executionArtifact of executionArtifacts) {
-    const executionName = getExecutionName(executionArtifact.execution);
+    const executionName = getExecutionDisplayName(executionArtifact.execution);
     const executionId = executionArtifact.execution.getId().toString();
     if (!executionName) {
       logDisplayNameWarning('execution', executionId);
@@ -453,7 +443,7 @@ function getLinkedArtifactFromSelectedItem(
 
   const executionArtifact = filteredRunArtifact?.executionArtifacts.find(executionArtifact => {
     const executionText: string =
-      getExecutionName(executionArtifact.execution) ||
+      getExecutionDisplayName(executionArtifact.execution) ||
       executionArtifact.execution.getId().toString();
     return executionText === selectedItem.subItemName;
   });
