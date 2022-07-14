@@ -32,7 +32,7 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
         {
             'hello-world':
                 KfpTask(
-                    name='hello-world',
+                    name='container-no-input',
                     type='system.ContainerExecution',
                     state=Execution.State.COMPLETE,
                     inputs=TaskInputs(parameters={}, artifacts=[]),
