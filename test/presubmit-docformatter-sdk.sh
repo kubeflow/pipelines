@@ -16,7 +16,6 @@
 source_root=$(pwd)
 
 python3 -m pip install --upgrade pip
-python3 -m pip install yapf==0.32.0
+python3 -m pip install $(grep 'docformatter==' sdk/python/requirements-dev.txt)
 
-# Testing the component authoring library
-yapf --recursive "${source_root}/sdk/python"
+docformatter --check --recursive "${source_root}/sdk/python/" --exclude "${source_root}/sdk/python/kfp/deprecated"

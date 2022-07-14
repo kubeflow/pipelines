@@ -21,7 +21,7 @@ import { ExternalLink } from 'src/atoms/ExternalLink';
 import { ParameterType_ParameterTypeEnum } from 'src/generated/pipeline_spec/pipeline_spec';
 import { RuntimeParameters, SpecParameters } from 'src/pages/NewRunV2';
 import { classes, stylesheet } from 'typestyle';
-import { color, commonCss, spacing } from '../Css';
+import { color, commonCss, spacing, padding } from '../Css';
 import Editor from './Editor';
 
 const css = stylesheet({
@@ -55,9 +55,14 @@ interface NewRunParametersProps {
   specParameters: SpecParameters;
   handlePipelineRootChange?: (pipelineRoot: string) => void;
   handleParameterChange?: (parameters: RuntimeParameters) => void;
+  setIsValidInput?: (isValid: boolean) => void;
 }
 
 function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEnum): any {
+  // TBD (jlyaoyuli): Currently, empty string is not allowed.
+  if (paramStr === '') {
+    return undefined;
+  }
   switch (paramType) {
     case ParameterType_ParameterTypeEnum.BOOLEAN:
       if (paramStr === 'true' || paramStr === 'false') {
@@ -77,7 +82,18 @@ function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEn
       }
       return null;
     case ParameterType_ParameterTypeEnum.LIST:
+      if (!paramStr.trim().startsWith('[')) {
+        return null;
+      }
+      try {
+        return JSON.parse(paramStr);
+      } catch (err) {
+        return null;
+      }
     case ParameterType_ParameterTypeEnum.STRUCT:
+      if (!paramStr.trim().startsWith('{')) {
+        return null;
+      }
       try {
         return JSON.parse(paramStr);
       } catch (err) {
@@ -91,13 +107,37 @@ function convertInput(paramStr: string, paramType: ParameterType_ParameterTypeEn
   }
 }
 
+function generateInputValidationErrMsg(
+  parametersInRealType: any,
+  paramType: ParameterType_ParameterTypeEnum,
+) {
+  let errorMessage;
+  switch (parametersInRealType) {
+    case undefined:
+      errorMessage = 'Missing parameter.';
+      break;
+    // TODO(jlyaoyuli): tell the error difference between mismatch type or invalid JSON form.
+    case null:
+      errorMessage =
+        'Invalid input. This parameter should be in ' +
+        ParameterType_ParameterTypeEnum[paramType] +
+        ' type';
+      break;
+    default:
+      errorMessage = null;
+  }
+  return errorMessage;
+}
+
 function NewRunParametersV2(props: NewRunParametersProps) {
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
   const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
+  const [errorMessages, setErrorMessages] = useState([]);
 
   const [updatedParameters, setUpdatedParameters] = useState({});
   useEffect(() => {
     const runtimeParametersWithDefault: RuntimeParameters = {};
+    let allParamtersWithDefault = true;
     Object.keys(props.specParameters).map(key => {
       if (props.specParameters[key].defaultValue) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.
@@ -116,9 +156,16 @@ function NewRunParametersV2(props: NewRunParametersProps) {
             defaultValStr = props.specParameters[key].defaultValue;
         }
         runtimeParametersWithDefault[key] = defaultValStr;
+      } else {
+        allParamtersWithDefault = false;
+        errorMessages[key] = 'Missing parameter.';
       }
     });
     setUpdatedParameters(runtimeParametersWithDefault);
+    setErrorMessages(errorMessages);
+    if (props.setIsValidInput) {
+      props.setIsValidInput(allParamtersWithDefault);
+    }
   }, [props.specParameters]);
 
   return (
@@ -172,30 +219,52 @@ function NewRunParametersV2(props: NewRunParametersProps) {
               key: `${k} - ${ParameterType_ParameterTypeEnum[v.parameterType]}`,
               value: updatedParameters[k],
               type: v.parameterType,
+              errorMsg: errorMessages[k],
             };
 
             return (
-              <ParamEditor
-                key={k}
-                id={k}
-                onChange={value => {
-                  const nextUpdatedParameters: RuntimeParameters = {};
-                  Object.assign(nextUpdatedParameters, updatedParameters);
-                  nextUpdatedParameters[k] = value;
-                  setUpdatedParameters(nextUpdatedParameters);
-                  if (props.handleParameterChange) {
+              <div>
+                <ParamEditor
+                  key={k}
+                  id={k}
+                  onChange={value => {
+                    let allInputsValid: boolean = true;
                     let parametersInRealType: RuntimeParameters = {};
-                    Object.entries(nextUpdatedParameters).map(([k, v1]) => {
-                      parametersInRealType[k] = convertInput(
-                        v1,
-                        props.specParameters[k].parameterType,
+                    const nextUpdatedParameters: RuntimeParameters = {};
+
+                    Object.assign(nextUpdatedParameters, updatedParameters);
+                    nextUpdatedParameters[k] = value;
+                    setUpdatedParameters(nextUpdatedParameters);
+                    Object.entries(nextUpdatedParameters).map(([k1, paramStr]) => {
+                      parametersInRealType[k1] = convertInput(
+                        paramStr,
+                        props.specParameters[k1].parameterType,
                       );
                     });
-                    props.handleParameterChange(parametersInRealType);
-                  }
-                }}
-                param={param}
-              />
+                    if (props.handleParameterChange) {
+                      props.handleParameterChange(parametersInRealType);
+                    }
+
+                    errorMessages[k] = generateInputValidationErrMsg(
+                      parametersInRealType[k],
+                      props.specParameters[k].parameterType,
+                    );
+                    setErrorMessages(errorMessages);
+
+                    Object.values(errorMessages).map(errorMessage => {
+                      allInputsValid = allInputsValid && errorMessage === null;
+                    });
+
+                    if (props.setIsValidInput) {
+                      props.setIsValidInput(allInputsValid);
+                    }
+                  }}
+                  param={param}
+                />
+                <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
+                  {param.errorMsg}
+                </div>
+              </div>
             );
           })}
         </div>
@@ -210,6 +279,7 @@ interface Param {
   key: string;
   value: any;
   type: ParameterType_ParameterTypeEnum;
+  errorMsg: string;
 }
 
 interface ParamEditorProps {

@@ -49,20 +49,36 @@ const css = stylesheet({
   },
 });
 
+export interface xParentLabel {
+  label: string;
+  colSpan: number;
+}
+
 export interface CompareTableProps {
   rows: string[][];
   xLabels: string[];
   yLabels: string[];
+  xParentLabels?: xParentLabel[];
 }
 
 class CompareTable extends React.PureComponent<CompareTableProps> {
   public render(): JSX.Element | null {
-    const { rows, xLabels, yLabels } = this.props;
+    const { rows, xLabels, yLabels, xParentLabels } = this.props;
     if (rows.length !== yLabels.length) {
       logger.error(
         `Number of rows (${rows.length}) should match the number of Y labels (${yLabels.length}).`,
       );
     }
+
+    const xParentLabelsLength =
+      xParentLabels &&
+      xParentLabels.reduce((length, xParentLabel) => length + xParentLabel.colSpan, 0);
+    if (xParentLabels && xParentLabelsLength !== xLabels.length) {
+      logger.error(
+        `Number of columns with data (${xLabels.length}) should match the aggregated length of parent columns (${xParentLabelsLength}).`,
+      );
+    }
+
     if (!rows || rows.length === 0) {
       return null;
     }
@@ -70,6 +86,22 @@ class CompareTable extends React.PureComponent<CompareTableProps> {
     return (
       <table className={css.root}>
         <tbody>
+          {xParentLabels && xParentLabelsLength === xLabels.length && (
+            <tr className={css.row}>
+              <td className={css.labelCell} />
+              {/* X parent labels row */}
+              {xParentLabels.map((parentLabel, i) => (
+                <td
+                  key={i}
+                  className={classes(css.cell, css.labelCell)}
+                  title={parentLabel.label}
+                  colSpan={parentLabel.colSpan}
+                >
+                  {parentLabel.label}
+                </td>
+              ))}
+            </tr>
+          )}
           <tr className={css.row}>
             <td className={css.labelCell} />
             {/* X labels row */}
