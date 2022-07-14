@@ -15,7 +15,7 @@
  */
 
 import { CompareTableProps, xParentLabel } from 'src/components/CompareTable';
-import { getArtifactName, getExecutionName } from 'src/mlmd/MlmdUtils';
+import { getArtifactName, getExecutionDisplayName } from 'src/mlmd/MlmdUtils';
 import { getMetadataValue } from 'src/mlmd/Utils';
 import { ExecutionArtifact, RunArtifact } from 'src/pages/CompareV2';
 import { Value } from 'src/third_party/mlmd';
@@ -51,7 +51,7 @@ export const loadScalarExecutionArtifacts = (
   artifactIndex: number,
 ): number => {
   for (const executionArtifact of executionArtifacts) {
-    const executionText: string = getExecutionName(executionArtifact.execution) || '-';
+    const executionText: string = getExecutionDisplayName(executionArtifact.execution) || '-';
     for (const linkedArtifact of executionArtifact.linkedArtifacts) {
       const linkedArtifactText: string = getArtifactName(linkedArtifact) || '-';
       const xLabel = `${executionText} > ${linkedArtifactText}`;

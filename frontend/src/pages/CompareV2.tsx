@@ -36,7 +36,7 @@ import {
   getKfpV2RunContext,
   LinkedArtifact,
   getArtifactName,
-  getExecutionName,
+  getExecutionDisplayName,
 } from 'src/mlmd/MlmdUtils';
 import { Artifact, ArtifactType, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
@@ -389,7 +389,7 @@ function getDropdownSubLinkedArtifacts(linkedArtifacts: LinkedArtifact[], subIte
 function getDropdownSubItems(executionArtifacts: ExecutionArtifact[]) {
   const subItems: DropdownSubItem[] = [];
   for (const executionArtifact of executionArtifacts) {
-    const executionName = getExecutionName(executionArtifact.execution);
+    const executionName = getExecutionDisplayName(executionArtifact.execution);
     const executionId = executionArtifact.execution.getId().toString();
     if (!executionName) {
       logDisplayNameWarning('execution', executionId);
@@ -451,7 +451,7 @@ function getLinkedArtifactFromSelectedItem(
 
   const executionArtifact = filteredRunArtifact?.executionArtifacts.find(executionArtifact => {
     const executionText: string =
-      getExecutionName(executionArtifact.execution) ||
+      getExecutionDisplayName(executionArtifact.execution) ||
       executionArtifact.execution.getId().toString();
     return executionText === selectedItem.subItemName;
   });
