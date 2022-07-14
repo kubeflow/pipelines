@@ -326,7 +326,7 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     const linkedArtifact = getLinkedArtifactFromSelectedItem(filteredRunArtifacts, selectedItem);
     selectedArtifacts[panelIndex].linkedArtifact = linkedArtifact;
     setSelectedNamespace(getNamespace(selectedItem, filteredRunArtifacts));
-    updateSelectedArtifacts(selectedArtifacts);
+    // updateSelectedArtifacts(selectedArtifacts);
   };
 
   const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
