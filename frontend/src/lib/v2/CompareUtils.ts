@@ -54,7 +54,7 @@ export const getCompareTableProps = (scalarMetricsArtifacts: RunArtifact[]): Com
   const rows: string[][] = yLabels.map(yLabel => {
     const row = [];
     for (let artifactIndex = 0; artifactIndex < scalarTableData.xLabels.length; artifactIndex++) {
-      const key: string = `${yLabel}-${artifactIndex}`;
+      const key: string = getDataMapKey(yLabel, artifactIndex);
       row.push(scalarTableData.dataMap[key] || '');
     }
     return row;
@@ -141,7 +141,10 @@ const addScalarDataItems = (
     scalarMetricNames.push(scalarMetricName);
 
     // The scalar metric name and artifact index create a unique key per data item.
-    const key: string = `${scalarMetricName}-${artifactIndex}`;
+    const key: string = getDataMapKey(scalarMetricName, artifactIndex);
     dataMap[key] = JSON.stringify(getMetadataValue(customProperties.get(scalarMetricName)));
   }
 };
+
+const getDataMapKey = (scalarMetricName: string, artifactIndex: number): string =>
+  `${scalarMetricName}-${artifactIndex}`;
