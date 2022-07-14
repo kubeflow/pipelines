@@ -305,12 +305,7 @@ interface MetricsDropdownProps {
 }
 
 function MetricsDropdown(props: MetricsDropdownProps) {
-  const {
-    filteredRunArtifacts,
-    metricsTab,
-    selectedArtifacts,
-    updateSelectedArtifacts,
-  } = props;
+  const { filteredRunArtifacts, metricsTab, selectedArtifacts, updateSelectedArtifacts } = props;
   const [firstSelectedItem, setFirstSelectedItem] = useState<SelectedItem>(
     selectedArtifacts[0].selectedItem,
   );

@@ -20,38 +20,14 @@ import { CommonTestWrapper } from 'src/TestWrapper';
 import TestUtils, { testBestPractices } from 'src/TestUtils';
 import { Artifact, Context, Event, Execution, Value } from 'src/third_party/mlmd';
 import { Apis } from 'src/lib/Apis';
-import { QUERY_PARAMS } from 'src/components/Router';
 import * as mlmdUtils from 'src/mlmd/MlmdUtils';
 import * as metricsVisualizations from 'src/components/viewers/MetricsVisualizations';
 import * as Utils from 'src/lib/Utils';
 import CompareV2 from './CompareV2';
-import { PageProps } from './Page';
-import { ApiRunDetail } from 'src/apis/run';
-import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { MetricsType, RunArtifact, SelectedArtifact } from 'src/pages/CompareV2';
 import { LinkedArtifact } from 'src/mlmd/MlmdUtils';
 import * as jspb from 'google-protobuf';
 import MetricsDropdown from './MetricsDropdown';
-
-/*
-
-interface MetricsDropdownProps {
-  filteredRunArtifacts: RunArtifact[];
-  metricsTab: MetricsType;
-  metricsTabText: string;
-  selectedArtifacts: SelectedArtifact[];
-  updateSelectedArtifacts: (selectedArtifacts: SelectedArtifact[]) => void;
-}
-
-function MetricsDropdown(props: MetricsDropdownProps) {
-
-filteredRunArtifacts: [],
-metricsTab: MetricsType.CONFUSION_MATRIX,
-selectedArtifacts: [],
-updateSelectedArtifacts: () => {},
-
-
-*/
 
 function newMockExecution(id: number, displayName?: string): Execution {
   const execution = new Execution();
@@ -96,10 +72,7 @@ function newMockArtifact(id: number, displayName?: string): Artifact {
   return artifact;
 }
 
-function newMockLinkedArtifact(
-  id: number,
-  displayName?: string,
-): LinkedArtifact {
+function newMockLinkedArtifact(id: number, displayName?: string): LinkedArtifact {
   return {
     artifact: newMockArtifact(id, displayName),
     event: newMockEvent(id, displayName),
@@ -157,161 +130,104 @@ testBestPractices();
 describe('MetricsDropdown', () => {
   const updateSelectedArtifactsSpy = jest.fn();
 
-  it('Metrics dropdown has no dropdown loaded as content is not present', async () => {
+  it('Metrics dropdown has no dropdown loaded as Confusion Matrix is not present', async () => {
+    render(
+      <CommonTestWrapper>
+        <MetricsDropdown
+          filteredRunArtifacts={[]}
+          metricsTab={MetricsType.CONFUSION_MATRIX}
+          selectedArtifacts={emptySelectedArtifacts}
+          updateSelectedArtifacts={updateSelectedArtifactsSpy}
+        />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+    screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
+  });
+
+  it('Metrics dropdown has no dropdown loaded as HTML is not present', async () => {
     render(
       <MetricsDropdown
         filteredRunArtifacts={[]}
-        metricsTab={MetricsType.CONFUSION_MATRIX}
+        metricsTab={MetricsType.HTML}
         selectedArtifacts={emptySelectedArtifacts}
         updateSelectedArtifacts={updateSelectedArtifactsSpy}
       />,
     );
     await TestUtils.flushPromises();
-    screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
+    screen.getByText('There are no HTML artifacts available on the selected runs.');
   });
-/*
-  it('Only confusion matrix tab has dropdown loaded with content', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
-    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
 
-    const contexts = [
-      newMockContext(MOCK_RUN_1_ID, 1),
-      newMockContext(MOCK_RUN_2_ID, 2),
-      newMockContext(MOCK_RUN_3_ID, 3),
-    ];
-    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
-    getContextSpy.mockImplementation((runID: string) =>
-      Promise.resolve(contexts.find(c => c.getName() === runID)),
-    );
-
-    const executions = [
-      [newMockExecution(1)],
-      [newMockExecution(2, 'executionName')],
-      [newMockExecution(3)],
-    ];
-    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
-    getExecutionsSpy.mockImplementation((context: Context) =>
-      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
-    );
-
-    const artifacts = [newMockArtifact(1), newMockArtifact(2, true), newMockArtifact(3)];
-    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
-    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
-
-    const events = [newMockEvent(1), newMockEvent(2, 'artifactName'), newMockEvent(3)];
-    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
-    getEventsSpy.mockReturnValue(Promise.resolve(events));
-
-    const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
-    getArtifactTypesSpy.mockReturnValue([]);
-
-    // Simulate all artifacts as type "ClassificationMetrics" (Confusion Matrix or ROC Curve).
-    const filterLinkedArtifactsByTypeSpy = jest.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
-    filterLinkedArtifactsByTypeSpy.mockImplementation(
-      (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
-        metricsFilter === 'system.ClassificationMetrics' ? linkedArtifacts : [],
-    );
-
+  it('Metrics dropdown has no dropdown loaded as Markdown is not present', async () => {
     render(
       <CommonTestWrapper>
-        <CompareV2 {...generateProps()} />
+        <MetricsDropdown
+          filteredRunArtifacts={[]}
+          metricsTab={MetricsType.MARKDOWN}
+          selectedArtifacts={emptySelectedArtifacts}
+          updateSelectedArtifacts={updateSelectedArtifactsSpy}
+        />
       </CommonTestWrapper>,
     );
     await TestUtils.flushPromises();
-
-    await waitFor(() => expect(filterLinkedArtifactsByTypeSpy).toHaveBeenCalledTimes(9));
-
-    fireEvent.click(screen.getByText('Confusion Matrix'));
-    screen.getByText('Choose a first Confusion Matrix artifact');
-
-    fireEvent.click(screen.getByText('HTML'));
-    screen.getByText('There are no HTML artifacts available on the selected runs.');
-
-    fireEvent.click(screen.getByText('Markdown'));
     screen.getByText('There are no Markdown artifacts available on the selected runs.');
   });
 
-  it('Log warnings when specified run, execution, or artifact does not have a name', async () => {
-    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
-    runs = [newMockRun(MOCK_RUN_1_ID, true), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
-    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+  it('Dropdown loaded when content is present', async () => {
+    render(
+      <CommonTestWrapper>
+        <MetricsDropdown
+          filteredRunArtifacts={scalarMetricsArtifacts}
+          metricsTab={MetricsType.CONFUSION_MATRIX}
+          selectedArtifacts={emptySelectedArtifacts}
+          updateSelectedArtifacts={updateSelectedArtifactsSpy}
+        />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+    screen.getByText('Choose a first Confusion Matrix artifact');
+  });
 
-    const contexts = [
-      newMockContext(MOCK_RUN_1_ID, 100),
-      newMockContext(MOCK_RUN_2_ID, 200),
-      newMockContext(MOCK_RUN_3_ID, 300),
+  it('Log warning when specified run does not have a ', async () => {
+    const scalarMetricsArtifactsNoRunName: RunArtifact[] = [
+      {
+        run: {
+          run: {
+            id: '1',
+          },
+        },
+        executionArtifacts: [
+          {
+            execution: newMockExecution(1, 'execution1'),
+            linkedArtifacts: [newMockLinkedArtifact(1, 'artifact1')],
+          },
+        ],
+      },
     ];
-    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
-    getContextSpy.mockImplementation((runID: string) =>
-      Promise.resolve(contexts.find(c => c.getName() === runID)),
-    );
-
-    const executions = [
-      [newMockExecution(100)],
-      [newMockExecution(200)],
-      [newMockExecution(300, 'executionName')],
-    ];
-    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
-    getExecutionsSpy.mockImplementation((context: Context) =>
-      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
-    );
-
-    const artifacts = [newMockArtifact(100), newMockArtifact(200), newMockArtifact(300)];
-    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
-    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
-
-    const events = [newMockEvent(100), newMockEvent(200), newMockEvent(300)];
-    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
-    getEventsSpy.mockReturnValue(Promise.resolve(events));
-
-    const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
-    getArtifactTypesSpy.mockReturnValue([]);
-
-    const filterLinkedArtifactsByTypeSpy = jest.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
-    filterLinkedArtifactsByTypeSpy.mockImplementation(
-      (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
-        metricsFilter === 'system.HTML' ? linkedArtifacts : [],
-    );
-
     const warnSpy = jest.spyOn(Utils.logger, 'warn');
 
     render(
       <CommonTestWrapper>
-        <CompareV2 {...generateProps()} />
+        <MetricsDropdown
+          filteredRunArtifacts={scalarMetricsArtifactsNoRunName}
+          metricsTab={MetricsType.CONFUSION_MATRIX}
+          selectedArtifacts={emptySelectedArtifacts}
+          updateSelectedArtifacts={updateSelectedArtifactsSpy}
+        />
       </CommonTestWrapper>,
     );
     await TestUtils.flushPromises();
 
-    fireEvent.click(screen.getByText('HTML'));
     await waitFor(() => {
-      expect(warnSpy).toHaveBeenNthCalledWith(
-        1,
-        `Failed to fetch the display name of the run with the following ID: ${MOCK_RUN_1_ID}`,
-      );
-      expect(warnSpy).toHaveBeenNthCalledWith(
-        2,
-        'Failed to fetch the display name of the execution with the following ID: 200',
-      );
       expect(warnSpy).toHaveBeenLastCalledWith(
-        'Failed to fetch the display name of the artifact with the following ID: 300',
+        'Failed to fetch the display name of the run with the following ID: 1',
       );
     });
 
-    // Ensure that the dropdown appropriately replaces display names with IDs.
-    fireEvent.click(screen.getByText('Choose a first HTML artifact'));
-    expect(screen.queryByText(`test run ${MOCK_RUN_1_ID}`)).toBeNull();
-
-    // Get second element: first is run list. Execution and Artifact ID = 200, both in same item.
-    fireEvent.mouseOver(screen.queryAllByText(`test run ${MOCK_RUN_2_ID}`)[1]);
-    screen.getByText(/200/);
-
-    // Execution name = 'executionName', Artifact ID = 300
-    fireEvent.mouseOver(screen.queryAllByText(`test run ${MOCK_RUN_3_ID}`)[1]);
-    screen.getByText(/executionName/);
-    screen.getByText(/300/);
+    // Ensure that the dropdown is empty if run name is not provided.
+    screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
   });
-
+  /*
   it('Confusion matrix shown on select, stays after tab change or section collapse', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];

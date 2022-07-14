@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { MetricsType } from "src/pages/CompareV2";
+import { MetricsType } from 'src/pages/CompareV2';
 
 export const metricsTypeToString = (metricsType: MetricsType): string => {
   switch (metricsType) {
