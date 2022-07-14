@@ -30,7 +30,7 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
     t.assertEqual(run.status, 'Succeeded')
     t.assertEqual(
         {
-            'hello-world':
+            'container-no-input':
                 KfpTask(
                     name='container-no-input',
                     type='system.ContainerExecution',
