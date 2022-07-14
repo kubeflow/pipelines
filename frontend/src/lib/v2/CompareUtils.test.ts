@@ -15,8 +15,7 @@
  */
 
 import { testBestPractices } from 'src/TestUtils';
-import { RunArtifact } from 'src/pages/CompareV2';
-import { getCompareTableProps } from './CompareUtils';
+import { getCompareTableProps, RunArtifact } from './CompareUtils';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
 import { LinkedArtifact } from 'src/mlmd/MlmdUtils';
 import * as jspb from 'google-protobuf';

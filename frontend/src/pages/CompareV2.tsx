@@ -58,7 +58,7 @@ import PlotCard from 'src/components/PlotCard';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Banner from 'src/components/Banner';
-import { getCompareTableProps } from 'src/lib/v2/CompareUtils';
+import { ExecutionArtifact, getCompareTableProps, RunArtifact } from 'src/lib/v2/CompareUtils';
 
 const css = stylesheet({
   leftCell: {
@@ -106,16 +106,6 @@ interface MlmdPackage {
   executions: Execution[];
   artifacts: Artifact[];
   events: Event[];
-}
-
-export interface ExecutionArtifact {
-  execution: Execution;
-  linkedArtifacts: LinkedArtifact[];
-}
-
-export interface RunArtifact {
-  run: ApiRunDetail;
-  executionArtifacts: ExecutionArtifact[];
 }
 
 enum MetricsType {
