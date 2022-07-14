@@ -83,8 +83,10 @@ testBestPractices();
 describe('MetricsDropdown', () => {
   const updateSelectedArtifactsSpy = jest.fn();
   let emptySelectedArtifacts: SelectedArtifact[];
+  let firstLinkedArtifact: LinkedArtifact;
+  let secondLinkedArtifact: LinkedArtifact;
+  let scalarMetricsArtifacts: RunArtifact[];
 
-  // Prevent state from previous renders from leaking into subsequent tests.
   beforeEach(() => {
     emptySelectedArtifacts = [
       {
@@ -92,6 +94,27 @@ describe('MetricsDropdown', () => {
       },
       {
         selectedItem: { itemName: '', subItemName: '' },
+      },
+    ];
+    firstLinkedArtifact = newMockLinkedArtifact(1, 'artifact1');
+    secondLinkedArtifact = newMockLinkedArtifact(2, 'artifact2');
+    scalarMetricsArtifacts = [
+      {
+        run: {
+          run: {
+            id: '1',
+            name: 'run1',
+          },
+          pipeline_runtime: {
+            workflow_manifest: '',
+          },
+        },
+        executionArtifacts: [
+          {
+            execution: newMockExecution(1, 'execution1'),
+            linkedArtifacts: [firstLinkedArtifact, secondLinkedArtifact],
+          },
+        ],
       },
     ];
   });
@@ -140,26 +163,6 @@ describe('MetricsDropdown', () => {
   });
 
   it('Dropdown loaded when content is present', async () => {
-    const scalarMetricsArtifacts: RunArtifact[] = [
-      {
-        run: {
-          run: {
-            id: '1',
-            name: 'run1',
-          },
-          pipeline_runtime: {
-            workflow_manifest: '',
-          },
-        },
-        executionArtifacts: [
-          {
-            execution: newMockExecution(1, 'execution1'),
-            linkedArtifacts: [newMockLinkedArtifact(1, 'artifact1')],
-          },
-        ],
-      },
-    ];
-
     render(
       <CommonTestWrapper>
         <MetricsDropdown
@@ -215,31 +218,10 @@ describe('MetricsDropdown', () => {
   });
 
   it('Selected artifacts updated with user selection', async () => {
-    const linkedArtifact: LinkedArtifact = newMockLinkedArtifact(1, 'artifact1');
-    const scalarMetricsArtifactsOneLinked: RunArtifact[] = [
-      {
-        run: {
-          run: {
-            id: '1',
-            name: 'run1',
-          },
-          pipeline_runtime: {
-            workflow_manifest: '',
-          },
-        },
-        executionArtifacts: [
-          {
-            execution: newMockExecution(1, 'execution1'),
-            linkedArtifacts: [linkedArtifact],
-          },
-        ],
-      },
-    ];
-
     render(
       <CommonTestWrapper>
         <MetricsDropdown
-          filteredRunArtifacts={scalarMetricsArtifactsOneLinked}
+          filteredRunArtifacts={scalarMetricsArtifacts}
           metricsTab={MetricsType.CONFUSION_MATRIX}
           selectedArtifacts={emptySelectedArtifacts}
           updateSelectedArtifacts={updateSelectedArtifactsSpy}
@@ -254,7 +236,7 @@ describe('MetricsDropdown', () => {
 
     const newSelectedArtifacts: SelectedArtifact[] = [
       {
-        linkedArtifact: linkedArtifact,
+        linkedArtifact: firstLinkedArtifact,
         selectedItem: {
           itemName: 'run1',
           subItemName: 'execution1',
@@ -272,35 +254,13 @@ describe('MetricsDropdown', () => {
   });
 
   it('HTML files read only on initial select', async () => {
-    const firstLinkedArtifact: LinkedArtifact = newMockLinkedArtifact(1, 'artifact1');
-    const secondLinkedArtifact: LinkedArtifact = newMockLinkedArtifact(2, 'artifact2');
-    const scalarMetricsArtifactsTwoLinked: RunArtifact[] = [
-      {
-        run: {
-          run: {
-            id: '1',
-            name: 'run1',
-          },
-          pipeline_runtime: {
-            workflow_manifest: '',
-          },
-        },
-        executionArtifacts: [
-          {
-            execution: newMockExecution(1, 'execution1'),
-            linkedArtifacts: [firstLinkedArtifact, secondLinkedArtifact],
-          },
-        ],
-      },
-    ];
-
     const getHtmlViewerConfigSpy = jest.spyOn(metricsVisualizations, 'getHtmlViewerConfig');
     getHtmlViewerConfigSpy.mockResolvedValue([]);
 
     render(
       <CommonTestWrapper>
         <MetricsDropdown
-          filteredRunArtifacts={scalarMetricsArtifactsTwoLinked}
+          filteredRunArtifacts={scalarMetricsArtifacts}
           metricsTab={MetricsType.HTML}
           selectedArtifacts={emptySelectedArtifacts}
           updateSelectedArtifacts={updateSelectedArtifactsSpy}
@@ -339,35 +299,13 @@ describe('MetricsDropdown', () => {
   });
 
   it('Markdown files read only on initial select', async () => {
-    const firstLinkedArtifact: LinkedArtifact = newMockLinkedArtifact(1, 'artifact1');
-    const secondLinkedArtifact: LinkedArtifact = newMockLinkedArtifact(2, 'artifact2');
-    const scalarMetricsArtifactsTwoLinked: RunArtifact[] = [
-      {
-        run: {
-          run: {
-            id: '1',
-            name: 'run1',
-          },
-          pipeline_runtime: {
-            workflow_manifest: '',
-          },
-        },
-        executionArtifacts: [
-          {
-            execution: newMockExecution(1, 'execution1'),
-            linkedArtifacts: [firstLinkedArtifact, secondLinkedArtifact],
-          },
-        ],
-      },
-    ];
-
     const getMarkdownViewerConfigSpy = jest.spyOn(metricsVisualizations, 'getMarkdownViewerConfig');
     getMarkdownViewerConfigSpy.mockResolvedValue([]);
 
     render(
       <CommonTestWrapper>
         <MetricsDropdown
-          filteredRunArtifacts={scalarMetricsArtifactsTwoLinked}
+          filteredRunArtifacts={scalarMetricsArtifacts}
           metricsTab={MetricsType.MARKDOWN}
           selectedArtifacts={emptySelectedArtifacts}
           updateSelectedArtifacts={updateSelectedArtifactsSpy}
@@ -409,26 +347,6 @@ describe('MetricsDropdown', () => {
   });
 
   it('HTML file loading and error display', async () => {
-    const scalarMetricsArtifacts: RunArtifact[] = [
-      {
-        run: {
-          run: {
-            id: '1',
-            name: 'run1',
-          },
-          pipeline_runtime: {
-            workflow_manifest: '',
-          },
-        },
-        executionArtifacts: [
-          {
-            execution: newMockExecution(1, 'execution1'),
-            linkedArtifacts: [newMockLinkedArtifact(1, 'artifact1')],
-          },
-        ],
-      },
-    ];
-
     const getHtmlViewerConfigSpy = jest.spyOn(metricsVisualizations, 'getHtmlViewerConfig');
     getHtmlViewerConfigSpy.mockRejectedValue(new Error('HTML file not found.'));
 
@@ -455,27 +373,6 @@ describe('MetricsDropdown', () => {
   });
 
   it('Dropdown initially loaded with selected artifact', async () => {
-    const linkedArtifact: LinkedArtifact = newMockLinkedArtifact(1, 'artifact1');
-    const scalarMetricsArtifactsOneLinked: RunArtifact[] = [
-      {
-        run: {
-          run: {
-            id: '1',
-            name: 'run1',
-          },
-          pipeline_runtime: {
-            workflow_manifest: '',
-          },
-        },
-        executionArtifacts: [
-          {
-            execution: newMockExecution(1, 'execution1'),
-            linkedArtifacts: [linkedArtifact],
-          },
-        ],
-      },
-    ];
-
     const newSelectedArtifacts: SelectedArtifact[] = [
       {
         selectedItem: {
@@ -484,7 +381,7 @@ describe('MetricsDropdown', () => {
         },
       },
       {
-        linkedArtifact: linkedArtifact,
+        linkedArtifact: firstLinkedArtifact,
         selectedItem: {
           itemName: 'run1',
           subItemName: 'execution1',
@@ -496,7 +393,7 @@ describe('MetricsDropdown', () => {
     render(
       <CommonTestWrapper>
         <MetricsDropdown
-          filteredRunArtifacts={scalarMetricsArtifactsOneLinked}
+          filteredRunArtifacts={scalarMetricsArtifacts}
           metricsTab={MetricsType.CONFUSION_MATRIX}
           selectedArtifacts={newSelectedArtifacts}
           updateSelectedArtifacts={updateSelectedArtifactsSpy}
