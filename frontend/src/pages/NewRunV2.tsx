@@ -75,7 +75,7 @@ function NewRunV2(props: NewRunV2Props) {
   const [isStartButtonEnabled, setIsStartButtonEnabled] = useState(false);
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [isParamaterValid, setIsParameterValid] = useState(false);
+  const [isParameterValid, setIsParameterValid] = useState(false);
 
   // TODO(zijianjoy): If creating run from Experiment Page or RunList Page, there is no pipelineId/Version.
   const urlParser = new URLParser(props);
@@ -143,12 +143,6 @@ function NewRunV2(props: NewRunV2Props) {
   // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
   useEffect(() => {
     if (!templateString) {
-      setIsStartButtonEnabled(false);
-      return;
-    }
-
-    if (!isParamaterValid) {
-      setIsStartButtonEnabled(false);
       return;
     }
 
@@ -164,13 +158,16 @@ function NewRunV2(props: NewRunV2Props) {
     if (root) {
       setPipelineRoot(root);
     }
+  }, [templateString]);
 
-    if (errorMessage) {
+  // Handle different change that can affect setIsStartButtonEnabled
+  useEffect(() => {
+    if (!templateString || errorMessage || !isParameterValid) {
       setIsStartButtonEnabled(false);
     } else {
       setIsStartButtonEnabled(true);
     }
-  }, [errorMessage, templateString, isParamaterValid]);
+  }, [templateString, errorMessage, isParameterValid]);
 
   // Whenever any input value changes, validate and show error if needed.
   // TODO(zijianjoy): Validate run name for now, we need to validate others first.

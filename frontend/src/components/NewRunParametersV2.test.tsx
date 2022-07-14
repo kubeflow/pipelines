@@ -484,7 +484,7 @@ describe('NewRunParametersV2', () => {
     screen.getByDisplayValue('"A":1,"B":2');
   });
 
-  it('return true to parent component with valid default integer input', () => {
+  it('set input as valid type with valid default integer input', () => {
     const setIsValidInputSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
@@ -506,7 +506,7 @@ describe('NewRunParametersV2', () => {
     screen.getByDisplayValue('123');
   });
 
-  it('return false to parent component with no default integer input', () => {
+  it('set input as invalid type with no default integer input', () => {
     const setIsValidInputSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
@@ -598,7 +598,7 @@ describe('NewRunParametersV2', () => {
     screen.getByText('Invalid input. This parameter should be in BOOLEAN type');
   });
 
-  it('return true to parent component with valid boolean input', () => {
+  it('set input as valid type with valid boolean input', () => {
     const setIsValidInputSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
@@ -741,7 +741,7 @@ describe('NewRunParametersV2', () => {
     screen.getByText('Invalid input. This parameter should be in STRUCT type');
   });
 
-  it('return true to parent component with valid struct input', () => {
+  it('set input as valid type with valid struct input', () => {
     const setIsValidInputSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',

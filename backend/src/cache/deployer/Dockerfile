@@ -1,4 +1,4 @@
-FROM google/cloud-sdk:alpine
+FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:alpine
 
 RUN apk add --update \
     curl \
