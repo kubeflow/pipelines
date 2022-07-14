@@ -32,7 +32,7 @@ export interface RunArtifact {
   executionArtifacts: ExecutionArtifact[];
 }
 
-export const getCompareTableProps = (scalarMetricsArtifacts: RunArtifact[]) => {
+export const getCompareTableProps = (scalarMetricsArtifacts: RunArtifact[]): CompareTableProps => {
   const { xLabels, scalarMetricNames, xParentLabels, dataMap } = getScalarTableData(
     scalarMetricsArtifacts,
   );
@@ -62,7 +62,6 @@ export const getCompareTableProps = (scalarMetricsArtifacts: RunArtifact[]) => {
     rows,
   } as CompareTableProps;
 };
-
 
 // Get different components needed to construct the scalar metrics table.
 const getScalarTableData = (
@@ -148,4 +147,3 @@ const addScalarDataItems = (
     dataMap[key] = JSON.stringify(getMetadataValue(customProperties.get(scalarMetricName)));
   }
 };
-
