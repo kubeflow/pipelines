@@ -13,11 +13,12 @@
 # limitations under the License.
 """Integration tests for diagnose_me.dev_env."""
 
-import unittest
 from typing import Text
+import unittest
 from unittest import mock
 
-from kfp.cli.diagnose_me import dev_env, utility
+from kfp.cli.diagnose_me import dev_env
+from kfp.cli.diagnose_me import utility
 
 
 class DevEnvTest(unittest.TestCase):

@@ -13,15 +13,18 @@
 # limitations under the License.
 """Tests for kfp.components.types.type_annotations."""
 
-import unittest
 from typing import Any, Dict, List, Optional
+import unittest
 
 from absl.testing import parameterized
 from kfp.components.types import type_annotations
 from kfp.components.types.artifact_types import Model
-from kfp.components.types.type_annotations import (Input, InputAnnotation,
-                                                   InputPath, Output,
-                                                   OutputAnnotation, OutputPath)
+from kfp.components.types.type_annotations import Input
+from kfp.components.types.type_annotations import InputAnnotation
+from kfp.components.types.type_annotations import InputPath
+from kfp.components.types.type_annotations import Output
+from kfp.components.types.type_annotations import OutputAnnotation
+from kfp.components.types.type_annotations import OutputPath
 
 
 class AnnotationsTest(parameterized.TestCase):

@@ -14,8 +14,8 @@
 """Utilities for component I/O type mapping."""
 import inspect
 import re
-import warnings
 from typing import Any, List, Optional, Type, Union
+import warnings
 
 import kfp
 from kfp.components import task_final_status
@@ -204,12 +204,10 @@ def get_input_artifact_type_schema(
 class InconsistentTypeException(Exception):
     """InconsistencyTypeException is raised when two types are not
     consistent."""
-    pass
 
 
 class InconsistentTypeWarning(Warning):
     """InconsistentTypeWarning is issued when two types are not consistent."""
-    pass
 
 
 def verify_type_compatibility(

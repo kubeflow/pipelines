@@ -17,8 +17,8 @@ import enum
 from typing import Optional, Union
 
 from kfp.components import for_loop
-from kfp.components import pipeline_context
 from kfp.components import pipeline_channel
+from kfp.components import pipeline_context
 from kfp.components import pipeline_task
 
 

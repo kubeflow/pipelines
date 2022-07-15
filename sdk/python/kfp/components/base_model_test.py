@@ -14,10 +14,9 @@
 
 import dataclasses
 import functools
-import unittest
-from collections import abc
 from typing import (Any, Dict, List, Mapping, MutableMapping, MutableSequence,
                     Optional, OrderedDict, Sequence, Set, Tuple, Union)
+import unittest
 
 from absl.testing import parameterized
 from kfp.components import base_model

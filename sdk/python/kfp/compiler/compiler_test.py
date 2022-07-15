@@ -700,7 +700,6 @@ class TestWriteToFileTypes(parameterized.TestCase):
             self.assertTrue(os.path.exists(target_json_file))
             with open(target_json_file, 'r') as f:
                 f.read()
-                pass
 
     def test_compile_fails_with_bad_pipeline_func(self):
         with self.assertRaisesRegex(ValueError,

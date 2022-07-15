@@ -16,12 +16,12 @@ import contextlib
 import os
 import pathlib
 import textwrap
-import unittest
 from typing import List, Optional, Union
+import unittest
 from unittest import mock
 
-import docker
 from click import testing
+import docker
 
 docker = mock.Mock()
 
