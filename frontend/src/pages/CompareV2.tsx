@@ -56,6 +56,8 @@ import PlotCard from 'src/components/PlotCard';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Banner from 'src/components/Banner';
+import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
+import { Redirect } from 'react-router-dom';
 
 const css = stylesheet({
   leftCell: {
@@ -843,4 +845,18 @@ function CompareV2(props: PageProps) {
   );
 }
 
-export default CompareV2;
+function EnhancedCompareV2(props: PageProps) {
+  const namespaceChanged = useNamespaceChangeEvent();
+  if (namespaceChanged) {
+    // Compare page compares two runs, when namespace changes, the runs don't
+    // exist in the new namespace, so we should redirect to experiment list page.
+    return <Redirect to={RoutePage.EXPERIMENTS} />;
+  }
+  return <CompareV2 {...props} />;
+};
+
+export default EnhancedCompareV2;
+
+export const TEST_ONLY = {
+  CompareV2,
+};

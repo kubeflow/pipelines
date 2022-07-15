@@ -15,6 +15,7 @@
  */
 
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { createMemoryHistory } from 'history';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import TestUtils, { testBestPractices } from 'src/TestUtils';
@@ -24,12 +25,15 @@ import { QUERY_PARAMS } from 'src/components/Router';
 import * as mlmdUtils from 'src/mlmd/MlmdUtils';
 import * as metricsVisualizations from 'src/components/viewers/MetricsVisualizations';
 import * as Utils from 'src/lib/Utils';
-import CompareV2 from './CompareV2';
+import EnhancedCompareV2, { TEST_ONLY } from './CompareV2';
 import { PageProps } from './Page';
 import { ApiRunDetail } from 'src/apis/run';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { Struct, Value } from 'google-protobuf/google/protobuf/struct_pb';
+import { Router } from 'react-router-dom';
+import { NamespaceContext } from 'src/lib/KubeflowClient';
 
+const CompareV2 = TEST_ONLY.CompareV2;
 testBestPractices();
 describe('CompareV2', () => {
   const MOCK_RUN_1_ID = 'mock-run-1-id';
@@ -135,7 +139,7 @@ describe('CompareV2', () => {
     jest.spyOn(artifact, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
     return artifact;
   }
-
+/*
   it('Render Compare v2 page', async () => {
     render(
       <CommonTestWrapper>
@@ -934,6 +938,87 @@ describe('CompareV2', () => {
     screen.getByRole('circularprogress');
     await waitFor(() => {
       screen.getByText('Error: failed loading HTML file. Click Details for more information.');
+    });
+  });*/
+
+
+  describe('EnhancedCompareV2', () => {
+    it('Redirects to experiments page when namespace changes', () => {
+      const history = createMemoryHistory({
+        initialEntries: ['/does-not-matter'],
+      });
+      const { rerender } = render(
+        <CommonTestWrapper>
+          <Router history={history}>
+            <NamespaceContext.Provider value='ns1'>
+              <EnhancedCompareV2 {...generateProps()} />
+            </NamespaceContext.Provider>
+          </Router>
+        </CommonTestWrapper>,
+      );
+      expect(history.location.pathname).not.toEqual('/experiments');
+      rerender(
+        <CommonTestWrapper>
+          <Router history={history}>
+            <NamespaceContext.Provider value='ns2'>
+              <EnhancedCompareV2 {...generateProps()} />
+            </NamespaceContext.Provider>
+          </Router>
+        </CommonTestWrapper>,
+      );
+      expect(history.location.pathname).toEqual('/experiments');
+    });
+
+    it('Does not redirect when namespace stays the same', () => {
+      const history = createMemoryHistory({
+        initialEntries: ['/initial-path'],
+      });
+      const { rerender } = render(
+        <CommonTestWrapper>
+          <Router history={history}>
+            <NamespaceContext.Provider value='ns1'>
+              <EnhancedCompareV2 {...generateProps()} />
+            </NamespaceContext.Provider>
+          </Router>
+        </CommonTestWrapper>,
+      );
+      expect(history.location.pathname).toEqual('/initial-path');
+      rerender(
+        <CommonTestWrapper>
+          <Router history={history}>
+            <NamespaceContext.Provider value='ns1'>
+              <EnhancedCompareV2 {...generateProps()} />
+            </NamespaceContext.Provider>
+          </Router>
+        </CommonTestWrapper>,
+      );
+      expect(history.location.pathname).toEqual('/initial-path');
+    });
+
+    it('Does not redirect when namespace initializes', () => {
+      const history = createMemoryHistory({
+        initialEntries: ['/initial-path'],
+      });
+      const { rerender } = render(
+        <CommonTestWrapper>
+          <Router history={history}>
+            <NamespaceContext.Provider value={undefined}>
+              <EnhancedCompareV2 {...generateProps()} />
+            </NamespaceContext.Provider>
+          </Router>
+        </CommonTestWrapper>,
+      );
+      expect(history.location.pathname).toEqual('/initial-path');
+      rerender(
+        <CommonTestWrapper>
+          <Router history={history}>
+            <NamespaceContext.Provider value='ns1'>
+              <EnhancedCompareV2 {...generateProps()} />
+            </NamespaceContext.Provider>
+          </Router>
+        </CommonTestWrapper>,
+      );
+      expect(history.location.pathname).toEqual('/initial-path');
     });
   });
 });

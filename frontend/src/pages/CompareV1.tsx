@@ -349,7 +349,7 @@ class CompareV1 extends Page<{}, CompareState> {
   }
 }
 
-const EnhancedCompare: React.FC<PageProps> = props => {
+const EnhancedCompareV1: React.FC<PageProps> = props => {
   const namespaceChanged = useNamespaceChangeEvent();
   if (namespaceChanged) {
     // Compare page compares two runs, when namespace changes, the runs don't
@@ -359,7 +359,7 @@ const EnhancedCompare: React.FC<PageProps> = props => {
   return <CompareV1 {...props} />;
 };
 
-export default EnhancedCompare;
+export default EnhancedCompareV1;
 
 export const TEST_ONLY = {
   CompareV1,
