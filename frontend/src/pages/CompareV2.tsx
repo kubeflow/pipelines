@@ -824,7 +824,7 @@ function CompareV2(props: PageProps) {
 function EnhancedCompareV2(props: PageProps) {
   const namespaceChanged = useNamespaceChangeEvent();
   if (namespaceChanged) {
-    // Compare page compares two runs, when namespace changes, the runs don't
+    // Run Comparison page compares multiple runs, when namespace changes, the runs don't
     // exist in the new namespace, so we should redirect to experiment list page.
     return <Redirect to={RoutePage.EXPERIMENTS} />;
   }
