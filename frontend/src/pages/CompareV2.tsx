@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useQuery } from 'react-query';
 import { ApiRunDetail } from 'src/apis/run';
 import Hr from 'src/atoms/Hr';
@@ -56,7 +56,7 @@ import PlotCard from 'src/components/PlotCard';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Banner from 'src/components/Banner';
-import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
+import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
 
 const css = stylesheet({
@@ -362,6 +362,7 @@ interface MetricsDropdownProps {
   metricsTabText: string;
   selectedArtifacts: SelectedArtifact[];
   updateSelectedArtifacts: (selectedArtifacts: SelectedArtifact[]) => void;
+  namespace: string | undefined;
 }
 
 const logDisplayNameWarning = (type: string, id: string) =>
@@ -431,22 +432,6 @@ function getDropdownItems(filteredRunArtifacts: RunArtifact[]) {
   return dropdownItems;
 }
 
-const getNamespace = (
-  selectedItem: SelectedItem,
-  filteredRunArtifacts: RunArtifact[],
-): string | undefined => {
-  const selectedRun = filteredRunArtifacts.find(
-    runArtifact => runArtifact.run.run?.name === selectedItem.itemName,
-  )?.run;
-  let namespace: string | undefined;
-  if (selectedRun) {
-    // TODO(zpChris): Move away from workflow_manifest as this is V1 specific.
-    const jsonWorkflow = JSON.parse(selectedRun.pipeline_runtime!.workflow_manifest || '{}');
-    namespace = jsonWorkflow.metadata?.namespace;
-  }
-  return namespace;
-};
-
 function getLinkedArtifactFromSelectedItem(
   filteredRunArtifacts: RunArtifact[],
   selectedItem: SelectedItem,
@@ -478,6 +463,7 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     metricsTabText,
     selectedArtifacts,
     updateSelectedArtifacts,
+    namespace,
   } = props;
   const [firstSelectedItem, setFirstSelectedItem] = useState<SelectedItem>(
     selectedArtifacts[0].selectedItem,
@@ -485,12 +471,9 @@ function MetricsDropdown(props: MetricsDropdownProps) {
   const [secondSelectedItem, setSecondSelectedItem] = useState<SelectedItem>(
     selectedArtifacts[1].selectedItem,
   );
-  const [firstSelectedNamespace, setFirstSelectedNamespace] = useState<string | undefined>();
-  const [secondSelectedNamespace, setSecondSelectedNamespace] = useState<string | undefined>();
 
   const updateSelectedItemAndArtifact = (
     setSelectedItem: (selectedItem: SelectedItem) => void,
-    setSelectedNamespace: (selectedNamespace: string | undefined) => void,
     panelIndex: number,
     selectedItem: SelectedItem,
   ): void => {
@@ -498,7 +481,6 @@ function MetricsDropdown(props: MetricsDropdownProps) {
     selectedArtifacts[panelIndex].selectedItem = selectedItem;
     const linkedArtifact = getLinkedArtifactFromSelectedItem(filteredRunArtifacts, selectedItem);
     selectedArtifacts[panelIndex].linkedArtifact = linkedArtifact;
-    setSelectedNamespace(getNamespace(selectedItem, filteredRunArtifacts));
     updateSelectedArtifacts(selectedArtifacts);
   };
 
@@ -517,18 +499,13 @@ function MetricsDropdown(props: MetricsDropdownProps) {
               title={`Choose a first ${metricsTabText} artifact`}
               items={dropdownItems}
               selectedItem={firstSelectedItem}
-              setSelectedItem={updateSelectedItemAndArtifact.bind(
-                null,
-                setFirstSelectedItem,
-                setFirstSelectedNamespace,
-                0,
-              )}
+              setSelectedItem={updateSelectedItemAndArtifact.bind(null, setFirstSelectedItem, 0)}
             />
             <VisualizationPanelItem
               metricsTab={metricsTab}
               metricsTabText={metricsTabText}
               linkedArtifact={selectedArtifacts[0].linkedArtifact}
-              namespace={firstSelectedNamespace}
+              namespace={namespace}
             />
           </td>
           <td className={classes(css.cell, css.rightCell)}>
@@ -536,18 +513,13 @@ function MetricsDropdown(props: MetricsDropdownProps) {
               title={`Choose a second ${metricsTabText} artifact`}
               items={dropdownItems}
               selectedItem={secondSelectedItem}
-              setSelectedItem={updateSelectedItemAndArtifact.bind(
-                null,
-                setSecondSelectedItem,
-                setSecondSelectedNamespace,
-                1,
-              )}
+              setSelectedItem={updateSelectedItemAndArtifact.bind(null, setSecondSelectedItem, 1)}
             />
             <VisualizationPanelItem
               metricsTab={metricsTab}
               metricsTabText={metricsTabText}
               linkedArtifact={selectedArtifacts[1].linkedArtifact}
-              namespace={secondSelectedNamespace}
+              namespace={namespace}
             />
           </td>
         </tr>
@@ -559,6 +531,7 @@ function MetricsDropdown(props: MetricsDropdownProps) {
 function CompareV2(props: PageProps) {
   const { updateBanner, updateToolbar } = props;
 
+  const namespace: string | undefined = useContext(NamespaceContext);
   const runlistRef = useRef<RunList>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [metricsTab, setMetricsTab] = useState(MetricsType.SCALAR_METRICS);
@@ -815,6 +788,7 @@ function CompareV2(props: PageProps) {
                 metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
                 updateSelectedArtifacts={updateSelectedArtifacts}
+                namespace={namespace}
               />
             )}
             {metricsTab === MetricsType.ROC_CURVE && <p>This is the {metricsTabText} tab.</p>}
@@ -825,6 +799,7 @@ function CompareV2(props: PageProps) {
                 metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
                 updateSelectedArtifacts={updateSelectedArtifacts}
+                namespace={namespace}
               />
             )}
             {metricsTab === MetricsType.MARKDOWN && (
@@ -834,6 +809,7 @@ function CompareV2(props: PageProps) {
                 metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
                 updateSelectedArtifacts={updateSelectedArtifacts}
+                namespace={namespace}
               />
             )}
           </div>
