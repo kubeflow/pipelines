@@ -369,7 +369,6 @@ class PythonOpTestCase(unittest.TestCase):
                 #('custom_struct_type_param', {'CustomType': {'param1': 'value1', 'param2': 'value2'}}), # TypeError: NamedTuple('Name', [(f0, t0), (f1, t1), ...]); each t must be a type Got {'CustomType': {'param1': 'value1', 'param2': 'value2'}}
             ]):
             """Function docstring."""
-            pass
 
         component_spec = comp._python_op._extract_component_interface(my_func)
 

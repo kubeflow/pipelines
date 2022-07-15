@@ -13,8 +13,8 @@
 # limitations under the License.
 
 import functools
-import warnings
 from typing import Callable, List, Optional
+import warnings
 
 from kfp.components import component_factory
 

@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import configparser
 import contextlib
 import enum
 import pathlib
@@ -348,7 +347,6 @@ class _ComponentBuilder():
 @app.callback()
 def components():
     """Builds shareable, containerized components."""
-    pass
 
 
 @app.command()

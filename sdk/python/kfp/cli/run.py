@@ -30,7 +30,6 @@ from kfp.cli.utils import parsing
         {'submit': 'create'}))
 def run():
     """Manage run resources."""
-    pass
 
 
 @run.command()

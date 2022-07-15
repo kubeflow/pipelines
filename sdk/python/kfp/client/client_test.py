@@ -15,13 +15,13 @@
 import os
 import tempfile
 import unittest
-import yaml
 
 from absl.testing import parameterized
 from kfp.client import client
 from kfp.compiler import Compiler
 from kfp.dsl import component
 from kfp.dsl import pipeline
+import yaml
 
 
 class TestValidatePipelineName(parameterized.TestCase):

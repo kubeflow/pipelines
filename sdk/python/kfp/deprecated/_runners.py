@@ -17,7 +17,7 @@ __all__ = [
     "run_pipeline_func_locally",
 ]
 
-from typing import Callable, List, Mapping, Optional
+from typing import Callable, Mapping, Optional
 
 from . import Client, LocalClient, dsl
 

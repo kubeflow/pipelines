@@ -101,4 +101,3 @@ class BaseComponent(metaclass=abc.ABCMeta):
         the function. For "Bring your own container" component, the
         implementation of this method could be `docker run`.
         """
-        pass

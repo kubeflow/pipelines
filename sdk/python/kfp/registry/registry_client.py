@@ -20,8 +20,8 @@ import re
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import google.auth
-import requests
 from google.auth import credentials
+import requests
 
 _KNOWN_HOSTS_REGEX = {
     'kfp_pkg_dev': (
@@ -35,9 +35,12 @@ _DEFAULT_JSON_HEADER = {
 
 _VERSION_PREFIX = 'sha256:'
 
-LOCAL_REGISTRY_CREDENTIAL = os.path.expanduser('~/.config/kfp/registry_credentials.json')
-LOCAL_REGISTRY_CONTEXT = os.path.expanduser('~/.config/kfp/registry_context.json')
-DEFAULT_REGISTRY_CONTEXT = os.path.join(os.path.dirname(__file__), 'context/default_pkg_dev.json')
+LOCAL_REGISTRY_CREDENTIAL = os.path.expanduser(
+    '~/.config/kfp/registry_credentials.json')
+LOCAL_REGISTRY_CONTEXT = os.path.expanduser(
+    '~/.config/kfp/registry_context.json')
+DEFAULT_REGISTRY_CONTEXT = os.path.join(
+    os.path.dirname(__file__), 'context/default_pkg_dev.json')
 
 
 class _SafeDict(dict):
@@ -387,7 +390,7 @@ class RegistryClient:
             package_name: Name of the package.
             version: Version of the package.
             tag: Tag attached to the package.
-            file_name: File name to be saved as. If not specified, the 
+            file_name: File name to be saved as. If not specified, the
                 file name will be based on the package name and version/tag.
 
         Returns:

@@ -13,15 +13,14 @@
 # limitations under the License.
 """Tests for KFP Registry RegistryClient."""
 
-import builtins
 import json
 import os
-import requests
 from unittest import mock
 
 from absl.testing import parameterized
 from kfp.registry import ApiAuth
 from kfp.registry import RegistryClient
+import requests
 
 _DEFAULT_HOST = 'https://us-central1-kfp.pkg.dev/proj/repo'
 _KFP_CONFIG_FILE = os.path.join(
@@ -49,8 +48,7 @@ class RegistryClientTest(parameterized.TestCase):
 
     def test_is_ar_host_false(self):
         client = RegistryClient(
-            host='https://hub.docker.com/r/google/cloud-sdk',
-            auth=ApiAuth(''))
+            host='https://hub.docker.com/r/google/cloud-sdk', auth=ApiAuth(''))
         self.assertFalse(client._is_ar_host())
 
     def test_load_config(self):
