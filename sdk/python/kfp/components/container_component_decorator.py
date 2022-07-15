@@ -47,6 +47,5 @@ def container_component(
             should have type annotations for all its arguments, indicating how
             it is intended to be used (e.g. as an input/output Artifact object,
             a plain parameter, or a path to a file).
-
     """
     return component_factory.create_container_component_from_func(func)

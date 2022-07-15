@@ -21,9 +21,9 @@ from typing import Callable, List, Optional, Tuple
 import warnings
 
 import docstring_parser
+from kfp.components import container_component
 from kfp.components import placeholders
 from kfp.components import python_component
-from kfp.components import container_component
 from kfp.components import structures
 from kfp.components.types import artifact_types
 from kfp.components.types import type_annotations
@@ -440,8 +440,8 @@ def create_component_from_func(func: Callable,
 
 def extract_container_component_interface(
         func: Callable) -> structures.ComponentSpec:
-    """Extracting the type annotations from function signature, without analyzing return annotation.
-    """
+    """Extracting the type annotations from function signature, without
+    analyzing return annotation."""
     signature = inspect.signature(func)
     parameters = list(signature.parameters.values())
 
@@ -542,8 +542,8 @@ def create_container_component_from_func(
         func: Callable) -> container_component.ContainerComponent:
     """Implementation for the @container_component decorator.
 
-    The decorator is defined under container_component_decorator.py. See the
-    decorator for the canonical documentation for this function.
+    The decorator is defined under container_component_decorator.py. See
+    the decorator for the canonical documentation for this function.
     """
 
     component_spec = extract_container_component_interface(func)

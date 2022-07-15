@@ -14,9 +14,9 @@
 
 import unittest
 
+from kfp import dsl
 from kfp.components import container_component
 from kfp.components import container_component_decorator
-from kfp import dsl
 
 
 class TestContainerComponentDecorator(unittest.TestCase):
