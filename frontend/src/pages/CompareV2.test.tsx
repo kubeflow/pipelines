@@ -139,7 +139,7 @@ describe('CompareV2', () => {
     jest.spyOn(artifact, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
     return artifact;
   }
-/*
+
   it('Render Compare v2 page', async () => {
     render(
       <CommonTestWrapper>
@@ -939,8 +939,7 @@ describe('CompareV2', () => {
     await waitFor(() => {
       screen.getByText('Error: failed loading HTML file. Click Details for more information.');
     });
-  });*/
-
+  });
 
   describe('EnhancedCompareV2', () => {
     it('Redirects to experiments page when namespace changes', () => {

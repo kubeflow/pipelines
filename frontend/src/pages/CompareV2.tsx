@@ -853,7 +853,7 @@ function EnhancedCompareV2(props: PageProps) {
     return <Redirect to={RoutePage.EXPERIMENTS} />;
   }
   return <CompareV2 {...props} />;
-};
+}
 
 export default EnhancedCompareV2;
 
