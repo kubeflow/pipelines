@@ -4,7 +4,7 @@
 Component to get inferences for an entire dataset in SageMaker from a Kubeflow Pipelines workflow.
 
 ## Details
-With [batch transform](https://docs.aws.amazon.com/sagemaker/latest/dg/how-it-works-batch.html), you create a batch transform job using a trained model and the dataset, which must be stored in Amazon S3. Use batch transform when you:
+With [batch transform](https://docs.aws.amazon.com/sagemaker/latest/dg/kubernetes-sagemaker-components-for-kubeflow-pipelines.html), you create a batch transform job using a trained model and the dataset, which must be stored in Amazon S3. Use batch transform when you:
 
 * Want to get inferences for an entire dataset and index them to serve inferences in real time
 * Don't need a persistent endpoint that applications (for example, web or mobile apps) can call to get inferences
