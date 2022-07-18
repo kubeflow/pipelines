@@ -567,7 +567,6 @@ function CompareV2(props: PageProps) {
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
 
   const [confusionMatrixRunArtifacts, setConfusionMatrixRunArtifacts] = useState<RunArtifact[]>([]);
-  const [rocCurveRunArtifacts, setRocCurveRunArtifacts] = useState<RunArtifact[]>([]);
   const [htmlRunArtifacts, setHtmlRunArtifacts] = useState<RunArtifact[]>([]);
   const [markdownRunArtifacts, setMarkdownRunArtifacts] = useState<RunArtifact[]>([]);
 
@@ -654,29 +653,25 @@ function CompareV2(props: PageProps) {
       setConfusionMatrixRunArtifacts(
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX),
       );
-      setRocCurveRunArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.ROC_CURVE),
-      );
       setHtmlRunArtifacts(filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML));
       setMarkdownRunArtifacts(
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN),
       );
 
-      const filteredRocCurveRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
+      const rocCurveRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
         runArtifacts,
         artifactTypes,
         MetricsType.ROC_CURVE,
       );
-      setRocCurveRunArtifacts(filteredRocCurveRunArtifacts);
-      setRocCurveArtifacts(
-        flatMapDeep(
-          filteredRocCurveRunArtifacts.map(rocCurveArtifact =>
-            rocCurveArtifact.executionArtifacts.map(executionArtifact =>
-              executionArtifact.linkedArtifacts.map(linkedArtifact => linkedArtifact.artifact),
-            ),
+      const rocCurveArtifacts: Artifact[] = flatMapDeep(
+        rocCurveRunArtifacts.map(rocCurveArtifact =>
+          rocCurveArtifact.executionArtifacts.map(executionArtifact =>
+            executionArtifact.linkedArtifacts.map(linkedArtifact => linkedArtifact.artifact),
           ),
         ),
       );
+      setRocCurveArtifacts(rocCurveArtifacts);
+      setSelectedRocCurveArtifacts(rocCurveArtifacts.slice(0, 10));
     }
   }, [runs, mlmdPackages, artifactTypes]);
 
@@ -841,7 +836,8 @@ function CompareV2(props: PageProps) {
               />
             )}
             {metricsTab === MetricsType.ROC_CURVE && (
-              <ConfidenceMetricsSection artifacts={rocCurveArtifacts} />
+              // TODO(zpChris): Add more ROC Curve selections through checkbox system.
+              <ConfidenceMetricsSection artifacts={selectedRocCurveArtifacts} />
             )}
             {metricsTab === MetricsType.HTML && (
               <MetricsDropdown

@@ -384,7 +384,7 @@ export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSection
       <div className={padding(40, 'b')}>
         <h3>
           {/* Do we consolidate the names? */}
-          {'ROC Curve: ' + names.reduce((name, prevName) => name + ', ' + prevName)}{' '}
+          {'ROC Curve: ' + (names.length === 1 ? names[0] : 'multiple artifacts')}{' '}
           <IconWithTooltip
             Icon={HelpIcon}
             iconColor={color.weak}
