@@ -13,8 +13,8 @@
 # limitations under the License.
 import os
 
-from kfp import dsl
 from kfp import compiler
+from kfp import dsl
 
 
 @dsl.container_component
@@ -31,7 +31,7 @@ def pipeline_container_no_input():
     container_no_input()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     # execute only if run as a script
     compiler.Compiler().compile(
         pipeline_func=pipeline_container_no_input,

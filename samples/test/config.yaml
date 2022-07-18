@@ -122,7 +122,7 @@
   path: samples.v2.producer_consumer_param_test
 - name: pipeline_with_importer
   path: samples.v2.pipeline_with_importer_test
-- nmae: pipeline_container_no_input
+- name: pipeline_container_no_input
   path: samples.v2.pipeline_container_no_input_test
 # TODO(capri-xiyue): Re-enable after figuring out V2 Engine
 # and protobuf.Value support.
