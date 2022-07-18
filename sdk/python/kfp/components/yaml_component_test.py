@@ -120,7 +120,7 @@ class YamlComponentTest(unittest.TestCase):
                 response = requests.Response()
                 response.url = component_url
                 response.status_code = 200
-                response._content = SAMPLE_YAML
+                response._content = SAMPLE_YAML.encode('utf-8')
                 return response
             raise RuntimeError('Unexpected URL "{}"'.format(url))
 
