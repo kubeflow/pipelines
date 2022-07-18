@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import kfp.deprecated.dsl as dsl
-from kfp.deprecated.dsl import _for_loop
 
 
 @dsl.pipeline(name='my-pipeline')
@@ -53,9 +52,10 @@ def pipeline(my_pipe_param: int = 10):
 
 
 if __name__ == '__main__':
+    import time
+
     from kfp.deprecated import compiler
     import kfp.deprecated as kfp
-    import time
     client = kfp.Client(host='127.0.0.1:8080/pipeline')
     print(compiler.Compiler().compile(pipeline, package_path=None))
 

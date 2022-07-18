@@ -28,7 +28,6 @@ from kfp.cli.utils import parsing
     }))
 def pipeline():
     """Manage pipeline resources."""
-    pass
 
 
 @pipeline.command()

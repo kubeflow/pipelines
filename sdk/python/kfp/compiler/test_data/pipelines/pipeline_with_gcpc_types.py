@@ -17,7 +17,6 @@ from kfp import components
 from kfp import dsl
 from kfp.dsl import component
 from kfp.dsl import Input
-from kfp.dsl import Output
 
 
 class VertexModel(dsl.Artifact):

@@ -17,7 +17,6 @@ import unittest
 
 from absl.testing import parameterized
 from kfp.components import placeholders
-from kfp.components import structures
 
 
 class TestExecutorInputPlaceholder(parameterized.TestCase):

@@ -16,7 +16,6 @@
 from kfp import compiler
 from kfp import components
 from kfp import dsl
-from kfp.dsl import component
 
 exit_op = components.load_component_from_text("""
 name: Exit Op
