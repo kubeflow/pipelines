@@ -175,7 +175,7 @@ export function MetricsVisualizations({
       {classificationMetricsArtifacts.map(artifact => {
         return (
           <React.Fragment key={artifact.getId()}>
-            <ConfidenceMetricsSection artifact={artifact} />
+            <ConfidenceMetricsSection artifacts={[artifact]} />
             <ConfusionMatrixSection artifact={artifact} />
           </React.Fragment>
         );
@@ -345,32 +345,46 @@ type ConfidenceMetric = {
 };
 
 interface ConfidenceMetricsSectionProps {
-  artifact: Artifact;
+  artifacts: Artifact[];
 }
 
-function ConfidenceMetricsSection({ artifact }: ConfidenceMetricsSectionProps) {
-  const customProperties = artifact.getCustomPropertiesMap();
-  const name = customProperties.get('display_name')?.getStringValue();
+export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSectionProps) {
+  const customPropertiesList = artifacts.map(artifact => artifact.getCustomPropertiesMap());
+  const names = customPropertiesList.map(customProperties =>
+    customProperties.get('display_name')?.getStringValue(),
+  );
 
-  const confidenceMetrics = customProperties
-    .get('confidenceMetrics')
-    ?.getStructValue()
-    ?.toJavaScript();
-  if (confidenceMetrics === undefined) {
+  let confidenceMetricsList = customPropertiesList.map(customProperties =>
+    customProperties
+      .get('confidenceMetrics')
+      ?.getStructValue()
+      ?.toJavaScript(),
+  );
+
+  confidenceMetricsList = confidenceMetricsList.filter(confidenceMetrics => confidenceMetrics);
+  if (confidenceMetricsList.length === 0) {
     return null;
   }
 
-  const { error } = validateConfidenceMetrics((confidenceMetrics as any).list);
+  const rocCurveConfigs: ROCCurveConfig[] = [];
+  for (let i = 0; i < confidenceMetricsList.length; i++) {
+    const confidenceMetrics = confidenceMetricsList[i] as any;
+    const { error } = validateConfidenceMetrics(confidenceMetrics.list);
 
-  if (error) {
-    const errorMsg = 'Error in ' + name + " artifact's confidenceMetrics data format.";
-    return <Banner message={errorMsg} mode='error' additionalInfo={error} />;
+    // If an error exists with confidence metrics, return and show the first one with an issue.
+    if (error) {
+      const errorMsg = 'Error in ' + names[i] + " artifact's confidenceMetrics data format.";
+      return <Banner message={errorMsg} mode='error' additionalInfo={error} />;
+    }
+
+    rocCurveConfigs.push(buildRocCurveConfig(confidenceMetrics.list));
   }
   return (
     <div className={padding(40, 'lrt')}>
       <div className={padding(40, 'b')}>
         <h3>
-          {'ROC Curve: ' + name}{' '}
+          {/* Do we consolidate the names? */}
+          {'ROC Curve: ' + names.reduce((name, prevName) => name + ', ' + prevName)}{' '}
           <IconWithTooltip
             Icon={HelpIcon}
             iconColor={color.weak}
@@ -378,7 +392,7 @@ function ConfidenceMetricsSection({ artifact }: ConfidenceMetricsSectionProps) {
           ></IconWithTooltip>
         </h3>
       </div>
-      <ROCCurve configs={buildRocCurveConfig((confidenceMetrics as any).list)} />
+      <ROCCurve configs={rocCurveConfigs} />
     </div>
   );
 }
@@ -400,18 +414,16 @@ function validateConfidenceMetrics(inputs: any): { error?: string } {
   return {};
 }
 
-function buildRocCurveConfig(confidenceMetricsArray: ConfidenceMetric[]): ROCCurveConfig[] {
+function buildRocCurveConfig(confidenceMetricsArray: ConfidenceMetric[]): ROCCurveConfig {
   const arraytypesCheck = ConfidenceMetricArrayRunType.check(confidenceMetricsArray);
-  return [
-    {
-      type: PlotType.ROC,
-      data: arraytypesCheck.map(metric => ({
-        label: (metric.confidenceThreshold as unknown) as string,
-        x: metric.falsePositiveRate,
-        y: metric.recall,
-      })),
-    },
-  ];
+  return {
+    type: PlotType.ROC,
+    data: arraytypesCheck.map(metric => ({
+      label: (metric.confidenceThreshold as unknown) as string,
+      x: metric.falsePositiveRate,
+      y: metric.recall,
+    })),
+  };
 }
 
 type AnnotationSpec = {

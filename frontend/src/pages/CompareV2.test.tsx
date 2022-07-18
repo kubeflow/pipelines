@@ -397,18 +397,17 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
+    // TODO(zpChris): This test will be improved after default error states are provided in #8029.
     screen.getByText('This is the Scalar Metrics tab.');
 
     fireEvent.click(screen.getByText('ROC Curve'));
-    screen.getByText('This is the ROC Curve tab.');
     expect(screen.queryByText('This is the Scalar Metrics Tab')).toBeNull();
 
     fireEvent.click(screen.getByText('ROC Curve'));
-    screen.getByText('This is the ROC Curve tab.');
+    expect(screen.queryByText('This is the Scalar Metrics Tab')).toBeNull();
 
     fireEvent.click(screen.getByText('Scalar Metrics'));
     screen.getByText('This is the Scalar Metrics tab.');
-    expect(screen.queryByText('This is the ROC Curve Tab')).toBeNull();
   });
 
   it('Two-panel tabs have no dropdown loaded as content is not present', async () => {
@@ -489,7 +488,7 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    await waitFor(() => expect(filterLinkedArtifactsByTypeSpy).toHaveBeenCalledTimes(9));
+    await waitFor(() => expect(filterLinkedArtifactsByTypeSpy).toHaveBeenCalledTimes(12));
 
     fireEvent.click(screen.getByText('Confusion Matrix'));
     screen.getByText('Choose a first Confusion Matrix artifact');

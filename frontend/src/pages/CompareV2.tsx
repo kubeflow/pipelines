@@ -48,6 +48,7 @@ import TwoLevelDropdown, {
 } from 'src/components/TwoLevelDropdown';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import {
+  ConfidenceMetricsSection,
   ConfusionMatrixSection,
   getHtmlViewerConfig,
   getMarkdownViewerConfig,
@@ -56,6 +57,7 @@ import PlotCard from 'src/components/PlotCard';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Banner from 'src/components/Banner';
+import { flatMapDeep } from 'lodash';
 
 const css = stylesheet({
   leftCell: {
@@ -565,6 +567,7 @@ function CompareV2(props: PageProps) {
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
 
   const [confusionMatrixArtifacts, setConfusionMatrixArtifacts] = useState<RunArtifact[]>([]);
+  const [rocCurveArtifacts, setRocCurveArtifacts] = useState<RunArtifact[]>([]);
   const [htmlArtifacts, setHtmlArtifacts] = useState<RunArtifact[]>([]);
   const [markdownArtifacts, setMarkdownArtifacts] = useState<RunArtifact[]>([]);
 
@@ -647,6 +650,9 @@ function CompareV2(props: PageProps) {
       const runArtifacts: RunArtifact[] = getRunArtifacts(runs, mlmdPackages);
       setConfusionMatrixArtifacts(
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX),
+      );
+      setRocCurveArtifacts(
+        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.ROC_CURVE),
       );
       setHtmlArtifacts(filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML));
       setMarkdownArtifacts(
@@ -750,6 +756,16 @@ function CompareV2(props: PageProps) {
     setSelectedArtifactsMap(selectedArtifactsMap);
   };
 
+  const getRocCurveArtifacts = (rocCurveArtifacts: RunArtifact[]): Artifact[] => {
+    return flatMapDeep(
+      rocCurveArtifacts.map(rocCurveArtifact =>
+        rocCurveArtifact.executionArtifacts.map(executionArtifact =>
+          executionArtifact.linkedArtifacts.map(linkedArtifact => linkedArtifact.artifact),
+        ),
+      ),
+    );
+  };
+
   const metricsTabText = metricsTypeToString(metricsTab);
   return (
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
@@ -815,7 +831,9 @@ function CompareV2(props: PageProps) {
                 updateSelectedArtifacts={updateSelectedArtifacts}
               />
             )}
-            {metricsTab === MetricsType.ROC_CURVE && <p>This is the {metricsTabText} tab.</p>}
+            {metricsTab === MetricsType.ROC_CURVE && (
+              <ConfidenceMetricsSection artifacts={getRocCurveArtifacts(rocCurveArtifacts)} />
+            )}
             {metricsTab === MetricsType.HTML && (
               <MetricsDropdown
                 filteredRunArtifacts={htmlArtifacts}
