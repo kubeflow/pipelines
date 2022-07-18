@@ -371,7 +371,7 @@ export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSection
     const confidenceMetrics = confidenceMetricsList[i] as any;
     const { error } = validateConfidenceMetrics(confidenceMetrics.list);
 
-    // If an error exists with confidence metrics, return and show the first one with an issue.
+    // If an error exists with confidence metrics, return the first one with an issue.
     if (error) {
       const errorMsg = 'Error in ' + names[i] + " artifact's confidenceMetrics data format.";
       return <Banner message={errorMsg} mode='error' additionalInfo={error} />;
@@ -383,7 +383,6 @@ export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSection
     <div className={padding(40, 'lrt')}>
       <div className={padding(40, 'b')}>
         <h3>
-          {/* Do we consolidate the names? */}
           {'ROC Curve: ' + (names.length === 1 ? names[0] : 'multiple artifacts')}{' '}
           <IconWithTooltip
             Icon={HelpIcon}
@@ -392,6 +391,7 @@ export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSection
           ></IconWithTooltip>
         </h3>
       </div>
+      {/* TODO(zpChris): Introduce checkbox system that matches artifacts to curves. */}
       <ROCCurve configs={rocCurveConfigs} />
     </div>
   );

@@ -835,10 +835,13 @@ function CompareV2(props: PageProps) {
                 updateSelectedArtifacts={updateSelectedArtifacts}
               />
             )}
-            {metricsTab === MetricsType.ROC_CURVE && (
-              // TODO(zpChris): Add more ROC Curve selections through checkbox system.
-              <ConfidenceMetricsSection artifacts={selectedRocCurveArtifacts} />
-            )}
+            {/* TODO(zpChris): Add more ROC Curve selections through checkbox system. */}
+            {metricsTab === MetricsType.ROC_CURVE &&
+              (selectedRocCurveArtifacts.length > 0 ? (
+                <ConfidenceMetricsSection artifacts={selectedRocCurveArtifacts} />
+              ) : (
+                <p>There are no ROC Curve artifacts available on the selected runs.</p>
+              ))}
             {metricsTab === MetricsType.HTML && (
               <MetricsDropdown
                 filteredRunArtifacts={htmlRunArtifacts}
