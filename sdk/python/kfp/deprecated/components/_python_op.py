@@ -40,7 +40,7 @@ import inspect
 import itertools
 from pathlib import Path
 import textwrap
-from typing import Callable, Dict, List, Mapping, Optional, TypeVar
+from typing import Callable, List, Mapping, Optional, TypeVar
 import warnings
 
 import docstring_parser
@@ -265,7 +265,7 @@ def _strip_type_hints_using_lib2to3(source_code: str) -> str:
 
     # Using the standard lib2to3 library to strip type annotations.
     # Switch to another library like strip-hints if issues are found.
-    from lib2to3 import fixer_base, refactor, fixer_util
+    from lib2to3 import fixer_base, refactor
 
     class StripAnnotations(fixer_base.BaseFix):
         PATTERN = r'''

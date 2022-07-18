@@ -15,8 +15,8 @@
 import unittest
 
 from absl.testing import parameterized
-from kfp.components import pipeline_channel
 from kfp.components import for_loop
+from kfp.components import pipeline_channel
 
 
 class ForLoopTest(parameterized.TestCase):

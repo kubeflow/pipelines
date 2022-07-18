@@ -17,7 +17,6 @@ import collections
 import json
 import re
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
-import warnings
 
 from google.protobuf import json_format
 from google.protobuf import struct_pb2
@@ -35,7 +34,6 @@ from kfp.components import utils as component_utils
 from kfp.components.types import artifact_types
 from kfp.components.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
-import yaml
 
 GroupOrTaskType = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
 

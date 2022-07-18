@@ -148,3 +148,28 @@ const addScalarDataItems = (
 
 const getDataMapKey = (scalarMetricName: string, artifactIndex: number): string =>
   `${scalarMetricName}-${artifactIndex}`;
+
+export enum MetricsType {
+  SCALAR_METRICS,
+  CONFUSION_MATRIX,
+  ROC_CURVE,
+  HTML,
+  MARKDOWN,
+}
+
+export const metricsTypeToString = (metricsType: MetricsType): string => {
+  switch (metricsType) {
+    case MetricsType.SCALAR_METRICS:
+      return 'Scalar Metrics';
+    case MetricsType.CONFUSION_MATRIX:
+      return 'Confusion Matrix';
+    case MetricsType.ROC_CURVE:
+      return 'ROC Curve';
+    case MetricsType.HTML:
+      return 'HTML';
+    case MetricsType.MARKDOWN:
+      return 'Markdown';
+    default:
+      return '';
+  }
+};

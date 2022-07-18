@@ -12,13 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import sys
 import unittest
-from pathlib import Path
 
 from kfp.deprecated import components as comp
-from kfp.deprecated.components.structures import ComponentReference, ComponentSpec, ContainerSpec, GraphInputReference, GraphSpec, InputSpec, InputValuePlaceholder, GraphImplementation, OutputPathPlaceholder, OutputSpec, TaskOutputArgument, TaskSpec
+from kfp.deprecated.components.structures import ComponentReference, ComponentSpec, GraphImplementation, GraphInputReference, GraphSpec, InputSpec, OutputSpec, TaskOutputArgument, TaskSpec
 
 from kfp.deprecated.components._yaml_utils import load_yaml
 

@@ -23,6 +23,8 @@ description: |
           The format in which instances are given, must be one of
           the model's supported input storage formats.
           If not set, default to "jsonl".
+      ground_truth_column (str):
+          The column name of the feature containing ground truth.
       dataflow_service_account (Optional[str]):
           Optional. Service account to run the dataflow job.
           If not set, dataflow will use the default woker service account.
@@ -48,6 +50,7 @@ inputs:
   - { name: root_dir, type: String }
   - { name: gcs_source_uris, type: JsonArray, default: "[]" }
   - { name: instances_format, type: String, default: "jsonl" }
+  - { name: ground_truth_column, type: String, default: "ground_truth"}
   - { name: dataflow_service_account, type: String, default: "" }
   - { name: dataflow_subnetwork, type: String, default: "" }
   - { name: dataflow_use_public_ips, type: Boolean, default: "true" }
@@ -76,6 +79,8 @@ implementation:
       - { inputValue: gcs_source_uris }
       - --instances_format
       - { inputValue: instances_format}
+      - --ground_truth_column
+      - { inputValue: ground_truth_column}
       - --dataflow_service_account
       - { inputValue: dataflow_service_account }
       - --dataflow_subnetwork

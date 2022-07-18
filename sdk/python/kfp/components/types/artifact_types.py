@@ -16,8 +16,7 @@
 These are only compatible with v2 Pipelines.
 """
 
-import os
-from typing import Dict, Generic, List, Optional, Type, TypeVar, Union
+from typing import Dict, List, Optional
 
 _GCS_LOCAL_MOUNT_PREFIX = '/gcs/'
 _MINIO_LOCAL_MOUNT_PREFIX = '/minio/'

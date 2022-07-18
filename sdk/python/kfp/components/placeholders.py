@@ -304,7 +304,7 @@ class ConcatPlaceholder(base_model.BaseModel, Placeholder):
 
     def to_placeholder_struct(self) -> Dict[str, Any]:
         return {
-            "Concat": [
+            'Concat': [
                 maybe_convert_placeholder_to_placeholder_string(item)
                 for item in self.items
             ]
@@ -355,7 +355,7 @@ class IfPresentPlaceholder(base_model.BaseModel, Placeholder):
     @classmethod
     def is_match(cls, string: str) -> bool:
         try:
-            return "IfPresent" in json.loads(string)
+            return 'IfPresent' in json.loads(string)
         except json.decoder.JSONDecodeError:
             return False
 
@@ -364,13 +364,13 @@ class IfPresentPlaceholder(base_model.BaseModel, Placeholder):
             maybe_convert_placeholder_to_placeholder_string(item)
             for item in self.then
         ] if isinstance(self.then, list) else self.then
-        struct = {"IfPresent": {"InputName": self.input_name, "Then": then}}
+        struct = {'IfPresent': {'InputName': self.input_name, 'Then': then}}
         if self.else_:
             otherwise = [
                 maybe_convert_placeholder_to_placeholder_string(item)
                 for item in self.else_
             ] if isinstance(self.else_, list) else self.else_
-            struct["IfPresent"]["Else"] = otherwise
+            struct['IfPresent']['Else'] = otherwise
         return struct
 
     def to_placeholder_string(self) -> str:

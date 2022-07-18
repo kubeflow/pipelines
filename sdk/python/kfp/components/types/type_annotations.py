@@ -53,12 +53,10 @@ class InputPath:
 
 class InputAnnotation():
     """Marker type for input artifacts."""
-    pass
 
 
 class OutputAnnotation():
     """Marker type for output artifacts."""
-    pass
 
 
 # Input represents an Input artifact of type T.

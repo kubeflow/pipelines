@@ -13,8 +13,6 @@
 # limitations under the License.
 """Tests for kfp.compiler.pipeline_spec_builder."""
 
-import os
-import tempfile
 import unittest
 
 from absl.testing import parameterized
