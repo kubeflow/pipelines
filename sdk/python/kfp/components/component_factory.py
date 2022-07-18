@@ -533,7 +533,7 @@ def extract_container_component_interface(
         inputs=inputs if inputs else None,
         outputs=outputs if outputs else None,
         # Dummy implementation to bypass model validation.
-        implementation=func())
+        implementation=structures.Implementation(func()))
     return component_spec
 
 
