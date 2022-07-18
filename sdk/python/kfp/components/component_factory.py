@@ -533,8 +533,7 @@ def extract_container_component_interface(
         inputs=inputs if inputs else None,
         outputs=outputs if outputs else None,
         # Dummy implementation to bypass model validation.
-        implementation=structures.Implementation(),
-    )
+        implementation=func())
     return component_spec
 
 
@@ -547,6 +546,4 @@ def create_container_component_from_func(
     """
 
     component_spec = extract_container_component_interface(func)
-    component_spec.implementation = structures.Implementation(
-        func())  # TODO: Milestone 1b: add compatability for placeholder in args
     return container_component.ContainerComponent(component_spec, func)
