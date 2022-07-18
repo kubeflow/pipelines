@@ -566,10 +566,13 @@ function CompareV2(props: PageProps) {
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
 
-  const [confusionMatrixArtifacts, setConfusionMatrixArtifacts] = useState<RunArtifact[]>([]);
-  const [rocCurveArtifacts, setRocCurveArtifacts] = useState<RunArtifact[]>([]);
-  const [htmlArtifacts, setHtmlArtifacts] = useState<RunArtifact[]>([]);
-  const [markdownArtifacts, setMarkdownArtifacts] = useState<RunArtifact[]>([]);
+  const [confusionMatrixRunArtifacts, setConfusionMatrixRunArtifacts] = useState<RunArtifact[]>([]);
+  const [rocCurveRunArtifacts, setRocCurveRunArtifacts] = useState<RunArtifact[]>([]);
+  const [htmlRunArtifacts, setHtmlRunArtifacts] = useState<RunArtifact[]>([]);
+  const [markdownRunArtifacts, setMarkdownRunArtifacts] = useState<RunArtifact[]>([]);
+
+  const [rocCurveArtifacts, setRocCurveArtifacts] = useState<Artifact[]>([]);
+  const [selectedRocCurveArtifacts, setSelectedRocCurveArtifacts] = useState<Artifact[]>([]);
 
   // Selected artifacts for two-panel layout.
   const createSelectedArtifactArray = (count: number): SelectedArtifact[] => {
@@ -648,15 +651,31 @@ function CompareV2(props: PageProps) {
   useEffect(() => {
     if (runs && mlmdPackages && artifactTypes) {
       const runArtifacts: RunArtifact[] = getRunArtifacts(runs, mlmdPackages);
-      setConfusionMatrixArtifacts(
+      setConfusionMatrixRunArtifacts(
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX),
       );
-      setRocCurveArtifacts(
+      setRocCurveRunArtifacts(
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.ROC_CURVE),
       );
-      setHtmlArtifacts(filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML));
-      setMarkdownArtifacts(
+      setHtmlRunArtifacts(filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML));
+      setMarkdownRunArtifacts(
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN),
+      );
+
+      const filteredRocCurveRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
+        runArtifacts,
+        artifactTypes,
+        MetricsType.ROC_CURVE,
+      );
+      setRocCurveRunArtifacts(filteredRocCurveRunArtifacts);
+      setRocCurveArtifacts(
+        flatMapDeep(
+          filteredRocCurveRunArtifacts.map(rocCurveArtifact =>
+            rocCurveArtifact.executionArtifacts.map(executionArtifact =>
+              executionArtifact.linkedArtifacts.map(linkedArtifact => linkedArtifact.artifact),
+            ),
+          ),
+        ),
       );
     }
   }, [runs, mlmdPackages, artifactTypes]);
@@ -756,16 +775,6 @@ function CompareV2(props: PageProps) {
     setSelectedArtifactsMap(selectedArtifactsMap);
   };
 
-  const getRocCurveArtifacts = (rocCurveArtifacts: RunArtifact[]): Artifact[] => {
-    return flatMapDeep(
-      rocCurveArtifacts.map(rocCurveArtifact =>
-        rocCurveArtifact.executionArtifacts.map(executionArtifact =>
-          executionArtifact.linkedArtifacts.map(linkedArtifact => linkedArtifact.artifact),
-        ),
-      ),
-    );
-  };
-
   const metricsTabText = metricsTypeToString(metricsTab);
   return (
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
@@ -824,7 +833,7 @@ function CompareV2(props: PageProps) {
             {metricsTab === MetricsType.SCALAR_METRICS && <p>This is the Scalar Metrics tab.</p>}
             {metricsTab === MetricsType.CONFUSION_MATRIX && (
               <MetricsDropdown
-                filteredRunArtifacts={confusionMatrixArtifacts}
+                filteredRunArtifacts={confusionMatrixRunArtifacts}
                 metricsTab={metricsTab}
                 metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
@@ -832,11 +841,11 @@ function CompareV2(props: PageProps) {
               />
             )}
             {metricsTab === MetricsType.ROC_CURVE && (
-              <ConfidenceMetricsSection artifacts={getRocCurveArtifacts(rocCurveArtifacts)} />
+              <ConfidenceMetricsSection artifacts={rocCurveArtifacts} />
             )}
             {metricsTab === MetricsType.HTML && (
               <MetricsDropdown
-                filteredRunArtifacts={htmlArtifacts}
+                filteredRunArtifacts={htmlRunArtifacts}
                 metricsTab={metricsTab}
                 metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
@@ -845,7 +854,7 @@ function CompareV2(props: PageProps) {
             )}
             {metricsTab === MetricsType.MARKDOWN && (
               <MetricsDropdown
-                filteredRunArtifacts={markdownArtifacts}
+                filteredRunArtifacts={markdownRunArtifacts}
                 metricsTab={metricsTab}
                 metricsTabText={metricsTabText}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
