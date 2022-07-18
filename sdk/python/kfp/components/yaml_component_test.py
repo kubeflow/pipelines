@@ -113,27 +113,17 @@ class YamlComponentTest(unittest.TestCase):
             component.component_spec.implementation.container.image, 'alpine')
 
     def test_load_component_from_url(self):
-        component_url = 'https://raw.githubusercontent.com/some/repo/components/component_group/component.yaml'
+        component_url = 'https://raw.githubusercontent.com/kubeflow/pipelines/7b49eadf621a9054e1f1315c86f95fb8cf8c17c3/sdk/python/kfp/compiler/test_data/components/identity.yaml'
+        component = yaml_component.load_component_from_url(component_url)
 
-        def mock_response_factory(url, params=None, **kwargs):
-            if url == component_url:
-                response = requests.Response()
-                response.url = component_url
-                response.status_code = 200
-                response._content = SAMPLE_YAML.encode('utf-8')
-                return response
-            raise RuntimeError('Unexpected URL "{}"'.format(url))
-
-        with mock.patch('requests.get', mock_response_factory):
-            component = yaml_component.load_component_from_url(component_url)
-            self.assertEqual(component.component_spec.name, 'component-1')
-            self.assertEqual(component.component_spec.outputs,
-                             {'output1': structures.OutputSpec(type='String')})
-            self.assertEqual(component._component_inputs, {'input1'})
-            self.assertEqual(component.name, 'component-1')
-            self.assertEqual(
-                component.component_spec.implementation.container.image,
-                'alpine')
+        self.assertEqual(component.component_spec.name, 'identity')
+        self.assertEqual(component.component_spec.outputs,
+                         {'Output': structures.OutputSpec(type='String')})
+        self.assertEqual(component._component_inputs, {'value'})
+        self.assertEqual(component.name, 'identity')
+        self.assertEqual(
+            component.component_spec.implementation.container.image,
+            'python:3.7')
 
 
 if __name__ == '__main__':
