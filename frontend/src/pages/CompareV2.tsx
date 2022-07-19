@@ -292,7 +292,7 @@ function CompareV2(props: PageProps) {
         ),
       );
       setRocCurveArtifacts(rocCurveArtifacts);
-      setSelectedRocCurveArtifacts(rocCurveArtifacts.slice(0, 10));
+      setSelectedRocCurveArtifacts(rocCurveArtifacts.slice(0, 3));
     }
   }, [runs, mlmdPackages, artifactTypes]);
 
