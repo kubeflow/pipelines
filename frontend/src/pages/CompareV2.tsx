@@ -387,7 +387,7 @@ function CompareV2(props: PageProps) {
     } else {
       setScalarMetricsTableData(compareTableProps);
     }
-  }, [scalarMetricsArtifacts]);
+  }, [scalarMetricsArtifacts, scalarMetricsArtifactCount]);
 
   const updateSelectedArtifacts = (newArtifacts: SelectedArtifact[]) => {
     selectedArtifactsMap[metricsTab] = newArtifacts;
