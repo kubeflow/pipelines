@@ -354,14 +354,15 @@ export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSection
     customProperties.get('display_name')?.getStringValue(),
   );
 
-  let confidenceMetricsList = customPropertiesList.map(customProperties =>
-    customProperties
-      .get('confidenceMetrics')
-      ?.getStructValue()
-      ?.toJavaScript(),
-  );
+  const confidenceMetricsList = customPropertiesList
+    .map(customProperties =>
+      customProperties
+        .get('confidenceMetrics')
+        ?.getStructValue()
+        ?.toJavaScript(),
+    )
+    .filter(confidenceMetrics => confidenceMetrics);
 
-  confidenceMetricsList = confidenceMetricsList.filter(confidenceMetrics => confidenceMetrics);
   if (confidenceMetricsList.length === 0) {
     return null;
   }
