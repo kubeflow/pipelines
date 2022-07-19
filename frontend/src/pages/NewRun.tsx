@@ -175,7 +175,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     return {
       actions: {},
       breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
-      pageTitle: 'Start a new run v1',
+      pageTitle: 'Start a new run',
     };
   }
 

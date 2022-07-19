@@ -9,42 +9,30 @@ import { NewRun } from './NewRun';
 import NewRunV2 from './NewRunV2';
 import { PageProps } from './Page';
 import { isTemplateV2 } from 'src/lib/v2/WorkflowUtils';
-import RunUtils from 'src/lib/RunUtils';
 
 function NewRunSwitcher(props: PageProps) {
   const namespace = React.useContext(NamespaceContext);
-  //console.log(props);
 
   const urlParser = new URLParser(props);
   const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
-  console.log(originalRunId);
-
-  /* 
-  runID
-  if(runID) {
-    templateStr = Apis.runServiceApi.getRun(originalRunId)... pipelineManfest
-  }
-  */
-
-
-
-
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
   const pipelineVersionIdParam = urlParser.get(QUERY_PARAMS.pipelineVersionId);
-  //console.log(urlParser)
-  //console.log(pipelineId);
-  // console.log(pipelineVersionIdParam);
 
-  const { isSuccess, isFetching, data: templateString } = useQuery<string, Error>(
+  const { isSuccess: isSuccessRun, data: runTemplateString} = useQuery(
+    [originalRunId],
+    async () => {
+      if (!originalRunId) {
+        return '';        
+      }
+      const originalRun = await Apis.runServiceApi.getRun(originalRunId);
+      return originalRun.run?.pipeline_spec?.pipeline_manifest;
+    },
+    { staleTime: Infinity}
+  )
+
+  const { isSuccess: isSuccessPipeline, isFetching, data: pipelineTemplateString } = useQuery<string, Error>(
     [pipelineId, pipelineVersionIdParam],
     async () => {
-      // if (originalRunId) {
-      //     const originalRun = await (await Apis.runServiceApi.getRun(originalRunId)).run?.pipeline_spec.;
-      //     const pipelineID = RunUtils.getPipelineId(originalRun.run);
-      // }
-
-
-
       if (!pipelineId) {
         return '';
       }
@@ -57,14 +45,16 @@ function NewRunSwitcher(props: PageProps) {
 
       await Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionId);
       const template = await Apis.pipelineServiceApi.getPipelineVersionTemplate(pipelineVersionId);
-      console.log(template);
       return template?.template || '';
     },
     { staleTime: Infinity },
   );
 
+  const templateString = runTemplateString != '' ? runTemplateString : pipelineTemplateString;
+
   if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
-    if (isSuccess && isTemplateV2(templateString || '')) {
+    if ((isSuccessRun || isSuccessPipeline) && isTemplateV2(templateString || '')) {
+      console.log('create v2 component');
       return <NewRunV2 {...props} namespace={namespace} />;
     }
   }
@@ -72,8 +62,7 @@ function NewRunSwitcher(props: PageProps) {
   if (isFetching) {
     return <div>Currently loading pipeline information</div>;
   }
-  //console.log(namespace);
-
+  console.log('create v1 component');
   return <NewRun {...props} namespace={namespace} />;
 }
 

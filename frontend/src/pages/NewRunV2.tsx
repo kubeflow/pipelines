@@ -20,7 +20,7 @@ import { useMutation, useQuery } from 'react-query';
 import { ApiExperiment, ApiExperimentStorageState } from 'src/apis/experiment';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
-import { ApiRelationship, ApiResourceReference, ApiResourceType, ApiRun } from 'src/apis/run';
+import { ApiRelationship, ApiResourceReference, ApiResourceType, ApiRun, ApiRunDetail } from 'src/apis/run';
 import BusyButton from 'src/atoms/BusyButton';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { HelpButton } from 'src/atoms/HelpButton';
@@ -79,8 +79,33 @@ function NewRunV2(props: NewRunV2Props) {
 
   // TODO(zijianjoy): If creating run from Experiment Page or RunList Page, there is no pipelineId/Version.
   const urlParser = new URLParser(props);
+  const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
   const pipelineVersionIdParam = urlParser.get(QUERY_PARAMS.pipelineVersionId);
+
+  //Retrieve Run Detail using RunID (provided from _cloneRun() action) from backend
+  const { isSuccess: isRunPullSuccess, data: apiRun} = useQuery<ApiRunDetail, Error>(
+    ['ApiRun', originalRunId],
+    () => {
+      if (!originalRunId) {
+        throw new Error('No Run ID');
+      }
+      const originalRun = Apis.runServiceApi.getRun(originalRunId);
+      return originalRun;
+    },
+    {enabled: !!originalRunId, staleTime: Infinity},
+  )
+ 
+  const { isSuccess: isTemplatePullSuccessFromRun, data: templateStringFromRunId} = useQuery(
+    ['ApiRunTemplate', apiRun],
+    async () => {
+      if (!apiRun) {
+        return undefined;
+      }
+      return apiRun.run?.pipeline_spec?.pipeline_manifest;
+    },
+    {enabled: !!apiRun, staleTime: Infinity},
+  )
 
   // Retrieve Pipeline Detail using pipeline ID and pipeline version ID from backend.
   // It validates that the pipeline entity indeed exists with pipeline ID.
@@ -110,7 +135,7 @@ function NewRunV2(props: NewRunV2Props) {
     },
     { enabled: !!apiPipeline, staleTime: Infinity },
   );
-  const { isSuccess: isTemplatePullSuccess, data: templateString } = useQuery<string, Error>(
+  const { isSuccess: isTemplatePullSuccessFromPipeline, data: templateStringFromPipelineId } = useQuery<string, Error>(
     ['ApiPipelineVersionTemplate', apiPipeline, pipelineVersionIdParam],
     async () => {
       const pipelineVersionId = apiPipelineVersion?.id;
@@ -123,17 +148,25 @@ function NewRunV2(props: NewRunV2Props) {
     { enabled: !!apiPipelineVersion, staleTime: Infinity },
   );
 
+  const templateString = templateStringFromRunId != undefined ? templateStringFromRunId : templateStringFromPipelineId;
+  const isTemplatePullSuccess = isTemplatePullSuccessFromRun || isTemplatePullSuccessFromPipeline;
+  const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
+  const titleVerb = originalRunId ? 'Clone' : 'Start';
+
   // Title and list of actions on the top of page.
   useEffect(() => {
     props.updateToolbar({
       actions: {},
-      pageTitle: 'Start a new run v2',
+      pageTitle: isRecurringRun ? `${titleVerb} a recurring run` : `${titleVerb} a run v2`,
     });
   }, []);
 
   // When loading a pipeline version, automatically set the default run name.
   useEffect(() => {
-    if (apiPipelineVersion?.name) {
+    if (apiRun?.run?.name) {
+      const initRunName = 'Clone of ' + apiRun.run.name;
+      setRunName(initRunName);
+    } else if (apiPipelineVersion?.name) {
       const initRunName =
         'Run of ' + apiPipelineVersion.name + ' (' + generateRandomString(5) + ')';
       setRunName(initRunName);
