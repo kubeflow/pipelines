@@ -15,7 +15,8 @@
 from kfp import compiler
 from kfp import components
 from kfp import dsl
-from kfp.dsl import Artifact, Input
+from kfp.dsl import Artifact
+from kfp.dsl import Input
 
 component_op_1 = components.load_component_from_text("""
 name: upstream
