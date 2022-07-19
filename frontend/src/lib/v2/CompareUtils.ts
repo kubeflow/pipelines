@@ -21,6 +21,14 @@ import { Execution, Value } from 'src/third_party/mlmd';
 import * as jspb from 'google-protobuf';
 import { chain, flatten } from 'lodash';
 import { ApiRunDetail } from 'src/apis/run';
+import { stylesheet } from 'typestyle';
+
+export const compareCss = stylesheet({
+  relativeContainer: {
+    position: 'relative',
+    height: '30rem',
+  },
+});
 
 export interface ExecutionArtifact {
   execution: Execution;
@@ -148,3 +156,28 @@ const addScalarDataItems = (
 
 const getDataMapKey = (scalarMetricName: string, artifactIndex: number): string =>
   `${scalarMetricName}-${artifactIndex}`;
+
+export enum MetricsType {
+  SCALAR_METRICS,
+  CONFUSION_MATRIX,
+  ROC_CURVE,
+  HTML,
+  MARKDOWN,
+}
+
+export const metricsTypeToString = (metricsType: MetricsType): string => {
+  switch (metricsType) {
+    case MetricsType.SCALAR_METRICS:
+      return 'Scalar Metrics';
+    case MetricsType.CONFUSION_MATRIX:
+      return 'Confusion Matrix';
+    case MetricsType.ROC_CURVE:
+      return 'ROC Curve';
+    case MetricsType.HTML:
+      return 'HTML';
+    case MetricsType.MARKDOWN:
+      return 'Markdown';
+    default:
+      return '';
+  }
+};

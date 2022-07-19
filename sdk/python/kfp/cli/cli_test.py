@@ -18,12 +18,12 @@ import os
 import re
 import subprocess
 import tempfile
-import unittest
 from typing import List
+import unittest
 from unittest import mock
 
-import click
 from absl.testing import parameterized
+import click
 from click import testing
 from kfp.cli import cli
 from kfp.cli import dsl_compile
@@ -113,8 +113,8 @@ class TestCliAutocomplete(parameterized.TestCase):
                 os.makedirs(os.path.dirname(temp_path), exist_ok=True)
 
                 existing_file_contents = [
-                    "something\n",
-                    "something else" + ('\n' if has_trailing_newline else ''),
+                    'something\n',
+                    'something else' + ('\n' if has_trailing_newline else ''),
                 ]
                 with open(temp_path, 'w') as f:
                     f.writelines(existing_file_contents)

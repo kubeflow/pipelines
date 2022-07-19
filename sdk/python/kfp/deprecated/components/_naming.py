@@ -24,7 +24,6 @@ __all__ = [
     'generate_unique_name_conversion_table',
 ]
 
-import re
 import sys
 from typing import Callable, Sequence, Mapping
 

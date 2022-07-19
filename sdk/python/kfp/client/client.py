@@ -22,15 +22,15 @@ import re
 import tarfile
 import tempfile
 import time
-import warnings
-import zipfile
 from types import ModuleType
 from typing import Any, Callable, List, Mapping, Optional
+import warnings
+import zipfile
 
-import kfp_server_api
-import yaml
 from kfp import compiler
 from kfp.client import auth
+import kfp_server_api
+import yaml
 
 # Operators on scalar values. Only applies to one of |int_value|,
 # |long_value|, |string_value| or |timestamp_value|.

@@ -15,16 +15,9 @@
 
 import os
 import unittest
-import yaml
 import json
-import jsonschema
-
-from google.protobuf import json_format
-from google.protobuf.struct_pb2 import Struct
 
 from kfp.deprecated.dsl import metrics_utils
-
-from google.protobuf import json_format
 
 
 class MetricsUtilsTest(unittest.TestCase):
