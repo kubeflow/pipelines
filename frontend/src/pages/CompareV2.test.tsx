@@ -15,7 +15,6 @@
  */
 
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { createMemoryHistory } from 'history';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import TestUtils, { testBestPractices } from 'src/TestUtils';
@@ -23,15 +22,12 @@ import { Artifact, Context, Event, Execution } from 'src/third_party/mlmd';
 import { Apis } from 'src/lib/Apis';
 import { QUERY_PARAMS } from 'src/components/Router';
 import * as mlmdUtils from 'src/mlmd/MlmdUtils';
-import * as metricsVisualizations from 'src/components/viewers/MetricsVisualizations';
 import * as Utils from 'src/lib/Utils';
-import EnhancedCompareV2, { TEST_ONLY } from './CompareV2';
+import { TEST_ONLY } from './CompareV2';
 import { PageProps } from './Page';
 import { ApiRunDetail } from 'src/apis/run';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { Struct, Value } from 'google-protobuf/google/protobuf/struct_pb';
-import { Router } from 'react-router-dom';
-import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 const CompareV2 = TEST_ONLY.CompareV2;
 testBestPractices();

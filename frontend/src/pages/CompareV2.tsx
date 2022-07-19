@@ -177,10 +177,15 @@ export interface SelectedArtifact {
   linkedArtifact?: LinkedArtifact;
 }
 
-function CompareV2(props: PageProps) {
-  const { updateBanner, updateToolbar } = props;
+interface CompareV2Namespace {
+  namespace?: string;
+}
 
-  const namespace: string | undefined = useContext(NamespaceContext);
+export type CompareV2Props = PageProps & CompareV2Namespace;
+
+function CompareV2(props: CompareV2Props) {
+  const { updateBanner, updateToolbar, namespace } = props;
+
   const runlistRef = useRef<RunList>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [metricsTab, setMetricsTab] = useState(MetricsType.SCALAR_METRICS);
@@ -473,7 +478,9 @@ function EnhancedCompareV2(props: PageProps) {
     // exist in the new namespace, so we should redirect to experiment list page.
     return <Redirect to={RoutePage.EXPERIMENTS} />;
   }
-  return <CompareV2 {...props} />;
+
+  const namespace: string | undefined = useContext(NamespaceContext);
+  return <CompareV2 namespace={namespace} {...props} />;
 }
 
 export default EnhancedCompareV2;
