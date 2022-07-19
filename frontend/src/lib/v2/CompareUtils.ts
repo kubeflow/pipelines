@@ -36,11 +36,19 @@ interface ScalarTableData {
   xLabels: string[];
   scalarMetricNames: string[];
   xParentLabels: xParentLabel[];
-  dataMap: { [key: string]: string };
+  dataMap: { [key: string]: string[] };
 }
 
-export const getCompareTableProps = (scalarMetricsArtifacts: RunArtifact[]): CompareTableProps => {
-  const scalarTableData = getScalarTableData(scalarMetricsArtifacts);
+export interface RunArtifactData {
+  runArtifacts: RunArtifact[];
+  artifactCount: number;
+}
+
+export const getCompareTableProps = (
+  scalarMetricsArtifacts: RunArtifact[],
+  artifactCount: number,
+): CompareTableProps => {
+  const scalarTableData = getScalarTableData(scalarMetricsArtifacts, artifactCount);
 
   // Order the scalar metric names by decreasing count for table y-labels.
   const yLabels = chain(flatten(scalarTableData.scalarMetricNames))
@@ -51,14 +59,7 @@ export const getCompareTableProps = (scalarMetricsArtifacts: RunArtifact[]): Com
     .value();
 
   // Create a row of data items for each y-label.
-  const rows: string[][] = yLabels.map(yLabel => {
-    const row = [];
-    for (let artifactIndex = 0; artifactIndex < scalarTableData.xLabels.length; artifactIndex++) {
-      const key: string = getDataMapKey(yLabel, artifactIndex);
-      row.push(scalarTableData.dataMap[key] || '');
-    }
-    return row;
-  });
+  const rows: string[][] = yLabels.map(yLabel => scalarTableData.dataMap[yLabel]);
 
   return {
     xLabels: scalarTableData.xLabels,
@@ -69,11 +70,14 @@ export const getCompareTableProps = (scalarMetricsArtifacts: RunArtifact[]): Com
 };
 
 // Get different components needed to construct the scalar metrics table.
-const getScalarTableData = (scalarMetricsArtifacts: RunArtifact[]): ScalarTableData => {
+const getScalarTableData = (
+  scalarMetricsArtifacts: RunArtifact[],
+  artifactCount: number,
+): ScalarTableData => {
   const xLabels: string[] = [];
   const scalarMetricNames: string[] = [];
   const xParentLabels: xParentLabel[] = [];
-  const dataMap: { [key: string]: string } = {};
+  const dataMap: { [key: string]: string[] } = {};
 
   let artifactIndex = 0;
   for (const runArtifact of scalarMetricsArtifacts) {
@@ -85,6 +89,7 @@ const getScalarTableData = (scalarMetricsArtifacts: RunArtifact[]): ScalarTableD
       scalarMetricNames,
       dataMap,
       artifactIndex,
+      artifactCount,
     );
 
     const xParentLabel: xParentLabel = {
@@ -108,8 +113,9 @@ const loadScalarExecutionArtifacts = (
   executionArtifacts: ExecutionArtifact[],
   xLabels: string[],
   scalarMetricNames: string[],
-  dataMap: { [key: string]: string },
+  dataMap: { [key: string]: string[] },
   artifactIndex: number,
+  artifactCount: number,
 ): number => {
   for (const executionArtifact of executionArtifacts) {
     const executionText: string = getExecutionDisplayName(executionArtifact.execution) || '-';
@@ -119,7 +125,13 @@ const loadScalarExecutionArtifacts = (
       xLabels.push(xLabel);
 
       const customProperties = linkedArtifact.artifact.getCustomPropertiesMap();
-      addScalarDataItems(customProperties, scalarMetricNames, dataMap, artifactIndex);
+      addScalarDataItems(
+        customProperties,
+        scalarMetricNames,
+        dataMap,
+        artifactIndex,
+        artifactCount,
+      );
       artifactIndex++;
     }
   }
@@ -130,8 +142,9 @@ const loadScalarExecutionArtifacts = (
 const addScalarDataItems = (
   customProperties: jspb.Map<string, Value>,
   scalarMetricNames: string[],
-  dataMap: { [key: string]: string },
+  dataMap: { [key: string]: string[] },
   artifactIndex: number,
+  artifactCount: number,
 ) => {
   for (const entry of customProperties.getEntryList()) {
     const scalarMetricName: string = entry[0];
@@ -140,14 +153,15 @@ const addScalarDataItems = (
     }
     scalarMetricNames.push(scalarMetricName);
 
-    // The scalar metric name and artifact index create a unique key per data item.
-    const key: string = getDataMapKey(scalarMetricName, artifactIndex);
-    dataMap[key] = JSON.stringify(getMetadataValue(customProperties.get(scalarMetricName)));
+    if (!dataMap[scalarMetricName]) {
+      dataMap[scalarMetricName] = Array(artifactCount).fill('');
+    }
+
+    dataMap[scalarMetricName][artifactIndex] = JSON.stringify(
+      getMetadataValue(customProperties.get(scalarMetricName)),
+    );
   }
 };
-
-const getDataMapKey = (scalarMetricName: string, artifactIndex: number): string =>
-  `${scalarMetricName}-${artifactIndex}`;
 
 export enum MetricsType {
   SCALAR_METRICS,

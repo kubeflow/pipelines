@@ -48,6 +48,7 @@ import {
   getCompareTableProps,
   MetricsType,
   RunArtifact,
+  RunArtifactData,
 } from 'src/lib/v2/CompareUtils';
 import MetricsDropdown from 'src/components/viewers/MetricsDropdown';
 
@@ -88,9 +89,10 @@ function filterRunArtifactsByType(
   runArtifacts: RunArtifact[],
   artifactTypes: ArtifactType[],
   metricsType: MetricsType,
-): RunArtifact[] {
+): RunArtifactData {
   const metricsFilter = metricsTypeToFilter(metricsType);
   const typeRuns: RunArtifact[] = [];
+  let artifactCount: number = 0;
   for (const runArtifact of runArtifacts) {
     const typeExecutions: ExecutionArtifact[] = [];
     for (const e of runArtifact.executionArtifacts) {
@@ -109,6 +111,7 @@ function filterRunArtifactsByType(
         );
       }
       if (typeArtifacts.length > 0) {
+        artifactCount += typeArtifacts.length;
         typeExecutions.push({
           execution: e.execution,
           linkedArtifacts: typeArtifacts,
@@ -122,7 +125,10 @@ function filterRunArtifactsByType(
       } as RunArtifact);
     }
   }
-  return typeRuns;
+  return {
+    runArtifacts: typeRuns,
+    artifactCount,
+  };
 }
 
 function getRunArtifacts(runs: ApiRunDetail[], mlmdPackages: MlmdPackage[]): RunArtifact[] {
@@ -174,11 +180,12 @@ function CompareV2(props: PageProps) {
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
 
-  const [scalarMetricsArtifacts, setScalarMetricsArtifacts] = useState<RunArtifact[]>([]);
   const [confusionMatrixArtifacts, setConfusionMatrixArtifacts] = useState<RunArtifact[]>([]);
   const [htmlArtifacts, setHtmlArtifacts] = useState<RunArtifact[]>([]);
   const [markdownArtifacts, setMarkdownArtifacts] = useState<RunArtifact[]>([]);
 
+  const [scalarMetricsArtifacts, setScalarMetricsArtifacts] = useState<RunArtifact[]>([]);
+  const [scalarMetricsArtifactCount, setScalarMetricsArtifactCount] = useState<number>(0);
   const [scalarMetricsTableData, setScalarMetricsTableData] = useState<
     CompareTableProps | undefined
   >(undefined);
@@ -260,15 +267,22 @@ function CompareV2(props: PageProps) {
   useEffect(() => {
     if (runs && mlmdPackages && artifactTypes) {
       const runArtifacts: RunArtifact[] = getRunArtifacts(runs, mlmdPackages);
-      setScalarMetricsArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.SCALAR_METRICS),
+      const scalarMetricsArtifactData = filterRunArtifactsByType(
+        runArtifacts,
+        artifactTypes,
+        MetricsType.SCALAR_METRICS,
       );
+      setScalarMetricsArtifacts(scalarMetricsArtifactData.runArtifacts);
+      setScalarMetricsArtifactCount(scalarMetricsArtifactData.artifactCount);
       setConfusionMatrixArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX),
+        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX)
+          .runArtifacts,
       );
-      setHtmlArtifacts(filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML));
+      setHtmlArtifacts(
+        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML).runArtifacts,
+      );
       setMarkdownArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN),
+        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN).runArtifacts,
       );
     }
   }, [runs, mlmdPackages, artifactTypes]);
@@ -364,7 +378,10 @@ function CompareV2(props: PageProps) {
   };
 
   useEffect(() => {
-    const compareTableProps: CompareTableProps = getCompareTableProps(scalarMetricsArtifacts);
+    const compareTableProps: CompareTableProps = getCompareTableProps(
+      scalarMetricsArtifacts,
+      scalarMetricsArtifactCount,
+    );
     if (compareTableProps.yLabels.length === 0) {
       setScalarMetricsTableData(undefined);
     } else {
