@@ -59,9 +59,19 @@ class _SafeDict(dict):
 
 
 class ApiAuth(requests.auth.AuthBase):
-    """Class for authentication using API token."""
+    """Class for authentication using API token.
+
+    Args:
+        token: The API token.
+
+    Example::
+
+        client = RegistryClient(
+            host='https://us-central1-kfp.pkg.dev/proj/repo', auth=ApiAuth('my_token'))
+    """
 
     def __init__(self, token: str) -> None:
+        """Initializes the ApiAuth object."""
         self._token = token
 
     def __call__(self,
@@ -71,7 +81,14 @@ class ApiAuth(requests.auth.AuthBase):
 
 
 class RegistryClient:
-    """Registry Client class for communicating with registry hosts."""
+    """Registry Client class for communicating with registry hosts.
+
+    Args:
+        host: The address of the registry host. The host needs to be specified here or in the config file.
+        auth: Authentication using python requests or google.auth.credentials.
+        config_file: The location of the local config file. If not specified, defaults to ~/.config/kfp/context.json (if it exists).
+        auth_file: The location of the local config file that contains the authentication token. If not specified, defaults to '~/.config/kfp/registry_credentials.json' (if it exists).
+    """
 
     def __init__(self,
                  host: Optional[str],
@@ -79,18 +96,7 @@ class RegistryClient:
                                       credentials.Credentials]] = None,
                  config_file: Optional[str] = None,
                  auth_file: Optional[str] = None) -> None:
-        """Initializes the RegistryClient.
-
-        Args:
-            host: The address of the registry host. The host needs to be specified here
-                or in the config file.
-            auth: Optional. Authentication using python requests or google.auth.credentials.
-            config_file: Optional. The location of the local config file. If not specified,
-                defaults to ~/.config/kfp/context.json (if it exists).
-            auth_file: Optional. The location of the local config file that contains the
-                authentication token. If not specified, defaults to
-                ~/.config/kfp/registry_credentials.json (if it exists).
-        """
+        """Initializes the RegistryClient."""
         self._host = ''
         self._known_host_key = ''
         self._config = self.load_config(host, config_file)
@@ -170,8 +176,8 @@ class RegistryClient:
         """Loads the credentials for authentication.
 
         Args:
-            auth: Optional. Authentication using python requests or google.auth credentials.
-            auth_file: Optional. The location of the local config file that contains the
+            auth: Authentication using python requests or google.auth credentials.
+            auth_file: The location of the local config file that contains the
                 authentication token. If not specified, defaults to
                 ~/.config/kfp/registry_credentials.json (if it exists).
 
@@ -205,7 +211,7 @@ class RegistryClient:
         Args:
             host: The address of the registry host. The host needs to be specified here
                 or in the config file.
-            config_file: Optional. The location of the local config file. If not specified,
+            config_file: The location of the local config file. If not specified,
                 defaults to ~/.config/kfp/context.json (if it exists).
 
         Returns:
@@ -276,7 +282,7 @@ class RegistryClient:
 
         Args:
             config_file: The location of the config file.
-            config: Optional. An existing config to set as the default config.
+            config: An existing config to set as the default config.
 
         Returns:
             The loaded config.
@@ -323,7 +329,7 @@ class RegistryClient:
             extra_headers: Any extra headers required.
 
         Returns:
-            A tuple representing the package name and the version
+            A tuple representing the package name and the version.
         """
         url = self._config['upload_url']
         self._refresh_creds()
@@ -384,7 +390,7 @@ class RegistryClient:
                           version: Optional[str] = None,
                           tag: Optional[str] = None,
                           file_name: Optional[str] = None) -> str:
-        """Downloads a pipeline - either version or tag must be specified.
+        """Downloads a pipeline. Either version or tag must be specified.
 
         Args:
             package_name: Name of the package.
