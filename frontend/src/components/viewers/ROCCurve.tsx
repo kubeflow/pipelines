@@ -31,6 +31,11 @@ import 'react-vis/dist/style.css';
 import Viewer, { ViewerConfig } from './Viewer';
 import { color, fontsize, commonCss } from '../../Css';
 import { stylesheet } from 'typestyle';
+import CustomTable, { Column, CustomRendererProps, Row } from 'src/components/CustomTable';
+import { ListRequest, RunSortKeys } from 'src/lib/Apis';
+import Tooltip from '@material-ui/core/Tooltip';
+import { Link } from 'react-router-dom';
+import { RoutePage, RouteParams } from 'src/components/Router';
 
 const css = stylesheet({
   axis: {
@@ -86,7 +91,10 @@ interface ROCCurveState {
   lastDrawLocation: { left: number; right: number } | null;
 }
 
+// TODO(zpChris): Should I transform this to use a functional component?
 class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
+  private _tableRef = React.createRef<CustomTable>(); // TODO: Add refresh line.
+
   constructor(props: any) {
     super(props);
 
@@ -104,6 +112,40 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
     return true;
   }
 
+  public _runNameCustomRenderer: React.FC<CustomRendererProps<string>> = (
+    props: CustomRendererProps<string>,
+  ) => {
+    return (
+      <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
+        <Link
+          className={commonCss.link}
+          onClick={e => e.stopPropagation()}
+          to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
+        >
+          {props.value}
+        </Link>
+      </Tooltip>
+    );
+  };
+
+  public _executionArtifactCustomRenderer: React.FC<CustomRendererProps<string>> = (
+    props: CustomRendererProps<string>,
+  ) => {
+    return (
+      <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
+        <p>{props.value || ''}</p>
+      </Tooltip>
+    );
+  };
+
+  public _curveLegendCustomRenderer: React.FC<CustomRendererProps<string>> = (
+    props: CustomRendererProps<string>,
+  ) => {
+    return (
+      <p>Test.</p>
+    );
+  };
+
   public render(): JSX.Element {
     const width = this.props.maxDimension || 800;
     const height = width * 0.65;
@@ -114,6 +156,57 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
     const baseLineData = Array.from(Array(100).keys()).map(x => ({ x: x / 100, y: x / 100 }));
 
     const { hoveredValues, lastDrawLocation } = this.state;
+
+    const columns: Column[] = [
+      { customRenderer: this._executionArtifactCustomRenderer, flex: 1, label: 'Execution name > Run name' },
+      {
+        customRenderer: this._runNameCustomRenderer,
+        flex: 1,
+        label: 'Run name',
+        sortKey: RunSortKeys.NAME,
+      },
+      { customRenderer: this._curveLegendCustomRenderer, label: 'Curve legend', flex: 0.5 },
+    ];
+
+    const rows: Row[] = this.state.runs.map(r => {
+      const displayMetrics = metricMetadata.map(metadata => {
+        const displayMetric: DisplayMetric = { metadata };
+        if (r.run.metrics) {
+          const foundMetric = r.run.metrics.find(m => m.name === metadata.name);
+          if (foundMetric && foundMetric.number_value !== undefined) {
+            displayMetric.metric = foundMetric;
+          }
+        }
+        return displayMetric;
+      });
+      const row = {
+        error: r.error,
+        id: r.run.id!,
+        otherFields: [
+          r.run!.name,
+          r.run.status || '-',
+          getRunDuration(r.run),
+          r.pipelineVersion,
+          r.recurringRun,
+          formatDateString(r.run.created_at),
+        ] as any,
+      };
+      if (!this.props.hideExperimentColumn) {
+        row.otherFields.splice(3, 0, r.experiment);
+      }
+      if (displayMetrics.length && !this.props.hideMetricMetadata) {
+        row.otherFields.push(''); // Metric buffer column
+        row.otherFields.push(...(displayMetrics as any));
+      }
+      return row;
+    });
+
+    /*
+    expandState?: ExpandState;
+  error?: string;
+  id: string;
+  otherFields: any[];
+  */
 
     return (
       <div>
@@ -194,6 +287,22 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
             </div>
           )}
 
+          <CustomTable
+            columns={columns}
+            rows={rows}
+            selectedIds={this.props.selectedIds}
+            initialSortColumn={RunSortKeys.CREATED_AT}
+            ref={this._tableRef}
+            filterLabel='Filter artifacts'
+            updateSelection={this.props.onSelectionChange}
+            reload={this._loadRuns.bind(this)}
+            disablePaging={this.props.disablePaging}
+            disableSorting={this.props.disableSorting}
+            disableSelection={this.props.disableSelection}
+            noFilterBox={this.props.noFilterBox}
+            emptyMessage="No artifacts found"
+          />
+
           {lastDrawLocation && <span>Click to reset zoom</span>}
         </div>
       </div>
@@ -204,6 +313,11 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
     const hoveredValues = this.state.hoveredValues;
     hoveredValues[lineIdx] = data;
     this.setState({ hoveredValues });
+  }
+
+  // TODO(zpChris): Update the load runs setup.
+  protected async _loadRuns(request: ListRequest): Promise<string> {
+    return '';
   }
 }
 
