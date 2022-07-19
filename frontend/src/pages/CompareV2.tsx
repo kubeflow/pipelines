@@ -472,6 +472,7 @@ function CompareV2(props: CompareV2Props) {
 }
 
 function EnhancedCompareV2(props: PageProps) {
+  const namespace: string | undefined = useContext(NamespaceContext);
   const namespaceChanged = useNamespaceChangeEvent();
   if (namespaceChanged) {
     // Run Comparison page compares multiple runs, when namespace changes, the runs don't
@@ -479,7 +480,6 @@ function EnhancedCompareV2(props: PageProps) {
     return <Redirect to={RoutePage.EXPERIMENTS} />;
   }
 
-  const namespace: string | undefined = useContext(NamespaceContext);
   return <CompareV2 namespace={namespace} {...props} />;
 }
 

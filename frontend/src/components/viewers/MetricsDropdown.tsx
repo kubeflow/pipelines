@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { color, commonCss, fontsize, zIndex } from 'src/Css';
 import { classes, stylesheet } from 'typestyle';
 import { LinkedArtifact, getArtifactName } from 'src/mlmd/MlmdUtils';
@@ -37,7 +37,6 @@ import { useQuery } from 'react-query';
 import { errorToMessage, logger } from 'src/lib/Utils';
 import { Execution } from 'src/third_party/mlmd';
 import { metricsTypeToString } from 'src/lib/v2/CompareUtils';
-import { NamespaceContext } from 'src/lib/KubeflowClient';
 
 const css = stylesheet({
   leftCell: {
