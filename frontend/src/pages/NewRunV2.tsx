@@ -20,7 +20,13 @@ import { useMutation, useQuery } from 'react-query';
 import { ApiExperiment, ApiExperimentStorageState } from 'src/apis/experiment';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
-import { ApiRelationship, ApiResourceReference, ApiResourceType, ApiRun, ApiRunDetail } from 'src/apis/run';
+import {
+  ApiRelationship,
+  ApiResourceReference,
+  ApiResourceType,
+  ApiRun,
+  ApiRunDetail,
+} from 'src/apis/run';
 import BusyButton from 'src/atoms/BusyButton';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { HelpButton } from 'src/atoms/HelpButton';
@@ -83,8 +89,8 @@ function NewRunV2(props: NewRunV2Props) {
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
   const pipelineVersionIdParam = urlParser.get(QUERY_PARAMS.pipelineVersionId);
 
-  //Retrieve Run Detail using RunID (provided from _cloneRun() action) from backend
-  const { isSuccess: isRunPullSuccess, data: apiRun} = useQuery<ApiRunDetail, Error>(
+  //Retrieve Run Detail using RunID from backend
+  const { isSuccess: isRunPullSuccess, data: apiRun } = useQuery<ApiRunDetail, Error>(
     ['ApiRun', originalRunId],
     () => {
       if (!originalRunId) {
@@ -93,19 +99,19 @@ function NewRunV2(props: NewRunV2Props) {
       const originalRun = Apis.runServiceApi.getRun(originalRunId);
       return originalRun;
     },
-    {enabled: !!originalRunId, staleTime: Infinity},
-  )
- 
-  const { isSuccess: isTemplatePullSuccessFromRun, data: templateStringFromRunId} = useQuery(
+    { enabled: !!originalRunId, staleTime: Infinity },
+  );
+
+  const { isSuccess: isTemplatePullSuccessFromRun, data: templateStringFromRunId } = useQuery(
     ['ApiRunTemplate', apiRun],
     async () => {
       if (!apiRun) {
-        return undefined;
+        return '';
       }
-      return apiRun.run?.pipeline_spec?.pipeline_manifest;
+      return apiRun.run?.pipeline_spec?.pipeline_manifest || '';
     },
-    {enabled: !!apiRun, staleTime: Infinity},
-  )
+    { enabled: !!apiRun, staleTime: Infinity },
+  );
 
   // Retrieve Pipeline Detail using pipeline ID and pipeline version ID from backend.
   // It validates that the pipeline entity indeed exists with pipeline ID.
@@ -135,7 +141,10 @@ function NewRunV2(props: NewRunV2Props) {
     },
     { enabled: !!apiPipeline, staleTime: Infinity },
   );
-  const { isSuccess: isTemplatePullSuccessFromPipeline, data: templateStringFromPipelineId } = useQuery<string, Error>(
+  const {
+    isSuccess: isTemplatePullSuccessFromPipeline,
+    data: templateStringFromPipelineId,
+  } = useQuery<string, Error>(
     ['ApiPipelineVersionTemplate', apiPipeline, pipelineVersionIdParam],
     async () => {
       const pipelineVersionId = apiPipelineVersion?.id;
@@ -148,10 +157,18 @@ function NewRunV2(props: NewRunV2Props) {
     { enabled: !!apiPipelineVersion, staleTime: Infinity },
   );
 
-  const templateString = templateStringFromRunId != undefined ? templateStringFromRunId : templateStringFromPipelineId;
+  const templateString =
+    templateStringFromRunId != '' ? templateStringFromRunId : templateStringFromPipelineId;
   const isTemplatePullSuccess = isTemplatePullSuccessFromRun || isTemplatePullSuccessFromPipeline;
   const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
   const titleVerb = originalRunId ? 'Clone' : 'Start';
+  const pipelineNameFromRun = apiRun?.run?.name?.substring(7, apiRun.run.name.length - 8);
+  // console.log(pipelineNameFromRun);
+  // const pipelineIdFromRun = apiRun?.run?.pipeline_spec?.pipeline_id;
+  // const pipelineVersionFromRun = Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionIdParam)
+  const parameterfromGetRunV1 = apiRun?.run?.pipeline_spec?.parameters;
+  const runtimeConfigfromGetRunV2 = apiRun?.run?.pipeline_spec?.runtime_config?.parameters;
+  // console.log(runtimeConfigfromGetRunV2);
 
   // Title and list of actions on the top of page.
   useEffect(() => {
@@ -164,14 +181,14 @@ function NewRunV2(props: NewRunV2Props) {
   // When loading a pipeline version, automatically set the default run name.
   useEffect(() => {
     if (apiRun?.run?.name) {
-      const initRunName = 'Clone of ' + apiRun.run.name;
-      setRunName(initRunName);
+      const cloneRunName = 'Clone of ' + apiRun.run.name;
+      setRunName(cloneRunName);
     } else if (apiPipelineVersion?.name) {
       const initRunName =
         'Run of ' + apiPipelineVersion.name + ' (' + generateRandomString(5) + ')';
       setRunName(initRunName);
     }
-  }, [apiPipelineVersion]);
+  }, [apiRun, apiPipelineVersion]);
 
   // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
   useEffect(() => {
@@ -183,6 +200,14 @@ function NewRunV2(props: NewRunV2Props) {
     setPipelineSpec(spec);
 
     const params = spec.root?.inputDefinitions?.parameters;
+    // console.log(params);
+    const cloneRunParams = parameterfromGetRunV1;
+    // const testParam: ComponentInputsSpec_ParameterSpec = [];
+    // if (cloneRunParams) {
+    //   // convert the type
+    //   //setSpecParameters(cloneRunParams);
+    // } else
+
     if (params) {
       setSpecParameters(params);
     }
@@ -288,7 +313,7 @@ function NewRunV2(props: NewRunV2Props) {
 
         {/* Pipeline selection */}
         <Input
-          value={apiPipeline?.name || ''}
+          value={(pipelineNameFromRun != undefined ? pipelineNameFromRun : apiPipeline?.name) || ''}
           required={true}
           label='Pipeline'
           disabled={true}

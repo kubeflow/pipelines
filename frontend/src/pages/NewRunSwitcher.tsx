@@ -18,19 +18,27 @@ function NewRunSwitcher(props: PageProps) {
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
   const pipelineVersionIdParam = urlParser.get(QUERY_PARAMS.pipelineVersionId);
 
-  const { isSuccess: isSuccessRun, data: runTemplateString} = useQuery(
+  const {
+    isSuccess: runIsSuccess,
+    isFetching: runIsFetching,
+    data: templateStrFromRunId,
+  } = useQuery(
     [originalRunId],
     async () => {
       if (!originalRunId) {
-        return '';        
+        return '';
       }
       const originalRun = await Apis.runServiceApi.getRun(originalRunId);
-      return originalRun.run?.pipeline_spec?.pipeline_manifest;
+      return originalRun.run?.pipeline_spec?.pipeline_manifest || '';
     },
-    { staleTime: Infinity}
-  )
+    { staleTime: Infinity },
+  );
 
-  const { isSuccess: isSuccessPipeline, isFetching, data: pipelineTemplateString } = useQuery<string, Error>(
+  const {
+    isSuccess: pipelineIsSuccess,
+    isFetching: pipelineIsFetching,
+    data: templateStrFromPipelineId,
+  } = useQuery<string, Error>(
     [pipelineId, pipelineVersionIdParam],
     async () => {
       if (!pipelineId) {
@@ -50,16 +58,17 @@ function NewRunSwitcher(props: PageProps) {
     { staleTime: Infinity },
   );
 
-  const templateString = runTemplateString != '' ? runTemplateString : pipelineTemplateString;
+  const templateString =
+    templateStrFromRunId != '' ? templateStrFromRunId : templateStrFromPipelineId;
 
   if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
-    if ((isSuccessRun || isSuccessPipeline) && isTemplateV2(templateString || '')) {
+    if ((runIsSuccess || pipelineIsSuccess) && isTemplateV2(templateString || '')) {
       console.log('create v2 component');
       return <NewRunV2 {...props} namespace={namespace} />;
     }
   }
 
-  if (isFetching) {
+  if (pipelineIsFetching || runIsFetching) {
     return <div>Currently loading pipeline information</div>;
   }
   console.log('create v1 component');
