@@ -43,14 +43,10 @@ import yaml
 
 
 class Compiler:
-    """Experimental DSL compiler that targets the PipelineSpec IR.
+    """Compiles pipelines composed using the KFP SDK DSL to PipelineSpec IR,
+    the protobuf message that defines a pipeline.
 
-    It compiles pipeline function into PipelineSpec json string.
-    PipelineSpec is the IR protobuf message that defines a pipeline:
-    https://github.com/kubeflow/pipelines/blob/237795539f7b85bac77435e2464367226ee19391/api/v2alpha1/pipeline_spec.proto#L8
-    In this initial implementation, we only support components authored through
-    Component yaml spec. And we don't support advanced features like conditions,
-    static and dynamic loops, etc.
+    PipelineSpec IR definition: https://github.com/kubeflow/pipelines/blob/2060e38c5591806d657d85b53eed2eef2e5de2ae/api/v2alpha1/pipeline_spec.proto#L50
 
     Example::
 
@@ -58,12 +54,12 @@ class Compiler:
           name='name',
           description='description',
         )
-        def my_pipeline(a: int = 1, b: str = "default value"):
+        def my_pipeline(a: int = 1, b: str = 'default value'):
             ...
 
         kfp.compiler.Compiler().compile(
             pipeline_func=my_pipeline,
-            package_path='path/to/pipeline.json',
+            package_path='path/to/pipeline.yaml',
         )
     """
 
@@ -72,20 +68,17 @@ class Compiler:
         pipeline_func: Union[Callable[..., Any], base_component.BaseComponent],
         package_path: str,
         pipeline_name: Optional[str] = None,
-        pipeline_parameters: Optional[Mapping[str, Any]] = None,
+        pipeline_parameters: Optional[Dict[str, Any]] = None,
         type_check: bool = True,
     ) -> None:
-        """Compile the given pipeline function or component into pipeline job
-        json.
+        """Compiles the pipeline or component function into IR YAML.
 
         Args:
-            pipeline_func: Pipeline function with @dsl.pipeline or component with @dsl.component decorator.
-            package_path: The output pipeline spec .yaml file path. For example, "~/pipeline.yaml" or "~/component.yaml".
-            pipeline_name: Optional; the name of the pipeline.
-            pipeline_parameters: Optional; the mapping from parameter names to
-                values.
-            type_check: Optional; whether to enable the type check or not.
-                Default is True.
+            pipeline_func: Pipeline function constructed with the @dsl.pipeline or component with @dsl.component decorator.
+            package_path: The output pipeline spec .yaml file path. For example, '~/my_pipeline.yaml' or '~/my_component.yaml'.
+            pipeline_name: The name of the pipeline. Defaults to None.
+            pipeline_parameters: Map of parameter names to argument values. Defaults to None.
+            type_check: Whether to enable type checking of component interfaces during compilation. Defaults to True.
         """
 
         with type_utils.TypeCheckManager(enable=type_check):
