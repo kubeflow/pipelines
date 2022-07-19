@@ -83,7 +83,7 @@ function newMockLinkedArtifact(
 testBestPractices();
 describe('CompareUtils', () => {
   it('Empty scalar metrics artifacts results in empty table data', () => {
-    expect(getCompareTableProps([])).toMatchObject({
+    expect(getCompareTableProps([], 0)).toMatchObject({
       xLabels: [],
       yLabels: [],
       xParentLabels: [],
@@ -129,8 +129,9 @@ describe('CompareUtils', () => {
         ],
       },
     ];
+    const artifactCount: number = 4;
 
-    expect(getCompareTableProps(scalarMetricsArtifacts)).toMatchObject({
+    expect(getCompareTableProps(scalarMetricsArtifacts, artifactCount)).toMatchObject({
       xLabels: [
         'execution1 > artifact1',
         'execution1 > artifact2',
@@ -182,8 +183,9 @@ describe('CompareUtils', () => {
         ],
       },
     ];
+    const artifactCount: number = 4;
 
-    expect(getCompareTableProps(scalarMetricsArtifacts)).toMatchObject({
+    expect(getCompareTableProps(scalarMetricsArtifacts, artifactCount)).toMatchObject({
       xLabels: ['- > -', '- > -', '- > -', '- > -'],
       yLabels: ['scalarMetric0', 'scalarMetric1'],
       xParentLabels: [

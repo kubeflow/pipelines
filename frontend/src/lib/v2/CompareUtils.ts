@@ -19,7 +19,6 @@ import { getArtifactName, getExecutionDisplayName, LinkedArtifact } from 'src/ml
 import { getMetadataValue } from 'src/mlmd/Utils';
 import { Execution, Value } from 'src/third_party/mlmd';
 import * as jspb from 'google-protobuf';
-import { chain, flatten } from 'lodash';
 import { ApiRunDetail } from 'src/apis/run';
 import { stylesheet } from 'typestyle';
 
@@ -40,34 +39,38 @@ export interface RunArtifact {
   executionArtifacts: ExecutionArtifact[];
 }
 
-interface ScalarTableData {
-  xLabels: string[];
-  scalarMetricNames: string[];
-  xParentLabels: xParentLabel[];
-  dataMap: { [key: string]: string };
+interface ScalarRowData {
+  row: string[];
+  dataCount: number;
 }
 
-export const getCompareTableProps = (scalarMetricsArtifacts: RunArtifact[]): CompareTableProps => {
-  const scalarTableData = getScalarTableData(scalarMetricsArtifacts);
+interface ScalarTableData {
+  xLabels: string[];
+  xParentLabels: xParentLabel[];
+  dataMap: { [key: string]: ScalarRowData };
+}
 
-  // Order the scalar metric names by decreasing count for table y-labels.
-  const yLabels = chain(flatten(scalarTableData.scalarMetricNames))
-    .countBy(p => p)
-    .map((k, v) => ({ name: v, count: k }))
-    .orderBy('count', 'desc')
-    .map(o => o.name)
-    .value();
+export interface RunArtifactData {
+  runArtifacts: RunArtifact[];
+  artifactCount: number;
+}
 
-  // Create a row of data items for each y-label.
-  const rows: string[][] = yLabels.map(yLabel => {
-    const row = [];
-    for (let artifactIndex = 0; artifactIndex < scalarTableData.xLabels.length; artifactIndex++) {
-      const key: string = getDataMapKey(yLabel, artifactIndex);
-      row.push(scalarTableData.dataMap[key] || '');
-    }
-    return row;
-  });
+export const getCompareTableProps = (
+  scalarMetricsArtifacts: RunArtifact[],
+  artifactCount: number,
+): CompareTableProps => {
+  const scalarTableData = getScalarTableData(scalarMetricsArtifacts, artifactCount);
 
+  // Sort by decreasing data item count.
+  const sortedDataList = Object.entries(scalarTableData.dataMap).sort(
+    (a, b) => b[1].dataCount - a[1].dataCount,
+  );
+  const yLabels: string[] = [];
+  const rows: string[][] = [];
+  for (const sortedDataItem of sortedDataList) {
+    yLabels.push(sortedDataItem[0]);
+    rows.push(sortedDataItem[1].row);
+  }
   return {
     xLabels: scalarTableData.xLabels,
     yLabels,
@@ -77,11 +80,13 @@ export const getCompareTableProps = (scalarMetricsArtifacts: RunArtifact[]): Com
 };
 
 // Get different components needed to construct the scalar metrics table.
-const getScalarTableData = (scalarMetricsArtifacts: RunArtifact[]): ScalarTableData => {
+const getScalarTableData = (
+  scalarMetricsArtifacts: RunArtifact[],
+  artifactCount: number,
+): ScalarTableData => {
   const xLabels: string[] = [];
-  const scalarMetricNames: string[] = [];
   const xParentLabels: xParentLabel[] = [];
-  const dataMap: { [key: string]: string } = {};
+  const dataMap: { [key: string]: ScalarRowData } = {};
 
   let artifactIndex = 0;
   for (const runArtifact of scalarMetricsArtifacts) {
@@ -90,9 +95,9 @@ const getScalarTableData = (scalarMetricsArtifacts: RunArtifact[]): ScalarTableD
     const newArtifactIndex = loadScalarExecutionArtifacts(
       runArtifact.executionArtifacts,
       xLabels,
-      scalarMetricNames,
       dataMap,
       artifactIndex,
+      artifactCount,
     );
 
     const xParentLabel: xParentLabel = {
@@ -105,7 +110,6 @@ const getScalarTableData = (scalarMetricsArtifacts: RunArtifact[]): ScalarTableD
 
   return {
     xLabels,
-    scalarMetricNames,
     xParentLabels,
     dataMap,
   } as ScalarTableData;
@@ -115,9 +119,9 @@ const getScalarTableData = (scalarMetricsArtifacts: RunArtifact[]): ScalarTableD
 const loadScalarExecutionArtifacts = (
   executionArtifacts: ExecutionArtifact[],
   xLabels: string[],
-  scalarMetricNames: string[],
-  dataMap: { [key: string]: string },
+  dataMap: { [key: string]: ScalarRowData },
   artifactIndex: number,
+  artifactCount: number,
 ): number => {
   for (const executionArtifact of executionArtifacts) {
     const executionText: string = getExecutionDisplayName(executionArtifact.execution) || '-';
@@ -127,7 +131,7 @@ const loadScalarExecutionArtifacts = (
       xLabels.push(xLabel);
 
       const customProperties = linkedArtifact.artifact.getCustomPropertiesMap();
-      addScalarDataItems(customProperties, scalarMetricNames, dataMap, artifactIndex);
+      addScalarDataItems(customProperties, dataMap, artifactIndex, artifactCount);
       artifactIndex++;
     }
   }
@@ -137,25 +141,29 @@ const loadScalarExecutionArtifacts = (
 // Add the scalar metric names and data items.
 const addScalarDataItems = (
   customProperties: jspb.Map<string, Value>,
-  scalarMetricNames: string[],
-  dataMap: { [key: string]: string },
+  dataMap: { [key: string]: ScalarRowData },
   artifactIndex: number,
+  artifactCount: number,
 ) => {
   for (const entry of customProperties.getEntryList()) {
     const scalarMetricName: string = entry[0];
     if (scalarMetricName === 'display_name') {
       continue;
     }
-    scalarMetricNames.push(scalarMetricName);
 
-    // The scalar metric name and artifact index create a unique key per data item.
-    const key: string = getDataMapKey(scalarMetricName, artifactIndex);
-    dataMap[key] = JSON.stringify(getMetadataValue(customProperties.get(scalarMetricName)));
+    if (!dataMap[scalarMetricName]) {
+      dataMap[scalarMetricName] = {
+        row: Array(artifactCount).fill(''),
+        dataCount: 0,
+      };
+    }
+
+    dataMap[scalarMetricName].row[artifactIndex] = JSON.stringify(
+      getMetadataValue(customProperties.get(scalarMetricName)),
+    );
+    dataMap[scalarMetricName].dataCount++;
   }
 };
-
-const getDataMapKey = (scalarMetricName: string, artifactIndex: number): string =>
-  `${scalarMetricName}-${artifactIndex}`;
 
 export enum MetricsType {
   SCALAR_METRICS,
