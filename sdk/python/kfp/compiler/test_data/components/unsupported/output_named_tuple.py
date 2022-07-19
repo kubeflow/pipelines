@@ -22,7 +22,7 @@ from kfp.dsl import Model
 
 @component
 def output_named_tuple(
-    artifact: Input[Dataset]
+    dummy: str,
 ) -> NamedTuple('Outputs', [
     ('scalar', str),
     ('metrics', Metrics),
@@ -38,10 +38,6 @@ def output_named_tuple(
             'format': 'PERCENTAGE',
         }]
     })
-
-    with open(artifact.path) as f:
-        artifact_contents = f.read()
-    model = 'Model contents: ' + artifact_contents
 
     from collections import namedtuple
     output = namedtuple('Outputs', ['scalar', 'metrics', 'model'])

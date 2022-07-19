@@ -161,8 +161,14 @@ def build_task_spec_for_task(
                         input_name].component_input_artifact = (
                             component_input_artifact)
             else:
-                raise RuntimeError(
-                    f'Artifacts must be produced by a task. Got {input_value}.')
+                component_input_artifact = input_value.full_name
+                if component_input_artifact not in parent_component_inputs.artifacts:
+                    component_input_artifact = (
+                        _additional_input_name_for_pipeline_channel(input_value)
+                    )
+                pipeline_task_spec.inputs.artifacts[
+                    input_name].component_input_artifact = (
+                        component_input_artifact)
 
         elif isinstance(input_value, pipeline_channel.PipelineParameterChannel):
 
@@ -923,18 +929,6 @@ def populate_metrics_in_dag_outputs(
                     sub_task_output = unique_output_name
 
 
-def make_invalid_input_type_error_msg(arg_name: str, arg_type: Any) -> str:
-    valid_types = (
-        str.__name__,
-        int.__name__,
-        float.__name__,
-        bool.__name__,
-        dict.__name__,
-        list.__name__,
-    )
-    return f"The pipeline parameter '{arg_name}' of type {arg_type} is not a valid input for this component. Passing artifacts as pipeline inputs is not supported. Consider annotating the parameter with a primitive type such as {valid_types}."
-
-
 def modify_component_spec_for_compile(
     component_spec: structures.ComponentSpec,
     pipeline_name: Optional[str],
@@ -1266,75 +1260,3 @@ def validate_pipeline_name(name: str) -> None:
             'Please specify a pipeline name that matches the regular '
             'expression "^[a-z0-9][a-z0-9-]{0,127}$" using '
             '`dsl.pipeline(name=...)` decorator.' % name)
-
-
-def create_pipeline_spec_for_component(
-        pipeline_name: str, pipeline_args: List[dsl.PipelineChannel],
-        task_group: tasks_group.TasksGroup) -> pipeline_spec_pb2.PipelineSpec:
-    """Creates a pipeline spec object for a component (single-component
-    pipeline).
-
-    Args:
-        pipeline_name: The pipeline name.
-        pipeline_args: The PipelineChannel arguments to the pipeline.
-        task_group: The pipeline's single task group (containing a single
-            task).
-
-    Returns:
-        A PipelineSpec proto representing the compiled pipeline.
-
-    Raises:
-        ValueError: If the argument is of unsupported types.
-    """
-
-    # this is method is essentially a simplified version
-    # of _create_pipeline_spec
-
-    # one-by-one building up the arguments for self._build_spec_by_group
-    validate_pipeline_name(pipeline_name)
-
-    pipeline_spec = pipeline_spec_pb2.PipelineSpec()
-    pipeline_spec.pipeline_info.name = pipeline_name
-    pipeline_spec.sdk_version = f'kfp-{kfp.__version__}'
-    # Schema version 2.1.0 is required for kfp-pipeline-spec>0.1.13
-    pipeline_spec.schema_version = '2.1.0'
-    pipeline_spec.root.CopyFrom(
-        builder.build_component_spec_for_group(
-            pipeline_channels=pipeline_args,
-            is_root_group=True,
-        ))
-
-    deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
-    root_group = task_group
-
-    task_name_to_parent_groups, group_name_to_parent_groups = get_parent_groups(
-        root_group)
-
-    def get_inputs(task_group: tasks_group.TasksGroup,
-                   task_name_to_parent_groups):
-        inputs = collections.defaultdict(set)
-        if len(task_group.tasks) != 1:
-            raise ValueError(
-                f'Error compiling component. Expected one task in task group, got {len(task_group.tasks)}.'
-            )
-        only_task = task_group.tasks[0]
-        if only_task.channel_inputs:
-            for group_name in task_name_to_parent_groups[only_task.name]:
-                inputs[group_name].add((only_task.channel_inputs[-1], None))
-        return inputs
-
-    inputs = get_inputs(task_group, task_name_to_parent_groups)
-
-    build_spec_by_group(
-        pipeline_spec=pipeline_spec,
-        deployment_config=deployment_config,
-        group=root_group,
-        inputs=inputs,
-        dependencies={},  # no dependencies for single-component pipeline
-        rootgroup_name=root_group.name,
-        task_name_to_parent_groups=task_name_to_parent_groups,
-        group_name_to_parent_groups=group_name_to_parent_groups,
-        name_to_for_loop_group={},  # no for loop for single-component pipeline
-    )
-
-    return pipeline_spec

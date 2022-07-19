@@ -32,6 +32,7 @@ from kfp.compiler.pipeline_spec_builder import GroupOrTaskType
 from kfp.components import base_component
 from kfp.components import component_factory
 from kfp.components import for_loop
+from kfp.components import pipeline_channel
 from kfp.components import pipeline_context
 from kfp.components import pipeline_task
 from kfp.components import structures
@@ -143,13 +144,11 @@ class Compiler:
 
         for arg_name in signature.parameters:
             arg_type = pipeline_meta.inputs[arg_name].type
-            if not type_utils.is_parameter_type(arg_type):
-                raise TypeError(
-                    builder.make_invalid_input_type_error_msg(
-                        arg_name, arg_type))
             args_list.append(
-                dsl.PipelineParameterChannel(
-                    name=arg_name, channel_type=arg_type))
+                pipeline_channel.create_pipeline_channel(
+                    name=arg_name,
+                    channel_type=arg_type,
+                ))
 
         with pipeline_context.Pipeline(pipeline_name) as dsl_pipeline:
             pipeline_func(*args_list)
@@ -172,7 +171,7 @@ class Compiler:
 
         # Fill in the default values.
         args_list_with_defaults = [
-            dsl.PipelineParameterChannel(
+            pipeline_channel.create_pipeline_channel(
                 name=input_name,
                 channel_type=input_spec.type,
                 value=pipeline_parameters_override.get(input_name) or
@@ -194,57 +193,6 @@ class Compiler:
             pipeline_spec.default_pipeline_root = pipeline_root
 
         return pipeline_spec
-
-    def _create_pipeline_from_component_spec(
-        self,
-        component_spec: structures.ComponentSpec,
-    ) -> pipeline_spec_pb2.PipelineSpec:
-        """Creates a pipeline instance and constructs the pipeline spec for a
-        primitive component.
-
-        Args:
-            component_spec: The ComponentSpec to convert to PipelineSpec.
-
-        Returns:
-            A PipelineSpec proto representing the compiled component.
-        """
-        args_dict = {}
-
-        for arg_name, input_spec in component_spec.inputs.items():
-            arg_type = input_spec.type
-            if not type_utils.is_parameter_type(
-                    arg_type) or type_utils.is_task_final_status_type(arg_type):
-                raise TypeError(
-                    builder.make_invalid_input_type_error_msg(
-                        arg_name, arg_type))
-            args_dict[arg_name] = dsl.PipelineParameterChannel(
-                name=arg_name, channel_type=arg_type)
-
-        task = pipeline_task.PipelineTask(component_spec, args_dict)
-
-        # instead of constructing a pipeline with pipeline_context.Pipeline,
-        # just build the single task group
-        group = tasks_group.TasksGroup(
-            group_type=tasks_group.TasksGroupType.PIPELINE)
-        group.tasks.append(task)
-
-        pipeline_inputs = component_spec.inputs or {}
-
-        # Fill in the default values.
-        args_list_with_defaults = [
-            dsl.PipelineParameterChannel(
-                name=input_name,
-                channel_type=input_spec.type,
-                value=input_spec.default,
-            ) for input_name, input_spec in pipeline_inputs.items()
-        ]
-        group.name = uuid.uuid4().hex
-
-        return builder.create_pipeline_spec_for_component(
-            pipeline_name=component_spec.name,
-            pipeline_args=args_list_with_defaults,
-            task_group=group,
-        )
 
     def _validate_exit_handler(self,
                                pipeline: pipeline_context.Pipeline) -> None:
