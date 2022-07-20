@@ -72,7 +72,7 @@
         "container": {
           "args": [
             "--type",
-            "DataprocSparkRBatch",
+            "DataprocSparkSqlBatch",
             "--payload",
             "{\"labels\": {{$.inputs.parameters['labels']}}, \"runtime_config\": {\"version\": \"{{$.inputs.parameters['runtime_config_version']}}\", \"container_image\": \"{{$.inputs.parameters['container_image']}}\", \"properties\": {{$.inputs.parameters['runtime_config_properties']}}}, \"environment_config\": {\"execution_config\": {\"service_account\": \"{{$.inputs.parameters['service_account']}}\", \"network_tags\": {{$.inputs.parameters['network_tags']}}, \"kms_key\": \"{{$.inputs.parameters['kms_key']}}\", \"network_uri\": \"{{$.inputs.parameters['network_uri']}}\", \"subnetwork_uri\": \"{{$.inputs.parameters['subnetwork_uri']}}\"}, \"peripherals_config\": {\"metastore_service\": \"{{$.inputs.parameters['metastore_service']}}\", \"spark_history_server_config\": { \"dataproc_cluster\": \"{{$.inputs.parameters['spark_history_dataproc_cluster']}}\"}}}, \"spark_sql_batch\": {\"query_file_uri\": \"{{$.inputs.parameters['query_file_uri']}}\", \"query_variables\": {{$.inputs.parameters['query_variables']}}, \"jar_file_uris\": {{$.inputs.parameters['jar_file_uris']}}}}",
             "--project",

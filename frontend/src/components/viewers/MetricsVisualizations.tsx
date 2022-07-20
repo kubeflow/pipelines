@@ -407,6 +407,7 @@ export const lineColors = [
 ];
 
 export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSectionProps) {
+<<<<<<< HEAD
   const tableRef = useRef<CustomTable>(null); // TODO: Add refresh line.
   const customPropertiesList = artifacts.map(artifact => artifact.getCustomPropertiesMap());
   const names = customPropertiesList.map(customProperties =>
@@ -422,19 +423,39 @@ export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSection
         ?.toJavaScript(),
     )
     .filter(confidenceMetrics => confidenceMetrics);
+=======
+  // TODO(zpChris): Update implementation to use a filter table and incorporate artifact ID.
+  const confidenceMetricsDataList = artifacts
+    .map(artifact => {
+      const customProperties = artifact.getCustomPropertiesMap();
+      return {
+        confidenceMetrics: customProperties
+          .get('confidenceMetrics')
+          ?.getStructValue()
+          ?.toJavaScript(),
+        name:
+          customProperties.get('display_name')?.getStringValue() ||
+          `artifact ID #${artifact.getId().toString()}`,
+      };
+    })
+    .filter(confidenceMetricsData => confidenceMetricsData.confidenceMetrics);
+>>>>>>> display-roc-curve
 
-  if (confidenceMetricsList.length === 0) {
+  if (confidenceMetricsDataList.length === 0) {
     return null;
   }
 
   const rocCurveConfigs: ROCCurveConfig[] = [];
-  for (let i = 0; i < confidenceMetricsList.length; i++) {
-    const confidenceMetrics = confidenceMetricsList[i] as any;
+  for (let i = 0; i < confidenceMetricsDataList.length; i++) {
+    const confidenceMetrics = confidenceMetricsDataList[i].confidenceMetrics as any;
     const { error } = validateConfidenceMetrics(confidenceMetrics.list);
 
     // If an error exists with confidence metrics, return the first one with an issue.
     if (error) {
-      const errorMsg = 'Error in ' + names[i] + " artifact's confidenceMetrics data format.";
+      const errorMsg =
+        'Error in ' +
+        confidenceMetricsDataList[i].name +
+        " artifact's confidenceMetrics data format.";
       return <Banner message={errorMsg} mode='error' additionalInfo={error} />;
     }
 
@@ -467,7 +488,10 @@ export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSection
     <div className={padding(40, 'lrt')}>
       <div className={padding(40, 'b')}>
         <h3>
-          {'ROC Curve: ' + (names.length === 1 ? names[0] : 'multiple artifacts')}{' '}
+          {'ROC Curve: ' +
+            (confidenceMetricsDataList.length === 1
+              ? confidenceMetricsDataList[0].name
+              : 'multiple artifacts')}{' '}
           <IconWithTooltip
             Icon={HelpIcon}
             iconColor={color.weak}

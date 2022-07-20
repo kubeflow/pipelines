@@ -21,10 +21,14 @@ description: |
             Required. Project to run feature transform engine.
         location (Optional[str]):
             Location for running the feature transform engine.
-        root_dir (str): The Cloud Storage location to store the output.
-        analyze_data (Dataset): Configuration of the dataset to be analyzed.
-        transform_data (Dataset): Configuration of the dataset to be transformed.
-        transform_config (str): Feature transformation configurations.
+        root_dir (str):
+            The Cloud Storage location to store the output.
+        analyze_data (Dataset):
+            Configuration of the dataset to be analyzed.
+        transform_data (Dataset):
+            Configuration of the dataset to be transformed.
+        transform_config (str):
+            Feature transformation configurations.
         dataflow_machine_type (Optional[str]):
             The machine type used for dataflow jobs. If not set, default to n1-standard-16.
         dataflow_max_num_workers (Optional[int]):
@@ -42,9 +46,12 @@ description: |
             Customer-managed encryption key.
 
     Returns:
-        materialized_data (Dataset): The materialized dataset.
-        transform_output (TransformOutput): The transform output artifact.
-        training_schema (TrainingSchema): The training schema.
+        materialized_data (Dataset):
+            The materialized dataset.
+        transform_output (TransformOutput):
+            The transform output artifact.
+        training_schema (TrainingSchema):
+            The training schema.
         gcp_resources (str):
             GCP resources created by this component.
             For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
@@ -69,41 +76,77 @@ outputs:
 
 implementation:
   container:
-    image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20220707_0325_RC00
+    image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20220719_0325_RC00
     args: [
       feature_transform_engine,
-      --transform_output_artifact_path, {outputUri: transform_output},
-      --transform_output_path,
       concat: [
-        {inputValue: root_dir},
-        "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform",
+        "--transform_output_artifact_path=",
+        {outputUri: transform_output}
       ],
-      --materialized_data_path,
       concat: [
+        "--transform_output_path=",
         {inputValue: root_dir},
-        "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized_data",
+        "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform"
       ],
-      --materialized_data_artifact_path, {outputUri: materialized_data},
-      --transform_config_path, {inputValue: transform_config},
-      --analyze_data_path, {inputUri: analyze_data},
-      --transform_data_path, {inputUri: transform_data},
-      --job_name, "feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
-      --dataflow_project, {inputValue: project},
-      --dataflow_staging_dir,
       concat: [
+        "--materialized_data_path=",
+        {inputValue: root_dir},
+        "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized_data"
+      ],
+      concat: [
+        "--materialized_data_artifact_path=",
+        {outputUri: materialized_data}
+      ],
+      concat: [
+        "--transform_config_path=",
+        {inputValue: transform_config}
+      ],
+      concat: [
+        "--analyze_data_path=",
+        {inputUri: analyze_data}
+      ],
+      concat: [
+        "--transform_data_path=",
+        {inputUri: transform_data}
+      ],
+      "--job_name=feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
+      concat: [
+        "--dataflow_project=",
+        {inputValue: project}
+      ],
+      concat: [
+        "--dataflow_staging_dir=",
         {inputValue: root_dir},
         "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging",
       ],
-      --dataflow_tmp_dir,
       concat: [
+        "--dataflow_tmp_dir=",
         {inputValue: root_dir},
         "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp",
       ],
-      --dataflow_max_num_workers, {inputValue: dataflow_max_num_workers},
-      --dataflow_machine_type, {inputValue: dataflow_machine_type},
-      --dataflow_worker_container_image, us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220707_0325_RC00,
-      --dataflow_disk_size_gb, {inputValue: dataflow_disk_size_gb},
-      --dataflow_subnetwork_fully_qualified, {inputValue: dataflow_subnetwork},
-      --dataflow_use_public_ips, {inputValue: dataflow_use_public_ips},
-      --dataflow_kms_key, {inputValue: encryption_spec_key_name}
+      concat: [
+        "--dataflow_max_num_workers=",
+        {inputValue: dataflow_max_num_workers}
+      ],
+      concat: [
+        "--dataflow_machine_type=",
+        {inputValue: dataflow_machine_type}
+      ],
+      "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220719_0325_RC00",
+      concat: [
+        "--dataflow_disk_size_gb=",
+        {inputValue: dataflow_disk_size_gb}
+      ],
+      concat: [
+        "--dataflow_subnetwork_fully_qualified=",
+        {inputValue: dataflow_subnetwork}
+      ],
+      concat: [
+        "--dataflow_use_public_ips=",
+        {inputValue: dataflow_use_public_ips}
+      ],
+      concat: [
+        "--dataflow_kms_key=",
+        {inputValue: encryption_spec_key_name}
+      ]
     ]
