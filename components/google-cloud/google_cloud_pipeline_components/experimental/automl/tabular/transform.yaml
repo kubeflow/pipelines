@@ -21,12 +21,18 @@ description: |
             Required. Project to run Cross-validation trainer.
         location (str):
             Location for running the Cross-validation trainer.
-        root_dir (str): The Cloud Storage location to store the output.
-        metadata (TabularExampleGenMetadata): The tabular example gen metadata.
-        dataset_schema (DatasetSchema): The schema of the dataset.
-        train_split (Dataset): The train split.
-        eval_split (Dataset): The eval split.
-        test_split (Dataset): The test split.
+        root_dir (str):
+            The Cloud Storage location to store the output.
+        metadata (TabularExampleGenMetadata):
+            The tabular example gen metadata.
+        dataset_schema (DatasetSchema):
+            The schema of the dataset.
+        train_split (Dataset):
+            The train split.
+        eval_split (Dataset):
+            The eval split.
+        test_split (Dataset):
+            The test split.
         dataflow_machine_type (Optional[str]):
             The machine type used for dataflow jobs. If not set, default to n1-standard-16.
         dataflow_max_num_workers (Optional[int]):
@@ -46,11 +52,16 @@ description: |
             Customer-managed encryption key.
 
     Returns:
-        materialized_train_split (MaterializedSplit): The materialized train split.
-        materialized_eval_split (MaterializedSplit): The materialized eval split.
-        materialized_eval_split (MaterializedSplit): The materialized test split.
-        training_schema_uri (TrainingSchema): The training schema.
-        transform_output (TransformOutput): The transform output artifact.
+        materialized_train_split (MaterializedSplit):
+            The materialized train split.
+        materialized_eval_split (MaterializedSplit):
+            The materialized eval split.
+        materialized_eval_split (MaterializedSplit):
+            The materialized test split.
+        training_schema_uri (TrainingSchema):
+            The training schema.
+        transform_output (TransformOutput):
+            The transform output artifact.
         gcp_resources (str):
             GCP resources created by this component.
             For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
@@ -93,7 +104,7 @@ implementation:
         '{"display_name": "automl-tabular-transform-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20220707_0325_RC00',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20220719_0325_RC00',
         '", "args": ["transform", "--transform_output_artifact_path=',
         {outputUri: transform_output},
         '", "--transform_output_path=',
@@ -132,7 +143,7 @@ implementation:
         '", "--dataflow_machine_type=',
         {inputValue: dataflow_machine_type},
         '", "--dataflow_worker_container_image=',
-        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220707_0325_RC00',
+        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220719_0325_RC00',
         '", "--dataflow_disk_size_gb=',
         {inputValue: dataflow_disk_size_gb},
         '", "--dataflow_subnetwork_fully_qualified=',
