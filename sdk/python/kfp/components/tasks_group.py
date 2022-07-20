@@ -94,8 +94,12 @@ class TasksGroup:
 
 
 class ExitHandler(TasksGroup):
-    """Represents an exit handler that is invoked upon exiting a group of
-    tasks.
+    """A class for setting an exit handler task that is invoked upon exiting a
+    group of other tasks.
+
+    Args:
+        exit_task: The task that is invoked after exiting a group of other tasks.
+        name: The name of the exit handler group.
 
     Example:
       ::
@@ -104,9 +108,6 @@ class ExitHandler(TasksGroup):
         with ExitHandler(exit_task):
             task1 = MyComponent1(...)
             task2 = MyComponent2(...)
-
-    Attributes:
-        exit_task: The exit handler task.
     """
 
     def __init__(
@@ -114,15 +115,7 @@ class ExitHandler(TasksGroup):
         exit_task: pipeline_task.PipelineTask,
         name: Optional[str] = None,
     ):
-        """Initializes a Condition task group.
-
-        Args:
-            exit_task: An operator invoked at exiting a group of ops.
-            name: Optional; the name of the exit handler group.
-
-        Raises:
-            ValueError: Raised if the exit_task is invalid.
-        """
+        """Initializes a Condition task group."""
         super().__init__(group_type=TasksGroupType.EXIT_HANDLER, name=name)
 
         if exit_task.dependent_tasks:
@@ -139,7 +132,12 @@ class ExitHandler(TasksGroup):
 
 
 class Condition(TasksGroup):
-    """Represents an condition group with a condition.
+    """A class for creating conditional control flow within a pipeline
+    definition.
+
+    Args:
+        condition: The condition expression. Can be constructed using constants or outputs from upstream tasks.
+        name: The name of the condition group.
 
     Example:
       ::
@@ -147,9 +145,6 @@ class Condition(TasksGroup):
         with Condition(param1=='pizza', '[param1 is pizza]'):
             task1 = MyComponent1(...)
             task2 = MyComponent2(...)
-
-    Attributes:
-        condition: The condition expression.
     """
 
     def __init__(
@@ -157,18 +152,16 @@ class Condition(TasksGroup):
         condition: pipeline_channel.ConditionOperator,
         name: Optional[str] = None,
     ):
-        """Initializes a conditional task group.
-
-        Args:
-            condition: The condition expression.
-            name: Optional; the name of the condition group.
-        """
+        """Initializes a conditional task group."""
         super().__init__(group_type=TasksGroupType.CONDITION, name=name)
         self.condition = condition
 
 
 class ParallelFor(TasksGroup):
-    """Represents a parallel for loop over a static set of items.
+    """A class for creating parallelized for loop control flow over a static set of items within a pipeline definition.
+    Args:
+        items: The items to loop over. It can be either a raw list or an output from an upstream task.
+        name: The name of the for loop group.
 
     Example:
       ::
@@ -179,12 +172,6 @@ class ParallelFor(TasksGroup):
 
     In this case :code:`task1` would be executed twice, once with case
     :code:`args=['echo 1']` and once with case :code:`args=['echo 2']`::
-
-
-    Attributes:
-        loop_argument: The argument for each loop iteration.
-        items_is_pipeline_channel: Whether the loop items is PipelineChannel
-            instead of raw items.
     """
 
     def __init__(
@@ -192,13 +179,7 @@ class ParallelFor(TasksGroup):
         items: Union[for_loop.ItemList, pipeline_channel.PipelineChannel],
         name: Optional[str] = None,
     ):
-        """Initializes a for loop task group.
-
-        Args:
-            items: The argument to loop over. It can be either a raw list or a
-                pipeline channel.
-            name: Optional; the name of the for loop group.
-        """
+        """Initializes a for loop task group."""
         super().__init__(group_type=TasksGroupType.FOR_LOOP, name=name)
 
         if isinstance(items, pipeline_channel.PipelineChannel):

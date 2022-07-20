@@ -32,21 +32,30 @@ def importer(
     reimport: bool = False,
     metadata: Optional[Mapping[str, Any]] = None,
 ) -> pipeline_task.PipelineTask:
-    """dsl.importer for importing an existing artifact. Only for v2 pipeline.
+    """Imports an existing artifact.
 
     Args:
-      artifact_uri: The artifact uri to import from.
-      artifact_type_schema: The user specified artifact type schema of the
-        artifact to be imported.
-      reimport: Whether to reimport the artifact. Defaults to False.
+      artifact_uri: The URI of the artifact to import.
+      artifact_class: The artifact class being imported.
+      reimport: Whether to reimport the artifact.
       metadata: Properties of the artifact.
 
     Returns:
       A PipelineTask instance.
 
     Raises:
-      ValueError if the passed in artifact_uri is neither a PipelineParam nor a
-        constant string value.
+      ValueError: if the passed in artifact_uri is neither a PipelineParam nor a constant string value.
+
+    Examples::
+
+      @dsl.pipeline(name='pipeline-with-importer')
+      def pipeline_with_importer():
+
+          importer1 = importer(
+              artifact_uri='gs://ml-pipeline-playground/shakespeare1.txt',
+              artifact_class=Dataset,
+              reimport=False)
+          train(dataset=importer1.output)
     """
     component_spec = structures.ComponentSpec(
         name='importer',

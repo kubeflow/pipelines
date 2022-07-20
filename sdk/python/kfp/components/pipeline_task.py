@@ -33,10 +33,27 @@ def create_pipeline_task(
 
 
 class PipelineTask:
-    """Represents a pipeline task -- an instantiated component.
+    """Represents a pipeline task (an instantiated component).
 
-    Replaces `ContainerOp`. Holds operations available on a task object, such as
-    `.after()`, `.set_memory_limit()`, `enable_caching()`, etc.
+    **Note:** ``PipelineTask`` should not be constructed by pipeline authors directly, but instead obtained via an instantiated component.
+
+    Example::
+
+        @dsl.component
+        def identity(message: str) -> str:
+            return message
+
+        @dsl.pipeline(name='my_pipeline')
+        def my_pipeline():
+            # task is an instance of PipelineTask
+            task = identity(message='my string')
+
+    Replaces ``ContainerOp`` from kfp v1. Holds operations available on a task object, such as
+    ``.after()``, ``.set_memory_limit()`, ``.enable_caching()``, etc.
+
+    Args:
+        component_spec: The component definition.
+        args: The dictionary of component arguments.
 
     Attributes:
         name: The name of the task. Unique within its parent group.
@@ -60,12 +77,7 @@ class PipelineTask:
         component_spec: structures.ComponentSpec,
         args: Mapping[str, Any],
     ):
-        """Initilizes a PipelineTask instance.
-
-        Args:
-            component_spec: The component definition.
-            args: The dictionary of component arguments.
-        """
+        """Initilizes a PipelineTask instance."""
         args = args or {}
 
         for input_name, argument_value in args.items():

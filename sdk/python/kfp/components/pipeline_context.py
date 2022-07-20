@@ -28,8 +28,8 @@ pipeline_decorator_handler = None
 
 def pipeline(name: Optional[str] = None,
              description: Optional[str] = None,
-             pipeline_root: Optional[str] = None):
-    """Decorator of pipeline functions.
+             pipeline_root: Optional[str] = None) -> Callable:
+    """Decorator used to construct a pipeline.
 
     Example
       ::
@@ -43,12 +43,9 @@ def pipeline(name: Optional[str] = None,
           ...
 
     Args:
-        name: The pipeline name. Default to a sanitized version of the function
-            name.
-        description: Optionally, a human-readable description of the pipeline.
-        pipeline_root: The root directory to generate input/output URI under this
-            pipeline. This is required if input/output URI placeholder is used in
-            this pipeline.
+        name: The pipeline name. Defaults to a sanitized version of the decorated function name.
+        description: A human-readable description of the pipeline.
+        pipeline_root: The root directory to generate input/output URI under this pipeline. This is required if input/output URI placeholder is used in this pipeline.
     """
     if callable(name):
         strikethrough_decorator = '\u0336'.join('@pipeline') + '\u0336'
@@ -62,7 +59,7 @@ def pipeline(name: Optional[str] = None,
                     ...
             """))
 
-    def _pipeline(func: Callable):
+    def _pipeline(func: Callable) -> Callable:
         func._is_pipeline = True
         if name:
             func._component_human_name = name
