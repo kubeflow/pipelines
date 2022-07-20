@@ -63,7 +63,6 @@ function NewRunSwitcher(props: PageProps) {
 
   if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
     if ((runIsSuccess || pipelineIsSuccess) && isTemplateV2(templateString || '')) {
-      console.log('create v2 component');
       return <NewRunV2 {...props} namespace={namespace} />;
     }
   }
@@ -71,7 +70,6 @@ function NewRunSwitcher(props: PageProps) {
   if (pipelineIsFetching || runIsFetching) {
     return <div>Currently loading pipeline information</div>;
   }
-  console.log('create v1 component');
   return <NewRun {...props} namespace={namespace} />;
 }
 

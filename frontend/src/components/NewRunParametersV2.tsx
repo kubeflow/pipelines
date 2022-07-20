@@ -17,6 +17,7 @@
 import { Button, Checkbox, FormControlLabel, InputAdornment, TextField } from '@material-ui/core';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
+import { PipelineSpecRuntimeConfig } from 'src/apis/run';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { ParameterType_ParameterTypeEnum } from 'src/generated/pipeline_spec/pipeline_spec';
 import { RuntimeParameters, SpecParameters } from 'src/pages/NewRunV2';
@@ -53,6 +54,7 @@ interface NewRunParametersProps {
   pipelineRoot?: string;
   // ComponentInputsSpec_ParameterSpec
   specParameters: SpecParameters;
+  runtimeConfigFromClone: PipelineSpecRuntimeConfig;
   handlePipelineRootChange?: (pipelineRoot: string) => void;
   handleParameterChange?: (parameters: RuntimeParameters) => void;
   setIsValidInput?: (isValid: boolean) => void;
@@ -131,11 +133,20 @@ function generateInputValidationErrMsg(
 
 function NewRunParametersV2(props: NewRunParametersProps) {
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
-  const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
+  const [customPipelineRoot, setCustomPipelineRoot] = useState(
+    props.runtimeConfigFromClone.pipeline_root != undefined
+      ? props.runtimeConfigFromClone.pipeline_root
+      : props.pipelineRoot,
+  );
   const [errorMessages, setErrorMessages] = useState([]);
 
   const [updatedParameters, setUpdatedParameters] = useState({});
   useEffect(() => {
+    if (props.runtimeConfigFromClone.parameters) {
+      setUpdatedParameters(props.runtimeConfigFromClone.parameters);
+      return;
+    }
+    // TODO(jlyaoyuli): If we have parameters from run, put original default value next to the paramKey
     const runtimeParametersWithDefault: RuntimeParameters = {};
     let allParamtersWithDefault = true;
     Object.keys(props.specParameters).map(key => {
@@ -166,7 +177,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     if (props.setIsValidInput) {
       props.setIsValidInput(allParamtersWithDefault);
     }
-  }, [props.specParameters]);
+  }, [props.runtimeConfigFromClone, props.specParameters]);
 
   return (
     <div>

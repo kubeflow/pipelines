@@ -26,6 +26,7 @@ import {
   ApiResourceType,
   ApiRun,
   ApiRunDetail,
+  PipelineSpecRuntimeConfig,
 } from 'src/apis/run';
 import BusyButton from 'src/atoms/BusyButton';
 import { ExternalLink } from 'src/atoms/ExternalLink';
@@ -82,6 +83,9 @@ function NewRunV2(props: NewRunV2Props) {
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isParameterValid, setIsParameterValid] = useState(false);
+  const [runtimeConfigFromClone, setRuntimeConfigFromClone] = useState<PipelineSpecRuntimeConfig>(
+    {},
+  );
 
   // TODO(zijianjoy): If creating run from Experiment Page or RunList Page, there is no pipelineId/Version.
   const urlParser = new URLParser(props);
@@ -89,7 +93,7 @@ function NewRunV2(props: NewRunV2Props) {
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
   const pipelineVersionIdParam = urlParser.get(QUERY_PARAMS.pipelineVersionId);
 
-  //Retrieve Run Detail using RunID from backend
+  // Retrieve Run Detail using RunID from backend
   const { isSuccess: isRunPullSuccess, data: apiRun } = useQuery<ApiRunDetail, Error>(
     ['ApiRun', originalRunId],
     () => {
@@ -103,15 +107,19 @@ function NewRunV2(props: NewRunV2Props) {
   );
 
   const { isSuccess: isTemplatePullSuccessFromRun, data: templateStringFromRunId } = useQuery(
-    ['ApiRunTemplate', apiRun],
+    [originalRunId],
     async () => {
-      if (!apiRun) {
+      if (!originalRunId) {
         return '';
       }
-      return apiRun.run?.pipeline_spec?.pipeline_manifest || '';
+      const originalRun = await Apis.runServiceApi.getRun(originalRunId);
+      return originalRun.run?.pipeline_spec?.pipeline_manifest || '';
     },
     { enabled: !!apiRun, staleTime: Infinity },
   );
+
+  //const pipelineNameFromRun = apiRun?.run?.name?.substring(7, apiRun.run.name.length - 8);
+  const apiResourceRefFromRun = apiRun != undefined ? apiRun?.run?.resource_references : undefined;
 
   // Retrieve Pipeline Detail using pipeline ID and pipeline version ID from backend.
   // It validates that the pipeline entity indeed exists with pipeline ID.
@@ -162,19 +170,14 @@ function NewRunV2(props: NewRunV2Props) {
   const isTemplatePullSuccess = isTemplatePullSuccessFromRun || isTemplatePullSuccessFromPipeline;
   const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
   const titleVerb = originalRunId ? 'Clone' : 'Start';
-  const pipelineNameFromRun = apiRun?.run?.name?.substring(7, apiRun.run.name.length - 8);
-  // console.log(pipelineNameFromRun);
-  // const pipelineIdFromRun = apiRun?.run?.pipeline_spec?.pipeline_id;
-  // const pipelineVersionFromRun = Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionIdParam)
   const parameterfromGetRunV1 = apiRun?.run?.pipeline_spec?.parameters;
-  const runtimeConfigfromGetRunV2 = apiRun?.run?.pipeline_spec?.runtime_config?.parameters;
-  // console.log(runtimeConfigfromGetRunV2);
+  // console.log(apiRun?.run?.pipeline_spec?.runtime_config);
 
   // Title and list of actions on the top of page.
   useEffect(() => {
     props.updateToolbar({
       actions: {},
-      pageTitle: isRecurringRun ? `${titleVerb} a recurring run` : `${titleVerb} a run v2`,
+      pageTitle: isRecurringRun ? `${titleVerb} a recurring run` : `${titleVerb} a run`,
     });
   }, []);
 
@@ -200,14 +203,6 @@ function NewRunV2(props: NewRunV2Props) {
     setPipelineSpec(spec);
 
     const params = spec.root?.inputDefinitions?.parameters;
-    // console.log(params);
-    const cloneRunParams = parameterfromGetRunV1;
-    // const testParam: ComponentInputsSpec_ParameterSpec = [];
-    // if (cloneRunParams) {
-    //   // convert the type
-    //   //setSpecParameters(cloneRunParams);
-    // } else
-
     if (params) {
       setSpecParameters(params);
     }
@@ -226,6 +221,12 @@ function NewRunV2(props: NewRunV2Props) {
       setIsStartButtonEnabled(true);
     }
   }, [templateString, errorMessage, isParameterValid]);
+
+  useEffect(() => {
+    if (apiRun?.run?.pipeline_spec?.runtime_config) {
+      setRuntimeConfigFromClone(apiRun?.run?.pipeline_spec?.runtime_config);
+    }
+  }, [apiRun]);
 
   // Whenever any input value changes, validate and show error if needed.
   // TODO(zijianjoy): Validate run name for now, we need to validate others first.
@@ -276,7 +277,7 @@ function NewRunV2(props: NewRunV2Props) {
           parameters: runtimeParameters,
         },
       },
-      resource_references: references,
+      resource_references: apiResourceRefFromRun != undefined ? apiResourceRefFromRun : references,
       service_account: serviceAccount,
     };
     setIsStartingNewRun(true);
@@ -313,7 +314,11 @@ function NewRunV2(props: NewRunV2Props) {
 
         {/* Pipeline selection */}
         <Input
-          value={(pipelineNameFromRun != undefined ? pipelineNameFromRun : apiPipeline?.name) || ''}
+          value={
+            (apiResourceRefFromRun != undefined
+              ? apiResourceRefFromRun[1].name
+              : apiPipeline?.name) || ''
+          }
           required={true}
           label='Pipeline'
           disabled={true}
@@ -326,7 +331,11 @@ function NewRunV2(props: NewRunV2Props) {
 
         {/* Pipeline version selection */}
         <Input
-          value={apiPipelineVersion?.name || ''}
+          value={
+            (apiResourceRefFromRun != undefined
+              ? apiResourceRefFromRun[1].name
+              : apiPipelineVersion?.name) || ''
+          }
           required={true}
           label='Pipeline Version'
           disabled={true}
@@ -395,6 +404,7 @@ function NewRunV2(props: NewRunV2Props) {
               : 'This pipeline has no parameters'
           }
           specParameters={specParameters}
+          runtimeConfigFromClone={runtimeConfigFromClone}
           handleParameterChange={setRuntimeParameters}
           setIsValidInput={setIsParameterValid}
         />
