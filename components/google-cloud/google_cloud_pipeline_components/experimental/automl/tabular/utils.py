@@ -1144,8 +1144,10 @@ def get_default_pipeline_and_parameters(
 
 def get_feature_selection_pipeline_and_parameters(
     project: str, location: str, root_dir: str, target_column: str,
-    algorithm: str, prediction_type: str, data_source: Dict[str, Any],
-    max_selected_features: int):
+    algorithm: str, prediction_type: str,
+    data_source_csv_filenames: Optional[str] = None,
+    data_source_bigquery_table_path: Optional[str] = None,
+    max_selected_features: Optional[int] = None):
   """Get the feature selection pipeline that generates feature ranking and selected features.
 
   Args:
@@ -1156,23 +1158,33 @@ def get_feature_selection_pipeline_and_parameters(
     algorithm: Algorithm to select features, default to be AMI.
     prediction_type: The type of prediction the model is to produce.
       "classification" or "regression".
-    data_source: The data source.
+    data_source_csv_filenames: A string that represents a list of comma
+      separated CSV filenames.
+    data_source_bigquery_table_path: The BigQuery table path.
     max_selected_features: number of features to be selected.
 
   Returns:
     Tuple of pipeline_definition_path and parameter_values.
   """
 
-  parameter_values = {
+  parameter_values = {}
+  data_source_parameters = {
       'project': project,
       'location': location,
       'root_dir': root_dir,
       'target_column_name': target_column,
       'algorithm': algorithm,
       'prediction_type': prediction_type,
-      'data_source': input_dictionary_to_parameter(data_source),
+      'data_source_csv_filenames': data_source_csv_filenames,
+      'data_source_bigquery_table_path': data_source_bigquery_table_path,
       'max_selected_features': max_selected_features,
   }
+
+  parameter_values.update({
+      param: value
+      for param, value in data_source_parameters.items()
+      if value is not None
+  })
 
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),

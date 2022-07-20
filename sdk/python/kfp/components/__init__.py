@@ -12,6 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+__all__ = [
+    'load_component_from_text',
+    'load_component_from_file',
+    'load_component_from_url',
+]
+
 from kfp.components.yaml_component import load_component_from_file
 from kfp.components.yaml_component import load_component_from_text
 from kfp.components.yaml_component import load_component_from_url

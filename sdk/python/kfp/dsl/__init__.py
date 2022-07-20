@@ -12,6 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+__all__ = [
+    'component',
+    'importer',
+    'PipelineArtifactChannel',
+    'PipelineChannel',
+    'PipelineParameterChannel',
+    'pipeline',
+    'PipelineTask',
+    'PipelineTaskFinalStatus',
+    'Condition',
+    'ExitHandler',
+    'ParallelFor',
+    'Artifact',
+    'ClassificationMetrics',
+    'Dataset',
+    'HTML',
+    'Markdown',
+    'Metrics',
+    'Model',
+    'SlicedClassificationMetrics',
+    'Input',
+    'Output',
+    'InputPath',
+    'OutputPath',
+    'PIPELINE_JOB_NAME_PLACEHOLDER',
+    'PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER',
+    'PIPELINE_JOB_ID_PLACEHOLDER',
+    'PIPELINE_TASK_NAME_PLACEHOLDER',
+    'PIPELINE_TASK_ID_PLACEHOLDER',
+]
+
 from kfp.components.component_decorator import component
 from kfp.components.importer_node import importer
 from kfp.components.pipeline_channel import PipelineArtifactChannel
