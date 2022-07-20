@@ -21,32 +21,45 @@ description: |
             Required. Project to run Cross-validation trainer.
         location (str):
             Location for running the Cross-validation trainer.
-        root_dir (str): The Cloud Storage location to store the output.
+        root_dir (str):
+            The Cloud Storage location to store the output.
         study_spec_override (str):
             Quote escaped JSON string for the study spec. An example of the study specs JSON is:
             {"parameters":[{"parameter_id": "model_type","categorical_value_spec": {"values": ["nn"]}}]}
         worker_pool_specs_override (str):
             Quote escaped JSON string for the worker pool specs. An example of the worker pool specs JSON is:
             [{"machine_spec": {"machine_type": "n1-standard-16"}},{},{},{"machine_spec": {"machine_type": "n1-standard-16"}}]
-        reduce_search_space_mode (str): The reduce search space mode. Possible values: "regular" (default), "minimal", "full".
+        reduce_search_space_mode (str):
+            The reduce search space mode. Possible values: "regular" (default), "minimal", "full".
         num_selected_trials (int):
             Number of selected trials. The number of weak learners in the final model is 5 * num_selected_trials.
-        deadline_hours (float): Number of hours the cross-validation trainer should run.
-        disable_early_stopping (bool): True if disable early stopping. Default value is false.
-        num_parallel_trials (int): Number of parallel training trials.
-        single_run_max_secs (int): Max number of seconds each training trial runs.
-        metadata (TabularExampleGenMetadata): The tabular example gen metadata.
-        transform_output (TransformOutput): The transform output artifact.
-        materialized_train_split (MaterializedSplit): The materialized train split.
-        materialized_eval_split (MaterializedSplit): The materialized eval split.
-        encryption_spec_key_name (Optional[str]): Customer-managed encryption key.
-        run_distillation (bool): True if in distillation mode. The default value is false.
+        deadline_hours (float):
+            Number of hours the cross-validation trainer should run.
+        disable_early_stopping (bool):
+            True if disable early stopping. Default value is false.
+        num_parallel_trials (int):
+            Number of parallel training trials.
+        single_run_max_secs (int):
+            Max number of seconds each training trial runs.
+        metadata (TabularExampleGenMetadata):
+            The tabular example gen metadata.
+        transform_output (TransformOutput):
+            The transform output artifact.
+        materialized_train_split (MaterializedSplit):
+            The materialized train split.
+        materialized_eval_split (MaterializedSplit):
+            The materialized eval split.
+        encryption_spec_key_name (Optional[str]):
+            Customer-managed encryption key.
+        run_distillation (bool):
+            True if in distillation mode. The default value is false.
 
     Returns:
         gcp_resources (str):
             GCP resources created by this component.
             For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
-        tuning_result_output (AutoMLTabularTuningResult): The trained model and architectures.
+        tuning_result_output (AutoMLTabularTuningResult):
+            The trained model and architectures.
 inputs:
 - {name: project, type: String}
 - {name: location, type: String}
@@ -90,11 +103,11 @@ implementation:
         '{"display_name": "automl-tabular-stage-1-tuner-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20220707_0325_RC00',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20220719_0325_RC00',
         '", "args": ["l2l_stage_1_tuner", "--transform_output_path=',
         {inputUri: transform_output},
         '", "--training_docker_uri=',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20220707_0325_RC00',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20220719_0325_RC00',
         '", ',
         {if: {
           cond: {isPresent: feature_ranking},

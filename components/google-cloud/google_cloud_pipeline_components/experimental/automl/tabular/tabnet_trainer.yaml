@@ -21,69 +21,105 @@ description: |
             Required. The GCP project that runs the pipeline components.
         location (str):
             Required. The GCP region that runs the pipeline components.
-        root_dir (str): Required. The root GCS directory for the pipeline components.
-        target_column (str): Required. The target column name.
-        prediction_type (str): Required. The type of prediction the model is to produce.
+        root_dir (str):
+            Required. The root GCS directory for the pipeline components.
+        target_column (str):
+            Required. The target column name.
+        prediction_type (str):
+            Required. The type of prediction the model is to produce.
             "classification" or "regression".
-        weight_column (Optional[str]): The weight column name.
-        max_steps (Optional[int]): Number of steps to run the trainer for.
-        max_train_secs (Optional[int]): Amount of time in seconds to run the trainer for.
-        learning_rate (float): The learning rate used by the linear optimizer.
-        large_category_dim (Optional[int]): Embedding dimension for categorical feature with
-            large number of categories.
-        large_category_thresh (Optional[int]): Threshold for number of categories to apply large_category_dim
-            embedding dimension to.
-        yeo_johnson_transform (Optional[bool]): Enables trainable Yeo-Johnson power transform.
-        feature_dim (Optional[int]): Dimensionality of the hidden representation in feature
-            transformation block.
-        feature_dim_ratio (Optional[float]): The ratio of output dimension (dimensionality of the
+        weight_column (Optional[str]):
+            The weight column name.
+        max_steps (Optional[int]):
+            Number of steps to run the trainer for.
+        max_train_secs (Optional[int]):
+            Amount of time in seconds to run the trainer for.
+        learning_rate (float):
+            The learning rate used by the linear optimizer.
+        large_category_dim (Optional[int]):
+            Embedding dimension for categorical feature with large number of categories.
+        large_category_thresh (Optional[int]):
+            Threshold for number of categories to apply large_category_dim embedding dimension to.
+        yeo_johnson_transform (Optional[bool]):
+            Enables trainable Yeo-Johnson power transform.
+        feature_dim (Optional[int]):
+            Dimensionality of the hidden representation in feature transformation block.
+        feature_dim_ratio (Optional[float]):
+            The ratio of output dimension (dimensionality of the
             outputs of each decision step) to feature dimension.
-        num_decision_steps (Optional[int]): Number of sequential decision steps.
-        relaxation_factor (Optional[float]): Relaxation factor that promotes the reuse of each feature
+        num_decision_steps (Optional[int]):
+            Number of sequential decision steps.
+        relaxation_factor (Optional[float]):
+            Relaxation factor that promotes the reuse of each feature
             at different decision steps. When it is 1, a feature is enforced to be
-            used only at one decision step and as it increases, more flexibility is provided to use a feature at multiple decision steps.
-        decay_every (Optional[float]): Number of iterations for periodically applying learning rate decaying.
-        gradient_thresh (Optional[float]): Threshold for the norm of gradients for clipping.
-        sparsity_loss_weight (Optional[float]): Weight of the loss for sparsity regularization
+            used only at one decision step and as it increases, more flexibility is provided to use
+            a feature at multiple decision steps.
+        decay_every (Optional[float]):
+            Number of iterations for periodically applying learning rate decaying.
+        gradient_thresh (Optional[float]):
+            Threshold for the norm of gradients for clipping.
+        sparsity_loss_weight (Optional[float]):
+            Weight of the loss for sparsity regularization
             (increasing it will yield more sparse feature selection).
-        batch_momentum (Optional[float]): Momentum in ghost batch normalization.
-        batch_size_ratio (Optional[float]): The ratio of virtual batch size
-            (size of the ghost batch normalization) to batch size.
-        num_transformer_layers (Optional[int]): The number of transformer layers for each decision step.
-            used only at one decision step and as it increases, more flexibility is provided to use a feature at multiple decision steps.
-        num_transformer_layers_ratio (Optional[float]): The ratio of shared transformer layer to transformer layers.
-        class_weight (Optional[float]): The class weight is used to computes a weighted cross
+        batch_momentum (Optional[float]):
+            Momentum in ghost batch normalization.
+        batch_size_ratio (Optional[float]):
+            The ratio of virtual batch size (size of the ghost batch normalization) to batch size.
+        num_transformer_layers (Optional[int]):
+            The number of transformer layers for each decision step.
+            used only at one decision step and as it increases, more flexibility is provided to use
+            a feature at multiple decision steps.
+        num_transformer_layers_ratio (Optional[float]):
+            The ratio of shared transformer layer to transformer layers.
+        class_weight (Optional[float]):
+            The class weight is used to computes a weighted cross
             entropy which is helpful in classify imbalanced dataset. Only used for classification.
-        loss_function_type (Optional[str]): Loss function type. Loss function in classification
+        loss_function_type (Optional[str]):
+            Loss function type. Loss function in classification
             [cross_entropy, weighted_cross_entropy, focal_loss], default is cross_entropy.
             Loss function in regression: [rmse, mae, mse], default is mse.
-        alpha_focal_loss (Optional[float]): Alpha value (balancing factor) in focal_loss function. Only used for classification.
-        gamma_focal_loss (Optional[float]): Gamma value (modulating factor) for focal loss for focal loss. Only used for classification.
-        enable_profiler (Optional[bool]): Enables profiling and saves a trace during evaluation.
-        seed (Optional[int]): Seed to be used for this run.
-        eval_steps (Optional[int]): Number of steps to run evaluation for. If not
+        alpha_focal_loss (Optional[float]):
+            Alpha value (balancing factor) in focal_loss function. Only used for classification.
+        gamma_focal_loss (Optional[float]):
+            Gamma value (modulating factor) for focal loss for focal loss. Only used for classification.
+        enable_profiler (Optional[bool]):
+            Enables profiling and saves a trace during evaluation.
+        seed (Optional[int]):
+            Seed to be used for this run.
+        eval_steps (Optional[int]):
+            Number of steps to run evaluation for. If not
             specified or negative, it means run evaluation on the whole validation
-            dataset. If set to 0, it means run evaluation for a fixed number of
-            samples.
-        batch_size (Optional[int]): Batch size for training.
-        eval_frequency_secs (Optional[int]): Frequency at which evaluation and checkpointing will
-            take place.
-        replica_count (Optional[int]): The replica count.
-        machine_spec (Optional[Dict[str, Any]]): The machine spec.
-            See https://cloud.google.com/compute/docs/machine-types for options.
-        instance_baseline (AutoMLTabularInstanceBaseline): The path to a JSON file for baseline values.
-        metadata (TabularExampleGenMetadata): Amount of time in seconds to run the trainer for.
-        materialized_train_split (MaterializedSplit): The path to the materialized train split.
-        materialized_eval_split (MaterializedSplit): The path to the materialized validation split.
-        materialized_test_split (MaterializedSplit): The path to the materialized test split.
-        transform_output (TransformOutput): The path to transform output.
-        training_schema_uri (TrainingSchema): The path to the training schema.
-        encryption_spec_key_name (Optional[str]): The KMS key name.
+            dataset. If set to 0, it means run evaluation for a fixed number of samples.
+        batch_size (Optional[int]):
+            Batch size for training.
+        eval_frequency_secs (Optional[int]):
+            Frequency at which evaluation and checkpointing will take place.
+        replica_count (Optional[int]):
+            The replica count.
+        machine_spec (Optional[Dict[str, Any]]):
+            The machine spec. See https://cloud.google.com/compute/docs/machine-types for options.
+        instance_baseline (AutoMLTabularInstanceBaseline):
+            The path to a JSON file for baseline values.
+        metadata (TabularExampleGenMetadata):
+            Amount of time in seconds to run the trainer for.
+        materialized_train_split (MaterializedSplit):
+            The path to the materialized train split.
+        materialized_eval_split (MaterializedSplit):
+            The path to the materialized validation split.
+        materialized_test_split (MaterializedSplit):
+            The path to the materialized test split.
+        transform_output (TransformOutput):
+            The path to transform output.
+        training_schema_uri (TrainingSchema):
+            The path to the training schema.
+        encryption_spec_key_name (Optional[str]):
+            The KMS key name.
 
     Returns:
         gcp_resources (str):
             Serialized gcp_resources proto tracking the custom training job.
-        unmanaged_container_model (google.UnmanagedContainerModel): The UnmanagedContainerModel artifact.
+        unmanaged_container_model (google.UnmanagedContainerModel):
+            The UnmanagedContainerModel artifact.
 
 inputs:
   - { name: project, type: String }
@@ -151,7 +187,7 @@ implementation:
           '", "machine_spec": ',
           { inputValue: machine_spec },
           ', "container_spec": {"image_uri":"',
-          'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20220707_0325_RC00',
+          'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20220719_0325_RC00',
           '", "args": ["--target_column=',
           { inputValue: target_column },
           '", "--weight_column=',
@@ -159,7 +195,7 @@ implementation:
           '", "--model_type=',
           { inputValue: prediction_type },
           '", "--prediction_docker_uri=',
-          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20220707_0325_RC00',
+          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20220719_0325_RC00',
           '", "--baseline_path=',
           { inputUri: instance_baseline },
           '", "--metadata_path=',

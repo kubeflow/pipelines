@@ -23,12 +23,13 @@ import { Apis } from 'src/lib/Apis';
 import { QUERY_PARAMS } from 'src/components/Router';
 import * as mlmdUtils from 'src/mlmd/MlmdUtils';
 import * as Utils from 'src/lib/Utils';
-import CompareV2 from './CompareV2';
+import { TEST_ONLY } from './CompareV2';
 import { PageProps } from './Page';
 import { ApiRunDetail } from 'src/apis/run';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { Struct, Value } from 'google-protobuf/google/protobuf/struct_pb';
 
+const CompareV2 = TEST_ONLY.CompareV2;
 testBestPractices();
 describe('CompareV2', () => {
   const MOCK_RUN_1_ID = 'mock-run-1-id';

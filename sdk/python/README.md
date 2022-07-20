@@ -1,6 +1,5 @@
-# `kfp`: Kubeflow Pipelines SDK (pre-release)
 
-## Note: This is a pre-release and is not yet stable. Please report bugs and provide feedback via [GitHub Issues](https://github.com/kubeflow/pipelines/issues).
+> Note: This is a pre-release and is not yet stable. Please report bugs and provide feedback via [GitHub Issues](https://github.com/kubeflow/pipelines/issues).
 
 Kubeflow Pipelines is a platform for building and deploying portable, scalable machine learning workflows based on Docker containers within the [Kubeflow](https://www.kubeflow.org/) project.
 

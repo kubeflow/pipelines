@@ -13,13 +13,15 @@
 # limitations under the License.
 """GCP launcher for Dataproc Batch workloads."""
 
+import datetime
 import json
 import logging
 import os
 from os import path
 import re
 import time
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Union
+import uuid
 
 import google.auth.transport.requests
 from google_cloud_pipeline_components.proto import gcp_resources_pb2
@@ -27,8 +29,8 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.sessions import Session
 from urllib3.util.retry import Retry
-from .utils import json_util
 from ...utils import execution_context
+from .utils import json_util
 
 from google.protobuf import json_format
 
@@ -255,7 +257,7 @@ def _create_batch(
     project: str,
     location: str,
     batch_id: str,
-    payload: Optional[str],
+    payload: str,
     gcp_resources: str,
 ) -> Dict[str, Any]:
   """Common function for creating Dataproc Batch workloads.
@@ -283,6 +285,9 @@ def _create_batch(
   remote_runner = DataprocBatchRemoteRunner(type, project, location, gcp_resources)
   lro = remote_runner.check_if_operation_exists()
   if not lro:
+    if not batch_id:
+      now = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+      batch_id = '-'.join([type.lower(), now, uuid.uuid4().hex[:8]])
     lro = remote_runner.create_batch(batch_id, batch_request)
   # Wait for the Batch workload to finish.
   return remote_runner.wait_for_batch(lro, _POLL_INTERVAL_SECONDS)
