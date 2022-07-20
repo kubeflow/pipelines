@@ -349,15 +349,16 @@ interface ConfidenceMetricsSectionProps {
 }
 
 export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSectionProps) {
-  const customPropertiesList = artifacts.map(artifact => artifact.getCustomPropertiesMap());
-  const confidenceMetricsDataList = customPropertiesList
-    .map(customProperties => {
+  // TODO(zpChris): Update implementation to use a filter table and incorporate artifact ID.
+  const confidenceMetricsDataList = artifacts
+    .map(artifact => {
+      const customProperties = artifact.getCustomPropertiesMap();
       return {
         confidenceMetrics: customProperties
           .get('confidenceMetrics')
           ?.getStructValue()
           ?.toJavaScript(),
-        name: customProperties.get('display_name')?.getStringValue(),
+        name: customProperties.get('display_name')?.getStringValue() || '-',
       };
     })
     .filter(confidenceMetricsData => confidenceMetricsData.confidenceMetrics);
