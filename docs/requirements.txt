@@ -1,4 +1,4 @@
-../sdk/python
+sdk/python
 sphinx==5.0.2
 sphinx-click==4.3.0
 sphinx-rtd-theme==1.0.0
