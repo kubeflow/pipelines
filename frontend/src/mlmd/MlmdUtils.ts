@@ -377,6 +377,12 @@ export function filterLinkedArtifactsByType(
   return artifacts.filter(x => artifactTypeIds.includes(x.artifact.getTypeId()));
 }
 
+export const getExecutionDisplayName = (execution: Execution) =>
+  execution
+    .getCustomPropertiesMap()
+    .get('display_name')
+    ?.getStringValue();
+
 export function getArtifactName(linkedArtifact: LinkedArtifact): string | undefined {
   return getArtifactNameFromEvent(linkedArtifact.event);
 }

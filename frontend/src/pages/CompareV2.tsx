@@ -35,6 +35,8 @@ import {
   getExecutionsFromContext,
   getKfpV2RunContext,
   LinkedArtifact,
+  getExecutionDisplayName,
+  getArtifactName,
 } from 'src/mlmd/MlmdUtils';
 import { Artifact, ArtifactType, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
@@ -42,7 +44,7 @@ import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { SelectedItem } from 'src/components/TwoLevelDropdown';
 import MD2Tabs from 'src/atoms/MD2Tabs';
-import { ConfidenceMetricsSection } from 'src/components/viewers/MetricsVisualizations';
+import { ConfidenceMetricsSection, getRocCurveId } from 'src/components/viewers/MetricsVisualizations';
 import { flatMapDeep } from 'lodash';
 import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
@@ -195,12 +197,13 @@ function CompareV2(props: CompareV2Props) {
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
 
+  const [scalarMetricsRunArtifacts, setScalarMetricsRunArtifacts] = useState<RunArtifact[]>([]);
   const [confusionMatrixRunArtifacts, setConfusionMatrixRunArtifacts] = useState<RunArtifact[]>([]);
   const [htmlRunArtifacts, setHtmlRunArtifacts] = useState<RunArtifact[]>([]);
   const [markdownRunArtifacts, setMarkdownRunArtifacts] = useState<RunArtifact[]>([]);
 
-  const [rocCurveArtifacts, setRocCurveArtifacts] = useState<Artifact[]>([]);
-  const [selectedRocCurveArtifacts, setSelectedRocCurveArtifacts] = useState<Artifact[]>([]);
+  const [rocCurveLinkedArtifacts, setRocCurveLinkedArtifacts] = useState<LinkedArtifact[]>([]);
+  const [selectedRocCurveIds, setSelectedRocCurveIds] = useState<string[]>([]);
 
   // Selected artifacts for two-panel layout.
   const createSelectedArtifactArray = (count: number): SelectedArtifact[] => {
@@ -292,15 +295,58 @@ function CompareV2(props: CompareV2Props) {
         artifactTypes,
         MetricsType.ROC_CURVE,
       );
-      const rocCurveArtifacts: Artifact[] = flatMapDeep(
-        rocCurveRunArtifacts.map(rocCurveArtifact =>
-          rocCurveArtifact.executionArtifacts.map(executionArtifact =>
-            executionArtifact.linkedArtifacts.map(linkedArtifact => linkedArtifact.artifact),
+      setScalarMetricsRunArtifacts(rocCurveRunArtifacts);
+
+      /*
+        What do I need here?
+        - linked artifact list
+        - selected linked artifacts
+          - a different ID to reference for the unique id to each artifact.
+            - this requires reporting here.
+            - i assume this is the combination of run id, execution id, and artifact id. how do i 
+            - i can in fact just use execution id + artifact id, and use this through linked artifacts (on the event). this is good to know for the metrics dropdown as well, if i do that.
+        - perhaps just the run, execution, and linkedartifact all in one element of a list.
+          - run name
+          - run id (create link from this)
+          - execution name
+          - execution id
+          - artifact name
+          - artifact id
+        identify via execution id + artifact id.
+
+      */
+
+      // customProperties
+      //     .get('confidenceMetrics')
+      //     ?.getStructValue()
+      //     ?.toJavaScript()
+
+      // TODO: Are all of the artifact IDs indeed unique?
+      // const rocCurveArtifactTitles = flatMapDeep(
+      //   rocCurveRunArtifacts.map(rocCurveRunArtifact =>
+      //     rocCurveRunArtifact.executionArtifacts.map(executionArtifact =>
+      //       executionArtifact.linkedArtifacts.map(linkedArtifact => {
+      //         return {
+      //           runName: rocCurveRunArtifact.run.run?.name,
+      //           executionName: getExecutionDisplayName(executionArtifact.execution),
+      //           artifactName: getArtifactName(linkedArtifact),
+      //           id: linkedArtifact.artifact.getId(),
+      //         };
+      //       }),
+      //     ),
+      //   ),
+      // );
+      const rocCurveLinkedArtifacts: LinkedArtifact[] = flatMapDeep(
+        rocCurveRunArtifacts.map(rocCurveRunArtifact =>
+          rocCurveRunArtifact.executionArtifacts.map(
+            executionArtifact => executionArtifact.linkedArtifacts,
           ),
         ),
       );
-      setRocCurveArtifacts(rocCurveArtifacts);
-      setSelectedRocCurveArtifacts(rocCurveArtifacts.slice(0, 3));
+      setRocCurveLinkedArtifacts(rocCurveLinkedArtifacts);
+      setSelectedRocCurveIds(
+        rocCurveLinkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)),
+      );
     }
   }, [runs, mlmdPackages, artifactTypes]);
 
@@ -465,8 +511,15 @@ function CompareV2(props: CompareV2Props) {
             )}
             {/* TODO(zpChris): Add more ROC Curve selections through checkbox system. */}
             {metricsTab === MetricsType.ROC_CURVE &&
-              (selectedRocCurveArtifacts.length > 0 ? (
-                <ConfidenceMetricsSection artifacts={selectedRocCurveArtifacts} />
+              (rocCurveLinkedArtifacts.length > 0 ? (
+                <ConfidenceMetricsSection
+                  linkedArtifacts={rocCurveLinkedArtifacts}
+                  filter={{
+                    runArtifacts: scalarMetricsRunArtifacts,
+                    selectedIds: selectedRocCurveIds,
+                    setSelectedIds: setSelectedRocCurveIds,
+                  }}
+                />
               ) : (
                 <p>There are no ROC Curve artifacts available on the selected runs.</p>
               ))}

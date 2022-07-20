@@ -35,7 +35,7 @@ import Banner from 'src/components/Banner';
 import { ExecutionArtifact, MetricsType, RunArtifact, SelectedArtifact } from 'src/pages/CompareV2';
 import { useQuery } from 'react-query';
 import { errorToMessage, logger } from 'src/lib/Utils';
-import { Execution } from 'src/third_party/mlmd';
+import { getExecutionDisplayName } from 'src/mlmd/MlmdUtils';
 import { metricsTypeToString } from 'src/lib/v2/CompareUtils';
 
 const css = stylesheet({
@@ -273,12 +273,6 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
 const logDisplayNameWarning = (type: string, id: string) =>
   logger.warn(`Failed to fetch the display name of the ${type} with the following ID: ${id}`);
 
-const getExecutionName = (execution: Execution) =>
-  execution
-    .getCustomPropertiesMap()
-    .get('display_name')
-    ?.getStringValue();
-
 // Group each artifact name with its parent execution name.
 function getDropdownSubLinkedArtifacts(linkedArtifacts: LinkedArtifact[], subItemName: string) {
   const executionLinkedArtifacts: DropdownSubItem[] = [];
@@ -347,7 +341,7 @@ function getLinkedArtifactFromSelectedItem(
 
   const executionArtifact = filteredRunArtifact?.executionArtifacts.find(executionArtifact => {
     const executionText: string =
-      getExecutionName(executionArtifact.execution) ||
+      getExecutionDisplayName(executionArtifact.execution) ||
       executionArtifact.execution.getId().toString();
     return executionText === selectedItem.subItemName;
   });

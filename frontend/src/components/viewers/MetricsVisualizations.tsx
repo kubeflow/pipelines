@@ -32,7 +32,11 @@ import {
 } from 'src/mlmd/MlmdUtils';
 import { Artifact, ArtifactType, Execution } from 'src/third_party/mlmd';
 import Banner from '../Banner';
-import CustomTable, { Column, CustomRendererProps, Row as TableRow } from 'src/components/CustomTable';
+import CustomTable, {
+  Column,
+  CustomRendererProps,
+  Row as TableRow,
+} from 'src/components/CustomTable';
 import PlotCard from '../PlotCard';
 import ConfusionMatrix, { ConfusionMatrixConfig } from './ConfusionMatrix';
 import { HTMLViewerConfig } from './HTMLViewer';
@@ -44,6 +48,7 @@ import { componentMap } from './ViewerContainer';
 import Tooltip from '@material-ui/core/Tooltip';
 import { Link } from 'react-router-dom';
 import { RoutePage, RouteParams } from 'src/components/Router';
+import { RunArtifact } from 'src/pages/CompareV2';
 
 interface MetricsVisualizationsProps {
   linkedArtifacts: LinkedArtifact[];
@@ -68,7 +73,7 @@ export function MetricsVisualizations({
   // Otherwise, Visualize all available metrics per artifact.
   const artifacts = linkedArtifacts.map(x => x.artifact);
   const classificationMetricsArtifacts = getVerifiedClassificationMetricsArtifacts(
-    artifacts,
+    linkedArtifacts,
     artifactTypes,
   );
   const metricsArtifacts = getVerifiedMetricsArtifacts(artifacts, artifactTypes);
@@ -176,11 +181,11 @@ export function MetricsVisualizations({
       })()}
 
       {/* Shows visualizations of all kinds */}
-      {classificationMetricsArtifacts.map(artifact => {
+      {classificationMetricsArtifacts.map(linkedArtifact => {
         return (
-          <React.Fragment key={artifact.getId()}>
-            <ConfidenceMetricsSection artifacts={[artifact]} />
-            <ConfusionMatrixSection artifact={artifact} />
+          <React.Fragment key={linkedArtifact.artifact.getId()}>
+            <ConfidenceMetricsSection linkedArtifacts={[linkedArtifact]} />
+            <ConfusionMatrixSection artifact={linkedArtifact.artifact} />
           </React.Fragment>
         );
       })}
@@ -212,28 +217,28 @@ export function MetricsVisualizations({
 }
 
 function getVerifiedClassificationMetricsArtifacts(
-  artifacts: Artifact[],
+  linkedArtifacts: LinkedArtifact[],
   artifactTypes: ArtifactType[],
-): Artifact[] {
-  if (!artifacts || !artifactTypes) {
+): LinkedArtifact[] {
+  if (!linkedArtifacts || !artifactTypes) {
     return [];
   }
   // Reference: https://github.com/kubeflow/pipelines/blob/master/sdk/python/kfp/dsl/io_types.py#L124
   // system.ClassificationMetrics contains confusionMatrix or confidenceMetrics.
-  const classificationMetricsArtifacts = filterArtifactsByType(
+  const classificationMetricsArtifacts = filterLinkedArtifactsByType(
     'system.ClassificationMetrics',
     artifactTypes,
-    artifacts,
+    linkedArtifacts,
   );
 
   return classificationMetricsArtifacts
-    .map(artifact => ({
-      name: artifact
+    .map(linkedArtifact => ({
+      name: linkedArtifact.artifact
         .getCustomPropertiesMap()
         .get('display_name')
         ?.getStringValue(),
-      customProperties: artifact.getCustomPropertiesMap(),
-      artifact: artifact,
+      customProperties: linkedArtifact.artifact.getCustomPropertiesMap(),
+      linkedArtifact: linkedArtifact,
     }))
     .filter(x => !!x.name)
     .filter(x => {
@@ -248,7 +253,7 @@ function getVerifiedClassificationMetricsArtifacts(
         ?.toJavaScript();
       return !!confidenceMetrics || !!confusionMatrix;
     })
-    .map(x => x.artifact);
+    .map(x => x.linkedArtifact);
 }
 
 function getVerifiedMetricsArtifacts(
@@ -348,8 +353,15 @@ type ConfidenceMetric = {
   recall: number;
 };
 
+interface ConfidenceMetricsFilter {
+  runArtifacts: RunArtifact[];
+  selectedIds: string[];
+  setSelectedIds: (selectedIds: string[]) => void;
+}
+
 interface ConfidenceMetricsSectionProps {
-  artifacts: Artifact[];
+  linkedArtifacts: LinkedArtifact[];
+  filter?: ConfidenceMetricsFilter;
 }
 
 const runNameCustomRenderer: React.FC<CustomRendererProps<string>> = (
@@ -382,7 +394,13 @@ const curveLegendCustomRenderer: React.FC<CustomRendererProps<string>> = (
   props: CustomRendererProps<string>,
 ) => {
   return (
-    <p>Test.</p>
+    <div
+      style={{
+        width: '2rem',
+        height: '4px',
+        backgroundColor: props.value,
+      }}
+    />
   );
 };
 
@@ -406,12 +424,17 @@ export const lineColors = [
   '#5ec4ec',
 ];
 
-export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSectionProps) {
-  const tableRef = useRef<CustomTable>(null); // TODO: Add refresh line.
-  const [selectedIds, setSelectedIds] = useState<string[]>(artifacts.map(artifact => artifact.getId().toString()));
+export const getRocCurveId = (linkedArtifact: LinkedArtifact): string =>
+  `${linkedArtifact.event.getExecutionId()}-${linkedArtifact.event.getArtifactId()}`;
 
-  const confidenceMetricsDataList = artifacts
-    .map(artifact => {
+export function ConfidenceMetricsSection({
+  linkedArtifacts,
+  filter,
+}: ConfidenceMetricsSectionProps) {
+  const tableRef = useRef<CustomTable>(null); // TODO: Add refresh line.
+  const confidenceMetricsDataList = linkedArtifacts
+    .map(linkedArtifact => {
+      const artifact = linkedArtifact.artifact;
       const customProperties = artifact.getCustomPropertiesMap();
       return {
         confidenceMetrics: customProperties
@@ -421,6 +444,7 @@ export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSection
         name:
           customProperties.get('display_name')?.getStringValue() ||
           `artifact ID #${artifact.getId().toString()}`,
+        id: artifact.getId(),
       };
     })
     .filter(confidenceMetricsData => confidenceMetricsData.confidenceMetrics);
@@ -446,28 +470,41 @@ export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSection
     rocCurveConfigs.push(buildRocCurveConfig(confidenceMetrics.list));
   }
 
-  const columns: Column[] = [
-    { customRenderer: executionArtifactCustomRenderer, flex: 1, label: 'Execution name > Run name' },
-    // {
-    //   customRenderer: runNameCustomRenderer,
-    //   flex: 1,
-    //   label: 'Run name',
-    //   sortKey: RunSortKeys.NAME,
-    // },
-    { customRenderer: curveLegendCustomRenderer, label: 'Curve legend', flex: 0.5 },
-  ];
+  let columns: Column[] = [];
+  const rows: TableRow[] = [];
+  if (filter) {
+    columns = [
+      {
+        customRenderer: executionArtifactCustomRenderer,
+        flex: 1.5,
+        label: 'Execution name > Run name',
+      },
+      // {
+      //   customRenderer: runNameCustomRenderer,
+      //   flex: 1,
+      //   label: 'Run name',
+      //   sortKey: RunSortKeys.NAME,
+      // },
+      { customRenderer: curveLegendCustomRenderer, flex: 0.5, label: 'Curve legend' },
+    ];
 
-  const rows: TableRow[] = artifacts.map(artifact => {
-    const row = {
-      id: artifact.getId().toString(),
-      otherFields: [
-        artifact.getCustomPropertiesMap()?.get('display_name')?.getStringValue() || '-',
-        1,
-      ] as any,
-    };
-    return row;
-  });
-  
+    for (let i = 0; i < linkedArtifacts.length; i++) {
+      const artifact = linkedArtifacts[i].artifact;
+      console.log(artifact.getId()); // TODO: This is an issue. It is not unique.
+      const row = {
+        id: getRocCurveId(linkedArtifacts[i]),
+        otherFields: [
+          lineColors[i],
+          artifact
+            .getCustomPropertiesMap()
+            ?.get('display_name')
+            ?.getStringValue() || '-',
+        ] as any,
+      };
+      rows.push(row);
+    }
+  }
+
   return (
     <div className={padding(40, 'lrt')}>
       <div className={padding(40, 'b')}>
@@ -485,21 +522,23 @@ export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSection
       </div>
       {/* TODO(zpChris): Introduce checkbox system that matches artifacts to curves. */}
       <ROCCurve configs={rocCurveConfigs} />
-      <CustomTable
-        columns={columns}
-        rows={rows}
-        selectedIds={selectedIds}
-        // initialSortColumn={RunSortKeys.CREATED_AT}
-        ref={tableRef}
-        filterLabel='Filter artifacts'
-        updateSelection={setSelectedIds}
-        reload={reload}
-        disablePaging={false}
-        disableSorting={false}
-        disableSelection={false}
-        noFilterBox={false}
-        emptyMessage="No artifacts found"
-      />
+      {filter && (
+        <CustomTable
+          columns={columns}
+          rows={rows}
+          selectedIds={filter.selectedIds}
+          // initialSortColumn={RunSortKeys.CREATED_AT}
+          ref={tableRef}
+          filterLabel='Filter artifacts'
+          updateSelection={filter.setSelectedIds}
+          reload={reload}
+          disablePaging={false}
+          disableSorting={false}
+          disableSelection={false}
+          noFilterBox={false}
+          emptyMessage='No artifacts found'
+        />
+      )}
     </div>
   );
 }
