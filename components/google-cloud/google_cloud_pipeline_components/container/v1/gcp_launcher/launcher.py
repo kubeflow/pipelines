@@ -70,6 +70,8 @@ _JOB_TYPE_TO_ACTION_MAP = {
         bigquery_job_remote_runner.bigquery_explain_forecast_model_job,
     'BigqueryExportModelJob':
         bigquery_job_remote_runner.bigquery_export_model_job,
+    'BigqueryExportTableJob':
+        bigquery_job_remote_runner.bigquery_export_table_job,
     'BigqueryEvaluateModelJob':
         bigquery_job_remote_runner.bigquery_evaluate_model_job,
     'BigqueryMLArimaCoefficientsJob':
@@ -260,6 +262,18 @@ def _parse_args(args):
       required=(parsed_args.type == 'BigqueryExportModelJob'),
       default=argparse.SUPPRESS)
   parser.add_argument(
+      '--destination_path',
+      dest='destination_path',
+      type=str,
+      required=(parsed_args.type == 'BigqueryExportTableJob'),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--destination_format',
+      dest='destination_format',
+      type=str,
+      required=(parsed_args.type == 'BigqueryExportTableJob'),
+      default=argparse.SUPPRESS)
+  parser.add_argument(
       '--exported_model_path',
       dest='exported_model_path',
       type=str,
@@ -273,7 +287,7 @@ def _parse_args(args):
       required=(parsed_args.type in {
           'BigqueryPredictModelJob', 'BigQueryEvaluateModelJob',
           'BigqueryMLReconstructionLossJob', 'BigqueryMLConfusionMatrixJob',
-          'BigqueryMLRocCurveJob'
+          'BigqueryMLRocCurveJob', 'BigqueryExportTableJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
