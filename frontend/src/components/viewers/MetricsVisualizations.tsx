@@ -432,7 +432,7 @@ export function ConfidenceMetricsSection({
   filter,
 }: ConfidenceMetricsSectionProps) {
   const tableRef = useRef<CustomTable>(null); // TODO: Add refresh line.
-  const confidenceMetricsDataList = linkedArtifacts
+  let confidenceMetricsDataList = linkedArtifacts
     .map(linkedArtifact => {
       const artifact = linkedArtifact.artifact;
       const customProperties = artifact.getCustomPropertiesMap();
@@ -444,35 +444,26 @@ export function ConfidenceMetricsSection({
         name:
           customProperties.get('display_name')?.getStringValue() ||
           `artifact ID #${artifact.getId().toString()}`,
-        id: artifact.getId(),
+        id: getRocCurveId(linkedArtifact),
       };
     })
     .filter(confidenceMetricsData => confidenceMetricsData.confidenceMetrics);
 
+  /*
+    TODO(zpChris): This does not quite work.
+    I need to keep the colors corresponding to each equal, and this only returns null if there are 
+    no roc curves to display at all (not just that are not selected).
+    I think I may need two separate pieces of logic for this.
+  */
   if (confidenceMetricsDataList.length === 0) {
+    // TODO: Should I display a note that there are no ROC Curves to display?
     return null;
-  }
-
-  const rocCurveConfigs: ROCCurveConfig[] = [];
-  for (let i = 0; i < confidenceMetricsDataList.length; i++) {
-    const confidenceMetrics = confidenceMetricsDataList[i].confidenceMetrics as any;
-    const { error } = validateConfidenceMetrics(confidenceMetrics.list);
-
-    // If an error exists with confidence metrics, return the first one with an issue.
-    if (error) {
-      const errorMsg =
-        'Error in ' +
-        confidenceMetricsDataList[i].name +
-        " artifact's confidenceMetrics data format.";
-      return <Banner message={errorMsg} mode='error' additionalInfo={error} />;
-    }
-
-    rocCurveConfigs.push(buildRocCurveConfig(confidenceMetrics.list));
   }
 
   let columns: Column[] = [];
   const rows: TableRow[] = [];
   if (filter) {
+    confidenceMetricsDataList = confidenceMetricsDataList.filter(confidenceMetricsData => filter.selectedIds.includes(confidenceMetricsData.id));
     columns = [
       {
         customRenderer: executionArtifactCustomRenderer,
@@ -503,6 +494,23 @@ export function ConfidenceMetricsSection({
       };
       rows.push(row);
     }
+  }
+
+  const rocCurveConfigs: ROCCurveConfig[] = [];
+  for (let i = 0; i < confidenceMetricsDataList.length; i++) {
+    const confidenceMetrics = confidenceMetricsDataList[i].confidenceMetrics as any;
+    const { error } = validateConfidenceMetrics(confidenceMetrics.list);
+
+    // If an error exists with confidence metrics, return the first one with an issue.
+    if (error) {
+      const errorMsg =
+        'Error in ' +
+        confidenceMetricsDataList[i].name +
+        " artifact's confidenceMetrics data format.";
+      return <Banner message={errorMsg} mode='error' additionalInfo={error} />;
+    }
+
+    rocCurveConfigs.push(buildRocCurveConfig(confidenceMetrics.list));
   }
 
   return (

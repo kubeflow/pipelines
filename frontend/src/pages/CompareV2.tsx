@@ -44,7 +44,10 @@ import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { SelectedItem } from 'src/components/TwoLevelDropdown';
 import MD2Tabs from 'src/atoms/MD2Tabs';
-import { ConfidenceMetricsSection, getRocCurveId } from 'src/components/viewers/MetricsVisualizations';
+import {
+  ConfidenceMetricsSection,
+  getRocCurveId,
+} from 'src/components/viewers/MetricsVisualizations';
 import { flatMapDeep } from 'lodash';
 import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
@@ -300,7 +303,7 @@ function CompareV2(props: CompareV2Props) {
       /*
         What do I need here?
         - linked artifact list
-        - selected linked artifacts
+        - selected ids
           - a different ID to reference for the unique id to each artifact.
             - this requires reporting here.
             - i assume this is the combination of run id, execution id, and artifact id. how do i 
