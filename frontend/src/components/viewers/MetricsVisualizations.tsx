@@ -15,12 +15,12 @@
  */
 
 import HelpIcon from '@material-ui/icons/Help';
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { useQuery } from 'react-query';
 import { Array as ArrayRunType, Failure, Number, Record, String, ValidationError } from 'runtypes';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
-import { color, padding } from 'src/Css';
-import { Apis } from 'src/lib/Apis';
+import { color, commonCss, padding } from 'src/Css';
+import { Apis, ListRequest } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import WorkflowParser, { StoragePath } from 'src/lib/WorkflowParser';
 import { getMetadataValue } from 'src/mlmd/library';
@@ -32,6 +32,7 @@ import {
 } from 'src/mlmd/MlmdUtils';
 import { Artifact, ArtifactType, Execution } from 'src/third_party/mlmd';
 import Banner from '../Banner';
+import CustomTable, { Column, CustomRendererProps, Row as TableRow } from 'src/components/CustomTable';
 import PlotCard from '../PlotCard';
 import ConfusionMatrix, { ConfusionMatrixConfig } from './ConfusionMatrix';
 import { HTMLViewerConfig } from './HTMLViewer';
@@ -40,6 +41,9 @@ import PagedTable from './PagedTable';
 import ROCCurve, { ROCCurveConfig } from './ROCCurve';
 import { PlotType, ViewerConfig } from './Viewer';
 import { componentMap } from './ViewerContainer';
+import Tooltip from '@material-ui/core/Tooltip';
+import { Link } from 'react-router-dom';
+import { RoutePage, RouteParams } from 'src/components/Router';
 
 interface MetricsVisualizationsProps {
   linkedArtifacts: LinkedArtifact[];
@@ -348,11 +352,67 @@ interface ConfidenceMetricsSectionProps {
   artifacts: Artifact[];
 }
 
+const runNameCustomRenderer: React.FC<CustomRendererProps<string>> = (
+  props: CustomRendererProps<string>,
+) => {
+  return (
+    <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
+      <Link
+        className={commonCss.link}
+        onClick={e => e.stopPropagation()}
+        to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
+      >
+        {props.value}
+      </Link>
+    </Tooltip>
+  );
+};
+
+const executionArtifactCustomRenderer: React.FC<CustomRendererProps<string>> = (
+  props: CustomRendererProps<string>,
+) => {
+  return (
+    <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
+      <p>{props.value || ''}</p>
+    </Tooltip>
+  );
+};
+
+const curveLegendCustomRenderer: React.FC<CustomRendererProps<string>> = (
+  props: CustomRendererProps<string>,
+) => {
+  return (
+    <p>Test.</p>
+  );
+};
+
+function reload(request: ListRequest): Promise<string> {
+  // TODO: Consider making an Api method for returning and caching types
+  return Promise.resolve('');
+}
+
+// TODO: Can we place this somewhere else?
+export const lineColors = [
+  '#4285f4',
+  '#efb4a3',
+  '#684e91',
+  '#d74419',
+  '#7fa6c4',
+  '#ffdc10',
+  '#d7194d',
+  '#6b2f49',
+  '#f9e27c',
+  '#633a70',
+  '#5ec4ec',
+];
+
 export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSectionProps) {
+  const tableRef = useRef<CustomTable>(null); // TODO: Add refresh line.
   const customPropertiesList = artifacts.map(artifact => artifact.getCustomPropertiesMap());
   const names = customPropertiesList.map(customProperties =>
     customProperties.get('display_name')?.getStringValue(),
   );
+  const [selectedIds, setSelectedIds] = useState<string[]>(artifacts.map(artifact => artifact.getId().toString()));
 
   const confidenceMetricsList = customPropertiesList
     .map(customProperties =>
@@ -380,6 +440,29 @@ export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSection
 
     rocCurveConfigs.push(buildRocCurveConfig(confidenceMetrics.list));
   }
+
+  const columns: Column[] = [
+    { customRenderer: executionArtifactCustomRenderer, flex: 1, label: 'Execution name > Run name' },
+    // {
+    //   customRenderer: runNameCustomRenderer,
+    //   flex: 1,
+    //   label: 'Run name',
+    //   sortKey: RunSortKeys.NAME,
+    // },
+    { customRenderer: curveLegendCustomRenderer, label: 'Curve legend', flex: 0.5 },
+  ];
+
+  const rows: TableRow[] = artifacts.map(artifact => {
+    const row = {
+      id: artifact.getId().toString(),
+      otherFields: [
+        artifact.getCustomPropertiesMap()?.get('display_name')?.getStringValue() || '-',
+        1,
+      ] as any,
+    };
+    return row;
+  });
+  
   return (
     <div className={padding(40, 'lrt')}>
       <div className={padding(40, 'b')}>
@@ -394,6 +477,21 @@ export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSection
       </div>
       {/* TODO(zpChris): Introduce checkbox system that matches artifacts to curves. */}
       <ROCCurve configs={rocCurveConfigs} />
+      <CustomTable
+        columns={columns}
+        rows={rows}
+        selectedIds={selectedIds}
+        // initialSortColumn={RunSortKeys.CREATED_AT}
+        ref={tableRef}
+        filterLabel='Filter artifacts'
+        updateSelection={setSelectedIds}
+        reload={reload}
+        disablePaging={false}
+        disableSorting={false}
+        disableSelection={false}
+        noFilterBox={false}
+        emptyMessage="No artifacts found"
+      />
     </div>
   );
 }
