@@ -22,8 +22,8 @@ import { FeatureKey, isFeatureEnabled } from 'src/features';
 import { Apis } from 'src/lib/Apis';
 import { errorToMessage } from 'src/lib/Utils';
 import { URLParser } from '../lib/URLParser';
-import CompareV1 from './CompareV1';
-import CompareV2 from './CompareV2';
+import EnhancedCompareV1 from './CompareV1';
+import EnhancedCompareV2 from './CompareV2';
 import { PageProps } from './Page';
 
 enum CompareVersion {
@@ -120,11 +120,11 @@ export default function Compare(props: PageProps) {
   }
 
   if (!isFeatureEnabled(FeatureKey.V2_ALPHA) || compareVersion === CompareVersion.V1) {
-    return <CompareV1 {...props} />;
+    return <EnhancedCompareV1 {...props} />;
   }
 
   if (compareVersion === CompareVersion.V2) {
-    return <CompareV2 {...props} />;
+    return <EnhancedCompareV2 {...props} />;
   }
 
   return <></>;
