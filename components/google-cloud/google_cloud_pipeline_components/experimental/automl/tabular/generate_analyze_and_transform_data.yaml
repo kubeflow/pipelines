@@ -1,6 +1,13 @@
 name: Generate analyze and transform data
 description: |
-  Generate anayze_data and transform_data for FTE.
+  Generates anayze and transform data for Feature Transform Engine.
+
+  Feature Transform Engine (FTE) expects input data in form of an analyze dataset (i.e., the
+  dataset to be analyzed to compute dataset-level statistics such as min, max, average, or
+  vocabulary) and a transform dataset (i.e., the dataset to be transform into engineered features).
+
+  This component takes the common set of training, evaluation, and testing splits and generates
+  analyze dataset (consists of the train split) and transform dataset (consists of all the splits).
 
     Args:
         train_split (Dataset):
