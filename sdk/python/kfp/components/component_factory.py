@@ -17,8 +17,8 @@ import itertools
 import pathlib
 import re
 import textwrap
-import warnings
 from typing import Callable, List, Optional, Tuple
+import warnings
 
 import docstring_parser
 from kfp.components import placeholders

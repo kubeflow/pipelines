@@ -1,5 +1,27 @@
 name: Generate analyze and transform data
-description: Generate anayze_data and transform_data for FTE.
+description: |
+  Generates anayze and transform data for Feature Transform Engine.
+
+  Feature Transform Engine (FTE) expects input data in form of an analyze dataset (i.e., the
+  dataset to be analyzed to compute dataset-level statistics such as min, max, average, or
+  vocabulary) and a transform dataset (i.e., the dataset to be transform into engineered features).
+
+  This component takes the common set of training, evaluation, and testing splits and generates
+  analyze dataset (consists of the train split) and transform dataset (consists of all the splits).
+
+    Args:
+        train_split (Dataset):
+            Train split dataset output by stats gen component.
+        eval_split (Dataset):
+            Eval split dataset output by stats gen component.
+        test_split (Dataset):
+            Test split dataset output by stats gen component.
+
+    Returns:
+        analyze_data (Dataset):
+            Analyze data as input for Feature Transform Engine.
+        transform_data (Dataset):
+            Transform data as input for Feature Transform Engine.
 inputs:
 - {name: train_split, type: Dataset, description: Train split dataset output by stats
     gen component.}
@@ -12,7 +34,7 @@ outputs:
 - {name: transform_data, type: Dataset, description: Transform data for FTE.}
 implementation:
   container:
-    image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220629_0725_RC00
+    image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220719_0325_RC00
     command:
     - sh
     - -ec

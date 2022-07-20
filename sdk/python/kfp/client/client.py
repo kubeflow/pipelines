@@ -22,15 +22,15 @@ import re
 import tarfile
 import tempfile
 import time
-import warnings
-import zipfile
 from types import ModuleType
 from typing import Any, Callable, List, Mapping, Optional
+import warnings
+import zipfile
 
-import kfp_server_api
-import yaml
 from kfp import compiler
 from kfp.client import auth
+import kfp_server_api
+import yaml
 
 # Operators on scalar values. Only applies to one of |int_value|,
 # |long_value|, |string_value| or |timestamp_value|.
@@ -649,7 +649,7 @@ class Client:
         """
         return self._experiment_api.delete_experiment(id=experiment_id)
 
-    def _extract_pipeline_yaml(self, package_file: str) -> str:
+    def _extract_pipeline_yaml(self, package_file: str) -> dict:
 
         def _choose_pipeline_file(file_list: List[str]) -> str:
             pipeline_files = [
@@ -689,9 +689,19 @@ class Client:
                 f'The package_file {package_file} should end with one of the '
                 'following formats: [.tar.gz, .tgz, .zip, .yaml, .yml].')
 
-    def _override_caching_options(self, workflow: str,
+    def _override_caching_options(self, pipeline_obj: dict,
                                   enable_caching: bool) -> None:
-        raise NotImplementedError('enable_caching is not supported yet.')
+        """Overrides caching options.
+
+        Args:
+            pipeline_obj (dict): Dict object parsed from the yaml file.
+            enable_caching (bool): Overrides options, one of 'True', 'False'.
+        """
+        for _, task in pipeline_obj['root']['dag']['tasks'].items():
+            if 'cachingOptions' in task:
+                task['cachingOptions']['enableCache'] = enable_caching
+            else:
+                task['cachingOptions'] = {'enableCache': enable_caching}
 
     def list_pipelines(
         self,

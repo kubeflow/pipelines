@@ -14,12 +14,9 @@
 
 from typing import Dict, NamedTuple, Optional, Union
 
-from absl import logging
 import fire
 from google.protobuf import json_format
-import os
 
-from kfp.deprecated.containers import _gcs_helper
 from kfp.deprecated.containers import entrypoint_utils
 from kfp.deprecated.dsl import artifact
 from kfp.pipeline_spec import pipeline_spec_pb2

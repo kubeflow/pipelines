@@ -23,7 +23,6 @@ from kfp.cli.utils import parsing
 @click.group()
 def recurring_run():
     """Manage recurring run resources."""
-    pass
 
 
 either_option_required = 'Either --experiment-id or --experiment-name is required.'

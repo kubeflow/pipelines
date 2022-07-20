@@ -19,8 +19,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import warnings
 from typing import List, Optional
+import warnings
 
 import click
 
@@ -325,7 +325,6 @@ class ComponentBuilder():
 @click.group()
 def component():
     """Builds shareable, containerized components."""
-    pass
 
 
 @component.command()

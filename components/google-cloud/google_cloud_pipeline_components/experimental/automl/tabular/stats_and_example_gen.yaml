@@ -21,10 +21,14 @@ description: |
             Required. Project to run dataset statistics and example generation.
         location (str):
             Location for running dataset statistics and example generation.
-        root_dir (str): The Cloud Storage location to store the output.
-        target_column_name (str): The target column name.
-        weight_column_name (str): The weight column name.
-        prediction_type (str): The prediction type. Supported values: "classification", "regression".
+        root_dir (str):
+            The Cloud Storage location to store the output.
+        target_column_name (str):
+            The target column name.
+        weight_column_name (str):
+            The weight column name.
+        prediction_type (str):
+            The prediction type. Supported values: "classification", "regression".
         optimization_objective (str):
             Objective function the model is optimizing towards. The training process creates a model
             that maximizes/minimizes the value of the objective function over the validation set.
@@ -80,16 +84,24 @@ description: |
         run_distillation (bool): True if in distillation mode. The default value is false.
 
     Returns:
-        dataset_schema (DatasetSchema): The schema of the dataset.
-        dataset_stats (AutoMLTabularDatasetStats): The stats of the dataset.
-        train_split (Dataset): The train split.
-        eval_split (Dataset): The eval split.
-        test_split (Dataset): The test split.
-        test_split_json (JsonObject): The test split JSON object.
-        downsampled_test_split_json (JsonObject): The downsampled test split JSON object.
+        dataset_schema (DatasetSchema):
+            The schema of the dataset.
+        dataset_stats (AutoMLTabularDatasetStats):
+            The stats of the dataset.
+        train_split (Dataset):
+            The train split.
+        eval_split (Dataset):
+            The eval split.
+        test_split (Dataset):
+            The test split.
+        test_split_json (JsonObject):
+            The test split JSON object.
+        downsampled_test_split_json (JsonObject):
+            The downsampled test split JSON object.
         instance_baseline (AutoMLTabularInstanceBaseline):
             The instance baseline used to calculate explanations.
-        metadata (TabularExampleGenMetadata): The tabular example gen metadata.
+        metadata (TabularExampleGenMetadata):
+            The tabular example gen metadata.
         gcp_resources (str):
             GCP resources created by this component.
             For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
@@ -153,7 +165,7 @@ implementation:
         '{"display_name": "tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20220629_0725_RC00',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20220719_0325_RC00',
         '", "args": ["stats_generator",',
         '"--train_spec={\"prediction_type\": \"',
         {inputValue: prediction_type},
@@ -215,7 +227,7 @@ implementation:
         '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp", "--dataflow_max_num_workers=',
         {inputValue: dataflow_max_num_workers},
         '", "--dataflow_worker_container_image=',
-        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220629_0725_RC00',
+        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220719_0325_RC00',
         '", "--dataflow_machine_type=',
         {inputValue: dataflow_machine_type},
         '", "--dataflow_disk_size_gb=',

@@ -19,4 +19,3 @@ from kfp.cli import dsl_compile
 @click.group(commands={'compile': dsl_compile.dsl_compile})
 def dsl():
     """Command group for compiling DSL to IR."""
-    pass

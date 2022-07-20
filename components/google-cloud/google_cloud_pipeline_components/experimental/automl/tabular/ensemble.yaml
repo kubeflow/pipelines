@@ -21,35 +21,48 @@ description: |
             Required. Project to run Cross-validation trainer.
         location (str):
             Location for running the Cross-validation trainer.
-        root_dir (str): The Cloud Storage location to store the output.
-        transform_output (TransformOutput): The transform output artifact.
-        metadata (TabularExampleGenMetadata): The tabular example gen metadata.
-        dataset_schema (DatasetSchema): The schema of the dataset.
-        tuning_result_input (AutoMLTabularTuningResult): AutoML Tabular tuning result.
+        root_dir (str):
+            The Cloud Storage location to store the output.
+        transform_output (TransformOutput):
+            The transform output artifact.
+        metadata (TabularExampleGenMetadata):
+            The tabular example gen metadata.
+        dataset_schema (DatasetSchema):
+            The schema of the dataset.
+        tuning_result_input (AutoMLTabularTuningResult):
+            AutoML Tabular tuning result.
         instance_baseline (AutoMLTabularInstanceBaseline):
             The instance baseline used to calculate explanations.
         warmup_data (Dataset):
             The warm up data. Ensemble component will save the warm up data together with the model
             artifact, used to warm up the model when prediction server starts.
-        encryption_spec_key_name (Optional[str]): Customer-managed encryption key.
+        encryption_spec_key_name (Optional[str]):
+            Customer-managed encryption key.
         export_additional_model_without_custom_ops (Optional[str]):
-          True if export an additional model without custom TF operators to the
-          `model_without_custom_ops` output.
+            True if export an additional model without custom TF operators to the
+            `model_without_custom_ops` output.
 
     Returns:
         gcp_resources (str):
             GCP resources created by this component.
             For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
-        model_architecture (AutoMLTabularModelArchitecture): The architecture of the output model.
-        model (system.Model): The output model.
+        model_architecture (AutoMLTabularModelArchitecture):
+            The architecture of the output model.
+        model (system.Model):
+            The output model.
         model_without_custom_ops (system.Model):
             The output model without custom TF operators, this output will be empty unless
             `export_additional_model_without_custom_ops` is set.
-        model_uri (str): The URI of the output model.
-        instance_schema_uri (str): The URI of the instance schema.
-        prediction_schema_uri (str): The URI of the prediction schema.
-        explanation_metadata (str): The explanation metadata used by Vertex online and batch explanations.
-        explanation_metadata (str): The explanation parameters used by Vertex online and batch explanations.
+        model_uri (str):
+            The URI of the output model.
+        instance_schema_uri (str):
+            The URI of the instance schema.
+        prediction_schema_uri (str):
+            The URI of the prediction schema.
+        explanation_metadata (str):
+            The explanation metadata used by Vertex online and batch explanations.
+        explanation_metadata (str):
+            The explanation parameters used by Vertex online and batch explanations.
 inputs:
 - {name: project, type: String}
 - {name: location, type: String}
@@ -87,7 +100,7 @@ implementation:
         '{"display_name": "automl-tabular-ensemble-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-highmem-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20220629_0725_RC00',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20220719_0325_RC00',
         '", "args": ["ensemble", "--transform_output_path=',
         {inputUri: transform_output},
         '", "--model_output_path=',
@@ -109,7 +122,7 @@ implementation:
         '", "--warmup_data=',
         {inputUri: warmup_data},
         '", "--prediction_docker_uri=',
-        'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20220629_0725_RC00',
+        'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20220719_0325_RC00',
         '", "--model_path=',
         {outputUri: model},
         '", "--custom_model_path=',

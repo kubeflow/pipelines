@@ -24,7 +24,7 @@ from typing import Callable, Set, List, Text, Dict, Tuple, Any, Union, Optional
 
 import kfp.deprecated as kfp
 from kfp.deprecated.dsl import _for_loop
-from kfp.deprecated.compiler import _data_passing_rewriter, v2_compat
+from kfp.deprecated.compiler import v2_compat
 
 from kfp.deprecated import dsl
 from kfp.deprecated.compiler._k8s_helper import convert_k8s_obj_to_json, sanitize_k8s_name
