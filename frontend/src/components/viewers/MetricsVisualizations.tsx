@@ -358,7 +358,9 @@ export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSection
           .get('confidenceMetrics')
           ?.getStructValue()
           ?.toJavaScript(),
-        name: customProperties.get('display_name')?.getStringValue() || '-',
+        name:
+          customProperties.get('display_name')?.getStringValue() ||
+          `artifact ID #${artifact.getId().toString()}`,
       };
     })
     .filter(confidenceMetricsData => confidenceMetricsData.confidenceMetrics);
