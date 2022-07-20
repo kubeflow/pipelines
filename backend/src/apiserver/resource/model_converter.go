@@ -15,13 +15,11 @@
 package resource
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"google.golang.org/protobuf/types/known/structpb"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -236,15 +234,15 @@ func apiParametersToModelParameters(apiParams []*api.Parameter) (string, error) 
 	if apiParams == nil || len(apiParams) == 0 {
 		return "", nil
 	}
-	var params []v1alpha1.Parameter
+	var params util.SpecParameters
 	for _, apiParam := range apiParams {
-		param := v1alpha1.Parameter{
+		param := util.SpecParameter{
 			Name:  apiParam.Name,
-			Value: v1alpha1.AnyStringPtr(apiParam.Value),
+			Value: util.StringPointer(apiParam.Value),
 		}
 		params = append(params, param)
 	}
-	paramsBytes, err := json.Marshal(params)
+	paramsBytes, err := util.MarshalParameters(util.ArgoWorkflow, params)
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Failed to stream API parameter as string.")
 	}
@@ -255,23 +253,23 @@ func runtimeConfigToModelParameters(runtimeConfig *api.PipelineSpec_RuntimeConfi
 	if runtimeConfig == nil {
 		return "", nil
 	}
-	var params []v1alpha1.Parameter
+	var params util.SpecParameters
 	for k, v := range runtimeConfig.GetParameters() {
-		param := v1alpha1.Parameter{
+		param := util.SpecParameter{
 			Name: k,
 		}
 		switch t := v.GetKind().(type) {
 		case *structpb.Value_StringValue:
-			param.Value = v1alpha1.AnyStringPtr(v.GetStringValue())
+			param.Value = util.AnyStringPtr(v.GetStringValue())
 		case *structpb.Value_NumberValue:
-			param.Value = v1alpha1.AnyStringPtr(v.GetNumberValue())
+			param.Value = util.AnyStringPtr(v.GetNumberValue())
 		case *structpb.Value_BoolValue:
-			param.Value = v1alpha1.AnyStringPtr(v.GetBoolValue())
+			param.Value = util.AnyStringPtr(v.GetBoolValue())
 		// TODO: revisit if these are right
 		case *structpb.Value_StructValue:
-			param.Value = v1alpha1.AnyStringPtr(v.GetStructValue())
+			param.Value = util.AnyStringPtr(v.GetStructValue())
 		case *structpb.Value_ListValue:
-			param.Value = v1alpha1.AnyStringPtr(v.GetListValue())
+			param.Value = util.AnyStringPtr(v.GetListValue())
 		case *structpb.Value_NullValue:
 			return "", fmt.Errorf("Unsupported property type in pipelineSpec runtimeConfig Parameters: %T", t)
 		default:
@@ -280,7 +278,7 @@ func runtimeConfigToModelParameters(runtimeConfig *api.PipelineSpec_RuntimeConfi
 
 		params = append(params, param)
 	}
-	paramsBytes, err := json.Marshal(params)
+	paramsBytes, err := util.MarshalParameters(util.ArgoWorkflow, params)
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Failed to stream API parameter as string.")
 	}
