@@ -407,24 +407,9 @@ export const lineColors = [
 ];
 
 export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSectionProps) {
-<<<<<<< HEAD
   const tableRef = useRef<CustomTable>(null); // TODO: Add refresh line.
-  const customPropertiesList = artifacts.map(artifact => artifact.getCustomPropertiesMap());
-  const names = customPropertiesList.map(customProperties =>
-    customProperties.get('display_name')?.getStringValue(),
-  );
   const [selectedIds, setSelectedIds] = useState<string[]>(artifacts.map(artifact => artifact.getId().toString()));
 
-  const confidenceMetricsList = customPropertiesList
-    .map(customProperties =>
-      customProperties
-        .get('confidenceMetrics')
-        ?.getStructValue()
-        ?.toJavaScript(),
-    )
-    .filter(confidenceMetrics => confidenceMetrics);
-=======
-  // TODO(zpChris): Update implementation to use a filter table and incorporate artifact ID.
   const confidenceMetricsDataList = artifacts
     .map(artifact => {
       const customProperties = artifact.getCustomPropertiesMap();
@@ -439,7 +424,6 @@ export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSection
       };
     })
     .filter(confidenceMetricsData => confidenceMetricsData.confidenceMetrics);
->>>>>>> display-roc-curve
 
   if (confidenceMetricsDataList.length === 0) {
     return null;

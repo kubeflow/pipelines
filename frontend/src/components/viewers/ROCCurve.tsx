@@ -31,6 +31,7 @@ import 'react-vis/dist/style.css';
 import Viewer, { ViewerConfig } from './Viewer';
 import { color, fontsize, commonCss } from '../../Css';
 import { stylesheet } from 'typestyle';
+import { lineColors } from './MetricsVisualizations';
 
 const css = stylesheet({
   axis: {
