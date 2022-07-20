@@ -20,8 +20,10 @@ from kfp.components import structures
 from kfp.components.types import type_utils
 
 
-class BaseComponent(metaclass=abc.ABCMeta):
-    """Base class for a component.
+class BaseComponent(abc.ABC):
+    """**Note:** ``BaseComponent`` is not intended to be used to construct components directly. Use ``@kfp.dsl.component`` or ``kfp.components.load_component_from_*()`` instead.
+
+    Base class for a component.
 
     Attributes:
       name: The name of the component.

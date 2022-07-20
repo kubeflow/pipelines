@@ -15,16 +15,21 @@
 
 from typing import Optional, Tuple
 
-from kfp.components import base_component
+from kfp import components
 from kfp.components import structures
 import requests
 
 
-class YamlComponent(base_component.BaseComponent):
-    """A component loaded from YAML."""
+class YamlComponent(components.BaseComponent):
+    """**Note:** ``PythonComponent`` is not intended to be used to construct components directly. Use ``kfp.components.load_component_from_*()`` instead.
+
+    Args:
+        component_spec: The component definition.
+    """
 
     def execute(self, *args, **kwargs):
-        pass
+        """Not implemented."""
+        raise NotImplementedError
 
 
 def load_component_from_text(text: str) -> YamlComponent:

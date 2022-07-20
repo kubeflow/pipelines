@@ -15,15 +15,18 @@
 
 from typing import Callable
 
-from kfp.components import base_component
+from kfp import components
 from kfp.components import structures
 
 
-class PythonComponent(base_component.BaseComponent):
-    """Component defined via Python function.
+class PythonComponent(components.BaseComponent):
+    """**Note:** ``PythonComponent`` is not intended to be used to construct components directly. Use ``@kfp.dsl.component`` instead.
 
-    Attribute:
-        pipeline_func: The Python function that becomes the implementation of
+    A component defined via Python function.
+
+    Args:
+        component_spec: The component definition.
+        python_func: The Python function that becomes the implementation of
             this component.
     """
 
@@ -36,4 +39,8 @@ class PythonComponent(base_component.BaseComponent):
         self.python_func = python_func
 
     def execute(self, **kwargs):
-        return python_func(**kwargs)
+        """Executes the Python function that became the component definition.
+
+        Must be called using keyword arguments.
+        """
+        return self.python_func(**kwargs)
