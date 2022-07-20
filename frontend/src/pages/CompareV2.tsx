@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useQuery } from 'react-query';
 import { ApiRunDetail } from 'src/apis/run';
 import Hr from 'src/atoms/Hr';
@@ -42,6 +42,8 @@ import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { SelectedItem } from 'src/components/TwoLevelDropdown';
 import MD2Tabs from 'src/atoms/MD2Tabs';
+import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
+import { Redirect } from 'react-router-dom';
 import MetricsDropdown from 'src/components/viewers/MetricsDropdown';
 
 const css = stylesheet({
@@ -175,8 +177,14 @@ export interface SelectedArtifact {
   linkedArtifact?: LinkedArtifact;
 }
 
-function CompareV2(props: PageProps) {
-  const { updateBanner, updateToolbar } = props;
+interface CompareV2Namespace {
+  namespace?: string;
+}
+
+export type CompareV2Props = PageProps & CompareV2Namespace;
+
+function CompareV2(props: CompareV2Props) {
+  const { updateBanner, updateToolbar, namespace } = props;
 
   const runlistRef = useRef<RunList>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -432,6 +440,7 @@ function CompareV2(props: PageProps) {
                 metricsTab={metricsTab}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
                 updateSelectedArtifacts={updateSelectedArtifacts}
+                namespace={namespace}
               />
             )}
             {metricsTab === MetricsType.ROC_CURVE && <p>This is the ROC Curve tab.</p>}
@@ -441,6 +450,7 @@ function CompareV2(props: PageProps) {
                 metricsTab={metricsTab}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
                 updateSelectedArtifacts={updateSelectedArtifacts}
+                namespace={namespace}
               />
             )}
             {metricsTab === MetricsType.MARKDOWN && (
@@ -449,6 +459,7 @@ function CompareV2(props: PageProps) {
                 metricsTab={metricsTab}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
                 updateSelectedArtifacts={updateSelectedArtifacts}
+                namespace={namespace}
               />
             )}
           </div>
@@ -460,4 +471,20 @@ function CompareV2(props: PageProps) {
   );
 }
 
-export default CompareV2;
+function EnhancedCompareV2(props: PageProps) {
+  const namespace: string | undefined = useContext(NamespaceContext);
+  const namespaceChanged = useNamespaceChangeEvent();
+  if (namespaceChanged) {
+    // Run Comparison page compares multiple runs, when namespace changes, the runs don't
+    // exist in the new namespace, so we should redirect to experiment list page.
+    return <Redirect to={RoutePage.EXPERIMENTS} />;
+  }
+
+  return <CompareV2 namespace={namespace} {...props} />;
+}
+
+export default EnhancedCompareV2;
+
+export const TEST_ONLY = {
+  CompareV2,
+};
