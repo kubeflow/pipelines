@@ -70,7 +70,66 @@ from kfp.components.types.type_annotations import Output
 from kfp.components.types.type_annotations import OutputPath
 
 PIPELINE_JOB_NAME_PLACEHOLDER = '{{$.pipeline_job_name}}'
+"""A placeholder used to obtain a pipeline job name within a task at pipeline runtime.
+
+    Example::
+        @dsl.pipeline(name='my-pipeline')
+        def my_pipeline():
+
+            print_op(
+                msg='job name:',
+                value=dsl.PIPELINE_JOB_NAME_PLACEHOLDER,
+            )
+"""
+
 PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER = '{{$.pipeline_job_resource_name}}'
+"""A placeholder used to obtain a pipeline job resource name within a task at pipeline runtime.
+
+    Example::
+        @dsl.pipeline(name='my-pipeline')
+        def my_pipeline():
+
+            print_op(
+                msg='job name:',
+                value=dsl.PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER,
+            )
+"""
+
 PIPELINE_JOB_ID_PLACEHOLDER = '{{$.pipeline_job_uuid}}'
+"""A placeholder used to obtain a pipeline job ID within a task at pipeline runtime.
+
+    Example::
+        @dsl.pipeline(name='my-pipeline')
+        def my_pipeline():
+
+            print_op(
+                msg='job name:',
+                value=dsl.PIPELINE_JOB_ID_PLACEHOLDER,
+            )
+"""
+
 PIPELINE_TASK_NAME_PLACEHOLDER = '{{$.pipeline_task_name}}'
+"""A placeholder used to obtain a task name within a task at pipeline runtime.
+
+    Example::
+        @dsl.pipeline(name='my-pipeline')
+        def my_pipeline():
+
+            print_op(
+                msg='job name:',
+                value=dsl.PIPELINE_TASK_NAME_PLACEHOLDER,
+            )
+"""
+
 PIPELINE_TASK_ID_PLACEHOLDER = '{{$.pipeline_task_uuid}}'
+"""A placeholder used to obtain a task ID within a task at pipeline runtime.
+
+    Example::
+        @dsl.pipeline(name='my-pipeline')
+        def my_pipeline():
+
+            print_op(
+                msg='job name:',
+                value=dsl.PIPELINE_TASK_ID_PLACEHOLDER,
+            )
+"""
