@@ -424,6 +424,8 @@ export const lineColors = [
   '#5ec4ec',
 ];
 
+const lineColorsStack = [...lineColors];
+
 export const getRocCurveId = (linkedArtifact: LinkedArtifact): string =>
   `${linkedArtifact.event.getExecutionId()}-${linkedArtifact.event.getArtifactId()}`;
 
@@ -432,6 +434,7 @@ export function ConfidenceMetricsSection({
   filter,
 }: ConfidenceMetricsSectionProps) {
   const tableRef = useRef<CustomTable>(null); // TODO: Add refresh line.
+  const [selectedIdColorMap, setSelectedIdColorMap] = useState<{[key: string]: string }>({});
   let confidenceMetricsDataList = linkedArtifacts
     .map(linkedArtifact => {
       const artifact = linkedArtifact.artifact;
@@ -479,17 +482,26 @@ export function ConfidenceMetricsSection({
       { customRenderer: curveLegendCustomRenderer, flex: 0.5, label: 'Curve legend' },
     ];
 
+    if (filter.selectedIds.length > 0 && Object.keys(selectedIdColorMap).length === 0) {
+      filter.selectedIds.forEach(selectedId => {
+        selectedIdColorMap[selectedId] = lineColorsStack.pop() || '';
+      });
+      setSelectedIdColorMap(selectedIdColorMap);
+    }
+
     // I don't know how to get the correct line color. Or have a line color for each one.
     for (let i = 0; i < linkedArtifacts.length; i++) {
       const artifact = linkedArtifacts[i].artifact;
+      const id = getRocCurveId(linkedArtifacts[i]);
+      console.log(selectedIdColorMap);
       const row = {
-        id: getRocCurveId(linkedArtifacts[i]),
+        id,
         otherFields: [
           artifact
             .getCustomPropertiesMap()
             ?.get('display_name')
             ?.getStringValue() || '-',
-          lineColors[i],
+            selectedIdColorMap[id],
         ] as any,
       };
       rows.push(row);
@@ -513,6 +525,64 @@ export function ConfidenceMetricsSection({
     rocCurveConfigs.push(buildRocCurveConfig(confidenceMetrics.list));
   }
 
+  const updateSelection = (newSelectedIds: string[]): void => {
+    if (filter) {
+      const { selectedIds: oldSelectedIds, setSelectedIds } = filter;
+      
+      // Convert arrays to sets for quick lookup.
+      const newSelectedIdsSet = new Set(newSelectedIds);
+      const oldSelectedIdsSet = new Set(oldSelectedIds);
+
+      // 2*O(n^2). This could actually be really large, conceivably.
+      const addedIds = newSelectedIds.filter(selectedId => !oldSelectedIdsSet.has(selectedId));
+      const removedIds = oldSelectedIds.filter(selectedId => !newSelectedIdsSet.has(selectedId));
+
+      // I'll need this anyway to potentially limit how many new ones are selected.
+
+      // Ok, I think I'll use a map here and pass it through filter.
+
+      console.log('---------');
+      console.log(addedIds);
+      console.log(removedIds);
+      console.log(lineColorsStack);
+
+      setSelectedIds(newSelectedIds);
+      removedIds.forEach(removedId => {
+        lineColorsStack.push(selectedIdColorMap[removedId]);
+        selectedIdColorMap[removedId] = '';
+      });
+
+      // Place a limit on the number of IDs that can be added.
+      addedIds.forEach(addedId => {
+        selectedIdColorMap[addedId] = lineColorsStack.pop() || '';
+      });
+
+      setSelectedIdColorMap(selectedIdColorMap);
+
+      console.log(lineColorsStack);
+
+      // Huh, I wonder if all of the new ones are added at the end. Maybe, but I don't want this to rely on the internal implementation of custom table.
+      // Right now, could use the invariant that you can only remove one at a time (not true, remove all). However, I don't want to rely on that, in case the implementation changes for some reason.
+
+      // It's better to have a separate, which represents removed. And going through twice? Lookup is immediate. So 2*O(n). No, that doesn't work either. If the IDs were tied to color, that'd be easiest.
+      // I could use a set.
+      // Using a conversion to Set, this becomes O(n). 4*O(n), specifically.
+    }
+    // Comparison between all the current selectedIds and the new selectedIds.
+    /*
+      - Find the change.
+        - Do this by looping through new selectedIds? There's gotta be a faster way for this. Cause also have to loop through current.
+        - Can use filter between the two.
+        - Are the selectedIds order between the two? I can step through on each.
+        - I suppose a better solution is to have a full map. With all possibilities.
+        - Then that requires looping through all on each though.
+        - Maybe just iterate through each array and use that to determine which should be removed or not.
+        - So which are removed first (new array, what is not present).
+        - But then no, I need 
+    */
+  }
+
+  const colors: string[] = filter ? filter.selectedIds.map(selectedId => selectedIdColorMap[selectedId]) : [];
   return (
     <div className={padding(40, 'lrt')}>
       <div className={padding(40, 'b')}>
@@ -529,7 +599,7 @@ export function ConfidenceMetricsSection({
         </h3>
       </div>
       {/* TODO(zpChris): Introduce checkbox system that matches artifacts to curves. */}
-      <ROCCurve configs={rocCurveConfigs} highlightIndex={1} />
+      <ROCCurve configs={rocCurveConfigs} colors={colors} />
       {filter && (
         <CustomTable
           columns={columns}
@@ -538,7 +608,7 @@ export function ConfidenceMetricsSection({
           // initialSortColumn={RunSortKeys.CREATED_AT}
           ref={tableRef}
           filterLabel='Filter artifacts'
-          updateSelection={filter.setSelectedIds}
+          updateSelection={updateSelection}
           reload={reload}
           disablePaging={false}
           disableSorting={false}

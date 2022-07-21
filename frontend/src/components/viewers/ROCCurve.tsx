@@ -66,7 +66,7 @@ export interface ROCCurveConfig extends ViewerConfig {
 interface ROCCurveProps {
   configs: ROCCurveConfig[];
   maxDimension?: number;
-  highlightIndex?: number; // Could I use this to highlight the hovered element?
+  colors?: string[];
 }
 
 interface ROCCurveState {
@@ -132,8 +132,8 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
           {datasets.map((data, i) => (
             <LineSeries
               key={i}
-              color={lineColors[i] || lineColors[lineColors.length - 1]}
-              strokeWidth={this.props.highlightIndex && this.props.highlightIndex === i ? 5 : 2}
+              color={this.props.colors ? this.props.colors[i] : (lineColors[i] || lineColors[lineColors.length - 1])}
+              strokeWidth={2}
               data={data}
               onNearestX={(d: any) => this._lineHovered(i, d)}
               curve='curveBasis'
@@ -174,7 +174,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
             <div style={{ flexGrow: 1 }}>
               <DiscreteColorLegend
                 items={datasets.map((_, i) => ({
-                  color: lineColors[i],
+                  color: this.props.colors ? this.props.colors[i] : lineColors[i],
                   title: 'Series #' + (i + 1),
                 }))}
                 orientation='horizontal'

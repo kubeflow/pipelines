@@ -308,6 +308,7 @@ function CompareV2(props: CompareV2Props) {
             - this requires reporting here.
             - i assume this is the combination of run id, execution id, and artifact id. how do i 
             - i can in fact just use execution id + artifact id, and use this through linked artifacts (on the event). this is good to know for the metrics dropdown as well, if i do that.
+        - selected colors list
         - perhaps just the run, execution, and linkedartifact all in one element of a list.
           - run name
           - run id (create link from this)
@@ -345,8 +346,7 @@ function CompareV2(props: CompareV2Props) {
             executionArtifact => executionArtifact.linkedArtifacts,
           ),
         ),
-      );
-      console.log(rocCurveLinkedArtifacts);
+      ).slice(0, 3);
       setRocCurveLinkedArtifacts(rocCurveLinkedArtifacts);
       setSelectedRocCurveIds(
         rocCurveLinkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)),
