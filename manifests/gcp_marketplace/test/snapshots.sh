@@ -26,8 +26,7 @@ CASES=(
 for case in "${CASES[@]}"
 do
   echo "Generating helm template for test/values-$case.yaml"
-  helm template "${DIR}/../chart/kubeflow-pipelines" \
-    --name "my-release" \
+  helm template "my-release" "${DIR}/../chart/kubeflow-pipelines" \
     --namespace "kubeflow" \
     --values "${DIR}/values-$case.yaml" \
     > "${DIR}/snapshot-$case.yaml"

@@ -13,17 +13,18 @@
 # limitations under the License.
 
 # 1. Build api server application
-# Use golang:1.13.1-stretch to keep GLIBC at 2.24 https://github.com/gotify/server/issues/225
-FROM golang:1.13.1-stretch as builder
+FROM golang:1.17.6-stretch as builder
 RUN apt-get update && apt-get install -y cmake clang musl-dev openssl
 WORKDIR /go/src/github.com/kubeflow/pipelines
 COPY . .
 RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
 # Check licenses and comply with license terms.
 RUN ./hack/install-go-licenses.sh
-RUN go-licenses csv /bin/apiserver > /tmp/licenses.csv && \
+# First, make sure there's no forbidden license.
+RUN go-licenses check ./backend/src/apiserver
+RUN go-licenses csv ./backend/src/apiserver > /tmp/licenses.csv && \
     diff /tmp/licenses.csv backend/third_party_licenses/apiserver.csv && \
-    go-licenses save /tmp/licenses.csv --save_path /tmp/NOTICES
+    go-licenses save ./backend/src/apiserver --save_path /tmp/NOTICES
 
 # 2. Compile preloaded pipeline samples
 FROM python:3.7 as compiler
@@ -33,7 +34,7 @@ COPY backend/requirements.txt .
 RUN python3 -m pip install -r requirements.txt --no-cache-dir
 
 # Downloading Argo CLI so that the samples are validated
-ENV ARGO_VERSION v3.2.3
+ENV ARGO_VERSION v3.3.8
 RUN curl -sLO https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz && \
     gunzip argo-linux-amd64.gz && \
     chmod +x argo-linux-amd64 && \
