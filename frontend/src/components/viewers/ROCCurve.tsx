@@ -67,6 +67,7 @@ interface ROCCurveProps {
   configs: ROCCurveConfig[];
   maxDimension?: number;
   colors?: string[];
+  noLegend?: boolean;
 }
 
 interface ROCCurveState {
@@ -132,7 +133,11 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
           {datasets.map((data, i) => (
             <LineSeries
               key={i}
-              color={this.props.colors ? this.props.colors[i] : (lineColors[i] || lineColors[lineColors.length - 1])}
+              color={
+                this.props.colors
+                  ? this.props.colors[i]
+                  : lineColors[i] || lineColors[lineColors.length - 1]
+              }
               strokeWidth={2}
               data={data}
               onNearestX={(d: any) => this._lineHovered(i, d)}
@@ -170,7 +175,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
 
         <div className={commonCss.flex}>
           {/* Legend */}
-          {datasets.length > 1 && (
+          {!this.props.noLegend && datasets.length > 1 && (
             <div style={{ flexGrow: 1 }}>
               <DiscreteColorLegend
                 items={datasets.map((_, i) => ({

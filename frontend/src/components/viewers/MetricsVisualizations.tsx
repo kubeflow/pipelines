@@ -434,7 +434,7 @@ export function ConfidenceMetricsSection({
   filter,
 }: ConfidenceMetricsSectionProps) {
   const tableRef = useRef<CustomTable>(null); // TODO: Add refresh line.
-  const [selectedIdColorMap, setSelectedIdColorMap] = useState<{[key: string]: string }>({});
+  const [selectedIdColorMap, setSelectedIdColorMap] = useState<{ [key: string]: string }>({});
   let confidenceMetricsDataList = linkedArtifacts
     .map(linkedArtifact => {
       const artifact = linkedArtifact.artifact;
@@ -466,7 +466,9 @@ export function ConfidenceMetricsSection({
   let columns: Column[] = [];
   const rows: TableRow[] = [];
   if (filter) {
-    confidenceMetricsDataList = confidenceMetricsDataList.filter(confidenceMetricsData => filter.selectedIds.includes(confidenceMetricsData.id));
+    confidenceMetricsDataList = confidenceMetricsDataList.filter(confidenceMetricsData =>
+      filter.selectedIds.includes(confidenceMetricsData.id),
+    );
     columns = [
       {
         customRenderer: executionArtifactCustomRenderer,
@@ -501,7 +503,7 @@ export function ConfidenceMetricsSection({
             .getCustomPropertiesMap()
             ?.get('display_name')
             ?.getStringValue() || '-',
-            selectedIdColorMap[id],
+          selectedIdColorMap[id],
         ] as any,
       };
       rows.push(row);
@@ -529,7 +531,7 @@ export function ConfidenceMetricsSection({
     if (filter) {
       // TODO(zpChris): I need to keep all since I need to find the shared selected ids. Some may be later - there's no order.
       const { selectedIds: oldSelectedIds, setSelectedIds } = filter;
-      
+
       // Convert arrays to sets for quick lookup.
       const newSelectedIdsSet = new Set(newSelectedIds);
       const oldSelectedIdsSet = new Set(oldSelectedIds);
@@ -543,6 +545,8 @@ export function ConfidenceMetricsSection({
       // I'll need this anyway to potentially limit how many new ones are selected.
 
       // Ok, I think I'll use a map here and pass it through filter.
+
+      // TODO(zpChris): Fix the final selected number being given.
 
       // Add the sharedIds in and concat the added ids.
       setSelectedIds(sharedIds.concat(addedIds).slice(0, 10));
@@ -577,9 +581,11 @@ export function ConfidenceMetricsSection({
         - So which are removed first (new array, what is not present).
         - But then no, I need 
     */
-  }
+  };
 
-  const colors: string[] = filter ? filter.selectedIds.map(selectedId => selectedIdColorMap[selectedId]) : [];
+  const colors: string[] = filter
+    ? filter.selectedIds.map(selectedId => selectedIdColorMap[selectedId])
+    : [];
   return (
     <div className={padding(40, 'lrt')}>
       <div className={padding(40, 'b')}>
@@ -596,10 +602,15 @@ export function ConfidenceMetricsSection({
         </h3>
       </div>
       {/* TODO(zpChris): Introduce checkbox system that matches artifacts to curves. */}
-      <ROCCurve configs={rocCurveConfigs} colors={colors} />
+      <ROCCurve configs={rocCurveConfigs} colors={colors} noLegend />
       {filter && (
         <>
-          {filter.selectedIds.length === 10 && rows.length > 10 ? <p>You have reached the maximum number of ROC Curves you can select at once. Deselect an item in order to select additional artifacts.</p> : null}
+          {filter.selectedIds.length === 10 && rows.length > 10 ? (
+            <p>
+              You have reached the maximum number of ROC Curves you can select at once. Deselect an
+              item in order to select additional artifacts.
+            </p>
+          ) : null}
           <CustomTable
             columns={columns}
             rows={rows}

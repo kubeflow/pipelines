@@ -275,10 +275,10 @@ const logDisplayNameWarning = (type: string, id: string) =>
   logger.warn(`Failed to fetch the display name of the ${type} with the following ID: ${id}`);
 
 const getExecutionName = (execution: Execution) =>
-execution
-  .getCustomPropertiesMap()
-  .get('display_name')
-  ?.getStringValue();
+  execution
+    .getCustomPropertiesMap()
+    .get('display_name')
+    ?.getStringValue();
 
 // Group each artifact name with its parent execution name.
 function getDropdownSubLinkedArtifacts(linkedArtifacts: LinkedArtifact[], subItemName: string) {
