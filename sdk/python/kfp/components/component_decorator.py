@@ -33,19 +33,53 @@ def component(func: Optional[Callable] = None,
     A KFP component can either be a lightweight component or a containerized
     component.
 
-    If target_image is not specified, this function creates a lightweight
+    If ``target_image`` is not specified, this function creates a lightweight
     component. A lightweight component is a self-contained Python function that
     includes all necessary imports and dependencies. In lightweight components,
-    packages_to_install will be used to install dependencies at runtime. The
-    parameters install_kfp_package and kfp_package_path can be used to control
-    how KFP should be installed when the lightweight component is executed.
+    ``packages_to_install`` will be used to install dependencies at runtime. The
+    parameters ``install_kfp_package`` and ``kfp_package_path`` can be used to control
+    how and from where KFP should be installed when the lightweight component is executed.
 
-    If target_image is specified, this function creates a component definition
-    based around the target_image. The assumption is that the function in func
-    will be packaged by KFP into this target_image. Use the KFP CLI's ``build``
-    command to package func into target_image.
+    If ``target_image`` is specified, this function creates a component definition
+    based around the ``target_image``. The assumption is that the function in ``func``
+    will be packaged by KFP into this ``target_image``. You can use the KFP CLI's ``build``
+    command to package the function into ``target_image``.
 
-    Example::
+    Args:
+        func: Python function from which to create a component. The function
+            should have type annotations for all its arguments, indicating how
+            each argument is intended to be used (e.g. as an input/output artifact,
+            a plain parameter, or a path to a file).
+        base_image: Image to use when executing the Python function. It should
+            contain a default Python interpreter that is compatible with KFP.
+        target_image: Image to when creating containerized components.
+        packages_to_install: List of packages to install before
+            executing the Python function. These will always be installed at component runtime.
+        pip_index_urls: Python Package Index base URLs from which to
+            install ``packages_to_install``. Defaults to installing from only PyPI
+            (``'https://pypi.org/simple'``). For more information, see `pip install docs <https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-0>`_.
+        output_component_file: If specified, this function will write a
+            shareable/loadable version of the component spec into this file.
+
+            **Warning:** This compilation approach is deprecated.
+        install_kfp_package: Specifies if the KFP SDK should add the ``kfp`` Python package to
+            ``packages_to_install``. Lightweight Python functions always require
+            an installation of KFP in ``base_image`` to work. If you specify
+            a ``base_image`` that already contains KFP, you can set this to ``False``.
+            This flag is ignored when ``target_image`` is specified, which implies
+            a choice to build a containerized component. Containerized components
+            will always install KFP as part of the build process.
+        kfp_package_path: Specifies the location from which to install KFP. By
+            default, this will try to install from PyPI using the same version
+            as that used when this component was created. Component authors can
+            choose to override this to point to a GitHub pull request or
+            other pip-compatible package server.
+
+    Returns:
+        A component task factory that can be used in pipeline definitions.
+
+    Example:
+      ::
 
         from kfp import dsl
 
@@ -64,39 +98,6 @@ def component(func: Optional[Callable] = None,
         def pipeline():
             my_function_one_task = my_function_one(input=...)
             my_function_two_task = my_function_two(input=my_function_one_task.outputs)
-
-    Args:
-        func: The Python function to create a component from. The function
-            should have type annotations for all its arguments, indicating how
-            each argument is intended to be used (e.g. as an input/output Artifact object,
-            a plain parameter, or a path to a file).
-        base_image: The image to use when executing func. It should
-            contain a default Python interpreter that is compatible with KFP.
-        target_image: The image to build for creation of containerized components.
-        packages_to_install: A list of optional packages to install before
-            executing func. These will always be installed at component runtime.
-        pip_index_urls: Python Package Index base URLS from which to
-        install `packages_to_install`. Defaults to installing from only
-            "https://pypi.org/simple". For more information, see:
-            https://pip.pypa.io/en/stable/cli/pip_install/#cmdoption-0.
-        output_component_file: If specified, this function will write a
-            shareable/loadable version of the component spec into this file. Deprecated.
-        install_kfp_package: Specifies if we should add a KFP Python package to
-            packages_to_install. Lightweight Python functions always require
-            an installation of KFP in base_image to work. If you specify
-            a base_image that already contains KFP, you can set this to False.
-            This flag is ignored when target_image is specified, which implies
-            we're building a containerized component. Containerized components
-            will always install KFP as part of the build process.
-        kfp_package_path: Specifies the location from which to install KFP. By
-            default, this will try to install from PyPi using the same version
-            as that used when this component was created. KFP developers can
-            choose to override this to point to a Github pull request or
-            other pip-compatible location when testing changes to lightweight
-            Python functions.
-
-    Returns:
-        A component task factory that can be used in pipeline definitions.
     """
     if output_component_file is not None:
         warnings.warn(

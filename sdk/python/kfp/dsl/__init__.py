@@ -17,9 +17,6 @@ compose pipelines."""
 __all__ = [
     'component',
     'importer',
-    'PipelineArtifactChannel',
-    'PipelineChannel',
-    'PipelineParameterChannel',
     'pipeline',
     'PipelineTask',
     'PipelineTaskFinalStatus',
@@ -47,9 +44,6 @@ __all__ = [
 
 from kfp.components.component_decorator import component
 from kfp.components.importer_node import importer
-from kfp.components.pipeline_channel import PipelineArtifactChannel
-from kfp.components.pipeline_channel import PipelineChannel
-from kfp.components.pipeline_channel import PipelineParameterChannel
 from kfp.components.pipeline_context import pipeline
 from kfp.components.pipeline_task import PipelineTask
 from kfp.components.task_final_status import PipelineTaskFinalStatus
@@ -72,12 +66,13 @@ from kfp.components.types.type_annotations import OutputPath
 PIPELINE_JOB_NAME_PLACEHOLDER = '{{$.pipeline_job_name}}'
 """A placeholder used to obtain a pipeline job name within a task at pipeline runtime.
 
-    Example::
+    Example:
+      ::
+
         @dsl.pipeline(name='my-pipeline')
         def my_pipeline():
-
             print_op(
-                msg='job name:',
+                msg='Job name:',
                 value=dsl.PIPELINE_JOB_NAME_PLACEHOLDER,
             )
 """
@@ -85,12 +80,13 @@ PIPELINE_JOB_NAME_PLACEHOLDER = '{{$.pipeline_job_name}}'
 PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER = '{{$.pipeline_job_resource_name}}'
 """A placeholder used to obtain a pipeline job resource name within a task at pipeline runtime.
 
-    Example::
+    Example:
+      ::
+
         @dsl.pipeline(name='my-pipeline')
         def my_pipeline():
-
             print_op(
-                msg='job name:',
+                msg='Job resource name:',
                 value=dsl.PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER,
             )
 """
@@ -98,12 +94,13 @@ PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER = '{{$.pipeline_job_resource_name}}'
 PIPELINE_JOB_ID_PLACEHOLDER = '{{$.pipeline_job_uuid}}'
 """A placeholder used to obtain a pipeline job ID within a task at pipeline runtime.
 
-    Example::
+    Example:
+      ::
+
         @dsl.pipeline(name='my-pipeline')
         def my_pipeline():
-
             print_op(
-                msg='job name:',
+                msg='Job ID:',
                 value=dsl.PIPELINE_JOB_ID_PLACEHOLDER,
             )
 """
@@ -111,12 +108,13 @@ PIPELINE_JOB_ID_PLACEHOLDER = '{{$.pipeline_job_uuid}}'
 PIPELINE_TASK_NAME_PLACEHOLDER = '{{$.pipeline_task_name}}'
 """A placeholder used to obtain a task name within a task at pipeline runtime.
 
-    Example::
+    Example:
+      ::
+
         @dsl.pipeline(name='my-pipeline')
         def my_pipeline():
-
             print_op(
-                msg='job name:',
+                msg='Task name:',
                 value=dsl.PIPELINE_TASK_NAME_PLACEHOLDER,
             )
 """
@@ -124,12 +122,13 @@ PIPELINE_TASK_NAME_PLACEHOLDER = '{{$.pipeline_task_name}}'
 PIPELINE_TASK_ID_PLACEHOLDER = '{{$.pipeline_task_uuid}}'
 """A placeholder used to obtain a task ID within a task at pipeline runtime.
 
-    Example::
+    Example:
+      ::
+
         @dsl.pipeline(name='my-pipeline')
         def my_pipeline():
-
             print_op(
-                msg='job name:',
+                msg='Task ID:',
                 value=dsl.PIPELINE_TASK_ID_PLACEHOLDER,
             )
 """

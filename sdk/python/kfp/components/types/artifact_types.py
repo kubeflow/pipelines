@@ -26,12 +26,42 @@ _S3_LOCAL_MOUNT_PREFIX = '/s3/'
 class Artifact:
     """Represents a generic machine learning artifact.
 
-    This class stores the name, uri, and metadata for a machine learning artifact.
+    This class and all artifact classes store the name, uri, and metadata for a machine learning artifact. Use this artifact type when an artifact does not fit into another more specific artifact type (e.g., ``Model``, ``Dataset``).
 
     Args:
-        name: The name of the artifact.
+        name: Name of the artifact.
         uri: The artifact's location on disk or cloud storage.
         metadata: Arbitrary key-value pairs about the artifact.
+
+    Example:
+      ::
+
+        from kfp import dsl
+        from kfp.dsl import Output, Artifact, Input
+
+
+        @dsl.component
+        def create_artifact(
+            data: str,
+            output_artifact: Output[Artifact],
+        ):
+            with open(output_artifact.path, 'w') as f:
+                f.write(data)
+
+
+        @dsl.component
+        def use_artifact(input_artifact: Input[Artifact]):
+            with open(input_artifact.path) as input_file:
+                artifact_contents = input_file.read()
+                print(artifact_contents)
+
+
+        @dsl.pipeline(name='my-pipeline', pipeline_root='gs://my/storage')
+        def my_pipeline():
+            create_task = create_artifact(data='my data')
+            use_artifact(input_artifact=create_task.outputs['output_artifact'])
+
+    Note: Other artifacts are used similarly to the usage of ``Artifact`` in the example above (within ``Input[]`` and ``Output[]``).
     """
     TYPE_NAME = 'system.Artifact'
     VERSION = '0.0.1'
@@ -76,7 +106,7 @@ class Model(Artifact):
     """An artifact representing a machine learning model.
 
     Args:
-        name: The name of the model.
+        name: Name of the model.
         uri: The model's location on disk or cloud storage.
         metadata: Arbitrary key-value pairs about the model.
     """
@@ -107,7 +137,7 @@ class Dataset(Artifact):
     """An artifact representing a machine learning dataset.
 
     Args:
-        name: The name of the dataset.
+        name: Name of the dataset.
         uri: The dataset's location on disk or cloud storage.
         metadata: Arbitrary key-value pairs about the dataset.
     """
@@ -124,9 +154,9 @@ class Metrics(Artifact):
     """An artifact for storing key-value scalar metrics.
 
     Args:
-        name: The name of the metrics artifact.
+        name: Name of the metrics artifact.
         uri: The metrics artifact's location on disk or cloud storage.
-        metadata: The key-value scalar metrics.
+        metadata: Key-value scalar metrics.
     """
     TYPE_NAME = 'system.Metrics'
 
@@ -150,7 +180,7 @@ class ClassificationMetrics(Artifact):
     """An artifact for storing classification metrics.
 
     Args:
-        name: The name of the metrics artifact.
+        name: Name of the metrics artifact.
         uri: The metrics artifact's location on disk or cloud storage.
         metadata: The key-value scalar metrics.
     """
@@ -164,7 +194,7 @@ class ClassificationMetrics(Artifact):
 
     def log_roc_data_point(self, fpr: float, tpr: float,
                            threshold: float) -> None:
-        """Logs a single data point in the ROC Curve to metadata.
+        """Logs a single data point in the ROC curve to metadata.
 
         Args:
           fpr: False positive rate value of the data point.
@@ -186,12 +216,13 @@ class ClassificationMetrics(Artifact):
                       threshold: List[float]) -> None:
         """Logs an ROC curve to metadata.
 
-        The list length of fpr, tpr and threshold must be the same.
-
         Args:
           fpr: List of false positive rate values.
           tpr: List of true positive rate values.
           threshold: List of threshold values.
+
+        Raises:
+          ValueError: If the lists ``fpr``, ``tpr`` and ``threshold`` are not the same length.
         """
         if len(fpr) != len(tpr) or len(fpr) != len(threshold) or len(
                 tpr) != len(threshold):
@@ -235,9 +266,9 @@ class ClassificationMetrics(Artifact):
           row_category: Category to which the row belongs.
           row: List of integers specifying the values for the row.
 
-         Raises:
-          ValueError: If row_category is not in the list of categories
-          set in set_categories call.
+        Raises:
+          ValueError: If ``row_category`` is not in the list of categories
+            set in ``set_categories`` call.
         """
         if row_category not in self._categories:
             raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
@@ -257,11 +288,11 @@ class ClassificationMetrics(Artifact):
         Args:
           row_category: String representing the name of the row category.
           col_category: String representing the name of the column category.
-          value: Int value of the cell.
+          value: Value of the cell.
 
         Raises:
-          ValueError: If row_category or col_category is not in the list of
-           categories set in set_categories.
+          ValueError: If ``row_category`` or ``col_category`` is not in the list of
+           categories set in ``set_categories``.
         """
         if row_category not in self._categories:
             raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
@@ -284,7 +315,7 @@ class ClassificationMetrics(Artifact):
           matrix: Complete confusion matrix.
 
         Raises:
-          ValueError: Length of categories does not match number of rows or columns.
+          ValueError: If the length of ``categories`` does not match number of rows or columns of ``matrix``.
         """
         self.set_confusion_matrix_categories(categories)
 
@@ -305,10 +336,15 @@ class ClassificationMetrics(Artifact):
 class SlicedClassificationMetrics(Artifact):
     """An artifact for storing sliced classification metrics.
 
-    Similar to ``ClassificationMetrics``, clients using this class are
+    Similar to ``ClassificationMetrics``, tasks using this class are
     expected to use log methods of the class to log metrics with the
     difference being each log method takes a slice to associate the
-    ClassificationMetrics.
+    ``ClassificationMetrics``.
+
+    Args:
+        name: Name of the metrics artifact.
+        uri: The metrics artifact's location on disk or cloud storage.
+        metadata: Arbitrary key-value pairs about the metrics artifact.
     """
 
     TYPE_NAME = 'system.SlicedClassificationMetrics'
@@ -339,7 +375,7 @@ class SlicedClassificationMetrics(Artifact):
 
     def log_roc_reading(self, slice: str, threshold: float, tpr: float,
                         fpr: float) -> None:
-        """Logs a single data point in the ROC Curve of a slice to metadata.
+        """Logs a single data point in the ROC curve of a slice to metadata.
 
         Args:
           slice: String representing slice label.
@@ -354,13 +390,11 @@ class SlicedClassificationMetrics(Artifact):
 
     def load_roc_readings(self, slice: str,
                           readings: List[List[float]]) -> None:
-        """Bulk loads ROC Curve readings for a slice.
+        """Bulk loads ROC curve readings for a slice.
 
         Args:
           slice: String representing slice label.
-          readings: A 2-D list providing ROC Curve data points.
-                    The expected order of the data points is: threshold,
-                      true_positive_rate, false_positive_rate.
+          readings: A 2-dimensional list providing ROC curve data points. The expected order of the data points is: threshold, true positive rate, false positive rate.
         """
         self._upsert_classification_metrics_for_slice(slice)
         self._sliced_metrics[slice].load_roc_readings(readings)
@@ -370,7 +404,7 @@ class SlicedClassificationMetrics(Artifact):
                                         categories: List[str]) -> None:
         """Logs confusion matrix categories for a slice to metadata.
 
-        Categories are stored in the internal metrics_utils.ConfusionMatrix
+        Categories are stored in the internal ``metrics_utils.ConfusionMatrix``
         instance of the slice.
 
         Args:
@@ -385,7 +419,7 @@ class SlicedClassificationMetrics(Artifact):
                                  row: List[int]) -> None:
         """Logs a confusion matrix row for a slice to metadata.
 
-        Row is updated on the internal metrics_utils.ConfusionMatrix
+        Row is updated on the internal ``metrics_utils.ConfusionMatrix``
         instance of the slice.
 
         Args:
@@ -401,14 +435,14 @@ class SlicedClassificationMetrics(Artifact):
                                   col_category: str, value: int) -> None:
         """Logs a confusion matrix cell for a slice to metadata.
 
-        Cell is updated on the internal metrics_utils.ConfusionMatrix
+        Cell is updated on the internal ``metrics_utils.ConfusionMatrix``
         instance of the slice.
 
         Args:
           slice: String representing slice label.
           row_category: String representing the name of the row category.
           col_category: String representing the name of the column category.
-          value: Int value of the cell.
+          value: Value of the cell.
         """
         self._upsert_classification_metrics_for_slice(slice)
         self._sliced_metrics[slice].log_confusion_matrix_cell(
@@ -434,7 +468,7 @@ class HTML(Artifact):
     """An artifact representing an HTML file.
 
     Args:
-        name: The name of the HTML file.
+        name: Name of the HTML file.
         uri: The HTML file's location on disk or cloud storage.
         metadata: Arbitrary key-value pairs about the HTML file.
     """
@@ -451,7 +485,7 @@ class Markdown(Artifact):
     """An artifact representing a markdown file.
 
     Args:
-        name: The name of the markdown file.
+        name: Name of the markdown file.
         uri: The markdown file's location on disk or cloud storage.
         metadata: Arbitrary key-value pairs about the markdown file.
     """

@@ -32,7 +32,7 @@ def importer(
     reimport: bool = False,
     metadata: Optional[Mapping[str, Any]] = None,
 ) -> pipeline_task.PipelineTask:
-    """Imports an existing artifact.
+    """Imports an existing artifact for use in a downstream component.
 
     Args:
       artifact_uri: The URI of the artifact to import.
@@ -41,10 +41,7 @@ def importer(
       metadata: Properties of the artifact.
 
     Returns:
-      A PipelineTask instance.
-
-    Raises:
-      ValueError: if the passed in artifact_uri is neither a PipelineParam nor a constant string value.
+      A task with the artifact accessible via its ``.output`` attribute.
 
     Examples::
 

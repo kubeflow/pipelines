@@ -33,11 +33,19 @@ def create_pipeline_task(
 
 
 class PipelineTask:
-    """Represents a pipeline task (an instantiated component).
+    """Represents a pipeline task (instantiated component).
 
-    **Note:** ``PipelineTask`` should not be constructed by pipeline authors directly, but instead obtained via an instantiated component.
+    **Note:** ``PipelineTask`` should not be constructed by pipeline authors directly, but instead obtained via an instantiated component (see example).
 
-    Example::
+    Replaces ``ContainerOp`` from ``kfp`` v1. Holds operations available on a task object, such as
+    ``.after()``, ``.set_memory_limit()``, ``.enable_caching()``, etc.
+
+    Args:
+        component_spec: The component definition.
+        args: The dictionary of arguments on which the component was called to instantiate this task.
+
+    Example:
+      ::
 
         @dsl.component
         def identity(message: str) -> str:
@@ -47,29 +55,12 @@ class PipelineTask:
         def my_pipeline():
             # task is an instance of PipelineTask
             task = identity(message='my string')
-
-    Replaces ``ContainerOp`` from kfp v1. Holds operations available on a task object, such as
-    ``.after()``, ``.set_memory_limit()`, ``.enable_caching()``, etc.
-
-    Args:
-        component_spec: The component definition.
-        args: The dictionary of component arguments.
-
-    Attributes:
-        name: The name of the task. Unique within its parent group.
-        outputs:
-        task_spec: The task spec of the task.
-        component_spec: The component spec of the task.
-        container_spec: The resolved container spec of the task. Only one of
-            container_spec and importer_spec should be filled.
-        importer_spec: The resolved importer spec of the task. Only one of
-            container_spec and importer_spec should be filled.
     """
 
     # Fallback behavior for compiling a component. This should be overriden by
     # pipeline `register_task_and_generate_id` if compiling a pipeline (more
     # than one component).
-    register_task_handler = lambda task: utils.maybe_rename_for_k8s(
+    _register_task_handler = lambda task: utils.maybe_rename_for_k8s(
         task.component_spec.name)
 
     def __init__(
@@ -120,8 +111,8 @@ class PipelineTask:
 
         self.component_spec = component_spec
 
-        self.task_spec = structures.TaskSpec(
-            name=self.register_task_handler(),
+        self._task_spec = structures.TaskSpec(
+            name=self._register_task_handler(),
             inputs={input_name: value for input_name, value in args.items()},
             dependent_tasks=[],
             component_ref=component_spec.name,
@@ -145,7 +136,7 @@ class PipelineTask:
             output_name: pipeline_channel.create_pipeline_channel(
                 name=output_name,
                 channel_type=output_spec.type,
-                task_name=self.task_spec.name,
+                task_name=self._task_spec.name,
             ) for output_name, output_spec in (
                 component_spec.outputs or {}).items()
         }
@@ -162,38 +153,51 @@ class PipelineTask:
 
     @property
     def name(self) -> str:
-        """Returns the name of the task."""
-        return self.task_spec.name
+        """The name of the task.
+
+        Unique within its parent group.
+        """
+        return self._task_spec.name
 
     @property
     def inputs(
         self
     ) -> List[Union[type_utils.PARAMETER_TYPES,
                     pipeline_channel.PipelineChannel]]:
-        """Returns the list of actual inputs passed to the task."""
+        """The list of actual inputs passed to the task."""
         return self._inputs
 
     @property
     def channel_inputs(self) -> List[pipeline_channel.PipelineChannel]:
-        """Returns the list of all PipelineChannels passed to the task."""
+        """The list of all channel inputs passed to the task.
+
+        :meta private:
+        """
         return self._channel_inputs
 
     @property
     def output(self) -> pipeline_channel.PipelineChannel:
-        """Returns the single output object (a PipelineChannel) of the task."""
+        """The single output of the task.
+
+        Used when a task has exactly one output parameter.
+        """
         if len(self._outputs) != 1:
             raise AttributeError
         return list(self._outputs.values())[0]
 
     @property
     def outputs(self) -> Mapping[str, pipeline_channel.PipelineChannel]:
-        """Returns the dictionary of outputs (PipelineChannels) of the task."""
+        """The dictionary of outputs of the task.
+
+        Used when a task has more the one output or uses an
+        ``OutputPath`` or ``Output[Artifact]`` type annotation.
+        """
         return self._outputs
 
     @property
     def dependent_tasks(self) -> List[str]:
-        """Returns the list of dependent task names."""
-        return self.task_spec.dependent_tasks
+        """A list of the dependent task names."""
+        return self._task_spec.dependent_tasks
 
     def _resolve_command_line_and_arguments(
         self,
@@ -335,23 +339,22 @@ class PipelineTask:
         return resolved_container_spec
 
     def set_caching_options(self, enable_caching: bool) -> 'PipelineTask':
-        """Sets caching options for the Pipeline task.
+        """Sets caching options for the task.
 
         Args:
-            enable_caching: Whether or not to enable caching for this task.
+            enable_caching: Whether to enable caching.
 
         Returns:
             Self return to allow chained setting calls.
         """
-        self.task_spec.enable_caching = enable_caching
+        self._task_spec.enable_caching = enable_caching
         return self
 
     def set_cpu_limit(self, cpu: str) -> 'PipelineTask':
-        """Set cpu limit (maximum) for this operator.
+        """Sets CPU limit (maximum) for the task.
 
         Args:
-            cpu(str): A string which can be a
-                number or a number followed by "m", whichmeans 1/1000.
+            cpu: Maximum CPU requests allowed. This string should be a number or a number followed by an "m" to indicate millicores (1/1000). For more information, see `Specify a CPU Request and a CPU Limit <https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/#specify-a-cpu-request-and-a-cpu-limit>`_.
 
         Returns:
             Self return to allow chained setting calls.
@@ -379,10 +382,10 @@ class PipelineTask:
         return self
 
     def set_gpu_limit(self, gpu: str) -> 'PipelineTask':
-        """Set gpu limit (maximum) for this operator.
+        """Sets GPU limit (maximum) for the task.
 
         Args:
-            gpu(str): Positive number required for number of GPUs.
+            gpu: The maximum GPU reuqests allowed. This string should be a positive integer number of GPUs.
 
         Returns:
             Self return to allow chained setting calls.
@@ -405,12 +408,10 @@ class PipelineTask:
         return self
 
     def set_memory_limit(self, memory: str) -> 'PipelineTask':
-        """Set memory limit (maximum) for this operator.
+        """Sets memory limit (maximum) for the task.
 
         Args:
-            memory(str): a string which can be a number or a number followed by
-                one of "E", "Ei", "P", "Pi", "T", "Ti", "G", "Gi", "M", "Mi",
-                "K", "Ki".
+            memory: The maximum memory requests allowed. This string should be a number or a number followed by one of "E", "Ei", "P", "Pi", "T", "Ti", "G", "Gi", "M", "Mi", "K", or "Ki".
 
         Returns:
             Self return to allow chained setting calls.
@@ -470,15 +471,15 @@ class PipelineTask:
         """Sets task retry parameters.
 
         Args:
-            num_retries (int): Number of times to retry on failure.
-            backoff_duration (Optional[int]): The the number of seconds to wait before triggering a retry. Defaults to '0s' (immediate retry).
-            backoff_factor (Optional[float]): The exponential backoff factor applied to backoff_duration. For example, if backoff_duration="60" (60 seconds) and backoff_factor=2, the first retry will happen after 60 seconds, then after 120, 240, and so on. Defaults to 2.0.
-            backoff_max_duration (Optional[int]): The maximum duration during which the task will be retried. Maximum duration is 1 hour (3600s). Defaults to '3600s'.
+            num_retries : Number of times to retry on failure.
+            backoff_duration: Number of seconds to wait before triggering a retry. Defaults to ``'0s'`` (immediate retry).
+            backoff_factor: Exponential backoff factor applied to ``backoff_duration``. For example, if ``backoff_duration="60"`` (60 seconds) and ``backoff_factor=2``, the first retry will happen after 60 seconds, then again after 120, 240, and so on. Defaults to ``2.0``.
+            backoff_max_duration: Maximum duration during which the task will be retried. Maximum duration is 1 hour (3600s). Defaults to ``'3600s'``.
 
         Returns:
             Self return to allow chained setting calls.
         """
-        self.task_spec.retry_policy = structures.RetryPolicy(
+        self._task_spec.retry_policy = structures.RetryPolicy(
             max_retry_count=num_retries,
             backoff_duration=backoff_duration,
             backoff_factor=backoff_factor,
@@ -487,11 +488,11 @@ class PipelineTask:
         return self
 
     def add_node_selector_constraint(self, accelerator: str) -> 'PipelineTask':
-        """Sets accelerator type requirement for this task.
+        """Sets accelerator type to use when executing this task.
 
         Args:
-            value(str): The name of the accelerator. Available values include
-                'NVIDIA_TESLA_K80', 'TPU_V3'.
+            value: The name of the accelerator. Available values include
+                ``'NVIDIA_TESLA_K80'`` and ``'TPU_V3'``.
 
         Returns:
             Self return to allow chained setting calls.
@@ -511,23 +512,23 @@ class PipelineTask:
         return self
 
     def set_display_name(self, name: str) -> 'PipelineTask':
-        """Set display name for the pipelineTask.
+        """Sets display name for the task.
 
         Args:
-            name(str): display name for the task.
+            name: Display name.
 
         Returns:
             Self return to allow chained setting calls.
         """
-        self.task_spec.display_name = name
+        self._task_spec.display_name = name
         return self
 
     def set_env_variable(self, name: str, value: str) -> 'PipelineTask':
-        """Set environment variable for the pipelineTask.
+        """Sets environment variable for the task.
 
         Args:
-            name: The name of the environment variable.
-            value: The value of the environment variable.
+            name: Environment variable name.
+            value: Environment variable value.
 
         Returns:
             Self return to allow chained setting calls.
@@ -539,14 +540,23 @@ class PipelineTask:
         return self
 
     def after(self, *tasks) -> 'PipelineTask':
-        """Specify explicit dependency on other tasks.
+        """Specifies an explicit dependency on other tasks by requiring this
+        task be executed after other tasks finish completion.
 
         Args:
-            name(tasks): dependent tasks.
+            *tasks: Tasks after which this task should be executed.
 
         Returns:
             Self return to allow chained setting calls.
+
+        Example:
+          ::
+
+            @dsl.pipeline(name='my-pipeline')
+            def my_pipeline():
+                task1 = my_component(text='1st task')
+                task2 = my_component(text='2nd task').after(task1)
         """
         for task in tasks:
-            self.task_spec.dependent_tasks.append(task.name)
+            self._task_spec.dependent_tasks.append(task.name)
         return self

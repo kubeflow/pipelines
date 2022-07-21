@@ -158,9 +158,11 @@ class Condition(TasksGroup):
 
 
 class ParallelFor(TasksGroup):
-    """A class for creating parallelized for loop control flow over a static set of items within a pipeline definition.
+    """A class for creating parallelized for loop control flow over a static
+    set of items within a pipeline definition.
+
     Args:
-        items: The items to loop over. It can be either a raw list or an output from an upstream task.
+        items: The items to loop over. It can be either a constant Python list or a list output from an upstream task.
         name: The name of the for loop group.
 
     Example:
@@ -170,8 +172,8 @@ class ParallelFor(TasksGroup):
             task1 = MyComponent(..., item.a)
             task2 = MyComponent(..., item.b)
 
-    In this case :code:`task1` would be executed twice, once with case
-    :code:`args=['echo 1']` and once with case :code:`args=['echo 2']`::
+    In the example, ``task1`` would be executed twice, once with case
+    ``args=['echo 1']`` and once with case ``args=['echo 2']``.
     """
 
     def __init__(

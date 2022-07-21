@@ -45,7 +45,7 @@ def pipeline(name: Optional[str] = None,
     Args:
         name: The pipeline name. Defaults to a sanitized version of the decorated function name.
         description: A human-readable description of the pipeline.
-        pipeline_root: The root directory to generate input/output URI under this pipeline. This is required if input/output URI placeholder is used in this pipeline.
+        pipeline_root: The root directory from which to read input and output parameters and artifacts.
     """
     if callable(name):
         strikethrough_decorator = '\u0336'.join('@pipeline') + '\u0336'
@@ -135,15 +135,15 @@ class Pipeline:
                 add_to_group=not getattr(task, 'is_exit_handler', False))
 
         self._old_register_task_handler = (
-            pipeline_task.PipelineTask.register_task_handler)
-        pipeline_task.PipelineTask.register_task_handler = (
+            pipeline_task.PipelineTask._register_task_handler)
+        pipeline_task.PipelineTask._register_task_handler = (
             register_task_and_generate_id)
         return self
 
     def __exit__(self, *unused_args):
 
         Pipeline._default_pipeline = None
-        pipeline_task.PipelineTask.register_task_handler = (
+        pipeline_task.PipelineTask._register_task_handler = (
             self._old_register_task_handler)
 
     def add_task(

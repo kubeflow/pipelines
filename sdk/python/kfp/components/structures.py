@@ -23,9 +23,9 @@ import uuid
 
 from google.protobuf import json_format
 import kfp
-from kfp import dsl
 from kfp.compiler import compiler
 from kfp.components import base_model
+from kfp.components import pipeline_channel
 from kfp.components import placeholders
 from kfp.components import utils
 from kfp.components import v1_components
@@ -671,7 +671,7 @@ class ComponentSpec(base_model.BaseModel):
                 raise TypeError(
                     builder.make_invalid_input_type_error_msg(
                         arg_name, arg_type))
-            args_dict[arg_name] = dsl.PipelineParameterChannel(
+            args_dict[arg_name] = pipeline_channel.PipelineParameterChannel(
                 name=arg_name, channel_type=arg_type)
 
         task = pipeline_task.PipelineTask(self, args_dict)
@@ -684,7 +684,7 @@ class ComponentSpec(base_model.BaseModel):
 
         # Fill in the default values.
         args_list_with_defaults = [
-            dsl.PipelineParameterChannel(
+            pipeline_channel.PipelineParameterChannel(
                 name=input_name,
                 channel_type=input_spec.type,
                 value=input_spec.default,
