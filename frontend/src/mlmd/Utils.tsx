@@ -117,3 +117,7 @@ export function getMetadataValue(value?: Value): string | number | Struct | unde
       return '';
   }
 }
+
+export function getMetadataValueV2(value?: Value): any {
+  return value?.getStructValue();
+}

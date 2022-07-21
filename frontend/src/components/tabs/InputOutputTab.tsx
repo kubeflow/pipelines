@@ -28,13 +28,13 @@ import {
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
 import { KeyValue } from 'src/lib/StaticGraphParser';
-import { getMetadataValue } from 'src/mlmd/library';
 import { Execution } from 'src/third_party/mlmd';
 import ArtifactPreview from '../ArtifactPreview';
 import Banner from '../Banner';
 import DetailsTable from '../DetailsTable';
 import { RoutePageFactory } from '../Router';
 import { ExecutionTitle } from './ExecutionTitle';
+import { getMetadataValueV2} from 'src/mlmd/Utils';
 
 type ParamList = Array<KeyValue<string>>;
 
@@ -45,6 +45,9 @@ export interface IOTabProps {
 
 export function InputOutputTab({ execution, namespace }: IOTabProps) {
   const executionId = execution.getId();
+
+  // TODO(jlyaoyuli): Showing input/output parameter for unexecuted node (retrieves from PipelineSpec).
+  // TODO(jlyaoyuli): Display other information (container, args, image, command)
 
   // Retrieves input and output artifacts from Metadata store.
   const { isSuccess, error, data } = useQuery<LinkedArtifact[], Error>(
@@ -147,13 +150,16 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
 export default InputOutputTab;
 
 function extractInputFromExecution(execution: Execution): KeyValue<string>[] {
-  return extractParamFromExecution(execution, /input:(?<inputName>.+)/, 'inputName');
+  //return extractParamFromExecution(execution, /input:(?<inputName>.+)/, 'inputName');
+  return extractParamFromExecution(execution, 'inputs');
 }
 
 function extractOutputFromExecution(execution: Execution): KeyValue<string>[] {
-  return extractParamFromExecution(execution, /output:(?<outputName>.+)/, 'outputName');
+  //return extractParamFromExecution(execution, /output:(?<outputName>.+)/, 'outputName');
+  return extractParamFromExecution(execution, 'outputs');
 }
 
+/*
 function extractParamFromExecution(
   execution: Execution,
   pattern: RegExp,
@@ -164,6 +170,25 @@ function extractParamFromExecution(
     const found = key.match(pattern);
     if (found?.groups?.[groupName]) {
       result.push([found.groups[groupName], prettyPrintValue(getMetadataValue(value))]);
+    }
+  });
+  return result;
+}
+*/
+
+function extractParamFromExecution(
+  execution: Execution,
+  pattern: string,
+): KeyValue<string>[] {
+  const result: KeyValue<string>[] = [];
+  execution.getCustomPropertiesMap().forEach((value, key) => {
+    if (key == pattern) {
+      const ioParam = getMetadataValueV2(value);
+      if (ioParam) {
+        Object.entries(ioParam.toJavaScript()).map((val) => {
+          result.push([val[0], JSON.stringify(val[1])]);
+        })
+      }
     }
   });
   return result;
