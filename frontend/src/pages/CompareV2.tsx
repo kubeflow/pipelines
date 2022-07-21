@@ -51,6 +51,8 @@ import {
   RunArtifact,
   RunArtifactData,
 } from 'src/lib/v2/CompareUtils';
+import { ConfidenceMetricsSection } from 'src/components/viewers/MetricsVisualizations';
+import { flatMapDeep } from 'lodash';
 import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
 import MetricsDropdown from 'src/components/viewers/MetricsDropdown';
@@ -224,9 +226,12 @@ function CompareV2(props: CompareV2Props) {
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
 
   const [isLoadingArtifacts, setIsLoadingArtifacts] = useState<boolean>(true);
-  const [confusionMatrixArtifacts, setConfusionMatrixArtifacts] = useState<RunArtifact[]>([]);
-  const [htmlArtifacts, setHtmlArtifacts] = useState<RunArtifact[]>([]);
-  const [markdownArtifacts, setMarkdownArtifacts] = useState<RunArtifact[]>([]);
+  const [confusionMatrixRunArtifacts, setConfusionMatrixRunArtifacts] = useState<RunArtifact[]>([]);
+  const [htmlRunArtifacts, setHtmlRunArtifacts] = useState<RunArtifact[]>([]);
+  const [markdownRunArtifacts, setMarkdownRunArtifacts] = useState<RunArtifact[]>([]);
+
+  const [rocCurveArtifacts, setRocCurveArtifacts] = useState<Artifact[]>([]);
+  const [selectedRocCurveArtifacts, setSelectedRocCurveArtifacts] = useState<Artifact[]>([]);
 
   const [scalarMetricsTableData, setScalarMetricsTableData] = useState<
     CompareTableProps | undefined
@@ -324,16 +329,32 @@ function CompareV2(props: CompareV2Props) {
         setScalarMetricsTableData(compareTableProps);
       }
 
-      setConfusionMatrixArtifacts(
+      setConfusionMatrixRunArtifacts(
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX)
           .runArtifacts,
       );
-      setHtmlArtifacts(
+      setHtmlRunArtifacts(
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML).runArtifacts,
       );
-      setMarkdownArtifacts(
+      setMarkdownRunArtifacts(
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN).runArtifacts,
       );
+
+      const rocCurveRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
+        runArtifacts,
+        artifactTypes,
+        MetricsType.ROC_CURVE,
+      ).runArtifacts;
+      const rocCurveArtifacts: Artifact[] = flatMapDeep(
+        rocCurveRunArtifacts.map(rocCurveArtifact =>
+          rocCurveArtifact.executionArtifacts.map(executionArtifact =>
+            executionArtifact.linkedArtifacts.map(linkedArtifact => linkedArtifact.artifact),
+          ),
+        ),
+      );
+      setRocCurveArtifacts(rocCurveArtifacts);
+      setSelectedRocCurveArtifacts(rocCurveArtifacts.slice(0, 3));
+
       setIsLoadingArtifacts(false);
     }
   }, [runs, mlmdPackages, artifactTypes]);
@@ -498,19 +519,25 @@ function CompareV2(props: CompareV2Props) {
               <MetricsDropdown
                 isErrorArtifacts={isErrorArtifacts}
                 isLoadingArtifacts={isLoadingArtifacts}
-                filteredRunArtifacts={confusionMatrixArtifacts}
+                filteredRunArtifacts={confusionMatrixRunArtifacts}
                 metricsTab={metricsTab}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
                 updateSelectedArtifacts={updateSelectedArtifacts}
                 namespace={namespace}
               />
             )}
-            {metricsTab === MetricsType.ROC_CURVE && <p>This is the ROC Curve tab.</p>}
+            {/* TODO(zpChris): Add more ROC Curve selections through checkbox system. */}
+            {metricsTab === MetricsType.ROC_CURVE &&
+              (selectedRocCurveArtifacts.length > 0 ? (
+                <ConfidenceMetricsSection artifacts={selectedRocCurveArtifacts} />
+              ) : (
+                <p>There are no ROC Curve artifacts available on the selected runs.</p>
+              ))}
             {metricsTab === MetricsType.HTML && (
               <MetricsDropdown
                 isErrorArtifacts={isErrorArtifacts}
                 isLoadingArtifacts={isLoadingArtifacts}
-                filteredRunArtifacts={htmlArtifacts}
+                filteredRunArtifacts={htmlRunArtifacts}
                 metricsTab={metricsTab}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
                 updateSelectedArtifacts={updateSelectedArtifacts}
@@ -521,7 +548,7 @@ function CompareV2(props: CompareV2Props) {
               <MetricsDropdown
                 isErrorArtifacts={isErrorArtifacts}
                 isLoadingArtifacts={isLoadingArtifacts}
-                filteredRunArtifacts={markdownArtifacts}
+                filteredRunArtifacts={markdownRunArtifacts}
                 metricsTab={metricsTab}
                 selectedArtifacts={selectedArtifactsMap[metricsTab]}
                 updateSelectedArtifacts={updateSelectedArtifacts}
