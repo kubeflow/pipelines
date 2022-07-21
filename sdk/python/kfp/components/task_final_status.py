@@ -19,25 +19,37 @@ from typing import Optional
 
 @dataclasses.dataclass
 class PipelineTaskFinalStatus:
-    """The final status of a pipeline task.
+    """A final status of a pipeline task. Annotate a component parameter with
+    this class to obtain a handle to a task's status (see example).
 
-    This is the Python representation of the proto: PipelineTaskFinalStatus
-    https://github.com/kubeflow/pipelines/blob/1c3e2768e6177d5d6e3f4b8eff8fafb9a3b76c1f/api/v2alpha1/pipeline_spec.proto#L886
+    This is the Python representation of the proto message `PipelineTaskFinalStatus <https://github.com/kubeflow/pipelines/blob/d8b9439ef92b88da3420df9e8c67db0f1e89d4ef/api/v2alpha1/pipeline_spec.proto#L929-L951>`_.
 
-    Attributes:
-        state: The final state of the task. The value could be one of
-            'SUCCEEDED', 'FAILED' or 'CANCELLED'.
-        pipeline_job_resource_name: The pipeline job resource name, in the format
-            of `projects/{project}/locations/{location}/pipelineJobs/{pipeline_job}`.
-        pipeline_task_name: The pipeline task that produces this status.
-        error_code: In case of error, the oogle.rpc.Code
-            https://github.com/googleapis/googleapis/blob/master/google/rpc/code.proto
-            If state is 'SUCCEEDED', this is None.
-        error_message: In case of error, the detailed error message.
-            If state is 'SUCCEEDED', this is None.
+    Examples:
+      ::
+
+        @dsl.component
+        def task_status(user_input: str, status: PipelineTaskFinalStatus):
+            print('Pipeline status: ', status.state)
+            print('Job resource name: ', status.pipeline_job_resource_name)
+            print('Pipeline task name: ', status.pipeline_task_name)
+            print('Error code: ', status.error_code)
+            print('Error message: ', status.error_message)
+
+        @dsl.pipeline(name='my_pipeline')
+        def my_pipeline():
+            task = task_status(user_input='my_input')
     """
     state: str
+    """Final state of the task. The value could be one of ``'SUCCEEDED'``, ``'FAILED'`` or ``'CANCELLED'``."""
+
     pipeline_job_resource_name: str
+    """Pipeline job resource name, in the format of ``projects/{project}/locations/{location}/pipelineJobs/{pipeline_job}``."""
+
     pipeline_task_name: str
+    """Name of the task that produced this status."""
+
     error_code: Optional[int]
+    """The `google.rpc.Code <github.com/googleapis/googleapis/blob/master/google/rpc/code.proto>`_ in case of error. If state is ``'SUCCEEDED'``, this is ``None``."""
+
     error_message: Optional[str]
+    """In case of error, the detailed error message. If state is ``'SUCCEEDED'``, this is ``None``."""
