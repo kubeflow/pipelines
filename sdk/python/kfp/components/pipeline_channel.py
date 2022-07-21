@@ -130,7 +130,7 @@ class PipelineChannel(abc.ABC):
         We make repr return the placeholder string so that if someone
         uses str()-based serialization of complex objects containing
         `PipelineChannel`, it works properly. (e.g. str([1, 2, 3,
-        kfp.dsl.PipelineParameterChannel("aaa"), 4, 5, 6,]))
+        kfp.pipeline_channel.PipelineParameterChannel("aaa"), 4, 5, 6,]))
         """
         return str(self)
 

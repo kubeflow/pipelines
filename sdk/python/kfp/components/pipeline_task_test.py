@@ -114,7 +114,7 @@ class PipelineTaskTest(parameterized.TestCase):
                 V2_YAML),
             args={'input1': 'value'},
         )
-        self.assertEqual(task.task_spec, expected_task_spec)
+        self.assertEqual(task._task_spec, expected_task_spec)
         self.assertEqual(task.component_spec, expected_component_spec)
         self.assertEqual(task.container_spec, expected_container_spec)
 
@@ -147,7 +147,7 @@ class PipelineTaskTest(parameterized.TestCase):
             args={'input1': 'value'},
         )
         task.set_caching_options(False)
-        self.assertEqual(False, task.task_spec.enable_caching)
+        self.assertEqual(False, task._task_spec.enable_caching)
 
     @parameterized.parameters(
         {
@@ -298,7 +298,7 @@ class PipelineTaskTest(parameterized.TestCase):
             args={'input1': 'value'},
         )
         task.set_display_name('test_name')
-        self.assertEqual('test_name', task.task_spec.display_name)
+        self.assertEqual('test_name', task._task_spec.display_name)
 
 
 if __name__ == '__main__':

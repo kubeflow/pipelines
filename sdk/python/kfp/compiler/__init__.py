@@ -1,3 +1,5 @@
+"""The `kfp.compiler` module contains the compiler for compiling pipeline
+definitions."""
 # Copyright 2020 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");

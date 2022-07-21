@@ -20,12 +20,14 @@ from kfp.components import structures
 from kfp.components.types import type_utils
 
 
-class BaseComponent(metaclass=abc.ABCMeta):
+class BaseComponent(abc.ABC):
     """Base class for a component.
 
+    **Note:** ``BaseComponent`` is not intended to be used to construct components directly. Use ``@kfp.dsl.component`` or ``kfp.components.load_component_from_*()`` instead.
+
     Attributes:
-      name: The name of the component.
-      component_spec: The component definition.
+      name: Name of the component.
+      component_spec: Component definition.
     """
 
     def __init__(self, component_spec: structures.ComponentSpec):
@@ -93,11 +95,5 @@ class BaseComponent(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def execute(self, **kwargs):
-        """Executes the component given the required inputs.
-
-        Subclasses of BaseComponent must override this abstract method
-        in order to be instantiated. For Python function-based
-        component, the implementation of this method could be calling
-        the function. For "Bring your own container" component, the
-        implementation of this method could be `docker run`.
-        """
+        """Executes the component locally if implemented by the inheriting
+        subclass."""

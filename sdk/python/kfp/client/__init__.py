@@ -1,3 +1,4 @@
+"""The `kfp.client` module contains the KFP API client."""
 # Copyright 2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
