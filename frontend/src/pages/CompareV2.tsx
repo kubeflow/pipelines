@@ -346,6 +346,7 @@ function CompareV2(props: CompareV2Props) {
           ),
         ),
       );
+      console.log(rocCurveLinkedArtifacts);
       setRocCurveLinkedArtifacts(rocCurveLinkedArtifacts);
       setSelectedRocCurveIds(
         rocCurveLinkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)),

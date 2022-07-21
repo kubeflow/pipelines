@@ -479,17 +479,17 @@ export function ConfidenceMetricsSection({
       { customRenderer: curveLegendCustomRenderer, flex: 0.5, label: 'Curve legend' },
     ];
 
+    // I don't know how to get the correct line color. Or have a line color for each one.
     for (let i = 0; i < linkedArtifacts.length; i++) {
       const artifact = linkedArtifacts[i].artifact;
-      console.log(artifact.getId()); // TODO: This is an issue. It is not unique.
       const row = {
         id: getRocCurveId(linkedArtifacts[i]),
         otherFields: [
-          lineColors[i],
           artifact
             .getCustomPropertiesMap()
             ?.get('display_name')
             ?.getStringValue() || '-',
+          lineColors[i],
         ] as any,
       };
       rows.push(row);
@@ -529,7 +529,7 @@ export function ConfidenceMetricsSection({
         </h3>
       </div>
       {/* TODO(zpChris): Introduce checkbox system that matches artifacts to curves. */}
-      <ROCCurve configs={rocCurveConfigs} />
+      <ROCCurve configs={rocCurveConfigs} highlightIndex={1} />
       {filter && (
         <CustomTable
           columns={columns}

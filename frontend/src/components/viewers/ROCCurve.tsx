@@ -66,6 +66,7 @@ export interface ROCCurveConfig extends ViewerConfig {
 interface ROCCurveProps {
   configs: ROCCurveConfig[];
   maxDimension?: number;
+  highlightIndex?: number; // Could I use this to highlight the hovered element?
 }
 
 interface ROCCurveState {
@@ -132,7 +133,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
             <LineSeries
               key={i}
               color={lineColors[i] || lineColors[lineColors.length - 1]}
-              strokeWidth={2}
+              strokeWidth={this.props.highlightIndex && this.props.highlightIndex === i ? 5 : 2}
               data={data}
               onNearestX={(d: any) => this._lineHovered(i, d)}
               curve='curveBasis'
