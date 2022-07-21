@@ -24,7 +24,7 @@ def make_required_install_packages():
         "googleapis-common-protos>=1.56.2,<2.0dev",
         "google-cloud-storage>=1.20.0,<2",
         "kfp>=1.8.9,<2.0.0",
-        "google-cloud-aiplatform>=1.11.0,<2",
+        "google-cloud-aiplatform>=1.14.0,<2",
         "google-cloud-notebooks>=0.4.0",
     ]
 
