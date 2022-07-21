@@ -28,7 +28,7 @@ metadata:
     author: Yuan Gong <gongyuan94@gmail.com>
 implementation:
   container:
-    image: golang:1.16-alpine
+    image: golang:1.17-alpine
     command:
     - sh
     - -exc
