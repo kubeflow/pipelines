@@ -88,7 +88,7 @@ outputs:
 
 implementation:
   container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.15
     command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.gcp_launcher.launcher]
     args: [
       --type, CustomJob,
