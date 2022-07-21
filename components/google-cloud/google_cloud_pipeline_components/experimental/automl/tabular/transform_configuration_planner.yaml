@@ -14,7 +14,12 @@
 
 name: transform_configuration_planner
 description: |
-  Generates an FTE transform configuration for our dataset when not specified by the user.
+  Automatically generates transform configuration for the Feature Transform Engine.
+
+  When configuring transformation for the Feature Transform Engine, users have an option to specify
+  "auto" transformation on input columns. In such case, this transform configuration planner
+  component will automatically identify the most appropriate set of transformations for the columns
+  and generate the transformation configurations that can be used by the Feature Transform Engine.
 
     Args:
         project (str):
