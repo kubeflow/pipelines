@@ -527,6 +527,7 @@ export function ConfidenceMetricsSection({
 
   const updateSelection = (newSelectedIds: string[]): void => {
     if (filter) {
+      newSelectedIds = newSelectedIds.slice(0, 10);
       const { selectedIds: oldSelectedIds, setSelectedIds } = filter;
       
       // Convert arrays to sets for quick lookup.
@@ -601,21 +602,24 @@ export function ConfidenceMetricsSection({
       {/* TODO(zpChris): Introduce checkbox system that matches artifacts to curves. */}
       <ROCCurve configs={rocCurveConfigs} colors={colors} />
       {filter && (
-        <CustomTable
-          columns={columns}
-          rows={rows}
-          selectedIds={filter.selectedIds}
-          // initialSortColumn={RunSortKeys.CREATED_AT}
-          ref={tableRef}
-          filterLabel='Filter artifacts'
-          updateSelection={updateSelection}
-          reload={reload}
-          disablePaging={false}
-          disableSorting={false}
-          disableSelection={false}
-          noFilterBox={false}
-          emptyMessage='No artifacts found'
-        />
+        <>
+          {filter.selectedIds.length === 10 ? <p>You have reached the maximum number of ROC Curves you can select at once. Deselect an item in order to select additional artifacts</p> : null}
+          <CustomTable
+            columns={columns}
+            rows={rows}
+            selectedIds={filter.selectedIds}
+            // initialSortColumn={RunSortKeys.CREATED_AT}
+            ref={tableRef}
+            filterLabel='Filter artifacts'
+            updateSelection={updateSelection}
+            reload={reload}
+            disablePaging={false}
+            disableSorting={false}
+            disableSelection={true}
+            noFilterBox={false}
+            emptyMessage='No artifacts found'
+          />
+        </>
       )}
     </div>
   );

@@ -346,10 +346,10 @@ function CompareV2(props: CompareV2Props) {
             executionArtifact => executionArtifact.linkedArtifacts,
           ),
         ),
-      ).slice(0, 3);
+      );
       setRocCurveLinkedArtifacts(rocCurveLinkedArtifacts);
       setSelectedRocCurveIds(
-        rocCurveLinkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)),
+        rocCurveLinkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)).slice(0, 3),
       );
     }
   }, [runs, mlmdPackages, artifactTypes]);
