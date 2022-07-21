@@ -21,7 +21,7 @@ def make_required_install_packages():
         # https://github.com/googleapis/python-api-core/releases/tag/v1.31.5
         "google-api-core>=1.31.5,<3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0",
         # To resolve RTD errors with "No module named 'google.cloud.location'"
-        "googleapis-common-protos>=1.55.0",
+        "googleapis-common-protos>=1.56.2,<2.0dev",
         "google-cloud-storage>=1.20.0,<2",
         "kfp>=1.8.9,<2.0.0",
         "google-cloud-aiplatform>=1.11.0,<2",
