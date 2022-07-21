@@ -490,10 +490,10 @@ export function ConfidenceMetricsSection({
     }
 
     // I don't know how to get the correct line color. Or have a line color for each one.
+    // TODO(zpChris): I need to filter the artifacts as well, as this is not correct with the length.
     for (let i = 0; i < linkedArtifacts.length; i++) {
       const artifact = linkedArtifacts[i].artifact;
       const id = getRocCurveId(linkedArtifacts[i]);
-      console.log(selectedIdColorMap);
       const row = {
         id,
         otherFields: [
@@ -527,27 +527,25 @@ export function ConfidenceMetricsSection({
 
   const updateSelection = (newSelectedIds: string[]): void => {
     if (filter) {
-      newSelectedIds = newSelectedIds.slice(0, 10);
+      // TODO(zpChris): I need to keep all since I need to find the shared selected ids. Some may be later - there's no order.
       const { selectedIds: oldSelectedIds, setSelectedIds } = filter;
       
       // Convert arrays to sets for quick lookup.
       const newSelectedIdsSet = new Set(newSelectedIds);
       const oldSelectedIdsSet = new Set(oldSelectedIds);
 
-      // 2*O(n^2). This could actually be really large, conceivably.
+      // 2*O(n^2). This could actually be really large, conceivably. Changed to 3*O(n), with 2*O(n) earlier.
+      // TODO(zpChris): This can run into an error with a select all, where the ones later on with oldSelectedIdsSet are sliced.
       const addedIds = newSelectedIds.filter(selectedId => !oldSelectedIdsSet.has(selectedId));
       const removedIds = oldSelectedIds.filter(selectedId => !newSelectedIdsSet.has(selectedId));
+      const sharedIds = oldSelectedIds.filter(selectedId => newSelectedIdsSet.has(selectedId));
 
       // I'll need this anyway to potentially limit how many new ones are selected.
 
       // Ok, I think I'll use a map here and pass it through filter.
 
-      console.log('---------');
-      console.log(addedIds);
-      console.log(removedIds);
-      console.log(lineColorsStack);
-
-      setSelectedIds(newSelectedIds);
+      // Add the sharedIds in and concat the added ids.
+      setSelectedIds(sharedIds.concat(addedIds).slice(0, 10));
       removedIds.forEach(removedId => {
         lineColorsStack.push(selectedIdColorMap[removedId]);
         selectedIdColorMap[removedId] = '';
@@ -559,8 +557,6 @@ export function ConfidenceMetricsSection({
       });
 
       setSelectedIdColorMap(selectedIdColorMap);
-
-      console.log(lineColorsStack);
 
       // Huh, I wonder if all of the new ones are added at the end. Maybe, but I don't want this to rely on the internal implementation of custom table.
       // Right now, could use the invariant that you can only remove one at a time (not true, remove all). However, I don't want to rely on that, in case the implementation changes for some reason.
@@ -603,7 +599,7 @@ export function ConfidenceMetricsSection({
       <ROCCurve configs={rocCurveConfigs} colors={colors} />
       {filter && (
         <>
-          {filter.selectedIds.length === 10 ? <p>You have reached the maximum number of ROC Curves you can select at once. Deselect an item in order to select additional artifacts</p> : null}
+          {filter.selectedIds.length === 10 && rows.length > 10 ? <p>You have reached the maximum number of ROC Curves you can select at once. Deselect an item in order to select additional artifacts.</p> : null}
           <CustomTable
             columns={columns}
             rows={rows}
@@ -615,9 +611,10 @@ export function ConfidenceMetricsSection({
             reload={reload}
             disablePaging={false}
             disableSorting={false}
-            disableSelection={true}
+            disableSelection={false}
             noFilterBox={false}
             emptyMessage='No artifacts found'
+            disableAdditionalSelection={filter.selectedIds.length === 10 && rows.length > 10}
           />
         </>
       )}
