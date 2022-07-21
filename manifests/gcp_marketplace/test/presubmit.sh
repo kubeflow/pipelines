@@ -22,14 +22,14 @@ OS="${OS:-linux-amd64}"
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 
 if ! which helm; then
-    HELM_VERSION=v2.17.0
+    HELM_VERSION=v3.8.0
     if ! which curl; then
         apk --no-cache add curl
     fi
     curl -sLO "https://get.helm.sh/helm-${HELM_VERSION}-${OS}.tar.gz"
     tar xvf "helm-${HELM_VERSION}-${OS}.tar.gz"
     mv ./${OS}/helm /usr/local/bin/helm
-    helm version
+    helm version -c # Check client side version only
 fi
 
 if ! which bash; then
