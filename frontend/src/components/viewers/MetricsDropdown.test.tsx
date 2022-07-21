@@ -344,7 +344,7 @@ describe('MetricsDropdown', () => {
     });
   });
 
-  it('HTML file loading and error display', async () => {
+  it('HTML file loading and error display with namespace input', async () => {
     const getHtmlViewerConfigSpy = jest.spyOn(metricsVisualizations, 'getHtmlViewerConfig');
     getHtmlViewerConfigSpy.mockRejectedValue(new Error('HTML file not found.'));
 
@@ -355,6 +355,7 @@ describe('MetricsDropdown', () => {
           metricsTab={MetricsType.HTML}
           selectedArtifacts={emptySelectedArtifacts}
           updateSelectedArtifacts={updateSelectedArtifactsSpy}
+          namespace='namespaceInput'
         />
       </CommonTestWrapper>,
     );
@@ -366,6 +367,10 @@ describe('MetricsDropdown', () => {
 
     screen.getByRole('circularprogress');
     await waitFor(() => {
+      expect(getHtmlViewerConfigSpy).toHaveBeenLastCalledWith(
+        [firstLinkedArtifact],
+        'namespaceInput',
+      );
       screen.getByText('Error: failed loading HTML file. Click Details for more information.');
     });
   });
@@ -403,4 +408,6 @@ describe('MetricsDropdown', () => {
     screen.getByText('Choose a first Confusion Matrix artifact');
     screen.getByTitle('run1 > execution1 > artifact1');
   });
+
+  // TODO: Namespace...
 });

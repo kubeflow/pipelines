@@ -5,4 +5,4 @@ sphinx:
 python:
   version: 3.7
   install:
-    - requirements: sdk/python/requirements.txt
+    - requirements: docs/requirements.txt
