@@ -429,5 +429,47 @@ describe('MetricsDropdown', () => {
     screen.getByTitle('run1 > execution1 > artifact1');
   });
 
-  // TODO: Namespace...
+  it('Error state for artifacts', async () => {
+    const getHtmlViewerConfigSpy = jest.spyOn(metricsVisualizations, 'getHtmlViewerConfig');
+    getHtmlViewerConfigSpy.mockRejectedValue(new Error('HTML file not found.'));
+
+    render(
+      <CommonTestWrapper>
+        <MetricsDropdown
+          isErrorArtifacts={true}
+          isLoadingArtifacts={false}
+          filteredRunArtifacts={scalarMetricsArtifacts}
+          metricsTab={MetricsType.HTML}
+          selectedArtifacts={emptySelectedArtifacts}
+          updateSelectedArtifacts={updateSelectedArtifactsSpy}
+          namespace='namespaceInput'
+        />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    screen.getByText('An error is preventing the HTML from being displayed.');
+  });
+
+  it('Loading state for artifacts', async () => {
+    const getHtmlViewerConfigSpy = jest.spyOn(metricsVisualizations, 'getHtmlViewerConfig');
+    getHtmlViewerConfigSpy.mockRejectedValue(new Error('HTML file not found.'));
+
+    render(
+      <CommonTestWrapper>
+        <MetricsDropdown
+          isErrorArtifacts={false}
+          isLoadingArtifacts={true}
+          filteredRunArtifacts={scalarMetricsArtifacts}
+          metricsTab={MetricsType.HTML}
+          selectedArtifacts={emptySelectedArtifacts}
+          updateSelectedArtifacts={updateSelectedArtifactsSpy}
+          namespace='namespaceInput'
+        />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    screen.getByRole('circularprogress');
+  });
 });
