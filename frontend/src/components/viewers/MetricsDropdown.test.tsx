@@ -21,10 +21,11 @@ import TestUtils, { testBestPractices } from 'src/TestUtils';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
 import * as metricsVisualizations from 'src/components/viewers/MetricsVisualizations';
 import * as Utils from 'src/lib/Utils';
-import { MetricsType, RunArtifact, SelectedArtifact } from 'src/pages/CompareV2';
+import { SelectedArtifact } from 'src/pages/CompareV2';
 import { LinkedArtifact } from 'src/mlmd/MlmdUtils';
 import * as jspb from 'google-protobuf';
 import MetricsDropdown from './MetricsDropdown';
+import { MetricsType, RunArtifact } from 'src/lib/v2/CompareUtils';
 
 function newMockExecution(id: number, displayName?: string): Execution {
   const execution = new Execution();
@@ -343,7 +344,7 @@ describe('MetricsDropdown', () => {
     });
   });
 
-  it('HTML file loading and error display', async () => {
+  it('HTML file loading and error display with namespace input', async () => {
     const getHtmlViewerConfigSpy = jest.spyOn(metricsVisualizations, 'getHtmlViewerConfig');
     getHtmlViewerConfigSpy.mockRejectedValue(new Error('HTML file not found.'));
 
@@ -354,6 +355,7 @@ describe('MetricsDropdown', () => {
           metricsTab={MetricsType.HTML}
           selectedArtifacts={emptySelectedArtifacts}
           updateSelectedArtifacts={updateSelectedArtifactsSpy}
+          namespace='namespaceInput'
         />
       </CommonTestWrapper>,
     );
@@ -365,6 +367,10 @@ describe('MetricsDropdown', () => {
 
     screen.getByRole('circularprogress');
     await waitFor(() => {
+      expect(getHtmlViewerConfigSpy).toHaveBeenLastCalledWith(
+        [firstLinkedArtifact],
+        'namespaceInput',
+      );
       screen.getByText('Error: failed loading HTML file. Click Details for more information.');
     });
   });
@@ -402,4 +408,6 @@ describe('MetricsDropdown', () => {
     screen.getByText('Choose a first Confusion Matrix artifact');
     screen.getByTitle('run1 > execution1 > artifact1');
   });
+
+  // TODO: Namespace...
 });
