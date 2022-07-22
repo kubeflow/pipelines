@@ -423,20 +423,25 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    // TODO(zpChris): This test will be improved after default error states are provided in #8029.
-    screen.getByText('This is the Scalar Metrics tab.');
+    screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
 
-    fireEvent.click(screen.getByText('ROC Curve'));
-    expect(screen.queryByText('This is the Scalar Metrics Tab')).toBeNull();
+    fireEvent.click(screen.getByText('Confusion Matrix'));
+    screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
+    expect(
+      screen.queryByText('There are no Scalar Metrics artifacts available on the selected runs.'),
+    ).toBeNull();
 
-    fireEvent.click(screen.getByText('ROC Curve'));
-    expect(screen.queryByText('This is the Scalar Metrics Tab')).toBeNull();
+    fireEvent.click(screen.getByText('Confusion Matrix'));
+    screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
 
     fireEvent.click(screen.getByText('Scalar Metrics'));
-    screen.getByText('This is the Scalar Metrics tab.');
+    screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
+    expect(
+      screen.queryByText('There are no Confusion Matrix artifacts available on the selected runs.'),
+    ).toBeNull();
   });
 
-  it('Two-panel tabs have no dropdown loaded as content is not present', async () => {
+  it('Metrics tabs have no content loaded as artifacts are not present', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
@@ -453,6 +458,8 @@ describe('CompareV2', () => {
       </CommonTestWrapper>,
     );
     await TestUtils.flushPromises();
+
+    screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
 
     fireEvent.click(screen.getByText('Confusion Matrix'));
     screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
@@ -518,7 +525,7 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    await waitFor(() => expect(filterLinkedArtifactsByTypeSpy).toHaveBeenCalledTimes(12));
+    await waitFor(() => expect(filterLinkedArtifactsByTypeSpy).toHaveBeenCalledTimes(15));
 
     expect(screen.queryByText(/Confusion matrix: artifactName/)).toBeNull();
 
