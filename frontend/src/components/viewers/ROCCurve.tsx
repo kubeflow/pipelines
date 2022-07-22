@@ -132,20 +132,23 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
           />
 
           {/* Lines */}
-          {datasets.map((data, i) => highlightIndex !== i && (
-            <LineSeries
-              key={i}
-              color={
-                this.props.colors
-                  ? this.props.colors[i]
-                  : lineColors[i] || lineColors[lineColors.length - 1]
-              }
-              strokeWidth={2}
-              data={data}
-              onNearestX={(d: any) => this._lineHovered(i, d)}
-              curve='curveBasis'
-            />
-          ))}
+          {datasets.map(
+            (data, i) =>
+              highlightIndex !== i && (
+                <LineSeries
+                  key={i}
+                  color={
+                    this.props.colors
+                      ? this.props.colors[i]
+                      : lineColors[i] || lineColors[lineColors.length - 1]
+                  }
+                  strokeWidth={2}
+                  data={data}
+                  onNearestX={(d: any) => this._lineHovered(i, d)}
+                  curve='curveBasis'
+                />
+              ),
+          )}
 
           {/* Highlighted line, if present */}
           {highlightIndex !== -1 && (

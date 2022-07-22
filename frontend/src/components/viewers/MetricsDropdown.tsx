@@ -32,11 +32,16 @@ import PlotCard from 'src/components/PlotCard';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Banner from 'src/components/Banner';
-import { ExecutionArtifact, MetricsType, RunArtifact, SelectedArtifact } from 'src/pages/CompareV2';
+import { SelectedArtifact } from 'src/pages/CompareV2';
 import { useQuery } from 'react-query';
 import { errorToMessage, logger } from 'src/lib/Utils';
 import { getExecutionDisplayName } from 'src/mlmd/MlmdUtils';
-import { metricsTypeToString } from 'src/lib/v2/CompareUtils';
+import {
+  metricsTypeToString,
+  ExecutionArtifact,
+  MetricsType,
+  RunArtifact,
+} from 'src/lib/v2/CompareUtils';
 
 const css = stylesheet({
   leftCell: {

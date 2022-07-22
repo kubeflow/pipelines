@@ -48,7 +48,6 @@ import { componentMap } from './ViewerContainer';
 import Tooltip from '@material-ui/core/Tooltip';
 import { Link } from 'react-router-dom';
 import { RoutePage, RouteParams } from 'src/components/Router';
-import { RunArtifact } from 'src/pages/CompareV2';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
 
 interface MetricsVisualizationsProps {
@@ -359,6 +358,8 @@ interface ConfidenceMetricsFilter {
   selectedIds: string[];
   setSelectedIds: (selectedIds: string[]) => void;
   fullArtifactPathList: any[];
+  selectedIdColorMap: { [key: string]: string };
+  setSelectedIdColorMap: (selectedIdColorMap: { [key: string]: string }) => void;
 }
 
 interface ConfidenceMetricsSectionProps {
@@ -431,7 +432,6 @@ export function ConfidenceMetricsSection({
   filter,
 }: ConfidenceMetricsSectionProps) {
   const tableRef = useRef<CustomTable>(null); // TODO: Add refresh line.
-  const [selectedIdColorMap, setSelectedIdColorMap] = useState<{ [key: string]: string }>({});
   const [linkedArtifactsPage, setLinkedArtifactsPage] = useState<LinkedArtifact[]>(linkedArtifacts);
   // TODO: Can I do this filtering beforehand?
   let confidenceMetricsDataList = linkedArtifacts
@@ -476,11 +476,11 @@ export function ConfidenceMetricsSection({
       { customRenderer: curveLegendCustomRenderer, flex: 1, label: 'Curve legend' },
     ];
 
-    if (filter.selectedIds.length > 0 && Object.keys(selectedIdColorMap).length === 0) {
+    if (filter.selectedIds.length > 0 && Object.keys(filter.selectedIdColorMap).length === 0) {
       filter.selectedIds.forEach(selectedId => {
-        selectedIdColorMap[selectedId] = lineColorsStack.pop() || '';
+        filter.selectedIdColorMap[selectedId] = lineColorsStack.pop() || '';
       });
-      setSelectedIdColorMap(selectedIdColorMap);
+      filter.setSelectedIdColorMap(filter.selectedIdColorMap);
     }
 
     // TODO(zpChris): I need to filter the artifacts as well, as this is not correct with the length.
@@ -492,7 +492,7 @@ export function ConfidenceMetricsSection({
         otherFields: [
           `${fullArtifactPath.execution.name} > ${fullArtifactPath.artifact.name}`,
           fullArtifactPath.run.name,
-          selectedIdColorMap[id],
+          filter.selectedIdColorMap[id],
         ] as any,
       };
       rows.push(row);
@@ -534,17 +534,16 @@ export function ConfidenceMetricsSection({
       addedIds = addedIds.slice(0, numElementsRemaining);
       setSelectedIds(sharedIds.concat(addedIds));
       removedIds.forEach(removedId => {
-        lineColorsStack.push(selectedIdColorMap[removedId]);
-        selectedIdColorMap[removedId] = '';
+        lineColorsStack.push(filter.selectedIdColorMap[removedId]);
+        filter.selectedIdColorMap[removedId] = '';
       });
 
       // Place a limit on the number of IDs that can be added.
       addedIds.forEach(addedId => {
-        selectedIdColorMap[addedId] = lineColorsStack.pop() || '';
+        filter.selectedIdColorMap[addedId] = lineColorsStack.pop() || '';
       });
-      console.log(selectedIdColorMap);
 
-      setSelectedIdColorMap(selectedIdColorMap);
+      filter.setSelectedIdColorMap(filter.selectedIdColorMap);
     }
   };
 
@@ -592,7 +591,7 @@ export function ConfidenceMetricsSection({
   }
 
   const colors: string[] = filter
-    ? filter.selectedIds.map(selectedId => selectedIdColorMap[selectedId])
+    ? filter.selectedIds.map(selectedId => filter.selectedIdColorMap[selectedId])
     : [];
 
   return (

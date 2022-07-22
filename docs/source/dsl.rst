@@ -6,3 +6,6 @@ kfp.dsl
    :undoc-members:
    :show-inheritance:
    :noindex:
+
+   .. autodata:: Input
+   .. autodata:: Output
