@@ -17,7 +17,7 @@ import itertools
 import pathlib
 import re
 import textwrap
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, Union
 import warnings
 
 import docstring_parser
@@ -46,6 +46,35 @@ class ComponentInfo():
     component_spec: structures.ComponentSpec
     output_component_file: Optional[str] = None
     base_image: str = _DEFAULT_BASE_IMAGE
+
+
+class ContainerComponentArtifactChannel():
+    """A class for passing in placeholders into container_component decorated
+    function."""
+
+    def __init__(self, io_type: str, var_name: str):
+        self._io_type = io_type
+        self._var_name = var_name
+
+    def __getattr__(
+        self, __name: str
+    ) -> Union[placeholders.InputUriPlaceholder, placeholders
+               .InputPathPlaceholder, placeholders.OutputUriPlaceholder,
+               placeholders.OutputPathPlaceholder]:
+        if __name not in ['uri', 'path']:
+            raise AttributeError(
+                'Accessing artifact attribute other than uri or path is not supported.'
+            )
+        if self._io_type == 'input':
+            if __name == 'uri':
+                return placeholders.InputUriPlaceholder(self._var_name)
+            elif __name == 'path':
+                return placeholders.InputPathPlaceholder(self._var_name)
+        elif self._io_type == 'output':
+            if __name == 'uri':
+                return placeholders.OutputUriPlaceholder(self._var_name)
+            elif __name == 'path':
+                return placeholders.OutputPathPlaceholder(self._var_name)
 
 
 # A map from function_name to components.  This is always populated when a
@@ -527,12 +556,35 @@ def extract_container_component_interface(
     if description:
         description = description.strip()
 
+    arg_list = []
+    for parameter in parameters:
+        parameter_type = type_annotations.maybe_strip_optional_from_annotation(
+            parameter.annotation)
+        passing_style = None
+        io_name = parameter.name
+        if type_annotations.is_input_artifact(parameter_type):
+            arg_list.append(
+                ContainerComponentArtifactChannel(
+                    io_type='input', var_name=io_name))
+        elif type_annotations.is_output_artifact(parameter_type):
+            arg_list.append(
+                ContainerComponentArtifactChannel(
+                    io_type='output', var_name=io_name))
+        elif isinstance(
+                parameter_type,
+            (type_annotations.OutputAnnotation, type_annotations.OutputPath)):
+            arg_list.append(placeholders.OutputParameterPlaceholder(io_name))
+        else:  # parameter is an input value
+            arg_list.append(placeholders.InputValuePlaceholder(io_name))
+
+    container_spec = func(*arg_list)
+
     component_spec = structures.ComponentSpec(
         name=component_name,
         description=description,
         inputs=inputs if inputs else None,
         outputs=outputs if outputs else None,
-        implementation=structures.Implementation(func()))
+        implementation=structures.Implementation(container_spec))
     return component_spec
 
 

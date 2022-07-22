@@ -827,6 +827,74 @@ class TestCompileComponent(parameterized.TestCase):
             ['exec-hello-world-container']['container']['command'],
             ['echo', 'hello world'])
 
+    def test_compile_container_with_simple_io(self):
+
+        @dsl.container_component
+        def container_simple_io(text: str, output_path: dsl.OutputPath(str)):
+            return dsl.ContainerSpec(
+                image='python:3.7',
+                command=['echo', text],
+                args=['--output_path', output_path])
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_json = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=container_simple_io,
+                package_path=output_json,
+                pipeline_name='container-simple-io')
+            with open(output_json, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+        self.assertEqual(
+            pipeline_spec['components']['comp-container-simple-io']
+            ['inputDefinitions']['parameters']['text']['parameterType'],
+            'STRING')
+        self.assertEqual(
+            pipeline_spec['components']['comp-container-simple-io']
+            ['outputDefinitions']['parameters']['output_path']['parameterType'],
+            'STRING')
+
+    def test_compile_container_with_artifact_output(self):
+        from kfp.dsl import container_component
+        from kfp.dsl import ContainerSpec
+        from kfp.dsl import Model
+        from kfp.dsl import Output
+        from kfp.dsl import OutputPath
+
+        @container_component
+        def container_with_artifacts_output(
+                num_epochs: int,  # also as an input
+                model: Output[Model],
+                model_config_path: OutputPath(str),
+        ):
+            return ContainerSpec(
+                image='gcr.io/my-image',
+                command=['sh', 'run.sh'],
+                args=[
+                    '--epochs',
+                    num_epochs,
+                    '--model_path',
+                    model.uri,
+                    '--model_config_path',
+                    model_config_path,
+                ])
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_json = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=container_with_artifacts_output,
+                package_path=output_json,
+                pipeline_name='container-with-artifacts-output')
+            with open(output_json, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+        self.assertEqual(
+            pipeline_spec['components']['comp-container-with-artifacts-output']
+            ['inputDefinitions']['parameters']['num_epochs']['parameterType'],
+            'NUMBER_INTEGER')
+        self.assertIn(
+            'model',
+            pipeline_spec['components']['comp-container-with-artifacts-output']
+            ['outputDefinitions']['artifacts'])
+
 
 class TestCompileBadInput(unittest.TestCase):
 
