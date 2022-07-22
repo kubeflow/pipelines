@@ -80,7 +80,7 @@ interface MetricsDropdownProps {
   metricsTab: MetricsType;
   selectedArtifacts: SelectedArtifact[];
   updateSelectedArtifacts: (selectedArtifacts: SelectedArtifact[]) => void;
-  namespace: string | undefined;
+  namespace?: string;
 }
 
 export default function MetricsDropdown(props: MetricsDropdownProps) {
