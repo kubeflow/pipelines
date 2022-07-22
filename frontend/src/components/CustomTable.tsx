@@ -675,11 +675,7 @@ const BodyRowSelectionSection: React.FC<BodyRowSelectionSectionProps> = ({
       <div className={classes(css.cell, css.selectionToggle)}>
         {/* If using checkboxes */}
         {disableSelection !== true && useRadioButtons !== true && (
-          <Checkbox
-            color='primary'
-            checked={isSelected}
-            disabled={!isSelected && disableAdditionalSelection}
-          />
+          <Checkbox color='primary' checked={isSelected} disabled={!isSelected && disableAdditionalSelection} />
         )}
         {/* If using radio buttons */}
         {disableSelection !== true && useRadioButtons && (

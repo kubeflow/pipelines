@@ -347,6 +347,18 @@ function CompareV2(props: CompareV2Props) {
           ),
         ),
       );
+      const paginatedRocCurveLinkedArtifacts: { [page: string] : LinkedArtifact[] } = {};
+      let page = 0;
+      const rocCurveLinkedArtifactsPage: LinkedArtifact[] = [];
+      for (let i = 0; i < rocCurveLinkedArtifacts.length; i++) {
+        if (i % 10 === 0 || i === rocCurveLinkedArtifacts.length - 1) {
+          page++;
+          paginatedRocCurveLinkedArtifacts[page] = rocCurveLinkedArtifactsPage;
+          rocCurveLinkedArtifactsPage.length = 0;
+        } else {
+          rocCurveLinkedArtifactsPage.push(rocCurveLinkedArtifacts[i]);
+        }
+      }
       setRocCurveLinkedArtifacts(rocCurveLinkedArtifacts);
       setSelectedRocCurveIds(
         rocCurveLinkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)).slice(0, 3),

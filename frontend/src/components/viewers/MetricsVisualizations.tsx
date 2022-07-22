@@ -49,6 +49,7 @@ import Tooltip from '@material-ui/core/Tooltip';
 import { Link } from 'react-router-dom';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { RunArtifact } from 'src/pages/CompareV2';
+import { ApiFilter, PredicateOp } from 'src/apis/filter';
 
 interface MetricsVisualizationsProps {
   linkedArtifacts: LinkedArtifact[];
@@ -404,11 +405,6 @@ const curveLegendCustomRenderer: React.FC<CustomRendererProps<string>> = (
   );
 };
 
-function reload(request: ListRequest): Promise<string> {
-  // TODO: Consider making an Api method for returning and caching types
-  return Promise.resolve('');
-}
-
 // TODO: Can we place this somewhere else?
 export const lineColors = [
   '#4285f4',
@@ -582,6 +578,44 @@ export function ConfidenceMetricsSection({
         - But then no, I need 
     */
   };
+
+  function reload(request: ListRequest): string {
+    // TODO: Consider making an Api method for returning and caching types
+    // // Override the current state with incoming request
+    // const request: ListRequest = Object.assign(
+    //   {
+    //     filter: this.state.filterStringEncoded,
+    //     orderAscending: this.state.sortOrder === 'asc',
+    //     pageSize: this.state.pageSize,
+    //     pageToken: this.state.tokenList[this.state.currentPage],
+    //     sortBy: this.state.sortBy,
+    //   },
+    //   loadRequest,
+    // );
+    let displayRuns: DisplayRun[] = [];
+    let nextPageToken = '';
+  
+    displayRuns = this.props.runIdListMask.map(id => ({ run: { id } }));
+    const filter = JSON.parse(
+      decodeURIComponent(request.filter || '{"predicates": []}'),
+    ) as ApiFilter;
+    const predicates = filter.predicates?.filter(
+      p => p.key === 'name' && p.op === PredicateOp.ISSUBSTRING,
+    );
+    const substrings = predicates?.map(p => p.string_value?.toLowerCase() || '') || [];
+    displayRuns = displayRuns.filter(runDetail => {
+      for (const sub of substrings) {
+        if (!runDetail?.run?.name?.toLowerCase().includes(sub)) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    // Set the rows here. Each of the artifact lists are grouped by page tokens.
+  
+    return nextPageToken;
+  }
 
   const colors: string[] = filter
     ? filter.selectedIds.map(selectedId => selectedIdColorMap[selectedId])
