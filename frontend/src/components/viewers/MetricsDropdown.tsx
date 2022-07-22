@@ -37,7 +37,6 @@ import { useQuery } from 'react-query';
 import { errorToMessage, logger } from 'src/lib/Utils';
 import { getExecutionDisplayName } from 'src/mlmd/MlmdUtils';
 import { metricsTypeToString } from 'src/lib/v2/CompareUtils';
-import { Execution } from 'src/third_party/mlmd';
 
 const css = stylesheet({
   leftCell: {
@@ -274,12 +273,6 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
 const logDisplayNameWarning = (type: string, id: string) =>
   logger.warn(`Failed to fetch the display name of the ${type} with the following ID: ${id}`);
 
-const getExecutionName = (execution: Execution) =>
-  execution
-    .getCustomPropertiesMap()
-    .get('display_name')
-    ?.getStringValue();
-
 // Group each artifact name with its parent execution name.
 function getDropdownSubLinkedArtifacts(linkedArtifacts: LinkedArtifact[], subItemName: string) {
   const executionLinkedArtifacts: DropdownSubItem[] = [];
@@ -302,7 +295,7 @@ function getDropdownSubLinkedArtifacts(linkedArtifacts: LinkedArtifact[], subIte
 function getDropdownSubItems(executionArtifacts: ExecutionArtifact[]) {
   const subItems: DropdownSubItem[] = [];
   for (const executionArtifact of executionArtifacts) {
-    const executionName = getExecutionName(executionArtifact.execution);
+    const executionName = getExecutionDisplayName(executionArtifact.execution);
     const executionId = executionArtifact.execution.getId().toString();
     if (!executionName) {
       logDisplayNameWarning('execution', executionId);
