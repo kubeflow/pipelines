@@ -442,7 +442,6 @@ describe('MetricsDropdown', () => {
           metricsTab={MetricsType.HTML}
           selectedArtifacts={emptySelectedArtifacts}
           updateSelectedArtifacts={updateSelectedArtifactsSpy}
-          namespace='namespaceInput'
         />
       </CommonTestWrapper>,
     );
@@ -464,7 +463,6 @@ describe('MetricsDropdown', () => {
           metricsTab={MetricsType.HTML}
           selectedArtifacts={emptySelectedArtifacts}
           updateSelectedArtifacts={updateSelectedArtifactsSpy}
-          namespace='namespaceInput'
         />
       </CommonTestWrapper>,
     );
