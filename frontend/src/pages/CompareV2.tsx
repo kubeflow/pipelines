@@ -195,7 +195,7 @@ function CompareV2(props: CompareV2Props) {
 
   const runlistRef = useRef<RunList>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [metricsTab, setMetricsTab] = useState(MetricsType.SCALAR_METRICS);
+  const [metricsTab, setMetricsTab] = useState(MetricsType.ROC_CURVE); // TODO(zpChris): Testing; change back to Scalar Metrics.
   const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
@@ -207,6 +207,8 @@ function CompareV2(props: CompareV2Props) {
 
   const [rocCurveLinkedArtifacts, setRocCurveLinkedArtifacts] = useState<LinkedArtifact[]>([]);
   const [selectedRocCurveIds, setSelectedRocCurveIds] = useState<string[]>([]);
+
+  const [fullArtifactPathList, setFullArtifactPathList] = useState<any[]>([]);
 
   // Selected artifacts for two-panel layout.
   const createSelectedArtifactArray = (count: number): SelectedArtifact[] => {
@@ -299,54 +301,47 @@ function CompareV2(props: CompareV2Props) {
         MetricsType.ROC_CURVE,
       );
       setScalarMetricsRunArtifacts(rocCurveRunArtifacts);
+      
+      // TODO(zpChris): Export these interfaces for the ROC Curve MetricsVisualizations file.
+      interface NameId {
+        name?: string;
+        id: string;
+      }
 
-      /*
-        What do I need here?
-        - linked artifact list
-        - selected ids
-          - a different ID to reference for the unique id to each artifact.
-            - this requires reporting here.
-            - i assume this is the combination of run id, execution id, and artifact id. how do i 
-            - i can in fact just use execution id + artifact id, and use this through linked artifacts (on the event). this is good to know for the metrics dropdown as well, if i do that.
-        - selected colors list
-        - perhaps just the run, execution, and linkedartifact all in one element of a list.
-          - run name
-          - run id (create link from this)
-          - execution name
-          - execution id
-          - artifact name
-          - artifact id
-        identify via execution id + artifact id.
+      interface FullArtifactPath {
+        run: NameId;
+        execution: NameId;
+        artifact: NameId;
+      }
 
-      */
-
-      // customProperties
-      //     .get('confidenceMetrics')
-      //     ?.getStructValue()
-      //     ?.toJavaScript()
-
-      // TODO: Are all of the artifact IDs indeed unique?
-      // const rocCurveArtifactTitles = flatMapDeep(
-      //   rocCurveRunArtifacts.map(rocCurveRunArtifact =>
-      //     rocCurveRunArtifact.executionArtifacts.map(executionArtifact =>
-      //       executionArtifact.linkedArtifacts.map(linkedArtifact => {
-      //         return {
-      //           runName: rocCurveRunArtifact.run.run?.name,
-      //           executionName: getExecutionDisplayName(executionArtifact.execution),
-      //           artifactName: getArtifactName(linkedArtifact),
-      //           id: linkedArtifact.artifact.getId(),
-      //         };
-      //       }),
-      //     ),
-      //   ),
-      // );
+      const fullArtifactPathList: FullArtifactPath[] = [];
+      // TODO(zpChris): Simplify the below logic.
       const rocCurveLinkedArtifacts: LinkedArtifact[] = flatMapDeep(
         rocCurveRunArtifacts.map(rocCurveRunArtifact =>
           rocCurveRunArtifact.executionArtifacts.map(
-            executionArtifact => executionArtifact.linkedArtifacts,
+            executionArtifact => {
+              executionArtifact.linkedArtifacts.forEach(linkedArtifact => {
+                fullArtifactPathList.push({
+                  run: {
+                    name: rocCurveRunArtifact.run.run?.name,
+                    id: rocCurveRunArtifact.run.run!.id!
+                  },
+                  execution: {
+                    name: getExecutionDisplayName(executionArtifact.execution),
+                    id: executionArtifact.execution.getId().toString(),
+                  },
+                  artifact: {
+                    name: getArtifactName(linkedArtifact),
+                    id: linkedArtifact.artifact.getId().toString(),
+                  },
+                });
+              });
+              return executionArtifact.linkedArtifacts;
+            },
           ),
         ),
       );
+      setFullArtifactPathList(fullArtifactPathList);
       setRocCurveLinkedArtifacts(rocCurveLinkedArtifacts);
       setSelectedRocCurveIds(
         rocCurveLinkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)).slice(0, 3),
@@ -513,7 +508,6 @@ function CompareV2(props: CompareV2Props) {
                 namespace={namespace}
               />
             )}
-            {/* TODO(zpChris): Add more ROC Curve selections through checkbox system. */}
             {metricsTab === MetricsType.ROC_CURVE &&
               (rocCurveLinkedArtifacts.length > 0 ? (
                 <ConfidenceMetricsSection
@@ -522,6 +516,7 @@ function CompareV2(props: CompareV2Props) {
                     runArtifacts: scalarMetricsRunArtifacts,
                     selectedIds: selectedRocCurveIds,
                     setSelectedIds: setSelectedRocCurveIds,
+                    fullArtifactPathList,
                   }}
                 />
               ) : (

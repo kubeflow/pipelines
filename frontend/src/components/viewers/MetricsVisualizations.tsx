@@ -20,7 +20,7 @@ import { useQuery } from 'react-query';
 import { Array as ArrayRunType, Failure, Number, Record, String, ValidationError } from 'runtypes';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
 import { color, commonCss, padding } from 'src/Css';
-import { Apis, ListRequest } from 'src/lib/Apis';
+import { Apis, ListRequest, RunSortKeys } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import WorkflowParser, { StoragePath } from 'src/lib/WorkflowParser';
 import { getMetadataValue } from 'src/mlmd/library';
@@ -358,6 +358,7 @@ interface ConfidenceMetricsFilter {
   runArtifacts: RunArtifact[];
   selectedIds: string[];
   setSelectedIds: (selectedIds: string[]) => void;
+  fullArtifactPathList: any[];
 }
 
 interface ConfidenceMetricsSectionProps {
@@ -432,6 +433,7 @@ export function ConfidenceMetricsSection({
   const tableRef = useRef<CustomTable>(null); // TODO: Add refresh line.
   const [selectedIdColorMap, setSelectedIdColorMap] = useState<{ [key: string]: string }>({});
   const [linkedArtifactsPage, setLinkedArtifactsPage] = useState<LinkedArtifact[]>(linkedArtifacts);
+  // TODO: Can I do this filtering beforehand?
   let confidenceMetricsDataList = linkedArtifacts
     .map(linkedArtifact => {
       const artifact = linkedArtifact.artifact;
@@ -449,12 +451,6 @@ export function ConfidenceMetricsSection({
     })
     .filter(confidenceMetricsData => confidenceMetricsData.confidenceMetrics);
 
-  /*
-    TODO(zpChris): This does not quite work.
-    I need to keep the colors corresponding to each equal, and this only returns null if there are 
-    no roc curves to display at all (not just that are not selected).
-    I think I may need two separate pieces of logic for this.
-  */
   if (confidenceMetricsDataList.length === 0) {
     // TODO: Should I display a note that there are no ROC Curves to display?
     return null;
@@ -469,16 +465,15 @@ export function ConfidenceMetricsSection({
     columns = [
       {
         customRenderer: executionArtifactCustomRenderer,
-        flex: 1.5,
+        flex: 1,
         label: 'Execution name > Run name',
       },
-      // {
-      //   customRenderer: runNameCustomRenderer,
-      //   flex: 1,
-      //   label: 'Run name',
-      //   sortKey: RunSortKeys.NAME,
-      // },
-      { customRenderer: curveLegendCustomRenderer, flex: 0.5, label: 'Curve legend' },
+      {
+        customRenderer: runNameCustomRenderer,
+        flex: 1,
+        label: 'Run name',
+      },
+      { customRenderer: curveLegendCustomRenderer, flex: 1, label: 'Curve legend' },
     ];
 
     if (filter.selectedIds.length > 0 && Object.keys(selectedIdColorMap).length === 0) {
@@ -488,18 +483,15 @@ export function ConfidenceMetricsSection({
       setSelectedIdColorMap(selectedIdColorMap);
     }
 
-    // I don't know how to get the correct line color. Or have a line color for each one.
     // TODO(zpChris): I need to filter the artifacts as well, as this is not correct with the length.
     for (let i = 0; i < linkedArtifactsPage.length; i++) {
-      const artifact = linkedArtifactsPage[i].artifact;
+      const fullArtifactPath = filter.fullArtifactPathList[i];
       const id = getRocCurveId(linkedArtifactsPage[i]);
       const row = {
         id,
         otherFields: [
-          artifact
-            .getCustomPropertiesMap()
-            ?.get('display_name')
-            ?.getStringValue() || '-',
+          `${fullArtifactPath.execution.name} > ${fullArtifactPath.artifact.name}`,
+          fullArtifactPath.run.name,
           selectedIdColorMap[id],
         ] as any,
       };
@@ -533,18 +525,11 @@ export function ConfidenceMetricsSection({
       const newSelectedIdsSet = new Set(newSelectedIds);
       const oldSelectedIdsSet = new Set(oldSelectedIds);
 
-      // 2*O(n^2). This could actually be really large, conceivably. Changed to 3*O(n), with 2*O(n) earlier.
-      // TODO(zpChris): This can run into an error with a select all, where the ones later on with oldSelectedIdsSet are sliced.
       let addedIds = newSelectedIds.filter(selectedId => !oldSelectedIdsSet.has(selectedId));
       const removedIds = oldSelectedIds.filter(selectedId => !newSelectedIdsSet.has(selectedId));
       const sharedIds = oldSelectedIds.filter(selectedId => newSelectedIdsSet.has(selectedId));
 
-      // I'll need this anyway to potentially limit how many new ones are selected.
-
-      // Ok, I think I'll use a map here and pass it through filter.
-
-      // TODO(zpChris): Fix the final selected number being given.
-
+      // TODO(zpChris): This 10 value should be shared amongst all its uses.
       const numElementsRemaining = 10 - sharedIds.length;
       addedIds = addedIds.slice(0, numElementsRemaining);
       setSelectedIds(sharedIds.concat(addedIds));
@@ -560,42 +545,10 @@ export function ConfidenceMetricsSection({
       console.log(selectedIdColorMap);
 
       setSelectedIdColorMap(selectedIdColorMap);
-
-      // Huh, I wonder if all of the new ones are added at the end. Maybe, but I don't want this to rely on the internal implementation of custom table.
-      // Right now, could use the invariant that you can only remove one at a time (not true, remove all). However, I don't want to rely on that, in case the implementation changes for some reason.
-
-      // It's better to have a separate, which represents removed. And going through twice? Lookup is immediate. So 2*O(n). No, that doesn't work either. If the IDs were tied to color, that'd be easiest.
-      // I could use a set.
-      // Using a conversion to Set, this becomes O(n). 4*O(n), specifically.
     }
-    // Comparison between all the current selectedIds and the new selectedIds.
-    /*
-      - Find the change.
-        - Do this by looping through new selectedIds? There's gotta be a faster way for this. Cause also have to loop through current.
-        - Can use filter between the two.
-        - Are the selectedIds order between the two? I can step through on each.
-        - I suppose a better solution is to have a full map. With all possibilities.
-        - Then that requires looping through all on each though.
-        - Maybe just iterate through each array and use that to determine which should be removed or not.
-        - So which are removed first (new array, what is not present).
-        - But then no, I need 
-    */
   };
 
   function reload(request: ListRequest): Promise<string> {
-    // TODO: Consider making an Api method for returning and caching types
-    // // Override the current state with incoming request
-    // const request: ListRequest = Object.assign(
-    //   {
-    //     filter: this.state.filterStringEncoded,
-    //     orderAscending: this.state.sortOrder === 'asc',
-    //     pageSize: this.state.pageSize,
-    //     pageToken: this.state.tokenList[this.state.currentPage],
-    //     sortBy: this.state.sortBy,
-    //   },
-    //   loadRequest,
-    // );
-
     const numericPageToken = request.pageToken ? parseInt(request.pageToken) : 0;
     const filter = JSON.parse(
       decodeURIComponent(request.filter || '{"predicates": []}'),
@@ -667,7 +620,6 @@ export function ConfidenceMetricsSection({
               item in order to select additional artifacts.
             </p>
           ) : null}
-          {/* How are filter IDs affected by this? */}
           <CustomTable
             columns={columns}
             rows={rows}
