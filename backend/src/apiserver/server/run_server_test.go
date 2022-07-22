@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"google.golang.org/protobuf/testing/protocmp"
+	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/timestamp"
@@ -32,7 +33,12 @@ func TestCreateRun(t *testing.T) {
 		ResourceReferences: validReference,
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
-			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+			// Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+				Parameters: map[string]*structpb.Value{
+					"param1": structpb.NewStringValue("world"),
+				},
+			},
 		},
 	}
 	runDetail, err := server.CreateRun(nil, &api.CreateRunRequest{Run: run})
@@ -65,7 +71,12 @@ func TestCreateRun(t *testing.T) {
 			Status:         "Running",
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: testWorkflow.ToStringForStore(),
-				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+				// Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+					Parameters: map[string]*structpb.Value{
+						"param1": structpb.NewStringValue("world"),
+					},
+				},
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{

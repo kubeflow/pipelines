@@ -112,6 +112,7 @@ func TestToApiRunDetail(t *testing.T) {
 			Status:       "running",
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
+				RuntimeConfig:    new(api.PipelineSpec_RuntimeConfig),
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job123"},
@@ -198,6 +199,7 @@ func TestToApiRuns(t *testing.T) {
 			Status:       "running",
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
+				RuntimeConfig:    new(api.PipelineSpec_RuntimeConfig),
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job1"},
@@ -219,6 +221,7 @@ func TestToApiRuns(t *testing.T) {
 			},
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
+				RuntimeConfig:    new(api.PipelineSpec_RuntimeConfig),
 			},
 			Metrics: []*api.RunMetric{apiMetric2},
 		},

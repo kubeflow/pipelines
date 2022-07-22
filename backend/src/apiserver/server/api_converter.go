@@ -21,6 +21,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func ToApiExperiment(experiment *model.Experiment) *api.Experiment {
@@ -149,14 +150,38 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 	return apiParams, nil
 }
 
-func toApiRun(run *model.Run) *api.Run {
-	params, err := toApiParameters(run.Parameters)
-	if err != nil {
-		return &api.Run{
-			Id:    run.UUID,
-			Error: err.Error(),
-		}
+// Converts the parameter from sql, which is in string format, into map[string]*structpb.Value,
+// which will then be sent to RuntimeConfig in api PipelineSpec.
+func toRuntimeConfigParameters(paramsString string) (map[string]*structpb.Value, error) {
+	if paramsString == "" {
+		return nil, nil
 	}
+	params, err := template.UnmarshalParameters(paramsString)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Parameter with wrong format is stored")
+	}
+	runtimeConfigParams := make(map[string]*structpb.Value)
+	for _, param := range params {
+		var value string
+		if param.Value != nil {
+			value = param.Value.String() // unmarshall? is there any type info? maybe from IR?
+		}
+		runtimeConfigParams[param.Name] = structpb.NewStringValue(value)
+	}
+	return runtimeConfigParams, nil
+}
+
+func toApiRun(run *model.Run) *api.Run {
+	/*
+		params, err := toApiParameters(run.Parameters)
+		if err != nil {
+			return &api.Run{
+				Id:    run.UUID,
+				Error: err.Error(),
+			}
+		}
+	*/
+	var params map[string]*structpb.Value
 	var metrics []*api.RunMetric
 	if run.Metrics != nil {
 		for _, metric := range run.Metrics {
@@ -179,7 +204,9 @@ func toApiRun(run *model.Run) *api.Run {
 			PipelineName:     run.PipelineName,
 			WorkflowManifest: run.WorkflowSpecManifest,
 			PipelineManifest: run.PipelineSpecManifest,
-			Parameters:       params,
+			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+				Parameters:   params,
+				PipelineRoot: run.PipelineSpec.RuntimeConfig.PipelineRoot},
 		},
 		ResourceReferences: toApiResourceReferences(run.ResourceReferences),
 	}
