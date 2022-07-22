@@ -67,12 +67,13 @@ interface ROCCurveProps {
   configs: ROCCurveConfig[];
   maxDimension?: number;
   colors?: string[];
-  noLegend?: boolean;
+  forceLegend?: boolean;
 }
 
 interface ROCCurveState {
   hoveredValues: DisplayPoint[];
   lastDrawLocation: { left: number; right: number } | null;
+  highlightIndex: number;
 }
 
 class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
@@ -82,6 +83,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
     this.state = {
       hoveredValues: new Array(this.props.configs.length).fill(''),
       lastDrawLocation: null,
+      highlightIndex: -1,
     };
   }
 
@@ -102,7 +104,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
     const labels = this.props.configs.map((_, i) => `threshold (Series #${i})`);
     const baseLineData = Array.from(Array(100).keys()).map(x => ({ x: x / 100, y: x / 100 }));
 
-    const { hoveredValues, lastDrawLocation } = this.state;
+    const { hoveredValues, lastDrawLocation, highlightIndex } = this.state;
 
     return (
       <div>
@@ -130,7 +132,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
           />
 
           {/* Lines */}
-          {datasets.map((data, i) => (
+          {datasets.map((data, i) => highlightIndex !== i && (
             <LineSeries
               key={i}
               color={
@@ -144,6 +146,22 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
               curve='curveBasis'
             />
           ))}
+
+          {/* Highlighted line, if present */}
+          {highlightIndex !== -1 && (
+            <LineSeries
+              key={highlightIndex}
+              color={
+                this.props.colors
+                  ? this.props.colors[highlightIndex]
+                  : lineColors[highlightIndex] || lineColors[lineColors.length - 1]
+              }
+              strokeWidth={5}
+              data={datasets[highlightIndex]}
+              onNearestX={(d: any) => this._lineHovered(highlightIndex, d)}
+              curve='curveBasis'
+            />
+          )}
 
           {!isSmall && (
             <Highlight
@@ -175,7 +193,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
 
         <div className={commonCss.flex}>
           {/* Legend */}
-          {!this.props.noLegend && datasets.length > 1 && (
+          {(this.props.forceLegend || datasets.length > 1) && (
             <div style={{ flexGrow: 1 }}>
               <DiscreteColorLegend
                 items={datasets.map((_, i) => ({
@@ -183,6 +201,12 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
                   title: 'Series #' + (i + 1),
                 }))}
                 orientation='horizontal'
+                onItemMouseEnter={(_: any, i: number) => {
+                  this.setState({ highlightIndex: i });
+                }}
+                onItemMouseLeave={() => {
+                  this.setState({ highlightIndex: -1 });
+                }}
               />
             </div>
           )}

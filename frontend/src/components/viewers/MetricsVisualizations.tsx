@@ -15,7 +15,7 @@
  */
 
 import HelpIcon from '@material-ui/icons/Help';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useQuery } from 'react-query';
 import { Array as ArrayRunType, Failure, Number, Record, String, ValidationError } from 'runtypes';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
@@ -405,19 +405,19 @@ const curveLegendCustomRenderer: React.FC<CustomRendererProps<string>> = (
   );
 };
 
-// TODO: Can we place this somewhere else?
+// TODO: Can we place this somewhere else? And we should get less similar colors for some options.
 export const lineColors = [
-  '#4285f4',
-  '#efb4a3',
-  '#684e91',
-  '#d74419',
-  '#7fa6c4',
-  '#ffdc10',
-  '#d7194d',
-  '#6b2f49',
-  '#f9e27c',
-  '#633a70',
-  '#5ec4ec',
+  '#ffcdf3',
+  '#ffee33',
+  '#29d0d0',
+  '#ff9233',
+  '#814a19',
+  '#82c57a',
+  '#9dafff',
+  '#8026c0',
+  '#ad2323',
+  '#1d6914',
+  '#2a4ad7',
 ];
 
 const lineColorsStack = [...lineColors];
@@ -431,6 +431,7 @@ export function ConfidenceMetricsSection({
 }: ConfidenceMetricsSectionProps) {
   const tableRef = useRef<CustomTable>(null); // TODO: Add refresh line.
   const [selectedIdColorMap, setSelectedIdColorMap] = useState<{ [key: string]: string }>({});
+  const [linkedArtifactsPage, setLinkedArtifactsPage] = useState<LinkedArtifact[]>(linkedArtifacts);
   let confidenceMetricsDataList = linkedArtifacts
     .map(linkedArtifact => {
       const artifact = linkedArtifact.artifact;
@@ -489,9 +490,9 @@ export function ConfidenceMetricsSection({
 
     // I don't know how to get the correct line color. Or have a line color for each one.
     // TODO(zpChris): I need to filter the artifacts as well, as this is not correct with the length.
-    for (let i = 0; i < linkedArtifacts.length; i++) {
-      const artifact = linkedArtifacts[i].artifact;
-      const id = getRocCurveId(linkedArtifacts[i]);
+    for (let i = 0; i < linkedArtifactsPage.length; i++) {
+      const artifact = linkedArtifactsPage[i].artifact;
+      const id = getRocCurveId(linkedArtifactsPage[i]);
       const row = {
         id,
         otherFields: [
@@ -534,7 +535,7 @@ export function ConfidenceMetricsSection({
 
       // 2*O(n^2). This could actually be really large, conceivably. Changed to 3*O(n), with 2*O(n) earlier.
       // TODO(zpChris): This can run into an error with a select all, where the ones later on with oldSelectedIdsSet are sliced.
-      const addedIds = newSelectedIds.filter(selectedId => !oldSelectedIdsSet.has(selectedId));
+      let addedIds = newSelectedIds.filter(selectedId => !oldSelectedIdsSet.has(selectedId));
       const removedIds = oldSelectedIds.filter(selectedId => !newSelectedIdsSet.has(selectedId));
       const sharedIds = oldSelectedIds.filter(selectedId => newSelectedIdsSet.has(selectedId));
 
@@ -544,8 +545,9 @@ export function ConfidenceMetricsSection({
 
       // TODO(zpChris): Fix the final selected number being given.
 
-      // Add the sharedIds in and concat the added ids.
-      setSelectedIds(sharedIds.concat(addedIds).slice(0, 10));
+      const numElementsRemaining = 10 - sharedIds.length;
+      addedIds = addedIds.slice(0, numElementsRemaining);
+      setSelectedIds(sharedIds.concat(addedIds));
       removedIds.forEach(removedId => {
         lineColorsStack.push(selectedIdColorMap[removedId]);
         selectedIdColorMap[removedId] = '';
@@ -555,6 +557,7 @@ export function ConfidenceMetricsSection({
       addedIds.forEach(addedId => {
         selectedIdColorMap[addedId] = lineColorsStack.pop() || '';
       });
+      console.log(selectedIdColorMap);
 
       setSelectedIdColorMap(selectedIdColorMap);
 
@@ -579,7 +582,7 @@ export function ConfidenceMetricsSection({
     */
   };
 
-  function reload(request: ListRequest): string {
+  function reload(request: ListRequest): Promise<string> {
     // TODO: Consider making an Api method for returning and caching types
     // // Override the current state with incoming request
     // const request: ListRequest = Object.assign(
@@ -592,10 +595,8 @@ export function ConfidenceMetricsSection({
     //   },
     //   loadRequest,
     // );
-    let displayRuns: DisplayRun[] = [];
-    let nextPageToken = '';
-  
-    displayRuns = this.props.runIdListMask.map(id => ({ run: { id } }));
+
+    const numericPageToken = request.pageToken ? parseInt(request.pageToken) : 0;
     const filter = JSON.parse(
       decodeURIComponent(request.filter || '{"predicates": []}'),
     ) as ApiFilter;
@@ -603,23 +604,44 @@ export function ConfidenceMetricsSection({
       p => p.key === 'name' && p.op === PredicateOp.ISSUBSTRING,
     );
     const substrings = predicates?.map(p => p.string_value?.toLowerCase() || '') || [];
-    displayRuns = displayRuns.filter(runDetail => {
+    const displayLinkedArtifacts = linkedArtifacts.filter(linkedArtifact => {
       for (const sub of substrings) {
-        if (!runDetail?.run?.name?.toLowerCase().includes(sub)) {
+        if (
+          !linkedArtifact.artifact
+            .getCustomPropertiesMap()
+            .get('display_name')
+            ?.toString()
+            .includes(sub)
+        ) {
           return false;
         }
       }
       return true;
     });
+    const linkedArtifactsPage = request.pageSize
+      ? displayLinkedArtifacts.slice(
+          numericPageToken * request.pageSize,
+          (numericPageToken + 1) * request.pageSize,
+        )
+      : displayLinkedArtifacts;
+    let nextPageToken = '';
+    if (
+      displayLinkedArtifacts[displayLinkedArtifacts.length - 1] !==
+      linkedArtifactsPage[linkedArtifactsPage.length - 1]
+    ) {
+      nextPageToken =
+        linkedArtifacts.length === numericPageToken + 1 ? '' : `${numericPageToken + 1}`;
+    }
+    setLinkedArtifactsPage(linkedArtifactsPage);
 
     // Set the rows here. Each of the artifact lists are grouped by page tokens.
-  
-    return nextPageToken;
+    return Promise.resolve(nextPageToken);
   }
 
   const colors: string[] = filter
     ? filter.selectedIds.map(selectedId => selectedIdColorMap[selectedId])
     : [];
+
   return (
     <div className={padding(40, 'lrt')}>
       <div className={padding(40, 'b')}>
@@ -636,15 +658,16 @@ export function ConfidenceMetricsSection({
         </h3>
       </div>
       {/* TODO(zpChris): Introduce checkbox system that matches artifacts to curves. */}
-      <ROCCurve configs={rocCurveConfigs} colors={colors} noLegend />
+      <ROCCurve configs={rocCurveConfigs} colors={colors} forceLegend />
       {filter && (
         <>
-          {filter.selectedIds.length === 10 && rows.length > 10 ? (
+          {filter.selectedIds.length === 10 && linkedArtifacts.length > 10 ? (
             <p>
               You have reached the maximum number of ROC Curves you can select at once. Deselect an
               item in order to select additional artifacts.
             </p>
           ) : null}
+          {/* How are filter IDs affected by this? */}
           <CustomTable
             columns={columns}
             rows={rows}
@@ -659,7 +682,9 @@ export function ConfidenceMetricsSection({
             disableSelection={false}
             noFilterBox={false}
             emptyMessage='No artifacts found'
-            disableAdditionalSelection={filter.selectedIds.length === 10 && rows.length > 10}
+            disableAdditionalSelection={
+              filter.selectedIds.length === 10 && linkedArtifacts.length > 10
+            }
           />
         </>
       )}
