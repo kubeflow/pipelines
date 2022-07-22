@@ -209,6 +209,39 @@ function ScalarMetricsTable(props: ScalarMetricsTableParams) {
   return <CompareTable {...scalarMetricsTableData} />;
 }
 
+interface ROCCurveMetricsParams {
+  isErrorArtifacts: boolean;
+  isLoadingArtifacts: boolean;
+  selectedRocCurveArtifacts: Artifact[];
+}
+
+function ROCCurveMetrics(props: ROCCurveMetricsParams) {
+  const { isErrorArtifacts, isLoadingArtifacts, selectedRocCurveArtifacts } = props;
+
+  if (isErrorArtifacts) {
+    return <p>An error is preventing the ROC Curve from being displayed.</p>;
+  }
+
+  if (isLoadingArtifacts) {
+    return (
+      <div className={compareCss.relativeContainer}>
+        <CircularProgress
+          size={25}
+          className={commonCss.absoluteCenter}
+          style={{ zIndex: zIndex.BUSY_OVERLAY }}
+          role='circularprogress'
+        />
+      </div>
+    );
+  }
+
+  if (selectedRocCurveArtifacts.length === 0) {
+    return <p>There are no ROC Curve artifacts available on the selected runs.</p>;
+  }
+
+  return <ConfidenceMetricsSection artifacts={selectedRocCurveArtifacts} />;
+}
+
 interface CompareV2Namespace {
   namespace?: string;
 }
@@ -527,12 +560,13 @@ function CompareV2(props: CompareV2Props) {
               />
             )}
             {/* TODO(zpChris): Add more ROC Curve selections through checkbox system. */}
-            {metricsTab === MetricsType.ROC_CURVE &&
-              (selectedRocCurveArtifacts.length > 0 ? (
-                <ConfidenceMetricsSection artifacts={selectedRocCurveArtifacts} />
-              ) : (
-                <p>There are no ROC Curve artifacts available on the selected runs.</p>
-              ))}
+            {metricsTab === MetricsType.ROC_CURVE && (
+              <ROCCurveMetrics
+                isErrorArtifacts={isErrorArtifacts}
+                isLoadingArtifacts={isLoadingArtifacts}
+                selectedRocCurveArtifacts={selectedRocCurveArtifacts}
+              />
+            )}
             {metricsTab === MetricsType.HTML && (
               <MetricsDropdown
                 isErrorArtifacts={isErrorArtifacts}
