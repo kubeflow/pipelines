@@ -15,12 +15,12 @@
  */
 
 import HelpIcon from '@material-ui/icons/Help';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useQuery } from 'react-query';
 import { Array as ArrayRunType, Failure, Number, Record, String, ValidationError } from 'runtypes';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
 import { color, commonCss, padding } from 'src/Css';
-import { Apis, ListRequest, RunSortKeys } from 'src/lib/Apis';
+import { Apis, ListRequest } from 'src/lib/Apis';
 import { OutputArtifactLoader } from 'src/lib/OutputArtifactLoader';
 import WorkflowParser, { StoragePath } from 'src/lib/WorkflowParser';
 import { getMetadataValue } from 'src/mlmd/library';
@@ -354,10 +354,9 @@ type ConfidenceMetric = {
 };
 
 interface ConfidenceMetricsFilter {
-  runArtifacts: RunArtifact[];
   selectedIds: string[];
   setSelectedIds: (selectedIds: string[]) => void;
-  fullArtifactPathList: any[];
+  fullArtifactPathMap: any;
   selectedIdColorMap: { [key: string]: string };
   setSelectedIdColorMap: (selectedIdColorMap: { [key: string]: string }) => void;
 }
@@ -484,8 +483,9 @@ export function ConfidenceMetricsSection({
     }
 
     // TODO(zpChris): I need to filter the artifacts as well, as this is not correct with the length.
+    // TODO(zpChris): The full artifact path list is probably better synced as a map. The lists will not always match up as the linkedArtifactsPage list is going to be different.
     for (let i = 0; i < linkedArtifactsPage.length; i++) {
-      const fullArtifactPath = filter.fullArtifactPathList[i];
+      const fullArtifactPath = filter.fullArtifactPathMap[getRocCurveId(linkedArtifacts[i])];
       const id = getRocCurveId(linkedArtifactsPage[i]);
       const row = {
         id,
@@ -549,27 +549,27 @@ export function ConfidenceMetricsSection({
 
   function reload(request: ListRequest): Promise<string> {
     const numericPageToken = request.pageToken ? parseInt(request.pageToken) : 0;
-    const filter = JSON.parse(
+    const apiFilter = JSON.parse(
       decodeURIComponent(request.filter || '{"predicates": []}'),
     ) as ApiFilter;
-    const predicates = filter.predicates?.filter(
+    const predicates = apiFilter.predicates?.filter(
       p => p.key === 'name' && p.op === PredicateOp.ISSUBSTRING,
     );
     const substrings = predicates?.map(p => p.string_value?.toLowerCase() || '') || [];
     const displayLinkedArtifacts = linkedArtifacts.filter(linkedArtifact => {
+      const fullArtifactPath = filter?.fullArtifactPathMap[getRocCurveId(linkedArtifact)];
+      console.log(fullArtifactPath.artifact.name);
       for (const sub of substrings) {
+        console.log(!`${fullArtifactPath.execution.name} > ${fullArtifactPath.artifact.name}`.includes(sub));
         if (
-          !linkedArtifact.artifact
-            .getCustomPropertiesMap()
-            .get('display_name')
-            ?.toString()
-            .includes(sub)
+          !`${fullArtifactPath.execution.name} > ${fullArtifactPath.artifact.name}`.includes(sub)
         ) {
           return false;
         }
       }
       return true;
     });
+    console.log(displayLinkedArtifacts);
     const linkedArtifactsPage = request.pageSize
       ? displayLinkedArtifacts.slice(
           numericPageToken * request.pageSize,

@@ -190,12 +190,11 @@ function CompareV2(props: CompareV2Props) {
 
   const runlistRef = useRef<RunList>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [metricsTab, setMetricsTab] = useState(MetricsType.SCALAR_METRICS); // TODO(zpChris): Testing; change back to Scalar Metrics.
+  const [metricsTab, setMetricsTab] = useState(MetricsType.ROC_CURVE); // TODO(zpChris): Testing; change back to Scalar Metrics.
   const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
 
-  const [scalarMetricsRunArtifacts, setScalarMetricsRunArtifacts] = useState<RunArtifact[]>([]);
   const [confusionMatrixRunArtifacts, setConfusionMatrixRunArtifacts] = useState<RunArtifact[]>([]);
   const [htmlRunArtifacts, setHtmlRunArtifacts] = useState<RunArtifact[]>([]);
   const [markdownRunArtifacts, setMarkdownRunArtifacts] = useState<RunArtifact[]>([]);
@@ -538,7 +537,6 @@ function CompareV2(props: CompareV2Props) {
                 <ConfidenceMetricsSection
                   linkedArtifacts={rocCurveLinkedArtifacts}
                   filter={{
-                    runArtifacts: scalarMetricsRunArtifacts,
                     selectedIds: selectedRocCurveIds,
                     setSelectedIds: setSelectedRocCurveIds,
                     fullArtifactPathList,
