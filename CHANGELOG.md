@@ -1,5 +1,13 @@
 # Changelog
 
+### [1.8.3](https://github.com/kubeflow/pipelines/compare/1.8.2...1.8.3) (2022-07-22)
+
+
+### Other Pull Requests
+
+* Enable SDK build ([a4d22d7](https://github.com/kubeflow/pipelines/commit/a4d22d72b394e12ff75df7a43a9e0e69cb2f1a6a))
+* fix/chore: update containers to address vulnerabilities in v1.8.3 ([\#8039](https://github.com/kubeflow/pipelines/issues/8039)) ([e9f1c6e](https://github.com/kubeflow/pipelines/commit/e9f1c6e8fa78ff954015000cfcf6e6fce2a1fe9d))
+
 ### [1.8.2](https://github.com/kubeflow/pipelines/compare/1.8.1...1.8.2) (2022-06-10)
 
 
