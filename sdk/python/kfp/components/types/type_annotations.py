@@ -28,7 +28,38 @@ T = TypeVar('T')
 
 
 class OutputPath:
-    """Annotation for indicating a variable is a path to an output."""
+    """Type annotation used in component definitions for indicating a parameter
+    is a path to an output. The path parameter typed with this annotation can
+    be treated as a locally accessible filepath within the component body.
+
+    The argument typed with this annotation is provided at runtime by the executing backend and does not need to be passed as an input by the pipeline author (see example).
+
+
+    Args:
+        type: The type of the value written to the output path.
+
+    Example:
+      ::
+
+        @dsl.component
+        def create_parameter(
+                message: str,
+                output_parameter_path: OutputPath(str),
+        ):
+            with open(output_parameter_path, 'w') as f:
+                f.write(message)
+
+
+        @dsl.component
+        def consume_parameter(message: str):
+            print(message)
+
+
+        @dsl.pipeline(name='my-pipeline', pipeline_root='gs://my-bucket')
+        def my_pipeline(message: str = 'default message'):
+            create_param_op = create_parameter(message=message)
+            consume_parameter(message=create_param_op.outputs['output_parameter_path'])
+    """
 
     def __init__(self, type=None):
         self.type = type
@@ -40,7 +71,30 @@ class OutputPath:
 
 
 class InputPath:
-    """Annotation for indicating a variable is a path to an input."""
+    """Type annotation used in component definitions for indicating a parameter
+    is a path to an input.
+
+    Example:
+      ::
+
+        @dsl.component
+        def create_dataset(dataset_path: OutputPath('Dataset'),):
+            import json
+            dataset = {'my_dataset': [[1, 2, 3], [4, 5, 6]]}
+            with open(dataset_path, 'w') as f:
+                json.dump(dataset, f)
+
+
+        @dsl.component
+        def consume_dataset(dataset: InputPath('Dataset')):
+            print(dataset)
+
+
+        @dsl.pipeline(name='my-pipeline', pipeline_root='gs://my-bucket')
+        def my_pipeline():
+            create_dataset_op = create_dataset()
+            consume_dataset(dataset=create_dataset_op.outputs['dataset_path'])
+    """
 
     def __init__(self, type=None):
         self.type = type
@@ -59,11 +113,57 @@ class OutputAnnotation():
     """Marker type for output artifacts."""
 
 
-# Input represents an Input artifact of type T.
 Input = Annotated[T, InputAnnotation]
+Input.__doc__ = """Type generic used to represent an input artifact of type ``T``, where ``T`` is an artifact class.
 
-# Output represents an Output artifact of type T.
+Use ``Input[Artifact]`` or ``Output[Artifact]`` to indicate whether the enclosed artifact is a component input or output.
+
+Args:
+    T: The type of the input artifact.
+
+Example:
+  ::
+
+    @dsl.component
+    def artifact_producer(model: Output[Artifact]):
+        with open(model.path, 'w') as f:
+            f.write('my model')
+
+    @dsl.component
+    def artifact_consumer(model: Input[Artifact]):
+        print(model)
+
+    @dsl.pipeline(name='my-pipeline')
+    def my_pipeline():
+        producer_task = artifact_producer()
+        artifact_consumer(model=producer_task.output)
+"""
+
 Output = Annotated[T, OutputAnnotation]
+Output.__doc__ = """A type generic used to represent an output artifact of type ``T``, where ``T`` is an artifact class. The argument typed with this annotation is provided at runtime by the executing backend and does not need to be passed as an input by the pipeline author (see example).
+
+Use ``Input[Artifact]`` or ``Output[Artifact]`` to indicate whether the enclosed artifact is a component input or output.
+
+Args:
+    T: The type of the output artifact.
+
+Example:
+  ::
+
+    @dsl.component
+    def artifact_producer(model: Output[Artifact]):
+        with open(model.path, 'w') as f:
+            f.write('my model')
+
+    @dsl.component
+    def artifact_consumer(model: Input[Artifact]):
+        print(model)
+
+    @dsl.pipeline(name='my-pipeline')
+    def my_pipeline():
+        producer_task = artifact_producer()
+        artifact_consumer(model=producer_task.output)
+"""
 
 
 def is_artifact_annotation(typ) -> bool:

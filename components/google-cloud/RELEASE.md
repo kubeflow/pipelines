@@ -1,5 +1,10 @@
-# Current Version 1.0.15.dev (Still in Development)
+# Current Version 1.0.16.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.15
+* Sync AutomL components' code to GCPC codebase to reflect bug fix in FTE component spec
+* Auto-generate batch id if none is specified in Dataproc components
+* Add ground_truth_column input argument to data splitter component
 
 # Release 1.0.14
 * Temporarily pin apache_beam version to <2.34.0 due to https://github.com/apache/beam/issues/22208.

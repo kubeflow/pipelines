@@ -32,6 +32,7 @@ from kfp.compiler.pipeline_spec_builder import GroupOrTaskType
 from kfp.components import base_component
 from kfp.components import component_factory
 from kfp.components import for_loop
+from kfp.components import pipeline_channel
 from kfp.components import pipeline_context
 from kfp.components import pipeline_task
 from kfp.components import structures
@@ -43,27 +44,24 @@ import yaml
 
 
 class Compiler:
-    """Experimental DSL compiler that targets the PipelineSpec IR.
+    """Compiles pipelines composed using the KFP SDK DSL to a YAML pipeline
+    definition.
 
-    It compiles pipeline function into PipelineSpec json string.
-    PipelineSpec is the IR protobuf message that defines a pipeline:
-    https://github.com/kubeflow/pipelines/blob/237795539f7b85bac77435e2464367226ee19391/api/v2alpha1/pipeline_spec.proto#L8
-    In this initial implementation, we only support components authored through
-    Component yaml spec. And we don't support advanced features like conditions,
-    static and dynamic loops, etc.
+    The pipeline definition is `PipelineSpec IR <https://github.com/kubeflow/pipelines/blob/2060e38c5591806d657d85b53eed2eef2e5de2ae/api/v2alpha1/pipeline_spec.proto#L50>`_, the protobuf message that defines a pipeline.
 
-    Example::
+    Example:
+      ::
 
         @dsl.pipeline(
           name='name',
-          description='description',
         )
-        def my_pipeline(a: int = 1, b: str = "default value"):
+        def my_pipeline(a: int, b: str = 'default value'):
             ...
 
         kfp.compiler.Compiler().compile(
             pipeline_func=my_pipeline,
-            package_path='path/to/pipeline.json',
+            package_path='path/to/pipeline.yaml',
+            pipeline_parameters={'a': 1},
         )
     """
 
@@ -72,20 +70,17 @@ class Compiler:
         pipeline_func: Union[Callable[..., Any], base_component.BaseComponent],
         package_path: str,
         pipeline_name: Optional[str] = None,
-        pipeline_parameters: Optional[Mapping[str, Any]] = None,
+        pipeline_parameters: Optional[Dict[str, Any]] = None,
         type_check: bool = True,
     ) -> None:
-        """Compile the given pipeline function or component into pipeline job
-        json.
+        """Compiles the pipeline or component function into IR YAML.
 
         Args:
-            pipeline_func: Pipeline function with @dsl.pipeline or component with @dsl.component decorator.
-            package_path: The output pipeline spec .yaml file path. For example, "~/pipeline.yaml" or "~/component.yaml".
-            pipeline_name: Optional; the name of the pipeline.
-            pipeline_parameters: Optional; the mapping from parameter names to
-                values.
-            type_check: Optional; whether to enable the type check or not.
-                Default is True.
+            pipeline_func: Pipeline function constructed with the ``@dsl.pipeline`` or component constructed with the ``@dsl.component`` decorator.
+            package_path: Output YAML file path. For example, ``'~/my_pipeline.yaml'`` or ``'~/my_component.yaml'``.
+            pipeline_name: Name of the pipeline.
+            pipeline_parameters: Map of parameter names to argument values.
+            type_check: Whether to enable type checking of component interfaces during compilation.
         """
 
         with type_utils.TypeCheckManager(enable=type_check):
@@ -148,7 +143,7 @@ class Compiler:
                     builder.make_invalid_input_type_error_msg(
                         arg_name, arg_type))
             args_list.append(
-                dsl.PipelineParameterChannel(
+                pipeline_channel.PipelineParameterChannel(
                     name=arg_name, channel_type=arg_type))
 
         with pipeline_context.Pipeline(pipeline_name) as dsl_pipeline:
@@ -172,7 +167,7 @@ class Compiler:
 
         # Fill in the default values.
         args_list_with_defaults = [
-            dsl.PipelineParameterChannel(
+            pipeline_channel.PipelineParameterChannel(
                 name=input_name,
                 channel_type=input_spec.type,
                 value=pipeline_parameters_override.get(input_name) or
@@ -217,7 +212,7 @@ class Compiler:
                 raise TypeError(
                     builder.make_invalid_input_type_error_msg(
                         arg_name, arg_type))
-            args_dict[arg_name] = dsl.PipelineParameterChannel(
+            args_dict[arg_name] = pipeline_channel.PipelineParameterChannel(
                 name=arg_name, channel_type=arg_type)
 
         task = pipeline_task.PipelineTask(component_spec, args_dict)
@@ -232,7 +227,7 @@ class Compiler:
 
         # Fill in the default values.
         args_list_with_defaults = [
-            dsl.PipelineParameterChannel(
+            pipeline_channel.PipelineParameterChannel(
                 name=input_name,
                 channel_type=input_spec.type,
                 value=input_spec.default,
@@ -287,7 +282,7 @@ class Compiler:
 
     def _create_pipeline_spec(
         self,
-        pipeline_args: List[dsl.PipelineChannel],
+        pipeline_args: List[pipeline_channel.PipelineChannel],
         pipeline: pipeline_context.Pipeline,
     ) -> pipeline_spec_pb2.PipelineSpec:
         """Creates a pipeline spec object.
@@ -436,7 +431,7 @@ class Compiler:
     def _get_condition_channels_for_tasks(
         self,
         root_group: tasks_group.TasksGroup,
-    ) -> Mapping[str, Set[dsl.PipelineChannel]]:
+    ) -> Mapping[str, Set[pipeline_channel.PipelineChannel]]:
         """Gets channels referenced in conditions of tasks' parents.
 
         Args:
@@ -457,11 +452,11 @@ class Compiler:
                 new_current_conditions_channels = list(
                     current_conditions_channels)
                 if isinstance(group.condition.left_operand,
-                              dsl.PipelineChannel):
+                              pipeline_channel.PipelineChannel):
                     new_current_conditions_channels.append(
                         group.condition.left_operand)
                 if isinstance(group.condition.right_operand,
-                              dsl.PipelineChannel):
+                              pipeline_channel.PipelineChannel):
                     new_current_conditions_channels.append(
                         group.condition.right_operand)
             for task in group.tasks:
@@ -477,13 +472,14 @@ class Compiler:
     def _get_inputs_for_all_groups(
         self,
         pipeline: pipeline_context.Pipeline,
-        pipeline_args: List[dsl.PipelineChannel],
+        pipeline_args: List[pipeline_channel.PipelineChannel],
         root_group: tasks_group.TasksGroup,
         task_name_to_parent_groups: Mapping[str, List[GroupOrTaskType]],
         group_name_to_parent_groups: Mapping[str, List[tasks_group.TasksGroup]],
-        condition_channels: Mapping[str, Set[dsl.PipelineParameterChannel]],
+        condition_channels: Mapping[
+            str, Set[pipeline_channel.PipelineParameterChannel]],
         name_to_for_loop_group: Mapping[str, dsl.ParallelFor],
-    ) -> Mapping[str, List[Tuple[dsl.PipelineChannel, str]]]:
+    ) -> Mapping[str, List[Tuple[pipeline_channel.PipelineChannel, str]]]:
         """Get inputs and outputs of each group and op.
 
         Args:
@@ -567,7 +563,7 @@ class Compiler:
                     else:
                         channel_to_add = channel_to_add.items_or_pipeline_channel
 
-                if isinstance(channel_to_add, dsl.PipelineChannel):
+                if isinstance(channel_to_add, pipeline_channel.PipelineChannel):
                     channels_to_add.append(channel_to_add)
 
                 if channel.task_name:
@@ -710,7 +706,7 @@ class Compiler:
         task_name_to_parent_groups: Mapping[str, List[GroupOrTaskType]],
         group_name_to_parent_groups: Mapping[str, List[tasks_group.TasksGroup]],
         group_name_to_group: Mapping[str, tasks_group.TasksGroup],
-        condition_channels: Dict[str, dsl.PipelineChannel],
+        condition_channels: Dict[str, pipeline_channel.PipelineChannel],
     ) -> Mapping[str, List[GroupOrTaskType]]:
         """Gets dependent groups and tasks for all tasks and groups.
 
