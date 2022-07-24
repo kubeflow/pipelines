@@ -179,6 +179,18 @@ export interface SelectedArtifact {
   linkedArtifact?: LinkedArtifact;
 }
 
+// TODO(zpChris): Export these interfaces for the ROC Curve MetricsVisualizations file.
+interface NameId {
+  name?: string;
+  id: string;
+}
+
+export interface FullArtifactPath {
+  run: NameId;
+  execution: NameId;
+  artifact: NameId;
+}
+
 interface CompareV2Namespace {
   namespace?: string;
 }
@@ -202,7 +214,7 @@ function CompareV2(props: CompareV2Props) {
   const [rocCurveLinkedArtifacts, setRocCurveLinkedArtifacts] = useState<LinkedArtifact[]>([]);
   const [selectedRocCurveIds, setSelectedRocCurveIds] = useState<string[]>([]);
 
-  const [fullArtifactPathList, setFullArtifactPathList] = useState<any[]>([]);
+  const [fullArtifactPathMap, setFullArtifactPathMap] = useState<any>({});
 
   const [scalarMetricsArtifacts, setScalarMetricsArtifacts] = useState<RunArtifact[]>([]);
   const [scalarMetricsArtifactCount, setScalarMetricsArtifactCount] = useState<number>(0);
@@ -312,25 +324,13 @@ function CompareV2(props: CompareV2Props) {
         MetricsType.ROC_CURVE,
       ).runArtifacts;
 
-      // TODO(zpChris): Export these interfaces for the ROC Curve MetricsVisualizations file.
-      interface NameId {
-        name?: string;
-        id: string;
-      }
-
-      interface FullArtifactPath {
-        run: NameId;
-        execution: NameId;
-        artifact: NameId;
-      }
-
-      const fullArtifactPathList: FullArtifactPath[] = [];
+      const fullArtifactPathMap: { [key: string]: FullArtifactPath } = {};
       // TODO(zpChris): Simplify the below logic.
       const rocCurveLinkedArtifacts: LinkedArtifact[] = flatMapDeep(
         rocCurveRunArtifacts.map(rocCurveRunArtifact =>
           rocCurveRunArtifact.executionArtifacts.map(executionArtifact => {
             executionArtifact.linkedArtifacts.forEach(linkedArtifact => {
-              fullArtifactPathList.push({
+              fullArtifactPathMap[getRocCurveId(linkedArtifact)] = {
                 run: {
                   name: rocCurveRunArtifact.run.run?.name,
                   id: rocCurveRunArtifact.run.run!.id!,
@@ -343,13 +343,13 @@ function CompareV2(props: CompareV2Props) {
                   name: getArtifactName(linkedArtifact),
                   id: linkedArtifact.artifact.getId().toString(),
                 },
-              });
+              };
             });
             return executionArtifact.linkedArtifacts;
           }),
         ),
       );
-      setFullArtifactPathList(fullArtifactPathList);
+      setFullArtifactPathMap(fullArtifactPathMap);
       setRocCurveLinkedArtifacts(rocCurveLinkedArtifacts);
       setSelectedRocCurveIds(
         rocCurveLinkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)).slice(0, 3),
@@ -539,7 +539,7 @@ function CompareV2(props: CompareV2Props) {
                   filter={{
                     selectedIds: selectedRocCurveIds,
                     setSelectedIds: setSelectedRocCurveIds,
-                    fullArtifactPathList,
+                    fullArtifactPathMap,
                     selectedIdColorMap,
                     setSelectedIdColorMap,
                   }}

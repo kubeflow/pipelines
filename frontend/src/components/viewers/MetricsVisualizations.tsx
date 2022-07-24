@@ -49,6 +49,7 @@ import Tooltip from '@material-ui/core/Tooltip';
 import { Link } from 'react-router-dom';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
+import { FullArtifactPath } from 'src/pages/CompareV2';
 
 interface MetricsVisualizationsProps {
   linkedArtifacts: LinkedArtifact[];
@@ -356,7 +357,7 @@ type ConfidenceMetric = {
 interface ConfidenceMetricsFilter {
   selectedIds: string[];
   setSelectedIds: (selectedIds: string[]) => void;
-  fullArtifactPathMap: any;
+  fullArtifactPathMap: { [key: string]: FullArtifactPath };
   selectedIdColorMap: { [key: string]: string };
   setSelectedIdColorMap: (selectedIdColorMap: { [key: string]: string }) => void;
 }
@@ -485,8 +486,8 @@ export function ConfidenceMetricsSection({
     // TODO(zpChris): I need to filter the artifacts as well, as this is not correct with the length.
     // TODO(zpChris): The full artifact path list is probably better synced as a map. The lists will not always match up as the linkedArtifactsPage list is going to be different.
     for (let i = 0; i < linkedArtifactsPage.length; i++) {
-      const fullArtifactPath = filter.fullArtifactPathMap[getRocCurveId(linkedArtifacts[i])];
       const id = getRocCurveId(linkedArtifactsPage[i]);
+      const fullArtifactPath = filter.fullArtifactPathMap[id];
       const row = {
         id,
         otherFields: [
@@ -557,14 +558,20 @@ export function ConfidenceMetricsSection({
     );
     const substrings = predicates?.map(p => p.string_value?.toLowerCase() || '') || [];
     const displayLinkedArtifacts = linkedArtifacts.filter(linkedArtifact => {
-      const fullArtifactPath = filter?.fullArtifactPathMap[getRocCurveId(linkedArtifact)];
-      console.log(fullArtifactPath.artifact.name);
-      for (const sub of substrings) {
-        console.log(!`${fullArtifactPath.execution.name} > ${fullArtifactPath.artifact.name}`.includes(sub));
-        if (
-          !`${fullArtifactPath.execution.name} > ${fullArtifactPath.artifact.name}`.includes(sub)
-        ) {
-          return false;
+      if (filter) {
+        const fullArtifactPath = filter.fullArtifactPathMap[getRocCurveId(linkedArtifact)];
+        console.log(fullArtifactPath.artifact.name);
+        for (const sub of substrings) {
+          // TODO(zpChris): Handle cases of no run name - and no execution / artifact names either.
+          if (
+            !`${fullArtifactPath.execution.name} > ${fullArtifactPath.artifact.name}`.includes(
+              sub,
+            ) &&
+            fullArtifactPath.run.name &&
+            !fullArtifactPath.run.name.includes(sub)
+          ) {
+            return false;
+          }
         }
       }
       return true;
