@@ -496,41 +496,44 @@ const getRocCurveFilterTable = (
   };
 };
 
-const updateSelection = (
+const updateRocCurveSelection = (
   filter: ConfidenceMetricsFilter,
   maxSelectedRocCurves: number,
   newSelectedIds: string[],
 ): void => {
-  if (filter) {
-    // TODO(zpChris): I need to keep all since I need to find the shared selected ids. Some may be later - there's no order.
-    const { selectedIds: oldSelectedIds, setSelectedIds } = filter;
+  const {
+    selectedIds: oldSelectedIds,
+    setSelectedIds,
+    selectedIdColorMap,
+    setSelectedIdColorMap,
+  } = filter;
 
-    // Convert arrays to sets for quick lookup.
-    const newSelectedIdsSet = new Set(newSelectedIds);
-    const oldSelectedIdsSet = new Set(oldSelectedIds);
+  // Convert arrays to sets for quick lookup.
+  const newSelectedIdsSet = new Set(newSelectedIds);
+  const oldSelectedIdsSet = new Set(oldSelectedIds);
 
-    let addedIds = newSelectedIds.filter(selectedId => !oldSelectedIdsSet.has(selectedId));
-    const removedIds = oldSelectedIds.filter(selectedId => !newSelectedIdsSet.has(selectedId));
-    const sharedIds = oldSelectedIds.filter(selectedId => newSelectedIdsSet.has(selectedId));
+  // Find the symmetric difference and intersection of new and old IDs.
+  const addedIds = newSelectedIds.filter(selectedId => !oldSelectedIdsSet.has(selectedId));
+  const removedIds = oldSelectedIds.filter(selectedId => !newSelectedIdsSet.has(selectedId));
+  const sharedIds = oldSelectedIds.filter(selectedId => newSelectedIdsSet.has(selectedId));
 
-    const numElementsRemaining = maxSelectedRocCurves - sharedIds.length;
-    addedIds = addedIds.slice(0, numElementsRemaining);
-    setSelectedIds(sharedIds.concat(addedIds));
-    removedIds.forEach(removedId => {
-      lineColorsStack.push(filter.selectedIdColorMap[removedId]);
-      filter.selectedIdColorMap[removedId] = '';
-    });
+  // Restrict the number of selected ROC Curves to a maximum of 10.
+  const numElementsRemaining = maxSelectedRocCurves - sharedIds.length;
+  const limitedAddedIds = addedIds.slice(0, numElementsRemaining);
+  setSelectedIds(sharedIds.concat(limitedAddedIds));
 
-    // Place a limit on the number of IDs that can be added.
-    addedIds.forEach(addedId => {
-      filter.selectedIdColorMap[addedId] = lineColorsStack.pop() || '';
-    });
-
-    filter.setSelectedIdColorMap(filter.selectedIdColorMap);
-  }
+  // Update the color stack and mapping to match the new selected ROC Curves.
+  removedIds.forEach(removedId => {
+    lineColorsStack.push(selectedIdColorMap[removedId]);
+    delete selectedIdColorMap[removedId];
+  });
+  limitedAddedIds.forEach(addedId => {
+    selectedIdColorMap[addedId] = lineColorsStack.pop()!;
+  });
+  setSelectedIdColorMap(selectedIdColorMap);
 };
 
-function reload(
+function reloadRocCurve(
   filter: ConfidenceMetricsFilter,
   linkedArtifacts: LinkedArtifact[],
   setLinkedArtifactsPage: (linkedArtifactsPage: LinkedArtifact[]) => void,
@@ -679,8 +682,8 @@ export function ConfidenceMetricsSection({
             rows={rows}
             selectedIds={filter.selectedIds}
             filterLabel='Filter artifacts'
-            updateSelection={updateSelection.bind(null, filter, maxSelectedRocCurves)}
-            reload={reload.bind(null, filter, linkedArtifacts, setLinkedArtifactsPage)}
+            updateSelection={updateRocCurveSelection.bind(null, filter, maxSelectedRocCurves)}
+            reload={reloadRocCurve.bind(null, filter, linkedArtifacts, setLinkedArtifactsPage)}
             disablePaging={false}
             disableSorting={false}
             disableSelection={false}
