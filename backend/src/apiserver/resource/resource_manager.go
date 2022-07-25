@@ -18,11 +18,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"io"
 	"strconv"
 
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	workflowclient "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/workflow/packer"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
@@ -36,6 +34,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
@@ -288,6 +287,8 @@ func (r *ResourceManager) CreatePipeline(name string, description string, namesp
 	}
 
 	// Store the pipeline file to a path dependent on pipeline version
+	// TODO(lingqinggan): comments in the yaml files are lost during the coversion;
+	// need to find a way to preserve the original files.
 	err = r.objectStore.AddFile(tmpl.Bytes(),
 		r.objectStore.GetPipelineKey(fmt.Sprint(newPipeline.DefaultVersion.UUID)))
 	if err != nil {
@@ -319,7 +320,7 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 	// Verify pipeline exist
 	pipeline, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
-		return nil, util.Wrap(err, "Get pipeline template failed")
+		return nil, util.Wrap(err, "Get pipeline template failed, pipeline does not exist")
 	}
 
 	if pipeline.DefaultVersion == nil {
@@ -360,9 +361,13 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 		RunId: runId,
 		RunAt: runAt,
 	}
-	workflow, err := tmpl.RunWorkflow(apiRun, runWorkflowOptions)
+	executionSpec, err := tmpl.RunWorkflow(apiRun, runWorkflowOptions)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "failed to generate the workflow.")
+		return nil, util.NewInternalServerError(err, "failed to generate the ExecutionSpec.")
+	}
+	workflow, ok := executionSpec.(*util.Workflow)
+	if !ok {
+		return nil, util.NewInternalServerError(errors.New("cast error"), "failed to cast back to Workflow")
 	}
 	// Add a reference to the default experiment if run does not already have a containing experiment
 	ref, err := r.getDefaultExperimentIfNoExperiment(apiRun.GetResourceReferences())
@@ -384,12 +389,12 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 		WorkflowTemplateValidation: false, // not used by kubeflow
 	})
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to validate workflow for (%+v)", workflow.Workflow.Name)
+		return nil, util.NewInternalServerError(err, "Failed to validate workflow for (%+v)", executionSpec.ExecutionName())
 	}
 	// Create argo workflow CR resource
 	newWorkflow, err := r.getWorkflowClient(namespace).Create(ctx, workflow.Get(), v1.CreateOptions{})
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", workflow.Name)
+		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", executionSpec.ExecutionName())
 	}
 
 	// Patched the default value to apiRun
@@ -403,14 +408,27 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 		}
 	}
 
+	newExecSpec, err := util.NewExecutionSpecFromInterface(util.ArgoWorkflow, newWorkflow)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to convert to ExecutionSpec")
+	}
 	// Store run metadata into database
-	runDetail, err := r.ToModelRunDetail(apiRun, runId, util.NewWorkflow(newWorkflow), string(manifestBytes), tmpl.GetTemplateType())
+	runDetail, err := r.ToModelRunDetail(apiRun, runId, newExecSpec, string(manifestBytes), tmpl.GetTemplateType())
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert run model")
 	}
 
 	// Assign the create at time.
 	runDetail.CreatedAtInSec = runAt
+
+	// Assign the scheduled at time
+	if !apiRun.ScheduledAt.AsTime().IsZero() {
+		// if there is no scheduled time, then we assume this run is scheduled at the same time it is created
+		runDetail.ScheduledAtInSec = runAt
+	} else {
+		runDetail.ScheduledAtInSec = apiRun.ScheduledAt.AsTime().Unix()
+	}
+
 	return r.runStore.CreateRun(runDetail)
 }
 
@@ -583,8 +601,8 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	updateError := r.updateWorkflow(ctx, newWorkflow, namespace)
 	if updateError != nil {
 		// Remove resource version
-		newWorkflow.ResourceVersion = ""
-		newCreatedWorkflow, createError := r.getWorkflowClient(namespace).Create(ctx, newWorkflow.Workflow, v1.CreateOptions{})
+		newWorkflow.SetVersion("")
+		newCreatedWorkflow, createError := r.getWorkflowClient(namespace).Create(ctx, newWorkflow.(*util.Workflow).Workflow, v1.CreateOptions{})
 		if createError != nil {
 			return util.NewInternalServerError(createError,
 				"Retry run failed. Failed to create or update the run. Update Error: %s, Create Error: %s",
@@ -592,7 +610,7 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 		}
 		newWorkflow = util.NewWorkflow(newCreatedWorkflow)
 	}
-	err = r.runStore.UpdateRun(runId, newWorkflow.Condition(), 0, newWorkflow.ToStringForStore())
+	err = r.runStore.UpdateRun(runId, string(newWorkflow.ExecutionStatus().Condition()), 0, newWorkflow.ToStringForStore())
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to update the database entry.")
 	}
@@ -667,15 +685,15 @@ func (r *ResourceManager) readRunLogFromArchive(run *model.RunDetail, nodeId str
 	return nil
 }
 
-func (r *ResourceManager) updateWorkflow(ctx context.Context, newWorkflow *util.Workflow, namespace string) error {
+func (r *ResourceManager) updateWorkflow(ctx context.Context, newWorkflow util.ExecutionSpec, namespace string) error {
 	// If fail to get the workflow, return error.
-	latestWorkflow, err := r.getWorkflowClient(namespace).Get(ctx, newWorkflow.Name, v1.GetOptions{})
+	latestWorkflow, err := r.getWorkflowClient(namespace).Get(ctx, newWorkflow.ExecutionName(), v1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	// Update the workflow's resource version to latest.
-	newWorkflow.ResourceVersion = latestWorkflow.ResourceVersion
-	_, err = r.getWorkflowClient(namespace).Update(ctx, newWorkflow.Workflow, v1.UpdateOptions{})
+	newWorkflow.SetVersion(latestWorkflow.ResourceVersion)
+	_, err = r.getWorkflowClient(namespace).Update(ctx, newWorkflow.(*util.Workflow).Workflow, v1.UpdateOptions{})
 	return err
 }
 
@@ -793,20 +811,22 @@ func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string) error {
 	return nil
 }
 
-func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, workflow *util.Workflow) error {
-	if _, ok := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]; !ok {
+func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec util.ExecutionSpec) error {
+	objMeta := execSpec.ExecutionMeta()
+	execStatus := execSpec.ExecutionStatus()
+	if _, ok := objMeta.Labels[util.LabelKeyWorkflowRunId]; !ok {
 		// Skip reporting if the workflow doesn't have the run id label
-		return util.NewInvalidInputError("Workflow[%s] missing the Run ID label", workflow.Name)
+		return util.NewInvalidInputError("Workflow[%s] missing the Run ID label", execSpec.ExecutionName())
 	}
-	runId := workflow.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]
-	jobId := workflow.ScheduledWorkflowUUIDAsStringOrEmpty()
-	if len(workflow.Namespace) == 0 {
+	runId := objMeta.Labels[util.LabelKeyWorkflowRunId]
+	jobId := execSpec.ScheduledWorkflowUUIDAsStringOrEmpty()
+	if len(execSpec.ExecutionNamespace()) == 0 {
 		return util.NewInvalidInputError("Workflow missing namespace")
 	}
 
-	if workflow.PersistedFinalState() {
+	if execSpec.PersistedFinalState() {
 		// If workflow's final state has being persisted, the workflow should be garbage collected.
-		err := r.getWorkflowClient(workflow.Namespace).Delete(ctx, workflow.Name, v1.DeleteOptions{})
+		err := r.getWorkflowClient(execSpec.ExecutionNamespace()).Delete(ctx, execSpec.ExecutionName(), v1.DeleteOptions{})
 		if err != nil {
 			// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
 			// report workflows that no longer exist. It's important to return a not found error, so that persistence
@@ -822,16 +842,14 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, workflow *
 	}
 	// If the run was Running and got terminated (activeDeadlineSeconds set to 0),
 	// ignore its condition and mark it as such
-	condition := workflow.Condition()
-	if workflow.Spec.ActiveDeadlineSeconds != nil &&
-		*workflow.Spec.ActiveDeadlineSeconds == 0 &&
-		!workflow.IsInFinalState() {
-		condition = model.RunTerminatingConditions
+	condition := execStatus.Condition()
+	if execSpec.IsTerminating() {
+		condition = util.ExecutionPhase(model.RunTerminatingConditions)
 	}
 	if jobId == "" {
 		// If a run doesn't have job ID, it's a one-time run created by Pipeline API server.
 		// In this case the DB entry should already been created when argo workflow CR is created.
-		if updateError := r.runStore.UpdateRun(runId, condition, workflow.FinishedAt(), workflow.ToStringForStore()); updateError != nil {
+		if updateError := r.runStore.UpdateRun(runId, string(condition), execStatus.FinishedAt(), execSpec.ToStringForStore()); updateError != nil {
 			if !util.IsUserErrorCodeMatch(updateError, codes.NotFound) {
 				return util.Wrap(updateError, "Failed to update the run.")
 			}
@@ -841,8 +859,8 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, workflow *
 				"Deleting the workflow to avoid resource leaking. "+
 				"This can be caused by installing two KFP instances that try to manage the same workflows "+
 				"or an unknown bug. If you encounter this, recommend reporting more details in https://github.com/kubeflow/pipelines/issues/6189.",
-				workflow.GetName(), workflow.GetNamespace(), runId)
-			if err := r.getWorkflowClient(workflow.Namespace).Delete(ctx, workflow.Name, v1.DeleteOptions{}); err != nil {
+				execSpec.ExecutionName(), execSpec.ExecutionNamespace(), runId)
+			if err := r.getWorkflowClient(execSpec.ExecutionNamespace()).Delete(ctx, execSpec.ExecutionName(), v1.DeleteOptions{}); err != nil {
 				if util.IsNotFound(err) {
 					return util.NewNotFoundError(err, "Failed to delete the obsolete workflow for run %s", runId)
 				}
@@ -851,7 +869,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, workflow *
 			// TODO(jingzhang36): find a proper way to pass collectMetricsFlag here.
 			workflowGCCounter.Inc()
 			// Note, persistence agent will not retry reporting this workflow again, because updateError is a not found error.
-			return util.Wrapf(updateError, "Failed to report workflow name=%q namespace=%q runId=%q", workflow.GetName(), workflow.GetNamespace(), runId)
+			return util.Wrapf(updateError, "Failed to report workflow name=%q namespace=%q runId=%q", execSpec.ExecutionName(), execSpec.ExecutionNamespace(), runId)
 		}
 	} else {
 		// Get the experiment resource reference for job.
@@ -863,20 +881,27 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, workflow *
 		if err != nil {
 			return util.Wrap(err, "Failed to retrieve the job name for the job that created the run.")
 		}
+		// Scheduled time equals created time if it is not specified
+		var scheduledTimeInSec int64
+		if execSpec.ScheduledAtInSecOr0() == 0 {
+			scheduledTimeInSec = objMeta.CreationTimestamp.Unix()
+		} else {
+			scheduledTimeInSec = execSpec.ScheduledAtInSecOr0()
+		}
 		runDetail := &model.RunDetail{
 			Run: model.Run{
 				UUID:             runId,
 				ExperimentUUID:   experimentRef.ReferenceUUID,
-				DisplayName:      workflow.Name,
-				Name:             workflow.Name,
+				DisplayName:      execSpec.ExecutionName(),
+				Name:             execSpec.ExecutionName(),
 				StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
-				Namespace:        workflow.Namespace,
-				CreatedAtInSec:   workflow.CreationTimestamp.Unix(),
-				ScheduledAtInSec: workflow.ScheduledAtInSecOr0(),
-				FinishedAtInSec:  workflow.FinishedAt(),
-				Conditions:       condition,
+				Namespace:        execSpec.ExecutionNamespace(),
+				CreatedAtInSec:   objMeta.CreationTimestamp.Unix(),
+				ScheduledAtInSec: scheduledTimeInSec,
+				FinishedAtInSec:  execStatus.FinishedAt(),
+				Conditions:       string(condition),
 				PipelineSpec: model.PipelineSpec{
-					WorkflowSpecManifest: workflow.GetWorkflowSpec().ToStringForStore(),
+					WorkflowSpecManifest: execSpec.GetExecutionSpec().ToStringForStore(),
 				},
 				ResourceReferences: []*model.ResourceReference{
 					{
@@ -898,7 +923,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, workflow *
 				},
 			},
 			PipelineRuntime: model.PipelineRuntime{
-				WorkflowRuntimeManifest: workflow.ToStringForStore(),
+				WorkflowRuntimeManifest: execSpec.ToStringForStore(),
 			},
 		}
 		err = r.runStore.CreateOrUpdateRun(runDetail)
@@ -907,10 +932,10 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, workflow *
 		}
 	}
 
-	if workflow.IsInFinalState() {
-		err := AddWorkflowLabel(ctx, r.getWorkflowClient(workflow.Namespace), workflow.Name, util.LabelKeyWorkflowPersistedFinalState, "true")
+	if execStatus.IsInFinalState() {
+		err := AddWorkflowLabel(ctx, r.getWorkflowClient(execSpec.ExecutionNamespace()), execSpec.ExecutionName(), util.LabelKeyWorkflowPersistedFinalState, "true")
 		if err != nil {
-			message := fmt.Sprintf("Failed to add PersistedFinalState label to workflow %s", workflow.GetName())
+			message := fmt.Sprintf("Failed to add PersistedFinalState label to workflow %s", execSpec.ExecutionName())
 			// A fix for kubeflow/pipelines#4484, persistence agent might have an outdated item in its workqueue, so it will
 			// report workflows that no longer exist. It's important to return a not found error, so that persistence
 			// agent won't retry again.
@@ -1113,15 +1138,13 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 	if run.WorkflowRuntimeManifest == "" {
 		return nil, util.NewInvalidInputError("read artifact from run with v2 IR spec is not supported")
 	}
-	var storageWorkflow workflowapi.Workflow
-	err = json.Unmarshal([]byte(run.WorkflowRuntimeManifest), &storageWorkflow)
+	execSpec, err := util.NewExecutionSpec([]byte(run.WorkflowRuntimeManifest))
 	if err != nil {
 		// This should never happen.
 		return nil, util.NewInternalServerError(
 			err, "failed to unmarshal workflow '%s'", run.WorkflowRuntimeManifest)
 	}
-	workflow := util.NewWorkflow(&storageWorkflow)
-	artifactPath := workflow.FindObjectStoreArtifactKeyOrEmpty(nodeID, artifactName)
+	artifactPath := execSpec.ExecutionStatus().FindObjectStoreArtifactKeyOrEmpty(nodeID, artifactName)
 	if artifactPath == "" {
 		return nil, util.NewResourceNotFoundError(
 			"artifact", common.CreateArtifactPath(runID, nodeID, artifactName))
@@ -1240,12 +1263,12 @@ func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, 
 	// Verify pipeline version exist
 	_, err := r.pipelineStore.GetPipelineVersion(versionId)
 	if err != nil {
-		return nil, util.Wrap(err, "Get pipeline version template failed")
+		return nil, util.Wrap(err, "Get pipeline version template failed: cannot get pipeline version")
 	}
 
 	template, err := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(versionId)))
 	if err != nil {
-		return nil, util.Wrap(err, "Get pipeline version template failed")
+		return nil, util.Wrap(err, "Get pipeline version template failed: cannot get file")
 	}
 
 	return template, nil

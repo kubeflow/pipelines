@@ -175,7 +175,7 @@ export function MetricsVisualizations({
       {classificationMetricsArtifacts.map(artifact => {
         return (
           <React.Fragment key={artifact.getId()}>
-            <ConfidenceMetricsSection artifact={artifact} />
+            <ConfidenceMetricsSection artifacts={[artifact]} />
             <ConfusionMatrixSection artifact={artifact} />
           </React.Fragment>
         );
@@ -345,32 +345,54 @@ type ConfidenceMetric = {
 };
 
 interface ConfidenceMetricsSectionProps {
-  artifact: Artifact;
+  artifacts: Artifact[];
 }
 
-function ConfidenceMetricsSection({ artifact }: ConfidenceMetricsSectionProps) {
-  const customProperties = artifact.getCustomPropertiesMap();
-  const name = customProperties.get('display_name')?.getStringValue();
+export function ConfidenceMetricsSection({ artifacts }: ConfidenceMetricsSectionProps) {
+  // TODO(zpChris): Update implementation to use a filter table and incorporate artifact ID.
+  const confidenceMetricsDataList = artifacts
+    .map(artifact => {
+      const customProperties = artifact.getCustomPropertiesMap();
+      return {
+        confidenceMetrics: customProperties
+          .get('confidenceMetrics')
+          ?.getStructValue()
+          ?.toJavaScript(),
+        name:
+          customProperties.get('display_name')?.getStringValue() ||
+          `artifact ID #${artifact.getId().toString()}`,
+      };
+    })
+    .filter(confidenceMetricsData => confidenceMetricsData.confidenceMetrics);
 
-  const confidenceMetrics = customProperties
-    .get('confidenceMetrics')
-    ?.getStructValue()
-    ?.toJavaScript();
-  if (confidenceMetrics === undefined) {
+  if (confidenceMetricsDataList.length === 0) {
     return null;
   }
 
-  const { error } = validateConfidenceMetrics((confidenceMetrics as any).list);
+  const rocCurveConfigs: ROCCurveConfig[] = [];
+  for (let i = 0; i < confidenceMetricsDataList.length; i++) {
+    const confidenceMetrics = confidenceMetricsDataList[i].confidenceMetrics as any;
+    const { error } = validateConfidenceMetrics(confidenceMetrics.list);
 
-  if (error) {
-    const errorMsg = 'Error in ' + name + " artifact's confidenceMetrics data format.";
-    return <Banner message={errorMsg} mode='error' additionalInfo={error} />;
+    // If an error exists with confidence metrics, return the first one with an issue.
+    if (error) {
+      const errorMsg =
+        'Error in ' +
+        confidenceMetricsDataList[i].name +
+        " artifact's confidenceMetrics data format.";
+      return <Banner message={errorMsg} mode='error' additionalInfo={error} />;
+    }
+
+    rocCurveConfigs.push(buildRocCurveConfig(confidenceMetrics.list));
   }
   return (
     <div className={padding(40, 'lrt')}>
       <div className={padding(40, 'b')}>
         <h3>
-          {'ROC Curve: ' + name}{' '}
+          {'ROC Curve: ' +
+            (confidenceMetricsDataList.length === 1
+              ? confidenceMetricsDataList[0].name
+              : 'multiple artifacts')}{' '}
           <IconWithTooltip
             Icon={HelpIcon}
             iconColor={color.weak}
@@ -378,7 +400,8 @@ function ConfidenceMetricsSection({ artifact }: ConfidenceMetricsSectionProps) {
           ></IconWithTooltip>
         </h3>
       </div>
-      <ROCCurve configs={buildRocCurveConfig((confidenceMetrics as any).list)} />
+      {/* TODO(zpChris): Introduce checkbox system that matches artifacts to curves. */}
+      <ROCCurve configs={rocCurveConfigs} />
     </div>
   );
 }
@@ -400,18 +423,16 @@ function validateConfidenceMetrics(inputs: any): { error?: string } {
   return {};
 }
 
-function buildRocCurveConfig(confidenceMetricsArray: ConfidenceMetric[]): ROCCurveConfig[] {
+function buildRocCurveConfig(confidenceMetricsArray: ConfidenceMetric[]): ROCCurveConfig {
   const arraytypesCheck = ConfidenceMetricArrayRunType.check(confidenceMetricsArray);
-  return [
-    {
-      type: PlotType.ROC,
-      data: arraytypesCheck.map(metric => ({
-        label: (metric.confidenceThreshold as unknown) as string,
-        x: metric.falsePositiveRate,
-        y: metric.recall,
-      })),
-    },
-  ];
+  return {
+    type: PlotType.ROC,
+    data: arraytypesCheck.map(metric => ({
+      label: (metric.confidenceThreshold as unknown) as string,
+      x: metric.falsePositiveRate,
+      y: metric.recall,
+    })),
+  };
 }
 
 type AnnotationSpec = {
@@ -435,7 +456,7 @@ const CONFUSION_MATRIX_DEFINITION =
   'The higher value on cell where Predicted label matches True label, ' +
   'the better prediction performance of this model is.';
 
-function ConfusionMatrixSection({ artifact }: ConfusionMatrixProps) {
+export function ConfusionMatrixSection({ artifact }: ConfusionMatrixProps) {
   const customProperties = artifact.getCustomPropertiesMap();
   const name = customProperties.get('display_name')?.getStringValue();
 
@@ -565,7 +586,7 @@ async function getViewConfig(
   return [];
 }
 
-async function getHtmlViewerConfig(
+export async function getHtmlViewerConfig(
   htmlArtifacts: LinkedArtifact[] | undefined,
   namespace: string | undefined,
 ): Promise<HTMLViewerConfig[]> {
@@ -591,7 +612,7 @@ async function getHtmlViewerConfig(
   return Promise.all(htmlViewerConfigs);
 }
 
-async function getMarkdownViewerConfig(
+export async function getMarkdownViewerConfig(
   markdownArtifacts: LinkedArtifact[] | undefined,
   namespace: string | undefined,
 ): Promise<MarkdownViewerConfig[]> {

@@ -16,16 +16,205 @@ name: feature_transform_engine
 description: |
   Feature transform engine to transform raw data to engineered features.
 
+  Feature Transform Engine (FTE) expects input data in form of an analyze dataset (i.e., the
+  dataset to be analyzed to compute dataset-level statistics such as min, max, average, or
+  vocabulary) and a transform dataset (i.e., the dataset to be transform into engineered features).
+  FTE performs transformations on the transform dataset based on the provided transformation
+  configurations.
+
     Args:
         project (str):
             Required. Project to run feature transform engine.
         location (Optional[str]):
-            Location for running the feature transform engine. If not set,
-            default to us-central1.
-        root_dir (str): The Cloud Storage location to store the output.
-        analyze_data (Dataset): Configuration of the dataset to be analyzed.
-        transform_data (Dataset): Configuration of the dataset to be transformed.
-        transform_config (str): Feature transformation configurations.
+            Location for running the feature transform engine.
+        root_dir (str):
+            The Cloud Storage location to store the output.
+        analyze_data (Dataset):
+            Configuration of the dataset to be analyzed.
+        transform_data (Dataset):
+            Configuration of the dataset to be transformed.
+        transform_config (str):
+            Feature transformation configurations.
+
+            Path to a JSON file used to specified FTE's transformation configurations.  In the
+            following, we provide some sample transform configurations to demonstrate FTE's
+            capabilities.
+
+            Full auto transformations: FTE automatically configure a set of built-in
+            transformations for each input column based on its data statistics. For example:
+
+            .. code-block:: python
+
+                {
+                  "auto_transforms": ["feature_1", "feature_2", ... ]
+                }
+
+            Fully specified transformations: All transformations on input columns are explicitly
+            specified with FTE's built-in transformations. Chaining of multiple transformations
+            on a single column is also supported. For example:
+
+            .. code-block:: python
+
+                {
+                  "transforms": [{
+                      "transform": "ZScaleTransform",
+                      "input_column_names": ["feature_1"]
+                  }, {
+                      "transform": "ZScaleTransform",
+                      "input_column_names": ["feature_2"]
+                  }]
+                }
+
+            Mix of auto and explicit transformations:
+
+            .. code-block:: python
+
+                {
+                  "auto_transforms": ["feature_1", "feature_2", ... ]
+                  "transforms": [{
+                      "transform": "ZScaleTransform",
+                      "input_column_names": ["feature_3"]
+                  }, {
+                      "transform": "ZScaleTransform",
+                      "input_column_names": ["feature_4"]
+                  }]
+                }
+
+            Custom transformations: Custom, bring-your-own transform function, where users can
+            define and import their own transform function and use it with FTE's built-in
+            transformations. For example:
+
+            .. code-block:: python
+
+                {
+                  "modules": [{
+                    "transform": "PlusOneTransform",
+                    "module_path": "gs://bucket/custom_transform_fn.py",
+                    "function_name": "plus_one_transform"
+                  }],
+                  "transforms": [{
+                      "transform": "CastToFloatTransform",
+                      "input_column_names": ["feature_1"],
+                      "output_column_names": ["feature_1"]
+                  },{
+                      "transform": "PlusOneTransform",
+                      "input_column_names": ["feature_1"]
+                  }
+                }
+
+            Additional information about FTE's built-in transformations:
+
+                DatetimeTransform:
+
+                .. code-block:: python
+
+                    {
+                      "transform": "DatetimeTransform",
+                      "input_column_names": ["feature_1"],
+                      "time_format": "%Y-%m-%d"
+                    }
+
+                LogTransform:
+
+                .. code-block:: python
+
+                    {
+                      "transform": "LogTransform",
+                      "input_column_names": ["feature_1"]
+                    }
+
+                ZScaleTransform:
+
+                .. code-block:: python
+
+                    {
+                      "transform": "ZScaleTransform",
+                      "input_column_names": ["feature_1"]
+                    }
+
+                VocabularyTransform:
+
+                .. code-block:: python
+
+                    {
+                      "transform": "VocabularyTransform",
+                      "input_column_names": ["feature_1"]
+                    }
+
+                CategoricalTransform:
+
+                .. code-block:: python
+
+                    {
+                      "transform": "CategoricalTransform",
+                      "input_column_names": ["feature_1"],
+                      "top_k": 10
+                    }
+
+                ReduceTransform:
+
+                .. code-block:: python
+
+                    {
+                      "transform": "ReduceTransform",
+                      "input_column_names": ["feature_1"],
+                      "reduce_mode": "MEAN",
+                      "output_column_names": ["feature_1_mean"]
+                    }
+
+                SplitStringTransform:
+
+                .. code-block:: python
+
+                    {
+                      "transform": "SplitStringTransform",
+                      "input_column_names": ["feature_1"],
+                      "separator": "$"
+                    }
+
+                NGramTransform:
+
+                .. code-block:: python
+
+                    {
+                      "transform": "NGramTransform",
+                      "input_column_names": ["feature_1"],
+                      "min_ngram_size": 1,
+                      "max_ngram_size": 2,
+                      "separator": " "
+                    }
+
+                ClipTransform:
+
+                .. code-block:: python
+
+                    {
+                      "transform": "ClipTransform",
+                      "input_column_names": ["col1"],
+                      "output_column_names": ["col1_clipped"],
+                      "min_value": 1.,
+                      "max_value": 10.,
+                    }
+
+                MultiHotEncodingTransform:
+
+                .. code-block:: python
+
+                    {
+                      "transform": "MultiHotEncodingTransform",
+                      "input_column_names": ["col1"],
+                    }
+
+                MaxAbsScaleTransform:
+
+                .. code-block:: python
+
+                    {
+                      "transform": "MaxAbsScaleTransform",
+                      "input_column_names": ["col1"],
+                      "output_column_names": ["col1_max_abs_scaled"]
+                    }
+
         dataflow_machine_type (Optional[str]):
             The machine type used for dataflow jobs. If not set, default to n1-standard-16.
         dataflow_max_num_workers (Optional[int]):
@@ -43,14 +232,18 @@ description: |
             Customer-managed encryption key.
 
     Returns:
-        materialized_data (Dataset): The materialized dataset.
-        transform_output (TransformOutput): The transform output artifact.
+        materialized_data (Dataset):
+            The materialized dataset.
+        transform_output (TransformOutput):
+            The transform output artifact.
+        training_schema (TrainingSchema):
+            The training schema.
         gcp_resources (str):
             GCP resources created by this component.
             For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
 inputs:
 - {name: project, type: String}
-- {name: location, type: String, default: "us-central1"}
+- {name: location, type: String}
 - {name: root_dir, type: String}
 - {name: analyze_data, type: Dataset}
 - {name: transform_data, type: Dataset}
@@ -69,55 +262,77 @@ outputs:
 
 implementation:
   container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
-    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.gcp_launcher.launcher]
+    image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20220719_0325_RC00
     args: [
-      --type, CustomJob,
-      --project, {inputValue: project},
-      --location, {inputValue: location},
-      --gcp_resources, {outputPath: gcp_resources},
-      --payload,
+      feature_transform_engine,
       concat: [
-        '{"display_name": "feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
-        {inputValue: encryption_spec_key_name},
-        '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod',
-        '", "args": ["feature_transform_engine", "--transform_output_artifact_path=',
-        {outputUri: transform_output},
-        '", "--transform_output_path=',
+        "--transform_output_artifact_path=",
+        {outputUri: transform_output}
+      ],
+      concat: [
+        "--transform_output_path=",
         {inputValue: root_dir},
-        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform", "--materialized_data_path=',
+        "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform"
+      ],
+      concat: [
+        "--materialized_data_path=",
         {inputValue: root_dir},
-        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized_data","--materialized_data_artifact_path=',
-        {outputUri: materialized_data},
-        '", "--transform_config=',
-        {inputValue: transform_config},
-        '", "--analyze_data_path=',
-        {inputUri: analyze_data},
-        '", "--transform_data_path=',
-        {inputUri: transform_data},
-        '", "--job_name=feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}',
-        '", "--dataflow_project=',
-        {inputValue: project},
-        '", "--error_file_path=',
+        "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized_data"
+      ],
+      concat: [
+        "--materialized_data_artifact_path=",
+        {outputUri: materialized_data}
+      ],
+      concat: [
+        "--transform_config_path=",
+        {inputValue: transform_config}
+      ],
+      concat: [
+        "--analyze_data_path=",
+        {inputUri: analyze_data}
+      ],
+      concat: [
+        "--transform_data_path=",
+        {inputUri: transform_data}
+      ],
+      "--job_name=feature-transform-engine-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
+      concat: [
+        "--dataflow_project=",
+        {inputValue: project}
+      ],
+      concat: [
+        "--dataflow_staging_dir=",
         {inputValue: root_dir},
-        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb", "--dataflow_staging_dir=',
+        "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging",
+      ],
+      concat: [
+        "--dataflow_tmp_dir=",
         {inputValue: root_dir},
-        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging", "--dataflow_tmp_dir=',
-        {inputValue: root_dir},
-        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp", "--dataflow_max_num_workers=',
-        {inputValue: dataflow_max_num_workers},
-        '", "--dataflow_machine_type=',
-        {inputValue: dataflow_machine_type},
-        '", "--dataflow_worker_container_image=',
-        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod',
-        '", "--dataflow_disk_size_gb=',
-        {inputValue: dataflow_disk_size_gb},
-        '", "--dataflow_subnetwork_fully_qualified=',
-        {inputValue: dataflow_subnetwork},
-        '", "--dataflow_use_public_ips=',
-        {inputValue: dataflow_use_public_ips},
-        '", "--dataflow_kms_key=',
-        {inputValue: encryption_spec_key_name},
-        '"]}}]}}'
-      ]]
+        "/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp",
+      ],
+      concat: [
+        "--dataflow_max_num_workers=",
+        {inputValue: dataflow_max_num_workers}
+      ],
+      concat: [
+        "--dataflow_machine_type=",
+        {inputValue: dataflow_machine_type}
+      ],
+      "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220719_0325_RC00",
+      concat: [
+        "--dataflow_disk_size_gb=",
+        {inputValue: dataflow_disk_size_gb}
+      ],
+      concat: [
+        "--dataflow_subnetwork_fully_qualified=",
+        {inputValue: dataflow_subnetwork}
+      ],
+      concat: [
+        "--dataflow_use_public_ips=",
+        {inputValue: dataflow_use_public_ips}
+      ],
+      concat: [
+        "--dataflow_kms_key=",
+        {inputValue: encryption_spec_key_name}
+      ]
+    ]

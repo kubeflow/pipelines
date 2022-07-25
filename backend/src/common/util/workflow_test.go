@@ -25,6 +25,70 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+func TestWorkflow_NewWorkflowFromBytes(t *testing.T) {
+	// Error case
+	workflow, err := NewWorkflowFromBytes([]byte("this is invalid format"))
+	assert.Empty(t, workflow)
+	assert.Error(t, err)
+	assert.EqualError(t, err,
+		"InvalidInputError: Failed to unmarshal the inputs: "+
+			"error unmarshaling JSON: while decoding JSON: json: cannot unmarshal "+
+			"string into Go value of type v1alpha1.Workflow")
+
+	// Normal case
+	bytes, err := yaml.Marshal(workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "WORKFLOW_NAME",
+			Labels: map[string]string{"key": "value"},
+		},
+		Spec: workflowapi.WorkflowSpec{
+			Arguments: workflowapi.Arguments{
+				Parameters: []workflowapi.Parameter{
+					{Name: "PARAM", Value: workflowapi.AnyStringPtr("VALUE")},
+				},
+			},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Message: "I AM A MESSAGE",
+		},
+	})
+	assert.Empty(t, err)
+	assert.NotEmpty(t, bytes)
+
+	workflow, err = NewWorkflowFromBytes(bytes)
+	assert.Empty(t, err)
+	assert.NotEmpty(t, workflow)
+}
+
+func TestWorkflow_NewWorkflowFromInterface(t *testing.T) {
+	// Error case
+	workflow, err := NewWorkflowFromInterface("this is invalid format")
+	assert.Empty(t, workflow)
+	assert.Error(t, err)
+	assert.EqualError(t, err,
+		NewInvalidInputError("not Workflow struct").Error())
+
+	// Normal case
+	workflow, err = NewWorkflowFromInterface(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "WORKFLOW_NAME",
+			Labels: map[string]string{"key": "value"},
+		},
+		Spec: workflowapi.WorkflowSpec{
+			Arguments: workflowapi.Arguments{
+				Parameters: []workflowapi.Parameter{
+					{Name: "PARAM", Value: workflowapi.AnyStringPtr("VALUE")},
+				},
+			},
+		},
+		Status: workflowapi.WorkflowStatus{
+			Message: "I AM A MESSAGE",
+		},
+	})
+	assert.Empty(t, err)
+	assert.NotEmpty(t, workflow)
+}
+
 func TestWorkflow_ScheduledWorkflowUUIDAsStringOrEmpty(t *testing.T) {
 	// Base case
 	workflow := NewWorkflow(&workflowapi.Workflow{
@@ -141,13 +205,13 @@ func TestCondition(t *testing.T) {
 			Phase: workflowapi.WorkflowRunning,
 		},
 	})
-	assert.Equal(t, "Running", workflow.Condition())
+	assert.Equal(t, "Running", string(workflow.Condition()))
 
 	// No status
 	workflow = NewWorkflow(&workflowapi.Workflow{
 		Status: workflowapi.WorkflowStatus{},
 	})
-	assert.Equal(t, "", workflow.Condition())
+	assert.Equal(t, "", string(workflow.Condition()))
 }
 
 func TestToStringForStore(t *testing.T) {
@@ -177,6 +241,76 @@ func TestWorkflow_OverrideName(t *testing.T) {
 	}
 
 	assert.Equal(t, expected, workflow.Get())
+}
+
+func stringToPointer(str string) *string {
+	return &str
+}
+
+func TestWorkflow_SpecParameters(t *testing.T) {
+	execSpec, err := NewExecutionSpecFromInterface(ArgoWorkflow, &workflowapi.Workflow{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Workflow",
+			APIVersion: "argoproj.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "WORKFLOW_NAME",
+		},
+		Spec: workflowapi.WorkflowSpec{
+			Arguments: workflowapi.Arguments{
+				Parameters: []workflowapi.Parameter{
+					{Name: "PARAM1", Value: workflowapi.AnyStringPtr("VALUE1")},
+					{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
+					{Name: "PARAM3", Value: workflowapi.AnyStringPtr("VALUE3")},
+					{Name: "PARAM4", Value: workflowapi.AnyStringPtr("")},
+					{Name: "PARAM5", Value: workflowapi.AnyStringPtr("VALUE5")},
+				},
+			},
+		},
+	})
+
+	assert.Nil(t, err)
+	expectedParam := SpecParameters{SpecParameter{Name: "PARAM1", Value: stringToPointer("VALUE1")},
+		SpecParameter{Name: "PARAM2", Value: stringToPointer("VALUE2")},
+		SpecParameter{Name: "PARAM3", Value: stringToPointer("VALUE3")},
+		SpecParameter{Name: "PARAM4", Value: stringToPointer("")},
+		SpecParameter{Name: "PARAM5", Value: stringToPointer("VALUE5")},
+	}
+	assert.Equal(t, execSpec.SpecParameters(), expectedParam)
+}
+
+func TestWorkflow_SetSpecParameters(t *testing.T) {
+	execSpec, err := NewExecutionSpecFromInterface(ArgoWorkflow, &workflowapi.Workflow{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Workflow",
+			APIVersion: "argoproj.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "WORKFLOW_NAME",
+		},
+		Spec: workflowapi.WorkflowSpec{
+			Arguments: workflowapi.Arguments{
+				Parameters: []workflowapi.Parameter{
+					{Name: "PARAM1", Value: workflowapi.AnyStringPtr("VALUE1")},
+					{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
+					{Name: "PARAM3", Value: workflowapi.AnyStringPtr("VALUE3")},
+					{Name: "PARAM4", Value: workflowapi.AnyStringPtr("")},
+					{Name: "PARAM5", Value: workflowapi.AnyStringPtr("VALUE5")},
+				},
+			},
+		},
+	})
+
+	assert.Nil(t, err)
+
+	newParams := SpecParameters{SpecParameter{Name: "PARAM1", Value: stringToPointer("NEW_VALUE1")},
+		SpecParameter{Name: "PARAM2", Value: stringToPointer("NEW_VALUE2")},
+		SpecParameter{Name: "PARAM3", Value: stringToPointer("VALUE3")},
+		SpecParameter{Name: "PARAM4", Value: stringToPointer("")},
+	}
+
+	execSpec.SetSpecParameters(newParams)
+	assert.Equal(t, execSpec.SpecParameters(), newParams)
 }
 
 func TestWorkflow_OverrideParameters(t *testing.T) {
@@ -405,7 +539,7 @@ func TestGetWorkflowSpec(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, expected, workflow.GetWorkflowSpec().Get())
+	assert.Equal(t, expected, workflow.GetExecutionSpec().(*Workflow).Get())
 }
 
 func TestGetWorkflowSpecTruncatesNameIfLongerThan200Runes(t *testing.T) {
@@ -439,7 +573,7 @@ func TestGetWorkflowSpecTruncatesNameIfLongerThan200Runes(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, expected, workflow.GetWorkflowSpec().Get())
+	assert.Equal(t, expected, workflow.GetExecutionSpec().(*Workflow).Get())
 }
 
 func TestVerifyParameters(t *testing.T) {

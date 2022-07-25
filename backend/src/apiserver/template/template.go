@@ -24,8 +24,6 @@ import (
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -46,35 +44,6 @@ const (
 	argoVersion     = "argoproj.io/v1alpha1"
 	argoK8sResource = "Workflow"
 )
-
-// Unmarshal parameters from JSON encoded string.
-func UnmarshalParameters(paramsString string) ([]v1alpha1.Parameter, error) {
-	if paramsString == "" {
-		return nil, nil
-	}
-	var params []v1alpha1.Parameter
-	err := json.Unmarshal([]byte(paramsString), &params)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Parameters have wrong format")
-	}
-	return params, nil
-}
-
-// Marshal parameters to JSON encoded string.
-// This also checks result is not longer than a limit.
-func MarshalParameters(params []v1alpha1.Parameter) (string, error) {
-	if params == nil {
-		return "[]", nil
-	}
-	paramBytes, err := json.Marshal(params)
-	if err != nil {
-		return "", util.NewInvalidInputErrorWithDetails(err, "Failed to marshal the parameter.")
-	}
-	if len(paramBytes) > util.MaxParameterBytes {
-		return "", util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
-	}
-	return string(paramBytes), nil
-}
 
 var ErrorInvalidPipelineSpec = fmt.Errorf("pipeline spec is invalid")
 
@@ -106,6 +75,11 @@ func isArgoWorkflow(template []byte) bool {
 
 // isPipelineSpec returns whether template is in KFP api/v2alpha1/PipelineSpec format.
 func isPipelineSpec(template []byte) bool {
+	var jsonRaw json.RawMessage
+	if json.Unmarshal(template, &jsonRaw) == nil {
+		return false
+	}
+
 	var spec pipelinespec.PipelineSpec
 	templateJson, err := yaml.YAMLToJSON(template)
 	if err != nil {
@@ -130,7 +104,7 @@ type Template interface {
 	GetTemplateType() TemplateType
 
 	//Get workflow
-	RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (*util.Workflow, error)
+	RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (util.ExecutionSpec, error)
 
 	ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledWorkflow, error)
 }
@@ -162,42 +136,37 @@ func toParametersMap(apiParams []*api.Parameter) map[string]string {
 }
 
 // Patch the system-specified default parameters if available.
-func OverrideParameterWithSystemDefault(workflow *util.Workflow) error {
+func OverrideParameterWithSystemDefault(execSpec util.ExecutionSpec) error {
 	// Patch the default value to workflow spec.
 	if common.GetBoolConfigWithDefault(common.HasDefaultBucketEnvVar, false) {
-		patchedSlice := make([]wfv1.Parameter, 0)
-		for _, currentParam := range workflow.Spec.Arguments.Parameters {
+		params := execSpec.SpecParameters()
+		patched := make(util.SpecParameters, 0, len(params))
+		for _, currentParam := range params {
 			if currentParam.Value != nil {
-				desiredValue, err := common.PatchPipelineDefaultParameter(currentParam.Value.String())
+				desiredValue, err := common.PatchPipelineDefaultParameter(*currentParam.Value)
 				if err != nil {
 					return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
 				}
-				patchedSlice = append(patchedSlice, wfv1.Parameter{
-					Name:  currentParam.Name,
-					Value: wfv1.AnyStringPtr(desiredValue),
-				})
+				patched = append(patched, util.SpecParameter{Name: currentParam.Name, Value: &desiredValue})
 			} else if currentParam.Default != nil {
-				desiredValue, err := common.PatchPipelineDefaultParameter(currentParam.Default.String())
+				desiredValue, err := common.PatchPipelineDefaultParameter(*currentParam.Default)
 				if err != nil {
 					return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
 				}
-				patchedSlice = append(patchedSlice, wfv1.Parameter{
-					Name:  currentParam.Name,
-					Value: wfv1.AnyStringPtr(desiredValue),
-				})
+				patched = append(patched, util.SpecParameter{Name: currentParam.Name, Default: &desiredValue})
 			}
 		}
-		workflow.Spec.Arguments.Parameters = patchedSlice
+		execSpec.SetSpecParameters(patched)
 	}
 	return nil
 }
 
-func setDefaultServiceAccount(workflow *util.Workflow, serviceAccount string) {
+func setDefaultServiceAccount(workflow util.ExecutionSpec, serviceAccount string) {
 	if len(serviceAccount) > 0 {
 		workflow.SetServiceAccount(serviceAccount)
 		return
 	}
-	workflowServiceAccount := workflow.Spec.ServiceAccountName
+	workflowServiceAccount := workflow.ServiceAccount()
 	if len(workflowServiceAccount) == 0 || workflowServiceAccount == common.DefaultPipelineRunnerServiceAccount {
 		// To reserve SDK backward compatibility, the backend only replaces
 		// serviceaccount when it is empty or equal to default value set by SDK.

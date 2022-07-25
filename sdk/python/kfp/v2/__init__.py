@@ -16,9 +16,9 @@
 import warnings
 
 warnings.warn(
-    (f"The module `{__name__}` is deprecated and will be removed in a future"
-     "version. Please import directly from the `kfp` namespace, "
-     "instead of `kfp.v2`."),
+    (f'The module `{__name__}` is deprecated and will be removed in a future'
+     'version. Please import directly from the `kfp` namespace, '
+     'instead of `kfp.v2`.'),
     category=DeprecationWarning,
     stacklevel=2)
 

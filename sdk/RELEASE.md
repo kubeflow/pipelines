@@ -1,7 +1,23 @@
 # Current Version (Still in Development)
 
 ## Major Features and Improvements
-* feat(sdk): add .list_pipeline_versions and .unarchive_experiment methods to Client [\#7563](https://github.com/kubeflow/pipelines/pull/7563)
+
+## Breaking Changes
+
+### For Pipeline Authors
+* Add support for task-level retry policy [\#7867](https://github.com/kubeflow/pipelines/pull/7867)
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+* Enable overriding caching options at submission time [\#7912](https://github.com/kubeflow/pipelines/pull/7912)
+
+## Documentation Updates
+# Current Version (2.0.0-beta.1)
+
+## Major Features and Improvements
 
 ## Breaking Changes
 
@@ -12,6 +28,64 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
+* Include default registry context JSON in package distribution [\#7987](https://github.com/kubeflow/pipelines/pull/7987)
+
+## Documentation Updates
+# 2.0.0-beta.0
+
+## Major Features and Improvements
+
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+
+## Documentation Updates
+
+# 2.0.0-alpha.5
+
+## Major Features and Improvements
+* Implement Registry Client [\#7597](https://github.com/kubeflow/pipelines/pull/7597), [\#7763](https://github.com/kubeflow/pipelines/pull/7763)
+* Write compiled JSON with formatting (multiline with indentation) [\#7712](https://github.com/kubeflow/pipelines/pull/7712)
+* Add function to sdk client for terminating run [\#7835](https://github.com/kubeflow/pipelines/pull/7835)
+* Re-enable component compilation via @component decorator (deprecated) [\#7554](https://github.com/kubeflow/pipelines/pull/7554)
+
+## Breaking Changes
+* Make CLI output consistent, readable, and usable [\#7739](https://github.com/kubeflow/pipelines/pull/7739)
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+* Fix CLI upload pipeline version [\#7722](https://github.com/kubeflow/pipelines/pull/7722)
+
+## Documentation Updates
+# 2.0.0-alpha.3
+
+## Major Features and Improvements
+* feat(sdk): add `.list_pipeline_versions` and `.unarchive_experiment` methods to Client [\#7563](https://github.com/kubeflow/pipelines/pull/7563)
+* Add additional methods to `kfp.client.Client` [\#7562](https://github.com/kubeflow/pipelines/pull/7562), [\#7463](https://github.com/kubeflow/pipelines/pull/7463)
+* Migrate V1 CLI to V2, with improvements [\#7547](https://github.com/kubeflow/pipelines/pull/7547), [\#7558](https://github.com/kubeflow/pipelines/pull/7558), [\#7559](https://github.com/kubeflow/pipelines/pull/7559), [\#7560](https://github.com/kubeflow/pipelines/pull/7560), , [\#7569](https://github.com/kubeflow/pipelines/pull/7569), [\#7567](https://github.com/kubeflow/pipelines/pull/7567), [\#7603](https://github.com/kubeflow/pipelines/pull/7603), [\#7606](https://github.com/kubeflow/pipelines/pull/7606), [\#7607](https://github.com/kubeflow/pipelines/pull/7607), [\#7628](https://github.com/kubeflow/pipelines/pull/7628), [\#7618](https://github.com/kubeflow/pipelines/pull/7618)
+
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+* Accepts `typing-extensions>=4,<5` in addition to `typing-extensions>=3.7.4,<4` [\#7632](https://github.com/kubeflow/pipelines/pull/7632)
+* Remove dependency on `pydantic` [\#7639](https://github.com/kubeflow/pipelines/pull/7639)
 
 ## Documentation Updates
 

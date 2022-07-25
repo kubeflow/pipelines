@@ -13,82 +13,117 @@
 # limitations under the License.
 """Tests for kfp.components.yaml_component."""
 
-import requests
-import unittest
+import os
+import tempfile
 import textwrap
-
-from pathlib import Path
+import unittest
 from unittest import mock
 
-from kfp.components import yaml_component
 from kfp.components import structures
+from kfp.components import yaml_component
+import requests
 
 SAMPLE_YAML = textwrap.dedent("""\
-        name: component_1
-        inputs:
-          input1: {type: String}
-        outputs:
-          output1: {type: String}
-        implementation:
-          container:
-            image: alpine
-            command:
-            - sh
-            - -c
-            - 'set -ex
+components:
+  comp-component-1:
+    executorLabel: exec-component-1
+    inputDefinitions:
+      parameters:
+        input1:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        output1:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-component-1:
+      container:
+        command:
+        - sh
+        - -c
+        - 'set -ex
 
-            echo "$0" > "$1"'
-            - {inputValue: input1}
-            - {outputPath: output1}
+          echo "$0" > "$1"'
+        - '{{$.inputs.parameters[''input1'']}}'
+        - '{{$.outputs.parameters[''output1''].output_file}}'
+        image: alpine
+pipelineInfo:
+  name: component-1
+root:
+  dag:
+    tasks:
+      component-1:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-component-1
+        inputs:
+          parameters:
+            input1:
+              componentInputParameter: input1
+        taskInfo:
+          name: component-1
+  inputDefinitions:
+    parameters:
+      input1:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.3
         """)
+
+V1_COMPONENTS_TEST_DATA_DIR = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), 'compiler', 'test_data',
+    'v1_component_yaml')
+
+V1_COMPONENT_YAML_TEST_CASES = [
+    'concat_placeholder_component.yaml',
+    'ingestion_component.yaml',
+    'serving_component.yaml',
+    'if_placeholder_component.yaml',
+    'trainer_component.yaml',
+    'add_component.yaml',
+]
 
 
 class YamlComponentTest(unittest.TestCase):
 
     def test_load_component_from_text(self):
         component = yaml_component.load_component_from_text(SAMPLE_YAML)
-        self.assertEqual(component.component_spec.name, 'component_1')
+        self.assertEqual(component.component_spec.name, 'component-1')
         self.assertEqual(component.component_spec.outputs,
                          {'output1': structures.OutputSpec(type='String')})
         self.assertEqual(component._component_inputs, {'input1'})
-        self.assertEqual(component.name, 'component_1')
+        self.assertEqual(component.name, 'component-1')
         self.assertEqual(
             component.component_spec.implementation.container.image, 'alpine')
 
     def test_load_component_from_file(self):
-        component_path = Path(
-            __file__).parent / 'test_data' / 'simple_yaml.yaml'
-        component = yaml_component.load_component_from_file(component_path)
-        self.assertEqual(component.component_spec.name, 'component_1')
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'sample_yaml.yaml')
+            with open(path, 'w') as f:
+                f.write(SAMPLE_YAML)
+            component = yaml_component.load_component_from_file(path)
+        self.assertEqual(component.component_spec.name, 'component-1')
         self.assertEqual(component.component_spec.outputs,
                          {'output1': structures.OutputSpec(type='String')})
         self.assertEqual(component._component_inputs, {'input1'})
-        self.assertEqual(component.name, 'component_1')
+        self.assertEqual(component.name, 'component-1')
         self.assertEqual(
             component.component_spec.implementation.container.image, 'alpine')
 
     def test_load_component_from_url(self):
-        component_url = 'https://raw.githubusercontent.com/some/repo/components/component_group/component.yaml'
+        component_url = 'https://raw.githubusercontent.com/kubeflow/pipelines/7b49eadf621a9054e1f1315c86f95fb8cf8c17c3/sdk/python/kfp/compiler/test_data/components/identity.yaml'
+        component = yaml_component.load_component_from_url(component_url)
 
-        def mock_response_factory(url, params=None, **kwargs):
-            if url == component_url:
-                response = requests.Response()
-                response.url = component_url
-                response.status_code = 200
-                response._content = SAMPLE_YAML
-                return response
-            raise RuntimeError('Unexpected URL "{}"'.format(url))
-
-        with mock.patch('requests.get', mock_response_factory):
-            component = yaml_component.load_component_from_url(component_url)
-            self.assertEqual(component.component_spec.name, 'component_1')
-            self.assertEqual(component.component_spec.outputs,
-                             {'output1': structures.OutputSpec(type='String')})
-            self.assertEqual(component._component_inputs, {'input1'})
-            self.assertEqual(component.name, 'component_1')
-            self.assertEqual(
-                component.component_spec.implementation.container.image,
-                'alpine')
+        self.assertEqual(component.component_spec.name, 'identity')
+        self.assertEqual(component.component_spec.outputs,
+                         {'Output': structures.OutputSpec(type='String')})
+        self.assertEqual(component._component_inputs, {'value'})
+        self.assertEqual(component.name, 'identity')
+        self.assertEqual(
+            component.component_spec.implementation.container.image,
+            'python:3.7')
 
 
 if __name__ == '__main__':

@@ -60,6 +60,12 @@ def upload_model(
                   executor_input, model_spec))
   }
 
+  # Add explanation_spec details back into the request if metadata is non-empty, as sklearn/xgboost input features can be empty.
+  if (('explanation_spec' in model_spec) and
+      ('metadata' in model_spec['explanation_spec']) and
+      model_spec['explanation_spec']['metadata']):
+    upload_model_request['model']['explanation_spec']['metadata'] = model_spec['explanation_spec']['metadata']
+
   try:
     remote_runner = lro_remote_runner.LroRemoteRunner(location)
     upload_model_lro = remote_runner.create_lro(
@@ -69,6 +75,6 @@ def upload_model(
 
     vertex_model = VertexModel('model', vertex_uri_prefix + model_resource_name,
                                model_resource_name)
-    artifact_util.update_gcp_output_artifact(executor_input, vertex_model)
+    artifact_util.update_output_artifacts(executor_input, [vertex_model])
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])

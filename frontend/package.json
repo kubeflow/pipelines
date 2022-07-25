@@ -105,7 +105,7 @@
     "@types/express": "^4.16.0",
     "@types/google-protobuf": "^3.7.2",
     "@types/http-proxy-middleware": "^0.17.5",
-    "@types/jest": "^27.4.0",
+    "@types/jest": "^27.5.1",
     "@types/js-yaml": "^3.12.3",
     "@types/lodash": ">=4.14.117",
     "@types/markdown-to-jsx": "^6.9.0",

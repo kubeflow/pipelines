@@ -18,62 +18,58 @@ import unittest
 
 from absl.testing import parameterized
 from kfp.components import pipeline_task
+from kfp.components import placeholders
 from kfp.components import structures
 
 V2_YAML = textwrap.dedent("""\
-    name: component1
-    inputs:
-      input1: {type: String}
-    outputs:
-      output1: {type: Artifact}
-    implementation:
+components:
+  comp-component1:
+    executorLabel: exec-component1
+    inputDefinitions:
+      parameters:
+        input1:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        output1:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-component1:
       container:
-        image: alpine
+        args:
+        - '{{$.inputs.parameters[''input1'']}}'
+        - '{{$.outputs.artifacts[''output1''].path}}'
         command:
         - sh
         - -c
         - echo "$0" >> "$1"
-        args:
-        - {inputValue: input1}
-        - {outputPath: output1}
-""")
-
-V2_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
-    name: component_if
-    inputs:
-      optional_input_1: {type: String}
-    implementation:
-      container:
         image: alpine
-        command:
-        - sh
-        - -c
-        - echo "$0" "$1"
-        args:
-        - ifPresent:
-            inputName: optional_input_1
-            then:
-            - "input: "
-            - {inputValue: optional_input_1}
-            else:
-            - "default: "
-            - "Hello world!"
+pipelineInfo:
+  name: component1
+root:
+  dag:
+    tasks:
+      component1:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-component1
+        inputs:
+          parameters:
+            input1:
+              componentInputParameter: input1
+        taskInfo:
+          name: component1
+  inputDefinitions:
+    parameters:
+      input1:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.2
 """)
-
-V2_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
-    name: component_concat
-    inputs:
-      input1: {type: String}
-      input2: {type: String}
-    implementation:
-      container:
-        image: alpine
-        command:
-        - sh
-        - -c
-        - echo "$0"
-        - concat: [{inputValue: input1}, "+", {inputValue: input2}]
-    """)
 
 
 class PipelineTaskTest(parameterized.TestCase):
@@ -86,8 +82,9 @@ class PipelineTaskTest(parameterized.TestCase):
                     image='alpine',
                     command=['sh', '-c', 'echo "$0" >> "$1"'],
                     args=[
-                        structures.InputValuePlaceholder(input_name='input1'),
-                        structures.OutputPathPlaceholder(output_name='output1'),
+                        placeholders.InputValuePlaceholder(input_name='input1'),
+                        placeholders.OutputPathPlaceholder(
+                            output_name='output1'),
                     ],
                 )),
             inputs={
@@ -117,7 +114,7 @@ class PipelineTaskTest(parameterized.TestCase):
                 V2_YAML),
             args={'input1': 'value'},
         )
-        self.assertEqual(task.task_spec, expected_task_spec)
+        self.assertEqual(task._task_spec, expected_task_spec)
         self.assertEqual(task.component_spec, expected_component_spec)
         self.assertEqual(task.container_spec, expected_container_spec)
 
@@ -143,72 +140,6 @@ class PipelineTaskTest(parameterized.TestCase):
                 },
             )
 
-    @parameterized.parameters(
-        {
-            'component_yaml':
-                V2_YAML_IF_PLACEHOLDER,
-            'args': {
-                'optional_input_1': 'value'
-            },
-            'expected_container_spec':
-                structures.ContainerSpec(
-                    image='alpine',
-                    command=['sh', '-c', 'echo "$0" "$1"'],
-                    args=[
-                        'input: ',
-                        "{{$.inputs.parameters['optional_input_1']}}",
-                    ],
-                )
-        },
-        {
-            'component_yaml':
-                V2_YAML_IF_PLACEHOLDER,
-            'args': {},
-            'expected_container_spec':
-                structures.ContainerSpec(
-                    image='alpine',
-                    command=['sh', '-c', 'echo "$0" "$1"'],
-                    args=[
-                        'default: ',
-                        'Hello world!',
-                    ],
-                )
-        },
-    )
-    def test_resolve_if_placeholder(
-        self,
-        component_yaml: str,
-        args: dict,
-        expected_container_spec: structures.ContainerSpec,
-    ):
-        task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.load_from_component_yaml(
-                component_yaml),
-            args=args,
-        )
-        self.assertEqual(task.container_spec, expected_container_spec)
-
-    def test_resolve_concat_placeholder(self):
-        expected_container_spec = structures.ContainerSpec(
-            image='alpine',
-            command=[
-                'sh',
-                '-c',
-                'echo "$0"',
-                "{{$.inputs.parameters['input1']}}+{{$.inputs.parameters['input2']}}",
-            ],
-        )
-
-        task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.load_from_component_yaml(
-                V2_YAML_CONCAT_PLACEHOLDER),
-            args={
-                'input1': '1',
-                'input2': '2',
-            },
-        )
-        self.assertEqual(task.container_spec, expected_container_spec)
-
     def test_set_caching_options(self):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.load_from_component_yaml(
@@ -216,7 +147,7 @@ class PipelineTaskTest(parameterized.TestCase):
             args={'input1': 'value'},
         )
         task.set_caching_options(False)
-        self.assertEqual(False, task.task_spec.enable_caching)
+        self.assertEqual(False, task._task_spec.enable_caching)
 
     @parameterized.parameters(
         {
@@ -367,7 +298,7 @@ class PipelineTaskTest(parameterized.TestCase):
             args={'input1': 'value'},
         )
         task.set_display_name('test_name')
-        self.assertEqual('test_name', task.task_spec.display_name)
+        self.assertEqual('test_name', task._task_spec.display_name)
 
 
 if __name__ == '__main__':

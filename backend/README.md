@@ -38,11 +38,8 @@ need to be regenerated and checked-in. Refer to [backend/api](./api/README.md) f
 
 ## Updating licenses info
 
-1. Install go-licenses tool and refer to [its documentation](https://github.com/google/go-licenses) for how to use it.
+1. [Install go-licenses tool](../hack/install-go-licenses.sh) and refer to [its documentation](https://github.com/google/go-licenses) for how to use it.
 
-    ```bash
-    go install github.com/google/go-licenses@d483853
-    ```
 
 2. Run the tool to update all licenses:
 
@@ -58,3 +55,11 @@ need to be regenerated and checked-in. Refer to [backend/api](./api/README.md) f
 dependencies. To update dependencies, edit [requirements.in](requirements.in)
 and run `./update_requirements.sh` to update and pin the transitive
 dependencies.
+
+
+## Building conformance tests (WIP)
+
+Run
+```
+docker build . -f backend/Dockerfile.conformance -t <tag>
+```

@@ -12,94 +12,87 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """KFP SDK compiler CLI tool."""
+
 import json
 import logging
 import os
 import sys
-from typing import Any, Callable, List, Mapping, Optional
+import types
+from typing import Any, Callable, Dict, Optional, Union
 
 import click
 from kfp import compiler
 from kfp.components import pipeline_context
+from kfp.components import python_component
 
 
-def _compile_pipeline_function(
-    pipeline_funcs: List[Callable],
-    function_name: Optional[str],
-    pipeline_parameters: Optional[Mapping[str, Any]],
-    package_path: str,
-    type_check: bool,
-) -> None:
-    """Compiles a pipeline function.
-
-    Args:
-      pipeline_funcs: A list of pipeline_functions.
-      function_name: The name of the pipeline function to compile if there were
-        multiple.
-      pipeline_parameters: The pipeline parameters as a dict of {name: value}.
-      package_path: The output path of the compiled result.
-      type_check: Whether to enable the type checking.
-    """
-    if len(pipeline_funcs) == 0:
+def collect_pipeline_from_module(
+    target_module: types.ModuleType
+) -> Union[Callable[..., Any], python_component.PythonComponent]:
+    pipelines = []
+    module_attrs = dir(target_module)
+    for attr in module_attrs:
+        obj = getattr(target_module, attr)
+        if pipeline_context.Pipeline.is_pipeline_func(obj):
+            pipelines.append(obj)
+    if len(pipelines) == 1:
+        return pipelines[0]
+    else:
         raise ValueError(
-            'A function with @dsl.pipeline decorator is required in the py file.'
+            f'Expect one pipeline function in module {target_module}, got {len(pipelines)}: {pipelines}. Please specify the pipeline function name with --function.'
         )
 
-    if len(pipeline_funcs) > 1 and not function_name:
-        func_names = [x.__name__ for x in pipeline_funcs]
-        raise ValueError(
-            'There are multiple pipelines: %s. Please specify --function.' %
-            func_names)
 
-    if function_name:
-        pipeline_func = next(
-            (x for x in pipeline_funcs if x.__name__ == function_name), None)
-        if not pipeline_func:
-            raise ValueError('The function "%s" does not exist. '
-                             'Did you forget @dsl.pipeline decoration?' %
-                             function_name)
-    else:
-        pipeline_func = pipeline_funcs[0]
+def collect_pipeline_func(
+    python_file: str, function_name: Optional[str]
+) -> Union[Callable[..., Any], python_component.PythonComponent]:
+    sys.path.insert(0, os.path.dirname(python_file))
+    try:
+        filename = os.path.basename(python_file)
+        module_name = os.path.splitext(filename)[0]
+        if function_name is None:
+            return collect_pipeline_from_module(
+                target_module=__import__(module_name))
 
-    compiler.Compiler().compile(
-        pipeline_func=pipeline_func,
-        pipeline_parameters=pipeline_parameters,
-        package_path=package_path,
-        type_check=type_check)
+        module = __import__(module_name, fromlist=[function_name])
+        if not hasattr(module, function_name):
+            raise ValueError(
+                f'Pipeline function or component "{function_name}" not found in module {filename}.'
+            )
+
+        return getattr(module, function_name)
+
+    finally:
+        del sys.path[0]
 
 
-class PipelineCollectorContext():
-
-    def __enter__(self):
-        pipeline_funcs = []
-
-        def add_pipeline(func: Callable) -> Callable:
-            pipeline_funcs.append(func)
-            return func
-
-        self.old_handler = pipeline_context.pipeline_decorator_handler
-        pipeline_context.pipeline_decorator_handler = add_pipeline
-
-        return pipeline_funcs
-
-    def __exit__(self, *args):
-        pipeline_context.pipeline_decorator_handler = self.old_handler
+def parse_parameters(parameters: Optional[str]) -> Dict:
+    try:
+        return json.loads(parameters) if parameters is not None else {}
+    except json.JSONDecodeError as e:
+        logging.error(
+            f'Failed to parse --pipeline-parameters argument: {parameters}')
+        raise e
 
 
 @click.command()
 @click.option(
-    '--py', type=str, required=True, help='Local absolute path to a py file.')
+    '--py',
+    type=click.Path(exists=True, dir_okay=False),
+    required=True,
+    help='Local absolute path to a py file.')
 @click.option(
     '--output',
-    type=str,
+    type=click.Path(exists=False, dir_okay=False),
     required=True,
-    help='Local path to the output PipelineJob JSON file.')
+    help='Path to write the compiled result.')
 @click.option(
     '--function',
     'function_name',
     type=str,
     default=None,
-    help='The name of the function to compile if there are multiple.')
+    help='The name of the pipeline or component to compile if there are multiple.'
+)
 @click.option(
     '--pipeline-parameters',
     type=str,
@@ -109,42 +102,37 @@ class PipelineCollectorContext():
     '--disable-type-check',
     is_flag=True,
     default=False,
-    help='Disable the type check. Default: type check is not disabled.')
+    help='Whether to disable type checking.')
 def dsl_compile(
     py: str,
     output: str,
     function_name: Optional[str] = None,
     pipeline_parameters: str = None,
-    disable_type_check: bool = True,
+    disable_type_check: bool = False,
 ) -> None:
     """Compiles a pipeline written in a .py file."""
-    sys.path.insert(0, os.path.dirname(py))
-    try:
-        filename = os.path.basename(py)
-        with PipelineCollectorContext() as pipeline_funcs:
-            __import__(os.path.splitext(filename)[0])
-        try:
-            parsed_parameters = json.loads(
-                pipeline_parameters) if pipeline_parameters is not None else {}
-        except json.JSONDecodeError as e:
-            logging.error(
-                f"Failed to parse --pipeline-parameters argument: {pipeline_parameters}"
-            )
-            raise e
-        _compile_pipeline_function(
-            pipeline_funcs=pipeline_funcs,
-            function_name=function_name,
-            pipeline_parameters=parsed_parameters,
-            package_path=output,
-            type_check=not disable_type_check,
-        )
-    finally:
-        del sys.path[0]
+    pipeline_func = collect_pipeline_func(
+        python_file=py, function_name=function_name)
+    parsed_parameters = parse_parameters(parameters=pipeline_parameters)
+    package_path = os.path.join(os.getcwd(), output)
+    compiler.Compiler().compile(
+        pipeline_func=pipeline_func,
+        pipeline_parameters=parsed_parameters,
+        package_path=package_path,
+        type_check=not disable_type_check)
+
+    click.echo(package_path)
 
 
 def main():
     logging.basicConfig(format='%(message)s', level=logging.INFO)
     try:
+        dsl_compile.help = '(Deprecated. Please use `kfp dsl compile` instead.)\n\n' + dsl_compile.help
+
+        click.echo(
+            '`dsl-compile` is deprecated. Please use `kfp dsl compile` instead.',
+            err=True)
+
         dsl_compile(obj={}, auto_envvar_prefix='KFP')
     except Exception as e:
         click.echo(str(e), err=True)

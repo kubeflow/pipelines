@@ -651,15 +651,16 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	}
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
-			UUID:           "123e4567-e89b-12d3-a456-426655440000",
-			ExperimentUUID: experiment.UUID,
-			DisplayName:    "run1",
-			Name:           "workflow-name",
-			Namespace:      "ns1",
-			ServiceAccount: "pipeline-runner",
-			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
-			CreatedAtInSec: 4,
-			Conditions:     "Running",
+			UUID:             "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID:   experiment.UUID,
+			DisplayName:      "run1",
+			Name:             "workflow-name",
+			Namespace:        "ns1",
+			ServiceAccount:   "pipeline-runner",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			CreatedAtInSec:   4,
+			ScheduledAtInSec: 4,
+			Conditions:       "Running",
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           p.UUID,
 				PipelineName:         "p1",
@@ -702,13 +703,14 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
-			UUID:           "123e4567-e89b-12d3-a456-426655440000",
-			ExperimentUUID: expectedExperimentUUID,
-			DisplayName:    "run1",
-			Name:           "hello-world-0",
-			ServiceAccount: "pipeline-runner",
-			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
-			CreatedAtInSec: 2,
+			UUID:             "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID:   expectedExperimentUUID,
+			DisplayName:      "run1",
+			Name:             "hello-world-0",
+			ServiceAccount:   "pipeline-runner",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
 			PipelineSpec: model.PipelineSpec{
 				PipelineSpecManifest: v2SpecHelloWorld,
 			},
@@ -748,15 +750,16 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
-			UUID:           "123e4567-e89b-12d3-a456-426655440000",
-			ExperimentUUID: expectedExperimentUUID,
-			DisplayName:    "run1",
-			Name:           "workflow-name",
-			Namespace:      "ns1",
-			ServiceAccount: "pipeline-runner",
-			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
-			CreatedAtInSec: 2,
-			Conditions:     "Running",
+			UUID:             "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID:   expectedExperimentUUID,
+			DisplayName:      "run1",
+			Name:             "workflow-name",
+			Namespace:        "ns1",
+			ServiceAccount:   "pipeline-runner",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
+			Conditions:       "Running",
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
@@ -803,15 +806,16 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
-			UUID:           "123e4567-e89b-12d3-a456-426655440000",
-			ExperimentUUID: expectedExperimentUUID,
-			DisplayName:    "run1",
-			Name:           "workflow-name",
-			Namespace:      "ns1",
-			ServiceAccount: "pipeline-runner",
-			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
-			CreatedAtInSec: 2,
-			Conditions:     "Running",
+			UUID:             "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID:   expectedExperimentUUID,
+			DisplayName:      "run1",
+			Name:             "workflow-name",
+			Namespace:        "ns1",
+			ServiceAccount:   "pipeline-runner",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
+			Conditions:       "Running",
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 				Parameters:           "[{\"name\":\"param1\",\"value\":\"test-default-bucket\"}]",
@@ -895,15 +899,16 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
-			UUID:           "123e4567-e89b-12d3-a456-426655440000",
-			ExperimentUUID: experiment.UUID,
-			DisplayName:    "run1",
-			Name:           "workflow-name",
-			Namespace:      "ns1",
-			ServiceAccount: "sa1",
-			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
-			CreatedAtInSec: 4,
-			Conditions:     "Running",
+			UUID:             "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID:   experiment.UUID,
+			DisplayName:      "run1",
+			Name:             "workflow-name",
+			Namespace:        "ns1",
+			ServiceAccount:   "sa1",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			CreatedAtInSec:   4,
+			ScheduledAtInSec: 4,
+			Conditions:       "Running",
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
@@ -996,15 +1001,16 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
-			UUID:           "123e4567-e89b-12d3-a456-426655440000",
-			ExperimentUUID: experiment.UUID,
-			DisplayName:    "run1",
-			Name:           "workflow-name",
-			Namespace:      "ns1",
-			ServiceAccount: "sa1",
-			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
-			CreatedAtInSec: 4,
-			Conditions:     "Running",
+			UUID:             "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID:   experiment.UUID,
+			DisplayName:      "run1",
+			Name:             "workflow-name",
+			Namespace:        "ns1",
+			ServiceAccount:   "sa1",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			CreatedAtInSec:   4,
+			ScheduledAtInSec: 4,
+			Conditions:       "Running",
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           pipeline.UUID,
 				PipelineName:         "p1",
@@ -1975,15 +1981,16 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	runDetail, err := manager.GetRun(run.UUID)
 	assert.Nil(t, err)
 	expectedRun := model.Run{
-		UUID:           "123e4567-e89b-12d3-a456-426655440000",
-		ExperimentUUID: expectedExperimentUUID,
-		DisplayName:    "run1",
-		Name:           "workflow-name",
-		Namespace:      "ns1",
-		ServiceAccount: "pipeline-runner",
-		StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
-		CreatedAtInSec: 2,
-		Conditions:     "Running",
+		UUID:             "123e4567-e89b-12d3-a456-426655440000",
+		ExperimentUUID:   expectedExperimentUUID,
+		DisplayName:      "run1",
+		Name:             "workflow-name",
+		Namespace:        "ns1",
+		ServiceAccount:   "pipeline-runner",
+		StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+		CreatedAtInSec:   2,
+		ScheduledAtInSec: 2,
+		Conditions:       "Running",
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
@@ -2037,10 +2044,10 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 			Name:             "MY_NAME",
 			Namespace:        "MY_NAMESPACE",
 			CreatedAtInSec:   11,
-			ScheduledAtInSec: 0,
+			ScheduledAtInSec: 11,
 			FinishedAtInSec:  0,
 			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: workflow.GetWorkflowSpec().ToStringForStore(),
+				WorkflowSpecManifest: workflow.GetExecutionSpec().ToStringForStore(),
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -2111,10 +2118,10 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 			Name:             "MY_NAME",
 			Namespace:        "MY_NAMESPACE",
 			CreatedAtInSec:   11,
-			ScheduledAtInSec: 0,
+			ScheduledAtInSec: 11,
 			FinishedAtInSec:  0,
 			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: workflow.GetWorkflowSpec().ToStringForStore(),
+				WorkflowSpecManifest: workflow.GetExecutionSpec().ToStringForStore(),
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -2403,6 +2410,10 @@ func TestReadArtifact_Succeed(t *testing.T) {
 	// 	Enabled:    true,
 	// })
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "argoproj.io/v1alpha1",
+			Kind:       "Workflow",
+		},
 		ObjectMeta: v1.ObjectMeta{
 			Name:              "MY_NAME",
 			Namespace:         "MY_NAMESPACE",
@@ -2448,6 +2459,10 @@ func TestReadArtifact_WorkflowNoStatus_NotFound(t *testing.T) {
 	defer store.Close()
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "argoproj.io/v1alpha1",
+			Kind:       "Workflow",
+		},
 		ObjectMeta: v1.ObjectMeta{
 			Name:              "MY_NAME",
 			Namespace:         "MY_NAMESPACE",
@@ -3438,73 +3453,59 @@ func TestCreateTask(t *testing.T) {
 }
 
 var v2SpecHelloWorld = `
-{
-  "components": {
-    "comp-hello-world": {
-      "executorLabel": "exec-hello-world",
-      "inputDefinitions": {
-	"parameters": {
-	  "text": {
-	    "type": "STRING"
-	  }
-	}
-      }
-    }
-  },
-  "deploymentSpec": {
-    "executors": {
-      "exec-hello-world": {
-	"container": {
-	  "args": [
-	    "--text",
-	    "{{$.inputs.parameters['text']}}"
-	  ],
-	  "command": [
-	    "sh",
-	    "-ec",
-	    "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
-	    "def hello_world(text):\n    print(text)\n    return text\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Hello world', description='')\n_parser.add_argument(\"--text\", dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = hello_world(**_parsed_args)\n"
-	  ],
-	  "image": "python:3.7"
-	}
-      }
-    }
-  },
-  "pipelineInfo": {
-    "name": "hello-world"
-  },
-  "root": {
-    "dag": {
-      "tasks": {
-	"hello-world": {
-	  "cachingOptions": {
-	    "enableCache": true
-	  },
-	  "componentRef": {
-	    "name": "comp-hello-world"
-	  },
-	  "inputs": {
-	    "parameters": {
-	      "text": {
-		"componentInputParameter": "text"
-	      }
-	    }
-	  },
-	  "taskInfo": {
-	    "name": "hello-world"
-	  }
-	}
-      }
-    },
-    "inputDefinitions": {
-      "parameters": {
-	"text": {
-	  "type": "STRING"
-	}
-      }
-    }
-  },
-  "schemaVersion": "2.0.0",
-  "sdkVersion": "kfp-1.6.5"
-}
+components:
+  comp-hello-world:
+    executorLabel: exec-hello-world
+    inputDefinitions:
+      parameters:
+        text:
+          type: STRING
+deploymentSpec:
+  executors:
+    exec-hello-world:
+      container:
+        args:
+        - "--text"
+        - "{{$.inputs.parameters['text']}}"
+        command:
+        - sh
+        - "-ec"
+        - |
+          program_path=$(mktemp)
+          printf "%s" "$0" > "$program_path"
+          python3 -u "$program_path" "$@"
+        - |
+          def hello_world(text):
+              print(text)
+              return text
+
+          import argparse
+          _parser = argparse.ArgumentParser(prog='Hello world', description='')
+          _parser.add_argument("--text", dest="text", type=str, required=True, default=argparse.SUPPRESS)
+          _parsed_args = vars(_parser.parse_args())
+
+          _outputs = hello_world(**_parsed_args)
+        image: python:3.7
+pipelineInfo:
+  name: hello-world
+root:
+  dag:
+    tasks:
+      hello-world:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-hello-world
+        inputs:
+          parameters:
+            text:
+              componentInputParameter: text
+        taskInfo:
+          name: hello-world
+  inputDefinitions:
+    parameters:
+      text:
+        type: STRING
+schemaVersion: 2.0.0
+sdkVersion: kfp-1.6.5
 `

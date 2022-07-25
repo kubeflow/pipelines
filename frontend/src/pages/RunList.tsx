@@ -331,9 +331,24 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
 
     if (Array.isArray(this.props.runIdListMask)) {
       displayRuns = this.props.runIdListMask.map(id => ({ run: { id } }));
-      // listRuns doesn't currently support batching by IDs, so in this case we retrieve each run
-      // individually.
+      const filter = JSON.parse(
+        decodeURIComponent(request.filter || '{"predicates": []}'),
+      ) as ApiFilter;
+      // listRuns doesn't currently support batching by IDs, so in this case we retrieve and filter
+      // each run individually.
       await this._getAndSetRuns(displayRuns);
+      const predicates = filter.predicates?.filter(
+        p => p.key === 'name' && p.op === PredicateOp.ISSUBSTRING,
+      );
+      const substrings = predicates?.map(p => p.string_value?.toLowerCase() || '') || [];
+      displayRuns = displayRuns.filter(runDetail => {
+        for (const sub of substrings) {
+          if (!runDetail?.run?.name?.toLowerCase().includes(sub)) {
+            return false;
+          }
+        }
+        return true;
+      });
     } else {
       // Load all runs
       if (this.props.storageState) {

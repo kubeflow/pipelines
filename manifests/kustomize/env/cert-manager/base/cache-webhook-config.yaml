@@ -1,0 +1,25 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: cache-webhook-kubeflow
+  annotations:
+    cert-manager.io/inject-ca-from: $(kfp-namespace)/kfp-cache-cert
+webhooks:
+  - name: cache-server.$(kfp-namespace).svc
+    clientConfig:
+      service:
+        name: cache-server
+        namespace: $(kfp-namespace)
+        path: "/mutate"
+    failurePolicy: Ignore
+    rules:
+    - operations: [ "CREATE" ]
+      apiGroups: [""]
+      apiVersions: ["v1"]
+      resources: ["pods"]
+    sideEffects: None
+    timeoutSeconds: 5
+    objectSelector:
+      matchLabels:
+        pipelines.kubeflow.org/cache_enabled: "true"
+    admissionReviewVersions: ["v1beta1"]

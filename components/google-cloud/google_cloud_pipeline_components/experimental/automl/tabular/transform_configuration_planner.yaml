@@ -1,0 +1,109 @@
+# Copyright 2021 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: transform_configuration_planner
+description: |
+  Automatically generates transform configuration for the Feature Transform Engine.
+
+  When configuring transformation for the Feature Transform Engine, users have an option to specify
+  "auto" transformation on input columns. In such case, this transform configuration planner
+  component will automatically identify the most appropriate set of transformations for the columns
+  and generate the transformation configurations that can be used by the Feature Transform Engine.
+
+    Args:
+        project (str):
+            Required. Project to run Fte transform configuration
+        location (Optional[str]):
+            Location for running the te transform configuration.
+        root_dir (str):
+            The Cloud Storage location to store the output.
+        transform_config (str):
+            Feature transformation configurations.
+        target_column_name (str):
+            The target column name.
+        weight_column_name (str):
+            The weight column name.
+        prediction_type (str):
+            The prediction type. Supported values: "classification", "regression".
+        is_distill (bool):
+            True if in distillation mode. The default value is false.
+        dataset_stats (AutoMLTabularDatasetStats):
+            The dataset stats of the dataset
+        encryption_spec_key_name (Optional[str]):
+            Customer-managed encryption key
+
+    Returns:
+        fte_transform_configuration_artifact_path (str):
+            The path to the  fte transform configutation path.
+        gcp_resources (str):
+            GCP resources created by this component.
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+inputs:
+- {name: project, type: String}
+- {name: location, type: String}
+- {name: root_dir, type: String}
+- {name: analyze_data, type: Dataset, default: ""}
+- {name: transform_config, type: String}
+- {name: target_column, type: String}
+- {name: weight_column, type: String, default: ""}
+- {name: prediction_type, type: String}
+- {name: is_distillation, type: Boolean, default: "false"}
+- {name: dataset_stats, type: AutoMLTabularDatasetStats}
+- {name: encryption_spec_key_name, type: String, default: ""}
+
+outputs:
+- {name: fte_transform_configuration_path, type: String}
+- {name: training_schema, type: TrainingSchema}
+- {name: instance_baseline, type: AutoMLTabularInstanceBaseline}
+- {name: gcp_resources, type: String}
+
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.gcp_launcher.launcher]
+    args: [
+      --type, CustomJob,
+      --project, {inputValue: project},
+      --location, {inputValue: location},
+      --gcp_resources, {outputPath: gcp_resources},
+      --payload,
+      concat: [
+        '{"display_name": "automl-tabular-transform-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
+        {inputValue: encryption_spec_key_name},
+        '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
+        'us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20220719_0325_RC00',
+        '", "args": ["transform_configuration_planner", "--fte_transform_configuration_path=',
+        {inputValue: root_dir},
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform_configuration", "--fte_transform_configuration_output_path=',
+        {outputPath: fte_transform_configuration_path},
+        '", "--transform_config_path=',
+        {inputValue: transform_config},
+        '", "--target_column=',
+        {inputValue: target_column},
+        '", "--analyze_data_path=',
+        {inputUri: analyze_data},
+        '", "--weight_column=',
+        {inputValue: weight_column},
+        '", "--prediction_type=',
+        {inputValue: prediction_type},
+        '", "--is_distill=',
+        {inputValue: is_distillation},
+        '", "--dataset_stats_path=',
+        {inputUri: dataset_stats},
+        '", "--training_schema_path=',
+        {outputUri: training_schema},
+        '", "--instance_baseline_path=',
+        {outputUri: instance_baseline},
+        '"]}}]}}'
+      ]]

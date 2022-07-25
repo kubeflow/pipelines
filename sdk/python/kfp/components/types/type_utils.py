@@ -14,8 +14,8 @@
 """Utilities for component I/O type mapping."""
 import inspect
 import re
+from typing import Any, List, Optional, Type, Union
 import warnings
-from typing import List, Optional, Type, Union
 
 import kfp
 from kfp.components import task_final_status
@@ -204,12 +204,10 @@ def get_input_artifact_type_schema(
 class InconsistentTypeException(Exception):
     """InconsistencyTypeException is raised when two types are not
     consistent."""
-    pass
 
 
 class InconsistentTypeWarning(Warning):
     """InconsistentTypeWarning is issued when two types are not consistent."""
-    pass
 
 
 def verify_type_compatibility(
@@ -233,8 +231,8 @@ def verify_type_compatibility(
 
     # Generic "Artifact" type is compatible with any specific artifact types.
     if not is_parameter_type(
-            str(given_type)) and (str(given_type).lower() == "artifact" or
-                                  str(expected_type).lower() == "artifact"):
+            str(given_type)) and (str(given_type).lower() == 'artifact' or
+                                  str(expected_type).lower() == 'artifact'):
         return True
 
     # Normalize parameter type names.
@@ -274,24 +272,24 @@ def _check_dict_types(
 ):
     given_type_name, _ = list(given_type.items())[0]
     expected_type_name, _ = list(expected_type.items())[0]
-    if given_type_name == "" or expected_type_name == "":
+    if given_type_name == '' or expected_type_name == '':
         # If the type name is empty, it matches any types
         return True
     if given_type_name != expected_type_name:
-        print("type name " + str(given_type_name) +
-              " is different from expected: " + str(expected_type_name))
+        print('type name ' + str(given_type_name) +
+              ' is different from expected: ' + str(expected_type_name))
         return False
     type_name = given_type_name
     for type_property in given_type[type_name]:
         if type_property not in expected_type[type_name]:
-            print(type_name + " has a property " + str(type_property) +
-                  " that the latter does not.")
+            print(type_name + ' has a property ' + str(type_property) +
+                  ' that the latter does not.')
             return False
         if given_type[type_name][type_property] != expected_type[type_name][
                 type_property]:
-            print(type_name + " has a property " + str(type_property) +
-                  " with value: " + str(given_type[type_name][type_property]) +
-                  " and " + str(expected_type[type_name][type_property]))
+            print(type_name + ' has a property ' + str(type_property) +
+                  ' with value: ' + str(given_type[type_name][type_property]) +
+                  ' and ' + str(expected_type[type_name][type_property]))
             return False
     return True
 
@@ -316,3 +314,84 @@ def get_canonical_type_name_for_type(typ: Type) -> Optional[str]:
         The canonical name of the type found.
     """
     return _TYPE_TO_TYPE_NAME.get(typ, None)
+
+
+class TypeCheckManager:
+    """Context manager to set a type check mode within context, then restore
+    mode to original value upon exiting the context."""
+
+    def __init__(self, enable: bool) -> None:
+        """TypeCheckManager constructor.
+
+        Args:
+            enable: Type check mode used within context.
+        """
+        self._enable = enable
+
+    def __enter__(self) -> 'TypeCheckManager':
+        """Set type check mode to self._enable.
+
+        Returns:
+            TypeCheckManager: Returns itself.
+        """
+        self._prev = kfp.TYPE_CHECK
+        kfp.TYPE_CHECK = self._enable
+        return self
+
+    def __exit__(self, *unused_args) -> None:
+        """Restore type check mode to its previous state."""
+        kfp.TYPE_CHECK = self._prev
+
+
+# for reading in IR back to in-memory data structures
+IR_TYPE_TO_IN_MEMORY_SPEC_TYPE = {
+    'STRING':
+        'String',
+    'NUMBER_INTEGER':
+        'Integer',
+    'NUMBER_DOUBLE':
+        'Float',
+    'LIST':
+        'List',
+    'STRUCT':
+        'Dict',
+    'BOOLEAN':
+        'Boolean',
+    artifact_types.Artifact.TYPE_NAME:
+        'Artifact',
+    artifact_types.Model.TYPE_NAME:
+        'Model',
+    artifact_types.Dataset.TYPE_NAME:
+        'Dataset',
+    artifact_types.Metrics.TYPE_NAME:
+        'Metrics',
+    artifact_types.ClassificationMetrics.TYPE_NAME:
+        'ClassificationMetrics',
+    artifact_types.SlicedClassificationMetrics.TYPE_NAME:
+        'SlicedClassificationMetrics',
+    artifact_types.HTML.TYPE_NAME:
+        'HTML',
+    artifact_types.Markdown.TYPE_NAME:
+        'Markdown',
+}
+
+
+def get_canonical_name_for_outer_generic(type_name: Any) -> str:
+    """Maps a complex/nested type name back to a canonical type.
+
+    E.g.
+        >>> get_canonical_name_for_outer_generic('typing.List[str]')
+        'List'
+        >>> get_canonical_name_for_outer_generic('typing.Dict[typing.List[str], str]')
+        'Dict'
+
+    Args:
+        type_name (Any): The type. Returns input if not a string.
+
+    Returns:
+        str: The canonical type.
+    """
+    if not isinstance(type_name, str) or not type_name.startswith('typing.'):
+        return type_name
+
+    return type_name.lstrip('typing.').split('[')[0]

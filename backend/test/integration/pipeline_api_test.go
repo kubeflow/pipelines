@@ -29,6 +29,7 @@ import (
 type PipelineApiTest struct {
 	suite.Suite
 	namespace            string
+	resourceNamespace    string
 	pipelineClient       *api_server.PipelineClient
 	pipelineUploadClient *api_server.PipelineUploadClient
 }
@@ -47,13 +48,36 @@ func (s *PipelineApiTest) SetupTest() {
 		}
 	}
 	s.namespace = *namespace
-	clientConfig := test.GetClientConfig(*namespace)
+
+	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
+	var newPipelineClient func() (*api_server.PipelineClient, error)
+
+	if *isKubeflowMode {
+		s.resourceNamespace = *resourceNamespace
+
+		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
+			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
+		}
+		newPipelineClient = func() (*api_server.PipelineClient, error) {
+			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
+		}
+	} else {
+		clientConfig := test.GetClientConfig(*namespace)
+
+		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
+			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
+		}
+		newPipelineClient = func() (*api_server.PipelineClient, error) {
+			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
+		}
+	}
+
 	var err error
-	s.pipelineUploadClient, err = api_server.NewPipelineUploadClient(clientConfig, false)
+	s.pipelineUploadClient, err = newPipelineUploadClient()
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
-	s.pipelineClient, err = api_server.NewPipelineClient(clientConfig, false)
+	s.pipelineClient, err = newPipelineClient()
 	if err != nil {
 		glog.Exitf("Failed to get pipeline client. Error: %s", err.Error())
 	}
@@ -66,10 +90,10 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 
 	test.DeleteAllPipelines(s.pipelineClient, t)
 
-	/* ------ Upload v2 pipeline spec JSON --------*/
-	v2HelloPipeline, err := s.pipelineUploadClient.UploadFile("../resources/v2-hello-world.json", uploadParams.NewUploadPipelineParams())
+	/* ------ Upload v2 pipeline spec YAML --------*/
+	v2HelloPipeline, err := s.pipelineUploadClient.UploadFile("../resources/v2-hello-world.yaml", uploadParams.NewUploadPipelineParams())
 	require.Nil(t, err)
-	assert.Equal(t, "v2-hello-world.json", v2HelloPipeline.Name)
+	assert.Equal(t, "v2-hello-world.yaml", v2HelloPipeline.Name)
 
 	/* ---------- Upload pipelines YAML ---------- */
 	time.Sleep(1 * time.Second)
@@ -133,7 +157,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, 3, len(listSecondPagePipelines))
 	assert.Equal(t, 5, totalSize)
 	assert.Equal(t, "sequential", listSecondPagePipelines[0].Name)
-	assert.Equal(t, "v2-hello-world.json", listSecondPagePipelines[1].Name)
+	assert.Equal(t, "v2-hello-world.yaml", listSecondPagePipelines[1].Name)
 	assert.Equal(t, "zip-arguments-parameters", listSecondPagePipelines[2].Name)
 	assert.Empty(t, nextPageToken)
 
@@ -143,7 +167,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	require.Nil(t, err)
 	assert.Equal(t, 3, len(listFirstPagePipelines))
 	assert.Equal(t, 5, totalSize)
-	assert.Equal(t, "v2-hello-world.json", listFirstPagePipelines[0].Name)
+	assert.Equal(t, "v2-hello-world.yaml", listFirstPagePipelines[0].Name)
 	assert.Equal(t, "arguments-parameters.yaml", listFirstPagePipelines[1].Name)
 	assert.Equal(t, "sequential", listFirstPagePipelines[2].Name)
 	assert.NotEmpty(t, nextPageToken)
@@ -169,7 +193,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, 3, len(listFirstPagePipelines))
 	assert.Equal(t, 5, totalSize)
 	assert.Equal(t, "zip-arguments-parameters", listFirstPagePipelines[0].Name)
-	assert.Equal(t, "v2-hello-world.json", listFirstPagePipelines[1].Name)
+	assert.Equal(t, "v2-hello-world.yaml", listFirstPagePipelines[1].Name)
 	assert.Equal(t, "sequential", listFirstPagePipelines[2].Name)
 	assert.NotEmpty(t, nextPageToken)
 
@@ -197,10 +221,10 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 
 	template, err = s.pipelineClient.GetTemplate(&params.GetTemplateParams{ID: v2HelloPipeline.ID})
 	require.Nil(t, err)
-	bytes, err = ioutil.ReadFile("../resources/v2-hello-world.json")
+	bytes, err = ioutil.ReadFile("../resources/v2-hello-world.yaml")
 	require.Nil(t, err)
 	expected, err = pipelinetemplate.New(bytes)
-	expected.OverrideV2PipelineName("v2-hello-world.json", "")
+	expected.OverrideV2PipelineName("v2-hello-world.yaml", "")
 	assert.Equal(t, expected, template)
 }
 

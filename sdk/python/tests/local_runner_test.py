@@ -12,11 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 from typing import Callable
+import unittest
 
+from kfp.deprecated import LocalClient
+from kfp.deprecated import run_pipeline_func_locally
 import kfp.deprecated as kfp
-from kfp.deprecated import LocalClient, run_pipeline_func_locally
 
 InputPath = kfp.components.InputPath()
 OutputPath = kfp.components.OutputPath()

@@ -15,7 +15,6 @@
 package util
 
 import (
-	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/glog"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"k8s.io/apimachinery/pkg/util/json"
@@ -103,8 +102,6 @@ func (s *ScheduledWorkflow) ConditionSummary() string {
 }
 
 func (s *ScheduledWorkflow) ParametersAsString() (string, error) {
-	workflowParams := make([]workflowapi.Parameter, 0)
-
 	var params []swfapi.Parameter
 	if s.ScheduledWorkflow.Spec.Workflow == nil {
 		params = make([]swfapi.Parameter, 0)
@@ -112,13 +109,6 @@ func (s *ScheduledWorkflow) ParametersAsString() (string, error) {
 		params = s.ScheduledWorkflow.Spec.Workflow.Parameters
 	}
 
-	for _, param := range params {
-		workflowParam := workflowapi.Parameter{
-			Name:  param.Name,
-			Value: workflowapi.AnyStringPtr(param.Value),
-		}
-		workflowParams = append(workflowParams, workflowParam)
-	}
 	paramsBytes, err := json.Marshal(params)
 	if err != nil {
 		return "", NewInvalidInputError(

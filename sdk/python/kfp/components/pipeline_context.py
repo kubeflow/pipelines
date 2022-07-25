@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2021-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 # limitations under the License.
 """Definition for Pipeline."""
 
+import textwrap
 from typing import Callable, Optional
 
 from kfp.components import pipeline_task
@@ -27,8 +28,8 @@ pipeline_decorator_handler = None
 
 def pipeline(name: Optional[str] = None,
              description: Optional[str] = None,
-             pipeline_root: Optional[str] = None):
-    """Decorator of pipeline functions.
+             pipeline_root: Optional[str] = None) -> Callable:
+    """Decorator used to construct a pipeline.
 
     Example
       ::
@@ -42,15 +43,24 @@ def pipeline(name: Optional[str] = None,
           ...
 
     Args:
-        name: The pipeline name. Default to a sanitized version of the function
-            name.
-        description: Optionally, a human-readable description of the pipeline.
-        pipeline_root: The root directory to generate input/output URI under this
-            pipeline. This is required if input/output URI placeholder is used in
-            this pipeline.
+        name: The pipeline name. Defaults to a sanitized version of the decorated function name.
+        description: A human-readable description of the pipeline.
+        pipeline_root: The root directory from which to read input and output parameters and artifacts.
     """
+    if callable(name):
+        strikethrough_decorator = '\u0336'.join('@pipeline') + '\u0336'
+        raise RuntimeError(
+            textwrap.dedent(
+                f"""The @pipeline decorator must be called (optionally with arguments) in order to construct a pipeline. For example:
 
-    def _pipeline(func: Callable):
+                {strikethrough_decorator}
+                @pipeline()
+                def my_pipeline():
+                    ...
+            """))
+
+    def _pipeline(func: Callable) -> Callable:
+        func._is_pipeline = True
         if name:
             func._component_human_name = name
         if description:
@@ -125,15 +135,15 @@ class Pipeline:
                 add_to_group=not getattr(task, 'is_exit_handler', False))
 
         self._old_register_task_handler = (
-            pipeline_task.PipelineTask.register_task_handler)
-        pipeline_task.PipelineTask.register_task_handler = (
+            pipeline_task.PipelineTask._register_task_handler)
+        pipeline_task.PipelineTask._register_task_handler = (
             register_task_and_generate_id)
         return self
 
     def __exit__(self, *unused_args):
 
         Pipeline._default_pipeline = None
-        pipeline_task.PipelineTask.register_task_handler = (
+        pipeline_task.PipelineTask._register_task_handler = (
             self._old_register_task_handler)
 
     def add_task(
@@ -194,3 +204,15 @@ class Pipeline:
         """Gets the next id for a new group."""
         self._group_id += 1
         return str(self._group_id)
+
+    @classmethod
+    def is_pipeline_func(cls, func: Callable) -> bool:
+        """Checks if a function is a pipeline function.
+
+        Args:
+            func (Callable): The function to check.
+
+        Returns:
+            bool: True if the function is a pipeline function.
+        """
+        return callable(func) and getattr(func, '_is_pipeline', False)

@@ -6,7 +6,7 @@ This folder contains many example pipelines which use [AWS SageMaker Components 
 
 ## Prerequisites 
 
-1. You need a cluster with Kubeflow installed on it. [Install Kubeflow on AWS cluster](https://www.kubeflow.org/docs/aws/deploy/install-kubeflow/)
+1. You need a cluster with Kubeflow installed on it. [Install Kubeflow on AWS cluster](https://awslabs.github.io/kubeflow-manifests/docs/deployment/vanilla/guide/)
 2. Install the following on your local machine or EC2 instance (These are recommended tools. Not all of these are required)
     1. [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html). If you are using an IAM user, configure your [Access Key ID, Secret Access Key](https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html#access-keys-and-secret-access-keys) and preferred AWS Region by running:
        `aws configure`  
@@ -30,7 +30,7 @@ There are two ways you can give them access to SageMaker.
       ```
    2. Take note of the OIDC issuer URL. This URL is in the form `oidc.eks.<region>.amazonaws.com/id/<OIDC_ID>` . Note down the URL.
       ```
-      aws eks describe-cluster --name <cluster_name> --query "cluster.identity.oidc.issuer" --output text
+      aws eks describe-cluster --name <cluster_name> --region <cluster-region> --query "cluster.identity.oidc.issuer" --output text
       ```
    3. Create a file named trust.json with the following content.   
       Replace `<OIDC_URL>` with your OIDC issuer URL **(Don’t include https://)** and `<AWS_ACCOUNT_NUMBER>` with your AWS account number. 
@@ -47,13 +47,13 @@ There are two ways you can give them access to SageMaker.
           {
             "Effect": "Allow",
             "Principal": {
-              "Federated": "arn:aws:iam::$AWS_ACC_NUM:oidc-provider/$OIDC_URL"
+              "Federated": "arn:aws:iam::${AWS_ACC_NUM}:oidc-provider/${OIDC_URL}"
             },
             "Action": "sts:AssumeRoleWithWebIdentity",
             "Condition": {
               "StringEquals": {
-                "$OIDC_URL:aud": "sts.amazonaws.com",
-                "$OIDC_URL:sub": "system:serviceaccount:kubeflow:pipeline-runner"
+                "${OIDC_URL}:aud": "sts.amazonaws.com",
+                "${OIDC_URL}:sub": "system:serviceaccount:kubeflow:pipeline-runner"
               }
             }
           }

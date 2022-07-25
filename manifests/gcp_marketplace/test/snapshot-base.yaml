@@ -147,9 +147,9 @@ stringData:
 apiVersion: v1
 data:
   # References:
-  # * https://github.com/argoproj/argo-workflows/blob/v3.2.3/config/config.go
-  # * https://github.com/argoproj/argo-workflows/blob/v3.2.3/docs/workflow-controller-configmap.md
-  # * https://github.com/argoproj/argo-workflows/blob/v3.2.3/docs/workflow-controller-configmap.yaml
+  # * https://github.com/argoproj/argo-workflows/blob/v3.3.8/config/config.go
+  # * https://github.com/argoproj/argo-workflows/blob/v3.3.8/docs/workflow-controller-configmap.md
+  # * https://github.com/argoproj/argo-workflows/blob/v3.3.8/docs/workflow-controller-configmap.yaml
 
   # emissary executor is a more portable default, see https://github.com/kubeflow/pipelines/issues/1654.
   containerRuntimeExecutor: 'emissary'
@@ -2172,7 +2172,7 @@ metadata:
 spec:
   descriptor:
     type: Kubeflow Pipelines
-    version: 1.8.1
+    version: 2.0.0-alpha.2
     description: |-
       Reusable end-to-end ML workflow
     maintainers:

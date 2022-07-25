@@ -30,6 +30,22 @@ export function isArgoWorkflowTemplate(template: Workflow): boolean {
   return false;
 }
 
+export function isTemplateV2(templateString: string): boolean {
+  try {
+    const template = jsyaml.safeLoad(templateString);
+    if (isArgoWorkflowTemplate(template)) {
+      return false;
+    } else if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
+      WorkflowUtils.convertYamlToV2PipelineSpec(templateString);
+      return true;
+    } else {
+      return false;
+    }
+  } catch (err) {
+    return false;
+  }
+}
+
 // Assuming template is the JSON format of PipelineSpec in api/v2alpha1/pipeline_spec.proto
 export function convertYamlToV2PipelineSpec(template: string): PipelineSpec {
   const pipelineSpecYAML = jsyaml.safeLoad(template);
@@ -57,7 +73,7 @@ export function isPipelineSpec(templateString: string) {
     if (WorkflowUtils.isArgoWorkflowTemplate(template)) {
       StaticGraphParser.createGraph(template!);
       return false;
-    } else if (isFeatureEnabled(FeatureKey.V2)) {
+    } else if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
       const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(templateString);
       convertFlowElements(pipelineSpec);
       return true;

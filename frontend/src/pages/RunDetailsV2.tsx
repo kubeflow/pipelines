@@ -49,6 +49,7 @@ import { statusToIcon } from './Status';
 import DagCanvas from './v2/DagCanvas';
 
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
+const QUERY_REFETCH_INTERNAL = 10000; // 10000 milliseconds == 10 seconds.
 
 interface MlmdPackage {
   executions: Execution[];
@@ -110,6 +111,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     },
     {
       staleTime: QUERY_STALE_TIME,
+      refetchInterval: QUERY_REFETCH_INTERNAL,
       onError: error =>
         props.updateBanner({
           message: 'Cannot get MLMD objects from Metadata store.',
@@ -292,6 +294,13 @@ function updateToolBarActions(
 }
 
 function getDetailsFields(apiRun?: ApiRun): Array<KeyValue<string>> {
+  // check if the run has finished or not. The default value for apiRun.finished_at is
+  // Date(0), when it is not specified.
+  let finishedAt = new Date(0);
+  if (apiRun?.finished_at) {
+    finishedAt = apiRun?.finished_at;
+  }
+
   return [
     ['Run ID', apiRun?.id || '-'],
     ['Workflow name', apiRun?.name || '-'],
@@ -299,7 +308,7 @@ function getDetailsFields(apiRun?: ApiRun): Array<KeyValue<string>> {
     ['Description', apiRun?.description || ''],
     ['Created at', apiRun?.created_at ? formatDateString(apiRun.created_at) : '-'],
     ['Started at', formatDateString(apiRun?.scheduled_at)],
-    ['Finished at', formatDateString(apiRun?.finished_at)],
-    ['Duration', getRunDurationFromApiRun(apiRun)],
+    ['Finished at', finishedAt > new Date(0) ? formatDateString(apiRun?.finished_at) : '-'],
+    ['Duration', finishedAt > new Date(0) ? getRunDurationFromApiRun(apiRun) : '-'],
   ];
 }

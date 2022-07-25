@@ -44,4 +44,4 @@ def create_endpoint(
   vertex_endpoint = VertexEndpoint('endpoint',
                                    vertex_uri_prefix + endpoint_resource_name,
                                    endpoint_resource_name)
-  artifact_util.update_gcp_output_artifact(executor_input, vertex_endpoint)
+  artifact_util.update_output_artifacts(executor_input, [vertex_endpoint])
