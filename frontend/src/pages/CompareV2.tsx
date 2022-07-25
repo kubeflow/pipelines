@@ -192,6 +192,11 @@ function CompareV2(props: CompareV2Props) {
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
 
+  // Two-panel display artifacts
+  const [confusionMatrixRunArtifacts, setConfusionMatrixRunArtifacts] = useState<RunArtifact[]>([]);
+  const [htmlRunArtifacts, setHtmlRunArtifacts] = useState<RunArtifact[]>([]);
+  const [markdownRunArtifacts, setMarkdownRunArtifacts] = useState<RunArtifact[]>([]);
+
   // Scalar Metrics
   const [scalarMetricsArtifacts, setScalarMetricsArtifacts] = useState<RunArtifact[]>([]);
   const [scalarMetricsArtifactCount, setScalarMetricsArtifactCount] = useState<number>(0);
@@ -206,11 +211,6 @@ function CompareV2(props: CompareV2Props) {
   const [fullArtifactPathMap, setFullArtifactPathMap] = useState<{
     [key: string]: FullArtifactPath;
   }>({});
-
-  // Two-panel display artifacts
-  const [confusionMatrixRunArtifacts, setConfusionMatrixRunArtifacts] = useState<RunArtifact[]>([]);
-  const [htmlRunArtifacts, setHtmlRunArtifacts] = useState<RunArtifact[]>([]);
-  const [markdownRunArtifacts, setMarkdownRunArtifacts] = useState<RunArtifact[]>([]);
 
   // Selected artifacts for two-panel layout.
   const createSelectedArtifactArray = (count: number): SelectedArtifact[] => {
