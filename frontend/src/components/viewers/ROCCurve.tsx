@@ -31,7 +31,6 @@ import 'react-vis/dist/style.css';
 import Viewer, { ViewerConfig } from './Viewer';
 import { color, fontsize, commonCss } from '../../Css';
 import { stylesheet } from 'typestyle';
-import { lineColors } from './MetricsVisualizations';
 
 const css = stylesheet({
   axis: {
@@ -76,6 +75,20 @@ interface ROCCurveState {
   lastDrawLocation: { left: number; right: number } | null;
   highlightIndex: number;
 }
+
+export const lineColors = [
+  '#ffcdf3',
+  '#ffee33',
+  '#29d0d0',
+  '#ff9233',
+  '#814a19',
+  '#82c57a',
+  '#9dafff',
+  '#8026c0',
+  '#ad2323',
+  '#2c9e1e',
+  '#2a4ad7',
+];
 
 class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
   constructor(props: any) {

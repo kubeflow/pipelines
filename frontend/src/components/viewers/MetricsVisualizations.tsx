@@ -42,7 +42,7 @@ import ConfusionMatrix, { ConfusionMatrixConfig } from './ConfusionMatrix';
 import { HTMLViewerConfig } from './HTMLViewer';
 import { MarkdownViewerConfig } from './MarkdownViewer';
 import PagedTable from './PagedTable';
-import ROCCurve, { ROCCurveConfig } from './ROCCurve';
+import ROCCurve, { lineColors, ROCCurveConfig } from './ROCCurve';
 import { PlotType, ViewerConfig } from './Viewer';
 import { componentMap } from './ViewerContainer';
 import Tooltip from '@material-ui/core/Tooltip';
@@ -370,58 +370,38 @@ interface ConfidenceMetricsSectionProps {
 
 const runNameCustomRenderer: React.FC<CustomRendererProps<string>> = (
   props: CustomRendererProps<string>,
-) => {
-  return (
-    <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
-      <Link
-        className={commonCss.link}
-        onClick={e => e.stopPropagation()}
-        to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
-      >
-        {props.value}
-      </Link>
-    </Tooltip>
-  );
-};
+) => (
+  <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
+    <Link
+      className={commonCss.link}
+      onClick={e => e.stopPropagation()}
+      to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
+    >
+      {props.value}
+    </Link>
+  </Tooltip>
+);
 
 const executionArtifactCustomRenderer: React.FC<CustomRendererProps<string>> = (
   props: CustomRendererProps<string>,
-) => {
-  return (
-    <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
-      <p>{props.value || ''}</p>
-    </Tooltip>
-  );
-};
+) => (
+  // TODO(zpChris): Where are the ellipsis here?
+  <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
+    <p>{props.value || ''}</p>
+  </Tooltip>
+);
 
 const curveLegendCustomRenderer: React.FC<CustomRendererProps<string>> = (
   props: CustomRendererProps<string>,
-) => {
-  return (
-    <div
-      style={{
-        width: '2rem',
-        height: '4px',
-        backgroundColor: props.value,
-      }}
-    />
-  );
-};
-
-// TODO: Can we place this somewhere else? And we should get less similar colors for some options.
-export const lineColors = [
-  '#ffcdf3',
-  '#ffee33',
-  '#29d0d0',
-  '#ff9233',
-  '#814a19',
-  '#82c57a',
-  '#9dafff',
-  '#8026c0',
-  '#ad2323',
-  '#2c9e1e',
-  '#2a4ad7',
-];
+) => (
+  <div
+    style={{
+      width: '2rem',
+      height: '4px',
+      backgroundColor: props.value,
+    }}
+  />
+);
 
 const lineColorsStack = [...lineColors];
 
