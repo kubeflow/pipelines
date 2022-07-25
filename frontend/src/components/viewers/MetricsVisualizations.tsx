@@ -49,7 +49,7 @@ import Tooltip from '@material-ui/core/Tooltip';
 import { Link } from 'react-router-dom';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
-import { FullArtifactPath } from 'src/pages/CompareV2';
+import { FullArtifactPath, getRocCurveId } from 'src/lib/v2/CompareUtils';
 
 interface MetricsVisualizationsProps {
   linkedArtifacts: LinkedArtifact[];
@@ -422,10 +422,8 @@ export const lineColors = [
   '#2a4ad7',
 ];
 
+// TODO(zpChris): Is this correct?
 const lineColorsStack = [...lineColors];
-
-export const getRocCurveId = (linkedArtifact: LinkedArtifact): string =>
-  `${linkedArtifact.event.getExecutionId()}-${linkedArtifact.event.getArtifactId()}`;
 
 export function ConfidenceMetricsSection({
   linkedArtifacts,
@@ -574,7 +572,6 @@ export function ConfidenceMetricsSection({
       }
       return true;
     });
-    console.log(displayLinkedArtifacts);
     const linkedArtifactsPage = request.pageSize
       ? displayLinkedArtifacts.slice(
           numericPageToken * request.pageSize,

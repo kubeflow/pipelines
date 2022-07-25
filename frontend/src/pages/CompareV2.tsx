@@ -35,8 +35,6 @@ import {
   getExecutionsFromContext,
   getKfpV2RunContext,
   LinkedArtifact,
-  getExecutionDisplayName,
-  getArtifactName,
 } from 'src/mlmd/MlmdUtils';
 import { Artifact, ArtifactType, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
@@ -44,19 +42,18 @@ import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { SelectedItem } from 'src/components/TwoLevelDropdown';
 import MD2Tabs from 'src/atoms/MD2Tabs';
-import {
-  ConfidenceMetricsSection,
-  getRocCurveId,
-} from 'src/components/viewers/MetricsVisualizations';
+import { ConfidenceMetricsSection } from 'src/components/viewers/MetricsVisualizations';
 import CompareTable, { CompareTableProps } from 'src/components/CompareTable';
 import {
   ExecutionArtifact,
+  FullArtifactPath,
   getCompareTableProps,
+  getRocCurveId,
+  getValidRocCurveLinkedArtifacts,
   MetricsType,
   RunArtifact,
   RunArtifactData,
 } from 'src/lib/v2/CompareUtils';
-import { flatMapDeep } from 'lodash';
 import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
 import MetricsDropdown from 'src/components/viewers/MetricsDropdown';
@@ -177,18 +174,6 @@ function getRunArtifacts(runs: ApiRunDetail[], mlmdPackages: MlmdPackage[]): Run
 export interface SelectedArtifact {
   selectedItem: SelectedItem;
   linkedArtifact?: LinkedArtifact;
-}
-
-// TODO(zpChris): Export these interfaces for the ROC Curve MetricsVisualizations file.
-interface NameId {
-  name?: string;
-  id: string;
-}
-
-export interface FullArtifactPath {
-  run: NameId;
-  execution: NameId;
-  artifact: NameId;
 }
 
 interface CompareV2Namespace {
@@ -326,45 +311,14 @@ function CompareV2(props: CompareV2Props) {
         MetricsType.ROC_CURVE,
       ).runArtifacts;
 
-      const fullArtifactPathMap: { [key: string]: FullArtifactPath } = {};
-      // TODO(zpChris): Simplify the below logic.
-      const createFullArtifactPath = (
-        run: ApiRunDetail,
-        execution: Execution,
-        linkedArtifact: LinkedArtifact,
-      ): FullArtifactPath => ({
-        run: {
-          name: run.run?.name,
-          id: run.run!.id!,
-        },
-        execution: {
-          name: getExecutionDisplayName(execution),
-          id: execution.getId().toString(),
-        },
-        artifact: {
-          name: getArtifactName(linkedArtifact),
-          id: linkedArtifact.artifact.getId().toString(),
-        },
-      });
-
-      const rocCurveLinkedArtifacts: LinkedArtifact[] = flatMapDeep(
-        rocCurveRunArtifacts.map(rocCurveRunArtifact =>
-          rocCurveRunArtifact.executionArtifacts.map(executionArtifact => {
-            executionArtifact.linkedArtifacts.forEach(linkedArtifact => {
-              fullArtifactPathMap[getRocCurveId(linkedArtifact)] = createFullArtifactPath(
-                rocCurveRunArtifact.run,
-                executionArtifact.execution,
-                linkedArtifact,
-              );
-            });
-            return executionArtifact.linkedArtifacts;
-          }),
-        ),
+      const { validLinkedArtifacts, fullArtifactPathMap } = getValidRocCurveLinkedArtifacts(
+        rocCurveRunArtifacts,
       );
+
       setFullArtifactPathMap(fullArtifactPathMap);
-      setRocCurveLinkedArtifacts(rocCurveLinkedArtifacts);
+      setRocCurveLinkedArtifacts(validLinkedArtifacts);
       setSelectedRocCurveIds(
-        rocCurveLinkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)).slice(0, 3),
+        validLinkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)).slice(0, 3),
       );
     }
   }, [runs, mlmdPackages, artifactTypes]);
