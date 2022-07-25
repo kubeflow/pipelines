@@ -418,7 +418,7 @@ export const lineColors = [
   '#9dafff',
   '#8026c0',
   '#ad2323',
-  '#1d6914',
+  '#2c9e1e',
   '#2a4ad7',
 ];
 
@@ -560,13 +560,11 @@ export function ConfidenceMetricsSection({
     const displayLinkedArtifacts = linkedArtifacts.filter(linkedArtifact => {
       if (filter) {
         const fullArtifactPath = filter.fullArtifactPathMap[getRocCurveId(linkedArtifact)];
-        console.log(fullArtifactPath.artifact.name);
         for (const sub of substrings) {
+          const executionArtifactName = `${fullArtifactPath.execution.name} > ${fullArtifactPath.artifact.name}`;
           // TODO(zpChris): Handle cases of no run name - and no execution / artifact names either.
           if (
-            !`${fullArtifactPath.execution.name} > ${fullArtifactPath.artifact.name}`.includes(
-              sub,
-            ) &&
+            !executionArtifactName.includes(sub) &&
             fullArtifactPath.run.name &&
             !fullArtifactPath.run.name.includes(sub)
           ) {
@@ -617,7 +615,7 @@ export function ConfidenceMetricsSection({
         </h3>
       </div>
       {/* TODO(zpChris): Introduce checkbox system that matches artifacts to curves. */}
-      <ROCCurve configs={rocCurveConfigs} colors={colors} forceLegend />
+      <ROCCurve configs={rocCurveConfigs} colors={colors} forceLegend disableAnimation />
       {filter && (
         <>
           {filter.selectedIds.length === 10 && linkedArtifacts.length > 10 ? (

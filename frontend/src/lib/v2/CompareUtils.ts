@@ -47,9 +47,6 @@ export interface RunArtifactData {
   artifactCount: number;
 }
 
-export const getRocCurveId = (linkedArtifact: LinkedArtifact): string =>
-  `${linkedArtifact.event.getExecutionId()}-${linkedArtifact.event.getArtifactId()}`;
-
 export const getCompareTableProps = (
   scalarMetricsArtifacts: RunArtifact[],
   artifactCount: number,

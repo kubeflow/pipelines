@@ -214,7 +214,9 @@ function CompareV2(props: CompareV2Props) {
   const [rocCurveLinkedArtifacts, setRocCurveLinkedArtifacts] = useState<LinkedArtifact[]>([]);
   const [selectedRocCurveIds, setSelectedRocCurveIds] = useState<string[]>([]);
 
-  const [fullArtifactPathMap, setFullArtifactPathMap] = useState<any>({});
+  const [fullArtifactPathMap, setFullArtifactPathMap] = useState<{
+    [key: string]: FullArtifactPath;
+  }>({});
 
   const [scalarMetricsArtifacts, setScalarMetricsArtifacts] = useState<RunArtifact[]>([]);
   const [scalarMetricsArtifactCount, setScalarMetricsArtifactCount] = useState<number>(0);
@@ -326,24 +328,34 @@ function CompareV2(props: CompareV2Props) {
 
       const fullArtifactPathMap: { [key: string]: FullArtifactPath } = {};
       // TODO(zpChris): Simplify the below logic.
+      const createFullArtifactPath = (
+        run: ApiRunDetail,
+        execution: Execution,
+        linkedArtifact: LinkedArtifact,
+      ): FullArtifactPath => ({
+        run: {
+          name: run.run?.name,
+          id: run.run!.id!,
+        },
+        execution: {
+          name: getExecutionDisplayName(execution),
+          id: execution.getId().toString(),
+        },
+        artifact: {
+          name: getArtifactName(linkedArtifact),
+          id: linkedArtifact.artifact.getId().toString(),
+        },
+      });
+
       const rocCurveLinkedArtifacts: LinkedArtifact[] = flatMapDeep(
         rocCurveRunArtifacts.map(rocCurveRunArtifact =>
           rocCurveRunArtifact.executionArtifacts.map(executionArtifact => {
             executionArtifact.linkedArtifacts.forEach(linkedArtifact => {
-              fullArtifactPathMap[getRocCurveId(linkedArtifact)] = {
-                run: {
-                  name: rocCurveRunArtifact.run.run?.name,
-                  id: rocCurveRunArtifact.run.run!.id!,
-                },
-                execution: {
-                  name: getExecutionDisplayName(executionArtifact.execution),
-                  id: executionArtifact.execution.getId().toString(),
-                },
-                artifact: {
-                  name: getArtifactName(linkedArtifact),
-                  id: linkedArtifact.artifact.getId().toString(),
-                },
-              };
+              fullArtifactPathMap[getRocCurveId(linkedArtifact)] = createFullArtifactPath(
+                rocCurveRunArtifact.run,
+                executionArtifact.execution,
+                linkedArtifact,
+              );
             });
             return executionArtifact.linkedArtifacts;
           }),

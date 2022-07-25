@@ -68,6 +68,7 @@ interface ROCCurveProps {
   maxDimension?: number;
   colors?: string[];
   forceLegend?: boolean;
+  disableAnimation?: boolean;
 }
 
 interface ROCCurveState {
@@ -111,7 +112,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
         <XYPlot
           width={width}
           height={height}
-          animation={!isSmall}
+          animation={this.props.disableAnimation || !isSmall}
           classes={{ root: css.root }}
           onMouseLeave={() => this.setState({ hoveredValues: new Array(numLines).fill('') })}
           xDomain={lastDrawLocation && [lastDrawLocation.left, lastDrawLocation.right]}
