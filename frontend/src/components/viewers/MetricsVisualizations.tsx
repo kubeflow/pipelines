@@ -539,7 +539,7 @@ function reloadRocCurve(
   setLinkedArtifactsPage: (linkedArtifactsPage: LinkedArtifact[]) => void,
   request: ListRequest,
 ): Promise<string> {
-  const numericPageToken = request.pageToken ? parseInt(request.pageToken) : 0;
+  // Filter the linked artifacts by run, execution, and artifact display name.
   const apiFilter = JSON.parse(
     decodeURIComponent(request.filter || '{"predicates": []}'),
   ) as ApiFilter;
@@ -549,7 +549,8 @@ function reloadRocCurve(
   const substrings = predicates?.map(p => p.string_value?.toLowerCase() || '') || [];
   const displayLinkedArtifacts = linkedArtifacts.filter(linkedArtifact => {
     if (filter) {
-      const fullArtifactName = filter.fullArtifactNameMap[getRocCurveId(linkedArtifact)];
+      const fullArtifactName: FullArtifactName =
+        filter.fullArtifactNameMap[getRocCurveId(linkedArtifact)];
       for (const sub of substrings) {
         const executionArtifactName = `${fullArtifactName.executionName} > ${fullArtifactName.artifactName}`;
         if (!executionArtifactName.includes(sub) && !fullArtifactName.runName.includes(sub)) {
@@ -559,23 +560,23 @@ function reloadRocCurve(
     }
     return true;
   });
-  const linkedArtifactsPage = request.pageSize
-    ? displayLinkedArtifacts.slice(
-        numericPageToken * request.pageSize,
-        (numericPageToken + 1) * request.pageSize,
-      )
-    : displayLinkedArtifacts;
-  let nextPageToken = '';
-  if (
-    displayLinkedArtifacts[displayLinkedArtifacts.length - 1] !==
-    linkedArtifactsPage[linkedArtifactsPage.length - 1]
-  ) {
-    nextPageToken =
-      linkedArtifacts.length === numericPageToken + 1 ? '' : `${numericPageToken + 1}`;
+
+  let linkedArtifactsPage: LinkedArtifact[] = displayLinkedArtifacts;
+  let nextPageToken: string = '';
+  if (request.pageSize) {
+    // Retrieve the specific page of linked artifacts.
+    const numericPageToken = request.pageToken ? parseInt(request.pageToken) : 0;
+    linkedArtifactsPage = displayLinkedArtifacts.slice(
+      numericPageToken * request.pageSize,
+      (numericPageToken + 1) * request.pageSize,
+    );
+
+    // Set the next page token if the last item has not been reached.
+    if (displayLinkedArtifacts.length > (numericPageToken + 1) * request.pageSize) {
+      nextPageToken = `${numericPageToken + 1}`;
+    }
   }
   setLinkedArtifactsPage(linkedArtifactsPage);
-
-  // Set the rows here. Each of the artifact lists are grouped by page tokens.
   return Promise.resolve(nextPageToken);
 }
 
