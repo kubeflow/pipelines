@@ -429,9 +429,8 @@ export function ConfidenceMetricsSection({
   linkedArtifacts,
   filter,
 }: ConfidenceMetricsSectionProps) {
-  const tableRef = useRef<CustomTable>(null); // TODO: Add refresh line.
+  const maxSelectedRocCurves: number = 10;
   const [linkedArtifactsPage, setLinkedArtifactsPage] = useState<LinkedArtifact[]>(linkedArtifacts);
-  // TODO: Can I do this filtering beforehand?
   let confidenceMetricsDataList = linkedArtifacts
     .map(linkedArtifact => {
       const artifact = linkedArtifact.artifact;
@@ -528,8 +527,7 @@ export function ConfidenceMetricsSection({
       const removedIds = oldSelectedIds.filter(selectedId => !newSelectedIdsSet.has(selectedId));
       const sharedIds = oldSelectedIds.filter(selectedId => newSelectedIdsSet.has(selectedId));
 
-      // TODO(zpChris): This 10 value should be shared amongst all its uses.
-      const numElementsRemaining = 10 - sharedIds.length;
+      const numElementsRemaining = maxSelectedRocCurves - sharedIds.length;
       addedIds = addedIds.slice(0, numElementsRemaining);
       setSelectedIds(sharedIds.concat(addedIds));
       removedIds.forEach(removedId => {
@@ -596,6 +594,10 @@ export function ConfidenceMetricsSection({
     ? filter.selectedIds.map(selectedId => filter.selectedIdColorMap[selectedId])
     : [];
 
+  const disableAdditionalSelection: boolean =
+    filter !== undefined &&
+    filter.selectedIds.length === maxSelectedRocCurves &&
+    linkedArtifacts.length > maxSelectedRocCurves;
   return (
     <div className={padding(40, 'lrt')}>
       <div className={padding(40, 'b')}>
@@ -615,18 +617,24 @@ export function ConfidenceMetricsSection({
       <ROCCurve configs={rocCurveConfigs} colors={colors} forceLegend disableAnimation />
       {filter && (
         <>
-          {filter.selectedIds.length === 10 && linkedArtifacts.length > 10 ? (
-            <p>
-              You have reached the maximum number of ROC Curves you can select at once. Deselect an
-              item in order to select additional artifacts.
-            </p>
+          {disableAdditionalSelection ? (
+            <Banner
+              message={
+                `You have reached the maximum number of ROC Curves (${maxSelectedRocCurves})` +
+                ' you can select at once.'
+              }
+              mode='info'
+              additionalInfo={
+                `You have reached the maximum number of ROC Curves (${maxSelectedRocCurves})` +
+                ' you can select at once. Deselect an item in order to select additional artifacts.'
+              }
+              leftAlign
+            />
           ) : null}
           <CustomTable
             columns={columns}
             rows={rows}
             selectedIds={filter.selectedIds}
-            // initialSortColumn={RunSortKeys.CREATED_AT}
-            ref={tableRef}
             filterLabel='Filter artifacts'
             updateSelection={updateSelection}
             reload={reload}
@@ -635,9 +643,7 @@ export function ConfidenceMetricsSection({
             disableSelection={false}
             noFilterBox={false}
             emptyMessage='No artifacts found'
-            disableAdditionalSelection={
-              filter.selectedIds.length === 10 && linkedArtifacts.length > 10
-            }
+            disableAdditionalSelection={disableAdditionalSelection}
           />
         </>
       )}
