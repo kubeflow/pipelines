@@ -34,7 +34,7 @@ import Banner from '../Banner';
 import DetailsTable from '../DetailsTable';
 import { RoutePageFactory } from '../Router';
 import { ExecutionTitle } from './ExecutionTitle';
-import { getMetadataValueV2} from 'src/mlmd/Utils';
+import { getMetadataValueV2 } from 'src/mlmd/Utils';
 
 type ParamList = Array<KeyValue<string>>;
 
@@ -150,66 +150,26 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
 export default InputOutputTab;
 
 function extractInputFromExecution(execution: Execution): KeyValue<string>[] {
-  //return extractParamFromExecution(execution, /input:(?<inputName>.+)/, 'inputName');
   return extractParamFromExecution(execution, 'inputs');
 }
 
 function extractOutputFromExecution(execution: Execution): KeyValue<string>[] {
-  //return extractParamFromExecution(execution, /output:(?<outputName>.+)/, 'outputName');
   return extractParamFromExecution(execution, 'outputs');
 }
 
-/*
-function extractParamFromExecution(
-  execution: Execution,
-  pattern: RegExp,
-  groupName: string,
-): KeyValue<string>[] {
-  const result: KeyValue<string>[] = [];
-  execution.getCustomPropertiesMap().forEach((value, key) => {
-    const found = key.match(pattern);
-    if (found?.groups?.[groupName]) {
-      result.push([found.groups[groupName], prettyPrintValue(getMetadataValue(value))]);
-    }
-  });
-  return result;
-}
-*/
-
-function extractParamFromExecution(
-  execution: Execution,
-  pattern: string,
-): KeyValue<string>[] {
+function extractParamFromExecution(execution: Execution, pattern: string): KeyValue<string>[] {
   const result: KeyValue<string>[] = [];
   execution.getCustomPropertiesMap().forEach((value, key) => {
     if (key == pattern) {
       const ioParam = getMetadataValueV2(value);
       if (ioParam) {
-        Object.entries(ioParam.toJavaScript()).map((val) => {
-          result.push([val[0], JSON.stringify(val[1])]);
-        })
+        Object.entries(ioParam.toJavaScript()).map(parameter => {
+          result.push([parameter[0], JSON.stringify(parameter[1])]);
+        });
       }
     }
   });
   return result;
-}
-
-function prettyPrintValue(value: string | number | Struct | undefined): string {
-  if (value == null) {
-    return '';
-  }
-  if (typeof value === 'string') {
-    return value;
-  }
-  if (typeof value === 'number') {
-    return JSON.stringify(value);
-  }
-  // value is Struct
-  const jsObject = value.toJavaScript();
-  // When Struct is converted to js object, it may contain a top level "struct"
-  // or "list" key depending on its type, but the key is meaningless and we can
-  // omit it in visualization.
-  return JSON.stringify(jsObject?.struct || jsObject?.list || jsObject, null, 2);
 }
 
 export function getArtifactParamList(inputArtifacts: LinkedArtifact[]): ParamList {
