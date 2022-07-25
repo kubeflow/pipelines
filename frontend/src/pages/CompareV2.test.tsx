@@ -411,7 +411,7 @@ describe('CompareV2', () => {
     expect(runCheckboxes.filter(r => r.nodeName === 'INPUT')).toHaveLength(0);
   });
 
-  it('Scalar metrics tab initially enabled, and switch tabs', async () => {
+  it('Scalar metrics tab initially enabled with loading then error, and switch tabs', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
@@ -423,6 +423,7 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
+    screen.getByRole('circularprogress');
     await waitFor(() => {
       screen.getByText('An error is preventing the Scalar Metrics from being displayed.');
 

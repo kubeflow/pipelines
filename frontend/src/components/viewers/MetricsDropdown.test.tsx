@@ -121,8 +121,6 @@ describe('MetricsDropdown', () => {
     render(
       <CommonTestWrapper>
         <MetricsDropdown
-          isErrorArtifacts={false}
-          isLoadingArtifacts={false}
           filteredRunArtifacts={[]}
           metricsTab={MetricsType.CONFUSION_MATRIX}
           selectedArtifacts={emptySelectedArtifacts}
@@ -137,8 +135,6 @@ describe('MetricsDropdown', () => {
   it('Metrics dropdown has no dropdown loaded as HTML is not present', async () => {
     render(
       <MetricsDropdown
-        isErrorArtifacts={false}
-        isLoadingArtifacts={false}
         filteredRunArtifacts={[]}
         metricsTab={MetricsType.HTML}
         selectedArtifacts={emptySelectedArtifacts}
@@ -153,8 +149,6 @@ describe('MetricsDropdown', () => {
     render(
       <CommonTestWrapper>
         <MetricsDropdown
-          isErrorArtifacts={false}
-          isLoadingArtifacts={false}
           filteredRunArtifacts={[]}
           metricsTab={MetricsType.MARKDOWN}
           selectedArtifacts={emptySelectedArtifacts}
@@ -170,8 +164,6 @@ describe('MetricsDropdown', () => {
     render(
       <CommonTestWrapper>
         <MetricsDropdown
-          isErrorArtifacts={false}
-          isLoadingArtifacts={false}
           filteredRunArtifacts={scalarMetricsArtifacts}
           metricsTab={MetricsType.CONFUSION_MATRIX}
           selectedArtifacts={emptySelectedArtifacts}
@@ -204,8 +196,6 @@ describe('MetricsDropdown', () => {
     render(
       <CommonTestWrapper>
         <MetricsDropdown
-          isErrorArtifacts={false}
-          isLoadingArtifacts={false}
           filteredRunArtifacts={scalarMetricsArtifactsNoRunName}
           metricsTab={MetricsType.CONFUSION_MATRIX}
           selectedArtifacts={emptySelectedArtifacts}
@@ -229,8 +219,6 @@ describe('MetricsDropdown', () => {
     render(
       <CommonTestWrapper>
         <MetricsDropdown
-          isErrorArtifacts={false}
-          isLoadingArtifacts={false}
           filteredRunArtifacts={scalarMetricsArtifacts}
           metricsTab={MetricsType.CONFUSION_MATRIX}
           selectedArtifacts={emptySelectedArtifacts}
@@ -270,8 +258,6 @@ describe('MetricsDropdown', () => {
     render(
       <CommonTestWrapper>
         <MetricsDropdown
-          isErrorArtifacts={false}
-          isLoadingArtifacts={false}
           filteredRunArtifacts={scalarMetricsArtifacts}
           metricsTab={MetricsType.HTML}
           selectedArtifacts={emptySelectedArtifacts}
@@ -317,8 +303,6 @@ describe('MetricsDropdown', () => {
     render(
       <CommonTestWrapper>
         <MetricsDropdown
-          isErrorArtifacts={false}
-          isLoadingArtifacts={false}
           filteredRunArtifacts={scalarMetricsArtifacts}
           metricsTab={MetricsType.MARKDOWN}
           selectedArtifacts={emptySelectedArtifacts}
@@ -367,8 +351,6 @@ describe('MetricsDropdown', () => {
     render(
       <CommonTestWrapper>
         <MetricsDropdown
-          isErrorArtifacts={false}
-          isLoadingArtifacts={false}
           filteredRunArtifacts={scalarMetricsArtifacts}
           metricsTab={MetricsType.HTML}
           selectedArtifacts={emptySelectedArtifacts}
@@ -414,8 +396,6 @@ describe('MetricsDropdown', () => {
     render(
       <CommonTestWrapper>
         <MetricsDropdown
-          isErrorArtifacts={false}
-          isLoadingArtifacts={false}
           filteredRunArtifacts={scalarMetricsArtifacts}
           metricsTab={MetricsType.CONFUSION_MATRIX}
           selectedArtifacts={newSelectedArtifacts}
@@ -427,47 +407,5 @@ describe('MetricsDropdown', () => {
 
     screen.getByText('Choose a first Confusion Matrix artifact');
     screen.getByTitle('run1 > execution1 > artifact1');
-  });
-
-  it('Error state for artifacts', async () => {
-    const getHtmlViewerConfigSpy = jest.spyOn(metricsVisualizations, 'getHtmlViewerConfig');
-    getHtmlViewerConfigSpy.mockRejectedValue(new Error('HTML file not found.'));
-
-    render(
-      <CommonTestWrapper>
-        <MetricsDropdown
-          isErrorArtifacts={true}
-          isLoadingArtifacts={false}
-          filteredRunArtifacts={scalarMetricsArtifacts}
-          metricsTab={MetricsType.HTML}
-          selectedArtifacts={emptySelectedArtifacts}
-          updateSelectedArtifacts={updateSelectedArtifactsSpy}
-        />
-      </CommonTestWrapper>,
-    );
-    await TestUtils.flushPromises();
-
-    screen.getByText('An error is preventing the HTML from being displayed.');
-  });
-
-  it('Loading state for artifacts', async () => {
-    const getHtmlViewerConfigSpy = jest.spyOn(metricsVisualizations, 'getHtmlViewerConfig');
-    getHtmlViewerConfigSpy.mockRejectedValue(new Error('HTML file not found.'));
-
-    render(
-      <CommonTestWrapper>
-        <MetricsDropdown
-          isErrorArtifacts={false}
-          isLoadingArtifacts={true}
-          filteredRunArtifacts={scalarMetricsArtifacts}
-          metricsTab={MetricsType.HTML}
-          selectedArtifacts={emptySelectedArtifacts}
-          updateSelectedArtifacts={updateSelectedArtifactsSpy}
-        />
-      </CommonTestWrapper>,
-    );
-    await TestUtils.flushPromises();
-
-    screen.getByRole('circularprogress');
   });
 });

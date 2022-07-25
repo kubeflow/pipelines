@@ -48,6 +48,7 @@ import {
   ExecutionArtifact,
   getCompareTableProps,
   MetricsType,
+  metricsTypeToString,
   RunArtifact,
   RunArtifactData,
 } from 'src/lib/v2/CompareUtils';
@@ -177,30 +178,11 @@ export interface SelectedArtifact {
 }
 
 interface ScalarMetricsTableParams {
-  isErrorArtifacts: boolean;
-  isLoadingArtifacts: boolean;
   scalarMetricsTableData: CompareTableProps | undefined;
 }
 
 function ScalarMetricsTable(props: ScalarMetricsTableParams) {
-  const { isErrorArtifacts, isLoadingArtifacts, scalarMetricsTableData } = props;
-
-  if (isErrorArtifacts) {
-    return <p>An error is preventing the Scalar Metrics from being displayed.</p>;
-  }
-
-  if (isLoadingArtifacts) {
-    return (
-      <div className={compareCss.relativeContainer}>
-        <CircularProgress
-          size={25}
-          className={commonCss.absoluteCenter}
-          style={{ zIndex: zIndex.BUSY_OVERLAY }}
-          role='circularprogress'
-        />
-      </div>
-    );
-  }
+  const { scalarMetricsTableData } = props;
 
   if (!scalarMetricsTableData) {
     return <p>There are no Scalar Metrics artifacts available on the selected runs.</p>;
@@ -210,30 +192,11 @@ function ScalarMetricsTable(props: ScalarMetricsTableParams) {
 }
 
 interface ROCCurveMetricsParams {
-  isErrorArtifacts: boolean;
-  isLoadingArtifacts: boolean;
   selectedRocCurveArtifacts: Artifact[];
 }
 
 function ROCCurveMetrics(props: ROCCurveMetricsParams) {
-  const { isErrorArtifacts, isLoadingArtifacts, selectedRocCurveArtifacts } = props;
-
-  if (isErrorArtifacts) {
-    return <p>An error is preventing the ROC Curve from being displayed.</p>;
-  }
-
-  if (isLoadingArtifacts) {
-    return (
-      <div className={compareCss.relativeContainer}>
-        <CircularProgress
-          size={25}
-          className={commonCss.absoluteCenter}
-          style={{ zIndex: zIndex.BUSY_OVERLAY }}
-          role='circularprogress'
-        />
-      </div>
-    );
-  }
+  const { selectedRocCurveArtifacts } = props;
 
   if (selectedRocCurveArtifacts.length === 0) {
     return <p>There are no ROC Curve artifacts available on the selected runs.</p>;
@@ -488,6 +451,7 @@ function CompareV2(props: CompareV2Props) {
   };
 
   const isErrorArtifacts = isErrorRunDetails || isErrorMlmdPackages || isErrorArtifactTypes;
+  const metricsTabText = metricsTypeToString(metricsTab);
   return (
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
       {/* Overview section */}
@@ -541,53 +505,54 @@ function CompareV2(props: CompareV2Props) {
             onSwitch={setMetricsTab}
           />
           <div className={classes(padding(20, 'lrt'), css.outputsOverflow)}>
-            {metricsTab === MetricsType.SCALAR_METRICS && (
-              <ScalarMetricsTable
-                isErrorArtifacts={isErrorArtifacts}
-                isLoadingArtifacts={isLoadingArtifacts}
-                scalarMetricsTableData={scalarMetricsTableData}
-              />
-            )}
-            {metricsTab === MetricsType.CONFUSION_MATRIX && (
-              <MetricsDropdown
-                isErrorArtifacts={isErrorArtifacts}
-                isLoadingArtifacts={isLoadingArtifacts}
-                filteredRunArtifacts={confusionMatrixRunArtifacts}
-                metricsTab={metricsTab}
-                selectedArtifacts={selectedArtifactsMap[metricsTab]}
-                updateSelectedArtifacts={updateSelectedArtifacts}
-                namespace={namespace}
-              />
-            )}
-            {/* TODO(zpChris): Add more ROC Curve selections through checkbox system. */}
-            {metricsTab === MetricsType.ROC_CURVE && (
-              <ROCCurveMetrics
-                isErrorArtifacts={isErrorArtifacts}
-                isLoadingArtifacts={isLoadingArtifacts}
-                selectedRocCurveArtifacts={selectedRocCurveArtifacts}
-              />
-            )}
-            {metricsTab === MetricsType.HTML && (
-              <MetricsDropdown
-                isErrorArtifacts={isErrorArtifacts}
-                isLoadingArtifacts={isLoadingArtifacts}
-                filteredRunArtifacts={htmlRunArtifacts}
-                metricsTab={metricsTab}
-                selectedArtifacts={selectedArtifactsMap[metricsTab]}
-                updateSelectedArtifacts={updateSelectedArtifacts}
-                namespace={namespace}
-              />
-            )}
-            {metricsTab === MetricsType.MARKDOWN && (
-              <MetricsDropdown
-                isErrorArtifacts={isErrorArtifacts}
-                isLoadingArtifacts={isLoadingArtifacts}
-                filteredRunArtifacts={markdownRunArtifacts}
-                metricsTab={metricsTab}
-                selectedArtifacts={selectedArtifactsMap[metricsTab]}
-                updateSelectedArtifacts={updateSelectedArtifacts}
-                namespace={namespace}
-              />
+            {isErrorArtifacts ? (
+              <p>An error is preventing the {metricsTabText} from being displayed.</p>
+            ) : isLoadingArtifacts ? (
+              <div className={compareCss.relativeContainer}>
+                <CircularProgress
+                  size={25}
+                  className={commonCss.absoluteCenter}
+                  style={{ zIndex: zIndex.BUSY_OVERLAY }}
+                  role='circularprogress'
+                />
+              </div>
+            ) : (
+              <>
+                {metricsTab === MetricsType.SCALAR_METRICS && (
+                  <ScalarMetricsTable scalarMetricsTableData={scalarMetricsTableData} />
+                )}
+                {metricsTab === MetricsType.CONFUSION_MATRIX && (
+                  <MetricsDropdown
+                    filteredRunArtifacts={confusionMatrixRunArtifacts}
+                    metricsTab={metricsTab}
+                    selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                    updateSelectedArtifacts={updateSelectedArtifacts}
+                    namespace={namespace}
+                  />
+                )}
+                {/* TODO(zpChris): Add more ROC Curve selections through checkbox system. */}
+                {metricsTab === MetricsType.ROC_CURVE && (
+                  <ROCCurveMetrics selectedRocCurveArtifacts={selectedRocCurveArtifacts} />
+                )}
+                {metricsTab === MetricsType.HTML && (
+                  <MetricsDropdown
+                    filteredRunArtifacts={htmlRunArtifacts}
+                    metricsTab={metricsTab}
+                    selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                    updateSelectedArtifacts={updateSelectedArtifacts}
+                    namespace={namespace}
+                  />
+                )}
+                {metricsTab === MetricsType.MARKDOWN && (
+                  <MetricsDropdown
+                    filteredRunArtifacts={markdownRunArtifacts}
+                    metricsTab={metricsTab}
+                    selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                    updateSelectedArtifacts={updateSelectedArtifacts}
+                    namespace={namespace}
+                  />
+                )}
+              </>
             )}
           </div>
         </div>

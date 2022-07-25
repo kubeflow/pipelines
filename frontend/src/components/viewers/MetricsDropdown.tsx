@@ -77,8 +77,6 @@ const css = stylesheet({
 });
 
 interface MetricsDropdownProps {
-  isErrorArtifacts: boolean;
-  isLoadingArtifacts: boolean;
   filteredRunArtifacts: RunArtifact[];
   metricsTab: MetricsType;
   selectedArtifacts: SelectedArtifact[];
@@ -88,8 +86,6 @@ interface MetricsDropdownProps {
 
 export default function MetricsDropdown(props: MetricsDropdownProps) {
   const {
-    isErrorArtifacts,
-    isLoadingArtifacts,
     filteredRunArtifacts,
     metricsTab,
     selectedArtifacts,
@@ -115,23 +111,6 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
     selectedArtifacts[panelIndex].linkedArtifact = linkedArtifact;
     updateSelectedArtifacts(selectedArtifacts);
   };
-
-  if (isErrorArtifacts) {
-    return <p>An error is preventing the {metricsTabText} from being displayed.</p>;
-  }
-
-  if (isLoadingArtifacts) {
-    return (
-      <div className={compareCss.relativeContainer}>
-        <CircularProgress
-          size={25}
-          className={commonCss.absoluteCenter}
-          style={{ zIndex: zIndex.BUSY_OVERLAY }}
-          role='circularprogress'
-        />
-      </div>
-    );
-  }
 
   const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
   if (dropdownItems.length === 0) {
