@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-import { Button, Dialog, DialogActions, DialogContent, InputAdornment } from '@material-ui/core';
+import { Button, Dialog, DialogActions, DialogContent, InputAdornment, FormControlLabel, Radio } from '@material-ui/core';
 import React, { useEffect, useState } from 'react';
 import { useMutation, useQuery } from 'react-query';
 import { ApiExperiment, ApiExperimentStorageState } from 'src/apis/experiment';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
+import { ApiTrigger } from 'src/apis/job';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import { ApiRelationship, ApiResourceReference, ApiResourceType, ApiRun } from 'src/apis/run';
 import BusyButton from 'src/atoms/BusyButton';
@@ -28,6 +29,7 @@ import Input from 'src/atoms/Input';
 import { NameWithTooltip } from 'src/components/CustomTableNameColumn';
 import NewRunParametersV2 from 'src/components/NewRunParametersV2';
 import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
+import Trigger from 'src/components/Trigger';
 import { color, commonCss, padding } from 'src/Css';
 import {
   ComponentInputsSpec_ParameterSpec,
@@ -76,6 +78,11 @@ function NewRunV2(props: NewRunV2Props) {
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isParameterValid, setIsParameterValid] = useState(false);
+  const [isClone, setIsClone] = useState(false);
+  const [isRecurringRun, setIsRecurringRun] = useState(false);
+  const [trigger, setTrigger] = useState<ApiTrigger>();
+  const [maxConcurrentRuns, setMaxConcurrentRuns] = useState('');
+  const [catchup, setCatchup] = useState(true);
 
   // TODO(zijianjoy): If creating run from Experiment Page or RunList Page, there is no pipelineId/Version.
   const urlParser = new URLParser(props);
@@ -127,9 +134,9 @@ function NewRunV2(props: NewRunV2Props) {
   useEffect(() => {
     props.updateToolbar({
       actions: {},
-      pageTitle: 'Start a new run',
+      pageTitle: isRecurringRun ? 'Start a recurring run' : 'Start a new run',
     });
-  }, []);
+  }, [isRecurringRun]);
 
   // When loading a pipeline version, automatically set the default run name.
   useEffect(() => {
@@ -281,7 +288,7 @@ function NewRunV2(props: NewRunV2Props) {
 
         {/* Run info inputs */}
         <Input
-          label={'Run name'}
+          label={isRecurringRun ? 'Recurring run config name' : 'Run name'}
           required={true}
           onChange={event => setRunName(event.target.value)}
           autoFocus={true}
@@ -325,7 +332,58 @@ function NewRunV2(props: NewRunV2Props) {
         {/* One-off/Recurring Run Type */}
         {/* TODO(zijianjoy): Support Recurring Run */}
         <div className={commonCss.header}>Run Type</div>
-        <div>Only one-off run is supported for KFPv2 Pipeline at the moment.</div>
+        {/* <div>Only one-off run is supported for KFPv2 Pipeline at the moment.</div> */}
+        {isClone && <span>{isRecurringRun ? 'Recurring' : 'One-off'}</span>}
+          {!isClone && (
+            <React.Fragment>
+              <FormControlLabel
+                id='oneOffToggle'
+                label='One-off'
+                control={<Radio color='primary' />}
+                onChange={() => setIsRecurringRun(false)}
+                checked={!isRecurringRun}
+              />
+              <FormControlLabel
+                id='recurringToggle'
+                label='Recurring'
+                control={<Radio color='primary' />}
+                onChange={() => setIsRecurringRun(true)}
+                checked={isRecurringRun}
+              />
+            </React.Fragment>
+          )}
+
+        {/* Recurring run controls */}
+        {isRecurringRun && (
+            <React.Fragment>
+              <div className={commonCss.header}>Run trigger</div>
+              <div>Choose a method by which new runs will be triggered</div>
+
+              <Trigger
+                initialProps={{
+                  trigger: trigger,
+                  maxConcurrentRuns: maxConcurrentRuns,
+                  catchup: catchup,
+                }}
+                onChange={({ trigger, maxConcurrentRuns, catchup }) => {
+                  setTrigger(trigger);
+                  setMaxConcurrentRuns(maxConcurrentRuns!);
+                  setCatchup(catchup);
+                }
+                  
+
+                  // this.setStateSafe(
+                  //   {
+                  //     catchup,
+                  //     maxConcurrentRuns,
+                  //     trigger,
+                  //   },
+                  //   this._validate.bind(this),
+                  // )
+                }
+              />
+            </React.Fragment>
+          )}
 
         {/* PipelineRoot and Run Parameters */}
         <NewRunParametersV2
