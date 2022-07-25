@@ -46,7 +46,7 @@ import { ConfidenceMetricsSection } from 'src/components/viewers/MetricsVisualiz
 import CompareTable, { CompareTableProps } from 'src/components/CompareTable';
 import {
   ExecutionArtifact,
-  FullArtifactPath,
+  FullArtifactName,
   getCompareTableProps,
   getRocCurveId,
   getValidRocCurveLinkedArtifacts,
@@ -208,8 +208,8 @@ function CompareV2(props: CompareV2Props) {
   const [rocCurveLinkedArtifacts, setRocCurveLinkedArtifacts] = useState<LinkedArtifact[]>([]);
   const [selectedRocCurveIds, setSelectedRocCurveIds] = useState<string[]>([]);
   const [selectedIdColorMap, setSelectedIdColorMap] = useState<{ [key: string]: string }>({});
-  const [fullArtifactPathMap, setFullArtifactPathMap] = useState<{
-    [key: string]: FullArtifactPath;
+  const [fullArtifactNameMap, setFullArtifactNameMap] = useState<{
+    [key: string]: FullArtifactName;
   }>({});
 
   // Selected artifacts for two-panel layout.
@@ -313,11 +313,11 @@ function CompareV2(props: CompareV2Props) {
         MetricsType.ROC_CURVE,
       ).runArtifacts;
 
-      const { validLinkedArtifacts, fullArtifactPathMap } = getValidRocCurveLinkedArtifacts(
+      const { validLinkedArtifacts, fullArtifactNameMap } = getValidRocCurveLinkedArtifacts(
         rocCurveRunArtifacts,
       );
 
-      setFullArtifactPathMap(fullArtifactPathMap);
+      setFullArtifactNameMap(fullArtifactNameMap);
       setRocCurveLinkedArtifacts(validLinkedArtifacts);
       setSelectedRocCurveIds(
         validLinkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)).slice(0, 3),
@@ -507,7 +507,7 @@ function CompareV2(props: CompareV2Props) {
                   filter={{
                     selectedIds: selectedRocCurveIds,
                     setSelectedIds: setSelectedRocCurveIds,
-                    fullArtifactPathMap,
+                    fullArtifactNameMap,
                     selectedIdColorMap,
                     setSelectedIdColorMap,
                   }}

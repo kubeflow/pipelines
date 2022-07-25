@@ -49,7 +49,7 @@ import Tooltip from '@material-ui/core/Tooltip';
 import { Link } from 'react-router-dom';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
-import { FullArtifactPath, getRocCurveId } from 'src/lib/v2/CompareUtils';
+import { FullArtifactName, getRocCurveId } from 'src/lib/v2/CompareUtils';
 import { logger } from 'src/lib/Utils';
 
 interface MetricsVisualizationsProps {
@@ -358,7 +358,7 @@ type ConfidenceMetric = {
 interface ConfidenceMetricsFilter {
   selectedIds: string[];
   setSelectedIds: (selectedIds: string[]) => void;
-  fullArtifactPathMap: { [key: string]: FullArtifactPath };
+  fullArtifactNameMap: { [key: string]: FullArtifactName };
   selectedIdColorMap: { [key: string]: string };
   setSelectedIdColorMap: (selectedIdColorMap: { [key: string]: string }) => void;
 }
@@ -459,7 +459,7 @@ const getRocCurveFilterTable = (
   ];
   const rows: TableRow[] = [];
   if (filter) {
-    const { selectedIds, selectedIdColorMap, setSelectedIdColorMap, fullArtifactPathMap } = filter;
+    const { selectedIds, selectedIdColorMap, setSelectedIdColorMap, fullArtifactNameMap } = filter;
 
     // Only display the selected ROC Curves on the plot.
     confidenceMetricsDataList = confidenceMetricsDataList.filter(confidenceMetricsData =>
@@ -477,12 +477,12 @@ const getRocCurveFilterTable = (
     // Populate the filter table rows.
     for (const linkedArtifact of linkedArtifactsPage) {
       const id = getRocCurveId(linkedArtifact);
-      const fullArtifactPath = fullArtifactPathMap[id];
+      const fullArtifactName = fullArtifactNameMap[id];
       const row = {
         id,
         otherFields: [
-          `${fullArtifactPath.execution.name} > ${fullArtifactPath.artifact.name}`,
-          fullArtifactPath.run.name,
+          `${fullArtifactName.executionName} > ${fullArtifactName.artifactName}`,
+          fullArtifactName.runName,
           selectedIdColorMap[id],
         ] as any,
       };
@@ -549,15 +549,10 @@ function reloadRocCurve(
   const substrings = predicates?.map(p => p.string_value?.toLowerCase() || '') || [];
   const displayLinkedArtifacts = linkedArtifacts.filter(linkedArtifact => {
     if (filter) {
-      const fullArtifactPath = filter.fullArtifactPathMap[getRocCurveId(linkedArtifact)];
+      const fullArtifactName = filter.fullArtifactNameMap[getRocCurveId(linkedArtifact)];
       for (const sub of substrings) {
-        const executionArtifactName = `${fullArtifactPath.execution.name} > ${fullArtifactPath.artifact.name}`;
-        // TODO(zpChris): Handle cases of no run name - and no execution / artifact names either.
-        if (
-          !executionArtifactName.includes(sub) &&
-          fullArtifactPath.run.name &&
-          !fullArtifactPath.run.name.includes(sub)
-        ) {
+        const executionArtifactName = `${fullArtifactName.executionName} > ${fullArtifactName.artifactName}`;
+        if (!executionArtifactName.includes(sub) && !fullArtifactName.runName.includes(sub)) {
           return false;
         }
       }
@@ -601,7 +596,7 @@ export function ConfidenceMetricsSection({
           ?.toJavaScript(),
         name:
           customProperties.get('display_name')?.getStringValue() ||
-          `artifact ID #${artifact.getId().toString()}`,
+          `Artifact ID #${artifact.getId().toString()}`,
         id: getRocCurveId(linkedArtifact),
         artifactId: linkedArtifact.artifact.getId().toString(),
       };
@@ -613,6 +608,7 @@ export function ConfidenceMetricsSection({
   } else if (confidenceMetricsDataList.length !== linkedArtifacts.length && filter) {
     // If a filter is provided, each of the artifacts must already have valid confidence metrics.
     logger.error('Filter provided but not all of the artifacts have valid confidence metrics.');
+    return null;
   }
 
   const { columns, rows, selectedConfidenceMetrics } = getRocCurveFilterTable(

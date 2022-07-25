@@ -48,20 +48,15 @@ export interface RunArtifactData {
   artifactCount: number;
 }
 
-interface NameId {
-  name?: string;
-  id: string;
-}
-
-export interface FullArtifactPath {
-  run: NameId;
-  execution: NameId;
-  artifact: NameId;
+export interface FullArtifactName {
+  runName: string;
+  executionName: string;
+  artifactName: string;
 }
 
 export interface RocCurveArtifactData {
   validLinkedArtifacts: LinkedArtifact[];
-  fullArtifactPathMap: { [key: string]: FullArtifactPath };
+  fullArtifactNameMap: { [key: string]: FullArtifactName };
 }
 
 export const getRocCurveId = (linkedArtifact: LinkedArtifact): string =>
@@ -71,24 +66,24 @@ export const getRocCurveId = (linkedArtifact: LinkedArtifact): string =>
 export const getValidRocCurveLinkedArtifacts = (
   rocCurveRunArtifacts: RunArtifact[],
 ): RocCurveArtifactData => {
-  const fullArtifactPathMap: { [key: string]: FullArtifactPath } = {};
+  const fullArtifactNameMap: { [key: string]: FullArtifactName } = {};
   const validLinkedArtifacts = flatMapDeep(
     rocCurveRunArtifacts.map(runArtifact =>
       runArtifact.executionArtifacts.map(executionArtifact => {
-        return getValidArtifacts(runArtifact, executionArtifact, fullArtifactPathMap);
+        return getValidArtifacts(runArtifact, executionArtifact, fullArtifactNameMap);
       }),
     ),
   );
   return {
     validLinkedArtifacts,
-    fullArtifactPathMap,
+    fullArtifactNameMap,
   };
 };
 
 const getValidArtifacts = (
   runArtifact: RunArtifact,
   executionArtifact: ExecutionArtifact,
-  fullArtifactPathMap: { [key: string]: FullArtifactPath },
+  fullArtifactNameMap: { [key: string]: FullArtifactName },
 ): LinkedArtifact[] => {
   // Linked artifact is valid if it has ROC Curve confidence metrics data.
   const validLinkedArtifacts: LinkedArtifact[] = [];
@@ -102,7 +97,7 @@ const getValidArtifacts = (
       validLinkedArtifacts.push(linkedArtifact);
 
       // Save the names and IDs for the run, execution, and linked artifact to a map.
-      fullArtifactPathMap[getRocCurveId(linkedArtifact)] = createFullArtifactPath(
+      fullArtifactNameMap[getRocCurveId(linkedArtifact)] = getFullArtifactName(
         runArtifact.run,
         executionArtifact.execution,
         linkedArtifact,
@@ -114,23 +109,16 @@ const getValidArtifacts = (
 };
 
 // This path is used to populate the ROC Curve filter table data.
-const createFullArtifactPath = (
+const getFullArtifactName = (
   run: ApiRunDetail,
   execution: Execution,
   linkedArtifact: LinkedArtifact,
-): FullArtifactPath => ({
-  run: {
-    name: run.run?.name,
-    id: run.run!.id!,
-  },
-  execution: {
-    name: getExecutionDisplayName(execution),
-    id: execution.getId().toString(),
-  },
-  artifact: {
-    name: getArtifactName(linkedArtifact),
-    id: linkedArtifact.artifact.getId().toString(),
-  },
+): FullArtifactName => ({
+  runName: run.run?.name || `Run ID #${run.run!.id!}`,
+  executionName:
+    getExecutionDisplayName(execution) || `Execution ID #${execution.getId().toString()}`,
+  artifactName:
+    getArtifactName(linkedArtifact) || `Artifact ID #${linkedArtifact.artifact.getId().toString()}`,
 });
 
 export const getCompareTableProps = (
