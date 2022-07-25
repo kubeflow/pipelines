@@ -1,3 +1,5 @@
+"""The `kfp.components` module contains functions for loading components from
+compiled YAML."""
 # Copyright 2021 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,8 +18,14 @@ __all__ = [
     'load_component_from_text',
     'load_component_from_file',
     'load_component_from_url',
+    'PythonComponent',
+    'BaseComponent',
+    'YamlComponent',
 ]
 
+from kfp.components.base_component import BaseComponent
+from kfp.components.python_component import PythonComponent
 from kfp.components.yaml_component import load_component_from_file
 from kfp.components.yaml_component import load_component_from_text
 from kfp.components.yaml_component import load_component_from_url
+from kfp.components.yaml_component import YamlComponent

@@ -15,26 +15,33 @@
 
 from typing import Optional, Tuple
 
-from kfp.components import base_component
+from kfp import components
 from kfp.components import structures
 import requests
 
 
-class YamlComponent(base_component.BaseComponent):
-    """A component loaded from YAML."""
+class YamlComponent(components.BaseComponent):
+    """A component loaded from a YAML file.
+
+    **Note:** ``YamlComponent`` is not intended to be used to construct components directly. Use ``kfp.components.load_component_from_*()`` instead.
+
+    Args:
+        component_spec: Component definition.
+    """
 
     def execute(self, *args, **kwargs):
-        pass
+        """Not implemented."""
+        raise NotImplementedError
 
 
 def load_component_from_text(text: str) -> YamlComponent:
     """Loads a component from text.
 
     Args:
-        text (str): The component YAML text.
+        text (str): Component YAML text.
 
     Returns:
-        YamlComponent: In-memory representation of a component loaded from YAML.
+        Component loaded from YAML.
     """
     return YamlComponent(
         structures.ComponentSpec.load_from_component_yaml(text))
@@ -44,10 +51,17 @@ def load_component_from_file(file_path: str) -> YamlComponent:
     """Loads a component from a file.
 
     Args:
-        file_path (str): The file path to a YAML component.
+        file_path (str): Filepath to a YAML component.
 
     Returns:
-        YamlComponent: In-memory representation of a component loaded from YAML.
+        Component loaded from YAML.
+
+    Example:
+      ::
+
+        from kfp import components
+
+        components.load_component_from_file('~/path/to/pipeline.yaml')
     """
     with open(file_path, 'r') as component_stream:
         return load_component_from_text(component_stream.read())
@@ -56,14 +70,23 @@ def load_component_from_file(file_path: str) -> YamlComponent:
 def load_component_from_url(url: str,
                             auth: Optional[Tuple[str,
                                                  str]] = None) -> YamlComponent:
-    """Loads a component from a url.
+    """Loads a component from a URL.
 
     Args:
-        file_path (str): The url to a YAML component.
-        auth (Tuple[str, str], optional): The a ('username', 'password') tuple of authentication credentials necessary for url access. See Requests Authorization for more information: https://requests.readthedocs.io/en/latest/user/authentication/#authentication
+        url (str): URL to a YAML component.
+        auth (Tuple[str, str], optional): A ``('<username>', '<password>')`` tuple of authentication credentials necessary for URL access. See `Requests Authorization <https://requests.readthedocs.io/en/latest/user/authentication/#authentication>`_ for more information.
 
     Returns:
-        YamlComponent: In-memory representation of a component loaded from YAML.
+        Component loaded from YAML.
+
+    Example:
+      ::
+
+        from kfp import components
+
+        components.load_component_from_url('https://raw.githubusercontent.com/kubeflow/pipelines/7b49eadf621a9054e1f1315c86f95fb8cf8c17c3/sdk/python/kfp/compiler/test_data/components/identity.yaml')
+
+        components.load_component_from_url('gs://path/to/pipeline.yaml')
     """
     if url is None:
         raise ValueError('url must be a string.')
