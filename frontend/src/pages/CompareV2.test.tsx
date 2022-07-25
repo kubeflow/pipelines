@@ -411,6 +411,36 @@ describe('CompareV2', () => {
     expect(runCheckboxes.filter(r => r.nodeName === 'INPUT')).toHaveLength(0);
   });
 
+  it('Scalar metrics tab initially enabled, and switch tabs', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
+
+    fireEvent.click(screen.getByText('Confusion Matrix'));
+    screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
+    expect(
+      screen.queryByText('There are no Scalar Metrics artifacts available on the selected runs.'),
+    ).toBeNull();
+
+    fireEvent.click(screen.getByText('Confusion Matrix'));
+    screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
+
+    fireEvent.click(screen.getByText('Scalar Metrics'));
+    screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
+    expect(
+      screen.queryByText('There are no Confusion Matrix artifacts available on the selected runs.'),
+    ).toBeNull();
+  });
+
   it('Metrics tabs have no content loaded as artifacts are not present', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];

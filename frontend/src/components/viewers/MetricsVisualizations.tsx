@@ -599,15 +599,15 @@ export function ConfidenceMetricsSection({
   );
 
   const rocCurveConfigs: ROCCurveConfig[] = [];
-  for (let i = 0; i < selectedConfidenceMetrics.length; i++) {
-    const confidenceMetrics = selectedConfidenceMetrics[i].confidenceMetrics as any;
+  for (const confidenceMetricsItem of selectedConfidenceMetrics) {
+    const confidenceMetrics = confidenceMetricsItem.confidenceMetrics as any;
     const { error } = validateConfidenceMetrics(confidenceMetrics.list);
 
     // If an error exists with confidence metrics, return the first one with an issue.
     if (error) {
       const errorMsg =
         'Error in ' +
-        `${selectedConfidenceMetrics[i].name} (artifact ID #${selectedConfidenceMetrics[i].artifactId})` +
+        `${confidenceMetricsItem.name} (artifact ID #${confidenceMetricsItem.artifactId})` +
         " artifact's confidenceMetrics data format.";
       return <Banner message={errorMsg} mode='error' additionalInfo={error} />;
     }

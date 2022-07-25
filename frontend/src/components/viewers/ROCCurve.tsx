@@ -52,6 +52,20 @@ const css = stylesheet({
   },
 });
 
+export const lineColors = [
+  '#ffcdf3',
+  '#ffee33',
+  '#29d0d0',
+  '#ff9233',
+  '#814a19',
+  '#82c57a',
+  '#9dafff',
+  '#8026c0',
+  '#ad2323',
+  '#2c9e1e',
+  '#2a4ad7',
+];
+
 export interface DisplayPoint {
   label: string;
   x: number;
@@ -76,20 +90,6 @@ interface ROCCurveState {
   highlightIndex: number;
 }
 
-export const lineColors = [
-  '#ffcdf3',
-  '#ffee33',
-  '#29d0d0',
-  '#ff9233',
-  '#814a19',
-  '#82c57a',
-  '#9dafff',
-  '#8026c0',
-  '#ad2323',
-  '#2c9e1e',
-  '#2a4ad7',
-];
-
 class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
   constructor(props: any) {
     super(props);
@@ -97,7 +97,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
     this.state = {
       hoveredValues: new Array(this.props.configs.length).fill(''),
       lastDrawLocation: null,
-      highlightIndex: -1,
+      highlightIndex: -1, // -1 indicates no curve is highlighted
     };
   }
 

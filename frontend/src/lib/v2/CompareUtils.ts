@@ -80,12 +80,13 @@ export const getValidRocCurveLinkedArtifacts = (
   };
 };
 
+// Get the valid ROC Curve linked artifacts (those which have confidence metrics data),
+// and update the full artifact name map (run, execution, and artifact names are saved).
 const getValidArtifacts = (
   runArtifact: RunArtifact,
   executionArtifact: ExecutionArtifact,
   fullArtifactNameMap: { [key: string]: FullArtifactName },
 ): LinkedArtifact[] => {
-  // Linked artifact is valid if it has ROC Curve confidence metrics data.
   const validLinkedArtifacts: LinkedArtifact[] = [];
   executionArtifact.linkedArtifacts.forEach(linkedArtifact => {
     const customProperties = linkedArtifact.artifact.getCustomPropertiesMap();
