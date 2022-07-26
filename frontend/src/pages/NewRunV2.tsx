@@ -316,7 +316,7 @@ function NewRunV2(props: NewRunV2Props) {
         <Input
           value={
             (apiResourceRefFromRun != undefined
-              ? apiResourceRefFromRun[1].name
+              ? apiResourceRefFromRun[1]?.name
               : apiPipeline?.name) || ''
           }
           required={true}
@@ -333,7 +333,7 @@ function NewRunV2(props: NewRunV2Props) {
         <Input
           value={
             (apiResourceRefFromRun != undefined
-              ? apiResourceRefFromRun[1].name
+              ? apiResourceRefFromRun[1]?.name
               : apiPipelineVersion?.name) || ''
           }
           required={true}
