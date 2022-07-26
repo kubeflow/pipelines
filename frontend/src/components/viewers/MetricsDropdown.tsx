@@ -41,6 +41,7 @@ import {
   ExecutionArtifact,
   MetricsType,
   RunArtifact,
+  compareCss,
 } from 'src/lib/v2/CompareUtils';
 
 const css = stylesheet({
@@ -57,10 +58,6 @@ const css = stylesheet({
   },
   errorBanner: {
     maxWidth: '40rem',
-  },
-  relativeContainer: {
-    position: 'relative',
-    height: '30rem',
   },
   visualizationPlaceholder: {
     width: '40rem',
@@ -102,6 +99,7 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
     selectedArtifacts[1].selectedItem,
   );
 
+  const metricsTabText = metricsTypeToString(metricsTab);
   const updateSelectedItemAndArtifact = (
     setSelectedItem: (selectedItem: SelectedItem) => void,
     panelIndex: number,
@@ -115,8 +113,6 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
   };
 
   const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
-  const metricsTabText = metricsTypeToString(metricsTab);
-
   if (dropdownItems.length === 0) {
     return <p>There are no {metricsTabText} artifacts available on the selected runs.</p>;
   }
@@ -250,12 +246,12 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
                 ' Click Details for more information.'}`}
               mode='error'
               additionalInfo={errorMessage}
-              leftAlign
+              isLeftAlign
             />
           </div>
         )}
         {isLoading && (
-          <div className={css.relativeContainer}>
+          <div className={compareCss.relativeContainer}>
             <CircularProgress
               size={25}
               className={commonCss.absoluteCenter}

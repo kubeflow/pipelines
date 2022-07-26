@@ -21,7 +21,7 @@ import Hr from 'src/atoms/Hr';
 import Separator from 'src/atoms/Separator';
 import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
-import { commonCss, padding } from 'src/Css';
+import { commonCss, padding, zIndex } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import Buttons from 'src/lib/Buttons';
 import { URLParser } from 'src/lib/URLParser';
@@ -42,21 +42,27 @@ import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { SelectedItem } from 'src/components/TwoLevelDropdown';
 import MD2Tabs from 'src/atoms/MD2Tabs';
-import { ConfidenceMetricsSection } from 'src/components/viewers/MetricsVisualizations';
+import {
+  ConfidenceMetricsFilter,
+  ConfidenceMetricsSection,
+} from 'src/components/viewers/MetricsVisualizations';
 import CompareTable, { CompareTableProps } from 'src/components/CompareTable';
 import {
+  compareCss,
   ExecutionArtifact,
   FullArtifactName,
   getCompareTableProps,
   getRocCurveId,
   getValidRocCurveLinkedArtifacts,
   MetricsType,
+  metricsTypeToString,
   RunArtifact,
   RunArtifactData,
 } from 'src/lib/v2/CompareUtils';
 import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
 import MetricsDropdown from 'src/components/viewers/MetricsDropdown';
+import CircularProgress from '@material-ui/core/CircularProgress';
 
 const css = stylesheet({
   outputsRow: {
@@ -176,6 +182,35 @@ export interface SelectedArtifact {
   linkedArtifact?: LinkedArtifact;
 }
 
+interface ScalarMetricsTableParams {
+  scalarMetricsTableData: CompareTableProps | undefined;
+}
+
+function ScalarMetricsTable(props: ScalarMetricsTableParams) {
+  const { scalarMetricsTableData } = props;
+
+  if (!scalarMetricsTableData) {
+    return <p>There are no Scalar Metrics artifacts available on the selected runs.</p>;
+  }
+
+  return <CompareTable {...scalarMetricsTableData} />;
+}
+
+interface RocCurveMetricsParams {
+  linkedArtifacts: LinkedArtifact[];
+  filter: ConfidenceMetricsFilter;
+}
+
+function RocCurveMetrics(props: RocCurveMetricsParams) {
+  const { linkedArtifacts, filter } = props;
+
+  if (linkedArtifacts.length === 0) {
+    return <p>There are no ROC Curve artifacts available on the selected runs.</p>;
+  }
+
+  return <ConfidenceMetricsSection linkedArtifacts={linkedArtifacts} filter={filter} />;
+}
+
 interface CompareV2Namespace {
   namespace?: string;
 }
@@ -187,10 +222,11 @@ function CompareV2(props: CompareV2Props) {
 
   const runlistRef = useRef<RunList>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [metricsTab, setMetricsTab] = useState(MetricsType.ROC_CURVE); // TODO(zpChris): Testing; change back to Scalar Metrics.
+  const [metricsTab, setMetricsTab] = useState(MetricsType.SCALAR_METRICS); // TODO(zpChris): Testing; change back to Scalar Metrics.
   const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
+  const [isLoadingArtifacts, setIsLoadingArtifacts] = useState<boolean>(true);
 
   // Two-panel display artifacts
   const [confusionMatrixRunArtifacts, setConfusionMatrixRunArtifacts] = useState<RunArtifact[]>([]);
@@ -294,8 +330,16 @@ function CompareV2(props: CompareV2Props) {
         artifactTypes,
         MetricsType.SCALAR_METRICS,
       );
-      setScalarMetricsArtifacts(scalarMetricsArtifactData.runArtifacts);
-      setScalarMetricsArtifactCount(scalarMetricsArtifactData.artifactCount);
+      const compareTableProps: CompareTableProps = getCompareTableProps(
+        scalarMetricsArtifactData.runArtifacts,
+        scalarMetricsArtifactData.artifactCount,
+      );
+      if (compareTableProps.yLabels.length === 0) {
+        setScalarMetricsTableData(undefined);
+      } else {
+        setScalarMetricsTableData(compareTableProps);
+      }
+
       setConfusionMatrixRunArtifacts(
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX)
           .runArtifacts,
@@ -322,6 +366,7 @@ function CompareV2(props: CompareV2Props) {
       setSelectedRocCurveIds(
         validLinkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)).slice(0, 3),
       );
+      setIsLoadingArtifacts(false);
     }
   }, [runs, mlmdPackages, artifactTypes]);
 
@@ -415,23 +460,13 @@ function CompareV2(props: CompareV2Props) {
     setSelectedIds(selectedIds);
   };
 
-  useEffect(() => {
-    const compareTableProps: CompareTableProps = getCompareTableProps(
-      scalarMetricsArtifacts,
-      scalarMetricsArtifactCount,
-    );
-    if (compareTableProps.yLabels.length === 0) {
-      setScalarMetricsTableData(undefined);
-    } else {
-      setScalarMetricsTableData(compareTableProps);
-    }
-  }, [scalarMetricsArtifacts, scalarMetricsArtifactCount]);
-
   const updateSelectedArtifacts = (newArtifacts: SelectedArtifact[]) => {
     selectedArtifactsMap[metricsTab] = newArtifacts;
     setSelectedArtifactsMap(selectedArtifactsMap);
   };
 
+  const isErrorArtifacts = isErrorRunDetails || isErrorMlmdPackages || isErrorArtifactTypes;
+  const metricsTabText = metricsTypeToString(metricsTab);
   return (
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
       {/* Overview section */}
@@ -485,53 +520,63 @@ function CompareV2(props: CompareV2Props) {
             onSwitch={setMetricsTab}
           />
           <div className={classes(padding(20, 'lrt'), css.outputsOverflow)}>
-            {metricsTab === MetricsType.SCALAR_METRICS &&
-              (scalarMetricsTableData ? (
-                <CompareTable {...scalarMetricsTableData} />
-              ) : (
-                <p>There are no Scalar Metrics artifacts available on the selected runs.</p>
-              ))}
-            {metricsTab === MetricsType.CONFUSION_MATRIX && (
-              <MetricsDropdown
-                filteredRunArtifacts={confusionMatrixRunArtifacts}
-                metricsTab={metricsTab}
-                selectedArtifacts={selectedArtifactsMap[metricsTab]}
-                updateSelectedArtifacts={updateSelectedArtifacts}
-                namespace={namespace}
-              />
-            )}
-            {metricsTab === MetricsType.ROC_CURVE &&
-              (rocCurveLinkedArtifacts.length > 0 ? (
-                <ConfidenceMetricsSection
-                  linkedArtifacts={rocCurveLinkedArtifacts}
-                  filter={{
-                    selectedIds: selectedRocCurveIds,
-                    setSelectedIds: setSelectedRocCurveIds,
-                    fullArtifactNameMap,
-                    selectedIdColorMap,
-                    setSelectedIdColorMap,
-                  }}
+            {isErrorArtifacts ? (
+              <p>An error is preventing the {metricsTabText} from being displayed.</p>
+            ) : isLoadingArtifacts ? (
+              <div className={compareCss.relativeContainer}>
+                <CircularProgress
+                  size={25}
+                  className={commonCss.absoluteCenter}
+                  style={{ zIndex: zIndex.BUSY_OVERLAY }}
+                  role='circularprogress'
                 />
-              ) : (
-                <p>There are no ROC Curve artifacts available on the selected runs.</p>
-              ))}
-            {metricsTab === MetricsType.HTML && (
-              <MetricsDropdown
-                filteredRunArtifacts={htmlRunArtifacts}
-                metricsTab={metricsTab}
-                selectedArtifacts={selectedArtifactsMap[metricsTab]}
-                updateSelectedArtifacts={updateSelectedArtifacts}
-                namespace={namespace}
-              />
-            )}
-            {metricsTab === MetricsType.MARKDOWN && (
-              <MetricsDropdown
-                filteredRunArtifacts={markdownRunArtifacts}
-                metricsTab={metricsTab}
-                selectedArtifacts={selectedArtifactsMap[metricsTab]}
-                updateSelectedArtifacts={updateSelectedArtifacts}
-                namespace={namespace}
-              />
+              </div>
+            ) : (
+              <>
+                {metricsTab === MetricsType.SCALAR_METRICS && (
+                  <ScalarMetricsTable scalarMetricsTableData={scalarMetricsTableData} />
+                )}
+                {metricsTab === MetricsType.CONFUSION_MATRIX && (
+                  <MetricsDropdown
+                    filteredRunArtifacts={confusionMatrixRunArtifacts}
+                    metricsTab={metricsTab}
+                    selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                    updateSelectedArtifacts={updateSelectedArtifacts}
+                    namespace={namespace}
+                  />
+                )}
+                {/* TODO(zpChris): Add more ROC Curve selections through checkbox system. */}
+                {metricsTab === MetricsType.ROC_CURVE && (
+                  <RocCurveMetrics
+                    linkedArtifacts={rocCurveLinkedArtifacts}
+                    filter={{
+                      selectedIds: selectedRocCurveIds,
+                      setSelectedIds: setSelectedRocCurveIds,
+                      fullArtifactNameMap,
+                      selectedIdColorMap,
+                      setSelectedIdColorMap,
+                    }}
+                  />
+                )}
+                {metricsTab === MetricsType.HTML && (
+                  <MetricsDropdown
+                    filteredRunArtifacts={htmlRunArtifacts}
+                    metricsTab={metricsTab}
+                    selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                    updateSelectedArtifacts={updateSelectedArtifacts}
+                    namespace={namespace}
+                  />
+                )}
+                {metricsTab === MetricsType.MARKDOWN && (
+                  <MetricsDropdown
+                    filteredRunArtifacts={markdownRunArtifacts}
+                    metricsTab={metricsTab}
+                    selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                    updateSelectedArtifacts={updateSelectedArtifacts}
+                    namespace={namespace}
+                  />
+                )}
+              </>
             )}
           </div>
         </div>

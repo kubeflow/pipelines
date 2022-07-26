@@ -21,6 +21,14 @@ import { Execution, Value } from 'src/third_party/mlmd';
 import * as jspb from 'google-protobuf';
 import { ApiRunDetail } from 'src/apis/run';
 import { flatMapDeep } from 'lodash';
+import { stylesheet } from 'typestyle';
+
+export const compareCss = stylesheet({
+  relativeContainer: {
+    position: 'relative',
+    height: '30rem',
+  },
+});
 
 export interface ExecutionArtifact {
   execution: Execution;

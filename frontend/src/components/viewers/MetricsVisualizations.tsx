@@ -355,7 +355,7 @@ type ConfidenceMetric = {
   recall: number;
 };
 
-interface ConfidenceMetricsFilter {
+export interface ConfidenceMetricsFilter {
   selectedIds: string[];
   setSelectedIds: (selectedIds: string[]) => void;
   fullArtifactNameMap: { [key: string]: FullArtifactName };
@@ -651,7 +651,7 @@ export function ConfidenceMetricsSection({
                 `You have reached the maximum number of ROC Curves (${maxSelectedRocCurves})` +
                 ' you can select at once. Deselect an item in order to select additional artifacts.'
               }
-              leftAlign
+              isLeftAlign
             />
           ) : null}
           <CustomTable
