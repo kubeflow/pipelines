@@ -452,9 +452,13 @@ const getRocCurveFilterTable = (
   if (filter) {
     const { selectedIds, selectedIdColorMap, setSelectedIdColorMap, fullArtifactPathMap } = filter;
 
-    // Only display the selected ROC Curves on the plot.
-    confidenceMetricsDataList = confidenceMetricsDataList.filter(confidenceMetricsData =>
-      selectedIds.includes(confidenceMetricsData.id),
+    // Only display the selected ROC Curves on the plot, in order of selection.
+    const confidenceMetricsDataMap = new Map();
+    for (const confidenceMetrics of confidenceMetricsDataList) {
+      confidenceMetricsDataMap.set(confidenceMetrics.id, confidenceMetrics);
+    }
+    confidenceMetricsDataList = selectedIds.map(selectedId =>
+      confidenceMetricsDataMap.get(selectedId),
     );
 
     // Populate the color map on the initial render.

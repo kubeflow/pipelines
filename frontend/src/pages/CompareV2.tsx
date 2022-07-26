@@ -546,7 +546,6 @@ function CompareV2(props: CompareV2Props) {
                     namespace={namespace}
                   />
                 )}
-                {/* TODO(zpChris): Add more ROC Curve selections through checkbox system. */}
                 {metricsTab === MetricsType.ROC_CURVE && (
                   <RocCurveMetrics
                     linkedArtifacts={rocCurveLinkedArtifacts}
