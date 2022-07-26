@@ -75,7 +75,7 @@ export interface BannerProps {
   mode?: Mode;
   showTroubleshootingGuideLink?: boolean;
   refresh?: () => void;
-  leftAlign?: boolean;
+  isLeftAlign?: boolean;
 }
 
 interface BannerState {
@@ -100,7 +100,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
     let dialogTitle = 'An error occurred';
     let showTroubleshootingGuideLink = false;
     let showRefreshButton = true;
-    let leftAlign = this.props.leftAlign || false;
+    let isLeftAlign = this.props.isLeftAlign || false;
 
     switch (this.props.mode) {
       case 'error':
@@ -136,7 +136,7 @@ class Banner extends React.Component<BannerProps, BannerState> {
         className={classes(
           commonCss.flex,
           css.banner,
-          leftAlign && css.bannerLeftAlign,
+          isLeftAlign && css.bannerLeftAlign,
           bannerModeCss.mode,
         )}
       >
