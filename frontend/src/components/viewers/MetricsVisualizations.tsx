@@ -414,7 +414,7 @@ const curveLegendCustomRenderer: React.FC<CustomRendererProps<string>> = (
   />
 );
 
-const lineColorsStack = [...lineColors];
+const lineColorsStack = [...lineColors].reverse();
 
 interface ConfidenceMetricsData {
   confidenceMetrics: any;
@@ -626,9 +626,8 @@ export function ConfidenceMetricsSection({
     rocCurveConfigs.push(buildRocCurveConfig(confidenceMetrics.list));
   }
 
-  const colors: string[] = filter
-    ? filter.selectedIds.map(selectedId => filter.selectedIdColorMap[selectedId])
-    : [];
+  const colors: string[] | undefined =
+    filter && filter.selectedIds.map(selectedId => filter.selectedIdColorMap[selectedId]);
   const disableAdditionalSelection: boolean =
     filter !== undefined &&
     filter.selectedIds.length === maxSelectedRocCurves &&

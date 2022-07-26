@@ -53,17 +53,17 @@ const css = stylesheet({
 });
 
 export const lineColors = [
-  '#ffcdf3',
-  '#ffee33',
-  '#29d0d0',
-  '#ff9233',
-  '#814a19',
-  '#82c57a',
-  '#9dafff',
-  '#8026c0',
-  '#ad2323',
-  '#2c9e1e',
   '#2a4ad7',
+  '#2b9c1e',
+  '#ad2323',
+  '#8026c0',
+  '#9dafff',
+  '#82c57a',
+  '#814a19',
+  '#ff9233',
+  '#29d0d0',
+  '#ffee33',
+  '#f540c9',
 ];
 
 export interface DisplayPoint {
