@@ -8,7 +8,7 @@
     "wait-port": "^0.2.2",
     "wdio-junit-reporter": "^0.4.4",
     "wdio-mocha-framework": "^0.6.2",
-    "wdio-selenium-standalone-service": "0.0.10",
+    "wdio-selenium-standalone-service": "0.0.12",
     "webdriverio": "^4.14.1"
   },
   "scripts": {
