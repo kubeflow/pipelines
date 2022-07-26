@@ -16,7 +16,7 @@
 
 import * as React from 'react';
 import { createMemoryHistory } from 'history';
-import EnhancedCompare, { TEST_ONLY, TaggedViewerConfig } from './CompareV1';
+import EnhancedCompareV1, { TEST_ONLY, TaggedViewerConfig } from './CompareV1';
 import TestUtils from '../TestUtils';
 import { ReactWrapper, ShallowWrapper, shallow } from 'enzyme';
 import { Apis } from '../lib/Apis';
@@ -613,7 +613,7 @@ describe('CompareV1', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  describe('EnhancedCompare', () => {
+  describe('EnhancedCompareV1', () => {
     it('redirects to experiments page when namespace changes', () => {
       const history = createMemoryHistory({
         initialEntries: ['/does-not-matter'],
@@ -621,7 +621,7 @@ describe('CompareV1', () => {
       const { rerender } = render(
         <Router history={history}>
           <NamespaceContext.Provider value='ns1'>
-            <EnhancedCompare {...generateProps()} />
+            <EnhancedCompareV1 {...generateProps()} />
           </NamespaceContext.Provider>
         </Router>,
       );
@@ -629,7 +629,7 @@ describe('CompareV1', () => {
       rerender(
         <Router history={history}>
           <NamespaceContext.Provider value='ns2'>
-            <EnhancedCompare {...generateProps()} />
+            <EnhancedCompareV1 {...generateProps()} />
           </NamespaceContext.Provider>
         </Router>,
       );
@@ -643,7 +643,7 @@ describe('CompareV1', () => {
       const { rerender } = render(
         <Router history={history}>
           <NamespaceContext.Provider value='ns1'>
-            <EnhancedCompare {...generateProps()} />
+            <EnhancedCompareV1 {...generateProps()} />
           </NamespaceContext.Provider>
         </Router>,
       );
@@ -651,7 +651,7 @@ describe('CompareV1', () => {
       rerender(
         <Router history={history}>
           <NamespaceContext.Provider value='ns1'>
-            <EnhancedCompare {...generateProps()} />
+            <EnhancedCompareV1 {...generateProps()} />
           </NamespaceContext.Provider>
         </Router>,
       );
@@ -665,7 +665,7 @@ describe('CompareV1', () => {
       const { rerender } = render(
         <Router history={history}>
           <NamespaceContext.Provider value={undefined}>
-            <EnhancedCompare {...generateProps()} />
+            <EnhancedCompareV1 {...generateProps()} />
           </NamespaceContext.Provider>
         </Router>,
       );
@@ -673,7 +673,7 @@ describe('CompareV1', () => {
       rerender(
         <Router history={history}>
           <NamespaceContext.Provider value='ns1'>
-            <EnhancedCompare {...generateProps()} />
+            <EnhancedCompareV1 {...generateProps()} />
           </NamespaceContext.Provider>
         </Router>,
       );

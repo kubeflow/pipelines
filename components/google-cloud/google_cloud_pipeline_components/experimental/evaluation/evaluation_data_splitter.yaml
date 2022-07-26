@@ -24,7 +24,8 @@ description: |
           the model's supported input storage formats.
           If not set, default to "jsonl".
       ground_truth_column (str):
-          The column name of the feature containing ground truth.
+          The column name of the feature containing ground truth. Formatted to be able to find
+          nested columns, delimeted by `.`. If not set, defaulted to `ground_truth`.
       dataflow_service_account (Optional[str]):
           Optional. Service account to run the dataflow job.
           If not set, dataflow will use the default woker service account.
@@ -60,7 +61,7 @@ outputs:
   - { name: gcp_resources, type: String }
 implementation:
   container:
-    image: gcr.io/ml-pipeline/model-evaluation:v0.3
+    image: gcr.io/ml-pipeline/model-evaluation:v0.4
     command:
       - python
       - /main.py

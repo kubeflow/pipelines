@@ -32,11 +32,17 @@ import PlotCard from 'src/components/PlotCard';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Banner from 'src/components/Banner';
-import { ExecutionArtifact, MetricsType, RunArtifact, SelectedArtifact } from 'src/pages/CompareV2';
+import { SelectedArtifact } from 'src/pages/CompareV2';
 import { useQuery } from 'react-query';
 import { errorToMessage, logger } from 'src/lib/Utils';
 import { Execution } from 'src/third_party/mlmd';
-import { metricsTypeToString } from 'src/lib/v2/CompareUtils';
+import {
+  metricsTypeToString,
+  ExecutionArtifact,
+  MetricsType,
+  RunArtifact,
+  compareCss,
+} from 'src/lib/v2/CompareUtils';
 
 const css = stylesheet({
   leftCell: {
@@ -52,10 +58,6 @@ const css = stylesheet({
   },
   errorBanner: {
     maxWidth: '40rem',
-  },
-  relativeContainer: {
-    position: 'relative',
-    height: '30rem',
   },
   visualizationPlaceholder: {
     width: '40rem',
@@ -79,22 +81,27 @@ interface MetricsDropdownProps {
   metricsTab: MetricsType;
   selectedArtifacts: SelectedArtifact[];
   updateSelectedArtifacts: (selectedArtifacts: SelectedArtifact[]) => void;
+  namespace?: string;
 }
 
 export default function MetricsDropdown(props: MetricsDropdownProps) {
-  const { filteredRunArtifacts, metricsTab, selectedArtifacts, updateSelectedArtifacts } = props;
+  const {
+    filteredRunArtifacts,
+    metricsTab,
+    selectedArtifacts,
+    updateSelectedArtifacts,
+    namespace,
+  } = props;
   const [firstSelectedItem, setFirstSelectedItem] = useState<SelectedItem>(
     selectedArtifacts[0].selectedItem,
   );
   const [secondSelectedItem, setSecondSelectedItem] = useState<SelectedItem>(
     selectedArtifacts[1].selectedItem,
   );
-  const [firstSelectedNamespace, setFirstSelectedNamespace] = useState<string | undefined>();
-  const [secondSelectedNamespace, setSecondSelectedNamespace] = useState<string | undefined>();
 
+  const metricsTabText = metricsTypeToString(metricsTab);
   const updateSelectedItemAndArtifact = (
     setSelectedItem: (selectedItem: SelectedItem) => void,
-    setSelectedNamespace: (selectedNamespace: string | undefined) => void,
     panelIndex: number,
     selectedItem: SelectedItem,
   ): void => {
@@ -102,13 +109,10 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
     selectedArtifacts[panelIndex].selectedItem = selectedItem;
     const linkedArtifact = getLinkedArtifactFromSelectedItem(filteredRunArtifacts, selectedItem);
     selectedArtifacts[panelIndex].linkedArtifact = linkedArtifact;
-    setSelectedNamespace(getNamespace(selectedItem, filteredRunArtifacts));
     updateSelectedArtifacts(selectedArtifacts);
   };
 
   const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
-  const metricsTabText = metricsTypeToString(metricsTab);
-
   if (dropdownItems.length === 0) {
     return <p>There are no {metricsTabText} artifacts available on the selected runs.</p>;
   }
@@ -122,18 +126,13 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
               title={`Choose a first ${metricsTabText} artifact`}
               items={dropdownItems}
               selectedItem={firstSelectedItem}
-              setSelectedItem={updateSelectedItemAndArtifact.bind(
-                null,
-                setFirstSelectedItem,
-                setFirstSelectedNamespace,
-                0,
-              )}
+              setSelectedItem={updateSelectedItemAndArtifact.bind(null, setFirstSelectedItem, 0)}
             />
             <VisualizationPanelItem
               metricsTab={metricsTab}
               metricsTabText={metricsTabText}
               linkedArtifact={selectedArtifacts[0].linkedArtifact}
-              namespace={firstSelectedNamespace}
+              namespace={namespace}
             />
           </td>
           <td className={classes(css.cell, css.rightCell)}>
@@ -141,18 +140,13 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
               title={`Choose a second ${metricsTabText} artifact`}
               items={dropdownItems}
               selectedItem={secondSelectedItem}
-              setSelectedItem={updateSelectedItemAndArtifact.bind(
-                null,
-                setSecondSelectedItem,
-                setSecondSelectedNamespace,
-                1,
-              )}
+              setSelectedItem={updateSelectedItemAndArtifact.bind(null, setSecondSelectedItem, 1)}
             />
             <VisualizationPanelItem
               metricsTab={metricsTab}
               metricsTabText={metricsTabText}
               linkedArtifact={selectedArtifacts[1].linkedArtifact}
-              namespace={secondSelectedNamespace}
+              namespace={namespace}
             />
           </td>
         </tr>
@@ -252,12 +246,12 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
                 ' Click Details for more information.'}`}
               mode='error'
               additionalInfo={errorMessage}
-              leftAlign
+              isLeftAlign
             />
           </div>
         )}
         {isLoading && (
-          <div className={css.relativeContainer}>
+          <div className={compareCss.relativeContainer}>
             <CircularProgress
               size={25}
               className={commonCss.absoluteCenter}
@@ -343,22 +337,6 @@ function getDropdownItems(filteredRunArtifacts: RunArtifact[]) {
 
   return dropdownItems;
 }
-
-const getNamespace = (
-  selectedItem: SelectedItem,
-  filteredRunArtifacts: RunArtifact[],
-): string | undefined => {
-  const selectedRun = filteredRunArtifacts.find(
-    runArtifact => runArtifact.run.run?.name === selectedItem.itemName,
-  )?.run;
-  let namespace: string | undefined;
-  if (selectedRun) {
-    // TODO(zpChris): Move away from workflow_manifest as this is V1 specific.
-    const jsonWorkflow = JSON.parse(selectedRun.pipeline_runtime!.workflow_manifest || '{}');
-    namespace = jsonWorkflow.metadata?.namespace;
-  }
-  return namespace;
-};
 
 function getLinkedArtifactFromSelectedItem(
   filteredRunArtifacts: RunArtifact[],
