@@ -55,7 +55,7 @@ const css = stylesheet({
 export const lineColors = [
   '#2a4ad7',
   '#2b9c1e',
-  '#ad2323',
+  '#e00000',
   '#8026c0',
   '#9dafff',
   '#82c57a',
