@@ -17,12 +17,10 @@ from typing import Callable, Optional, Union
 
 from kubernetes.client.models import V1PodDNSConfig
 from kfp.deprecated.dsl import _container_op
-from kfp.deprecated.dsl import _resource_op
 from kfp.deprecated.dsl import _ops_group
 from kfp.deprecated.dsl import _component_bridge
 from kfp.deprecated.components import _components
 from kfp.deprecated.components import _naming
-import sys
 
 # This handler is called whenever the @pipeline decorator is applied.
 # It can be used by command-line DSL compiler to inject code that runs for every

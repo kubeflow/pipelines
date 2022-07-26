@@ -17,7 +17,6 @@ import collections
 import json
 import re
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
-import warnings
 
 from google.protobuf import json_format
 from google.protobuf import struct_pb2
@@ -35,7 +34,6 @@ from kfp.components import utils as component_utils
 from kfp.components.types import artifact_types
 from kfp.components.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
-import yaml
 
 GroupOrTaskType = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
 
@@ -124,18 +122,18 @@ def build_task_spec_for_task(
     """
     pipeline_task_spec = pipeline_spec_pb2.PipelineTaskSpec()
     pipeline_task_spec.task_info.name = (
-        task.task_spec.display_name or task.name)
+        task._task_spec.display_name or task.name)
     # Use task.name for component_ref.name because we may customize component
     # spec for individual tasks to work around the lack of optional inputs
     # support in IR.
     pipeline_task_spec.component_ref.name = (
         component_utils.sanitize_component_name(task.name))
     pipeline_task_spec.caching_options.enable_cache = (
-        task.task_spec.enable_caching)
+        task._task_spec.enable_caching)
 
-    if task.task_spec.retry_policy is not None:
+    if task._task_spec.retry_policy is not None:
         pipeline_task_spec.retry_policy.CopyFrom(
-            task.task_spec.retry_policy.to_proto())
+            task._task_spec.retry_policy.to_proto())
 
     for input_name, input_value in task.inputs.items():
         if isinstance(input_value, pipeline_channel.PipelineArtifactChannel):
@@ -977,7 +975,7 @@ def build_spec_by_group(
     pipeline_spec: pipeline_spec_pb2.PipelineSpec,
     deployment_config: pipeline_spec_pb2.PipelineDeploymentConfig,
     group: tasks_group.TasksGroup,
-    inputs: Mapping[str, List[Tuple[dsl.PipelineChannel, str]]],
+    inputs: Mapping[str, List[Tuple[pipeline_channel.PipelineChannel, str]]],
     dependencies: Dict[str, List[GroupOrTaskType]],
     rootgroup_name: str,
     task_name_to_parent_groups: Mapping[str, List[GroupOrTaskType]],
@@ -1129,7 +1127,7 @@ def build_spec_by_group(
                     subgroup.condition.left_operand,
                     subgroup.condition.right_operand,
             ]:
-                if isinstance(operand, dsl.PipelineChannel):
+                if isinstance(operand, pipeline_channel.PipelineChannel):
                     condition_subgroup_channels.append(operand)
 
             subgroup_component_spec = builder.build_component_spec_for_group(
@@ -1271,7 +1269,8 @@ def validate_pipeline_name(name: str) -> None:
 
 
 def create_pipeline_spec_for_component(
-        pipeline_name: str, pipeline_args: List[dsl.PipelineChannel],
+        pipeline_name: str,
+        pipeline_args: List[pipeline_channel.PipelineChannel],
         task_group: tasks_group.TasksGroup) -> pipeline_spec_pb2.PipelineSpec:
     """Creates a pipeline spec object for a component (single-component
     pipeline).

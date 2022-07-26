@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useQuery } from 'react-query';
 import { ApiRunDetail } from 'src/apis/run';
 import Hr from 'src/atoms/Hr';
 import Separator from 'src/atoms/Separator';
 import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
-import { color, commonCss, fontsize, padding, zIndex } from 'src/Css';
+import { commonCss, padding, zIndex } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import Buttons from 'src/lib/Buttons';
 import { URLParser } from 'src/lib/URLParser';
@@ -35,67 +35,36 @@ import {
   getExecutionsFromContext,
   getKfpV2RunContext,
   LinkedArtifact,
-  getArtifactName,
 } from 'src/mlmd/MlmdUtils';
 import { Artifact, ArtifactType, Event, Execution } from 'src/third_party/mlmd';
 import { PageProps } from './Page';
 import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
-import TwoLevelDropdown, {
-  DropdownItem,
-  DropdownSubItem,
-  SelectedItem,
-} from 'src/components/TwoLevelDropdown';
+import { SelectedItem } from 'src/components/TwoLevelDropdown';
 import MD2Tabs from 'src/atoms/MD2Tabs';
+import CompareTable, { CompareTableProps } from 'src/components/CompareTable';
 import {
-  ConfusionMatrixSection,
-  getHtmlViewerConfig,
-  getMarkdownViewerConfig,
-} from 'src/components/viewers/MetricsVisualizations';
-import PlotCard from 'src/components/PlotCard';
-import { ViewerConfig } from 'src/components/viewers/Viewer';
+  compareCss,
+  ExecutionArtifact,
+  getCompareTableProps,
+  MetricsType,
+  metricsTypeToString,
+  RunArtifact,
+  RunArtifactData,
+} from 'src/lib/v2/CompareUtils';
+import { ConfidenceMetricsSection } from 'src/components/viewers/MetricsVisualizations';
+import { flatMapDeep } from 'lodash';
+import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
+import { Redirect } from 'react-router-dom';
+import MetricsDropdown from 'src/components/viewers/MetricsDropdown';
 import CircularProgress from '@material-ui/core/CircularProgress';
-import Banner from 'src/components/Banner';
 
 const css = stylesheet({
-  leftCell: {
-    borderRight: `3px solid ${color.divider}`,
-  },
-  rightCell: {
-    borderLeft: `3px solid ${color.divider}`,
-  },
-  cell: {
-    borderCollapse: 'collapse',
-    padding: '1rem',
-    verticalAlign: 'top',
-  },
-  errorBanner: {
-    maxWidth: '40rem',
-  },
   outputsRow: {
     marginLeft: 15,
   },
   outputsOverflow: {
     overflowX: 'auto',
-  },
-  relativeContainer: {
-    position: 'relative',
-    height: '30rem',
-  },
-  visualizationPlaceholder: {
-    width: '40rem',
-    height: '30rem',
-    backgroundColor: color.lightGrey,
-    borderRadius: '1rem',
-    margin: '1rem 0',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  visualizationPlaceholderText: {
-    fontSize: fontsize.medium,
-    textAlign: 'center',
-    padding: '2rem',
   },
 });
 
@@ -104,41 +73,6 @@ interface MlmdPackage {
   artifacts: Artifact[];
   events: Event[];
 }
-
-interface ExecutionArtifact {
-  execution: Execution;
-  linkedArtifacts: LinkedArtifact[];
-}
-
-interface RunArtifact {
-  run: ApiRunDetail;
-  executionArtifacts: ExecutionArtifact[];
-}
-
-enum MetricsType {
-  SCALAR_METRICS,
-  CONFUSION_MATRIX,
-  ROC_CURVE,
-  HTML,
-  MARKDOWN,
-}
-
-const metricsTypeToString = (metricsType: MetricsType): string => {
-  switch (metricsType) {
-    case MetricsType.SCALAR_METRICS:
-      return 'Scalar Metrics';
-    case MetricsType.CONFUSION_MATRIX:
-      return 'Confusion Matrix';
-    case MetricsType.ROC_CURVE:
-      return 'ROC Curve';
-    case MetricsType.HTML:
-      return 'HTML';
-    case MetricsType.MARKDOWN:
-      return 'Markdown';
-    default:
-      return '';
-  }
-};
 
 const metricsTypeToFilter = (metricsType: MetricsType): string => {
   switch (metricsType) {
@@ -162,9 +96,10 @@ function filterRunArtifactsByType(
   runArtifacts: RunArtifact[],
   artifactTypes: ArtifactType[],
   metricsType: MetricsType,
-): RunArtifact[] {
+): RunArtifactData {
   const metricsFilter = metricsTypeToFilter(metricsType);
   const typeRuns: RunArtifact[] = [];
+  let artifactCount: number = 0;
   for (const runArtifact of runArtifacts) {
     const typeExecutions: ExecutionArtifact[] = [];
     for (const e of runArtifact.executionArtifacts) {
@@ -183,6 +118,7 @@ function filterRunArtifactsByType(
         );
       }
       if (typeArtifacts.length > 0) {
+        artifactCount += typeArtifacts.length;
         typeExecutions.push({
           execution: e.execution,
           linkedArtifacts: typeArtifacts,
@@ -196,7 +132,10 @@ function filterRunArtifactsByType(
       } as RunArtifact);
     }
   }
-  return typeRuns;
+  return {
+    runArtifacts: typeRuns,
+    artifactCount,
+  };
 }
 
 function getRunArtifacts(runs: ApiRunDetail[], mlmdPackages: MlmdPackage[]): RunArtifact[] {
@@ -233,329 +172,47 @@ function getRunArtifacts(runs: ApiRunDetail[], mlmdPackages: MlmdPackage[]): Run
   });
 }
 
-interface VisualizationPlaceholderProps {
-  metricsTabText: string;
-}
-
-function VisualizationPlaceholder(props: VisualizationPlaceholderProps) {
-  const { metricsTabText } = props;
-  return (
-    <div className={classes(css.visualizationPlaceholder)}>
-      <p className={classes(css.visualizationPlaceholderText)}>
-        The selected {metricsTabText} will be displayed here.
-      </p>
-    </div>
-  );
-}
-
-interface VisualizationPanelItemProps {
-  metricsTab: MetricsType;
-  metricsTabText: string;
-  linkedArtifact: LinkedArtifact | undefined;
-  namespace: string | undefined;
-}
-
-function VisualizationPanelItem(props: VisualizationPanelItemProps) {
-  const { metricsTab, metricsTabText, linkedArtifact, namespace } = props;
-  const [errorMessage, setErrorMessage] = useState<string>('');
-  const [showError, setShowError] = useState<boolean>(false);
-
-  const { isLoading, isError, error, data: viewerConfigs } = useQuery<ViewerConfig[], Error>(
-    [
-      'viewerConfig',
-      {
-        artifact: linkedArtifact?.artifact.getId(),
-        namespace,
-      },
-    ],
-    async () => {
-      let viewerConfigs: ViewerConfig[] = [];
-      if (linkedArtifact) {
-        try {
-          if (metricsTab === MetricsType.HTML) {
-            viewerConfigs = await getHtmlViewerConfig([linkedArtifact], namespace);
-          } else if (metricsTab === MetricsType.MARKDOWN) {
-            viewerConfigs = await getMarkdownViewerConfig([linkedArtifact], namespace);
-          }
-        } catch (err) {
-          throw err;
-        }
-      }
-      return viewerConfigs;
-    },
-    { staleTime: Infinity },
-  );
-
-  useEffect(() => {
-    if (isLoading) {
-      return;
-    }
-
-    if (isError) {
-      (async function() {
-        const updatedMessage = await errorToMessage(error);
-        setErrorMessage(updatedMessage);
-        setShowError(true);
-      })();
-    } else {
-      setShowError(false);
-    }
-  }, [isLoading, isError, error, setErrorMessage, setShowError]);
-
-  if (!linkedArtifact) {
-    return <VisualizationPlaceholder metricsTabText={metricsTabText} />;
-  }
-
-  if (metricsTab === MetricsType.CONFUSION_MATRIX) {
-    return (
-      <React.Fragment key={linkedArtifact.artifact.getId()}>
-        <ConfusionMatrixSection artifact={linkedArtifact.artifact} />
-      </React.Fragment>
-    );
-  }
-
-  if (showError || isLoading) {
-    return (
-      <React.Fragment>
-        {showError && (
-          <div className={css.errorBanner}>
-            <Banner
-              message={`Error: failed loading ${metricsTabText} file.${errorMessage &&
-                ' Click Details for more information.'}`}
-              mode='error'
-              additionalInfo={errorMessage}
-              leftAlign
-            />
-          </div>
-        )}
-        {isLoading && (
-          <div className={css.relativeContainer}>
-            <CircularProgress
-              size={25}
-              className={commonCss.absoluteCenter}
-              style={{ zIndex: zIndex.BUSY_OVERLAY }}
-              role='circularprogress'
-            />
-          </div>
-        )}
-      </React.Fragment>
-    );
-  }
-
-  if (viewerConfigs && (metricsTab === MetricsType.HTML || metricsTab === MetricsType.MARKDOWN)) {
-    return <PlotCard configs={viewerConfigs} title={`Static ${metricsTabText}`} />;
-  }
-
-  return <></>;
-}
-
-interface SelectedArtifact {
+export interface SelectedArtifact {
   selectedItem: SelectedItem;
   linkedArtifact?: LinkedArtifact;
 }
 
-interface MetricsDropdownProps {
-  filteredRunArtifacts: RunArtifact[];
-  metricsTab: MetricsType;
-  metricsTabText: string;
-  selectedArtifacts: SelectedArtifact[];
-  updateSelectedArtifacts: (selectedArtifacts: SelectedArtifact[]) => void;
+interface ScalarMetricsTableParams {
+  scalarMetricsTableData: CompareTableProps | undefined;
 }
 
-const logDisplayNameWarning = (type: string, id: string) =>
-  logger.warn(`Failed to fetch the display name of the ${type} with the following ID: ${id}`);
+function ScalarMetricsTable(props: ScalarMetricsTableParams) {
+  const { scalarMetricsTableData } = props;
 
-const getExecutionName = (execution: Execution) =>
-  execution
-    .getCustomPropertiesMap()
-    .get('display_name')
-    ?.getStringValue();
-
-// Group each artifact name with its parent execution name.
-function getDropdownSubLinkedArtifacts(linkedArtifacts: LinkedArtifact[], subItemName: string) {
-  const executionLinkedArtifacts: DropdownSubItem[] = [];
-  for (const linkedArtifact of linkedArtifacts) {
-    const artifactName = getArtifactName(linkedArtifact);
-    const artifactId = linkedArtifact.artifact.getId().toString();
-    if (!artifactName) {
-      logDisplayNameWarning('artifact', artifactId);
-    }
-
-    executionLinkedArtifacts.push({
-      name: subItemName,
-      secondaryName: artifactName || artifactId,
-    } as DropdownSubItem);
-  }
-  return executionLinkedArtifacts;
-}
-
-// Combine execution names and artifact names into the same dropdown sub item list.
-function getDropdownSubItems(executionArtifacts: ExecutionArtifact[]) {
-  const subItems: DropdownSubItem[] = [];
-  for (const executionArtifact of executionArtifacts) {
-    const executionName = getExecutionName(executionArtifact.execution);
-    const executionId = executionArtifact.execution.getId().toString();
-    if (!executionName) {
-      logDisplayNameWarning('execution', executionId);
-    }
-
-    const executionLinkedArtifacts: DropdownSubItem[] = getDropdownSubLinkedArtifacts(
-      executionArtifact.linkedArtifacts,
-      executionName || executionId,
-    );
-    subItems.push(...executionLinkedArtifacts);
-  }
-  return subItems;
-}
-
-function getDropdownItems(filteredRunArtifacts: RunArtifact[]) {
-  const dropdownItems: DropdownItem[] = [];
-  for (const runArtifact of filteredRunArtifacts) {
-    const runName = runArtifact.run.run?.name;
-    if (!runName) {
-      logDisplayNameWarning('run', runArtifact.run.run!.id!);
-      continue;
-    }
-
-    const subItems: DropdownSubItem[] = getDropdownSubItems(runArtifact.executionArtifacts);
-    if (subItems.length > 0) {
-      dropdownItems.push({
-        name: runName,
-        subItems,
-      } as DropdownItem);
-    }
+  if (!scalarMetricsTableData) {
+    return <p>There are no Scalar Metrics artifacts available on the selected runs.</p>;
   }
 
-  return dropdownItems;
+  return <CompareTable {...scalarMetricsTableData} />;
 }
 
-const getNamespace = (
-  selectedItem: SelectedItem,
-  filteredRunArtifacts: RunArtifact[],
-): string | undefined => {
-  const selectedRun = filteredRunArtifacts.find(
-    runArtifact => runArtifact.run.run?.name === selectedItem.itemName,
-  )?.run;
-  let namespace: string | undefined;
-  if (selectedRun) {
-    // TODO(zpChris): Move away from workflow_manifest as this is V1 specific.
-    const jsonWorkflow = JSON.parse(selectedRun.pipeline_runtime!.workflow_manifest || '{}');
-    namespace = jsonWorkflow.metadata?.namespace;
-  }
-  return namespace;
-};
-
-function getLinkedArtifactFromSelectedItem(
-  filteredRunArtifacts: RunArtifact[],
-  selectedItem: SelectedItem,
-): LinkedArtifact | undefined {
-  const filteredRunArtifact = filteredRunArtifacts.find(
-    runArtifact => runArtifact.run.run?.name === selectedItem.itemName,
-  );
-
-  const executionArtifact = filteredRunArtifact?.executionArtifacts.find(executionArtifact => {
-    const executionText: string =
-      getExecutionName(executionArtifact.execution) ||
-      executionArtifact.execution.getId().toString();
-    return executionText === selectedItem.subItemName;
-  });
-
-  const linkedArtifact = executionArtifact?.linkedArtifacts.find(linkedArtifact => {
-    const linkedArtifactText: string =
-      getArtifactName(linkedArtifact) || linkedArtifact.artifact.getId().toString();
-    return linkedArtifactText === selectedItem.subItemSecondaryName;
-  });
-
-  return linkedArtifact;
+interface ROCCurveMetricsParams {
+  selectedRocCurveArtifacts: Artifact[];
 }
 
-function MetricsDropdown(props: MetricsDropdownProps) {
-  const {
-    filteredRunArtifacts,
-    metricsTab,
-    metricsTabText,
-    selectedArtifacts,
-    updateSelectedArtifacts,
-  } = props;
-  const [firstSelectedItem, setFirstSelectedItem] = useState<SelectedItem>(
-    selectedArtifacts[0].selectedItem,
-  );
-  const [secondSelectedItem, setSecondSelectedItem] = useState<SelectedItem>(
-    selectedArtifacts[1].selectedItem,
-  );
-  const [firstSelectedNamespace, setFirstSelectedNamespace] = useState<string | undefined>();
-  const [secondSelectedNamespace, setSecondSelectedNamespace] = useState<string | undefined>();
+function ROCCurveMetrics(props: ROCCurveMetricsParams) {
+  const { selectedRocCurveArtifacts } = props;
 
-  const updateSelectedItemAndArtifact = (
-    setSelectedItem: (selectedItem: SelectedItem) => void,
-    setSelectedNamespace: (selectedNamespace: string | undefined) => void,
-    panelIndex: number,
-    selectedItem: SelectedItem,
-  ): void => {
-    setSelectedItem(selectedItem);
-    selectedArtifacts[panelIndex].selectedItem = selectedItem;
-    const linkedArtifact = getLinkedArtifactFromSelectedItem(filteredRunArtifacts, selectedItem);
-    selectedArtifacts[panelIndex].linkedArtifact = linkedArtifact;
-    setSelectedNamespace(getNamespace(selectedItem, filteredRunArtifacts));
-    updateSelectedArtifacts(selectedArtifacts);
-  };
-
-  const dropdownItems: DropdownItem[] = getDropdownItems(filteredRunArtifacts);
-
-  if (dropdownItems.length === 0) {
-    return <p>There are no {metricsTabText} artifacts available on the selected runs.</p>;
+  if (selectedRocCurveArtifacts.length === 0) {
+    return <p>There are no ROC Curve artifacts available on the selected runs.</p>;
   }
 
-  return (
-    <table>
-      <tbody>
-        <tr>
-          <td className={classes(css.cell, css.leftCell)}>
-            <TwoLevelDropdown
-              title={`Choose a first ${metricsTabText} artifact`}
-              items={dropdownItems}
-              selectedItem={firstSelectedItem}
-              setSelectedItem={updateSelectedItemAndArtifact.bind(
-                null,
-                setFirstSelectedItem,
-                setFirstSelectedNamespace,
-                0,
-              )}
-            />
-            <VisualizationPanelItem
-              metricsTab={metricsTab}
-              metricsTabText={metricsTabText}
-              linkedArtifact={selectedArtifacts[0].linkedArtifact}
-              namespace={firstSelectedNamespace}
-            />
-          </td>
-          <td className={classes(css.cell, css.rightCell)}>
-            <TwoLevelDropdown
-              title={`Choose a second ${metricsTabText} artifact`}
-              items={dropdownItems}
-              selectedItem={secondSelectedItem}
-              setSelectedItem={updateSelectedItemAndArtifact.bind(
-                null,
-                setSecondSelectedItem,
-                setSecondSelectedNamespace,
-                1,
-              )}
-            />
-            <VisualizationPanelItem
-              metricsTab={metricsTab}
-              metricsTabText={metricsTabText}
-              linkedArtifact={selectedArtifacts[1].linkedArtifact}
-              namespace={secondSelectedNamespace}
-            />
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  );
+  return <ConfidenceMetricsSection artifacts={selectedRocCurveArtifacts} />;
 }
 
-function CompareV2(props: PageProps) {
-  const { updateBanner, updateToolbar } = props;
+interface CompareV2Namespace {
+  namespace?: string;
+}
+
+export type CompareV2Props = PageProps & CompareV2Namespace;
+
+function CompareV2(props: CompareV2Props) {
+  const { updateBanner, updateToolbar, namespace } = props;
 
   const runlistRef = useRef<RunList>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -564,9 +221,17 @@ function CompareV2(props: PageProps) {
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
 
-  const [confusionMatrixArtifacts, setConfusionMatrixArtifacts] = useState<RunArtifact[]>([]);
-  const [htmlArtifacts, setHtmlArtifacts] = useState<RunArtifact[]>([]);
-  const [markdownArtifacts, setMarkdownArtifacts] = useState<RunArtifact[]>([]);
+  const [isLoadingArtifacts, setIsLoadingArtifacts] = useState<boolean>(true);
+  const [confusionMatrixRunArtifacts, setConfusionMatrixRunArtifacts] = useState<RunArtifact[]>([]);
+  const [htmlRunArtifacts, setHtmlRunArtifacts] = useState<RunArtifact[]>([]);
+  const [markdownRunArtifacts, setMarkdownRunArtifacts] = useState<RunArtifact[]>([]);
+
+  const [rocCurveArtifacts, setRocCurveArtifacts] = useState<Artifact[]>([]);
+  const [selectedRocCurveArtifacts, setSelectedRocCurveArtifacts] = useState<Artifact[]>([]);
+
+  const [scalarMetricsTableData, setScalarMetricsTableData] = useState<
+    CompareTableProps | undefined
+  >(undefined);
 
   // Selected artifacts for two-panel layout.
   const createSelectedArtifactArray = (count: number): SelectedArtifact[] => {
@@ -645,13 +310,48 @@ function CompareV2(props: PageProps) {
   useEffect(() => {
     if (runs && mlmdPackages && artifactTypes) {
       const runArtifacts: RunArtifact[] = getRunArtifacts(runs, mlmdPackages);
-      setConfusionMatrixArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX),
+      const scalarMetricsArtifactData = filterRunArtifactsByType(
+        runArtifacts,
+        artifactTypes,
+        MetricsType.SCALAR_METRICS,
       );
-      setHtmlArtifacts(filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML));
-      setMarkdownArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN),
+      const compareTableProps: CompareTableProps = getCompareTableProps(
+        scalarMetricsArtifactData.runArtifacts,
+        scalarMetricsArtifactData.artifactCount,
       );
+      if (compareTableProps.yLabels.length === 0) {
+        setScalarMetricsTableData(undefined);
+      } else {
+        setScalarMetricsTableData(compareTableProps);
+      }
+
+      setConfusionMatrixRunArtifacts(
+        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX)
+          .runArtifacts,
+      );
+      setHtmlRunArtifacts(
+        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML).runArtifacts,
+      );
+      setMarkdownRunArtifacts(
+        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN).runArtifacts,
+      );
+
+      const rocCurveRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
+        runArtifacts,
+        artifactTypes,
+        MetricsType.ROC_CURVE,
+      ).runArtifacts;
+      const rocCurveArtifacts: Artifact[] = flatMapDeep(
+        rocCurveRunArtifacts.map(rocCurveArtifact =>
+          rocCurveArtifact.executionArtifacts.map(executionArtifact =>
+            executionArtifact.linkedArtifacts.map(linkedArtifact => linkedArtifact.artifact),
+          ),
+        ),
+      );
+      setRocCurveArtifacts(rocCurveArtifacts);
+      setSelectedRocCurveArtifacts(rocCurveArtifacts.slice(0, 3));
+
+      setIsLoadingArtifacts(false);
     }
   }, [runs, mlmdPackages, artifactTypes]);
 
@@ -750,6 +450,7 @@ function CompareV2(props: PageProps) {
     setSelectedArtifactsMap(selectedArtifactsMap);
   };
 
+  const isErrorArtifacts = isErrorRunDetails || isErrorMlmdPackages || isErrorArtifactTypes;
   const metricsTabText = metricsTypeToString(metricsTab);
   return (
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
@@ -804,34 +505,54 @@ function CompareV2(props: PageProps) {
             onSwitch={setMetricsTab}
           />
           <div className={classes(padding(20, 'lrt'), css.outputsOverflow)}>
-            {metricsTab === MetricsType.SCALAR_METRICS && <p>This is the Scalar Metrics tab.</p>}
-            {metricsTab === MetricsType.CONFUSION_MATRIX && (
-              <MetricsDropdown
-                filteredRunArtifacts={confusionMatrixArtifacts}
-                metricsTab={metricsTab}
-                metricsTabText={metricsTabText}
-                selectedArtifacts={selectedArtifactsMap[metricsTab]}
-                updateSelectedArtifacts={updateSelectedArtifacts}
-              />
-            )}
-            {metricsTab === MetricsType.ROC_CURVE && <p>This is the {metricsTabText} tab.</p>}
-            {metricsTab === MetricsType.HTML && (
-              <MetricsDropdown
-                filteredRunArtifacts={htmlArtifacts}
-                metricsTab={metricsTab}
-                metricsTabText={metricsTabText}
-                selectedArtifacts={selectedArtifactsMap[metricsTab]}
-                updateSelectedArtifacts={updateSelectedArtifacts}
-              />
-            )}
-            {metricsTab === MetricsType.MARKDOWN && (
-              <MetricsDropdown
-                filteredRunArtifacts={markdownArtifacts}
-                metricsTab={metricsTab}
-                metricsTabText={metricsTabText}
-                selectedArtifacts={selectedArtifactsMap[metricsTab]}
-                updateSelectedArtifacts={updateSelectedArtifacts}
-              />
+            {isErrorArtifacts ? (
+              <p>An error is preventing the {metricsTabText} from being displayed.</p>
+            ) : isLoadingArtifacts ? (
+              <div className={compareCss.relativeContainer}>
+                <CircularProgress
+                  size={25}
+                  className={commonCss.absoluteCenter}
+                  style={{ zIndex: zIndex.BUSY_OVERLAY }}
+                  role='circularprogress'
+                />
+              </div>
+            ) : (
+              <>
+                {metricsTab === MetricsType.SCALAR_METRICS && (
+                  <ScalarMetricsTable scalarMetricsTableData={scalarMetricsTableData} />
+                )}
+                {metricsTab === MetricsType.CONFUSION_MATRIX && (
+                  <MetricsDropdown
+                    filteredRunArtifacts={confusionMatrixRunArtifacts}
+                    metricsTab={metricsTab}
+                    selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                    updateSelectedArtifacts={updateSelectedArtifacts}
+                    namespace={namespace}
+                  />
+                )}
+                {/* TODO(zpChris): Add more ROC Curve selections through checkbox system. */}
+                {metricsTab === MetricsType.ROC_CURVE && (
+                  <ROCCurveMetrics selectedRocCurveArtifacts={selectedRocCurveArtifacts} />
+                )}
+                {metricsTab === MetricsType.HTML && (
+                  <MetricsDropdown
+                    filteredRunArtifacts={htmlRunArtifacts}
+                    metricsTab={metricsTab}
+                    selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                    updateSelectedArtifacts={updateSelectedArtifacts}
+                    namespace={namespace}
+                  />
+                )}
+                {metricsTab === MetricsType.MARKDOWN && (
+                  <MetricsDropdown
+                    filteredRunArtifacts={markdownRunArtifacts}
+                    metricsTab={metricsTab}
+                    selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                    updateSelectedArtifacts={updateSelectedArtifacts}
+                    namespace={namespace}
+                  />
+                )}
+              </>
             )}
           </div>
         </div>
@@ -842,4 +563,20 @@ function CompareV2(props: PageProps) {
   );
 }
 
-export default CompareV2;
+function EnhancedCompareV2(props: PageProps) {
+  const namespace: string | undefined = useContext(NamespaceContext);
+  const namespaceChanged = useNamespaceChangeEvent();
+  if (namespaceChanged) {
+    // Run Comparison page compares multiple runs, when namespace changes, the runs don't
+    // exist in the new namespace, so we should redirect to experiment list page.
+    return <Redirect to={RoutePage.EXPERIMENTS} />;
+  }
+
+  return <CompareV2 namespace={namespace} {...props} />;
+}
+
+export default EnhancedCompareV2;
+
+export const TEST_ONLY = {
+  CompareV2,
+};

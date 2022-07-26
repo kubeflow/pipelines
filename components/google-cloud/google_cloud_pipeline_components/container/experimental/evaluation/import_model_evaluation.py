@@ -62,13 +62,13 @@ parser.add_argument(
     required=True,
     default=argparse.SUPPRESS)
 parser.add_argument(
-    '--display_name', dest='display_name', type=str, default=None)
+    '--display_name', nargs='?', dest='display_name', type=str, default=None)
 parser.add_argument(
     '--pipeline_job_id', dest='pipeline_job_id', type=str, default=None)
 parser.add_argument(
-    '--dataset_path', dest='dataset_path', type=str, default=None)
+    '--dataset_path', nargs='?', dest='dataset_path', type=str, default=None)
 parser.add_argument(
-    '--dataset_type', dest='dataset_type', type=str, default=None)
+    '--dataset_type', nargs='?', dest='dataset_type', type=str, default=None)
 parser.add_argument(
     '--model_name',
     dest='model_name',

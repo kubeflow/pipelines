@@ -22,7 +22,8 @@ description: |
         location (str):
             Location for running the feature selection. If not set,
             default to us-central1.
-        root_dir: The Cloud Storage location to store the output.
+        root_dir (str):
+            The Cloud Storage location to store the output.
         dataflow_machine_type (Optional[str]):
             The machine type used for dataflow jobs. If not set, default to n1-standard-16.
         dataflow_max_num_workers (Optional[int]):
@@ -36,9 +37,12 @@ description: |
             https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
         dataflow_use_public_ips (Optional[bool]):
             Specifies whether Dataflow workers use public IP addresses.
-        encryption_spec_key_name (Optional[str]): Customer-managed encryption key. If this is set, then all resources will be encrypted with the provided encryption key.
-        data_source(Dataset): the input dataset artifact which references csv, BigQuery, or TF Records.
-        target_column_name(str): target column name of the input dataset.
+        encryption_spec_key_name (Optional[str]):
+            Customer-managed encryption key. If this is set, then all resources will be encrypted with the provided encryption key.
+        data_source(Dataset):
+            The input dataset artifact which references csv, BigQuery, or TF Records.
+        target_column_name(str):
+            Target column name of the input dataset.
         max_selected_features (Optional[int]):
             number of features to select by the algorithm. If not set, default to 1000.
 
@@ -46,7 +50,7 @@ description: |
         feature_ranking (TabularFeatureRanking):
             the dictionary of feature names and feature ranking values.
         selected_features (JsonObject):
-            a json array of selected feature names.
+            A json array of selected feature names.
         gcp_resources (str):
             GCP resources created by this component.
             For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
@@ -86,7 +90,7 @@ implementation:
         '{"display_name": "tabular-feature-selection-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20220707_0325_RC00',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20220719_0325_RC00',
         '", "args": ["feature_selection",
         "--data_source=',
         {inputUri: data_source},
@@ -113,7 +117,7 @@ implementation:
         '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp", "--dataflow_max_num_workers=',
         {inputValue: dataflow_max_num_workers},
         '", "--dataflow_worker_container_image=',
-        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220707_0325_RC00',
+        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220719_0325_RC00',
         '", "--dataflow_machine_type=',
         {inputValue: dataflow_machine_type},
         '", "--dataflow_disk_size_gb=',

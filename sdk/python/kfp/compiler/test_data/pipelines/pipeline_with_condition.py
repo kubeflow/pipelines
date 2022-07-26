@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from kfp import compiler
-from kfp import components
 from kfp import dsl
 from kfp.dsl import component
 

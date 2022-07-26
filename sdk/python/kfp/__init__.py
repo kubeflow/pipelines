@@ -14,15 +14,10 @@
 
 # `kfp` is a namespace package.
 # https://packaging.python.org/guides/packaging-namespace-packages/#pkgutil-style-namespace-packages
-__path__ = __import__("pkgutil").extend_path(__path__, __name__)
+__path__ = __import__('pkgutil').extend_path(__path__, __name__)
 
 __version__ = '2.0.0-beta.1'
 
 TYPE_CHECK = True
 
-from kfp.client import Client  # pylint: disable=wrong-import-position
-
-# TODO: clean up COMPILING_FOR_V2
-# COMPILING_FOR_V2 is True when using kfp.compiler or use (v1) kfp.compiler
-# with V2_COMPATIBLE or V2_ENGINE mode
-COMPILING_FOR_V2 = False
+from kfp.client import Client

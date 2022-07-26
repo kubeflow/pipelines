@@ -18,7 +18,7 @@ import logging
 import os
 import sys
 import types
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union
 
 import click
 from kfp import compiler

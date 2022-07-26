@@ -14,7 +14,6 @@ from kfp.deprecated.cli.diagnose_me import utility
 @click.group()
 def diagnose_me():
     """Prints diagnoses information for KFP environment."""
-    pass
 
 
 @diagnose_me.command()
