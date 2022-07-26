@@ -182,7 +182,9 @@ describe('MetricsTab with confidenceMetrics', () => {
       </CommonTestWrapper>,
     );
 
-    await waitFor(() => getByText("Error in metrics (artifact ID #1) artifact's confidenceMetrics data format."));
+    await waitFor(() =>
+      getByText("Error in metrics (artifact ID #1) artifact's confidenceMetrics data format."),
+    );
   });
 
   it('shows error banner when confidenceMetrics is not array', async () => {
@@ -211,7 +213,9 @@ describe('MetricsTab with confidenceMetrics', () => {
       </CommonTestWrapper>,
     );
 
-    await waitFor(() => getByText("Error in metrics (artifact ID #1) artifact's confidenceMetrics data format."));
+    await waitFor(() =>
+      getByText("Error in metrics (artifact ID #1) artifact's confidenceMetrics data format."),
+    );
   });
 });
 

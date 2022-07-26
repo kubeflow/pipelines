@@ -50,7 +50,7 @@ import CompareTable, { CompareTableProps } from 'src/components/CompareTable';
 import {
   compareCss,
   ExecutionArtifact,
-  FullArtifactName,
+  FullArtifactPath,
   getCompareTableProps,
   getRocCurveId,
   getValidRocCurveLinkedArtifacts,
@@ -222,7 +222,7 @@ function CompareV2(props: CompareV2Props) {
 
   const runlistRef = useRef<RunList>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [metricsTab, setMetricsTab] = useState(MetricsType.SCALAR_METRICS); // TODO(zpChris): Testing; change back to Scalar Metrics.
+  const [metricsTab, setMetricsTab] = useState(MetricsType.SCALAR_METRICS);
   const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
@@ -244,8 +244,8 @@ function CompareV2(props: CompareV2Props) {
   const [rocCurveLinkedArtifacts, setRocCurveLinkedArtifacts] = useState<LinkedArtifact[]>([]);
   const [selectedRocCurveIds, setSelectedRocCurveIds] = useState<string[]>([]);
   const [selectedIdColorMap, setSelectedIdColorMap] = useState<{ [key: string]: string }>({});
-  const [fullArtifactNameMap, setFullArtifactNameMap] = useState<{
-    [key: string]: FullArtifactName;
+  const [fullArtifactPathMap, setFullArtifactPathMap] = useState<{
+    [key: string]: FullArtifactPath;
   }>({});
 
   // Selected artifacts for two-panel layout.
@@ -357,11 +357,12 @@ function CompareV2(props: CompareV2Props) {
         MetricsType.ROC_CURVE,
       ).runArtifacts;
 
-      const { validLinkedArtifacts, fullArtifactNameMap } = getValidRocCurveLinkedArtifacts(
-        rocCurveRunArtifacts,
-      );
+      const {
+        validLinkedArtifacts,
+        fullArtifactPathMap: fullArtifactPathMap,
+      } = getValidRocCurveLinkedArtifacts(rocCurveRunArtifacts);
 
-      setFullArtifactNameMap(fullArtifactNameMap);
+      setFullArtifactPathMap(fullArtifactPathMap);
       setRocCurveLinkedArtifacts(validLinkedArtifacts);
       setSelectedRocCurveIds(
         validLinkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)).slice(0, 3),
@@ -552,7 +553,7 @@ function CompareV2(props: CompareV2Props) {
                     filter={{
                       selectedIds: selectedRocCurveIds,
                       setSelectedIds: setSelectedRocCurveIds,
-                      fullArtifactNameMap,
+                      fullArtifactPathMap,
                       selectedIdColorMap,
                       setSelectedIdColorMap,
                     }}

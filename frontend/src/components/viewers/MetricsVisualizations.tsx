@@ -49,7 +49,7 @@ import Tooltip from '@material-ui/core/Tooltip';
 import { Link } from 'react-router-dom';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
-import { FullArtifactName, getRocCurveId } from 'src/lib/v2/CompareUtils';
+import { FullArtifactPath, getRocCurveId, NameId } from 'src/lib/v2/CompareUtils';
 import { logger } from 'src/lib/Utils';
 import { stylesheet } from 'typestyle';
 
@@ -365,7 +365,7 @@ type ConfidenceMetric = {
 export interface ConfidenceMetricsFilter {
   selectedIds: string[];
   setSelectedIds: (selectedIds: string[]) => void;
-  fullArtifactNameMap: { [key: string]: FullArtifactName };
+  fullArtifactPathMap: { [key: string]: FullArtifactPath };
   selectedIdColorMap: { [key: string]: string };
   setSelectedIdColorMap: (selectedIdColorMap: { [key: string]: string }) => void;
 }
@@ -375,19 +375,23 @@ interface ConfidenceMetricsSectionProps {
   filter?: ConfidenceMetricsFilter;
 }
 
-const runNameCustomRenderer: React.FC<CustomRendererProps<string>> = (
-  props: CustomRendererProps<string>,
-) => (
-  <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
-    <Link
-      className={commonCss.link}
-      onClick={e => e.stopPropagation()}
-      to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, props.id)}
-    >
-      {props.value}
-    </Link>
-  </Tooltip>
-);
+const runNameCustomRenderer: React.FC<CustomRendererProps<NameId>> = (
+  props: CustomRendererProps<NameId>,
+) => {
+  const runName = props.value ? props.value.name : '';
+  const runId = props.value ? props.value.id : '';
+  return (
+    <Tooltip title={runName} enterDelay={300} placement='top-start'>
+      <Link
+        className={commonCss.link}
+        onClick={e => e.stopPropagation()}
+        to={RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, runId)}
+      >
+        {runName}
+      </Link>
+    </Tooltip>
+  );
+};
 
 const executionArtifactCustomRenderer: React.FC<CustomRendererProps<string>> = (
   props: CustomRendererProps<string>,
@@ -446,7 +450,7 @@ const getRocCurveFilterTable = (
   ];
   const rows: TableRow[] = [];
   if (filter) {
-    const { selectedIds, selectedIdColorMap, setSelectedIdColorMap, fullArtifactNameMap } = filter;
+    const { selectedIds, selectedIdColorMap, setSelectedIdColorMap, fullArtifactPathMap } = filter;
 
     // Only display the selected ROC Curves on the plot.
     confidenceMetricsDataList = confidenceMetricsDataList.filter(confidenceMetricsData =>
@@ -464,12 +468,12 @@ const getRocCurveFilterTable = (
     // Populate the filter table rows.
     for (const linkedArtifact of linkedArtifactsPage) {
       const id = getRocCurveId(linkedArtifact);
-      const fullArtifactName = fullArtifactNameMap[id];
+      const fullArtifactPath = fullArtifactPathMap[id];
       const row = {
         id,
         otherFields: [
-          `${fullArtifactName.executionName} > ${fullArtifactName.artifactName}`,
-          fullArtifactName.runName,
+          `${fullArtifactPath.execution.name} > ${fullArtifactPath.artifact.name}`,
+          fullArtifactPath.run,
           selectedIdColorMap[id],
         ] as any,
       };
@@ -536,11 +540,11 @@ function reloadRocCurve(
   const substrings = predicates?.map(p => p.string_value?.toLowerCase() || '') || [];
   const displayLinkedArtifacts = linkedArtifacts.filter(linkedArtifact => {
     if (filter) {
-      const fullArtifactName: FullArtifactName =
-        filter.fullArtifactNameMap[getRocCurveId(linkedArtifact)];
+      const fullArtifactPath: FullArtifactPath =
+        filter.fullArtifactPathMap[getRocCurveId(linkedArtifact)];
       for (const sub of substrings) {
-        const executionArtifactName = `${fullArtifactName.executionName} > ${fullArtifactName.artifactName}`;
-        if (!executionArtifactName.includes(sub) && !fullArtifactName.runName.includes(sub)) {
+        const executionArtifactName = `${fullArtifactPath.execution.name} > ${fullArtifactPath.artifact.name}`;
+        if (!executionArtifactName.includes(sub) && !fullArtifactPath.run.name.includes(sub)) {
           return false;
         }
       }
@@ -644,7 +648,12 @@ export function ConfidenceMetricsSection({
           ></IconWithTooltip>
         </h3>
       </div>
-      <ROCCurve configs={rocCurveConfigs} colors={colors} forceLegend disableAnimation />
+      <ROCCurve
+        configs={rocCurveConfigs}
+        colors={colors}
+        forceLegend={filter !== undefined}
+        disableAnimation={filter !== undefined}
+      />
       {filter && (
         <>
           {disableAdditionalSelection ? (

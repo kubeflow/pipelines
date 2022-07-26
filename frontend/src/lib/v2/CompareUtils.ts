@@ -56,15 +56,21 @@ export interface RunArtifactData {
   artifactCount: number;
 }
 
-export interface FullArtifactName {
-  runName: string;
-  executionName: string;
-  artifactName: string;
+export interface NameId {
+  name: string;
+  id: string;
+}
+
+// The provided name takes the format of "<type> ID #<number>" if the display name is not available.
+export interface FullArtifactPath {
+  run: NameId;
+  execution: NameId;
+  artifact: NameId;
 }
 
 export interface RocCurveArtifactData {
   validLinkedArtifacts: LinkedArtifact[];
-  fullArtifactNameMap: { [key: string]: FullArtifactName };
+  fullArtifactPathMap: { [key: string]: FullArtifactPath };
 }
 
 export const getRocCurveId = (linkedArtifact: LinkedArtifact): string =>
@@ -74,17 +80,17 @@ export const getRocCurveId = (linkedArtifact: LinkedArtifact): string =>
 export const getValidRocCurveLinkedArtifacts = (
   rocCurveRunArtifacts: RunArtifact[],
 ): RocCurveArtifactData => {
-  const fullArtifactNameMap: { [key: string]: FullArtifactName } = {};
+  const fullArtifactPathMap: { [key: string]: FullArtifactPath } = {};
   const validLinkedArtifacts = flatMapDeep(
     rocCurveRunArtifacts.map(runArtifact =>
       runArtifact.executionArtifacts.map(executionArtifact => {
-        return getValidArtifacts(runArtifact, executionArtifact, fullArtifactNameMap);
+        return getValidArtifacts(runArtifact, executionArtifact, fullArtifactPathMap);
       }),
     ),
   );
   return {
     validLinkedArtifacts,
-    fullArtifactNameMap,
+    fullArtifactPathMap,
   };
 };
 
@@ -93,7 +99,7 @@ export const getValidRocCurveLinkedArtifacts = (
 const getValidArtifacts = (
   runArtifact: RunArtifact,
   executionArtifact: ExecutionArtifact,
-  fullArtifactNameMap: { [key: string]: FullArtifactName },
+  fullArtifactPathMap: { [key: string]: FullArtifactPath },
 ): LinkedArtifact[] => {
   const validLinkedArtifacts: LinkedArtifact[] = [];
   executionArtifact.linkedArtifacts.forEach(linkedArtifact => {
@@ -106,7 +112,7 @@ const getValidArtifacts = (
       validLinkedArtifacts.push(linkedArtifact);
 
       // Save the names and IDs for the run, execution, and linked artifact to a map.
-      fullArtifactNameMap[getRocCurveId(linkedArtifact)] = getFullArtifactName(
+      fullArtifactPathMap[getRocCurveId(linkedArtifact)] = getFullArtifactPath(
         runArtifact.run,
         executionArtifact.execution,
         linkedArtifact,
@@ -118,16 +124,25 @@ const getValidArtifacts = (
 };
 
 // This path is used to populate the ROC Curve filter table data.
-const getFullArtifactName = (
+const getFullArtifactPath = (
   run: ApiRunDetail,
   execution: Execution,
   linkedArtifact: LinkedArtifact,
-): FullArtifactName => ({
-  runName: run.run?.name || `Run ID #${run.run!.id!}`,
-  executionName:
-    getExecutionDisplayName(execution) || `Execution ID #${execution.getId().toString()}`,
-  artifactName:
-    getArtifactName(linkedArtifact) || `Artifact ID #${linkedArtifact.artifact.getId().toString()}`,
+): FullArtifactPath => ({
+  run: {
+    name: run.run?.name || `Run ID #${run.run!.id!}`,
+    id: run.run!.id!,
+  },
+  execution: {
+    name: getExecutionDisplayName(execution) || `Execution ID #${execution.getId().toString()}`,
+    id: execution.getId().toString(),
+  },
+  artifact: {
+    name:
+      getArtifactName(linkedArtifact) ||
+      `Artifact ID #${linkedArtifact.artifact.getId().toString()}`,
+    id: linkedArtifact.artifact.getId().toString(),
+  },
 });
 
 export const getCompareTableProps = (
