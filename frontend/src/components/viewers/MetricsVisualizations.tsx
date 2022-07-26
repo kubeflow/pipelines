@@ -641,8 +641,10 @@ export function ConfidenceMetricsSection({
       <div className={padding(40, 'b')}>
         <h3>
           {'ROC Curve: ' +
-            (confidenceMetricsDataList.length === 1
-              ? confidenceMetricsDataList[0].name
+            (selectedConfidenceMetrics.length === 0
+              ? 'no artifacts'
+              : selectedConfidenceMetrics.length === 1
+              ? selectedConfidenceMetrics[0].name
               : 'multiple artifacts')}{' '}
           <IconWithTooltip
             Icon={HelpIcon}

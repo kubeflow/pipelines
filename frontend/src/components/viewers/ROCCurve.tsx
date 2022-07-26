@@ -125,7 +125,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
         <XYPlot
           width={width}
           height={height}
-          animation={false}
+          animation={!this.props.disableAnimation && !isSmall}
           classes={{ root: css.root }}
           onMouseLeave={() => this.setState({ hoveredValues: new Array(numLines).fill('') })}
           xDomain={lastDrawLocation && [lastDrawLocation.left, lastDrawLocation.right]}
