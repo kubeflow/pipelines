@@ -20,12 +20,10 @@ from kfp.dsl import Model
 
 @component
 def output_named_tuple(
-    dummy: str,
-) -> NamedTuple('Outputs', [
-    ('scalar', str),
-    ('metrics', Metrics),
-    ('model', Model),
-]):
+    dummy: str) -> NamedTuple('Outputs', [
+        ('scalar', str),
+        ('metrics', Metrics),
+    ]):
     scalar = '123'
 
     import json
@@ -38,5 +36,5 @@ def output_named_tuple(
     })
 
     from collections import namedtuple
-    output = namedtuple('Outputs', ['scalar', 'metrics', 'model'])
-    return output(scalar, metrics, model)
+    output = namedtuple('Outputs', ['scalar', 'metrics'])
+    return output(scalar, metrics)
