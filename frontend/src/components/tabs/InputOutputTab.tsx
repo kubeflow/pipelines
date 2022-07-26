@@ -28,13 +28,13 @@ import {
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
 import { KeyValue } from 'src/lib/StaticGraphParser';
+import { getMetadataValue } from 'src/mlmd/library';
 import { Execution } from 'src/third_party/mlmd';
 import ArtifactPreview from '../ArtifactPreview';
 import Banner from '../Banner';
 import DetailsTable from '../DetailsTable';
 import { RoutePageFactory } from '../Router';
 import { ExecutionTitle } from './ExecutionTitle';
-import { getMetadataValueV2 } from 'src/mlmd/Utils';
 
 type ParamList = Array<KeyValue<string>>;
 
@@ -157,13 +157,13 @@ function extractOutputFromExecution(execution: Execution): KeyValue<string>[] {
   return extractParamFromExecution(execution, 'outputs');
 }
 
-function extractParamFromExecution(execution: Execution, pattern: string): KeyValue<string>[] {
+function extractParamFromExecution(execution: Execution, name: string): KeyValue<string>[] {
   const result: KeyValue<string>[] = [];
   execution.getCustomPropertiesMap().forEach((value, key) => {
-    if (key == pattern) {
-      const ioParam = getMetadataValueV2(value);
-      if (ioParam) {
-        Object.entries(ioParam.toJavaScript()).map(parameter => {
+    if (key == name) {
+      const param = getMetadataValue(value);
+      if (typeof param == 'object') {
+        Object.entries(param.toJavaScript()).map(parameter => {
           result.push([parameter[0], JSON.stringify(parameter[1])]);
         });
       }
