@@ -51,6 +51,13 @@ import { RoutePage, RouteParams } from 'src/components/Router';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
 import { FullArtifactName, getRocCurveId } from 'src/lib/v2/CompareUtils';
 import { logger } from 'src/lib/Utils';
+import { stylesheet } from 'typestyle';
+
+const css = stylesheet({
+  inline: {
+    display: 'inline',
+  },
+});
 
 interface MetricsVisualizationsProps {
   linkedArtifacts: LinkedArtifact[];
@@ -387,7 +394,7 @@ const executionArtifactCustomRenderer: React.FC<CustomRendererProps<string>> = (
 ) => (
   // TODO(zpChris): Where are the ellipsis here?
   <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
-    <p>{props.value || ''}</p>
+    <p className={css.inline}>{props.value || ''}</p>
   </Tooltip>
 );
 
