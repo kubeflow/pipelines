@@ -52,7 +52,7 @@ import DagCanvas from './v2/DagCanvas';
 
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
 const QUERY_REFETCH_INTERNAL = 10000; // 10000 milliseconds == 10 seconds.
-const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec']
+const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
 
 interface MlmdPackage {
   executions: Execution[];
@@ -102,13 +102,13 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     return 'unknown';
   };
 
-  const { isSuccess: isTemplatePullSuccessFromRun, data: templateString } = useQuery(
+  const { isSuccess: isTemplatePullSuccessFromRun, data: templateString } = useQuery<string, Error>(
     [runDetail],
     async () => {
       if (!runDetail) {
-        return '';
+        throw new Error('No run detail!');
       }
-      //const originalRun = await Apis.runServiceApi.getRun(originalRunId);
+
       return runDetail.run?.pipeline_spec?.pipeline_manifest || '';
     },
     { staleTime: Infinity },
@@ -246,8 +246,6 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
               showGutter={true}
             />
           </div>
-
-          // TODO(zijianjoy): Wait backend to supply run parameters, so UI can show them.
         )}
       </div>
     </>
