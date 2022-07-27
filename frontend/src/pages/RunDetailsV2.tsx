@@ -102,6 +102,18 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     return 'unknown';
   };
 
+  const { isSuccess: isTemplatePullSuccessFromRun, data: templateString } = useQuery(
+    [runDetail],
+    async () => {
+      if (!runDetail) {
+        return '';
+      }
+      //const originalRun = await Apis.runServiceApi.getRun(originalRunId);
+      return runDetail.run?.pipeline_spec?.pipeline_manifest || '';
+    },
+    { staleTime: Infinity },
+  );
+
   // Retrieves MLMD states from the MLMD store.
   const { isSuccess, data } = useQuery<MlmdPackage, Error>(
     ['mlmd_package', { id: runId }],
@@ -220,7 +232,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         )}
 
         {/* Pipeline Spec tab */}
-        {/* {selectedTab === 2 && (
+        {selectedTab === 2 && isTemplatePullSuccessFromRun && (
           <div className={commonCss.codeEditor} data-testid={'spec-ir'}>
             <Editor
               value={jsyaml.safeDump(jsyaml.safeLoad(templateString || ''))} // Use safeLoad and then safeDump to make sure the Pipeline Spec is in Yaml Form.
@@ -236,7 +248,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
           </div>
 
           // TODO(zijianjoy): Wait backend to supply run parameters, so UI can show them.
-        )} */}
+        )}
       </div>
     </>
   );
