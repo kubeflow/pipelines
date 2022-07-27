@@ -439,7 +439,7 @@ const getRocCurveFilterTable = (
     {
       customRenderer: executionArtifactCustomRenderer,
       flex: 1,
-      label: 'Execution name > Run name',
+      label: 'Execution name > Artifact name',
     },
     {
       customRenderer: runNameCustomRenderer,
