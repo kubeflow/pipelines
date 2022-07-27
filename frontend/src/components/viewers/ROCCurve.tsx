@@ -167,7 +167,7 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
           )}
 
           {/* Highlighted line, if present */}
-          {highlightIndex !== -1 && (
+          {highlightIndex >= 0 && (
             <LineSeries
               key={highlightIndex}
               color={
