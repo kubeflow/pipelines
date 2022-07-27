@@ -42,6 +42,14 @@ import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { SelectedItem } from 'src/components/TwoLevelDropdown';
 import MD2Tabs from 'src/atoms/MD2Tabs';
+import CompareTable, { CompareTableProps } from 'src/components/CompareTable';
+import {
+  ExecutionArtifact,
+  getCompareTableProps,
+  MetricsType,
+  RunArtifact,
+  RunArtifactData,
+} from 'src/lib/v2/CompareUtils';
 import { ConfidenceMetricsSection } from 'src/components/viewers/MetricsVisualizations';
 import { flatMapDeep } from 'lodash';
 import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
@@ -61,24 +69,6 @@ interface MlmdPackage {
   executions: Execution[];
   artifacts: Artifact[];
   events: Event[];
-}
-
-export interface ExecutionArtifact {
-  execution: Execution;
-  linkedArtifacts: LinkedArtifact[];
-}
-
-export interface RunArtifact {
-  run: ApiRunDetail;
-  executionArtifacts: ExecutionArtifact[];
-}
-
-export enum MetricsType {
-  SCALAR_METRICS,
-  CONFUSION_MATRIX,
-  ROC_CURVE,
-  HTML,
-  MARKDOWN,
 }
 
 const metricsTypeToFilter = (metricsType: MetricsType): string => {
@@ -103,9 +93,10 @@ function filterRunArtifactsByType(
   runArtifacts: RunArtifact[],
   artifactTypes: ArtifactType[],
   metricsType: MetricsType,
-): RunArtifact[] {
+): RunArtifactData {
   const metricsFilter = metricsTypeToFilter(metricsType);
   const typeRuns: RunArtifact[] = [];
+  let artifactCount: number = 0;
   for (const runArtifact of runArtifacts) {
     const typeExecutions: ExecutionArtifact[] = [];
     for (const e of runArtifact.executionArtifacts) {
@@ -124,6 +115,7 @@ function filterRunArtifactsByType(
         );
       }
       if (typeArtifacts.length > 0) {
+        artifactCount += typeArtifacts.length;
         typeExecutions.push({
           execution: e.execution,
           linkedArtifacts: typeArtifacts,
@@ -137,7 +129,10 @@ function filterRunArtifactsByType(
       } as RunArtifact);
     }
   }
-  return typeRuns;
+  return {
+    runArtifacts: typeRuns,
+    artifactCount,
+  };
 }
 
 function getRunArtifacts(runs: ApiRunDetail[], mlmdPackages: MlmdPackage[]): RunArtifact[] {
@@ -201,6 +196,12 @@ function CompareV2(props: CompareV2Props) {
 
   const [rocCurveArtifacts, setRocCurveArtifacts] = useState<Artifact[]>([]);
   const [selectedRocCurveArtifacts, setSelectedRocCurveArtifacts] = useState<Artifact[]>([]);
+
+  const [scalarMetricsArtifacts, setScalarMetricsArtifacts] = useState<RunArtifact[]>([]);
+  const [scalarMetricsArtifactCount, setScalarMetricsArtifactCount] = useState<number>(0);
+  const [scalarMetricsTableData, setScalarMetricsTableData] = useState<
+    CompareTableProps | undefined
+  >(undefined);
 
   // Selected artifacts for two-panel layout.
   const createSelectedArtifactArray = (count: number): SelectedArtifact[] => {
@@ -279,19 +280,29 @@ function CompareV2(props: CompareV2Props) {
   useEffect(() => {
     if (runs && mlmdPackages && artifactTypes) {
       const runArtifacts: RunArtifact[] = getRunArtifacts(runs, mlmdPackages);
-      setConfusionMatrixRunArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX),
+      const scalarMetricsArtifactData = filterRunArtifactsByType(
+        runArtifacts,
+        artifactTypes,
+        MetricsType.SCALAR_METRICS,
       );
-      setHtmlRunArtifacts(filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML));
+      setScalarMetricsArtifacts(scalarMetricsArtifactData.runArtifacts);
+      setScalarMetricsArtifactCount(scalarMetricsArtifactData.artifactCount);
+      setConfusionMatrixRunArtifacts(
+        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX)
+          .runArtifacts,
+      );
+      setHtmlRunArtifacts(
+        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML).runArtifacts,
+      );
       setMarkdownRunArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN),
+        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN).runArtifacts,
       );
 
       const rocCurveRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
         runArtifacts,
         artifactTypes,
         MetricsType.ROC_CURVE,
-      );
+      ).runArtifacts;
       const rocCurveArtifacts: Artifact[] = flatMapDeep(
         rocCurveRunArtifacts.map(rocCurveArtifact =>
           rocCurveArtifact.executionArtifacts.map(executionArtifact =>
@@ -394,6 +405,18 @@ function CompareV2(props: CompareV2Props) {
     setSelectedIds(selectedIds);
   };
 
+  useEffect(() => {
+    const compareTableProps: CompareTableProps = getCompareTableProps(
+      scalarMetricsArtifacts,
+      scalarMetricsArtifactCount,
+    );
+    if (compareTableProps.yLabels.length === 0) {
+      setScalarMetricsTableData(undefined);
+    } else {
+      setScalarMetricsTableData(compareTableProps);
+    }
+  }, [scalarMetricsArtifacts, scalarMetricsArtifactCount]);
+
   const updateSelectedArtifacts = (newArtifacts: SelectedArtifact[]) => {
     selectedArtifactsMap[metricsTab] = newArtifacts;
     setSelectedArtifactsMap(selectedArtifactsMap);
@@ -452,8 +475,12 @@ function CompareV2(props: CompareV2Props) {
             onSwitch={setMetricsTab}
           />
           <div className={classes(padding(20, 'lrt'), css.outputsOverflow)}>
-            {/* TODO(zpChris): Add the scalar metrics table. */}
-            {metricsTab === MetricsType.SCALAR_METRICS && <p>This is the Scalar Metrics tab.</p>}
+            {metricsTab === MetricsType.SCALAR_METRICS &&
+              (scalarMetricsTableData ? (
+                <CompareTable {...scalarMetricsTableData} />
+              ) : (
+                <p>There are no Scalar Metrics artifacts available on the selected runs.</p>
+              ))}
             {metricsTab === MetricsType.CONFUSION_MATRIX && (
               <MetricsDropdown
                 filteredRunArtifacts={confusionMatrixRunArtifacts}

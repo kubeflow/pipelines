@@ -32,11 +32,16 @@ import PlotCard from 'src/components/PlotCard';
 import { ViewerConfig } from 'src/components/viewers/Viewer';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import Banner from 'src/components/Banner';
-import { ExecutionArtifact, MetricsType, RunArtifact, SelectedArtifact } from 'src/pages/CompareV2';
+import { SelectedArtifact } from 'src/pages/CompareV2';
 import { useQuery } from 'react-query';
 import { errorToMessage, logger } from 'src/lib/Utils';
 import { Execution } from 'src/third_party/mlmd';
-import { metricsTypeToString } from 'src/lib/v2/CompareUtils';
+import {
+  metricsTypeToString,
+  ExecutionArtifact,
+  MetricsType,
+  RunArtifact,
+} from 'src/lib/v2/CompareUtils';
 
 const css = stylesheet({
   leftCell: {
@@ -79,7 +84,7 @@ interface MetricsDropdownProps {
   metricsTab: MetricsType;
   selectedArtifacts: SelectedArtifact[];
   updateSelectedArtifacts: (selectedArtifacts: SelectedArtifact[]) => void;
-  namespace: string | undefined;
+  namespace?: string;
 }
 
 export default function MetricsDropdown(props: MetricsDropdownProps) {
