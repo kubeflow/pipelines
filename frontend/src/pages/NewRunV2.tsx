@@ -64,6 +64,8 @@ export type RuntimeParameters = { [key: string]: any };
 
 function NewRunV2(props: NewRunV2Props) {
   // List of elements we need to create Pipeline Run.
+  const [pipelineName, setPipelineName] = useState('');
+  const [pipelineVersionName, setPipelineVersionName] = useState('');
   const [runName, setRunName] = useState('');
   const [runDescription, setRunDescription] = useState('');
   const [apiExperiment, setApiExperiment] = useState<ApiExperiment>();
@@ -76,6 +78,9 @@ function NewRunV2(props: NewRunV2Props) {
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isParameterValid, setIsParameterValid] = useState(false);
+  const [isPipelineNameValid, setIsPipelineNameValid] = useState(false);
+  const [isPipelineVersionNameValid, setIsPipelineVersionNameValid] = useState(false);
+  const [isRunNameValid, setIsRunNameValid] = useState(true);
 
   // TODO(zijianjoy): If creating run from Experiment Page or RunList Page, there is no pipelineId/Version.
   const urlParser = new URLParser(props);
@@ -96,6 +101,7 @@ function NewRunV2(props: NewRunV2Props) {
     },
     { enabled: !!pipelineId, staleTime: Infinity },
   );
+  // setPipelineName(apiPipeline?.name || '');
   const { isSuccess: isPipelineVersionPullSuccess, data: apiPipelineVersion } = useQuery<
     ApiPipelineVersion,
     Error
@@ -110,6 +116,7 @@ function NewRunV2(props: NewRunV2Props) {
     },
     { enabled: !!apiPipeline, staleTime: Infinity },
   );
+  // setPipelineVersionName(apiPipelineVersion?.name || '');
   const { isSuccess: isTemplatePullSuccess, data: templateString } = useQuery<string, Error>(
     ['ApiPipelineVersionTemplate', apiPipeline, pipelineVersionIdParam],
     async () => {
@@ -131,6 +138,11 @@ function NewRunV2(props: NewRunV2Props) {
     });
   }, []);
 
+  useEffect(() => {
+    setPipelineName(apiPipeline?.name || '');
+    setPipelineVersionName(apiPipelineVersion?.name || '');
+  }, [apiPipeline, apiPipelineVersion])
+
   // When loading a pipeline version, automatically set the default run name.
   useEffect(() => {
     if (apiPipelineVersion?.name) {
@@ -139,6 +151,27 @@ function NewRunV2(props: NewRunV2Props) {
       setRunName(initRunName);
     }
   }, [apiPipelineVersion]);
+
+  // Pre-check the name of pipeline / pipeline version / run at the UI
+  // Required. The user defined name of the metric. It must between 1 and 63 characters long and must conform to the following regular expression: `[a-z]([-a-z0-9]*[a-z0-9])?`.
+  useEffect(() => {
+    if (!pipelineName.match(`[a-z]([-a-z0-9]*[a-z0-9])?`)?.includes(pipelineName) || pipelineName.length > 63) {
+      setIsPipelineNameValid(false);
+    } else {
+      setIsPipelineNameValid(true);
+    }
+    if (!pipelineVersionName.match(`[a-z]([-a-z0-9]*[a-z0-9])?`)?.includes(pipelineVersionName) || pipelineVersionName.length > 63) {
+      setIsPipelineVersionNameValid(false);
+    } else {
+      setIsPipelineVersionNameValid(true);
+    }
+    //const runMetricName = runName
+    // if (!runName.match(`[a-z]([-a-z0-9]*[a-z0-9])?`)?.includes(runName) || runName.length > 63) {
+    //   setIsRunNameValid(false);
+    // } else {
+    //   setIsRunNameValid(true);
+    // }
+  }, [pipelineName, pipelineVersionName, runName])
 
   // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
   useEffect(() => {
@@ -162,12 +195,12 @@ function NewRunV2(props: NewRunV2Props) {
 
   // Handle different change that can affect setIsStartButtonEnabled
   useEffect(() => {
-    if (!templateString || errorMessage || !isParameterValid) {
+    if (!templateString || errorMessage || !isParameterValid || !isPipelineNameValid|| !isPipelineVersionNameValid || !isRunNameValid) {
       setIsStartButtonEnabled(false);
     } else {
       setIsStartButtonEnabled(true);
     }
-  }, [templateString, errorMessage, isParameterValid]);
+  }, [templateString, errorMessage, isParameterValid, isPipelineNameValid, isPipelineVersionNameValid, isRunNameValid]);
 
   // Whenever any input value changes, validate and show error if needed.
   // TODO(zijianjoy): Validate run name for now, we need to validate others first.
@@ -255,29 +288,37 @@ function NewRunV2(props: NewRunV2Props) {
 
         {/* Pipeline selection */}
         <Input
-          value={apiPipeline?.name || ''}
+          value={pipelineName}
           required={true}
+          onChange={event => setPipelineName(event.target.value)}
           label='Pipeline'
-          disabled={true}
+          // disabled={true}
           variant='outlined'
-          InputProps={{
-            classes: { disabled: css.nonEditableInput },
-            readOnly: true,
-          }}
+          // InputProps={{
+          //   classes: { disabled: css.nonEditableInput },
+          //   readOnly: true,
+          // }}
         />
+        <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
+          {isPipelineNameValid ? '' : 'Invalid Pipeline Name'}
+        </div>
 
         {/* Pipeline version selection */}
         <Input
-          value={apiPipelineVersion?.name || ''}
+          value={pipelineVersionName}
           required={true}
+          onChange={event => setPipelineVersionName(event.target.value)}
           label='Pipeline Version'
-          disabled={true}
+          // disabled={true}
           variant='outlined'
-          InputProps={{
-            classes: { disabled: css.nonEditableInput },
-            readOnly: true,
-          }}
+          // InputProps={{
+          //   classes: { disabled: css.nonEditableInput },
+          //   readOnly: true,
+          // }}
         />
+        <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
+          {isPipelineVersionNameValid ? '' : 'Invalid Pipeline Version Name'}
+        </div>
 
         {/* Run info inputs */}
         <Input
@@ -288,6 +329,9 @@ function NewRunV2(props: NewRunV2Props) {
           value={runName}
           variant='outlined'
         />
+        <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
+          {isRunNameValid ? '' : 'Invalid Run Name'}
+        </div>
         <Input
           label='Description (optional)'
           multiline={true}
