@@ -155,6 +155,8 @@ function NewRunV2(props: NewRunV2Props) {
   // Pre-check the name of pipeline / pipeline version / run at the UI
   // Required. The user defined name of the metric. It must between 1 and 63 characters long and must conform to the following regular expression: `[a-z]([-a-z0-9]*[a-z0-9])?`.
   useEffect(() => {
+    // Block: naming restriction of the run name and pipeline from the backend
+    /*
     if (!pipelineName.match(`[a-z]([-a-z0-9]*[a-z0-9])?`)?.includes(pipelineName) || pipelineName.length > 63) {
       setIsPipelineNameValid(false);
     } else {
@@ -166,11 +168,12 @@ function NewRunV2(props: NewRunV2Props) {
       setIsPipelineVersionNameValid(true);
     }
     //const runMetricName = runName
-    // if (!runName.match(`[a-z]([-a-z0-9]*[a-z0-9])?`)?.includes(runName) || runName.length > 63) {
-    //   setIsRunNameValid(false);
-    // } else {
-    //   setIsRunNameValid(true);
-    // }
+    if (!runName.match(`[a-z]([-a-z0-9]*[a-z0-9])?`)?.includes(runName) || runName.length > 63) {
+      setIsRunNameValid(false);
+    } else {
+      setIsRunNameValid(true);
+    }
+    */
   }, [pipelineName, pipelineVersionName, runName])
 
   // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
