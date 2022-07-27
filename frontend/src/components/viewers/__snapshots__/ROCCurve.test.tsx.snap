@@ -454,7 +454,7 @@ exports[`ROCCurve does not break on empty data 1`] = `
     />
     <LineSeries
       className=""
-      color="#ffcdf3"
+      color="#4285f4"
       curve="curveBasis"
       data={Array []}
       getNull={[Function]}
@@ -1447,7 +1447,7 @@ exports[`ROCCurve renders a simple ROC curve given one config 1`] = `
     />
     <LineSeries
       className=""
-      color="#ffcdf3"
+      color="#4285f4"
       curve="curveBasis"
       data={
         Array [
@@ -1984,7 +1984,7 @@ exports[`ROCCurve renders an ROC curve using three configs 1`] = `
     />
     <LineSeries
       className=""
-      color="#ffcdf3"
+      color="#4285f4"
       curve="curveBasis"
       data={
         Array [
@@ -2026,7 +2026,7 @@ exports[`ROCCurve renders an ROC curve using three configs 1`] = `
     />
     <LineSeries
       className=""
-      color="#ffee33"
+      color="#2b9c1e"
       curve="curveBasis"
       data={
         Array [
@@ -2068,7 +2068,7 @@ exports[`ROCCurve renders an ROC curve using three configs 1`] = `
     />
     <LineSeries
       className=""
-      color="#29d0d0"
+      color="#e00000"
       curve="curveBasis"
       data={
         Array [
@@ -2183,15 +2183,15 @@ exports[`ROCCurve renders an ROC curve using three configs 1`] = `
         items={
           Array [
             Object {
-              "color": "#ffcdf3",
+              "color": "#4285f4",
               "title": "Series #1",
             },
             Object {
-              "color": "#ffee33",
+              "color": "#2b9c1e",
               "title": "Series #2",
             },
             Object {
-              "color": "#29d0d0",
+              "color": "#e00000",
               "title": "Series #3",
             },
           ]
