@@ -655,7 +655,7 @@ export function ConfidenceMetricsSection({
       <ROCCurve
         configs={rocCurveConfigs}
         colors={colors}
-        forceLegend={filter !== undefined}
+        forceLegend={filter !== undefined} // Prevent legend from disappearing w/ one artifact left
         disableAnimation={filter !== undefined}
       />
       {filter && (

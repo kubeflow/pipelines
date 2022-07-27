@@ -82,7 +82,7 @@ interface ROCCurveProps {
   configs: ROCCurveConfig[];
   maxDimension?: number;
   colors?: string[];
-  forceLegend?: boolean;
+  forceLegend?: boolean; // Forces the legend to display even with just one ROC Curve
   disableAnimation?: boolean;
 }
 
