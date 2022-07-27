@@ -52,6 +52,8 @@ const css = stylesheet({
   },
 });
 
+// Used the following color palette, with some slight brightness modifications, as reference:
+// https://alumni.media.mit.edu/~wad/color/palette.html
 export const lineColors = [
   '#4285f4',
   '#2b9c1e',
