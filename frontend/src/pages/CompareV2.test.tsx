@@ -666,5 +666,6 @@ describe('CompareV2', () => {
 
     fireEvent.click(screen.getByText('ROC Curve'));
     screen.getByText('ROC Curve: multiple artifacts');
+    screen.getByText('Filter artifacts');
   });
 });
