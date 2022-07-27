@@ -246,8 +246,8 @@ function ArtifactInfo({
     const artifactType = artifactTypes.filter(
       aType => aType.getId() === linkedArtifact.artifact.getTypeId(),
     );
-    if (artifactType.length === 1 && artifactTypes[0].getName()) {
-      artifactTypeName = artifactTypes[0].getName();
+    if (artifactType.length === 1 && artifactType[0].getName()) {
+      artifactTypeName = artifactType[0].getName();
     }
   }
 
