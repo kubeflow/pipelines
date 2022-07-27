@@ -84,15 +84,15 @@ function newMockArtifact(
 }
 
 function newMockLinkedArtifact(
-  id: number,
+  artifactId: number,
   executionId: number,
   scalarMetricValues?: number[],
   confidenceMetricsStruct?: any,
   displayName?: string,
 ): LinkedArtifact {
   return {
-    artifact: newMockArtifact(id, scalarMetricValues, confidenceMetricsStruct, displayName),
-    event: newMockEvent(id, executionId, displayName),
+    artifact: newMockArtifact(artifactId, scalarMetricValues, confidenceMetricsStruct, displayName),
+    event: newMockEvent(artifactId, executionId, displayName),
   } as LinkedArtifact;
 }
 

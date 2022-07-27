@@ -370,7 +370,7 @@ export interface ConfidenceMetricsFilter {
   setSelectedIdColorMap: (selectedIdColorMap: { [key: string]: string }) => void;
 }
 
-interface ConfidenceMetricsSectionProps {
+export interface ConfidenceMetricsSectionProps {
   linkedArtifacts: LinkedArtifact[];
   filter?: ConfidenceMetricsFilter;
 }
