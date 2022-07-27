@@ -396,7 +396,6 @@ const runNameCustomRenderer: React.FC<CustomRendererProps<NameId>> = (
 const executionArtifactCustomRenderer: React.FC<CustomRendererProps<string>> = (
   props: CustomRendererProps<string>,
 ) => (
-  // TODO(zpChris): Where are the ellipsis here?
   <Tooltip title={props.value || ''} enterDelay={300} placement='top-start'>
     <p className={css.inline}>{props.value || ''}</p>
   </Tooltip>
