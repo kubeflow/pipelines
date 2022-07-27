@@ -159,7 +159,25 @@ describe('ConfidenceMetricsSection', () => {
     return props;
   }
 
-  it('Render Confidence Metrics section', async () => {
+  it('Render Confidence Metrics section with no selected artifacts', async () => {
+    render(
+      <CommonTestWrapper>
+        <ConfidenceMetricsSection {...generateProps([])} />
+      </CommonTestWrapper>,
+    );
+    screen.getByText('ROC Curve: no artifacts');
+  });
+
+  it('Render Confidence Metrics section with one selected artifact', async () => {
+    render(
+      <CommonTestWrapper>
+        <ConfidenceMetricsSection {...generateProps(['1-1'])} />
+      </CommonTestWrapper>,
+    );
+    screen.getByText('ROC Curve: artifact1');
+  });
+
+  it('Render Confidence Metrics section with multiple artifacts', async () => {
     render(
       <CommonTestWrapper>
         <ConfidenceMetricsSection {...generateProps(['1-1', '1-2'])} />
