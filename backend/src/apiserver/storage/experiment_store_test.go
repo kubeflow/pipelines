@@ -563,6 +563,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Equal(t, total_run_size, 2)
 	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[0].StorageState)
 	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[1].StorageState)
+	// Verify that the two jobs are disabled.
 	jobs, total_job_size, _, err := jobStore.ListJobs(&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: fakeID}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, total_job_size, 2)
@@ -580,6 +581,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Equal(t, total_run_size, 2)
 	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[0].StorageState)
 	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[1].StorageState)
+	// Verify that the two jobs remain disabled.
 	jobs, total_job_size, _, err = jobStore.ListJobs(&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: fakeID}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, total_job_size, 2)
