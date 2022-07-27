@@ -22,7 +22,7 @@ except ImportError:
 
 __all__ = [
     'ModelEvaluationOp', 'ModelImportEvaluationOp', 'EvaluationDataSamplerOp',
-    'EvaluationDataSplitterOp'
+    'EvaluationDataSplitterOp', 'ModelEvaluationFeatureAttributionOp'
 ]
 
 ModelEvaluationOp = load_component_from_file(
@@ -36,3 +36,6 @@ EvaluationDataSamplerOp = load_component_from_file(
 
 EvaluationDataSplitterOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'evaluation_data_splitter.yaml'))
+
+ModelEvaluationFeatureAttributionOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'feature_attribution.yaml'))
