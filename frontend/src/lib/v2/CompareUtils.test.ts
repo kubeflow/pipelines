@@ -15,10 +15,11 @@
  */
 
 import { testBestPractices } from 'src/TestUtils';
-import { getCompareTableProps, RunArtifact } from './CompareUtils';
+import { getCompareTableProps, getValidRocCurveLinkedArtifacts, RunArtifact } from './CompareUtils';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
 import { LinkedArtifact } from 'src/mlmd/MlmdUtils';
 import * as jspb from 'google-protobuf';
+import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 
 function newMockExecution(id: number, displayName?: string): Execution {
   const execution = new Execution();
@@ -33,10 +34,10 @@ function newMockExecution(id: number, displayName?: string): Execution {
   return execution;
 }
 
-function newMockEvent(id: number, displayName?: string): Event {
+function newMockEvent(artifactId: number, executionId: number, displayName?: string): Event {
   const event = new Event();
-  event.setArtifactId(id);
-  event.setExecutionId(id);
+  event.setArtifactId(artifactId);
+  event.setExecutionId(executionId);
   event.setType(Event.Type.OUTPUT);
   if (displayName) {
     const path = new Event.Path();
@@ -48,7 +49,12 @@ function newMockEvent(id: number, displayName?: string): Event {
   return event;
 }
 
-function newMockArtifact(id: number, scalarMetricValues: number[], displayName?: string): Artifact {
+function newMockArtifact(
+  id: number,
+  scalarMetricValues?: number[],
+  confidenceMetricsStruct?: any,
+  displayName?: string,
+): Artifact {
   const artifact = new Artifact();
   artifact.setId(id);
 
@@ -59,11 +65,19 @@ function newMockArtifact(id: number, scalarMetricValues: number[], displayName?:
     customPropertiesMap.set('display_name', displayNameValue);
   }
 
-  scalarMetricValues.forEach((scalarMetricValue, index) => {
-    const value = new Value();
-    value.setDoubleValue(scalarMetricValue);
-    customPropertiesMap.set(`scalarMetric${index}`, value);
-  });
+  if (scalarMetricValues) {
+    scalarMetricValues.forEach((scalarMetricValue, index) => {
+      const value = new Value();
+      value.setDoubleValue(scalarMetricValue);
+      customPropertiesMap.set(`scalarMetric${index}`, value);
+    });
+  }
+
+  if (confidenceMetricsStruct) {
+    const confidenceMetrics: Value = new Value();
+    confidenceMetrics.setStructValue(confidenceMetricsStruct);
+    customPropertiesMap.set('confidenceMetrics', confidenceMetrics);
+  }
 
   jest.spyOn(artifact, 'getCustomPropertiesMap').mockReturnValue(customPropertiesMap);
   return artifact;
@@ -71,12 +85,14 @@ function newMockArtifact(id: number, scalarMetricValues: number[], displayName?:
 
 function newMockLinkedArtifact(
   id: number,
-  scalarMetricValues: number[],
+  executionId: number,
+  scalarMetricValues?: number[],
+  confidenceMetricsStruct?: any,
   displayName?: string,
 ): LinkedArtifact {
   return {
-    artifact: newMockArtifact(id, scalarMetricValues, displayName),
-    event: newMockEvent(id, displayName),
+    artifact: newMockArtifact(id, scalarMetricValues, confidenceMetricsStruct, displayName),
+    event: newMockEvent(id, executionId, displayName),
   } as LinkedArtifact;
 }
 
@@ -104,13 +120,13 @@ describe('CompareUtils', () => {
           {
             execution: newMockExecution(1, 'execution1'),
             linkedArtifacts: [
-              newMockLinkedArtifact(1, [1, 2], 'artifact1'),
-              newMockLinkedArtifact(2, [1], 'artifact2'),
+              newMockLinkedArtifact(1, 1, [1, 2], undefined, 'artifact1'),
+              newMockLinkedArtifact(2, 1, [1], undefined, 'artifact2'),
             ],
           },
           {
             execution: newMockExecution(2, 'execution2'),
-            linkedArtifacts: [newMockLinkedArtifact(3, [3], 'artifact3')],
+            linkedArtifacts: [newMockLinkedArtifact(3, 2, [3], undefined, 'artifact3')],
           },
         ],
       },
@@ -124,7 +140,7 @@ describe('CompareUtils', () => {
         executionArtifacts: [
           {
             execution: newMockExecution(3, 'execution1'),
-            linkedArtifacts: [newMockLinkedArtifact(4, [4], 'artifact1')],
+            linkedArtifacts: [newMockLinkedArtifact(4, 3, [4], undefined, 'artifact1')],
           },
         ],
       },
@@ -161,11 +177,14 @@ describe('CompareUtils', () => {
         executionArtifacts: [
           {
             execution: newMockExecution(1),
-            linkedArtifacts: [newMockLinkedArtifact(1, [1, 2]), newMockLinkedArtifact(2, [1])],
+            linkedArtifacts: [
+              newMockLinkedArtifact(1, 1, [1, 2]),
+              newMockLinkedArtifact(2, 1, [1]),
+            ],
           },
           {
             execution: newMockExecution(2),
-            linkedArtifacts: [newMockLinkedArtifact(3, [3])],
+            linkedArtifacts: [newMockLinkedArtifact(3, 2, [3])],
           },
         ],
       },
@@ -178,7 +197,7 @@ describe('CompareUtils', () => {
         executionArtifacts: [
           {
             execution: newMockExecution(3),
-            linkedArtifacts: [newMockLinkedArtifact(4, [4])],
+            linkedArtifacts: [newMockLinkedArtifact(4, 3, [4])],
           },
         ],
       },
@@ -196,6 +215,101 @@ describe('CompareUtils', () => {
         ['1', '1', '3', '4'],
         ['2', '', '', ''],
       ],
+    });
+  });
+
+  it('Validate the ROC Curve linked artifacts', () => {
+    const confidenceMetricsStruct = Struct.fromJavaScript({
+      list: [
+        {
+          confidenceThreshold: 2,
+          falsePositiveRate: 0,
+          recall: 0,
+        },
+        {
+          confidenceThreshold: 1,
+          falsePositiveRate: 0,
+          recall: 0.33962264150943394,
+        },
+        {
+          confidenceThreshold: 0.9,
+          falsePositiveRate: 0,
+          recall: 0.6037735849056604,
+        },
+      ],
+    });
+
+    const validLinkedArtifacts: LinkedArtifact[] = [
+      newMockLinkedArtifact(1, 1, undefined, confidenceMetricsStruct, 'artifact1'),
+      newMockLinkedArtifact(2, 1, undefined, confidenceMetricsStruct, 'artifact2'),
+      newMockLinkedArtifact(4, 3, undefined, confidenceMetricsStruct),
+    ];
+    const rocCurveRunArtifacts: RunArtifact[] = [
+      {
+        run: {
+          run: {
+            id: '1',
+            name: 'run1',
+          },
+        },
+        executionArtifacts: [
+          {
+            execution: newMockExecution(1, 'execution1'),
+            linkedArtifacts: [validLinkedArtifacts[0], validLinkedArtifacts[1]],
+          },
+          {
+            execution: newMockExecution(2, 'execution2'),
+            linkedArtifacts: [newMockLinkedArtifact(3, 2, undefined, undefined, 'artifact3')],
+          },
+        ],
+      },
+      {
+        run: {
+          run: {
+            id: '2',
+          },
+        },
+        executionArtifacts: [
+          {
+            execution: newMockExecution(3, 'execution1'),
+            linkedArtifacts: [validLinkedArtifacts[2]],
+          },
+        ],
+      },
+    ];
+
+    const rocCurveArtifactData = getValidRocCurveLinkedArtifacts(rocCurveRunArtifacts);
+    expect(rocCurveArtifactData.validLinkedArtifacts).toMatchObject(validLinkedArtifacts);
+
+    const fullArtifactPathMap = rocCurveArtifactData.fullArtifactPathMap;
+    expect(Object.keys(fullArtifactPathMap)).toHaveLength(3);
+    expect(fullArtifactPathMap['1-1']).toMatchObject({
+      run: {
+        name: 'run1',
+        id: '1',
+      },
+      execution: {
+        name: 'execution1',
+        id: '1',
+      },
+      artifact: {
+        name: 'artifact1',
+        id: '1',
+      },
+    });
+    expect(fullArtifactPathMap['3-4']).toMatchObject({
+      run: {
+        name: 'Run ID #2',
+        id: '2',
+      },
+      execution: {
+        name: 'execution1',
+        id: '3',
+      },
+      artifact: {
+        name: 'Artifact ID #4',
+        id: '4',
+      },
     });
   });
 });
