@@ -17,7 +17,7 @@ deploymentSpec:
         - --output_path
         - '{{$.outputs.parameters[''output_path''].output_file}}'
         command:
-        - echo
+        - my_program
         - '{{$.inputs.parameters[''text'']}}'
         image: python:3.7
 pipelineInfo:

@@ -57,23 +57,23 @@ class ContainerComponentArtifactChannel():
         self._var_name = var_name
 
     def __getattr__(
-        self, __name: str
+        self, _name: str
     ) -> Union[placeholders.InputUriPlaceholder, placeholders
                .InputPathPlaceholder, placeholders.OutputUriPlaceholder,
                placeholders.OutputPathPlaceholder]:
-        if __name not in ['uri', 'path']:
+        if _name not in ['uri', 'path']:
             raise AttributeError(
                 'Accessing artifact attribute other than uri or path is not supported.'
             )
         if self._io_type == 'input':
-            if __name == 'uri':
+            if _name == 'uri':
                 return placeholders.InputUriPlaceholder(self._var_name)
-            elif __name == 'path':
+            elif _name == 'path':
                 return placeholders.InputPathPlaceholder(self._var_name)
         elif self._io_type == 'output':
-            if __name == 'uri':
+            if _name == 'uri':
                 return placeholders.OutputUriPlaceholder(self._var_name)
-            elif __name == 'path':
+            elif _name == 'path':
                 return placeholders.OutputPathPlaceholder(self._var_name)
 
 
@@ -201,7 +201,9 @@ def _maybe_make_unique(name: str, names: List[str]):
     raise RuntimeError('Too many arguments with the name {}'.format(name))
 
 
-def extract_component_interface(func: Callable) -> structures.ComponentSpec:
+def extract_component_interface(
+        func: Callable,
+        containerized: bool = False) -> structures.ComponentSpec:
     single_output_name_const = 'Output'
 
     signature = inspect.signature(func)
@@ -277,45 +279,48 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
             inputs[io_name] = input_spec
 
     #Analyzing the return type annotations.
-    return_ann = signature.return_annotation
-    if hasattr(return_ann, '_fields'):  #NamedTuple
-        # Getting field type annotations.
-        # __annotations__ does not exist in python 3.5 and earlier
-        # _field_types does not exist in python 3.9 and later
-        field_annotations = getattr(return_ann,
-                                    '__annotations__', None) or getattr(
-                                        return_ann, '_field_types', None)
-        for field_name in return_ann._fields:
-            type_struct = None
-            if field_annotations:
-                type_struct = _annotation_to_type_struct(
-                    field_annotations.get(field_name, None))
+    if not containerized:
+        return_ann = signature.return_annotation
+        if hasattr(return_ann, '_fields'):  #NamedTuple
+            # Getting field type annotations.
+            # __annotations__ does not exist in python 3.5 and earlier
+            # _field_types does not exist in python 3.9 and later
+            field_annotations = getattr(return_ann, '__annotations__',
+                                        None) or getattr(
+                                            return_ann, '_field_types', None)
+            for field_name in return_ann._fields:
+                type_struct = None
+                if field_annotations:
+                    type_struct = _annotation_to_type_struct(
+                        field_annotations.get(field_name, None))
 
-            output_name = _maybe_make_unique(field_name, output_names)
+                output_name = _maybe_make_unique(field_name, output_names)
+                output_names.add(output_name)
+                output_spec = structures.OutputSpec(type=type_struct)
+                outputs[output_name] = output_spec
+        # Deprecated dict-based way of declaring multiple outputs. Was only used by
+        # the @component decorator
+        elif isinstance(return_ann, dict):
+            warnings.warn(
+                'The ability to specify multiple outputs using the dict syntax'
+                ' has been deprecated. It will be removed soon after release'
+                ' 0.1.32. Please use typing.NamedTuple to declare multiple'
+                ' outputs.')
+            for output_name, output_type_annotation in return_ann.items():
+                output_type_struct = _annotation_to_type_struct(
+                    output_type_annotation)
+                output_spec = structures.OutputSpec(type=output_type_struct)
+                outputs[name] = output_spec
+        elif signature.return_annotation is not None and signature.return_annotation != inspect.Parameter.empty:
+            output_name = _maybe_make_unique(single_output_name_const,
+                                             output_names)
+            # Fixes exotic, but possible collision:
+            #   `def func(output_path: OutputPath()) -> str: ...`
             output_names.add(output_name)
+            type_struct = _annotation_to_type_struct(
+                signature.return_annotation)
             output_spec = structures.OutputSpec(type=type_struct)
             outputs[output_name] = output_spec
-    # Deprecated dict-based way of declaring multiple outputs. Was only used by
-    # the @component decorator
-    elif isinstance(return_ann, dict):
-        warnings.warn(
-            'The ability to specify multiple outputs using the dict syntax'
-            ' has been deprecated. It will be removed soon after release'
-            ' 0.1.32. Please use typing.NamedTuple to declare multiple'
-            ' outputs.')
-        for output_name, output_type_annotation in return_ann.items():
-            output_type_struct = _annotation_to_type_struct(
-                output_type_annotation)
-            output_spec = structures.OutputSpec(type=output_type_struct)
-            outputs[name] = output_spec
-    elif signature.return_annotation is not None and signature.return_annotation != inspect.Parameter.empty:
-        output_name = _maybe_make_unique(single_output_name_const, output_names)
-        # Fixes exotic, but possible collision:
-        #   `def func(output_path: OutputPath()) -> str: ...`
-        output_names.add(output_name)
-        type_struct = _annotation_to_type_struct(signature.return_annotation)
-        output_spec = structures.OutputSpec(type=type_struct)
-        outputs[output_name] = output_spec
 
     # Component name and description are derived from the function's name and
     # docstring.  The name can be overridden by setting setting func.__name__
@@ -467,100 +472,21 @@ def create_component_from_func(func: Callable,
         component_spec=component_spec, python_func=func)
 
 
-def extract_container_component_interface(
-        func: Callable) -> structures.ComponentSpec:
-    """Extracting the type annotations from function signature, without
-    analyzing return annotation."""
+def create_container_component_from_func(
+        func: Callable) -> container_component.ContainerComponent:
+    """Implementation for the @container_component decorator.
+
+    The decorator is defined under container_component_decorator.py. See
+    the decorator for the canonical documentation for this function.
+    """
+
+    component_spec = extract_component_interface(func, containerized=True)
+    arg_list = []
     signature = inspect.signature(func)
     parameters = list(signature.parameters.values())
-
-    parsed_docstring = docstring_parser.parse(inspect.getdoc(func))
-
-    inputs = {}
-    outputs = {}
-
-    input_names = set()
-    output_names = set()
     for parameter in parameters:
         parameter_type = type_annotations.maybe_strip_optional_from_annotation(
             parameter.annotation)
-        passing_style = None
-        io_name = parameter.name
-
-        if type_annotations.is_artifact_annotation(parameter_type):
-            # passing_style is either type_annotations.InputAnnotation or
-            # type_annotations.OutputAnnotation.
-            passing_style = type_annotations.get_io_artifact_annotation(
-                parameter_type)
-
-            # parameter_type is type_annotations.Artifact or one of its subclasses.
-            parameter_type = type_annotations.get_io_artifact_class(
-                parameter_type)
-            if not issubclass(parameter_type, artifact_types.Artifact):
-                raise ValueError(
-                    'Input[T] and Output[T] are only supported when T is a '
-                    'subclass of Artifact. Found `{} with type {}`'.format(
-                        io_name, parameter_type))
-
-            if parameter.default is not inspect.Parameter.empty:
-                raise ValueError(
-                    'Default values for Input/Output artifacts are not supported.'
-                )
-        elif isinstance(
-                parameter_type,
-            (type_annotations.InputPath, type_annotations.OutputPath)):
-            passing_style = type(parameter_type)
-            parameter_type = parameter_type.type
-            if parameter.default is not inspect.Parameter.empty and not (
-                    passing_style == type_annotations.InputPath and
-                    parameter.default is None):
-                raise ValueError(
-                    'Path inputs only support default values of None. Default'
-                    ' values for outputs are not supported.')
-
-        type_struct = _annotation_to_type_struct(parameter_type)
-        if type_struct is None:
-            raise TypeError('Missing type annotation for argument: {}'.format(
-                parameter.name))
-
-        if passing_style in [
-                type_annotations.OutputAnnotation, type_annotations.OutputPath
-        ]:
-            io_name = _maybe_make_unique(io_name, output_names)
-            output_names.add(io_name)
-            output_spec = structures.OutputSpec(type=type_struct)
-            outputs[io_name] = output_spec
-        else:
-            io_name = _maybe_make_unique(io_name, input_names)
-            input_names.add(io_name)
-            if parameter.default is not inspect.Parameter.empty:
-                input_spec = structures.InputSpec(
-                    type=type_struct,
-                    default=parameter.default,
-                )
-            else:
-                input_spec = structures.InputSpec(type=type_struct)
-
-            inputs[io_name] = input_spec
-
-    # Component name and description are derived from the function's name and
-    # docstring.  The name can be overridden by setting setting func.__name__
-    # attribute (of the legacy func._component_human_name attribute).  The
-    # description can be overridden by setting the func.__doc__ attribute (or
-    # the legacy func._component_description attribute).
-    component_name = getattr(func, '_component_human_name',
-                             None) or _python_function_name_to_component_name(
-                                 func.__name__)
-    description = getattr(func, '_component_description',
-                          None) or parsed_docstring.short_description
-    if description:
-        description = description.strip()
-
-    arg_list = []
-    for parameter in parameters:
-        parameter_type = type_annotations.maybe_strip_optional_from_annotation(
-            parameter.annotation)
-        passing_style = None
         io_name = parameter.name
         if type_annotations.is_input_artifact(parameter_type):
             arg_list.append(
@@ -578,23 +504,5 @@ def extract_container_component_interface(
             arg_list.append(placeholders.InputValuePlaceholder(io_name))
 
     container_spec = func(*arg_list)
-
-    component_spec = structures.ComponentSpec(
-        name=component_name,
-        description=description,
-        inputs=inputs if inputs else None,
-        outputs=outputs if outputs else None,
-        implementation=structures.Implementation(container_spec))
-    return component_spec
-
-
-def create_container_component_from_func(
-        func: Callable) -> container_component.ContainerComponent:
-    """Implementation for the @container_component decorator.
-
-    The decorator is defined under container_component_decorator.py. See
-    the decorator for the canonical documentation for this function.
-    """
-
-    component_spec = extract_container_component_interface(func)
+    component_spec.implementation = structures.Implementation(container_spec)
     return container_component.ContainerComponent(component_spec, func)

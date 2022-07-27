@@ -19,8 +19,8 @@ from kfp.dsl import OutputPath
 
 
 @container_component
-def container_with_artifacts_output(
-        num_epochs: int,  # also as an input
+def container_with_artifact_output(
+        num_epochs: int,  # built-in types are parsed as inputs
         model: Output[Model],
         model_config_path: OutputPath(str),
 ):
@@ -40,5 +40,5 @@ def container_with_artifacts_output(
 if __name__ == '__main__':
     from kfp import compiler
     compiler.Compiler().compile(
-        pipeline_func=container_with_artifacts_output,
+        pipeline_func=container_with_artifact_output,
         package_path=__file__.replace('.py', '.yaml'))

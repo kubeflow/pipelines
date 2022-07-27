@@ -16,6 +16,8 @@ compose pipelines."""
 
 __all__ = [
     'component',
+    'container_component',
+    'ContainerSpec',
     'importer',
     'pipeline',
     'PipelineTask',

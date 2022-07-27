@@ -22,30 +22,32 @@ def container_component(
         func: Callable) -> container_component.ContainerComponent:
     """Decorator for container-based components in KFP v2.
 
-    Sample usage:
-    from kfp.dsl import container_component, ContainerSpec, InputPath, OutputPath, Output
-
-    @container_component
-    def my_component(
-        dataset_path: InputPath(Dataset),
-        model: Output[Model],
-        num_epochs: int,
-        output_parameter: OutputPath(str),
-    ):
-        return ContainerSpec(
-            image='gcr.io/my-image',
-            command=['sh', 'my_component.sh'],
-            arguments=[
-            '--dataset_path', dataset_path,
-            '--model_path', model.path,
-            '--output_parameter_path', output_parameter,
-        ]
-    )
-
     Args:
         func: The python function to create a component from. The function
             should have type annotations for all its arguments, indicating how
             it is intended to be used (e.g. as an input/output Artifact object,
             a plain parameter, or a path to a file).
+
+    Example:
+      ::
+
+        from kfp.dsl import container_component, ContainerSpec, InputPath, OutputPath, Output
+
+        @container_component
+        def my_component(
+            dataset_path: InputPath(Dataset),
+            model: Output[Model],
+            num_epochs: int,
+            output_parameter: OutputPath(str),
+        ):
+            return ContainerSpec(
+                image='gcr.io/my-image',
+                command=['sh', 'my_component.sh'],
+                arguments=[
+                '--dataset_path', dataset_path,
+                '--model_path', model.path,
+                '--output_parameter_path', output_parameter,
+            ]
+        )
     """
     return component_factory.create_container_component_from_func(func)

@@ -15,6 +15,7 @@
 import unittest
 
 from kfp.components import component_factory
+from kfp.components import placeholders
 
 
 class TestGetPackagesToInstallCommand(unittest.TestCase):
@@ -44,3 +45,18 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         concat_command = ' '.join(command)
         for package in packages_to_install + pip_index_urls:
             self.assertTrue(package in concat_command)
+
+
+class TestContainerComponentArtifactChannel(unittest.TestCase):
+
+    def test_correct_placeholder_and_attribute_error(self):
+        in_channel = component_factory.ContainerComponentArtifactChannel(
+            'input', 'my_dataset')
+        out_channel = component_factory.ContainerComponentArtifactChannel(
+            'output', 'my_result')
+        self.assertEqual(in_channel.uri,
+                         placeholders.InputUriPlaceholder('my_dataset'))
+        self.assertEqual(out_channel.path,
+                         placeholders.OutputPathPlaceholder('my_result'))
+        self.assertRaises(AttributeError, lambda: in_channel.name)
+        self.assertRaises(AttributeError, lambda: out_channel.channel)

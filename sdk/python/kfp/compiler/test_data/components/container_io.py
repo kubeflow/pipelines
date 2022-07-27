@@ -20,7 +20,7 @@ from kfp.dsl import OutputPath
 def container_io(text: str, output_path: OutputPath(str)):
     return ContainerSpec(
         image='python:3.7',
-        command=['echo', text],
+        command=['my_program', text],
         args=['--output_path', output_path])
 
 

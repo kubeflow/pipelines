@@ -833,7 +833,7 @@ class TestCompileComponent(parameterized.TestCase):
         def container_simple_io(text: str, output_path: dsl.OutputPath(str)):
             return dsl.ContainerSpec(
                 image='python:3.7',
-                command=['echo', text],
+                command=['my_program', text],
                 args=['--output_path', output_path])
 
         with tempfile.TemporaryDirectory() as tempdir:
@@ -854,19 +854,14 @@ class TestCompileComponent(parameterized.TestCase):
             'STRING')
 
     def test_compile_container_with_artifact_output(self):
-        from kfp.dsl import container_component
-        from kfp.dsl import ContainerSpec
-        from kfp.dsl import Model
-        from kfp.dsl import Output
-        from kfp.dsl import OutputPath
 
-        @container_component
-        def container_with_artifacts_output(
+        @dsl.container_component
+        def container_with_artifact_output(
                 num_epochs: int,  # also as an input
-                model: Output[Model],
-                model_config_path: OutputPath(str),
+                model: dsl.Output[dsl.Model],
+                model_config_path: dsl.OutputPath(str),
         ):
-            return ContainerSpec(
+            return dsl.ContainerSpec(
                 image='gcr.io/my-image',
                 command=['sh', 'run.sh'],
                 args=[
@@ -881,19 +876,30 @@ class TestCompileComponent(parameterized.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             output_json = os.path.join(tempdir, 'component.yaml')
             compiler.Compiler().compile(
-                pipeline_func=container_with_artifacts_output,
+                pipeline_func=container_with_artifact_output,
                 package_path=output_json,
-                pipeline_name='container-with-artifacts-output')
+                pipeline_name='container-with-artifact-output')
             with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
         self.assertEqual(
-            pipeline_spec['components']['comp-container-with-artifacts-output']
+            pipeline_spec['components']['comp-container-with-artifact-output']
             ['inputDefinitions']['parameters']['num_epochs']['parameterType'],
             'NUMBER_INTEGER')
-        self.assertIn(
-            'model',
-            pipeline_spec['components']['comp-container-with-artifacts-output']
-            ['outputDefinitions']['artifacts'])
+        self.assertEqual(
+            pipeline_spec['components']['comp-container-with-artifact-output']
+            ['outputDefinitions']['artifacts']['model']['artifactType']
+            ['schemaTitle'], 'system.Model')
+        self.assertEqual(
+            pipeline_spec['components']['comp-container-with-artifact-output']
+            ['outputDefinitions']['parameters']['model_config_path']
+            ['parameterType'], 'STRING')
+        args_to_check = pipeline_spec['deploymentSpec']['executors'][
+            'exec-container-with-artifact-output']['container']['args']
+        self.assertEqual(args_to_check[3],
+                         "{{$.outputs.artifacts['model'].uri}}")
+        self.assertEqual(
+            args_to_check[5],
+            "{{$.outputs.parameters['model_config_path'].output_file}}")
 
 
 class TestCompileBadInput(unittest.TestCase):

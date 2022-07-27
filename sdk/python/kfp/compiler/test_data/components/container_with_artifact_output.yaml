@@ -1,6 +1,6 @@
 components:
-  comp-container-with-artifacts-output:
-    executorLabel: exec-container-with-artifacts-output
+  comp-container-with-artifact-output:
+    executorLabel: exec-container-with-artifact-output
     inputDefinitions:
       parameters:
         num_epochs:
@@ -16,7 +16,7 @@ components:
           parameterType: STRING
 deploymentSpec:
   executors:
-    exec-container-with-artifacts-output:
+    exec-container-with-artifact-output:
       container:
         args:
         - --epochs
@@ -30,21 +30,21 @@ deploymentSpec:
         - run.sh
         image: gcr.io/my-image
 pipelineInfo:
-  name: container-with-artifacts-output
+  name: container-with-artifact-output
 root:
   dag:
     tasks:
-      container-with-artifacts-output:
+      container-with-artifact-output:
         cachingOptions:
           enableCache: true
         componentRef:
-          name: comp-container-with-artifacts-output
+          name: comp-container-with-artifact-output
         inputs:
           parameters:
             num_epochs:
               componentInputParameter: num_epochs
         taskInfo:
-          name: container-with-artifacts-output
+          name: container-with-artifact-output
   inputDefinitions:
     parameters:
       num_epochs:
