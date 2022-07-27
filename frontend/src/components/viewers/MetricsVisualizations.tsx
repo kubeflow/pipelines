@@ -615,7 +615,9 @@ export function ConfidenceMetricsSection({
   const rocCurveConfigs: ROCCurveConfig[] = [];
   for (const confidenceMetricsItem of selectedConfidenceMetrics) {
     const confidenceMetrics = confidenceMetricsItem.confidenceMetrics as any;
-    const { error } = validateConfidenceMetrics(confidenceMetrics.list);
+
+    // Export used to allow testing mock.
+    const { error } = exports.validateConfidenceMetrics(confidenceMetrics.list);
 
     // If an error exists with confidence metrics, return the first one with an issue.
     if (error) {
@@ -700,7 +702,7 @@ const ConfidenceMetricRunType = Record({
   recall: Number,
 });
 const ConfidenceMetricArrayRunType = ArrayRunType(ConfidenceMetricRunType);
-function validateConfidenceMetrics(inputs: any): { error?: string } {
+export function validateConfidenceMetrics(inputs: any): { error?: string } {
   try {
     ConfidenceMetricArrayRunType.check(inputs);
   } catch (e) {

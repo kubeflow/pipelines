@@ -27,6 +27,8 @@ import {
   ConfidenceMetricsSectionProps,
 } from './MetricsVisualizations';
 import { FullArtifactPath } from 'src/lib/v2/CompareUtils';
+import * as metricsVisualizations from './MetricsVisualizations';
+import TestUtils from 'src/TestUtils';
 
 testBestPractices();
 describe('ConfidenceMetricsSection', () => {
@@ -184,5 +186,26 @@ describe('ConfidenceMetricsSection', () => {
       </CommonTestWrapper>,
     );
     screen.getByText('ROC Curve: multiple artifacts');
+  });
+
+  it('Error in confidenceMetrics data format', async () => {
+    const validateConfidenceMetricsSpy = jest.spyOn(
+      metricsVisualizations,
+      'validateConfidenceMetrics',
+    );
+    validateConfidenceMetricsSpy.mockReturnValue({
+      error: 'test error',
+    });
+    render(
+      <CommonTestWrapper>
+        <ConfidenceMetricsSection {...generateProps(['1-1', '1-2'])} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    expect(validateConfidenceMetricsSpy).toHaveBeenCalledTimes(1);
+    screen.getByText(
+      "Error in artifact1 (artifact ID #1) artifact's confidenceMetrics data format.",
+    );
   });
 });
