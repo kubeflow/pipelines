@@ -21,6 +21,7 @@ import MD2Tabs from 'src/atoms/MD2Tabs';
 import Editor from 'src/components/Editor';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import { PipelineVersionCard } from 'src/components/navigators/PipelineVersionCard';
+import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import SidePanel from 'src/components/SidePanel';
 import { StaticNodeDetailsV2 } from 'src/components/tabs/StaticNodeDetailsV2';
 import { isSafari } from 'src/lib/Utils';
@@ -122,17 +123,7 @@ function PipelineDetailsV2({
       )}
       {selectedTab === 1 && (
         <div className={commonCss.codeEditor} data-testid={'spec-ir'}>
-          <Editor
-            value={jsyaml.safeDump(jsyaml.safeLoad(templateString || ''))} // Use safeLoad and then safeDump to make sure the Pipeline Spec is in Yaml Form.
-            height={editorHeightWidth}
-            width={editorHeightWidth}
-            mode='yaml'
-            theme='github'
-            editorProps={{ $blockScrolling: true }}
-            readOnly={true}
-            highlightActiveLine={true}
-            showGutter={true}
-          />
+          <PipelineSpecTabContent templateString={templateString || ''} />
         </div>
       )}
     </div>
