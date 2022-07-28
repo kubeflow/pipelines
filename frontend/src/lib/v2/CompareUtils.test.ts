@@ -15,7 +15,7 @@
  */
 
 import { testBestPractices } from 'src/TestUtils';
-import { getCompareTableProps, getValidRocCurveLinkedArtifacts, RunArtifact } from './CompareUtils';
+import { getCompareTableProps, getValidRocCurveArtifactData, RunArtifact } from './CompareUtils';
 import { Artifact, Event, Execution, Value } from 'src/third_party/mlmd';
 import { LinkedArtifact } from 'src/mlmd/MlmdUtils';
 import * as jspb from 'google-protobuf';
@@ -278,7 +278,7 @@ describe('CompareUtils', () => {
       },
     ];
 
-    const rocCurveArtifactData = getValidRocCurveLinkedArtifacts(rocCurveRunArtifacts);
+    const rocCurveArtifactData = getValidRocCurveArtifactData(rocCurveRunArtifacts);
     expect(rocCurveArtifactData.validLinkedArtifacts).toMatchObject(validLinkedArtifacts);
 
     const fullArtifactPathMap = rocCurveArtifactData.fullArtifactPathMap;

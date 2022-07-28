@@ -77,14 +77,24 @@ export const getRocCurveId = (linkedArtifact: LinkedArtifact): string =>
   `${linkedArtifact.event.getExecutionId()}-${linkedArtifact.event.getArtifactId()}`;
 
 // Form an array which holds all valid ROC Curve linked artifacts.
-export const getValidRocCurveLinkedArtifacts = (
+export const getValidRocCurveArtifactData = (
   rocCurveRunArtifacts: RunArtifact[],
 ): RocCurveArtifactData => {
   const fullArtifactPathMap: { [key: string]: FullArtifactPath } = {};
   const validLinkedArtifacts = flatMapDeep(
     rocCurveRunArtifacts.map(runArtifact =>
       runArtifact.executionArtifacts.map(executionArtifact => {
-        return getValidArtifacts(runArtifact, executionArtifact, fullArtifactPathMap);
+        const validArtifacts = getValidArtifacts(executionArtifact);
+
+        // Save the names and IDs for the run, execution, and linked artifact to a map.
+        validArtifacts.forEach(validArtifact => {
+          fullArtifactPathMap[getRocCurveId(validArtifact)] = getFullArtifactPath(
+            runArtifact.run,
+            executionArtifact.execution,
+            validArtifact,
+          );
+        });
+        return validArtifacts;
       }),
     ),
   );
@@ -94,13 +104,8 @@ export const getValidRocCurveLinkedArtifacts = (
   };
 };
 
-// Get the valid ROC Curve linked artifacts (those which have confidence metrics data),
-// and update the full artifact name map (run, execution, and artifact names are saved).
-const getValidArtifacts = (
-  runArtifact: RunArtifact,
-  executionArtifact: ExecutionArtifact,
-  fullArtifactPathMap: { [key: string]: FullArtifactPath },
-): LinkedArtifact[] => {
+// Get the valid ROC Curve linked artifacts (those which have confidence metrics data).
+const getValidArtifacts = (executionArtifact: ExecutionArtifact): LinkedArtifact[] => {
   const validLinkedArtifacts: LinkedArtifact[] = [];
   executionArtifact.linkedArtifacts.forEach(linkedArtifact => {
     const customProperties = linkedArtifact.artifact.getCustomPropertiesMap();
@@ -110,16 +115,8 @@ const getValidArtifacts = (
       ?.toJavaScript();
     if (confidenceMetrics) {
       validLinkedArtifacts.push(linkedArtifact);
-
-      // Save the names and IDs for the run, execution, and linked artifact to a map.
-      fullArtifactPathMap[getRocCurveId(linkedArtifact)] = getFullArtifactPath(
-        runArtifact.run,
-        executionArtifact.execution,
-        linkedArtifact,
-      );
     }
   });
-
   return validLinkedArtifacts;
 };
 

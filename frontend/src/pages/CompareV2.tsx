@@ -53,7 +53,7 @@ import {
   FullArtifactPath,
   getCompareTableProps,
   getRocCurveId,
-  getValidRocCurveLinkedArtifacts,
+  getValidRocCurveArtifactData,
   MetricsType,
   metricsTypeToString,
   RunArtifact,
@@ -359,10 +359,9 @@ function CompareV2(props: CompareV2Props) {
         MetricsType.ROC_CURVE,
       ).runArtifacts;
 
-      const {
-        validLinkedArtifacts,
-        fullArtifactPathMap: fullArtifactPathMap,
-      } = getValidRocCurveLinkedArtifacts(rocCurveRunArtifacts);
+      const { validLinkedArtifacts, fullArtifactPathMap } = getValidRocCurveArtifactData(
+        rocCurveRunArtifacts,
+      );
 
       setFullArtifactPathMap(fullArtifactPathMap);
       setRocCurveLinkedArtifacts(validLinkedArtifacts);
