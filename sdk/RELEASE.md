@@ -13,9 +13,11 @@
 
 ## Bug Fixes and Other Changes
 * Enable overriding caching options at submission time [\#7912](https://github.com/kubeflow/pipelines/pull/7912)
+* Allow artifact inputs in pipeline definition. [\#8044](https://github.com/kubeflow/pipelines/pull/8044)
 
 ## Documentation Updates
-# Current Version (2.0.0-beta.1)
+
+# 2.0.0-beta.1
 
 ## Major Features and Improvements
 
@@ -31,6 +33,7 @@
 * Include default registry context JSON in package distribution [\#7987](https://github.com/kubeflow/pipelines/pull/7987)
 
 ## Documentation Updates
+
 # 2.0.0-beta.0
 
 ## Major Features and Improvements
