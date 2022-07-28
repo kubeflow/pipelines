@@ -30,7 +30,7 @@ outputs:
     to materialized_test_split.}
 implementation:
   container:
-    image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220719_0325_RC00
+    image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220727_0325_RC00
     command:
     - sh
     - -ec

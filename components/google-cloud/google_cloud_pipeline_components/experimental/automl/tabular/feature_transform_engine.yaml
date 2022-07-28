@@ -262,7 +262,7 @@ outputs:
 
 implementation:
   container:
-    image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20220719_0325_RC00
+    image: us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:20220727_0325_RC00
     args: [
       feature_transform_engine,
       concat: [
@@ -318,7 +318,7 @@ implementation:
         "--dataflow_machine_type=",
         {inputValue: dataflow_machine_type}
       ],
-      "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220719_0325_RC00",
+      "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220727_0325_RC00",
       concat: [
         "--dataflow_disk_size_gb=",
         {inputValue: dataflow_disk_size_gb}
