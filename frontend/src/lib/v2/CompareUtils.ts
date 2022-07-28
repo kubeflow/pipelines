@@ -70,7 +70,7 @@ export interface FullArtifactPath {
 
 export interface RocCurveArtifactData {
   validLinkedArtifacts: LinkedArtifact[];
-  fullArtifactPathMap: { [key: string]: FullArtifactPath };
+  fullArtifactPathMap: { [key: string]: FullArtifactPath }; // key: "<execution ID>-<artifact ID>"
 }
 
 export const getRocCurveId = (linkedArtifact: LinkedArtifact): string =>
