@@ -1,5 +1,9 @@
-# Current Version 1.0.16.dev (Still in Development)
-* Add notes for next release here.
+# Release 1.0.16
+* Evaluation - Separate feature attribution from evaluation component to its own component
+* AutoML Tables - Include fix AMI issues for criteo dataset
+* AutoML Tables - Change Vertex evaluation pipeline templates 
+* Model Evaluation - Import model evaluation slices when available in the metrics
+* Model Evaluation - Add nargs to allow for empty string input by component
 
 # Release 1.0.15
 * Sync AutomL components' code to GCPC codebase to reflect bug fix in FTE component spec
