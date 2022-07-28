@@ -184,7 +184,7 @@ def _parse_args(args):
           'BigQueryMLPrincipalComponentsJob',
           'BigQueryMLPrincipalComponentInfoJob',
           'BigqueryMLRecommendJob',
-          'BigqueryExplainForecastModelJob'
+          'BigqueryExplainForecastModelJob',
           'BigqueryMLForecastJob',
           'BigqueryDetectAnomaliesModelJob'
       }),

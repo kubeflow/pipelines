@@ -89,6 +89,7 @@ describe('RunDetailsV2', () => {
       pipeline_spec: {
         parameters: [{ name: 'param1', value: 'value1' }],
         pipeline_id: 'some-pipeline-id',
+        pipeline_manifest: '{some-template-string}',
       },
       resource_references: [
         {
@@ -395,6 +396,22 @@ describe('RunDetailsV2', () => {
 
       expect(screen.getAllByText('-').length).toEqual(2); // finish time and duration are empty.
     });
+
+    it('switches to Pipeline Spec tab', async () => {
+      render(
+        <CommonTestWrapper>
+          <RunDetailsV2
+            pipeline_job={v2YamlTemplateString}
+            runDetail={TEST_RUN}
+            {...generateProps()}
+          ></RunDetailsV2>
+        </CommonTestWrapper>,
+      );
+
+      userEvent.click(screen.getByText('Pipeline Spec'));
+      screen.findByTestId('spec-ir');
+    });
+
     it('shows Execution Sidepanel', async () => {
       const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
       getRunSpy.mockResolvedValue(TEST_RUN);

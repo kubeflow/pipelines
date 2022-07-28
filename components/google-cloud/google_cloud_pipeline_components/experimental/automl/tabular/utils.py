@@ -2127,6 +2127,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
     num_decision_steps: int = 6,
     relaxation_factor: float = 1.5,
     decay_every: float = 100,
+    decay_rate: float = 0.95,
     gradient_thresh: float = 2000,
     sparsity_loss_weight: float = 0.00001,
     batch_momentum: float = 0.95,
@@ -2204,6 +2205,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
       provided to use a feature at multiple decision steps.
     decay_every: Number of iterations for periodically applying learning rate
       decaying.
+    decay_rate: Learning rate decaying.
     gradient_thresh: Threshold for the norm of gradients for clipping.
     sparsity_loss_weight: Weight of the loss for sparsity regularization
       (increasing it will yield more sparse feature selection).
@@ -2320,6 +2322,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
           relaxation_factor,
       'decay_every':
           decay_every,
+      'decay_rate':
+          decay_rate,
       'gradient_thresh':
           gradient_thresh,
       'sparsity_loss_weight':
