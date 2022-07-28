@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { testBestPractices } from 'src/TestUtils';
@@ -27,13 +27,14 @@ import {
   ConfidenceMetricsSectionProps,
 } from './MetricsVisualizations';
 import { FullArtifactPath } from 'src/lib/v2/CompareUtils';
-import * as metricsVisualizations from './MetricsVisualizations';
-import TestUtils from 'src/TestUtils';
+import { lineColors } from 'src/components/viewers/ROCCurve';
+import * as rocCurveHelper from './ROCCurveHelper';
 
 testBestPractices();
 describe('ConfidenceMetricsSection', () => {
   const setSelectedIdsSpy = jest.fn();
   const setSelectedIdColorMapSpy = jest.fn();
+  const setLineColorsStackSpy = jest.fn();
 
   function newMockEvent(artifactId: number, executionId: number, displayName?: string): Event {
     const event = new Event();
@@ -130,14 +131,17 @@ describe('ConfidenceMetricsSection', () => {
               id: '1',
             },
             execution: {
+              name: 'Execution ID #1',
               id: '1',
             },
             artifact: {
+              name: 'Artifact ID #2',
               id: '2',
             },
           } as FullArtifactPath,
           '2-4': {
             run: {
+              name: 'Run ID #2',
               id: '2',
             },
             execution: {
@@ -150,12 +154,10 @@ describe('ConfidenceMetricsSection', () => {
             },
           } as FullArtifactPath,
         },
-        selectedIdColorMap: {
-          '1-1': '#ffffff',
-          '1-2': '#eeeeee',
-          '2-4': '#dddddd',
-        },
+        selectedIdColorMap: {},
         setSelectedIdColorMap: setSelectedIdColorMapSpy,
+        lineColorsStack: [...lineColors].reverse(),
+        setLineColorsStack: setLineColorsStackSpy,
       } as ConfidenceMetricsFilter,
     };
     return props;
@@ -189,10 +191,7 @@ describe('ConfidenceMetricsSection', () => {
   });
 
   it('Error in confidenceMetrics data format', async () => {
-    const validateConfidenceMetricsSpy = jest.spyOn(
-      metricsVisualizations,
-      'validateConfidenceMetrics',
-    );
+    const validateConfidenceMetricsSpy = jest.spyOn(rocCurveHelper, 'validateConfidenceMetrics');
     validateConfidenceMetricsSpy.mockReturnValue({
       error: 'test error',
     });
@@ -201,11 +200,58 @@ describe('ConfidenceMetricsSection', () => {
         <ConfidenceMetricsSection {...generateProps(['1-1', '1-2'])} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
 
     expect(validateConfidenceMetricsSpy).toHaveBeenCalledTimes(1);
     screen.getByText(
       "Error in artifact1 (artifact ID #1) artifact's confidenceMetrics data format.",
     );
+  });
+
+  it('ROC Curve filter selection check all update', async () => {
+    render(
+      <CommonTestWrapper>
+        <ConfidenceMetricsSection {...generateProps(['1-1', '1-2'])} />
+      </CommonTestWrapper>,
+    );
+
+    // Only the selected items are checked.
+    const selectedCheckboxes = screen
+      .queryAllByRole('checkbox', { checked: true })
+      .filter(r => r.nodeName === 'INPUT');
+    expect(selectedCheckboxes).toHaveLength(2);
+
+    // Check all checkboxes (since the top row starts out indeterminate).
+    const checkboxes = screen.queryAllByRole('checkbox').filter(r => r.nodeName === 'INPUT');
+    fireEvent.click(checkboxes[0]);
+    expect(setSelectedIdsSpy).toHaveBeenLastCalledWith(['1-1', '1-2', '2-4']);
+    expect(setSelectedIdColorMapSpy).toHaveBeenLastCalledWith({
+      '1-1': '#4285f4',
+      '1-2': '#2b9c1e',
+      '2-4': '#e00000',
+    });
+  });
+
+  it('ROC Curve filter selection uncheck single update', async () => {
+    render(
+      <CommonTestWrapper>
+        <ConfidenceMetricsSection {...generateProps(['1-1', '1-2', '2-4'])} />
+      </CommonTestWrapper>,
+    );
+
+    // Only the selected items are checked.
+    const selectedCheckboxes = screen
+      .queryAllByRole('checkbox', { checked: true })
+      .filter(r => r.nodeName === 'INPUT');
+    expect(selectedCheckboxes).toHaveLength(4);
+
+    // Uncheck the first checkbox.
+    const checkboxes = screen.queryAllByRole('checkbox').filter(r => r.nodeName === 'INPUT');
+    fireEvent.click(checkboxes[1]);
+    expect(setSelectedIdsSpy).toHaveBeenLastCalledWith(['1-2', '2-4']);
+    expect(setSelectedIdColorMapSpy).toHaveBeenLastCalledWith({
+      '1-2': '#2b9c1e',
+      '2-4': '#e00000',
+    });
+    expect(setLineColorsStackSpy).toBeCalledTimes(2);
   });
 });

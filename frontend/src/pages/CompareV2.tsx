@@ -63,6 +63,7 @@ import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClien
 import { Redirect } from 'react-router-dom';
 import MetricsDropdown from 'src/components/viewers/MetricsDropdown';
 import CircularProgress from '@material-ui/core/CircularProgress';
+import { lineColors } from 'src/components/viewers/ROCCurve';
 
 const css = stylesheet({
   outputsRow: {
@@ -234,8 +235,6 @@ function CompareV2(props: CompareV2Props) {
   const [markdownRunArtifacts, setMarkdownRunArtifacts] = useState<RunArtifact[]>([]);
 
   // Scalar Metrics
-  const [scalarMetricsArtifacts, setScalarMetricsArtifacts] = useState<RunArtifact[]>([]);
-  const [scalarMetricsArtifactCount, setScalarMetricsArtifactCount] = useState<number>(0);
   const [scalarMetricsTableData, setScalarMetricsTableData] = useState<
     CompareTableProps | undefined
   >(undefined);
@@ -244,6 +243,7 @@ function CompareV2(props: CompareV2Props) {
   const [rocCurveLinkedArtifacts, setRocCurveLinkedArtifacts] = useState<LinkedArtifact[]>([]);
   const [selectedRocCurveIds, setSelectedRocCurveIds] = useState<string[]>([]);
   const [selectedIdColorMap, setSelectedIdColorMap] = useState<{ [key: string]: string }>({});
+  const [lineColorsStack, setLineColorsStack] = useState<string[]>([...lineColors].reverse());
   const [fullArtifactPathMap, setFullArtifactPathMap] = useState<{
     [key: string]: FullArtifactPath;
   }>({});
@@ -555,6 +555,8 @@ function CompareV2(props: CompareV2Props) {
                       fullArtifactPathMap,
                       selectedIdColorMap,
                       setSelectedIdColorMap,
+                      lineColorsStack,
+                      setLineColorsStack,
                     }}
                   />
                 )}

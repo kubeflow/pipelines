@@ -42,7 +42,7 @@ import ConfusionMatrix, { ConfusionMatrixConfig } from './ConfusionMatrix';
 import { HTMLViewerConfig } from './HTMLViewer';
 import { MarkdownViewerConfig } from './MarkdownViewer';
 import PagedTable from './PagedTable';
-import ROCCurve, { lineColors, ROCCurveConfig } from './ROCCurve';
+import ROCCurve, { ROCCurveConfig } from './ROCCurve';
 import { PlotType, ViewerConfig } from './Viewer';
 import { componentMap } from './ViewerContainer';
 import Tooltip from '@material-ui/core/Tooltip';
@@ -52,6 +52,7 @@ import { ApiFilter, PredicateOp } from 'src/apis/filter';
 import { FullArtifactPath, getRocCurveId, NameId } from 'src/lib/v2/CompareUtils';
 import { logger } from 'src/lib/Utils';
 import { stylesheet } from 'typestyle';
+import { buildRocCurveConfig, validateConfidenceMetrics } from './ROCCurveHelper';
 
 const css = stylesheet({
   inline: {
@@ -356,18 +357,14 @@ const ROC_CURVE_DEFINITION =
   'A lower threshold results in a higher true positive rate (and a higher false positive rate), ' +
   'while a higher threshold results in a lower true positive rate (and a lower false positive rate)';
 
-type ConfidenceMetric = {
-  confidenceThreshold: string;
-  falsePositiveRate: number;
-  recall: number;
-};
-
 export interface ConfidenceMetricsFilter {
   selectedIds: string[];
   setSelectedIds: (selectedIds: string[]) => void;
   fullArtifactPathMap: { [key: string]: FullArtifactPath };
   selectedIdColorMap: { [key: string]: string };
   setSelectedIdColorMap: (selectedIdColorMap: { [key: string]: string }) => void;
+  lineColorsStack: string[];
+  setLineColorsStack: (lineColorsStack: string[]) => void;
 }
 
 export interface ConfidenceMetricsSectionProps {
@@ -413,8 +410,6 @@ const curveLegendCustomRenderer: React.FC<CustomRendererProps<string>> = (
   />
 );
 
-const lineColorsStack = [...lineColors].reverse();
-
 interface ConfidenceMetricsData {
   confidenceMetrics: any;
   name?: string;
@@ -449,7 +444,14 @@ const getRocCurveFilterTable = (
   ];
   const rows: TableRow[] = [];
   if (filter) {
-    const { selectedIds, selectedIdColorMap, setSelectedIdColorMap, fullArtifactPathMap } = filter;
+    const {
+      selectedIds,
+      selectedIdColorMap,
+      setSelectedIdColorMap,
+      fullArtifactPathMap,
+      lineColorsStack,
+      setLineColorsStack,
+    } = filter;
 
     // Only display the selected ROC Curves on the plot, in order of selection.
     const confidenceMetricsDataMap = new Map();
@@ -465,6 +467,7 @@ const getRocCurveFilterTable = (
       selectedIds.forEach(selectedId => {
         selectedIdColorMap[selectedId] = lineColorsStack.pop()!;
       });
+      setLineColorsStack(lineColorsStack);
       setSelectedIdColorMap(selectedIdColorMap);
     }
 
@@ -500,6 +503,8 @@ const updateRocCurveSelection = (
     setSelectedIds,
     selectedIdColorMap,
     setSelectedIdColorMap,
+    lineColorsStack,
+    setLineColorsStack,
   } = filter;
 
   // Convert arrays to sets for quick lookup.
@@ -525,6 +530,7 @@ const updateRocCurveSelection = (
     selectedIdColorMap[addedId] = lineColorsStack.pop()!;
   });
   setSelectedIdColorMap(selectedIdColorMap);
+  setLineColorsStack(lineColorsStack);
 };
 
 function reloadRocCurve(
@@ -617,7 +623,7 @@ export function ConfidenceMetricsSection({
     const confidenceMetrics = confidenceMetricsItem.confidenceMetrics as any;
 
     // Export used to allow testing mock.
-    const { error } = exports.validateConfidenceMetrics(confidenceMetrics.list);
+    const { error } = validateConfidenceMetrics(confidenceMetrics.list);
 
     // If an error exists with confidence metrics, return the first one with an issue.
     if (error) {
@@ -694,35 +700,6 @@ export function ConfidenceMetricsSection({
       )}
     </div>
   );
-}
-
-const ConfidenceMetricRunType = Record({
-  confidenceThreshold: Number,
-  falsePositiveRate: Number,
-  recall: Number,
-});
-const ConfidenceMetricArrayRunType = ArrayRunType(ConfidenceMetricRunType);
-export function validateConfidenceMetrics(inputs: any): { error?: string } {
-  try {
-    ConfidenceMetricArrayRunType.check(inputs);
-  } catch (e) {
-    if (e instanceof ValidationError) {
-      return { error: e.message + '. Data: ' + JSON.stringify(inputs) };
-    }
-  }
-  return {};
-}
-
-function buildRocCurveConfig(confidenceMetricsArray: ConfidenceMetric[]): ROCCurveConfig {
-  const arraytypesCheck = ConfidenceMetricArrayRunType.check(confidenceMetricsArray);
-  return {
-    type: PlotType.ROC,
-    data: arraytypesCheck.map(metric => ({
-      label: (metric.confidenceThreshold as unknown) as string,
-      x: metric.falsePositiveRate,
-      y: metric.recall,
-    })),
-  };
 }
 
 type AnnotationSpec = {
