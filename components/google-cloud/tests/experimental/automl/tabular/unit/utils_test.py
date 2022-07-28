@@ -735,6 +735,7 @@ class UtilsTest(unittest.TestCase):
             'num_decision_steps': 6,
             'relaxation_factor': 1.5,
             'decay_every': 100,
+            'decay_rate': 0.95,
             'gradient_thresh': 2000,
             'sparsity_loss_weight': 1e-05,
             'batch_momentum': 0.95,
