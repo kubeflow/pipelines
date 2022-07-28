@@ -21,6 +21,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func ToApiExperiment(experiment *model.Experiment) *api.Experiment {
@@ -150,7 +151,10 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 }
 
 func toApiRun(run *model.Run) *api.Run {
+	// v1 parameters
 	params, err := toApiParameters(run.Parameters)
+	// v2 parameters (currently force it to be empty)
+	runtimeParams := make(map[string]*structpb.Value)
 	if err != nil {
 		return &api.Run{
 			Id:    run.UUID,
@@ -180,6 +184,10 @@ func toApiRun(run *model.Run) *api.Run {
 			WorkflowManifest: run.WorkflowSpecManifest,
 			PipelineManifest: run.PipelineSpecManifest,
 			Parameters:       params,
+			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+				Parameters:   runtimeParams,
+				PipelineRoot: run.PipelineSpec.RuntimeConfig.PipelineRoot,
+			},
 		},
 		ResourceReferences: toApiResourceReferences(run.ResourceReferences),
 	}

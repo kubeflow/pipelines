@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/structpb"
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
@@ -66,6 +67,10 @@ func TestCreateRun(t *testing.T) {
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: testWorkflow.ToStringForStore(),
 				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+					Parameters:   make(map[string]*structpb.Value),
+					PipelineRoot: "",
+				},
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{
@@ -129,6 +134,10 @@ func TestCreateRunPatch(t *testing.T) {
 				Parameters: []*api.Parameter{
 					{Name: "param1", Value: "test-default-bucket"},
 					{Name: "param2", Value: "test-project-id"}},
+				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+					Parameters:   make(map[string]*structpb.Value),
+					PipelineRoot: "",
+				},
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{
@@ -232,6 +241,10 @@ func TestCreateRun_Multiuser(t *testing.T) {
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: testWorkflow.ToStringForStore(),
 				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+					Parameters:   make(map[string]*structpb.Value),
+					PipelineRoot: "",
+				},
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{
@@ -274,6 +287,10 @@ func TestListRun(t *testing.T) {
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+				Parameters:   make(map[string]*structpb.Value),
+				PipelineRoot: "",
+			},
 		},
 		ResourceReferences: []*api.ResourceReference{
 			{
@@ -356,6 +373,10 @@ func TestListRuns_Multiuser(t *testing.T) {
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+				Parameters:   make(map[string]*structpb.Value),
+				PipelineRoot: "",
+			},
 		},
 		ResourceReferences: []*api.ResourceReference{
 			{

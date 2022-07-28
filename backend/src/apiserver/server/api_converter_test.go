@@ -25,6 +25,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestToApiPipeline(t *testing.T) {
@@ -112,6 +113,10 @@ func TestToApiRunDetail(t *testing.T) {
 			Status:       "running",
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
+				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+					Parameters:   make(map[string]*structpb.Value),
+					PipelineRoot: "",
+				},
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job123"},
@@ -198,6 +203,10 @@ func TestToApiRuns(t *testing.T) {
 			Status:       "running",
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
+				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+					Parameters:   make(map[string]*structpb.Value),
+					PipelineRoot: "",
+				},
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job1"},
@@ -219,6 +228,10 @@ func TestToApiRuns(t *testing.T) {
 			},
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
+				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+					Parameters:   make(map[string]*structpb.Value),
+					PipelineRoot: "",
+				},
 			},
 			Metrics: []*api.RunMetric{apiMetric2},
 		},

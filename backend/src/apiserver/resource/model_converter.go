@@ -110,7 +110,6 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 		if err != nil {
 			return nil, util.Wrap(err, "Unable to parse the V2 parameters.")
 		}
-		runDetail.Parameters = params
 		runDetail.PipelineSpecManifest = manifest
 		runDetail.PipelineSpec.RuntimeConfig.Parameters = params
 		runDetail.PipelineSpec.RuntimeConfig.PipelineRoot = run.GetPipelineSpec().GetRuntimeConfig().GetPipelineRoot()

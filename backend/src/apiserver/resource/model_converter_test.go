@@ -241,7 +241,6 @@ func TestToModelRunDetail(t *testing.T) {
 					Description:    "this is a run",
 					PipelineSpec: model.PipelineSpec{
 						PipelineSpecManifest: "pipeline spec",
-						Parameters:           `[{"name":"param2","value":"world"}]`,
 						RuntimeConfig: model.RuntimeConfig{
 							Parameters: `[{"name":"param2","value":"world"}]`,
 						},
