@@ -25,6 +25,7 @@ import * as React from 'react';
 import { useState } from 'react';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import { BannerProps } from 'src/components/Banner';
+import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import { classes, stylesheet } from 'typestyle';
 import MD2Tabs from '../atoms/MD2Tabs';
 import { Description } from '../components/Description';
@@ -262,17 +263,7 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
         )}
         {selectedTab === 1 && !!templateString && (
           <div className={css.containerCss} data-testid={'spec-yaml'}>
-            <Editor
-              value={templateString || ''}
-              height={editorHeightWidth}
-              width={editorHeightWidth}
-              mode='yaml'
-              theme='github'
-              editorProps={{ $blockScrolling: true }}
-              readOnly={true}
-              highlightActiveLine={true}
-              showGutter={true}
-            />
+            <PipelineSpecTabContent templateString={templateString!} />
           </div>
         )}
       </div>

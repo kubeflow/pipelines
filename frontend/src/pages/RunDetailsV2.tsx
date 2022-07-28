@@ -23,6 +23,7 @@ import MD2Tabs from 'src/atoms/MD2Tabs';
 import DetailsTable from 'src/components/DetailsTable';
 import Editor from 'src/components/Editor';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
+import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import SidePanel from 'src/components/SidePanel';
 import { RuntimeNodeDetailsV2 } from 'src/components/tabs/RuntimeNodeDetailsV2';
@@ -78,6 +79,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const pipelineJobStr = props.pipeline_job;
   const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(pipelineJobStr);
   const elements = convertFlowElements(pipelineSpec);
+  const templateString = runDetail.run?.pipeline_spec?.pipeline_manifest;
 
   const [flowElements, setFlowElements] = useState(elements);
   const [layers, setLayers] = useState(['root']);
@@ -101,18 +103,6 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
     return 'unknown';
   };
-
-  const { isSuccess: isTemplatePullSuccessFromRun, data: templateString } = useQuery<string, Error>(
-    [runDetail],
-    async () => {
-      if (!runDetail) {
-        throw new Error('No run detail!');
-      }
-
-      return runDetail.run?.pipeline_spec?.pipeline_manifest || '';
-    },
-    { staleTime: Infinity },
-  );
 
   // Retrieves MLMD states from the MLMD store.
   const { isSuccess, data } = useQuery<MlmdPackage, Error>(
@@ -232,19 +222,9 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         )}
 
         {/* Pipeline Spec tab */}
-        {selectedTab === 2 && isTemplatePullSuccessFromRun && (
+        {selectedTab === 2 && (
           <div className={commonCss.codeEditor} data-testid={'spec-ir'}>
-            <Editor
-              value={jsyaml.safeDump(jsyaml.safeLoad(templateString || ''))} // Use safeLoad and then safeDump to make sure the Pipeline Spec is in Yaml Form.
-              height={editorHeightWidth}
-              width={editorHeightWidth}
-              mode='yaml'
-              theme='github'
-              editorProps={{ $blockScrolling: true }}
-              readOnly={true}
-              highlightActiveLine={true}
-              showGutter={true}
-            />
+            <PipelineSpecTabContent templateString={templateString!} />
           </div>
         )}
       </div>
