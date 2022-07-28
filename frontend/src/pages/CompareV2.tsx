@@ -295,6 +295,8 @@ function CompareV2(props: CompareV2Props) {
     () =>
       Promise.all(
         runIds.map(async runId => {
+          // TODO(zpChris): MLMD query is limited to 100 artifacts per run.
+          // https://github.com/google/ml-metadata/blob/5757f09d3b3ae0833078dbfd2d2d1a63208a9821/ml_metadata/proto/metadata_store.proto#L733-L737
           const context = await getKfpV2RunContext(runId);
           const executions = await getExecutionsFromContext(context);
           const artifacts = await getArtifactsFromContext(context);

@@ -561,6 +561,8 @@ function reloadRocCurve(
     return true;
   });
 
+  // pageToken represents an incrementing integer which segments the linked artifacts into
+  // sub-lists of length "pageSize"; this allows us to avoid re-requesting all MLMD artifacts.
   let linkedArtifactsPage: LinkedArtifact[] = displayLinkedArtifacts;
   let nextPageToken: string = '';
   if (request.pageSize) {
