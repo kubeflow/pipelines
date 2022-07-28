@@ -41,13 +41,16 @@ components:
   comp-upstream:
     executorLabel: exec-upstream
     inputDefinitions:
+      artifacts:
+        input_3:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
       parameters:
         input_1:
           parameterType: STRING
         input_2:
           parameterType: NUMBER_DOUBLE
-        input_3:
-          parameterType: STRING
         input_4:
           parameterType: STRING
     outputDefinitions:
@@ -107,7 +110,7 @@ deploymentSpec:
         args:
         - '{{$.inputs.parameters[''input_1'']}}'
         - '{{$.inputs.parameters[''input_2'']}}'
-        - '{{$.inputs.parameters[''input_3'']}}'
+        - '{{$.inputs.artifacts[''input_3''].path}}'
         - '{{$.inputs.parameters[''input_4'']}}'
         - '{{$.outputs.parameters[''output_1''].output_file}}'
         - '{{$.outputs.artifacts[''output_2''].uri}}'
@@ -177,26 +180,30 @@ root:
         componentRef:
           name: comp-upstream
         inputs:
+          artifacts:
+            input_3:
+              componentInputArtifact: input3
           parameters:
             input_1:
               componentInputParameter: input1
             input_2:
               runtimeValue:
                 constant: 3.1415926
-            input_3:
-              componentInputParameter: input3
             input_4:
               componentInputParameter: input4
         taskInfo:
           name: upstream
   inputDefinitions:
+    artifacts:
+      input3:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
     parameters:
       input1:
-        parameterType: STRING
-      input3:
         parameterType: STRING
       input4:
         defaultValue: ''
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.5
+sdkVersion: kfp-2.0.0-beta.1
