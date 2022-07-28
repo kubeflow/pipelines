@@ -37,10 +37,10 @@ def component2(input_gcs: Input[Dataset]):
     return ContainerSpec(
         image='google/cloud-sdk:slim',
         command=['sh', '-c', '|', 'set -e -x gsutil cat'],
-        args=[input_gcs.uri])
+        args=[input_gcs.path])
 
 
-@pipeline(name='two_step_pipeline_containerized')
+@pipeline(name='two-step-pipeline-containerized')
 def two_step_pipeline_containerized():
     component_1 = component1(text='hi').set_display_name('Producer')
     component_2 = component2(input_gcs=component_1.outputs['output_gcs'])
@@ -52,4 +52,4 @@ if __name__ == '__main__':
 
     compiler.Compiler().compile(
         pipeline_func=two_step_pipeline_containerized,
-        package_path='two_step_pipeline_containerized.json')
+        package_path='two_step_pipeline_containerized.yaml')
