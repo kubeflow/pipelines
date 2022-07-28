@@ -263,7 +263,7 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
         )}
         {selectedTab === 1 && !!templateString && (
           <div className={css.containerCss} data-testid={'spec-yaml'}>
-            <PipelineSpecTabContent templateString={templateString!} />
+            <PipelineSpecTabContent templateString={templateString || ''} />
           </div>
         )}
       </div>

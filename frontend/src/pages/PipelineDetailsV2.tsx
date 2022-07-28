@@ -123,7 +123,7 @@ function PipelineDetailsV2({
       )}
       {selectedTab === 1 && (
         <div className={commonCss.codeEditor} data-testid={'spec-ir'}>
-          <PipelineSpecTabContent templateString={templateString!} />
+          <PipelineSpecTabContent templateString={templateString || ''} />
         </div>
       )}
     </div>

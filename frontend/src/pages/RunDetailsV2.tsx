@@ -224,7 +224,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         {/* Pipeline Spec tab */}
         {selectedTab === 2 && (
           <div className={commonCss.codeEditor} data-testid={'spec-ir'}>
-            <PipelineSpecTabContent templateString={templateString!} />
+            <PipelineSpecTabContent templateString={templateString || ''} />
           </div>
         )}
       </div>
