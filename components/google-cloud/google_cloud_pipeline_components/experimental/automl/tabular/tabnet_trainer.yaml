@@ -56,6 +56,8 @@ description: |
             a feature at multiple decision steps.
         decay_every (Optional[float]):
             Number of iterations for periodically applying learning rate decaying.
+        decay_rate (Optional[float]):
+            Learning rate decaying.
         gradient_thresh (Optional[float]):
             Threshold for the norm of gradients for clipping.
         sparsity_loss_weight (Optional[float]):
@@ -139,6 +141,7 @@ inputs:
   - { name: num_decision_steps, type: Integer, default: 6 }
   - { name: relaxation_factor, type: Float, default: 1.5 }
   - { name: decay_every, type: Float, default: 100}
+  - { name: decay_rate, type: Float, default: 0.95}
   - { name: gradient_thresh, type: Float, default: 2000 }
   - { name: sparsity_loss_weight, type: Float, default: 0.00001 }
   - { name: batch_momentum, type: Float, default: 0.95 }
@@ -187,7 +190,7 @@ implementation:
           '", "machine_spec": ',
           { inputValue: machine_spec },
           ', "container_spec": {"image_uri":"',
-          'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20220719_0325_RC00',
+          'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20220727_0325_RC00',
           '", "args": ["--target_column=',
           { inputValue: target_column },
           '", "--weight_column=',
@@ -195,7 +198,7 @@ implementation:
           '", "--model_type=',
           { inputValue: prediction_type },
           '", "--prediction_docker_uri=',
-          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20220719_0325_RC00',
+          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20220727_0325_RC00',
           '", "--baseline_path=',
           { inputUri: instance_baseline },
           '", "--metadata_path=',
@@ -234,6 +237,8 @@ implementation:
           { inputValue: relaxation_factor },
           '", "--decay_every=',
           { inputValue: decay_every },
+          '", "--decay_rate=',
+          { inputValue: decay_rate },
           '", "--gradient_thresh=',
           { inputValue: gradient_thresh },
           '", "--sparsity_loss_weight=',
