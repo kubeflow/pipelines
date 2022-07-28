@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import jsyaml from 'js-yaml';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { Elements, FlowElement } from 'react-flow-renderer';
@@ -20,7 +21,9 @@ import { ApiExperiment } from 'src/apis/experiment';
 import { ApiRun, ApiRunDetail, ApiRunStorageState } from 'src/apis/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import DetailsTable from 'src/components/DetailsTable';
+import Editor from 'src/components/Editor';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
+import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import SidePanel from 'src/components/SidePanel';
 import { RuntimeNodeDetailsV2 } from 'src/components/tabs/RuntimeNodeDetailsV2';
@@ -31,7 +34,7 @@ import Buttons, { ButtonKeys } from 'src/lib/Buttons';
 import RunUtils from 'src/lib/RunUtils';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { hasFinished, NodePhase } from 'src/lib/StatusUtils';
-import { formatDateString, getRunDurationFromApiRun } from 'src/lib/Utils';
+import { formatDateString, getRunDurationFromApiRun, isSafari } from 'src/lib/Utils';
 import { getNodeMlmdInfo, updateFlowElementsState } from 'src/lib/v2/DynamicFlow';
 import { convertFlowElements } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
@@ -50,6 +53,7 @@ import DagCanvas from './v2/DagCanvas';
 
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
 const QUERY_REFETCH_INTERNAL = 10000; // 10000 milliseconds == 10 seconds.
+const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
 
 interface MlmdPackage {
   executions: Execution[];
@@ -75,6 +79,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const pipelineJobStr = props.pipeline_job;
   const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(pipelineJobStr);
   const elements = convertFlowElements(pipelineSpec);
+  const templateString = runDetail.run?.pipeline_spec?.pipeline_manifest;
 
   const [flowElements, setFlowElements] = useState(elements);
   const [layers, setLayers] = useState(['root']);
@@ -83,6 +88,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [selectedNodeMlmdInfo, setSelectedNodeMlmdInfo] = useState<NodeMlmdInfo | null>(null);
   const [, forceUpdate] = useState();
   const [runFinished, setRunFinished] = useState(false);
+  const editorHeightWidth = isSafari() ? '640px' : '100%';
 
   // TODO(zijianjoy): Update elements and states when layers change.
   const layerChange = (layers: string[]) => {
@@ -176,7 +182,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   return (
     <>
       <div className={classes(commonCss.page, padding(20, 't'))}>
-        <MD2Tabs selectedTab={selectedTab} tabs={['Graph', 'Detail']} onSwitch={setSelectedTab} />
+        <MD2Tabs selectedTab={selectedTab} tabs={TAB_NAMES} onSwitch={setSelectedTab} />
         {/* DAG tab */}
         {selectedTab === 0 && (
           <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
@@ -213,6 +219,13 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
           </div>
 
           // TODO(zijianjoy): Wait backend to supply run parameters, so UI can show them.
+        )}
+
+        {/* Pipeline Spec tab */}
+        {selectedTab === 2 && (
+          <div className={commonCss.codeEditor} data-testid={'spec-ir'}>
+            <PipelineSpecTabContent templateString={templateString || ''} />
+          </div>
         )}
       </div>
     </>
