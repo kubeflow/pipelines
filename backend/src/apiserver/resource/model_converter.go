@@ -98,7 +98,7 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 	if templateType == template.V1 {
 		params, err := apiParametersToModelParameters(run.GetPipelineSpec().GetParameters())
 		if err != nil {
-			return nil, util.Wrap(err, "Unable to parse the parameter.")
+			return nil, util.Wrap(err, "Unable to parse the V1 parameters.")
 		}
 		runDetail.Parameters = params
 		runDetail.WorkflowSpecManifest = manifest
@@ -108,7 +108,7 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 	} else if templateType == template.V2 {
 		params, err := runtimeConfigToModelParameters(run.GetPipelineSpec().GetRuntimeConfig())
 		if err != nil {
-			return nil, util.Wrap(err, "Unable to parse the parameter.")
+			return nil, util.Wrap(err, "Unable to parse the V2 parameters.")
 		}
 		runDetail.Parameters = params
 		runDetail.PipelineSpecManifest = manifest
