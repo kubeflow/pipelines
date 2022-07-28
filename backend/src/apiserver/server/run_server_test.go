@@ -33,12 +33,12 @@ func TestCreateRun(t *testing.T) {
 		ResourceReferences: validReference,
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
-			// Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
-			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
-				Parameters: map[string]*structpb.Value{
-					"param1": structpb.NewStringValue("world"),
-				},
-			},
+			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+			// RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+			// 	Parameters: map[string]*structpb.Value{
+			// 		"param1": structpb.NewStringValue("world"),
+			//	},
+			//},
 		},
 	}
 	runDetail, err := server.CreateRun(nil, &api.CreateRunRequest{Run: run})
@@ -137,9 +137,15 @@ func TestCreateRunPatch(t *testing.T) {
 			FinishedAt:     &timestamp.Timestamp{},
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: testWorkflowPatch.ToStringForStore(),
-				Parameters: []*api.Parameter{
-					{Name: "param1", Value: "test-default-bucket"},
-					{Name: "param2", Value: "test-project-id"}},
+				//Parameters: []*api.Parameter{
+				//	{Name: "param1", Value: "test-default-bucket"},
+				//	{Name: "param2", Value: "test-project-id"}},
+				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+					Parameters: map[string]*structpb.Value{
+						"param1": structpb.NewStringValue("test-default-bucket"),
+						"param2": structpb.NewStringValue("test-project-id"),
+					},
+				},
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{
@@ -242,7 +248,12 @@ func TestCreateRun_Multiuser(t *testing.T) {
 			FinishedAt:     &timestamp.Timestamp{},
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: testWorkflow.ToStringForStore(),
-				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+				// Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+					Parameters: map[string]*structpb.Value{
+						"param1": structpb.NewStringValue("world"),
+					},
+				},
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{
@@ -284,7 +295,12 @@ func TestListRun(t *testing.T) {
 		Status:         "Running",
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
-			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+			// Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+				Parameters: map[string]*structpb.Value{
+					"param1": structpb.NewStringValue("world"),
+				},
+			},
 		},
 		ResourceReferences: []*api.ResourceReference{
 			{
@@ -366,7 +382,12 @@ func TestListRuns_Multiuser(t *testing.T) {
 		Status:         "Running",
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
-			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+			// Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+				Parameters: map[string]*structpb.Value{
+					"param1": structpb.NewStringValue("world"),
+				},
+			},
 		},
 		ResourceReferences: []*api.ResourceReference{
 			{

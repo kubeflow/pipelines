@@ -100,9 +100,11 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 		if err != nil {
 			return nil, util.Wrap(err, "Unable to parse the parameter.")
 		}
-		runDetail.Parameters = params
+		// runDetail.Parameters = params
 		runDetail.WorkflowSpecManifest = manifest
 		runDetail.WorkflowRuntimeManifest = workflow.ToStringForStore()
+		runDetail.Run.PipelineSpec.RuntimeConfig.Parameters = params
+		runDetail.Run.PipelineSpec.RuntimeConfig.PipelineRoot = run.GetPipelineSpec().GetRuntimeConfig().GetPipelineRoot()
 		return runDetail, nil
 
 	} else if templateType == template.V2 {
@@ -110,10 +112,10 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 		if err != nil {
 			return nil, util.Wrap(err, "Unable to parse the parameter.")
 		}
-		runDetail.Parameters = params
+		// runDetail.Parameters = params
 		runDetail.PipelineSpecManifest = manifest
-		runDetail.PipelineSpec.RuntimeConfig.Parameters = params
-		runDetail.PipelineSpec.RuntimeConfig.PipelineRoot = run.GetPipelineSpec().GetRuntimeConfig().GetPipelineRoot()
+		runDetail.Run.PipelineSpec.RuntimeConfig.Parameters = params
+		runDetail.Run.PipelineSpec.RuntimeConfig.PipelineRoot = run.GetPipelineSpec().GetRuntimeConfig().GetPipelineRoot()
 		return runDetail, nil
 
 	} else {
@@ -154,14 +156,16 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 			PipelineId:   job.GetPipelineSpec().GetPipelineId(),
 			PipelineName: pipelineName,
 		}}
-
 	if templateType == template.V1 {
 		params, err := apiParametersToModelParameters(job.GetPipelineSpec().GetParameters())
+		// params, err := runtimeConfigToModelParameters(job.GetPipelineSpec().GetRuntimeConfig())
 		if err != nil {
 			return nil, util.Wrap(err, "Unable to parse the parameter.")
 		}
-		modelJob.Parameters = params
+		// modelJob.Parameters = params
 		modelJob.WorkflowSpecManifest = manifest
+		modelJob.PipelineSpec.RuntimeConfig.Parameters = params
+		modelJob.PipelineSpec.RuntimeConfig.PipelineRoot = job.GetPipelineSpec().GetRuntimeConfig().GetPipelineRoot()
 		return modelJob, nil
 
 	} else if templateType == template.V2 {
@@ -169,8 +173,10 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 		if err != nil {
 			return nil, util.Wrap(err, "Unable to parse the parameter.")
 		}
-		modelJob.Parameters = params
+		// modelJob.Parameters = params
 		modelJob.PipelineSpecManifest = manifest
+		modelJob.PipelineSpec.RuntimeConfig.Parameters = params
+		modelJob.PipelineSpec.RuntimeConfig.PipelineRoot = job.GetPipelineSpec().GetRuntimeConfig().GetPipelineRoot()
 		return modelJob, nil
 
 	} else {

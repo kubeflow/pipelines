@@ -168,7 +168,12 @@ func TestToModelRunDetail(t *testing.T) {
 				Name:        "name1",
 				Description: "this is a run",
 				PipelineSpec: &api.PipelineSpec{
-					Parameters: []*api.Parameter{{Name: "param2", Value: "world"}},
+					Parameters:    []*api.Parameter{{Name: "param2", Value: "world"}},
+					RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+						//Parameters: map[string]*structpb.Value{
+						//	"param2": structpb.NewStringValue("world"),
+						//},
+					},
 				},
 				ResourceReferences: []*api.ResourceReference{
 					{
@@ -191,7 +196,10 @@ func TestToModelRunDetail(t *testing.T) {
 					Description:    "this is a run",
 					PipelineSpec: model.PipelineSpec{
 						WorkflowSpecManifest: "workflow spec",
-						Parameters:           `[{"name":"param2","value":"world"}]`,
+						// Parameters:           `[{"name":"param2","value":"world"}]`,
+						RuntimeConfig: model.RuntimeConfig{
+							Parameters: `[{"name":"param2","value":"world"}]`,
+						},
 					},
 					ResourceReferences: []*model.ResourceReference{
 						{
@@ -241,7 +249,7 @@ func TestToModelRunDetail(t *testing.T) {
 					Description:    "this is a run",
 					PipelineSpec: model.PipelineSpec{
 						PipelineSpecManifest: "pipeline spec",
-						Parameters:           `[{"name":"param2","value":"world"}]`,
+						// Parameters:           `[{"name":"param2","value":"world"}]`,
 						RuntimeConfig: model.RuntimeConfig{
 							Parameters: `[{"name":"param2","value":"world"}]`,
 						},
@@ -327,7 +335,10 @@ func TestToModelJob(t *testing.T) {
 					PipelineId:           pipeline.UUID,
 					PipelineName:         pipeline.Name,
 					WorkflowSpecManifest: "workflow spec",
-					Parameters:           `[{"name":"param2","value":"world"}]`,
+					// Parameters:           `[{"name":"param2","value":"world"}]`,
+					RuntimeConfig: model.RuntimeConfig{
+						Parameters: `[{"name":"param2","value":"world"}]`,
+					},
 				},
 				ResourceReferences: []*model.ResourceReference{
 					{
@@ -388,7 +399,10 @@ func TestToModelJob(t *testing.T) {
 					PipelineId:           pipeline.UUID,
 					PipelineName:         pipeline.Name,
 					PipelineSpecManifest: "pipeline spec",
-					Parameters:           `[{"name":"param2","value":"world"}]`,
+					// Parameters:           `[{"name":"param2","value":"world"}]`,
+					RuntimeConfig: model.RuntimeConfig{
+						Parameters: `[{"name":"param2","value":"world"}]`,
+					},
 				},
 				ResourceReferences: []*model.ResourceReference{
 					{

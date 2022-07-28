@@ -104,7 +104,9 @@ func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *mode
 func initWithExperiment(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Experiment) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	// fmt.Printf("\nline 107: store value: %+v \n", store)
 	manager := NewResourceManager(store)
+	// fmt.Printf("\n line 109: manager value: %+v\n", manager)
 	apiExperiment := &api.Experiment{Name: "e1"}
 	experiment, err := manager.CreateExperiment(apiExperiment)
 	assert.Nil(t, err)
@@ -664,7 +666,10 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 				PipelineId:           p.UUID,
 				PipelineName:         "p1",
 				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
-				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+				// Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
+				},
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -759,7 +764,10 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 			Conditions:     "Running",
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
-				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+				// Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
+				},
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -814,7 +822,10 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 			Conditions:     "Running",
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
-				Parameters:           "[{\"name\":\"param1\",\"value\":\"test-default-bucket\"}]",
+				// Parameters:           "[{\"name\":\"param1\",\"value\":\"test-default-bucket\"}]",
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters: "[{\"name\":\"param1\",\"value\":\"test-default-bucket\"}]",
+				},
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -906,7 +917,10 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 			Conditions:     "Running",
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
-				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+				// Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
+				},
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -1009,7 +1023,10 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 				PipelineId:           pipeline.UUID,
 				PipelineName:         "p1",
 				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
-				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+				// Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
+				},
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -1539,7 +1556,10 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 			PipelineId:           pipeline.UUID,
 			PipelineName:         "p1",
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			// Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			},
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{
@@ -1617,7 +1637,10 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 		Conditions:     "NO_STATUS",
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			// Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			},
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{
@@ -1698,7 +1721,10 @@ func TestCreateJob_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 			PipelineName:         "p1",
 			PipelineId:           pipeline.UUID,
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			// Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			},
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{
@@ -1986,7 +2012,10 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 		Conditions:     "Running",
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
-			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			// Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "[{\"name\":\"param1\",\"value\":\"world\"}]",
+			},
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{
@@ -2303,6 +2332,9 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 			Parameters:           "[]",
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "",
+			},
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{

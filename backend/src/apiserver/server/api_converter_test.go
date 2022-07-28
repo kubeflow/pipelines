@@ -25,6 +25,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestToApiPipeline(t *testing.T) {
@@ -342,15 +343,17 @@ func TestCronScheduledJobToApiJob(t *testing.T) {
 				Cron:      "1 * *",
 			}}},
 		PipelineSpec: &api.PipelineSpec{
-			Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
+			// Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
 			PipelineId:   "1",
 			PipelineName: "p1",
-		},
+			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+				Parameters: map[string]*structpb.Value{
+					"param2": structpb.NewStringValue("world"),
+				}}},
 		ResourceReferences: []*api.ResourceReference{
 			{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: "experiment1"},
 				Name: "e1", Relationship: api.Relationship_OWNER},
-		},
-	}
+		}}
 	assert.Equal(t, expectedJob, apiJob)
 }
 
@@ -389,9 +392,14 @@ func TestPeriodicScheduledJobToApiJob(t *testing.T) {
 				IntervalSecond: 3,
 			}}},
 		PipelineSpec: &api.PipelineSpec{
-			Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
+			// Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
 			PipelineId:   "1",
 			PipelineName: "p1",
+			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+				Parameters: map[string]*structpb.Value{
+					"param2": structpb.NewStringValue("world"),
+				},
+			},
 		},
 	}
 	assert.Equal(t, expectedJob, apiJob)
@@ -422,9 +430,14 @@ func TestNonScheduledJobToApiJob(t *testing.T) {
 		MaxConcurrency: 1,
 		Trigger:        &api.Trigger{},
 		PipelineSpec: &api.PipelineSpec{
-			Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
+			// Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
 			PipelineId:   "1",
 			PipelineName: "p1",
+			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+				Parameters: map[string]*structpb.Value{
+					"param2": structpb.NewStringValue("world"),
+				},
+			},
 		},
 	}
 	assert.Equal(t, expectedJob, apiJob)
@@ -508,9 +521,14 @@ func TestToApiJobs(t *testing.T) {
 					Cron:      "1 * *",
 				}}},
 			PipelineSpec: &api.PipelineSpec{
-				Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
+				// Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
 				PipelineId:   "1",
 				PipelineName: "p1",
+				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+					Parameters: map[string]*structpb.Value{
+						"param2": structpb.NewStringValue("world"),
+					},
+				},
 			},
 		},
 		{
@@ -527,9 +545,14 @@ func TestToApiJobs(t *testing.T) {
 					Cron:      "2 * *",
 				}}},
 			PipelineSpec: &api.PipelineSpec{
-				Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
+				// Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
 				PipelineId:   "2",
 				PipelineName: "p2",
+				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+					Parameters: map[string]*structpb.Value{
+						"param2": structpb.NewStringValue("world"),
+					},
+				},
 			},
 		},
 	}

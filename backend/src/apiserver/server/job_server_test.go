@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/structpb"
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
@@ -35,6 +36,11 @@ var (
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+			// RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+			//	Parameters: map[string]*structpb.Value{
+			//		"param1": structpb.NewStringValue("world"),
+			//	},
+			//},
 		},
 		ResourceReferences: []*api.ResourceReference{
 			{
@@ -60,7 +66,12 @@ var (
 		Status:    "NO_STATUS",
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
-			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+			// Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+				Parameters: map[string]*structpb.Value{
+					"param1": structpb.NewStringValue("world"),
+				},
+			},
 		},
 		ResourceReferences: []*api.ResourceReference{
 			{
@@ -529,7 +540,7 @@ func TestListJobs_Multiuser(t *testing.T) {
 		} else {
 			if err != nil {
 				t.Errorf("TestListJobs_Multiuser(%v) expect no error but got %v", tc.name, err)
-			} else if !cmp.Equal(tc.expectedJobs, response.Jobs, cmpopts.EquateEmpty(), protocmp.Transform(),cmpopts.IgnoreFields(api.Job{}, "Trigger", "UpdatedAt", "CreatedAt"),
+			} else if !cmp.Equal(tc.expectedJobs, response.Jobs, cmpopts.EquateEmpty(), protocmp.Transform(), cmpopts.IgnoreFields(api.Job{}, "Trigger", "UpdatedAt", "CreatedAt"),
 				cmpopts.IgnoreFields(api.Run{}, "CreatedAt")) {
 				t.Errorf("TestListJobs_Multiuser(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedJobs, response.Jobs)
 			}

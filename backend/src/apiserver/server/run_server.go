@@ -16,6 +16,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -140,6 +141,7 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 	if s.options.CollectMetrics {
 		runCount.Inc()
 	}
+	fmt.Printf("Line 143 value of run: %v", run.PipelineSpec.RuntimeConfig.Parameters)
 	return ToApiRunDetail(run), nil
 }
 
