@@ -17,6 +17,7 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -255,7 +256,13 @@ func runtimeConfigToModelParameters(runtimeConfig *api.PipelineSpec_RuntimeConfi
 		return "", nil
 	}
 	var params []v1alpha1.Parameter
-	for k, v := range runtimeConfig.GetParameters() {
+	keys := make([]string, 0, len(runtimeConfig.GetParameters()))
+	for key := range runtimeConfig.GetParameters() {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		v := runtimeConfig.GetParameters()[k]
 		param := v1alpha1.Parameter{
 			Name: k,
 		}
