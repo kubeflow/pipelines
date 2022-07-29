@@ -68,9 +68,12 @@ export interface FullArtifactPath {
   artifact: NameId;
 }
 
+// key: "<execution ID>-<artifact ID>"
+export type FullArtifactPathMap = { [key: string]: FullArtifactPath };
+
 export interface RocCurveArtifactData {
   validLinkedArtifacts: LinkedArtifact[];
-  fullArtifactPathMap: { [key: string]: FullArtifactPath }; // key: "<execution ID>-<artifact ID>"
+  fullArtifactPathMap: FullArtifactPathMap;
 }
 
 export const getRocCurveId = (linkedArtifact: LinkedArtifact): string =>
@@ -80,7 +83,7 @@ export const getRocCurveId = (linkedArtifact: LinkedArtifact): string =>
 export const getValidRocCurveArtifactData = (
   rocCurveRunArtifacts: RunArtifact[],
 ): RocCurveArtifactData => {
-  const fullArtifactPathMap: { [key: string]: FullArtifactPath } = {};
+  const fullArtifactPathMap: FullArtifactPathMap = {};
   const validLinkedArtifacts = flatMapDeep(
     rocCurveRunArtifacts.map(runArtifact =>
       runArtifact.executionArtifacts.map(executionArtifact => {

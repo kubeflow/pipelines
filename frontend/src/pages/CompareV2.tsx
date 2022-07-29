@@ -50,7 +50,7 @@ import CompareTable, { CompareTableProps } from 'src/components/CompareTable';
 import {
   compareCss,
   ExecutionArtifact,
-  FullArtifactPath,
+  FullArtifactPathMap,
   getCompareTableProps,
   getRocCurveId,
   getValidRocCurveArtifactData,
@@ -244,9 +244,7 @@ function CompareV2(props: CompareV2Props) {
   const [selectedRocCurveIds, setSelectedRocCurveIds] = useState<string[]>([]);
   const [selectedIdColorMap, setSelectedIdColorMap] = useState<{ [key: string]: string }>({});
   const [lineColorsStack, setLineColorsStack] = useState<string[]>([...lineColors].reverse());
-  const [fullArtifactPathMap, setFullArtifactPathMap] = useState<{
-    [key: string]: FullArtifactPath;
-  }>({});
+  const [fullArtifactPathMap, setFullArtifactPathMap] = useState<FullArtifactPathMap>({});
 
   // Selected artifacts for two-panel layout.
   const createSelectedArtifactArray = (count: number): SelectedArtifact[] => {

@@ -49,7 +49,7 @@ import Tooltip from '@material-ui/core/Tooltip';
 import { Link } from 'react-router-dom';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
-import { FullArtifactPath, getRocCurveId, NameId } from 'src/lib/v2/CompareUtils';
+import { FullArtifactPath, FullArtifactPathMap, getRocCurveId, NameId } from 'src/lib/v2/CompareUtils';
 import { logger } from 'src/lib/Utils';
 import { stylesheet } from 'typestyle';
 import { buildRocCurveConfig, validateConfidenceMetrics } from './ROCCurveHelper';
@@ -360,7 +360,7 @@ const ROC_CURVE_DEFINITION =
 export interface ConfidenceMetricsFilter {
   selectedIds: string[];
   setSelectedIds: (selectedIds: string[]) => void;
-  fullArtifactPathMap: { [key: string]: FullArtifactPath };
+  fullArtifactPathMap: FullArtifactPathMap;
   selectedIdColorMap: { [key: string]: string };
   setSelectedIdColorMap: (selectedIdColorMap: { [key: string]: string }) => void;
   lineColorsStack: string[];

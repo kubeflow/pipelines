@@ -15,6 +15,7 @@
  */
 
 import { fireEvent, render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import * as React from 'react';
 import { CommonTestWrapper } from 'src/TestWrapper';
 import { testBestPractices } from 'src/TestUtils';
@@ -26,8 +27,9 @@ import {
   ConfidenceMetricsSection,
   ConfidenceMetricsSectionProps,
 } from './MetricsVisualizations';
-import { FullArtifactPath } from 'src/lib/v2/CompareUtils';
+import { FullArtifactPath, FullArtifactPathMap } from 'src/lib/v2/CompareUtils';
 import { lineColors } from 'src/components/viewers/ROCCurve';
+import TestUtils from 'src/TestUtils';
 import * as rocCurveHelper from './ROCCurveHelper';
 
 testBestPractices();
@@ -100,9 +102,42 @@ describe('ConfidenceMetricsSection', () => {
     } as LinkedArtifact;
   }
 
-  function generateProps(selectedIds: string[]): ConfidenceMetricsSectionProps {
+  interface RocCurveData {
+    linkedArtifacts: LinkedArtifact[];
+    fullArtifactPathMap: FullArtifactPathMap;
+    selectedIds: string[];
+  }
+
+  function generateRocCurveDataByCount(count: number): RocCurveData {
+    const linkedArtifacts: LinkedArtifact[] = [];
+    const fullArtifactPathMap: FullArtifactPathMap = {};
+    const selectedIds: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const rocCurveId: string = `${i}-${i}`;
+      linkedArtifacts.push(newMockLinkedArtifact(i, i, `artifact${i}`));
+      fullArtifactPathMap[`${i}-${i}`] = {
+        run: { name: `run${i}`, id: `${i}` },
+        execution: { name: `execution${i}`, id: `${i}` },
+        artifact: { name: `artifact${i}`, id: `${i}` },
+      };
+      if (i < 10) {
+        selectedIds.push(rocCurveId);
+      }
+    }
+    return {
+      linkedArtifacts,
+      fullArtifactPathMap,
+      selectedIds,
+    } as RocCurveData;
+  }
+
+  function generateProps(
+    selectedIds: string[],
+    linkedArtifacts?: LinkedArtifact[],
+    fullArtifactPathMap?: FullArtifactPathMap,
+  ): ConfidenceMetricsSectionProps {
     const props: ConfidenceMetricsSectionProps = {
-      linkedArtifacts: [
+      linkedArtifacts: linkedArtifacts || [
         newMockLinkedArtifact(1, 1, 'artifact1'),
         newMockLinkedArtifact(2, 1, 'artifact2'),
         newMockLinkedArtifact(4, 2, 'artifact3'),
@@ -110,7 +145,7 @@ describe('ConfidenceMetricsSection', () => {
       filter: {
         selectedIds,
         setSelectedIds: setSelectedIdsSpy,
-        fullArtifactPathMap: {
+        fullArtifactPathMap: fullArtifactPathMap || {
           '1-1': {
             run: {
               name: 'run1',
@@ -169,6 +204,7 @@ describe('ConfidenceMetricsSection', () => {
         <ConfidenceMetricsSection {...generateProps([])} />
       </CommonTestWrapper>,
     );
+    await TestUtils.flushPromises();
     screen.getByText('ROC Curve: no artifacts');
   });
 
@@ -178,6 +214,7 @@ describe('ConfidenceMetricsSection', () => {
         <ConfidenceMetricsSection {...generateProps(['1-1'])} />
       </CommonTestWrapper>,
     );
+    await TestUtils.flushPromises();
     screen.getByText('ROC Curve: artifact1');
   });
 
@@ -187,6 +224,7 @@ describe('ConfidenceMetricsSection', () => {
         <ConfidenceMetricsSection {...generateProps(['1-1', '1-2'])} />
       </CommonTestWrapper>,
     );
+    await TestUtils.flushPromises();
     screen.getByText('ROC Curve: multiple artifacts');
   });
 
@@ -200,6 +238,7 @@ describe('ConfidenceMetricsSection', () => {
         <ConfidenceMetricsSection {...generateProps(['1-1', '1-2'])} />
       </CommonTestWrapper>,
     );
+    await TestUtils.flushPromises();
 
     expect(validateConfidenceMetricsSpy).toHaveBeenCalledTimes(1);
     screen.getByText(
@@ -213,6 +252,7 @@ describe('ConfidenceMetricsSection', () => {
         <ConfidenceMetricsSection {...generateProps(['1-1', '1-2'])} />
       </CommonTestWrapper>,
     );
+    await TestUtils.flushPromises();
 
     // Only the selected items are checked.
     const selectedCheckboxes = screen
@@ -237,6 +277,7 @@ describe('ConfidenceMetricsSection', () => {
         <ConfidenceMetricsSection {...generateProps(['1-1', '1-2', '2-4'])} />
       </CommonTestWrapper>,
     );
+    await TestUtils.flushPromises();
 
     // Only the selected items are checked.
     const selectedCheckboxes = screen
@@ -244,7 +285,7 @@ describe('ConfidenceMetricsSection', () => {
       .filter(r => r.nodeName === 'INPUT');
     expect(selectedCheckboxes).toHaveLength(4);
 
-    // Uncheck the first checkbox.
+    // Uncheck the first (non-"select all") checkbox.
     const checkboxes = screen.queryAllByRole('checkbox').filter(r => r.nodeName === 'INPUT');
     fireEvent.click(checkboxes[1]);
     expect(setSelectedIdsSpy).toHaveBeenLastCalledWith(['1-2', '2-4']);
@@ -253,5 +294,47 @@ describe('ConfidenceMetricsSection', () => {
       '2-4': '#e00000',
     });
     expect(setLineColorsStackSpy).toBeCalledTimes(2);
+  });
+
+  it('ROC Curve show banner when selecting 10 runs', async () => {
+    const rocCurveData = generateRocCurveDataByCount(15);
+    render(
+      <CommonTestWrapper>
+        <ConfidenceMetricsSection
+          {...generateProps(
+            rocCurveData.selectedIds,
+            rocCurveData.linkedArtifacts,
+            rocCurveData.fullArtifactPathMap,
+          )}
+        />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    // Only the selected items are checked.
+    let checkboxes = screen
+      .queryAllByRole('checkbox')
+      .filter(r => r.nodeName === 'INPUT');
+    let selectedCheckboxes = screen
+      .queryAllByRole('checkbox', { checked: true })
+      .filter(r => r.nodeName === 'INPUT');
+    expect(checkboxes).toHaveLength(11);
+    expect(selectedCheckboxes).toHaveLength(11);
+    screen.getByText('You have reached the maximum number of ROC Curves (10) you can select at once.');
+
+    // Get the next page button as the last button.
+    const buttons = screen.queryAllByRole('button');
+    const nextPage = buttons[buttons.length - 1];
+
+    // Ensure none of the next page checkboxes are checked.
+    fireEvent.click(nextPage);
+    checkboxes = screen
+      .queryAllByRole('checkbox')
+      .filter(r => r.nodeName === 'INPUT');
+    selectedCheckboxes = screen
+      .queryAllByRole('checkbox', { checked: true })
+      .filter(r => r.nodeName === 'INPUT');
+    expect(checkboxes).toHaveLength(6);
+    expect(selectedCheckboxes).toHaveLength(0);
   });
 });
