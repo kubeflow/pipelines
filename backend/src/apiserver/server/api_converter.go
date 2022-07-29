@@ -156,13 +156,11 @@ func toApiRuntimeParameters(paramsString string) (map[string]*structpb.Value, er
 	if paramsString == "" {
 		return make(map[string]*structpb.Value), nil
 	}
-	// params, err := template.UnmarshalParameters(paramsString)
-	params := []v1alpha1.Parameter{}
-	/*
-		if err != nil {
-			return nil, util.NewInternalServerError(err, "Runtime parameter with wrong format is stored")
-		}
-	*/
+	params, err := template.UnmarshalParameters(paramsString)
+	// params := []v1alpha1.Parameter{}
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Runtime parameter with wrong format is stored")
+	}
 	runtimeParams := make(map[string]*structpb.Value)
 	for _, param := range params {
 		var value interface{}
