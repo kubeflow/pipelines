@@ -188,7 +188,8 @@ func toApiRun(run *model.Run) *api.Run {
 		}
 	}
 	// v2 parameters
-	runtimeParams, err := toApiRuntimeParameters(run.PipelineSpec.RuntimeConfig.Parameters)
+	// runtimeParams, err := toApiRuntimeParameters(run.PipelineSpec.RuntimeConfig.Parameters)
+	runtimeParams, err := toApiRuntimeParameters("")
 	if err != nil {
 		return &api.Run{
 			Id:    run.UUID,
