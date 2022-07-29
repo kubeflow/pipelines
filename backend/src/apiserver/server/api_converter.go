@@ -186,7 +186,7 @@ func toApiRun(run *model.Run) *api.Run {
 			Error: err.Error(),
 		}
 	}
-	// v2 parameters (currently force it to be empty)
+	// v2 parameters
 	runtimeParams, err := toApiRuntimeParameters(run.PipelineSpec.RuntimeConfig.Parameters)
 	if err != nil {
 		return &api.Run{
