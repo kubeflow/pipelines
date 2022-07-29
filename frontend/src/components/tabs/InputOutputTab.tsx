@@ -172,11 +172,17 @@ function extractParamFromExecution(execution: Execution, name: string): KeyValue
   return result;
 }
 
-export function getArtifactParamList(inputArtifacts: LinkedArtifact[], artifactTypeName: string): ParamList {
+export function getArtifactParamList(
+  inputArtifacts: LinkedArtifact[],
+  artifactTypeName: string,
+): ParamList {
   return inputArtifacts.map(linkedArtifact => {
     let key = getArtifactName(linkedArtifact);
-    if (key && (artifactTypeName === 'system.Metrics' || artifactTypeName === 'system.ClassificationMetrics')) {
-      key += ' (This is an empty file by default)'
+    if (
+      key &&
+      (artifactTypeName === 'system.Metrics' || artifactTypeName === 'system.ClassificationMetrics')
+    ) {
+      key += ' (This is an empty file by default)';
     }
     const artifactId = linkedArtifact.artifact.getId();
     const artifactElement = RoutePageFactory.artifactDetails(artifactId) ? (
