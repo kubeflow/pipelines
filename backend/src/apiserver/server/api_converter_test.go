@@ -79,7 +79,7 @@ func TestToApiPipeline_ErrorParsingField(t *testing.T) {
 	assert.Contains(t, apiPipeline.Error, "Parameter with wrong format is stored")
 }
 
-func TestToApiRunDetail(t *testing.T) {
+func TestToApiRunDetail_RuntimeParams(t *testing.T) {
 	modelRun := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "run123",
@@ -136,6 +136,59 @@ func TestToApiRunDetail(t *testing.T) {
 				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
 					Parameters:   v2RuntimeParams,
 					PipelineRoot: "model-pipeline-root",
+				},
+			},
+			ResourceReferences: []*api.ResourceReference{
+				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job123"},
+					Name: "j123", Relationship: api.Relationship_CREATOR},
+			},
+		},
+		PipelineRuntime: &api.PipelineRuntime{
+			WorkflowManifest: "workflow123",
+		},
+	}
+	assert.Equal(t, expectedApiRun, apiRun)
+}
+
+func TestToApiRunDetail_V1Params(t *testing.T) {
+	modelRun := &model.RunDetail{
+		Run: model.Run{
+			UUID:             "run123",
+			Name:             "name123",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			DisplayName:      "displayName123",
+			Namespace:        "ns123",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			FinishedAtInSec:  1,
+			Conditions:       "running",
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: "manifest",
+				Parameters:           `[{"name":"param2","value":"world"}]`,
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{ResourceUUID: "run123", ResourceType: common.Run, ReferenceUUID: "job123",
+					ReferenceName: "j123", ReferenceType: common.Job, Relationship: common.Creator},
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow123"},
+	}
+	apiRun := ToApiRunDetail(modelRun)
+	expectedApiRun := &api.RunDetail{
+		Run: &api.Run{
+			Id:           "run123",
+			Name:         "displayName123",
+			StorageState: api.Run_STORAGESTATE_AVAILABLE,
+			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+			ScheduledAt:  &timestamp.Timestamp{Seconds: 1},
+			FinishedAt:   &timestamp.Timestamp{Seconds: 1},
+			Status:       "running",
+			PipelineSpec: &api.PipelineSpec{
+				WorkflowManifest: "manifest",
+				Parameters:       []*api.Parameter{{Name: "param2", Value: "world"}},
+				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+					Parameters:   make(map[string]*structpb.Value),
+					PipelineRoot: "",
 				},
 			},
 			ResourceReferences: []*api.ResourceReference{

@@ -392,8 +392,8 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 			"PipelineSpecManifest":    r.PipelineSpecManifest,
 			"WorkflowSpecManifest":    r.WorkflowSpecManifest,
 			"Parameters":              r.Parameters,
-			"RuntimeParameters":       r.RuntimeConfig.Parameters,
-			"PipelineRoot":            r.RuntimeConfig.PipelineRoot,
+			"RuntimeParameters":       r.PipelineSpec.RuntimeConfig.Parameters,
+			"PipelineRoot":            r.PipelineSpec.RuntimeConfig.PipelineRoot,
 		}).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to store run to run table: '%v/%v",

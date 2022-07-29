@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	//	"fmt"
 	"strings"
 	"testing"
 
@@ -24,7 +25,7 @@ import (
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
-func TestCreateRun(t *testing.T) {
+func TestCreateRun_V1Params(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
@@ -151,6 +152,94 @@ func TestCreateRunPatch(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedRunDetail, *runDetail)
+}
+
+func TestCreateRun_RuntimeParams(t *testing.T) {
+	clients, manager, experiment := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+
+	/*
+		listParams := []interface{}{1, 2, 3}
+		v2RuntimeListParams, _ := structpb.NewList(listParams)
+
+		structParams := map[string]interface{}{"structParam1": "hello", "structParam2": 32}
+		v2RuntimeStructParams, _ := structpb.NewStruct(structParams)
+	*/
+
+	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
+	v2RuntimeParams := map[string]*structpb.Value{
+		"param2": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
+		// "param3": &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: true}},
+		//	"param4": &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
+		//	"param5": &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: 12}},
+		//	"param6": &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: v2RuntimeStructParams}},
+	}
+
+	run := &api.Run{
+		Name:               "run1",
+		ResourceReferences: validReference,
+		PipelineSpec: &api.PipelineSpec{
+			// WorkflowManifest: testWorkflow.ToStringForStore(),
+			PipelineManifest: v2SpecHelloWorld,
+			// Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+				Parameters:   v2RuntimeParams,
+				PipelineRoot: "model-pipeline-root",
+			},
+		},
+	}
+	runDetail, err := server.CreateRun(nil, &api.CreateRunRequest{Run: run})
+	assert.Nil(t, err)
+
+	/*
+		expectedRuntimeWorkflow := testWorkflow.DeepCopy()
+		resource.AddRuntimeMetadata(expectedRuntimeWorkflow)
+		expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
+			{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
+		expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
+		expectedRuntimeWorkflow.Annotations = map[string]string{util.AnnotationKeyRunName: "run1"}
+		expectedRuntimeWorkflow.Spec.ServiceAccountName = "pipeline-runner"
+		template := expectedRuntimeWorkflow.Spec.Templates[0]
+		expectedRuntimeWorkflow.Spec.Templates[0] = template
+		expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
+			Labels: map[string]string{
+				util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000",
+			},
+		}
+	*/
+
+	expectedRunDetail := api.RunDetail{
+		Run: &api.Run{
+			Id:             "123e4567-e89b-12d3-a456-426655440000",
+			Name:           "run1",
+			ServiceAccount: "pipeline-runner",
+			StorageState:   api.Run_STORAGESTATE_AVAILABLE,
+			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+			ScheduledAt:    &timestamp.Timestamp{},
+			FinishedAt:     &timestamp.Timestamp{},
+			Status:         "Running",
+			PipelineSpec: &api.PipelineSpec{
+				PipelineManifest: v2SpecHelloWorld,
+				// Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
+				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+					Parameters:   v2RuntimeParams,
+					PipelineRoot: "model-pipeline-root",
+				},
+			},
+			ResourceReferences: []*api.ResourceReference{
+				{
+					Key:  &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
+					Name: "exp1", Relationship: api.Relationship_OWNER,
+				},
+			},
+		},
+		PipelineRuntime: &api.PipelineRuntime{
+			//WorkflowManifest: util.NewWorkflow(expectedRuntimeWorkflow).ToStringForStore(),
+		},
+	}
+	// fmt.Printf("/n expected value: %+v /n", expectedRunDetail)
+	assert.EqualValues(t, expectedRunDetail, *runDetail)
 }
 
 func TestCreateRun_Unauthorized(t *testing.T) {
