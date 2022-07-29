@@ -62,8 +62,8 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
   let inputArtifacts: ParamList = [];
   let outputArtifacts: ParamList = [];
   if (isSuccess && data) {
-    inputArtifacts = getArtifactParamList(filterEventWithInputArtifact(data));
-    outputArtifacts = getArtifactParamList(filterEventWithOutputArtifact(data));
+    inputArtifacts = getArtifactParamList(filterEventWithInputArtifact(data), '');
+    outputArtifacts = getArtifactParamList(filterEventWithOutputArtifact(data), '');
   }
 
   let isIoEmpty = false;
@@ -172,9 +172,12 @@ function extractParamFromExecution(execution: Execution, name: string): KeyValue
   return result;
 }
 
-export function getArtifactParamList(inputArtifacts: LinkedArtifact[]): ParamList {
+export function getArtifactParamList(inputArtifacts: LinkedArtifact[], artifactTypeName: string): ParamList {
   return inputArtifacts.map(linkedArtifact => {
-    const key = getArtifactName(linkedArtifact);
+    let key = getArtifactName(linkedArtifact);
+    if (key && (artifactTypeName === 'system.Metrics' || artifactTypeName === 'system.ClassificationMetrics')) {
+      key += ' (This is an empty file by default)'
+    }
     const artifactId = linkedArtifact.artifact.getId();
     const artifactElement = RoutePageFactory.artifactDetails(artifactId) ? (
       <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(artifactId)}>
