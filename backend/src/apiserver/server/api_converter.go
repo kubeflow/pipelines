@@ -180,6 +180,12 @@ func toApiRuntimeParameters(paramsString string) (map[string]*structpb.Value, er
 func toApiRun(run *model.Run) *api.Run {
 	// v1 parameters
 	params, err := toApiParameters(run.Parameters)
+	if err != nil {
+		return &api.Run{
+			Id:    run.UUID,
+			Error: err.Error(),
+		}
+	}
 	// v2 parameters (currently force it to be empty)
 	runtimeParams, err := toApiRuntimeParameters(run.PipelineSpec.RuntimeConfig.Parameters)
 	if err != nil {
