@@ -336,5 +336,68 @@ describe('ConfidenceMetricsSection', () => {
       .filter(r => r.nodeName === 'INPUT');
     expect(checkboxes).toHaveLength(6);
     expect(selectedCheckboxes).toHaveLength(0);
+    
+    // Selecting a disabled checkbox has no change.
+    fireEvent.click(checkboxes[1]);
+    expect(setSelectedIdsSpy).toMatchObject(rocCurveData.selectedIds);
+  });
+
+  it('Filter table is present with relevant rows', async () => {
+    render(
+      <CommonTestWrapper>
+        <ConfidenceMetricsSection
+          {...generateProps([])}
+        />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    // Test the header columns and some different rows
+    screen.getByText('Execution name > Artifact name');
+    screen.getByText('execution1 > artifact1');
+    screen.getByText('Run name');
+    screen.getByText('run2');
+  });
+
+  it('Filter box correctly filters artifacts by run, execution, and artifact name', async () => {
+    render(
+      <CommonTestWrapper>
+        <ConfidenceMetricsSection
+          {...generateProps([])}
+        />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    // TODO(zpChris): May need to actually get the filter element, this could just be the label.
+    // Ex: queryAllByRole('input')[0], or utils getByLabel
+    // Filter by combination of execution and artifact name (ID substitution).
+    const filterElement = screen.getByText('Filter artifacts');
+    fireEvent.change(filterElement, 'Execution ID #1 > Artifact ID #2');
+    let checkboxes = screen
+      .queryAllByRole('checkbox')
+      .filter(r => r.nodeName === 'INPUT');
+    expect(checkboxes).toHaveLength(2);
+
+    // Filter by artifact name directly.
+    fireEvent.change(filterElement, 'artifact1');
+    checkboxes = screen
+      .queryAllByRole('checkbox')
+      .filter(r => r.nodeName === 'INPUT');
+    expect(checkboxes).toHaveLength(2);
+
+    // Filter by run name, and show more than one filtered element.
+    fireEvent.change(filterElement, 'run1');
+    checkboxes = screen
+      .queryAllByRole('checkbox')
+      .filter(r => r.nodeName === 'INPUT');
+    expect(checkboxes).toHaveLength(3);
+
+    // Filter by partially-complete artifact name (ID substitution).
+    fireEvent.change(filterElement, 'Artifact ID');
+    checkboxes = screen
+      .queryAllByRole('checkbox')
+      .filter(r => r.nodeName === 'INPUT');
+    expect(checkboxes).toHaveLength(2);
   });
 });
