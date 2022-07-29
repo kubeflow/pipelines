@@ -168,8 +168,9 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 		if err != nil {
 			return nil, util.Wrap(err, "Unable to parse the parameter.")
 		}
-		modelJob.Parameters = params
 		modelJob.PipelineSpecManifest = manifest
+		modelJob.PipelineSpec.RuntimeConfig.Parameters = params
+		modelJob.PipelineSpec.RuntimeConfig.PipelineRoot = job.GetPipelineSpec().GetRuntimeConfig().GetPipelineRoot()
 		return modelJob, nil
 
 	} else {
@@ -259,17 +260,14 @@ func runtimeConfigToModelParameters(runtimeConfig *api.PipelineSpec_RuntimeConfi
 			Name: k,
 		}
 		switch t := v.GetKind().(type) {
-		case *structpb.Value_StringValue:
-			param.Value = v1alpha1.AnyStringPtr(v.GetStringValue())
-		case *structpb.Value_NumberValue:
-			param.Value = v1alpha1.AnyStringPtr(v.GetNumberValue())
-		case *structpb.Value_BoolValue:
-			param.Value = v1alpha1.AnyStringPtr(v.GetBoolValue())
-		// TODO: revisit if these are right
-		case *structpb.Value_StructValue:
-			param.Value = v1alpha1.AnyStringPtr(v.GetStructValue())
-		case *structpb.Value_ListValue:
-			param.Value = v1alpha1.AnyStringPtr(v.GetListValue())
+		case *structpb.Value_StringValue, *structpb.Value_NumberValue, *structpb.Value_BoolValue,
+			*structpb.Value_StructValue, *structpb.Value_ListValue:
+			marshaledValueBytes, err := v.MarshalJSON()
+			if err != nil {
+				return "", fmt.Errorf("Unable to marshal parameter values into JSON: %v", v)
+			}
+			param.Value = v1alpha1.AnyStringPtr(string(marshaledValueBytes))
+
 		case *structpb.Value_NullValue:
 			return "", fmt.Errorf("Unsupported property type in pipelineSpec runtimeConfig Parameters: %T", t)
 		default:

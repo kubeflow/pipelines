@@ -15,6 +15,7 @@
 package server
 
 import (
+	"encoding/json"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -150,11 +151,37 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 	return apiParams, nil
 }
 
+func toApiRuntimeParameters(paramsString string) (map[string]*structpb.Value, error) {
+	if paramsString == "" {
+		return make(map[string]*structpb.Value), nil
+	}
+	params, err := template.UnmarshalParameters(paramsString)
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Parameter with wrong format is stored")
+	}
+	runtimeParams := make(map[string]*structpb.Value)
+	for _, param := range params {
+		var value interface{}
+		if param.Value != nil {
+			err := json.Unmarshal([]byte(param.Value.String()), &value)
+			if err != nil {
+				return nil, util.NewInternalServerError(err, "Cannot unmarshal model parameter")
+			}
+		}
+		runtimeParam, err := structpb.NewValue(value)
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Cannot convert unmarshalled data to structpb.Value")
+		}
+		runtimeParams[param.Name] = runtimeParam
+	}
+	return runtimeParams, nil
+}
+
 func toApiRun(run *model.Run) *api.Run {
 	// v1 parameters
 	params, err := toApiParameters(run.Parameters)
 	// v2 parameters (currently force it to be empty)
-	runtimeParams := make(map[string]*structpb.Value)
+	runtimeParams, err := toApiRuntimeParameters(run.PipelineSpec.RuntimeConfig.Parameters)
 	if err != nil {
 		return &api.Run{
 			Id:    run.UUID,

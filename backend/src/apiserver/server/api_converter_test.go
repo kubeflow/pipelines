@@ -93,6 +93,10 @@ func TestToApiRunDetail(t *testing.T) {
 			Conditions:       "running",
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: "manifest",
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "[{\"name\":\"param2\",\"value\":\"\\\"world\\\"\"},{\"name\":\"param3\",\"value\":\"true\"},{\"name\":\"param4\",\"value\":\"[1, 2, 3]\"},{\"name\":\"param5\",\"value\":\"12\"},{\"name\":\"param6\",\"value\":\"{\\\"structParam1\\\":\\\"hello\\\", \\\"structParam2\\\":32}\"}]",
+					PipelineRoot: "model-pipeline-root",
+				},
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{ResourceUUID: "run123", ResourceType: common.Run, ReferenceUUID: "job123",
@@ -102,6 +106,22 @@ func TestToApiRunDetail(t *testing.T) {
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow123"},
 	}
 	apiRun := ToApiRunDetail(modelRun)
+
+	listParams := []interface{}{1, 2, 3}
+	v2RuntimeListParams, _ := structpb.NewList(listParams)
+
+	structParams := map[string]interface{}{"structParam1": "hello", "structParam2": 32}
+	v2RuntimeStructParams, _ := structpb.NewStruct(structParams)
+
+	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
+	v2RuntimeParams := map[string]*structpb.Value{
+		"param2": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
+		"param3": &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: true}},
+		"param4": &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
+		"param5": &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: 12}},
+		"param6": &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: v2RuntimeStructParams}},
+	}
+
 	expectedApiRun := &api.RunDetail{
 		Run: &api.Run{
 			Id:           "run123",
@@ -114,8 +134,8 @@ func TestToApiRunDetail(t *testing.T) {
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
 				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
-					Parameters:   make(map[string]*structpb.Value),
-					PipelineRoot: "",
+					Parameters:   v2RuntimeParams,
+					PipelineRoot: "model-pipeline-root",
 				},
 			},
 			ResourceReferences: []*api.ResourceReference{
