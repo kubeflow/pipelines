@@ -15,11 +15,13 @@
 package server
 
 import (
+	"encoding/json"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func ToApiExperiment(experiment *model.Experiment) *api.Experiment {
@@ -148,8 +150,44 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 	return apiParams, nil
 }
 
+func toApiRuntimeParameters(paramsString string) (map[string]*structpb.Value, error) {
+	if paramsString == "" {
+		return make(map[string]*structpb.Value), nil
+	}
+	params, err := template.UnmarshalParameters(paramsString)
+	// params := []v1alpha1.Parameter{}
+	if err != nil {
+		return nil, util.NewInternalServerError(err, "Runtime parameter with wrong format is stored")
+	}
+	runtimeParams := make(map[string]*structpb.Value)
+	for _, param := range params {
+		var value interface{}
+		if param.Value != nil {
+			err := json.Unmarshal([]byte(param.Value.String()), &value)
+			if err != nil {
+				return nil, util.NewInternalServerError(err, "Cannot unmarshal model parameter")
+			}
+		}
+		runtimeParam, err := structpb.NewValue(value)
+		if err != nil {
+			return nil, util.NewInternalServerError(err, "Cannot convert unmarshalled data to structpb.Value")
+		}
+		runtimeParams[param.Name] = runtimeParam
+	}
+	return runtimeParams, nil
+}
+
 func toApiRun(run *model.Run) *api.Run {
+	// v1 parameters
 	params, err := toApiParameters(run.Parameters)
+	if err != nil {
+		return &api.Run{
+			Id:    run.UUID,
+			Error: err.Error(),
+		}
+	}
+	// v2 parameters
+	runtimeParams, err := toApiRuntimeParameters(run.PipelineSpec.RuntimeConfig.Parameters)
 	if err != nil {
 		return &api.Run{
 			Id:    run.UUID,
@@ -179,6 +217,10 @@ func toApiRun(run *model.Run) *api.Run {
 			WorkflowManifest: run.WorkflowSpecManifest,
 			PipelineManifest: run.PipelineSpecManifest,
 			Parameters:       params,
+			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+				Parameters:   runtimeParams,
+				PipelineRoot: run.PipelineSpec.RuntimeConfig.PipelineRoot,
+			},
 		},
 		ResourceReferences: toApiResourceReferences(run.ResourceReferences),
 	}

@@ -25,6 +25,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestToApiPipeline(t *testing.T) {
@@ -78,7 +79,7 @@ func TestToApiPipeline_ErrorParsingField(t *testing.T) {
 	assert.Contains(t, apiPipeline.Error, "Parameter with wrong format is stored")
 }
 
-func TestToApiRunDetail(t *testing.T) {
+func TestToApiRunDetail_RuntimeParams(t *testing.T) {
 	modelRun := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "run123",
@@ -92,6 +93,78 @@ func TestToApiRunDetail(t *testing.T) {
 			Conditions:       "running",
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: "manifest",
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "[{\"name\":\"param2\",\"value\":\"\\\"world\\\"\"},{\"name\":\"param3\",\"value\":\"true\"},{\"name\":\"param4\",\"value\":\"[1,2,3]\"},{\"name\":\"param5\",\"value\":\"12\"},{\"name\":\"param6\",\"value\":\"{\\\"structParam1\\\":\\\"hello\\\",\\\"structParam2\\\":32}\"}]",
+					PipelineRoot: "model-pipeline-root",
+				},
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{ResourceUUID: "run123", ResourceType: common.Run, ReferenceUUID: "job123",
+					ReferenceName: "j123", ReferenceType: common.Job, Relationship: common.Creator},
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow123"},
+	}
+	apiRun := ToApiRunDetail(modelRun)
+
+	listParams := []interface{}{1, 2, 3}
+	v2RuntimeListParams, _ := structpb.NewList(listParams)
+
+	structParams := map[string]interface{}{"structParam1": "hello", "structParam2": 32}
+	v2RuntimeStructParams, _ := structpb.NewStruct(structParams)
+
+	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
+	v2RuntimeParams := map[string]*structpb.Value{
+		"param2": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
+		"param3": &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: true}},
+		"param4": &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
+		"param5": &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: 12}},
+		"param6": &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: v2RuntimeStructParams}},
+	}
+
+	expectedApiRun := &api.RunDetail{
+		Run: &api.Run{
+			Id:           "run123",
+			Name:         "displayName123",
+			StorageState: api.Run_STORAGESTATE_AVAILABLE,
+			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+			ScheduledAt:  &timestamp.Timestamp{Seconds: 1},
+			FinishedAt:   &timestamp.Timestamp{Seconds: 1},
+			Status:       "running",
+			PipelineSpec: &api.PipelineSpec{
+				WorkflowManifest: "manifest",
+				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+					Parameters:   v2RuntimeParams,
+					PipelineRoot: "model-pipeline-root",
+				},
+			},
+			ResourceReferences: []*api.ResourceReference{
+				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job123"},
+					Name: "j123", Relationship: api.Relationship_CREATOR},
+			},
+		},
+		PipelineRuntime: &api.PipelineRuntime{
+			WorkflowManifest: "workflow123",
+		},
+	}
+	assert.Equal(t, expectedApiRun, apiRun)
+}
+
+func TestToApiRunDetail_V1Params(t *testing.T) {
+	modelRun := &model.RunDetail{
+		Run: model.Run{
+			UUID:             "run123",
+			Name:             "name123",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			DisplayName:      "displayName123",
+			Namespace:        "ns123",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			FinishedAtInSec:  1,
+			Conditions:       "running",
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: "manifest",
+				Parameters:           `[{"name":"param2","value":"world"}]`,
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{ResourceUUID: "run123", ResourceType: common.Run, ReferenceUUID: "job123",
@@ -112,6 +185,11 @@ func TestToApiRunDetail(t *testing.T) {
 			Status:       "running",
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
+				Parameters:       []*api.Parameter{{Name: "param2", Value: "world"}},
+				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+					Parameters:   make(map[string]*structpb.Value),
+					PipelineRoot: "",
+				},
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job123"},
