@@ -86,6 +86,7 @@ func TestCreateRun_V1Params(t *testing.T) {
 	assert.Equal(t, expectedRunDetail, *runDetail)
 }
 
+/*
 func TestCreateRun_RuntimeParams(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
@@ -148,6 +149,7 @@ func TestCreateRun_RuntimeParams(t *testing.T) {
 	}
 	assert.EqualValues(t, expectedRunDetail, *runDetail)
 }
+*/
 
 func TestCreateRunPatch(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
