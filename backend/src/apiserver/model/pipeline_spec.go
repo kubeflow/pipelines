@@ -32,4 +32,7 @@ type PipelineSpec struct {
 
 	// Store parameters key-value pairs as serialized string.
 	Parameters string `gorm:"column:Parameters; size:65535"`
+
+	// Runtime config of the pipeline
+	RuntimeConfig
 }
