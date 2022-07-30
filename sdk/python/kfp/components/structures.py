@@ -657,6 +657,7 @@ class ComponentSpec(base_model.BaseModel):
         """
         # import here to aviod circular module dependency
         from kfp.compiler import pipeline_spec_builder as builder
+        from kfp.components import pipeline_channel
         from kfp.components import pipeline_task
         from kfp.components import tasks_group
         from kfp.components.types import type_utils
@@ -666,12 +667,7 @@ class ComponentSpec(base_model.BaseModel):
 
         for arg_name, input_spec in pipeline_inputs.items():
             arg_type = input_spec.type
-            if not type_utils.is_parameter_type(
-                    arg_type) or type_utils.is_task_final_status_type(arg_type):
-                raise TypeError(
-                    builder.make_invalid_input_type_error_msg(
-                        arg_name, arg_type))
-            args_dict[arg_name] = pipeline_channel.PipelineParameterChannel(
+            args_dict[arg_name] = pipeline_channel.create_pipeline_channel(
                 name=arg_name, channel_type=arg_type)
 
         task = pipeline_task.PipelineTask(self, args_dict)

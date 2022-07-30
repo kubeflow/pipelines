@@ -408,6 +408,4 @@ describe('MetricsDropdown', () => {
     screen.getByText('Choose a first Confusion Matrix artifact');
     screen.getByTitle('run1 > execution1 > artifact1');
   });
-
-  // TODO: Namespace...
 });
