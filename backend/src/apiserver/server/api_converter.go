@@ -154,8 +154,7 @@ func toApiRuntimeParameters(paramsString string) (map[string]*structpb.Value, er
 	if paramsString == "" {
 		return make(map[string]*structpb.Value), nil
 	}
-	params, err := template.UnmarshalParameters(paramsString)
-	// params := []v1alpha1.Parameter{}
+	params, err := util.UnmarshalParameters(util.ArgoWorkflow, paramsString)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Runtime parameter with wrong format is stored")
 	}
@@ -163,7 +162,7 @@ func toApiRuntimeParameters(paramsString string) (map[string]*structpb.Value, er
 	for _, param := range params {
 		var value interface{}
 		if param.Value != nil {
-			err := json.Unmarshal([]byte(param.Value.String()), &value)
+			err := json.Unmarshal([]byte(*param.Value), &value)
 			if err != nil {
 				return nil, util.NewInternalServerError(err, "Cannot unmarshal model parameter")
 			}
