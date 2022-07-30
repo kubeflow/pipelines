@@ -67,6 +67,12 @@ func initializeRunStore() (*DB, *RunStore) {
 					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   `[{"name":"param2","value":"world1"}]`,
+					PipelineRoot: "gs://my-bucket/path/to/root/run1",
+				},
+			},
 		},
 		PipelineRuntime: model.PipelineRuntime{
 			WorkflowRuntimeManifest: "workflow1",
@@ -90,6 +96,12 @@ func initializeRunStore() (*DB, *RunStore) {
 					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   `[{"name":"param2","value":"world2"}]`,
+					PipelineRoot: "gs://my-bucket/path/to/root/run2",
+				},
+			},
 		},
 		PipelineRuntime: model.PipelineRuntime{
 			WorkflowRuntimeManifest: "workflow1",
@@ -111,6 +123,12 @@ func initializeRunStore() (*DB, *RunStore) {
 					ResourceUUID: "3", ResourceType: common.Run,
 					ReferenceUUID: defaultFakeExpIdTwo, ReferenceName: "e2",
 					ReferenceType: common.Experiment, Relationship: common.Creator,
+				},
+			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   `[{"name":"param2","value":"world3"}]`,
+					PipelineRoot: "gs://my-bucket/path/to/root/run3",
 				},
 			},
 		},
@@ -173,6 +191,12 @@ func TestListRuns_Pagination(t *testing.T) {
 					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
+					PipelineRoot: "gs://my-bucket/path/to/root/run1",
+				},
+			},
 		}}
 	expectedSecondPageRuns := []*model.Run{
 		{
@@ -199,6 +223,12 @@ func TestListRuns_Pagination(t *testing.T) {
 					ResourceUUID: "2", ResourceType: common.Run,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
 					ReferenceType: common.Experiment, Relationship: common.Creator,
+				},
+			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "[{\"name\":\"param2\",\"value\":\"world2\"}]",
+					PipelineRoot: "gs://my-bucket/path/to/root/run2",
 				},
 			},
 		}}
@@ -254,6 +284,12 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
+					PipelineRoot: "gs://my-bucket/path/to/root/run1",
+				},
+			},
 		}}
 	expectedSecondPageRuns := []*model.Run{
 		{
@@ -280,6 +316,12 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 					ResourceUUID: "2", ResourceType: common.Run,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
 					ReferenceType: common.Experiment, Relationship: common.Creator,
+				},
+			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "[{\"name\":\"param2\",\"value\":\"world2\"}]",
+					PipelineRoot: "gs://my-bucket/path/to/root/run2",
 				},
 			},
 		}}
@@ -393,6 +435,12 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "[{\"name\":\"param2\",\"value\":\"world2\"}]",
+					PipelineRoot: "gs://my-bucket/path/to/root/run2",
+				},
+			},
 		}}
 	expectedSecondPageRuns := []*model.Run{
 		{
@@ -419,6 +467,12 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 					ResourceUUID: "1", ResourceType: common.Run,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
 					ReferenceType: common.Experiment, Relationship: common.Creator,
+				},
+			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
+					PipelineRoot: "gs://my-bucket/path/to/root/run1",
 				},
 			},
 		}}
@@ -478,6 +532,12 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
+					PipelineRoot: "gs://my-bucket/path/to/root/run1",
+				},
+			},
 		},
 		{
 			UUID:             "2",
@@ -503,6 +563,12 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 					ResourceUUID: "2", ResourceType: common.Run,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
 					ReferenceType: common.Experiment, Relationship: common.Creator,
+				},
+			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "[{\"name\":\"param2\",\"value\":\"world2\"}]",
+					PipelineRoot: "gs://my-bucket/path/to/root/run2",
 				},
 			},
 		}}
@@ -557,6 +623,12 @@ func TestGetRun(t *testing.T) {
 					ResourceUUID: "1", ResourceType: common.Run,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
 					ReferenceType: common.Experiment, Relationship: common.Creator,
+				},
+			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
+					PipelineRoot: "gs://my-bucket/path/to/root/run1",
 				},
 			},
 		},
@@ -617,6 +689,12 @@ func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
 					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
+					PipelineRoot: "gs://my-bucket/path/to/root/run1",
+				},
+			},
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow1"},
 	}
@@ -662,6 +740,12 @@ func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
 					ResourceUUID: "1", ResourceType: common.Run,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
 					ReferenceType: common.Experiment, Relationship: common.Creator,
+				},
+			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
+					PipelineRoot: "gs://my-bucket/path/to/root/run1",
 				},
 			},
 		},
@@ -864,6 +948,12 @@ func TestTerminateRun(t *testing.T) {
 					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
+					PipelineRoot: "gs://my-bucket/path/to/root/run1",
+				},
+			},
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow1"},
 	}
@@ -1008,6 +1098,12 @@ func TestListRuns_WithMetrics(t *testing.T) {
 					ReferenceType: common.Experiment, Relationship: common.Creator,
 				},
 			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
+					PipelineRoot: "gs://my-bucket/path/to/root/run1",
+				},
+			},
 			Metrics: []*model.RunMetric{
 				{
 					RunUUID:     "1",
@@ -1034,6 +1130,12 @@ func TestListRuns_WithMetrics(t *testing.T) {
 					ResourceUUID: "2", ResourceType: common.Run,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
 					ReferenceType: common.Experiment, Relationship: common.Creator,
+				},
+			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "[{\"name\":\"param2\",\"value\":\"world2\"}]",
+					PipelineRoot: "gs://my-bucket/path/to/root/run2",
 				},
 			},
 			Metrics: []*model.RunMetric{
@@ -1169,6 +1271,12 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 					ResourceUUID: "1", ResourceType: common.Run,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
 					ReferenceType: common.Experiment, Relationship: common.Creator,
+				},
+			},
+			PipelineSpec: model.PipelineSpec{
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "[{\"name\":\"param2\",\"value\":\"world1\"}]",
+					PipelineRoot: "gs://my-bucket/path/to/root/run1",
 				},
 			},
 		}}

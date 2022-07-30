@@ -34,7 +34,7 @@ import (
 
 var runColumns = []string{"UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description",
 	"CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineName", "PipelineSpecManifest",
-	"WorkflowSpecManifest", "Parameters", "pipelineRuntimeManifest", "WorkflowRuntimeManifest",
+	"WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", "pipelineRuntimeManifest", "WorkflowRuntimeManifest",
 }
 
 type RunStoreInterface interface {
@@ -256,7 +256,7 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 	for rows.Next() {
 		var uuid, experimentUUID, displayName, name, storageState, namespace, serviceAccount, description, pipelineId,
 			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, conditions, pipelineRuntimeManifest,
-			workflowRuntimeManifest string
+			workflowRuntimeManifest, runtimeParameters, pipelineRoot string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec int64
 		var metricsInString, resourceReferencesInString sql.NullString
 		err := rows.Scan(
@@ -277,6 +277,8 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 			&pipelineSpecManifest,
 			&workflowSpecManifest,
 			&parameters,
+			&runtimeParameters,
+			&pipelineRoot,
 			&pipelineRuntimeManifest,
 			&workflowRuntimeManifest,
 			&resourceReferencesInString,
@@ -319,6 +321,9 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 				PipelineSpecManifest: pipelineSpecManifest,
 				WorkflowSpecManifest: workflowSpecManifest,
 				Parameters:           parameters,
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   runtimeParameters,
+					PipelineRoot: pipelineRoot},
 			},
 		},
 			PipelineRuntime: model.PipelineRuntime{
@@ -380,6 +385,8 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 			"PipelineSpecManifest":    r.PipelineSpecManifest,
 			"WorkflowSpecManifest":    r.WorkflowSpecManifest,
 			"Parameters":              r.Parameters,
+			"RuntimeParameters":       r.PipelineSpec.RuntimeConfig.Parameters,
+			"PipelineRoot":            r.PipelineSpec.RuntimeConfig.PipelineRoot,
 		}).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to store run to run table: '%v/%v",
