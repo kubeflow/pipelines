@@ -318,6 +318,10 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		PipelineSpec: &run_model.APIPipelineSpec{
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
+			RuntimeConfig: &run_model.PipelineSpecRuntimeConfig{
+				Parameters:   make(map[string]run_model.ProtobufValue),
+				PipelineRoot: "",
+			},
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
@@ -389,6 +393,10 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 			Parameters: []*run_model.APIParameter{
 				{Name: "param1", Value: "goodbye"},
 				{Name: "param2", Value: "world"},
+			},
+			RuntimeConfig: &run_model.PipelineSpecRuntimeConfig{
+				Parameters:   make(map[string]run_model.ProtobufValue),
+				PipelineRoot: "",
 			},
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
