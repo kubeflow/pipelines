@@ -421,7 +421,6 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 			PipelineName:     "hello-world.yaml",
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
 			RuntimeConfig: &run_model.PipelineSpecRuntimeConfig{
-				Parameters:   make(map[string]run_model.ProtobufValue),
 				PipelineRoot: "",
 			},
 		},
