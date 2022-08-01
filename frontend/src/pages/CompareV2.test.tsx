@@ -129,8 +129,8 @@ describe('CompareV2', () => {
       customPropertiesMap.set('confusionMatrix', confusionMatrix);
     }
     if (isRocCurve) {
-      const confusionMatrix: Value = new Value();
-      confusionMatrix.setStructValue(
+      const confidenceMetrics: Value = new Value();
+      confidenceMetrics.setStructValue(
         Struct.fromJavaScript({
           list: [
             {
@@ -151,7 +151,7 @@ describe('CompareV2', () => {
           ],
         }),
       );
-      customPropertiesMap.set('confidenceMetrics', confusionMatrix);
+      customPropertiesMap.set('confidenceMetrics', confidenceMetrics);
     }
     if (displayName) {
       const displayNameValue = new Value();
@@ -666,5 +666,6 @@ describe('CompareV2', () => {
 
     fireEvent.click(screen.getByText('ROC Curve'));
     screen.getByText('ROC Curve: multiple artifacts');
+    screen.getByText('Filter artifacts');
   });
 });
