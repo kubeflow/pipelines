@@ -26,7 +26,7 @@ import {
   filterEventWithOutputArtifact,
   getArtifactName,
   getLinkedArtifactsByExecution,
-  LinkedArtifact
+  LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
 import { Execution } from 'src/third_party/mlmd';
 import ArtifactPreview from '../ArtifactPreview';

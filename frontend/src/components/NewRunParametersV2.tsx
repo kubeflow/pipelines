@@ -130,7 +130,7 @@ function generateInputValidationErrMsg(
 }
 
 function NewRunParametersV2(props: NewRunParametersProps) {
-  const {specParameters, setIsValidInput} = props;
+  const { specParameters, setIsValidInput } = props;
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
   const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
   const [errorMessages, setErrorMessages] = useState([]);
