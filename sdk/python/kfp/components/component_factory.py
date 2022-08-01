@@ -62,7 +62,7 @@ class ContainerComponentArtifactChannel():
                .InputPathPlaceholder, placeholders.OutputUriPlaceholder,
                placeholders.OutputPathPlaceholder]:
         if _name not in ['uri', 'path']:
-            raise AttributeError('Cannot access artifact attribute "{_name}".')
+            raise AttributeError(f'Cannot access artifact attribute "{_name}".')
         if self._io_type == 'input':
             if _name == 'uri':
                 return placeholders.InputUriPlaceholder(self._var_name)
@@ -321,7 +321,7 @@ def extract_component_interface(
             outputs[output_name] = output_spec
     elif return_ann != inspect.Parameter.empty and return_ann != structures.ContainerSpec:
         raise TypeError(
-            'Return annotation should be either ContainerSpec or ignored for container components.'
+            'Return annotation should be either ContainerSpec or omitted for container components.'
         )
 
     # Component name and description are derived from the function's name and

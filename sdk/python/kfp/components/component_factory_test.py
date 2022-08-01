@@ -58,5 +58,9 @@ class TestContainerComponentArtifactChannel(unittest.TestCase):
                          placeholders.InputUriPlaceholder('my_dataset'))
         self.assertEqual(out_channel.path,
                          placeholders.OutputPathPlaceholder('my_result'))
-        self.assertRaises(AttributeError, lambda: in_channel.name)
-        self.assertRaises(AttributeError, lambda: out_channel.channel)
+        self.assertRaisesRegex(AttributeError,
+                               r'Cannot access artifact attribute "name"',
+                               lambda: in_channel.name)
+        self.assertRaisesRegex(AttributeError,
+                               r'Cannot access artifact attribute "channel"',
+                               lambda: out_channel.channel)
