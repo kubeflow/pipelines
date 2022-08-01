@@ -41,7 +41,7 @@ import {
   getEventsByExecutions,
   getExecutionsFromContext,
   getKfpV2RunContext,
-  LinkedArtifact
+  LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
 import { Artifact, Event, Execution } from 'src/third_party/mlmd';
 import { classes } from 'typestyle';
