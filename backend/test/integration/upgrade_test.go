@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"io/ioutil"
 	"sort"
 	"testing"
@@ -338,8 +339,10 @@ func (s *UpgradeTests) VerifyRuns() {
 				Name: helloWorldExperiment.Name, Relationship: run_model.APIRelationshipOWNER},
 		},
 	}}
-	_, _, err := s.runClient.Create(createRunRequest)
+	a, b, err := s.runClient.Create(createRunRequest)
 	require.Nil(t, err)
+	fmt.Printf("First returned value: %+v \n", a)
+	fmt.Printf("Second returned value: %+v \n", b)
 
 	/* ---------- List the runs, sorted by creation time ---------- */
 	runs, _, _, err := test.ListRuns(
