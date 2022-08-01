@@ -226,7 +226,6 @@ function CompareV2(props: CompareV2Props) {
   const [htmlRunArtifacts, setHtmlRunArtifacts] = useState<RunArtifact[]>([]);
   const [markdownRunArtifacts, setMarkdownRunArtifacts] = useState<RunArtifact[]>([]);
 
-  const [rocCurveArtifacts, setRocCurveArtifacts] = useState<Artifact[]>([]);
   const [selectedRocCurveArtifacts, setSelectedRocCurveArtifacts] = useState<Artifact[]>([]);
 
   const [scalarMetricsTableData, setScalarMetricsTableData] = useState<
@@ -348,7 +347,6 @@ function CompareV2(props: CompareV2Props) {
           ),
         ),
       );
-      setRocCurveArtifacts(rocCurveArtifacts);
       setSelectedRocCurveArtifacts(rocCurveArtifacts.slice(0, 3));
 
       setIsLoadingArtifacts(false);
