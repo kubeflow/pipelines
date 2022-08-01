@@ -345,10 +345,13 @@ func (s *UpgradeTests) VerifyRuns() {
 	fmt.Printf("Second returned value: %+v \n", b)
 
 	/* ---------- List the runs, sorted by creation time ---------- */
-	runs, _, _, err := test.ListRuns(
+	runs, return2, return3, err := test.ListRuns(
 		s.runClient,
 		&runParams.ListRunsParams{SortBy: util.StringPointer("created_at")},
 		s.resourceNamespace)
+	fmt.Printf("ListRuns returned value: %+v \n", runs)
+	fmt.Printf("Second returned value: %+v \n", return2)
+	fmt.Printf("Third returned value: %+v \n", return3)
 	require.Nil(t, err)
 	require.True(t, len(runs) >= 1)
 	require.Equal(t, "hello world", runs[0].Name)
