@@ -418,9 +418,10 @@ class Container(V1Container):
                 # For backforward compatibiliy, allow `gpu` to be a string.
                 self._container_spec.resources.accelerator.count = int(gpu)
 
-            if vendor != 'nvidia' and vendor != 'amd':
+            if 'nvidia' not in vendor and 'amd' not in vendor:
                 raise ValueError('vendor can only be nvidia or amd.')
-
+            if "mig" in vendor:
+                return self.add_resource_limit(vendor, gpu)
             return self.add_resource_limit('%s.com/gpu' % vendor, gpu)
 
         return self.add_resource_limit(vendor, gpu)
