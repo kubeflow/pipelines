@@ -874,12 +874,12 @@ class TestCompileComponent(parameterized.TestCase):
                 ])
 
         with tempfile.TemporaryDirectory() as tempdir:
-            output_json = os.path.join(tempdir, 'component.yaml')
+            output_yaml = os.path.join(tempdir, 'component.yaml')
             compiler.Compiler().compile(
                 pipeline_func=container_with_artifact_output,
-                package_path=output_json,
+                package_path=output_yaml,
                 pipeline_name='container-with-artifact-output')
-            with open(output_json, 'r') as f:
+            with open(output_yaml, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
         self.assertEqual(
             pipeline_spec['components']['comp-container-with-artifact-output']

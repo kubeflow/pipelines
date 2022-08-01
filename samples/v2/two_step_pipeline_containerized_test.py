@@ -54,14 +54,12 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
             'outputs': {
                 'artifacts': [{
                     'name': 'output_gcs',
-                    'type': 'system.Artifact',
-                    # 'type': 'system.Dataset'
+                    'type': 'system.Dataset'
                 }],
             },
             'type': 'system.ContainerExecution',
             'state': Execution.State.COMPLETE,
-        },
-        component1_dict)
+        }, component1_dict)
 
     t.assertEqual(
         {
@@ -69,16 +67,13 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
             'inputs': {
                 'artifacts': [{
                     'name': 'input_gcs',
-                    # TODO(chesu): compiled pipeline spec incorrectly sets importer artifact type to system.Artifact, but in the pipeline, it should be system.Dataset.
-                    'type': 'system.Artifact',
-                    # 'type': 'system.Dataset'
+                    'type': 'system.Dataset'
                 }],
             },
             'outputs': {},
             'type': 'system.ContainerExecution',
             'state': Execution.State.COMPLETE,
-        },
-        component2_dict)
+        }, component2_dict)
 
 
 if __name__ == '__main__':

@@ -62,9 +62,7 @@ class ContainerComponentArtifactChannel():
                .InputPathPlaceholder, placeholders.OutputUriPlaceholder,
                placeholders.OutputPathPlaceholder]:
         if _name not in ['uri', 'path']:
-            raise AttributeError(
-                'Accessing artifact attribute other than uri or path is not supported.'
-            )
+            raise AttributeError('Cannot access artifact attribute "{_name}".')
         if self._io_type == 'input':
             if _name == 'uri':
                 return placeholders.InputUriPlaceholder(self._var_name)
@@ -279,8 +277,8 @@ def extract_component_interface(
             inputs[io_name] = input_spec
 
     #Analyzing the return type annotations.
+    return_ann = signature.return_annotation
     if not containerized:
-        return_ann = signature.return_annotation
         if hasattr(return_ann, '_fields'):  #NamedTuple
             # Getting field type annotations.
             # __annotations__ does not exist in python 3.5 and earlier
@@ -321,6 +319,10 @@ def extract_component_interface(
                 signature.return_annotation)
             output_spec = structures.OutputSpec(type=type_struct)
             outputs[output_name] = output_spec
+    elif return_ann != inspect.Parameter.empty and return_ann != structures.ContainerSpec:
+        raise TypeError(
+            'Return annotation should be either ContainerSpec or ignored for container components.'
+        )
 
     # Component name and description are derived from the function's name and
     # docstring.  The name can be overridden by setting setting func.__name__
