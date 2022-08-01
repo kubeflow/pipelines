@@ -22,7 +22,7 @@ except ImportError:
 
 __all__ = [
     'ModelEvaluationOp', 'ModelImportEvaluationOp', 'EvaluationDataSamplerOp',
-    'EvaluationDataSplitterOp', 'ModelEvaluationFeatureAttributionOp'
+    'EvaluationDataSplitterOp', 'ModelEvaluationFeatureAttributionOp', 'GetVertexModelOp'
 ]
 
 ModelEvaluationOp = load_component_from_file(
@@ -39,3 +39,6 @@ EvaluationDataSplitterOp = load_component_from_file(
 
 ModelEvaluationFeatureAttributionOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'feature_attribution.yaml'))
+
+GetVertexModelOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'get_vertex_model.yaml'))
