@@ -42,22 +42,28 @@ import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { SelectedItem } from 'src/components/TwoLevelDropdown';
 import MD2Tabs from 'src/atoms/MD2Tabs';
+import {
+  ConfidenceMetricsFilter,
+  ConfidenceMetricsSection,
+} from 'src/components/viewers/MetricsVisualizations';
 import CompareTable, { CompareTableProps } from 'src/components/CompareTable';
 import {
   compareCss,
   ExecutionArtifact,
+  FullArtifactPathMap,
   getCompareTableProps,
+  getRocCurveId,
+  getValidRocCurveArtifactData,
   MetricsType,
   metricsTypeToString,
   RunArtifact,
   RunArtifactData,
 } from 'src/lib/v2/CompareUtils';
-import { ConfidenceMetricsSection } from 'src/components/viewers/MetricsVisualizations';
-import { flatMapDeep } from 'lodash';
 import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
 import MetricsDropdown from 'src/components/viewers/MetricsDropdown';
 import CircularProgress from '@material-ui/core/CircularProgress';
+import { lineColors } from 'src/components/viewers/ROCCurve';
 
 const css = stylesheet({
   outputsRow: {
@@ -191,18 +197,19 @@ function ScalarMetricsTable(props: ScalarMetricsTableParams) {
   return <CompareTable {...scalarMetricsTableData} />;
 }
 
-interface ROCCurveMetricsParams {
-  selectedRocCurveArtifacts: Artifact[];
+interface RocCurveMetricsParams {
+  linkedArtifacts: LinkedArtifact[];
+  filter: ConfidenceMetricsFilter;
 }
 
-function ROCCurveMetrics(props: ROCCurveMetricsParams) {
-  const { selectedRocCurveArtifacts } = props;
+function RocCurveMetrics(props: RocCurveMetricsParams) {
+  const { linkedArtifacts, filter } = props;
 
-  if (selectedRocCurveArtifacts.length === 0) {
+  if (linkedArtifacts.length === 0) {
     return <p>There are no ROC Curve artifacts available on the selected runs.</p>;
   }
 
-  return <ConfidenceMetricsSection artifacts={selectedRocCurveArtifacts} />;
+  return <ConfidenceMetricsSection linkedArtifacts={linkedArtifacts} filter={filter} />;
 }
 
 interface CompareV2Namespace {
@@ -220,18 +227,24 @@ function CompareV2(props: CompareV2Props) {
   const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
-
   const [isLoadingArtifacts, setIsLoadingArtifacts] = useState<boolean>(true);
+
+  // Two-panel display artifacts
   const [confusionMatrixRunArtifacts, setConfusionMatrixRunArtifacts] = useState<RunArtifact[]>([]);
   const [htmlRunArtifacts, setHtmlRunArtifacts] = useState<RunArtifact[]>([]);
   const [markdownRunArtifacts, setMarkdownRunArtifacts] = useState<RunArtifact[]>([]);
 
-  const [rocCurveArtifacts, setRocCurveArtifacts] = useState<Artifact[]>([]);
-  const [selectedRocCurveArtifacts, setSelectedRocCurveArtifacts] = useState<Artifact[]>([]);
-
+  // Scalar Metrics
   const [scalarMetricsTableData, setScalarMetricsTableData] = useState<
     CompareTableProps | undefined
   >(undefined);
+
+  // ROC Curve
+  const [rocCurveLinkedArtifacts, setRocCurveLinkedArtifacts] = useState<LinkedArtifact[]>([]);
+  const [selectedRocCurveIds, setSelectedRocCurveIds] = useState<string[]>([]);
+  const [selectedIdColorMap, setSelectedIdColorMap] = useState<{ [key: string]: string }>({});
+  const [lineColorsStack, setLineColorsStack] = useState<string[]>([...lineColors].reverse());
+  const [fullArtifactPathMap, setFullArtifactPathMap] = useState<FullArtifactPathMap>({});
 
   // Selected artifacts for two-panel layout.
   const createSelectedArtifactArray = (count: number): SelectedArtifact[] => {
@@ -280,6 +293,8 @@ function CompareV2(props: CompareV2Props) {
     () =>
       Promise.all(
         runIds.map(async runId => {
+          // TODO(zpChris): MLMD query is limited to 100 artifacts per run.
+          // https://github.com/google/ml-metadata/blob/5757f09d3b3ae0833078dbfd2d2d1a63208a9821/ml_metadata/proto/metadata_store.proto#L733-L737
           const context = await getKfpV2RunContext(runId);
           const executions = await getExecutionsFromContext(context);
           const artifacts = await getArtifactsFromContext(context);
@@ -341,16 +356,16 @@ function CompareV2(props: CompareV2Props) {
         artifactTypes,
         MetricsType.ROC_CURVE,
       ).runArtifacts;
-      const rocCurveArtifacts: Artifact[] = flatMapDeep(
-        rocCurveRunArtifacts.map(rocCurveArtifact =>
-          rocCurveArtifact.executionArtifacts.map(executionArtifact =>
-            executionArtifact.linkedArtifacts.map(linkedArtifact => linkedArtifact.artifact),
-          ),
-        ),
-      );
-      setRocCurveArtifacts(rocCurveArtifacts);
-      setSelectedRocCurveArtifacts(rocCurveArtifacts.slice(0, 3));
 
+      const { validLinkedArtifacts, fullArtifactPathMap } = getValidRocCurveArtifactData(
+        rocCurveRunArtifacts,
+      );
+
+      setFullArtifactPathMap(fullArtifactPathMap);
+      setRocCurveLinkedArtifacts(validLinkedArtifacts);
+      setSelectedRocCurveIds(
+        validLinkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)).slice(0, 3),
+      );
       setIsLoadingArtifacts(false);
     }
   }, [runs, mlmdPackages, artifactTypes]);
@@ -530,9 +545,19 @@ function CompareV2(props: CompareV2Props) {
                     namespace={namespace}
                   />
                 )}
-                {/* TODO(zpChris): Add more ROC Curve selections through checkbox system. */}
                 {metricsTab === MetricsType.ROC_CURVE && (
-                  <ROCCurveMetrics selectedRocCurveArtifacts={selectedRocCurveArtifacts} />
+                  <RocCurveMetrics
+                    linkedArtifacts={rocCurveLinkedArtifacts}
+                    filter={{
+                      selectedIds: selectedRocCurveIds,
+                      setSelectedIds: setSelectedRocCurveIds,
+                      fullArtifactPathMap,
+                      selectedIdColorMap,
+                      setSelectedIdColorMap,
+                      lineColorsStack,
+                      setLineColorsStack,
+                    }}
+                  />
                 )}
                 {metricsTab === MetricsType.HTML && (
                   <MetricsDropdown

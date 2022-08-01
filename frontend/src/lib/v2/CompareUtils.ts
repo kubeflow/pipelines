@@ -20,6 +20,7 @@ import { getMetadataValue } from 'src/mlmd/Utils';
 import { Execution, Value } from 'src/third_party/mlmd';
 import * as jspb from 'google-protobuf';
 import { ApiRunDetail } from 'src/apis/run';
+import { flatMapDeep } from 'lodash';
 import { stylesheet } from 'typestyle';
 
 export const compareCss = stylesheet({
@@ -54,6 +55,95 @@ export interface RunArtifactData {
   runArtifacts: RunArtifact[];
   artifactCount: number;
 }
+
+export interface NameId {
+  name: string;
+  id: string;
+}
+
+// The provided name takes the format of "<type> ID #<number>" if the display name is not available.
+export interface FullArtifactPath {
+  run: NameId;
+  execution: NameId;
+  artifact: NameId;
+}
+
+// key: "<execution ID>-<artifact ID>"
+export type FullArtifactPathMap = { [key: string]: FullArtifactPath };
+
+export interface RocCurveArtifactData {
+  validLinkedArtifacts: LinkedArtifact[];
+  fullArtifactPathMap: FullArtifactPathMap;
+}
+
+export const getRocCurveId = (linkedArtifact: LinkedArtifact): string =>
+  `${linkedArtifact.event.getExecutionId()}-${linkedArtifact.event.getArtifactId()}`;
+
+// Form an array which holds all valid ROC Curve linked artifacts.
+export const getValidRocCurveArtifactData = (
+  rocCurveRunArtifacts: RunArtifact[],
+): RocCurveArtifactData => {
+  const fullArtifactPathMap: FullArtifactPathMap = {};
+  const validLinkedArtifacts = flatMapDeep(
+    rocCurveRunArtifacts.map(runArtifact =>
+      runArtifact.executionArtifacts.map(executionArtifact => {
+        const validArtifacts = getValidArtifacts(executionArtifact);
+
+        // Save the names and IDs for the run, execution, and linked artifact to a map.
+        validArtifacts.forEach(validArtifact => {
+          fullArtifactPathMap[getRocCurveId(validArtifact)] = getFullArtifactPath(
+            runArtifact.run,
+            executionArtifact.execution,
+            validArtifact,
+          );
+        });
+        return validArtifacts;
+      }),
+    ),
+  );
+  return {
+    validLinkedArtifacts,
+    fullArtifactPathMap,
+  };
+};
+
+// Get the valid ROC Curve linked artifacts (those which have confidence metrics data).
+const getValidArtifacts = (executionArtifact: ExecutionArtifact): LinkedArtifact[] => {
+  const validLinkedArtifacts: LinkedArtifact[] = [];
+  executionArtifact.linkedArtifacts.forEach(linkedArtifact => {
+    const customProperties = linkedArtifact.artifact.getCustomPropertiesMap();
+    const confidenceMetrics = customProperties
+      .get('confidenceMetrics')
+      ?.getStructValue()
+      ?.toJavaScript();
+    if (confidenceMetrics) {
+      validLinkedArtifacts.push(linkedArtifact);
+    }
+  });
+  return validLinkedArtifacts;
+};
+
+// This path is used to populate the ROC Curve filter table data.
+const getFullArtifactPath = (
+  run: ApiRunDetail,
+  execution: Execution,
+  linkedArtifact: LinkedArtifact,
+): FullArtifactPath => ({
+  run: {
+    name: run.run?.name || `Run ID #${run.run!.id!}`,
+    id: run.run!.id!,
+  },
+  execution: {
+    name: getExecutionDisplayName(execution) || `Execution ID #${execution.getId().toString()}`,
+    id: execution.getId().toString(),
+  },
+  artifact: {
+    name:
+      getArtifactName(linkedArtifact) ||
+      `Artifact ID #${linkedArtifact.artifact.getId().toString()}`,
+    id: linkedArtifact.artifact.getId().toString(),
+  },
+});
 
 export const getCompareTableProps = (
   scalarMetricsArtifacts: RunArtifact[],
