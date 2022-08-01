@@ -49,7 +49,12 @@ import Tooltip from '@material-ui/core/Tooltip';
 import { Link } from 'react-router-dom';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
-import { FullArtifactPath, FullArtifactPathMap, getRocCurveId, NameId } from 'src/lib/v2/CompareUtils';
+import {
+  FullArtifactPath,
+  FullArtifactPathMap,
+  getRocCurveId,
+  NameId,
+} from 'src/lib/v2/CompareUtils';
 import { logger } from 'src/lib/Utils';
 import { stylesheet } from 'typestyle';
 import { buildRocCurveConfig, validateConfidenceMetrics } from './ROCCurveHelper';
