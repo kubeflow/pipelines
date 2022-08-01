@@ -150,8 +150,6 @@ class Compiler:
         if not dsl_pipeline.tasks:
             raise ValueError('Task is missing from pipeline.')
 
-        self._validate_exit_handler(dsl_pipeline)
-
         pipeline_inputs = pipeline_meta.inputs or {}
 
         # Verify that pipeline_parameters_override contains only input names
@@ -187,45 +185,6 @@ class Compiler:
             pipeline_spec.default_pipeline_root = pipeline_root
 
         return pipeline_spec
-
-    def _validate_exit_handler(self,
-                               pipeline: pipeline_context.Pipeline) -> None:
-        """Makes sure there is only one global exit handler.
-
-        This is temporary to be compatible with KFP v1.
-
-        Raises:
-            ValueError if there are more than one exit handler.
-        """
-
-        def _validate_exit_handler_helper(
-            group: tasks_group.TasksGroup,
-            exiting_task_names: List[str],
-            handler_exists: bool,
-        ) -> None:
-
-            if isinstance(group, dsl.ExitHandler):
-                if handler_exists or len(exiting_task_names) > 1:
-                    raise ValueError(
-                        'Only one global exit_handler is allowed and all ops need to be included.'
-                    )
-                handler_exists = True
-
-            if group.tasks:
-                exiting_task_names.extend([x.name for x in group.tasks])
-
-            for group in group.groups:
-                _validate_exit_handler_helper(
-                    group=group,
-                    exiting_task_names=exiting_task_names,
-                    handler_exists=handler_exists,
-                )
-
-        _validate_exit_handler_helper(
-            group=pipeline.groups[0],
-            exiting_task_names=[],
-            handler_exists=False,
-        )
 
     def _create_pipeline_spec(
         self,
