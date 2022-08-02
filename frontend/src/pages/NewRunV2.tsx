@@ -163,12 +163,13 @@ function NewRunV2(props: NewRunV2Props) {
   const isTemplatePullSuccess = isTemplatePullSuccessFromRun || isTemplatePullSuccessFromPipeline;
   const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
   const titleVerb = originalRunId ? 'Clone' : 'Start';
+  const titleAdjective = originalRunId ? '' : 'new'
 
   // Title and list of actions on the top of page.
   useEffect(() => {
     props.updateToolbar({
       actions: {},
-      pageTitle: isRecurringRun ? `${titleVerb} a recurring run` : `${titleVerb} a run`,
+      pageTitle: isRecurringRun ? `${titleVerb} a recurring run` : `${titleVerb} a ${titleAdjective} run`,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

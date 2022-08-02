@@ -33,6 +33,7 @@ const v2YamlTemplateString = fs.readFileSync(V2_PIPELINESPEC_PATH, 'utf8');
 testBestPractices();
 
 describe('NewRunV2', () => {
+  const TEST_RUN_ID = 'test-run-id';
   const TEST_PIPELINE_ID = 'test-pipeline-id';
   const TEST_PIPELINE_NAME = 'test pipeline';
   const TEST_PIPELINE_VERSION_ID = 'test-pipeline-version-id';
@@ -64,15 +65,24 @@ describe('NewRunV2', () => {
       finished_at: new Date('2021-05-18T21:01:23.000Z'),
       id: 'e0115ac1-0479-4194-a22d-01e65e09a32b',
       name: 'v2-xgboost-ilbo',
-      pipeline_spec: {},
+      pipeline_spec: {runtime_config: {parameters: {intParam: 123}}},
       resource_references: [
         {
           key: {
             id: '275ea11d-ac63-4ce3-bc33-ec81981ed56b',
             type: ApiResourceType.EXPERIMENT,
           },
+          name: 'Default',
           relationship: ApiRelationship.OWNER,
         },
+        {
+          key: {
+            id: TEST_PIPELINE_VERSION_ID,
+            type: ApiResourceType.PIPELINEVERSION,
+          },
+          name: TEST_PIPELINE_VERSION_NAME,
+          relationship: ApiRelationship.CREATOR,
+        }
       ],
       scheduled_at: new Date('2021-05-17T20:58:23.000Z'),
       status: 'Succeeded',
@@ -85,7 +95,7 @@ describe('NewRunV2', () => {
   const updateDialogSpy = jest.fn();
   const updateSnackbarSpy = jest.fn();
   const updateToolbarSpy = jest.fn();
-  function generateProps(): PageProps {
+  function generatePropsNewRun(): PageProps {
     return {
       history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
       location: {
@@ -94,6 +104,21 @@ describe('NewRunV2', () => {
       } as any,
       match: '' as any,
       toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Start a new run' },
+      updateBanner: updateBannerSpy,
+      updateDialog: updateDialogSpy,
+      updateSnackbar: updateSnackbarSpy,
+      updateToolbar: updateToolbarSpy,
+    };
+  }
+  function generatePropsClonedRun(): PageProps {
+    return {
+      history: { push: historyPushSpy, replace: historyReplaceSpy } as any,
+      location: {
+        pathname: RoutePage.NEW_RUN,
+        search: `?${QUERY_PARAMS.cloneFromRun}=${TEST_RUN_ID}`,
+      } as any,
+      match: '' as any,
+      toolbarProps: { actions: {}, breadcrumbs: [], pageTitle: 'Clone a run' },
       updateBanner: updateBannerSpy,
       updateDialog: updateDialogSpy,
       updateSnackbar: updateSnackbarSpy,
@@ -117,7 +142,7 @@ describe('NewRunV2', () => {
     );
     render(
       <CommonTestWrapper>
-        <NewRunV2 {...generateProps()}></NewRunV2>
+        <NewRunV2 {...generatePropsNewRun()}></NewRunV2>
       </CommonTestWrapper>,
     );
 
@@ -142,7 +167,7 @@ describe('NewRunV2', () => {
     );
     render(
       <CommonTestWrapper>
-        <NewRunV2 {...generateProps()}></NewRunV2>
+        <NewRunV2 {...generatePropsNewRun()}></NewRunV2>
       </CommonTestWrapper>,
     );
 
@@ -164,7 +189,7 @@ describe('NewRunV2', () => {
     );
     render(
       <CommonTestWrapper>
-        <NewRunV2 {...generateProps()}></NewRunV2>
+        <NewRunV2 {...generatePropsNewRun()}></NewRunV2>
       </CommonTestWrapper>,
     );
 
@@ -190,7 +215,7 @@ describe('NewRunV2', () => {
       );
       render(
         <CommonTestWrapper>
-          <NewRunV2 {...generateProps()}></NewRunV2>
+          <NewRunV2 {...generatePropsNewRun()}></NewRunV2>
         </CommonTestWrapper>,
       );
 
@@ -221,7 +246,7 @@ describe('NewRunV2', () => {
 
       render(
         <CommonTestWrapper>
-          <NewRunV2 {...generateProps()}></NewRunV2>
+          <NewRunV2 {...generatePropsNewRun()}></NewRunV2>
         </CommonTestWrapper>,
       );
 
@@ -244,5 +269,19 @@ describe('NewRunV2', () => {
         );
       });
     });
+  });
+
+  describe('cloning a existing run', () => {
+    it('show pipeline and pipeline version name from original run', () => {
+      const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+      getRunSpy.mockResolvedValue(API_RUN_DETAILS);
+      render(
+        <CommonTestWrapper>
+          <NewRunV2 {...generatePropsClonedRun()}></NewRunV2>
+        </CommonTestWrapper>,
+      );
+      screen.findByDisplayValue(`Clone of ${API_RUN_DETAILS.run.name}`);
+      screen.findByDisplayValue(TEST_PIPELINE_VERSION_NAME)
+    })
   });
 });
