@@ -154,6 +154,7 @@ function convertNonUserInputParamToString(
 }
 
 function NewRunParametersV2(props: NewRunParametersProps) {
+  const { specParameters, setIsValidInput } = props;
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
   const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
   const [errorMessages, setErrorMessages] = useState([]);
@@ -164,7 +165,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
       const clonedRuntimeParameters: RuntimeParameters = {};
       Object.entries(props.clonedRuntimeConfig.parameters).forEach(entry => {
         clonedRuntimeParameters[entry[0]] = convertNonUserInputParamToString(
-          props.specParameters,
+          specParameters,
           entry[0],
           entry[1],
         );
@@ -174,22 +175,22 @@ function NewRunParametersV2(props: NewRunParametersProps) {
       if (props.handleParameterChange) {
         props.handleParameterChange(props.clonedRuntimeConfig.parameters);
       }
-      if (props.setIsValidInput) {
-        props.setIsValidInput(true);
+      if (setIsValidInput) {
+        setIsValidInput(true);
       }
       return;
     }
     // TODO(jlyaoyuli): If we have parameters from run, put original default value next to the paramKey
     const runtimeParametersWithDefault: RuntimeParameters = {};
     let allParamtersWithDefault = true;
-    Object.keys(props.specParameters).map(key => {
-      if (props.specParameters[key].defaultValue) {
+    Object.keys(specParameters).forEach(key => {
+      if (specParameters[key].defaultValue) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.
         // Convert default value to string type first to avoid error from convertInput
         runtimeParametersWithDefault[key] = convertNonUserInputParamToString(
-          props.specParameters,
+          specParameters,
           key,
-          props.specParameters[key].defaultValue,
+          specParameters[key].defaultValue,
         );
       } else {
         allParamtersWithDefault = false;
@@ -198,10 +199,10 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     });
     setUpdatedParameters(runtimeParametersWithDefault);
     setErrorMessages(errorMessages);
-    if (props.setIsValidInput) {
-      props.setIsValidInput(allParamtersWithDefault);
+    if (setIsValidInput) {
+      setIsValidInput(allParamtersWithDefault);
     }
-  }, [props.clonedRuntimeConfig, props.specParameters]);
+  }, [props.clonedRuntimeConfig, specParameters]);
 
   return (
     <div>
@@ -247,9 +248,9 @@ function NewRunParametersV2(props: NewRunParametersProps) {
       <div className={commonCss.header}>Run parameters</div>
       <div>{props.titleMessage}</div>
 
-      {!!Object.keys(props.specParameters).length && (
+      {!!Object.keys(specParameters).length && (
         <div>
-          {Object.entries(props.specParameters).map(([k, v]) => {
+          {Object.entries(specParameters).map(([k, v]) => {
             const param = {
               key: `${k} - ${ParameterType_ParameterTypeEnum[v.parameterType]}`,
               value: updatedParameters[k],
@@ -270,10 +271,10 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                     Object.assign(nextUpdatedParameters, updatedParameters);
                     nextUpdatedParameters[k] = value;
                     setUpdatedParameters(nextUpdatedParameters);
-                    Object.entries(nextUpdatedParameters).map(([k1, paramStr]) => {
+                    Object.entries(nextUpdatedParameters).forEach(([k1, paramStr]) => {
                       parametersInRealType[k1] = convertInput(
                         paramStr,
-                        props.specParameters[k1].parameterType,
+                        specParameters[k1].parameterType,
                       );
                     });
                     if (props.handleParameterChange) {
@@ -282,11 +283,11 @@ function NewRunParametersV2(props: NewRunParametersProps) {
 
                     errorMessages[k] = generateInputValidationErrMsg(
                       parametersInRealType[k],
-                      props.specParameters[k].parameterType,
+                      specParameters[k].parameterType,
                     );
                     setErrorMessages(errorMessages);
 
-                    Object.values(errorMessages).map(errorMessage => {
+                    Object.values(errorMessages).forEach(errorMessage => {
                       allInputsValid = allInputsValid && errorMessage === null;
                     });
 
