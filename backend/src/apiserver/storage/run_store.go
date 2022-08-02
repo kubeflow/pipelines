@@ -300,6 +300,10 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 			// throw internal exception if failed to parse the resource reference.
 			return nil, util.NewInternalServerError(err, "Failed to parse resource reference.")
 		}
+
+		runtimeParametersString := parseNullString(runtimeParameters)
+		pipelineRootString := parseNullString(pipelineRoot)
+
 		runs = append(runs, &model.RunDetail{Run: model.Run{
 			UUID:               uuid,
 			ExperimentUUID:     experimentUUID,
@@ -322,8 +326,8 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 				WorkflowSpecManifest: workflowSpecManifest,
 				Parameters:           parameters,
 				RuntimeConfig: model.RuntimeConfig{
-					Parameters:   runtimeParameters,
-					PipelineRoot: pipelineRoot},
+					Parameters:   runtimeParametersString,
+					PipelineRoot: pipelineRootString},
 			},
 		},
 			PipelineRuntime: model.PipelineRuntime{
@@ -342,6 +346,14 @@ func parseMetrics(metricsInString sql.NullString) ([]*model.RunMetric, error) {
 		return nil, fmt.Errorf("failed unmarshal metrics '%s'. error: %v", metricsInString.String, err)
 	}
 	return metrics, nil
+}
+
+func parseNullString(nullString sql.NullString) string {
+	if nullString.Valid {
+		return nullString.String
+	} else {
+		return ""
+	}
 }
 
 func parseResourceReferences(resourceRefString sql.NullString) ([]*model.ResourceReference, error) {
