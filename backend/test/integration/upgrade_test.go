@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"fmt"
 	"io/ioutil"
 	"sort"
 	"testing"
@@ -317,41 +316,11 @@ func (s *UpgradeTests) PrepareRuns() {
 func (s *UpgradeTests) VerifyRuns() {
 	t := s.T()
 
-	// For debug purpose
-	helloWorldPipeline := s.getHelloWorldPipeline(true)
-	helloWorldExperiment := s.getHelloWorldExperiment(true)
-	if helloWorldExperiment == nil {
-		helloWorldExperiment = s.createHelloWorldExperiment()
-	}
-
-	hello2 := s.getHelloWorldExperiment(true)
-	require.Equal(t, hello2, helloWorldExperiment)
-
-	/* ---------- Create a new hello world run by specifying pipeline ID ---------- */
-	createRunRequest := &runParams.CreateRunParams{Body: &run_model.APIRun{
-		Name:        "hello world",
-		Description: "this is hello world",
-		PipelineSpec: &run_model.APIPipelineSpec{
-			PipelineID: helloWorldPipeline.ID,
-		},
-		ResourceReferences: []*run_model.APIResourceReference{
-			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
-				Name: helloWorldExperiment.Name, Relationship: run_model.APIRelationshipOWNER},
-		},
-	}}
-	a, b, err := s.runClient.Create(createRunRequest)
-	require.Nil(t, err)
-	fmt.Printf("First returned value: %+v \n", a)
-	fmt.Printf("Second returned value: %+v \n", b)
-
 	/* ---------- List the runs, sorted by creation time ---------- */
-	runs, return2, return3, err := test.ListRuns(
+	runs, _, _, err := test.ListRuns(
 		s.runClient,
 		&runParams.ListRunsParams{SortBy: util.StringPointer("created_at")},
 		s.resourceNamespace)
-	fmt.Printf("ListRuns returned value: %+v \n", runs)
-	fmt.Printf("Second returned value: %+v \n", return2)
-	fmt.Printf("Third returned value: %+v \n", return3)
 	require.Nil(t, err)
 	require.True(t, len(runs) >= 1)
 	require.Equal(t, "hello world", runs[0].Name)

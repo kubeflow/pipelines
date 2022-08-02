@@ -20,10 +20,6 @@ case "$response" in
 esac
 
 echo "Starting integration tests..."
-# turn on go module
-# export GO111MODULE=on
-go env -w GO111MODULE=off
-export PATH=$PATH:$(dirname $(go list -f '{{.Target}}' .))
 command="go test -v ./... -namespace ${NAMESPACE} -args -runIntegrationTests=true -isDevMode=true"
 echo $command "$@"
 $command "$@"
