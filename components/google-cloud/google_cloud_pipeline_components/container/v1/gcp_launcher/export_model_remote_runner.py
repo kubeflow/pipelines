@@ -14,11 +14,14 @@
 
 import json
 import re
-from .utils import json_util, error_util
+
 from . import lro_remote_runner
-from .utils import artifact_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 
 _MODEL_NAME_TEMPLATE = r'(projects/(?P<project>.*)/locations/(?P<location>.*)/models/(?P<modelid>.*))'
+
 
 def export_model(type, project, location, payload, gcp_resources, output_info):
   """Export model and poll the LongRunningOperator till it reaches a final state."""
@@ -51,3 +54,8 @@ def export_model(type, project, location, payload, gcp_resources, output_info):
       f.write(json.dumps(output_info_content))
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])
+
+
+JOB_TYPE_TO_ACTION_MAP = {
+    'ExportModel': export_model,
+}

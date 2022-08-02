@@ -14,8 +14,8 @@
 """GCP launcher for hyperparameter tuning jobs based on the AI Platform SDK."""
 
 from . import job_remote_runner
-from .utils import error_util
 from google.api_core import retry
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
 
 _HYPERPARAMETER_TUNING_JOB_RETRY_DEADLINE_SECONDS = 10.0 * 60.0
 
@@ -79,3 +79,8 @@ def create_hyperparameter_tuning_job(
     remote_runner.poll_job(get_hyperparameter_tuning_job_with_client, job_name)
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])
+
+
+JOB_TYPE_TO_ACTION_MAP = {
+    'HyperparameterTuningJob': create_hyperparameter_tuning_job,
+}

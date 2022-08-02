@@ -150,3 +150,8 @@ def create_batch_prediction_job(
     artifact_util.update_output_artifacts(executor_input, output_artifacts)
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])
+
+
+JOB_TYPE_TO_ACTION_MAP = {
+    'BatchPredictionJob': create_batch_prediction_job,
+}

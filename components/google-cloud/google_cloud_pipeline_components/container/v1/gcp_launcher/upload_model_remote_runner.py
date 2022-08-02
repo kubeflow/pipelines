@@ -13,9 +13,11 @@
 # limitations under the License.
 
 import json
-from .utils import json_util, error_util
+
 from . import lro_remote_runner
-from .utils import artifact_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 
 ARTIFACT_PROPERTY_KEY_UNMANAGED_CONTAINER_MODEL = 'unmanaged_container_model'
@@ -64,7 +66,8 @@ def upload_model(
   if (('explanation_spec' in model_spec) and
       ('metadata' in model_spec['explanation_spec']) and
       model_spec['explanation_spec']['metadata']):
-    upload_model_request['model']['explanation_spec']['metadata'] = model_spec['explanation_spec']['metadata']
+    upload_model_request['model']['explanation_spec']['metadata'] = model_spec[
+        'explanation_spec']['metadata']
 
   try:
     remote_runner = lro_remote_runner.LroRemoteRunner(location)
@@ -78,3 +81,8 @@ def upload_model(
     artifact_util.update_output_artifacts(executor_input, [vertex_model])
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])
+
+
+JOB_TYPE_TO_ACTION_MAP = {
+    'UploadModel': upload_model,
+}

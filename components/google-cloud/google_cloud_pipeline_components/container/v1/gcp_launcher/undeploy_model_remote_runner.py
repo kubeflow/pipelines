@@ -14,8 +14,10 @@
 
 import json
 import re
+
 from . import lro_remote_runner
-from .utils import json_util, error_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 
 _MODEL_NAME_TEMPLATE = r'(projects/(?P<project>.*)/locations/(?P<location>.*)/models/(?P<modelid>.*))'
 _ENDPOINT_NAME_TEMPLATE = r'(projects/(?P<project>.*)/locations/(?P<location>.*)/endpoints/(?P<endpointid>.*))'
@@ -28,9 +30,7 @@ def undeploy_model(
     payload,
     gcp_resources,
 ):
-  """
-  Undeploy a model from the endpoint and poll the LongRunningOperator till it reaches a final state.
-  """
+  """Undeploy a model from the endpoint and poll the LongRunningOperator till it reaches a final state."""
   # TODO(IronPan) temporarily remove the empty fields from the spec
   undeploy_model_request = json_util.recursive_remove_empty(
       json.loads(payload, strict=False))
@@ -98,3 +98,8 @@ def undeploy_model(
         lro=undeploy_model_lro)
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])
+
+
+JOB_TYPE_TO_ACTION_MAP = {
+    'UndeployModel': undeploy_model,
+}
