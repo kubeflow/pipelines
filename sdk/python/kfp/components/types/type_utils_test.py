@@ -16,6 +16,7 @@ import unittest
 
 from absl.testing import parameterized
 import kfp
+from kfp import dsl
 from kfp.components.types import artifact_types
 from kfp.components.types import type_utils
 from kfp.components.types.type_utils import InconsistentTypeException
@@ -215,6 +216,36 @@ class TypeUtilsTest(parameterized.TestCase):
             'expected_type': 'Artifact',
             'is_compatible': True,
         },
+        {
+            'given_type': dsl.Metrics,
+            'expected_type': dsl.Artifact,
+            'is_compatible': True,
+        },
+        {
+            'given_type': dsl.Artifact,
+            'expected_type': dsl.Metrics,
+            'is_compatible': True,
+        },
+        {
+            'given_type': _VertexDummy,
+            'expected_type': dsl.Artifact,
+            'is_compatible': True,
+        },
+        {
+            'given_type': dsl.Artifact,
+            'expected_type': _VertexDummy,
+            'is_compatible': True,
+        },
+        {
+            'given_type': dsl.Metrics,
+            'expected_type': _VertexDummy,
+            'is_compatible': False,
+        },
+        {
+            'given_type': _VertexDummy,
+            'expected_type': dsl.Metrics,
+            'is_compatible': False,
+        },
     )
     def test_verify_type_compatibility(
         self,
@@ -297,7 +328,7 @@ class TypeUtilsTest(parameterized.TestCase):
 
 class TestTypeCheckManager(unittest.TestCase):
 
-    def test_false_to_true(self):
+    def test_true_to_falsewq(self):
         kfp.TYPE_CHECK = False
         with type_utils.TypeCheckManager(enable=True):
             self.assertEqual(kfp.TYPE_CHECK, True)
