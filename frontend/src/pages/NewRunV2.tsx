@@ -83,7 +83,7 @@ function NewRunV2(props: NewRunV2Props) {
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isParameterValid, setIsParameterValid] = useState(false);
-  const [runtimeConfigFromClone, setRuntimeConfigFromClone] = useState<PipelineSpecRuntimeConfig>(
+  const [clonedRuntimeConfig, setClonedRuntimeConfig] = useState<PipelineSpecRuntimeConfig>(
     {},
   );
 
@@ -222,7 +222,7 @@ function NewRunV2(props: NewRunV2Props) {
 
   useEffect(() => {
     if (apiRun?.run?.pipeline_spec?.runtime_config) {
-      setRuntimeConfigFromClone(apiRun?.run?.pipeline_spec?.runtime_config);
+      setClonedRuntimeConfig(apiRun?.run?.pipeline_spec?.runtime_config);
     }
   }, [apiRun]);
 
@@ -404,7 +404,7 @@ function NewRunV2(props: NewRunV2Props) {
               : 'This pipeline has no parameters'
           }
           specParameters={specParameters}
-          runtimeConfigFromClone={runtimeConfigFromClone}
+          clonedRuntimeConfig={clonedRuntimeConfig}
           handleParameterChange={setRuntimeParameters}
           setIsValidInput={setIsParameterValid}
         />

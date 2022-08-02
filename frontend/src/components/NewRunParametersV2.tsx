@@ -54,7 +54,7 @@ interface NewRunParametersProps {
   pipelineRoot?: string;
   // ComponentInputsSpec_ParameterSpec
   specParameters: SpecParameters;
-  runtimeConfigFromClone: PipelineSpecRuntimeConfig;
+  clonedRuntimeConfig: PipelineSpecRuntimeConfig;
   handlePipelineRootChange?: (pipelineRoot: string) => void;
   handleParameterChange?: (parameters: RuntimeParameters) => void;
   setIsValidInput?: (isValid: boolean) => void;
@@ -152,23 +152,23 @@ function convertNonUserInputParamToString(specParameters: SpecParameters, key: s
 function NewRunParametersV2(props: NewRunParametersProps) {
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
   const [customPipelineRoot, setCustomPipelineRoot] = useState(
-    props.runtimeConfigFromClone.pipeline_root != undefined
-      ? props.runtimeConfigFromClone.pipeline_root
+    props.clonedRuntimeConfig.pipeline_root != undefined
+      ? props.clonedRuntimeConfig.pipeline_root
       : props.pipelineRoot,
   );
   const [errorMessages, setErrorMessages] = useState([]);
 
   const [updatedParameters, setUpdatedParameters] = useState({});
   useEffect(() => {
-    if (props.runtimeConfigFromClone.parameters) {
-      const runtimeParametersFromClone: RuntimeParameters = {};
-      Object.entries(props.runtimeConfigFromClone.parameters).forEach(entry => {
-        runtimeParametersFromClone[entry[0]] = convertNonUserInputParamToString(props.specParameters, entry[0], entry[1]);
+    if (props.clonedRuntimeConfig.parameters) {
+      const clonedRuntimeParameters: RuntimeParameters = {};
+      Object.entries(props.clonedRuntimeConfig.parameters).forEach(entry => {
+        clonedRuntimeParameters[entry[0]] = convertNonUserInputParamToString(props.specParameters, entry[0], entry[1]);
       })
-      setUpdatedParameters(runtimeParametersFromClone);
+      setUpdatedParameters(clonedRuntimeParameters);
       setErrorMessages([]);
       if (props.handleParameterChange) {
-        props.handleParameterChange(props.runtimeConfigFromClone.parameters);
+        props.handleParameterChange(props.clonedRuntimeConfig.parameters);
       }
       if (props.setIsValidInput) {
         props.setIsValidInput(true);
@@ -193,7 +193,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     if (props.setIsValidInput) {
       props.setIsValidInput(allParamtersWithDefault);
     }
-  }, [props.runtimeConfigFromClone, props.specParameters]);
+  }, [props.clonedRuntimeConfig, props.specParameters]);
 
   return (
     <div>
