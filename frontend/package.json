@@ -116,6 +116,7 @@
     "enzyme": "^3.10.0",
     "enzyme-adapter-react-16": "^1.15.1",
     "enzyme-to-json": "^3.3.4",
+    "eslint-config-react-app": "^7.0.1",
     "fs": "0.0.1-security",
     "jest-environment-jsdom-sixteen": "^2.0.0",
     "postcss": "^8.4.5",
