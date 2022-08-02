@@ -17,11 +17,16 @@
 import { createHashHistory } from 'history';
 import { URLParser } from './URLParser';
 
+interface Location {
+  pathname: string;
+  search: string;
+}
+
 const history = createHashHistory();
 const location = {
   pathname: '',
   search: '',
-} as any;
+} as Location;
 
 describe('URLParser', () => {
   const routerProps = { location, history } as any;
