@@ -59,7 +59,7 @@ describe('NewRunParametersV2', () => {
   it('edits parameters', () => {
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         strParam: {
           parameterType: ParameterType_ParameterTypeEnum.STRING,
@@ -95,7 +95,7 @@ describe('NewRunParametersV2', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         strParam: {
           parameterType: ParameterType_ParameterTypeEnum.STRING,
@@ -121,7 +121,7 @@ describe('NewRunParametersV2', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         strParam: {
           parameterType: ParameterType_ParameterTypeEnum.STRING,
@@ -146,7 +146,7 @@ describe('NewRunParametersV2', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         boolParam: {
           parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
@@ -172,7 +172,7 @@ describe('NewRunParametersV2', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         boolParam: {
           parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
@@ -197,7 +197,7 @@ describe('NewRunParametersV2', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         boolParam: {
           parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
@@ -222,7 +222,7 @@ describe('NewRunParametersV2', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         intParam: {
           parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
@@ -248,7 +248,7 @@ describe('NewRunParametersV2', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         intParam: {
           parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
@@ -273,7 +273,7 @@ describe('NewRunParametersV2', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         intParam: {
           parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
@@ -298,7 +298,7 @@ describe('NewRunParametersV2', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         doubleParam: {
           parameterType: ParameterType_ParameterTypeEnum.NUMBER_DOUBLE,
@@ -324,7 +324,7 @@ describe('NewRunParametersV2', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         doubleParam: {
           parameterType: ParameterType_ParameterTypeEnum.NUMBER_DOUBLE,
@@ -349,7 +349,7 @@ describe('NewRunParametersV2', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         listParam: {
           parameterType: ParameterType_ParameterTypeEnum.LIST,
@@ -375,7 +375,7 @@ describe('NewRunParametersV2', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         listParam: {
           parameterType: ParameterType_ParameterTypeEnum.LIST,
@@ -400,7 +400,7 @@ describe('NewRunParametersV2', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         listParam: {
           parameterType: ParameterType_ParameterTypeEnum.LIST,
@@ -425,7 +425,7 @@ describe('NewRunParametersV2', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         structParam: {
           parameterType: ParameterType_ParameterTypeEnum.STRUCT,
@@ -451,7 +451,7 @@ describe('NewRunParametersV2', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         structParam: {
           parameterType: ParameterType_ParameterTypeEnum.STRUCT,
@@ -476,7 +476,7 @@ describe('NewRunParametersV2', () => {
     const handleParameterChangeSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         structParam: {
           parameterType: ParameterType_ParameterTypeEnum.STRUCT,
@@ -501,7 +501,7 @@ describe('NewRunParametersV2', () => {
     const setIsValidInputSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         intParam: {
           parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
@@ -524,7 +524,7 @@ describe('NewRunParametersV2', () => {
     const setIsValidInputSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         intParam: {
           parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
@@ -545,7 +545,7 @@ describe('NewRunParametersV2', () => {
     const setIsValidInputSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         intParam: {
           parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
@@ -570,7 +570,7 @@ describe('NewRunParametersV2', () => {
     const setIsValidInputSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         intParam: {
           parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
@@ -595,7 +595,7 @@ describe('NewRunParametersV2', () => {
     const setIsValidInputSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         boolParam: {
           parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
@@ -620,7 +620,7 @@ describe('NewRunParametersV2', () => {
     const setIsValidInputSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         boolParam: {
           parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
@@ -644,7 +644,7 @@ describe('NewRunParametersV2', () => {
     const setIsValidInputSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         doubleParam: {
           parameterType: ParameterType_ParameterTypeEnum.NUMBER_DOUBLE,
@@ -669,7 +669,7 @@ describe('NewRunParametersV2', () => {
     const setIsValidInputSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         listParam: {
           parameterType: ParameterType_ParameterTypeEnum.LIST,
@@ -694,7 +694,7 @@ describe('NewRunParametersV2', () => {
     const setIsValidInputSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         listParam: {
           parameterType: ParameterType_ParameterTypeEnum.LIST,
@@ -719,7 +719,7 @@ describe('NewRunParametersV2', () => {
     const setIsValidInputSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         structParam: {
           parameterType: ParameterType_ParameterTypeEnum.STRUCT,
@@ -744,7 +744,7 @@ describe('NewRunParametersV2', () => {
     const setIsValidInputSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         structParam: {
           parameterType: ParameterType_ParameterTypeEnum.STRUCT,
@@ -769,7 +769,7 @@ describe('NewRunParametersV2', () => {
     const setIsValidInputSpy = jest.fn();
     const props = {
       titleMessage: 'default Title',
-      pipelineRoot: 'defalut pipelineRoot',
+      pipelineRoot: 'default pipelineRoot',
       specParameters: {
         structParam: {
           parameterType: ParameterType_ParameterTypeEnum.STRUCT,
@@ -787,6 +787,56 @@ describe('NewRunParametersV2', () => {
     expect(setIsValidInputSpy).toHaveBeenCalledTimes(2);
     expect(setIsValidInputSpy).toHaveBeenLastCalledWith(true);
     screen.getByDisplayValue('{"A":1,"B":2}');
+  });
+
+  it('shows parameters from cloned RuntimeConfig', () => {
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'default pipelineRoot',
+      specParameters: {
+        intParam: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+        },
+        strParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRING,
+        }
+      },
+      clonedRuntimeConfig: {parameters: {'intParam': 123, 'strParam': 'string_value'}},
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: jest.fn(),
+      setIsValidInput: jest.fn(),
+    };
+    render(<NewRunParametersV2 {...props} />);
+
+    screen.getByDisplayValue('123');
+    screen.getByDisplayValue('string_value');
+  });
+
+  it('edits parameters filled by cloned RuntimeConfig', () => {
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'default pipelineRoot',
+      specParameters: {
+        intParam: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+        },
+        strParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRING,
+        }
+      },
+      clonedRuntimeConfig: {parameters: {'intParam': 123, 'strParam': 'string_value'}},
+      handlePipelineRootChange: jest.fn(),
+      handleParameterChange: jest.fn(),
+      setIsValidInput: jest.fn(),
+    };
+    render(<NewRunParametersV2 {...props} />);
+
+    const intParam = screen.getByDisplayValue('123');
+    fireEvent.change(intParam, { target: {value: '456'}});
+    screen.getByDisplayValue('456');
+    const strParam = screen.getByDisplayValue('string_value');
+    fireEvent.change(strParam, { target: {value: 'new_string'}});
+    screen.getByDisplayValue('new_string');
   });
 
   it('does not display any text fields if there are no parameters', () => {

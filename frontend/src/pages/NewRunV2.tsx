@@ -114,19 +114,11 @@ function NewRunV2(props: NewRunV2Props) {
     { enabled: !!originalRunId, staleTime: Infinity },
   );
 
-  const { isSuccess: isTemplatePullSuccessFromRun, data: templateStringFromRunId } = useQuery(
-    [originalRunId],
-    async () => {
-      if (!originalRunId) {
-        return '';
-      }
-      const originalRun = await Apis.runServiceApi.getRun(originalRunId);
-      return originalRun.run?.pipeline_spec?.pipeline_manifest || '';
-    },
-    { enabled: !!apiRun, staleTime: Infinity },
-  );
-
-  //const pipelineNameFromRun = apiRun?.run?.name?.substring(7, apiRun.run.name.length - 8);
+  let templateStringFromRunId;
+  if (apiRun) {
+    templateStringFromRunId = apiRun.run?.pipeline_spec?.pipeline_manifest;
+  }
+  const isTemplatePullSuccessFromRun = templateStringFromRunId != undefined ? true : false;
   const apiResourceRefFromRun = apiRun != undefined ? apiRun?.run?.resource_references : undefined;
 
   // Retrieve Pipeline Detail using pipeline ID and pipeline version ID from backend.
@@ -174,7 +166,7 @@ function NewRunV2(props: NewRunV2Props) {
   );
 
   const templateString =
-    templateStringFromRunId != '' ? templateStringFromRunId : templateStringFromPipelineId;
+    templateStringFromRunId != undefined ? templateStringFromRunId : templateStringFromPipelineId;
   const isTemplatePullSuccess = isTemplatePullSuccessFromRun || isTemplatePullSuccessFromPipeline;
   const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
   const titleVerb = originalRunId ? 'Clone' : 'Start';
@@ -357,7 +349,7 @@ function NewRunV2(props: NewRunV2Props) {
           <Input
             value={
               (apiResourceRefFromRun != undefined
-                ? apiResourceRefFromRun[1]?.name
+                ? apiResourceRefFromRun[1].name
                 : apiPipelineVersion?.name) || ''
             }
             required={true}
