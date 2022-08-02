@@ -144,6 +144,7 @@ def get_parameter_type(
     Raises:
       AttributeError: if type_name is not a string type.
     """
+
     if type(param_type) == type:
         type_name = param_type.__name__
     elif isinstance(param_type, dict):
@@ -212,8 +213,8 @@ class InconsistentTypeWarning(Warning):
 
 
 def verify_type_compatibility(
-    given_type: Union[str, dict],
-    expected_type: Union[str, dict],
+    given_type: Union[str, dict, artifact_types.Artifact, type],
+    expected_type: Union[str, dict, artifact_types.Artifact, type],
     error_message_prefix: str,
 ) -> bool:
     """Verifies the given argument type is compatible with the expected type.
@@ -230,37 +231,62 @@ def verify_type_compatibility(
         InconsistentTypeException if types are incompatible and TYPE_CHECK==True.
     """
 
-    # Generic "Artifact" type is compatible with any specific artifact types.
-    if not is_parameter_type(
-            str(given_type)) and (str(given_type).lower() == 'artifact' or
-                                  str(expected_type).lower() == 'artifact'):
-        return True
-
     # Special handling for PipelineTaskFinalStatus, treat it as Dict type.
     if is_task_final_status_type(given_type):
         given_type = 'Dict'
 
-    # Normalize parameter type names.
-    if is_parameter_type(given_type):
-        given_type = get_parameter_type_name(given_type)
-    if is_parameter_type(expected_type):
-        expected_type = get_parameter_type_name(expected_type)
+    types_are_compatible = False
+    is_parameter = is_parameter_type(str(given_type))
 
-    types_are_compatible = _check_types(given_type, expected_type)
+    # handle parameters
+    if is_parameter:
+        # Normalize parameter type names.
+        if is_parameter_type(given_type):
+            given_type = get_parameter_type_name(given_type)
+        if is_parameter_type(expected_type):
+            expected_type = get_parameter_type_name(expected_type)
 
+        types_are_compatible = check_parameter_type_compatibility(
+            given_type, expected_type)
+
+    # handle artifacts
+    elif isinstance(given_type, str):
+        # v1 compat
+        given_suffix = given_type.lower().split('.')[-1]
+        expected_suffix = expected_type.lower().split('.')[-1]
+        types_are_compatible = (given_suffix
+                                == expected_suffix) or 'artifact' in {
+                                    given_suffix, expected_suffix
+                                }
+
+    elif isinstance(given_type, dict) or isinstance(expected_type, dict):
+        # v1 compat
+        given_type_name = list(given_type.keys())[0]
+        expected_type_name = list(expected_type.keys())[0]
+        types_are_compatible = given_type_name == expected_type_name and given_type[
+            given_type_name] == expected_type[expected_type_name]
+
+    else:
+        # v2
+        types_are_compatible = (given_type.schema_title
+                                == expected_type.schema_title) or (
+                                    given_type.schema_title
+                                    == artifact_types.Artifact.schema_title
+                                ) or (expected_type.schema_title
+                                      == artifact_types.Artifact.schema_title)
+
+    # maybe raise, maybe warn, return bool
     if not types_are_compatible:
-        error_text = error_message_prefix + (
-            'Argument type "{}" is incompatible with the input type "{}"'
-        ).format(str(given_type), str(expected_type))
-
+        error_text = error_message_prefix + f'Argument type "{given_type}" is incompatible with the input type "{expected_type}"'
         if kfp.TYPE_CHECK:
             raise InconsistentTypeException(error_text)
         else:
             warnings.warn(InconsistentTypeWarning(error_text))
+
     return types_are_compatible
 
 
-def _check_types(
+def check_parameter_type_compatibility(
     given_type: Union[str, dict],
     expected_type: Union[str, dict],
 ):
