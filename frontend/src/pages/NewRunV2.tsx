@@ -17,6 +17,7 @@
 import { Button, Dialog, DialogActions, DialogContent, InputAdornment } from '@material-ui/core';
 import React, { useEffect, useState } from 'react';
 import { useMutation, useQuery } from 'react-query';
+import { Link } from 'react-router-dom';
 import { ApiExperiment, ApiExperimentStorageState } from 'src/apis/experiment';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
@@ -86,12 +87,19 @@ function NewRunV2(props: NewRunV2Props) {
   const [clonedRuntimeConfig, setClonedRuntimeConfig] = useState<PipelineSpecRuntimeConfig>(
     {},
   );
+  const [usePipelineFromRunLabel, setUsePipelineFromRunLabel] = useState('Using pipeline from cloned run');
 
   // TODO(zijianjoy): If creating run from Experiment Page or RunList Page, there is no pipelineId/Version.
   const urlParser = new URLParser(props);
   const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
   const pipelineVersionIdParam = urlParser.get(QUERY_PARAMS.pipelineVersionId);
+  const pipelineDetailsUrl = originalRunId
+  ? RoutePage.PIPELINE_DETAILS.replace(
+      ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
+      '',
+    ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: originalRunId })
+  : '';
 
   // Retrieve Run Detail using RunID from backend
   const { isSuccess: isRunPullSuccess, data: apiRun } = useQuery<ApiRunDetail, Error>(
@@ -310,13 +318,26 @@ function NewRunV2(props: NewRunV2Props) {
       <div className={commonCss.scrollContainer}>
         <div className={commonCss.header}>Run details</div>
 
-        {/* TODO: (jlyaoyuli) remove the pipeline and pipeline section if it only has run ID */}
+        {(!pipelineId && apiResourceRefFromRun && !apiResourceRefFromRun[1]) && (
+            <div>
+              <div>
+                <span>{usePipelineFromRunLabel}</span>
+              </div>
+              <div className={classes(padding(10, 't'))}>
+                {originalRunId && (
+                  <Link className={classes(commonCss.link)} to={pipelineDetailsUrl}>
+                    [View pipeline]
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
 
         {/* Pipeline selection */}
-        <Input
+        {(pipelineId || (apiResourceRefFromRun && apiResourceRefFromRun[1])) && (<Input
           value={
             (apiResourceRefFromRun != undefined
-              ? apiResourceRefFromRun[1]?.name
+              ? apiResourceRefFromRun[1].name
               : apiPipeline?.name) || ''
           }
           required={true}
@@ -327,10 +348,10 @@ function NewRunV2(props: NewRunV2Props) {
             classes: { disabled: css.nonEditableInput },
             readOnly: true,
           }}
-        />
+        />)}
 
         {/* Pipeline version selection */}
-        <Input
+        {(pipelineId || (apiResourceRefFromRun && apiResourceRefFromRun[1])) && (<Input
           value={
             (apiResourceRefFromRun != undefined
               ? apiResourceRefFromRun[1]?.name
@@ -344,7 +365,7 @@ function NewRunV2(props: NewRunV2Props) {
             classes: { disabled: css.nonEditableInput },
             readOnly: true,
           }}
-        />
+        />)}
 
         {/* Run info inputs */}
         <Input
