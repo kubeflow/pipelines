@@ -29,14 +29,13 @@ import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import { classes, stylesheet } from 'typestyle';
 import MD2Tabs from '../atoms/MD2Tabs';
 import { Description } from '../components/Description';
-import Editor from '../components/Editor';
 import Graph from '../components/Graph';
 import ReduceGraphSwitch from '../components/ReduceGraphSwitch';
 import SidePanel from '../components/SidePanel';
 import StaticNodeDetails from '../components/StaticNodeDetails';
 import { color, commonCss, fonts, fontsize, padding, zIndex } from '../Css';
 import * as StaticGraphParser from '../lib/StaticGraphParser';
-import { formatDateString, isSafari, logger } from '../lib/Utils';
+import { formatDateString, logger } from '../lib/Utils';
 
 const summaryCardWidth = 500;
 
@@ -119,8 +118,6 @@ const PipelineDetailsV1: React.FC<PipelineDetailsV1Props> = ({
       logger.error(`Node with ID: ${selectedNodeId} was not found in the graph`);
     }
   }
-
-  const editorHeightWidth = isSafari() ? '640px' : '100%';
 
   const createVersionUrl = () => {
     return selectedVersion!.code_source_url!;

@@ -29,10 +29,7 @@ import { NameWithTooltip } from 'src/components/CustomTableNameColumn';
 import NewRunParametersV2 from 'src/components/NewRunParametersV2';
 import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
 import { color, commonCss, padding } from 'src/Css';
-import {
-  ComponentInputsSpec_ParameterSpec,
-  PipelineSpec,
-} from 'src/generated/pipeline_spec/pipeline_spec';
+import { ComponentInputsSpec_ParameterSpec } from 'src/generated/pipeline_spec/pipeline_spec';
 import { Apis, ExperimentSortKeys } from 'src/lib/Apis';
 import { URLParser } from 'src/lib/URLParser';
 import { errorToMessage, generateRandomString } from 'src/lib/Utils';
@@ -68,7 +65,6 @@ function NewRunV2(props: NewRunV2Props) {
   const [runDescription, setRunDescription] = useState('');
   const [apiExperiment, setApiExperiment] = useState<ApiExperiment>();
   const [serviceAccount, setServiceAccount] = useState('');
-  const [pipelineSpec, setPipelineSpec] = useState<PipelineSpec>();
   const [specParameters, setSpecParameters] = useState<SpecParameters>({});
   const [runtimeParameters, setRuntimeParameters] = useState<RuntimeParameters>({});
   const [pipelineRoot, setPipelineRoot] = useState<string>();
@@ -86,7 +82,7 @@ function NewRunV2(props: NewRunV2Props) {
   // It validates that the pipeline entity indeed exists with pipeline ID.
   // TODO(zijianjoy): Need to implement the feature to choose pipeline ID and pipeline version ID from this page.
   // TODO(zijianjoy): Need to show error if pipeline fetch failed to show up.
-  const { isSuccess: isPipelinePullSuccess, data: apiPipeline } = useQuery<ApiPipeline, Error>(
+  const { data: apiPipeline } = useQuery<ApiPipeline, Error>(
     ['ApiPipeline', pipelineId],
     () => {
       if (!pipelineId) {
@@ -96,10 +92,7 @@ function NewRunV2(props: NewRunV2Props) {
     },
     { enabled: !!pipelineId, staleTime: Infinity },
   );
-  const { isSuccess: isPipelineVersionPullSuccess, data: apiPipelineVersion } = useQuery<
-    ApiPipelineVersion,
-    Error
-  >(
+  const { data: apiPipelineVersion } = useQuery<ApiPipelineVersion, Error>(
     ['ApiPipelineVersion', apiPipeline, pipelineVersionIdParam],
     () => {
       const pipelineVersionId = pipelineVersionIdParam || apiPipeline?.default_version?.id;
@@ -129,6 +122,7 @@ function NewRunV2(props: NewRunV2Props) {
       actions: {},
       pageTitle: 'Start a new run',
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // When loading a pipeline version, automatically set the default run name.
@@ -147,7 +141,6 @@ function NewRunV2(props: NewRunV2Props) {
     }
 
     const spec = convertYamlToV2PipelineSpec(templateString);
-    setPipelineSpec(spec);
 
     const params = spec.root?.inputDefinitions?.parameters;
     if (params) {

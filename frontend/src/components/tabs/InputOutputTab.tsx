@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import React from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
 import { commonCss, padding } from 'src/Css';
+import { KeyValue } from 'src/lib/StaticGraphParser';
+import { getMetadataValue } from 'src/mlmd/library';
 import {
   filterEventWithInputArtifact,
   filterEventWithOutputArtifact,
@@ -27,8 +28,6 @@ import {
   getLinkedArtifactsByExecution,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
-import { KeyValue } from 'src/lib/StaticGraphParser';
-import { getMetadataValue } from 'src/mlmd/library';
 import { Execution } from 'src/third_party/mlmd';
 import ArtifactPreview from '../ArtifactPreview';
 import Banner from '../Banner';
@@ -160,10 +159,10 @@ function extractOutputFromExecution(execution: Execution): KeyValue<string>[] {
 function extractParamFromExecution(execution: Execution, name: string): KeyValue<string>[] {
   const result: KeyValue<string>[] = [];
   execution.getCustomPropertiesMap().forEach((value, key) => {
-    if (key == name) {
+    if (key === name) {
       const param = getMetadataValue(value);
       if (typeof param == 'object') {
-        Object.entries(param.toJavaScript()).map(parameter => {
+        Object.entries(param.toJavaScript()).forEach(parameter => {
           result.push([parameter[0], JSON.stringify(parameter[1])]);
         });
       }

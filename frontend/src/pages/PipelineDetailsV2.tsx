@@ -13,18 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import jsyaml from 'js-yaml';
 import React, { useState } from 'react';
 import { Elements, FlowElement } from 'react-flow-renderer';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import MD2Tabs from 'src/atoms/MD2Tabs';
-import Editor from 'src/components/Editor';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
 import { PipelineVersionCard } from 'src/components/navigators/PipelineVersionCard';
 import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import SidePanel from 'src/components/SidePanel';
 import { StaticNodeDetailsV2 } from 'src/components/tabs/StaticNodeDetailsV2';
-import { isSafari } from 'src/lib/Utils';
 import { PipelineFlowElement } from 'src/lib/v2/StaticFlow';
 import { commonCss, padding } from '../Css';
 import DagCanvas from './v2/DagCanvas';
@@ -77,8 +74,6 @@ function PipelineDetailsV2({
 
     return 'unknown';
   };
-
-  const editorHeightWidth = isSafari() ? '640px' : '100%';
 
   return (
     <div className={commonCss.page} data-testid={'pipeline-detail-v2'}>
