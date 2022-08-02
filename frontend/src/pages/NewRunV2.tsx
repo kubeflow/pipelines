@@ -206,7 +206,12 @@ function NewRunV2(props: NewRunV2Props) {
 
   // Handle different change that can affect setIsStartButtonEnabled
   useEffect(() => {
-    if (!templateString || errorMessage || !isParameterValid || !(apiPipelineVersion || (apiResourceRefFromRun && apiResourceRefFromRun[1]))) {
+    if (
+      !templateString ||
+      errorMessage ||
+      !isParameterValid ||
+      !(apiPipelineVersion || (apiResourceRefFromRun && apiResourceRefFromRun[1]))
+    ) {
       setIsStartButtonEnabled(false);
     } else {
       setIsStartButtonEnabled(true);

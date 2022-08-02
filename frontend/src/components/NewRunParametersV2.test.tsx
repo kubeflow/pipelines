@@ -799,9 +799,9 @@ describe('NewRunParametersV2', () => {
         },
         strParam: {
           parameterType: ParameterType_ParameterTypeEnum.STRING,
-        }
+        },
       },
-      clonedRuntimeConfig: {parameters: {'intParam': 123, 'strParam': 'string_value'}},
+      clonedRuntimeConfig: { parameters: { intParam: 123, strParam: 'string_value' } },
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: jest.fn(),
       setIsValidInput: jest.fn(),
@@ -822,9 +822,9 @@ describe('NewRunParametersV2', () => {
         },
         strParam: {
           parameterType: ParameterType_ParameterTypeEnum.STRING,
-        }
+        },
       },
-      clonedRuntimeConfig: {parameters: {'intParam': 123, 'strParam': 'string_value'}},
+      clonedRuntimeConfig: { parameters: { intParam: 123, strParam: 'string_value' } },
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: jest.fn(),
       setIsValidInput: jest.fn(),
@@ -832,10 +832,10 @@ describe('NewRunParametersV2', () => {
     render(<NewRunParametersV2 {...props} />);
 
     const intParam = screen.getByDisplayValue('123');
-    fireEvent.change(intParam, { target: {value: '456'}});
+    fireEvent.change(intParam, { target: { value: '456' } });
     screen.getByDisplayValue('456');
     const strParam = screen.getByDisplayValue('string_value');
-    fireEvent.change(strParam, { target: {value: 'new_string'}});
+    fireEvent.change(strParam, { target: { value: 'new_string' } });
     screen.getByDisplayValue('new_string');
   });
 

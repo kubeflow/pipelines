@@ -154,29 +154,32 @@ function convertNonUserInputParamToString(
 }
 
 function NewRunParametersV2(props: NewRunParametersProps) {
-  const { specParameters, setIsValidInput } = props;
+  const { specParameters, clonedRuntimeConfig, setIsValidInput } = props;
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
   const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
   const [errorMessages, setErrorMessages] = useState([]);
 
   const [updatedParameters, setUpdatedParameters] = useState({});
   useEffect(() => {
-    if (props.clonedRuntimeConfig.parameters) {
-      const clonedRuntimeParameters: RuntimeParameters = {};
-      Object.entries(props.clonedRuntimeConfig.parameters).forEach(entry => {
-        clonedRuntimeParameters[entry[0]] = convertNonUserInputParamToString(
+    if (clonedRuntimeConfig.parameters) {
+      const clonedRuntimeParametersStr: RuntimeParameters = {};
+      // Convert cloned parameter to string type first to avoid error from convertInput
+      Object.entries(clonedRuntimeConfig.parameters).forEach(entry => {
+        clonedRuntimeParametersStr[entry[0]] = convertNonUserInputParamToString(
           specParameters,
           entry[0],
           entry[1],
         );
       });
-      setUpdatedParameters(clonedRuntimeParameters);
+      setUpdatedParameters(clonedRuntimeParametersStr);
+      // Directly using cloned paramters guarantees input is valid and no error message
       setErrorMessages([]);
-      if (props.handleParameterChange) {
-        props.handleParameterChange(props.clonedRuntimeConfig.parameters);
-      }
       if (setIsValidInput) {
         setIsValidInput(true);
+      }
+
+      if (props.handleParameterChange) {
+        props.handleParameterChange(clonedRuntimeConfig.parameters);
       }
       return;
     }
@@ -202,7 +205,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     if (setIsValidInput) {
       setIsValidInput(allParamtersWithDefault);
     }
-  }, [props.clonedRuntimeConfig, specParameters]);
+  }, [clonedRuntimeConfig, specParameters]);
 
   return (
     <div>
