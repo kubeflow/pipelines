@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 
-import { createHashHistory, createLocation } from 'history';
+import { createHashHistory } from 'history';
 import { URLParser } from './URLParser';
 
 const history = createHashHistory();
-const location = createLocation('/');
+const location = {
+  pathname: '',
+  search: '',
+} as any;
 
 describe('URLParser', () => {
   const routerProps = { location, history } as any;
@@ -66,9 +69,9 @@ describe('URLParser', () => {
   it('does not create new state when setting query param in-place', () => {
     location.search = '?searchkey=searchvalue';
 
-    const historyLength = history.length;
+    const historyLength = window.history.length;
     new URLParser(routerProps).set('searchkey' as any, 'newvalue');
-    expect(history.length).toEqual(historyLength);
+    expect(window.history.length).toEqual(historyLength);
   });
 
   it('does not touch other query string params when setting one', () => {
@@ -102,10 +105,10 @@ describe('URLParser', () => {
   it('creates a new history entry when using push', () => {
     location.search = '?searchkey=searchvalue&k2=v2';
 
-    const historyLength = history.length;
+    const historyLength = window.history.length;
     new URLParser(routerProps).push('searchkey' as any, 'newvalue');
     expect(history.location.search).toEqual('?searchkey=newvalue&k2=v2');
-    expect(history.length).toEqual(historyLength + 1);
+    expect(window.history.length).toEqual(historyLength + 1);
   });
 
   it('can build a search string', () => {

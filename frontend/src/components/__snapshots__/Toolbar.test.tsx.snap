@@ -55,11 +55,10 @@ exports[`Toolbar disables the back button when there is no browser history 1`] =
            
           <WithStyles(IconButton)
             className="backLink"
-            disabled={true}
-            onClick={[Function]}
+            disabled={false}
           >
             <pure(ArrowBackIcon)
-              className="backIcon disabled"
+              className="backIcon enabled"
             />
           </WithStyles(IconButton)>
         </div>
@@ -172,7 +171,6 @@ exports[`Toolbar renders outlined action buttons 1`] = `
           <WithStyles(IconButton)
             className="backLink"
             disabled={false}
-            onClick={[Function]}
           >
             <pure(ArrowBackIcon)
               className="backIcon enabled"
@@ -266,7 +264,6 @@ exports[`Toolbar renders primary action buttons 1`] = `
           <WithStyles(IconButton)
             className="backLink"
             disabled={false}
-            onClick={[Function]}
           >
             <pure(ArrowBackIcon)
               className="backIcon enabled"
@@ -360,7 +357,6 @@ exports[`Toolbar renders primary action buttons without outline, even if outline
           <WithStyles(IconButton)
             className="backLink"
             disabled={false}
-            onClick={[Function]}
           >
             <pure(ArrowBackIcon)
               className="backIcon enabled"
@@ -454,7 +450,6 @@ exports[`Toolbar renders with two breadcrumbs and two actions 1`] = `
           <WithStyles(IconButton)
             className="backLink"
             disabled={false}
-            onClick={[Function]}
           >
             <pure(ArrowBackIcon)
               className="backIcon enabled"
@@ -552,7 +547,6 @@ exports[`Toolbar renders without actions and one breadcrumb 1`] = `
           <WithStyles(IconButton)
             className="backLink"
             disabled={false}
-            onClick={[Function]}
           >
             <pure(ArrowBackIcon)
               className="backIcon enabled"
@@ -614,7 +608,6 @@ exports[`Toolbar renders without actions, one breadcrumb, and a page name 1`] = 
           <WithStyles(IconButton)
             className="backLink"
             disabled={false}
-            onClick={[Function]}
           >
             <pure(ArrowBackIcon)
               className="backIcon enabled"
