@@ -26,27 +26,25 @@ testBestPractices();
 
 describe('NewRunParametersV2', () => {
   it('shows parameters', () => {
-    render(
-      <CommonTestWrapper>
-        <NewRunParametersV2
-          titleMessage='Specify parameters required by the pipeline'
-          specParameters={{
-            strParam: {
-              parameterType: ParameterType_ParameterTypeEnum.STRING,
-              defaultValue: 'string value',
-            },
-            boolParam: {
-              parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
-              defaultValue: true,
-            },
-            intParam: {
-              parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
-              defaultValue: 123,
-            },
-          }}
-        ></NewRunParametersV2>
-      </CommonTestWrapper>,
-    );
+    const props = {
+      titleMessage: 'Specify parameters required by the pipeline',
+      specParameters: {
+        strParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRING,
+          defaultValue: 'string value',
+        },
+        intParam: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+          defaultValue: 123,
+        },
+        boolParam: {
+          parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
+          defaultValue: true,
+        },
+      },
+      clonedRuntimeConfig: {},
+    };
+    render(<NewRunParametersV2 {...props} />);
 
     screen.getByText('Run parameters');
     screen.getByText('Specify parameters required by the pipeline');
@@ -59,27 +57,26 @@ describe('NewRunParametersV2', () => {
   });
 
   it('edits parameters', () => {
-    render(
-      <CommonTestWrapper>
-        <NewRunParametersV2
-          titleMessage='Specify parameters required by the pipeline'
-          specParameters={{
-            strParam: {
-              parameterType: ParameterType_ParameterTypeEnum.STRING,
-              defaultValue: 'string value',
-            },
-            intParam: {
-              parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
-              defaultValue: 123,
-            },
-            boolParam: {
-              parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
-              defaultValue: true,
-            },
-          }}
-        ></NewRunParametersV2>
-      </CommonTestWrapper>,
-    );
+    const props = {
+      titleMessage: 'default Title',
+      pipelineRoot: 'defalut pipelineRoot',
+      specParameters: {
+        strParam: {
+          parameterType: ParameterType_ParameterTypeEnum.STRING,
+          defaultValue: 'string value',
+        },
+        intParam: {
+          parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
+          defaultValue: 123,
+        },
+        boolParam: {
+          parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
+          defaultValue: true,
+        },
+      },
+      clonedRuntimeConfig: {},
+    };
+    render(<NewRunParametersV2 {...props} />);
 
     const strParam = screen.getByDisplayValue('string value');
     fireEvent.change(strParam, { target: { value: 'new string' } });
@@ -105,6 +102,7 @@ describe('NewRunParametersV2', () => {
           defaultValue: 'string value',
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
@@ -129,6 +127,7 @@ describe('NewRunParametersV2', () => {
           parameterType: ParameterType_ParameterTypeEnum.STRING,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
@@ -154,6 +153,7 @@ describe('NewRunParametersV2', () => {
           defaultValue: true,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
@@ -178,6 +178,7 @@ describe('NewRunParametersV2', () => {
           parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
@@ -202,6 +203,7 @@ describe('NewRunParametersV2', () => {
           parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
@@ -227,6 +229,7 @@ describe('NewRunParametersV2', () => {
           defaultValue: 123,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
@@ -251,6 +254,7 @@ describe('NewRunParametersV2', () => {
           parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
@@ -275,6 +279,7 @@ describe('NewRunParametersV2', () => {
           parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
@@ -300,6 +305,7 @@ describe('NewRunParametersV2', () => {
           defaultValue: 1.23,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
@@ -324,6 +330,7 @@ describe('NewRunParametersV2', () => {
           parameterType: ParameterType_ParameterTypeEnum.NUMBER_DOUBLE,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
@@ -349,6 +356,7 @@ describe('NewRunParametersV2', () => {
           defaultValue: [1, 2, 3],
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
@@ -373,6 +381,7 @@ describe('NewRunParametersV2', () => {
           parameterType: ParameterType_ParameterTypeEnum.LIST,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
@@ -397,6 +406,7 @@ describe('NewRunParametersV2', () => {
           parameterType: ParameterType_ParameterTypeEnum.LIST,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
@@ -422,6 +432,7 @@ describe('NewRunParametersV2', () => {
           defaultValue: { A: 1, B: 2 },
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
@@ -446,6 +457,7 @@ describe('NewRunParametersV2', () => {
           parameterType: ParameterType_ParameterTypeEnum.STRUCT,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
@@ -470,6 +482,7 @@ describe('NewRunParametersV2', () => {
           parameterType: ParameterType_ParameterTypeEnum.STRUCT,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: handleParameterChangeSpy,
     };
@@ -495,6 +508,7 @@ describe('NewRunParametersV2', () => {
           defaultValue: 123,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: jest.fn(),
       setIsValidInput: setIsValidInputSpy,
@@ -516,6 +530,7 @@ describe('NewRunParametersV2', () => {
           parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: jest.fn(),
       setIsValidInput: setIsValidInputSpy,
@@ -536,6 +551,7 @@ describe('NewRunParametersV2', () => {
           parameterType: ParameterType_ParameterTypeEnum.NUMBER_INTEGER,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: jest.fn(),
       setIsValidInput: setIsValidInputSpy,
@@ -561,6 +577,7 @@ describe('NewRunParametersV2', () => {
           defaultValue: 123,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: jest.fn(),
       setIsValidInput: setIsValidInputSpy,
@@ -584,6 +601,7 @@ describe('NewRunParametersV2', () => {
           parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: jest.fn(),
       setIsValidInput: setIsValidInputSpy,
@@ -608,6 +626,7 @@ describe('NewRunParametersV2', () => {
           parameterType: ParameterType_ParameterTypeEnum.BOOLEAN,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: jest.fn(),
       setIsValidInput: setIsValidInputSpy,
@@ -631,6 +650,7 @@ describe('NewRunParametersV2', () => {
           parameterType: ParameterType_ParameterTypeEnum.NUMBER_DOUBLE,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: jest.fn(),
       setIsValidInput: setIsValidInputSpy,
@@ -655,6 +675,7 @@ describe('NewRunParametersV2', () => {
           parameterType: ParameterType_ParameterTypeEnum.LIST,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: jest.fn(),
       setIsValidInput: setIsValidInputSpy,
@@ -679,6 +700,7 @@ describe('NewRunParametersV2', () => {
           parameterType: ParameterType_ParameterTypeEnum.LIST,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: jest.fn(),
       setIsValidInput: setIsValidInputSpy,
@@ -703,6 +725,7 @@ describe('NewRunParametersV2', () => {
           parameterType: ParameterType_ParameterTypeEnum.STRUCT,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: jest.fn(),
       setIsValidInput: setIsValidInputSpy,
@@ -727,6 +750,7 @@ describe('NewRunParametersV2', () => {
           parameterType: ParameterType_ParameterTypeEnum.STRUCT,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: jest.fn(),
       setIsValidInput: setIsValidInputSpy,
@@ -751,6 +775,7 @@ describe('NewRunParametersV2', () => {
           parameterType: ParameterType_ParameterTypeEnum.STRUCT,
         },
       },
+      clonedRuntimeConfig: {},
       handlePipelineRootChange: jest.fn(),
       handleParameterChange: jest.fn(),
       setIsValidInput: setIsValidInputSpy,
@@ -770,6 +795,7 @@ describe('NewRunParametersV2', () => {
         <NewRunParametersV2
           titleMessage='Specify parameters required by the pipeline'
           specParameters={{}}
+          clonedRuntimeConfig={{}}
         ></NewRunParametersV2>
       </CommonTestWrapper>,
     );

@@ -127,6 +127,7 @@ describe('NewRunV2', () => {
       content.startsWith(`Run of ${TEST_PIPELINE_VERSION_NAME}`),
     );
   });
+  /*
   it('Submit run ', async () => {
     const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
     getPipelineSpy.mockResolvedValue(TEST_PIPELINE);
@@ -148,7 +149,7 @@ describe('NewRunV2', () => {
     const startButton = await screen.findByText('Start');
     expect(startButton.closest('button').disabled).toEqual(false);
   });
-
+  */
   it('allows updating the run name', async () => {
     const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
     getPipelineSpy.mockResolvedValue(TEST_PIPELINE);
@@ -202,6 +203,8 @@ describe('NewRunV2', () => {
       expect(startButton.closest('button').disabled).toEqual(true);
       expect(await screen.findByText('Run name can not be empty.'));
     });
+
+    /*
     it('submit a new run without parameter', async () => {
       const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
       getPipelineSpy.mockResolvedValue(TEST_PIPELINE);
@@ -242,5 +245,6 @@ describe('NewRunV2', () => {
         );
       });
     });
+    */
   });
 });

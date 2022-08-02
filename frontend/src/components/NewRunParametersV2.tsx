@@ -131,7 +131,11 @@ function generateInputValidationErrMsg(
   return errorMessage;
 }
 
-function convertNonUserInputParamToString(specParameters: SpecParameters, key: string, value: any): string {
+function convertNonUserInputParamToString(
+  specParameters: SpecParameters,
+  key: string,
+  value: any,
+): string {
   let paramStr;
   switch (specParameters[key].parameterType) {
     case ParameterType_ParameterTypeEnum.STRUCT:
@@ -151,11 +155,7 @@ function convertNonUserInputParamToString(specParameters: SpecParameters, key: s
 
 function NewRunParametersV2(props: NewRunParametersProps) {
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
-  const [customPipelineRoot, setCustomPipelineRoot] = useState(
-    props.clonedRuntimeConfig.pipeline_root != undefined
-      ? props.clonedRuntimeConfig.pipeline_root
-      : props.pipelineRoot,
-  );
+  const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
   const [errorMessages, setErrorMessages] = useState([]);
 
   const [updatedParameters, setUpdatedParameters] = useState({});
@@ -163,8 +163,12 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     if (props.clonedRuntimeConfig.parameters) {
       const clonedRuntimeParameters: RuntimeParameters = {};
       Object.entries(props.clonedRuntimeConfig.parameters).forEach(entry => {
-        clonedRuntimeParameters[entry[0]] = convertNonUserInputParamToString(props.specParameters, entry[0], entry[1]);
-      })
+        clonedRuntimeParameters[entry[0]] = convertNonUserInputParamToString(
+          props.specParameters,
+          entry[0],
+          entry[1],
+        );
+      });
       setUpdatedParameters(clonedRuntimeParameters);
       setErrorMessages([]);
       if (props.handleParameterChange) {
@@ -182,7 +186,11 @@ function NewRunParametersV2(props: NewRunParametersProps) {
       if (props.specParameters[key].defaultValue) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.
         // Convert default value to string type first to avoid error from convertInput
-        runtimeParametersWithDefault[key] = convertNonUserInputParamToString(props.specParameters, key, props.specParameters[key].defaultValue);;
+        runtimeParametersWithDefault[key] = convertNonUserInputParamToString(
+          props.specParameters,
+          key,
+          props.specParameters[key].defaultValue,
+        );
       } else {
         allParamtersWithDefault = false;
         errorMessages[key] = 'Missing parameter.';

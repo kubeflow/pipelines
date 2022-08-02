@@ -84,10 +84,10 @@ function NewRunV2(props: NewRunV2Props) {
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isParameterValid, setIsParameterValid] = useState(false);
-  const [clonedRuntimeConfig, setClonedRuntimeConfig] = useState<PipelineSpecRuntimeConfig>(
-    {},
+  const [clonedRuntimeConfig, setClonedRuntimeConfig] = useState<PipelineSpecRuntimeConfig>({});
+  const [usePipelineFromRunLabel, setUsePipelineFromRunLabel] = useState(
+    'Using pipeline from cloned run',
   );
-  const [usePipelineFromRunLabel, setUsePipelineFromRunLabel] = useState('Using pipeline from cloned run');
 
   // TODO(zijianjoy): If creating run from Experiment Page or RunList Page, there is no pipelineId/Version.
   const urlParser = new URLParser(props);
@@ -95,11 +95,11 @@ function NewRunV2(props: NewRunV2Props) {
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
   const pipelineVersionIdParam = urlParser.get(QUERY_PARAMS.pipelineVersionId);
   const pipelineDetailsUrl = originalRunId
-  ? RoutePage.PIPELINE_DETAILS.replace(
-      ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
-      '',
-    ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: originalRunId })
-  : '';
+    ? RoutePage.PIPELINE_DETAILS.replace(
+        ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
+        '',
+      ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: originalRunId })
+    : '';
 
   // Retrieve Run Detail using RunID from backend
   const { isSuccess: isRunPullSuccess, data: apiRun } = useQuery<ApiRunDetail, Error>(
@@ -318,54 +318,58 @@ function NewRunV2(props: NewRunV2Props) {
       <div className={commonCss.scrollContainer}>
         <div className={commonCss.header}>Run details</div>
 
-        {(!pipelineId && apiResourceRefFromRun && !apiResourceRefFromRun[1]) && (
+        {!pipelineId && apiResourceRefFromRun && !apiResourceRefFromRun[1] && (
+          <div>
             <div>
-              <div>
-                <span>{usePipelineFromRunLabel}</span>
-              </div>
-              <div className={classes(padding(10, 't'))}>
-                {originalRunId && (
-                  <Link className={classes(commonCss.link)} to={pipelineDetailsUrl}>
-                    [View pipeline]
-                  </Link>
-                )}
-              </div>
+              <span>{usePipelineFromRunLabel}</span>
             </div>
-          )}
+            <div className={classes(padding(10, 't'))}>
+              {originalRunId && (
+                <Link className={classes(commonCss.link)} to={pipelineDetailsUrl}>
+                  [View pipeline]
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Pipeline selection */}
-        {(pipelineId || (apiResourceRefFromRun && apiResourceRefFromRun[1])) && (<Input
-          value={
-            (apiResourceRefFromRun != undefined
-              ? apiResourceRefFromRun[1].name
-              : apiPipeline?.name) || ''
-          }
-          required={true}
-          label='Pipeline'
-          disabled={true}
-          variant='outlined'
-          InputProps={{
-            classes: { disabled: css.nonEditableInput },
-            readOnly: true,
-          }}
-        />)}
+        {(pipelineId || (apiResourceRefFromRun && apiResourceRefFromRun[1])) && (
+          <Input
+            value={
+              (apiResourceRefFromRun != undefined
+                ? apiResourceRefFromRun[1].name
+                : apiPipeline?.name) || ''
+            }
+            required={true}
+            label='Pipeline'
+            disabled={true}
+            variant='outlined'
+            InputProps={{
+              classes: { disabled: css.nonEditableInput },
+              readOnly: true,
+            }}
+          />
+        )}
 
         {/* Pipeline version selection */}
-        {(pipelineId || (apiResourceRefFromRun && apiResourceRefFromRun[1])) && (<Input
-          value={
-            (apiResourceRefFromRun != undefined
-              ? apiResourceRefFromRun[1]?.name
-              : apiPipelineVersion?.name) || ''
-          }
-          required={true}
-          label='Pipeline Version'
-          disabled={true}
-          variant='outlined'
-          InputProps={{
-            classes: { disabled: css.nonEditableInput },
-            readOnly: true,
-          }}
-        />)}
+        {(pipelineId || (apiResourceRefFromRun && apiResourceRefFromRun[1])) && (
+          <Input
+            value={
+              (apiResourceRefFromRun != undefined
+                ? apiResourceRefFromRun[1]?.name
+                : apiPipelineVersion?.name) || ''
+            }
+            required={true}
+            label='Pipeline Version'
+            disabled={true}
+            variant='outlined'
+            InputProps={{
+              classes: { disabled: css.nonEditableInput },
+              readOnly: true,
+            }}
+          />
+        )}
 
         {/* Run info inputs */}
         <Input
