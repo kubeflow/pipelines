@@ -301,8 +301,7 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 			return nil, util.NewInternalServerError(err, "Failed to parse resource reference.")
 		}
 
-		runtimeParametersString := parseNullString(runtimeParameters)
-		pipelineRootString := parseNullString(pipelineRoot)
+		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
 
 		runs = append(runs, &model.RunDetail{Run: model.Run{
 			UUID:               uuid,
@@ -325,9 +324,7 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 				PipelineSpecManifest: pipelineSpecManifest,
 				WorkflowSpecManifest: workflowSpecManifest,
 				Parameters:           parameters,
-				RuntimeConfig: model.RuntimeConfig{
-					Parameters:   runtimeParametersString,
-					PipelineRoot: pipelineRootString},
+				RuntimeConfig:        runtimeConfig,
 			},
 		},
 			PipelineRuntime: model.PipelineRuntime{
@@ -348,12 +345,15 @@ func parseMetrics(metricsInString sql.NullString) ([]*model.RunMetric, error) {
 	return metrics, nil
 }
 
-func parseNullString(nullString sql.NullString) string {
-	if nullString.Valid {
-		return nullString.String
-	} else {
-		return ""
+func parseRuntimeConfig(runtimeParameters sql.NullString, pipelineRoot sql.NullString) model.RuntimeConfig {
+	var runtimeParametersString, pipelineRootString string
+	if runtimeParameters.Valid {
+		runtimeParametersString = runtimeParameters.String
 	}
+	if pipelineRoot.Valid {
+		pipelineRootString = pipelineRoot.String
+	}
+	return model.RuntimeConfig{Parameters: runtimeParametersString, PipelineRoot: pipelineRootString}
 }
 
 func parseResourceReferences(resourceRefString sql.NullString) ([]*model.ResourceReference, error) {

@@ -15,6 +15,7 @@
 package storage
 
 import (
+	"database/sql"
 	"fmt"
 	"sort"
 	"testing"
@@ -27,6 +28,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
+	"k8s.io/apimachinery/pkg/util/json"
 )
 
 const (
@@ -1318,4 +1320,61 @@ func TestDeleteRun_InternalError(t *testing.T) {
 	err := runStore.DeleteRun("1")
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected delete run to return internal error")
+}
+
+func TestParseMetrics(t *testing.T) {
+	expectedModelRunMetrics := []*model.RunMetric{
+		{
+			RunUUID:     "run-1",
+			Name:        "metric-1",
+			NodeID:      "node-1",
+			NumberValue: 0.88,
+			Format:      "RAW",
+		},
+	}
+	metricsByte, _ := json.Marshal(expectedModelRunMetrics)
+	metricsString := string(metricsByte)
+	metricsNullString := sql.NullString{
+		Valid:  true,
+		String: metricsString,
+	}
+	parsedMetrics, err := parseMetrics(metricsNullString)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedModelRunMetrics, parsedMetrics)
+}
+
+func TestParseRuntimeConfig(t *testing.T) {
+	expectedRuntimeConfig := model.RuntimeConfig{
+		Parameters:   `[{"name":"param2","value":"world1"}]`,
+		PipelineRoot: "gs://my-bucket/path/to/root/run1",
+	}
+	parametersNullString := sql.NullString{
+		Valid:  true,
+		String: `[{"name":"param2","value":"world1"}]`,
+	}
+	pipelineRootNullString := sql.NullString{
+		Valid:  true,
+		String: "gs://my-bucket/path/to/root/run1",
+	}
+	actualRuntimeConfig := parseRuntimeConfig(parametersNullString, pipelineRootNullString)
+	assert.Equal(t, expectedRuntimeConfig, actualRuntimeConfig)
+}
+
+func TestParseResourceReferences(t *testing.T) {
+	expectedResourceReferences := []*model.ResourceReference{
+		{
+			ResourceUUID: "2", ResourceType: common.Run,
+			ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
+			ReferenceType: common.Experiment, Relationship: common.Creator,
+		},
+	}
+	resourceReferencesBytes, _ := json.Marshal(expectedResourceReferences)
+	resourceReferencesString := string(resourceReferencesBytes)
+	resourceReferencesNullString := sql.NullString{
+		Valid:  true,
+		String: resourceReferencesString,
+	}
+	actualResourceReferences, err := parseResourceReferences(resourceReferencesNullString)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedResourceReferences, actualResourceReferences)
 }
