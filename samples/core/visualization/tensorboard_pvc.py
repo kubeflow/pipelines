@@ -14,8 +14,8 @@
 
 import os
 import json
-from kfp import dsl, components
-from kfp.components import func_to_container_op
+from kfp.deprecated import dsl, components
+from kfp.deprecated.components import func_to_container_op
 
 from typing import NamedTuple
 def prepare_tensorboard_from_localdir(pvc_name:str = '', tf_image: str = 'gcr.io/deeplearning-platform-release/tf2-cpu.2-3:latest') -> NamedTuple('Outputs', [('mlpipeline_ui_metadata', 'UI_metadata')]):
