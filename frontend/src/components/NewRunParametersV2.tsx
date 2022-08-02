@@ -131,6 +131,24 @@ function generateInputValidationErrMsg(
   return errorMessage;
 }
 
+function convertNonUserInputParamToString(specParameters: SpecParameters, key: string, value: any): string {
+  let paramStr;
+  switch (specParameters[key].parameterType) {
+    case ParameterType_ParameterTypeEnum.STRUCT:
+    case ParameterType_ParameterTypeEnum.LIST:
+      paramStr = JSON.stringify(value);
+      break;
+    case ParameterType_ParameterTypeEnum.BOOLEAN:
+    case ParameterType_ParameterTypeEnum.NUMBER_INTEGER:
+    case ParameterType_ParameterTypeEnum.NUMBER_DOUBLE:
+      paramStr = value.toString();
+      break;
+    default:
+      paramStr = value;
+  }
+  return paramStr;
+}
+
 function NewRunParametersV2(props: NewRunParametersProps) {
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
   const [customPipelineRoot, setCustomPipelineRoot] = useState(
@@ -143,7 +161,18 @@ function NewRunParametersV2(props: NewRunParametersProps) {
   const [updatedParameters, setUpdatedParameters] = useState({});
   useEffect(() => {
     if (props.runtimeConfigFromClone.parameters) {
-      setUpdatedParameters(props.runtimeConfigFromClone.parameters);
+      const runtimeParametersFromClone: RuntimeParameters = {};
+      Object.entries(props.runtimeConfigFromClone.parameters).forEach(entry => {
+        runtimeParametersFromClone[entry[0]] = convertNonUserInputParamToString(props.specParameters, entry[0], entry[1]);
+      })
+      setUpdatedParameters(runtimeParametersFromClone);
+      setErrorMessages([]);
+      if (props.handleParameterChange) {
+        props.handleParameterChange(props.runtimeConfigFromClone.parameters);
+      }
+      if (props.setIsValidInput) {
+        props.setIsValidInput(true);
+      }
       return;
     }
     // TODO(jlyaoyuli): If we have parameters from run, put original default value next to the paramKey
@@ -152,21 +181,8 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     Object.keys(props.specParameters).map(key => {
       if (props.specParameters[key].defaultValue) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.
-        let defaultValStr; // Convert default to string type first to avoid error from convertInput
-        switch (props.specParameters[key].parameterType) {
-          case ParameterType_ParameterTypeEnum.STRUCT:
-          case ParameterType_ParameterTypeEnum.LIST:
-            defaultValStr = JSON.stringify(props.specParameters[key].defaultValue);
-            break;
-          case ParameterType_ParameterTypeEnum.BOOLEAN:
-          case ParameterType_ParameterTypeEnum.NUMBER_INTEGER:
-          case ParameterType_ParameterTypeEnum.NUMBER_DOUBLE:
-            defaultValStr = props.specParameters[key].defaultValue.toString();
-            break;
-          default:
-            defaultValStr = props.specParameters[key].defaultValue;
-        }
-        runtimeParametersWithDefault[key] = defaultValStr;
+        // Convert default value to string type first to avoid error from convertInput
+        runtimeParametersWithDefault[key] = convertNonUserInputParamToString(props.specParameters, key, props.specParameters[key].defaultValue);;
       } else {
         allParamtersWithDefault = false;
         errorMessages[key] = 'Missing parameter.';

@@ -170,8 +170,6 @@ function NewRunV2(props: NewRunV2Props) {
   const isTemplatePullSuccess = isTemplatePullSuccessFromRun || isTemplatePullSuccessFromPipeline;
   const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
   const titleVerb = originalRunId ? 'Clone' : 'Start';
-  const parameterfromGetRunV1 = apiRun?.run?.pipeline_spec?.parameters;
-  // console.log(apiRun?.run?.pipeline_spec?.runtime_config);
 
   // Title and list of actions on the top of page.
   useEffect(() => {
@@ -311,6 +309,8 @@ function NewRunV2(props: NewRunV2Props) {
     <div className={classes(commonCss.page, padding(20, 'lr'))}>
       <div className={commonCss.scrollContainer}>
         <div className={commonCss.header}>Run details</div>
+
+        {/* TODO: (jlyaoyuli) remove the pipeline and pipeline section if it only has run ID */}
 
         {/* Pipeline selection */}
         <Input
