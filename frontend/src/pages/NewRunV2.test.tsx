@@ -72,7 +72,6 @@ describe('NewRunV2', () => {
             id: '275ea11d-ac63-4ce3-bc33-ec81981ed56b',
             type: ApiResourceType.EXPERIMENT,
           },
-          name: 'Default',
           relationship: ApiRelationship.OWNER,
         },
         {
@@ -80,7 +79,6 @@ describe('NewRunV2', () => {
             id: TEST_PIPELINE_VERSION_ID,
             type: ApiResourceType.PIPELINEVERSION,
           },
-          name: TEST_PIPELINE_VERSION_NAME,
           relationship: ApiRelationship.CREATOR,
         },
       ],
