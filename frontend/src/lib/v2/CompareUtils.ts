@@ -89,9 +89,17 @@ export const getParamsTableProps = (runs: ApiRunDetail[]): CompareTableProps => 
   const dataMap: { [key: string]: RunParameters } = {};
   for (const run of runs) {
     const runId: string = run.run!.id!;
-    throw new Error(
-      `The parameters could not be fetched for the run with the following ID: ${runId}`,
-    );
+    const parameters: RunParameters | undefined =
+      run.run?.pipeline_spec?.runtime_config?.parameters;
+    if (!parameters) {
+      throw new Error(
+        `The parameters could not be fetched for the run with the following ID: ${runId}`,
+      );
+    }
+
+    xLabels.push(mlmdDisplayName(runId, 'Run', run.run?.name));
+    parameterNames.push(Object.keys(parameters));
+    dataMap[runId] = parameters;
   }
 
   const yLabels = chain(flatten(parameterNames))
