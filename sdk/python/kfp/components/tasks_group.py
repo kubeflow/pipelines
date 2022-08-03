@@ -188,6 +188,7 @@ class ParallelFor(TasksGroup):
         self,
         items: Union[for_loop.ItemList, pipeline_channel.PipelineChannel],
         name: Optional[str] = None,
+        parallelism: Optional[int] = 0,
     ):
         """Initializes a for loop task group."""
         super().__init__(
@@ -207,6 +208,8 @@ class ParallelFor(TasksGroup):
                 .get_next_group_id(),
             )
             self.items_is_pipeline_channel = False
+
+        self.parallelism_limit = parallelism
 
     def __enter__(self) -> for_loop.LoopArgument:
         super().__enter__()
