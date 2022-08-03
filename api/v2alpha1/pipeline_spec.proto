@@ -484,6 +484,17 @@ message PipelineTaskSpec {
     // Iterator to iterate over a parameter input.
     ParameterIteratorSpec parameter_iterator = 10;
   }
+
+  // Iterator related settings.
+  message IteratorPolicy {
+    // The limit for the number of concurrent sub-tasks spawned by an iterator
+    // task. The value should be a non-negative integer. A value of 0 represents
+    // unconstrained parallelism.
+    int32 parallelism_limit = 1;
+  }
+
+  // Iterator related settings.
+  IteratorPolicy iterator_policy = 12;
 }
 
 // The spec of an artifact iterator. It supports fan-out a workflow from a list
@@ -563,7 +574,7 @@ message ArtifactTypeSchema {
     // the properties of the type.
     string instance_schema = 3;
   }
-  
+
   // The schema version of the artifact. If the value is not set, it defaults
   // to the the latest version in the system.
   string schema_version = 4;
@@ -651,7 +662,7 @@ message PipelineDeploymentConfig {
       AcceleratorConfig accelerator = 3;
     }
     ResourceSpec resources = 5;
-    
+
     // Environment variables to be passed to the container.
     // Represents an environment variable present in a container.
     message EnvVar {
@@ -890,7 +901,7 @@ message PipelineTaskFinalStatus {
 
   // The error of the task.
   google.rpc.Status error = 2;
-  
+
   // The pipeline job unique id.
   int64 pipeline_job_uuid = 3 [deprecated = true];
 
@@ -900,7 +911,7 @@ message PipelineTaskFinalStatus {
   // The pipeline job resource name, in the format of
   // `projects/{project}/locations/{location}/pipelineJobs/{pipeline_job}`.
   string pipeline_job_resource_name = 5;
-  
+
 }
 
 message PipelineStateEnum {
