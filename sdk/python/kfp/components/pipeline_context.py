@@ -174,6 +174,7 @@ class Pipeline:
 
         self.tasks[task_name] = task
         if add_to_group:
+            task.parent_task_group = self.groups[-1]
             self.groups[-1].tasks.append(task)
 
         return task_name
