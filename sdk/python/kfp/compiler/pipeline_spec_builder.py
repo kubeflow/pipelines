@@ -600,6 +600,10 @@ def _update_task_spec_for_loop_group(
         pipeline_task_spec.parameter_iterator.item_input = (
             input_parameter_name)
 
+    if (group.parallelism_limit > 0):
+        pipeline_task_spec.iterator_policy.parallelism_limit = (
+            group.parallelism_limit)
+
     _pop_input_from_task_spec(
         task_spec=pipeline_task_spec,
         input_name=pipeline_task_spec.parameter_iterator.item_input)
