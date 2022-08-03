@@ -34,8 +34,6 @@ from kfp.components import component_factory
 from kfp.components import for_loop
 from kfp.components import pipeline_channel
 from kfp.components import pipeline_context
-from kfp.components import pipeline_task
-from kfp.components import structures
 from kfp.components import tasks_group
 from kfp.components import utils as component_utils
 from kfp.components.types import type_utils
@@ -262,49 +260,10 @@ class Compiler:
                 name_to_for_loop_group=name_to_for_loop_group,
             )
 
-        # TODO: refactor to support multiple exit handler per pipeline.
-        if pipeline.groups[0].groups:
-            first_group = pipeline.groups[0].groups[0]
-            if isinstance(first_group, dsl.ExitHandler):
-                exit_task = first_group.exit_task
-                exit_task_name = component_utils.sanitize_task_name(
-                    exit_task.name)
-                exit_handler_group_task_name = component_utils.sanitize_task_name(
-                    first_group.name)
-                input_parameters_in_current_dag = [
-                    input_name for input_name in
-                    pipeline_spec.root.input_definitions.parameters
-                ]
-                exit_task_task_spec = builder.build_task_spec_for_exit_task(
-                    task=exit_task,
-                    dependent_task=exit_handler_group_task_name,
-                    pipeline_inputs=pipeline_spec.root.input_definitions,
-                )
-
-                exit_task_component_spec = builder.build_component_spec_for_exit_task(
-                    task=exit_task)
-
-                exit_task_container_spec = builder.build_container_spec_for_task(
-                    task=exit_task)
-
-                # Add exit task task spec
-                pipeline_spec.root.dag.tasks[exit_task_name].CopyFrom(
-                    exit_task_task_spec)
-
-                # Add exit task component spec if it does not exist.
-                component_name = exit_task_task_spec.component_ref.name
-                if component_name not in pipeline_spec.components:
-                    pipeline_spec.components[component_name].CopyFrom(
-                        exit_task_component_spec)
-
-                # Add exit task container spec if it does not exist.
-                executor_label = exit_task_component_spec.executor_label
-                if executor_label not in deployment_config.executors:
-                    deployment_config.executors[
-                        executor_label].container.CopyFrom(
-                            exit_task_container_spec)
-                    pipeline_spec.deployment_spec.update(
-                        json_format.MessageToDict(deployment_config))
+        for group in all_groups:
+            if isinstance(group, dsl.ExitHandler):
+                builder.build_exit_handler_group(group, pipeline_spec,
+                                                 deployment_config)
 
         return pipeline_spec
 
