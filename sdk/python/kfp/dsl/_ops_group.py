@@ -217,10 +217,10 @@ class ParallelFor(OpsGroup):
     def __init__(self,
                  loop_args: Union[_for_loop.ItemList,
                                   _pipeline_param.PipelineParam],
-                 parallelism: int = None):
-        if parallelism and parallelism < 1:
+                 parallelism: int = 0):
+        if parallelism < 0:
             raise ValueError(
-                'ParallelFor parallism set to < 1, allowed values are > 0')
+                'ParallelFor parallism set to < 0, allowed values are >= 0')
 
         self.items_is_pipeline_param = isinstance(loop_args,
                                                   _pipeline_param.PipelineParam)

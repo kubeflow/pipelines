@@ -784,11 +784,6 @@ class Compiler(object):
                 )
 
             if isinstance(subgroup, dsl.ParallelFor):
-                if subgroup.parallelism is not None:
-                    warnings.warn(
-                        'Setting parallelism in ParallelFor is not supported yet.'
-                        'The setting is ignored.')
-
                 # "Punch the hole", adding additional inputs (other than loop
                 # arguments which will be handled separately) needed by its
                 # subgroup or tasks.
@@ -881,6 +876,9 @@ class Compiler(object):
                         raw_values, sort_keys=True)
                     subgroup_task_spec.parameter_iterator.item_input = (
                         input_parameter_name)
+                if (subgroup.parallelism > 0):
+                    subgroup_task_spec.iterator_policy.parallelism_limit = (
+                        subgroup.parallelism)
 
             if isinstance(subgroup, dsl.Condition):
 
