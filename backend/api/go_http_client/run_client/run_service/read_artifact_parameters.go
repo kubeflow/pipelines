@@ -56,7 +56,8 @@ func NewReadArtifactParamsWithHTTPClient(client *http.Client) *ReadArtifactParam
 	}
 }
 
-/*ReadArtifactParams contains all the parameters to send to the API endpoint
+/*
+ReadArtifactParams contains all the parameters to send to the API endpoint
 for the read artifact operation typically these are written to a http.Request
 */
 type ReadArtifactParams struct {

@@ -49,7 +49,8 @@ func NewRetryRunOK() *RetryRunOK {
 	return &RetryRunOK{}
 }
 
-/*RetryRunOK handles this case with default header values.
+/*
+RetryRunOK handles this case with default header values.
 
 A successful response.
 */
@@ -78,7 +79,8 @@ func NewRetryRunDefault(code int) *RetryRunDefault {
 	}
 }
 
-/*RetryRunDefault handles this case with default header values.
+/*
+RetryRunDefault handles this case with default header values.
 
 RetryRunDefault retry run default
 */

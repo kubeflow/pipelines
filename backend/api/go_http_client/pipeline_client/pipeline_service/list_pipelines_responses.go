@@ -49,7 +49,8 @@ func NewListPipelinesOK() *ListPipelinesOK {
 	return &ListPipelinesOK{}
 }
 
-/*ListPipelinesOK handles this case with default header values.
+/*
+ListPipelinesOK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewListPipelinesDefault(code int) *ListPipelinesDefault {
 	}
 }
 
-/*ListPipelinesDefault handles this case with default header values.
+/*
+ListPipelinesDefault handles this case with default header values.
 
 ListPipelinesDefault list pipelines default
 */

@@ -847,7 +847,7 @@ func (c *Client) RecordArtifact(ctx context.Context, outputName, schema string, 
 	}, nil
 }
 
-//  TODO consider batching these requests
+// TODO consider batching these requests
 func (c *Client) GetOrInsertArtifactType(ctx context.Context, schema string) (typeID int64, err error) {
 	defer func() {
 		if err != nil {

@@ -49,7 +49,8 @@ func NewGetHealthzOK() *GetHealthzOK {
 	return &GetHealthzOK{}
 }
 
-/*GetHealthzOK handles this case with default header values.
+/*
+GetHealthzOK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewGetHealthzDefault(code int) *GetHealthzDefault {
 	}
 }
 
-/*GetHealthzDefault handles this case with default header values.
+/*
+GetHealthzDefault handles this case with default header values.
 
 GetHealthzDefault get healthz default
 */

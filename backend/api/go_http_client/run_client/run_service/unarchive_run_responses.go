@@ -49,7 +49,8 @@ func NewUnarchiveRunOK() *UnarchiveRunOK {
 	return &UnarchiveRunOK{}
 }
 
-/*UnarchiveRunOK handles this case with default header values.
+/*
+UnarchiveRunOK handles this case with default header values.
 
 A successful response.
 */
@@ -78,7 +79,8 @@ func NewUnarchiveRunDefault(code int) *UnarchiveRunDefault {
 	}
 }
 
-/*UnarchiveRunDefault handles this case with default header values.
+/*
+UnarchiveRunDefault handles this case with default header values.
 
 UnarchiveRunDefault unarchive run default
 */

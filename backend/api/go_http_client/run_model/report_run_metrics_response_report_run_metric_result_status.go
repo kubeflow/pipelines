@@ -15,10 +15,11 @@ import (
 )
 
 // ReportRunMetricsResponseReportRunMetricResultStatus  - UNSPECIFIED: Default value if not present.
-//  - OK: Indicates successful reporting.
-//  - INVALID_ARGUMENT: Indicates that the payload of the metric is invalid.
-//  - DUPLICATE_REPORTING: Indicates that the metric has been reported before.
-//  - INTERNAL_ERROR: Indicates that something went wrong in the server.
+//   - OK: Indicates successful reporting.
+//   - INVALID_ARGUMENT: Indicates that the payload of the metric is invalid.
+//   - DUPLICATE_REPORTING: Indicates that the metric has been reported before.
+//   - INTERNAL_ERROR: Indicates that something went wrong in the server.
+//
 // swagger:model ReportRunMetricsResponseReportRunMetricResultStatus
 type ReportRunMetricsResponseReportRunMetricResultStatus string
 

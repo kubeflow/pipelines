@@ -49,7 +49,8 @@ func NewGetPipelineVersionOK() *GetPipelineVersionOK {
 	return &GetPipelineVersionOK{}
 }
 
-/*GetPipelineVersionOK handles this case with default header values.
+/*
+GetPipelineVersionOK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewGetPipelineVersionDefault(code int) *GetPipelineVersionDefault {
 	}
 }
 
-/*GetPipelineVersionDefault handles this case with default header values.
+/*
+GetPipelineVersionDefault handles this case with default header values.
 
 GetPipelineVersionDefault get pipeline version default
 */

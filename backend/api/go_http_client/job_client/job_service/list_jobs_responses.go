@@ -49,7 +49,8 @@ func NewListJobsOK() *ListJobsOK {
 	return &ListJobsOK{}
 }
 
-/*ListJobsOK handles this case with default header values.
+/*
+ListJobsOK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewListJobsDefault(code int) *ListJobsDefault {
 	}
 }
 
-/*ListJobsDefault handles this case with default header values.
+/*
+ListJobsDefault handles this case with default header values.
 
 ListJobsDefault list jobs default
 */

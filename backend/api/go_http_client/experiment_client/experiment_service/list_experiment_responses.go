@@ -49,7 +49,8 @@ func NewListExperimentOK() *ListExperimentOK {
 	return &ListExperimentOK{}
 }
 
-/*ListExperimentOK handles this case with default header values.
+/*
+ListExperimentOK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewListExperimentDefault(code int) *ListExperimentDefault {
 	}
 }
 
-/*ListExperimentDefault handles this case with default header values.
+/*
+ListExperimentDefault handles this case with default header values.
 
 ListExperimentDefault list experiment default
 */

@@ -46,8 +46,9 @@ type SpecParameters []SpecParameter
 // i.e Workflow is for Argo, PipelineRun is for Tekton and etc.
 // Status related information will go to ExecutionStatus interface.
 // TODO: add more methods to make ExecutionSpec fullly represent Workflow. At the beginning
-//       phase, gradually add methods and not break the existing functions. Later on,
-//       other execution runtime support could be added too.
+//
+//	phase, gradually add methods and not break the existing functions. Later on,
+//	other execution runtime support could be added too.
 type ExecutionSpec interface {
 	// ExecutionType
 	ExecutionType() ExecutionType

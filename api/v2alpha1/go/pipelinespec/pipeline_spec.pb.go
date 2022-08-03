@@ -2005,12 +2005,16 @@ func (x *ArtifactList) GetArtifacts() []*RuntimeArtifact {
 // artifact.
 // `{{$.inputs.artifacts['<name>'].properties['<property name>']}}`: prints
 // the
-//   property of an input artifact.
+//
+//	property of an input artifact.
+//
 // `{{$.inputs.parameters['<name>']}}`: prints the value of an input
 // parameter.
 // `{{$.outputs.artifacts['<name>'].uri}}: prints the URI of an output artifact.
 // `{{$.outputs.artifacts['<name>'].properties['<property name>']}}`: prints the
-//   property of an output artifact.
+//
+//	property of an output artifact.
+//
 // `{{$.outputs.parameters['<name>'].output_file}}`: prints a file path which
 // points to a file and container can write to it to return the value of the
 // parameter..

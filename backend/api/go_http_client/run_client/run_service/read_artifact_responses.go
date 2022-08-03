@@ -49,7 +49,8 @@ func NewReadArtifactOK() *ReadArtifactOK {
 	return &ReadArtifactOK{}
 }
 
-/*ReadArtifactOK handles this case with default header values.
+/*
+ReadArtifactOK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewReadArtifactDefault(code int) *ReadArtifactDefault {
 	}
 }
 
-/*ReadArtifactDefault handles this case with default header values.
+/*
+ReadArtifactDefault handles this case with default header values.
 
 ReadArtifactDefault read artifact default
 */

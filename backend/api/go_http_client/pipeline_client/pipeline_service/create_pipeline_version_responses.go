@@ -49,7 +49,8 @@ func NewCreatePipelineVersionOK() *CreatePipelineVersionOK {
 	return &CreatePipelineVersionOK{}
 }
 
-/*CreatePipelineVersionOK handles this case with default header values.
+/*
+CreatePipelineVersionOK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewCreatePipelineVersionDefault(code int) *CreatePipelineVersionDefault {
 	}
 }
 
-/*CreatePipelineVersionDefault handles this case with default header values.
+/*
+CreatePipelineVersionDefault handles this case with default header values.
 
 CreatePipelineVersionDefault create pipeline version default
 */

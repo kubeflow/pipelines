@@ -49,7 +49,8 @@ func NewArchiveRunOK() *ArchiveRunOK {
 	return &ArchiveRunOK{}
 }
 
-/*ArchiveRunOK handles this case with default header values.
+/*
+ArchiveRunOK handles this case with default header values.
 
 A successful response.
 */
@@ -78,7 +79,8 @@ func NewArchiveRunDefault(code int) *ArchiveRunDefault {
 	}
 }
 
-/*ArchiveRunDefault handles this case with default header values.
+/*
+ArchiveRunDefault handles this case with default header values.
 
 ArchiveRunDefault archive run default
 */

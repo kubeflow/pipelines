@@ -49,7 +49,8 @@ func NewArchiveExperimentOK() *ArchiveExperimentOK {
 	return &ArchiveExperimentOK{}
 }
 
-/*ArchiveExperimentOK handles this case with default header values.
+/*
+ArchiveExperimentOK handles this case with default header values.
 
 A successful response.
 */
@@ -78,7 +79,8 @@ func NewArchiveExperimentDefault(code int) *ArchiveExperimentDefault {
 	}
 }
 
-/*ArchiveExperimentDefault handles this case with default header values.
+/*
+ArchiveExperimentDefault handles this case with default header values.
 
 ArchiveExperimentDefault archive experiment default
 */

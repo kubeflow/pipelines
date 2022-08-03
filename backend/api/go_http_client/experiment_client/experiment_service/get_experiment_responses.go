@@ -49,7 +49,8 @@ func NewGetExperimentOK() *GetExperimentOK {
 	return &GetExperimentOK{}
 }
 
-/*GetExperimentOK handles this case with default header values.
+/*
+GetExperimentOK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewGetExperimentDefault(code int) *GetExperimentDefault {
 	}
 }
 
-/*GetExperimentDefault handles this case with default header values.
+/*
+GetExperimentDefault handles this case with default header values.
 
 GetExperimentDefault get experiment default
 */

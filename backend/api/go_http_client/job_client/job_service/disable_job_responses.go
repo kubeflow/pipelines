@@ -49,7 +49,8 @@ func NewDisableJobOK() *DisableJobOK {
 	return &DisableJobOK{}
 }
 
-/*DisableJobOK handles this case with default header values.
+/*
+DisableJobOK handles this case with default header values.
 
 A successful response.
 */
@@ -78,7 +79,8 @@ func NewDisableJobDefault(code int) *DisableJobDefault {
 	}
 }
 
-/*DisableJobDefault handles this case with default header values.
+/*
+DisableJobDefault handles this case with default header values.
 
 DisableJobDefault disable job default
 */

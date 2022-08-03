@@ -49,7 +49,8 @@ func NewDeletePipelineVersionOK() *DeletePipelineVersionOK {
 	return &DeletePipelineVersionOK{}
 }
 
-/*DeletePipelineVersionOK handles this case with default header values.
+/*
+DeletePipelineVersionOK handles this case with default header values.
 
 A successful response.
 */
@@ -78,7 +79,8 @@ func NewDeletePipelineVersionDefault(code int) *DeletePipelineVersionDefault {
 	}
 }
 
-/*DeletePipelineVersionDefault handles this case with default header values.
+/*
+DeletePipelineVersionDefault handles this case with default header values.
 
 DeletePipelineVersionDefault delete pipeline version default
 */

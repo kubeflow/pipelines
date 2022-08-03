@@ -56,7 +56,8 @@ func NewEnableJobParamsWithHTTPClient(client *http.Client) *EnableJobParams {
 	}
 }
 
-/*EnableJobParams contains all the parameters to send to the API endpoint
+/*
+EnableJobParams contains all the parameters to send to the API endpoint
 for the enable job operation typically these are written to a http.Request
 */
 type EnableJobParams struct {

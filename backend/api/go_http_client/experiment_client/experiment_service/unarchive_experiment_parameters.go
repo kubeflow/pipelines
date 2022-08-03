@@ -56,7 +56,8 @@ func NewUnarchiveExperimentParamsWithHTTPClient(client *http.Client) *UnarchiveE
 	}
 }
 
-/*UnarchiveExperimentParams contains all the parameters to send to the API endpoint
+/*
+UnarchiveExperimentParams contains all the parameters to send to the API endpoint
 for the unarchive experiment operation typically these are written to a http.Request
 */
 type UnarchiveExperimentParams struct {

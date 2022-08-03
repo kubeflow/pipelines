@@ -49,7 +49,8 @@ func NewListRunsOK() *ListRunsOK {
 	return &ListRunsOK{}
 }
 
-/*ListRunsOK handles this case with default header values.
+/*
+ListRunsOK handles this case with default header values.
 
 A successful response.
 */
@@ -80,7 +81,8 @@ func NewListRunsDefault(code int) *ListRunsDefault {
 	}
 }
 
-/*ListRunsDefault handles this case with default header values.
+/*
+ListRunsDefault handles this case with default header values.
 
 ListRunsDefault list runs default
 */
