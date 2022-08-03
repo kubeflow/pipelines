@@ -625,14 +625,10 @@ class Compiler:
                     task2=task,
                 )
 
-                # If a task depends on a condition group or a loop group, it
-                # must explicitly dependent on a task inside the group. This
-                # should not be allowed, because it leads to ambiguous
-                # expectations for runtime behaviors.
+                # a task cannot depend on a task created in a for loop group since individual PipelineTask variables are reassigned after each loop iteration
                 dependent_group = group_name_to_group.get(
                     upstream_groups[0], None)
-                if isinstance(dependent_group,
-                              (tasks_group.Condition, tasks_group.ParallelFor)):
+                if isinstance(dependent_group, tasks_group.ParallelFor):
                     raise RuntimeError(
                         f'Task {task.name} cannot dependent on any task inside'
                         f' the group: {upstream_groups[0]}.')

@@ -440,29 +440,6 @@ class TestCompilePipeline(parameterized.TestCase):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='result.yaml')
 
-    def test_invalid_after_dependency(self):
-
-        @dsl.component
-        def producer_op() -> str:
-            return 'a'
-
-        @dsl.component
-        def dummy_op(msg: str = ''):
-            pass
-
-        @dsl.pipeline(name='test-pipeline')
-        def my_pipeline(text: str):
-            with dsl.Condition(text == 'a'):
-                producer_task = producer_op()
-
-            dummy_op().after(producer_task)
-
-        with self.assertRaisesRegex(
-                RuntimeError,
-                'Task dummy-op cannot dependent on any task inside the group:'):
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='result.yaml')
-
     def test_invalid_data_dependency(self):
 
         @dsl.component
@@ -485,6 +462,25 @@ class TestCompilePipeline(parameterized.TestCase):
                 'Task dummy-op cannot dependent on any task inside the group:'):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='result.yaml')
+
+    def test_valid_data_dependency(self):
+
+        @dsl.component
+        def producer_op() -> str:
+            return 'a'
+
+        @dsl.component
+        def dummy_op(msg: str = ''):
+            pass
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(text: bool):
+            with dsl.ParallelFor(['a, b']):
+                producer_task = producer_op()
+                dummy_op(msg=producer_task.output)
+
+        compiler.Compiler().compile(
+            pipeline_func=my_pipeline, package_path='result.yaml')
 
     def test_use_task_final_status_in_non_exit_op(self):
 
