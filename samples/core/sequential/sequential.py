@@ -14,7 +14,10 @@
 # limitations under the License.
 
 
-from kfp.deprecated import dsl, compiler
+try:
+    from kfp.deprecated import dsl, compiler
+except ModuleNotFoundError:
+    from kfp import dsl, compiler
 
 
 def gcs_download_op(url):
