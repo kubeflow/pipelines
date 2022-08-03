@@ -484,17 +484,6 @@ message PipelineTaskSpec {
     // Iterator to iterate over a parameter input.
     ParameterIteratorSpec parameter_iterator = 10;
   }
-
-  // Iterator related settings.
-  message IteratorPolicy {
-    // The limit for the number of concurrent sub-tasks spawned by an iterator
-    // task. The value should be a non-negative integer. A value of 0 represents
-    // unconstrained parallelism.
-    int32 parallelism_limit = 1;
-  }
-
-  // Iterator related settings.
-  IteratorPolicy iterator_policy = 12;
 }
 
 // The spec of an artifact iterator. It supports fan-out a workflow from a list
