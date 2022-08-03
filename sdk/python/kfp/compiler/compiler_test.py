@@ -1125,5 +1125,57 @@ class TestSetRetryCompilation(unittest.TestCase):
         self.assertEqual(retry_policy.backoff_max_duration.seconds, 3600)
 
 
+from google.protobuf import json_format
+
+
+class TestMultipleExitHandlerCompilation(unittest.TestCase):
+
+    def test(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+        def my_pipeline():
+            first_exit_task = print_op(message='First exit task.')
+
+            with dsl.ExitHandler(first_exit_task):
+                print_op(message='Inside first exit handler.')
+
+            second_exit_task = print_op(message='Second exit task.')
+            with dsl.ExitHandler(second_exit_task):
+                print_op(message='Inside second exit handler.')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+            pipeline_spec = pipeline_spec_from_file(package_path)
+        # check that the exit handler dags exist
+        self.assertEqual(
+            pipeline_spec.components['comp-exit-handler-1'].dag
+            .tasks['print-op-2'].inputs.parameters['message'].runtime_value
+            .constant.string_value, 'Inside first exit handler.')
+        self.assertEqual(
+            pipeline_spec.components['comp-exit-handler-2'].dag
+            .tasks['print-op-4'].inputs.parameters['message'].runtime_value
+            .constant.string_value, 'Inside second exit handler.')
+        # check that the exit handler dags are in the root dag
+        self.assertIn('exit-handler-1', pipeline_spec.root.dag.tasks)
+        self.assertIn('exit-handler-2', pipeline_spec.root.dag.tasks)
+        # check that the exit tasks are in the root dag
+        self.assertIn('print-op', pipeline_spec.root.dag.tasks)
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['print-op'].inputs
+            .parameters['message'].runtime_value.constant.string_value,
+            'First exit task.')
+        self.assertIn('print-op-3', pipeline_spec.root.dag.tasks)
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['print-op-3'].inputs
+            .parameters['message'].runtime_value.constant.string_value,
+            'Second exit task.')
+
+
 if __name__ == '__main__':
     unittest.main()
