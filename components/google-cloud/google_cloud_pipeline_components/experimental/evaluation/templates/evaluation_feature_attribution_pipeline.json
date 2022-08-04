@@ -39,11 +39,7 @@
                 },
                 "parameters": {
                   "class_names": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--evaluation_class_names"
                   },
                   "classification_type": {
                     "runtimeValue": {
@@ -124,25 +120,13 @@
                     }
                   },
                   "prediction_label_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--evaluation_prediction_label_column"
                   },
                   "prediction_score_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--evaluation_prediction_score_column"
                   },
                   "predictions_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_predictions_format"
                   },
                   "problem_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
@@ -174,11 +158,7 @@
                 },
                 "parameters": {
                   "class_names": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--evaluation_class_names"
                   },
                   "classification_type": {
                     "runtimeValue": {
@@ -259,25 +239,13 @@
                     }
                   },
                   "prediction_label_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--evaluation_prediction_label_column"
                   },
                   "prediction_score_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--evaluation_prediction_score_column"
                   },
                   "predictions_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_predictions_format"
                   },
                   "problem_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
@@ -384,6 +352,9 @@
             "pipelineparam--batch_predict_instances_format": {
               "type": "STRING"
             },
+            "pipelineparam--batch_predict_predictions_format": {
+              "type": "STRING"
+            },
             "pipelineparam--dataflow_disk_size_gb": {
               "type": "INT"
             },
@@ -403,6 +374,15 @@
               "type": "STRING"
             },
             "pipelineparam--encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "pipelineparam--evaluation_class_names": {
+              "type": "STRING"
+            },
+            "pipelineparam--evaluation_prediction_label_column": {
+              "type": "STRING"
+            },
+            "pipelineparam--evaluation_prediction_score_column": {
               "type": "STRING"
             },
             "pipelineparam--ground_truth_key_columns": {
@@ -572,18 +552,10 @@
                     }
                   },
                   "prediction_score_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--evaluation_prediction_score_column"
                   },
                   "predictions_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_predictions_format"
                   },
                   "problem_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
@@ -707,18 +679,10 @@
                     }
                   },
                   "prediction_score_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--evaluation_prediction_score_column"
                   },
                   "predictions_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_predictions_format"
                   },
                   "problem_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
@@ -825,6 +789,9 @@
             "pipelineparam--batch_predict_instances_format": {
               "type": "STRING"
             },
+            "pipelineparam--batch_predict_predictions_format": {
+              "type": "STRING"
+            },
             "pipelineparam--dataflow_disk_size_gb": {
               "type": "INT"
             },
@@ -844,6 +811,9 @@
               "type": "STRING"
             },
             "pipelineparam--encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "pipelineparam--evaluation_prediction_score_column": {
               "type": "STRING"
             },
             "pipelineparam--ground_truth_key_columns": {
@@ -1013,18 +983,10 @@
                     }
                   },
                   "prediction_score_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--evaluation_prediction_score_column"
                   },
                   "predictions_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_predictions_format"
                   },
                   "problem_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
@@ -1148,18 +1110,10 @@
                     }
                   },
                   "prediction_score_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--evaluation_prediction_score_column"
                   },
                   "predictions_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_predictions_format"
                   },
                   "problem_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
@@ -1266,6 +1220,9 @@
             "pipelineparam--batch_predict_instances_format": {
               "type": "STRING"
             },
+            "pipelineparam--batch_predict_predictions_format": {
+              "type": "STRING"
+            },
             "pipelineparam--dataflow_disk_size_gb": {
               "type": "INT"
             },
@@ -1285,6 +1242,9 @@
               "type": "STRING"
             },
             "pipelineparam--encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "pipelineparam--evaluation_prediction_score_column": {
               "type": "STRING"
             },
             "pipelineparam--ground_truth_key_columns": {
@@ -3226,6 +3186,9 @@
                 "pipelineparam--batch_predict_instances_format": {
                   "componentInputParameter": "batch_predict_instances_format"
                 },
+                "pipelineparam--batch_predict_predictions_format": {
+                  "componentInputParameter": "batch_predict_predictions_format"
+                },
                 "pipelineparam--dataflow_disk_size_gb": {
                   "componentInputParameter": "dataflow_disk_size_gb"
                 },
@@ -3246,6 +3209,15 @@
                 },
                 "pipelineparam--encryption_spec_key_name": {
                   "componentInputParameter": "encryption_spec_key_name"
+                },
+                "pipelineparam--evaluation_class_names": {
+                  "componentInputParameter": "evaluation_class_names"
+                },
+                "pipelineparam--evaluation_prediction_label_column": {
+                  "componentInputParameter": "evaluation_prediction_label_column"
+                },
+                "pipelineparam--evaluation_prediction_score_column": {
+                  "componentInputParameter": "evaluation_prediction_score_column"
                 },
                 "pipelineparam--ground_truth_key_columns": {
                   "componentInputParameter": "ground_truth_key_columns"
@@ -3311,6 +3283,9 @@
                 "pipelineparam--batch_predict_instances_format": {
                   "componentInputParameter": "batch_predict_instances_format"
                 },
+                "pipelineparam--batch_predict_predictions_format": {
+                  "componentInputParameter": "batch_predict_predictions_format"
+                },
                 "pipelineparam--dataflow_disk_size_gb": {
                   "componentInputParameter": "dataflow_disk_size_gb"
                 },
@@ -3331,6 +3306,9 @@
                 },
                 "pipelineparam--encryption_spec_key_name": {
                   "componentInputParameter": "encryption_spec_key_name"
+                },
+                "pipelineparam--evaluation_prediction_score_column": {
+                  "componentInputParameter": "evaluation_prediction_score_column"
                 },
                 "pipelineparam--ground_truth_key_columns": {
                   "componentInputParameter": "ground_truth_key_columns"
@@ -3396,6 +3374,9 @@
                 "pipelineparam--batch_predict_instances_format": {
                   "componentInputParameter": "batch_predict_instances_format"
                 },
+                "pipelineparam--batch_predict_predictions_format": {
+                  "componentInputParameter": "batch_predict_predictions_format"
+                },
                 "pipelineparam--dataflow_disk_size_gb": {
                   "componentInputParameter": "dataflow_disk_size_gb"
                 },
@@ -3416,6 +3397,9 @@
                 },
                 "pipelineparam--encryption_spec_key_name": {
                   "componentInputParameter": "encryption_spec_key_name"
+                },
+                "pipelineparam--evaluation_prediction_score_column": {
+                  "componentInputParameter": "evaluation_prediction_score_column"
                 },
                 "pipelineparam--ground_truth_key_columns": {
                   "componentInputParameter": "ground_truth_key_columns"
@@ -3624,11 +3608,7 @@
                   }
                 },
                 "encryption_spec_key_name": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": ""
-                    }
-                  }
+                  "componentInputParameter": "encryption_spec_key_name"
                 },
                 "explanation_metadata": {
                   "runtimeValue": {
@@ -3701,11 +3681,7 @@
                   }
                 },
                 "predictions_format": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "jsonl"
-                    }
-                  }
+                  "componentInputParameter": "batch_predict_predictions_format"
                 },
                 "project": {
                   "componentInputParameter": "project"
@@ -3769,11 +3745,7 @@
                   }
                 },
                 "encryption_spec_key_name": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": ""
-                    }
-                  }
+                  "componentInputParameter": "encryption_spec_key_name"
                 },
                 "explanation_metadata": {
                   "componentInputParameter": "batch_predict_explanation_metadata"
@@ -3838,11 +3810,7 @@
                   }
                 },
                 "predictions_format": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "jsonl"
-                    }
-                  }
+                  "componentInputParameter": "batch_predict_predictions_format"
                 },
                 "project": {
                   "componentInputParameter": "project"
@@ -3881,6 +3849,9 @@
           "batch_predict_max_replica_count": {
             "type": "INT"
           },
+          "batch_predict_predictions_format": {
+            "type": "STRING"
+          },
           "batch_predict_starting_replica_count": {
             "type": "INT"
           },
@@ -3903,6 +3874,15 @@
             "type": "STRING"
           },
           "encryption_spec_key_name": {
+            "type": "STRING"
+          },
+          "evaluation_class_names": {
+            "type": "STRING"
+          },
+          "evaluation_prediction_label_column": {
+            "type": "STRING"
+          },
+          "evaluation_prediction_score_column": {
             "type": "STRING"
           },
           "ground_truth_key_columns": {
@@ -3989,6 +3969,9 @@
       "batch_predict_max_replica_count": {
         "intValue": "10"
       },
+      "batch_predict_predictions_format": {
+        "stringValue": "jsonl"
+      },
       "batch_predict_starting_replica_count": {
         "intValue": "5"
       },
@@ -3999,7 +3982,7 @@
         "stringValue": "n1-standard-4"
       },
       "dataflow_max_num_workers": {
-        "intValue": "25"
+        "intValue": "5"
       },
       "dataflow_service_account": {
         "stringValue": ""
@@ -4012,6 +3995,15 @@
       },
       "encryption_spec_key_name": {
         "stringValue": ""
+      },
+      "evaluation_class_names": {
+        "stringValue": "[]"
+      },
+      "evaluation_prediction_label_column": {
+        "stringValue": ""
+      },
+      "evaluation_prediction_score_column": {
+        "stringValue": "prediction"
       }
     }
   }
