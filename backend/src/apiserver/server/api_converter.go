@@ -152,26 +152,30 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 	return apiParams, nil
 }
 
-func toApiRuntimeParameters(paramsString string) (map[string]*structpb.Value, error) {
-	if paramsString == "" {
-		return make(map[string]*structpb.Value), nil
-	}
-	runtimeParamsStringsMap := make(map[string]string)
-	err := json.Unmarshal([]byte(paramsString), &runtimeParamsStringsMap)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "Cannot unmarshal RuntimeConfig Parameter to map[string]string")
-	}
-	runtimeParams := make(map[string]*structpb.Value)
-	for k, v := range runtimeParamsStringsMap {
-		protoValue := structpb.NewStringValue("")
-		err := protoValue.UnmarshalJSON([]byte(v))
+func toApiRuntimeConfig(modelRuntime model.RuntimeConfig) (*api.PipelineSpec_RuntimeConfig, error) {
+	// Convert RuntimeConfig.Parameters
+	var runtimeParamsStringsMap map[string]string
+	var runtimeParams map[string]*structpb.Value
+	if modelRuntime.Parameters != "" {
+		err := json.Unmarshal([]byte(modelRuntime.Parameters), &runtimeParamsStringsMap)
 		if err != nil {
-			errorMessage := fmt.Sprintf("Cannot unmarshal string %+v to structpb.Value", v)
-			return nil, util.NewInternalServerError(err, errorMessage)
+			return nil, util.NewInternalServerError(err, fmt.Sprintf("Cannot unmarshal RuntimeConfig Parameter to map[string]string, string value: %+v", modelRuntime.Parameters))
 		}
-		runtimeParams[k] = protoValue
+		runtimeParams = make(map[string]*structpb.Value)
+		for k, v := range runtimeParamsStringsMap {
+			var protoValue structpb.Value
+			err := protoValue.UnmarshalJSON([]byte(v))
+			if err != nil {
+				return nil, util.NewInternalServerError(err, fmt.Sprintf("Cannot unmarshal string %+v to structpb.Value", v))
+			}
+			runtimeParams[k] = &protoValue
+		}
 	}
-	return runtimeParams, nil
+	apiRuntimeConfig := &api.PipelineSpec_RuntimeConfig{
+		Parameters:   runtimeParams,
+		PipelineRoot: modelRuntime.PipelineRoot,
+	}
+	return apiRuntimeConfig, nil
 }
 
 func toApiRun(run *model.Run) *api.Run {
@@ -183,8 +187,8 @@ func toApiRun(run *model.Run) *api.Run {
 			Error: err.Error(),
 		}
 	}
-	// v2 parameters
-	runtimeParams, err := toApiRuntimeParameters(run.PipelineSpec.RuntimeConfig.Parameters)
+	// v2 RuntimeConfig
+	runtimeConfig, err := toApiRuntimeConfig(run.PipelineSpec.RuntimeConfig)
 	if err != nil {
 		return &api.Run{
 			Id:    run.UUID,
@@ -214,10 +218,7 @@ func toApiRun(run *model.Run) *api.Run {
 			WorkflowManifest: run.WorkflowSpecManifest,
 			PipelineManifest: run.PipelineSpecManifest,
 			Parameters:       params,
-			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
-				Parameters:   runtimeParams,
-				PipelineRoot: run.PipelineSpec.RuntimeConfig.PipelineRoot,
-			},
+			RuntimeConfig:    runtimeConfig,
 		},
 		ResourceReferences: toApiResourceReferences(run.ResourceReferences),
 	}
