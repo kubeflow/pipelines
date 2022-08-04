@@ -25,10 +25,11 @@ import {
   filterEventWithInputArtifact,
   filterEventWithOutputArtifact,
   getArtifactName,
+  getArtifactTypes,
   getLinkedArtifactsByExecution,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
-import { Execution } from 'src/third_party/mlmd';
+import { ArtifactType, Execution } from 'src/third_party/mlmd';
 import ArtifactPreview from '../ArtifactPreview';
 import Banner from '../Banner';
 import DetailsTable from '../DetailsTable';
@@ -49,20 +50,44 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
   // TODO(jlyaoyuli): Display other information (container, args, image, command)
 
   // Retrieves input and output artifacts from Metadata store.
-  const { isSuccess, error, data } = useQuery<LinkedArtifact[], Error>(
+  const { isSuccess, error, data: linkedArtifacts } = useQuery<LinkedArtifact[], Error>(
     ['execution_artifact', { id: executionId, state: execution.getLastKnownState() }],
     () => getLinkedArtifactsByExecution(execution),
     { staleTime: Infinity },
   );
+
+  const { data: artifactTypes } = useQuery<ArtifactType[], Error>(
+    ['artifact_types', { linkedArtifact: linkedArtifacts }],
+    () => getArtifactTypes(),
+    {},
+  );
+
+  let artifactTypeNames: string[] = [];
+  if (linkedArtifacts && artifactTypes) {
+    Object.values(linkedArtifacts).forEach(linkedArtifact => {
+      const artifactType = artifactTypes.filter(
+        aType => aType.getId() === linkedArtifact.artifact.getTypeId(),
+      );
+      if (artifactType.length === 1 && artifactType[0].getName()) {
+        artifactTypeNames.push(artifactType[0].getName());
+      }
+    });
+  }
 
   // Restructs artifacts and parameters for visualization.
   const inputParams = extractInputFromExecution(execution);
   const outputParams = extractOutputFromExecution(execution);
   let inputArtifacts: ParamList = [];
   let outputArtifacts: ParamList = [];
-  if (isSuccess && data) {
-    inputArtifacts = getArtifactParamList(filterEventWithInputArtifact(data), '');
-    outputArtifacts = getArtifactParamList(filterEventWithOutputArtifact(data), '');
+  if (isSuccess && linkedArtifacts) {
+    inputArtifacts = getArtifactParamList(
+      filterEventWithInputArtifact(linkedArtifacts),
+      artifactTypeNames,
+    );
+    outputArtifacts = getArtifactParamList(
+      filterEventWithOutputArtifact(linkedArtifacts),
+      artifactTypeNames,
+    );
   }
 
   let isIoEmpty = false;
@@ -173,13 +198,14 @@ function extractParamFromExecution(execution: Execution, name: string): KeyValue
 
 export function getArtifactParamList(
   inputArtifacts: LinkedArtifact[],
-  artifactTypeName: string,
+  artifactTypeNames: string[],
 ): ParamList {
-  return inputArtifacts.map(linkedArtifact => {
+  return Object.values(inputArtifacts).map((linkedArtifact, index) => {
     let key = getArtifactName(linkedArtifact);
     if (
       key &&
-      (artifactTypeName === 'system.Metrics' || artifactTypeName === 'system.ClassificationMetrics')
+      (artifactTypeNames[index] === 'system.Metrics' ||
+        artifactTypeNames[index] === 'system.ClassificationMetrics')
     ) {
       key += ' (This is an empty file by default)';
     }

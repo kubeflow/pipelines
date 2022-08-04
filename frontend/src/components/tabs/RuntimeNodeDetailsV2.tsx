@@ -281,7 +281,7 @@ function ArtifactInfo({
         <DetailsTable<string>
           key={`artifact-url`}
           title='Artifact URL'
-          fields={getArtifactParamList([linkedArtifact], artifactTypeName)}
+          fields={getArtifactParamList([linkedArtifact], [artifactTypeName])}
           valueComponent={ArtifactPreview}
           valueComponentProps={{
             namespace: namespace,
