@@ -204,7 +204,7 @@ const getFullArtifactPath = (
 export const getScalarTableProps = (
   scalarMetricsArtifacts: RunArtifact[],
   artifactCount: number,
-): CompareTableProps => {
+): CompareTableProps | undefined => {
   const scalarTableData = getScalarTableData(scalarMetricsArtifacts, artifactCount);
 
   // Sort by decreasing data item count.
@@ -217,6 +217,11 @@ export const getScalarTableProps = (
     yLabels.push(sortedDataItem[0]);
     rows.push(sortedDataItem[1].row);
   }
+
+  if (scalarTableData.xLabels.length === 0 || yLabels.length === 0) {
+    return undefined;
+  }
+
   return {
     xLabels: scalarTableData.xLabels,
     yLabels,

@@ -128,12 +128,7 @@ function newMockLinkedArtifact(
 testBestPractices();
 describe('CompareUtils', () => {
   it('Empty scalar metrics artifacts results in empty table data', () => {
-    expect(getScalarTableProps([], 0)).toMatchObject({
-      xLabels: [],
-      yLabels: [],
-      xParentLabels: [],
-      rows: [],
-    });
+    expect(getScalarTableProps([], 0)).toBeUndefined();
   });
 
   it('Scalar metrics artifacts with all data and names populated', () => {

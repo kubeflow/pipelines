@@ -347,15 +347,12 @@ function CompareV2(props: CompareV2Props) {
         artifactTypes,
         MetricsType.SCALAR_METRICS,
       );
-      const compareTableProps: CompareTableProps = getScalarTableProps(
-        scalarMetricsArtifactData.runArtifacts,
-        scalarMetricsArtifactData.artifactCount,
+      setScalarMetricsTableData(
+        getScalarTableProps(
+          scalarMetricsArtifactData.runArtifacts,
+          scalarMetricsArtifactData.artifactCount,
+        ),
       );
-      if (compareTableProps.yLabels.length === 0) {
-        setScalarMetricsTableData(undefined);
-      } else {
-        setScalarMetricsTableData(compareTableProps);
-      }
 
       setConfusionMatrixRunArtifacts(
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX)
