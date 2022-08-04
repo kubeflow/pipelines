@@ -3,7 +3,7 @@
 set -ex
 
 # 1. Install yarn
-npm install yarn
+npm install -D yarn
 
 # 2. Set up yarn: It will convert from package.json to yarn.lock
 npx yarn install
