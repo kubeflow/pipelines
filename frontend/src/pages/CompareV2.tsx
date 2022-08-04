@@ -195,7 +195,7 @@ function CompareTableSection(props: CompareTableSectionParams) {
 
   if (isLoading) {
     return (
-      <div className={compareCss.relativeContainer}>
+      <div className={compareCss.smallRelativeContainer}>
         <CircularProgress
           size={25}
           className={commonCss.absoluteCenter}

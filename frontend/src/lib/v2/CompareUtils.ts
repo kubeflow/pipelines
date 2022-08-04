@@ -25,6 +25,10 @@ import { stylesheet } from 'typestyle';
 import { RuntimeParameters } from 'src/pages/NewRunV2';
 
 export const compareCss = stylesheet({
+  smallRelativeContainer: {
+    position: 'relative',
+    height: '10rem',
+  },
   relativeContainer: {
     position: 'relative',
     height: '30rem',
