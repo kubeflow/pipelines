@@ -66,10 +66,6 @@ class BaseComponent(abc.ABC):
             if k not in self._component_inputs:
                 raise TypeError(
                     f'{self.name}() got an unexpected keyword argument "{k}".')
-
-            if k in task_inputs:
-                raise TypeError(
-                    f'{self.name}() got multiple values for argument "{k}".')
             task_inputs[k] = v
 
         # Skip optional inputs and arguments typed as PipelineTaskFinalStatus.
