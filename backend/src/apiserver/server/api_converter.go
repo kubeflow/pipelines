@@ -16,6 +16,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"

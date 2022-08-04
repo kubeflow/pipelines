@@ -258,7 +258,7 @@ func TestToModelRunDetail(t *testing.T) {
 					PipelineSpec: model.PipelineSpec{
 						PipelineSpecManifest: "pipeline spec",
 						RuntimeConfig: model.RuntimeConfig{
-							Parameters: "{\"param2\":\"\\\"world\\\"\",\"param3\":\"true\",\"param4\":\"[1, 2, 3]\",\"param5\":\"12\",\"param6\":\"{\\\"structParam1\\\":\\\"hello\\\", \\\"structParam2\\\":32}\"}",
+							Parameters: "{\"param2\":\"\\\"world\\\"\",\"param3\":\"true\",\"param4\":\"[1,2,3]\",\"param5\":\"12\",\"param6\":\"{\\\"structParam1\\\":\\\"hello\\\",\\\"structParam2\\\":32}\"}",
 						},
 					},
 					ResourceReferences: []*model.ResourceReference{
