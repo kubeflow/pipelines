@@ -598,6 +598,9 @@ implementation:
             with dsl.ParallelFor(loop_args=json_str) as item:
                 print_op(item)
 
+            with dsl.ParallelFor(loop_args=json_str, parallelism=0) as item:
+                print_op(item)
+
         with tempfile.TemporaryDirectory() as tempdir:
             package_path = os.path.join(tempdir, 'pipeline.json')
             compiler.Compiler().compile(
@@ -605,10 +608,15 @@ implementation:
             with open(package_path, 'r') as f:
                 pipeline_spec_dict = yaml.safe_load(f)
 
-        for_loop = pipeline_spec_dict['pipelineSpec']['root']['dag']['tasks'][
+        for_loop_1 = pipeline_spec_dict['pipelineSpec']['root']['dag']['tasks'][
             'for-loop-1']
         with self.assertRaises(KeyError):
-            for_loop['iteratorPolicy']
+            for_loop_1['iteratorPolicy']
+
+        for_loop_2 = pipeline_spec_dict['pipelineSpec']['root']['dag']['tasks'][
+            'for-loop-2']
+        with self.assertRaises(KeyError):
+            for_loop_2['iteratorPolicy']
 
 
 if __name__ == '__main__':
