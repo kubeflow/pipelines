@@ -91,6 +91,7 @@ export const getParamsTableProps = (runs: ApiRunDetail[]): CompareTableProps => 
     const runId: string = run.run!.id!;
     const parameters: RunParameters | undefined =
       run.run?.pipeline_spec?.runtime_config?.parameters;
+    console.log(parameters);
     if (!parameters) {
       throw new Error(
         `The parameters could not be fetched for the run with the following ID: ${runId}`,
@@ -110,7 +111,13 @@ export const getParamsTableProps = (runs: ApiRunDetail[]): CompareTableProps => 
     .value();
 
   const rows: string[][] = yLabels.map(yLabel => {
-    return runs.map(run => dataMap[run.run!.id!][yLabel]);
+    return runs.map(run => {
+      // Determine the type of the object here.
+      console.log(JSON.stringify(dataMap[run.run!.id!][yLabel]));
+      const dataValue = dataMap[run.run!.id!][yLabel];
+      
+      return dataValue === undefined ? '' : JSON.stringify(dataValue);
+    });
   });
 
   return {
