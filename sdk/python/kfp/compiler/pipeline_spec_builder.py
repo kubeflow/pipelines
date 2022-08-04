@@ -13,14 +13,12 @@
 # limitations under the License.
 """Functions for creating PipelineSpec proto objects."""
 
-import collections
 import json
 import re
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
 from google.protobuf import json_format
 from google.protobuf import struct_pb2
-import kfp
 from kfp import dsl
 from kfp.compiler import pipeline_spec_builder as builder
 from kfp.components import for_loop
@@ -1186,44 +1184,53 @@ def build_spec_by_group(
     )
 
 
-def build_exit_handler_group(
-    group: tasks_group.TasksGroup,
+def build_exit_handler_groups_recursively(
+    parent_group: tasks_group.TasksGroup,
     pipeline_spec: pipeline_spec_pb2.PipelineSpec,
     deployment_config: pipeline_spec_pb2.PipelineDeploymentConfig,
 ):
-    exit_task = group.exit_task
-    exit_task_name = component_utils.sanitize_task_name(exit_task.name)
-    exit_handler_group_task_name = component_utils.sanitize_task_name(
-        group.name)
+    if not parent_group.groups:
+        return
+    for group in parent_group.groups:
+        if isinstance(group, dsl.ExitHandler):
+            exit_task = group.exit_task
+            exit_task_name = utils.sanitize_task_name(exit_task.name)
+            exit_handler_group_task_name = utils.sanitize_task_name(group.name)
 
-    exit_task_task_spec = builder.build_task_spec_for_exit_task(
-        task=exit_task,
-        dependent_task=exit_handler_group_task_name,
-        pipeline_inputs=pipeline_spec.root.input_definitions,
-    )
+            exit_task_task_spec = builder.build_task_spec_for_exit_task(
+                task=exit_task,
+                dependent_task=exit_handler_group_task_name,
+                pipeline_inputs=pipeline_spec.root.input_definitions,
+            )
 
-    exit_task_component_spec = builder.build_component_spec_for_exit_task(
-        task=exit_task)
+            exit_task_component_spec = builder.build_component_spec_for_exit_task(
+                task=exit_task)
 
-    exit_task_container_spec = builder.build_container_spec_for_task(
-        task=exit_task)
+            exit_task_container_spec = builder.build_container_spec_for_task(
+                task=exit_task)
 
-    # Add exit task task spec
-    pipeline_spec.root.dag.tasks[exit_task_name].CopyFrom(exit_task_task_spec)
+            parent_dag = pipeline_spec.root.dag if parent_group.is_root else pipeline_spec.components[
+                utils.sanitize_component_name(parent_group.name)].dag
 
-    # Add exit task component spec if it does not exist.
-    component_name = exit_task_task_spec.component_ref.name
-    if component_name not in pipeline_spec.components:
-        pipeline_spec.components[component_name].CopyFrom(
-            exit_task_component_spec)
+            parent_dag.tasks[exit_task_name].CopyFrom(exit_task_task_spec)
 
-    # Add exit task container spec if it does not exist.
-    executor_label = exit_task_component_spec.executor_label
-    if executor_label not in deployment_config.executors:
-        deployment_config.executors[executor_label].container.CopyFrom(
-            exit_task_container_spec)
-        pipeline_spec.deployment_spec.update(
-            json_format.MessageToDict(deployment_config))
+            # Add exit task component spec if it does not exist.
+            component_name = exit_task_task_spec.component_ref.name
+            if component_name not in pipeline_spec.components:
+                pipeline_spec.components[component_name].CopyFrom(
+                    exit_task_component_spec)
+
+            # Add exit task container spec if it does not exist.
+            executor_label = exit_task_component_spec.executor_label
+            if executor_label not in deployment_config.executors:
+                deployment_config.executors[executor_label].container.CopyFrom(
+                    exit_task_container_spec)
+                pipeline_spec.deployment_spec.update(
+                    json_format.MessageToDict(deployment_config))
+        build_exit_handler_groups_recursively(
+            parent_group=group,
+            pipeline_spec=pipeline_spec,
+            deployment_config=deployment_config)
 
 
 def get_parent_groups(

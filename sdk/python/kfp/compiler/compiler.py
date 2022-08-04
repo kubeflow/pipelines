@@ -260,10 +260,11 @@ class Compiler:
                 name_to_for_loop_group=name_to_for_loop_group,
             )
 
-        for group in all_groups:
-            if isinstance(group, dsl.ExitHandler):
-                builder.build_exit_handler_group(group, pipeline_spec,
-                                                 deployment_config)
+        builder.build_exit_handler_groups_recursively(
+            parent_group=root_group,
+            pipeline_spec=pipeline_spec,
+            deployment_config=deployment_config,
+        )
 
         return pipeline_spec
 
