@@ -86,6 +86,7 @@ function NewRunSwitcher(props: PageProps) {
         <NewRunV2
           {...props}
           namespace={namespace}
+          originalRunId={originalRunId}
           apiRun={apiRun}
           apiPipeline={apiPipeline}
           apiPipelineVersion={apiPipelineVersion}

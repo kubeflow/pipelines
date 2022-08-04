@@ -142,6 +142,7 @@ describe('NewRunV2', () => {
       <CommonTestWrapper>
         <NewRunV2
           {...generatePropsNewRun()}
+          originalRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
           apiRun={undefined}
           apiPipeline={TEST_PIPELINE}
           apiPipelineVersion={TEST_PIPELINE_VERSION}
@@ -173,6 +174,7 @@ describe('NewRunV2', () => {
       <CommonTestWrapper>
         <NewRunV2
           {...generatePropsNewRun()}
+          originalRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
           apiRun={undefined}
           apiPipeline={TEST_PIPELINE}
           apiPipelineVersion={TEST_PIPELINE_VERSION}
@@ -201,6 +203,7 @@ describe('NewRunV2', () => {
       <CommonTestWrapper>
         <NewRunV2
           {...generatePropsNewRun()}
+          originalRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
           apiRun={undefined}
           apiPipeline={TEST_PIPELINE}
           apiPipelineVersion={TEST_PIPELINE_VERSION}
@@ -233,6 +236,7 @@ describe('NewRunV2', () => {
         <CommonTestWrapper>
           <NewRunV2
             {...generatePropsNewRun()}
+            originalRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
             apiRun={undefined}
             apiPipeline={TEST_PIPELINE}
             apiPipelineVersion={TEST_PIPELINE_VERSION}
@@ -270,6 +274,7 @@ describe('NewRunV2', () => {
         <CommonTestWrapper>
           <NewRunV2
             {...generatePropsNewRun()}
+            originalRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
             apiRun={API_RUN_DETAILS}
             apiPipeline={TEST_PIPELINE}
             apiPipelineVersion={TEST_PIPELINE_VERSION}
@@ -316,6 +321,7 @@ describe('NewRunV2', () => {
         <CommonTestWrapper>
           <NewRunV2
             {...generatePropsClonedRun()}
+            originalRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
             apiRun={API_RUN_DETAILS}
             apiPipeline={undefined}
             apiPipelineVersion={undefined}

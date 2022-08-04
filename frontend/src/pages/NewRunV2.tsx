@@ -60,6 +60,7 @@ const css = stylesheet({
 
 interface RunV2Props {
   namespace?: string;
+  originalRunId: string | null;
   apiRun: ApiRunDetail | undefined;
   apiPipeline: ApiPipeline | undefined;
   apiPipelineVersion: ApiPipelineVersion | undefined;
@@ -88,14 +89,13 @@ function NewRunV2(props: NewRunV2Props) {
 
   // TODO(zijianjoy): If creating run from Experiment Page or RunList Page, there is no pipelineId/Version.
   const urlParser = new URLParser(props);
-  const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
   const usePipelineFromRunLabel = 'Using pipeline from existing run.';
   const { apiRun, apiPipeline, apiPipelineVersion } = props;
-  const pipelineDetailsUrl = originalRunId
+  const pipelineDetailsUrl = props.originalRunId
     ? RoutePage.PIPELINE_DETAILS.replace(
         ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
         '',
-      ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: originalRunId })
+      ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: props.originalRunId })
     : '';
 
   const templateString = props.templateString;
