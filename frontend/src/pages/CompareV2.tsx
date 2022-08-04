@@ -289,7 +289,7 @@ function CompareV2(props: CompareV2Props) {
     isError: isErrorMlmdPackages,
     error: errorMlmdPackages,
   } = useQuery<MlmdPackage[], Error>(
-    ['run_artifacts', { runIds }],
+    ['run_artifacts', { runs }],
     () =>
       Promise.all(
         runIds.map(async runId => {
@@ -323,10 +323,14 @@ function CompareV2(props: CompareV2Props) {
   });
 
   useEffect(() => {
-    if (runs && mlmdPackages && artifactTypes) {
+    if (runs && selectedIds && mlmdPackages && artifactTypes) {
+      const selectedIdsSet = new Set(selectedIds);
       const runArtifacts: RunArtifact[] = getRunArtifacts(runs, mlmdPackages);
+      const selectedRunArtifacts: RunArtifact[] = runArtifacts.filter(runArtifact => selectedIdsSet.has(runArtifact.run.run!.id!));
+      // Determine if any of the previously selected artifacts were removed. If so, pop those colors.
+      // TODO: Remove the selected item if the selection changes?
       const scalarMetricsArtifactData = filterRunArtifactsByType(
-        runArtifacts,
+        selectedRunArtifacts,
         artifactTypes,
         MetricsType.SCALAR_METRICS,
       );
@@ -341,18 +345,18 @@ function CompareV2(props: CompareV2Props) {
       }
 
       setConfusionMatrixRunArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX)
+        filterRunArtifactsByType(selectedRunArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX)
           .runArtifacts,
       );
       setHtmlRunArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML).runArtifacts,
+        filterRunArtifactsByType(selectedRunArtifacts, artifactTypes, MetricsType.HTML).runArtifacts,
       );
       setMarkdownRunArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN).runArtifacts,
+        filterRunArtifactsByType(selectedRunArtifacts, artifactTypes, MetricsType.MARKDOWN).runArtifacts,
       );
 
       const rocCurveRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
-        runArtifacts,
+        selectedRunArtifacts,
         artifactTypes,
         MetricsType.ROC_CURVE,
       ).runArtifacts;
@@ -368,7 +372,7 @@ function CompareV2(props: CompareV2Props) {
       );
       setIsLoadingArtifacts(false);
     }
-  }, [runs, mlmdPackages, artifactTypes]);
+  }, [runs, selectedIds, mlmdPackages, artifactTypes]);
 
   useEffect(() => {
     if (isLoadingRunDetails || isLoadingMlmdPackages || isLoadingArtifactTypes) {
