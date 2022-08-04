@@ -60,7 +60,6 @@ const css = stylesheet({
 
 interface RunV2Props {
   namespace?: string;
-  pipelineDetailsUrl: string;
   apiRun: ApiRunDetail | undefined;
   apiPipeline: ApiPipeline | undefined;
   apiPipelineVersion: ApiPipelineVersion | undefined;
@@ -89,8 +88,15 @@ function NewRunV2(props: NewRunV2Props) {
 
   // TODO(zijianjoy): If creating run from Experiment Page or RunList Page, there is no pipelineId/Version.
   const urlParser = new URLParser(props);
+  const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
   const usePipelineFromRunLabel = 'Using pipeline from existing run.';
   const { apiRun, apiPipeline, apiPipelineVersion } = props;
+  const pipelineDetailsUrl = originalRunId
+    ? RoutePage.PIPELINE_DETAILS.replace(
+        ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
+        '',
+      ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: originalRunId })
+    : '';
 
   const templateString = props.templateString;
   const isTemplatePullSuccess = templateString !== '';
@@ -248,14 +254,14 @@ function NewRunV2(props: NewRunV2Props) {
       <div className={commonCss.scrollContainer}>
         <div className={commonCss.header}>Run details</div>
 
-        {!apiPipeline && (
+        {apiRun && (
           <div>
             <div>
               <span>{usePipelineFromRunLabel}</span>
             </div>
             <div className={classes(padding(10, 't'))}>
               {apiRun && (
-                <Link className={classes(commonCss.link)} to={props.pipelineDetailsUrl}>
+                <Link className={classes(commonCss.link)} to={pipelineDetailsUrl}>
                   [View pipeline]
                 </Link>
               )}
@@ -263,36 +269,34 @@ function NewRunV2(props: NewRunV2Props) {
           </div>
         )}
 
-        {/* Pipeline selection */}
-        {apiPipeline && (
-          <Input
-            value={apiPipeline?.name || ''}
-            required={true}
-            label='Pipeline'
-            disabled={true}
-            variant='outlined'
-            InputProps={{
-              classes: { disabled: css.nonEditableInput },
-              readOnly: true,
-            }}
-          />
+        {apiPipeline && apiPipelineVersion && (
+          <div>
+            {/* Pipelien selection */}
+            <Input
+              value={apiPipeline?.name || ''}
+              required={true}
+              label='Pipeline'
+              disabled={true}
+              variant='outlined'
+              InputProps={{
+                classes: { disabled: css.nonEditableInput },
+                readOnly: true,
+              }}
+            />
+            {/* Pipelien version selection */}
+            <Input
+              value={apiPipelineVersion?.name || ''}
+              required={true}
+              label='Pipeline Version'
+              disabled={true}
+              variant='outlined'
+              InputProps={{
+                classes: { disabled: css.nonEditableInput },
+                readOnly: true,
+              }}
+            />
+          </div>
         )}
-
-        {/* Pipeline version selection */}
-        {apiPipelineVersion && (
-          <Input
-            value={apiPipelineVersion?.name || ''}
-            required={true}
-            label='Pipeline Version'
-            disabled={true}
-            variant='outlined'
-            InputProps={{
-              classes: { disabled: css.nonEditableInput },
-              readOnly: true,
-            }}
-          />
-        )}
-
         {/* Run info inputs */}
         <Input
           label={'Run name'}

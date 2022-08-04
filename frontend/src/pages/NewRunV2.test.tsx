@@ -142,7 +142,6 @@ describe('NewRunV2', () => {
       <CommonTestWrapper>
         <NewRunV2
           {...generatePropsNewRun()}
-          pipelineDetailsUrl=''
           apiRun={undefined}
           apiPipeline={TEST_PIPELINE}
           apiPipelineVersion={TEST_PIPELINE_VERSION}
@@ -174,7 +173,6 @@ describe('NewRunV2', () => {
       <CommonTestWrapper>
         <NewRunV2
           {...generatePropsNewRun()}
-          pipelineDetailsUrl=''
           apiRun={undefined}
           apiPipeline={TEST_PIPELINE}
           apiPipelineVersion={TEST_PIPELINE_VERSION}
@@ -203,7 +201,6 @@ describe('NewRunV2', () => {
       <CommonTestWrapper>
         <NewRunV2
           {...generatePropsNewRun()}
-          pipelineDetailsUrl=''
           apiRun={undefined}
           apiPipeline={TEST_PIPELINE}
           apiPipelineVersion={TEST_PIPELINE_VERSION}
@@ -236,7 +233,6 @@ describe('NewRunV2', () => {
         <CommonTestWrapper>
           <NewRunV2
             {...generatePropsNewRun()}
-            pipelineDetailsUrl=''
             apiRun={undefined}
             apiPipeline={TEST_PIPELINE}
             apiPipelineVersion={TEST_PIPELINE_VERSION}
@@ -274,7 +270,6 @@ describe('NewRunV2', () => {
         <CommonTestWrapper>
           <NewRunV2
             {...generatePropsNewRun()}
-            pipelineDetailsUrl=''
             apiRun={API_RUN_DETAILS}
             apiPipeline={TEST_PIPELINE}
             apiPipelineVersion={TEST_PIPELINE_VERSION}
@@ -321,7 +316,6 @@ describe('NewRunV2', () => {
         <CommonTestWrapper>
           <NewRunV2
             {...generatePropsClonedRun()}
-            pipelineDetailsUrl=''
             apiRun={API_RUN_DETAILS}
             apiPipeline={undefined}
             apiPipelineVersion={undefined}

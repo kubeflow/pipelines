@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from 'react-query';
-import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
+import { QUERY_PARAMS } from 'src/components/Router';
 import { isFeatureEnabled, FeatureKey } from 'src/features';
 import { Apis } from 'src/lib/Apis';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
@@ -19,12 +19,6 @@ function NewRunSwitcher(props: PageProps) {
   const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
   const pipelineVersionIdParam = urlParser.get(QUERY_PARAMS.pipelineVersionId);
-  const pipelineDetailsUrl = originalRunId
-    ? RoutePage.PIPELINE_DETAILS.replace(
-        ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
-        '',
-      ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: originalRunId })
-    : '';
 
   const { isSuccess: runIsSuccess, isFetching: runIsFetching, data: apiRun } = useQuery<
     ApiRunDetail
@@ -92,7 +86,6 @@ function NewRunSwitcher(props: PageProps) {
         <NewRunV2
           {...props}
           namespace={namespace}
-          pipelineDetailsUrl={pipelineDetailsUrl}
           apiRun={apiRun}
           apiPipeline={apiPipeline}
           apiPipelineVersion={apiPipelineVersion}
