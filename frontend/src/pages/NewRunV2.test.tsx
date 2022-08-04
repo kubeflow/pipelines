@@ -126,7 +126,7 @@ describe('NewRunV2', () => {
 
   beforeEach(() => {});
 
-  it('Fulfill default run value', async () => {
+  it('Fulfill default run value (start a new run)', async () => {
     const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
     getPipelineSpy.mockResolvedValue(TEST_PIPELINE);
     const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
@@ -140,7 +140,14 @@ describe('NewRunV2', () => {
     );
     render(
       <CommonTestWrapper>
-        <NewRunV2 {...generatePropsNewRun()}></NewRunV2>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          pipelineDetailsUrl=''
+          apiRun={undefined}
+          apiPipeline={TEST_PIPELINE}
+          apiPipelineVersion={TEST_PIPELINE_VERSION}
+          templateString={v2YamlTemplateString}
+        />
       </CommonTestWrapper>,
     );
 
@@ -165,7 +172,14 @@ describe('NewRunV2', () => {
     );
     render(
       <CommonTestWrapper>
-        <NewRunV2 {...generatePropsNewRun()}></NewRunV2>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          pipelineDetailsUrl=''
+          apiRun={undefined}
+          apiPipeline={TEST_PIPELINE}
+          apiPipelineVersion={TEST_PIPELINE_VERSION}
+          templateString={v2YamlTemplateString}
+        />
       </CommonTestWrapper>,
     );
 
@@ -173,7 +187,7 @@ describe('NewRunV2', () => {
     expect(startButton.closest('button').disabled).toEqual(false);
   });
 
-  it('allows updating the run name', async () => {
+  it('allows updating the run name (start a new run)', async () => {
     const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
     getPipelineSpy.mockResolvedValue(TEST_PIPELINE);
     const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
@@ -187,7 +201,14 @@ describe('NewRunV2', () => {
     );
     render(
       <CommonTestWrapper>
-        <NewRunV2 {...generatePropsNewRun()}></NewRunV2>
+        <NewRunV2
+          {...generatePropsNewRun()}
+          pipelineDetailsUrl=''
+          apiRun={undefined}
+          apiPipeline={TEST_PIPELINE}
+          apiPipelineVersion={TEST_PIPELINE_VERSION}
+          templateString={v2YamlTemplateString}
+        />
       </CommonTestWrapper>,
     );
 
@@ -199,7 +220,7 @@ describe('NewRunV2', () => {
   });
 
   describe('starting a new run', () => {
-    it('disable start button if no run name', async () => {
+    it('disable start button if no run name (start a new run)', async () => {
       const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
       getPipelineSpy.mockResolvedValue(TEST_PIPELINE);
       const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
@@ -213,7 +234,14 @@ describe('NewRunV2', () => {
       );
       render(
         <CommonTestWrapper>
-          <NewRunV2 {...generatePropsNewRun()}></NewRunV2>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            pipelineDetailsUrl=''
+            apiRun={undefined}
+            apiPipeline={TEST_PIPELINE}
+            apiPipelineVersion={TEST_PIPELINE_VERSION}
+            templateString={v2YamlTemplateString}
+          />
         </CommonTestWrapper>,
       );
 
@@ -244,7 +272,14 @@ describe('NewRunV2', () => {
 
       render(
         <CommonTestWrapper>
-          <NewRunV2 {...generatePropsNewRun()}></NewRunV2>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            pipelineDetailsUrl=''
+            apiRun={API_RUN_DETAILS}
+            apiPipeline={TEST_PIPELINE}
+            apiPipelineVersion={TEST_PIPELINE_VERSION}
+            templateString={v2YamlTemplateString}
+          />
         </CommonTestWrapper>,
       );
 
@@ -255,8 +290,17 @@ describe('NewRunV2', () => {
         expect(createRunSpy).toHaveBeenCalledWith(
           expect.objectContaining({
             description: '',
-            pipeline_spec: { runtime_config: { parameters: {} } },
+            pipeline_spec: {
+              runtime_config: { parameters: { intParam: 123 }, pipeline_root: undefined },
+            },
             resource_references: [
+              {
+                key: {
+                  id: '275ea11d-ac63-4ce3-bc33-ec81981ed56b',
+                  type: ApiResourceType.EXPERIMENT,
+                },
+                relationship: ApiRelationship.OWNER,
+              },
               {
                 key: { id: TEST_PIPELINE_VERSION_ID, type: 'PIPELINE_VERSION' },
                 relationship: 'CREATOR',
@@ -270,16 +314,22 @@ describe('NewRunV2', () => {
   });
 
   describe('cloning a existing run', () => {
-    it('show pipeline and pipeline version name from original run', () => {
+    it('only shows clone run name from original run', () => {
       const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
       getRunSpy.mockResolvedValue(API_RUN_DETAILS);
       render(
         <CommonTestWrapper>
-          <NewRunV2 {...generatePropsClonedRun()}></NewRunV2>
+          <NewRunV2
+            {...generatePropsClonedRun()}
+            pipelineDetailsUrl=''
+            apiRun={API_RUN_DETAILS}
+            apiPipeline={undefined}
+            apiPipelineVersion={undefined}
+            templateString={v2YamlTemplateString}
+          />
         </CommonTestWrapper>,
       );
       screen.findByDisplayValue(`Clone of ${API_RUN_DETAILS.run.name}`);
-      screen.findByDisplayValue(TEST_PIPELINE_VERSION_NAME);
     });
   });
 });

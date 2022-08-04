@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from 'react-query';
-import { QUERY_PARAMS } from 'src/components/Router';
+import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
 import { isFeatureEnabled, FeatureKey } from 'src/features';
 import { Apis } from 'src/lib/Apis';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
@@ -9,6 +9,8 @@ import { NewRun } from './NewRun';
 import NewRunV2 from './NewRunV2';
 import { PageProps } from './Page';
 import { isTemplateV2 } from 'src/lib/v2/WorkflowUtils';
+import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
+import { ApiRunDetail } from 'src/apis/run';
 
 function NewRunSwitcher(props: PageProps) {
   const namespace = React.useContext(NamespaceContext);
@@ -17,57 +19,95 @@ function NewRunSwitcher(props: PageProps) {
   const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
   const pipelineVersionIdParam = urlParser.get(QUERY_PARAMS.pipelineVersionId);
+  const pipelineDetailsUrl = originalRunId
+    ? RoutePage.PIPELINE_DETAILS.replace(
+        ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
+        '',
+      ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: originalRunId })
+    : '';
 
-  const {
-    isSuccess: runIsSuccess,
-    isFetching: runIsFetching,
-    data: templateStrFromRunId,
-  } = useQuery(
+  const { isSuccess: runIsSuccess, isFetching: runIsFetching, data: apiRun } = useQuery<
+    ApiRunDetail
+  >(
     [originalRunId],
-    async () => {
+    () => {
       if (!originalRunId) {
-        return '';
+        throw new Error('Run ID is missing');
       }
-      const originalRun = await Apis.runServiceApi.getRun(originalRunId);
-      return originalRun.run?.pipeline_spec?.pipeline_manifest || '';
+      return Apis.runServiceApi.getRun(originalRunId);
     },
     { staleTime: Infinity },
   );
+  const templateStrFromRunId = apiRun ? apiRun.run?.pipeline_spec?.pipeline_manifest : '';
+
+  const { isFetching: pipelineIsFetching, data: apiPipeline } = useQuery<ApiPipeline, Error>(
+    ['ApiPipeline', pipelineId],
+    () => {
+      if (!pipelineId) {
+        throw new Error('Pipeline ID is missing');
+      }
+      return Apis.pipelineServiceApi.getPipeline(pipelineId);
+    },
+    { enabled: !!pipelineId, staleTime: Infinity },
+  );
+
+  const { isFetching: pipelineVersionIsFetching, data: apiPipelineVersion } = useQuery<
+    ApiPipelineVersion,
+    Error
+  >(
+    ['ApiPipelineVersion', apiPipeline, pipelineVersionIdParam],
+    () => {
+      const pipelineVersionId = pipelineVersionIdParam || apiPipeline?.default_version?.id;
+      if (!pipelineVersionId) {
+        throw new Error('Pipeline Version ID is missing');
+      }
+      return Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionId);
+    },
+    { enabled: !!apiPipeline, staleTime: Infinity },
+  );
 
   const {
-    isSuccess: pipelineIsSuccess,
-    isFetching: pipelineIsFetching,
+    isSuccess: isTemplatePullSuccessFromPipeline,
+    isFetching: pipelineTemplateStrIsFetching,
     data: templateStrFromPipelineId,
   } = useQuery<string, Error>(
-    [pipelineId, pipelineVersionIdParam],
+    ['ApiPipelineVersionTemplate', apiPipeline, pipelineVersionIdParam],
     async () => {
-      if (!pipelineId) {
-        return '';
-      }
-      const pipeline = await Apis.pipelineServiceApi.getPipeline(pipelineId);
-
-      const pipelineVersionId = pipelineVersionIdParam || pipeline?.default_version?.id;
+      const pipelineVersionId = apiPipelineVersion?.id;
       if (!pipelineVersionId) {
         return '';
       }
-
-      await Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionId);
       const template = await Apis.pipelineServiceApi.getPipelineVersionTemplate(pipelineVersionId);
       return template?.template || '';
     },
-    { staleTime: Infinity },
+    { enabled: !!apiPipelineVersion, staleTime: Infinity },
   );
 
   const templateString =
-    templateStrFromRunId != '' ? templateStrFromRunId : templateStrFromPipelineId;
+    templateStrFromRunId === '' ? templateStrFromPipelineId : templateStrFromRunId;
 
   if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
-    if ((runIsSuccess || pipelineIsSuccess) && isTemplateV2(templateString || '')) {
-      return <NewRunV2 {...props} namespace={namespace} />;
+    if ((runIsSuccess || isTemplatePullSuccessFromPipeline) && isTemplateV2(templateString || '')) {
+      return (
+        <NewRunV2
+          {...props}
+          namespace={namespace}
+          pipelineDetailsUrl={pipelineDetailsUrl}
+          apiRun={apiRun}
+          apiPipeline={apiPipeline}
+          apiPipelineVersion={apiPipelineVersion}
+          templateString={templateString}
+        />
+      );
     }
   }
 
-  if (pipelineIsFetching || runIsFetching) {
+  if (
+    runIsFetching ||
+    pipelineIsFetching ||
+    pipelineVersionIsFetching ||
+    pipelineTemplateStrIsFetching
+  ) {
     return <div>Currently loading pipeline information</div>;
   }
   return <NewRun {...props} namespace={namespace} />;

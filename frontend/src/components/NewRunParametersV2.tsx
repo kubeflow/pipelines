@@ -137,6 +137,9 @@ function convertNonUserInputParamToString(
   value: any,
 ): string {
   let paramStr;
+  if (!specParameters[key]) {
+    return '';
+  }
   switch (specParameters[key].parameterType) {
     case ParameterType_ParameterTypeEnum.STRUCT:
     case ParameterType_ParameterTypeEnum.LIST:
