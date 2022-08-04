@@ -325,12 +325,11 @@ function CompareV2(props: CompareV2Props) {
   useEffect(() => {
     if (runs && selectedIds && mlmdPackages && artifactTypes) {
       const selectedIdsSet = new Set(selectedIds);
-      const runArtifacts: RunArtifact[] = getRunArtifacts(runs, mlmdPackages);
-      const selectedRunArtifacts: RunArtifact[] = runArtifacts.filter(runArtifact => selectedIdsSet.has(runArtifact.run.run!.id!));
-      // Determine if any of the previously selected artifacts were removed. If so, pop those colors.
-      // TODO: Remove the selected item if the selection changes?
+      const runArtifacts: RunArtifact[] = getRunArtifacts(runs, mlmdPackages).filter(runArtifact =>
+        selectedIdsSet.has(runArtifact.run.run!.id!),
+      );
       const scalarMetricsArtifactData = filterRunArtifactsByType(
-        selectedRunArtifacts,
+        runArtifacts,
         artifactTypes,
         MetricsType.SCALAR_METRICS,
       );
@@ -345,18 +344,18 @@ function CompareV2(props: CompareV2Props) {
       }
 
       setConfusionMatrixRunArtifacts(
-        filterRunArtifactsByType(selectedRunArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX)
+        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX)
           .runArtifacts,
       );
       setHtmlRunArtifacts(
-        filterRunArtifactsByType(selectedRunArtifacts, artifactTypes, MetricsType.HTML).runArtifacts,
+        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML).runArtifacts,
       );
       setMarkdownRunArtifacts(
-        filterRunArtifactsByType(selectedRunArtifacts, artifactTypes, MetricsType.MARKDOWN).runArtifacts,
+        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN).runArtifacts,
       );
 
       const rocCurveRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
-        selectedRunArtifacts,
+        runArtifacts,
         artifactTypes,
         MetricsType.ROC_CURVE,
       ).runArtifacts;
