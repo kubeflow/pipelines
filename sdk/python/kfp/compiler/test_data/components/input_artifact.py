@@ -14,16 +14,18 @@
 
 from kfp.dsl import component
 from kfp.dsl import Dataset
+from kfp.dsl import Input
 
 
 @component
-def output_artifact(number: int, message: str) -> Dataset:
-    result = [message for _ in range(number)]
-    return '\n'.join(result)
+def input_artifact(data: Input[Dataset]):
+    print(data.name)
+    print(data.uri)
+    print(data.metadata)
 
 
 if __name__ == '__main__':
     from kfp import compiler
     compiler.Compiler().compile(
-        pipeline_func=output_artifact,
+        pipeline_func=input_artifact,
         package_path=__file__.replace('.py', '.yaml'))
