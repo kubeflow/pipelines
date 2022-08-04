@@ -80,7 +80,7 @@ export interface RocCurveArtifactData {
 export const mlmdDisplayName = (id: string, mlmdTypeStr: string, displayName?: string) =>
   displayName || `${mlmdTypeStr} ID #${id}`;
 
-export const getParamsTableProps = (runs: ApiRunDetail[]): CompareTableProps => {
+export const getParamsTableProps = (runs: ApiRunDetail[]): CompareTableProps | undefined => {
   const xLabels: string[] = [];
   const parameterNames: string[][] = [];
   const dataMap: { [key: string]: RuntimeParameters } = {};
@@ -110,6 +110,10 @@ export const getParamsTableProps = (runs: ApiRunDetail[]): CompareTableProps => 
       return dataValue === undefined ? '' : JSON.stringify(dataValue);
     });
   });
+
+  if (xLabels.length === 0 || yLabels.length === 0) {
+    return undefined;
+  }
 
   return {
     xLabels,

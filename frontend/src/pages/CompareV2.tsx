@@ -64,7 +64,7 @@ import { Redirect } from 'react-router-dom';
 import MetricsDropdown from 'src/components/viewers/MetricsDropdown';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import { lineColors } from 'src/components/viewers/ROCCurve';
-import Banner from 'src/components/Banner';
+import Hr from 'src/atoms/Hr';
 
 const css = stylesheet({
   outputsRow: {
@@ -185,12 +185,26 @@ export interface SelectedArtifact {
 }
 
 interface CompareTableSectionParams {
+  isLoading?: boolean;
   compareTableProps?: CompareTableProps;
   dataTypeStr: string;
 }
 
 function CompareTableSection(props: CompareTableSectionParams) {
-  const { compareTableProps, dataTypeStr } = props;
+  const { isLoading, compareTableProps, dataTypeStr } = props;
+
+  if (isLoading) {
+    return (
+      <div className={compareCss.relativeContainer}>
+        <CircularProgress
+          size={25}
+          className={commonCss.absoluteCenter}
+          style={{ zIndex: zIndex.BUSY_OVERLAY }}
+          role='circularprogress'
+        />
+      </div>
+    );
+  }
 
   if (!compareTableProps) {
     return <p>There are no {dataTypeStr} available on the selected runs.</p>;
@@ -326,12 +340,6 @@ function CompareV2(props: CompareV2Props) {
   });
 
   useEffect(() => {
-    if (runs) {
-      setParamsTableProps(getParamsTableProps(runs));
-    }
-  }, [runs]);
-
-  useEffect(() => {
     if (runs && mlmdPackages && artifactTypes) {
       const runArtifacts: RunArtifact[] = getRunArtifacts(runs, mlmdPackages);
       const scalarMetricsArtifactData = filterRunArtifactsByType(
@@ -454,6 +462,9 @@ function CompareV2(props: CompareV2Props) {
   useEffect(() => {
     if (runs) {
       setSelectedIds(runs.map(r => r.run!.id!));
+      setParamsTableProps(getParamsTableProps(runs));
+    } else {
+      setParamsTableProps(undefined);
     }
   }, [runs]);
 
@@ -509,7 +520,12 @@ function CompareV2(props: CompareV2Props) {
       {!isParamsCollapsed && (
         <div className={classes(commonCss.noShrink, css.outputsRow, css.outputsOverflow)}>
           <Separator orientation='vertical' />
-          <CompareTableSection compareTableProps={paramsTableProps} dataTypeStr='Parameters' />
+          <CompareTableSection
+            isLoading={isLoadingRunDetails}
+            compareTableProps={paramsTableProps}
+            dataTypeStr='Parameters'
+          />
+          <Hr />
         </div>
       )}
 
