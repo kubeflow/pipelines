@@ -94,7 +94,7 @@ func TestToApiRunDetail_RuntimeParams(t *testing.T) {
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: "manifest",
 				RuntimeConfig: model.RuntimeConfig{
-					Parameters:   "[{\"name\":\"param2\",\"value\":\"\\\"world\\\"\"},{\"name\":\"param3\",\"value\":\"true\"},{\"name\":\"param4\",\"value\":\"[1,2,3]\"},{\"name\":\"param5\",\"value\":\"12\"},{\"name\":\"param6\",\"value\":\"{\\\"structParam1\\\":\\\"hello\\\",\\\"structParam2\\\":32}\"}]",
+					Parameters:   "{\"param2\":\"\\\"world\\\"\",\"param3\":\"true\",\"param4\":\"[1, 2, 3]\",\"param5\":\"12\",\"param6\":\"{\\\"structParam1\\\":\\\"hello\\\", \\\"structParam2\\\":32}\"}",
 					PipelineRoot: "model-pipeline-root",
 				},
 			},
@@ -115,11 +115,11 @@ func TestToApiRunDetail_RuntimeParams(t *testing.T) {
 
 	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
 	v2RuntimeParams := map[string]*structpb.Value{
-		"param2": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
-		"param3": &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: true}},
-		"param4": &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
-		"param5": &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: 12}},
-		"param6": &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: v2RuntimeStructParams}},
+		"param2": structpb.NewStringValue("world"),
+		"param3": structpb.NewBoolValue(true),
+		"param4": structpb.NewListValue(v2RuntimeListParams),
+		"param5": structpb.NewNumberValue(12),
+		"param6": structpb.NewStructValue(v2RuntimeStructParams),
 	}
 
 	expectedApiRun := &api.RunDetail{
@@ -147,7 +147,7 @@ func TestToApiRunDetail_RuntimeParams(t *testing.T) {
 			WorkflowManifest: "workflow123",
 		},
 	}
-	assert.Equal(t, expectedApiRun, apiRun)
+	assert.Equal(t, expectedApiRun.String(), apiRun.String())
 }
 
 func TestToApiRunDetail_V1Params(t *testing.T) {

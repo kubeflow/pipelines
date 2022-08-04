@@ -20,7 +20,6 @@ import (
 	"sort"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
-	"google.golang.org/protobuf/types/known/structpb"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -255,37 +254,26 @@ func runtimeConfigToModelParameters(runtimeConfig *api.PipelineSpec_RuntimeConfi
 	if runtimeConfig == nil {
 		return "", nil
 	}
-	var params []v1alpha1.Parameter
 	// Sort the parameters by names then marshal to string
 	keys := make([]string, 0, len(runtimeConfig.GetParameters()))
 	for key := range runtimeConfig.GetParameters() {
 		keys = append(keys, key)
 	}
 	sort.Strings(keys)
+	// Use structpb to marshal protobuff value, store them in a map, then marshal the entire map into a single new string
+	paramsStringsMap := make(map[string]string)
 	for _, k := range keys {
-		v := runtimeConfig.GetParameters()[k]
-		param := v1alpha1.Parameter{
-			Name: k,
+		paramValue := runtimeConfig.GetParameters()[k]
+		paramBytes, err := paramValue.MarshalJSON()
+		if err != nil {
+			errMessage := fmt.Sprintf("Failed to marshal RuntimeConfig API parameter as string: %+v", paramValue)
+			return "", util.NewInternalServerError(err, errMessage)
 		}
-		switch t := v.GetKind().(type) {
-		case *structpb.Value_StringValue, *structpb.Value_NumberValue, *structpb.Value_BoolValue,
-			*structpb.Value_StructValue, *structpb.Value_ListValue:
-			marshaledValueBytes, err := json.Marshal(v)
-			if err != nil {
-				return "", fmt.Errorf("Unable to marshal parameter values into JSON: %v", v)
-			}
-			param.Value = v1alpha1.AnyStringPtr(string(marshaledValueBytes))
-
-		case *structpb.Value_NullValue:
-			return "", fmt.Errorf("Unsupported property type in pipelineSpec runtimeConfig Parameters: %T", t)
-		default:
-			return "", fmt.Errorf("Unknown property type in pipelineSpec runtimeConfig Parameters: %T", t)
-		}
-		params = append(params, param)
+		paramsStringsMap[k] = string(paramBytes)
 	}
-	paramsBytes, err := json.Marshal(params)
+	paramsBytes, err := json.Marshal(paramsStringsMap)
 	if err != nil {
-		return "", util.NewInternalServerError(err, "Failed to stream API parameter as string.")
+		return "", util.NewInternalServerError(err, "Failed to marshal array RuntimeConfig API parameters as string.")
 	}
 	return string(paramsBytes), nil
 }

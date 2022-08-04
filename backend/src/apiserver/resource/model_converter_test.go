@@ -258,7 +258,7 @@ func TestToModelRunDetail(t *testing.T) {
 					PipelineSpec: model.PipelineSpec{
 						PipelineSpecManifest: "pipeline spec",
 						RuntimeConfig: model.RuntimeConfig{
-							Parameters: "[{\"name\":\"param2\",\"value\":\"\\\"world\\\"\"},{\"name\":\"param3\",\"value\":\"true\"},{\"name\":\"param4\",\"value\":\"[1,2,3]\"},{\"name\":\"param5\",\"value\":\"12\"},{\"name\":\"param6\",\"value\":\"{\\\"structParam1\\\":\\\"hello\\\",\\\"structParam2\\\":32}\"}]",
+							Parameters: "{\"param2\":\"\\\"world\\\"\",\"param3\":\"true\",\"param4\":\"[1, 2, 3]\",\"param5\":\"12\",\"param6\":\"{\\\"structParam1\\\":\\\"hello\\\", \\\"structParam2\\\":32}\"}",
 						},
 					},
 					ResourceReferences: []*model.ResourceReference{
@@ -404,7 +404,7 @@ func TestToModelJob(t *testing.T) {
 					PipelineName:         pipeline.Name,
 					PipelineSpecManifest: "pipeline spec",
 					RuntimeConfig: model.RuntimeConfig{
-						Parameters: "[{\"name\":\"param2\",\"value\":\"\\\"world\\\"\"}]",
+						Parameters: "{\"param2\":\"\\\"world\\\"\"}",
 					},
 				},
 				ResourceReferences: []*model.ResourceReference{

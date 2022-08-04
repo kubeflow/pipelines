@@ -16,6 +16,7 @@ package server
 
 import (
 	"encoding/json"
+
 	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -154,24 +155,20 @@ func toApiRuntimeParameters(paramsString string) (map[string]*structpb.Value, er
 	if paramsString == "" {
 		return make(map[string]*structpb.Value), nil
 	}
-	params, err := util.UnmarshalParameters(util.ArgoWorkflow, paramsString)
+	runtimeParamsStringsMap := make(map[string]string)
+	err := json.Unmarshal([]byte(paramsString), &runtimeParamsStringsMap)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Runtime parameter with wrong format is stored")
+		return nil, util.NewInternalServerError(err, "Cannot unmarshal RuntimeConfig Parameter to map[string]string")
 	}
 	runtimeParams := make(map[string]*structpb.Value)
-	for _, param := range params {
-		var value interface{}
-		if param.Value != nil {
-			err := json.Unmarshal([]byte(*param.Value), &value)
-			if err != nil {
-				return nil, util.NewInternalServerError(err, "Cannot unmarshal model parameter")
-			}
-		}
-		runtimeParam, err := structpb.NewValue(value)
+	for k, v := range runtimeParamsStringsMap {
+		protoValue := structpb.NewStringValue("")
+		err := protoValue.UnmarshalJSON([]byte(v))
 		if err != nil {
-			return nil, util.NewInternalServerError(err, "Cannot convert unmarshalled data to structpb.Value")
+			errorMessage := fmt.Sprintf("Cannot unmarshal string %+v to structpb.Value", v)
+			return nil, util.NewInternalServerError(err, errorMessage)
 		}
-		runtimeParams[param.Name] = runtimeParam
+		runtimeParams[k] = protoValue
 	}
 	return runtimeParams, nil
 }
