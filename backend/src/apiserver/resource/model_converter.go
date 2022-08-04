@@ -17,7 +17,6 @@ package resource
 import (
 	"encoding/json"
 	"fmt"
-	"sort"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 
@@ -254,19 +253,12 @@ func runtimeConfigToModelParameters(runtimeConfig *api.PipelineSpec_RuntimeConfi
 	if runtimeConfig == nil {
 		return "", nil
 	}
-	// Sort the parameters by names then marshal to string
-	keys := make([]string, 0, len(runtimeConfig.GetParameters()))
-	for key := range runtimeConfig.GetParameters() {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
 	// Use structpb to marshal protobuff value, store them in a map, then marshal the entire map into a single new string
 	paramsStringsMap := make(map[string]string)
-	for _, k := range keys {
-		paramValue := runtimeConfig.GetParameters()[k]
-		paramBytes, err := paramValue.MarshalJSON()
+	for k, v := range runtimeConfig.GetParameters() {
+		paramBytes, err := v.MarshalJSON()
 		if err != nil {
-			errMessage := fmt.Sprintf("Failed to marshal RuntimeConfig API parameter as string: %+v", paramValue)
+			errMessage := fmt.Sprintf("Failed to marshal RuntimeConfig API parameter as string: %+v", v)
 			return "", util.NewInternalServerError(err, errMessage)
 		}
 		paramsStringsMap[k] = string(paramBytes)
