@@ -368,7 +368,7 @@ deploymentSpec:
           \ *\n\ndef producer_op() -> str:\n    return 'a'\n\n"
         image: python:3.7
 pipelineInfo:
-  name: test-pipeline
+  name: pipeline-with-nested-exit-handlers
 root:
   dag:
     tasks:
@@ -388,10 +388,5 @@ root:
           name: producer-op
         triggerPolicy:
           strategy: ALL_UPSTREAM_TASKS_COMPLETED
-  inputDefinitions:
-    parameters:
-      text:
-        defaultValue: true
-        parameterType: BOOLEAN
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-beta.1
