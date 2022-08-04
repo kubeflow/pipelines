@@ -774,7 +774,7 @@ def build_task_spec_for_exit_task(
         pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy.TriggerStrategy
         .ALL_UPSTREAM_TASKS_COMPLETED)
 
-    for input_name, input_spec in task.component_spec.inputs.items():
+    for input_name, input_spec in (task.component_spec.inputs or {}).items():
         if type_utils.is_task_final_status_type(input_spec.type):
             pipeline_task_spec.inputs.parameters[
                 input_name].task_final_status.producer_task = dependent_task

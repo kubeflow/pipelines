@@ -440,7 +440,7 @@ class TestCompilePipeline(parameterized.TestCase):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='result.yaml')
 
-    def test_invalid_data_dependency(self):
+    def test_invalid_data_dependency_loop(self):
 
         @dsl.component
         def producer_op() -> str:
@@ -451,7 +451,7 @@ class TestCompilePipeline(parameterized.TestCase):
             pass
 
         @dsl.pipeline(name='test-pipeline')
-        def my_pipeline(text: bool):
+        def my_pipeline(val: bool):
             with dsl.ParallelFor(['a, b']):
                 producer_task = producer_op()
 
@@ -460,10 +460,12 @@ class TestCompilePipeline(parameterized.TestCase):
         with self.assertRaisesRegex(
                 RuntimeError,
                 'Task dummy-op cannot dependent on any task inside the group:'):
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='result.yaml')
+            with tempfile.TemporaryDirectory() as tmpdir:
+                package_path = os.path.join(tmpdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
 
-    def test_valid_data_dependency(self):
+    def test_valid_data_dependency_loop(self):
 
         @dsl.component
         def producer_op() -> str:
@@ -474,13 +476,109 @@ class TestCompilePipeline(parameterized.TestCase):
             pass
 
         @dsl.pipeline(name='test-pipeline')
-        def my_pipeline(text: bool):
+        def my_pipeline(val: bool):
             with dsl.ParallelFor(['a, b']):
                 producer_task = producer_op()
                 dummy_op(msg=producer_task.output)
 
-        compiler.Compiler().compile(
-            pipeline_func=my_pipeline, package_path='result.yaml')
+        with tempfile.TemporaryDirectory() as tmpdir:
+            package_path = os.path.join(tmpdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_invalid_data_dependency_condition(self):
+
+        @dsl.component
+        def producer_op() -> str:
+            return 'a'
+
+        @dsl.component
+        def dummy_op(msg: str = ''):
+            pass
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(val: bool):
+            with dsl.Condition(val == False):
+                producer_task = producer_op()
+
+            dummy_op(msg=producer_task.output)
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                'Task dummy-op cannot dependent on any task inside the group:'):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                package_path = os.path.join(tmpdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_valid_data_dependency_condition(self):
+
+        @dsl.component
+        def producer_op() -> str:
+            return 'a'
+
+        @dsl.component
+        def dummy_op(msg: str = ''):
+            pass
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(val: bool):
+            with dsl.Condition(val == False):
+                producer_task = producer_op()
+                dummy_op(msg=producer_task.output)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            package_path = os.path.join(tmpdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_invalid_data_dependency_exit_handler(self):
+
+        @dsl.component
+        def producer_op() -> str:
+            return 'a'
+
+        @dsl.component
+        def dummy_op(msg: str = ''):
+            pass
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(val: bool):
+            first_producer = producer_op()
+            with dsl.ExitHandler(first_producer):
+                producer_task = producer_op()
+
+            dummy_op(msg=producer_task.output)
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                'Task dummy-op cannot dependent on any task inside the group:'):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                package_path = os.path.join(tmpdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_valid_data_dependency_exit_handler(self):
+
+        @dsl.component
+        def producer_op() -> str:
+            return 'a'
+
+        @dsl.component
+        def dummy_op(msg: str = ''):
+            pass
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(val: bool):
+            first_producer = producer_op()
+            with dsl.ExitHandler(first_producer):
+                producer_task = producer_op()
+                dummy_op(msg=producer_task.output)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            package_path = os.path.join(tmpdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
 
     def test_use_task_final_status_in_non_exit_op(self):
 
@@ -523,7 +621,6 @@ implementation:
                 pipeline_func=my_pipeline, package_path='result.yaml')
 
 
-# pylint: disable=import-outside-toplevel,unused-import,import-error,redefined-outer-name,reimported
 class V2NamespaceAliasTest(unittest.TestCase):
     """Test that imports of both modules and objects are aliased (e.g. all
     import path variants work)."""
@@ -532,7 +629,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
     # the kfp.v2 module is loaded. Due to the way we run tests in CI/CD, we cannot ensure that the kfp.v2 module will first be loaded in these tests,
     # so we do not test for the DeprecationWarning here.
 
-    def test_import_namespace(self):  # pylint: disable=no-self-use
+    def test_import_namespace(self):
         from kfp import v2
 
         @v2.dsl.component
@@ -556,7 +653,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
             with open(temp_filepath, 'r') as f:
                 yaml.load(f)
 
-    def test_import_modules(self):  # pylint: disable=no-self-use
+    def test_import_modules(self):
         from kfp.v2 import compiler
         from kfp.v2 import dsl
 
@@ -580,7 +677,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
             with open(temp_filepath, 'r') as f:
                 yaml.load(f)
 
-    def test_import_object(self):  # pylint: disable=no-self-use
+    def test_import_object(self):
         from kfp.v2.compiler import Compiler
         from kfp.v2.dsl import component
         from kfp.v2.dsl import pipeline
