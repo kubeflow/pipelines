@@ -187,11 +187,11 @@ export interface SelectedArtifact {
 interface CompareTableSectionParams {
   isLoading?: boolean;
   compareTableProps?: CompareTableProps;
-  dataTypeStr: string;
+  dataType: string;
 }
 
 function CompareTableSection(props: CompareTableSectionParams) {
-  const { isLoading, compareTableProps, dataTypeStr } = props;
+  const { isLoading, compareTableProps, dataType } = props;
 
   if (isLoading) {
     return (
@@ -207,7 +207,7 @@ function CompareTableSection(props: CompareTableSectionParams) {
   }
 
   if (!compareTableProps) {
-    return <p>There are no {dataTypeStr} available on the selected runs.</p>;
+    return <p>There are no {dataType} available on the selected runs.</p>;
   }
 
   return <CompareTable {...compareTableProps} />;
@@ -523,7 +523,7 @@ function CompareV2(props: CompareV2Props) {
           <CompareTableSection
             isLoading={isLoadingRunDetails}
             compareTableProps={paramsTableProps}
-            dataTypeStr='Parameters'
+            dataType='Parameters'
           />
           <Hr />
         </div>
@@ -560,7 +560,7 @@ function CompareV2(props: CompareV2Props) {
                 {metricsTab === MetricsType.SCALAR_METRICS && (
                   <CompareTableSection
                     compareTableProps={scalarMetricsTableData}
-                    dataTypeStr='Scalar Metrics artifacts'
+                    dataType='Scalar Metrics artifacts'
                   />
                 )}
                 {metricsTab === MetricsType.CONFUSION_MATRIX && (
