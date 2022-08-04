@@ -147,6 +147,10 @@ func TestToApiRunDetail_RuntimeParams(t *testing.T) {
 			WorkflowManifest: "workflow123",
 		},
 	}
+	// Compare the string representation of ApiRuns, since these structs have fields
+	// used only by protobuff, and may be different. The .String() method marshal all
+	// exported fields into string format.
+	// See https://github.com/stretchr/testify/issues/758
 	assert.Equal(t, expectedApiRun.String(), apiRun.String())
 }
 
@@ -186,10 +190,7 @@ func TestToApiRunDetail_V1Params(t *testing.T) {
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
 				Parameters:       []*api.Parameter{{Name: "param2", Value: "world"}},
-				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
-					Parameters:   make(map[string]*structpb.Value),
-					PipelineRoot: "",
-				},
+				RuntimeConfig:    &api.PipelineSpec_RuntimeConfig{},
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job123"},
@@ -276,10 +277,7 @@ func TestToApiRuns(t *testing.T) {
 			Status:       "running",
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
-				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
-					Parameters:   make(map[string]*structpb.Value),
-					PipelineRoot: "",
-				},
+				RuntimeConfig:    &api.PipelineSpec_RuntimeConfig{},
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job1"},
@@ -301,10 +299,7 @@ func TestToApiRuns(t *testing.T) {
 			},
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
-				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
-					Parameters:   make(map[string]*structpb.Value),
-					PipelineRoot: "",
-				},
+				RuntimeConfig:    &api.PipelineSpec_RuntimeConfig{},
 			},
 			Metrics: []*api.RunMetric{apiMetric2},
 		},
