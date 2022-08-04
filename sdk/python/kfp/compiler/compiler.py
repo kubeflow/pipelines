@@ -726,7 +726,7 @@ class Compiler:
 
 def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
                                 package_path: str) -> None:
-    """Writes PipelienSpec into a YAML or JSON (deprecated) file.
+    """Writes PipelineSpec into a YAML or JSON (deprecated) file.
 
     Args:
         pipeline_spec (pipeline_spec_pb2.PipelineSpec): The PipelineSpec.
