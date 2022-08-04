@@ -29,7 +29,7 @@ function NewRunSwitcher(props: PageProps) {
   const { isSuccess: runIsSuccess, isFetching: runIsFetching, data: apiRun } = useQuery<
     ApiRunDetail
   >(
-    [originalRunId],
+    ['ApiRun', originalRunId],
     () => {
       if (!originalRunId) {
         throw new Error('Run ID is missing');
