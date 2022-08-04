@@ -54,6 +54,7 @@ import {
   FullArtifactPathMap,
   getRocCurveId,
   NameId,
+  RocCurveColorMap,
 } from 'src/lib/v2/CompareUtils';
 import { logger } from 'src/lib/Utils';
 import { stylesheet } from 'typestyle';
@@ -366,8 +367,8 @@ export interface ConfidenceMetricsFilter {
   selectedIds: string[];
   setSelectedIds: (selectedIds: string[]) => void;
   fullArtifactPathMap: FullArtifactPathMap;
-  selectedIdColorMap: { [key: string]: string };
-  setSelectedIdColorMap: (selectedIdColorMap: { [key: string]: string }) => void;
+  selectedIdColorMap: RocCurveColorMap;
+  setSelectedIdColorMap: (selectedIdColorMap: RocCurveColorMap) => void;
   lineColorsStack: string[];
   setLineColorsStack: (lineColorsStack: string[]) => void;
 }
@@ -466,15 +467,6 @@ const getRocCurveFilterTable = (
     confidenceMetricsDataList = selectedIds.map(selectedId =>
       confidenceMetricsDataMap.get(selectedId),
     );
-
-    // Populate the color map on the initial render.
-    if (selectedIds.length > 0 && Object.keys(selectedIdColorMap).length === 0) {
-      selectedIds.forEach(selectedId => {
-        selectedIdColorMap[selectedId] = lineColorsStack.pop()!;
-      });
-      setLineColorsStack(lineColorsStack);
-      setSelectedIdColorMap(selectedIdColorMap);
-    }
 
     // Populate the filter table rows.
     for (const linkedArtifact of linkedArtifactsPage) {

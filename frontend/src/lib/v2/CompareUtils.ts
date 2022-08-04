@@ -71,9 +71,14 @@ export interface FullArtifactPath {
 // key: "<execution ID>-<artifact ID>"
 export type FullArtifactPathMap = { [key: string]: FullArtifactPath };
 
+export interface RocCurveColorMap {
+  [key: string]: string;
+}
+
 export interface RocCurveArtifactData {
   validLinkedArtifacts: LinkedArtifact[];
   fullArtifactPathMap: FullArtifactPathMap;
+  updatedIdColorMap: RocCurveColorMap;
 }
 
 export const getRocCurveId = (linkedArtifact: LinkedArtifact): string =>
@@ -104,6 +109,7 @@ export const getValidRocCurveArtifactData = (
   return {
     validLinkedArtifacts,
     fullArtifactPathMap,
+    updatedIdColorMap: {},
   };
 };
 

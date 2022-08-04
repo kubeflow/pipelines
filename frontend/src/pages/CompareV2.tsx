@@ -56,6 +56,7 @@ import {
   getValidRocCurveArtifactData,
   MetricsType,
   metricsTypeToString,
+  RocCurveColorMap,
   RunArtifact,
   RunArtifactData,
 } from 'src/lib/v2/CompareUtils';
@@ -242,7 +243,7 @@ function CompareV2(props: CompareV2Props) {
   // ROC Curve
   const [rocCurveLinkedArtifacts, setRocCurveLinkedArtifacts] = useState<LinkedArtifact[]>([]);
   const [selectedRocCurveIds, setSelectedRocCurveIds] = useState<string[]>([]);
-  const [selectedIdColorMap, setSelectedIdColorMap] = useState<{ [key: string]: string }>({});
+  const [selectedIdColorMap, setSelectedIdColorMap] = useState<RocCurveColorMap>({});
   const [lineColorsStack, setLineColorsStack] = useState<string[]>([...lineColors].reverse());
   const [fullArtifactPathMap, setFullArtifactPathMap] = useState<FullArtifactPathMap>({});
 
@@ -322,6 +323,7 @@ function CompareV2(props: CompareV2Props) {
     staleTime: Infinity,
   });
 
+  // TODO(zpChris): Make clear this is also called on re-render, and for roc curves state must be saved.
   useEffect(() => {
     if (runs && selectedIds && mlmdPackages && artifactTypes) {
       const selectedIdsSet = new Set(selectedIds);
@@ -366,11 +368,38 @@ function CompareV2(props: CompareV2Props) {
 
       setFullArtifactPathMap(fullArtifactPathMap);
       setRocCurveLinkedArtifacts(validLinkedArtifacts);
-      setSelectedRocCurveIds(
-        validLinkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)).slice(0, 3),
-      );
+
+      // I could clear the map to refresh the colors completely.
+      // I could get all of the Object.keys(initialIdColorMap), and then look through each one. For each one
+      // I would look through all of the selected run artifacts linked artifacts, and see if it matches? If not,
+      // then find that corresponding color, add it back onto the stack, and delete that entry. Ooof - maybe I can do this while looping through the getValidRocCurveArtifactData?
+      // Such as get the new initialIdColorMap?
+      // What if I also stored the run ID on this color map? Then on update, I could check which runs correspond to the colors.
+      // This requires work on the updated IDs side of MetricsVisualizations, so I'll stick to the first solution.
+      console.log(Object.keys(selectedIdColorMap));
+
+      // So the colors do indeed update.
+
+      const updatedRocCurveIds = validLinkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)).slice(0, 3);
+      setSelectedRocCurveIds(updatedRocCurveIds);
+
+      // Populate the color map on the initial render.
+
+      // Ok, so I don't have to base it off of the initial stack. I can base it off what I know that value to be.
+      // However, how do I modify this when it *does* have to be based off the initial value?
+      // What we have to do then is find all of the runs whose artifacts are being used; then,
+      // pop those colors off the stack.
+      // Or, I can not include the lineColorsStack in this list?
+      // Note: deselecting and re-selecting a run will not maintain those selections. I personally am OK with that, knowing the complexity that adds.
+      const initialIdColorMap: { [key: string]: string } = {};
+      updatedRocCurveIds.forEach(selectedId => {
+        initialIdColorMap[selectedId] = lineColorsStack.pop()!;
+      });
+      setLineColorsStack(lineColorsStack);
+      setSelectedIdColorMap(initialIdColorMap);
       setIsLoadingArtifacts(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runs, selectedIds, mlmdPackages, artifactTypes]);
 
   useEffect(() => {
@@ -459,8 +488,12 @@ function CompareV2(props: CompareV2Props) {
     });
   };
 
-  const selectionChanged = (selectedIds: string[]): void => {
-    setSelectedIds(selectedIds);
+  const selectionChanged = (newSelectedIds: string[]): void => {
+    console.log(selectedIds);
+    console.log(newSelectedIds);
+    // Get all of the removed ids. (None of the ones that are added will update the plot.)
+    // From that, we find all of the runs where 
+    setSelectedIds(newSelectedIds);
   };
 
   const updateSelectedArtifacts = (newArtifacts: SelectedArtifact[]) => {
