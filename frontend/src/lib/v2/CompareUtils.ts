@@ -22,6 +22,7 @@ import * as jspb from 'google-protobuf';
 import { ApiRunDetail } from 'src/apis/run';
 import { chain, flatMapDeep, flatten } from 'lodash';
 import { stylesheet } from 'typestyle';
+import { RuntimeParameters } from 'src/pages/NewRunV2';
 
 export const compareCss = stylesheet({
   relativeContainer: {
@@ -79,28 +80,21 @@ export interface RocCurveArtifactData {
 export const mlmdDisplayName = (id: string, mlmdTypeStr: string, displayName?: string) =>
   displayName || `${mlmdTypeStr} ID #${id}`;
 
-interface RunParameters {
-  [key: string]: any;
-}
-
 export const getParamsTableProps = (runs: ApiRunDetail[]): CompareTableProps => {
   const xLabels: string[] = [];
   const parameterNames: string[][] = [];
-  const dataMap: { [key: string]: RunParameters } = {};
+  const dataMap: { [key: string]: RuntimeParameters } = {};
   for (const run of runs) {
     const runId: string = run.run!.id!;
-    const parameters: RunParameters | undefined =
+    const parameters: RuntimeParameters | undefined =
       run.run?.pipeline_spec?.runtime_config?.parameters;
-    console.log(parameters);
-    if (!parameters) {
-      throw new Error(
-        `The parameters could not be fetched for the run with the following ID: ${runId}`,
-      );
-    }
 
     xLabels.push(mlmdDisplayName(runId, 'Run', run.run?.name));
-    parameterNames.push(Object.keys(parameters));
-    dataMap[runId] = parameters;
+    dataMap[runId] = parameters || {};
+
+    if (parameters) {
+      parameterNames.push(Object.keys(parameters));
+    }
   }
 
   const yLabels = chain(flatten(parameterNames))
@@ -112,10 +106,7 @@ export const getParamsTableProps = (runs: ApiRunDetail[]): CompareTableProps => 
 
   const rows: string[][] = yLabels.map(yLabel => {
     return runs.map(run => {
-      // Determine the type of the object here.
-      console.log(JSON.stringify(dataMap[run.run!.id!][yLabel]));
       const dataValue = dataMap[run.run!.id!][yLabel];
-      
       return dataValue === undefined ? '' : JSON.stringify(dataValue);
     });
   });

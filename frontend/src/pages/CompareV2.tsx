@@ -185,24 +185,12 @@ export interface SelectedArtifact {
 }
 
 interface CompareTableSectionParams {
-  error?: string;
   compareTableProps?: CompareTableProps;
   dataTypeStr: string;
 }
 
 function CompareTableSection(props: CompareTableSectionParams) {
-  const { error, compareTableProps, dataTypeStr } = props;
-
-  if (error) {
-    return (
-      <Banner
-        message='The Parameters compare table failed to load.'
-        mode='error'
-        additionalInfo={error}
-        isLeftAlign
-      />
-    );
-  }
+  const { compareTableProps, dataTypeStr } = props;
 
   if (!compareTableProps) {
     return <p>There are no {dataTypeStr} available on the selected runs.</p>;
@@ -243,7 +231,6 @@ function CompareV2(props: CompareV2Props) {
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
   const [isLoadingArtifacts, setIsLoadingArtifacts] = useState<boolean>(true);
   const [paramsTableProps, setParamsTableProps] = useState<CompareTableProps | undefined>();
-  const [paramsTableError, setParamsTableError] = useState<string>('');
 
   // Two-panel display artifacts
   const [confusionMatrixRunArtifacts, setConfusionMatrixRunArtifacts] = useState<RunArtifact[]>([]);
@@ -340,13 +327,7 @@ function CompareV2(props: CompareV2Props) {
 
   useEffect(() => {
     if (runs) {
-      try {
-        setParamsTableProps(getParamsTableProps(runs));
-        setParamsTableError('');
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : '';
-        setParamsTableError(errorMessage);
-      }
+      setParamsTableProps(getParamsTableProps(runs));
     }
   }, [runs]);
 
@@ -528,11 +509,7 @@ function CompareV2(props: CompareV2Props) {
       {!isParamsCollapsed && (
         <div className={classes(commonCss.noShrink, css.outputsRow, css.outputsOverflow)}>
           <Separator orientation='vertical' />
-          <CompareTableSection
-            error={paramsTableError}
-            compareTableProps={paramsTableProps}
-            dataTypeStr='Parameters'
-          />
+          <CompareTableSection compareTableProps={paramsTableProps} dataTypeStr='Parameters' />
         </div>
       )}
 
