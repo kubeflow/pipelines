@@ -49,8 +49,7 @@ func NewGetRunOK() *GetRunOK {
 	return &GetRunOK{}
 }
 
-/*
-GetRunOK handles this case with default header values.
+/*GetRunOK handles this case with default header values.
 
 A successful response.
 */
@@ -81,8 +80,7 @@ func NewGetRunDefault(code int) *GetRunDefault {
 	}
 }
 
-/*
-GetRunDefault handles this case with default header values.
+/*GetRunDefault handles this case with default header values.
 
 GetRunDefault get run default
 */

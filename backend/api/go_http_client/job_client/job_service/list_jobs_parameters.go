@@ -69,8 +69,7 @@ func NewListJobsParamsWithHTTPClient(client *http.Client) *ListJobsParams {
 	}
 }
 
-/*
-ListJobsParams contains all the parameters to send to the API endpoint
+/*ListJobsParams contains all the parameters to send to the API endpoint
 for the list jobs operation typically these are written to a http.Request
 */
 type ListJobsParams struct {

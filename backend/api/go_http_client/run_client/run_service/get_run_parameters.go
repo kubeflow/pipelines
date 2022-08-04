@@ -56,8 +56,7 @@ func NewGetRunParamsWithHTTPClient(client *http.Client) *GetRunParams {
 	}
 }
 
-/*
-GetRunParams contains all the parameters to send to the API endpoint
+/*GetRunParams contains all the parameters to send to the API endpoint
 for the get run operation typically these are written to a http.Request
 */
 type GetRunParams struct {

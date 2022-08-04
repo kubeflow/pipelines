@@ -49,8 +49,7 @@ func NewCreatePipelineOK() *CreatePipelineOK {
 	return &CreatePipelineOK{}
 }
 
-/*
-CreatePipelineOK handles this case with default header values.
+/*CreatePipelineOK handles this case with default header values.
 
 A successful response.
 */
@@ -81,8 +80,7 @@ func NewCreatePipelineDefault(code int) *CreatePipelineDefault {
 	}
 }
 
-/*
-CreatePipelineDefault handles this case with default header values.
+/*CreatePipelineDefault handles this case with default header values.
 
 CreatePipelineDefault create pipeline default
 */

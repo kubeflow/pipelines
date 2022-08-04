@@ -49,8 +49,7 @@ func NewDeleteRunOK() *DeleteRunOK {
 	return &DeleteRunOK{}
 }
 
-/*
-DeleteRunOK handles this case with default header values.
+/*DeleteRunOK handles this case with default header values.
 
 A successful response.
 */
@@ -79,8 +78,7 @@ func NewDeleteRunDefault(code int) *DeleteRunDefault {
 	}
 }
 
-/*
-DeleteRunDefault handles this case with default header values.
+/*DeleteRunDefault handles this case with default header values.
 
 DeleteRunDefault delete run default
 */

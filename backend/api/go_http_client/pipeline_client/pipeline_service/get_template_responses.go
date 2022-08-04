@@ -49,8 +49,7 @@ func NewGetTemplateOK() *GetTemplateOK {
 	return &GetTemplateOK{}
 }
 
-/*
-GetTemplateOK handles this case with default header values.
+/*GetTemplateOK handles this case with default header values.
 
 A successful response.
 */
@@ -81,8 +80,7 @@ func NewGetTemplateDefault(code int) *GetTemplateDefault {
 	}
 }
 
-/*
-GetTemplateDefault handles this case with default header values.
+/*GetTemplateDefault handles this case with default header values.
 
 GetTemplateDefault get template default
 */

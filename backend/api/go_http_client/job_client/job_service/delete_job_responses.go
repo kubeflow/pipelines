@@ -49,8 +49,7 @@ func NewDeleteJobOK() *DeleteJobOK {
 	return &DeleteJobOK{}
 }
 
-/*
-DeleteJobOK handles this case with default header values.
+/*DeleteJobOK handles this case with default header values.
 
 A successful response.
 */
@@ -79,8 +78,7 @@ func NewDeleteJobDefault(code int) *DeleteJobDefault {
 	}
 }
 
-/*
-DeleteJobDefault handles this case with default header values.
+/*DeleteJobDefault handles this case with default header values.
 
 DeleteJobDefault delete job default
 */

@@ -56,8 +56,7 @@ func NewRetryRunParamsWithHTTPClient(client *http.Client) *RetryRunParams {
 	}
 }
 
-/*
-RetryRunParams contains all the parameters to send to the API endpoint
+/*RetryRunParams contains all the parameters to send to the API endpoint
 for the retry run operation typically these are written to a http.Request
 */
 type RetryRunParams struct {

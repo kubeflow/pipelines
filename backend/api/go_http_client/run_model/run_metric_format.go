@@ -15,9 +15,8 @@ import (
 )
 
 // RunMetricFormat  - UNSPECIFIED: Default value if not present.
-//   - RAW: Display value as its raw format.
-//   - PERCENTAGE: Display value in percentage format.
-//
+//  - RAW: Display value as its raw format.
+//  - PERCENTAGE: Display value in percentage format.
 // swagger:model RunMetricFormat
 type RunMetricFormat string
 

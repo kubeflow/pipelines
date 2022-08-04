@@ -49,8 +49,7 @@ func NewCreateRunOK() *CreateRunOK {
 	return &CreateRunOK{}
 }
 
-/*
-CreateRunOK handles this case with default header values.
+/*CreateRunOK handles this case with default header values.
 
 A successful response.
 */
@@ -81,8 +80,7 @@ func NewCreateRunDefault(code int) *CreateRunDefault {
 	}
 }
 
-/*
-CreateRunDefault handles this case with default header values.
+/*CreateRunDefault handles this case with default header values.
 
 CreateRunDefault create run default
 */

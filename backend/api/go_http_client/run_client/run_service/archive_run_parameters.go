@@ -56,8 +56,7 @@ func NewArchiveRunParamsWithHTTPClient(client *http.Client) *ArchiveRunParams {
 	}
 }
 
-/*
-ArchiveRunParams contains all the parameters to send to the API endpoint
+/*ArchiveRunParams contains all the parameters to send to the API endpoint
 for the archive run operation typically these are written to a http.Request
 */
 type ArchiveRunParams struct {

@@ -49,8 +49,7 @@ func NewUploadPipelineVersionOK() *UploadPipelineVersionOK {
 	return &UploadPipelineVersionOK{}
 }
 
-/*
-UploadPipelineVersionOK handles this case with default header values.
+/*UploadPipelineVersionOK handles this case with default header values.
 
 UploadPipelineVersionOK upload pipeline version o k
 */
@@ -81,8 +80,7 @@ func NewUploadPipelineVersionDefault(code int) *UploadPipelineVersionDefault {
 	}
 }
 
-/*
-UploadPipelineVersionDefault handles this case with default header values.
+/*UploadPipelineVersionDefault handles this case with default header values.
 
 UploadPipelineVersionDefault upload pipeline version default
 */

@@ -49,8 +49,7 @@ func NewUnarchiveExperimentOK() *UnarchiveExperimentOK {
 	return &UnarchiveExperimentOK{}
 }
 
-/*
-UnarchiveExperimentOK handles this case with default header values.
+/*UnarchiveExperimentOK handles this case with default header values.
 
 A successful response.
 */
@@ -79,8 +78,7 @@ func NewUnarchiveExperimentDefault(code int) *UnarchiveExperimentDefault {
 	}
 }
 
-/*
-UnarchiveExperimentDefault handles this case with default header values.
+/*UnarchiveExperimentDefault handles this case with default header values.
 
 UnarchiveExperimentDefault unarchive experiment default
 */

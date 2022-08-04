@@ -58,8 +58,7 @@ func NewCreateVisualizationParamsWithHTTPClient(client *http.Client) *CreateVisu
 	}
 }
 
-/*
-CreateVisualizationParams contains all the parameters to send to the API endpoint
+/*CreateVisualizationParams contains all the parameters to send to the API endpoint
 for the create visualization operation typically these are written to a http.Request
 */
 type CreateVisualizationParams struct {

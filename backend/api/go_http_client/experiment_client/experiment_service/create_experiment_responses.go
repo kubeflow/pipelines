@@ -49,8 +49,7 @@ func NewCreateExperimentOK() *CreateExperimentOK {
 	return &CreateExperimentOK{}
 }
 
-/*
-CreateExperimentOK handles this case with default header values.
+/*CreateExperimentOK handles this case with default header values.
 
 A successful response.
 */
@@ -81,8 +80,7 @@ func NewCreateExperimentDefault(code int) *CreateExperimentDefault {
 	}
 }
 
-/*
-CreateExperimentDefault handles this case with default header values.
+/*CreateExperimentDefault handles this case with default header values.
 
 CreateExperimentDefault create experiment default
 */

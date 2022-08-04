@@ -49,8 +49,7 @@ func NewCreateVisualizationOK() *CreateVisualizationOK {
 	return &CreateVisualizationOK{}
 }
 
-/*
-CreateVisualizationOK handles this case with default header values.
+/*CreateVisualizationOK handles this case with default header values.
 
 A successful response.
 */
@@ -81,8 +80,7 @@ func NewCreateVisualizationDefault(code int) *CreateVisualizationDefault {
 	}
 }
 
-/*
-CreateVisualizationDefault handles this case with default header values.
+/*CreateVisualizationDefault handles this case with default header values.
 
 CreateVisualizationDefault create visualization default
 */

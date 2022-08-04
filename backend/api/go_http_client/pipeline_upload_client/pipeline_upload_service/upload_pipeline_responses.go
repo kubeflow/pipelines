@@ -49,8 +49,7 @@ func NewUploadPipelineOK() *UploadPipelineOK {
 	return &UploadPipelineOK{}
 }
 
-/*
-UploadPipelineOK handles this case with default header values.
+/*UploadPipelineOK handles this case with default header values.
 
 UploadPipelineOK upload pipeline o k
 */
@@ -81,8 +80,7 @@ func NewUploadPipelineDefault(code int) *UploadPipelineDefault {
 	}
 }
 
-/*
-UploadPipelineDefault handles this case with default header values.
+/*UploadPipelineDefault handles this case with default header values.
 
 UploadPipelineDefault upload pipeline default
 */

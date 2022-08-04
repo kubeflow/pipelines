@@ -316,9 +316,7 @@ func (Event_Type) EnumDescriptor() ([]byte, []int) {
 }
 
 // The state of the Execution. The state transitions are
-//
-//	NEW -> RUNNING -> COMPLETE | CACHED | FAILED | CANCELED
-//
+//   NEW -> RUNNING -> COMPLETE | CACHED | FAILED | CANCELED
 // CACHED means the execution is skipped due to cached results.
 // CANCELED means the execution is skipped due to precondition not met. It is
 // different from CACHED in that a CANCELED execution will not have any event
@@ -1048,73 +1046,68 @@ func (x *ArtifactType) GetBaseType() ArtifactType_SystemDefinedBaseType {
 // For example, the DECLARED_INPUT and DECLARED_OUTPUT events are part of the
 // signature of an execution. For example, consider:
 //
-//	my_result = my_execution({"data":[3,7],"schema":8})
+//   my_result = my_execution({"data":[3,7],"schema":8})
 //
 // Where 3, 7, and 8 are artifact_ids, Assuming execution_id of my_execution is
 // 12 and artifact_id of my_result is 15, the events are:
-//
-//	{
-//	    artifact_id:3,
-//	    execution_id: 12,
-//	    type:DECLARED_INPUT,
-//	    path:{step:[{"key":"data"},{"index":0}]}
-//	}
-//	{
-//	    artifact_id:7,
-//	    execution_id: 12,
-//	    type:DECLARED_INPUT,
-//	    path:{step:[{"key":"data"},{"index":1}]}
-//	}
-//	{
-//	    artifact_id:8,
-//	    execution_id: 12,
-//	    type:DECLARED_INPUT,
-//	    path:{step:[{"key":"schema"}]}
-//	}
-//	{
-//	    artifact_id:15,
-//	    execution_id: 12,
-//	    type:DECLARED_OUTPUT,
-//	    path:{step:[{"key":"my_result"}]}
-//	}
-//
+//   {
+//       artifact_id:3,
+//       execution_id: 12,
+//       type:DECLARED_INPUT,
+//       path:{step:[{"key":"data"},{"index":0}]}
+//   }
+//   {
+//       artifact_id:7,
+//       execution_id: 12,
+//       type:DECLARED_INPUT,
+//       path:{step:[{"key":"data"},{"index":1}]}
+//   }
+//   {
+//       artifact_id:8,
+//       execution_id: 12,
+//       type:DECLARED_INPUT,
+//       path:{step:[{"key":"schema"}]}
+//   }
+//   {
+//       artifact_id:15,
+//       execution_id: 12,
+//       type:DECLARED_OUTPUT,
+//       path:{step:[{"key":"my_result"}]}
+//   }
 // Other event types include INPUT/OUTPUT and INTERNAL_INPUT/_OUTPUT.
 // * The INPUT/OUTPUT is an event that actually reads/writes an artifact by an
-//
-//	execution. The input/output artifacts may not declared in the signature,
-//	For example, the trainer may output multiple caches of the parameters
-//	(as an OUTPUT), then finally write the SavedModel as a DECLARED_OUTPUT.
-//
+//   execution. The input/output artifacts may not declared in the signature,
+//   For example, the trainer may output multiple caches of the parameters
+//   (as an OUTPUT), then finally write the SavedModel as a DECLARED_OUTPUT.
 // * The INTERNAL_INPUT/_OUTPUT are event types which are only meaningful to
-//
-//	an orchestration system to keep track of the details for later debugging.
-//	For example, a fork happened conditioning on an artifact, then an execution
-//	is triggered, such fork implementating may need to log the read and write
-//	of artifacts and may not be worth displaying to the users.
+//   an orchestration system to keep track of the details for later debugging.
+//   For example, a fork happened conditioning on an artifact, then an execution
+//   is triggered, such fork implementating may need to log the read and write
+//   of artifacts and may not be worth displaying to the users.
 //
 // For instance, in the above example,
 //
-//	my_result = my_execution({"data":[3,7],"schema":8})
+//   my_result = my_execution({"data":[3,7],"schema":8})
 //
 // there is another execution (id: 15), which represents a `garbage_collection`
 // step in an orchestration system
 //
-//	gc_result = garbage_collection(my_result)
+//   gc_result = garbage_collection(my_result)
 //
 // that cleans `my_result` if needed. The details should be invisible to the
 // end users and lineage tracking. The orchestrator can emit following events:
 //
-//	{
-//	    artifact_id: 15,
-//	    execution_id: 15,
-//	    type:INTERNAL_INPUT,
-//	}
-//	{
-//	    artifact_id:16,  // New artifact containing the GC job result.
-//	    execution_id: 15,
-//	    type:INTERNAL_OUTPUT,
-//	    path:{step:[{"key":"gc_result"}]}
-//	}
+//   {
+//       artifact_id: 15,
+//       execution_id: 15,
+//       type:INTERNAL_INPUT,
+//   }
+//   {
+//       artifact_id:16,  // New artifact containing the GC job result.
+//       execution_id: 15,
+//       type:INTERNAL_OUTPUT,
+//       path:{step:[{"key":"gc_result"}]}
+//   }
 type Event struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2182,27 +2175,24 @@ func (x *UnionArtifactStructType) GetCandidates() []*ArtifactStructType {
 //
 // For example, suppose you have a method:
 // def infer_my_input_type(a): # try to infer the input type of this method.
-//
-//	use_in_method_x(a) # with input type x_input
-//	use_in_method_y(a) # with input type y_input
+//   use_in_method_x(a) # with input type x_input
+//   use_in_method_y(a) # with input type y_input
 //
 // Given this information, you know that infer_my_input_type has
 // type {"intersection":{"constraints":[x_input, y_input]}}.
 //
 // IntersectionArtifactStructType intersection_type = {"constraints":[
-//
-//	{"dict":{"properties":{"schema":{"any":{}}},
-//	         "extra_properties":{"any":{}}}},
-//	{"dict":{"properties":{"data":{"any":{}}},
-//	         "extra_properties":{"any":{}}}}]}
-//
+//     {"dict":{"properties":{"schema":{"any":{}}},
+//              "extra_properties":{"any":{}}}},
+//     {"dict":{"properties":{"data":{"any":{}}},
+//              "extra_properties":{"any":{}}}}]}
 // Since the first constraint requires the dictionary to have a schema
 // property, and the second constraint requires it to have a data property, this
 // is equivalent to:
 // ArtifactStructType other_type =
+//      {"dict":{"properties":{"schema":{"any":{}},"data":{"any":{}}}},
+//       "extra_properties":{"any":{}}}
 //
-//	{"dict":{"properties":{"schema":{"any":{}},"data":{"any":{}}}},
-//	 "extra_properties":{"any":{}}}
 type IntersectionArtifactStructType struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -2308,21 +2298,19 @@ func (x *ListArtifactStructType) GetElement() *ArtifactStructType {
 // For example, StatsGen has an "optional" schema input.
 // A practical example of this is:
 // stats_gen_type = {
-//
-//	"dict":{
-//	   "properties":{
-//	     "schema":{
-//	       "union_type":{
-//	         "none":{},
-//	         "simple":{...schema type...}
-//	        },
-//	     },
-//	     "data":{
-//	       "simple":{...data_type...}
-//	     }
-//	  }
-//	}
-//
+//     "dict":{
+//        "properties":{
+//          "schema":{
+//            "union_type":{
+//              "none":{},
+//              "simple":{...schema type...}
+//             },
+//          },
+//          "data":{
+//            "simple":{...data_type...}
+//          }
+//       }
+//     }
 // };
 type NoneArtifactStructType struct {
 	state         protoimpl.MessageState

@@ -49,8 +49,7 @@ func NewTerminateRunOK() *TerminateRunOK {
 	return &TerminateRunOK{}
 }
 
-/*
-TerminateRunOK handles this case with default header values.
+/*TerminateRunOK handles this case with default header values.
 
 A successful response.
 */
@@ -79,8 +78,7 @@ func NewTerminateRunDefault(code int) *TerminateRunDefault {
 	}
 }
 
-/*
-TerminateRunDefault handles this case with default header values.
+/*TerminateRunDefault handles this case with default header values.
 
 TerminateRunDefault terminate run default
 */

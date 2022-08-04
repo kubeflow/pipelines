@@ -56,8 +56,7 @@ func NewDisableJobParamsWithHTTPClient(client *http.Client) *DisableJobParams {
 	}
 }
 
-/*
-DisableJobParams contains all the parameters to send to the API endpoint
+/*DisableJobParams contains all the parameters to send to the API endpoint
 for the disable job operation typically these are written to a http.Request
 */
 type DisableJobParams struct {

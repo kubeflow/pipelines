@@ -18,13 +18,12 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"strings"
 )
-
 const (
 	DefaultPipelineRunnerServiceAccount = "pipeline-runner"
 	HasDefaultBucketEnvVar              = "HAS_DEFAULT_BUCKET"
 	DefaultBucketNameEnvVar             = "BUCKET_NAME"
-	ProjectIDEnvVar                     = "PROJECT_ID"
-)
+    ProjectIDEnvVar                     = "PROJECT_ID"
+    )
 
 func GetNamespaceFromAPIResourceReferences(resourceRefs []*api.ResourceReference) string {
 	namespace := ""
@@ -50,8 +49,7 @@ func GetExperimentIDFromAPIResourceReferences(resourceRefs []*api.ResourceRefere
 
 // Mutate default values of specified pipeline spec.
 // Args:
-//
-//	text: (part of) pipeline file in string.
+//  text: (part of) pipeline file in string.
 func PatchPipelineDefaultParameter(text string) (string, error) {
 	defaultBucket := GetStringConfig(DefaultBucketNameEnvVar)
 	projectId := GetStringConfig(ProjectIDEnvVar)

@@ -16,8 +16,7 @@ import (
 
 // JobMode Required input.
 //
-//   - DISABLED: The job won't schedule any run if disabled.
-//
+//  - DISABLED: The job won't schedule any run if disabled.
 // swagger:model JobMode
 type JobMode string
 

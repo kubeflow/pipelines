@@ -49,8 +49,7 @@ func NewGetJobOK() *GetJobOK {
 	return &GetJobOK{}
 }
 
-/*
-GetJobOK handles this case with default header values.
+/*GetJobOK handles this case with default header values.
 
 A successful response.
 */
@@ -81,8 +80,7 @@ func NewGetJobDefault(code int) *GetJobDefault {
 	}
 }
 
-/*
-GetJobDefault handles this case with default header values.
+/*GetJobDefault handles this case with default header values.
 
 GetJobDefault get job default
 */

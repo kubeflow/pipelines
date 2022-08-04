@@ -49,8 +49,7 @@ func NewReportRunMetricsOK() *ReportRunMetricsOK {
 	return &ReportRunMetricsOK{}
 }
 
-/*
-ReportRunMetricsOK handles this case with default header values.
+/*ReportRunMetricsOK handles this case with default header values.
 
 A successful response.
 */
@@ -81,8 +80,7 @@ func NewReportRunMetricsDefault(code int) *ReportRunMetricsDefault {
 	}
 }
 
-/*
-ReportRunMetricsDefault handles this case with default header values.
+/*ReportRunMetricsDefault handles this case with default header values.
 
 ReportRunMetricsDefault report run metrics default
 */

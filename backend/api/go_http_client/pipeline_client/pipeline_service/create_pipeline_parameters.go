@@ -58,8 +58,7 @@ func NewCreatePipelineParamsWithHTTPClient(client *http.Client) *CreatePipelineP
 	}
 }
 
-/*
-CreatePipelineParams contains all the parameters to send to the API endpoint
+/*CreatePipelineParams contains all the parameters to send to the API endpoint
 for the create pipeline operation typically these are written to a http.Request
 */
 type CreatePipelineParams struct {

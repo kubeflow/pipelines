@@ -69,8 +69,7 @@ func NewListRunsParamsWithHTTPClient(client *http.Client) *ListRunsParams {
 	}
 }
 
-/*
-ListRunsParams contains all the parameters to send to the API endpoint
+/*ListRunsParams contains all the parameters to send to the API endpoint
 for the list runs operation typically these are written to a http.Request
 */
 type ListRunsParams struct {

@@ -69,8 +69,7 @@ func NewListPipelinesParamsWithHTTPClient(client *http.Client) *ListPipelinesPar
 	}
 }
 
-/*
-ListPipelinesParams contains all the parameters to send to the API endpoint
+/*ListPipelinesParams contains all the parameters to send to the API endpoint
 for the list pipelines operation typically these are written to a http.Request
 */
 type ListPipelinesParams struct {

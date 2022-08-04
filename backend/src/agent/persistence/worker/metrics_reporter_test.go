@@ -197,7 +197,7 @@ func TestReportMetrics_Succeed(t *testing.T) {
 	got := pipelineFake.GetReportedMetricsRequest()
 	if diff := cmp.Diff(expectedMetricsRequest, got, cmpopts.EquateEmpty(), protocmp.Transform()); diff != "" {
 		t.Errorf("parseRuntimeInfo() = %+v, want %+v\nDiff (-want, +got)\n%s", got, expectedMetricsRequest, diff)
-		s, _ := json.MarshalIndent(expectedMetricsRequest, "", "  ")
+		s, _ := json.MarshalIndent(expectedMetricsRequest ,"", "  ")
 		fmt.Printf("Want %s", s)
 	}
 }
@@ -404,7 +404,7 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 	got := pipelineFake.GetReportedMetricsRequest()
 	if diff := cmp.Diff(expectedMetricsRequest, got, cmpopts.EquateEmpty(), protocmp.Transform()); diff != "" {
 		t.Errorf("parseRuntimeInfo() = %+v, want %+v\nDiff (-want, +got)\n%s", got, expectedMetricsRequest, diff)
-		s, _ := json.MarshalIndent(expectedMetricsRequest, "", "  ")
+		s, _ := json.MarshalIndent(expectedMetricsRequest ,"", "  ")
 		fmt.Printf("Want %s", s)
 	}
 }

@@ -49,8 +49,7 @@ func NewGetPipelineVersionTemplateOK() *GetPipelineVersionTemplateOK {
 	return &GetPipelineVersionTemplateOK{}
 }
 
-/*
-GetPipelineVersionTemplateOK handles this case with default header values.
+/*GetPipelineVersionTemplateOK handles this case with default header values.
 
 A successful response.
 */
@@ -81,8 +80,7 @@ func NewGetPipelineVersionTemplateDefault(code int) *GetPipelineVersionTemplateD
 	}
 }
 
-/*
-GetPipelineVersionTemplateDefault handles this case with default header values.
+/*GetPipelineVersionTemplateDefault handles this case with default header values.
 
 GetPipelineVersionTemplateDefault get pipeline version template default
 */

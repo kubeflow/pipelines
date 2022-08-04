@@ -56,8 +56,7 @@ func NewUploadPipelineParamsWithHTTPClient(client *http.Client) *UploadPipelineP
 	}
 }
 
-/*
-UploadPipelineParams contains all the parameters to send to the API endpoint
+/*UploadPipelineParams contains all the parameters to send to the API endpoint
 for the upload pipeline operation typically these are written to a http.Request
 */
 type UploadPipelineParams struct {

@@ -31,7 +31,7 @@ type WorkflowSaver struct {
 }
 
 func NewWorkflowSaver(client client.WorkflowClientInterface,
-	pipelineClient client.PipelineClientInterface, ttlSecondsAfterWorkflowFinish int64) *WorkflowSaver {
+		pipelineClient client.PipelineClientInterface, ttlSecondsAfterWorkflowFinish int64) *WorkflowSaver {
 	return &WorkflowSaver{
 		client:                        client,
 		pipelineClient:                pipelineClient,

@@ -49,8 +49,7 @@ func NewDeleteExperimentOK() *DeleteExperimentOK {
 	return &DeleteExperimentOK{}
 }
 
-/*
-DeleteExperimentOK handles this case with default header values.
+/*DeleteExperimentOK handles this case with default header values.
 
 A successful response.
 */
@@ -79,8 +78,7 @@ func NewDeleteExperimentDefault(code int) *DeleteExperimentDefault {
 	}
 }
 
-/*
-DeleteExperimentDefault handles this case with default header values.
+/*DeleteExperimentDefault handles this case with default header values.
 
 DeleteExperimentDefault delete experiment default
 */
