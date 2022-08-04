@@ -506,5 +506,10 @@ def create_container_component_from_func(
             arg_list.append(placeholders.InputValuePlaceholder(io_name))
 
     container_spec = func(*arg_list)
+    for arg in (container_spec.command or []) + (container_spec.args or []):
+        if isinstance(arg, ContainerComponentArtifactChannel):
+            raise TypeError(
+                'Cannot access artifact by itself in the container definition. Please use .uri or .path instead to access the artifact.'
+            )
     component_spec.implementation = structures.Implementation(container_spec)
     return container_component.ContainerComponent(component_spec, func)
