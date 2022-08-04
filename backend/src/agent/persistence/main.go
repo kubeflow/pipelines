@@ -63,6 +63,10 @@ const (
 	clientBurstFlagName                   = "clientBurst"
 )
 
+const (
+	DefaultConnectionTimeout = 6 * time.Minute
+)
+
 func main() {
 	flag.Parse()
 
@@ -95,6 +99,10 @@ func main() {
 		swfInformerFactory = swfinformers.NewFilteredSharedInformerFactory(swfClient, time.Second*30, namespace, nil)
 		workflowInformerFactory = workflowinformers.NewFilteredSharedInformerFactory(workflowClient, time.Second*30, namespace, nil)
 	}
+	k8sCoreClient := client.CreateKubernetesCoreOrFatal(DefaultConnectionTimeout, util.ClientParameters{
+		QPS:   clientQPS,
+		Burst: clientBurst,
+	})
 
 	pipelineClient, err := client.NewPipelineClient(
 		initializeTimeout,
@@ -111,6 +119,7 @@ func main() {
 		swfInformerFactory,
 		workflowInformerFactory,
 		pipelineClient,
+		k8sCoreClient,
 		util.NewRealTime())
 
 	go swfInformerFactory.Start(stopCh)

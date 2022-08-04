@@ -45,7 +45,7 @@ func NewMetricsReporter(pipelineClient client.PipelineClientInterface) *MetricsR
 }
 
 // ReportMetrics reports workflow metrics to pipeline server.
-func (r MetricsReporter) ReportMetrics(workflow *util.Workflow) error {
+func (r MetricsReporter) ReportMetrics(workflow *util.Workflow, user string) error {
 	if workflow.Status.Nodes == nil {
 		return nil
 	}
@@ -57,7 +57,7 @@ func (r MetricsReporter) ReportMetrics(workflow *util.Workflow) error {
 	runMetrics := []*api.RunMetric{}
 	partialFailures := []error{}
 	for _, nodeStatus := range workflow.Status.Nodes {
-		nodeMetrics, err := r.collectNodeMetricsOrNil(runID, nodeStatus)
+		nodeMetrics, err := r.collectNodeMetricsOrNil(runID, nodeStatus, user)
 		if err != nil {
 			partialFailures = append(partialFailures, err)
 			continue
@@ -79,7 +79,7 @@ func (r MetricsReporter) ReportMetrics(workflow *util.Workflow) error {
 	reportMetricsResponse, err := r.pipelineClient.ReportRunMetrics(&api.ReportRunMetricsRequest{
 		RunId:   runID,
 		Metrics: runMetrics,
-	})
+	}, user)
 	if err != nil {
 		return err
 	}
@@ -89,12 +89,12 @@ func (r MetricsReporter) ReportMetrics(workflow *util.Workflow) error {
 }
 
 func (r MetricsReporter) collectNodeMetricsOrNil(
-	runID string, nodeStatus workflowapi.NodeStatus) (
+	runID string, nodeStatus workflowapi.NodeStatus, user string) (
 	[]*api.RunMetric, error) {
 	if !nodeStatus.Completed() {
 		return nil, nil
 	}
-	metricsJSON, err := r.readNodeMetricsJSONOrEmpty(runID, nodeStatus)
+	metricsJSON, err := r.readNodeMetricsJSONOrEmpty(runID, nodeStatus, user)
 	if err != nil || metricsJSON == "" {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func (r MetricsReporter) collectNodeMetricsOrNil(
 	return reportMetricsRequest.GetMetrics(), nil
 }
 
-func (r MetricsReporter) readNodeMetricsJSONOrEmpty(runID string, nodeStatus workflowapi.NodeStatus) (string, error) {
+func (r MetricsReporter) readNodeMetricsJSONOrEmpty(runID string, nodeStatus workflowapi.NodeStatus, user string) (string, error) {
 	if nodeStatus.Outputs == nil || nodeStatus.Outputs.Artifacts == nil {
 		return "", nil // No output artifacts, skip the reporting
 	}
@@ -146,7 +146,7 @@ func (r MetricsReporter) readNodeMetricsJSONOrEmpty(runID string, nodeStatus wor
 		NodeId:       nodeStatus.ID,
 		ArtifactName: metricsArtifactName,
 	}
-	artifactResponse, err := r.pipelineClient.ReadArtifact(artifactRequest)
+	artifactResponse, err := r.pipelineClient.ReadArtifact(artifactRequest, user)
 	if err != nil {
 		return "", err
 	}

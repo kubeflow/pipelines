@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"google.golang.org/protobuf/testing/protocmp"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -21,7 +23,18 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	authorizationv1 "k8s.io/api/authorization/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
+
+var metric = &api.RunMetric{
+	Name:   "metric-1",
+	NodeId: "node-1",
+	Value: &api.RunMetric_NumberValue{
+		NumberValue: 0.88,
+	},
+	Format: api.RunMetric_RAW,
+}
 
 func TestCreateRun(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
@@ -611,23 +624,16 @@ func TestReportRunMetrics_RunNotFound(t *testing.T) {
 }
 
 func TestReportRunMetrics_Succeed(t *testing.T) {
-	httpServer := getMockServer(t)
-	// Close the server when test finishes
-	defer httpServer.Close()
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
 
 	clientManager, resourceManager, runDetails := initWithOneTimeRun(t)
 	defer clientManager.Close()
 	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
 
-	metric := &api.RunMetric{
-		Name:   "metric-1",
-		NodeId: "node-1",
-		Value: &api.RunMetric_NumberValue{
-			NumberValue: 0.88,
-		},
-		Format: api.RunMetric_RAW,
-	}
-	response, err := runServer.ReportRunMetrics(context.Background(), &api.ReportRunMetricsRequest{
+	response, err := runServer.ReportRunMetrics(ctx, &api.ReportRunMetricsRequest{
 		RunId:   runDetails.UUID,
 		Metrics: []*api.RunMetric{metric},
 	})
@@ -643,11 +649,45 @@ func TestReportRunMetrics_Succeed(t *testing.T) {
 	}
 	assert.Equal(t, expectedResponse, response)
 
-	run, err := runServer.GetRun(context.Background(), &api.GetRunRequest{
+	run, err := runServer.GetRun(ctx, &api.GetRunRequest{
 		RunId: runDetails.UUID,
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, []*api.RunMetric{metric}, run.GetRun().GetMetrics())
+}
+
+func TestReportRunMetrics_Unauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clientManager, resourceManager, runDetails := initWithOneTimeRun(t)
+	defer clientManager.Close()
+	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	resourceManager = resource.NewResourceManager(clientManager)
+	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
+
+	_, err := runServer.ReportRunMetrics(ctx, &api.ReportRunMetricsRequest{
+		RunId:   runDetails.UUID,
+		Metrics: []*api.RunMetric{metric},
+	})
+	assert.NotNil(t, err)
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: runDetails.Namespace,
+		Verb:      common.RbacResourceVerbReportMetrics,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeRuns,
+		Name:      runDetails.Name,
+	}
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes))).Error(),
+	)
+
 }
 
 func TestReportRunMetrics_PartialFailures(t *testing.T) {
@@ -659,14 +699,7 @@ func TestReportRunMetrics_PartialFailures(t *testing.T) {
 	defer clientManager.Close()
 	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
 
-	validMetric := &api.RunMetric{
-		Name:   "metric-1",
-		NodeId: "node-1",
-		Value: &api.RunMetric_NumberValue{
-			NumberValue: 0.88,
-		},
-		Format: api.RunMetric_RAW,
-	}
+	validMetric := metric
 	invalidNameMetric := &api.RunMetric{
 		Name:   "$metric-1",
 		NodeId: "node-1",
@@ -826,4 +859,160 @@ func TestCanAccessRun_Unauthenticated(t *testing.T) {
 		err,
 		wrapFailedAuthzApiResourcesError(kfpauth.IdentityHeaderMissingError).Error(),
 	)
+}
+
+func TestReadArtifacts_Succeed(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	expectedContent := "test"
+	filePath := "test/file.txt"
+	resourceManager, manager, run := initWithOneTimeRun(t)
+	resourceManager.ObjectStore().AddFile([]byte(expectedContent), filePath)
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "argoproj.io/v1alpha1",
+			Kind:       "Workflow",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name:              "workflow-name",
+			Namespace:         "ns1",
+			UID:               "workflow1",
+			Labels:            map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1beta1",
+				Kind:       "Workflow",
+				Name:       "workflow-name",
+				UID:        types.UID(run.UUID),
+			}},
+		},
+		Status: v1alpha1.WorkflowStatus{
+			Nodes: map[string]v1alpha1.NodeStatus{
+				"node-1": {
+					Outputs: &v1alpha1.Outputs{
+						Artifacts: []v1alpha1.Artifact{
+							{
+								Name: "artifact-1",
+								ArtifactLocation: v1alpha1.ArtifactLocation{
+									S3: &v1alpha1.S3Artifact{
+										Key: filePath,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	err := manager.ReportWorkflowResource(context.Background(), workflow)
+	assert.Nil(t, err)
+
+	runServer := RunServer{resourceManager: manager, options: &RunServerOptions{CollectMetrics: false}}
+	artifact := &api.ReadArtifactRequest{
+		RunId:        run.UUID,
+		NodeId:       "node-1",
+		ArtifactName: "artifact-1",
+	}
+	response, err := runServer.ReadArtifact(ctx, artifact)
+	assert.Nil(t, err)
+
+	expectedResponse := &api.ReadArtifactResponse{
+		Data: []byte(expectedContent),
+	}
+	assert.Equal(t, expectedResponse, response)
+}
+
+func TestReadArtifacts_Unauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clientManager, resourceManager, run := initWithOneTimeRun(t)
+
+	//make the following request unauthorized
+	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
+	resourceManager = resource.NewResourceManager(clientManager)
+
+	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
+	artifact := &api.ReadArtifactRequest{
+		RunId:        run.UUID,
+		NodeId:       "node-1",
+		ArtifactName: "artifact-1",
+	}
+	_, err := runServer.ReadArtifact(ctx, artifact)
+	assert.NotNil(t, err)
+
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: run.Namespace,
+		Verb:      common.RbacResourceVerbReadArtifact,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeRuns,
+		Name:      run.Name,
+	}
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes))).Error(),
+	)
+}
+
+func TestReadArtifacts_Run_NotFound(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	manager := resource.NewResourceManager(clientManager)
+	runServer := RunServer{resourceManager: manager, options: &RunServerOptions{CollectMetrics: false}}
+	artifact := &api.ReadArtifactRequest{
+		RunId:        "Wrong_RUN_UUID",
+		NodeId:       "node-1",
+		ArtifactName: "artifact-1",
+	}
+	_, err := runServer.ReadArtifact(context.Background(), artifact)
+	assert.NotNil(t, err)
+	err = err.(*util.UserError)
+
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
+}
+
+func TestReadArtifacts_Resource_NotFound(t *testing.T) {
+	_, manager, run := initWithOneTimeRun(t)
+
+	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "argoproj.io/v1alpha1",
+			Kind:       "Workflow",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name:              "workflow-name",
+			Namespace:         "ns1",
+			UID:               "workflow1",
+			Labels:            map[string]string{util.LabelKeyWorkflowRunId: run.UUID},
+			CreationTimestamp: v1.NewTime(time.Unix(11, 0).UTC()),
+			OwnerReferences: []v1.OwnerReference{{
+				APIVersion: "kubeflow.org/v1beta1",
+				Kind:       "Workflow",
+				Name:       "workflow-name",
+				UID:        types.UID(run.UUID),
+			}},
+		},
+	})
+	err := manager.ReportWorkflowResource(context.Background(), workflow)
+	assert.Nil(t, err)
+
+	runServer := RunServer{resourceManager: manager, options: &RunServerOptions{CollectMetrics: false}}
+	//`artifactRequest` search for node that does not exist
+	artifactRequest := &api.ReadArtifactRequest{
+		RunId:        run.UUID,
+		NodeId:       "node-1",
+		ArtifactName: "artifact-1",
+	}
+	_, err = runServer.ReadArtifact(context.Background(), artifactRequest)
+	assert.NotNil(t, err)
+	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
 }
