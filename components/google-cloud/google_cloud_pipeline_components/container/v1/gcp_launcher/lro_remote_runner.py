@@ -19,9 +19,9 @@ from typing import Any
 
 import google.auth
 import google.auth.transport.requests
+from google_cloud_pipeline_components.container.utils import execution_context
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 import requests
-from ...utils import execution_context
 
 from google.protobuf import json_format
 
@@ -34,6 +34,7 @@ _LRO_USER_ERROR_CODES = (
     403,  # Permission Denied
     409,  # Conflict
 )
+
 
 class LroRemoteRunner():
   """Common module for creating and poll LRO."""

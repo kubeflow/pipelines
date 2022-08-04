@@ -14,10 +14,13 @@
 
 import json
 import re
-from .utils import json_util, error_util
+
 from . import lro_remote_runner
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 
 _ENDPOINT_NAME_TEMPLATE = r'(projects/(?P<project>.*)/locations/(?P<location>.*)/endpoints/(?P<endpointid>.*))'
+
 
 def delete_endpoint(
     type,
@@ -54,3 +57,8 @@ def delete_endpoint(
     delete_endpoint_lro = remote_runner.poll_lro(lro=delete_endpoint_lro)
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])
+
+
+JOB_TYPE_TO_ACTION_MAP = {
+    'DeleteEndpoint': delete_endpoint,
+}
