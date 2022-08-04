@@ -67,10 +67,7 @@ func TestCreateRun_V1Params(t *testing.T) {
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: testWorkflow.ToStringForStore(),
 				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
-				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
-					Parameters:   make(map[string]*structpb.Value),
-					PipelineRoot: "",
-				},
+				RuntimeConfig:    &api.PipelineSpec_RuntimeConfig{},
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{
@@ -86,7 +83,6 @@ func TestCreateRun_V1Params(t *testing.T) {
 	assert.Equal(t, expectedRunDetail, *runDetail)
 }
 
-/*
 func TestCreateRun_RuntimeParams(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
@@ -149,7 +145,6 @@ func TestCreateRun_RuntimeParams(t *testing.T) {
 	}
 	assert.EqualValues(t, expectedRunDetail, *runDetail)
 }
-*/
 
 func TestCreateRunPatch(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
@@ -200,10 +195,7 @@ func TestCreateRunPatch(t *testing.T) {
 					{Name: "param1", Value: "test-default-bucket"},
 					{Name: "param2", Value: "test-project-id"},
 				},
-				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
-					Parameters:   make(map[string]*structpb.Value),
-					PipelineRoot: "",
-				},
+				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{},
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{
@@ -307,10 +299,7 @@ func TestCreateRun_Multiuser(t *testing.T) {
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: testWorkflow.ToStringForStore(),
 				Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
-				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
-					Parameters:   make(map[string]*structpb.Value),
-					PipelineRoot: "",
-				},
+				RuntimeConfig:    &api.PipelineSpec_RuntimeConfig{},
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{
@@ -353,10 +342,7 @@ func TestListRun(t *testing.T) {
 		PipelineSpec: &api.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
-			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
-				Parameters:   make(map[string]*structpb.Value),
-				PipelineRoot: "",
-			},
+			RuntimeConfig:    &api.PipelineSpec_RuntimeConfig{},
 		},
 		ResourceReferences: []*api.ResourceReference{
 			{
