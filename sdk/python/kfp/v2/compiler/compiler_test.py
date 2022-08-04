@@ -545,6 +545,71 @@ implementation:
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path=package_path)
 
+    def test_parallel_for_parallelism(self):
+
+        @dsl.component
+        def print_op(msg: str):
+            print(msg)
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(json_str: str = json.dumps(['hello', 'world'])):
+            with dsl.ParallelFor(loop_args=json_str, parallelism=5) as item:
+                print_op(item)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.json')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+            with open(package_path, 'r') as f:
+                pipeline_spec_dict = yaml.safe_load(f)
+
+        iterator_policy = pipeline_spec_dict['pipelineSpec']['root']['dag'][
+            'tasks']['for-loop-1']['iteratorPolicy']
+        self.assertEqual(iterator_policy['parallelismLimit'], 5)
+
+    def test_parallel_for_invalid_parallelism(self):
+
+        @dsl.component
+        def print_op(msg: str):
+            print(msg)
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(json_str: str = json.dumps(['hello', 'world'])):
+            with dsl.ParallelFor(loop_args=json_str, parallelism=-5) as item:
+                print_op(item)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.json')
+            with self.assertRaisesRegex(
+                    ValueError,
+                    'ParallelFor parallism set to < 0, allowed values are >= 0'
+            ):
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_parallel_for_no_parallelism(self):
+
+        @dsl.component
+        def print_op(msg: str):
+            print(msg)
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(json_str: str = json.dumps(['hello', 'world'])):
+            with dsl.ParallelFor(loop_args=json_str) as item:
+                print_op(item)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.json')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+            with open(package_path, 'r') as f:
+                pipeline_spec_dict = yaml.safe_load(f)
+
+        for_loop = pipeline_spec_dict['pipelineSpec']['root']['dag']['tasks'][
+            'for-loop-1']
+        with self.assertRaises(KeyError):
+            for_loop['iteratorPolicy']
+
 
 if __name__ == '__main__':
     unittest.main()
