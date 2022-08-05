@@ -62,7 +62,7 @@ service ExperimentService {
   // Creates a new experiment.
   rpc CreateExperiment(CreateExperimentRequest) returns (Experiment) {
     option (google.api.http) = {
-      post: "/apis/v1beta1/experiments"
+      post: "/apis/v2beta1/experiments"
       body: "experiment"
     };
   }
@@ -70,14 +70,14 @@ service ExperimentService {
   // Finds a specific experiment by ID.
   rpc GetExperiment(GetExperimentRequest) returns (Experiment) {
     option (google.api.http) = {
-      get: "/apis/v1beta1/experiments/{id}"
+      get: "/apis/v2beta1/experiments/{id}"
     };
   }
 
   // Finds all experiments. Supports pagination, and sorting on certain fields.
   rpc ListExperiment(ListExperimentsRequest) returns (ListExperimentsResponse) {
     option (google.api.http) = {
-      get: "/apis/v1beta1/experiments"
+      get: "/apis/v2beta1/experiments"
     };
   }
 
@@ -86,14 +86,14 @@ service ExperimentService {
   // deleting the experiment.
   rpc DeleteExperiment(DeleteExperimentRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      delete: "/apis/v1beta1/experiments/{id}"
+      delete: "/apis/v2beta1/experiments/{id}"
     };
   }
 
   // Archives an experiment and the experiment's runs and jobs.
   rpc ArchiveExperiment(ArchiveExperimentRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      post: "/apis/v1beta1/experiments/{id}:archive"
+      post: "/apis/v2beta1/experiments/{id}:archive"
     };
   }
 
@@ -101,7 +101,7 @@ service ExperimentService {
   // will stay archived.
   rpc UnarchiveExperiment(UnarchiveExperimentRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      post: "/apis/v1beta1/experiments/{id}:unarchive"
+      post: "/apis/v2beta1/experiments/{id}:unarchive"
     };
   }
 }

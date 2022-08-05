@@ -60,7 +60,7 @@ service HealthzService {
   // Get healthz data.
   rpc GetHealthz(google.protobuf.Empty) returns (GetHealthzResponse) {
     option (google.api.http) = {
-      get: "/apis/v1beta1/healthz"
+      get: "/apis/v2beta1/healthz"
     };
   }
 }

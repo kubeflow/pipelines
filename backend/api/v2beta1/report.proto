@@ -23,14 +23,14 @@ import "google/protobuf/empty.proto";
 service ReportService {
   rpc ReportWorkflow(ReportWorkflowRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      post: "/apis/v1beta1/workflows"
+      post: "/apis/v2beta1/workflows"
       body: "workflow"
     };
   }
 
   rpc ReportScheduledWorkflow(ReportScheduledWorkflowRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      post: "/apis/v1beta1/scheduledworkflows"
+      post: "/apis/v2beta1/scheduledworkflows"
       body: "scheduled_workflow"
     };
   }

@@ -64,7 +64,7 @@ service JobService {
   // Creates a new job.
   rpc CreateJob(CreateJobRequest) returns (Job) {
     option (google.api.http) = {
-      post: "/apis/v1beta1/jobs"
+      post: "/apis/v2beta1/jobs"
       body: "job"
     };
   }
@@ -72,35 +72,35 @@ service JobService {
   // Finds a specific job by ID.
   rpc GetJob(GetJobRequest) returns (Job) {
     option (google.api.http) = {
-      get: "/apis/v1beta1/jobs/{id}"
+      get: "/apis/v2beta1/jobs/{id}"
     };
   }
 
   // Finds all jobs.
   rpc ListJobs(ListJobsRequest) returns (ListJobsResponse) {
     option (google.api.http) = {
-      get: "/apis/v1beta1/jobs"
+      get: "/apis/v2beta1/jobs"
     };
   }
 
   // Restarts a job that was previously stopped. All runs associated with the job will continue.
   rpc EnableJob(EnableJobRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      post: "/apis/v1beta1/jobs/{id}/enable"
+      post: "/apis/v2beta1/jobs/{id}/enable"
     };
   }
 
   // Stops a job and all its associated runs. The job is not deleted.
   rpc DisableJob(DisableJobRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      post: "/apis/v1beta1/jobs/{id}/disable"
+      post: "/apis/v2beta1/jobs/{id}/disable"
     };
   }
 
   // Deletes a job.
   rpc DeleteJob(DeleteJobRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      delete: "/apis/v1beta1/jobs/{id}"
+      delete: "/apis/v2beta1/jobs/{id}"
     };
   }
 }

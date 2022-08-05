@@ -58,7 +58,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 service AuthService {
   rpc Authorize(AuthorizeRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
-      get: "/apis/v1beta1/auth"
+      get: "/apis/v2beta1/auth"
     };
   }
 }
