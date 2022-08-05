@@ -15,7 +15,7 @@
  */
 
 import HelpIcon from '@material-ui/icons/Help';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from 'react-query';
 import { Array as ArrayRunType, Failure, Number, Record, String, ValidationError } from 'runtypes';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
@@ -587,12 +587,18 @@ export function ConfidenceMetricsSection({
   const [linkedArtifactsPage, setLinkedArtifactsPage] = useState<LinkedArtifact[]>(linkedArtifacts);
   const [currentRequest, setCurrentRequest] = useState<ListRequest>({});
 
-  // Verify that the linked artifacts page does not have any de-selected runs; if so, refresh.
+  useEffect(() => {
+    if (filter) {
+      currentRequest.pageToken = '';
+      reloadRocCurve(filter, linkedArtifacts, setLinkedArtifactsPage, setCurrentRequest, currentRequest);
+    }
+  }, [linkedArtifacts]);
+
+  // Verify that the linked artifacts page does not have any de-selected runs; return and wait for refresh.
   if (filter) {
     const rocCurveIdsSet: Set<string> = new Set(linkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)));
     for (const linkedArtifact of linkedArtifactsPage) {
       if (!rocCurveIdsSet.has(getRocCurveId(linkedArtifact))) {
-        reloadRocCurve(filter, linkedArtifacts, setLinkedArtifactsPage, setCurrentRequest, currentRequest);
         return null;
       }
     }
