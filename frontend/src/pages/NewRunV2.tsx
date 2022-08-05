@@ -98,13 +98,15 @@ function NewRunV2(props: NewRunV2Props) {
       ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: props.originalRunId })
     : '';
 
-  const { templateString } = props;
-  const isTemplatePullSuccess = templateString !== ('' || undefined);
-  const apiResourceRefFromRun = apiRun ? apiRun.run?.resource_references : undefined;
+  const { templateString, originalRunId } = props;
+  const isTemplatePullSuccess = templateString && templateString !== '';
+  const apiResourceRefFromRun = apiRun?.run?.resource_references
+    ? apiRun.run?.resource_references
+    : undefined;
 
   const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
-  const titleVerb = apiRun ? 'Clone' : 'Start';
-  const titleAdjective = apiRun ? '' : 'new';
+  const titleVerb = originalRunId ? 'Clone' : 'Start';
+  const titleAdjective = originalRunId ? '' : 'new';
 
   // Title and list of actions on the top of page.
   useEffect(() => {
