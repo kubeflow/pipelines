@@ -15,7 +15,7 @@
 syntax = "proto3";
 
 option go_package = "github.com/kubeflow/pipelines/backend/api/go_client";
-package api;
+package apiv2beta1;
 
 import "backend/api/error.proto";
 import "backend/api/resource_reference.proto";
