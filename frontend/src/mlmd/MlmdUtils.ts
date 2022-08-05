@@ -396,7 +396,7 @@ export function getArtifactTypeName(
   if (artifactTypes && linkedArtifacts) {
     Object.values(linkedArtifacts).forEach(linkedArtifact => {
       const artifactType = artifactTypes.filter(
-        aType => aType.getId() == linkedArtifact.artifact.getTypeId(),
+        aType => aType.getId() === linkedArtifact.artifact.getTypeId(),
       );
       artifactTypeNames.push(
         artifactType.length === 1 && artifactType[0].getName() ? artifactType[0].getName() : '-',
