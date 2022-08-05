@@ -712,3 +712,44 @@ func TestToApiExperiments(t *testing.T) {
 	}
 	assert.Equal(t, expectedApiExps, apiExps)
 }
+
+func TestToApiParameters(t *testing.T) {
+	expectedApiParameters := []*api.Parameter{{Name: "param2", Value: "world"}}
+	modelParameters := `[{"name":"param2","value":"world"}]`
+	actualApiParameters, err := toApiParameters(modelParameters)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedApiParameters, actualApiParameters)
+}
+
+func TestToApiRuntimeConfig(t *testing.T) {
+	listParams := []interface{}{1, 2, 3}
+	v2RuntimeListParams, _ := structpb.NewList(listParams)
+
+	structParams := map[string]interface{}{"structParam1": "hello", "structParam2": 32}
+	v2RuntimeStructParams, _ := structpb.NewStruct(structParams)
+
+	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
+	runtimeParameters := map[string]*structpb.Value{
+		"param2": structpb.NewStringValue("world"),
+		"param3": structpb.NewBoolValue(true),
+		"param4": structpb.NewListValue(v2RuntimeListParams),
+		"param5": structpb.NewNumberValue(12),
+		"param6": structpb.NewStructValue(v2RuntimeStructParams),
+	}
+	expectedRuntimeConfig := &api.PipelineSpec_RuntimeConfig{
+		Parameters:   runtimeParameters,
+		PipelineRoot: "model-pipeline-root",
+	}
+	modelRuntimeConfig := model.RuntimeConfig{
+		Parameters:   "{\"param2\":\"\\\"world\\\"\",\"param3\":\"true\",\"param4\":\"[1, 2, 3]\",\"param5\":\"12\",\"param6\":\"{\\\"structParam1\\\":\\\"hello\\\", \\\"structParam2\\\":32}\"}",
+		PipelineRoot: "model-pipeline-root",
+	}
+	actualRuntimeConfig, err := toApiRuntimeConfig(modelRuntimeConfig)
+	assert.Nil(t, err)
+	// Compare the string representation of ApiRuntimeConfig, since these structs have fields
+	// used only by protobuff, and may be different. The .String() method marshal all
+	// exported fields into string format.
+	// See https://github.com/stretchr/testify/issues/758
+
+	assert.Equal(t, expectedRuntimeConfig.String(), actualRuntimeConfig.String())
+}
