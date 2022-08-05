@@ -15,15 +15,15 @@
 syntax = "proto3";
 
 option go_package = "github.com/kubeflow/pipelines/backend/api/go_client";
-package api;
+package apiv1beta1;
 
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
-import "backend/api/pipeline_spec.proto";
-import "backend/api/resource_reference.proto";
+import "backend/api/apiv1beta1/pipeline_spec.proto";
+import "backend/api/apiv1beta1/resource_reference.proto";
 import "protoc-gen-swagger/options/annotations.proto";
-import "backend/api/error.proto";
+import "backend/api/apiv1beta1/error.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   responses: {
