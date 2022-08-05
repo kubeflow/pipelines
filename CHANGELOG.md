@@ -1,5 +1,12 @@
 # Changelog
 
+### [1.8.4](https://github.com/kubeflow/pipelines/compare/1.8.3...1.8.4) (2022-08-05)
+
+
+### Other Pull Requests
+
+* Use STABLE base image to fix CVE-2022-2068 ([b6f0680](https://github.com/kubeflow/pipelines/commit/b6f0680db02f91044a283b232f1570df85b587f3))
+
 ### [1.8.3](https://github.com/kubeflow/pipelines/compare/1.8.2...1.8.3) (2022-07-22)
 
 
