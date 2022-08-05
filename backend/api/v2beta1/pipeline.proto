@@ -1,0 +1,369 @@
+// Copyright 2018 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+option go_package = "github.com/kubeflow/pipelines/backend/api/go_client";
+package api;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "backend/api/error.proto";
+import "backend/api/parameter.proto";
+import "backend/api/resource_reference.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+  responses: {
+    key: "default";
+    value: {
+      schema: {
+        json_schema: {
+          ref: ".api.Status";
+        }
+      }
+    }
+  }
+  // Use bearer token for authorizing access to job service.
+  // Kubernetes client library(https://kubernetes.io/docs/reference/using-api/client-libraries/)
+  // uses bearer token as default for authorization. The section below
+  // ensures security definition object is generated in the swagger definition.
+  // For more details see https://github.com/OAI/OpenAPI-Specification/blob/3.0.0/versions/2.0.md#securityDefinitionsObject
+  security_definitions: {
+    security: {
+      key: "Bearer";
+      value: {
+        type: TYPE_API_KEY;
+        in: IN_HEADER;
+        name: "authorization";
+      }
+    }
+  }
+  security: {
+    security_requirement: {
+      key: "Bearer";
+      value: {};
+    }
+  }
+};
+
+service PipelineService {
+  // Creates a pipeline.
+  rpc CreatePipeline(CreatePipelineRequest) returns (Pipeline) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/pipelines"
+      body: "pipeline"
+    };
+  }
+
+  // Finds a specific pipeline by ID.
+  rpc GetPipeline(GetPipelineRequest) returns (Pipeline) {
+    option (google.api.http) = {
+      get: "/apis/v1beta1/pipelines/{id}"
+    };
+  }
+
+  /*
+  Finds a pipeline by Name (and namespace)
+   */
+  rpc GetPipelineByName(GetPipelineByNameRequest) returns (Pipeline) {
+    option (google.api.http) = {
+      get: "/apis/v1beta1/namespaces/{namespace}/pipelines/{name}"
+    };
+  }
+
+  // Finds all pipelines.
+  rpc ListPipelines(ListPipelinesRequest) returns (ListPipelinesResponse) {
+    option (google.api.http) = {
+      get: "/apis/v1beta1/pipelines"
+    };
+  }
+
+  // Deletes a pipeline and its pipeline versions.
+  rpc DeletePipeline(DeletePipelineRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/apis/v1beta1/pipelines/{id}"
+    };
+  }
+
+  // Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.
+  rpc GetTemplate(GetTemplateRequest) returns (GetTemplateResponse) {
+    option (google.api.http) = {
+      get: "/apis/v1beta1/pipelines/{id}/templates"
+    };
+  }
+
+  // Adds a pipeline version to the specified pipeline.
+  rpc CreatePipelineVersion(CreatePipelineVersionRequest)
+      returns (PipelineVersion) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/pipeline_versions"
+      body: "version"
+    };
+  }
+
+  // Gets a pipeline version by pipeline version ID.
+  rpc GetPipelineVersion(GetPipelineVersionRequest) returns (PipelineVersion) {
+    option (google.api.http) = {
+      get: "/apis/v1beta1/pipeline_versions/{version_id}"
+    };
+  }
+
+  // Lists all pipeline versions of a given pipeline.
+  rpc ListPipelineVersions(ListPipelineVersionsRequest)
+      returns (ListPipelineVersionsResponse) {
+    option (google.api.http) = {
+      get: "/apis/v1beta1/pipeline_versions"
+    };
+  }
+
+  // Deletes a pipeline version by pipeline version ID. If the deleted pipeline
+  // version is the default pipeline version, the pipeline's default version
+  // changes to the pipeline's most recent pipeline version. If there are no
+  // remaining pipeline versions, the pipeline will have no default version.
+  // Examines the run_service_api.ipynb notebook to learn more about creating a
+  // run using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).
+  rpc DeletePipelineVersion(DeletePipelineVersionRequest)
+      returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/apis/v1beta1/pipeline_versions/{version_id}"
+    };
+  }
+
+  // Returns a YAML template that contains the specified pipeline version's description, parameters and metadata.
+  rpc GetPipelineVersionTemplate(GetPipelineVersionTemplateRequest) returns (GetTemplateResponse) {
+    option (google.api.http) = {
+      get: "/apis/v1beta1/pipeline_versions/{version_id}/templates"
+    };
+  }
+
+  // Update the default pipeline version of a specific pipeline.
+  rpc UpdatePipelineDefaultVersion(UpdatePipelineDefaultVersionRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id}"
+
+    };
+  }
+}
+
+message Url {
+  // URL of the pipeline definition or the pipeline version definition.
+  string pipeline_url = 1;
+}
+
+// Create pipeline by providing an URL pointing to the pipeline file,
+// and optionally a pipeline name. If name is not provided, file name is used as
+// pipeline name by default. Maximum size of 32MB is supported.
+message CreatePipelineRequest {
+  Pipeline pipeline = 1;
+}
+
+message UpdatePipelineDefaultVersionRequest {
+  // The ID of the pipeline to be updated.
+  string pipeline_id = 1;
+
+  // The ID of the default version.
+  string version_id = 2;
+}
+
+message GetPipelineRequest {
+  // The ID of the pipeline to be retrieved.
+  string id = 1;
+}
+
+message ListPipelinesRequest {
+  // A page token to request the next page of results. The token is acquried
+  // from the nextPageToken field of the response from the previous
+  // ListPipelines call.
+  string page_token = 1;
+
+  // The number of pipelines to be listed per page. If there are more pipelines
+  // than this number, the response message will contain a valid value in the
+  // nextPageToken field.
+  int32 page_size = 2;
+
+  // Can be format of "field_name", "field_name asc" or "field_name desc"
+  // Ascending by default.
+  string sort_by = 3;
+
+  // A url-encoded, JSON-serialized Filter protocol buffer (see
+  // [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+  string filter = 4;
+
+  // What resource reference to filter on.
+  // For Pipeline, the only valid resource type is Namespace. An sample query string could be
+  // resource_reference_key.type=NAMESPACE&resource_reference_key.id=ns1
+  ResourceKey resource_reference_key = 5;
+}
+
+message ListPipelinesResponse {
+  repeated Pipeline pipelines = 1;
+
+  // The total number of pipelines for the given query.
+  int32 total_size = 3;
+
+  // The token to list the next page of pipelines.
+  string next_page_token = 2;
+}
+
+message GetPipelineByNameRequest {
+  // The Name of the pipeline to be retrieved.
+  string name = 1;
+  // The Namespace the pipeline belongs to.
+  // In the case of shared pipelines and KFPipeline standalone installation,
+  // the pipeline name is the only needed field for unique resource lookup (namespace is not required).
+  // In those case, please provide hyphen (dash character, "-").
+  string namespace = 2;
+}
+
+message DeletePipelineRequest {
+  // The ID of the pipeline to be deleted.
+  string id = 1;
+}
+
+message GetTemplateRequest {
+  // The ID of the pipeline whose template is to be retrieved.
+  string id = 1;
+}
+
+message GetTemplateResponse {
+  // The template of the pipeline specified in a GetTemplate request, or of a
+  // pipeline version specified in a GetPipelinesVersionTemplate request.
+  string template = 1;
+}
+
+message GetPipelineVersionTemplateRequest {
+  // The ID of the pipeline version whose template is to be retrieved.
+  string version_id = 1;
+}
+
+message CreatePipelineVersionRequest {
+  // ResourceReference inside PipelineVersion specifies the pipeline that this
+  // version belongs to.
+  PipelineVersion version = 1;
+}
+
+message GetPipelineVersionRequest {
+  // The ID of the pipeline version to be retrieved.
+  string version_id = 1;
+}
+
+message ListPipelineVersionsRequest {
+  // ResourceKey specifies the pipeline whose versions are to be listed.
+  ResourceKey resource_key = 1;
+
+  // The number of pipeline versions to be listed per page. If there are more
+  // pipeline versions than this number, the response message will contain a
+  // nextPageToken field you can use to fetch the next page.
+  int32 page_size = 2;
+
+  // A page token to request the next page of results. The token is acquried
+  // from the nextPageToken field of the response from the previous
+  // ListPipelineVersions call or can be omitted when fetching the first page.
+  string page_token = 3;
+
+  // Can be format of "field_name", "field_name asc" or "field_name desc"
+  // Ascending by default.
+  string sort_by = 4;
+  // A base-64 encoded, JSON-serialized Filter protocol buffer (see
+  // filter.proto).
+  string filter = 5;
+}
+
+message ListPipelineVersionsResponse {
+  repeated PipelineVersion versions = 1;
+
+  // The token to list the next page of pipeline versions.
+  string next_page_token = 2;
+
+  // The total number of pipeline versions for the given query.
+  int32 total_size = 3;
+}
+
+message DeletePipelineVersionRequest {
+  // The ID of the pipeline version to be deleted.
+  string version_id = 1;
+}
+
+message Pipeline {
+  // Output. Unique pipeline ID. Generated by API server.
+  string id = 1;
+
+  // Output. The time this pipeline is created.
+  google.protobuf.Timestamp created_at = 2;
+
+  // Optional input field. Pipeline name provided by user. If not specified,
+  // file name is used as pipeline name.
+  string name = 3;
+
+  // Optional input field. Describing the purpose of the job.
+  string description = 4;
+
+  // Output. The input parameters for this pipeline.
+  // TODO(jingzhang36): replace this parameters field with the parameters field
+  // inside PipelineVersion when all usage of the former has been changed to use
+  // the latter.
+  repeated Parameter parameters = 5;
+
+  // The URL to the source of the pipeline. This is required when creating the
+  // pipeine through CreatePipeline API.
+  // TODO(jingzhang36): replace this url field with the code_source_urls field
+  // inside PipelineVersion when all usage of the former has been changed to use
+  // the latter.
+  Url url = 7;
+
+  // In case any error happens retrieving a pipeline field, only pipeline ID
+  // and the error message is returned. Client has the flexibility of choosing
+  // how to handle error. This is especially useful during listing call.
+  string error = 6;
+
+  // Output only. The default version of the pipeline. As of now, the latest
+  // version is used as default. (In the future, if desired by customers, we
+  // can allow them to set default version.)
+  PipelineVersion default_version = 8;
+
+  // Input field. Specify which resource this pipeline belongs to.
+  // For Pipeline, the only valid resource reference is a single Namespace.
+  repeated ResourceReference resource_references = 9;
+}
+
+message PipelineVersion {
+  // Output. Unique version ID. Generated by API server.
+  string id = 1;
+
+  // Optional input field. Version name provided by user.
+  string name = 2;
+
+  // Output. The time this pipeline version is created.
+  google.protobuf.Timestamp created_at = 3;
+
+  // Output. The input parameters for this pipeline.
+  repeated Parameter parameters = 4;
+
+  // Input. Optional. Pipeline version code source.
+  string code_source_url = 5;
+
+  // Input. Required. Pipeline version package url.
+  // Whe calling CreatePipelineVersion API method, need to provide one package
+  // file location.
+  Url package_url = 6;
+
+  // Input field. Specify which resource this pipeline version belongs to.
+  // For Experiment, the only valid resource reference is a single Namespace.
+  repeated ResourceReference resource_references = 7;
+
+  // Input. Optional. Description for the pipeline version.
+  string description = 8;
+}

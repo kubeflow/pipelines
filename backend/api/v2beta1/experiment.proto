@@ -1,0 +1,195 @@
+// Copyright 2018 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+option go_package = "github.com/kubeflow/pipelines/backend/api/go_client";
+package api;
+
+import "backend/api/error.proto";
+import "backend/api/resource_reference.proto";
+import "google/api/annotations.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+  responses: {
+    key: "default";
+    value: {
+      schema: {
+        json_schema: {
+          ref: ".api.Status";
+        }
+      }
+    }
+  }
+  // Use bearer token for authorizing access to job service.
+  // Kubernetes client library(https://kubernetes.io/docs/reference/using-api/client-libraries/)
+  // uses bearer token as default for authorization. The section below
+  // ensures security definition object is generated in the swagger definition.
+  // For more details see https://github.com/OAI/OpenAPI-Specification/blob/3.0.0/versions/2.0.md#securityDefinitionsObject
+  security_definitions: {
+    security: {
+      key: "Bearer";
+      value: {
+        type: TYPE_API_KEY;
+        in: IN_HEADER;
+        name: "authorization";
+      }
+    }
+  }
+  security: {
+    security_requirement: {
+      key: "Bearer";
+      value: {};
+    }
+  }
+};
+
+service ExperimentService {
+  // Creates a new experiment.
+  rpc CreateExperiment(CreateExperimentRequest) returns (Experiment) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/experiments"
+      body: "experiment"
+    };
+  }
+
+  // Finds a specific experiment by ID.
+  rpc GetExperiment(GetExperimentRequest) returns (Experiment) {
+    option (google.api.http) = {
+      get: "/apis/v1beta1/experiments/{id}"
+    };
+  }
+
+  // Finds all experiments. Supports pagination, and sorting on certain fields.
+  rpc ListExperiment(ListExperimentsRequest) returns (ListExperimentsResponse) {
+    option (google.api.http) = {
+      get: "/apis/v1beta1/experiments"
+    };
+  }
+
+  // Deletes an experiment without deleting the experiment's runs and jobs. To
+  // avoid unexpected behaviors, delete an experiment's runs and jobs before
+  // deleting the experiment.
+  rpc DeleteExperiment(DeleteExperimentRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/apis/v1beta1/experiments/{id}"
+    };
+  }
+
+  // Archives an experiment and the experiment's runs and jobs.
+  rpc ArchiveExperiment(ArchiveExperimentRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/experiments/{id}:archive"
+    };
+  }
+
+  // Restores an archived experiment. The experiment's archived runs and jobs
+  // will stay archived.
+  rpc UnarchiveExperiment(UnarchiveExperimentRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v1beta1/experiments/{id}:unarchive"
+    };
+  }
+}
+
+message CreateExperimentRequest {
+  // The experiment to be created.
+  Experiment experiment = 1;
+}
+
+message GetExperimentRequest {
+  // The ID of the experiment to be retrieved.
+  string id = 1;
+}
+
+message ListExperimentsRequest {
+  // A page token to request the next page of results. The token is acquried
+  // from the nextPageToken field of the response from the previous
+  // ListExperiment call or can be omitted when fetching the first page.
+  string page_token = 1;
+
+  // The number of experiments to be listed per page. If there are more
+  // experiments than this number, the response message will contain a
+  // nextPageToken field you can use to fetch the next page.
+  int32 page_size = 2;
+
+  // Can be format of "field_name", "field_name asc" or "field_name desc"
+  // Ascending by default.
+  string sort_by = 3;
+
+  // A url-encoded, JSON-serialized Filter protocol buffer (see
+  // [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+  string filter = 4;
+
+  // What resource reference to filter on.
+  // For Experiment, the only valid resource type is Namespace. An sample query string could be
+  // resource_reference_key.type=NAMESPACE&resource_reference_key.id=ns1
+  ResourceKey resource_reference_key = 5;
+}
+
+message ListExperimentsResponse {
+  // A list of experiments returned.
+  repeated Experiment experiments = 1;
+
+  // The total number of experiments for the given query.
+  int32 total_size = 3;
+
+  // The token to list the next page of experiments.
+  string next_page_token = 2;
+}
+
+message DeleteExperimentRequest {
+  // The ID of the experiment to be deleted.
+  string id = 1;
+}
+
+message Experiment {
+  // Output. Unique experiment ID. Generated by API server.
+  string id = 1;
+
+  // Required input field. Unique experiment name provided by user.
+  string name = 2;
+
+  // Optional input field. Describing the purpose of the experiment
+  string description = 3;
+
+  // Output. The time that the experiment created.
+  google.protobuf.Timestamp created_at = 4;
+
+  // Optional input field. Specify which resource this run belongs to.
+  // For Experiment, the only valid resource reference is a single Namespace.
+  repeated ResourceReference resource_references = 5;
+
+  enum StorageState {
+    STORAGESTATE_UNSPECIFIED = 0;
+    STORAGESTATE_AVAILABLE = 1;
+    STORAGESTATE_ARCHIVED = 2;
+  }
+
+  // Output. Specifies whether this experiment is in archived or available state.
+  StorageState storage_state = 6;
+}
+
+message ArchiveExperimentRequest {
+  // The ID of the experiment to be archived.
+  string id = 1;
+}
+
+message UnarchiveExperimentRequest {
+  // The ID of the experiment to be restored.
+  string id = 1;
+}
