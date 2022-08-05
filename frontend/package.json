@@ -124,7 +124,6 @@
     "enzyme-to-json": "^3.3.4",
     "fs": "0.0.1-security",
     "jest-environment-jsdom-sixteen": "^2.0.0",
-    "license-checker": "^25.0.1",
     "postcss": "^8.4.5",
     "prettier": "1.19.1",
     "react-router-test-context": "^0.1.0",
