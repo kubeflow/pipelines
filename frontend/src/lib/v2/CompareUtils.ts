@@ -87,7 +87,10 @@ export const getRocCurveId = (linkedArtifact: LinkedArtifact): string =>
 // Form an array which holds all valid ROC Curve linked artifacts.
 export const getValidRocCurveArtifactData = (
   rocCurveRunArtifacts: RunArtifact[],
+  selectedIdColorMap: RocCurveColorMap,
+  lineColorsStack: string[],
 ): RocCurveArtifactData => {
+  const rocCurveIds: Set<string> = new Set(Object.keys(selectedIdColorMap));
   const fullArtifactPathMap: FullArtifactPathMap = {};
   const validLinkedArtifacts = flatMapDeep(
     rocCurveRunArtifacts.map(runArtifact =>

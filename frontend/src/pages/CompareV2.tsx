@@ -362,8 +362,10 @@ function CompareV2(props: CompareV2Props) {
         MetricsType.ROC_CURVE,
       ).runArtifacts;
 
-      const { validLinkedArtifacts, fullArtifactPathMap } = getValidRocCurveArtifactData(
+      const { validLinkedArtifacts, fullArtifactPathMap, updatedIdColorMap } = getValidRocCurveArtifactData(
         rocCurveRunArtifacts,
+        selectedIdColorMap,
+        lineColorsStack,
       );
 
       setFullArtifactPathMap(fullArtifactPathMap);
@@ -391,12 +393,12 @@ function CompareV2(props: CompareV2Props) {
       // pop those colors off the stack.
       // Or, I can not include the lineColorsStack in this list?
       // Note: deselecting and re-selecting a run will not maintain those selections. I personally am OK with that, knowing the complexity that adds.
-      const initialIdColorMap: { [key: string]: string } = {};
-      updatedRocCurveIds.forEach(selectedId => {
-        initialIdColorMap[selectedId] = lineColorsStack.pop()!;
-      });
+      // const initialIdColorMap: { [key: string]: string } = {};
+      // updatedRocCurveIds.forEach(selectedId => {
+      //   initialIdColorMap[selectedId] = lineColorsStack.pop()!;
+      // });
       setLineColorsStack(lineColorsStack);
-      setSelectedIdColorMap(initialIdColorMap);
+      setSelectedIdColorMap(updatedIdColorMap);
       setIsLoadingArtifacts(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
