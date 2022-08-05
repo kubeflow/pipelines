@@ -101,8 +101,8 @@ export function maybeTarball(): Transform {
 function extractFirstTarRecordAsStream() {
   const extract = tar.extract();
   const transformStream = new Transform({
-    write: (chunk: any, encoding: string, callback: (error?: Error | null) => void) => {
-      extract.write(chunk, encoding, callback);
+    write: (chunk: any, _encoding: string, callback: (error?: Error | null) => void) => {
+      extract.write(chunk, callback);
     },
   });
   extract.once('entry', function(_header, stream, next) {
