@@ -680,7 +680,7 @@ class ComponentSpec(base_model.BaseModel):
 
         # Fill in the default values.
         args_list_with_defaults = [
-            pipeline_channel.PipelineParameterChannel(
+            pipeline_channel.create_pipeline_channel(
                 name=input_name,
                 channel_type=input_spec.type,
                 value=input_spec.default,
