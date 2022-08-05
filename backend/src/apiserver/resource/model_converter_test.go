@@ -258,7 +258,8 @@ func TestToModelRunDetail(t *testing.T) {
 					PipelineSpec: model.PipelineSpec{
 						PipelineSpecManifest: "pipeline spec",
 						RuntimeConfig: model.RuntimeConfig{
-							Parameters: "{\"param2\":\"\\\"world\\\"\",\"param3\":\"true\",\"param4\":\"[1,2,3]\",\"param5\":\"12\",\"param6\":\"{\\\"structParam1\\\":\\\"hello\\\",\\\"structParam2\\\":32}\"}",
+							// Note: for some versions of structpb.Value.MarshalJSON(), there is a trailing space after array items or struct items
+							Parameters: "{\"param2\":\"\\\"world\\\"\",\"param3\":\"true\",\"param4\":\"[1, 2, 3]\",\"param5\":\"12\",\"param6\":\"{\\\"structParam1\\\":\\\"hello\\\", \\\"structParam2\\\":32}\"}",
 						},
 					},
 					ResourceReferences: []*model.ResourceReference{
