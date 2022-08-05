@@ -25,6 +25,7 @@ import {
   filterEventWithInputArtifact,
   filterEventWithOutputArtifact,
   getArtifactName,
+  getArtifactTypeName,
   getArtifactTypes,
   getLinkedArtifactsByExecution,
   LinkedArtifact,
@@ -62,17 +63,8 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
     {},
   );
 
-  let artifactTypeNames: string[] = [];
-  if (linkedArtifacts && artifactTypes) {
-    Object.values(linkedArtifacts).forEach(linkedArtifact => {
-      const artifactType = artifactTypes.filter(
-        aType => aType.getId() === linkedArtifact.artifact.getTypeId(),
-      );
-      if (artifactType.length === 1 && artifactType[0].getName()) {
-        artifactTypeNames.push(artifactType[0].getName());
-      }
-    });
-  }
+  const artifactTypeNames =
+    linkedArtifacts && artifactTypes ? getArtifactTypeName(artifactTypes, linkedArtifacts) : [];
 
   // Restructs artifacts and parameters for visualization.
   const inputParams = extractInputFromExecution(execution);
