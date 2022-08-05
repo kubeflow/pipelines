@@ -98,7 +98,7 @@ function NewRunV2(props: NewRunV2Props) {
       ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: props.originalRunId })
     : '';
 
-  const {templateString} = props;
+  const { templateString } = props;
   const isTemplatePullSuccess = templateString !== ('' || undefined);
   const apiResourceRefFromRun = apiRun ? apiRun.run?.resource_references : undefined;
 
