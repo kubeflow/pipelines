@@ -376,10 +376,9 @@ function CompareV2(props: CompareV2Props) {
         MetricsType.ROC_CURVE,
       ).runArtifacts;
 
-      const { validLinkedArtifacts, fullArtifactPathMap, updatedIdColorMap } = getValidRocCurveArtifactData(
+      const { validLinkedArtifacts, fullArtifactPathMap, removedRocCurveIds } = getValidRocCurveArtifactData(
         rocCurveRunArtifacts,
-        selectedIdColorMap,
-        lineColorsStack,
+        new Set(),
       );
 
       setFullArtifactPathMap(fullArtifactPathMap);
@@ -407,12 +406,12 @@ function CompareV2(props: CompareV2Props) {
       // pop those colors off the stack.
       // Or, I can not include the lineColorsStack in this list?
       // Note: deselecting and re-selecting a run will not maintain those selections. I personally am OK with that, knowing the complexity that adds.
-      // const initialIdColorMap: { [key: string]: string } = {};
-      // updatedRocCurveIds.forEach(selectedId => {
-      //   initialIdColorMap[selectedId] = lineColorsStack.pop()!;
-      // });
+      const initialIdColorMap: { [key: string]: string } = {};
+      updatedRocCurveIds.forEach(selectedId => {
+        initialIdColorMap[selectedId] = lineColorsStack.pop()!;
+      });
       setLineColorsStack(lineColorsStack);
-      setSelectedIdColorMap(updatedIdColorMap);
+      setSelectedIdColorMap(initialIdColorMap);
       setIsLoadingArtifacts(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -517,8 +516,12 @@ function CompareV2(props: CompareV2Props) {
   };
 
   const selectionChanged = (newSelectedIds: string[]): void => {
-    console.log(selectedIds);
-    console.log(newSelectedIds);
+    // Get the de-selected run IDs.
+    const newSelectedIdsSet: Set<string> = new Set(newSelectedIds);
+    const removedIds: Set<string> = new Set(selectedIds.filter(selectedId => !newSelectedIdsSet.has(selectedId)));
+
+    // This is passed into the useeffect which is usecallback essentially.
+
     // Get all of the removed ids. (None of the ones that are added will update the plot.)
     // From that, we find all of the runs where 
     setSelectedIds(newSelectedIds);

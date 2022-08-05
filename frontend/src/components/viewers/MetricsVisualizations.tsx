@@ -454,10 +454,7 @@ const getRocCurveFilterTable = (
     const {
       selectedIds,
       selectedIdColorMap,
-      setSelectedIdColorMap,
       fullArtifactPathMap,
-      lineColorsStack,
-      setLineColorsStack,
     } = filter;
 
     // Only display the selected ROC Curves on the plot, in order of selection.
@@ -535,6 +532,7 @@ function reloadRocCurve(
   filter: ConfidenceMetricsFilter,
   linkedArtifacts: LinkedArtifact[],
   setLinkedArtifactsPage: (linkedArtifactsPage: LinkedArtifact[]) => void,
+  setCurrentRequest: (currentRequest: ListRequest) => void,
   request: ListRequest,
 ): Promise<string> {
   // Filter the linked artifacts by run, execution, and artifact display name.
@@ -576,6 +574,7 @@ function reloadRocCurve(
       nextPageToken = `${numericPageToken + 1}`;
     }
   }
+  setCurrentRequest(request);
   setLinkedArtifactsPage(linkedArtifactsPage);
   return Promise.resolve(nextPageToken);
 }
@@ -586,6 +585,19 @@ export function ConfidenceMetricsSection({
 }: ConfidenceMetricsSectionProps) {
   const maxSelectedRocCurves: number = 10;
   const [linkedArtifactsPage, setLinkedArtifactsPage] = useState<LinkedArtifact[]>(linkedArtifacts);
+  const [currentRequest, setCurrentRequest] = useState<ListRequest>({});
+
+  // Verify that the linked artifacts page does not have any de-selected runs; if so, refresh.
+  if (filter) {
+    const rocCurveIdsSet: Set<string> = new Set(linkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)));
+    for (const linkedArtifact of linkedArtifactsPage) {
+      if (!rocCurveIdsSet.has(getRocCurveId(linkedArtifact))) {
+        reloadRocCurve(filter, linkedArtifacts, setLinkedArtifactsPage, setCurrentRequest, currentRequest);
+        return null;
+      }
+    }
+  }
+
   let confidenceMetricsDataList: ConfidenceMetricsData[] = linkedArtifacts
     .map(linkedArtifact => {
       const artifact = linkedArtifact.artifact;
@@ -690,7 +702,7 @@ export function ConfidenceMetricsSection({
             selectedIds={filter.selectedIds}
             filterLabel='Filter artifacts'
             updateSelection={updateRocCurveSelection.bind(null, filter, maxSelectedRocCurves)}
-            reload={reloadRocCurve.bind(null, filter, linkedArtifacts, setLinkedArtifactsPage)}
+            reload={reloadRocCurve.bind(null, filter, linkedArtifacts, setLinkedArtifactsPage, setCurrentRequest)}
             disablePaging={false}
             disableSorting={false}
             disableSelection={false}
