@@ -79,8 +79,9 @@ function NewRunV2(props: NewRunV2Props) {
   const [errorMessage, setErrorMessage] = useState('');
   const [isParameterValid, setIsParameterValid] = useState(false);
   const [isPipelineNameValid, setIsPipelineNameValid] = useState(false);
+  const [pipelineNameErrMsg, setPipelineNameErrMsg] = useState<string>();
+  const [pipelineVersionNameErrMsg, setpipelineVersionNameErrMsg] = useState<string>();
   const [isPipelineVersionNameValid, setIsPipelineVersionNameValid] = useState(false);
-  const [isRunNameValid, setIsRunNameValid] = useState(true);
 
   // TODO(zijianjoy): If creating run from Experiment Page or RunList Page, there is no pipelineId/Version.
   const urlParser = new URLParser(props);
@@ -155,25 +156,23 @@ function NewRunV2(props: NewRunV2Props) {
   // Pre-check the name of pipeline / pipeline version / run at the UI
   // Required. The user defined name of the metric. It must between 1 and 63 characters long and must conform to the following regular expression: `[a-z]([-a-z0-9]*[a-z0-9])?`.
   useEffect(() => {
-    // Block: naming restriction of the run name and pipeline from the backend
-    /*
-    if (!pipelineName.match(`[a-z]([-a-z0-9]*[a-z0-9])?`)?.includes(pipelineName) || pipelineName.length > 63) {
+    // Block: naming restriction of the run name and pipeline from the backend 
+    const namingRegex = new RegExp('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*');
+    if (!namingRegex.test(pipelineName)) {
       setIsPipelineNameValid(false);
     } else {
       setIsPipelineNameValid(true);
     }
-    if (!pipelineVersionName.match(`[a-z]([-a-z0-9]*[a-z0-9])?`)?.includes(pipelineVersionName) || pipelineVersionName.length > 63) {
+    // if (!pipelineName.match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')?.includes(pipelineName) || pipelineName.length > 246) {
+    //   setIsPipelineNameValid(false);
+    // } else {
+    //   setIsPipelineNameValid(true);
+    // }
+    if (!pipelineVersionName.match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')?.includes(pipelineVersionName) || pipelineVersionName.length > 246) {
       setIsPipelineVersionNameValid(false);
     } else {
       setIsPipelineVersionNameValid(true);
     }
-    //const runMetricName = runName
-    if (!runName.match(`[a-z]([-a-z0-9]*[a-z0-9])?`)?.includes(runName) || runName.length > 63) {
-      setIsRunNameValid(false);
-    } else {
-      setIsRunNameValid(true);
-    }
-    */
   }, [pipelineName, pipelineVersionName, runName])
 
   // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
@@ -198,12 +197,12 @@ function NewRunV2(props: NewRunV2Props) {
 
   // Handle different change that can affect setIsStartButtonEnabled
   useEffect(() => {
-    if (!templateString || errorMessage || !isParameterValid || !isPipelineNameValid|| !isPipelineVersionNameValid || !isRunNameValid) {
+    if (!templateString || errorMessage || !isParameterValid || !isPipelineNameValid|| !isPipelineVersionNameValid) {
       setIsStartButtonEnabled(false);
     } else {
       setIsStartButtonEnabled(true);
     }
-  }, [templateString, errorMessage, isParameterValid, isPipelineNameValid, isPipelineVersionNameValid, isRunNameValid]);
+  }, [templateString, errorMessage, isParameterValid, isPipelineNameValid, isPipelineVersionNameValid]);
 
   // Whenever any input value changes, validate and show error if needed.
   // TODO(zijianjoy): Validate run name for now, we need to validate others first.
@@ -332,9 +331,7 @@ function NewRunV2(props: NewRunV2Props) {
           value={runName}
           variant='outlined'
         />
-        <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
-          {isRunNameValid ? '' : 'Invalid Run Name'}
-        </div>
+
         <Input
           label='Description (optional)'
           multiline={true}
