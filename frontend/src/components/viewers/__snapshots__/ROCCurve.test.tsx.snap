@@ -498,7 +498,7 @@ exports[`ROCCurve does not break on empty data 1`] = `
           className="crosshairLabel"
           key="0"
         >
-          threshold (Series #0): undefined
+          threshold (Series #1): undefined
         </div>
       </div>
     </Crosshair>
@@ -1519,7 +1519,7 @@ exports[`ROCCurve renders a simple ROC curve given one config 1`] = `
           className="crosshairLabel"
           key="0"
         >
-          threshold (Series #0): undefined
+          threshold (Series #1): undefined
         </div>
       </div>
     </Crosshair>
@@ -2026,7 +2026,7 @@ exports[`ROCCurve renders an ROC curve using three configs 1`] = `
     />
     <LineSeries
       className=""
-      color="#efb4a3"
+      color="#2b9c1e"
       curve="curveBasis"
       data={
         Array [
@@ -2068,7 +2068,7 @@ exports[`ROCCurve renders an ROC curve using three configs 1`] = `
     />
     <LineSeries
       className=""
-      color="#684e91"
+      color="#e00000"
       curve="curveBasis"
       data={
         Array [
@@ -2142,19 +2142,19 @@ exports[`ROCCurve renders an ROC curve using three configs 1`] = `
           className="crosshairLabel"
           key="0"
         >
-          threshold (Series #0): undefined
+          threshold (Series #1): undefined
         </div>
         <div
           className="crosshairLabel"
           key="1"
         >
-          threshold (Series #1): undefined
+          threshold (Series #2): undefined
         </div>
         <div
           className="crosshairLabel"
           key="2"
         >
-          threshold (Series #2): undefined
+          threshold (Series #3): undefined
         </div>
       </div>
     </Crosshair>
@@ -2187,15 +2187,17 @@ exports[`ROCCurve renders an ROC curve using three configs 1`] = `
               "title": "Series #1",
             },
             Object {
-              "color": "#efb4a3",
+              "color": "#2b9c1e",
               "title": "Series #2",
             },
             Object {
-              "color": "#684e91",
+              "color": "#e00000",
               "title": "Series #3",
             },
           ]
         }
+        onItemMouseEnter={[Function]}
+        onItemMouseLeave={[Function]}
         orientation="horizontal"
       />
     </div>

@@ -38,3 +38,6 @@ src/build
 
 # storybook build result.
 storybook-static
+
+# yarn.lock for license tool
+yarn.lock

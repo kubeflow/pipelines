@@ -129,8 +129,8 @@ describe('CompareV2', () => {
       customPropertiesMap.set('confusionMatrix', confusionMatrix);
     }
     if (isRocCurve) {
-      const confusionMatrix: Value = new Value();
-      confusionMatrix.setStructValue(
+      const confidenceMetrics: Value = new Value();
+      confidenceMetrics.setStructValue(
         Struct.fromJavaScript({
           list: [
             {
@@ -151,7 +151,7 @@ describe('CompareV2', () => {
           ],
         }),
       );
-      customPropertiesMap.set('confidenceMetrics', confusionMatrix);
+      customPropertiesMap.set('confidenceMetrics', confidenceMetrics);
     }
     if (displayName) {
       const displayNameValue = new Value();
@@ -373,7 +373,7 @@ describe('CompareV2', () => {
     await TestUtils.flushPromises();
 
     screen.getByText('Filter runs');
-    screen.getByText('Parameter Section V2');
+    screen.getByText('There are no Parameters available on the selected runs.');
     screen.getByText('Scalar Metrics');
 
     fireEvent.click(screen.getByText(OVERVIEW_SECTION_NAME));
@@ -383,7 +383,9 @@ describe('CompareV2', () => {
     screen.getByText('Filter runs');
 
     fireEvent.click(screen.getByText(PARAMS_SECTION_NAME));
-    expect(screen.queryByText('Parameter Section V2')).toBeNull();
+    expect(
+      screen.queryByText('There are no Parameters available on the selected runs.'),
+    ).toBeNull();
 
     fireEvent.click(screen.getByText(METRICS_SECTION_NAME));
     expect(screen.queryByText('Scalar Metrics')).toBeNull();
@@ -411,7 +413,7 @@ describe('CompareV2', () => {
     expect(runCheckboxes.filter(r => r.nodeName === 'INPUT')).toHaveLength(0);
   });
 
-  it('Scalar metrics tab initially enabled with loading then error, and switch tabs', async () => {
+  it('Parameters and Scalar metrics tab initially enabled with loading then error, and switch tabs', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
@@ -421,10 +423,11 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
-    await TestUtils.flushPromises();
+    expect(screen.queryAllByRole('circularprogress')).toHaveLength(2);
 
-    screen.getByRole('circularprogress');
+    await TestUtils.flushPromises();
     await waitFor(() => {
+      screen.getByText('There are no Parameters available on the selected runs.');
       screen.getByText('An error is preventing the Scalar Metrics from being displayed.');
 
       fireEvent.click(screen.getByText('Confusion Matrix'));
@@ -666,5 +669,6 @@ describe('CompareV2', () => {
 
     fireEvent.click(screen.getByText('ROC Curve'));
     screen.getByText('ROC Curve: multiple artifacts');
+    screen.getByText('Filter artifacts');
   });
 });
