@@ -53,6 +53,7 @@ import {
   FullArtifactPath,
   FullArtifactPathMap,
   getRocCurveId,
+  mlmdDisplayName,
   NameId,
   RocCurveColorMap,
 } from 'src/lib/v2/CompareUtils';
@@ -594,9 +595,11 @@ export function ConfidenceMetricsSection({
           .get('confidenceMetrics')
           ?.getStructValue()
           ?.toJavaScript(),
-        name:
-          customProperties.get('display_name')?.getStringValue() ||
-          `Artifact ID #${artifact.getId().toString()}`,
+        name: mlmdDisplayName(
+          artifact.getId().toString(),
+          'Artifact',
+          customProperties.get('display_name')?.getStringValue(),
+        ),
         id: getRocCurveId(linkedArtifact),
         artifactId: linkedArtifact.artifact.getId().toString(),
       };

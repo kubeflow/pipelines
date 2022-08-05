@@ -20,10 +20,15 @@ import { getMetadataValue } from 'src/mlmd/Utils';
 import { Execution, Value } from 'src/third_party/mlmd';
 import * as jspb from 'google-protobuf';
 import { ApiRunDetail } from 'src/apis/run';
-import { flatMapDeep } from 'lodash';
+import { chain, flatMapDeep, flatten } from 'lodash';
 import { stylesheet } from 'typestyle';
+import { RuntimeParameters } from 'src/pages/NewRunV2';
 
 export const compareCss = stylesheet({
+  smallRelativeContainer: {
+    position: 'relative',
+    height: '10rem',
+  },
   relativeContainer: {
     position: 'relative',
     height: '30rem',
@@ -80,6 +85,51 @@ export interface RocCurveArtifactData {
   fullArtifactPathMap: FullArtifactPathMap;
   updatedIdColorMap: RocCurveColorMap;
 }
+
+export const mlmdDisplayName = (id: string, mlmdTypeStr: string, displayName?: string) =>
+  displayName || `${mlmdTypeStr} ID #${id}`;
+
+export const getParamsTableProps = (runs: ApiRunDetail[]): CompareTableProps | undefined => {
+  const xLabels: string[] = [];
+  const parameterNames: string[][] = [];
+  const dataMap: { [key: string]: RuntimeParameters } = {};
+  for (const run of runs) {
+    const runId: string = run.run!.id!;
+    const parameters: RuntimeParameters | undefined =
+      run.run?.pipeline_spec?.runtime_config?.parameters;
+
+    xLabels.push(mlmdDisplayName(runId, 'Run', run.run?.name));
+    dataMap[runId] = parameters || {};
+
+    if (parameters) {
+      parameterNames.push(Object.keys(parameters));
+    }
+  }
+
+  const yLabels = chain(flatten(parameterNames))
+    .countBy(p => p) // count by parameter name
+    .map((k, v) => ({ name: v, count: k })) // convert to counter objects
+    .orderBy('count', 'desc') // sort on count field, descending
+    .map(o => o.name)
+    .value();
+
+  const rows: string[][] = yLabels.map(yLabel => {
+    return runs.map(run => {
+      const dataValue = dataMap[run.run!.id!][yLabel];
+      return dataValue === undefined ? '' : JSON.stringify(dataValue);
+    });
+  });
+
+  if (xLabels.length === 0 || yLabels.length === 0) {
+    return undefined;
+  }
+
+  return {
+    xLabels,
+    yLabels,
+    rows,
+  } as CompareTableProps;
+};
 
 export const getRocCurveId = (linkedArtifact: LinkedArtifact): string =>
   `${linkedArtifact.event.getExecutionId()}-${linkedArtifact.event.getArtifactId()}`;
@@ -139,25 +189,31 @@ const getFullArtifactPath = (
   linkedArtifact: LinkedArtifact,
 ): FullArtifactPath => ({
   run: {
-    name: run.run?.name || `Run ID #${run.run!.id!}`,
+    name: mlmdDisplayName(run.run!.id!, 'Run', run.run?.name),
     id: run.run!.id!,
   },
   execution: {
-    name: getExecutionDisplayName(execution) || `Execution ID #${execution.getId().toString()}`,
+    name: mlmdDisplayName(
+      execution.getId().toString(),
+      'Execution',
+      getExecutionDisplayName(execution),
+    ),
     id: execution.getId().toString(),
   },
   artifact: {
-    name:
-      getArtifactName(linkedArtifact) ||
-      `Artifact ID #${linkedArtifact.artifact.getId().toString()}`,
+    name: mlmdDisplayName(
+      linkedArtifact.artifact.getId().toString(),
+      'Artifact',
+      getArtifactName(linkedArtifact),
+    ),
     id: linkedArtifact.artifact.getId().toString(),
   },
 });
 
-export const getCompareTableProps = (
+export const getScalarTableProps = (
   scalarMetricsArtifacts: RunArtifact[],
   artifactCount: number,
-): CompareTableProps => {
+): CompareTableProps | undefined => {
   const scalarTableData = getScalarTableData(scalarMetricsArtifacts, artifactCount);
 
   // Sort by decreasing data item count.
@@ -170,6 +226,11 @@ export const getCompareTableProps = (
     yLabels.push(sortedDataItem[0]);
     rows.push(sortedDataItem[1].row);
   }
+
+  if (scalarTableData.xLabels.length === 0 || yLabels.length === 0) {
+    return undefined;
+  }
+
   return {
     xLabels: scalarTableData.xLabels,
     yLabels,

@@ -280,8 +280,13 @@ func (s *RunServer) ReportRunMetrics(ctx context.Context, request *api.ReportRun
 		reportRunMetricsRequests.Inc()
 	}
 
+	err := s.canAccessRun(ctx, request.RunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbReportMetrics})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+
 	// Makes sure run exists
-	_, err := s.resourceManager.GetRun(request.GetRunId())
+	_, err = s.resourceManager.GetRun(request.GetRunId())
 	if err != nil {
 		return nil, err
 	}
@@ -303,6 +308,11 @@ func (s *RunServer) ReportRunMetrics(ctx context.Context, request *api.ReportRun
 func (s *RunServer) ReadArtifact(ctx context.Context, request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error) {
 	if s.options.CollectMetrics {
 		readArtifactRequests.Inc()
+	}
+
+	err := s.canAccessRun(ctx, request.RunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbReadArtifact})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
 	}
 
 	content, err := s.resourceManager.ReadArtifact(
@@ -365,7 +375,7 @@ func (s *RunServer) canAccessRun(ctx context.Context, runId string, resourceAttr
 	if len(runId) > 0 {
 		runDetail, err := s.resourceManager.GetRun(runId)
 		if err != nil {
-			return util.Wrap(err, "Failed to authorize with the experiment ID.")
+			return util.Wrap(err, "Failed to authorize with the run ID.")
 		}
 		if len(resourceAttributes.Namespace) == 0 {
 			if len(runDetail.Namespace) == 0 {
