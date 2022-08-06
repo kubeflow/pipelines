@@ -21,9 +21,6 @@ import (
 	"io"
 	"strconv"
 
-	workflowclient "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
-	"github.com/argoproj/argo-workflows/v3/workflow/packer"
-	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -35,6 +32,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
+	exec "github.com/kubeflow/pipelines/backend/src/common"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflowclient "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned/typed/scheduledworkflow/v1beta1"
 	"github.com/pkg/errors"
@@ -68,7 +66,7 @@ type ClientManagerInterface interface {
 	DBStatusStore() storage.DBStatusStoreInterface
 	DefaultExperimentStore() storage.DefaultExperimentStoreInterface
 	ObjectStore() storage.ObjectStoreInterface
-	ArgoClient() client.ArgoClientInterface
+	ExecClient() util.ExecutionClient
 	SwfClient() client.SwfClientInterface
 	KubernetesCoreClient() client.KubernetesCoreInterface
 	SubjectAccessReviewClient() client.SubjectAccessReviewInterface
@@ -89,7 +87,7 @@ type ResourceManager struct {
 	dBStatusStore             storage.DBStatusStoreInterface
 	defaultExperimentStore    storage.DefaultExperimentStoreInterface
 	objectStore               storage.ObjectStoreInterface
-	argoClient                client.ArgoClientInterface
+	execClient                util.ExecutionClient
 	swfClient                 client.SwfClientInterface
 	k8sCoreClient             client.KubernetesCoreInterface
 	subjectAccessReviewClient client.SubjectAccessReviewInterface
@@ -111,7 +109,7 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 		dBStatusStore:             clientManager.DBStatusStore(),
 		defaultExperimentStore:    clientManager.DefaultExperimentStore(),
 		objectStore:               clientManager.ObjectStore(),
-		argoClient:                clientManager.ArgoClient(),
+		execClient:                clientManager.ExecClient(),
 		swfClient:                 clientManager.SwfClient(),
 		k8sCoreClient:             clientManager.KubernetesCoreClient(),
 		subjectAccessReviewClient: clientManager.SubjectAccessReviewClient(),
@@ -123,8 +121,8 @@ func NewResourceManager(clientManager ClientManagerInterface) *ResourceManager {
 	}
 }
 
-func (r *ResourceManager) getWorkflowClient(namespace string) workflowclient.WorkflowInterface {
-	return r.argoClient.Workflow(namespace)
+func (r *ResourceManager) getWorkflowClient(namespace string) util.ExecutionInterface {
+	return r.execClient.Execution(namespace)
 }
 
 func (r *ResourceManager) getScheduledWorkflowClient(namespace string) scheduledworkflowclient.ScheduledWorkflowInterface {
@@ -365,10 +363,6 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "failed to generate the ExecutionSpec.")
 	}
-	workflow, ok := executionSpec.(*util.Workflow)
-	if !ok {
-		return nil, util.NewInternalServerError(errors.New("cast error"), "failed to cast back to Workflow")
-	}
 	// Add a reference to the default experiment if run does not already have a containing experiment
 	ref, err := r.getDefaultExperimentIfNoExperiment(apiRun.GetResourceReferences())
 	if err != nil {
@@ -383,16 +377,12 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 		return nil, err
 	}
 
-	_, err = validate.ValidateWorkflow(nil, nil, workflow.Workflow, validate.ValidateOpts{
-		Lint:                       false,
-		IgnoreEntrypoint:           false,
-		WorkflowTemplateValidation: false, // not used by kubeflow
-	})
+	err = executionSpec.Validate(false, false)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to validate workflow for (%+v)", executionSpec.ExecutionName())
 	}
 	// Create argo workflow CR resource
-	newWorkflow, err := r.getWorkflowClient(namespace).Create(ctx, workflow.Get(), v1.CreateOptions{})
+	newExecSpec, err := r.getWorkflowClient(namespace).Create(ctx, executionSpec, v1.CreateOptions{})
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", executionSpec.ExecutionName())
 	}
@@ -408,10 +398,6 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*mode
 		}
 	}
 
-	newExecSpec, err := util.NewExecutionSpecFromInterface(util.ArgoWorkflow, newWorkflow)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert to ExecutionSpec")
-	}
 	// Store run metadata into database
 	runDetail, err := r.ToModelRunDetail(apiRun, runId, newExecSpec, string(manifestBytes), tmpl.GetTemplateType())
 	if err != nil {
@@ -515,7 +501,7 @@ func (r *ResourceManager) ListJobs(filterContext *common.FilterContext,
 }
 
 // TerminateWorkflow terminates a workflow by setting its activeDeadlineSeconds to 0
-func TerminateWorkflow(ctx context.Context, wfClient workflowclient.WorkflowInterface, name string) error {
+func TerminateWorkflow(ctx context.Context, wfClient util.ExecutionInterface, name string) error {
 	patchObj := map[string]interface{}{
 		"spec": map[string]interface{}{
 			"activeDeadlineSeconds": 0,
@@ -575,20 +561,20 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	if runDetail.PipelineSpecManifest != "" {
 		return util.NewBadRequestError(errors.New("workflow cannot be retried"), "Workflow must be with v1 mode to retry")
 	}
-	var workflow util.Workflow
-	if err := json.Unmarshal([]byte(runDetail.WorkflowRuntimeManifest), &workflow); err != nil {
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(runDetail.WorkflowRuntimeManifest))
+	if err != nil {
 		return util.NewInternalServerError(err, "Failed to retrieve the runtime pipeline spec from the run")
 	}
 
-	if err := packer.DecompressWorkflow(workflow.Workflow); err != nil {
+	if err := execSpec.Decompress(); err != nil {
 		return util.NewInternalServerError(err, "Failed to decompress workflow")
 	}
 
-	if workflow.Status.OffloadNodeStatusVersion != "" {
-		return util.NewBadRequestError(errors.New("workflow cannot be retried"), "Cannot retry workflow with offloaded node status")
+	if err := execSpec.CanRetry(); err != nil {
+		return err
 	}
 
-	newWorkflow, podsToDelete, err := formulateRetryWorkflow(&workflow)
+	newExecSpec, podsToDelete, err := execSpec.GenerateRetryExecution()
 	if err != nil {
 		return util.Wrap(err, "Retry run failed.")
 	}
@@ -598,19 +584,19 @@ func (r *ResourceManager) RetryRun(ctx context.Context, runId string) error {
 	}
 
 	// First try to update workflow
-	updateError := r.updateWorkflow(ctx, newWorkflow, namespace)
+	updateError := r.updateWorkflow(ctx, newExecSpec, namespace)
 	if updateError != nil {
 		// Remove resource version
-		newWorkflow.SetVersion("")
-		newCreatedWorkflow, createError := r.getWorkflowClient(namespace).Create(ctx, newWorkflow.(*util.Workflow).Workflow, v1.CreateOptions{})
+		newExecSpec.SetVersion("")
+		newCreatedWorkflow, createError := r.getWorkflowClient(namespace).Create(ctx, newExecSpec, v1.CreateOptions{})
 		if createError != nil {
 			return util.NewInternalServerError(createError,
 				"Retry run failed. Failed to create or update the run. Update Error: %s, Create Error: %s",
 				updateError.Error(), createError.Error())
 		}
-		newWorkflow = util.NewWorkflow(newCreatedWorkflow)
+		newExecSpec = newCreatedWorkflow
 	}
-	err = r.runStore.UpdateRun(runId, string(newWorkflow.ExecutionStatus().Condition()), 0, newWorkflow.ToStringForStore())
+	err = r.runStore.UpdateRun(runId, string(newExecSpec.ExecutionStatus().Condition()), 0, newExecSpec.ToStringForStore())
 	if err != nil {
 		return util.NewInternalServerError(err, "Failed to update the database entry.")
 	}
@@ -657,16 +643,16 @@ func (r *ResourceManager) readRunLogFromPod(ctx context.Context, run *model.RunD
 }
 
 func (r *ResourceManager) readRunLogFromArchive(run *model.RunDetail, nodeId string, dst io.Writer) error {
-	workflow := new(util.Workflow)
-
 	if run.WorkflowRuntimeManifest == "" {
 		return util.NewBadRequestError(errors.New("archived log cannot be read"), "Failed to retrieve the runtime workflow from the run")
 	}
-	if err := json.Unmarshal([]byte(run.WorkflowRuntimeManifest), &workflow); err != nil {
+
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
+	if err != nil {
 		return util.NewInternalServerError(err, "Failed to retrieve the runtime pipeline spec from the run")
 	}
 
-	logPath, err := r.logArchive.GetLogObjectKey(workflow, nodeId)
+	logPath, err := r.logArchive.GetLogObjectKey(execSpec, nodeId)
 	if err != nil {
 		return err
 	}
@@ -692,8 +678,8 @@ func (r *ResourceManager) updateWorkflow(ctx context.Context, newWorkflow util.E
 		return err
 	}
 	// Update the workflow's resource version to latest.
-	newWorkflow.SetVersion(latestWorkflow.ResourceVersion)
-	_, err = r.getWorkflowClient(namespace).Update(ctx, newWorkflow.(*util.Workflow).Workflow, v1.UpdateOptions{})
+	newWorkflow.SetVersion(latestWorkflow.Version())
+	_, err = r.getWorkflowClient(namespace).Update(ctx, newWorkflow, v1.UpdateOptions{})
 	return err
 }
 
@@ -812,7 +798,7 @@ func (r *ResourceManager) DeleteJob(ctx context.Context, jobID string) error {
 }
 
 func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec util.ExecutionSpec) error {
-	objMeta := execSpec.ExecutionMeta()
+	objMeta := execSpec.ExecutionObjectMeta()
 	execStatus := execSpec.ExecutionStatus()
 	if _, ok := objMeta.Labels[util.LabelKeyWorkflowRunId]; !ok {
 		// Skip reporting if the workflow doesn't have the run id label
@@ -844,7 +830,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 	// ignore its condition and mark it as such
 	condition := execStatus.Condition()
 	if execSpec.IsTerminating() {
-		condition = util.ExecutionPhase(model.RunTerminatingConditions)
+		condition = exec.ExecutionPhase(model.RunTerminatingConditions)
 	}
 	if jobId == "" {
 		// If a run doesn't have job ID, it's a one-time run created by Pipeline API server.
@@ -951,7 +937,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 }
 
 // AddWorkflowLabel add label for a workflow
-func AddWorkflowLabel(ctx context.Context, wfClient workflowclient.WorkflowInterface, name string, labelKey string, labelValue string) error {
+func AddWorkflowLabel(ctx context.Context, wfClient util.ExecutionInterface, name string, labelKey string, labelValue string) error {
 	patchObj := map[string]interface{}{
 		"metadata": map[string]interface{}{
 			"labels": map[string]interface{}{
