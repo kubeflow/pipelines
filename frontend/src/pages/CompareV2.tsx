@@ -17,7 +17,6 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useQuery } from 'react-query';
 import { ApiRunDetail } from 'src/apis/run';
-import Hr from 'src/atoms/Hr';
 import Separator from 'src/atoms/Separator';
 import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
@@ -42,22 +41,30 @@ import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { SelectedItem } from 'src/components/TwoLevelDropdown';
 import MD2Tabs from 'src/atoms/MD2Tabs';
+import {
+  ConfidenceMetricsFilter,
+  ConfidenceMetricsSection,
+} from 'src/components/viewers/MetricsVisualizations';
 import CompareTable, { CompareTableProps } from 'src/components/CompareTable';
 import {
   compareCss,
   ExecutionArtifact,
-  getCompareTableProps,
+  FullArtifactPathMap,
+  getScalarTableProps,
+  getParamsTableProps,
+  getRocCurveId,
+  getValidRocCurveArtifactData,
   MetricsType,
   metricsTypeToString,
   RunArtifact,
   RunArtifactData,
 } from 'src/lib/v2/CompareUtils';
-import { ConfidenceMetricsSection } from 'src/components/viewers/MetricsVisualizations';
-import { flatMapDeep } from 'lodash';
 import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
 import MetricsDropdown from 'src/components/viewers/MetricsDropdown';
 import CircularProgress from '@material-ui/core/CircularProgress';
+import { lineColors } from 'src/components/viewers/ROCCurve';
+import Hr from 'src/atoms/Hr';
 
 const css = stylesheet({
   outputsRow: {
@@ -177,32 +184,48 @@ export interface SelectedArtifact {
   linkedArtifact?: LinkedArtifact;
 }
 
-interface ScalarMetricsTableParams {
-  scalarMetricsTableData: CompareTableProps | undefined;
+interface CompareTableSectionParams {
+  isLoading?: boolean;
+  compareTableProps?: CompareTableProps;
+  dataTypeName: string;
 }
 
-function ScalarMetricsTable(props: ScalarMetricsTableParams) {
-  const { scalarMetricsTableData } = props;
+function CompareTableSection(props: CompareTableSectionParams) {
+  const { isLoading, compareTableProps, dataTypeName } = props;
 
-  if (!scalarMetricsTableData) {
-    return <p>There are no Scalar Metrics artifacts available on the selected runs.</p>;
+  if (isLoading) {
+    return (
+      <div className={compareCss.smallRelativeContainer}>
+        <CircularProgress
+          size={25}
+          className={commonCss.absoluteCenter}
+          style={{ zIndex: zIndex.BUSY_OVERLAY }}
+          role='circularprogress'
+        />
+      </div>
+    );
   }
 
-  return <CompareTable {...scalarMetricsTableData} />;
+  if (!compareTableProps) {
+    return <p>There are no {dataTypeName} available on the selected runs.</p>;
+  }
+
+  return <CompareTable {...compareTableProps} />;
 }
 
-interface ROCCurveMetricsParams {
-  selectedRocCurveArtifacts: Artifact[];
+interface RocCurveMetricsParams {
+  linkedArtifacts: LinkedArtifact[];
+  filter: ConfidenceMetricsFilter;
 }
 
-function ROCCurveMetrics(props: ROCCurveMetricsParams) {
-  const { selectedRocCurveArtifacts } = props;
+function RocCurveMetrics(props: RocCurveMetricsParams) {
+  const { linkedArtifacts, filter } = props;
 
-  if (selectedRocCurveArtifacts.length === 0) {
+  if (linkedArtifacts.length === 0) {
     return <p>There are no ROC Curve artifacts available on the selected runs.</p>;
   }
 
-  return <ConfidenceMetricsSection artifacts={selectedRocCurveArtifacts} />;
+  return <ConfidenceMetricsSection linkedArtifacts={linkedArtifacts} filter={filter} />;
 }
 
 interface CompareV2Namespace {
@@ -220,18 +243,25 @@ function CompareV2(props: CompareV2Props) {
   const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
-
   const [isLoadingArtifacts, setIsLoadingArtifacts] = useState<boolean>(true);
+  const [paramsTableProps, setParamsTableProps] = useState<CompareTableProps | undefined>();
+
+  // Two-panel display artifacts
   const [confusionMatrixRunArtifacts, setConfusionMatrixRunArtifacts] = useState<RunArtifact[]>([]);
   const [htmlRunArtifacts, setHtmlRunArtifacts] = useState<RunArtifact[]>([]);
   const [markdownRunArtifacts, setMarkdownRunArtifacts] = useState<RunArtifact[]>([]);
 
-  const [rocCurveArtifacts, setRocCurveArtifacts] = useState<Artifact[]>([]);
-  const [selectedRocCurveArtifacts, setSelectedRocCurveArtifacts] = useState<Artifact[]>([]);
-
+  // Scalar Metrics
   const [scalarMetricsTableData, setScalarMetricsTableData] = useState<
     CompareTableProps | undefined
   >(undefined);
+
+  // ROC Curve
+  const [rocCurveLinkedArtifacts, setRocCurveLinkedArtifacts] = useState<LinkedArtifact[]>([]);
+  const [selectedRocCurveIds, setSelectedRocCurveIds] = useState<string[]>([]);
+  const [selectedIdColorMap, setSelectedIdColorMap] = useState<{ [key: string]: string }>({});
+  const [lineColorsStack, setLineColorsStack] = useState<string[]>([...lineColors].reverse());
+  const [fullArtifactPathMap, setFullArtifactPathMap] = useState<FullArtifactPathMap>({});
 
   // Selected artifacts for two-panel layout.
   const createSelectedArtifactArray = (count: number): SelectedArtifact[] => {
@@ -280,6 +310,8 @@ function CompareV2(props: CompareV2Props) {
     () =>
       Promise.all(
         runIds.map(async runId => {
+          // TODO(zpChris): MLMD query is limited to 100 artifacts per run.
+          // https://github.com/google/ml-metadata/blob/5757f09d3b3ae0833078dbfd2d2d1a63208a9821/ml_metadata/proto/metadata_store.proto#L733-L737
           const context = await getKfpV2RunContext(runId);
           const executions = await getExecutionsFromContext(context);
           const artifacts = await getArtifactsFromContext(context);
@@ -315,15 +347,12 @@ function CompareV2(props: CompareV2Props) {
         artifactTypes,
         MetricsType.SCALAR_METRICS,
       );
-      const compareTableProps: CompareTableProps = getCompareTableProps(
-        scalarMetricsArtifactData.runArtifacts,
-        scalarMetricsArtifactData.artifactCount,
+      setScalarMetricsTableData(
+        getScalarTableProps(
+          scalarMetricsArtifactData.runArtifacts,
+          scalarMetricsArtifactData.artifactCount,
+        ),
       );
-      if (compareTableProps.yLabels.length === 0) {
-        setScalarMetricsTableData(undefined);
-      } else {
-        setScalarMetricsTableData(compareTableProps);
-      }
 
       setConfusionMatrixRunArtifacts(
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX)
@@ -341,16 +370,16 @@ function CompareV2(props: CompareV2Props) {
         artifactTypes,
         MetricsType.ROC_CURVE,
       ).runArtifacts;
-      const rocCurveArtifacts: Artifact[] = flatMapDeep(
-        rocCurveRunArtifacts.map(rocCurveArtifact =>
-          rocCurveArtifact.executionArtifacts.map(executionArtifact =>
-            executionArtifact.linkedArtifacts.map(linkedArtifact => linkedArtifact.artifact),
-          ),
-        ),
-      );
-      setRocCurveArtifacts(rocCurveArtifacts);
-      setSelectedRocCurveArtifacts(rocCurveArtifacts.slice(0, 3));
 
+      const { validLinkedArtifacts, fullArtifactPathMap } = getValidRocCurveArtifactData(
+        rocCurveRunArtifacts,
+      );
+
+      setFullArtifactPathMap(fullArtifactPathMap);
+      setRocCurveLinkedArtifacts(validLinkedArtifacts);
+      setSelectedRocCurveIds(
+        validLinkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)).slice(0, 3),
+      );
       setIsLoadingArtifacts(false);
     }
   }, [runs, mlmdPackages, artifactTypes]);
@@ -430,6 +459,9 @@ function CompareV2(props: CompareV2Props) {
   useEffect(() => {
     if (runs) {
       setSelectedIds(runs.map(r => r.run!.id!));
+      setParamsTableProps(getParamsTableProps(runs));
+    } else {
+      setParamsTableProps(undefined);
     }
   }, [runs]);
 
@@ -485,7 +517,11 @@ function CompareV2(props: CompareV2Props) {
       {!isParamsCollapsed && (
         <div className={classes(commonCss.noShrink, css.outputsRow, css.outputsOverflow)}>
           <Separator orientation='vertical' />
-          <p>Parameter Section V2</p>
+          <CompareTableSection
+            isLoading={isLoadingRunDetails}
+            compareTableProps={paramsTableProps}
+            dataTypeName='Parameters'
+          />
           <Hr />
         </div>
       )}
@@ -519,7 +555,10 @@ function CompareV2(props: CompareV2Props) {
             ) : (
               <>
                 {metricsTab === MetricsType.SCALAR_METRICS && (
-                  <ScalarMetricsTable scalarMetricsTableData={scalarMetricsTableData} />
+                  <CompareTableSection
+                    compareTableProps={scalarMetricsTableData}
+                    dataTypeName='Scalar Metrics artifacts'
+                  />
                 )}
                 {metricsTab === MetricsType.CONFUSION_MATRIX && (
                   <MetricsDropdown
@@ -530,9 +569,19 @@ function CompareV2(props: CompareV2Props) {
                     namespace={namespace}
                   />
                 )}
-                {/* TODO(zpChris): Add more ROC Curve selections through checkbox system. */}
                 {metricsTab === MetricsType.ROC_CURVE && (
-                  <ROCCurveMetrics selectedRocCurveArtifacts={selectedRocCurveArtifacts} />
+                  <RocCurveMetrics
+                    linkedArtifacts={rocCurveLinkedArtifacts}
+                    filter={{
+                      selectedIds: selectedRocCurveIds,
+                      setSelectedIds: setSelectedRocCurveIds,
+                      fullArtifactPathMap,
+                      selectedIdColorMap,
+                      setSelectedIdColorMap,
+                      lineColorsStack,
+                      setLineColorsStack,
+                    }}
+                  />
                 )}
                 {metricsTab === MetricsType.HTML && (
                   <MetricsDropdown

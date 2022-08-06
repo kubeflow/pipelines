@@ -15,13 +15,15 @@
 from kfp import compiler
 from kfp import components
 from kfp import dsl
+from kfp.dsl import Artifact
+from kfp.dsl import Input
 
 component_op_1 = components.load_component_from_text("""
 name: upstream
 inputs:
 - {name: input_1, type: String}
 - {name: input_2, type: Float}
-- {name: input_3, type: String}
+- {name: input_3, type: Artifact}
 - {name: input_4, type: String}
 outputs:
 - {name: output_1, type: Integer}
@@ -39,7 +41,7 @@ implementation:
     args:
     - {inputValue: input_1}
     - {inputValue: input_2}
-    - {inputValue: input_3}
+    - {inputPath: input_3}
     - {inputValue: input_4}
     - {outputPath: output_1}
     - {outputUri: output_2}
@@ -79,7 +81,7 @@ implementation:
 
 
 @dsl.pipeline(name='pipeline-with-various-types', pipeline_root='dummy_root')
-def my_pipeline(input1: str, input3: str, input4: str = ''):
+def my_pipeline(input1: str, input3: Input[Artifact], input4: str = ''):
     component_1 = component_op_1(
         input_1=input1,
         input_2=3.1415926,
