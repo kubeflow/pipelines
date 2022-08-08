@@ -88,7 +88,9 @@ function NewRunV2(props: NewRunV2Props) {
   const [errorMessage, setErrorMessage] = useState('');
   const [isParameterValid, setIsParameterValid] = useState(false);
   const [isPipelineNameValid, setIsPipelineNameValid] = useState(false);
+  const [pipelineNameErrMsg, setPipelineNameErrMsg] = useState('');
   const [isPipelineVersionNameValid, setIsPipelineVersionNameValid] = useState(false);
+  const [pipelineVersionNameErrMsg, setPipelineVersionNameErrMsg] = useState('');
   const [clonedRuntimeConfig, setClonedRuntimeConfig] = useState<PipelineSpecRuntimeConfig>({});
 
   // TODO(zijianjoy): If creating run from Experiment Page or RunList Page, there is no pipelineId/Version.
@@ -126,7 +128,7 @@ function NewRunV2(props: NewRunV2Props) {
   useEffect(() => {
     setPipelineName(apiPipeline?.name || '');
     setPipelineVersionName(apiPipelineVersion?.name || '');
-  }, [apiPipeline, apiPipelineVersion])
+  }, [apiPipeline, apiPipelineVersion]);
 
   // When loading a pipeline version, automatically set the default run name.
   useEffect(() => {
@@ -140,27 +142,43 @@ function NewRunV2(props: NewRunV2Props) {
     }
   }, [apiRun, apiPipelineVersion]);
 
-  // Pre-check the name of pipeline / pipeline version / run at the UI
-  // Required. The user defined name of the metric. It must between 1 and 63 characters long and must conform to the following regular expression: `[a-z]([-a-z0-9]*[a-z0-9])?`.
+  // Pre-check pipeline / pipeline version name at the UI
   useEffect(() => {
-    // Block: naming restriction of the run name and pipeline from the backend 
-    const namingRegex = new RegExp('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*');
-    if (!namingRegex.test(pipelineName)) {
+    if (pipelineName.length > 246) {
       setIsPipelineNameValid(false);
+      setPipelineNameErrMsg('Pipeline name must contain no more than 246 characters');
+    } else if (
+      !pipelineName
+        .match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
+        ?.includes(pipelineName)
+    ) {
+      setIsPipelineNameValid(false);
+      setPipelineNameErrMsg(
+        "Pipeline name must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters.",
+      );
     } else {
       setIsPipelineNameValid(true);
+      setPipelineNameErrMsg('');
     }
-    // if (!pipelineName.match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')?.includes(pipelineName) || pipelineName.length > 246) {
-    //   setIsPipelineNameValid(false);
-    // } else {
-    //   setIsPipelineNameValid(true);
-    // }
-    if (!pipelineVersionName.match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')?.includes(pipelineVersionName) || pipelineVersionName.length > 246) {
+    if (pipelineVersionName.length > 246) {
       setIsPipelineVersionNameValid(false);
+      setPipelineVersionNameErrMsg(
+        'Pipeline version name must contain no more than 246 characters',
+      );
+    } else if (
+      !pipelineVersionName
+        .match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
+        ?.includes(pipelineVersionName)
+    ) {
+      setIsPipelineVersionNameValid(false);
+      setPipelineVersionNameErrMsg(
+        "Pipeline version name must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters.",
+      );
     } else {
       setIsPipelineVersionNameValid(true);
+      setPipelineVersionNameErrMsg('');
     }
-  }, [pipelineName, pipelineVersionName, runName])
+  }, [pipelineName, pipelineVersionName, runName]);
 
   // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
   useEffect(() => {
@@ -187,13 +205,23 @@ function NewRunV2(props: NewRunV2Props) {
       !templateString ||
       errorMessage ||
       !isParameterValid ||
-      !(apiPipelineVersion || (apiResourceRefFromRun && apiResourceRefFromRun[1])) || !isPipelineNameValid|| !isPipelineVersionNameValid
+      !(apiPipelineVersion || (apiResourceRefFromRun && apiResourceRefFromRun[1])) ||
+      !isPipelineNameValid ||
+      !isPipelineVersionNameValid
     ) {
       setIsStartButtonEnabled(false);
     } else {
       setIsStartButtonEnabled(true);
     }
-  }, [templateString, errorMessage, isParameterValid, apiPipelineVersion, apiResourceRefFromRun, isPipelineNameValid, isPipelineVersionNameValid]);
+  }, [
+    templateString,
+    errorMessage,
+    isParameterValid,
+    apiPipelineVersion,
+    apiResourceRefFromRun,
+    isPipelineNameValid,
+    isPipelineVersionNameValid,
+  ]);
   // TODO(jlyaoyuli): enable the start button for SDK-created run after finishing the showing pipeline details feature.
 
   useEffect(() => {
@@ -310,26 +338,23 @@ function NewRunV2(props: NewRunV2Props) {
               required={true}
               onChange={event => setPipelineName(event.target.value)}
               label='Pipeline'
-              // disabled={true}
               variant='outlined'
-              // InputProps={{
-              //   classes: { disabled: css.nonEditableInput },
-              //   readOnly: true,
-              // }}
             />
+            <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
+              {isPipelineNameValid ? '' : pipelineNameErrMsg}
+            </div>
+
             {/* Pipelien version selection */}
             <Input
               value={pipelineVersionName}
               required={true}
               onChange={event => setPipelineVersionName(event.target.value)}
               label='Pipeline Version'
-              // disabled={true}
               variant='outlined'
-              // InputProps={{
-              //   classes: { disabled: css.nonEditableInput },
-              //   readOnly: true,
-              // }}
             />
+            <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
+              {isPipelineVersionNameValid ? '' : pipelineVersionNameErrMsg}
+            </div>
           </div>
         )}
         {/* Run info inputs */}

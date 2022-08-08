@@ -35,14 +35,14 @@ testBestPractices();
 describe('NewRunV2', () => {
   const TEST_RUN_ID = 'test-run-id';
   const TEST_PIPELINE_ID = 'test-pipeline-id';
-  const TEST_PIPELINE_NAME = 'test pipeline';
+  const TEST_PIPELINE_NAME = 'test-pipeline';
   const TEST_PIPELINE_VERSION_ID = 'test-pipeline-version-id';
-  const TEST_PIPELINE_VERSION_NAME = 'test pipeline version';
+  const TEST_PIPELINE_VERSION_NAME = 'test-pipeline-version';
   const TEST_PIPELINE: ApiPipeline = {
     created_at: new Date(2018, 8, 5, 4, 3, 2),
     description: '',
     id: 'test-pipeline-id',
-    name: 'test pipeline',
+    name: 'test-pipeline',
     parameters: [{ name: 'param1', value: 'value1' }],
     default_version: {
       id: 'test-pipeline-version-id',
@@ -310,6 +310,119 @@ describe('NewRunV2', () => {
           }),
         );
       });
+    });
+
+    it('disables the start button if the pipeline name has invalid character', async () => {
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
+      getPipelineSpy.mockResolvedValue(TEST_PIPELINE);
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION);
+      const getPipelineVersionTemplateSpy = jest.spyOn(
+        Apis.pipelineServiceApi,
+        'getPipelineVersionTemplate',
+      );
+      getPipelineVersionTemplateSpy.mockImplementation(() =>
+        Promise.resolve({ template: v2YamlTemplateString }),
+      );
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            originalRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
+            apiRun={undefined}
+            apiPipeline={TEST_PIPELINE}
+            apiPipelineVersion={TEST_PIPELINE_VERSION}
+            templateString={v2YamlTemplateString}
+          />
+        </CommonTestWrapper>,
+      );
+
+      const pipelineNameInput = await screen.findByDisplayValue('test-pipeline');
+      fireEvent.change(pipelineNameInput, { target: { value: 'Pipeline name' } });
+
+      const startButton = await screen.findByText('Start');
+      expect(startButton.closest('button').disabled).toEqual(true);
+      expect(
+        screen.getByText(
+          "Pipeline name must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters.",
+        ),
+      );
+    });
+
+    it('disables the start button if the pipeline name length exceed the limit', async () => {
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
+      getPipelineSpy.mockResolvedValue(TEST_PIPELINE);
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION);
+      const getPipelineVersionTemplateSpy = jest.spyOn(
+        Apis.pipelineServiceApi,
+        'getPipelineVersionTemplate',
+      );
+      getPipelineVersionTemplateSpy.mockImplementation(() =>
+        Promise.resolve({ template: v2YamlTemplateString }),
+      );
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            originalRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
+            apiRun={undefined}
+            apiPipeline={TEST_PIPELINE}
+            apiPipelineVersion={TEST_PIPELINE_VERSION}
+            templateString={v2YamlTemplateString}
+          />
+        </CommonTestWrapper>,
+      );
+
+      const pipelineNameInput = await screen.findByDisplayValue('test-pipeline');
+      fireEvent.change(pipelineNameInput, {
+        target: {
+          value:
+            'super-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-name',
+        },
+      });
+
+      const startButton = await screen.findByText('Start');
+      expect(startButton.closest('button').disabled).toEqual(true);
+      expect(screen.getByText('Pipeline name must contain no more than 246 characters'));
+    });
+
+    it('disables the start button if the pipeline name has invalid character and length exceed the limit', async () => {
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
+      getPipelineSpy.mockResolvedValue(TEST_PIPELINE);
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
+      getPipelineVersionSpy.mockResolvedValue(TEST_PIPELINE_VERSION);
+      const getPipelineVersionTemplateSpy = jest.spyOn(
+        Apis.pipelineServiceApi,
+        'getPipelineVersionTemplate',
+      );
+      getPipelineVersionTemplateSpy.mockImplementation(() =>
+        Promise.resolve({ template: v2YamlTemplateString }),
+      );
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            originalRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
+            apiRun={undefined}
+            apiPipeline={TEST_PIPELINE}
+            apiPipelineVersion={TEST_PIPELINE_VERSION}
+            templateString={v2YamlTemplateString}
+          />
+        </CommonTestWrapper>,
+      );
+
+      const pipelineNameInput = await screen.findByDisplayValue('test-pipeline');
+      fireEvent.change(pipelineNameInput, {
+        target: {
+          value:
+            '?super-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-name',
+        },
+      });
+
+      const startButton = await screen.findByText('Start');
+      expect(startButton.closest('button').disabled).toEqual(true);
+      expect(screen.getByText('Pipeline name must contain no more than 246 characters'));
     });
   });
 
