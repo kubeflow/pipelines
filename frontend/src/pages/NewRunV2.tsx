@@ -74,8 +74,6 @@ export type RuntimeParameters = { [key: string]: any };
 
 function NewRunV2(props: NewRunV2Props) {
   // List of elements we need to create Pipeline Run.
-  const [pipelineName, setPipelineName] = useState('');
-  const [pipelineVersionName, setPipelineVersionName] = useState('');
   const [runName, setRunName] = useState('');
   const [runDescription, setRunDescription] = useState('');
   const [apiExperiment, setApiExperiment] = useState<ApiExperiment>();
@@ -125,11 +123,6 @@ function NewRunV2(props: NewRunV2Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    setPipelineName(apiPipeline?.name || '');
-    setPipelineVersionName(apiPipelineVersion?.name || '');
-  }, [apiPipeline, apiPipelineVersion]);
-
   // When loading a pipeline version, automatically set the default run name.
   useEffect(() => {
     if (apiRun?.run?.name) {
@@ -144,13 +137,14 @@ function NewRunV2(props: NewRunV2Props) {
 
   // Pre-check pipeline / pipeline version name at the UI
   useEffect(() => {
-    if (pipelineName.length > 246) {
+    if (apiPipeline?.name && apiPipeline?.name.length > 246) {
       setIsPipelineNameValid(false);
       setPipelineNameErrMsg('Pipeline name must contain no more than 246 characters');
     } else if (
-      !pipelineName
+      apiPipeline?.name &&
+      !apiPipeline?.name
         .match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
-        ?.includes(pipelineName)
+        ?.includes(apiPipeline?.name)
     ) {
       setIsPipelineNameValid(false);
       setPipelineNameErrMsg(
@@ -160,15 +154,16 @@ function NewRunV2(props: NewRunV2Props) {
       setIsPipelineNameValid(true);
       setPipelineNameErrMsg('');
     }
-    if (pipelineVersionName.length > 246) {
+    if (apiPipelineVersion?.name && apiPipelineVersion.name.length > 246) {
       setIsPipelineVersionNameValid(false);
       setPipelineVersionNameErrMsg(
         'Pipeline version name must contain no more than 246 characters',
       );
     } else if (
-      !pipelineVersionName
+      apiPipelineVersion?.name &&
+      !apiPipelineVersion?.name
         .match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
-        ?.includes(pipelineVersionName)
+        ?.includes(apiPipelineVersion?.name)
     ) {
       setIsPipelineVersionNameValid(false);
       setPipelineVersionNameErrMsg(
@@ -178,7 +173,7 @@ function NewRunV2(props: NewRunV2Props) {
       setIsPipelineVersionNameValid(true);
       setPipelineVersionNameErrMsg('');
     }
-  }, [pipelineName, pipelineVersionName]);
+  }, [apiPipeline?.name, apiPipelineVersion?.name]);
 
   // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
   useEffect(() => {
@@ -334,11 +329,15 @@ function NewRunV2(props: NewRunV2Props) {
           <div>
             {/* Pipelien selection */}
             <Input
-              value={pipelineName}
+              value={apiPipeline?.name || ''}
               required={true}
-              onChange={event => setPipelineName(event.target.value)}
               label='Pipeline'
+              disabled={true}
               variant='outlined'
+              InputProps={{
+                classes: { disabled: css.nonEditableInput },
+                readOnly: true,
+              }}
             />
             <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
               {isPipelineNameValid ? '' : pipelineNameErrMsg}
@@ -346,11 +345,15 @@ function NewRunV2(props: NewRunV2Props) {
 
             {/* Pipelien version selection */}
             <Input
-              value={pipelineVersionName}
+              value={apiPipelineVersion?.name || ''}
               required={true}
-              onChange={event => setPipelineVersionName(event.target.value)}
               label='Pipeline Version'
+              disabled={true}
               variant='outlined'
+              InputProps={{
+                classes: { disabled: css.nonEditableInput },
+                readOnly: true,
+              }}
             />
             <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
               {isPipelineVersionNameValid ? '' : pipelineVersionNameErrMsg}
