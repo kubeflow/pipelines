@@ -153,7 +153,6 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 }
 
 func toApiRuntimeConfig(modelRuntime model.RuntimeConfig) (*api.PipelineSpec_RuntimeConfig, error) {
-	// Convert RuntimeConfig.Parameters
 	var runtimeParamsStringsMap map[string]string
 	var runtimeParams map[string]*structpb.Value
 	if modelRuntime.Parameters != "" {

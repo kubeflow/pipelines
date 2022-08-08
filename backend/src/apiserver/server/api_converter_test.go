@@ -147,7 +147,7 @@ func TestToApiRunDetail_RuntimeParams(t *testing.T) {
 			WorkflowManifest: "workflow123",
 		},
 	}
-	// Compare the string representation of ApiRuns, since these structs have fields
+	// Compare the string representation of ApiRuns, since these structs have internal fields
 	// used only by protobuff, and may be different. The .String() method marshal all
 	// exported fields into string format.
 	// See https://github.com/stretchr/testify/issues/758
@@ -750,6 +750,5 @@ func TestToApiRuntimeConfig(t *testing.T) {
 	// used only by protobuff, and may be different. The .String() method marshal all
 	// exported fields into string format.
 	// See https://github.com/stretchr/testify/issues/758
-
 	assert.Equal(t, expectedRuntimeConfig.String(), actualRuntimeConfig.String())
 }
