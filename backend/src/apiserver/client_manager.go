@@ -73,7 +73,7 @@ type ClientManager struct {
 	dBStatusStore             storage.DBStatusStoreInterface
 	defaultExperimentStore    storage.DefaultExperimentStoreInterface
 	objectStore               storage.ObjectStoreInterface
-	argoClient                client.ArgoClientInterface
+	execClient                util.ExecutionClient
 	swfClient                 client.SwfClientInterface
 	k8sCoreClient             client.KubernetesCoreInterface
 	subjectAccessReviewClient client.SubjectAccessReviewInterface
@@ -120,8 +120,8 @@ func (c *ClientManager) ObjectStore() storage.ObjectStoreInterface {
 	return c.objectStore
 }
 
-func (c *ClientManager) ArgoClient() client.ArgoClientInterface {
-	return c.argoClient
+func (c *ClientManager) ExecClient() util.ExecutionClient {
+	return c.execClient
 }
 
 func (c *ClientManager) SwfClient() client.SwfClientInterface {
@@ -184,7 +184,7 @@ func (c *ClientManager) init() {
 		Burst: common.GetIntConfigWithDefault(clientBurst, 10),
 	}
 
-	c.argoClient = client.NewArgoClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
+	c.execClient = util.NewExecutionClientOrFatal(util.ArgoWorkflow, common.GetDurationConfig(initConnectionTimeout), clientParams)
 
 	c.swfClient = client.NewScheduledWorkflowClientOrFatal(common.GetDurationConfig(initConnectionTimeout), clientParams)
 

@@ -180,18 +180,44 @@ class ResourceSpec(base_model.BaseModel):
 class ContainerSpec(base_model.BaseModel):
     """Container implementation definition.
 
-    Attributes:
-        image: The container image.
-        command (optional): the container entrypoint.
-        args (optional): the arguments to the container entrypoint.
-        env (optional): the environment variables to be passed to the container.
-        resources (optional): the specification on the resource requirements.
+    This is only used for pipeline authors when constructing a containerized component
+    using @container_component decorator.
+
+    Examples:
+      ::
+
+        @container_component
+        def container_with_artifact_output(
+            num_epochs: int,  # built-in types are parsed as inputs
+            model: Output[Model],
+            model_config_path: OutputPath(str),
+        ):
+            return ContainerSpec(
+                image='gcr.io/my-image',
+                command=['sh', 'run.sh'],
+                args=[
+                    '--epochs',
+                    num_epochs,
+                    '--model_path',
+                    model.uri,
+                    '--model_config_path',
+                    model_config_path,
+                ])
     """
     image: str
+    """Container image."""
+
     command: Optional[List[placeholders.CommandLineElement]] = None
+    """Container entrypoint."""
+
     args: Optional[List[placeholders.CommandLineElement]] = None
+    """Arguments to the container entrypoint."""
+
     env: Optional[Mapping[str, placeholders.CommandLineElement]] = None
+    """Environment variables to be passed to the container."""
+
     resources: Optional[ResourceSpec] = None
+    """Specification on the resource requirements."""
 
     def transform_command(self) -> None:
         """Use None instead of empty list for command."""
@@ -680,7 +706,7 @@ class ComponentSpec(base_model.BaseModel):
 
         # Fill in the default values.
         args_list_with_defaults = [
-            pipeline_channel.PipelineParameterChannel(
+            pipeline_channel.create_pipeline_channel(
                 name=input_name,
                 channel_type=input_spec.type,
                 value=input_spec.default,

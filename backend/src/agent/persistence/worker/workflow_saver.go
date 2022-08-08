@@ -15,11 +15,12 @@
 package worker
 
 import (
+	"time"
+
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	log "github.com/sirupsen/logrus"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"time"
 )
 
 // WorkflowSaver provides a function to persist a workflow to a database.
@@ -58,11 +59,11 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 			"Workflow (%s): transient failure: %v", key, err)
 
 	}
-	if _, ok := wf.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]; !ok {
+	if _, ok := wf.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId]; !ok {
 		log.Infof("Skip syncing Workflow (%v): workflow does not have a Run ID label.", name)
 		return nil
 	}
-	if wf.PersistedFinalState() && time.Now().Unix()-wf.FinishedAt() < s.ttlSecondsAfterWorkflowFinish {
+	if wf.PersistedFinalState() && time.Now().Unix()-wf.ExecutionStatus().FinishedAt() < s.ttlSecondsAfterWorkflowFinish {
 		// Skip persisting the workflow if the workflow is finished
 		// and the workflow hasn't being passing the TTL
 		log.Infof("Skip syncing Workflow (%v): workflow marked as persisted.", name)

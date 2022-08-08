@@ -20,7 +20,6 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -133,7 +132,10 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 	}
 	serviceAccount := ""
 	if swf.Spec.Workflow != nil {
-		serviceAccount = swf.Spec.Workflow.Spec.ServiceAccountName
+		execSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, swf.Spec.Workflow)
+		if err == nil {
+			serviceAccount = execSpec.ServiceAccount()
+		}
 	}
 	modelJob := &model.Job{
 		UUID:               string(swf.UID),
@@ -234,15 +236,15 @@ func apiParametersToModelParameters(apiParams []*api.Parameter) (string, error) 
 	if apiParams == nil || len(apiParams) == 0 {
 		return "", nil
 	}
-	var params []v1alpha1.Parameter
+	var params util.SpecParameters
 	for _, apiParam := range apiParams {
-		param := v1alpha1.Parameter{
+		param := util.SpecParameter{
 			Name:  apiParam.Name,
-			Value: v1alpha1.AnyStringPtr(apiParam.Value),
+			Value: util.StringPointer(apiParam.Value),
 		}
 		params = append(params, param)
 	}
-	paramsBytes, err := json.Marshal(params)
+	paramsBytes, err := util.MarshalParameters(util.ArgoWorkflow, params)
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Failed to stream API parameter as string.")
 	}
