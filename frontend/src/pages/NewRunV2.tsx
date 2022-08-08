@@ -178,7 +178,7 @@ function NewRunV2(props: NewRunV2Props) {
       setIsPipelineVersionNameValid(true);
       setPipelineVersionNameErrMsg('');
     }
-  }, [pipelineName, pipelineVersionName, runName]);
+  }, [pipelineName, pipelineVersionName]);
 
   // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
   useEffect(() => {
