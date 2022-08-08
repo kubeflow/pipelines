@@ -207,11 +207,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         // V1: Convert the run's pipeline spec to YAML to be displayed as the pipeline's source.
         // V2: Use the pipeline spec string directly because it can be translated in JSON format.
         try {
-          const workflowManifestString = RunUtils.getWorkflowManifest(runDetails.run) || '';
-          const workflowManifest = JSON.parse(workflowManifestString || '{}');
+          const pipelineManifestString = runDetails.run?.pipeline_spec?.pipeline_manifest || '';
+          const workflowManifest = JsYaml.safeLoad(pipelineManifestString || '{}');
           try {
-            if (WorkflowUtils.isPipelineSpec(workflowManifestString)) {
-              templateString = workflowManifestString;
+            if (WorkflowUtils.isPipelineSpec(pipelineManifestString)) {
+              templateString = pipelineManifestString;
             } else {
               templateString = JsYaml.safeDump(workflowManifest);
             }
