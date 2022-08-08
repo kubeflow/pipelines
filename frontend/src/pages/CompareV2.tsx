@@ -341,7 +341,8 @@ function CompareV2(props: CompareV2Props) {
     staleTime: Infinity,
   });
 
-  const verifyTwoPanelSelection = (
+  // Ensure that the two-panel selected artifacts are present in selected valid run list.
+  const getVerifiedTwoPanelSelection = (
     runArtifacts: RunArtifact[],
     selectedArtifacts: SelectedArtifact[],
   ) => {
@@ -357,11 +358,12 @@ function CompareV2(props: CompareV2Props) {
 
     for (let i: number = 0; i < artifactsPresent.length; i++) {
       if (!artifactsPresent[i]) {
-        selectedArtifacts[i].selectedItem = {
-          itemName: '',
-          subItemName: '',
+        selectedArtifacts[i] = {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
         };
-        selectedArtifacts[i].linkedArtifact = undefined;
       }
     }
 
@@ -407,10 +409,20 @@ function CompareV2(props: CompareV2Props) {
       setMarkdownRunArtifacts(markdownRunArtifacts);
 
       // Iterate through selected runs, remove current selection if not present among runs.
-      selectedArtifactsMap[MetricsType.CONFUSION_MATRIX] = verifyTwoPanelSelection(confusionMatrixRunArtifacts, selectedArtifactsMap[MetricsType.CONFUSION_MATRIX]);
-      selectedArtifactsMap[MetricsType.HTML] = verifyTwoPanelSelection(htmlRunArtifacts, selectedArtifactsMap[MetricsType.HTML]);
-      selectedArtifactsMap[MetricsType.MARKDOWN] = verifyTwoPanelSelection(markdownRunArtifacts, selectedArtifactsMap[MetricsType.MARKDOWN]);
-      setSelectedArtifactsMap(selectedArtifactsMap);
+      setSelectedArtifactsMap({
+        [MetricsType.CONFUSION_MATRIX]: getVerifiedTwoPanelSelection(
+          confusionMatrixRunArtifacts,
+          selectedArtifactsMap[MetricsType.CONFUSION_MATRIX],
+        ),
+        [MetricsType.HTML]: getVerifiedTwoPanelSelection(
+          htmlRunArtifacts,
+          selectedArtifactsMap[MetricsType.HTML],
+        ),
+        [MetricsType.MARKDOWN]: getVerifiedTwoPanelSelection(
+          markdownRunArtifacts,
+          selectedArtifactsMap[MetricsType.MARKDOWN],
+        ),
+      });
 
       const rocCurveRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
         runArtifacts,
