@@ -451,11 +451,8 @@ const getRocCurveFilterTable = (
   ];
   const rows: TableRow[] = [];
   if (filter) {
-    const {
-      selectedIds,
-      selectedIdColorMap,
-      fullArtifactPathMap,
-    } = filter;
+    console.log(filter);
+    const { selectedIds, selectedIdColorMap, fullArtifactPathMap } = filter;
 
     // Only display the selected ROC Curves on the plot, in order of selection.
     const confidenceMetricsDataMap = new Map();
@@ -532,7 +529,7 @@ function reloadRocCurve(
   filter: ConfidenceMetricsFilter,
   linkedArtifacts: LinkedArtifact[],
   setLinkedArtifactsPage: (linkedArtifactsPage: LinkedArtifact[]) => void,
-  setCurrentRequest: (currentRequest: ListRequest) => void,
+  setCurrentRequest: ((currentRequest: ListRequest) => void) | undefined,
   request: ListRequest,
 ): Promise<string> {
   // Filter the linked artifacts by run, execution, and artifact display name.
@@ -574,7 +571,9 @@ function reloadRocCurve(
       nextPageToken = `${numericPageToken + 1}`;
     }
   }
-  setCurrentRequest(request);
+  if (setCurrentRequest) {
+    setCurrentRequest(request);
+  }
   setLinkedArtifactsPage(linkedArtifactsPage);
   return Promise.resolve(nextPageToken);
 }
@@ -587,16 +586,19 @@ export function ConfidenceMetricsSection({
   const [linkedArtifactsPage, setLinkedArtifactsPage] = useState<LinkedArtifact[]>(linkedArtifacts);
   const [currentRequest, setCurrentRequest] = useState<ListRequest>({});
 
+  // Reload the page on linked artifact refresh; request not saved.
+  // TODO(zpChris): Fix filter warning.
   useEffect(() => {
     if (filter) {
-      currentRequest.pageToken = '';
-      reloadRocCurve(filter, linkedArtifacts, setLinkedArtifactsPage, setCurrentRequest, currentRequest);
+      reloadRocCurve(filter, linkedArtifacts, setLinkedArtifactsPage, undefined, currentRequest);
     }
-  }, [linkedArtifacts]);
+  }, [linkedArtifacts, currentRequest]);
 
   // Verify that the linked artifacts page does not have any de-selected runs; return and wait for refresh.
   if (filter) {
-    const rocCurveIdsSet: Set<string> = new Set(linkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)));
+    const rocCurveIdsSet: Set<string> = new Set(
+      linkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)),
+    );
     for (const linkedArtifact of linkedArtifactsPage) {
       if (!rocCurveIdsSet.has(getRocCurveId(linkedArtifact))) {
         return null;
@@ -604,6 +606,8 @@ export function ConfidenceMetricsSection({
     }
   }
 
+  console.log(linkedArtifactsPage.map(a => getRocCurveId(a)));
+  console.log(linkedArtifacts.map(a => getRocCurveId(a)));
   let confidenceMetricsDataList: ConfidenceMetricsData[] = linkedArtifacts
     .map(linkedArtifact => {
       const artifact = linkedArtifact.artifact;
@@ -708,7 +712,13 @@ export function ConfidenceMetricsSection({
             selectedIds={filter.selectedIds}
             filterLabel='Filter artifacts'
             updateSelection={updateRocCurveSelection.bind(null, filter, maxSelectedRocCurves)}
-            reload={reloadRocCurve.bind(null, filter, linkedArtifacts, setLinkedArtifactsPage, setCurrentRequest)}
+            reload={reloadRocCurve.bind(
+              null,
+              filter,
+              linkedArtifacts,
+              setLinkedArtifactsPage,
+              setCurrentRequest,
+            )}
             disablePaging={false}
             disableSorting={false}
             disableSelection={false}

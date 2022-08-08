@@ -83,7 +83,7 @@ export interface RocCurveColorMap {
 export interface RocCurveArtifactData {
   validLinkedArtifacts: LinkedArtifact[];
   fullArtifactPathMap: FullArtifactPathMap;
-  removedRocCurveIds: string[];
+  validRocCurveIdSet: Set<string>;
 }
 
 export const mlmdDisplayName = (id: string, mlmdTypeStr: string, displayName?: string) =>
@@ -137,9 +137,8 @@ export const getRocCurveId = (linkedArtifact: LinkedArtifact): string =>
 // Form an array which holds all valid ROC Curve linked artifacts.
 export const getValidRocCurveArtifactData = (
   rocCurveRunArtifacts: RunArtifact[],
-  removedIds: Set<string>,
 ): RocCurveArtifactData => {
-  const removedRocCurveIds: string[] = [];
+  const validRocCurveIdSet: Set<string> = new Set();
   const fullArtifactPathMap: FullArtifactPathMap = {};
   const validLinkedArtifacts = flatMapDeep(
     rocCurveRunArtifacts.map(runArtifact =>
@@ -155,9 +154,7 @@ export const getValidRocCurveArtifactData = (
             validArtifact,
           );
 
-          if (removedIds.has(runArtifact.run!.run!.id!)) {
-            removedRocCurveIds.push(rocCurveId);
-          }
+          validRocCurveIdSet.add(rocCurveId);
         });
         return validArtifacts;
       }),
@@ -166,7 +163,7 @@ export const getValidRocCurveArtifactData = (
   return {
     validLinkedArtifacts,
     fullArtifactPathMap,
-    removedRocCurveIds,
+    validRocCurveIdSet,
   };
 };
 

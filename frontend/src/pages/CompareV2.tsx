@@ -376,10 +376,33 @@ function CompareV2(props: CompareV2Props) {
         MetricsType.ROC_CURVE,
       ).runArtifacts;
 
-      const { validLinkedArtifacts, fullArtifactPathMap, removedRocCurveIds } = getValidRocCurveArtifactData(
-        rocCurveRunArtifacts,
-        new Set(),
-      );
+      // Old selected IDs
+      // New allowed IDs
+      // Iterate through old selected IDs
+      // See which are in new allowed IDs
+
+      const {
+        validLinkedArtifacts,
+        fullArtifactPathMap,
+        validRocCurveIdSet,
+      } = getValidRocCurveArtifactData(rocCurveRunArtifacts);
+
+      // Remove all newly invalid ROC Curves from the selection (if run selection changes).
+      const removedRocCurveIds: Set<string> = new Set();
+      for (const oldSelectedId of Object.keys(selectedIdColorMap)) {
+        if (!validRocCurveIdSet.has(oldSelectedId)) {
+          removedRocCurveIds.add(oldSelectedId);
+        }
+      }
+      console.log(removedRocCurveIds);
+
+      // Map of run ids to roc curves.
+      // When loop through, what we need to do is remove all the selections for invalid roc curves.
+      // So make a set of all the roc curve selections.
+      // This is Object.keys(selectedIdColorMap)?
+      // Or no, just all of the ones in general?
+      // No, but those selections will be removed by default.
+      // So I pass in the set and then all those that aren't removed are the removed IDs.
 
       setFullArtifactPathMap(fullArtifactPathMap);
       setRocCurveLinkedArtifacts(validLinkedArtifacts);
@@ -393,12 +416,34 @@ function CompareV2(props: CompareV2Props) {
       // This requires work on the updated IDs side of MetricsVisualizations, so I'll stick to the first solution.
       console.log(Object.keys(selectedIdColorMap));
 
+      // What if I just store a map of run ID to rocCurveIds? That way on every change of that type, I reload?
+
       // So the colors do indeed update.
+      console.log(selectedRocCurveIds);
+      console.log(selectedIdColorMap);
+      console.log(lineColorsStack);
 
-      const updatedRocCurveIds = validLinkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)).slice(0, 3);
+      // If no set is provided for removed ROC Curve IDs, the initial page is being loaded, so provide selection.
+      // Otherwise, filter out the ROC curves from de-selected runs.
+      let updatedRocCurveIds: string[] = selectedRocCurveIds;
+      if (!removedRocCurveIds) {
+        updatedRocCurveIds = validLinkedArtifacts
+          .map(linkedArtifact => getRocCurveId(linkedArtifact))
+          .slice(0, 3);
+        updatedRocCurveIds.forEach(rocCurveId => {
+          selectedIdColorMap[rocCurveId] = lineColorsStack.pop()!;
+        });
+      } else {
+        updatedRocCurveIds = updatedRocCurveIds.filter(rocCurveId => {
+          if (removedRocCurveIds.has(rocCurveId)) {
+            lineColorsStack.push(selectedIdColorMap[rocCurveId]);
+            delete selectedIdColorMap[rocCurveId];
+            return false;
+          }
+          return true;
+        });
+      }
       setSelectedRocCurveIds(updatedRocCurveIds);
-
-      // Populate the color map on the initial render.
 
       // Ok, so I don't have to base it off of the initial stack. I can base it off what I know that value to be.
       // However, how do I modify this when it *does* have to be based off the initial value?
@@ -406,12 +451,8 @@ function CompareV2(props: CompareV2Props) {
       // pop those colors off the stack.
       // Or, I can not include the lineColorsStack in this list?
       // Note: deselecting and re-selecting a run will not maintain those selections. I personally am OK with that, knowing the complexity that adds.
-      const initialIdColorMap: { [key: string]: string } = {};
-      updatedRocCurveIds.forEach(selectedId => {
-        initialIdColorMap[selectedId] = lineColorsStack.pop()!;
-      });
       setLineColorsStack(lineColorsStack);
-      setSelectedIdColorMap(initialIdColorMap);
+      setSelectedIdColorMap(selectedIdColorMap);
       setIsLoadingArtifacts(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -498,9 +539,7 @@ function CompareV2(props: CompareV2Props) {
   useEffect(() => {
     if (runs) {
       const selectedIdsSet = new Set(selectedIds);
-      const selectedRuns: ApiRunDetail[] = runs.filter(run =>
-        selectedIdsSet.has(run.run!.id!),
-      );
+      const selectedRuns: ApiRunDetail[] = runs.filter(run => selectedIdsSet.has(run.run!.id!));
       setParamsTableProps(getParamsTableProps(selectedRuns));
     } else {
       setParamsTableProps(undefined);
@@ -516,14 +555,6 @@ function CompareV2(props: CompareV2Props) {
   };
 
   const selectionChanged = (newSelectedIds: string[]): void => {
-    // Get the de-selected run IDs.
-    const newSelectedIdsSet: Set<string> = new Set(newSelectedIds);
-    const removedIds: Set<string> = new Set(selectedIds.filter(selectedId => !newSelectedIdsSet.has(selectedId)));
-
-    // This is passed into the useeffect which is usecallback essentially.
-
-    // Get all of the removed ids. (None of the ones that are added will update the plot.)
-    // From that, we find all of the runs where 
     setSelectedIds(newSelectedIds);
   };
 
