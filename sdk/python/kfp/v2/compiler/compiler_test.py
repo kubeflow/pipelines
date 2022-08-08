@@ -582,7 +582,7 @@ implementation:
             package_path = os.path.join(tempdir, 'pipeline.json')
             with self.assertRaisesRegex(
                     ValueError,
-                    'ParallelFor parallism set to < 0, allowed values are >= 0'
+                    'ParallelFor parallelism must be >= 0.'
             ):
                 compiler.Compiler().compile(
                     pipeline_func=my_pipeline, package_path=package_path)

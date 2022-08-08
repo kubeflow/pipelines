@@ -152,12 +152,32 @@ class TestParallelFor(unittest.TestCase):
         self.assertEqual(3, len(parallel_for.loop_args.items_or_pipeline_param))
         self.assertEqual(5, parallel_for.parallelism)
 
+    def test_default_parallelism(self):
+        with Pipeline('somename') as p:
+            with ParallelFor(loop_args=['pizza', 'hotdog', 'pasta']) as item:
+                op1 = ContainerOp(name='op1', image='image')
+
+        parallel_for = p.groups[0].groups[0]
+        self.assertEqual('for_loop', parallel_for.type)
+        self.assertEqual(3, len(parallel_for.loop_args.items_or_pipeline_param))
+        self.assertEqual(0, parallel_for.parallelism)
+
+    def test_zero_parallelism(self):
+        with Pipeline('somename') as p:
+            with ParallelFor(
+                    loop_args=['pizza', 'hotdog', 'pasta'],
+                    parallelism=0) as item:
+                op1 = ContainerOp(name='op1', image='image')
+
+        parallel_for = p.groups[0].groups[0]
+        self.assertEqual('for_loop', parallel_for.type)
+        self.assertEqual(3, len(parallel_for.loop_args.items_or_pipeline_param))
+        self.assertEqual(0, parallel_for.parallelism)
+
     def test_invalid_parallelism(self):
         with Pipeline('somename') as p:
             with self.assertRaisesRegex(
-                    ValueError,
-                    'ParallelFor parallism set to < 0, allowed values are >= 0'
-            ):
+                    ValueError, 'ParallelFor parallelism must be >= 0.'):
                 with ParallelFor(
                         loop_args=['pizza', 'hotdog', 'pasta'],
                         parallelism=-1) as item:

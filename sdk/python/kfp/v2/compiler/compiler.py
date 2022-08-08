@@ -876,7 +876,7 @@ class Compiler(object):
                         raw_values, sort_keys=True)
                     subgroup_task_spec.parameter_iterator.item_input = (
                         input_parameter_name)
-                if (subgroup.parallelism > 0):
+                if subgroup.parallelism > 0:
                     subgroup_task_spec.iterator_policy.parallelism_limit = (
                         subgroup.parallelism)
 
