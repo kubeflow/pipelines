@@ -248,11 +248,6 @@ function CompareV2(props: CompareV2Props) {
   const [paramsTableProps, setParamsTableProps] = useState<CompareTableProps | undefined>();
   const [isInitialArtifactsLoad, setIsInitialArtifactsLoad] = useState<boolean>(true);
 
-  // Two-panel display artifacts
-  const [confusionMatrixRunArtifacts, setConfusionMatrixRunArtifacts] = useState<RunArtifact[]>([]);
-  const [htmlRunArtifacts, setHtmlRunArtifacts] = useState<RunArtifact[]>([]);
-  const [markdownRunArtifacts, setMarkdownRunArtifacts] = useState<RunArtifact[]>([]);
-
   // Scalar Metrics
   const [scalarMetricsTableData, setScalarMetricsTableData] = useState<
     CompareTableProps | undefined
@@ -264,6 +259,11 @@ function CompareV2(props: CompareV2Props) {
   const [selectedIdColorMap, setSelectedIdColorMap] = useState<RocCurveColorMap>({});
   const [lineColorsStack, setLineColorsStack] = useState<string[]>([...lineColors].reverse());
   const [fullArtifactPathMap, setFullArtifactPathMap] = useState<FullArtifactPathMap>({});
+
+  // Two-panel display artifacts
+  const [confusionMatrixRunArtifacts, setConfusionMatrixRunArtifacts] = useState<RunArtifact[]>([]);
+  const [htmlRunArtifacts, setHtmlRunArtifacts] = useState<RunArtifact[]>([]);
+  const [markdownRunArtifacts, setMarkdownRunArtifacts] = useState<RunArtifact[]>([]);
 
   // Selected artifacts for two-panel layout.
   const createSelectedArtifactArray = (count: number): SelectedArtifact[] => {
@@ -341,7 +341,33 @@ function CompareV2(props: CompareV2Props) {
     staleTime: Infinity,
   });
 
-  // TODO(zpChris): Make clear this is also called on re-render, and for roc curves state must be saved.
+  const verifyTwoPanelSelection = (
+    runArtifacts: RunArtifact[],
+    selectedArtifacts: SelectedArtifact[],
+  ) => {
+    const artifactsPresent: boolean[] = new Array(2).fill(false);
+    for (const runArtifact of runArtifacts) {
+      const runName = runArtifact.run.run?.name;
+      if (runName === selectedArtifacts[0].selectedItem.itemName) {
+        artifactsPresent[0] = true;
+      } else if (runName === selectedArtifacts[1].selectedItem.itemName) {
+        artifactsPresent[1] = true;
+      }
+    }
+
+    for (let i: number = 0; i < artifactsPresent.length; i++) {
+      if (!artifactsPresent[i]) {
+        selectedArtifacts[i].selectedItem = {
+          itemName: '',
+          subItemName: '',
+        };
+        selectedArtifacts[i].linkedArtifact = undefined;
+      }
+    }
+
+    return [...selectedArtifacts];
+  };
+
   useEffect(() => {
     if (runs && selectedIds && mlmdPackages && artifactTypes) {
       const selectedIdsSet = new Set(selectedIds);
@@ -360,16 +386,31 @@ function CompareV2(props: CompareV2Props) {
         ),
       );
 
-      setConfusionMatrixRunArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX)
-          .runArtifacts,
-      );
-      setHtmlRunArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML).runArtifacts,
-      );
-      setMarkdownRunArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN).runArtifacts,
-      );
+      // TODO: The selection is still shown!
+      const confusionMatrixRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
+        runArtifacts,
+        artifactTypes,
+        MetricsType.CONFUSION_MATRIX,
+      ).runArtifacts;
+      const htmlRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
+        runArtifacts,
+        artifactTypes,
+        MetricsType.HTML,
+      ).runArtifacts;
+      const markdownRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
+        runArtifacts,
+        artifactTypes,
+        MetricsType.MARKDOWN,
+      ).runArtifacts;
+      setConfusionMatrixRunArtifacts(confusionMatrixRunArtifacts);
+      setHtmlRunArtifacts(htmlRunArtifacts);
+      setMarkdownRunArtifacts(markdownRunArtifacts);
+
+      // Iterate through selected runs, remove current selection if not present among runs.
+      selectedArtifactsMap[MetricsType.CONFUSION_MATRIX] = verifyTwoPanelSelection(confusionMatrixRunArtifacts, selectedArtifactsMap[MetricsType.CONFUSION_MATRIX]);
+      selectedArtifactsMap[MetricsType.HTML] = verifyTwoPanelSelection(htmlRunArtifacts, selectedArtifactsMap[MetricsType.HTML]);
+      selectedArtifactsMap[MetricsType.MARKDOWN] = verifyTwoPanelSelection(markdownRunArtifacts, selectedArtifactsMap[MetricsType.MARKDOWN]);
+      setSelectedArtifactsMap(selectedArtifactsMap);
 
       const rocCurveRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
         runArtifacts,
