@@ -16,7 +16,8 @@ function NewRunSwitcher(props: PageProps) {
   const namespace = React.useContext(NamespaceContext);
 
   const urlParser = new URLParser(props);
-  const originalRunId = urlParser.get(QUERY_PARAMS.fromRunId) || urlParser.get(QUERY_PARAMS.cloneFromRun);
+  const originalRunId =
+    urlParser.get(QUERY_PARAMS.fromRunId) || urlParser.get(QUERY_PARAMS.cloneFromRun);
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
   const pipelineVersionIdParam = urlParser.get(QUERY_PARAMS.pipelineVersionId);
 

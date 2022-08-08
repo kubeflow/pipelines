@@ -203,11 +203,10 @@ describe('PipelineDetails', () => {
     },
   );
 
-  // Have to change
   it('use the pipeline manifest in embedded pipeline spec as template string', async () => {
     testRun.run!.pipeline_spec = {
       pipeline_id: 'run-pipeline-id',
-      pipeline_manifest: 'spec:\n  arguments:\n    parameters:\n      - name: output\n'
+      pipeline_manifest: 'spec:\n  arguments:\n    parameters:\n      - name: output\n',
     };
 
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
@@ -215,28 +214,6 @@ describe('PipelineDetails', () => {
 
     expect(tree.state('templateString')).toBe(
       'spec:\n  arguments:\n    parameters:\n      - name: output\n',
-    );
-  });
-
-  // Have to change
-  it('shows load error banner when failing to parse the workflow source in embedded pipeline spec', async () => {
-    testRun.run!.pipeline_spec = {
-      pipeline_id: 'run-pipeline-id',
-      workflow_manifest: 'not valid JSON',
-    };
-
-    tree = shallow(<PipelineDetails {...generateProps(true)} />);
-    await TestUtils.flushPromises();
-
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
-    expect(updateBannerSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        additionalInfo: 'Unexpected token o in JSON at position 1',
-        message: `Failed to parse pipeline spec from run with ID: ${
-          testRun.run!.id
-        }. Click Details for more information.`,
-        mode: 'error',
-      }),
     );
   });
 

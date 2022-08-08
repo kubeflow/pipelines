@@ -206,34 +206,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
         // V1: Convert the run's pipeline spec to YAML to be displayed as the pipeline's source.
         // V2: Use the pipeline spec string directly because it can be translated in JSON format.
-        try {
-          const pipelineManifestString = runDetails.run?.pipeline_spec?.pipeline_manifest || '';
-          try {
-            if (WorkflowUtils.isPipelineSpec(pipelineManifestString)) {
-              templateString = pipelineManifestString;
-            } else {
-              templateString = '';
-            }
-          } catch (err) {
-            await this.showPageError(
-              `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`,
-              err,
-            );
-            logger.error(
-              `Failed to convert pipeline spec YAML from run with ID: ${runDetails.run!.id}.`,
-              err,
-            );
-          }
-        } catch (err) {
-          await this.showPageError(
-            `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`,
-            err,
-          );
-          logger.error(
-            `Failed to parse pipeline spec JSON from run with ID: ${runDetails.run!.id}.`,
-            err,
-          );
-        }
+        templateString = runDetails.run?.pipeline_spec?.pipeline_manifest || '';
 
         const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetails.run);
         let experiment: ApiExperiment | undefined;
