@@ -208,12 +208,11 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
         // V2: Use the pipeline spec string directly because it can be translated in JSON format.
         try {
           const pipelineManifestString = runDetails.run?.pipeline_spec?.pipeline_manifest || '';
-          const workflowManifest = JsYaml.safeLoad(pipelineManifestString || '{}');
           try {
             if (WorkflowUtils.isPipelineSpec(pipelineManifestString)) {
               templateString = pipelineManifestString;
             } else {
-              templateString = JsYaml.safeDump(workflowManifest);
+              templateString = '';
             }
           } catch (err) {
             await this.showPageError(
