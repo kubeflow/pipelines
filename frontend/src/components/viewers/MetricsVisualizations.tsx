@@ -60,6 +60,7 @@ import {
 import { logger } from 'src/lib/Utils';
 import { stylesheet } from 'typestyle';
 import { buildRocCurveConfig, validateConfidenceMetrics } from './ROCCurveHelper';
+import { isEqual } from 'lodash';
 
 const css = stylesheet({
   inline: {
@@ -451,7 +452,6 @@ const getRocCurveFilterTable = (
   ];
   const rows: TableRow[] = [];
   if (filter) {
-    console.log(filter);
     const { selectedIds, selectedIdColorMap, fullArtifactPathMap } = filter;
 
     // Only display the selected ROC Curves on the plot, in order of selection.
@@ -583,6 +583,7 @@ export function ConfidenceMetricsSection({
   filter,
 }: ConfidenceMetricsSectionProps) {
   const maxSelectedRocCurves: number = 10;
+  const [allLinkedArtifacts, setAllLinkedArtifacts] = useState<LinkedArtifact[]>(linkedArtifacts);
   const [linkedArtifactsPage, setLinkedArtifactsPage] = useState<LinkedArtifact[]>(linkedArtifacts);
   const [currentRequest, setCurrentRequest] = useState<ListRequest>({});
 
@@ -591,23 +592,15 @@ export function ConfidenceMetricsSection({
   useEffect(() => {
     if (filter) {
       reloadRocCurve(filter, linkedArtifacts, setLinkedArtifactsPage, undefined, currentRequest);
+      setAllLinkedArtifacts(linkedArtifacts);
     }
   }, [linkedArtifacts, currentRequest]);
 
-  // Verify that the linked artifacts page does not have any de-selected runs; return and wait for refresh.
-  if (filter) {
-    const rocCurveIdsSet: Set<string> = new Set(
-      linkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)),
-    );
-    for (const linkedArtifact of linkedArtifactsPage) {
-      if (!rocCurveIdsSet.has(getRocCurveId(linkedArtifact))) {
-        return null;
-      }
-    }
+  // Verify that the existing linked artifacts are correct; otherwise, wait for refresh.
+  if (filter && !isEqual(linkedArtifacts, allLinkedArtifacts)) {
+    return null;
   }
 
-  console.log(linkedArtifactsPage.map(a => getRocCurveId(a)));
-  console.log(linkedArtifacts.map(a => getRocCurveId(a)));
   let confidenceMetricsDataList: ConfidenceMetricsData[] = linkedArtifacts
     .map(linkedArtifact => {
       const artifact = linkedArtifact.artifact;

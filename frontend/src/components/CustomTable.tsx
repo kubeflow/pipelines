@@ -278,6 +278,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   }
 
   public componentDidMount(): void {
+    console.log('Mounted');
     this._pageChanged(0);
   }
 
@@ -481,6 +482,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
       },
       loadRequest,
     );
+    console.log(request);
 
     let result = '';
     try {
@@ -554,6 +556,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   }
 
   private async _pageChanged(offset: number): Promise<void> {
+    console.log('Page changed');
     let newCurrentPage = this.state.currentPage + offset;
     let maxPageIndex = this.state.maxPageIndex;
     newCurrentPage = Math.max(0, newCurrentPage);
@@ -582,6 +585,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
   }
 
   private _resetToFirstPage(newPageToken?: string): void {
+    console.log('Reset to first page');
     let maxPageIndex = Number.MAX_SAFE_INTEGER;
     const newTokenList = [''];
 

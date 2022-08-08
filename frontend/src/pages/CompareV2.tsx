@@ -395,7 +395,6 @@ function CompareV2(props: CompareV2Props) {
           removedRocCurveIds.add(oldSelectedId);
         }
       }
-      console.log(removedRocCurveIds);
 
       // Map of run ids to roc curves.
       // When loop through, what we need to do is remove all the selections for invalid roc curves.
@@ -415,14 +414,6 @@ function CompareV2(props: CompareV2Props) {
       // Such as get the new initialIdColorMap?
       // What if I also stored the run ID on this color map? Then on update, I could check which runs correspond to the colors.
       // This requires work on the updated IDs side of MetricsVisualizations, so I'll stick to the first solution.
-      console.log(Object.keys(selectedIdColorMap));
-
-      // What if I just store a map of run ID to rocCurveIds? That way on every change of that type, I reload?
-
-      // So the colors do indeed update.
-      console.log(selectedRocCurveIds);
-      console.log(selectedIdColorMap);
-      console.log(lineColorsStack);
 
       // If no set is provided for removed ROC Curve IDs, the initial page is being loaded, so provide selection.
       // Otherwise, filter out the ROC curves from de-selected runs.
