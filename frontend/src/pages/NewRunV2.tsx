@@ -74,6 +74,8 @@ export type RuntimeParameters = { [key: string]: any };
 
 function NewRunV2(props: NewRunV2Props) {
   // List of elements we need to create Pipeline Run.
+  const [pipelineName, setPipelineName] = useState('');
+  const [pipelineVersionName, setPipelineVersionName] = useState('');
   const [runName, setRunName] = useState('');
   const [runDescription, setRunDescription] = useState('');
   const [apiExperiment, setApiExperiment] = useState<ApiExperiment>();
@@ -123,6 +125,11 @@ function NewRunV2(props: NewRunV2Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    setPipelineName(apiPipeline?.name || '');
+    setPipelineVersionName(apiPipelineVersion?.name || '');
+  }, [apiPipeline, apiPipelineVersion]);
+
   // When loading a pipeline version, automatically set the default run name.
   useEffect(() => {
     if (apiRun?.run?.name) {
@@ -137,14 +144,13 @@ function NewRunV2(props: NewRunV2Props) {
 
   // Pre-check pipeline / pipeline version name at the UI
   useEffect(() => {
-    if (apiPipeline?.name && apiPipeline?.name.length > 246) {
+    if (pipelineName.length > 246) {
       setIsPipelineNameValid(false);
       setPipelineNameErrMsg('Pipeline name must contain no more than 246 characters');
     } else if (
-      apiPipeline?.name &&
-      !apiPipeline?.name
+      !pipelineName
         .match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
-        ?.includes(apiPipeline?.name)
+        ?.includes(pipelineName)
     ) {
       setIsPipelineNameValid(false);
       setPipelineNameErrMsg(
@@ -154,16 +160,15 @@ function NewRunV2(props: NewRunV2Props) {
       setIsPipelineNameValid(true);
       setPipelineNameErrMsg('');
     }
-    if (apiPipelineVersion?.name && apiPipelineVersion.name.length > 246) {
+    if (pipelineVersionName.length > 246) {
       setIsPipelineVersionNameValid(false);
       setPipelineVersionNameErrMsg(
         'Pipeline version name must contain no more than 246 characters',
       );
     } else if (
-      apiPipelineVersion?.name &&
-      !apiPipelineVersion?.name
+      !pipelineVersionName
         .match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
-        ?.includes(apiPipelineVersion?.name)
+        ?.includes(pipelineVersionName)
     ) {
       setIsPipelineVersionNameValid(false);
       setPipelineVersionNameErrMsg(
@@ -173,7 +178,7 @@ function NewRunV2(props: NewRunV2Props) {
       setIsPipelineVersionNameValid(true);
       setPipelineVersionNameErrMsg('');
     }
-  }, [apiPipeline?.name, apiPipelineVersion?.name]);
+  }, [pipelineName, pipelineVersionName]);
 
   // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
   useEffect(() => {
