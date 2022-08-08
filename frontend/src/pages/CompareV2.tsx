@@ -246,6 +246,7 @@ function CompareV2(props: CompareV2Props) {
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
   const [isLoadingArtifacts, setIsLoadingArtifacts] = useState<boolean>(true);
   const [paramsTableProps, setParamsTableProps] = useState<CompareTableProps | undefined>();
+  const [isInitialArtifactsLoad, setIsInitialArtifactsLoad] = useState<boolean>(true);
 
   // Two-panel display artifacts
   const [confusionMatrixRunArtifacts, setConfusionMatrixRunArtifacts] = useState<RunArtifact[]>([]);
@@ -426,7 +427,7 @@ function CompareV2(props: CompareV2Props) {
       // If no set is provided for removed ROC Curve IDs, the initial page is being loaded, so provide selection.
       // Otherwise, filter out the ROC curves from de-selected runs.
       let updatedRocCurveIds: string[] = selectedRocCurveIds;
-      if (!removedRocCurveIds) {
+      if (isInitialArtifactsLoad) {
         updatedRocCurveIds = validLinkedArtifacts
           .map(linkedArtifact => getRocCurveId(linkedArtifact))
           .slice(0, 3);
@@ -454,6 +455,7 @@ function CompareV2(props: CompareV2Props) {
       setLineColorsStack(lineColorsStack);
       setSelectedIdColorMap(selectedIdColorMap);
       setIsLoadingArtifacts(false);
+      setIsInitialArtifactsLoad(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runs, selectedIds, mlmdPackages, artifactTypes]);

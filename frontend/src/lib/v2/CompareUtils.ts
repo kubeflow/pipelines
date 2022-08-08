@@ -153,7 +153,6 @@ export const getValidRocCurveArtifactData = (
             executionArtifact.execution,
             validArtifact,
           );
-
           validRocCurveIdSet.add(rocCurveId);
         });
         return validArtifacts;
