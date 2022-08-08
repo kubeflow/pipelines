@@ -20,10 +20,12 @@ __all__ = [
     'load_component_from_url',
     'PythonComponent',
     'BaseComponent',
+    'ContainerComponent',
     'YamlComponent',
 ]
 
 from kfp.components.base_component import BaseComponent
+from kfp.components.container_component import ContainerComponent
 from kfp.components.python_component import PythonComponent
 from kfp.components.yaml_component import load_component_from_file
 from kfp.components.yaml_component import load_component_from_text

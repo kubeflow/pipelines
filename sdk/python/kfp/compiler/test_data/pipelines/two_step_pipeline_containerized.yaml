@@ -1,0 +1,79 @@
+components:
+  comp-component1:
+    executorLabel: exec-component1
+    inputDefinitions:
+      parameters:
+        text:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        output_gcs:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-component2:
+    executorLabel: exec-component2
+    inputDefinitions:
+      artifacts:
+        input_gcs:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-component1:
+      container:
+        command:
+        - sh -c | set -e -x
+        - echo
+        - '{{$.inputs.parameters[''text'']}}'
+        - '| gsutil cp -'
+        - '{{$.outputs.artifacts[''output_gcs''].uri}}'
+        image: google/cloud-sdk:slim
+    exec-component2:
+      container:
+        args:
+        - '{{$.inputs.artifacts[''input_gcs''].uri}}'
+        command:
+        - sh
+        - -c
+        - '|'
+        - set -e -x gsutil cat
+        image: google/cloud-sdk:slim
+pipelineInfo:
+  name: containerized-two-step-pipeline
+root:
+  dag:
+    tasks:
+      component1:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-component1
+        inputs:
+          parameters:
+            text:
+              componentInputParameter: text
+        taskInfo:
+          name: Producer
+      component2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-component2
+        dependentTasks:
+        - component1
+        inputs:
+          artifacts:
+            input_gcs:
+              taskOutputArtifact:
+                outputArtifactKey: output_gcs
+                producerTask: component1
+        taskInfo:
+          name: Consumer
+  inputDefinitions:
+    parameters:
+      text:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.1
