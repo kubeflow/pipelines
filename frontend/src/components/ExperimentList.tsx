@@ -31,6 +31,7 @@ import RunList from '../pages/RunList';
 import { PredicateOp, ApiFilter } from '../apis/filter';
 import produce from 'immer';
 import Tooltip from '@material-ui/core/Tooltip';
+import { t } from 'i18next';
 
 export interface ExperimentListProps extends RouteComponentProps {
   namespace?: string;
@@ -63,12 +64,12 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
       {
         customRenderer: this._nameCustomRenderer,
         flex: 1,
-        label: 'Experiment name',
+        label: t('experiment.name'),
         sortKey: ExperimentSortKeys.NAME,
       },
       {
         flex: 2,
-        label: 'Description',
+        label: t('experiment.description'),
       },
     ];
 
@@ -92,8 +93,8 @@ export class ExperimentList extends React.PureComponent<ExperimentListProps, Exp
           reload={this._loadExperiments.bind(this)}
           toggleExpansion={this._toggleRowExpand.bind(this)}
           getExpandComponent={this._getExpandedExperimentComponent.bind(this)}
-          filterLabel='Filter experiments'
-          emptyMessage='No experiments found. Click "Create experiment" to start.'
+          filterLabel={t('experiment.filter_label')}
+          emptyMessage={t('experiment.emptyMessage')}
         />
       </div>
     );

@@ -39,6 +39,7 @@ import { commonCss, padding } from '../Css';
 import { logger, serviceErrorToString, titleCase } from '../lib/Utils';
 import { Page, PageProps } from './Page';
 import { ArtifactHelpers } from 'src/mlmd/MlmdUtils';
+import { t } from 'i18next';
 
 export enum ArtifactDetailsTab {
   OVERVIEW = 0,
@@ -156,8 +157,8 @@ class ArtifactDetails extends Page<{}, ArtifactDetailsState> {
   public getInitialToolbarState(): ToolbarProps {
     return {
       actions: {},
-      breadcrumbs: [{ displayName: 'Artifacts', href: RoutePage.ARTIFACTS }],
-      pageTitle: `Artifact #${this.id}`,
+      breadcrumbs: [{ displayName: t('artifact.page_title'), href: RoutePage.ARTIFACTS }],
+      pageTitle: t('artifact.page_title') + ` #${this.id}`,
     };
   }
 

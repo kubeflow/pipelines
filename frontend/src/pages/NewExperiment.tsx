@@ -29,6 +29,7 @@ import { classes, stylesheet } from 'typestyle';
 import { commonCss, padding, fontsize } from '../Css';
 import { logger, errorToMessage } from '../lib/Utils';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { t } from 'i18next';
 
 interface NewExperimentState {
   description: string;
@@ -65,8 +66,8 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
   public getInitialToolbarState(): ToolbarProps {
     return {
       actions: {},
-      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
-      pageTitle: 'New experiment',
+      breadcrumbs: [{ displayName: t('experiment.page_title'), href: RoutePage.EXPERIMENTS }],
+      pageTitle: t('experiment.new_experiment'),
     };
   }
 
@@ -76,16 +77,15 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <div className={classes(commonCss.scrollContainer, padding(20, 'lr'))}>
-          <div className={commonCss.header}>Experiment details</div>
+          <div className={commonCss.header}>{t('experiment.experiment_deatils')}</div>
           {/* TODO: this description needs work. */}
           <div className={css.explanation}>
-            Think of an Experiment as a space that contains the history of all pipelines and their
-            associated runs
+          {t('experiment.experiment_deatils_desc')}
           </div>
 
           <Input
             id='experimentName'
-            label='Experiment name'
+            label={t('experiment.name')}
             inputRef={this._experimentNameRef}
             required={true}
             onChange={this.handleChange('experimentName')}
@@ -95,7 +95,7 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
           />
           <Input
             id='experimentDescription'
-            label='Description (optional)'
+            label={t('experiment.description_option')}
             multiline={true}
             onChange={this.handleChange('description')}
             value={description}
@@ -108,14 +108,14 @@ export class NewExperiment extends Page<{ namespace?: string }, NewExperimentSta
               disabled={!!validationError}
               busy={isbeingCreated}
               className={commonCss.buttonAction}
-              title={'Next'}
+              title={t('common.next')}
               onClick={this._create.bind(this)}
             />
             <Button
               id='cancelNewExperimentBtn'
               onClick={() => this.props.history.push(RoutePage.EXPERIMENTS)}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <div className={css.errorMessage}>{validationError}</div>
           </div>

@@ -17,6 +17,7 @@
 import AddIcon from '@material-ui/icons/Add';
 import CollapseIcon from '@material-ui/icons/UnfoldLess';
 import ExpandIcon from '@material-ui/icons/UnfoldMore';
+import { t } from 'i18next';
 import { QUERY_PARAMS, RoutePage } from '../components/Router';
 import { ToolbarActionMap } from '../components/Toolbar';
 import { PageProps } from '../pages/Page';
@@ -77,8 +78,8 @@ export default class Buttons {
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to archive',
       id: 'archiveBtn',
-      title: 'Archive',
-      tooltip: 'Archive',
+      title: t('header_button.achive'),
+      tooltip: t('header_button.achive_tooltip'),
     };
     return this;
   }
@@ -90,8 +91,8 @@ export default class Buttons {
       disabledTitle: useCurrentResource ? undefined : 'Select a run to clone',
       id: 'cloneBtn',
       style: { minWidth: 100 },
-      title: 'Clone run',
-      tooltip: 'Create a copy from this runs initial state',
+      title: t('header_button.clone_run'),
+      tooltip: t('header_button.clone_run_tooltip'),
     };
     return this;
   }
@@ -102,8 +103,8 @@ export default class Buttons {
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select a recurring run to clone',
       id: 'cloneBtn',
-      title: 'Clone recurring run',
-      tooltip: 'Create a copy from this runs initial state',
+      title: t('header_button.clone_recurring_run'),
+      tooltip: t('header_button.clone_recurring_run_tooltip'),
     };
     return this;
   }
@@ -118,8 +119,8 @@ export default class Buttons {
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to retry',
       id: 'retryBtn',
-      title: 'Retry',
-      tooltip: 'Retry',
+      title: t('header_button.retry'),
+      tooltip: t('header_button.retry_tooltip'),
     };
     return this;
   }
@@ -129,8 +130,8 @@ export default class Buttons {
       action,
       icon: CollapseIcon,
       id: 'collapseBtn',
-      title: 'Collapse all',
-      tooltip: 'Collapse all sections',
+      title: t('header_button.collapse'),
+      tooltip: t('header_button.collapse_tooltip'),
     };
     return this;
   }
@@ -142,8 +143,8 @@ export default class Buttons {
       disabledTitle: 'Select multiple runs to compare',
       id: 'compareBtn',
       style: { minWidth: 125 },
-      title: 'Compare runs',
-      tooltip: 'Compare up to 10 selected runs',
+      title: t('header_button.compare_runs'),
+      tooltip: t('header_button.compare_runs_tooltip'),
     };
     return this;
   }
@@ -170,8 +171,8 @@ export default class Buttons {
         ? undefined
         : `Select at least one ${resourceName} to delete`,
       id: 'deleteBtn',
-      title: 'Delete',
-      tooltip: 'Delete',
+      title: t('header_button.delete'),
+      tooltip: t('header_button.delete'),
     };
     return this;
   }
@@ -196,8 +197,8 @@ export default class Buttons {
         ? undefined
         : `Select at least one pipeline and/or one pipeline version to delete`,
       id: 'deletePipelinesAndPipelineVersionsBtn',
-      title: 'Delete',
-      tooltip: 'Delete',
+      title: t('header_button.delete'),
+      tooltip: t('header_button.delete_tooltip'),
     };
     return this;
   }
@@ -208,8 +209,8 @@ export default class Buttons {
       disabled: true,
       disabledTitle: 'Run schedule already disabled',
       id: 'disableBtn',
-      title: 'Disable',
-      tooltip: "Disable the run's trigger",
+      title: t('header_button.disable'),
+      tooltip: t('header_button.disable_tooltip'),
     };
     return this;
   }
@@ -220,8 +221,8 @@ export default class Buttons {
       disabled: true,
       disabledTitle: 'Run schedule already enabled',
       id: 'enableBtn',
-      title: 'Enable',
-      tooltip: "Enable the run's trigger",
+      title: t('header_button.enable'),
+      tooltip: t('header_button.enable_tooltip'),
     };
     return this;
   }
@@ -231,8 +232,8 @@ export default class Buttons {
       action,
       icon: ExpandIcon,
       id: 'expandBtn',
-      title: 'Expand all',
-      tooltip: 'Expand all sections',
+      title: t('header_button.expand_all'),
+      tooltip: t('header_button.expand_all_tooltip'),
     };
     return this;
   }
@@ -245,8 +246,8 @@ export default class Buttons {
       outlined: true,
       primary: true,
       style: { minWidth: 185 },
-      title: 'Create experiment',
-      tooltip: 'Create a new experiment',
+      title: t('header_button.create_experiment'),
+      tooltip: t('header_button.create_experiment_tooltip'),
     };
     return this;
   }
@@ -259,8 +260,8 @@ export default class Buttons {
       outlined: true,
       primary: true,
       style: { minWidth: 130 },
-      title: 'Create run',
-      tooltip: 'Create a new run',
+      title: t('header_button.create_run'),
+      tooltip: t('header_button.create_run_tooltip'),
     };
     return this;
   }
@@ -276,8 +277,8 @@ export default class Buttons {
       outlined: true,
       primary: true,
       style: { minWidth: 130 },
-      title: 'Create run',
-      tooltip: 'Create a new run',
+      title: t('header_button.create_run'),
+      tooltip: t('header_button.create_run_tooltip'),
     };
     return this;
   }
@@ -289,8 +290,8 @@ export default class Buttons {
       id: 'createNewRecurringRunBtn',
       outlined: true,
       style: { minWidth: 195 },
-      title: 'Create recurring run',
-      tooltip: 'Create a new recurring run',
+      title: t('header_button.cretae_recurring_run'),
+      tooltip: t('header_button.cretae_recurring_run_tooltip'),
     };
     return this;
   }
@@ -303,7 +304,7 @@ export default class Buttons {
       outlined: true,
       style: { minWidth: 160 },
       title: label,
-      tooltip: 'Upload pipeline version',
+      tooltip: t('header_button.upload_pipeline_version_tooltip'),
     };
     return this;
   }
@@ -312,8 +313,8 @@ export default class Buttons {
     this._map[ButtonKeys.REFRESH] = {
       action,
       id: 'refreshBtn',
-      title: 'Refresh',
-      tooltip: 'Refresh the list',
+      title: t('header_button.refresh'),
+      tooltip: t('header_button.refresh_tooltip')
     };
     return this;
   }
@@ -332,8 +333,8 @@ export default class Buttons {
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to restore',
       id: 'restoreBtn',
-      title: 'Restore',
-      tooltip: 'Restore',
+      title: t('header_button.restore'),
+      tooltip: t('header_button.restore_tooltip'),
     };
     return this;
   }
@@ -348,8 +349,8 @@ export default class Buttons {
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one run to terminate',
       id: 'terminateRunBtn',
-      title: 'Terminate',
-      tooltip: 'Terminate execution of a run',
+      title: t('header_button.terminate'),
+      tooltip: t('header_button.terminate_tooltip'),
     };
     return this;
   }
@@ -361,8 +362,8 @@ export default class Buttons {
       id: 'uploadBtn',
       outlined: true,
       style: { minWidth: 160 },
-      title: 'Upload pipeline',
-      tooltip: 'Upload pipeline',
+      title: t('header_button.upload_pipeline'),
+      tooltip: t('header_button.upload_pipeline_tooltip'),
     };
     return this;
   }

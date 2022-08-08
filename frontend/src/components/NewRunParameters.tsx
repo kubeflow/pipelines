@@ -23,6 +23,7 @@ import { ApiParameter } from '../apis/pipeline';
 import { classes, stylesheet } from 'typestyle';
 import { color, spacing } from '../Css';
 import Editor from './Editor';
+import { t } from 'i18next';
 
 export interface NewRunParametersProps {
   initialParams: ApiParameter[];
@@ -60,7 +61,7 @@ class NewRunParameters extends React.Component<NewRunParametersProps> {
 
     return (
       <div>
-        <div className={commonCss.header}>Run parameters</div>
+        <div className={commonCss.header}>{t('run_params.run_parameters')}</div>
         <div>{titleMessage}</div>
         {!!initialParams.length && (
           <div>

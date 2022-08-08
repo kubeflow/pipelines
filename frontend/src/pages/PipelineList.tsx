@@ -15,6 +15,7 @@
  */
 
 import Tooltip from '@material-ui/core/Tooltip';
+import { t } from 'i18next';
 import produce from 'immer';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
@@ -76,7 +77,7 @@ class PipelineList extends Page<{}, PipelineListState> {
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: buttons
-        .newPipelineVersion('Upload pipeline')
+        .newPipelineVersion(t('pipeline.upload_pipeline'))
         .refresh(this.refresh.bind(this))
         .deletePipelinesAndPipelineVersions(
           () => this.state.selectedIds,
@@ -86,7 +87,7 @@ class PipelineList extends Page<{}, PipelineListState> {
         )
         .getToolbarActionMap(),
       breadcrumbs: [],
-      pageTitle: 'Pipelines',
+      pageTitle: t('pipeline.page_title'),
     };
   }
 
@@ -95,11 +96,11 @@ class PipelineList extends Page<{}, PipelineListState> {
       {
         customRenderer: this._nameCustomRenderer,
         flex: 1,
-        label: 'Pipeline name',
+        label: t('pipeline.name'),
         sortKey: PipelineSortKeys.NAME,
       },
-      { label: 'Description', flex: 3, customRenderer: descriptionCustomRenderer },
-      { label: 'Uploaded on', sortKey: PipelineSortKeys.CREATED_AT, flex: 1 },
+      { label: t('pipeline.description'), flex: 3, customRenderer: descriptionCustomRenderer },
+      { label: t('pipeline.uploaded_on'), sortKey: PipelineSortKeys.CREATED_AT, flex: 1 },
     ];
 
     const rows: Row[] = this.state.displayPipelines.map(p => {
@@ -122,8 +123,8 @@ class PipelineList extends Page<{}, PipelineListState> {
           reload={this._reload.bind(this)}
           toggleExpansion={this._toggleRowExpand.bind(this)}
           getExpandComponent={this._getExpandedPipelineComponent.bind(this)}
-          filterLabel='Filter pipelines'
-          emptyMessage='No pipelines found. Click "Upload pipeline" to start.'
+          filterLabel={t('pipeline.filter_label')}
+          emptyMessage={t('pipeline.empty_message')}
         />
 
         <UploadPipelineDialog

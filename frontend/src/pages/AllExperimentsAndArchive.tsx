@@ -23,6 +23,7 @@ import { RoutePage } from '../components/Router';
 import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
+import { t } from 'i18next';
 
 export enum AllExperimentsAndArchiveTab {
   EXPERIMENTS = 0,
@@ -49,7 +50,7 @@ class AllExperimentsAndArchive extends Page<
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
         <MD2Tabs
-          tabs={['Active', 'Archived']}
+          tabs={[t('common.active'), t('common.archived')]}
           selectedTab={this.props.view}
           onSwitch={this._tabSwitched.bind(this)}
         />

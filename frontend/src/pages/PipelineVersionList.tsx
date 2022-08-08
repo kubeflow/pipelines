@@ -24,6 +24,7 @@ import { Apis, ListRequest, PipelineVersionSortKeys } from '../lib/Apis';
 import { errorToMessage, formatDateString } from '../lib/Utils';
 import { RoutePage, RouteParams } from '../components/Router';
 import { commonCss } from '../Css';
+import { t } from 'i18next';
 
 export interface PipelineVersionListProps extends RouteComponentProps {
   pipelineId?: string;
@@ -99,11 +100,11 @@ class PipelineVersionList extends React.PureComponent<
       {
         customRenderer: this._nameCustomRenderer,
         flex: 1,
-        label: 'Version name',
+        label: t('pipeline.version_name'),
         sortKey: PipelineVersionSortKeys.NAME,
       },
-      { label: 'Description', flex: 3, customRenderer: descriptionCustomRenderer },
-      { label: 'Uploaded on', flex: 1, sortKey: PipelineVersionSortKeys.CREATED_AT },
+      { label: t('pipeline.version_desc'), flex: 3, customRenderer: descriptionCustomRenderer },
+      { label: t('pipeline.uploaded_on'), flex: 1, sortKey: PipelineVersionSortKeys.CREATED_AT },
     ];
 
     const rows: Row[] = this.state.pipelineVersions.map(r => {

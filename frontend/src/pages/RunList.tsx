@@ -29,6 +29,7 @@ import { commonCss, color } from '../Css';
 import { formatDateString, logger, errorToMessage, getRunDuration } from '../lib/Utils';
 import { statusToIcon } from './Status';
 import Tooltip from '@material-ui/core/Tooltip';
+import { t } from 'i18next';
 
 interface PipelineVersionInfo {
   displayName?: string;
@@ -101,21 +102,21 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
       {
         customRenderer: this._nameCustomRenderer,
         flex: 1.5,
-        label: 'Run name',
+        label: t('run.name'),
         sortKey: RunSortKeys.NAME,
       },
-      { customRenderer: this._statusCustomRenderer, flex: 0.5, label: 'Status' },
-      { label: 'Duration', flex: 0.5 },
-      { customRenderer: this._pipelineVersionCustomRenderer, label: 'Pipeline Version', flex: 1 },
-      { customRenderer: this._recurringRunCustomRenderer, label: 'Recurring Run', flex: 0.5 },
-      { label: 'Start time', flex: 1, sortKey: RunSortKeys.CREATED_AT },
+      { customRenderer: this._statusCustomRenderer, flex: 0.5, label: t('run.status') },
+      { label: t('run.duration'), flex: 0.5 },
+      { customRenderer: this._pipelineVersionCustomRenderer, label: t('run.pipeline_version'), flex: 1 },
+      { customRenderer: this._recurringRunCustomRenderer, label: t('run.recurring_run'), flex: 0.5 },
+      { label: t('run.start_time'), flex: 1, sortKey: RunSortKeys.CREATED_AT },
     ];
 
     if (!this.props.hideExperimentColumn) {
       columns.splice(3, 0, {
         customRenderer: this._experimentCustomRenderer,
         flex: 1,
-        label: 'Experiment',
+        label: t('run.experiment'),
       });
     }
 
@@ -180,7 +181,7 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
           selectedIds={this.props.selectedIds}
           initialSortColumn={RunSortKeys.CREATED_AT}
           ref={this._tableRef}
-          filterLabel='Filter runs'
+          filterLabel={t('run.filter_label')}
           updateSelection={this.props.onSelectionChange}
           reload={this._loadRuns.bind(this)}
           disablePaging={this.props.disablePaging}

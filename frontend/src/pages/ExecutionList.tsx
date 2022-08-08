@@ -44,6 +44,7 @@ import {
   serviceErrorToString,
 } from '../lib/Utils';
 import { Page } from './Page';
+import { t } from 'i18next';
 
 interface ExecutionListState {
   executions: Execution[];
@@ -64,18 +65,18 @@ class ExecutionList extends Page<{}, ExecutionListState> {
         {
           customRenderer: this.nameCustomRenderer,
           flex: 2,
-          label: 'Run ID/Workspace/Pipeline',
+          label: t('execution.run'),
           sortKey: 'workspace',
         },
         {
           customRenderer: this.nameCustomRenderer,
           flex: 1,
-          label: 'Name',
+          label: t('execution.name'),
           sortKey: 'name',
         },
-        { label: 'State', flex: 1, sortKey: 'state' },
-        { label: 'ID', flex: 1, sortKey: 'id' },
-        { label: 'Type', flex: 2, sortKey: 'type' },
+        { label: t('execution.status'), flex: 1, sortKey: 'state' },
+        { label: t('execution.id'), flex: 1, sortKey: 'id' },
+        { label: t('execution.type'), flex: 2, sortKey: 'type' },
       ],
       executions: [],
       expandedRows: new Map(),
@@ -90,7 +91,7 @@ class ExecutionList extends Page<{}, ExecutionListState> {
     return {
       actions: {},
       breadcrumbs: [],
-      pageTitle: 'Executions',
+      pageTitle: t('execution.page_title'),
     };
   }
 
@@ -109,7 +110,8 @@ class ExecutionList extends Page<{}, ExecutionListState> {
           initialSortOrder='asc'
           getExpandComponent={this.getExpandedExecutionsRow}
           toggleExpansion={this.toggleRowExpand}
-          emptyMessage='No executions found.'
+          filterLabel={t('execution.filter_label')}
+          emptyMessage={t('execution.emptyMessage')}
         />
       </div>
     );

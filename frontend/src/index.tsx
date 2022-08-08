@@ -32,7 +32,8 @@ import {
   NamespaceContext,
   NamespaceContextProvider,
 } from './lib/KubeflowClient';
-// import { ReactQueryDevtools } from 'react-query/devtools';
+
+import './i18n'
 
 // TODO: license headers
 

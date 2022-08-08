@@ -22,6 +22,7 @@ import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
 import RecurringRunList from './RecurringRunList';
+import { t } from 'i18next';
 
 interface AllRecurringRunsListState {
   selectedIds: string[];
@@ -46,7 +47,7 @@ export class AllRecurringRunsList extends Page<{ namespace?: string }, AllRecurr
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
       breadcrumbs: [],
-      pageTitle: 'Recurring Runs',
+      pageTitle: t('recurring_run.page_title'),
     };
   }
 

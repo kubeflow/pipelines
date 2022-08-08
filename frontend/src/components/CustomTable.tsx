@@ -37,6 +37,7 @@ import { ApiFilter, PredicateOp } from '../apis/filter/api';
 import { debounce } from 'lodash';
 import { InputAdornment } from '@material-ui/core';
 import { CustomTableRow } from './CustomTableRow';
+import { t } from 'i18next';
 
 export enum ExpandState {
   COLLAPSED,
@@ -343,7 +344,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                 title={
                   // Browser shows an info popup on hover.
                   // It helps when there's not enough space for full text.
-                  col.label
+                  t(col.label)
                 }
               >
                 {this.props.disableSorting === true && col.label}
@@ -358,7 +359,7 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
                       direction={isColumnSortable ? sortOrder : undefined}
                       onClick={() => this._requestSort(this.props.columns[i].sortKey)}
                     >
-                      {col.label}
+                      {t(col.label)}
                     </TableSortLabel>
                   </Tooltip>
                 )}

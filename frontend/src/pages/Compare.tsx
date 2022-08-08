@@ -39,6 +39,7 @@ import { logger } from '../lib/Utils';
 import WorkflowParser from '../lib/WorkflowParser';
 import { Page, PageProps } from './Page';
 import RunList from './RunList';
+import { t } from 'i18next';
 
 const css = stylesheet({
   outputsRow: {
@@ -92,7 +93,7 @@ class Compare extends Page<{}, CompareState> {
         .collapseSections(this._collapseAllSections.bind(this))
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
-      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
+      breadcrumbs: [{ displayName: t('experiment.page_title'), href: RoutePage.EXPERIMENTS }],
       pageTitle: 'Compare runs',
     };
   }

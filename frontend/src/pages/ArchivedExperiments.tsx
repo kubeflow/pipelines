@@ -23,6 +23,7 @@ import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { t } from 'i18next';
 
 interface ArchivedExperimentsProp {
   namespace?: string;
@@ -38,7 +39,7 @@ export class ArchivedExperiments extends Page<ArchivedExperimentsProp, ArchivedE
     return {
       actions: buttons.refresh(this.refresh.bind(this)).getToolbarActionMap(),
       breadcrumbs: [],
-      pageTitle: 'Experiments',
+      pageTitle: t('experiment.page_title'),
     };
   }
 
