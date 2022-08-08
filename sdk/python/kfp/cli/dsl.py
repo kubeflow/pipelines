@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import click
-from kfp.cli import dsl_compile
+from kfp.cli import compile_
 
 
-@click.group(commands={'compile': dsl_compile.dsl_compile})
+@click.group(commands={'compile': compile_.compile_})
 def dsl():
     """Command group for compiling DSL to IR."""
