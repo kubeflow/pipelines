@@ -52,6 +52,7 @@ exports[`CustomTable renders a collapsed row 1`] = `
       <WithStyles(Checkbox)
         checked={false}
         color="primary"
+        disabled={false}
         indeterminate={false}
         onChange={[Function]}
       />
@@ -512,6 +513,7 @@ exports[`CustomTable renders a table with sorting disabled 1`] = `
       <WithStyles(Checkbox)
         checked={false}
         color="primary"
+        disabled={false}
         indeterminate={false}
         onChange={[Function]}
       />
@@ -757,6 +759,7 @@ exports[`CustomTable renders an expanded row 1`] = `
       <WithStyles(Checkbox)
         checked={false}
         color="primary"
+        disabled={false}
         indeterminate={false}
         onChange={[Function]}
       />
@@ -981,6 +984,7 @@ exports[`CustomTable renders an expanded row with expanded component below it 1`
       <WithStyles(Checkbox)
         checked={false}
         color="primary"
+        disabled={false}
         indeterminate={false}
         onChange={[Function]}
       />
@@ -1221,6 +1225,7 @@ exports[`CustomTable renders columns with specified widths 1`] = `
       <WithStyles(Checkbox)
         checked={false}
         color="primary"
+        disabled={false}
         indeterminate={false}
         onChange={[Function]}
       />
@@ -1399,6 +1404,7 @@ exports[`CustomTable renders empty message on no rows 1`] = `
       <WithStyles(Checkbox)
         checked={false}
         color="primary"
+        disabled={false}
         indeterminate={false}
         onChange={[Function]}
       />
@@ -1537,6 +1543,7 @@ exports[`CustomTable renders new rows after clicking next page, and enables prev
       <WithStyles(Checkbox)
         checked={false}
         color="primary"
+        disabled={false}
         indeterminate={false}
         onChange={[Function]}
       />
@@ -1760,6 +1767,7 @@ exports[`CustomTable renders new rows after clicking previous page, and enables 
       <WithStyles(Checkbox)
         checked={false}
         color="primary"
+        disabled={false}
         indeterminate={false}
         onChange={[Function]}
       />
@@ -2027,6 +2035,7 @@ exports[`CustomTable renders some columns with descending sort order on first co
       <WithStyles(Checkbox)
         checked={false}
         color="primary"
+        disabled={false}
         indeterminate={false}
         onChange={[Function]}
       />
@@ -2206,6 +2215,7 @@ exports[`CustomTable renders some columns with equal widths without rows 1`] = `
       <WithStyles(Checkbox)
         checked={false}
         color="primary"
+        disabled={false}
         indeterminate={false}
         onChange={[Function]}
       />
@@ -2384,6 +2394,7 @@ exports[`CustomTable renders some rows 1`] = `
       <WithStyles(Checkbox)
         checked={false}
         color="primary"
+        disabled={false}
         indeterminate={false}
         onChange={[Function]}
       />
@@ -2651,6 +2662,7 @@ exports[`CustomTable renders with default filter label 1`] = `
       <WithStyles(Checkbox)
         checked={false}
         color="primary"
+        disabled={false}
         indeterminate={false}
         onChange={[Function]}
       />
@@ -2783,6 +2795,7 @@ exports[`CustomTable renders with provided filter label 1`] = `
       <WithStyles(Checkbox)
         checked={false}
         color="primary"
+        disabled={false}
         indeterminate={false}
         onChange={[Function]}
       />
@@ -2876,6 +2889,7 @@ exports[`CustomTable renders without filter box 1`] = `
       <WithStyles(Checkbox)
         checked={false}
         color="primary"
+        disabled={false}
         indeterminate={false}
         onChange={[Function]}
       />
@@ -3008,6 +3022,7 @@ exports[`CustomTable renders without rows or columns 1`] = `
       <WithStyles(Checkbox)
         checked={false}
         color="primary"
+        disabled={false}
         indeterminate={false}
         onChange={[Function]}
       />
@@ -3381,6 +3396,7 @@ exports[`CustomTable updates the filter string in state when the filter box inpu
       <WithStyles(Checkbox)
         checked={false}
         color="primary"
+        disabled={false}
         indeterminate={false}
         onChange={[Function]}
       />

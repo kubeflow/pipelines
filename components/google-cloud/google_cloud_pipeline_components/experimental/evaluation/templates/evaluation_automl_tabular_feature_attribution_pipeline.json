@@ -150,11 +150,7 @@
                     }
                   },
                   "predictions_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_predictions_format"
                   },
                   "problem_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
@@ -225,11 +221,7 @@
                     }
                   },
                   "encryption_spec_key_name": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
                   },
                   "example_weight_column": {
                     "runtimeValue": {
@@ -301,11 +293,7 @@
                     }
                   },
                   "predictions_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_predictions_format"
                   },
                   "problem_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
@@ -406,6 +394,9 @@
             }
           },
           "parameters": {
+            "pipelineparam--batch_predict_predictions_format": {
+              "type": "STRING"
+            },
             "pipelineparam--dataflow_disk_size_gb": {
               "type": "INT"
             },
@@ -610,11 +601,7 @@
                     }
                   },
                   "predictions_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_predictions_format"
                   },
                   "problem_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
@@ -769,11 +756,7 @@
                     }
                   },
                   "predictions_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_predictions_format"
                   },
                   "problem_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
@@ -874,6 +857,9 @@
             }
           },
           "parameters": {
+            "pipelineparam--batch_predict_predictions_format": {
+              "type": "STRING"
+            },
             "pipelineparam--dataflow_disk_size_gb": {
               "type": "INT"
             },
@@ -1078,11 +1064,7 @@
                     }
                   },
                   "predictions_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_predictions_format"
                   },
                   "problem_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
@@ -1237,11 +1219,7 @@
                     }
                   },
                   "predictions_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_predictions_format"
                   },
                   "problem_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
@@ -1342,6 +1320,9 @@
             }
           },
           "parameters": {
+            "pipelineparam--batch_predict_predictions_format": {
+              "type": "STRING"
+            },
             "pipelineparam--dataflow_disk_size_gb": {
               "type": "INT"
             },
@@ -3205,6 +3186,9 @@
                 }
               },
               "parameters": {
+                "pipelineparam--batch_predict_predictions_format": {
+                  "componentInputParameter": "batch_predict_predictions_format"
+                },
                 "pipelineparam--dataflow_disk_size_gb": {
                   "componentInputParameter": "dataflow_disk_size_gb"
                 },
@@ -3281,6 +3265,9 @@
                 }
               },
               "parameters": {
+                "pipelineparam--batch_predict_predictions_format": {
+                  "componentInputParameter": "batch_predict_predictions_format"
+                },
                 "pipelineparam--dataflow_disk_size_gb": {
                   "componentInputParameter": "dataflow_disk_size_gb"
                 },
@@ -3357,6 +3344,9 @@
                 }
               },
               "parameters": {
+                "pipelineparam--batch_predict_predictions_format": {
+                  "componentInputParameter": "batch_predict_predictions_format"
+                },
                 "pipelineparam--dataflow_disk_size_gb": {
                   "componentInputParameter": "dataflow_disk_size_gb"
                 },
@@ -3530,11 +3520,7 @@
                   }
                 },
                 "encryption_spec_key_name": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": ""
-                    }
-                  }
+                  "componentInputParameter": "encryption_spec_key_name"
                 },
                 "explanation_metadata": {
                   "runtimeValue": {
@@ -3604,11 +3590,7 @@
                   }
                 },
                 "predictions_format": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "jsonl"
-                    }
-                  }
+                  "componentInputParameter": "batch_predict_predictions_format"
                 },
                 "project": {
                   "componentInputParameter": "project"
@@ -3672,11 +3654,7 @@
                   }
                 },
                 "encryption_spec_key_name": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": ""
-                    }
-                  }
+                  "componentInputParameter": "encryption_spec_key_name"
                 },
                 "explanation_metadata": {
                   "componentInputParameter": "batch_predict_explanation_metadata"
@@ -3741,11 +3719,7 @@
                   }
                 },
                 "predictions_format": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "jsonl"
-                    }
-                  }
+                  "componentInputParameter": "batch_predict_predictions_format"
                 },
                 "project": {
                   "componentInputParameter": "project"
@@ -3783,6 +3757,9 @@
           },
           "batch_predict_max_replica_count": {
             "type": "INT"
+          },
+          "batch_predict_predictions_format": {
+            "type": "STRING"
           },
           "batch_predict_starting_replica_count": {
             "type": "INT"
@@ -3889,6 +3866,9 @@
       "batch_predict_max_replica_count": {
         "intValue": "10"
       },
+      "batch_predict_predictions_format": {
+        "stringValue": "jsonl"
+      },
       "batch_predict_starting_replica_count": {
         "intValue": "5"
       },
@@ -3899,7 +3879,7 @@
         "stringValue": "n1-standard-4"
       },
       "dataflow_max_num_workers": {
-        "intValue": "25"
+        "intValue": "5"
       },
       "dataflow_service_account": {
         "stringValue": ""

@@ -69,6 +69,8 @@ rules:
   - retry
   - terminate
   - unarchive
+  - reportMetrics
+  - readArtifact
 - apiGroups:
   - pipelines.kubeflow.org
   resources:
@@ -111,11 +113,18 @@ rules:
   - pipelines
   - pipelines/versions
   - experiments
-  - runs
   - jobs
   verbs:
   - get
   - list
+- apiGroups:
+  - pipelines.kubeflow.org
+  resources:
+  - runs
+  verbs:
+  - get
+  - list
+  - readArtifact
 - apiGroups:
   - kubeflow.org
   resources:
