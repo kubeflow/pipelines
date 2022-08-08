@@ -227,10 +227,11 @@ describe('CompareV2', () => {
     await TestUtils.flushPromises();
 
     await waitFor(() => {
-      expect(getContextSpy).toBeCalledTimes(3);
-      expect(getExecutionsSpy).toBeCalledTimes(3);
-      expect(getArtifactsSpy).toBeCalledTimes(3);
-      expect(getEventsSpy).toBeCalledTimes(3);
+      // Spies are called twice for each artifact as runs change from undefined to a defined value.
+      expect(getContextSpy).toBeCalledTimes(6);
+      expect(getExecutionsSpy).toBeCalledTimes(6);
+      expect(getArtifactsSpy).toBeCalledTimes(6);
+      expect(getEventsSpy).toBeCalledTimes(6);
       expect(getArtifactTypesSpy).toBeCalledTimes(1);
       expect(updateBannerSpy).toHaveBeenLastCalledWith({});
     });
@@ -465,19 +466,21 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
-
-    fireEvent.click(screen.getByText('Confusion Matrix'));
-    screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
-
-    fireEvent.click(screen.getByText('HTML'));
-    screen.getByText('There are no HTML artifacts available on the selected runs.');
-
-    fireEvent.click(screen.getByText('Markdown'));
-    screen.getByText('There are no Markdown artifacts available on the selected runs.');
-
-    fireEvent.click(screen.getByText('ROC Curve'));
-    screen.getByText('There are no ROC Curve artifacts available on the selected runs.');
+    await waitFor(() => {
+      screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
+  
+      fireEvent.click(screen.getByText('Confusion Matrix'));
+      screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
+  
+      fireEvent.click(screen.getByText('HTML'));
+      screen.getByText('There are no HTML artifacts available on the selected runs.');
+  
+      fireEvent.click(screen.getByText('Markdown'));
+      screen.getByText('There are no Markdown artifacts available on the selected runs.');
+  
+      fireEvent.click(screen.getByText('ROC Curve'));
+      screen.getByText('There are no ROC Curve artifacts available on the selected runs.');
+    });
   });
 
   it('Confusion matrix shown on select, stays after tab change or section collapse', async () => {
