@@ -587,8 +587,7 @@ export function ConfidenceMetricsSection({
   const [linkedArtifactsPage, setLinkedArtifactsPage] = useState<LinkedArtifact[]>(linkedArtifacts);
   const [currentRequest, setCurrentRequest] = useState<ListRequest>({});
 
-  // Reload the page on linked artifact refresh; request not saved.
-  // TODO(zpChris): Fix filter warning.
+  // Reload the page on linked artifacts refresh or re-selection; request not saved.
   useEffect(() => {
     if (filter) {
       reloadRocCurve(filter, linkedArtifacts, setLinkedArtifactsPage, undefined, currentRequest);
