@@ -503,14 +503,10 @@ class RunList extends React.PureComponent<RunListProps, RunListState> {
         usePlaceholder: false,
         versionId: undefined,
       };
-<<<<<<< HEAD
     } else if (
       !!RunUtils.getWorkflowManifest(displayRun.run) ||
       displayRun.run.pipeline_spec?.pipeline_manifest
     ) {
-=======
-    } else if (displayRun.run.pipeline_spec?.pipeline_manifest) {
->>>>>>> a319895a9ecd76f6ab73b730fe76912de64d9f0e
       displayRun.pipelineVersion = { usePlaceholder: true };
     }
   }

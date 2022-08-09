@@ -217,7 +217,6 @@ describe('PipelineDetails', () => {
     );
   });
 
-<<<<<<< HEAD
   it('directly uses pipeline manifest as template string (v2)', async () => {
     testRun.run!.pipeline_spec = {
       pipeline_id: 'run-pipeline-id',
@@ -254,8 +253,6 @@ describe('PipelineDetails', () => {
     );
   });
 
-=======
->>>>>>> a319895a9ecd76f6ab73b730fe76912de64d9f0e
   it('shows load error banner when failing to get run details, when loading from run spec', async () => {
     TestUtils.makeErrorResponseOnce(getRunSpy, 'woops');
     tree = shallow(<PipelineDetails {...generateProps(true)} />);

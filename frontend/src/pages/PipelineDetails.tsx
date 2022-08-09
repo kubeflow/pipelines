@@ -206,7 +206,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
         // V1: Convert the run's pipeline spec to YAML to be displayed as the pipeline's source.
         // V2: Use the pipeline spec string directly because it can be translated in JSON format.
-<<<<<<< HEAD
         if (
           isFeatureEnabled(FeatureKey.V2_ALPHA) &&
           runDetails.run?.pipeline_spec?.pipeline_manifest
@@ -243,9 +242,6 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
             );
           }
         }
-=======
-        templateString = runDetails.run?.pipeline_spec?.pipeline_manifest || '';
->>>>>>> a319895a9ecd76f6ab73b730fe76912de64d9f0e
 
         const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetails.run);
         let experiment: ApiExperiment | undefined;
