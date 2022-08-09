@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import * as React from 'react';
 import CustomTable, { Column, ExpandState, Row, css } from './CustomTable';
 import TestUtils from '../TestUtils';
