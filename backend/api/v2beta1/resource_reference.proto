@@ -14,8 +14,8 @@
 
 syntax = "proto3";
 
-option go_package = "github.com/kubeflow/pipelines/backend/api/go_client";
-package apiv2beta1;
+option go_package = "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client";
+package v2beta1;
 
 enum ResourceType {
   UNKNOWN_RESOURCE_TYPE = 0;

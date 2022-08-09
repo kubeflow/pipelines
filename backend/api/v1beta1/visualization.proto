@@ -14,11 +14,11 @@
 
 syntax = "proto3";
 
-option go_package = "github.com/kubeflow/pipelines/backend/api/go_client";
-package apiv1beta1;
+option go_package = "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client";
+package v1beta1;
 
 import "google/api/annotations.proto";
-import "backend/api/apiv1beta1/error.proto";
+import "backend/api/v1beta1/error.proto";
 import "protoc-gen-swagger/options/annotations.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
@@ -27,7 +27,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
     value: {
       schema: {
         json_schema: {
-          ref: ".api.Status";
+          ref: ".v1beta1.Status";
         }
       }
     }

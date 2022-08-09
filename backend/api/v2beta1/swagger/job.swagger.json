@@ -1,0 +1,575 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "backend/api/v2beta1/job.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/apis/v2beta1/jobs": {
+      "get": {
+        "summary": "Finds all jobs.",
+        "operationId": "ListJobs",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1ListJobsResponse"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/v2beta1Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page_token",
+            "description": "A page token to request the next page of results. The token is acquried\nfrom the nextPageToken field of the response from the previous\nListJobs call or can be omitted when fetching the first page.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page_size",
+            "description": "The number of jobs to be listed per page. If there are more jobs than this\nnumber, the response message will contain a nextPageToken field you can use\nto fetch the next page.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sort_by",
+            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\".\nAscending by default.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "resource_reference_key.type",
+            "description": "The type of the resource that referred to.",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "UNKNOWN_RESOURCE_TYPE",
+              "EXPERIMENT",
+              "JOB",
+              "PIPELINE",
+              "PIPELINE_VERSION",
+              "NAMESPACE"
+            ],
+            "default": "UNKNOWN_RESOURCE_TYPE"
+          },
+          {
+            "name": "resource_reference_key.id",
+            "description": "The ID of the resource that referred to.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filter",
+            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "JobService"
+        ]
+      },
+      "post": {
+        "summary": "Creates a new job.",
+        "operationId": "CreateJob",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1Job"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/v2beta1Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "The job to be created",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2beta1Job"
+            }
+          }
+        ],
+        "tags": [
+          "JobService"
+        ]
+      }
+    },
+    "/apis/v2beta1/jobs/{id}": {
+      "get": {
+        "summary": "Finds a specific job by ID.",
+        "operationId": "GetJob",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1Job"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/v2beta1Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "The ID of the job to be retrieved",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "JobService"
+        ]
+      },
+      "delete": {
+        "summary": "Deletes a job.",
+        "operationId": "DeleteJob",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/v2beta1Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "The ID of the job to be deleted",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "JobService"
+        ]
+      }
+    },
+    "/apis/v2beta1/jobs/{id}/disable": {
+      "post": {
+        "summary": "Stops a job and all its associated runs. The job is not deleted.",
+        "operationId": "DisableJob",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/v2beta1Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "The ID of the job to be disabled",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "JobService"
+        ]
+      }
+    },
+    "/apis/v2beta1/jobs/{id}/enable": {
+      "post": {
+        "summary": "Restarts a job that was previously stopped. All runs associated with the job will continue.",
+        "operationId": "EnableJob",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/v2beta1Status"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "The ID of the job to be enabled",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "JobService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "JobMode": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN_MODE",
+        "ENABLED",
+        "DISABLED"
+      ],
+      "default": "UNKNOWN_MODE",
+      "description": "Required input.\n\n - DISABLED: The job won't schedule any run if disabled."
+    },
+    "PipelineSpecRuntimeConfig": {
+      "type": "object",
+      "properties": {
+        "parameters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "description": "The runtime parameters of the PipelineSpec. The parameters will be\nused to replace the placeholders\nat runtime."
+        },
+        "pipeline_root": {
+          "type": "string",
+          "title": "A path in a object store bucket which will be treated as the root\noutput directory of the pipeline. It is used by the system to\ngenerate the paths of output artifacts. Ref:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)"
+        }
+      },
+      "description": "The runtime config of a PipelineSpec."
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string",
+          "description": "A URL/resource name that uniquely identifies the type of the serialized\nprotocol buffer message. This string must contain at least\none \"/\" character. The last segment of the URL's path must represent\nthe fully qualified name of the type (as in\n`path/google.protobuf.Duration`). The name should be in a canonical form\n(e.g., leading \".\" is not accepted).\n\nIn practice, teams usually precompile into the binary all types that they\nexpect it to use in the context of Any. However, for URLs which use the\nscheme `http`, `https`, or no scheme, one can optionally set up a type\nserver that maps type URLs to message definitions as follows:\n\n* If no scheme is provided, `https` is assumed.\n* An HTTP GET on the URL must yield a [google.protobuf.Type][]\n  value in binary format, or produce an error.\n* Applications are allowed to cache lookup results based on the\n  URL, or have them precompiled into a binary to avoid any\n  lookup. Therefore, binary compatibility needs to be preserved\n  on changes to types. (Use versioned type names to manage\n  breaking changes.)\n\nNote: this functionality is not currently available in the official\nprotobuf release, and it is not used for type URLs beginning with\ntype.googleapis.com.\n\nSchemes other than `http`, `https` (or the empty scheme) might be\nused with implementation specific semantics."
+        },
+        "value": {
+          "type": "string",
+          "format": "byte",
+          "description": "Must be a valid serialized protocol buffer of the above specified type."
+        }
+      },
+      "description": "`Any` contains an arbitrary serialized protocol buffer message along with a\nURL that describes the type of the serialized message.\n\nProtobuf library provides support to pack/unpack Any values in the form\nof utility functions or additional generated methods of the Any type.\n\nExample 1: Pack and unpack a message in C++.\n\n    Foo foo = ...;\n    Any any;\n    any.PackFrom(foo);\n    ...\n    if (any.UnpackTo(\u0026foo)) {\n      ...\n    }\n\nExample 2: Pack and unpack a message in Java.\n\n    Foo foo = ...;\n    Any any = Any.pack(foo);\n    ...\n    if (any.is(Foo.class)) {\n      foo = any.unpack(Foo.class);\n    }\n\n Example 3: Pack and unpack a message in Python.\n\n    foo = Foo(...)\n    any = Any()\n    any.Pack(foo)\n    ...\n    if any.Is(Foo.DESCRIPTOR):\n      any.Unpack(foo)\n      ...\n\n Example 4: Pack and unpack a message in Go\n\n     foo := \u0026pb.Foo{...}\n     any, err := anypb.New(foo)\n     if err != nil {\n       ...\n     }\n     ...\n     foo := \u0026pb.Foo{}\n     if err := any.UnmarshalTo(foo); err != nil {\n       ...\n     }\n\nThe pack methods provided by protobuf library will by default use\n'type.googleapis.com/full.type.name' as the type URL and the unpack\nmethods only use the fully qualified type name after the last '/'\nin the type URL, for example \"foo.bar.com/x/y.z\" will yield type\nname \"y.z\".\n\n\nJSON\n====\nThe JSON representation of an `Any` value uses the regular\nrepresentation of the deserialized, embedded message, with an\nadditional field `@type` which contains the type URL. Example:\n\n    package google.profile;\n    message Person {\n      string first_name = 1;\n      string last_name = 2;\n    }\n\n    {\n      \"@type\": \"type.googleapis.com/google.profile.Person\",\n      \"firstName\": \u003cstring\u003e,\n      \"lastName\": \u003cstring\u003e\n    }\n\nIf the embedded message type is well-known and has a custom JSON\nrepresentation, that representation will be embedded adding a field\n`value` which holds the custom JSON in addition to the `@type`\nfield. Example (for message [google.protobuf.Duration][]):\n\n    {\n      \"@type\": \"type.googleapis.com/google.protobuf.Duration\",\n      \"value\": \"1.212s\"\n    }"
+    },
+    "protobufNullValue": {
+      "type": "string",
+      "enum": [
+        "NULL_VALUE"
+      ],
+      "default": "NULL_VALUE",
+      "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
+    },
+    "v2beta1CronSchedule": {
+      "type": "object",
+      "properties": {
+        "start_time": {
+          "type": "string",
+          "format": "date-time",
+          "title": "The start time of the cron job"
+        },
+        "end_time": {
+          "type": "string",
+          "format": "date-time",
+          "title": "The end time of the cron job"
+        },
+        "cron": {
+          "type": "string",
+          "title": "The cron string. For details how to compose a cron, visit\nttps://en.wikipedia.org/wiki/Cron"
+        }
+      },
+      "title": "CronSchedule allow scheduling the job with unix-like cron"
+    },
+    "v2beta1Job": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Output. Unique run ID. Generated by API server."
+        },
+        "name": {
+          "type": "string",
+          "description": "Required input field. Job name provided by user. Not unique."
+        },
+        "description": {
+          "type": "string",
+          "title": "Optional input field. Describing the purpose of the job"
+        },
+        "pipeline_spec": {
+          "$ref": "#/definitions/v2beta1PipelineSpec",
+          "description": "Required input field.\nDescribing what the pipeline manifest and parameters to use\nfor the scheduled job."
+        },
+        "resource_references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v2beta1ResourceReference"
+          },
+          "description": "Optional input field. Specify which resource this job belongs to."
+        },
+        "service_account": {
+          "type": "string",
+          "description": "Optional input field. Specify which Kubernetes service account this job uses."
+        },
+        "max_concurrency": {
+          "type": "string",
+          "format": "int64",
+          "title": "Required input field.\nSpecify how many runs can be executed concurrently. Rage [1-10]"
+        },
+        "trigger": {
+          "$ref": "#/definitions/v2beta1Trigger",
+          "description": "Required input field.\nSpecify how a run is triggered. Support cron mode or periodic mode."
+        },
+        "mode": {
+          "$ref": "#/definitions/JobMode"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Output. The time this job is created."
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Output. The last time this job is updated."
+        },
+        "status": {
+          "type": "string",
+          "title": "Output. The status of the job.\nOne of [Enable, Disable, Error]"
+        },
+        "error": {
+          "type": "string",
+          "description": "In case any error happens retrieving a job field, only job ID\nand the error message is returned. Client has the flexibility of choosing\nhow to handle error. This is especially useful during listing call."
+        },
+        "enabled": {
+          "type": "boolean",
+          "format": "boolean",
+          "description": "Input. Whether the job is enabled or not."
+        },
+        "no_catchup": {
+          "type": "boolean",
+          "format": "boolean",
+          "description": "Optional input field. Whether the job should catch up if behind schedule.\nIf true, the job will only schedule the latest interval if behind schedule.\nIf false, the job will catch up on each past interval."
+        }
+      }
+    },
+    "v2beta1ListJobsResponse": {
+      "type": "object",
+      "properties": {
+        "jobs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v2beta1Job"
+          },
+          "description": "A list of jobs returned."
+        },
+        "total_size": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The total number of jobs for the given query."
+        },
+        "next_page_token": {
+          "type": "string",
+          "description": "The token to list the next page of jobs."
+        }
+      }
+    },
+    "v2beta1Parameter": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "v2beta1PeriodicSchedule": {
+      "type": "object",
+      "properties": {
+        "start_time": {
+          "type": "string",
+          "format": "date-time",
+          "title": "The start time of the periodic job"
+        },
+        "end_time": {
+          "type": "string",
+          "format": "date-time",
+          "title": "The end time of the periodic job"
+        },
+        "interval_second": {
+          "type": "string",
+          "format": "int64",
+          "title": "The time interval between the starting time of consecutive jobs"
+        }
+      },
+      "title": "PeriodicSchedule allow scheduling the job periodically with certain interval"
+    },
+    "v2beta1PipelineSpec": {
+      "type": "object",
+      "properties": {
+        "pipeline_id": {
+          "type": "string",
+          "description": "Optional input field. The ID of the pipeline user uploaded before."
+        },
+        "pipeline_name": {
+          "type": "string",
+          "description": "Optional output field. The name of the pipeline.\nNot empty if the pipeline id is not empty."
+        },
+        "workflow_manifest": {
+          "type": "string",
+          "description": "Optional input field. The marshalled raw argo JSON workflow.\nThis will be deprecated when pipeline_manifest is in use."
+        },
+        "pipeline_manifest": {
+          "type": "string",
+          "description": "Optional input field. The raw pipeline JSON spec."
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v2beta1Parameter"
+          },
+          "title": "The parameter user provide to inject to the pipeline JSON.\nIf a default value of a parameter exist in the JSON,\nthe value user provided here will replace. V1 only"
+        },
+        "runtime_config": {
+          "$ref": "#/definitions/PipelineSpecRuntimeConfig",
+          "title": "Runtime config of the pipeline. V2 only"
+        }
+      }
+    },
+    "v2beta1Relationship": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN_RELATIONSHIP",
+        "OWNER",
+        "CREATOR"
+      ],
+      "default": "UNKNOWN_RELATIONSHIP"
+    },
+    "v2beta1ResourceKey": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/v2beta1ResourceType",
+          "description": "The type of the resource that referred to."
+        },
+        "id": {
+          "type": "string",
+          "description": "The ID of the resource that referred to."
+        }
+      }
+    },
+    "v2beta1ResourceReference": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/definitions/v2beta1ResourceKey"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the resource that referred to."
+        },
+        "relationship": {
+          "$ref": "#/definitions/v2beta1Relationship",
+          "description": "Required field. The relationship from referred resource to the object."
+        }
+      }
+    },
+    "v2beta1ResourceType": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN_RESOURCE_TYPE",
+        "EXPERIMENT",
+        "JOB",
+        "PIPELINE",
+        "PIPELINE_VERSION",
+        "NAMESPACE"
+      ],
+      "default": "UNKNOWN_RESOURCE_TYPE"
+    },
+    "v2beta1Status": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v2beta1Trigger": {
+      "type": "object",
+      "properties": {
+        "cron_schedule": {
+          "$ref": "#/definitions/v2beta1CronSchedule"
+        },
+        "periodic_schedule": {
+          "$ref": "#/definitions/v2beta1PeriodicSchedule"
+        }
+      },
+      "description": "Trigger defines what starts a pipeline run."
+    }
+  },
+  "securityDefinitions": {
+    "Bearer": {
+      "type": "apiKey",
+      "name": "authorization",
+      "in": "header"
+    }
+  },
+  "security": [
+    {
+      "Bearer": []
+    }
+  ]
+}

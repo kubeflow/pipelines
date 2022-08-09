@@ -9,15 +9,25 @@ Tools needed:
 
 ## Auto-generation of Go client and swagger definitions
 
+Set environment variable `API_VERSION` to the version that you want to generate. We use `v1beta1` as example here.
+
 ```bash
-make generate
+API_VERSION="v1beta1" make generate
 ```
+
+For local developments, use 
+```bash
+API_VERSION="v1beta1" make generate-from-scratch
+```
+This generate clients starting by building api-generator image locally.
 
 Code will be generated in:
 
 * `./go_client`
 * `./go_http_client`
 * `./swagger`
+
+Note: `./swagger/pipeline.upload.swagger.json` is manually created, while the rest `./swagger/*.swagger.json` are auto generated.
 
 ## Auto-generation of Python client
 
