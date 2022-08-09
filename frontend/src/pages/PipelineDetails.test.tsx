@@ -203,10 +203,10 @@ describe('PipelineDetails', () => {
     },
   );
 
-  it('use the pipeline manifest in embedded pipeline spec as template string', async () => {
+  it('parses the workflow source in embedded pipeline spec as JSON and then converts it to YAML', async () => {
     testRun.run!.pipeline_spec = {
       pipeline_id: 'run-pipeline-id',
-      pipeline_manifest: 'spec:\n  arguments:\n    parameters:\n      - name: output\n',
+      workflow_manifest: '{"spec": {"arguments": {"parameters": [{"name": "output"}]}}}',
     };
 
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
