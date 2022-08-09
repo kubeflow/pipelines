@@ -703,12 +703,7 @@ export function ConfidenceMetricsSection({
             selectedIds={filter.selectedIds}
             filterLabel='Filter artifacts'
             updateSelection={updateRocCurveSelection.bind(null, filter, maxSelectedRocCurves)}
-            reload={reloadRocCurve.bind(
-              null,
-              filter,
-              linkedArtifacts,
-              setLinkedArtifactsPage,
-            )}
+            reload={reloadRocCurve.bind(null, filter, linkedArtifacts, setLinkedArtifactsPage)}
             disablePaging={false}
             disableSorting={false}
             disableSelection={false}

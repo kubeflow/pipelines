@@ -227,7 +227,9 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
     this.state = {
       currentPage: 0,
       filterString: this.props.initialFilterString || '',
-      filterStringEncoded: this._createAndEncodeFilter(this.props.initialFilterString || ''),
+      filterStringEncoded: this.props.initialFilterString
+        ? this._createAndEncodeFilter(this.props.initialFilterString)
+        : '',
       isBusy: false,
       maxPageIndex: Number.MAX_SAFE_INTEGER,
       pageSize: 10,

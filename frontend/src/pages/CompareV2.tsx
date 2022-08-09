@@ -388,7 +388,7 @@ function CompareV2(props: CompareV2Props) {
         ),
       );
 
-      // TODO: The selection is still shown!
+      // Filter and set the two-panel layout run artifacts.
       const confusionMatrixRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
         runArtifacts,
         artifactTypes,
@@ -424,22 +424,20 @@ function CompareV2(props: CompareV2Props) {
         ),
       });
 
+      // Set ROC Curve run artifacts and get all valid ROC curve data for plot visualization.
       const rocCurveRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
         runArtifacts,
         artifactTypes,
         MetricsType.ROC_CURVE,
       ).runArtifacts;
-
-      // Old selected IDs
-      // New allowed IDs
-      // Iterate through old selected IDs
-      // See which are in new allowed IDs
-
       const {
         validLinkedArtifacts,
         fullArtifactPathMap,
         validRocCurveIdSet,
       } = getValidRocCurveArtifactData(rocCurveRunArtifacts);
+
+      setFullArtifactPathMap(fullArtifactPathMap);
+      setRocCurveLinkedArtifacts(validLinkedArtifacts);
 
       // Remove all newly invalid ROC Curves from the selection (if run selection changes).
       const removedRocCurveIds: Set<string> = new Set();
@@ -449,27 +447,7 @@ function CompareV2(props: CompareV2Props) {
         }
       }
 
-      // Map of run ids to roc curves.
-      // When loop through, what we need to do is remove all the selections for invalid roc curves.
-      // So make a set of all the roc curve selections.
-      // This is Object.keys(selectedIdColorMap)?
-      // Or no, just all of the ones in general?
-      // No, but those selections will be removed by default.
-      // So I pass in the set and then all those that aren't removed are the removed IDs.
-
-      setFullArtifactPathMap(fullArtifactPathMap);
-      setRocCurveLinkedArtifacts(validLinkedArtifacts);
-
-      // I could clear the map to refresh the colors completely.
-      // I could get all of the Object.keys(initialIdColorMap), and then look through each one. For each one
-      // I would look through all of the selected run artifacts linked artifacts, and see if it matches? If not,
-      // then find that corresponding color, add it back onto the stack, and delete that entry. Ooof - maybe I can do this while looping through the getValidRocCurveArtifactData?
-      // Such as get the new initialIdColorMap?
-      // What if I also stored the run ID on this color map? Then on update, I could check which runs correspond to the colors.
-      // This requires work on the updated IDs side of MetricsVisualizations, so I'll stick to the first solution.
-
-      // If no set is provided for removed ROC Curve IDs, the initial page is being loaded, so provide selection.
-      // Otherwise, filter out the ROC curves from de-selected runs.
+      // If initial load, choose first three artifacts; ow, remove artifacts from de-selected runs.
       let updatedRocCurveIds: string[] = selectedRocCurveIds;
       if (isInitialArtifactsLoad) {
         updatedRocCurveIds = validLinkedArtifacts
@@ -489,13 +467,6 @@ function CompareV2(props: CompareV2Props) {
         });
       }
       setSelectedRocCurveIds(updatedRocCurveIds);
-
-      // Ok, so I don't have to base it off of the initial stack. I can base it off what I know that value to be.
-      // However, how do I modify this when it *does* have to be based off the initial value?
-      // What we have to do then is find all of the runs whose artifacts are being used; then,
-      // pop those colors off the stack.
-      // Or, I can not include the lineColorsStack in this list?
-      // Note: deselecting and re-selecting a run will not maintain those selections. I personally am OK with that, knowing the complexity that adds.
       setLineColorsStack(lineColorsStack);
       setSelectedIdColorMap(selectedIdColorMap);
       setIsLoadingArtifacts(false);

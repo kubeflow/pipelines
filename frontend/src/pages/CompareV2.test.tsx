@@ -468,16 +468,16 @@ describe('CompareV2', () => {
 
     await waitFor(() => {
       screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
-  
+
       fireEvent.click(screen.getByText('Confusion Matrix'));
       screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
-  
+
       fireEvent.click(screen.getByText('HTML'));
       screen.getByText('There are no HTML artifacts available on the selected runs.');
-  
+
       fireEvent.click(screen.getByText('Markdown'));
       screen.getByText('There are no Markdown artifacts available on the selected runs.');
-  
+
       fireEvent.click(screen.getByText('ROC Curve'));
       screen.getByText('There are no ROC Curve artifacts available on the selected runs.');
     });

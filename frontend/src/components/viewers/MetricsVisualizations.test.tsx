@@ -194,7 +194,7 @@ describe('ConfidenceMetricsSection', () => {
             },
           } as FullArtifactPath,
         },
-        selectedIdColorMap: {},
+        selectedIdColorMap,
         setSelectedIdColorMap: setSelectedIdColorMapSpy,
         lineColorsStack,
         setLineColorsStack: setLineColorsStackSpy,
@@ -202,7 +202,7 @@ describe('ConfidenceMetricsSection', () => {
     };
     return props;
   }
-/*
+
   it('Render Confidence Metrics section with no selected artifacts', async () => {
     render(
       <CommonTestWrapper>
@@ -250,7 +250,7 @@ describe('ConfidenceMetricsSection', () => {
       "Error in artifact1 (artifact ID #1) artifact's confidenceMetrics data format.",
     );
   });
-*/
+
   it('ROC Curve filter selection check all update', async () => {
     render(
       <CommonTestWrapper>
@@ -275,7 +275,7 @@ describe('ConfidenceMetricsSection', () => {
       '2-4': '#e00000',
     });
   });
-/*
+
   it('ROC Curve filter selection uncheck single update', async () => {
     render(
       <CommonTestWrapper>
@@ -298,7 +298,7 @@ describe('ConfidenceMetricsSection', () => {
       '1-2': '#2b9c1e',
       '2-4': '#e00000',
     });
-    expect(setLineColorsStackSpy).toBeCalledTimes(2);
+    expect(setLineColorsStackSpy).toBeCalledTimes(1);
   });
 
   it('ROC Curve show banner when selecting 10 runs', async () => {
@@ -358,5 +358,5 @@ describe('ConfidenceMetricsSection', () => {
     screen.getByText('execution1 > artifact1');
     screen.getByText('Run name');
     screen.getByText('Run ID #2');
-  });*/
+  });
 });
