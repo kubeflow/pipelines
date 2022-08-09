@@ -560,7 +560,77 @@ describe('CompareV2', () => {
     screen.getByText(/200/);
   });
 
-  it('One ROC Curve shown on select', async () => {
+  it('Confusion matrix shown on select and removed after run is de-selected', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    const contexts = [
+      newMockContext(MOCK_RUN_1_ID, 1),
+      newMockContext(MOCK_RUN_2_ID, 200),
+      newMockContext(MOCK_RUN_3_ID, 3),
+    ];
+    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    getContextSpy.mockImplementation((runID: string) =>
+      Promise.resolve(contexts.find(c => c.getName() === runID)),
+    );
+
+    // No execution name is provided to ensure that it can be selected by ID.
+    const executions = [[newMockExecution(1)], [newMockExecution(200)], [newMockExecution(3)]];
+    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    getExecutionsSpy.mockImplementation((context: Context) =>
+      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+    );
+
+    const artifacts = [
+      newMockArtifact(1),
+      newMockArtifact(200, true, false, 'artifactName'),
+      newMockArtifact(3),
+    ];
+    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    getArtifactsSpy.mockResolvedValue(artifacts);
+
+    const events = [newMockEvent(1), newMockEvent(200, 'artifactName'), newMockEvent(3)];
+    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
+    getEventsSpy.mockResolvedValue(events);
+
+    const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
+    getArtifactTypesSpy.mockReturnValue([]);
+
+    // Simulate all artifacts as type "ClassificationMetrics" (Confusion Matrix or ROC Curve).
+    const filterLinkedArtifactsByTypeSpy = jest.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
+    filterLinkedArtifactsByTypeSpy.mockImplementation(
+      (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
+        metricsFilter === 'system.ClassificationMetrics' ? linkedArtifacts : [],
+    );
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    expect(screen.queryByText(/Confusion matrix: artifactName/)).toBeNull();
+
+    fireEvent.click(screen.getByText('Confusion Matrix'));
+    fireEvent.click(screen.getByText('Choose a first Confusion Matrix artifact'));
+
+    // Get the second element that has run text: first will be the run list.
+    fireEvent.mouseEnter(screen.queryAllByText(`test run ${MOCK_RUN_2_ID}`)[1]);
+    fireEvent.click(screen.getByText(/artifactName/));
+    screen.getByText(/Confusion Matrix: artifactName/);
+    screen.getByText(/200/);
+
+    // De-selecting the relevant run will remove the confusion matrix display.
+    const runCheckboxes = screen.queryAllByRole('checkbox', { checked: true }).filter(r => r.nodeName === 'INPUT');
+    fireEvent.click(runCheckboxes[1]);
+    screen.getByText(/Confusion Matrix: artifactName/);
+    fireEvent.click(runCheckboxes[2]);
+    expect(screen.queryByText(/Confusion Matrix: artifactName/)).toBeNull();
+  });
+
+  it('One ROC Curve shown on select, hidden on run de-select', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
@@ -613,6 +683,12 @@ describe('CompareV2', () => {
 
     fireEvent.click(screen.getByText('ROC Curve'));
     screen.getByText('ROC Curve: artifactName');
+
+    const runCheckboxes = screen.queryAllByRole('checkbox', { checked: true }).filter(r => r.nodeName === 'INPUT');
+    fireEvent.click(runCheckboxes[1]);
+    screen.getByText('ROC Curve: artifactName');
+    fireEvent.click(runCheckboxes[2]);
+    expect(screen.queryByText('ROC Curve: artifactName')).toBeNull();
   });
 
   it('Multiple ROC Curves shown on select', async () => {
