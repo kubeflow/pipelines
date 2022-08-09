@@ -185,7 +185,7 @@ class ParallelFor(TasksGroup):
         """Initializes a for loop task group."""
         if parallelism < 0:
             raise ValueError(
-                'ParallelFor parallism set to < 0, allowed values are >= 0')
+                f'ParallelFor parallelism must be >= 0. Got: {parallelism}.')
 
         super().__init__(group_type=TasksGroupType.FOR_LOOP, name=name)
 

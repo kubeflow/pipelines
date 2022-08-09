@@ -526,6 +526,76 @@ implementation:
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='result.yaml')
 
+    def test_compile_parallel_for_with_valid_parallelism(self):
+
+        @dsl.component
+        def producer_op(item: str) -> str:
+            return item
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(text: bool):
+            with dsl.ParallelFor(items=['a', 'b'], parallelism=2) as item:
+                producer_task = producer_op(item=item)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline,
+                package_path=output_yaml,
+                pipeline_name='parallel-for-with-parallelism')
+            with open(output_yaml, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+        self.assertEqual(
+            pipeline_spec['root']['dag']['tasks']['for-loop-2']
+            ['iteratorPolicy']['parallelismLimit'], 2)
+
+    def test_compile_parallel_for_with_invalid_parallelism(self):
+
+        @dsl.component
+        def producer_op(item: str) -> str:
+            return item
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(text: bool):
+            with dsl.ParallelFor(items=['a', 'b'], parallelism=-2) as item:
+                producer_task = producer_op(item=item)
+
+        with self.assertRaisesRegex(ValueError,
+                                    'ParallelFor parallelism must be >= 0.'):
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline,
+                package_path='result.yaml',
+                pipeline_name='parallel-for-with-parallelism')
+
+    def test_compile_parallel_for_with_zero_parallelism(self):
+
+        @dsl.component
+        def producer_op(item: str) -> str:
+            return item
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(text: bool):
+            with dsl.ParallelFor(items=['a', 'b'], parallelism=0) as item:
+                producer_task = producer_op(item=item)
+
+            with dsl.ParallelFor(items=['a', 'b']) as item:
+                producer_task = producer_op(item=item)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline,
+                package_path=output_yaml,
+                pipeline_name='parallel-for-with-parallelism')
+            with open(output_yaml, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+        for_loop_2 = pipeline_spec['root']['dag']['tasks']['for-loop-2']
+        for_loop_4 = pipeline_spec['root']['dag']['tasks']['for-loop-4']
+        with self.assertRaises(KeyError):
+            for_loop_2['iteratorPolicy']
+        with self.assertRaises(KeyError):
+            for_loop_4['iteratorPolicy']
+
 
 # pylint: disable=import-outside-toplevel,unused-import,import-error,redefined-outer-name,reimported
 class V2NamespaceAliasTest(unittest.TestCase):
