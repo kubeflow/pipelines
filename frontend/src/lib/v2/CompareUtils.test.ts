@@ -304,6 +304,7 @@ describe('CompareUtils', () => {
 
     const rocCurveArtifactData = getValidRocCurveArtifactData(rocCurveRunArtifacts);
     expect(rocCurveArtifactData.validLinkedArtifacts).toMatchObject(validLinkedArtifacts);
+    expect(rocCurveArtifactData.validRocCurveIdSet).toMatchObject(new Set(['1-1', '1-2', '3-4']));
 
     const fullArtifactPathMap = rocCurveArtifactData.fullArtifactPathMap;
     expect(Object.keys(fullArtifactPathMap)).toHaveLength(3);
