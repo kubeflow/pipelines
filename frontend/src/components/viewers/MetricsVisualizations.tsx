@@ -588,6 +588,7 @@ export function ConfidenceMetricsSection({
   const [allLinkedArtifacts, setAllLinkedArtifacts] = useState<LinkedArtifact[]>(linkedArtifacts);
   const [linkedArtifactsPage, setLinkedArtifactsPage] = useState<LinkedArtifact[]>(linkedArtifacts);
   const [currentRequest, setCurrentRequest] = useState<ListRequest>({});
+  const [filterString, setFilterString] = useState<string>('');
 
   // Reload the page on linked artifacts refresh or re-selection; request not saved.
   useEffect(() => {
@@ -720,6 +721,8 @@ export function ConfidenceMetricsSection({
             noFilterBox={false}
             emptyMessage='No artifacts found'
             disableAdditionalSelection={disableAdditionalSelection}
+            initialFilterString={filterString}
+            setFilterString={setFilterString}
           />
         </>
       )}
