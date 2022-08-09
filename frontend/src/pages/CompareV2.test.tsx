@@ -623,7 +623,9 @@ describe('CompareV2', () => {
     screen.getByText(/200/);
 
     // De-selecting the relevant run will remove the confusion matrix display.
-    const runCheckboxes = screen.queryAllByRole('checkbox', { checked: true }).filter(r => r.nodeName === 'INPUT');
+    const runCheckboxes = screen
+      .queryAllByRole('checkbox', { checked: true })
+      .filter(r => r.nodeName === 'INPUT');
     fireEvent.click(runCheckboxes[1]);
     screen.getByText(/Confusion Matrix: artifactName/);
     fireEvent.click(runCheckboxes[2]);
@@ -684,7 +686,9 @@ describe('CompareV2', () => {
     fireEvent.click(screen.getByText('ROC Curve'));
     screen.getByText('ROC Curve: artifactName');
 
-    const runCheckboxes = screen.queryAllByRole('checkbox', { checked: true }).filter(r => r.nodeName === 'INPUT');
+    const runCheckboxes = screen
+      .queryAllByRole('checkbox', { checked: true })
+      .filter(r => r.nodeName === 'INPUT');
     fireEvent.click(runCheckboxes[1]);
     screen.getByText('ROC Curve: artifactName');
     fireEvent.click(runCheckboxes[2]);
