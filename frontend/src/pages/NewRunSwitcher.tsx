@@ -16,12 +16,17 @@ function NewRunSwitcher(props: PageProps) {
   const namespace = React.useContext(NamespaceContext);
 
   const urlParser = new URLParser(props);
+<<<<<<< HEAD
   // Currently using two query parameters to get Run ID.
   // because v1 has two different behavior with Run ID (clone a run / start a run)
   // Will keep clone run only in v2 if run ID is existing
   // runID query by cloneFromRun will be deprecated once v1 is deprecated.
   const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
   const embeddedRunId = urlParser.get(QUERY_PARAMS.fromRunId);
+=======
+  const originalRunId =
+    urlParser.get(QUERY_PARAMS.fromRunId) || urlParser.get(QUERY_PARAMS.cloneFromRun);
+>>>>>>> a319895a9ecd76f6ab73b730fe76912de64d9f0e
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
   const pipelineVersionIdParam = urlParser.get(QUERY_PARAMS.pipelineVersionId);
   const existingRunId = originalRunId ? originalRunId : embeddedRunId;

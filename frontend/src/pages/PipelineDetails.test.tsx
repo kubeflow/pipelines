@@ -203,10 +203,10 @@ describe('PipelineDetails', () => {
     },
   );
 
-  it('parses the workflow source in embedded pipeline spec as JSON and then converts it to YAML', async () => {
+  it('use the pipeline manifest in embedded pipeline spec as template string', async () => {
     testRun.run!.pipeline_spec = {
       pipeline_id: 'run-pipeline-id',
-      workflow_manifest: '{"spec": {"arguments": {"parameters": [{"name": "output"}]}}}',
+      pipeline_manifest: 'spec:\n  arguments:\n    parameters:\n      - name: output\n',
     };
 
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
@@ -217,6 +217,7 @@ describe('PipelineDetails', () => {
     );
   });
 
+<<<<<<< HEAD
   it('directly uses pipeline manifest as template string (v2)', async () => {
     testRun.run!.pipeline_spec = {
       pipeline_id: 'run-pipeline-id',
@@ -253,6 +254,8 @@ describe('PipelineDetails', () => {
     );
   });
 
+=======
+>>>>>>> a319895a9ecd76f6ab73b730fe76912de64d9f0e
   it('shows load error banner when failing to get run details, when loading from run spec', async () => {
     TestUtils.makeErrorResponseOnce(getRunSpy, 'woops');
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
