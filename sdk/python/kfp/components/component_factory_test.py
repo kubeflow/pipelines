@@ -14,9 +14,7 @@
 
 import unittest
 
-from kfp import dsl
 from kfp.components import component_factory
-from kfp.components import placeholders
 
 
 class TestGetPackagesToInstallCommand(unittest.TestCase):

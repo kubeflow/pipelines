@@ -21,6 +21,8 @@ import unittest
 from absl.testing import parameterized
 from google.protobuf import json_format
 from kfp import compiler
+from kfp import dsl
+from kfp.components import component_factory
 from kfp.components import placeholders
 from kfp.components import structures
 from kfp.components.container_component_artifact_channel import \
@@ -510,6 +512,23 @@ class TestContainerSpec(unittest.TestCase):
             TypeError, r'Cannot access artifact by itself',
             lambda: structures.ContainerSpec(
                 image='python:3.7', command=[], args=commands))
+
+    def test_raise_error_if_access_artifact_by_itself(self):
+
+        def comp_with_artifact_input(dataset: dsl.Input[dsl.Dataset]):
+            return dsl.ContainerSpec(
+                image='gcr.io/my-image',
+                command=['sh', 'run.sh'],
+                args=[dataset])
+
+        self.assertRaisesRegex(
+            TypeError,
+            r'Cannot access artifact by itself in the container definition.',
+            component_factory.create_container_component_from_func,
+            comp_with_artifact_input)
+
+
+class TestComponentSpec(unittest.TestCase):
 
     def test_inputs(self):
         obj = structures.ComponentSpec(
