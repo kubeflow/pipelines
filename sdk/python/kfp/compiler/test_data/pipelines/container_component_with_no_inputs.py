@@ -12,10 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import click
-from kfp.cli import compile_
+from kfp import compiler
+from kfp import dsl
 
 
-@click.group(commands={'compile': compile_.compile_})
-def dsl():
-    """Command group for compiling DSL to IR."""
+@dsl.container_component
+def hello_world_container():
+    return dsl.ContainerSpec(
+        image='python:3.7',
+        command=['echo', 'hello world'],
+        args=[],
+    )
+
+
+@dsl.pipeline(name='v2-container-component-no-input')
+def pipeline():
+    hello_world_container()
+
+
+if __name__ == '__main__':
+    compiler.Compiler().compile(
+        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml'))

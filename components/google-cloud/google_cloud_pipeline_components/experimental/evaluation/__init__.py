@@ -21,8 +21,15 @@ except ImportError:
   from kfp.components import load_component_from_file
 
 __all__ = [
-    'ModelEvaluationOp', 'ModelImportEvaluationOp', 'EvaluationDataSamplerOp',
-    'EvaluationDataSplitterOp', 'ModelEvaluationFeatureAttributionOp', 'GetVertexModelOp'
+    'ModelEvaluationOp',
+    'ModelImportEvaluationOp',
+    'EvaluationDataSamplerOp',
+    'EvaluationDataSplitterOp',
+    'ModelEvaluationClassificationOp',
+    'ModelEvaluationRegressionOp',
+    'ModelEvaluationForecastingOp',
+    'ModelEvaluationFeatureAttributionOp',
+    'GetVertexModelOp'
 ]
 
 ModelEvaluationOp = load_component_from_file(
@@ -36,6 +43,15 @@ EvaluationDataSamplerOp = load_component_from_file(
 
 EvaluationDataSplitterOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'evaluation_data_splitter.yaml'))
+
+ModelEvaluationClassificationOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'classification.yaml'))
+
+ModelEvaluationRegressionOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'regression.yaml'))
+
+ModelEvaluationForecastingOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'forecasting.yaml'))
 
 ModelEvaluationFeatureAttributionOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'feature_attribution.yaml'))

@@ -11,11 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from kfp.dsl import container_component
+from kfp.dsl import ContainerSpec
+from kfp.dsl import OutputPath
 
-import click
-from kfp.cli import compile_
+
+@container_component
+def container_io(text: str, output_path: OutputPath(str)):
+    return ContainerSpec(
+        image='python:3.7',
+        command=['my_program', text],
+        args=['--output_path', output_path])
 
 
-@click.group(commands={'compile': compile_.compile_})
-def dsl():
-    """Command group for compiling DSL to IR."""
+if __name__ == '__main__':
+    from kfp import compiler
+    compiler.Compiler().compile(
+        pipeline_func=container_io,
+        package_path=__file__.replace('.py', '.yaml'))

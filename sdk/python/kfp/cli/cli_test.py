@@ -26,7 +26,7 @@ from absl.testing import parameterized
 import click
 from click import testing
 from kfp.cli import cli
-from kfp.cli import dsl_compile
+from kfp.cli import compile_
 
 
 class TestCliNounAliases(unittest.TestCase):
@@ -154,10 +154,7 @@ class TestDslCompile(parameterized.TestCase):
     def invoke_deprecated(self, args: List[str]) -> testing.Result:
         runner = testing.CliRunner()
         return runner.invoke(
-            cli=dsl_compile.dsl_compile,
-            args=args,
-            catch_exceptions=False,
-            obj={})
+            cli=compile_.compile_, args=args, catch_exceptions=False, obj={})
 
     def test_deprecated_command_is_found(self):
         result = self.invoke_deprecated(['--help'])
