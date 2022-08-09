@@ -19,6 +19,7 @@ import {
   EXECUTION_KEY_CACHED_EXECUTION_ID,
   filterLinkedArtifactsByType,
   getArtifactName,
+  getArtifactTypeName,
   getArtifactNameFromEvent,
   getContextByExecution,
   getRunContext,
@@ -162,6 +163,24 @@ describe('MlmdUtils', () => {
       event.setPath(path);
       const linkedArtifact = { event: event, artifact: new Artifact() };
       expect(getArtifactName(linkedArtifact)).toEqual('key1');
+    });
+  });
+
+  describe('getArtifactTypeName', () => {
+    it('return artifactTypeName[]', () => {
+      const artifactTypes = [
+        new ArtifactType().setId(1).setName('metrics'),
+        new ArtifactType().setId(2).setName('markdown'),
+      ];
+      const artifact1 = new Artifact();
+      artifact1.setTypeId(1);
+      const artifact2 = new Artifact();
+      artifact2.setTypeId(2);
+      const linkedArtifacts = [
+        { event: new Event(), artifact: artifact1 },
+        { event: new Event(), artifact: artifact2 },
+      ];
+      expect(getArtifactTypeName(artifactTypes, linkedArtifacts)).toEqual(['metrics', 'markdown']);
     });
   });
 

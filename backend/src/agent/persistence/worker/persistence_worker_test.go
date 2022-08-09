@@ -53,9 +53,11 @@ func TestPersistenceWorker_Success(t *testing.T) {
 
 	// Set up pipeline client
 	pipelineClient := client.NewPipelineClientFake()
+	k8sClient := client.NewKubernetesCoreFake()
+	k8sClient.Set("MY_NAMESPACE", USER)
 
 	// Set up peristence worker
-	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
+	saver := NewWorkflowSaver(workflowClient, pipelineClient, k8sClient, 100)
 	eventHandler := NewFakeEventHandler()
 	worker := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
@@ -81,11 +83,12 @@ func TestPersistenceWorker_NotFoundError(t *testing.T) {
 	})
 	workflowClient := client.NewWorkflowClientFake()
 
-	// Set up pipeline client
+	// Set up pipeline client and kubernetes client
 	pipelineClient := client.NewPipelineClientFake()
+	k8sClient := client.NewKubernetesCoreFake()
 
 	// Set up peristence worker
-	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
+	saver := NewWorkflowSaver(workflowClient, pipelineClient, k8sClient, 100)
 	eventHandler := NewFakeEventHandler()
 	worker := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
@@ -112,11 +115,12 @@ func TestPersistenceWorker_GetWorklowError(t *testing.T) {
 	workflowClient := client.NewWorkflowClientFake()
 	workflowClient.Put("MY_NAMESPACE", "MY_NAME", nil)
 
-	// Set up pipeline client
+	// Set up pipeline client and kubernetes client
 	pipelineClient := client.NewPipelineClientFake()
+	k8sClient := client.NewKubernetesCoreFake()
 
 	// Set up peristence worker
-	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
+	saver := NewWorkflowSaver(workflowClient, pipelineClient, k8sClient, 100)
 	eventHandler := NewFakeEventHandler()
 	worker := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
@@ -148,9 +152,12 @@ func TestPersistenceWorker_ReportWorkflowRetryableError(t *testing.T) {
 	pipelineClient := client.NewPipelineClientFake()
 	pipelineClient.SetError(util.NewCustomError(fmt.Errorf("Error"), util.CUSTOM_CODE_TRANSIENT,
 		"My Retriable Error"))
+	//Set up kubernetes client
+	k8sClient := client.NewKubernetesCoreFake()
+	k8sClient.Set("MY_NAMESPACE", USER)
 
 	// Set up peristence worker
-	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
+	saver := NewWorkflowSaver(workflowClient, pipelineClient, k8sClient, 100)
 	eventHandler := NewFakeEventHandler()
 	worker := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),
@@ -181,9 +188,11 @@ func TestPersistenceWorker_ReportWorkflowNonRetryableError(t *testing.T) {
 	pipelineClient := client.NewPipelineClientFake()
 	pipelineClient.SetError(util.NewCustomError(fmt.Errorf("Error"), util.CUSTOM_CODE_PERMANENT,
 		"My Permanent Error"))
+	// Set up kubernetes client
+	k8sClient := client.NewKubernetesCoreFake()
 
 	// Set up peristence worker
-	saver := NewWorkflowSaver(workflowClient, pipelineClient, 100)
+	saver := NewWorkflowSaver(workflowClient, pipelineClient, k8sClient, 100)
 	eventHandler := NewFakeEventHandler()
 	worker := NewPersistenceWorker(
 		util.NewFakeTimeForEpoch(),

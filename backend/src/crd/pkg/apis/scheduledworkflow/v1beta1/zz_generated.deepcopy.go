@@ -323,7 +323,6 @@ func (in *WorkflowResource) DeepCopyInto(out *WorkflowResource) {
 		*out = make([]Parameter, len(*in))
 		copy(*out, *in)
 	}
-	in.Spec.DeepCopyInto(&out.Spec)
 	return
 }
 

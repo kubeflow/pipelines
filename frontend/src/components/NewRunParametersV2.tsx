@@ -17,6 +17,7 @@
 import { Button, Checkbox, FormControlLabel, InputAdornment, TextField } from '@material-ui/core';
 import * as React from 'react';
 import { useEffect, useState } from 'react';
+import { PipelineSpecRuntimeConfig } from 'src/apis/run';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { ParameterType_ParameterTypeEnum } from 'src/generated/pipeline_spec/pipeline_spec';
 import { RuntimeParameters, SpecParameters } from 'src/pages/NewRunV2';
@@ -53,6 +54,7 @@ interface NewRunParametersProps {
   pipelineRoot?: string;
   // ComponentInputsSpec_ParameterSpec
   specParameters: SpecParameters;
+  clonedRuntimeConfig: PipelineSpecRuntimeConfig;
   handlePipelineRootChange?: (pipelineRoot: string) => void;
   handleParameterChange?: (parameters: RuntimeParameters) => void;
   setIsValidInput?: (isValid: boolean) => void;
@@ -129,34 +131,73 @@ function generateInputValidationErrMsg(
   return errorMessage;
 }
 
+function convertNonUserInputParamToString(
+  specParameters: SpecParameters,
+  key: string,
+  value: any,
+): string {
+  let paramStr;
+  if (!specParameters[key]) {
+    return '';
+  }
+  switch (specParameters[key].parameterType) {
+    case ParameterType_ParameterTypeEnum.STRUCT:
+    case ParameterType_ParameterTypeEnum.LIST:
+      paramStr = JSON.stringify(value);
+      break;
+    case ParameterType_ParameterTypeEnum.BOOLEAN:
+    case ParameterType_ParameterTypeEnum.NUMBER_INTEGER:
+    case ParameterType_ParameterTypeEnum.NUMBER_DOUBLE:
+      paramStr = value.toString();
+      break;
+    default:
+      paramStr = value;
+  }
+  return paramStr;
+}
+
 function NewRunParametersV2(props: NewRunParametersProps) {
-  const { specParameters, setIsValidInput } = props;
+  const { specParameters, clonedRuntimeConfig, setIsValidInput } = props;
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
   const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
   const [errorMessages, setErrorMessages] = useState([]);
 
   const [updatedParameters, setUpdatedParameters] = useState({});
   useEffect(() => {
+    if (clonedRuntimeConfig.parameters) {
+      const clonedRuntimeParametersStr: RuntimeParameters = {};
+      // Convert cloned parameter to string type first to avoid error from convertInput
+      Object.entries(clonedRuntimeConfig.parameters).forEach(entry => {
+        clonedRuntimeParametersStr[entry[0]] = convertNonUserInputParamToString(
+          specParameters,
+          entry[0],
+          entry[1],
+        );
+      });
+      setUpdatedParameters(clonedRuntimeParametersStr);
+      // Directly using cloned paramters guarantees input is valid and no error message
+      setErrorMessages([]);
+      if (setIsValidInput) {
+        setIsValidInput(true);
+      }
+
+      if (props.handleParameterChange) {
+        props.handleParameterChange(clonedRuntimeConfig.parameters);
+      }
+      return;
+    }
+    // TODO(jlyaoyuli): If we have parameters from run, put original default value next to the paramKey
     const runtimeParametersWithDefault: RuntimeParameters = {};
     let allParamtersWithDefault = true;
     Object.keys(specParameters).forEach(key => {
       if (specParameters[key].defaultValue) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.
-        let defaultValStr; // Convert default to string type first to avoid error from convertInput
-        switch (specParameters[key].parameterType) {
-          case ParameterType_ParameterTypeEnum.STRUCT:
-          case ParameterType_ParameterTypeEnum.LIST:
-            defaultValStr = JSON.stringify(specParameters[key].defaultValue);
-            break;
-          case ParameterType_ParameterTypeEnum.BOOLEAN:
-          case ParameterType_ParameterTypeEnum.NUMBER_INTEGER:
-          case ParameterType_ParameterTypeEnum.NUMBER_DOUBLE:
-            defaultValStr = specParameters[key].defaultValue.toString();
-            break;
-          default:
-            defaultValStr = specParameters[key].defaultValue;
-        }
-        runtimeParametersWithDefault[key] = defaultValStr;
+        // Convert default value to string type first to avoid error from convertInput
+        runtimeParametersWithDefault[key] = convertNonUserInputParamToString(
+          specParameters,
+          key,
+          specParameters[key].defaultValue,
+        );
       } else {
         allParamtersWithDefault = false;
         errorMessages[key] = 'Missing parameter.';
@@ -167,7 +208,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     if (setIsValidInput) {
       setIsValidInput(allParamtersWithDefault);
     }
-  }, [specParameters, setIsValidInput, errorMessages]);
+  }, [clonedRuntimeConfig, specParameters]);
 
   return (
     <div>

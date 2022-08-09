@@ -17,7 +17,6 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useQuery } from 'react-query';
 import { ApiRunDetail } from 'src/apis/run';
-import Hr from 'src/atoms/Hr';
 import Separator from 'src/atoms/Separator';
 import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
@@ -51,7 +50,8 @@ import {
   compareCss,
   ExecutionArtifact,
   FullArtifactPathMap,
-  getCompareTableProps,
+  getScalarTableProps,
+  getParamsTableProps,
   getRocCurveId,
   getValidRocCurveArtifactData,
   MetricsType,
@@ -64,6 +64,7 @@ import { Redirect } from 'react-router-dom';
 import MetricsDropdown from 'src/components/viewers/MetricsDropdown';
 import CircularProgress from '@material-ui/core/CircularProgress';
 import { lineColors } from 'src/components/viewers/ROCCurve';
+import Hr from 'src/atoms/Hr';
 
 const css = stylesheet({
   outputsRow: {
@@ -183,18 +184,33 @@ export interface SelectedArtifact {
   linkedArtifact?: LinkedArtifact;
 }
 
-interface ScalarMetricsTableParams {
-  scalarMetricsTableData: CompareTableProps | undefined;
+interface CompareTableSectionParams {
+  isLoading?: boolean;
+  compareTableProps?: CompareTableProps;
+  dataTypeName: string;
 }
 
-function ScalarMetricsTable(props: ScalarMetricsTableParams) {
-  const { scalarMetricsTableData } = props;
+function CompareTableSection(props: CompareTableSectionParams) {
+  const { isLoading, compareTableProps, dataTypeName } = props;
 
-  if (!scalarMetricsTableData) {
-    return <p>There are no Scalar Metrics artifacts available on the selected runs.</p>;
+  if (isLoading) {
+    return (
+      <div className={compareCss.smallRelativeContainer}>
+        <CircularProgress
+          size={25}
+          className={commonCss.absoluteCenter}
+          style={{ zIndex: zIndex.BUSY_OVERLAY }}
+          role='circularprogress'
+        />
+      </div>
+    );
   }
 
-  return <CompareTable {...scalarMetricsTableData} />;
+  if (!compareTableProps) {
+    return <p>There are no {dataTypeName} available on the selected runs.</p>;
+  }
+
+  return <CompareTable {...compareTableProps} />;
 }
 
 interface RocCurveMetricsParams {
@@ -228,6 +244,7 @@ function CompareV2(props: CompareV2Props) {
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
   const [isLoadingArtifacts, setIsLoadingArtifacts] = useState<boolean>(true);
+  const [paramsTableProps, setParamsTableProps] = useState<CompareTableProps | undefined>();
 
   // Two-panel display artifacts
   const [confusionMatrixRunArtifacts, setConfusionMatrixRunArtifacts] = useState<RunArtifact[]>([]);
@@ -330,15 +347,12 @@ function CompareV2(props: CompareV2Props) {
         artifactTypes,
         MetricsType.SCALAR_METRICS,
       );
-      const compareTableProps: CompareTableProps = getCompareTableProps(
-        scalarMetricsArtifactData.runArtifacts,
-        scalarMetricsArtifactData.artifactCount,
+      setScalarMetricsTableData(
+        getScalarTableProps(
+          scalarMetricsArtifactData.runArtifacts,
+          scalarMetricsArtifactData.artifactCount,
+        ),
       );
-      if (compareTableProps.yLabels.length === 0) {
-        setScalarMetricsTableData(undefined);
-      } else {
-        setScalarMetricsTableData(compareTableProps);
-      }
 
       setConfusionMatrixRunArtifacts(
         filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX)
@@ -445,6 +459,9 @@ function CompareV2(props: CompareV2Props) {
   useEffect(() => {
     if (runs) {
       setSelectedIds(runs.map(r => r.run!.id!));
+      setParamsTableProps(getParamsTableProps(runs));
+    } else {
+      setParamsTableProps(undefined);
     }
   }, [runs]);
 
@@ -500,7 +517,11 @@ function CompareV2(props: CompareV2Props) {
       {!isParamsCollapsed && (
         <div className={classes(commonCss.noShrink, css.outputsRow, css.outputsOverflow)}>
           <Separator orientation='vertical' />
-          <p>Parameter Section V2</p>
+          <CompareTableSection
+            isLoading={isLoadingRunDetails}
+            compareTableProps={paramsTableProps}
+            dataTypeName='Parameters'
+          />
           <Hr />
         </div>
       )}
@@ -534,7 +555,10 @@ function CompareV2(props: CompareV2Props) {
             ) : (
               <>
                 {metricsTab === MetricsType.SCALAR_METRICS && (
-                  <ScalarMetricsTable scalarMetricsTableData={scalarMetricsTableData} />
+                  <CompareTableSection
+                    compareTableProps={scalarMetricsTableData}
+                    dataTypeName='Scalar Metrics artifacts'
+                  />
                 )}
                 {metricsTab === MetricsType.CONFUSION_MATRIX && (
                   <MetricsDropdown

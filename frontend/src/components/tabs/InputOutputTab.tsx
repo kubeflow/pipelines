@@ -25,10 +25,12 @@ import {
   filterEventWithInputArtifact,
   filterEventWithOutputArtifact,
   getArtifactName,
+  getArtifactTypeName,
+  getArtifactTypes,
   getLinkedArtifactsByExecution,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
-import { Execution } from 'src/third_party/mlmd';
+import { ArtifactType, Execution } from 'src/third_party/mlmd';
 import ArtifactPreview from '../ArtifactPreview';
 import Banner from '../Banner';
 import DetailsTable from '../DetailsTable';
@@ -49,20 +51,35 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
   // TODO(jlyaoyuli): Display other information (container, args, image, command)
 
   // Retrieves input and output artifacts from Metadata store.
-  const { isSuccess, error, data } = useQuery<LinkedArtifact[], Error>(
+  const { isSuccess, error, data: linkedArtifacts } = useQuery<LinkedArtifact[], Error>(
     ['execution_artifact', { id: executionId, state: execution.getLastKnownState() }],
     () => getLinkedArtifactsByExecution(execution),
     { staleTime: Infinity },
   );
+
+  const { data: artifactTypes } = useQuery<ArtifactType[], Error>(
+    ['artifact_types', { linkedArtifact: linkedArtifacts }],
+    () => getArtifactTypes(),
+    {},
+  );
+
+  const artifactTypeNames =
+    linkedArtifacts && artifactTypes ? getArtifactTypeName(artifactTypes, linkedArtifacts) : [];
 
   // Restructs artifacts and parameters for visualization.
   const inputParams = extractInputFromExecution(execution);
   const outputParams = extractOutputFromExecution(execution);
   let inputArtifacts: ParamList = [];
   let outputArtifacts: ParamList = [];
-  if (isSuccess && data) {
-    inputArtifacts = getArtifactParamList(filterEventWithInputArtifact(data));
-    outputArtifacts = getArtifactParamList(filterEventWithOutputArtifact(data));
+  if (isSuccess && linkedArtifacts) {
+    inputArtifacts = getArtifactParamList(
+      filterEventWithInputArtifact(linkedArtifacts),
+      artifactTypeNames,
+    );
+    outputArtifacts = getArtifactParamList(
+      filterEventWithOutputArtifact(linkedArtifacts),
+      artifactTypeNames,
+    );
   }
 
   let isIoEmpty = false;
@@ -171,9 +188,19 @@ function extractParamFromExecution(execution: Execution, name: string): KeyValue
   return result;
 }
 
-export function getArtifactParamList(inputArtifacts: LinkedArtifact[]): ParamList {
-  return inputArtifacts.map(linkedArtifact => {
-    const key = getArtifactName(linkedArtifact);
+export function getArtifactParamList(
+  inputArtifacts: LinkedArtifact[],
+  artifactTypeNames: string[],
+): ParamList {
+  return Object.values(inputArtifacts).map((linkedArtifact, index) => {
+    let key = getArtifactName(linkedArtifact);
+    if (
+      key &&
+      (artifactTypeNames[index] === 'system.Metrics' ||
+        artifactTypeNames[index] === 'system.ClassificationMetrics')
+    ) {
+      key += ' (This is an empty file by default)';
+    }
     const artifactId = linkedArtifact.artifact.getId();
     const artifactElement = RoutePageFactory.artifactDetails(artifactId) ? (
       <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(artifactId)}>
