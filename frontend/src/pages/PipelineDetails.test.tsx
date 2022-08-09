@@ -217,6 +217,21 @@ describe('PipelineDetails', () => {
     );
   });
 
+  it('directly uses pipeline manifest as template string (v2)', async () => {
+    testRun.run!.pipeline_spec = {
+      pipeline_id: 'run-pipeline-id',
+      workflow_manifest: '{"spec": {"arguments": {"parameters": [{"name": "output"}]}}}',
+      pipeline_manifest: 'spec:\n  arguments:\n    parameters:\n      - name: output\n',
+    };
+
+    tree = shallow(<PipelineDetails {...generateProps(true)} />);
+    await TestUtils.flushPromises();
+
+    expect(tree.state('templateString')).toBe(
+      'spec:\n  arguments:\n    parameters:\n      - name: output\n',
+    );
+  });
+
   it('shows load error banner when failing to parse the workflow source in embedded pipeline spec', async () => {
     testRun.run!.pipeline_spec = {
       pipeline_id: 'run-pipeline-id',
