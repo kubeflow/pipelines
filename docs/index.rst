@@ -12,6 +12,6 @@ Kubeflow Pipelines SDK API Reference
 
    Home <self>
    API Reference <source/kfp>
-   kfp CLI <source/cli>
+   Command Line Interface <source/cli>
    Usage Docs (kubeflow.org) <https://kubeflow.org/docs/pipelines/>
    Source Code <https://github.com/kubeflow/pipelines/>
