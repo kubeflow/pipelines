@@ -53,11 +53,19 @@ CONFIG = {
     },
     'components': {
         'test_cases': [
-            'add_numbers', 'component_with_pip_install', 'concat_message',
-            'dict_input', 'identity', 'nested_return', 'output_artifact',
-            'output_metrics', 'preprocess', 'container_no_input',
-            'container_io', 'container_with_artifact_output',
-            'container_with_concat_placeholder', 'container_with_if_placeholder'
+            'add_numbers',
+            'component_with_pip_install',
+            'concat_message',
+            'dict_input',
+            'identity',
+            'nested_return',
+            'output_metrics',
+            'preprocess',
+            'container_no_input',
+            'container_io',
+            'container_with_artifact_output',
+            'container_with_concat_placeholder',
+            'container_with_if_placeholder',
         ],
         'test_data_dir': 'sdk/python/kfp/compiler/test_data/components',
         'config': {
