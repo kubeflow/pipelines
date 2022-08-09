@@ -499,8 +499,6 @@ const updateRocCurveSelection = (
     setLineColorsStack,
   } = filter;
 
-  console.log(selectedIdColorMap);
-
   // Convert arrays to sets for quick lookup.
   const newSelectedIdsSet = new Set(newSelectedIds);
   const oldSelectedIdsSet = new Set(oldSelectedIds);
@@ -585,7 +583,7 @@ export function ConfidenceMetricsSection({
   const [linkedArtifactsPage, setLinkedArtifactsPage] = useState<LinkedArtifact[]>(linkedArtifacts);
   const [filterString, setFilterString] = useState<string>('');
 
-  // Reload the page on linked artifacts refresh or re-selection; request not saved.
+  // Reload the page on linked artifacts refresh or re-selection.
   useEffect(() => {
     if (filter && !isEqual(linkedArtifacts, allLinkedArtifacts)) {
       setLinkedArtifactsPage(linkedArtifacts);

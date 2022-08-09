@@ -130,7 +130,6 @@ describe('ConfidenceMetricsSection', () => {
     } as RocCurveData;
   }
 
-  // Ruh roh
   function generateProps(
     selectedIds: string[],
     linkedArtifacts?: LinkedArtifact[],
@@ -138,6 +137,7 @@ describe('ConfidenceMetricsSection', () => {
   ): ConfidenceMetricsSectionProps {
     const lineColorsStack = [...lineColors].reverse();
     const selectedIdColorMap: RocCurveColorMap = {};
+    // Note: Only 11 colors are available on the line colors stack, as UI limits selection to 10.
     for (const selectedId of selectedIds) {
       selectedIdColorMap[selectedId] = lineColorsStack.pop()!;
     }

@@ -430,50 +430,55 @@ function CompareV2(props: CompareV2Props) {
         artifactTypes,
         MetricsType.ROC_CURVE,
       ).runArtifacts;
-      const {
-        validLinkedArtifacts,
-        fullArtifactPathMap,
-        validRocCurveIdSet,
-      } = getValidRocCurveArtifactData(rocCurveRunArtifacts);
-
-      setFullArtifactPathMap(fullArtifactPathMap);
-      setRocCurveLinkedArtifacts(validLinkedArtifacts);
-
-      // Remove all newly invalid ROC Curves from the selection (if run selection changes).
-      const removedRocCurveIds: Set<string> = new Set();
-      for (const oldSelectedId of Object.keys(selectedIdColorMap)) {
-        if (!validRocCurveIdSet.has(oldSelectedId)) {
-          removedRocCurveIds.add(oldSelectedId);
-        }
-      }
-
-      // If initial load, choose first three artifacts; ow, remove artifacts from de-selected runs.
-      let updatedRocCurveIds: string[] = selectedRocCurveIds;
-      if (isInitialArtifactsLoad) {
-        updatedRocCurveIds = validLinkedArtifacts
-          .map(linkedArtifact => getRocCurveId(linkedArtifact))
-          .slice(0, 3);
-        updatedRocCurveIds.forEach(rocCurveId => {
-          selectedIdColorMap[rocCurveId] = lineColorsStack.pop()!;
-        });
-      } else {
-        updatedRocCurveIds = updatedRocCurveIds.filter(rocCurveId => {
-          if (removedRocCurveIds.has(rocCurveId)) {
-            lineColorsStack.push(selectedIdColorMap[rocCurveId]);
-            delete selectedIdColorMap[rocCurveId];
-            return false;
-          }
-          return true;
-        });
-      }
-      setSelectedRocCurveIds(updatedRocCurveIds);
-      setLineColorsStack(lineColorsStack);
-      setSelectedIdColorMap(selectedIdColorMap);
+      updateRocCurveDisplay(rocCurveRunArtifacts);
       setIsLoadingArtifacts(false);
       setIsInitialArtifactsLoad(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [runs, selectedIds, mlmdPackages, artifactTypes]);
+
+  // Update the ROC Curve colors and selection.
+  const updateRocCurveDisplay = (runArtifacts: RunArtifact[]) => {
+    const {
+      validLinkedArtifacts,
+      fullArtifactPathMap,
+      validRocCurveIdSet,
+    } = getValidRocCurveArtifactData(runArtifacts);
+
+    setFullArtifactPathMap(fullArtifactPathMap);
+    setRocCurveLinkedArtifacts(validLinkedArtifacts);
+
+    // Remove all newly invalid ROC Curves from the selection (if run selection changes).
+    const removedRocCurveIds: Set<string> = new Set();
+    for (const oldSelectedId of Object.keys(selectedIdColorMap)) {
+      if (!validRocCurveIdSet.has(oldSelectedId)) {
+        removedRocCurveIds.add(oldSelectedId);
+      }
+    }
+
+    // If initial load, choose first three artifacts; ow, remove artifacts from de-selected runs.
+    let updatedRocCurveIds: string[] = selectedRocCurveIds;
+    if (isInitialArtifactsLoad) {
+      updatedRocCurveIds = validLinkedArtifacts
+        .map(linkedArtifact => getRocCurveId(linkedArtifact))
+        .slice(0, 3);
+      updatedRocCurveIds.forEach(rocCurveId => {
+        selectedIdColorMap[rocCurveId] = lineColorsStack.pop()!;
+      });
+    } else {
+      updatedRocCurveIds = updatedRocCurveIds.filter(rocCurveId => {
+        if (removedRocCurveIds.has(rocCurveId)) {
+          lineColorsStack.push(selectedIdColorMap[rocCurveId]);
+          delete selectedIdColorMap[rocCurveId];
+          return false;
+        }
+        return true;
+      });
+    }
+    setSelectedRocCurveIds(updatedRocCurveIds);
+    setLineColorsStack(lineColorsStack);
+    setSelectedIdColorMap(selectedIdColorMap);
+  };
 
   useEffect(() => {
     if (isLoadingRunDetails || isLoadingMlmdPackages || isLoadingArtifactTypes) {
@@ -571,8 +576,8 @@ function CompareV2(props: CompareV2Props) {
     });
   };
 
-  const selectionChanged = (newSelectedIds: string[]): void => {
-    setSelectedIds(newSelectedIds);
+  const selectionChanged = (selectedIds: string[]): void => {
+    setSelectedIds(selectedIds);
   };
 
   const updateSelectedArtifacts = (newArtifacts: SelectedArtifact[]) => {
