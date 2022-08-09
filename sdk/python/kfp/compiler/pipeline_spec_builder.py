@@ -23,6 +23,7 @@ from kfp import dsl
 from kfp.compiler import pipeline_spec_builder as builder
 from kfp.components import for_loop
 from kfp.components import pipeline_channel
+from kfp.components import pipeline_context
 from kfp.components import pipeline_task
 from kfp.components import placeholders
 from kfp.components import structures
@@ -34,6 +35,13 @@ from kfp.components.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 GroupOrTaskType = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
+# must be defined here to avoid circular imports
+group_type_to_dsl_class = {
+    tasks_group.TasksGroupType.PIPELINE: pipeline_context.Pipeline,
+    tasks_group.TasksGroupType.CONDITION: tasks_group.Condition,
+    tasks_group.TasksGroupType.FOR_LOOP: tasks_group.ParallelFor,
+    tasks_group.TasksGroupType.EXIT_HANDLER: tasks_group.ExitHandler,
+}
 
 
 def _additional_input_name_for_pipeline_channel(
@@ -1208,6 +1216,12 @@ def build_exit_handler_groups_recursively(
 
             exit_task_container_spec = builder.build_container_spec_for_task(
                 task=exit_task)
+
+            # remove this if block to support nested exit handlers
+            if not parent_group.is_root:
+                raise ValueError(
+                    f'{dsl.ExitHandler.__name__} can only be used within the outermost scope of a pipeline function definition. Using an {dsl.ExitHandler.__name__} within {group_type_to_dsl_class[parent_group.group_type].__name__} {parent_group.name} is not allowed.'
+                )
 
             parent_dag = pipeline_spec.root.dag if parent_group.is_root else pipeline_spec.components[
                 utils.sanitize_component_name(parent_group.name)].dag

@@ -1223,7 +1223,7 @@ from google.protobuf import json_format
 
 class TestMultipleExitHandlerCompilation(unittest.TestCase):
 
-    def test(self):
+    def test_basic(self):
 
         @dsl.component
         def print_op(message: str):
@@ -1268,6 +1268,31 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
             pipeline_spec.root.dag.tasks['print-op-3'].inputs
             .parameters['message'].runtime_value.constant.string_value,
             'Second exit task.')
+
+    def test_nested_unsupported(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+        def my_pipeline():
+            first_exit_task = print_op(message='First exit task.')
+
+            with dsl.ExitHandler(first_exit_task):
+                print_op(message='Inside first exit handler.')
+
+                second_exit_task = print_op(message='Second exit task.')
+                with dsl.ExitHandler(second_exit_task):
+                    print_op(message='Inside second exit handler.')
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'ExitHandler can only be used within the outermost scope of a pipeline function definition\.'
+        ):
+
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path='output.yaml')
 
 
 if __name__ == '__main__':
