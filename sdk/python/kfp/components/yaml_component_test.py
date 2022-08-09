@@ -17,11 +17,9 @@ import os
 import tempfile
 import textwrap
 import unittest
-from unittest import mock
 
 from kfp.components import structures
 from kfp.components import yaml_component
-import requests
 
 SAMPLE_YAML = textwrap.dedent("""\
 components:
