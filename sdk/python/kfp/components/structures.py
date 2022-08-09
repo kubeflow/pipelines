@@ -240,9 +240,6 @@ class ContainerSpec(base_model.BaseModel):
     def validate_args(self) -> None:
         self._validate_no_artifact_channel(self.args)
 
-    def validate_env(self) -> None:
-        self._validate_no_artifact_channel(self.env)
-
     def _validate_no_artifact_channel(self, args) -> None:
         if args is None:
             return

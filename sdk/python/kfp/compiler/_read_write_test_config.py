@@ -58,6 +58,7 @@ CONFIG = {
             'concat_message',
             'dict_input',
             'identity',
+            'input_artifact',
             'nested_return',
             'output_metrics',
             'preprocess',

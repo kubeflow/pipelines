@@ -23,6 +23,8 @@ from google.protobuf import json_format
 from kfp import compiler
 from kfp.components import placeholders
 from kfp.components import structures
+from kfp.components.container_component_artifact_channel import \
+    ContainerComponentArtifactChannel
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
@@ -495,8 +497,19 @@ class TestContainerSpec(unittest.TestCase):
         loaded_container_spec = structures.ContainerSpec.from_container_dict(
             container_dict)
 
-
-class TestComponentSpec(unittest.TestCase):
+    def test_validate_command_and_arg(self):
+        commands = [
+            'run.sh', '--arg',
+            ContainerComponentArtifactChannel('input', 'my_arg')
+        ]
+        self.assertRaisesRegex(
+            TypeError, r'Cannot access artifact by itself',
+            lambda: structures.ContainerSpec(
+                image='python:3.7', command=commands, args=[]))
+        self.assertRaisesRegex(
+            TypeError, r'Cannot access artifact by itself',
+            lambda: structures.ContainerSpec(
+                image='python:3.7', command=[], args=commands))
 
     def test_inputs(self):
         obj = structures.ComponentSpec(
