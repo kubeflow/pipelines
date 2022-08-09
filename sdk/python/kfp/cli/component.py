@@ -340,7 +340,8 @@ def component():
     '--engine',
     type=str,
     default='docker',
-    help="Engine to use to build the component's container.")
+    help="[Deprecated] Engine to use to build the component's container.",
+    hidden=True)
 @click.option(
     '--kfp-package-path',
     type=click.Path(exists=True),
