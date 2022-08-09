@@ -531,7 +531,6 @@ function reloadRocCurve(
   filter: ConfidenceMetricsFilter,
   linkedArtifacts: LinkedArtifact[],
   setLinkedArtifactsPage: (linkedArtifactsPage: LinkedArtifact[]) => void,
-  setCurrentRequest: ((currentRequest: ListRequest) => void) | undefined,
   request: ListRequest,
 ): Promise<string> {
   // Filter the linked artifacts by run, execution, and artifact display name.
@@ -573,9 +572,6 @@ function reloadRocCurve(
       nextPageToken = `${numericPageToken + 1}`;
     }
   }
-  if (setCurrentRequest) {
-    setCurrentRequest(request);
-  }
   setLinkedArtifactsPage(linkedArtifactsPage);
   return Promise.resolve(nextPageToken);
 }
@@ -587,17 +583,16 @@ export function ConfidenceMetricsSection({
   const maxSelectedRocCurves: number = 10;
   const [allLinkedArtifacts, setAllLinkedArtifacts] = useState<LinkedArtifact[]>(linkedArtifacts);
   const [linkedArtifactsPage, setLinkedArtifactsPage] = useState<LinkedArtifact[]>(linkedArtifacts);
-  const [currentRequest, setCurrentRequest] = useState<ListRequest>({});
   const [filterString, setFilterString] = useState<string>('');
 
   // Reload the page on linked artifacts refresh or re-selection; request not saved.
   useEffect(() => {
     if (filter && !isEqual(linkedArtifacts, allLinkedArtifacts)) {
-      reloadRocCurve(filter, linkedArtifacts, setLinkedArtifactsPage, undefined, currentRequest);
+      setLinkedArtifactsPage(linkedArtifacts);
       setAllLinkedArtifacts(linkedArtifacts);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [linkedArtifacts, currentRequest]);
+  }, [linkedArtifacts]);
 
   // Verify that the existing linked artifacts are correct; otherwise, wait for refresh.
   if (filter && !isEqual(linkedArtifacts, allLinkedArtifacts)) {
@@ -713,7 +708,6 @@ export function ConfidenceMetricsSection({
               filter,
               linkedArtifacts,
               setLinkedArtifactsPage,
-              setCurrentRequest,
             )}
             disablePaging={false}
             disableSorting={false}
