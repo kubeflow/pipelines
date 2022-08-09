@@ -17,7 +17,7 @@ description: |
             The file format for the batch prediction results. `jsonl` is currently the only allowed
             format currently.
             If not set, defaulted to `jsonl`.
-        batch_predictions (system.Artifact):
+        predictions_gcs_source (system.Artifact):
           An artifact with its URI pointing toward a GCS directory with prediction or explanation
           files to be used for this evaluation.
           For prediction results, the files should be named "prediction.results-*".
@@ -56,7 +56,7 @@ inputs:
 - {name: location, type: String, default: "us-central1"}
 - {name: root_dir, type: String}
 - {name: predictions_format, type: String, default: 'jsonl'}
-- {name: batch_predictions, type: Artifact}
+- {name: predictions_gcs_source, type: Artifact}
 - {name: dataflow_service_account, type: String, default: ''}
 - {name: dataflow_disk_size, type: Integer, default: 50}
 - {name: dataflow_machine_type, type: String, default: 'n1-standard-4'}
@@ -82,7 +82,7 @@ implementation:
     - --location
     - {inputValue: location}
     - --batch_prediction_gcs_source
-    - "{{$.inputs.artifacts['batch_predictions'].uri}}"
+    - "{{$.inputs.artifacts['predictions_gcs_source'].uri}}"
     - --batch_prediction_format
     - {inputValue: predictions_format}
     - --root_dir
