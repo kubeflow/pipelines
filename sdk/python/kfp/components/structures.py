@@ -30,6 +30,8 @@ from kfp.components import placeholders
 from kfp.components import utils
 from kfp.components import v1_components
 from kfp.components import v1_structures
+from kfp.components.container_component_artifact_channel import \
+    ContainerComponentArtifactChannel
 from kfp.components.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
@@ -230,6 +232,25 @@ class ContainerSpec(base_model.BaseModel):
     def transform_env(self) -> None:
         """Use None instead of empty dict for env."""
         self.env = None if self.env == {} else self.env
+
+    def validate_command(self) -> None:
+        """Validate command doesn't contain artifact channel."""
+        self._validate_no_artifact_channel(self.command)
+
+    def validate_args(self) -> None:
+        self._validate_no_artifact_channel(self.args)
+
+    def validate_env(self) -> None:
+        self._validate_no_artifact_channel(self.env)
+
+    def _validate_no_artifact_channel(self, args) -> None:
+        if args is None:
+            return
+        for arg in args:
+            if isinstance(arg, ContainerComponentArtifactChannel):
+                raise TypeError(
+                    'Cannot access artifact by itself in the container definition. Please use .uri or .path instead to access the artifact.'
+                )
 
     @classmethod
     def from_container_dict(cls, container_dict: Dict[str,
