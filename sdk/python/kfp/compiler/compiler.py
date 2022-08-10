@@ -34,8 +34,6 @@ from kfp.components import component_factory
 from kfp.components import for_loop
 from kfp.components import pipeline_channel
 from kfp.components import pipeline_context
-from kfp.components import pipeline_task
-from kfp.components import structures
 from kfp.components import tasks_group
 from kfp.components import utils as component_utils
 from kfp.components.types import type_utils
@@ -138,21 +136,17 @@ class Compiler:
 
         for arg_name in signature.parameters:
             arg_type = pipeline_meta.inputs[arg_name].type
-            if not type_utils.is_parameter_type(arg_type):
-                raise TypeError(
-                    builder.make_invalid_input_type_error_msg(
-                        arg_name, arg_type))
             args_list.append(
-                pipeline_channel.PipelineParameterChannel(
-                    name=arg_name, channel_type=arg_type))
+                pipeline_channel.create_pipeline_channel(
+                    name=arg_name,
+                    channel_type=arg_type,
+                ))
 
         with pipeline_context.Pipeline(pipeline_name) as dsl_pipeline:
             pipeline_func(*args_list)
 
         if not dsl_pipeline.tasks:
             raise ValueError('Task is missing from pipeline.')
-
-        self._validate_exit_handler(dsl_pipeline)
 
         pipeline_inputs = pipeline_meta.inputs or {}
 
@@ -167,7 +161,7 @@ class Compiler:
 
         # Fill in the default values.
         args_list_with_defaults = [
-            pipeline_channel.PipelineParameterChannel(
+            pipeline_channel.create_pipeline_channel(
                 name=input_name,
                 channel_type=input_spec.type,
                 value=pipeline_parameters_override.get(input_name) or
@@ -189,96 +183,6 @@ class Compiler:
             pipeline_spec.default_pipeline_root = pipeline_root
 
         return pipeline_spec
-
-    def _create_pipeline_from_component_spec(
-        self,
-        component_spec: structures.ComponentSpec,
-    ) -> pipeline_spec_pb2.PipelineSpec:
-        """Creates a pipeline instance and constructs the pipeline spec for a
-        primitive component.
-
-        Args:
-            component_spec: The ComponentSpec to convert to PipelineSpec.
-
-        Returns:
-            A PipelineSpec proto representing the compiled component.
-        """
-        args_dict = {}
-
-        for arg_name, input_spec in component_spec.inputs.items():
-            arg_type = input_spec.type
-            if not type_utils.is_parameter_type(
-                    arg_type) or type_utils.is_task_final_status_type(arg_type):
-                raise TypeError(
-                    builder.make_invalid_input_type_error_msg(
-                        arg_name, arg_type))
-            args_dict[arg_name] = pipeline_channel.PipelineParameterChannel(
-                name=arg_name, channel_type=arg_type)
-
-        task = pipeline_task.PipelineTask(component_spec, args_dict)
-
-        # instead of constructing a pipeline with pipeline_context.Pipeline,
-        # just build the single task group
-        group = tasks_group.TasksGroup(
-            group_type=tasks_group.TasksGroupType.PIPELINE)
-        group.tasks.append(task)
-
-        pipeline_inputs = component_spec.inputs or {}
-
-        # Fill in the default values.
-        args_list_with_defaults = [
-            pipeline_channel.PipelineParameterChannel(
-                name=input_name,
-                channel_type=input_spec.type,
-                value=input_spec.default,
-            ) for input_name, input_spec in pipeline_inputs.items()
-        ]
-        group.name = uuid.uuid4().hex
-
-        return builder.create_pipeline_spec_for_component(
-            pipeline_name=component_spec.name,
-            pipeline_args=args_list_with_defaults,
-            task_group=group,
-        )
-
-    def _validate_exit_handler(self,
-                               pipeline: pipeline_context.Pipeline) -> None:
-        """Makes sure there is only one global exit handler.
-
-        This is temporary to be compatible with KFP v1.
-
-        Raises:
-            ValueError if there are more than one exit handler.
-        """
-
-        def _validate_exit_handler_helper(
-            group: tasks_group.TasksGroup,
-            exiting_task_names: List[str],
-            handler_exists: bool,
-        ) -> None:
-
-            if isinstance(group, dsl.ExitHandler):
-                if handler_exists or len(exiting_task_names) > 1:
-                    raise ValueError(
-                        'Only one global exit_handler is allowed and all ops need to be included.'
-                    )
-                handler_exists = True
-
-            if group.tasks:
-                exiting_task_names.extend([x.name for x in group.tasks])
-
-            for group in group.groups:
-                _validate_exit_handler_helper(
-                    group=group,
-                    exiting_task_names=exiting_task_names,
-                    handler_exists=handler_exists,
-                )
-
-        _validate_exit_handler_helper(
-            group=pipeline.groups[0],
-            exiting_task_names=[],
-            handler_exists=False,
-        )
 
     def _create_pipeline_spec(
         self,
@@ -356,49 +260,11 @@ class Compiler:
                 name_to_for_loop_group=name_to_for_loop_group,
             )
 
-        # TODO: refactor to support multiple exit handler per pipeline.
-        if pipeline.groups[0].groups:
-            first_group = pipeline.groups[0].groups[0]
-            if isinstance(first_group, dsl.ExitHandler):
-                exit_task = first_group.exit_task
-                exit_task_name = component_utils.sanitize_task_name(
-                    exit_task.name)
-                exit_handler_group_task_name = component_utils.sanitize_task_name(
-                    first_group.name)
-                input_parameters_in_current_dag = [
-                    input_name for input_name in
-                    pipeline_spec.root.input_definitions.parameters
-                ]
-                exit_task_task_spec = builder.build_task_spec_for_exit_task(
-                    task=exit_task,
-                    dependent_task=exit_handler_group_task_name,
-                    pipeline_inputs=pipeline_spec.root.input_definitions,
-                )
-
-                exit_task_component_spec = builder.build_component_spec_for_exit_task(
-                    task=exit_task)
-
-                exit_task_container_spec = builder.build_container_spec_for_task(
-                    task=exit_task)
-
-                # Add exit task task spec
-                pipeline_spec.root.dag.tasks[exit_task_name].CopyFrom(
-                    exit_task_task_spec)
-
-                # Add exit task component spec if it does not exist.
-                component_name = exit_task_task_spec.component_ref.name
-                if component_name not in pipeline_spec.components:
-                    pipeline_spec.components[component_name].CopyFrom(
-                        exit_task_component_spec)
-
-                # Add exit task container spec if it does not exist.
-                executor_label = exit_task_component_spec.executor_label
-                if executor_label not in deployment_config.executors:
-                    deployment_config.executors[
-                        executor_label].container.CopyFrom(
-                            exit_task_container_spec)
-                    pipeline_spec.deployment_spec.update(
-                        json_format.MessageToDict(deployment_config))
+        builder.build_exit_handler_groups_recursively(
+            parent_group=root_group,
+            pipeline_spec=pipeline_spec,
+            deployment_config=deployment_config,
+        )
 
         return pipeline_spec
 
@@ -760,14 +626,12 @@ class Compiler:
                     task2=task,
                 )
 
-                # If a task depends on a condition group or a loop group, it
-                # must explicitly dependent on a task inside the group. This
-                # should not be allowed, because it leads to ambiguous
-                # expectations for runtime behaviors.
+                # a task cannot depend on a task created in a for loop group since individual PipelineTask variables are reassigned after each loop iteration
                 dependent_group = group_name_to_group.get(
                     upstream_groups[0], None)
                 if isinstance(dependent_group,
-                              (tasks_group.Condition, tasks_group.ParallelFor)):
+                              (tasks_group.ParallelFor, tasks_group.Condition,
+                               tasks_group.ExitHandler)):
                     raise RuntimeError(
                         f'Task {task.name} cannot dependent on any task inside'
                         f' the group: {upstream_groups[0]}.')
@@ -779,7 +643,7 @@ class Compiler:
 
 def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
                                 package_path: str) -> None:
-    """Writes PipelienSpec into a YAML or JSON (deprecated) file.
+    """Writes PipelineSpec into a YAML or JSON (deprecated) file.
 
     Args:
         pipeline_spec (pipeline_spec_pb2.PipelineSpec): The PipelineSpec.

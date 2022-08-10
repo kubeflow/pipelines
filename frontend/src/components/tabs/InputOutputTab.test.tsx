@@ -89,37 +89,30 @@ describe('InoutOutputTab', () => {
     execution
       .getCustomPropertiesMap()
       .set('thisKeyIsNotInput', new Value().setStringValue("value shouldn't show"));
-    execution
-      .getCustomPropertiesMap()
-      .set('input:stringkey', new Value().setStringValue('string input'));
-    execution.getCustomPropertiesMap().set('input:intkey', new Value().setIntValue(42));
-    execution.getCustomPropertiesMap().set('input:doublekey', new Value().setDoubleValue(1.99));
-    execution
-      .getCustomPropertiesMap()
-      .set(
-        'input:structkey',
-        new Value().setStructValue(Struct.fromJavaScript({ struct: { key: 'value', num: 42 } })),
-      );
-    execution
-      .getCustomPropertiesMap()
-      .set(
-        'input:arraykey',
-        new Value().setStructValue(Struct.fromJavaScript({ list: ['a', 'b', 'c'] })),
-      );
+    execution.getCustomPropertiesMap().set(
+      'inputs',
+      new Value().setStructValue(
+        Struct.fromJavaScript({
+          'stringKey: example string': 0,
+          'intKey: 123': 1,
+          'doubleKey: 1.23': 2,
+          'listKey: [1,2,3]': 3,
+          'structKey: {a:1, b:2}': 4,
+        }),
+      ),
+    );
+
     render(
       <CommonTestWrapper>
         <InputOutputTab execution={execution} namespace={namespace}></InputOutputTab>
       </CommonTestWrapper>,
     );
 
-    screen.getByText('stringkey');
-    screen.getByText('string input');
-    screen.getByText('intkey');
-    screen.getByText('42');
-    screen.getByText('doublekey');
-    screen.getByText('1.99');
-    screen.getByText('structkey');
-    screen.getByText('arraykey');
+    screen.getByText('stringKey: example string');
+    screen.getByText('intKey: 123');
+    screen.getByText('doubleKey: 1.23');
+    screen.getByText('listKey: [1,2,3]');
+    screen.getByText('structKey: {a:1, b:2}');
     expect(screen.queryByText('thisKeyIsNotInput')).toBeNull();
   });
 
@@ -135,37 +128,30 @@ describe('InoutOutputTab', () => {
     execution
       .getCustomPropertiesMap()
       .set('thisKeyIsNotOutput', new Value().setStringValue("value shouldn't show"));
-    execution
-      .getCustomPropertiesMap()
-      .set('output:stringkey', new Value().setStringValue('string output'));
-    execution.getCustomPropertiesMap().set('output:intkey', new Value().setIntValue(42));
-    execution.getCustomPropertiesMap().set('output:doublekey', new Value().setDoubleValue(1.99));
-    execution
-      .getCustomPropertiesMap()
-      .set(
-        'output:structkey',
-        new Value().setStructValue(Struct.fromJavaScript({ struct: { key: 'value', num: 42 } })),
-      );
-    execution
-      .getCustomPropertiesMap()
-      .set(
-        'output:arraykey',
-        new Value().setStructValue(Struct.fromJavaScript({ list: ['a', 'b', 'c'] })),
-      );
+    execution.getCustomPropertiesMap().set(
+      'outputs',
+      new Value().setStructValue(
+        Struct.fromJavaScript({
+          'stringKey: example string': 0,
+          'intKey: 123': 1,
+          'doubleKey: 1.23': 2,
+          'listKey: [1,2,3]': 3,
+          'structKey: {a:1, b:2}': 4,
+        }),
+      ),
+    );
+
     render(
       <CommonTestWrapper>
         <InputOutputTab execution={execution} namespace={namespace}></InputOutputTab>
       </CommonTestWrapper>,
     );
 
-    screen.getByText('stringkey');
-    screen.getByText('string output');
-    screen.getByText('intkey');
-    screen.getByText('42');
-    screen.getByText('doublekey');
-    screen.getByText('1.99');
-    screen.getByText('structkey');
-    screen.getByText('arraykey');
+    screen.getByText('stringKey: example string');
+    screen.getByText('intKey: 123');
+    screen.getByText('doubleKey: 1.23');
+    screen.getByText('listKey: [1,2,3]');
+    screen.getByText('structKey: {a:1, b:2}');
     expect(screen.queryByText('thisKeyIsNotOutput')).toBeNull();
   });
 

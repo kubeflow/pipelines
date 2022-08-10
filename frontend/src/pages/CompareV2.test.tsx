@@ -129,8 +129,8 @@ describe('CompareV2', () => {
       customPropertiesMap.set('confusionMatrix', confusionMatrix);
     }
     if (isRocCurve) {
-      const confusionMatrix: Value = new Value();
-      confusionMatrix.setStructValue(
+      const confidenceMetrics: Value = new Value();
+      confidenceMetrics.setStructValue(
         Struct.fromJavaScript({
           list: [
             {
@@ -151,7 +151,7 @@ describe('CompareV2', () => {
           ],
         }),
       );
-      customPropertiesMap.set('confidenceMetrics', confusionMatrix);
+      customPropertiesMap.set('confidenceMetrics', confidenceMetrics);
     }
     if (displayName) {
       const displayNameValue = new Value();
@@ -210,11 +210,11 @@ describe('CompareV2', () => {
 
     const artifacts = [newMockArtifact(1), newMockArtifact(2), newMockArtifact(3)];
     const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
-    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+    getArtifactsSpy.mockResolvedValue(artifacts);
 
     const events = [newMockEvent(1), newMockEvent(2), newMockEvent(3)];
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
-    getEventsSpy.mockReturnValue(Promise.resolve(events));
+    getEventsSpy.mockResolvedValue(events);
 
     const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
@@ -227,10 +227,11 @@ describe('CompareV2', () => {
     await TestUtils.flushPromises();
 
     await waitFor(() => {
-      expect(getContextSpy).toBeCalledTimes(3);
-      expect(getExecutionsSpy).toBeCalledTimes(3);
-      expect(getArtifactsSpy).toBeCalledTimes(3);
-      expect(getEventsSpy).toBeCalledTimes(3);
+      // Spies are called twice for each artifact as runs change from undefined to a defined value.
+      expect(getContextSpy).toBeCalledTimes(6);
+      expect(getExecutionsSpy).toBeCalledTimes(6);
+      expect(getArtifactsSpy).toBeCalledTimes(6);
+      expect(getEventsSpy).toBeCalledTimes(6);
       expect(getArtifactTypesSpy).toBeCalledTimes(1);
       expect(updateBannerSpy).toHaveBeenLastCalledWith({});
     });
@@ -259,11 +260,11 @@ describe('CompareV2', () => {
 
     const artifacts = [newMockArtifact(1), newMockArtifact(3)];
     const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
-    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+    getArtifactsSpy.mockResolvedValue(artifacts);
 
     const events = [newMockEvent(1), newMockEvent(2), newMockEvent(3)];
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
-    getEventsSpy.mockReturnValue(Promise.resolve(events));
+    getEventsSpy.mockResolvedValue(events);
 
     const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
@@ -373,7 +374,7 @@ describe('CompareV2', () => {
     await TestUtils.flushPromises();
 
     screen.getByText('Filter runs');
-    screen.getByText('Parameter Section V2');
+    screen.getByText('There are no Parameters available on the selected runs.');
     screen.getByText('Scalar Metrics');
 
     fireEvent.click(screen.getByText(OVERVIEW_SECTION_NAME));
@@ -383,7 +384,9 @@ describe('CompareV2', () => {
     screen.getByText('Filter runs');
 
     fireEvent.click(screen.getByText(PARAMS_SECTION_NAME));
-    expect(screen.queryByText('Parameter Section V2')).toBeNull();
+    expect(
+      screen.queryByText('There are no Parameters available on the selected runs.'),
+    ).toBeNull();
 
     fireEvent.click(screen.getByText(METRICS_SECTION_NAME));
     expect(screen.queryByText('Scalar Metrics')).toBeNull();
@@ -411,7 +414,7 @@ describe('CompareV2', () => {
     expect(runCheckboxes.filter(r => r.nodeName === 'INPUT')).toHaveLength(0);
   });
 
-  it('Scalar metrics tab initially enabled, and switch tabs', async () => {
+  it('Parameters and Scalar metrics tab initially enabled with loading then error, and switch tabs', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
@@ -421,24 +424,28 @@ describe('CompareV2', () => {
         <CompareV2 {...generateProps()} />
       </CommonTestWrapper>,
     );
+    expect(screen.queryAllByRole('circularprogress')).toHaveLength(2);
+
     await TestUtils.flushPromises();
+    await waitFor(() => {
+      screen.getByText('There are no Parameters available on the selected runs.');
+      screen.getByText('An error is preventing the Scalar Metrics from being displayed.');
 
-    screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
+      fireEvent.click(screen.getByText('Confusion Matrix'));
+      screen.getByText('An error is preventing the Confusion Matrix from being displayed.');
+      expect(
+        screen.queryByText('An error is preventing the Scalar Metrics from being displayed.'),
+      ).toBeNull();
 
-    fireEvent.click(screen.getByText('Confusion Matrix'));
-    screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
-    expect(
-      screen.queryByText('There are no Scalar Metrics artifacts available on the selected runs.'),
-    ).toBeNull();
+      fireEvent.click(screen.getByText('Confusion Matrix'));
+      screen.getByText('An error is preventing the Confusion Matrix from being displayed.');
 
-    fireEvent.click(screen.getByText('Confusion Matrix'));
-    screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
-
-    fireEvent.click(screen.getByText('Scalar Metrics'));
-    screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
-    expect(
-      screen.queryByText('There are no Confusion Matrix artifacts available on the selected runs.'),
-    ).toBeNull();
+      fireEvent.click(screen.getByText('Scalar Metrics'));
+      screen.getByText('An error is preventing the Scalar Metrics from being displayed.');
+      expect(
+        screen.queryByText('An error is preventing the Confusion Matrix from being displayed.'),
+      ).toBeNull();
+    });
   });
 
   it('Metrics tabs have no content loaded as artifacts are not present', async () => {
@@ -459,19 +466,21 @@ describe('CompareV2', () => {
     );
     await TestUtils.flushPromises();
 
-    screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
+    await waitFor(() => {
+      screen.getByText('There are no Scalar Metrics artifacts available on the selected runs.');
 
-    fireEvent.click(screen.getByText('Confusion Matrix'));
-    screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
+      fireEvent.click(screen.getByText('Confusion Matrix'));
+      screen.getByText('There are no Confusion Matrix artifacts available on the selected runs.');
 
-    fireEvent.click(screen.getByText('HTML'));
-    screen.getByText('There are no HTML artifacts available on the selected runs.');
+      fireEvent.click(screen.getByText('HTML'));
+      screen.getByText('There are no HTML artifacts available on the selected runs.');
 
-    fireEvent.click(screen.getByText('Markdown'));
-    screen.getByText('There are no Markdown artifacts available on the selected runs.');
+      fireEvent.click(screen.getByText('Markdown'));
+      screen.getByText('There are no Markdown artifacts available on the selected runs.');
 
-    fireEvent.click(screen.getByText('ROC Curve'));
-    screen.getByText('There are no ROC Curve artifacts available on the selected runs.');
+      fireEvent.click(screen.getByText('ROC Curve'));
+      screen.getByText('There are no ROC Curve artifacts available on the selected runs.');
+    });
   });
 
   it('Confusion matrix shown on select, stays after tab change or section collapse', async () => {
@@ -502,11 +511,11 @@ describe('CompareV2', () => {
       newMockArtifact(3),
     ];
     const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
-    getArtifactsSpy.mockReturnValue(Promise.resolve(artifacts));
+    getArtifactsSpy.mockResolvedValue(artifacts);
 
     const events = [newMockEvent(1), newMockEvent(200, 'artifactName'), newMockEvent(3)];
     const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
-    getEventsSpy.mockReturnValue(Promise.resolve(events));
+    getEventsSpy.mockResolvedValue(events);
 
     const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
     getArtifactTypesSpy.mockReturnValue([]);
@@ -551,7 +560,79 @@ describe('CompareV2', () => {
     screen.getByText(/200/);
   });
 
-  it('One ROC Curve shown on select', async () => {
+  it('Confusion matrix shown on select and removed after run is de-selected', async () => {
+    const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
+    runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
+    getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
+
+    const contexts = [
+      newMockContext(MOCK_RUN_1_ID, 1),
+      newMockContext(MOCK_RUN_2_ID, 200),
+      newMockContext(MOCK_RUN_3_ID, 3),
+    ];
+    const getContextSpy = jest.spyOn(mlmdUtils, 'getKfpV2RunContext');
+    getContextSpy.mockImplementation((runID: string) =>
+      Promise.resolve(contexts.find(c => c.getName() === runID)),
+    );
+
+    // No execution name is provided to ensure that it can be selected by ID.
+    const executions = [[newMockExecution(1)], [newMockExecution(200)], [newMockExecution(3)]];
+    const getExecutionsSpy = jest.spyOn(mlmdUtils, 'getExecutionsFromContext');
+    getExecutionsSpy.mockImplementation((context: Context) =>
+      Promise.resolve(executions.find(e => e[0].getId() === context.getId())),
+    );
+
+    const artifacts = [
+      newMockArtifact(1),
+      newMockArtifact(200, true, false, 'artifactName'),
+      newMockArtifact(3),
+    ];
+    const getArtifactsSpy = jest.spyOn(mlmdUtils, 'getArtifactsFromContext');
+    getArtifactsSpy.mockResolvedValue(artifacts);
+
+    const events = [newMockEvent(1), newMockEvent(200, 'artifactName'), newMockEvent(3)];
+    const getEventsSpy = jest.spyOn(mlmdUtils, 'getEventsByExecutions');
+    getEventsSpy.mockResolvedValue(events);
+
+    const getArtifactTypesSpy = jest.spyOn(mlmdUtils, 'getArtifactTypes');
+    getArtifactTypesSpy.mockReturnValue([]);
+
+    // Simulate all artifacts as type "ClassificationMetrics" (Confusion Matrix or ROC Curve).
+    const filterLinkedArtifactsByTypeSpy = jest.spyOn(mlmdUtils, 'filterLinkedArtifactsByType');
+    filterLinkedArtifactsByTypeSpy.mockImplementation(
+      (metricsFilter: string, _: ArtifactType[], linkedArtifacts: LinkedArtifact[]) =>
+        metricsFilter === 'system.ClassificationMetrics' ? linkedArtifacts : [],
+    );
+
+    render(
+      <CommonTestWrapper>
+        <CompareV2 {...generateProps()} />
+      </CommonTestWrapper>,
+    );
+    await TestUtils.flushPromises();
+
+    expect(screen.queryByText(/Confusion matrix: artifactName/)).toBeNull();
+
+    fireEvent.click(screen.getByText('Confusion Matrix'));
+    fireEvent.click(screen.getByText('Choose a first Confusion Matrix artifact'));
+
+    // Get the second element that has run text: first will be the run list.
+    fireEvent.mouseEnter(screen.queryAllByText(`test run ${MOCK_RUN_2_ID}`)[1]);
+    fireEvent.click(screen.getByText(/artifactName/));
+    screen.getByText(/Confusion Matrix: artifactName/);
+    screen.getByText(/200/);
+
+    // De-selecting the relevant run will remove the confusion matrix display.
+    const runCheckboxes = screen
+      .queryAllByRole('checkbox', { checked: true })
+      .filter(r => r.nodeName === 'INPUT');
+    fireEvent.click(runCheckboxes[1]);
+    screen.getByText(/Confusion Matrix: artifactName/);
+    fireEvent.click(runCheckboxes[2]);
+    expect(screen.queryByText(/Confusion Matrix: artifactName/)).toBeNull();
+  });
+
+  it('One ROC Curve shown on select, hidden on run de-select', async () => {
     const getRunSpy = jest.spyOn(Apis.runServiceApi, 'getRun');
     runs = [newMockRun(MOCK_RUN_1_ID), newMockRun(MOCK_RUN_2_ID), newMockRun(MOCK_RUN_3_ID)];
     getRunSpy.mockImplementation((id: string) => runs.find(r => r.run!.id === id));
@@ -604,6 +685,14 @@ describe('CompareV2', () => {
 
     fireEvent.click(screen.getByText('ROC Curve'));
     screen.getByText('ROC Curve: artifactName');
+
+    const runCheckboxes = screen
+      .queryAllByRole('checkbox', { checked: true })
+      .filter(r => r.nodeName === 'INPUT');
+    fireEvent.click(runCheckboxes[1]);
+    screen.getByText('ROC Curve: artifactName');
+    fireEvent.click(runCheckboxes[2]);
+    expect(screen.queryByText('ROC Curve: artifactName')).toBeNull();
   });
 
   it('Multiple ROC Curves shown on select', async () => {
@@ -663,5 +752,6 @@ describe('CompareV2', () => {
 
     fireEvent.click(screen.getByText('ROC Curve'));
     screen.getByText('ROC Curve: multiple artifacts');
+    screen.getByText('Filter artifacts');
   });
 });

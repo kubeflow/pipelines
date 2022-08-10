@@ -14,20 +14,15 @@
 from typing import NamedTuple
 
 from kfp.dsl import component
-from kfp.dsl import Dataset
-from kfp.dsl import Input
 from kfp.dsl import Metrics
-from kfp.dsl import Model
 
 
 @component
 def output_named_tuple(
-    artifact: Input[Dataset]
-) -> NamedTuple('Outputs', [
-    ('scalar', str),
-    ('metrics', Metrics),
-    ('model', Model),
-]):
+    dummy: str) -> NamedTuple('Outputs', [
+        ('scalar', str),
+        ('metrics', Metrics),
+    ]):
     scalar = '123'
 
     import json
@@ -39,10 +34,6 @@ def output_named_tuple(
         }]
     })
 
-    with open(artifact.path) as f:
-        artifact_contents = f.read()
-    model = 'Model contents: ' + artifact_contents
-
     from collections import namedtuple
-    output = namedtuple('Outputs', ['scalar', 'metrics', 'model'])
-    return output(scalar, metrics, model)
+    output = namedtuple('Outputs', ['scalar', 'metrics'])
+    return output(scalar, metrics)

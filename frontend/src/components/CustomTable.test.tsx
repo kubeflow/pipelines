@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { render, screen, fireEvent } from '@testing-library/react';
 import * as React from 'react';
 import CustomTable, { Column, ExpandState, Row, css } from './CustomTable';
 import TestUtils from '../TestUtils';
@@ -740,5 +741,45 @@ describe('CustomTable', () => {
     const tree = shallow(<CustomTableTest {...props} rows={rows} columns={columns} />);
     (tree.instance() as CustomTableTest)._requestFilter();
     expect(tree.state('filterStringEncoded')).toEqual('');
+  });
+
+  it('The initial filter string is called during first reload', async () => {
+    const reload = jest.fn();
+    render(
+      <CustomTable
+        {...props}
+        reload={reload}
+        rows={rows}
+        columns={columns}
+        initialFilterString={'test filter'}
+      />,
+    );
+    const expectedEncodedFilter = encodeURIComponent(
+      JSON.stringify({
+        predicates: [
+          {
+            key: 'name',
+            op: PredicateOp.ISSUBSTRING,
+            string_value: 'test filter',
+          },
+        ],
+      }),
+    );
+    expect(reload).toHaveBeenLastCalledWith({
+      filter: expectedEncodedFilter,
+      orderAscending: false,
+      pageSize: 10,
+      pageToken: '',
+      sortBy: '',
+    });
+  });
+
+  it('The setFilterString method is called when the filter text is changed', async () => {
+    const setFilterString = jest.fn();
+    render(
+      <CustomTable {...props} rows={rows} columns={columns} setFilterString={setFilterString} />,
+    );
+    fireEvent.change(screen.getByLabelText('Filter'), { target: { value: 'test filter' } });
+    expect(setFilterString).toHaveBeenLastCalledWith('test filter');
   });
 });

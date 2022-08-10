@@ -20,6 +20,7 @@ import (
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	workflowcommon "github.com/argoproj/argo-workflows/v3/workflow/common"
+	"github.com/kubeflow/pipelines/backend/src/common"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +30,7 @@ import (
 )
 
 func TestToWorkflowStatuses(t *testing.T) {
-	workflow := &workflowapi.Workflow{
+	workflow := commonutil.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "WORKFLOW_NAME",
 			Namespace:         "NAMESPACE",
@@ -47,16 +48,16 @@ func TestToWorkflowStatuses(t *testing.T) {
 			StartedAt:  metav1.NewTime(time.Unix(51, 0).UTC()),
 			FinishedAt: metav1.NewTime(time.Unix(52, 0).UTC()),
 		},
-	}
+	})
 
-	result := toWorkflowStatuses([]*workflowapi.Workflow{workflow})
+	result := toWorkflowStatuses(commonutil.ExecutionSpecList{workflow})
 
 	expected := &swfapi.WorkflowStatus{
 		Name:        "WORKFLOW_NAME",
 		Namespace:   "NAMESPACE",
 		SelfLink:    "SELF_LINK",
 		UID:         "UID",
-		Phase:       workflowapi.WorkflowRunning,
+		Phase:       common.ExecutionPhase(workflowapi.WorkflowRunning),
 		Message:     "WORKFLOW_MESSAGE",
 		CreatedAt:   metav1.NewTime(time.Unix(50, 0).UTC()),
 		StartedAt:   metav1.NewTime(time.Unix(51, 0).UTC()),
@@ -69,9 +70,9 @@ func TestToWorkflowStatuses(t *testing.T) {
 }
 
 func TestToWorkflowStatuses_NullOrEmpty(t *testing.T) {
-	workflow := &workflowapi.Workflow{}
+	workflow := commonutil.NewWorkflow(&workflowapi.Workflow{})
 
-	result := toWorkflowStatuses([]*workflowapi.Workflow{workflow})
+	result := toWorkflowStatuses(commonutil.ExecutionSpecList{workflow})
 
 	expected := &swfapi.WorkflowStatus{
 		Name:        "",
@@ -93,38 +94,38 @@ func TestToWorkflowStatuses_NullOrEmpty(t *testing.T) {
 func TestRetrieveScheduledTime(t *testing.T) {
 
 	// Base case.
-	workflow := &workflowapi.Workflow{
+	workflow := commonutil.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: metav1.NewTime(time.Unix(50, 0).UTC()),
 			Labels: map[string]string{
 				commonutil.LabelKeyWorkflowEpoch: "54",
 			},
 		},
-	}
+	})
 	result := retrieveScheduledTime(workflow)
 	assert.Equal(t, metav1.NewTime(time.Unix(54, 0).UTC()), result)
 
 	// No label
-	workflow = &workflowapi.Workflow{
+	workflow = commonutil.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: metav1.NewTime(time.Unix(50, 0).UTC()),
 			Labels: map[string]string{
 				"WRONG_LABEL": "54",
 			},
 		},
-	}
+	})
 	result = retrieveScheduledTime(workflow)
 	assert.Equal(t, metav1.NewTime(time.Unix(50, 0).UTC()), result)
 
 	// Parsing problem
-	workflow = &workflowapi.Workflow{
+	workflow = commonutil.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			CreationTimestamp: metav1.NewTime(time.Unix(50, 0).UTC()),
 			Labels: map[string]string{
 				commonutil.LabelKeyWorkflowEpoch: "UNPARSABLE_@%^%@^#%",
 			},
 		},
-	}
+	})
 	result = retrieveScheduledTime(workflow)
 	assert.Equal(t, metav1.NewTime(time.Unix(50, 0).UTC()), result)
 }
@@ -132,35 +133,35 @@ func TestRetrieveScheduledTime(t *testing.T) {
 func TestRetrieveIndex(t *testing.T) {
 
 	// Base case.
-	workflow := &workflowapi.Workflow{
+	workflow := commonutil.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				commonutil.LabelKeyWorkflowIndex: "100",
 			},
 		},
-	}
+	})
 	result := retrieveIndex(workflow)
 	assert.Equal(t, int64(100), result)
 
 	// No label
-	workflow = &workflowapi.Workflow{
+	workflow = commonutil.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				"WRONG_LABEL": "100",
 			},
 		},
-	}
+	})
 	result = retrieveIndex(workflow)
 	assert.Equal(t, int64(0), result)
 
 	// Parsing problem
-	workflow = &workflowapi.Workflow{
+	workflow = commonutil.NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
 				commonutil.LabelKeyWorkflowIndex: "UNPARSABLE_LABEL_!@^^!%@#%",
 			},
 		},
-	}
+	})
 	result = retrieveIndex(workflow)
 	assert.Equal(t, int64(0), result)
 }

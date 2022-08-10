@@ -17,11 +17,10 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
 import { useQuery } from 'react-query';
 import { ApiRunDetail } from 'src/apis/run';
-import Hr from 'src/atoms/Hr';
 import Separator from 'src/atoms/Separator';
 import CollapseButtonSingle from 'src/components/CollapseButtonSingle';
 import { QUERY_PARAMS, RoutePage } from 'src/components/Router';
-import { commonCss, padding } from 'src/Css';
+import { commonCss, padding, zIndex } from 'src/Css';
 import { Apis } from 'src/lib/Apis';
 import Buttons from 'src/lib/Buttons';
 import { URLParser } from 'src/lib/URLParser';
@@ -42,19 +41,31 @@ import RunList from './RunList';
 import { METRICS_SECTION_NAME, OVERVIEW_SECTION_NAME, PARAMS_SECTION_NAME } from './Compare';
 import { SelectedItem } from 'src/components/TwoLevelDropdown';
 import MD2Tabs from 'src/atoms/MD2Tabs';
+import {
+  ConfidenceMetricsFilter,
+  ConfidenceMetricsSection,
+} from 'src/components/viewers/MetricsVisualizations';
 import CompareTable, { CompareTableProps } from 'src/components/CompareTable';
 import {
+  compareCss,
   ExecutionArtifact,
-  getCompareTableProps,
+  FullArtifactPathMap,
+  getScalarTableProps,
+  getParamsTableProps,
+  getRocCurveId,
+  getValidRocCurveArtifactData,
   MetricsType,
+  metricsTypeToString,
+  RocCurveColorMap,
   RunArtifact,
   RunArtifactData,
 } from 'src/lib/v2/CompareUtils';
-import { ConfidenceMetricsSection } from 'src/components/viewers/MetricsVisualizations';
-import { flatMapDeep } from 'lodash';
 import { NamespaceContext, useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
 import MetricsDropdown from 'src/components/viewers/MetricsDropdown';
+import CircularProgress from '@material-ui/core/CircularProgress';
+import { lineColors } from 'src/components/viewers/ROCCurve';
+import Hr from 'src/atoms/Hr';
 
 const css = stylesheet({
   outputsRow: {
@@ -174,6 +185,50 @@ export interface SelectedArtifact {
   linkedArtifact?: LinkedArtifact;
 }
 
+interface CompareTableSectionParams {
+  isLoading?: boolean;
+  compareTableProps?: CompareTableProps;
+  dataTypeName: string;
+}
+
+function CompareTableSection(props: CompareTableSectionParams) {
+  const { isLoading, compareTableProps, dataTypeName } = props;
+
+  if (isLoading) {
+    return (
+      <div className={compareCss.smallRelativeContainer}>
+        <CircularProgress
+          size={25}
+          className={commonCss.absoluteCenter}
+          style={{ zIndex: zIndex.BUSY_OVERLAY }}
+          role='circularprogress'
+        />
+      </div>
+    );
+  }
+
+  if (!compareTableProps) {
+    return <p>There are no {dataTypeName} available on the selected runs.</p>;
+  }
+
+  return <CompareTable {...compareTableProps} />;
+}
+
+interface RocCurveMetricsParams {
+  linkedArtifacts: LinkedArtifact[];
+  filter: ConfidenceMetricsFilter;
+}
+
+function RocCurveMetrics(props: RocCurveMetricsParams) {
+  const { linkedArtifacts, filter } = props;
+
+  if (linkedArtifacts.length === 0) {
+    return <p>There are no ROC Curve artifacts available on the selected runs.</p>;
+  }
+
+  return <ConfidenceMetricsSection linkedArtifacts={linkedArtifacts} filter={filter} />;
+}
+
 interface CompareV2Namespace {
   namespace?: string;
 }
@@ -189,19 +244,26 @@ function CompareV2(props: CompareV2Props) {
   const [isOverviewCollapsed, setIsOverviewCollapsed] = useState(false);
   const [isParamsCollapsed, setIsParamsCollapsed] = useState(false);
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
+  const [isLoadingArtifacts, setIsLoadingArtifacts] = useState<boolean>(true);
+  const [paramsTableProps, setParamsTableProps] = useState<CompareTableProps | undefined>();
+  const [isInitialArtifactsLoad, setIsInitialArtifactsLoad] = useState<boolean>(true);
 
-  const [confusionMatrixRunArtifacts, setConfusionMatrixRunArtifacts] = useState<RunArtifact[]>([]);
-  const [htmlRunArtifacts, setHtmlRunArtifacts] = useState<RunArtifact[]>([]);
-  const [markdownRunArtifacts, setMarkdownRunArtifacts] = useState<RunArtifact[]>([]);
-
-  const [rocCurveArtifacts, setRocCurveArtifacts] = useState<Artifact[]>([]);
-  const [selectedRocCurveArtifacts, setSelectedRocCurveArtifacts] = useState<Artifact[]>([]);
-
-  const [scalarMetricsArtifacts, setScalarMetricsArtifacts] = useState<RunArtifact[]>([]);
-  const [scalarMetricsArtifactCount, setScalarMetricsArtifactCount] = useState<number>(0);
+  // Scalar Metrics
   const [scalarMetricsTableData, setScalarMetricsTableData] = useState<
     CompareTableProps | undefined
   >(undefined);
+
+  // ROC Curve
+  const [rocCurveLinkedArtifacts, setRocCurveLinkedArtifacts] = useState<LinkedArtifact[]>([]);
+  const [selectedRocCurveIds, setSelectedRocCurveIds] = useState<string[]>([]);
+  const [selectedIdColorMap, setSelectedIdColorMap] = useState<RocCurveColorMap>({});
+  const [lineColorsStack, setLineColorsStack] = useState<string[]>([...lineColors].reverse());
+  const [fullArtifactPathMap, setFullArtifactPathMap] = useState<FullArtifactPathMap>({});
+
+  // Two-panel display artifacts
+  const [confusionMatrixRunArtifacts, setConfusionMatrixRunArtifacts] = useState<RunArtifact[]>([]);
+  const [htmlRunArtifacts, setHtmlRunArtifacts] = useState<RunArtifact[]>([]);
+  const [markdownRunArtifacts, setMarkdownRunArtifacts] = useState<RunArtifact[]>([]);
 
   // Selected artifacts for two-panel layout.
   const createSelectedArtifactArray = (count: number): SelectedArtifact[] => {
@@ -246,10 +308,12 @@ function CompareV2(props: CompareV2Props) {
     isError: isErrorMlmdPackages,
     error: errorMlmdPackages,
   } = useQuery<MlmdPackage[], Error>(
-    ['run_artifacts', { runIds }],
+    ['run_artifacts', { runs }],
     () =>
       Promise.all(
         runIds.map(async runId => {
+          // TODO(zijianjoy): MLMD query is limited to 100 artifacts per run.
+          // https://github.com/google/ml-metadata/blob/5757f09d3b3ae0833078dbfd2d2d1a63208a9821/ml_metadata/proto/metadata_store.proto#L733-L737
           const context = await getKfpV2RunContext(runId);
           const executions = await getExecutionsFromContext(context);
           const artifacts = await getArtifactsFromContext(context);
@@ -277,43 +341,144 @@ function CompareV2(props: CompareV2Props) {
     staleTime: Infinity,
   });
 
+  // Ensure that the two-panel selected artifacts are present in selected valid run list.
+  const getVerifiedTwoPanelSelection = (
+    runArtifacts: RunArtifact[],
+    selectedArtifacts: SelectedArtifact[],
+  ) => {
+    const artifactsPresent: boolean[] = new Array(2).fill(false);
+    for (const runArtifact of runArtifacts) {
+      const runName = runArtifact.run.run?.name;
+      if (runName === selectedArtifacts[0].selectedItem.itemName) {
+        artifactsPresent[0] = true;
+      } else if (runName === selectedArtifacts[1].selectedItem.itemName) {
+        artifactsPresent[1] = true;
+      }
+    }
+
+    for (let i: number = 0; i < artifactsPresent.length; i++) {
+      if (!artifactsPresent[i]) {
+        selectedArtifacts[i] = {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        };
+      }
+    }
+
+    return [...selectedArtifacts];
+  };
+
   useEffect(() => {
-    if (runs && mlmdPackages && artifactTypes) {
-      const runArtifacts: RunArtifact[] = getRunArtifacts(runs, mlmdPackages);
+    if (runs && selectedIds && mlmdPackages && artifactTypes) {
+      const selectedIdsSet = new Set(selectedIds);
+      const runArtifacts: RunArtifact[] = getRunArtifacts(runs, mlmdPackages).filter(runArtifact =>
+        selectedIdsSet.has(runArtifact.run.run!.id!),
+      );
       const scalarMetricsArtifactData = filterRunArtifactsByType(
         runArtifacts,
         artifactTypes,
         MetricsType.SCALAR_METRICS,
       );
-      setScalarMetricsArtifacts(scalarMetricsArtifactData.runArtifacts);
-      setScalarMetricsArtifactCount(scalarMetricsArtifactData.artifactCount);
-      setConfusionMatrixRunArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX)
-          .runArtifacts,
-      );
-      setHtmlRunArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML).runArtifacts,
-      );
-      setMarkdownRunArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN).runArtifacts,
+      setScalarMetricsTableData(
+        getScalarTableProps(
+          scalarMetricsArtifactData.runArtifacts,
+          scalarMetricsArtifactData.artifactCount,
+        ),
       );
 
+      // Filter and set the two-panel layout run artifacts.
+      const confusionMatrixRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
+        runArtifacts,
+        artifactTypes,
+        MetricsType.CONFUSION_MATRIX,
+      ).runArtifacts;
+      const htmlRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
+        runArtifacts,
+        artifactTypes,
+        MetricsType.HTML,
+      ).runArtifacts;
+      const markdownRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
+        runArtifacts,
+        artifactTypes,
+        MetricsType.MARKDOWN,
+      ).runArtifacts;
+      setConfusionMatrixRunArtifacts(confusionMatrixRunArtifacts);
+      setHtmlRunArtifacts(htmlRunArtifacts);
+      setMarkdownRunArtifacts(markdownRunArtifacts);
+
+      // Iterate through selected runs, remove current selection if not present among runs.
+      setSelectedArtifactsMap({
+        [MetricsType.CONFUSION_MATRIX]: getVerifiedTwoPanelSelection(
+          confusionMatrixRunArtifacts,
+          selectedArtifactsMap[MetricsType.CONFUSION_MATRIX],
+        ),
+        [MetricsType.HTML]: getVerifiedTwoPanelSelection(
+          htmlRunArtifacts,
+          selectedArtifactsMap[MetricsType.HTML],
+        ),
+        [MetricsType.MARKDOWN]: getVerifiedTwoPanelSelection(
+          markdownRunArtifacts,
+          selectedArtifactsMap[MetricsType.MARKDOWN],
+        ),
+      });
+
+      // Set ROC Curve run artifacts and get all valid ROC curve data for plot visualization.
       const rocCurveRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
         runArtifacts,
         artifactTypes,
         MetricsType.ROC_CURVE,
       ).runArtifacts;
-      const rocCurveArtifacts: Artifact[] = flatMapDeep(
-        rocCurveRunArtifacts.map(rocCurveArtifact =>
-          rocCurveArtifact.executionArtifacts.map(executionArtifact =>
-            executionArtifact.linkedArtifacts.map(linkedArtifact => linkedArtifact.artifact),
-          ),
-        ),
-      );
-      setRocCurveArtifacts(rocCurveArtifacts);
-      setSelectedRocCurveArtifacts(rocCurveArtifacts.slice(0, 3));
+      updateRocCurveDisplay(rocCurveRunArtifacts);
+      setIsLoadingArtifacts(false);
+      setIsInitialArtifactsLoad(false);
     }
-  }, [runs, mlmdPackages, artifactTypes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runs, selectedIds, mlmdPackages, artifactTypes]);
+
+  // Update the ROC Curve colors and selection.
+  const updateRocCurveDisplay = (runArtifacts: RunArtifact[]) => {
+    const {
+      validLinkedArtifacts,
+      fullArtifactPathMap,
+      validRocCurveIdSet,
+    } = getValidRocCurveArtifactData(runArtifacts);
+
+    setFullArtifactPathMap(fullArtifactPathMap);
+    setRocCurveLinkedArtifacts(validLinkedArtifacts);
+
+    // Remove all newly invalid ROC Curves from the selection (if run selection changes).
+    const removedRocCurveIds: Set<string> = new Set();
+    for (const oldSelectedId of Object.keys(selectedIdColorMap)) {
+      if (!validRocCurveIdSet.has(oldSelectedId)) {
+        removedRocCurveIds.add(oldSelectedId);
+      }
+    }
+
+    // If initial load, choose first three artifacts; ow, remove artifacts from de-selected runs.
+    let updatedRocCurveIds: string[] = selectedRocCurveIds;
+    if (isInitialArtifactsLoad) {
+      updatedRocCurveIds = validLinkedArtifacts
+        .map(linkedArtifact => getRocCurveId(linkedArtifact))
+        .slice(0, 3);
+      updatedRocCurveIds.forEach(rocCurveId => {
+        selectedIdColorMap[rocCurveId] = lineColorsStack.pop()!;
+      });
+    } else {
+      updatedRocCurveIds = updatedRocCurveIds.filter(rocCurveId => {
+        if (removedRocCurveIds.has(rocCurveId)) {
+          lineColorsStack.push(selectedIdColorMap[rocCurveId]);
+          delete selectedIdColorMap[rocCurveId];
+          return false;
+        }
+        return true;
+      });
+    }
+    setSelectedRocCurveIds(updatedRocCurveIds);
+    setLineColorsStack(lineColorsStack);
+    setSelectedIdColorMap(selectedIdColorMap);
+  };
 
   useEffect(() => {
     if (isLoadingRunDetails || isLoadingMlmdPackages || isLoadingArtifactTypes) {
@@ -393,6 +558,16 @@ function CompareV2(props: CompareV2Props) {
     }
   }, [runs]);
 
+  useEffect(() => {
+    if (runs) {
+      const selectedIdsSet = new Set(selectedIds);
+      const selectedRuns: ApiRunDetail[] = runs.filter(run => selectedIdsSet.has(run.run!.id!));
+      setParamsTableProps(getParamsTableProps(selectedRuns));
+    } else {
+      setParamsTableProps(undefined);
+    }
+  }, [runs, selectedIds]);
+
   const showPageError = async (message: string, error: Error | undefined) => {
     const errorMessage = await errorToMessage(error);
     updateBanner({
@@ -405,23 +580,13 @@ function CompareV2(props: CompareV2Props) {
     setSelectedIds(selectedIds);
   };
 
-  useEffect(() => {
-    const compareTableProps: CompareTableProps = getCompareTableProps(
-      scalarMetricsArtifacts,
-      scalarMetricsArtifactCount,
-    );
-    if (compareTableProps.yLabels.length === 0) {
-      setScalarMetricsTableData(undefined);
-    } else {
-      setScalarMetricsTableData(compareTableProps);
-    }
-  }, [scalarMetricsArtifacts, scalarMetricsArtifactCount]);
-
   const updateSelectedArtifacts = (newArtifacts: SelectedArtifact[]) => {
     selectedArtifactsMap[metricsTab] = newArtifacts;
     setSelectedArtifactsMap(selectedArtifactsMap);
   };
 
+  const isErrorArtifacts = isErrorRunDetails || isErrorMlmdPackages || isErrorArtifactTypes;
+  const metricsTabText = metricsTypeToString(metricsTab);
   return (
     <div className={classes(commonCss.page, padding(20, 'lrt'))}>
       {/* Overview section */}
@@ -455,7 +620,11 @@ function CompareV2(props: CompareV2Props) {
       {!isParamsCollapsed && (
         <div className={classes(commonCss.noShrink, css.outputsRow, css.outputsOverflow)}>
           <Separator orientation='vertical' />
-          <p>Parameter Section V2</p>
+          <CompareTableSection
+            isLoading={isLoadingRunDetails}
+            compareTableProps={paramsTableProps}
+            dataTypeName='Parameters'
+          />
           <Hr />
         </div>
       )}
@@ -475,45 +644,67 @@ function CompareV2(props: CompareV2Props) {
             onSwitch={setMetricsTab}
           />
           <div className={classes(padding(20, 'lrt'), css.outputsOverflow)}>
-            {metricsTab === MetricsType.SCALAR_METRICS &&
-              (scalarMetricsTableData ? (
-                <CompareTable {...scalarMetricsTableData} />
-              ) : (
-                <p>There are no Scalar Metrics artifacts available on the selected runs.</p>
-              ))}
-            {metricsTab === MetricsType.CONFUSION_MATRIX && (
-              <MetricsDropdown
-                filteredRunArtifacts={confusionMatrixRunArtifacts}
-                metricsTab={metricsTab}
-                selectedArtifacts={selectedArtifactsMap[metricsTab]}
-                updateSelectedArtifacts={updateSelectedArtifacts}
-                namespace={namespace}
-              />
-            )}
-            {/* TODO(zpChris): Add more ROC Curve selections through checkbox system. */}
-            {metricsTab === MetricsType.ROC_CURVE &&
-              (selectedRocCurveArtifacts.length > 0 ? (
-                <ConfidenceMetricsSection artifacts={selectedRocCurveArtifacts} />
-              ) : (
-                <p>There are no ROC Curve artifacts available on the selected runs.</p>
-              ))}
-            {metricsTab === MetricsType.HTML && (
-              <MetricsDropdown
-                filteredRunArtifacts={htmlRunArtifacts}
-                metricsTab={metricsTab}
-                selectedArtifacts={selectedArtifactsMap[metricsTab]}
-                updateSelectedArtifacts={updateSelectedArtifacts}
-                namespace={namespace}
-              />
-            )}
-            {metricsTab === MetricsType.MARKDOWN && (
-              <MetricsDropdown
-                filteredRunArtifacts={markdownRunArtifacts}
-                metricsTab={metricsTab}
-                selectedArtifacts={selectedArtifactsMap[metricsTab]}
-                updateSelectedArtifacts={updateSelectedArtifacts}
-                namespace={namespace}
-              />
+            {isErrorArtifacts ? (
+              <p>An error is preventing the {metricsTabText} from being displayed.</p>
+            ) : isLoadingArtifacts ? (
+              <div className={compareCss.relativeContainer}>
+                <CircularProgress
+                  size={25}
+                  className={commonCss.absoluteCenter}
+                  style={{ zIndex: zIndex.BUSY_OVERLAY }}
+                  role='circularprogress'
+                />
+              </div>
+            ) : (
+              <>
+                {metricsTab === MetricsType.SCALAR_METRICS && (
+                  <CompareTableSection
+                    compareTableProps={scalarMetricsTableData}
+                    dataTypeName='Scalar Metrics artifacts'
+                  />
+                )}
+                {metricsTab === MetricsType.CONFUSION_MATRIX && (
+                  <MetricsDropdown
+                    filteredRunArtifacts={confusionMatrixRunArtifacts}
+                    metricsTab={metricsTab}
+                    selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                    updateSelectedArtifacts={updateSelectedArtifacts}
+                    namespace={namespace}
+                  />
+                )}
+                {metricsTab === MetricsType.ROC_CURVE && (
+                  <RocCurveMetrics
+                    linkedArtifacts={rocCurveLinkedArtifacts}
+                    filter={{
+                      selectedIds: selectedRocCurveIds,
+                      setSelectedIds: setSelectedRocCurveIds,
+                      fullArtifactPathMap,
+                      selectedIdColorMap,
+                      setSelectedIdColorMap,
+                      lineColorsStack,
+                      setLineColorsStack,
+                    }}
+                  />
+                )}
+                {metricsTab === MetricsType.HTML && (
+                  <MetricsDropdown
+                    filteredRunArtifacts={htmlRunArtifacts}
+                    metricsTab={metricsTab}
+                    selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                    updateSelectedArtifacts={updateSelectedArtifacts}
+                    namespace={namespace}
+                  />
+                )}
+                {metricsTab === MetricsType.MARKDOWN && (
+                  <MetricsDropdown
+                    filteredRunArtifacts={markdownRunArtifacts}
+                    metricsTab={metricsTab}
+                    selectedArtifacts={selectedArtifactsMap[metricsTab]}
+                    updateSelectedArtifacts={updateSelectedArtifacts}
+                    namespace={namespace}
+                  />
+                )}
+              </>
             )}
           </div>
         </div>

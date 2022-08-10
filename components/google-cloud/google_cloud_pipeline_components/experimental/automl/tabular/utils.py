@@ -73,90 +73,140 @@ def _get_default_pipeline_params(
   """Get the AutoML Tabular v1 default training pipeline.
 
   Args:
-    project: The GCP project that runs the pipeline components.
-    location: The GCP region that runs the pipeline components.
-    root_dir: The root GCS directory for the pipeline components.
-    target_column: The target column name.
-    prediction_type: The type of prediction the model is to produce.
+    project:
+      The GCP project that runs the pipeline components.
+    location:
+      The GCP region that runs the pipeline components.
+    root_dir:
+      The root GCS directory for the pipeline components.
+    target_column:
+      The target column name.
+    prediction_type:
+      The type of prediction the model is to produce.
       "classification" or "regression".
-    optimization_objective: For binary classification, "maximize-au-roc",
+    optimization_objective:
+      For binary classification, "maximize-au-roc",
       "minimize-log-loss", "maximize-au-prc", "maximize-precision-at-recall", or
       "maximize-recall-at-precision". For multi class classification,
       "minimize-log-loss". For regression, "minimize-rmse", "minimize-mae", or
       "minimize-rmsle".
-    transformations: The path to a GCS file containing the transformations to
+    transformations:
+      The path to a GCS file containing the transformations to
       apply.
-    train_budget_milli_node_hours: The train budget of creating this model,
+    train_budget_milli_node_hours:
+      The train budget of creating this model,
       expressed in milli node hours i.e. 1,000 value in this field means 1 node
       hour.
-    stage_1_num_parallel_trials: Number of parallel trails for stage 1.
-    stage_2_num_parallel_trials: Number of parallel trails for stage 2.
-    stage_2_num_selected_trials: Number of selected trials for stage 2.
-    data_source_csv_filenames: The CSV data source.
-    data_source_bigquery_table_path: The BigQuery data source.
-    predefined_split_key: The predefined_split column name.
-    timestamp_split_key: The timestamp_split column name.
-    stratified_split_key: The stratified_split column name.
-    training_fraction: The training fraction.
-    validation_fraction: The validation fraction.
-    test_fraction: float = The test fraction.
-    weight_column: The weight column name.
-    study_spec_parameters_override: The list for overriding study spec. The list
+    stage_1_num_parallel_trials:
+      Number of parallel trails for stage 1.
+    stage_2_num_parallel_trials:
+      Number of parallel trails for stage 2.
+    stage_2_num_selected_trials:
+      Number of selected trials for stage 2.
+    data_source_csv_filenames:
+      The CSV data source.
+    data_source_bigquery_table_path:
+      The BigQuery data source.
+    predefined_split_key:
+      The predefined_split column name.
+    timestamp_split_key:
+      The timestamp_split column name.
+    stratified_split_key:
+      The stratified_split column name.
+    training_fraction:
+      The training fraction.
+    validation_fraction:
+      The validation fraction.
+    test_fraction:
+      float = The test fraction.
+    weight_column:
+      The weight column name.
+    study_spec_parameters_override:
+      The list for overriding study spec. The list
       should be of format
       https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/study.proto#L181.
-    optimization_objective_recall_value: Required when optimization_objective is
+    optimization_objective_recall_value:
+      Required when optimization_objective is
       "maximize-precision-at-recall". Must be between 0 and 1, inclusive.
-    optimization_objective_precision_value: Required when optimization_objective
+    optimization_objective_precision_value:
+      Required when optimization_objective
       is "maximize-recall-at-precision". Must be between 0 and 1, inclusive.
-    stage_1_tuner_worker_pool_specs_override: The dictionary for overriding.
+    stage_1_tuner_worker_pool_specs_override:
+      The dictionary for overriding.
       stage 1 tuner worker pool spec. The dictionary should be of format
         https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
-    cv_trainer_worker_pool_specs_override: The dictionary for overriding stage
+    cv_trainer_worker_pool_specs_override:
+      The dictionary for overriding stage
       cv trainer worker pool spec. The dictionary should be of format
         https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
-    export_additional_model_without_custom_ops: Whether to export additional
+    export_additional_model_without_custom_ops:
+      Whether to export additional
       model without custom TensorFlow operators.
-    stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
+    stats_and_example_gen_dataflow_machine_type:
+      The dataflow machine type for
       stats_and_example_gen component.
-    stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
+    stats_and_example_gen_dataflow_max_num_workers:
+      The max number of Dataflow
       workers for stats_and_example_gen component.
-    stats_and_example_gen_dataflow_disk_size_gb: Dataflow worker's disk size in
+    stats_and_example_gen_dataflow_disk_size_gb:
+      Dataflow worker's disk size in
       GB for stats_and_example_gen component.
-    transform_dataflow_machine_type: The dataflow machine type for transform
+    transform_dataflow_machine_type:
+      The dataflow machine type for transform
       component.
-    transform_dataflow_max_num_workers: The max number of Dataflow workers for
+    transform_dataflow_max_num_workers:
+      The max number of Dataflow workers for
       transform component.
-    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+    transform_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
       transform component.
-    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
+    dataflow_subnetwork:
+      Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
         https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
+    dataflow_use_public_ips:
+      Specifies whether Dataflow workers use public IP
       addresses.
-    encryption_spec_key_name: The KMS key name.
-    additional_experiments: Use this field to config private preview features.
-    dataflow_service_account: Custom service account to run dataflow jobs.
-    max_selected_features: number of features to select for training,
-    apply_feature_selection_tuning: tuning feature selection rate if true.
-    run_evaluation: Whether to run evaluation in the training pipeline.
-    evaluation_batch_predict_machine_type: The prediction server machine type
+    encryption_spec_key_name:
+      The KMS key name.
+    additional_experiments:
+      Use this field to config private preview features.
+    dataflow_service_account:
+      Custom service account to run dataflow jobs.
+    max_selected_features:
+      number of features to select for training,
+    apply_feature_selection_tuning:
+      tuning feature selection rate if true.
+    run_evaluation:
+      Whether to run evaluation in the training pipeline.
+    evaluation_batch_predict_machine_type:
+      The prediction server machine type
       for batch predict components during evaluation.
-    evaluation_batch_predict_starting_replica_count: The initial number of
+    evaluation_batch_predict_starting_replica_count:
+      The initial number of
       prediction server for batch predict components during evaluation.
-    evaluation_batch_predict_max_replica_count: The max number of prediction
+    evaluation_batch_predict_max_replica_count:
+      The max number of prediction
       server for batch predict components during evaluation.
-    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
+    evaluation_dataflow_machine_type:
+      The dataflow machine type for evaluation
       components.
-    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
+    evaluation_dataflow_max_num_workers:
+      The max number of Dataflow workers for
       evaluation components.
-    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+    evaluation_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
       evaluation components.
-    run_distillation: Whether to run distill in the training pipeline.
-    distill_batch_predict_machine_type: The prediction server machine type for
+    run_distillation:
+      Whether to run distill in the training pipeline.
+    distill_batch_predict_machine_type:
+      The prediction server machine type for
       batch predict component in the model distillation.
-    distill_batch_predict_starting_replica_count: The initial number of
+    distill_batch_predict_starting_replica_count:
+      The initial number of
       prediction server for batch predict component in the model distillation.
-    distill_batch_predict_max_replica_count: The max number of prediction server
+    distill_batch_predict_max_replica_count:
+      The max number of prediction server
       for batch predict component in the model distillation.
 
   Returns:
@@ -247,7 +297,8 @@ def _get_default_pipeline_params(
           encryption_spec_key_name,
       'additional_experiments':
           additional_experiments,
-      'max_selected_features': max_selected_features,
+      'max_selected_features':
+            max_selected_features,
   }
   parameter_values.update({
       param: value for param, value in parameters.items() if value is not None
@@ -352,88 +403,136 @@ def get_automl_tabular_pipeline_and_parameters(
   """Get the AutoML Tabular v1 default training pipeline.
 
   Args:
-    project: The GCP project that runs the pipeline components.
-    location: The GCP region that runs the pipeline components.
-    root_dir: The root GCS directory for the pipeline components.
-    target_column: The target column name.
-    prediction_type: The type of prediction the model is to produce.
+    project:
+      The GCP project that runs the pipeline components.
+    location:
+      The GCP region that runs the pipeline components.
+    root_dir:
+      The root GCS directory for the pipeline components.
+    target_column:
+      The target column name.
+    prediction_type:
+      The type of prediction the model is to produce.
       "classification" or "regression".
-    optimization_objective: For binary classification, "maximize-au-roc",
+    optimization_objective:
+      For binary classification, "maximize-au-roc",
       "minimize-log-loss", "maximize-au-prc", "maximize-precision-at-recall", or
       "maximize-recall-at-precision". For multi class classification,
       "minimize-log-loss". For regression, "minimize-rmse", "minimize-mae", or
       "minimize-rmsle".
-    transformations: The path to a GCS file containing the transformations to
+    transformations:
+      The path to a GCS file containing the transformations to
       apply.
-    train_budget_milli_node_hours: The train budget of creating this model,
+    train_budget_milli_node_hours:
+      The train budget of creating this model,
       expressed in milli node hours i.e. 1,000 value in this field means 1 node
       hour.
-    stage_1_num_parallel_trials: Number of parallel trails for stage 1.
-    stage_2_num_parallel_trials: Number of parallel trails for stage 2.
-    stage_2_num_selected_trials: Number of selected trials for stage 2.
-    data_source_csv_filenames: The CSV data source.
-    data_source_bigquery_table_path: The BigQuery data source.
-    predefined_split_key: The predefined_split column name.
-    timestamp_split_key: The timestamp_split column name.
-    stratified_split_key: The stratified_split column name.
-    training_fraction: The training fraction.
-    validation_fraction: The validation fraction.
-    test_fraction: float = The test fraction.
-    weight_column: The weight column name.
-    study_spec_parameters_override: The list for overriding study spec. The list
+    stage_1_num_parallel_trials:
+      Number of parallel trails for stage 1.
+    stage_2_num_parallel_trials:
+      Number of parallel trails for stage 2.
+    stage_2_num_selected_trials:
+      Number of selected trials for stage 2.
+    data_source_csv_filenames:
+      The CSV data source.
+    data_source_bigquery_table_path:
+      The BigQuery data source.
+    predefined_split_key:
+      The predefined_split column name.
+    timestamp_split_key:
+      The timestamp_split column name.
+    stratified_split_key:
+      The stratified_split column name.
+    training_fraction:
+      The training fraction.
+    validation_fraction:
+      The validation fraction.
+    test_fraction:
+      float = The test fraction.
+    weight_column:
+      The weight column name.
+    study_spec_parameters_override:
+      The list for overriding study spec. The list
       should be of format
       https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/study.proto#L181.
-    optimization_objective_recall_value: Required when optimization_objective is
+    optimization_objective_recall_value:
+      Required when optimization_objective is
       "maximize-precision-at-recall". Must be between 0 and 1, inclusive.
-    optimization_objective_precision_value: Required when optimization_objective
+    optimization_objective_precision_value:
+      Required when optimization_objective
       is "maximize-recall-at-precision". Must be between 0 and 1, inclusive.
-    stage_1_tuner_worker_pool_specs_override: The dictionary for overriding.
+    stage_1_tuner_worker_pool_specs_override:
+      The dictionary for overriding.
       stage 1 tuner worker pool spec. The dictionary should be of format
         https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
-    cv_trainer_worker_pool_specs_override: The dictionary for overriding stage
+    cv_trainer_worker_pool_specs_override:
+      The dictionary for overriding stage
       cv trainer worker pool spec. The dictionary should be of format
         https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
-    export_additional_model_without_custom_ops: Whether to export additional
+    export_additional_model_without_custom_ops:
+      Whether to export additional
       model without custom TensorFlow operators.
-    stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
+    stats_and_example_gen_dataflow_machine_type:
+      The dataflow machine type for
       stats_and_example_gen component.
-    stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
+    stats_and_example_gen_dataflow_max_num_workers:
+      The max number of Dataflow
       workers for stats_and_example_gen component.
-    stats_and_example_gen_dataflow_disk_size_gb: Dataflow worker's disk size in
+    stats_and_example_gen_dataflow_disk_size_gb:
+      Dataflow worker's disk size in
       GB for stats_and_example_gen component.
-    transform_dataflow_machine_type: The dataflow machine type for transform
+    transform_dataflow_machine_type:
+      The dataflow machine type for transform
       component.
-    transform_dataflow_max_num_workers: The max number of Dataflow workers for
+    transform_dataflow_max_num_workers:
+      The max number of Dataflow workers for
       transform component.
-    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+    transform_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
       transform component.
-    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
+    dataflow_subnetwork:
+      Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
         https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
+    dataflow_use_public_ips:
+      Specifies whether Dataflow workers use public IP
       addresses.
-    encryption_spec_key_name: The KMS key name.
-    additional_experiments: Use this field to config private preview features.
-    dataflow_service_account: Custom service account to run dataflow jobs.
-    run_evaluation: Whether to run evaluation in the training pipeline.
-    evaluation_batch_predict_machine_type: The prediction server machine type
+    encryption_spec_key_name:
+      The KMS key name.
+    additional_experiments:
+      Use this field to config private preview features.
+    dataflow_service_account:
+      Custom service account to run dataflow jobs.
+    run_evaluation:
+      Whether to run evaluation in the training pipeline.
+    evaluation_batch_predict_machine_type:
+      The prediction server machine type
       for batch predict components during evaluation.
-    evaluation_batch_predict_starting_replica_count: The initial number of
+    evaluation_batch_predict_starting_replica_count:
+      The initial number of
       prediction server for batch predict components during evaluation.
-    evaluation_batch_predict_max_replica_count: The max number of prediction
+    evaluation_batch_predict_max_replica_count:
+      The max number of prediction
       server for batch predict components during evaluation.
-    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
+    evaluation_dataflow_machine_type:
+      The dataflow machine type for evaluation
       components.
-    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
+    evaluation_dataflow_max_num_workers:
+      The max number of Dataflow workers for
       evaluation components.
-    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+    evaluation_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
       evaluation components.
-    run_distillation: Whether to run distill in the training pipeline.
-    distill_batch_predict_machine_type: The prediction server machine type for
+    run_distillation:
+      Whether to run distill in the training pipeline.
+    distill_batch_predict_machine_type:
+      The prediction server machine type for
       batch predict component in the model distillation.
-    distill_batch_predict_starting_replica_count: The initial number of
+    distill_batch_predict_starting_replica_count:
+      The initial number of
       prediction server for batch predict component in the model distillation.
-    distill_batch_predict_max_replica_count: The max number of prediction server
+    distill_batch_predict_max_replica_count:
+      The max number of prediction server
       for batch predict component in the model distillation.
 
   Returns:
@@ -550,90 +649,140 @@ def get_automl_tabular_feature_selection_pipeline_and_parameters(
   """Get the AutoML Tabular v1 default training pipeline.
 
   Args:
-    project: The GCP project that runs the pipeline components.
-    location: The GCP region that runs the pipeline components.
-    root_dir: The root GCS directory for the pipeline components.
-    target_column: The target column name.
-    prediction_type: The type of prediction the model is to produce.
+    project:
+      The GCP project that runs the pipeline components.
+    location:
+      The GCP region that runs the pipeline components.
+    root_dir:
+      The root GCS directory for the pipeline components.
+    target_column:
+      The target column name.
+    prediction_type:
+      The type of prediction the model is to produce.
       "classification" or "regression".
-    optimization_objective: For binary classification, "maximize-au-roc",
+    optimization_objective:
+      For binary classification, "maximize-au-roc",
       "minimize-log-loss", "maximize-au-prc", "maximize-precision-at-recall", or
       "maximize-recall-at-precision". For multi class classification,
       "minimize-log-loss". For regression, "minimize-rmse", "minimize-mae", or
       "minimize-rmsle".
-    transformations: The path to a GCS file containing the transformations to
+    transformations:
+      The path to a GCS file containing the transformations to
       apply.
-    train_budget_milli_node_hours: The train budget of creating this model,
+    train_budget_milli_node_hours:
+      The train budget of creating this model,
       expressed in milli node hours i.e. 1,000 value in this field means 1 node
       hour.
-    stage_1_num_parallel_trials: Number of parallel trails for stage 1.
-    stage_2_num_parallel_trials: Number of parallel trails for stage 2.
-    stage_2_num_selected_trials: Number of selected trials for stage 2.
-    data_source_csv_filenames: The CSV data source.
-    data_source_bigquery_table_path: The BigQuery data source.
-    predefined_split_key: The predefined_split column name.
-    timestamp_split_key: The timestamp_split column name.
-    stratified_split_key: The stratified_split column name.
-    training_fraction: The training fraction.
-    validation_fraction: The validation fraction.
-    test_fraction: float = The test fraction.
-    weight_column: The weight column name.
-    study_spec_parameters_override: The list for overriding study spec. The list
+    stage_1_num_parallel_trials:
+      Number of parallel trails for stage 1.
+    stage_2_num_parallel_trials:
+      Number of parallel trails for stage 2.
+    stage_2_num_selected_trials:
+      Number of selected trials for stage 2.
+    data_source_csv_filenames:
+      The CSV data source.
+    data_source_bigquery_table_path:
+      The BigQuery data source.
+    predefined_split_key:
+      The predefined_split column name.
+    timestamp_split_key:
+      The timestamp_split column name.
+    stratified_split_key:
+      The stratified_split column name.
+    training_fraction:
+      The training fraction.
+    validation_fraction:
+      The validation fraction.
+    test_fraction:
+      float = The test fraction.
+    weight_column:
+      The weight column name.
+    study_spec_parameters_override:
+      The list for overriding study spec. The list
       should be of format
       https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/study.proto#L181.
-    optimization_objective_recall_value: Required when optimization_objective is
+    optimization_objective_recall_value:
+      Required when optimization_objective is
       "maximize-precision-at-recall". Must be between 0 and 1, inclusive.
-    optimization_objective_precision_value: Required when optimization_objective
+    optimization_objective_precision_value:
+      Required when optimization_objective
       is "maximize-recall-at-precision". Must be between 0 and 1, inclusive.
-    stage_1_tuner_worker_pool_specs_override: The dictionary for overriding.
+    stage_1_tuner_worker_pool_specs_override:
+      The dictionary for overriding.
       stage 1 tuner worker pool spec. The dictionary should be of format
         https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
-    cv_trainer_worker_pool_specs_override: The dictionary for overriding stage
+    cv_trainer_worker_pool_specs_override:
+      The dictionary for overriding stage
       cv trainer worker pool spec. The dictionary should be of format
         https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
-    export_additional_model_without_custom_ops: Whether to export additional
+    export_additional_model_without_custom_ops:
+      Whether to export additional
       model without custom TensorFlow operators.
-    stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
+    stats_and_example_gen_dataflow_machine_type:
+      The dataflow machine type for
       stats_and_example_gen component.
-    stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
+    stats_and_example_gen_dataflow_max_num_workers:
+      The max number of Dataflow
       workers for stats_and_example_gen component.
-    stats_and_example_gen_dataflow_disk_size_gb: Dataflow worker's disk size in
+    stats_and_example_gen_dataflow_disk_size_gb:
+      Dataflow worker's disk size in
       GB for stats_and_example_gen component.
-    transform_dataflow_machine_type: The dataflow machine type for transform
+    transform_dataflow_machine_type:
+      The dataflow machine type for transform
       component.
-    transform_dataflow_max_num_workers: The max number of Dataflow workers for
+    transform_dataflow_max_num_workers:
+      The max number of Dataflow workers for
       transform component.
-    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+    transform_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
       transform component.
-    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
+    dataflow_subnetwork:
+      Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
         https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
+    dataflow_use_public_ips:
+      Specifies whether Dataflow workers use public IP
       addresses.
-    encryption_spec_key_name: The KMS key name.
-    additional_experiments: Use this field to config private preview features.
-    dataflow_service_account: Custom service account to run dataflow jobs.
-    run_evaluation: Whether to run evaluation in the training pipeline.
-    evaluation_batch_predict_machine_type: The prediction server machine type
+    encryption_spec_key_name:
+      The KMS key name.
+    additional_experiments:
+      Use this field to config private preview features.
+    dataflow_service_account:
+      Custom service account to run dataflow jobs.
+    run_evaluation:
+      Whether to run evaluation in the training pipeline.
+    evaluation_batch_predict_machine_type:
+      The prediction server machine type
       for batch predict components during evaluation.
-    evaluation_batch_predict_starting_replica_count: The initial number of
+    evaluation_batch_predict_starting_replica_count:
+      The initial number of
       prediction server for batch predict components during evaluation.
-    evaluation_batch_predict_max_replica_count: The max number of prediction
+    evaluation_batch_predict_max_replica_count:
+      The max number of prediction
       server for batch predict components during evaluation.
-    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
+    evaluation_dataflow_machine_type:
+      The dataflow machine type for evaluation
       components.
-    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
+    evaluation_dataflow_max_num_workers:
+      The max number of Dataflow workers for
       evaluation components.
-    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+    evaluation_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
       evaluation components.
-    max_selected_features: number of features to select for training,
-    apply_feature_selection_tuning: tuning feature selection rate if true.
-    run_distillation: Whether to run distill in the training pipeline.
-    distill_batch_predict_machine_type: The prediction server machine type for
+    max_selected_features:
+      number of features to select for training,
+    apply_feature_selection_tuning:
+      tuning feature selection rate if true.
+    run_distillation:
+      Whether to run distill in the training pipeline.
+    distill_batch_predict_machine_type:
+      The prediction server machine type for
       batch predict component in the model distillation.
-    distill_batch_predict_starting_replica_count: The initial number of
+    distill_batch_predict_starting_replica_count:
+      The initial number of
       prediction server for batch predict component in the model distillation.
-    distill_batch_predict_max_replica_count: The max number of prediction server
+    distill_batch_predict_max_replica_count:
+      The max number of prediction server
       for batch predict component in the model distillation.
 
   Returns:
@@ -706,7 +855,8 @@ def input_dictionary_to_parameter(input_dict: Optional[Dict[str, Any]]) -> str:
   JSON argument's quote must be manually escaped using this function.
 
   Args:
-    input_dict: The input json dictionary.
+    input_dict:
+      The input json dictionary.
 
   Returns:
     The encoded string used for parameter.
@@ -752,61 +902,91 @@ def get_skip_evaluation_pipeline_and_parameters(
   """Get the AutoML Tabular training pipeline that skips evaluation.
 
   Args:
-    project: The GCP project that runs the pipeline components.
-    location: The GCP region that runs the pipeline components.
-    root_dir: The root GCS directory for the pipeline components.
-    target_column_name: The target column name.
-    prediction_type: The type of prediction the model is to produce.
+    project:
+      The GCP project that runs the pipeline components.
+    location:
+      The GCP region that runs the pipeline components.
+    root_dir:
+      The root GCS directory for the pipeline components.
+    target_column_name:
+      The target column name.
+    prediction_type:
+      The type of prediction the model is to produce.
       "classification" or "regression".
-    optimization_objective: For binary classification, "maximize-au-roc",
+    optimization_objective:
+      For binary classification, "maximize-au-roc",
       "minimize-log-loss", "maximize-au-prc", "maximize-precision-at-recall", or
       "maximize-recall-at-precision". For multi class classification,
       "minimize-log-loss". For regression, "minimize-rmse", "minimize-mae", or
       "minimize-rmsle".
-    transformations: The transformations to apply.
-    split_spec: The split spec.
-    data_source: The data source.
-    train_budget_milli_node_hours: The train budget of creating this model,
+    transformations:
+      The transformations to apply.
+    split_spec:
+      The split spec.
+    data_source:
+      The data source.
+    train_budget_milli_node_hours:
+      The train budget of creating this model,
       expressed in milli node hours i.e. 1,000 value in this field means 1 node
       hour.
-    stage_1_num_parallel_trials: Number of parallel trails for stage 1.
-    stage_2_num_parallel_trials: Number of parallel trails for stage 2.
-    stage_2_num_selected_trials: Number of selected trials for stage 2.
-    weight_column_name: The weight column name.
-    study_spec_override: The dictionary for overriding study spec. The
+    stage_1_num_parallel_trials:
+      Number of parallel trails for stage 1.
+    stage_2_num_parallel_trials:
+      Number of parallel trails for stage 2.
+    stage_2_num_selected_trials:
+      Number of selected trials for stage 2.
+    weight_column_name:
+      The weight column name.
+    study_spec_override:
+      The dictionary for overriding study spec. The
       dictionary should be of format
       https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/study.proto#L181.
-    optimization_objective_recall_value: Required when optimization_objective is
+    optimization_objective_recall_value:
+      Required when optimization_objective is
       "maximize-precision-at-recall". Must be between 0 and 1, inclusive.
-    optimization_objective_precision_value: Required when optimization_objective
+    optimization_objective_precision_value:
+      Required when optimization_objective
       is "maximize-recall-at-precision". Must be between 0 and 1, inclusive.
-    stage_1_tuner_worker_pool_specs_override: The dictionary for overriding.
+    stage_1_tuner_worker_pool_specs_override:
+      The dictionary for overriding.
       stage 1 tuner worker pool spec. The dictionary should be of format
         https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
-    cv_trainer_worker_pool_specs_override: The dictionary for overriding stage
+    cv_trainer_worker_pool_specs_override:
+      The dictionary for overriding stage
       cv trainer worker pool spec. The dictionary should be of format
         https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
-    export_additional_model_without_custom_ops: Whether to export additional
+    export_additional_model_without_custom_ops:
+      Whether to export additional
       model without custom TensorFlow operators.
-    stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
+    stats_and_example_gen_dataflow_machine_type:
+      The dataflow machine type for
       stats_and_example_gen component.
-    stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
+    stats_and_example_gen_dataflow_max_num_workers:
+      The max number of Dataflow
       workers for stats_and_example_gen component.
-    stats_and_example_gen_dataflow_disk_size_gb: Dataflow worker's disk size in
+    stats_and_example_gen_dataflow_disk_size_gb:
+      Dataflow worker's disk size in
       GB for stats_and_example_gen component.
-    transform_dataflow_machine_type: The dataflow machine type for transform
+    transform_dataflow_machine_type:
+      The dataflow machine type for transform
       component.
-    transform_dataflow_max_num_workers: The max number of Dataflow workers for
+    transform_dataflow_max_num_workers:
+      The max number of Dataflow workers for
       transform component.
-    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+    transform_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
       transform component.
-    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
+    dataflow_subnetwork:
+      Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
         https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
+    dataflow_use_public_ips:
+      Specifies whether Dataflow workers use public IP
       addresses.
-    encryption_spec_key_name: The KMS key name.
-    additional_experiments: Use this field to config private preview features.
+    encryption_spec_key_name:
+      The KMS key name.
+    additional_experiments:
+      Use this field to config private preview features.
 
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
@@ -897,81 +1077,123 @@ def get_default_pipeline_and_parameters(
   """Get the AutoML Tabular default training pipeline.
 
   Args:
-    project: The GCP project that runs the pipeline components.
-    location: The GCP region that runs the pipeline components.
-    root_dir: The root GCS directory for the pipeline components.
-    target_column_name: The target column name.
-    prediction_type: The type of prediction the model is to produce.
+    project:
+      The GCP project that runs the pipeline components.
+    location:
+      The GCP region that runs the pipeline components.
+    root_dir:
+      The root GCS directory for the pipeline components.
+    target_column_name:
+      The target column name.
+    prediction_type:
+      The type of prediction the model is to produce.
       "classification" or "regression".
-    optimization_objective: For binary classification, "maximize-au-roc",
+    optimization_objective:
+      For binary classification, "maximize-au-roc",
       "minimize-log-loss", "maximize-au-prc", "maximize-precision-at-recall", or
       "maximize-recall-at-precision". For multi class classification,
       "minimize-log-loss". For regression, "minimize-rmse", "minimize-mae", or
       "minimize-rmsle".
-    transformations: The transformations to apply.
-    split_spec: The split spec.
-    data_source: The data source.
-    train_budget_milli_node_hours: The train budget of creating this model,
+    transformations:
+      The transformations to apply.
+    split_spec:
+      The split spec.
+    data_source:
+      The data source.
+    train_budget_milli_node_hours:
+      The train budget of creating this model,
       expressed in milli node hours i.e. 1,000 value in this field means 1 node
       hour.
-    stage_1_num_parallel_trials: Number of parallel trails for stage 1.
-    stage_2_num_parallel_trials: Number of parallel trails for stage 2.
-    stage_2_num_selected_trials: Number of selected trials for stage 2.
-    weight_column_name: The weight column name.
-    study_spec_override: The dictionary for overriding study spec. The
+    stage_1_num_parallel_trials:
+      Number of parallel trails for stage 1.
+    stage_2_num_parallel_trials:
+      Number of parallel trails for stage 2.
+    stage_2_num_selected_trials:
+      Number of selected trials for stage 2.
+    weight_column_name:
+      The weight column name.
+    study_spec_override:
+      The dictionary for overriding study spec. The
       dictionary should be of format
       https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/study.proto#L181.
-    optimization_objective_recall_value: Required when optimization_objective is
+    optimization_objective_recall_value:
+      Required when optimization_objective is
       "maximize-precision-at-recall". Must be between 0 and 1, inclusive.
-    optimization_objective_precision_value: Required when optimization_objective
+    optimization_objective_precision_value:
+      Required when optimization_objective
       is "maximize-recall-at-precision". Must be between 0 and 1, inclusive.
-    stage_1_tuner_worker_pool_specs_override: The dictionary for overriding.
+    stage_1_tuner_worker_pool_specs_override:
+      The dictionary for overriding.
       stage 1 tuner worker pool spec. The dictionary should be of format
         https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
-    cv_trainer_worker_pool_specs_override: The dictionary for overriding stage
+    cv_trainer_worker_pool_specs_override:
+      The dictionary for overriding stage
       cv trainer worker pool spec. The dictionary should be of format
         https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
-    export_additional_model_without_custom_ops: Whether to export additional
+    export_additional_model_without_custom_ops:
+      Whether to export additional
       model without custom TensorFlow operators.
-    stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
+    stats_and_example_gen_dataflow_machine_type:
+      The dataflow machine type for
       stats_and_example_gen component.
-    stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
+    stats_and_example_gen_dataflow_max_num_workers:
+      The max number of Dataflow
       workers for stats_and_example_gen component.
-    stats_and_example_gen_dataflow_disk_size_gb: Dataflow worker's disk size in
+    stats_and_example_gen_dataflow_disk_size_gb:
+      Dataflow worker's disk size in
       GB for stats_and_example_gen component.
-    transform_dataflow_machine_type: The dataflow machine type for transform
+    transform_dataflow_machine_type:
+      The dataflow machine type for transform
       component.
-    transform_dataflow_max_num_workers: The max number of Dataflow workers for
+    transform_dataflow_max_num_workers:
+      The max number of Dataflow workers for
       transform component.
-    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+    transform_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
       transform component.
-    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
+    dataflow_subnetwork:
+      Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
         https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
+    dataflow_use_public_ips:
+      Specifies whether Dataflow workers use public IP
       addresses.
-    encryption_spec_key_name: The KMS key name.
-    additional_experiments: Use this field to config private preview features.
-    dataflow_service_account: Custom service account to run dataflow jobs.
-    run_evaluation: Whether to run evaluation in the training pipeline.
-    evaluation_batch_predict_machine_type: The prediction server machine type
+    encryption_spec_key_name:
+      The KMS key name.
+    additional_experiments:
+      Use this field to config private preview features.
+    dataflow_service_account:
+      Custom service account to run dataflow jobs.
+    run_evaluation:
+      Whether to run evaluation in the training pipeline.
+    evaluation_batch_predict_machine_type:
+      The prediction server machine type
       for batch predict components during evaluation.
-    evaluation_batch_predict_starting_replica_count: The initial number of
+    evaluation_batch_predict_starting_replica_count:
+      The initial number of
       prediction server for batch predict components during evaluation.
-    evaluation_batch_predict_max_replica_count: The max number of prediction
+    evaluation_batch_predict_max_replica_count:
+      The max number of prediction
       server for batch predict components during evaluation.
-    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
+    evaluation_dataflow_machine_type:
+      The dataflow machine type for evaluation
       components.
-    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
+    evaluation_dataflow_max_num_workers:
+      The max number of Dataflow workers for
       evaluation components.
-    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+    evaluation_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
       evaluation components.
-    run_distillation: Whether to run distill in the training pipeline.
-    distill_batch_predict_machine_type: The prediction server machine type for
+    run_distillation:
+      Whether to run distill in the training pipeline.
+    distill_batch_predict_machine_type:
+      The prediction server machine type for
       batch predict component in the model distillation.
-    distill_batch_predict_starting_replica_count: The initial number of
+    distill_batch_predict_starting_replica_count:
+      The initial number of
       prediction server for batch predict component in the model distillation.
-    distill_batch_predict_max_replica_count: The max number of prediction server
+    distill_batch_predict_max_replica_count:
+      The max number of prediction server
       for batch predict component in the model distillation.
 
   Returns:
@@ -1151,17 +1373,26 @@ def get_feature_selection_pipeline_and_parameters(
   """Get the feature selection pipeline that generates feature ranking and selected features.
 
   Args:
-    project: The GCP project that runs the pipeline components.
-    location: The GCP region that runs the pipeline components.
-    root_dir: The root GCS directory for the pipeline components.
-    target_column: The target column name.
-    algorithm: Algorithm to select features, default to be AMI.
-    prediction_type: The type of prediction the model is to produce.
+    project:
+      The GCP project that runs the pipeline components.
+    location:
+      The GCP region that runs the pipeline components.
+    root_dir:
+      The root GCS directory for the pipeline components.
+    target_column:
+      The target column name.
+    algorithm:
+      Algorithm to select features, default to be AMI.
+    prediction_type:
+      The type of prediction the model is to produce.
       "classification" or "regression".
-    data_source_csv_filenames: A string that represents a list of comma
+    data_source_csv_filenames:
+      A string that represents a list of comma
       separated CSV filenames.
-    data_source_bigquery_table_path: The BigQuery table path.
-    max_selected_features: number of features to be selected.
+    data_source_bigquery_table_path:
+      The BigQuery table path.
+    max_selected_features:
+      number of features to be selected.
 
   Returns:
     Tuple of pipeline_definition_path and parameter_values.
@@ -1240,75 +1471,117 @@ def get_skip_architecture_search_pipeline_and_parameters(
   """Get the AutoML Tabular training pipeline that skips architecture search.
 
   Args:
-    project: The GCP project that runs the pipeline components.
-    location: The GCP region that runs the pipeline components.
-    root_dir: The root GCS directory for the pipeline components.
-    target_column: The target column name.
-    prediction_type: The type of prediction the model is to produce.
+    project:
+      The GCP project that runs the pipeline components.
+    location:
+      The GCP region that runs the pipeline components.
+    root_dir:
+      The root GCS directory for the pipeline components.
+    target_column:
+      The target column name.
+    prediction_type:
+      The type of prediction the model is to produce.
       "classification" or "regression".
-    optimization_objective: For binary classification, "maximize-au-roc",
+    optimization_objective:
+      For binary classification, "maximize-au-roc",
       "minimize-log-loss", "maximize-au-prc", "maximize-precision-at-recall", or
       "maximize-recall-at-precision". For multi class classification,
       "minimize-log-loss". For regression, "minimize-rmse", "minimize-mae", or
       "minimize-rmsle".
-    transformations: The transformations to apply.
-    train_budget_milli_node_hours: The train budget of creating this model,
+    transformations:
+      The transformations to apply.
+    train_budget_milli_node_hours:
+      The train budget of creating this model,
       expressed in milli node hours i.e. 1,000 value in this field means 1 node
       hour.
-    stage_1_tuning_result_artifact_uri: The stage 1 tuning result artifact GCS
+    stage_1_tuning_result_artifact_uri:
+      The stage 1 tuning result artifact GCS
       URI.
-    stage_2_num_parallel_trials: Number of parallel trails for stage 2.
-    stage_2_num_selected_trials: Number of selected trials for stage 2.
-    data_source_csv_filenames: The CSV data source.
-    data_source_bigquery_table_path: The BigQuery data source.
-    predefined_split_key: The predefined_split column name.
-    timestamp_split_key: The timestamp_split column name.
-    stratified_split_key: The stratified_split column name.
-    training_fraction: The training fraction.
-    validation_fraction: The validation fraction.
-    test_fraction: float = The test fraction.
-    weight_column: The weight column name.
-    optimization_objective_recall_value: Required when optimization_objective is
+    stage_2_num_parallel_trials:
+      Number of parallel trails for stage 2.
+    stage_2_num_selected_trials:
+      Number of selected trials for stage 2.
+    data_source_csv_filenames:
+      The CSV data source.
+    data_source_bigquery_table_path:
+      The BigQuery data source.
+    predefined_split_key:
+      The predefined_split column name.
+    timestamp_split_key:
+      The timestamp_split column name.
+    stratified_split_key:
+      The stratified_split column name.
+    training_fraction:
+      The training fraction.
+    validation_fraction:
+      The validation fraction.
+    test_fraction:
+      float = The test fraction.
+    weight_column:
+      The weight column name.
+    optimization_objective_recall_value:
+      Required when optimization_objective is
       "maximize-precision-at-recall". Must be between 0 and 1, inclusive.
-    optimization_objective_precision_value: Required when optimization_objective
+    optimization_objective_precision_value:
+      Required when optimization_objective
       is "maximize-recall-at-precision". Must be between 0 and 1, inclusive.
-    cv_trainer_worker_pool_specs_override: The dictionary for overriding stage
+    cv_trainer_worker_pool_specs_override:
+      The dictionary for overriding stage
       cv trainer worker pool spec. The dictionary should be of format
         https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
-    export_additional_model_without_custom_ops: Whether to export additional
+    export_additional_model_without_custom_ops:
+      Whether to export additional
       model without custom TensorFlow operators.
-    stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
+    stats_and_example_gen_dataflow_machine_type:
+      The dataflow machine type for
       stats_and_example_gen component.
-    stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
+    stats_and_example_gen_dataflow_max_num_workers:
+      The max number of Dataflow
       workers for stats_and_example_gen component.
-    stats_and_example_gen_dataflow_disk_size_gb: Dataflow worker's disk size in
+    stats_and_example_gen_dataflow_disk_size_gb:
+      Dataflow worker's disk size in
       GB for stats_and_example_gen component.
-    transform_dataflow_machine_type: The dataflow machine type for transform
+    transform_dataflow_machine_type:
+      The dataflow machine type for transform
       component.
-    transform_dataflow_max_num_workers: The max number of Dataflow workers for
+    transform_dataflow_max_num_workers:
+      The max number of Dataflow workers for
       transform component.
-    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+    transform_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
       transform component.
-    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
+    dataflow_subnetwork:
+      Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
         https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
+    dataflow_use_public_ips:
+      Specifies whether Dataflow workers use public IP
       addresses.
-    encryption_spec_key_name: The KMS key name.
-    additional_experiments: Use this field to config private preview features.
-    dataflow_service_account: Custom service account to run dataflow jobs.
-    run_evaluation: Whether to run evaluation in the training pipeline.
-    evaluation_batch_predict_machine_type: The prediction server machine type
+    encryption_spec_key_name:
+      The KMS key name.
+    additional_experiments:
+      Use this field to config private preview features.
+    dataflow_service_account:
+      Custom service account to run dataflow jobs.
+    run_evaluation:
+      Whether to run evaluation in the training pipeline.
+    evaluation_batch_predict_machine_type:
+      The prediction server machine type
       for batch predict components during evaluation.
-    evaluation_batch_predict_starting_replica_count: The initial number of
+    evaluation_batch_predict_starting_replica_count:
+      The initial number of
       prediction server for batch predict components during evaluation.
-    evaluation_batch_predict_max_replica_count: The max number of prediction
+    evaluation_batch_predict_max_replica_count:
+      The max number of prediction
       server for batch predict components during evaluation.
-    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
+    evaluation_dataflow_machine_type:
+      The dataflow machine type for evaluation
       components.
-    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
+    evaluation_dataflow_max_num_workers:
+      The max number of Dataflow workers for
       evaluation components.
-    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+    evaluation_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
       evaluation components.
 
   Returns:
@@ -1461,66 +1734,99 @@ def get_distill_skip_evaluation_pipeline_and_parameters(
   """Get the AutoML Tabular training pipeline that distill and skips evaluation.
 
   Args:
-    project: The GCP project that runs the pipeline components.
-    location: The GCP region that runs the pipeline components.
-    root_dir: The root GCS directory for the pipeline components.
-    target_column_name: The target column name.
-    prediction_type: The type of prediction the model is to produce.
+    project:
+      The GCP project that runs the pipeline components.
+    location:
+      The GCP region that runs the pipeline components.
+    root_dir:
+      The root GCS directory for the pipeline components.
+    target_column_name:
+      The target column name.
+    prediction_type:
+      The type of prediction the model is to produce.
       "classification" or "regression".
-    optimization_objective: For binary classification, "maximize-au-roc",
+    optimization_objective:
+      For binary classification, "maximize-au-roc",
       "minimize-log-loss", "maximize-au-prc", "maximize-precision-at-recall", or
       "maximize-recall-at-precision". For multi class classification,
       "minimize-log-loss". For regression, "minimize-rmse", "minimize-mae", or
       "minimize-rmsle".
-    transformations: The transformations to apply.
-    split_spec: The split spec.
-    data_source: The data source.
-    train_budget_milli_node_hours: The train budget of creating this model,
+    transformations:
+      The transformations to apply.
+    split_spec:
+      The split spec.
+    data_source:
+      The data source.
+    train_budget_milli_node_hours:
+      The train budget of creating this model,
       expressed in milli node hours i.e. 1,000 value in this field means 1 node
       hour.
-    stage_1_num_parallel_trials: Number of parallel trails for stage 1.
-    stage_2_num_parallel_trials: Number of parallel trails for stage 2.
-    stage_2_num_selected_trials: Number of selected trials for stage 2.
-    weight_column_name: The weight column name.
-    study_spec_override: The dictionary for overriding study spec. The
+    stage_1_num_parallel_trials:
+      Number of parallel trails for stage 1.
+    stage_2_num_parallel_trials:
+      Number of parallel trails for stage 2.
+    stage_2_num_selected_trials:
+      Number of selected trials for stage 2.
+    weight_column_name:
+      The weight column name.
+    study_spec_override:
+      The dictionary for overriding study spec. The
       dictionary should be of format
       https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/study.proto#L181.
-    optimization_objective_recall_value: Required when optimization_objective is
+    optimization_objective_recall_value:
+      Required when optimization_objective is
       "maximize-precision-at-recall". Must be between 0 and 1, inclusive.
-    optimization_objective_precision_value: Required when optimization_objective
+    optimization_objective_precision_value:
+      Required when optimization_objective
       is "maximize-recall-at-precision". Must be between 0 and 1, inclusive.
-    stage_1_tuner_worker_pool_specs_override: The dictionary for overriding.
+    stage_1_tuner_worker_pool_specs_override:
+      The dictionary for overriding.
       stage 1 tuner worker pool spec. The dictionary should be of format
         https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
-    cv_trainer_worker_pool_specs_override: The dictionary for overriding stage
+    cv_trainer_worker_pool_specs_override:
+      The dictionary for overriding stage
       cv trainer worker pool spec. The dictionary should be of format
         https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
-    export_additional_model_without_custom_ops: Whether to export additional
+    export_additional_model_without_custom_ops:
+      Whether to export additional
       model without custom TensorFlow operators.
-    stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
+    stats_and_example_gen_dataflow_machine_type:
+      The dataflow machine type for
       stats_and_example_gen component.
-    stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
+    stats_and_example_gen_dataflow_max_num_workers:
+      The max number of Dataflow
       workers for stats_and_example_gen component.
-    stats_and_example_gen_dataflow_disk_size_gb: Dataflow worker's disk size in
+    stats_and_example_gen_dataflow_disk_size_gb:
+      Dataflow worker's disk size in
       GB for stats_and_example_gen component.
-    transform_dataflow_machine_type: The dataflow machine type for transform
+    transform_dataflow_machine_type:
+      The dataflow machine type for transform
       component.
-    transform_dataflow_max_num_workers: The max number of Dataflow workers for
+    transform_dataflow_max_num_workers:
+      The max number of Dataflow workers for
       transform component.
-    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+    transform_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
       transform component.
-    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
+    dataflow_subnetwork:
+      Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
         https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
+    dataflow_use_public_ips:
+      Specifies whether Dataflow workers use public IP
       addresses.
-    encryption_spec_key_name: The KMS key name.
-    additional_experiments: Use this field to config private preview features.
-    distill_batch_predict_machine_type: The prediction server machine type for
+    encryption_spec_key_name:
+      The KMS key name.
+    additional_experiments:
+      Use this field to config private preview features.
+    distill_batch_predict_machine_type:
+      The prediction server machine type for
       batch predict component in the model distillation.
-    distill_batch_predict_starting_replica_count: The initial number of
+    distill_batch_predict_starting_replica_count:
+      The initial number of
       prediction server for batch predict component in the model distillation.
-    distill_batch_predict_max_replica_count: The max number of prediction server
+    distill_batch_predict_max_replica_count:
+      The max number of prediction server
       for batch predict component in the model distillation.
 
   Returns:
@@ -1631,100 +1937,159 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
   """Get the Wide & Deep training pipeline.
 
   Args:
-    project: The GCP project that runs the pipeline components.
-    location: The GCP region that runs the pipeline components.
-    root_dir: The root GCS directory for the pipeline components.
-    target_column: The target column name.
-    prediction_type: The type of prediction the model is to produce.
+    project:
+      The GCP project that runs the pipeline components.
+    location:
+      The GCP region that runs the pipeline components.
+    root_dir:
+      The root GCS directory for the pipeline components.
+    target_column:
+      The target column name.
+    prediction_type:
+      The type of prediction the model is to produce.
       'classification' or 'regression'.
-    transform_config: The path to a GCS file containing the transformations to
+    transform_config:
+      The path to a GCS file containing the transformations to
       apply.
-    learning_rate: The learning rate used by the linear optimizer.
-    dnn_learning_rate: The learning rate for training the deep part of the
+    learning_rate:
+      The learning rate used by the linear optimizer.
+    dnn_learning_rate:
+      The learning rate for training the deep part of the
       model.
-    optimizer_type: The type of optimizer to use. Choices are "adam", "ftrl" and
+    optimizer_type:
+      The type of optimizer to use. Choices are "adam", "ftrl" and
       "sgd" for the Adam, FTRL, and Gradient Descent Optimizers, respectively.
-    max_steps: Number of steps to run the trainer for.
-    max_train_secs: Amount of time in seconds to run the trainer for.
-    l1_regularization_strength: L1 regularization strength for
+    max_steps:
+      Number of steps to run the trainer for.
+    max_train_secs:
+      Amount of time in seconds to run the trainer for.
+    l1_regularization_strength:
+      L1 regularization strength for
       optimizer_type="ftrl".
-    l2_regularization_strength: L2 regularization strength for
+    l2_regularization_strength:
+      L2 regularization strength for
       optimizer_type="ftrl".
-    l2_shrinkage_regularization_strength: L2 shrinkage regularization strength
+    l2_shrinkage_regularization_strength:
+      L2 shrinkage regularization strength
       for optimizer_type="ftrl".
-    beta_1: Beta 1 value for optimizer_type="adam".
-    beta_2: Beta 2 value for optimizer_type="adam".
-    hidden_units: Hidden layer sizes to use for DNN feature columns, provided in
+    beta_1:
+      Beta 1 value for optimizer_type="adam".
+    beta_2:
+      Beta 2 value for optimizer_type="adam".
+    hidden_units:
+      Hidden layer sizes to use for DNN feature columns, provided in
       comma-separated layers.
-    use_wide: If set to true, the categorical columns will be used in the wide
+    use_wide:
+      If set to true, the categorical columns will be used in the wide
       part of the DNN model.
-    embed_categories: If set to true, the categorical columns will be used
+    embed_categories:
+      If set to true, the categorical columns will be used
       embedded and used in the deep part of the model. Embedding size is the
       square root of the column cardinality.
-    dnn_dropout: The probability we will drop out a given coordinate.
-    dnn_optimizer_type: The type of optimizer to use for the deep part of the
+    dnn_dropout:
+      The probability we will drop out a given coordinate.
+    dnn_optimizer_type:
+      The type of optimizer to use for the deep part of the
       model. Choices are "adam", "ftrl" and "sgd". for the Adam, FTRL, and
       Gradient Descent Optimizers, respectively.
-    dnn_l1_regularization_strength: L1 regularization strength for
+    dnn_l1_regularization_strength:
+      L1 regularization strength for
       dnn_optimizer_type="ftrl".
-    dnn_l2_regularization_strength: L2 regularization strength for
+    dnn_l2_regularization_strength:
+      L2 regularization strength for
       dnn_optimizer_type="ftrl".
-    dnn_l2_shrinkage_regularization_strength: L2 shrinkage regularization
+    dnn_l2_shrinkage_regularization_strength:
+      L2 shrinkage regularization
       strength for dnn_optimizer_type="ftrl".
-    dnn_beta_1: Beta 1 value for dnn_optimizer_type="adam".
-    dnn_beta_2: Beta 2 value for dnn_optimizer_type="adam".
-    enable_profiler: Enables profiling and saves a trace during evaluation.
-    seed: Seed to be used for this run.
-    eval_steps: Number of steps to run evaluation for. If not specified or
+    dnn_beta_1:
+      Beta 1 value for dnn_optimizer_type="adam".
+    dnn_beta_2:
+      Beta 2 value for dnn_optimizer_type="adam".
+    enable_profiler:
+      Enables profiling and saves a trace during evaluation.
+    seed:
+      Seed to be used for this run.
+    eval_steps:
+      Number of steps to run evaluation for. If not specified or
       negative, it means run evaluation on the whole validation dataset. If set
       to 0, it means run evaluation for a fixed number of samples.
-    batch_size: Batch size for training.
-    eval_frequency_secs: Frequency at which evaluation and checkpointing will
+    batch_size:
+      Batch size for training.
+    eval_frequency_secs:
+      Frequency at which evaluation and checkpointing will
       take place.
-    data_source_csv_filenames: The CSV data source.
-    data_source_bigquery_table_path: The BigQuery data source.
-    predefined_split_key: The predefined_split column name.
-    timestamp_split_key: The timestamp_split column name.
-    stratified_split_key: The stratified_split column name.
-    training_fraction: The training fraction.
-    validation_fraction: The validation fraction.
-    test_fraction: The test fraction.
-    weight_column: The weight column name.
-    stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
+    data_source_csv_filenames:
+      The CSV data source.
+    data_source_bigquery_table_path:
+      The BigQuery data source.
+    predefined_split_key:
+      The predefined_split column name.
+    timestamp_split_key:
+      The timestamp_split column name.
+    stratified_split_key:
+      The stratified_split column name.
+    training_fraction:
+      The training fraction.
+    validation_fraction:
+      The validation fraction.
+    test_fraction:
+      The test fraction.
+    weight_column:
+      The weight column name.
+    stats_and_example_gen_dataflow_machine_type:
+      The dataflow machine type for
       stats_and_example_gen component.
-    stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
+    stats_and_example_gen_dataflow_max_num_workers:
+      The max number of Dataflow
       workers for stats_and_example_gen component.
-    stats_and_example_gen_dataflow_disk_size_gb: Dataflow worker's disk size in
+    stats_and_example_gen_dataflow_disk_size_gb:
+      Dataflow worker's disk size in
       GB for stats_and_example_gen component.
-    transform_dataflow_machine_type: The dataflow machine type for transform
+    transform_dataflow_machine_type:
+      The dataflow machine type for transform
       component.
-    transform_dataflow_max_num_workers: The max number of Dataflow workers for
+    transform_dataflow_max_num_workers:
+      The max number of Dataflow workers for
       transform component.
-    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+    transform_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
       transform component.
-    training_machine_spec: The machine spec for trainer component. See
+    training_machine_spec:
+      The machine spec for trainer component. See
       https://cloud.google.com/compute/docs/machine-types for options.
-    training_replica_count: The replica count for the trainer component.
-    run_evaluation: Whether to run evaluation steps during training.
-    evaluation_batch_predict_machine_type: The prediction server machine type
+    training_replica_count:
+      The replica count for the trainer component.
+    run_evaluation:
+      Whether to run evaluation steps during training.
+    evaluation_batch_predict_machine_type:
+      The prediction server machine type
       for batch predict components during evaluation.
-    evaluation_batch_predict_starting_replica_count: The initial number of
+    evaluation_batch_predict_starting_replica_count:
+      The initial number of
       prediction server for batch predict components during evaluation.
-    evaluation_batch_predict_max_replica_count: The max number of prediction
+    evaluation_batch_predict_max_replica_count:
+      The max number of prediction
       server for batch predict components during evaluation.
-    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
+    evaluation_dataflow_machine_type:
+      The dataflow machine type for evaluation
       components.
-    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
+    evaluation_dataflow_max_num_workers:
+      The max number of Dataflow workers for
       evaluation components.
-    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+    evaluation_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
       evaluation components.
-    dataflow_service_account: Custom service account to run dataflow jobs.
-    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
+    dataflow_service_account:
+      Custom service account to run dataflow jobs.
+    dataflow_subnetwork:
+      Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
         https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
+    dataflow_use_public_ips:
+      Specifies whether Dataflow workers use public IP
       addresses.
-    encryption_spec_key_name: The KMS key name.
+    encryption_spec_key_name:
+      The KMS key name.
 
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
@@ -1912,85 +2277,131 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
   """Get the built-in algorithm HyperparameterTuningJob pipeline.
 
   Args:
-    project: The GCP project that runs the pipeline components.
-    location: The GCP region that runs the pipeline components.
-    root_dir: The root GCS directory for the pipeline components.
-    target_column: The target column name.
-    prediction_type: The type of prediction the model is to produce.
+    project:
+      The GCP project that runs the pipeline components.
+    location:
+      The GCP region that runs the pipeline components.
+    root_dir:
+      The root GCS directory for the pipeline components.
+    target_column:
+      The target column name.
+    prediction_type:
+      The type of prediction the model is to produce.
       "classification" or "regression".
-    transform_config: The path to a GCS file containing the transformations to
+    transform_config:
+      The path to a GCS file containing the transformations to
       apply.
-    study_spec_metrics: List of dictionaries representing metrics to optimize.
+    study_spec_metrics:
+      List of dictionaries representing metrics to optimize.
       The dictionary contains the metric_id, which is reported by the training
       job, ands the optimization goal of the metric. One of "minimize" or
       "maximize".
-    study_spec_parameters_override: List of dictionaries representing parameters
+    study_spec_parameters_override:
+      List of dictionaries representing parameters
       to optimize. The dictionary key is the parameter_id, which is passed to
       training job as a command line argument, and the dictionary value is the
       parameter specification of the metric.
-    max_trial_count: The desired total number of trials.
-    parallel_trial_count: The desired number of trials to run in parallel.
-    algorithm: Algorithm to train. One of "tabnet" and "wide_and_deep".
-    enable_profiler: Enables profiling and saves a trace during evaluation.
-    seed: Seed to be used for this run.
-    eval_steps: Number of steps to run evaluation for. If not specified or
+    max_trial_count:
+      The desired total number of trials.
+    parallel_trial_count:
+      The desired number of trials to run in parallel.
+    algorithm:
+      Algorithm to train. One of "tabnet" and "wide_and_deep".
+    enable_profiler:
+      Enables profiling and saves a trace during evaluation.
+    seed:
+      Seed to be used for this run.
+    eval_steps:
+      Number of steps to run evaluation for. If not specified or
       negative, it means run evaluation on the whole validation dataset. If set
       to 0, it means run evaluation for a fixed number of samples.
-    eval_frequency_secs: Frequency at which evaluation and checkpointing will
+    eval_frequency_secs:
+      Frequency at which evaluation and checkpointing will
       take place.
-    data_source_csv_filenames: The CSV data source.
-    data_source_bigquery_table_path: The BigQuery data source.
-    predefined_split_key: The predefined_split column name.
-    timestamp_split_key: The timestamp_split column name.
-    stratified_split_key: The stratified_split column name.
-    training_fraction: The training fraction.
-    validation_fraction: The validation fraction.
-    test_fraction: The test fraction.
-    weight_column: The weight column name.
-    max_failed_trial_count: The number of failed trials that need to be seen
+    data_source_csv_filenames:
+      The CSV data source.
+    data_source_bigquery_table_path:
+      The BigQuery data source.
+    predefined_split_key:
+      The predefined_split column name.
+    timestamp_split_key:
+      The timestamp_split column name.
+    stratified_split_key:
+      The stratified_split column name.
+    training_fraction:
+      The training fraction.
+    validation_fraction:
+      The validation fraction.
+    test_fraction:
+      The test fraction.
+    weight_column:
+      The weight column name.
+    max_failed_trial_count:
+      The number of failed trials that need to be seen
       before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides
       how many trials must fail before the whole job fails.
-    study_spec_algorithm: The search algorithm specified for the study. One of
+    study_spec_algorithm:
+      The search algorithm specified for the study. One of
       "ALGORITHM_UNSPECIFIED", "GRID_SEARCH", or "RANDOM_SEARCH".
-    study_spec_measurement_selection_type:  Which measurement to use if/when the
+    study_spec_measurement_selection_type:
+      Which measurement to use if/when the
       service automatically selects the final measurement from previously
       reported intermediate measurements. One of "BEST_MEASUREMENT" or
       "LAST_MEASUREMENT".
-    stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
+    stats_and_example_gen_dataflow_machine_type:
+      The dataflow machine type for
       stats_and_example_gen component.
-    stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
+    stats_and_example_gen_dataflow_max_num_workers:
+      The max number of Dataflow
       workers for stats_and_example_gen component.
-    stats_and_example_gen_dataflow_disk_size_gb: Dataflow worker's disk size in
+    stats_and_example_gen_dataflow_disk_size_gb:
+      Dataflow worker's disk size in
       GB for stats_and_example_gen component.
-    transform_dataflow_machine_type: The dataflow machine type for transform
+    transform_dataflow_machine_type:
+      The dataflow machine type for transform
       component.
-    transform_dataflow_max_num_workers: The max number of Dataflow workers for
+    transform_dataflow_max_num_workers:
+      The max number of Dataflow workers for
       transform component.
-    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+    transform_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
       transform component.
-    training_machine_spec: The machine spec for trainer component. See
+    training_machine_spec:
+      The machine spec for trainer component. See
       https://cloud.google.com/compute/docs/machine-types for options.
-    training_replica_count: The replica count for the trainer component.
-    run_evaluation: Whether to run evaluation steps during training.
-    evaluation_batch_predict_machine_type: The prediction server machine type
+    training_replica_count:
+      The replica count for the trainer component.
+    run_evaluation:
+      Whether to run evaluation steps during training.
+    evaluation_batch_predict_machine_type:
+      The prediction server machine type
       for batch predict components during evaluation.
-    evaluation_batch_predict_starting_replica_count: The initial number of
+    evaluation_batch_predict_starting_replica_count:
+      The initial number of
       prediction server for batch predict components during evaluation.
-    evaluation_batch_predict_max_replica_count: The max number of prediction
+    evaluation_batch_predict_max_replica_count:
+      The max number of prediction
       server for batch predict components during evaluation.
-    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
+    evaluation_dataflow_machine_type:
+      The dataflow machine type for evaluation
       components.
-    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
+    evaluation_dataflow_max_num_workers:
+      The max number of Dataflow workers for
       evaluation components.
-    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+    evaluation_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
       evaluation components.
-    dataflow_service_account: Custom service account to run dataflow jobs.
-    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
+    dataflow_service_account:
+      Custom service account to run dataflow jobs.
+    dataflow_subnetwork:
+      Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
         https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
+    dataflow_use_public_ips:
+      Specifies whether Dataflow workers use public IP
       addresses.
-    encryption_spec_key_name: The KMS key name.
+    encryption_spec_key_name:
+      The KMS key name.
 
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
@@ -2127,6 +2538,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
     num_decision_steps: int = 6,
     relaxation_factor: float = 1.5,
     decay_every: float = 100,
+    decay_rate: float = 0.95,
     gradient_thresh: float = 2000,
     sparsity_loss_weight: float = 0.00001,
     batch_momentum: float = 0.95,
@@ -2177,107 +2589,170 @@ def get_tabnet_trainer_pipeline_and_parameters(
   """Get the TabNet training pipeline.
 
   Args:
-    project: The GCP project that runs the pipeline components.
-    location: The GCP region that runs the pipeline components.
-    root_dir: The root GCS directory for the pipeline components.
-    target_column: The target column name.
-    prediction_type: The type of prediction the model is to produce.
+    project:
+      The GCP project that runs the pipeline components.
+    location:
+      The GCP region that runs the pipeline components.
+    root_dir:
+      The root GCS directory for the pipeline components.
+    target_column:
+      The target column name.
+    prediction_type:
+      The type of prediction the model is to produce.
       "classification" or "regression".
-    transform_config: The path to a GCS file containing the transformations to
+    transform_config:
+      The path to a GCS file containing the transformations to
       apply.
-    learning_rate: The learning rate used by the linear optimizer.
-    max_steps: Number of steps to run the trainer for.
-    max_train_secs: Amount of time in seconds to run the trainer for.
-    large_category_dim: Embedding dimension for categorical feature with large
+    learning_rate:
+      The learning rate used by the linear optimizer.
+    max_steps:
+      Number of steps to run the trainer for.
+    max_train_secs:
+      Amount of time in seconds to run the trainer for.
+    large_category_dim:
+      Embedding dimension for categorical feature with large
       number of categories.
-    large_category_thresh: Threshold for number of categories to apply
+    large_category_thresh:
+      Threshold for number of categories to apply
       large_category_dim embedding dimension to.
-    yeo_johnson_transform: Enables trainable Yeo-Johnson power transform.
-    feature_dim: Dimensionality of the hidden representation in feature
+    yeo_johnson_transform:
+      Enables trainable Yeo-Johnson power transform.
+    feature_dim:
+      Dimensionality of the hidden representation in feature
       transformation block.
-    feature_dim_ratio: The ratio of output dimension (dimensionality of the
+    feature_dim_ratio:
+      The ratio of output dimension (dimensionality of the
       outputs of each decision step) to feature dimension.
-    num_decision_steps: Number of sequential decision steps.
-    relaxation_factor: Relaxation factor that promotes the reuse of each feature
+    num_decision_steps:
+      Number of sequential decision steps.
+    relaxation_factor:
+      Relaxation factor that promotes the reuse of each feature
       at different decision steps. When it is 1, a feature is enforced to be
       used only at one decision step and as it increases, more flexibility is
       provided to use a feature at multiple decision steps.
-    decay_every: Number of iterations for periodically applying learning rate
+    decay_every:
+      Number of iterations for periodically applying learning rate
       decaying.
-    gradient_thresh: Threshold for the norm of gradients for clipping.
-    sparsity_loss_weight: Weight of the loss for sparsity regularization
+    decay_rate:
+      Learning rate decaying.
+    gradient_thresh:
+      Threshold for the norm of gradients for clipping.
+    sparsity_loss_weight:
+      Weight of the loss for sparsity regularization
       (increasing it will yield more sparse feature selection).
-    batch_momentum: Momentum in ghost batch normalization.
-    batch_size_ratio: The ratio of virtual batch size (size of the ghost batch
+    batch_momentum:
+      Momentum in ghost batch normalization.
+    batch_size_ratio:
+      The ratio of virtual batch size (size of the ghost batch
       normalization) to batch size.
-    num_transformer_layers: The number of transformer layers for each decision
+    num_transformer_layers:
+      The number of transformer layers for each decision
       step. used only at one decision step and as it increases, more flexibility
       is provided to use a feature at multiple decision steps.
-    num_transformer_layers_ratio: The ratio of shared transformer layer to
+    num_transformer_layers_ratio:
+      The ratio of shared transformer layer to
       transformer layers.
-    class_weight: The class weight is used to computes a weighted cross entropy
+    class_weight:
+      The class weight is used to computes a weighted cross entropy
       which is helpful in classify imbalanced dataset. Only used for
       classification.
-    loss_function_type: Loss function type. Loss function in classification
+    loss_function_type:
+      Loss function type. Loss function in classification
       [cross_entropy, weighted_cross_entropy, focal_loss], default is
-      cross_entropy. Loss function in regression: [rmse, mae, mse], default is
+      cross_entropy. Loss function in regression:
+        [rmse, mae, mse], default is
       mse.
-    alpha_focal_loss: Alpha value (balancing factor) in focal_loss function.
+    alpha_focal_loss:
+      Alpha value (balancing factor) in focal_loss function.
       Only used for classification.
-    gamma_focal_loss: Gamma value (modulating factor) for focal loss for focal
+    gamma_focal_loss:
+      Gamma value (modulating factor) for focal loss for focal
       loss. Only used for classification.
-    enable_profiler: Enables profiling and saves a trace during evaluation.
-    seed: Seed to be used for this run.
-    eval_steps: Number of steps to run evaluation for. If not specified or
+    enable_profiler:
+      Enables profiling and saves a trace during evaluation.
+    seed:
+      Seed to be used for this run.
+    eval_steps:
+      Number of steps to run evaluation for. If not specified or
       negative, it means run evaluation on the whole validation dataset. If set
       to 0, it means run evaluation for a fixed number of samples.
-    batch_size: Batch size for training.
-    eval_frequency_secs: Frequency at which evaluation and checkpointing will
+    batch_size:
+      Batch size for training.
+    eval_frequency_secs:
+      Frequency at which evaluation and checkpointing will
       take place.
-    data_source_csv_filenames: The CSV data source.
-    data_source_bigquery_table_path: The BigQuery data source.
-    predefined_split_key: The predefined_split column name.
-    timestamp_split_key: The timestamp_split column name.
-    stratified_split_key: The stratified_split column name.
-    training_fraction: The training fraction.
-    validation_fraction: The validation fraction.
-    test_fraction: The test fraction.
-    weight_column: The weight column name.
-    stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
+    data_source_csv_filenames:
+      The CSV data source.
+    data_source_bigquery_table_path:
+      The BigQuery data source.
+    predefined_split_key:
+      The predefined_split column name.
+    timestamp_split_key:
+      The timestamp_split column name.
+    stratified_split_key:
+      The stratified_split column name.
+    training_fraction:
+      The training fraction.
+    validation_fraction:
+      The validation fraction.
+    test_fraction:
+      The test fraction.
+    weight_column:
+      The weight column name.
+    stats_and_example_gen_dataflow_machine_type:
+      The dataflow machine type for
       stats_and_example_gen component.
-    stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
+    stats_and_example_gen_dataflow_max_num_workers:
+      The max number of Dataflow
       workers for stats_and_example_gen component.
-    stats_and_example_gen_dataflow_disk_size_gb: Dataflow worker's disk size in
+    stats_and_example_gen_dataflow_disk_size_gb:
+      Dataflow worker's disk size in
       GB for stats_and_example_gen component.
-    transform_dataflow_machine_type: The dataflow machine type for transform
+    transform_dataflow_machine_type:
+      The dataflow machine type for transform
       component.
-    transform_dataflow_max_num_workers: The max number of Dataflow workers for
+    transform_dataflow_max_num_workers:
+      The max number of Dataflow workers for
       transform component.
-    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+    transform_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
       transform component.
-    training_machine_spec: The machine spec for trainer component. See
+    training_machine_spec:
+      The machine spec for trainer component. See
       https://cloud.google.com/compute/docs/machine-types for options.
-    training_replica_count: The replica count for the trainer component.
-    run_evaluation: Whether to run evaluation steps during training.
-    evaluation_batch_predict_machine_type: The prediction server machine type
+    training_replica_count:
+      The replica count for the trainer component.
+    run_evaluation:
+      Whether to run evaluation steps during training.
+    evaluation_batch_predict_machine_type:
+      The prediction server machine type
       for batch predict components during evaluation.
-    evaluation_batch_predict_starting_replica_count: The initial number of
+    evaluation_batch_predict_starting_replica_count:
+      The initial number of
       prediction server for batch predict components during evaluation.
-    evaluation_batch_predict_max_replica_count: The max number of prediction
+    evaluation_batch_predict_max_replica_count:
+      The max number of prediction
       server for batch predict components during evaluation.
-    evaluation_dataflow_machine_type: The dataflow machine type for evaluation
+    evaluation_dataflow_machine_type:
+      The dataflow machine type for evaluation
       components.
-    evaluation_dataflow_max_num_workers: The max number of Dataflow workers for
+    evaluation_dataflow_max_num_workers:
+      The max number of Dataflow workers for
       evaluation components.
-    evaluation_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
+    evaluation_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
       evaluation components.
-    dataflow_service_account: Custom service account to run dataflow jobs.
-    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
+    dataflow_service_account:
+      Custom service account to run dataflow jobs.
+    dataflow_subnetwork:
+      Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
         https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
+    dataflow_use_public_ips:
+      Specifies whether Dataflow workers use public IP
       addresses.
-    encryption_spec_key_name: The KMS key name.
+    encryption_spec_key_name:
+      The KMS key name.
 
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
@@ -2320,6 +2795,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
           relaxation_factor,
       'decay_every':
           decay_every,
+      'decay_rate':
+          decay_rate,
       'gradient_thresh':
           gradient_thresh,
       'sparsity_loss_weight':
@@ -2418,11 +2895,14 @@ def get_tabnet_study_spec_parameters_override(
   """Get study_spec_parameters_override for a TabNet hyperparameter tuning job.
 
   Args:
-    dataset_size_bucket: Size of the dataset. One of "small" (< 1M rows),
+    dataset_size_bucket:
+      Size of the dataset. One of "small" (< 1M rows),
       "medium" (1M - 100M rows), or "large" (> 100M rows).
-    prediction_type: The type of prediction the model is to produce.
+    prediction_type:
+      The type of prediction the model is to produce.
       "classification" or "regression".
-    training_budget_bucket: Bucket of the estimated training budget. One of
+    training_budget_bucket:
+      Bucket of the estimated training budget. One of
       "small" (< $600), "medium" ($600 - $2400), or "large" (> $2400). This
       parameter is only used as a hint for the hyperparameter search space,
       unrelated to the real cost.
@@ -2459,11 +2939,13 @@ def _format_tabnet_regression_study_spec_parameters_override(
   """Get regression study_spec_parameters_override for a TabNet hyperparameter tuning job.
 
   Args:
-    params: List of dictionaries representing parameters to optimize. The
+    params:
+      List of dictionaries representing parameters to optimize. The
       dictionary key is the parameter_id, which is passed to training job as a
       command line argument, and the dictionary value is the parameter
       specification of the metric.
-    training_budget_bucket: Bucket of the estimated training budget. One of
+    training_budget_bucket:
+      Bucket of the estimated training budget. One of
       "small" (< $600), "medium" ($600 - $2400), or "large" (> $2400). This
       parameter is only used as a hint for the hyperparameter search space,
       unrelated to the real cost.

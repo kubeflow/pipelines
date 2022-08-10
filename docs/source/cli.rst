@@ -1,4 +1,4 @@
-kfp CLI
+Command Line Interface
 ==========================
 
 .. contents:: All commands

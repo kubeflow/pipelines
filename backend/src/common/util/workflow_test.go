@@ -232,7 +232,7 @@ func TestWorkflow_OverrideName(t *testing.T) {
 		},
 	})
 
-	workflow.OverrideName("NEW_WORKFLOW_NAME")
+	workflow.SetExecutionName("NEW_WORKFLOW_NAME")
 
 	expected := &workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{
