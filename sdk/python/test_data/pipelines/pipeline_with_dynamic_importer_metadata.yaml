@@ -1,0 +1,182 @@
+components:
+  comp-importer:
+    executorLabel: exec-importer
+    inputDefinitions:
+      parameters:
+        name:
+          parameterType: STRING
+        pipeline_input_image_uri:
+          parameterType: STRING
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-importer-2:
+    executorLabel: exec-importer-2
+    inputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+        Output-2:
+          parameterType: STRING
+        Output-3:
+          parameterType: STRING
+        Output-4:
+          parameterType: STRING
+        Output-5:
+          parameterType: STRING
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+  comp-make-name:
+    executorLabel: exec-make-name
+    inputDefinitions:
+      parameters:
+        name:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+defaultPipelineRoot: dummy_root
+deploymentSpec:
+  executors:
+    exec-importer:
+      importer:
+        artifactUri:
+          runtimeParameter: uri
+        metadata:
+          containerSpec:
+            imageUri: '{{$.inputs.parameters[''pipeline_input_image_uri'']}}'
+          name: '{{$.inputs.parameters[''name'']}}'
+        typeSchema:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+    exec-importer-2:
+      importer:
+        artifactUri:
+          constant: gs://ml-pipeline-playground/shakespeare1.txt
+        metadata:
+          containerSpec:
+            imageUri: us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest
+          list_field:
+          - '{{$.inputs.parameters[''Output-2'']}}'
+          - '{{$.inputs.parameters[''Output-3'']}}'
+          name: '{{$.inputs.parameters[''Output'']}}'
+          '{{$.inputs.parameters[''Output-5'']}}': '{{$.inputs.parameters[''Output-4'']}}'
+        typeSchema:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+    exec-make-name:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - make_name
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.1'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef make_name(name: str) -> str:\n    return name\n\n"
+        image: python:3.7
+pipelineInfo:
+  name: pipeline-with-importer
+root:
+  dag:
+    tasks:
+      importer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer
+        inputs:
+          parameters:
+            name:
+              componentInputParameter: name
+            pipeline_input_image_uri:
+              componentInputParameter: pipeline_input_image_uri
+            uri:
+              componentInputParameter: pipeline_input_artifact_uri
+        taskInfo:
+          name: importer
+      importer-2:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer-2
+        dependentTasks:
+        - make-name
+        inputs:
+          parameters:
+            Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: make-name
+            Output-2:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: make-name
+            Output-3:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: make-name
+            Output-4:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: make-name
+            Output-5:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: make-name
+            uri:
+              runtimeValue:
+                constant: gs://ml-pipeline-playground/shakespeare1.txt
+        taskInfo:
+          name: importer-2
+      make-name:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-make-name
+        inputs:
+          parameters:
+            name:
+              runtimeValue:
+                constant: the_name
+        taskInfo:
+          name: make-name
+  inputDefinitions:
+    parameters:
+      name:
+        parameterType: STRING
+      pipeline_input_artifact_uri:
+        defaultValue: gs://ml-pipeline-playground/shakespeare1.txt
+        parameterType: STRING
+      pipeline_input_image_uri:
+        defaultValue: us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.1
