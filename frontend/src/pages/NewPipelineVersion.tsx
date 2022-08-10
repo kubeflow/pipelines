@@ -632,19 +632,58 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
     // (1) new pipeline (and a default version) from local file
     // (2) new pipeline (and a default version) from url
     // (3) new pipeline version (under an existing pipeline) from url
-    const { fileName, pipeline, pipelineVersionName, packageUrl, newPipeline } = this.state;
+    const {
+      fileName,
+      pipeline,
+      pipelineVersionName,
+      packageUrl,
+      newPipeline,
+      pipelineName,
+    } = this.state;
     try {
       if (newPipeline) {
         if (!packageUrl && !fileName) {
           throw new Error('Must specify either package url  or file in .yaml, .zip, or .tar.gz');
         }
+        if (pipelineName && pipelineName.length > 100) {
+          throw new Error('Pipeline name must contain no more than 100 characters');
+        }
+        if (
+          pipelineName &&
+          !pipelineName
+            .match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
+            ?.includes(pipelineName)
+        ) {
+          throw new Error(
+            "Pipeline name must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters.",
+          );
+        }
       } else {
         if (!pipeline) {
           throw new Error('Pipeline is required');
         }
+        if (pipelineName && pipelineName.length > 100) {
+          throw new Error('Pipeline name must contain no more than 100 characters');
+        }
+        if (
+          pipelineName &&
+          !pipelineName
+            .match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
+            ?.includes(pipelineName)
+        ) {
+          throw new Error(
+            "Pipeline name must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters.",
+          );
+        }
         if (!pipelineVersionName) {
           throw new Error('Pipeline version name is required');
         }
+        if (pipelineVersionName && pipelineVersionName.length > 100) {
+          throw new Error('Pipeline version name must contain no more than 100 characters');
+        }
+        // if (pipelineVersionName && !pipelineVersionName.match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')?.includes(pipelineVersionName)) {
+        //   throw new Error("Pipeline version name must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters.")
+        // }
         if (!packageUrl && !fileName) {
           throw new Error('Please specify either package url or file in .yaml, .zip, or .tar.gz');
         }

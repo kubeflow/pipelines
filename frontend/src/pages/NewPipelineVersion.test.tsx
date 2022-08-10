@@ -360,5 +360,39 @@ describe('NewPipelineVersion', () => {
       );
       expect(createPipelineSpy).not.toHaveBeenCalled();
     });
+
+    it('allows updating pipeline name', async () => {
+      tree = shallow(
+        <TestNewPipelineVersion
+          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
+        />,
+      );
+      await TestUtils.flushPromises();
+
+      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineName')({
+        target: { value: 'new pipeline name' },
+      });
+
+      expect(tree.state()).toHaveProperty('pipelineName', 'new pipeline name');
+      expect(getPipelineSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('disable create button if pipeline name is invalid', async () => {
+      tree = shallow(
+        <TestNewPipelineVersion
+          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
+        />,
+      );
+      await TestUtils.flushPromises();
+
+      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineName')({
+        target: { value: 'new pipeline name?' },
+      });
+
+      expect(tree.state()).toHaveProperty('pipelineName', 'new pipeline name?');
+      expect(getPipelineSpy).toHaveBeenCalledTimes(1);
+
+      tree.find('#createNewPipelineOrVersionBtn').simulate('disable');
+    });
   });
 });

@@ -75,7 +75,6 @@ export type RuntimeParameters = { [key: string]: any };
 function NewRunV2(props: NewRunV2Props) {
   // List of elements we need to create Pipeline Run.
   const [pipelineName, setPipelineName] = useState('');
-  const [pipelineVersionName, setPipelineVersionName] = useState('');
   const [runName, setRunName] = useState('');
   const [runDescription, setRunDescription] = useState('');
   const [apiExperiment, setApiExperiment] = useState<ApiExperiment>();
@@ -89,8 +88,6 @@ function NewRunV2(props: NewRunV2Props) {
   const [isParameterValid, setIsParameterValid] = useState(false);
   const [isPipelineNameValid, setIsPipelineNameValid] = useState(false);
   const [pipelineNameErrMsg, setPipelineNameErrMsg] = useState('');
-  const [isPipelineVersionNameValid, setIsPipelineVersionNameValid] = useState(false);
-  const [pipelineVersionNameErrMsg, setPipelineVersionNameErrMsg] = useState('');
   const [clonedRuntimeConfig, setClonedRuntimeConfig] = useState<PipelineSpecRuntimeConfig>({});
 
   // TODO(zijianjoy): If creating run from Experiment Page or RunList Page, there is no pipelineId/Version.
@@ -127,8 +124,7 @@ function NewRunV2(props: NewRunV2Props) {
 
   useEffect(() => {
     setPipelineName(apiPipeline?.name || '');
-    setPipelineVersionName(apiPipelineVersion?.name || '');
-  }, [apiPipeline, apiPipelineVersion]);
+  }, [apiPipeline]);
 
   // When loading a pipeline version, automatically set the default run name.
   useEffect(() => {
@@ -144,10 +140,7 @@ function NewRunV2(props: NewRunV2Props) {
 
   // Pre-check pipeline / pipeline version name at the UI
   useEffect(() => {
-    if (pipelineName.length > 246) {
-      setIsPipelineNameValid(false);
-      setPipelineNameErrMsg('Pipeline name must contain no more than 246 characters');
-    } else if (
+    if (
       !pipelineName
         .match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
         ?.includes(pipelineName)
@@ -160,25 +153,7 @@ function NewRunV2(props: NewRunV2Props) {
       setIsPipelineNameValid(true);
       setPipelineNameErrMsg('');
     }
-    if (pipelineVersionName.length > 246) {
-      setIsPipelineVersionNameValid(false);
-      setPipelineVersionNameErrMsg(
-        'Pipeline version name must contain no more than 246 characters',
-      );
-    } else if (
-      !pipelineVersionName
-        .match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
-        ?.includes(pipelineVersionName)
-    ) {
-      setIsPipelineVersionNameValid(false);
-      setPipelineVersionNameErrMsg(
-        "Pipeline version name must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters.",
-      );
-    } else {
-      setIsPipelineVersionNameValid(true);
-      setPipelineVersionNameErrMsg('');
-    }
-  }, [pipelineName, pipelineVersionName]);
+  }, [pipelineName]);
 
   // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
   useEffect(() => {
@@ -206,8 +181,7 @@ function NewRunV2(props: NewRunV2Props) {
       errorMessage ||
       !isParameterValid ||
       !(apiPipelineVersion || (apiResourceRefFromRun && apiResourceRefFromRun[1])) ||
-      !isPipelineNameValid ||
-      !isPipelineVersionNameValid
+      !isPipelineNameValid
     ) {
       setIsStartButtonEnabled(false);
     } else {
@@ -220,7 +194,6 @@ function NewRunV2(props: NewRunV2Props) {
     apiPipelineVersion,
     apiResourceRefFromRun,
     isPipelineNameValid,
-    isPipelineVersionNameValid,
   ]);
   // TODO(jlyaoyuli): enable the start button for SDK-created run after finishing the showing pipeline details feature.
 
@@ -360,9 +333,6 @@ function NewRunV2(props: NewRunV2Props) {
                 readOnly: true,
               }}
             />
-            <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
-              {isPipelineVersionNameValid ? '' : pipelineVersionNameErrMsg}
-            </div>
           </div>
         )}
         {/* Run info inputs */}
