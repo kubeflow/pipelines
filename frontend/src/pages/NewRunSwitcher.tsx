@@ -16,19 +16,25 @@ function NewRunSwitcher(props: PageProps) {
   const namespace = React.useContext(NamespaceContext);
 
   const urlParser = new URLParser(props);
+  // Currently using two query parameters to get Run ID.
+  // because v1 has two different behavior with Run ID (clone a run / start a run)
+  // Will keep clone run only in v2 if run ID is existing
+  // runID query by cloneFromRun will be deprecated once v1 is deprecated.
   const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
+  const embeddedRunId = urlParser.get(QUERY_PARAMS.fromRunId);
   const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
   const pipelineVersionIdParam = urlParser.get(QUERY_PARAMS.pipelineVersionId);
+  const existingRunId = originalRunId ? originalRunId : embeddedRunId;
 
   const { isSuccess: runIsSuccess, isFetching: runIsFetching, data: apiRun } = useQuery<
     ApiRunDetail
   >(
-    ['ApiRun', originalRunId],
+    ['ApiRun', existingRunId],
     () => {
-      if (!originalRunId) {
+      if (!existingRunId) {
         throw new Error('Run ID is missing');
       }
-      return Apis.runServiceApi.getRun(originalRunId);
+      return Apis.runServiceApi.getRun(existingRunId);
     },
     { staleTime: Infinity },
   );
@@ -86,7 +92,7 @@ function NewRunSwitcher(props: PageProps) {
         <NewRunV2
           {...props}
           namespace={namespace}
-          originalRunId={originalRunId}
+          existingRunId={existingRunId}
           apiRun={apiRun}
           apiPipeline={apiPipeline}
           apiPipelineVersion={apiPipelineVersion}
