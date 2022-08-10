@@ -8,6 +8,7 @@
 * Add support for task-level retry policy [\#7867](https://github.com/kubeflow/pipelines/pull/7867)
 
 ### For Component Authors
+* Add support for containerized component [\#8066](https://github.com/kubeflow/pipelines/pull/8066)
 
 ## Deprecations
 
