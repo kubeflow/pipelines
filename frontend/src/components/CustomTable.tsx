@@ -189,6 +189,8 @@ interface CustomTableProps {
   getExpandComponent?: (index: number) => React.ReactNode;
   initialSortColumn?: string;
   initialSortOrder?: 'asc' | 'desc';
+  initialFilterString?: string;
+  setFilterString?: (filterString: string) => void;
   noFilterBox?: boolean;
   reload: (request: ListRequest) => Promise<string>;
   rows: Row[];
@@ -224,8 +226,10 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
     this.state = {
       currentPage: 0,
-      filterString: '',
-      filterStringEncoded: '',
+      filterString: this.props.initialFilterString || '',
+      filterStringEncoded: this.props.initialFilterString
+        ? this._createAndEncodeFilter(this.props.initialFilterString)
+        : '',
       isBusy: false,
       maxPageIndex: Number.MAX_SAFE_INTEGER,
       pageSize: 10,
@@ -505,6 +509,9 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
   public handleFilterChange = (event: any) => {
     const value = event.target.value;
+    if (this.props.setFilterString) {
+      this.props.setFilterString(value || '');
+    }
     // Set state here so that the UI will be updated even if the actual filter request is debounced
     this.setStateSafe(
       { filterString: value } as any,

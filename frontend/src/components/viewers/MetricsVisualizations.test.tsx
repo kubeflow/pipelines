@@ -26,7 +26,7 @@ import {
   ConfidenceMetricsSection,
   ConfidenceMetricsSectionProps,
 } from './MetricsVisualizations';
-import { FullArtifactPath, FullArtifactPathMap } from 'src/lib/v2/CompareUtils';
+import { FullArtifactPath, FullArtifactPathMap, RocCurveColorMap } from 'src/lib/v2/CompareUtils';
 import { lineColors } from 'src/components/viewers/ROCCurve';
 import TestUtils from 'src/TestUtils';
 import * as rocCurveHelper from './ROCCurveHelper';
@@ -135,6 +135,12 @@ describe('ConfidenceMetricsSection', () => {
     linkedArtifacts?: LinkedArtifact[],
     fullArtifactPathMap?: FullArtifactPathMap,
   ): ConfidenceMetricsSectionProps {
+    const lineColorsStack = [...lineColors].reverse();
+    const selectedIdColorMap: RocCurveColorMap = {};
+    // Note: Only 11 colors are available on the line colors stack, as UI limits selection to 10.
+    for (const selectedId of selectedIds) {
+      selectedIdColorMap[selectedId] = lineColorsStack.pop()!;
+    }
     const props: ConfidenceMetricsSectionProps = {
       linkedArtifacts: linkedArtifacts || [
         newMockLinkedArtifact(1, 1, 'artifact1'),
@@ -188,9 +194,9 @@ describe('ConfidenceMetricsSection', () => {
             },
           } as FullArtifactPath,
         },
-        selectedIdColorMap: {},
+        selectedIdColorMap,
         setSelectedIdColorMap: setSelectedIdColorMapSpy,
-        lineColorsStack: [...lineColors].reverse(),
+        lineColorsStack,
         setLineColorsStack: setLineColorsStackSpy,
       } as ConfidenceMetricsFilter,
     };
@@ -292,7 +298,7 @@ describe('ConfidenceMetricsSection', () => {
       '1-2': '#2b9c1e',
       '2-4': '#e00000',
     });
-    expect(setLineColorsStackSpy).toBeCalledTimes(2);
+    expect(setLineColorsStackSpy).toBeCalledTimes(1);
   });
 
   it('ROC Curve show banner when selecting 10 runs', async () => {
