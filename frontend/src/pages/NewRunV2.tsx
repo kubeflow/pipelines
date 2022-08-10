@@ -285,7 +285,6 @@ function NewRunV2(props: NewRunV2Props) {
                 readOnly: true,
               }}
             />
-
             {/* Pipelien version selection */}
             <Input
               value={apiPipelineVersion?.name || ''}
