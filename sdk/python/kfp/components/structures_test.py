@@ -25,8 +25,6 @@ from kfp import dsl
 from kfp.components import component_factory
 from kfp.components import placeholders
 from kfp.components import structures
-from kfp.components.container_component_artifact_channel import \
-    ContainerComponentArtifactChannel
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
