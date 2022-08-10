@@ -5,7 +5,6 @@
 ## Breaking Changes
 
 ### For Pipeline Authors
-* Add support for task-level retry policy [\#7867](https://github.com/kubeflow/pipelines/pull/7867)
 
 ### For Component Authors
 
@@ -14,6 +13,8 @@
 ## Bug Fixes and Other Changes
 * Enable overriding caching options at submission time [\#7912](https://github.com/kubeflow/pipelines/pull/7912)
 * Allow artifact inputs in pipeline definition. [\#8044](https://github.com/kubeflow/pipelines/pull/8044)
+* Support task-level retry policy [\#7867](https://github.com/kubeflow/pipelines/pull/7867)
+* Support multiple exit handlers per pipeline [\#8088](https://github.com/kubeflow/pipelines/pull/8088)
 
 ## Documentation Updates
 

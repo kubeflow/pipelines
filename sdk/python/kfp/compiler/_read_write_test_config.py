@@ -44,6 +44,7 @@ CONFIG = {
             'component_with_pip_index_urls',
             'container_component_with_no_inputs',
             'two_step_pipeline_containerized',
+            'pipeline_with_multiple_exit_handlers',
         ],
         'test_data_dir': 'sdk/python/kfp/compiler/test_data/pipelines',
         'config': {
