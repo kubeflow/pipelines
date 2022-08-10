@@ -138,7 +138,7 @@ function NewRunV2(props: NewRunV2Props) {
     }
   }, [apiRun, apiPipelineVersion]);
 
-  // Pre-check pipeline / pipeline version name at the UI
+  // Pre-check pipeline name at the UI
   useEffect(() => {
     if (
       !pipelineName
@@ -344,7 +344,6 @@ function NewRunV2(props: NewRunV2Props) {
           value={runName}
           variant='outlined'
         />
-
         <Input
           label='Description (optional)'
           multiline={true}

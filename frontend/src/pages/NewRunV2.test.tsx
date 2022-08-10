@@ -38,9 +38,6 @@ describe('NewRunV2', () => {
   const TEST_PIPELINE_NAME = 'test-pipeline';
   const TEST_PIPELINE_VERSION_ID = 'test-pipeline-version-id';
   const TEST_PIPELINE_VERSION_NAME = 'test-pipeline-version';
-  const INVALID_TEST_PIPELINEVERSION_NAME = 'test pipeline version';
-  const SUPER_LONG_PIPELINE_VERSION_NAME =
-    'super-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-namesuper-long-pipeline-name';
   const TEST_PIPELINE: ApiPipeline = {
     created_at: new Date(2018, 8, 5, 4, 3, 2),
     description: '',
@@ -68,16 +65,6 @@ describe('NewRunV2', () => {
   const TEST_PIPELINE_VERSION = {
     id: 'test-pipeline-version-id',
     name: TEST_PIPELINE_VERSION_NAME,
-    description: '',
-  };
-  const TEST_PIPELINE_VERSION_WITH_INVALID_NAME = {
-    id: 'test-pipeline-version-id',
-    name: INVALID_TEST_PIPELINEVERSION_NAME,
-    description: '',
-  };
-  const TEST_PIPELINE_VERSION_WITH_TOO_LONG_NAME = {
-    id: 'test-pipeline-version-id',
-    name: SUPER_LONG_PIPELINE_VERSION_NAME,
     description: '',
   };
   const API_RUN_DETAILS: ApiRunDetail = {

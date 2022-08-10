@@ -681,9 +681,6 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
         if (pipelineVersionName && pipelineVersionName.length > 100) {
           throw new Error('Pipeline version name must contain no more than 100 characters');
         }
-        // if (pipelineVersionName && !pipelineVersionName.match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')?.includes(pipelineVersionName)) {
-        //   throw new Error("Pipeline version name must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters.")
-        // }
         if (!packageUrl && !fileName) {
           throw new Error('Please specify either package url or file in .yaml, .zip, or .tar.gz');
         }
