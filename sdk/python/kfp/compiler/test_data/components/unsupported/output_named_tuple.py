@@ -15,7 +15,6 @@ from typing import NamedTuple
 
 from kfp.dsl import component
 from kfp.dsl import Metrics
-from kfp.dsl import Model
 
 
 @component
