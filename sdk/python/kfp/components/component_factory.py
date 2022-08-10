@@ -17,7 +17,7 @@ import itertools
 import pathlib
 import re
 import textwrap
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple
 import warnings
 
 import docstring_parser
@@ -25,6 +25,8 @@ from kfp.components import container_component
 from kfp.components import placeholders
 from kfp.components import python_component
 from kfp.components import structures
+from kfp.components.container_component_artifact_channel import \
+    ContainerComponentArtifactChannel
 from kfp.components.types import artifact_types
 from kfp.components.types import type_annotations
 from kfp.components.types import type_utils
@@ -46,33 +48,6 @@ class ComponentInfo():
     component_spec: structures.ComponentSpec
     output_component_file: Optional[str] = None
     base_image: str = _DEFAULT_BASE_IMAGE
-
-
-class ContainerComponentArtifactChannel():
-    """A class for passing in placeholders into container_component decorated
-    function."""
-
-    def __init__(self, io_type: str, var_name: str):
-        self._io_type = io_type
-        self._var_name = var_name
-
-    def __getattr__(
-        self, _name: str
-    ) -> Union[placeholders.InputUriPlaceholder, placeholders
-               .InputPathPlaceholder, placeholders.OutputUriPlaceholder,
-               placeholders.OutputPathPlaceholder]:
-        if _name not in ['uri', 'path']:
-            raise AttributeError(f'Cannot access artifact attribute "{_name}".')
-        if self._io_type == 'input':
-            if _name == 'uri':
-                return placeholders.InputUriPlaceholder(self._var_name)
-            elif _name == 'path':
-                return placeholders.InputPathPlaceholder(self._var_name)
-        elif self._io_type == 'output':
-            if _name == 'uri':
-                return placeholders.OutputUriPlaceholder(self._var_name)
-            elif _name == 'path':
-                return placeholders.OutputPathPlaceholder(self._var_name)
 
 
 # A map from function_name to components.  This is always populated when a
@@ -506,10 +481,6 @@ def create_container_component_from_func(
             arg_list.append(placeholders.InputValuePlaceholder(io_name))
 
     container_spec = func(*arg_list)
-    for arg in (container_spec.command or []) + (container_spec.args or []):
-        if isinstance(arg, ContainerComponentArtifactChannel):
-            raise TypeError(
-                'Cannot access artifact by itself in the container definition. Please use .uri or .path instead to access the artifact.'
-            )
     component_spec.implementation = structures.Implementation(container_spec)
+    component_spec.validate_placeholders()
     return container_component.ContainerComponent(component_spec, func)

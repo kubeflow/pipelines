@@ -21,6 +21,8 @@ import unittest
 from absl.testing import parameterized
 from google.protobuf import json_format
 from kfp import compiler
+from kfp import dsl
+from kfp.components import component_factory
 from kfp.components import placeholders
 from kfp.components import structures
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -494,6 +496,38 @@ class TestContainerSpec(unittest.TestCase):
 
         loaded_container_spec = structures.ContainerSpec.from_container_dict(
             container_dict)
+
+    def test_raise_error_if_access_artifact_by_itself(self):
+
+        def comp_with_artifact_input(dataset: dsl.Input[dsl.Dataset]):
+            return dsl.ContainerSpec(
+                image='gcr.io/my-image',
+                command=['sh', 'run.sh'],
+                args=[dataset])
+
+        def comp_with_artifact_output(dataset_old: dsl.Output[dsl.Dataset],
+                                      dataset_new: dsl.Output[dsl.Dataset],
+                                      optional_input: str = 'default'):
+            return dsl.ContainerSpec(
+                image='gcr.io/my-image',
+                command=['sh', 'run.sh'],
+                args=[
+                    placeholders.IfPresentPlaceholder(
+                        input_name='optional_input',
+                        then=[dataset_old],
+                        else_=[dataset_new])
+                ])
+
+        self.assertRaisesRegex(
+            ValueError,
+            r'Cannot access artifact by itself in the container definition.',
+            component_factory.create_container_component_from_func,
+            comp_with_artifact_input)
+        self.assertRaisesRegex(
+            ValueError,
+            r'Cannot access artifact by itself in the container definition.',
+            component_factory.create_container_component_from_func,
+            comp_with_artifact_output)
 
 
 class TestComponentSpec(unittest.TestCase):
