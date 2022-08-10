@@ -645,36 +645,15 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
         if (!packageUrl && !fileName) {
           throw new Error('Must specify either package url  or file in .yaml, .zip, or .tar.gz');
         }
-        if (pipelineName && pipelineName.length > 100) {
-          throw new Error('Pipeline name must contain no more than 100 characters');
+        if (!pipelineName) {
+          throw new Error('Pipeline name is required');
         }
-        if (
-          pipelineName &&
-          !pipelineName
-            .match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
-            ?.includes(pipelineName)
-        ) {
-          throw new Error(
-            "Pipeline name must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters.",
-          );
-        }
+        this._isValidName(pipelineName!, 'Pipeline name');
       } else {
         if (!pipeline) {
           throw new Error('Pipeline is required');
         }
-        if (pipelineName && pipelineName.length > 100) {
-          throw new Error('Pipeline name must contain no more than 100 characters');
-        }
-        if (
-          pipelineName &&
-          !pipelineName
-            .match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
-            ?.includes(pipelineName)
-        ) {
-          throw new Error(
-            "Pipeline name must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters.",
-          );
-        }
+        this._isValidName(pipelineName!, 'Pipeline name');
         if (!pipelineVersionName) {
           throw new Error('Pipeline version name is required');
         }
@@ -688,6 +667,22 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
       this.setState({ validationError: '' });
     } catch (err) {
       this.setState({ validationError: err.message });
+    }
+  }
+
+  private _isValidName(name: string, title: string): void {
+    if (name.length > 100) {
+      throw new Error(title + ' must contain no more than 100 characters');
+    }
+    if (
+      !name
+        .match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
+        ?.includes(name)
+    ) {
+      throw new Error(
+        title +
+          " must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters.",
+      );
     }
   }
 
