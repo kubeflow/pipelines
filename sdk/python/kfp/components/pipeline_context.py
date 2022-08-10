@@ -118,7 +118,9 @@ class Pipeline:
         # Add the root group.
         self.groups = [
             tasks_group.TasksGroup(
-                group_type=tasks_group.TasksGroupType.PIPELINE, name=name)
+                group_type=tasks_group.TasksGroupType.PIPELINE,
+                name=name,
+                is_root=True)
         ]
         self._group_id = 0
 
@@ -174,6 +176,7 @@ class Pipeline:
 
         self.tasks[task_name] = task
         if add_to_group:
+            task.parent_task_group = self.groups[-1]
             self.groups[-1].tasks.append(task)
 
         return task_name
