@@ -34,8 +34,6 @@ from kfp.components import component_factory
 from kfp.components import for_loop
 from kfp.components import pipeline_channel
 from kfp.components import pipeline_context
-from kfp.components import pipeline_task
-from kfp.components import structures
 from kfp.components import tasks_group
 from kfp.components import utils as component_utils
 from kfp.components.types import type_utils
