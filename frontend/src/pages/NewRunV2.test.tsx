@@ -65,7 +65,10 @@ describe('NewRunV2', () => {
       finished_at: new Date('2021-05-18T21:01:23.000Z'),
       id: 'e0115ac1-0479-4194-a22d-01e65e09a32b',
       name: 'v2-xgboost-ilbo',
-      pipeline_spec: { runtime_config: { parameters: { intParam: 123 } } },
+      pipeline_spec: {
+        pipeline_manifest: v2YamlTemplateString,
+        runtime_config: { parameters: { intParam: 123 } },
+      },
       resource_references: [
         {
           key: {
@@ -291,6 +294,7 @@ describe('NewRunV2', () => {
           expect.objectContaining({
             description: '',
             pipeline_spec: {
+              pipeline_manifest: v2YamlTemplateString,
               runtime_config: { parameters: { intParam: 123 }, pipeline_root: undefined },
             },
             resource_references: [

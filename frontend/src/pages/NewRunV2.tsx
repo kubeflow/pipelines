@@ -152,18 +152,12 @@ function NewRunV2(props: NewRunV2Props) {
 
   // Handle different change that can affect setIsStartButtonEnabled
   useEffect(() => {
-    if (
-      !templateString ||
-      errorMessage ||
-      !isParameterValid ||
-      !(apiPipelineVersion || (apiResourceRefFromRun && apiResourceRefFromRun[1]))
-    ) {
+    if (!templateString || errorMessage || !isParameterValid) {
       setIsStartButtonEnabled(false);
     } else {
       setIsStartButtonEnabled(true);
     }
   }, [templateString, errorMessage, isParameterValid, apiPipelineVersion, apiResourceRefFromRun]);
-  // TODO(jlyaoyuli): enable the start button for SDK-created run after finishing the showing pipeline details feature.
 
   useEffect(() => {
     if (apiRun?.run?.pipeline_spec?.runtime_config) {
@@ -214,6 +208,7 @@ function NewRunV2(props: NewRunV2Props) {
       description: runDescription,
       name: runName,
       pipeline_spec: {
+        pipeline_manifest: templateString,
         runtime_config: {
           // TODO(zijianjoy): determine whether to provide pipeline root.
           pipeline_root: undefined, // pipelineRoot,
