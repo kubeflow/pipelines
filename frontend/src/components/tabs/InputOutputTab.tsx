@@ -14,22 +14,23 @@
  * limitations under the License.
  */
 
-import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import React from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
 import { commonCss, padding } from 'src/Css';
+import { KeyValue } from 'src/lib/StaticGraphParser';
+import { getMetadataValue } from 'src/mlmd/library';
 import {
   filterEventWithInputArtifact,
   filterEventWithOutputArtifact,
   getArtifactName,
+  getArtifactTypeName,
+  getArtifactTypes,
   getLinkedArtifactsByExecution,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
-import { KeyValue } from 'src/lib/StaticGraphParser';
-import { getMetadataValue } from 'src/mlmd/library';
-import { Execution } from 'src/third_party/mlmd';
+import { ArtifactType, Execution } from 'src/third_party/mlmd';
 import ArtifactPreview from '../ArtifactPreview';
 import Banner from '../Banner';
 import DetailsTable from '../DetailsTable';
@@ -50,20 +51,35 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
   // TODO(jlyaoyuli): Display other information (container, args, image, command)
 
   // Retrieves input and output artifacts from Metadata store.
-  const { isSuccess, error, data } = useQuery<LinkedArtifact[], Error>(
+  const { isSuccess, error, data: linkedArtifacts } = useQuery<LinkedArtifact[], Error>(
     ['execution_artifact', { id: executionId, state: execution.getLastKnownState() }],
     () => getLinkedArtifactsByExecution(execution),
     { staleTime: Infinity },
   );
+
+  const { data: artifactTypes } = useQuery<ArtifactType[], Error>(
+    ['artifact_types', { linkedArtifact: linkedArtifacts }],
+    () => getArtifactTypes(),
+    {},
+  );
+
+  const artifactTypeNames =
+    linkedArtifacts && artifactTypes ? getArtifactTypeName(artifactTypes, linkedArtifacts) : [];
 
   // Restructs artifacts and parameters for visualization.
   const inputParams = extractInputFromExecution(execution);
   const outputParams = extractOutputFromExecution(execution);
   let inputArtifacts: ParamList = [];
   let outputArtifacts: ParamList = [];
-  if (isSuccess && data) {
-    inputArtifacts = getArtifactParamList(filterEventWithInputArtifact(data));
-    outputArtifacts = getArtifactParamList(filterEventWithOutputArtifact(data));
+  if (isSuccess && linkedArtifacts) {
+    inputArtifacts = getArtifactParamList(
+      filterEventWithInputArtifact(linkedArtifacts),
+      artifactTypeNames,
+    );
+    outputArtifacts = getArtifactParamList(
+      filterEventWithOutputArtifact(linkedArtifacts),
+      artifactTypeNames,
+    );
   }
 
   let isIoEmpty = false;
@@ -160,10 +176,10 @@ function extractOutputFromExecution(execution: Execution): KeyValue<string>[] {
 function extractParamFromExecution(execution: Execution, name: string): KeyValue<string>[] {
   const result: KeyValue<string>[] = [];
   execution.getCustomPropertiesMap().forEach((value, key) => {
-    if (key == name) {
+    if (key === name) {
       const param = getMetadataValue(value);
       if (typeof param == 'object') {
-        Object.entries(param.toJavaScript()).map(parameter => {
+        Object.entries(param.toJavaScript()).forEach(parameter => {
           result.push([parameter[0], JSON.stringify(parameter[1])]);
         });
       }
@@ -172,9 +188,19 @@ function extractParamFromExecution(execution: Execution, name: string): KeyValue
   return result;
 }
 
-export function getArtifactParamList(inputArtifacts: LinkedArtifact[]): ParamList {
-  return inputArtifacts.map(linkedArtifact => {
-    const key = getArtifactName(linkedArtifact);
+export function getArtifactParamList(
+  inputArtifacts: LinkedArtifact[],
+  artifactTypeNames: string[],
+): ParamList {
+  return Object.values(inputArtifacts).map((linkedArtifact, index) => {
+    let key = getArtifactName(linkedArtifact);
+    if (
+      key &&
+      (artifactTypeNames[index] === 'system.Metrics' ||
+        artifactTypeNames[index] === 'system.ClassificationMetrics')
+    ) {
+      key += ' (This is an empty file by default)';
+    }
     const artifactId = linkedArtifact.artifact.getId();
     const artifactElement = RoutePageFactory.artifactDetails(artifactId) ? (
       <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(artifactId)}>

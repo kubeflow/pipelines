@@ -35,7 +35,7 @@ import Banner from 'src/components/Banner';
 import { SelectedArtifact } from 'src/pages/CompareV2';
 import { useQuery } from 'react-query';
 import { errorToMessage, logger } from 'src/lib/Utils';
-import { Execution } from 'src/third_party/mlmd';
+import { getExecutionDisplayName } from 'src/mlmd/MlmdUtils';
 import {
   metricsTypeToString,
   ExecutionArtifact,
@@ -98,6 +98,11 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
   const [secondSelectedItem, setSecondSelectedItem] = useState<SelectedItem>(
     selectedArtifacts[1].selectedItem,
   );
+
+  useEffect(() => {
+    setFirstSelectedItem(selectedArtifacts[0].selectedItem);
+    setSecondSelectedItem(selectedArtifacts[1].selectedItem);
+  }, [selectedArtifacts]);
 
   const metricsTabText = metricsTypeToString(metricsTab);
   const updateSelectedItemAndArtifact = (
@@ -274,12 +279,6 @@ function VisualizationPanelItem(props: VisualizationPanelItemProps) {
 const logDisplayNameWarning = (type: string, id: string) =>
   logger.warn(`Failed to fetch the display name of the ${type} with the following ID: ${id}`);
 
-const getExecutionName = (execution: Execution) =>
-  execution
-    .getCustomPropertiesMap()
-    .get('display_name')
-    ?.getStringValue();
-
 // Group each artifact name with its parent execution name.
 function getDropdownSubLinkedArtifacts(linkedArtifacts: LinkedArtifact[], subItemName: string) {
   const executionLinkedArtifacts: DropdownSubItem[] = [];
@@ -302,7 +301,7 @@ function getDropdownSubLinkedArtifacts(linkedArtifacts: LinkedArtifact[], subIte
 function getDropdownSubItems(executionArtifacts: ExecutionArtifact[]) {
   const subItems: DropdownSubItem[] = [];
   for (const executionArtifact of executionArtifacts) {
-    const executionName = getExecutionName(executionArtifact.execution);
+    const executionName = getExecutionDisplayName(executionArtifact.execution);
     const executionId = executionArtifact.execution.getId().toString();
     if (!executionName) {
       logDisplayNameWarning('execution', executionId);
@@ -348,7 +347,7 @@ function getLinkedArtifactFromSelectedItem(
 
   const executionArtifact = filteredRunArtifact?.executionArtifacts.find(executionArtifact => {
     const executionText: string =
-      getExecutionName(executionArtifact.execution) ||
+      getExecutionDisplayName(executionArtifact.execution) ||
       executionArtifact.execution.getId().toString();
     return executionText === selectedItem.subItemName;
   });
