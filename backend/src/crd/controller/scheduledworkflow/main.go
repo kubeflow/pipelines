@@ -19,8 +19,6 @@ import (
 	"strings"
 	"time"
 
-	workflowclientSet "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned"
-	workflowinformers "github.com/argoproj/argo-workflows/v3/pkg/client/informers/externalversions"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
@@ -65,32 +63,28 @@ func main() {
 		log.Fatalf("Error building schedule clientset: %s", err.Error())
 	}
 
-	workflowClient, err := workflowclientSet.NewForConfig(cfg)
-	if err != nil {
-		log.Fatalf("Error building workflow clientset: %s", err.Error())
-	}
+	clientParam := commonutil.ClientParameters{QPS: float64(cfg.QPS), Burst: cfg.Burst}
+	execClient := commonutil.NewExecutionClientOrFatal(commonutil.ArgoWorkflow, time.Second*30, clientParam)
 
 	var scheduleInformerFactory swfinformers.SharedInformerFactory
-	var workflowInformerFactory workflowinformers.SharedInformerFactory
+	execInformer := commonutil.NewExecutionInformerOrFatal(commonutil.ArgoWorkflow, namespace, time.Second*30, clientParam)
 	if namespace == "" {
 		scheduleInformerFactory = swfinformers.NewSharedInformerFactory(scheduleClient, time.Second*30)
-		workflowInformerFactory = workflowinformers.NewSharedInformerFactory(workflowClient, time.Second*30)
 	} else {
 		scheduleInformerFactory = swfinformers.NewFilteredSharedInformerFactory(scheduleClient, time.Second*30, namespace, nil)
-		workflowInformerFactory = workflowinformers.NewFilteredSharedInformerFactory(workflowClient, time.Second*30, namespace, nil)
 	}
 
 	controller := NewController(
 		kubeClient,
 		scheduleClient,
-		workflowClient,
+		execClient,
 		scheduleInformerFactory,
-		workflowInformerFactory,
+		execInformer,
 		commonutil.NewRealTime(),
 		location)
 
 	go scheduleInformerFactory.Start(stopCh)
-	go workflowInformerFactory.Start(stopCh)
+	go execInformer.InformerFactoryStart(stopCh)
 
 	if err = controller.Run(2, stopCh); err != nil {
 		log.Fatalf("Error running controller: %s", err.Error())

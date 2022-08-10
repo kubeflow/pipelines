@@ -14,18 +14,13 @@
 
 package util
 
-type ExecutionPhase string
-
-// borrow from Workflow.Status.Phase:
-// https://pkg.go.dev/github.com/argoproj/argo-workflows/v3@v3.3.8/pkg/apis/workflow/v1alpha1#WorkflowPhase
-const (
-	ExecutionUnknown   ExecutionPhase = ""
-	ExecutionPending   ExecutionPhase = "Pending" // pending some set-up - rarely used
-	ExecutionRunning   ExecutionPhase = "Running" // any node has started; pods might not be running yet, the workflow maybe suspended too
-	ExecutionSucceeded ExecutionPhase = "Succeeded"
-	ExecutionFailed    ExecutionPhase = "Failed" // it maybe that the the workflow was terminated
-	ExecutionError     ExecutionPhase = "Error"
+import (
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/common"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+type RetrieveArtifact func(request *api.ReadArtifactRequest, user string) (*api.ReadArtifactResponse, error)
 
 // Abstract interface to encapsulate the resources of the execution runtime specifically
 // for status information. This interface is mainly to access the status related information
@@ -35,11 +30,28 @@ type ExecutionStatus interface {
 	FindObjectStoreArtifactKeyOrEmpty(nodeID string, artifactName string) string
 
 	// Get information of current phase, high-level summary of where the Execution is in its lifecycle.
-	Condition() ExecutionPhase
+	Condition() common.ExecutionPhase
 
 	// UNIX time the execution finished. If Execution is not finished, return 0
 	FinishedAt() int64
 
+	// FinishedAt in Time format
+	FinishedAtTime() v1.Time
+
+	// StartedAt in Time format
+	StartedAtTime() v1.Time
+
 	// IsInFinalState whether the workflow is in a final state.
 	IsInFinalState() bool
+
+	// details about the ExecutionSpec's current condition.
+	Message() string
+
+	// This function was in metrics_reporter.go. Moved to here because it
+	// accesses the orchestration engine specific data struct. encapsulate the
+	// specific data struct and provide a abstract function here.
+	CollectionMetrics(retrieveArtifact RetrieveArtifact, user string) ([]*api.RunMetric, []error)
+
+	// does ExecutionStatus contain any finished node or not
+	HasMetrics() bool
 }

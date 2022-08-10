@@ -15,31 +15,30 @@
 package client
 
 import (
-	argoprojv1alpha1 "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 )
 
-type FakeArgoClient struct {
+type FakeExecClient struct {
 	workflowClientFake *FakeWorkflowClient
 }
 
-func NewFakeArgoClient() *FakeArgoClient {
-	return &FakeArgoClient{NewWorkflowClientFake()}
+func NewFakeExecClient() *FakeExecClient {
+	return &FakeExecClient{NewWorkflowClientFake()}
 }
 
-func (c *FakeArgoClient) Workflow(namespace string) argoprojv1alpha1.WorkflowInterface {
+func (c *FakeExecClient) Execution(namespace string) util.ExecutionInterface {
 	if len(namespace) == 0 {
 		panic(util.NewResourceNotFoundError("Namespace", namespace))
 	}
 	return c.workflowClientFake
 }
 
-func (c *FakeArgoClient) GetWorkflowCount() int {
+func (c *FakeExecClient) GetWorkflowCount() int {
 	return len(c.workflowClientFake.workflows)
 }
 
-func (c *FakeArgoClient) GetWorkflowKeys() map[string]bool {
+func (c *FakeExecClient) GetWorkflowKeys() map[string]bool {
 	result := map[string]bool{}
 	for key := range c.workflowClientFake.workflows {
 		result[key] = true
@@ -47,7 +46,7 @@ func (c *FakeArgoClient) GetWorkflowKeys() map[string]bool {
 	return result
 }
 
-func (c *FakeArgoClient) IsTerminated(name string) (bool, error) {
+func (c *FakeExecClient) IsTerminated(name string) (bool, error) {
 	workflow, ok := c.workflowClientFake.workflows[name]
 	if !ok {
 		return false, errors.New("No workflow found with name: " + name)
@@ -61,14 +60,14 @@ func (c *FakeArgoClient) IsTerminated(name string) (bool, error) {
 	return *activeDeadlineSeconds == 0, nil
 }
 
-type FakeArgoClientWithBadWorkflow struct {
+type FakeExecClientWithBadWorkflow struct {
 	workflowClientFake *FakeBadWorkflowClient
 }
 
-func NewFakeArgoClientWithBadWorkflow() *FakeArgoClientWithBadWorkflow {
-	return &FakeArgoClientWithBadWorkflow{&FakeBadWorkflowClient{}}
+func NewFakeExecClientWithBadWorkflow() *FakeExecClientWithBadWorkflow {
+	return &FakeExecClientWithBadWorkflow{&FakeBadWorkflowClient{}}
 }
 
-func (c *FakeArgoClientWithBadWorkflow) Workflow(namespace string) argoprojv1alpha1.WorkflowInterface {
+func (c *FakeExecClientWithBadWorkflow) Execution(namespace string) util.ExecutionInterface {
 	return c.workflowClientFake
 }
