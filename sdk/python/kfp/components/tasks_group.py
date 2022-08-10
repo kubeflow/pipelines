@@ -44,12 +44,14 @@ class TasksGroup:
         groups: A list of TasksGroups in this group.
         display_name: The optional user given name of the group.
         dependencies: A list of tasks or groups this group depends on.
+        is_root: If TasksGroup is root group.
     """
 
     def __init__(
         self,
         group_type: TasksGroupType,
         name: Optional[str] = None,
+        is_root: bool = False,
     ):
         """Create a new instance of TasksGroup.
 
@@ -62,6 +64,7 @@ class TasksGroup:
         self.groups = list()
         self.display_name = name
         self.dependencies = []
+        self.is_root = is_root
 
     def __enter__(self):
         if not pipeline_context.Pipeline.get_default_pipeline():
@@ -116,7 +119,11 @@ class ExitHandler(TasksGroup):
         name: Optional[str] = None,
     ):
         """Initializes a Condition task group."""
-        super().__init__(group_type=TasksGroupType.EXIT_HANDLER, name=name)
+        super().__init__(
+            group_type=TasksGroupType.EXIT_HANDLER,
+            name=name,
+            is_root=False,
+        )
 
         if exit_task.dependent_tasks:
             raise ValueError('exit_task cannot depend on any other tasks.')
@@ -151,6 +158,7 @@ class Condition(TasksGroup):
         self,
         condition: pipeline_channel.ConditionOperator,
         name: Optional[str] = None,
+        is_root=False,
     ):
         """Initializes a conditional task group."""
         super().__init__(group_type=TasksGroupType.CONDITION, name=name)
@@ -182,7 +190,11 @@ class ParallelFor(TasksGroup):
         name: Optional[str] = None,
     ):
         """Initializes a for loop task group."""
-        super().__init__(group_type=TasksGroupType.FOR_LOOP, name=name)
+        super().__init__(
+            group_type=TasksGroupType.FOR_LOOP,
+            name=name,
+            is_root=False,
+        )
 
         if isinstance(items, pipeline_channel.PipelineChannel):
             self.loop_argument = for_loop.LoopArgument.from_pipeline_channel(

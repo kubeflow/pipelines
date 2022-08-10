@@ -440,7 +440,7 @@ class TestCompilePipeline(parameterized.TestCase):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='result.yaml')
 
-    def test_invalid_after_dependency(self):
+    def test_invalid_data_dependency_loop(self):
 
         @dsl.component
         def producer_op() -> str:
@@ -451,30 +451,7 @@ class TestCompilePipeline(parameterized.TestCase):
             pass
 
         @dsl.pipeline(name='test-pipeline')
-        def my_pipeline(text: str):
-            with dsl.Condition(text == 'a'):
-                producer_task = producer_op()
-
-            dummy_op().after(producer_task)
-
-        with self.assertRaisesRegex(
-                RuntimeError,
-                'Task dummy-op cannot dependent on any task inside the group:'):
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='result.yaml')
-
-    def test_invalid_data_dependency(self):
-
-        @dsl.component
-        def producer_op() -> str:
-            return 'a'
-
-        @dsl.component
-        def dummy_op(msg: str = ''):
-            pass
-
-        @dsl.pipeline(name='test-pipeline')
-        def my_pipeline(text: bool):
+        def my_pipeline(val: bool):
             with dsl.ParallelFor(['a, b']):
                 producer_task = producer_op()
 
@@ -483,8 +460,125 @@ class TestCompilePipeline(parameterized.TestCase):
         with self.assertRaisesRegex(
                 RuntimeError,
                 'Task dummy-op cannot dependent on any task inside the group:'):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                package_path = os.path.join(tmpdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_valid_data_dependency_loop(self):
+
+        @dsl.component
+        def producer_op() -> str:
+            return 'a'
+
+        @dsl.component
+        def dummy_op(msg: str = ''):
+            pass
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(val: bool):
+            with dsl.ParallelFor(['a, b']):
+                producer_task = producer_op()
+                dummy_op(msg=producer_task.output)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            package_path = os.path.join(tmpdir, 'pipeline.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='result.yaml')
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_invalid_data_dependency_condition(self):
+
+        @dsl.component
+        def producer_op() -> str:
+            return 'a'
+
+        @dsl.component
+        def dummy_op(msg: str = ''):
+            pass
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(val: bool):
+            with dsl.Condition(val == False):
+                producer_task = producer_op()
+
+            dummy_op(msg=producer_task.output)
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                'Task dummy-op cannot dependent on any task inside the group:'):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                package_path = os.path.join(tmpdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_valid_data_dependency_condition(self):
+
+        @dsl.component
+        def producer_op() -> str:
+            return 'a'
+
+        @dsl.component
+        def dummy_op(msg: str = ''):
+            pass
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(val: bool):
+            with dsl.Condition(val == False):
+                producer_task = producer_op()
+                dummy_op(msg=producer_task.output)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            package_path = os.path.join(tmpdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_invalid_data_dependency_exit_handler(self):
+
+        @dsl.component
+        def producer_op() -> str:
+            return 'a'
+
+        @dsl.component
+        def dummy_op(msg: str = ''):
+            pass
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(val: bool):
+            first_producer = producer_op()
+            with dsl.ExitHandler(first_producer):
+                producer_task = producer_op()
+
+            dummy_op(msg=producer_task.output)
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                'Task dummy-op cannot dependent on any task inside the group:'):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                package_path = os.path.join(tmpdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_valid_data_dependency_exit_handler(self):
+
+        @dsl.component
+        def producer_op() -> str:
+            return 'a'
+
+        @dsl.component
+        def dummy_op(msg: str = ''):
+            pass
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(val: bool):
+            first_producer = producer_op()
+            with dsl.ExitHandler(first_producer):
+                producer_task = producer_op()
+                dummy_op(msg=producer_task.output)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            package_path = os.path.join(tmpdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
 
     def test_use_task_final_status_in_non_exit_op(self):
 
@@ -527,7 +621,6 @@ implementation:
                 pipeline_func=my_pipeline, package_path='result.yaml')
 
 
-# pylint: disable=import-outside-toplevel,unused-import,import-error,redefined-outer-name,reimported
 class V2NamespaceAliasTest(unittest.TestCase):
     """Test that imports of both modules and objects are aliased (e.g. all
     import path variants work)."""
@@ -536,7 +629,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
     # the kfp.v2 module is loaded. Due to the way we run tests in CI/CD, we cannot ensure that the kfp.v2 module will first be loaded in these tests,
     # so we do not test for the DeprecationWarning here.
 
-    def test_import_namespace(self):  # pylint: disable=no-self-use
+    def test_import_namespace(self):
         from kfp import v2
 
         @v2.dsl.component
@@ -560,7 +653,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
             with open(temp_filepath, 'r') as f:
                 yaml.load(f)
 
-    def test_import_modules(self):  # pylint: disable=no-self-use
+    def test_import_modules(self):
         from kfp.v2 import compiler
         from kfp.v2 import dsl
 
@@ -584,7 +677,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
             with open(temp_filepath, 'r') as f:
                 yaml.load(f)
 
-    def test_import_object(self):  # pylint: disable=no-self-use
+    def test_import_object(self):
         from kfp.v2.compiler import Compiler
         from kfp.v2.dsl import component
         from kfp.v2.dsl import pipeline
@@ -1123,6 +1216,83 @@ class TestSetRetryCompilation(unittest.TestCase):
         self.assertEqual(retry_policy.backoff_duration.seconds, 30)
         self.assertEqual(retry_policy.backoff_factor, 1.0)
         self.assertEqual(retry_policy.backoff_max_duration.seconds, 3600)
+
+
+from google.protobuf import json_format
+
+
+class TestMultipleExitHandlerCompilation(unittest.TestCase):
+
+    def test_basic(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+        def my_pipeline():
+            first_exit_task = print_op(message='First exit task.')
+
+            with dsl.ExitHandler(first_exit_task):
+                print_op(message='Inside first exit handler.')
+
+            second_exit_task = print_op(message='Second exit task.')
+            with dsl.ExitHandler(second_exit_task):
+                print_op(message='Inside second exit handler.')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+            pipeline_spec = pipeline_spec_from_file(package_path)
+        # check that the exit handler dags exist
+        self.assertEqual(
+            pipeline_spec.components['comp-exit-handler-1'].dag
+            .tasks['print-op-2'].inputs.parameters['message'].runtime_value
+            .constant.string_value, 'Inside first exit handler.')
+        self.assertEqual(
+            pipeline_spec.components['comp-exit-handler-2'].dag
+            .tasks['print-op-4'].inputs.parameters['message'].runtime_value
+            .constant.string_value, 'Inside second exit handler.')
+        # check that the exit handler dags are in the root dag
+        self.assertIn('exit-handler-1', pipeline_spec.root.dag.tasks)
+        self.assertIn('exit-handler-2', pipeline_spec.root.dag.tasks)
+        # check that the exit tasks are in the root dag
+        self.assertIn('print-op', pipeline_spec.root.dag.tasks)
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['print-op'].inputs
+            .parameters['message'].runtime_value.constant.string_value,
+            'First exit task.')
+        self.assertIn('print-op-3', pipeline_spec.root.dag.tasks)
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['print-op-3'].inputs
+            .parameters['message'].runtime_value.constant.string_value,
+            'Second exit task.')
+
+    def test_nested_unsupported(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+        def my_pipeline():
+            first_exit_task = print_op(message='First exit task.')
+
+            with dsl.ExitHandler(first_exit_task):
+                print_op(message='Inside first exit handler.')
+
+                second_exit_task = print_op(message='Second exit task.')
+                with dsl.ExitHandler(second_exit_task):
+                    print_op(message='Inside second exit handler.')
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'ExitHandler can only be used within the outermost scope of a pipeline function definition\.'
+        ):
+
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path='output.yaml')
 
 
 if __name__ == '__main__':
