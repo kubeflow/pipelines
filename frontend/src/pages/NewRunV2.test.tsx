@@ -42,7 +42,7 @@ describe('NewRunV2', () => {
     created_at: new Date(2018, 8, 5, 4, 3, 2),
     description: '',
     id: 'test-pipeline-id',
-    name: 'test-pipeline',
+    name: 'test pipeline',
     parameters: [{ name: 'param1', value: 'value1' }],
     default_version: {
       id: 'test-pipeline-version-id',
