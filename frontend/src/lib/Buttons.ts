@@ -377,6 +377,7 @@ export default class Buttons {
           [QUERY_PARAMS.isRecurring]: '1',
         };
       } else {
+        // TODO(jlyaoyuli): change query parameters to fromRunId once v1 is deprecated.
         searchTerms = { [QUERY_PARAMS.cloneFromRun]: runId || '' };
       }
       const searchString = this._urlParser.build(searchTerms);
