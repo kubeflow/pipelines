@@ -8,6 +8,7 @@ import google.auth
 from google.cloud import aiplatform
 from google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation import main
 from google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation import to_value
+from google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation import PROBLEM_TYPE_TO_SCHEMA_URI
 from google_cloud_pipeline_components.proto import gcp_resources_pb2
 
 from google.protobuf import json_format
@@ -110,7 +111,7 @@ class ImportModelEvaluationTest(unittest.TestCase):
                     json.loads(METRICS)['slicedMetrics'][0]['metrics']
                     ['regression']),
             'metrics_schema_uri':
-                SCHEMA_URI,
+                PROBLEM_TYPE_TO_SCHEMA_URI['classification'],
             'display_name':
                 DISPLAY_NAME,
         })
@@ -135,7 +136,7 @@ class ImportModelEvaluationTest(unittest.TestCase):
                     json.loads(METRICS)['slicedMetrics'][0]['metrics']
                     ['regression']),
             'metrics_schema_uri':
-                SCHEMA_URI,
+                PROBLEM_TYPE_TO_SCHEMA_URI['classification'],
             'model_explanation': {
                 'mean_attributions': [{
                     'feature_attributions':
@@ -166,7 +167,7 @@ class ImportModelEvaluationTest(unittest.TestCase):
                     json.loads(METRICS)['slicedMetrics'][0]['metrics']
                     ['regression']),
             'metrics_schema_uri':
-                SCHEMA_URI,
+                PROBLEM_TYPE_TO_SCHEMA_URI['classification'],
             'model_explanation': {
                 'mean_attributions': [{
                     'feature_attributions':
@@ -203,7 +204,7 @@ class ImportModelEvaluationTest(unittest.TestCase):
                     json.loads(METRICS)['slicedMetrics'][0]['metrics']
                     ['regression']),
             'metrics_schema_uri':
-                SCHEMA_URI,
+                PROBLEM_TYPE_TO_SCHEMA_URI['classification'],
             'model_explanation': {
                 'mean_attributions': [{
                     'feature_attributions':
@@ -256,7 +257,7 @@ class ImportModelEvaluationTest(unittest.TestCase):
                     json.loads(METRICS)['slicedMetrics'][0]['metrics']
                     ['regression']),
             'metrics_schema_uri':
-                SCHEMA_URI,
+                PROBLEM_TYPE_TO_SCHEMA_URI['classification'],
         })
 
   @mock_api_call
@@ -328,7 +329,7 @@ class ImportModelEvaluationTest(unittest.TestCase):
                     json.loads(METRICS)['slicedMetrics'][0]['metrics']
                     ['regression']),
             'metrics_schema_uri':
-                SCHEMA_URI,
+                PROBLEM_TYPE_TO_SCHEMA_URI['classification'],
             'model_explanation': {
                 'mean_attributions': [{
                     'feature_attributions':
@@ -355,7 +356,7 @@ class ImportModelEvaluationTest(unittest.TestCase):
                     json.loads(METRICS)['slicedMetrics'][0]['metrics']
                     ['regression']),
             'metrics_schema_uri':
-                SCHEMA_URI,
+                PROBLEM_TYPE_TO_SCHEMA_URI['classification'],
             'metadata':
                 to_value({'pipeline_job_id': PIPELINE_JOB_ID})
         })
@@ -382,3 +383,69 @@ class ImportModelEvaluationTest(unittest.TestCase):
                 'value': '0',
             }
         }])
+
+  @mock_api_call
+  def test_import_model_evaluation_with_classification_metrics_artifact(
+      self, mock_api, _):
+    main([
+        '--classification_metrics', self.metrics_path, '--model_name',
+        self._model_name, '--gcp_resources', self._gcp_resources,
+        '--display_name', DISPLAY_NAME
+    ])
+    mock_api.assert_called_with(
+        mock.ANY,
+        parent=self._model_name,
+        model_evaluation={
+            'metrics':
+                to_value(
+                    json.loads(METRICS)['slicedMetrics'][0]['metrics']
+                    ['regression']),
+            'metrics_schema_uri':
+                PROBLEM_TYPE_TO_SCHEMA_URI['classification'],
+            'display_name':
+                DISPLAY_NAME,
+        })
+
+  @mock_api_call
+  def test_import_model_evaluation_with_forecasting_metrics_artifact(
+      self, mock_api, _):
+    main([
+        '--forecasting_metrics', self.metrics_path, '--model_name',
+        self._model_name, '--gcp_resources', self._gcp_resources,
+        '--display_name', DISPLAY_NAME
+    ])
+    mock_api.assert_called_with(
+        mock.ANY,
+        parent=self._model_name,
+        model_evaluation={
+            'metrics':
+                to_value(
+                    json.loads(METRICS)['slicedMetrics'][0]['metrics']
+                    ['regression']),
+            'metrics_schema_uri':
+                PROBLEM_TYPE_TO_SCHEMA_URI['forecasting'],
+            'display_name':
+                DISPLAY_NAME,
+        })
+
+  @mock_api_call
+  def test_import_model_evaluation_with_regression_metrics_artifact(
+      self, mock_api, _):
+    main([
+        '--regression_metrics', self.metrics_path, '--model_name',
+        self._model_name, '--gcp_resources', self._gcp_resources,
+        '--display_name', DISPLAY_NAME
+    ])
+    mock_api.assert_called_with(
+        mock.ANY,
+        parent=self._model_name,
+        model_evaluation={
+            'metrics':
+                to_value(
+                    json.loads(METRICS)['slicedMetrics'][0]['metrics']
+                    ['regression']),
+            'metrics_schema_uri':
+                PROBLEM_TYPE_TO_SCHEMA_URI['regression'],
+            'display_name':
+                DISPLAY_NAME,
+        })
