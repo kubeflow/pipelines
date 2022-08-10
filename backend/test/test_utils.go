@@ -24,15 +24,15 @@ import (
 	"net/http"
 
 	"github.com/cenkalti/backoff"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	experimentparams "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
-	jobparams "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client/job_service"
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/job_model"
-	pipelineparams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
-	runparams "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service"
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	experimentparams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_client/experiment_service"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_model"
+	jobparams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_client/job_service"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_model"
+	pipelineparams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_client/pipeline_service"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_model"
+	runparams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
@@ -103,10 +103,10 @@ func DeleteAllJobs(client *api_server.JobClient, namespace string, t *testing.T)
 	}
 }
 
-func GetExperimentIDFromAPIResourceReferences(resourceRefs []*run_model.APIResourceReference) string {
+func GetExperimentIDFromAPIResourceReferences(resourceRefs []*run_model.V1beta1ResourceReference) string {
 	experimentID := ""
 	for _, resourceRef := range resourceRefs {
-		if resourceRef.Key.Type == run_model.APIResourceTypeEXPERIMENT {
+		if resourceRef.Key.Type == run_model.V1beta1ResourceTypeEXPERIMENT {
 			experimentID = resourceRef.Key.ID
 			break
 		}
@@ -115,17 +115,17 @@ func GetExperimentIDFromAPIResourceReferences(resourceRefs []*run_model.APIResou
 }
 
 func ListPipelines(client *api_server.PipelineClient) (
-	[]*pipeline_model.APIPipeline, int, string, error) {
+	[]*pipeline_model.V1beta1Pipeline, int, string, error) {
 	parameters := &pipelineparams.ListPipelinesParams{}
 
 	return client.List(parameters)
 }
 
-func ListAllExperiment(client *api_server.ExperimentClient, namespace string) ([]*experiment_model.APIExperiment, int, string, error) {
+func ListAllExperiment(client *api_server.ExperimentClient, namespace string) ([]*experiment_model.V1beta1Experiment, int, string, error) {
 	return ListExperiment(client, &experimentparams.ListExperimentParams{}, namespace)
 }
 
-func ListExperiment(client *api_server.ExperimentClient, parameters *experimentparams.ListExperimentParams, namespace string) ([]*experiment_model.APIExperiment, int, string, error) {
+func ListExperiment(client *api_server.ExperimentClient, parameters *experimentparams.ListExperimentParams, namespace string) ([]*experiment_model.V1beta1Experiment, int, string, error) {
 	if namespace != "" {
 		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
 		parameters.SetResourceReferenceKeyID(&namespace)
@@ -134,12 +134,12 @@ func ListExperiment(client *api_server.ExperimentClient, parameters *experimentp
 	return client.List(parameters)
 }
 
-func ListAllRuns(client *api_server.RunClient, namespace string) ([]*run_model.APIRun, int, string, error) {
+func ListAllRuns(client *api_server.RunClient, namespace string) ([]*run_model.V1beta1Run, int, string, error) {
 	parameters := &runparams.ListRunsParams{}
 	return ListRuns(client, parameters, namespace)
 }
 
-func ListRuns(client *api_server.RunClient, parameters *runparams.ListRunsParams, namespace string) ([]*run_model.APIRun, int, string, error) {
+func ListRuns(client *api_server.RunClient, parameters *runparams.ListRunsParams, namespace string) ([]*run_model.V1beta1Run, int, string, error) {
 	if namespace != "" {
 		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
 		parameters.SetResourceReferenceKeyID(&namespace)
@@ -148,11 +148,11 @@ func ListRuns(client *api_server.RunClient, parameters *runparams.ListRunsParams
 	return client.List(parameters)
 }
 
-func ListAllJobs(client *api_server.JobClient, namespace string) ([]*job_model.APIJob, int, string, error) {
+func ListAllJobs(client *api_server.JobClient, namespace string) ([]*job_model.V1beta1Job, int, string, error) {
 	return ListJobs(client, &jobparams.ListJobsParams{}, namespace)
 }
 
-func ListJobs(client *api_server.JobClient, parameters *jobparams.ListJobsParams, namespace string) ([]*job_model.APIJob, int, string, error) {
+func ListJobs(client *api_server.JobClient, parameters *jobparams.ListJobsParams, namespace string) ([]*job_model.V1beta1Job, int, string, error) {
 	if namespace != "" {
 		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
 		parameters.SetResourceReferenceKeyID(&namespace)
@@ -161,19 +161,19 @@ func ListJobs(client *api_server.JobClient, parameters *jobparams.ListJobsParams
 	return client.List(parameters)
 }
 
-func GetExperiment(name string, description string, namespace string) *experiment_model.APIExperiment {
-	experiment := &experiment_model.APIExperiment{
+func GetExperiment(name string, description string, namespace string) *experiment_model.V1beta1Experiment {
+	experiment := &experiment_model.V1beta1Experiment{
 		Name:        name,
 		Description: description}
 
 	if namespace != "" {
-		experiment.ResourceReferences = []*experiment_model.APIResourceReference{
+		experiment.ResourceReferences = []*experiment_model.V1beta1ResourceReference{
 			{
-				Key: &experiment_model.APIResourceKey{
-					Type: experiment_model.APIResourceTypeNAMESPACE,
+				Key: &experiment_model.V1beta1ResourceKey{
+					Type: experiment_model.V1beta1ResourceTypeNAMESPACE,
 					ID:   namespace,
 				},
-				Relationship: experiment_model.APIRelationshipOWNER,
+				Relationship: experiment_model.V1beta1RelationshipOWNER,
 			},
 		}
 	}

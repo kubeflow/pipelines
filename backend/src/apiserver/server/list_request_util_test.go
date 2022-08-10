@@ -23,7 +23,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -213,7 +213,7 @@ func TestParseAPIFilter_DecodesEncodedString(t *testing.T) {
 	}
 
 	got, err := parseAPIFilter(in)
-	if !cmp.Equal(got, want, cmpopts.EquateEmpty(), protocmp.Transform(),) || err != nil {
+	if !cmp.Equal(got, want, cmpopts.EquateEmpty(), protocmp.Transform()) || err != nil {
 		t.Errorf("parseAPIString(%q) =\nGot %+v, %v\n Want %+v, <nil>\nDiff: %s",
 			in, got, err, want, cmp.Diff(want, got))
 	}

@@ -22,13 +22,13 @@
             "200": {
               "description": "",
               "schema": {
-                "$ref": "#/definitions/apiPipeline"
+                "$ref": "#/definitions/v2beta1Pipeline"
               }
             },
             "default": {
               "description": "",
               "schema": {
-                "$ref": "#/definitions/apiStatus"
+                "$ref": "#/definitions/v2beta1Status"
               }
             }
           },
@@ -71,13 +71,13 @@
             "200": {
               "description": "",
               "schema": {
-                "$ref": "#/definitions/apiPipelineVersion"
+                "$ref": "#/definitions/v2beta1PipelineVersion"
               }
             },
             "default": {
               "description": "",
               "schema": {
-                "$ref": "#/definitions/apiStatus"
+                "$ref": "#/definitions/v2beta1Status"
               }
             }
           },
@@ -115,7 +115,7 @@
       }
     },
     "definitions": {
-      "apiParameter": {
+      "v2beta1Parameter": {
         "type": "object",
         "properties": {
           "name": {
@@ -126,7 +126,7 @@
           }
         }
       },
-      "apiPipeline": {
+      "v2beta1Pipeline": {
         "type": "object",
         "properties": {
           "id": {
@@ -145,7 +145,7 @@
           "parameters": {
             "type": "array",
             "items": {
-              "$ref": "#/definitions/apiParameter"
+              "$ref": "#/definitions/v2beta1Parameter"
             }
           },
           "error": {
@@ -154,7 +154,7 @@
           }
         }
       },
-      "apiPipelineVersion": {
+      "v2beta1PipelineVersion": {
         "type": "object",
         "properties": {
           "id": {
@@ -173,7 +173,7 @@
           "parameters": {
             "type": "array",
             "items": {
-              "$ref": "#/definitions/apiParameter"
+              "$ref": "#/definitions/v2beta1Parameter"
             },
             "description": "Output. The input parameters for this pipeline."
           },
@@ -182,19 +182,19 @@
             "description": "Input. Optional. Pipeline version code source."
           },
           "package_url": {
-            "$ref": "#/definitions/apiUrl",
+            "$ref": "#/definitions/v2beta1Url",
             "description": "Input. Required. Pipeline version package url.\nWhe calling CreatePipelineVersion API method, need to provide one package\nfile location."
           },
           "resource_references": {
             "type": "array",
             "items": {
-              "$ref": "#/definitions/apiResourceReference"
+              "$ref": "#/definitions/v2beta1ResourceReference"
             },
             "description": "Input. Required. E.g., specify which pipeline this pipeline version belongs\nto."
           }
         }
       },
-      "apiRelationship": {
+      "v2beta1Relationship": {
         "type": "string",
         "enum": [
           "UNKNOWN_RELATIONSHIP",
@@ -203,11 +203,11 @@
         ],
         "default": "UNKNOWN_RELATIONSHIP"
       },
-      "apiResourceKey": {
+      "v2beta1ResourceKey": {
         "type": "object",
         "properties": {
           "type": {
-            "$ref": "#/definitions/apiResourceType",
+            "$ref": "#/definitions/v2beta1ResourceType",
             "description": "The type of the resource that referred to."
           },
           "id": {
@@ -216,23 +216,23 @@
           }
         }
       },
-      "apiResourceReference": {
+      "v2beta1ResourceReference": {
         "type": "object",
         "properties": {
           "key": {
-            "$ref": "#/definitions/apiResourceKey"
+            "$ref": "#/definitions/v2beta1ResourceKey"
           },
           "name": {
             "type": "string",
             "description": "The name of the resource that referred to."
           },
           "relationship": {
-            "$ref": "#/definitions/apiRelationship",
+            "$ref": "#/definitions/v2beta1Relationship",
             "description": "Required field. The relationship from referred resource to the object."
           }
         }
       },
-      "apiResourceType": {
+      "v2beta1ResourceType": {
         "type": "string",
         "enum": [
           "UNKNOWN_RESOURCE_TYPE",
@@ -244,7 +244,7 @@
         ],
         "default": "UNKNOWN_RESOURCE_TYPE"
       },
-      "apiStatus": {
+      "v2beta1Status": {
         "type": "object",
         "properties": {
           "error": {
@@ -262,7 +262,7 @@
           }
         }
       },
-      "apiUrl": {
+      "v2beta1Url": {
         "type": "object",
         "properties": {
           "pipeline_url": {

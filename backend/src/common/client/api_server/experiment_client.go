@@ -5,9 +5,9 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
-	apiclient "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client"
-	params "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
-	model "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
+	apiclient "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_client"
+	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_client/experiment_service"
+	model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"golang.org/x/net/context"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -15,10 +15,10 @@ import (
 )
 
 type ExperimentInterface interface {
-	Create(params *params.CreateExperimentParams) (*model.APIExperiment, error)
-	Get(params *params.GetExperimentParams) (*model.APIExperiment, error)
-	List(params *params.ListExperimentParams) ([]*model.APIExperiment, int, string, error)
-	ListAll(params *params.ListExperimentParams, maxResultSize int) ([]*model.APIExperiment, error)
+	Create(params *params.CreateExperimentParams) (*model.V1beta1Experiment, error)
+	Get(params *params.GetExperimentParams) (*model.V1beta1Experiment, error)
+	List(params *params.ListExperimentParams) ([]*model.V1beta1Experiment, int, string, error)
+	ListAll(params *params.ListExperimentParams, maxResultSize int) ([]*model.V1beta1Experiment, error)
 	Archive(params *params.ArchiveExperimentParams) error
 	Unarchive(params *params.UnarchiveExperimentParams) error
 }
@@ -59,7 +59,7 @@ func NewKubeflowInClusterExperimentClient(namespace string, debug bool) (
 	}, nil
 }
 
-func (c *ExperimentClient) Create(parameters *params.CreateExperimentParams) (*model.APIExperiment,
+func (c *ExperimentClient) Create(parameters *params.CreateExperimentParams) (*model.V1beta1Experiment,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
@@ -83,7 +83,7 @@ func (c *ExperimentClient) Create(parameters *params.CreateExperimentParams) (*m
 	return response.Payload, nil
 }
 
-func (c *ExperimentClient) Get(parameters *params.GetExperimentParams) (*model.APIExperiment,
+func (c *ExperimentClient) Get(parameters *params.GetExperimentParams) (*model.V1beta1Experiment,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
@@ -108,7 +108,7 @@ func (c *ExperimentClient) Get(parameters *params.GetExperimentParams) (*model.A
 }
 
 func (c *ExperimentClient) List(parameters *params.ListExperimentParams) (
-	[]*model.APIExperiment, int, string, error) {
+	[]*model.V1beta1Experiment, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
@@ -155,17 +155,17 @@ func (c *ExperimentClient) Delete(parameters *params.DeleteExperimentParams) err
 }
 
 func (c *ExperimentClient) ListAll(parameters *params.ListExperimentParams, maxResultSize int) (
-	[]*model.APIExperiment, error) {
+	[]*model.V1beta1Experiment, error) {
 	return listAllForExperiment(c, parameters, maxResultSize)
 }
 
 func listAllForExperiment(client ExperimentInterface, parameters *params.ListExperimentParams,
-	maxResultSize int) ([]*model.APIExperiment, error) {
+	maxResultSize int) ([]*model.V1beta1Experiment, error) {
 	if maxResultSize < 0 {
 		maxResultSize = 0
 	}
 
-	allResults := make([]*model.APIExperiment, 0)
+	allResults := make([]*model.V1beta1Experiment, 0)
 	firstCall := true
 	for (firstCall || (parameters.PageToken != nil && *parameters.PageToken != "")) &&
 		(len(allResults) < maxResultSize) {

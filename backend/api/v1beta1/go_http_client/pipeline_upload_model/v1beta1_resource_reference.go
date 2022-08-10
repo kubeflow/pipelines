@@ -12,22 +12,22 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// APIResourceReference api resource reference
-// swagger:model apiResourceReference
-type APIResourceReference struct {
+// V1beta1ResourceReference v1beta1 resource reference
+// swagger:model v1beta1ResourceReference
+type V1beta1ResourceReference struct {
 
 	// key
-	Key *APIResourceKey `json:"key,omitempty"`
+	Key *V1beta1ResourceKey `json:"key,omitempty"`
 
 	// The name of the resource that referred to.
 	Name string `json:"name,omitempty"`
 
 	// Required field. The relationship from referred resource to the object.
-	Relationship APIRelationship `json:"relationship,omitempty"`
+	Relationship V1beta1Relationship `json:"relationship,omitempty"`
 }
 
-// Validate validates this api resource reference
-func (m *APIResourceReference) Validate(formats strfmt.Registry) error {
+// Validate validates this v1beta1 resource reference
+func (m *V1beta1ResourceReference) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateKey(formats); err != nil {
@@ -44,7 +44,7 @@ func (m *APIResourceReference) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *APIResourceReference) validateKey(formats strfmt.Registry) error {
+func (m *V1beta1ResourceReference) validateKey(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Key) { // not required
 		return nil
@@ -62,7 +62,7 @@ func (m *APIResourceReference) validateKey(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *APIResourceReference) validateRelationship(formats strfmt.Registry) error {
+func (m *V1beta1ResourceReference) validateRelationship(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Relationship) { // not required
 		return nil
@@ -79,7 +79,7 @@ func (m *APIResourceReference) validateRelationship(formats strfmt.Registry) err
 }
 
 // MarshalBinary interface implementation
-func (m *APIResourceReference) MarshalBinary() ([]byte, error) {
+func (m *V1beta1ResourceReference) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -87,8 +87,8 @@ func (m *APIResourceReference) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *APIResourceReference) UnmarshalBinary(b []byte) error {
-	var res APIResourceReference
+func (m *V1beta1ResourceReference) UnmarshalBinary(b []byte) error {
+	var res V1beta1ResourceReference
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

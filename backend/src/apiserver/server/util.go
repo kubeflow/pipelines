@@ -15,14 +15,14 @@ import (
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
 
+	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
 	authorizationv1 "k8s.io/api/authorization/v1"
-	"github.com/ghodss/yaml"
 )
 
 // These are valid conditions of a ScheduledWorkflow.

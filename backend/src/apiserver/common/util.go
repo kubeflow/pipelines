@@ -15,15 +15,16 @@
 package common
 
 import (
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"strings"
 )
+
 const (
 	DefaultPipelineRunnerServiceAccount = "pipeline-runner"
 	HasDefaultBucketEnvVar              = "HAS_DEFAULT_BUCKET"
 	DefaultBucketNameEnvVar             = "BUCKET_NAME"
-    ProjectIDEnvVar                     = "PROJECT_ID"
-    )
+	ProjectIDEnvVar                     = "PROJECT_ID"
+)
 
 func GetNamespaceFromAPIResourceReferences(resourceRefs []*api.ResourceReference) string {
 	namespace := ""

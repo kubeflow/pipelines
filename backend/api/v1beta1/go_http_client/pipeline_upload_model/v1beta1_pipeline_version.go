@@ -15,9 +15,9 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// APIPipelineVersion api pipeline version
-// swagger:model apiPipelineVersion
-type APIPipelineVersion struct {
+// V1beta1PipelineVersion v1beta1 pipeline version
+// swagger:model v1beta1PipelineVersion
+type V1beta1PipelineVersion struct {
 
 	// Input. Optional. Pipeline version code source.
 	CodeSourceURL string `json:"code_source_url,omitempty"`
@@ -35,18 +35,18 @@ type APIPipelineVersion struct {
 	// Input. Required. Pipeline version package url.
 	// Whe calling CreatePipelineVersion API method, need to provide one package
 	// file location.
-	PackageURL *APIURL `json:"package_url,omitempty"`
+	PackageURL *V1beta1URL `json:"package_url,omitempty"`
 
 	// Output. The input parameters for this pipeline.
-	Parameters []*APIParameter `json:"parameters"`
+	Parameters []*V1beta1Parameter `json:"parameters"`
 
 	// Input. Required. E.g., specify which pipeline this pipeline version belongs
 	// to.
-	ResourceReferences []*APIResourceReference `json:"resource_references"`
+	ResourceReferences []*V1beta1ResourceReference `json:"resource_references"`
 }
 
-// Validate validates this api pipeline version
-func (m *APIPipelineVersion) Validate(formats strfmt.Registry) error {
+// Validate validates this v1beta1 pipeline version
+func (m *V1beta1PipelineVersion) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateCreatedAt(formats); err != nil {
@@ -71,7 +71,7 @@ func (m *APIPipelineVersion) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *APIPipelineVersion) validateCreatedAt(formats strfmt.Registry) error {
+func (m *V1beta1PipelineVersion) validateCreatedAt(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.CreatedAt) { // not required
 		return nil
@@ -84,7 +84,7 @@ func (m *APIPipelineVersion) validateCreatedAt(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *APIPipelineVersion) validatePackageURL(formats strfmt.Registry) error {
+func (m *V1beta1PipelineVersion) validatePackageURL(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.PackageURL) { // not required
 		return nil
@@ -102,7 +102,7 @@ func (m *APIPipelineVersion) validatePackageURL(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *APIPipelineVersion) validateParameters(formats strfmt.Registry) error {
+func (m *V1beta1PipelineVersion) validateParameters(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Parameters) { // not required
 		return nil
@@ -127,7 +127,7 @@ func (m *APIPipelineVersion) validateParameters(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *APIPipelineVersion) validateResourceReferences(formats strfmt.Registry) error {
+func (m *V1beta1PipelineVersion) validateResourceReferences(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.ResourceReferences) { // not required
 		return nil
@@ -153,7 +153,7 @@ func (m *APIPipelineVersion) validateResourceReferences(formats strfmt.Registry)
 }
 
 // MarshalBinary interface implementation
-func (m *APIPipelineVersion) MarshalBinary() ([]byte, error) {
+func (m *V1beta1PipelineVersion) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -161,8 +161,8 @@ func (m *APIPipelineVersion) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *APIPipelineVersion) UnmarshalBinary(b []byte) error {
-	var res APIPipelineVersion
+func (m *V1beta1PipelineVersion) UnmarshalBinary(b []byte) error {
+	var res V1beta1PipelineVersion
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

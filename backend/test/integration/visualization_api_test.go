@@ -6,8 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/golang/glog"
-	params "github.com/kubeflow/pipelines/backend/api/go_http_client/visualization_client/visualization_service"
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/visualization_model"
+	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/visualization_client/visualization_service"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/visualization_model"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/test"
 	"github.com/stretchr/testify/suite"
@@ -62,9 +62,9 @@ func (s *VisualizationApiTest) TestVisualizationAPI() {
 	t := s.T()
 
 	/* ---------- Generate custom visualization --------- */
-	visualization := &visualization_model.APIVisualization{
+	visualization := &visualization_model.V1beta1Visualization{
 		Arguments: `{"code": ["print(2)"]}`,
-		Type:      visualization_model.APIVisualizationTypeCUSTOM,
+		Type:      visualization_model.V1beta1VisualizationTypeCUSTOM,
 	}
 	customVisualization, err := s.visualizationClient.Create(&params.CreateVisualizationParams{
 		Body: visualization,

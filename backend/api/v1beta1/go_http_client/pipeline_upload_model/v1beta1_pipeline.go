@@ -15,9 +15,9 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// APIPipeline api pipeline
-// swagger:model apiPipeline
-type APIPipeline struct {
+// V1beta1Pipeline v1beta1 pipeline
+// swagger:model v1beta1Pipeline
+type V1beta1Pipeline struct {
 
 	// created at
 	// Format: date-time
@@ -38,11 +38,11 @@ type APIPipeline struct {
 	Name string `json:"name,omitempty"`
 
 	// parameters
-	Parameters []*APIParameter `json:"parameters"`
+	Parameters []*V1beta1Parameter `json:"parameters"`
 }
 
-// Validate validates this api pipeline
-func (m *APIPipeline) Validate(formats strfmt.Registry) error {
+// Validate validates this v1beta1 pipeline
+func (m *V1beta1Pipeline) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateCreatedAt(formats); err != nil {
@@ -59,7 +59,7 @@ func (m *APIPipeline) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *APIPipeline) validateCreatedAt(formats strfmt.Registry) error {
+func (m *V1beta1Pipeline) validateCreatedAt(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.CreatedAt) { // not required
 		return nil
@@ -72,7 +72,7 @@ func (m *APIPipeline) validateCreatedAt(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *APIPipeline) validateParameters(formats strfmt.Registry) error {
+func (m *V1beta1Pipeline) validateParameters(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Parameters) { // not required
 		return nil
@@ -98,7 +98,7 @@ func (m *APIPipeline) validateParameters(formats strfmt.Registry) error {
 }
 
 // MarshalBinary interface implementation
-func (m *APIPipeline) MarshalBinary() ([]byte, error) {
+func (m *V1beta1Pipeline) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -106,8 +106,8 @@ func (m *APIPipeline) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *APIPipeline) UnmarshalBinary(b []byte) error {
-	var res APIPipeline
+func (m *V1beta1Pipeline) UnmarshalBinary(b []byte) error {
+	var res V1beta1Pipeline
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

@@ -9,7 +9,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 )
 
 func TestValidNewFilters(t *testing.T) {
@@ -348,7 +348,7 @@ func TestUnmarshalJSON(t *testing.T) {
 
 	got := &Filter{}
 	err := json.Unmarshal([]byte(in), got)
-	if err != nil || !cmp.Equal(got, want, cmpopts.EquateEmpty(), protocmp.Transform(),cmp.AllowUnexported(Filter{})) {
+	if err != nil || !cmp.Equal(got, want, cmpopts.EquateEmpty(), protocmp.Transform(), cmp.AllowUnexported(Filter{})) {
 		t.Errorf("json.Unmarshal(%+v):\nGot: %v, Error: %v\nWant:\n%+v, Error: nil\nDiff:%s\n", in, got, err, want, cmp.Diff(want, got, cmp.AllowUnexported(Filter{})))
 	}
 }
