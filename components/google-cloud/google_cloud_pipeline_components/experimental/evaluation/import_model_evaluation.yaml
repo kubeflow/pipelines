@@ -2,44 +2,85 @@ name: model_evaluation_import
 description: |
   Imports a model evaluation artifact to an existing Vertex model with ModelService.ImportModelEvaluation
   For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models.evaluations
+  One of the four metrics inputs must be provided, metrics & problem_type, classification_metrics,
+  regression_metrics, or forecasting_metrics.
   Args:
-    metrics (system.Metrics):
-      Path of metrics generated from an evaluation component.
-    explanation (Optional[system.Metrics]):
-      Path for model explanation metrics generated from an evaluation component.
     model (google.VertexModel):
       Vertex model resource that will be the parent resource of the uploaded evaluation.
-    problem_type (str):
+    metrics (system.Metrics):
+      Path of metrics generated from an evaluation component.
+    problem_type (Optional[str]):
       The problem type of the metrics being imported to the VertexModel.
         `classification`, `regression`, and `forecasting` are the currently supported problem types.
+        Must be provided when `metrics` is provided.
+    classification_metrics (Optional[google.ClassificationMetrics]):
+      Path of classification metrics generated from the classification evaluation component.
+    forecasting_metrics (Optional[google.ForecastingMetrics]):
+      Path of forecasting metrics generated from the forecasting evaluation component.
+    regression_metrics (Optional[google.RegressionMetrics]):
+      Path of regression metrics generated from the regression evaluation component.
+    explanation (Optional[system.Metrics]):
+      Path for model explanation metrics generated from an evaluation component.
+    feature_attributions (Optional[system.Metrics]):
+      The feature attributions metrics artifact generated from the feature attribution component.
     display_name (str):
       The display name for the uploaded model evaluation resource.
 inputs:
-  - {name: metrics, type: Metrics}
-  - {name: explanation, type: Metrics, optional: True}
   - {name: model, type: google.VertexModel}
-  - {name: problem_type, type: String}
+  - {name: metrics, type: Metrics, optional: True}
+  - {name: problem_type, type: String, optional: True}
+  - {name: classification_metrics, type: google.ClassificationMetrics, optional: True}
+  - {name: forecasting_metrics, type: google.ForecastingMetrics, optional: True}
+  - {name: regression_metrics, type: google.RegressionMetrics, optional: True}
+  - {name: explanation, type: Metrics, optional: True}
+  - {name: feature_attributions, type: Metrics, optional: True}
   - {name: display_name, type: String, default: ''}
   - {name: dataset_path, type: String, default: ''}
   - {name: dataset_type, type: String, default: ''}
 outputs:
-- {name: gcp_resources, type: String}
+  - {name: gcp_resources, type: String}
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
     command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation]
     args:
-      - --metrics
-      - {inputPath: metrics}
-      - --metrics_explanation
-      - "{{$.inputs.artifacts['metrics'].metadata['explanation_gcs_path']}}"
+      - if:
+          cond: {isPresent: metrics}
+          then:
+          - --metrics
+          - "{{$.inputs.artifacts['metrics'].uri}}"
+          - --metrics_explanation
+          - "{{$.inputs.artifacts['metrics'].metadata['explanation_gcs_path']}}"
       - if:
           cond: {isPresent: explanation}
           then:
           - --explanation
           - "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}"
-      - --problem_type
-      - {inputValue: problem_type}
+      - if:
+          cond: {isPresent: classification_metrics}
+          then:
+          - --classification_metrics
+          - "{{$.inputs.artifacts['classification_metrics'].uri}}"
+      - if:
+          cond: {isPresent: forecasting_metrics}
+          then:
+          - --forecasting_metrics
+          - "{{$.inputs.artifacts['forecasting_metrics'].uri}}"
+      - if:
+          cond: {isPresent: regression_metrics}
+          then:
+          - --regression_metrics
+          - "{{$.inputs.artifacts['regression_metrics'].uri}}"
+      - if:
+          cond: {isPresent: feature_attributions}
+          then:
+          - --feature_attributions
+          - "{{$.inputs.artifacts['feature_attributions'].uri}}"
+      - if:
+          cond: {isPresent: problem_type}
+          then:
+          - --problem_type
+          - {inputValue: problem_type}
       - --display_name
       - {inputValue: display_name}
       - --dataset_path

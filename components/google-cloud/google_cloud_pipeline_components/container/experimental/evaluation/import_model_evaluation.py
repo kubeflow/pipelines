@@ -51,8 +51,27 @@ parser.add_argument(
     '--metrics',
     dest='metrics',
     type=str,
-    required=True,
-    default=argparse.SUPPRESS)
+    default=None)
+parser.add_argument(
+    '--classification_metrics',
+    dest='classification_metrics',
+    type=str,
+    default=None)
+parser.add_argument(
+    '--forecasting_metrics',
+    dest='forecasting_metrics',
+    type=str,
+    default=None)
+parser.add_argument(
+    '--regression_metrics',
+    dest='regression_metrics',
+    type=str,
+    default=None)
+parser.add_argument(
+    '--feature_attributions',
+    dest='feature_attributions',
+    type=str,
+    default=None)
 parser.add_argument(
     '--metrics_explanation', dest='metrics_explanation', type=str, default=None)
 parser.add_argument('--explanation', dest='explanation', type=str, default=None)
@@ -60,8 +79,7 @@ parser.add_argument(
     '--problem_type',
     dest='problem_type',
     type=str,
-    required=True,
-    default=argparse.SUPPRESS)
+    default=None)
 parser.add_argument(
     '--display_name', nargs='?', dest='display_name', type=str, default=None)
 parser.add_argument(
@@ -92,8 +110,24 @@ def main(argv):
   api_endpoint = location + '-aiplatform.googleapis.com'
   resource_uri_prefix = f'https://{api_endpoint}/v1/'
 
-  schema_uri = PROBLEM_TYPE_TO_SCHEMA_URI.get(parsed_args.problem_type)
-  with open(parsed_args.metrics) as metrics_file:
+  if parsed_args.classification_metrics:
+    metrics_file_path = parsed_args.classification_metrics
+    problem_type = 'classification'
+  elif parsed_args.forecasting_metrics:
+    metrics_file_path = parsed_args.forecasting_metrics
+    problem_type = 'forecasting'
+  elif parsed_args.regression_metrics:
+    metrics_file_path = parsed_args.regression_metrics
+    problem_type = 'regression'
+  else:
+    metrics_file_path = parsed_args.metrics
+    problem_type = parsed_args.problem_type
+
+  metrics_file_path = metrics_file_path if not metrics_file_path.startswith(
+      'gs://') else '/gcs' + metrics_file_path[4:]
+
+  schema_uri = PROBLEM_TYPE_TO_SCHEMA_URI.get(problem_type)
+  with open(metrics_file_path) as metrics_file:
     sliced_metrics = [{
         **one_slice, 'metrics':
             to_value(next(iter(one_slice['metrics'].values())))
@@ -109,6 +143,9 @@ def main(argv):
     logging.error(
         '"explanation" must contain explanations when provided.')
     sys.exit(13)
+  elif parsed_args.feature_attributions:
+    explanation_file_name = parsed_args.feature_attributions if not parsed_args.feature_attributions.startswith(
+        'gs://') else '/gcs' + parsed_args.feature_attributions[4:]
   elif parsed_args.explanation:
     explanation_file_name = parsed_args.explanation if not parsed_args.explanation.startswith(
         'gs://') else '/gcs' + parsed_args.explanation[4:]
@@ -190,6 +227,7 @@ def to_slice(slicing_spec: Dict[str, Any]):
       'dimension': 'annotationSpec',
       'value': value,
   }
+
 
 def to_value(value):
   if value is None:
