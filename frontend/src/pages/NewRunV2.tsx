@@ -194,6 +194,7 @@ function NewRunV2(props: NewRunV2Props) {
 
   // Defines the behavior when user clicks `Start` button.
   const newRunMutation = useMutation((apiRun: ApiRun) => {
+    // return isRecurringRun ? Apis.jobServiceApi.createJob(apiRun) : Apis.runServiceApi.createRun(apiRun);
     return Apis.runServiceApi.createRun(apiRun);
   });
   const startRun = () => {
@@ -231,6 +232,14 @@ function NewRunV2(props: NewRunV2Props) {
       resource_references: apiResourceRefFromRun ? apiResourceRefFromRun : references,
       service_account: serviceAccount,
     };
+    if (isRecurringRun) {
+      newRun = Object.assign(newRun, {
+        enabled: true,
+        max_concurrency: maxConcurrentRuns || '1',
+        no_catchup: !catchup,
+        trigger: trigger,
+      });
+    }
     setIsStartingNewRun(true);
 
     newRunMutation.mutate(newRun, {
@@ -390,16 +399,6 @@ function NewRunV2(props: NewRunV2Props) {
                   setMaxConcurrentRuns(maxConcurrentRuns!);
                   setCatchup(catchup);
                 }
-                  
-
-                  // this.setStateSafe(
-                  //   {
-                  //     catchup,
-                  //     maxConcurrentRuns,
-                  //     trigger,
-                  //   },
-                  //   this._validate.bind(this),
-                  // )
                 }
               />
             </React.Fragment>
