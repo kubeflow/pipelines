@@ -56,6 +56,7 @@ import {
   getValidRocCurveArtifactData,
   MetricsType,
   metricsTypeToString,
+  RocCurveColorMap,
   RunArtifact,
   RunArtifactData,
 } from 'src/lib/v2/CompareUtils';
@@ -245,11 +246,7 @@ function CompareV2(props: CompareV2Props) {
   const [isMetricsCollapsed, setIsMetricsCollapsed] = useState(false);
   const [isLoadingArtifacts, setIsLoadingArtifacts] = useState<boolean>(true);
   const [paramsTableProps, setParamsTableProps] = useState<CompareTableProps | undefined>();
-
-  // Two-panel display artifacts
-  const [confusionMatrixRunArtifacts, setConfusionMatrixRunArtifacts] = useState<RunArtifact[]>([]);
-  const [htmlRunArtifacts, setHtmlRunArtifacts] = useState<RunArtifact[]>([]);
-  const [markdownRunArtifacts, setMarkdownRunArtifacts] = useState<RunArtifact[]>([]);
+  const [isInitialArtifactsLoad, setIsInitialArtifactsLoad] = useState<boolean>(true);
 
   // Scalar Metrics
   const [scalarMetricsTableData, setScalarMetricsTableData] = useState<
@@ -259,9 +256,14 @@ function CompareV2(props: CompareV2Props) {
   // ROC Curve
   const [rocCurveLinkedArtifacts, setRocCurveLinkedArtifacts] = useState<LinkedArtifact[]>([]);
   const [selectedRocCurveIds, setSelectedRocCurveIds] = useState<string[]>([]);
-  const [selectedIdColorMap, setSelectedIdColorMap] = useState<{ [key: string]: string }>({});
+  const [selectedIdColorMap, setSelectedIdColorMap] = useState<RocCurveColorMap>({});
   const [lineColorsStack, setLineColorsStack] = useState<string[]>([...lineColors].reverse());
   const [fullArtifactPathMap, setFullArtifactPathMap] = useState<FullArtifactPathMap>({});
+
+  // Two-panel display artifacts
+  const [confusionMatrixRunArtifacts, setConfusionMatrixRunArtifacts] = useState<RunArtifact[]>([]);
+  const [htmlRunArtifacts, setHtmlRunArtifacts] = useState<RunArtifact[]>([]);
+  const [markdownRunArtifacts, setMarkdownRunArtifacts] = useState<RunArtifact[]>([]);
 
   // Selected artifacts for two-panel layout.
   const createSelectedArtifactArray = (count: number): SelectedArtifact[] => {
@@ -306,7 +308,7 @@ function CompareV2(props: CompareV2Props) {
     isError: isErrorMlmdPackages,
     error: errorMlmdPackages,
   } = useQuery<MlmdPackage[], Error>(
-    ['run_artifacts', { runIds }],
+    ['run_artifacts', { runs }],
     () =>
       Promise.all(
         runIds.map(async runId => {
@@ -339,9 +341,41 @@ function CompareV2(props: CompareV2Props) {
     staleTime: Infinity,
   });
 
+  // Ensure that the two-panel selected artifacts are present in selected valid run list.
+  const getVerifiedTwoPanelSelection = (
+    runArtifacts: RunArtifact[],
+    selectedArtifacts: SelectedArtifact[],
+  ) => {
+    const artifactsPresent: boolean[] = new Array(2).fill(false);
+    for (const runArtifact of runArtifacts) {
+      const runName = runArtifact.run.run?.name;
+      if (runName === selectedArtifacts[0].selectedItem.itemName) {
+        artifactsPresent[0] = true;
+      } else if (runName === selectedArtifacts[1].selectedItem.itemName) {
+        artifactsPresent[1] = true;
+      }
+    }
+
+    for (let i: number = 0; i < artifactsPresent.length; i++) {
+      if (!artifactsPresent[i]) {
+        selectedArtifacts[i] = {
+          selectedItem: {
+            itemName: '',
+            subItemName: '',
+          },
+        };
+      }
+    }
+
+    return [...selectedArtifacts];
+  };
+
   useEffect(() => {
-    if (runs && mlmdPackages && artifactTypes) {
-      const runArtifacts: RunArtifact[] = getRunArtifacts(runs, mlmdPackages);
+    if (runs && selectedIds && mlmdPackages && artifactTypes) {
+      const selectedIdsSet = new Set(selectedIds);
+      const runArtifacts: RunArtifact[] = getRunArtifacts(runs, mlmdPackages).filter(runArtifact =>
+        selectedIdsSet.has(runArtifact.run.run!.id!),
+      );
       const scalarMetricsArtifactData = filterRunArtifactsByType(
         runArtifacts,
         artifactTypes,
@@ -354,35 +388,97 @@ function CompareV2(props: CompareV2Props) {
         ),
       );
 
-      setConfusionMatrixRunArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.CONFUSION_MATRIX)
-          .runArtifacts,
-      );
-      setHtmlRunArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.HTML).runArtifacts,
-      );
-      setMarkdownRunArtifacts(
-        filterRunArtifactsByType(runArtifacts, artifactTypes, MetricsType.MARKDOWN).runArtifacts,
-      );
+      // Filter and set the two-panel layout run artifacts.
+      const confusionMatrixRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
+        runArtifacts,
+        artifactTypes,
+        MetricsType.CONFUSION_MATRIX,
+      ).runArtifacts;
+      const htmlRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
+        runArtifacts,
+        artifactTypes,
+        MetricsType.HTML,
+      ).runArtifacts;
+      const markdownRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
+        runArtifacts,
+        artifactTypes,
+        MetricsType.MARKDOWN,
+      ).runArtifacts;
+      setConfusionMatrixRunArtifacts(confusionMatrixRunArtifacts);
+      setHtmlRunArtifacts(htmlRunArtifacts);
+      setMarkdownRunArtifacts(markdownRunArtifacts);
 
+      // Iterate through selected runs, remove current selection if not present among runs.
+      setSelectedArtifactsMap({
+        [MetricsType.CONFUSION_MATRIX]: getVerifiedTwoPanelSelection(
+          confusionMatrixRunArtifacts,
+          selectedArtifactsMap[MetricsType.CONFUSION_MATRIX],
+        ),
+        [MetricsType.HTML]: getVerifiedTwoPanelSelection(
+          htmlRunArtifacts,
+          selectedArtifactsMap[MetricsType.HTML],
+        ),
+        [MetricsType.MARKDOWN]: getVerifiedTwoPanelSelection(
+          markdownRunArtifacts,
+          selectedArtifactsMap[MetricsType.MARKDOWN],
+        ),
+      });
+
+      // Set ROC Curve run artifacts and get all valid ROC curve data for plot visualization.
       const rocCurveRunArtifacts: RunArtifact[] = filterRunArtifactsByType(
         runArtifacts,
         artifactTypes,
         MetricsType.ROC_CURVE,
       ).runArtifacts;
-
-      const { validLinkedArtifacts, fullArtifactPathMap } = getValidRocCurveArtifactData(
-        rocCurveRunArtifacts,
-      );
-
-      setFullArtifactPathMap(fullArtifactPathMap);
-      setRocCurveLinkedArtifacts(validLinkedArtifacts);
-      setSelectedRocCurveIds(
-        validLinkedArtifacts.map(linkedArtifact => getRocCurveId(linkedArtifact)).slice(0, 3),
-      );
+      updateRocCurveDisplay(rocCurveRunArtifacts);
       setIsLoadingArtifacts(false);
+      setIsInitialArtifactsLoad(false);
     }
-  }, [runs, mlmdPackages, artifactTypes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runs, selectedIds, mlmdPackages, artifactTypes]);
+
+  // Update the ROC Curve colors and selection.
+  const updateRocCurveDisplay = (runArtifacts: RunArtifact[]) => {
+    const {
+      validLinkedArtifacts,
+      fullArtifactPathMap,
+      validRocCurveIdSet,
+    } = getValidRocCurveArtifactData(runArtifacts);
+
+    setFullArtifactPathMap(fullArtifactPathMap);
+    setRocCurveLinkedArtifacts(validLinkedArtifacts);
+
+    // Remove all newly invalid ROC Curves from the selection (if run selection changes).
+    const removedRocCurveIds: Set<string> = new Set();
+    for (const oldSelectedId of Object.keys(selectedIdColorMap)) {
+      if (!validRocCurveIdSet.has(oldSelectedId)) {
+        removedRocCurveIds.add(oldSelectedId);
+      }
+    }
+
+    // If initial load, choose first three artifacts; ow, remove artifacts from de-selected runs.
+    let updatedRocCurveIds: string[] = selectedRocCurveIds;
+    if (isInitialArtifactsLoad) {
+      updatedRocCurveIds = validLinkedArtifacts
+        .map(linkedArtifact => getRocCurveId(linkedArtifact))
+        .slice(0, 3);
+      updatedRocCurveIds.forEach(rocCurveId => {
+        selectedIdColorMap[rocCurveId] = lineColorsStack.pop()!;
+      });
+    } else {
+      updatedRocCurveIds = updatedRocCurveIds.filter(rocCurveId => {
+        if (removedRocCurveIds.has(rocCurveId)) {
+          lineColorsStack.push(selectedIdColorMap[rocCurveId]);
+          delete selectedIdColorMap[rocCurveId];
+          return false;
+        }
+        return true;
+      });
+    }
+    setSelectedRocCurveIds(updatedRocCurveIds);
+    setLineColorsStack(lineColorsStack);
+    setSelectedIdColorMap(selectedIdColorMap);
+  };
 
   useEffect(() => {
     if (isLoadingRunDetails || isLoadingMlmdPackages || isLoadingArtifactTypes) {
@@ -459,11 +555,18 @@ function CompareV2(props: CompareV2Props) {
   useEffect(() => {
     if (runs) {
       setSelectedIds(runs.map(r => r.run!.id!));
-      setParamsTableProps(getParamsTableProps(runs));
+    }
+  }, [runs]);
+
+  useEffect(() => {
+    if (runs) {
+      const selectedIdsSet = new Set(selectedIds);
+      const selectedRuns: ApiRunDetail[] = runs.filter(run => selectedIdsSet.has(run.run!.id!));
+      setParamsTableProps(getParamsTableProps(selectedRuns));
     } else {
       setParamsTableProps(undefined);
     }
-  }, [runs]);
+  }, [runs, selectedIds]);
 
   const showPageError = async (message: string, error: Error | undefined) => {
     const errorMessage = await errorToMessage(error);
