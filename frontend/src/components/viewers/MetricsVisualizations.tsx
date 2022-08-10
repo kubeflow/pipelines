@@ -15,7 +15,7 @@
  */
 
 import HelpIcon from '@material-ui/icons/Help';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from 'react-query';
 import { Array as ArrayRunType, Failure, Number, Record, String, ValidationError } from 'runtypes';
 import IconWithTooltip from 'src/atoms/IconWithTooltip';
@@ -55,10 +55,12 @@ import {
   getRocCurveId,
   mlmdDisplayName,
   NameId,
+  RocCurveColorMap,
 } from 'src/lib/v2/CompareUtils';
 import { logger } from 'src/lib/Utils';
 import { stylesheet } from 'typestyle';
 import { buildRocCurveConfig, validateConfidenceMetrics } from './ROCCurveHelper';
+import { isEqual } from 'lodash';
 
 const css = stylesheet({
   inline: {
@@ -367,8 +369,8 @@ export interface ConfidenceMetricsFilter {
   selectedIds: string[];
   setSelectedIds: (selectedIds: string[]) => void;
   fullArtifactPathMap: FullArtifactPathMap;
-  selectedIdColorMap: { [key: string]: string };
-  setSelectedIdColorMap: (selectedIdColorMap: { [key: string]: string }) => void;
+  selectedIdColorMap: RocCurveColorMap;
+  setSelectedIdColorMap: (selectedIdColorMap: RocCurveColorMap) => void;
   lineColorsStack: string[];
   setLineColorsStack: (lineColorsStack: string[]) => void;
 }
@@ -450,14 +452,7 @@ const getRocCurveFilterTable = (
   ];
   const rows: TableRow[] = [];
   if (filter) {
-    const {
-      selectedIds,
-      selectedIdColorMap,
-      setSelectedIdColorMap,
-      fullArtifactPathMap,
-      lineColorsStack,
-      setLineColorsStack,
-    } = filter;
+    const { selectedIds, selectedIdColorMap, fullArtifactPathMap } = filter;
 
     // Only display the selected ROC Curves on the plot, in order of selection.
     const confidenceMetricsDataMap = new Map();
@@ -467,15 +462,6 @@ const getRocCurveFilterTable = (
     confidenceMetricsDataList = selectedIds.map(selectedId =>
       confidenceMetricsDataMap.get(selectedId),
     );
-
-    // Populate the color map on the initial render.
-    if (selectedIds.length > 0 && Object.keys(selectedIdColorMap).length === 0) {
-      selectedIds.forEach(selectedId => {
-        selectedIdColorMap[selectedId] = lineColorsStack.pop()!;
-      });
-      setLineColorsStack(lineColorsStack);
-      setSelectedIdColorMap(selectedIdColorMap);
-    }
 
     // Populate the filter table rows.
     for (const linkedArtifact of linkedArtifactsPage) {
@@ -593,7 +579,24 @@ export function ConfidenceMetricsSection({
   filter,
 }: ConfidenceMetricsSectionProps) {
   const maxSelectedRocCurves: number = 10;
+  const [allLinkedArtifacts, setAllLinkedArtifacts] = useState<LinkedArtifact[]>(linkedArtifacts);
   const [linkedArtifactsPage, setLinkedArtifactsPage] = useState<LinkedArtifact[]>(linkedArtifacts);
+  const [filterString, setFilterString] = useState<string>('');
+
+  // Reload the page on linked artifacts refresh or re-selection.
+  useEffect(() => {
+    if (filter && !isEqual(linkedArtifacts, allLinkedArtifacts)) {
+      setLinkedArtifactsPage(linkedArtifacts);
+      setAllLinkedArtifacts(linkedArtifacts);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkedArtifacts]);
+
+  // Verify that the existing linked artifacts are correct; otherwise, wait for refresh.
+  if (filter && !isEqual(linkedArtifacts, allLinkedArtifacts)) {
+    return null;
+  }
+
   let confidenceMetricsDataList: ConfidenceMetricsData[] = linkedArtifacts
     .map(linkedArtifact => {
       const artifact = linkedArtifact.artifact;
@@ -705,6 +708,8 @@ export function ConfidenceMetricsSection({
             noFilterBox={false}
             emptyMessage='No artifacts found'
             disableAdditionalSelection={disableAdditionalSelection}
+            initialFilterString={filterString}
+            setFilterString={setFilterString}
           />
         </>
       )}

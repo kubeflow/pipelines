@@ -76,9 +76,14 @@ export interface FullArtifactPath {
 // key: "<execution ID>-<artifact ID>"
 export type FullArtifactPathMap = { [key: string]: FullArtifactPath };
 
+export interface RocCurveColorMap {
+  [key: string]: string;
+}
+
 export interface RocCurveArtifactData {
   validLinkedArtifacts: LinkedArtifact[];
   fullArtifactPathMap: FullArtifactPathMap;
+  validRocCurveIdSet: Set<string>;
 }
 
 export const mlmdDisplayName = (id: string, mlmdTypeStr: string, displayName?: string) =>
@@ -133,6 +138,7 @@ export const getRocCurveId = (linkedArtifact: LinkedArtifact): string =>
 export const getValidRocCurveArtifactData = (
   rocCurveRunArtifacts: RunArtifact[],
 ): RocCurveArtifactData => {
+  const validRocCurveIdSet: Set<string> = new Set();
   const fullArtifactPathMap: FullArtifactPathMap = {};
   const validLinkedArtifacts = flatMapDeep(
     rocCurveRunArtifacts.map(runArtifact =>
@@ -141,11 +147,13 @@ export const getValidRocCurveArtifactData = (
 
         // Save the names and IDs for the run, execution, and linked artifact to a map.
         validArtifacts.forEach(validArtifact => {
-          fullArtifactPathMap[getRocCurveId(validArtifact)] = getFullArtifactPath(
+          const rocCurveId = getRocCurveId(validArtifact);
+          fullArtifactPathMap[rocCurveId] = getFullArtifactPath(
             runArtifact.run,
             executionArtifact.execution,
             validArtifact,
           );
+          validRocCurveIdSet.add(rocCurveId);
         });
         return validArtifacts;
       }),
@@ -154,6 +162,7 @@ export const getValidRocCurveArtifactData = (
   return {
     validLinkedArtifacts,
     fullArtifactPathMap,
+    validRocCurveIdSet,
   };
 };
 
