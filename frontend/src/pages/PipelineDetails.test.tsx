@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { render, waitFor} from '@testing-library/react';
+import { render, waitFor } from '@testing-library/react';
 import { graphlib } from 'dagre';
 import { ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import * as React from 'react';
@@ -239,7 +239,7 @@ describe('PipelineDetails', () => {
       workflow_manifest: 'not valid JSON',
     };
 
-    render(<PipelineDetails {...generateProps(true)}/>)
+    render(<PipelineDetails {...generateProps(true)} />);
     await waitFor(() => {
       expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
       expect(updateBannerSpy).toHaveBeenLastCalledWith(
