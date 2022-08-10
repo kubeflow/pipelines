@@ -99,6 +99,11 @@ export default function MetricsDropdown(props: MetricsDropdownProps) {
     selectedArtifacts[1].selectedItem,
   );
 
+  useEffect(() => {
+    setFirstSelectedItem(selectedArtifacts[0].selectedItem);
+    setSecondSelectedItem(selectedArtifacts[1].selectedItem);
+  }, [selectedArtifacts]);
+
   const metricsTabText = metricsTypeToString(metricsTab);
   const updateSelectedItemAndArtifact = (
     setSelectedItem: (selectedItem: SelectedItem) => void,
