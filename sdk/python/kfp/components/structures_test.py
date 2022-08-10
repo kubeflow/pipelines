@@ -499,20 +499,6 @@ class TestContainerSpec(unittest.TestCase):
         loaded_container_spec = structures.ContainerSpec.from_container_dict(
             container_dict)
 
-    def test_validate_command_and_arg(self):
-        commands = [
-            'run.sh', '--arg',
-            ContainerComponentArtifactChannel('input', 'my_arg')
-        ]
-        self.assertRaisesRegex(
-            TypeError, r'Cannot access artifact by itself',
-            lambda: structures.ContainerSpec(
-                image='python:3.7', command=commands, args=[]))
-        self.assertRaisesRegex(
-            TypeError, r'Cannot access artifact by itself',
-            lambda: structures.ContainerSpec(
-                image='python:3.7', command=[], args=commands))
-
     def test_raise_error_if_access_artifact_by_itself(self):
 
         def comp_with_artifact_input(dataset: dsl.Input[dsl.Dataset]):
@@ -521,11 +507,29 @@ class TestContainerSpec(unittest.TestCase):
                 command=['sh', 'run.sh'],
                 args=[dataset])
 
+        def comp_with_artifact_output(dataset_old: dsl.Output[dsl.Dataset],
+                                      dataset_new: dsl.Output[dsl.Dataset],
+                                      optional_input: str = 'default'):
+            return dsl.ContainerSpec(
+                image='gcr.io/my-image',
+                command=['sh', 'run.sh'],
+                args=[
+                    placeholders.IfPresentPlaceholder(
+                        input_name='optional_input',
+                        then=[dataset_old],
+                        else_=[dataset_new])
+                ])
+
         self.assertRaisesRegex(
-            TypeError,
+            ValueError,
             r'Cannot access artifact by itself in the container definition.',
             component_factory.create_container_component_from_func,
             comp_with_artifact_input)
+        self.assertRaisesRegex(
+            ValueError,
+            r'Cannot access artifact by itself in the container definition.',
+            component_factory.create_container_component_from_func,
+            comp_with_artifact_output)
 
 
 class TestComponentSpec(unittest.TestCase):

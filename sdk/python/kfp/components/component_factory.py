@@ -482,4 +482,5 @@ def create_container_component_from_func(
 
     container_spec = func(*arg_list)
     component_spec.implementation = structures.Implementation(container_spec)
+    component_spec.validate_placeholders()
     return container_component.ContainerComponent(component_spec, func)

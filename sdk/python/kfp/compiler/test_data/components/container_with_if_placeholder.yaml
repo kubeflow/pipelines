@@ -4,8 +4,14 @@ components:
     inputDefinitions:
       parameters:
         optional_input:
+          defaultValue: default
           parameterType: STRING
     outputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
       parameters:
         output_path:
           parameterType: STRING
@@ -18,7 +24,11 @@ deploymentSpec:
         - '{{$.outputs.parameters[''output_path''].output_file}}'
         command:
         - my_program
-        - '{"IfPresent": {"InputName": "optional_input", "Then": "hi", "Else": "bye"}}'
+        - '{"IfPresent": {"InputName": "optional_input", "Then": ["{{$.inputs.parameters[''optional_input'']}}"],
+          "Else": ["bye"]}}'
+        - --dataset
+        - '{"IfPresent": {"InputName": "optional_input", "Then": ["{{$.outputs.artifacts[''dataset''].uri}}"],
+          "Else": ["bye"]}}'
         image: python:3.7
 pipelineInfo:
   name: container-with-if-placeholder
@@ -39,6 +49,7 @@ root:
   inputDefinitions:
     parameters:
       optional_input:
+        defaultValue: default
         parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-beta.1

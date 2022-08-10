@@ -5,9 +5,12 @@ components:
       parameters:
         text1:
           parameterType: STRING
-        text2:
-          parameterType: STRING
     outputDefinitions:
+      artifacts:
+        text2:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
       parameters:
         output_path:
           parameterType: STRING
@@ -20,7 +23,7 @@ deploymentSpec:
         - '{{$.outputs.parameters[''output_path''].output_file}}'
         command:
         - my_program
-        - '{"Concat": ["prefix-", "{{$.inputs.parameters[''text1'']}}", "{{$.inputs.parameters[''text2'']}}"]}'
+        - '{"Concat": ["prefix-", "{{$.inputs.parameters[''text1'']}}", "{{$.outputs.artifacts[''text2''].uri}}"]}'
         image: python:3.7
 pipelineInfo:
   name: container-with-concat-placeholder
@@ -36,15 +39,11 @@ root:
           parameters:
             text1:
               componentInputParameter: text1
-            text2:
-              componentInputParameter: text2
         taskInfo:
           name: container-with-concat-placeholder
   inputDefinitions:
     parameters:
       text1:
-        parameterType: STRING
-      text2:
         parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-beta.1

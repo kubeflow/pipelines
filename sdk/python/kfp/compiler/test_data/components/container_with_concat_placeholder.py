@@ -14,17 +14,19 @@
 from kfp.components import placeholders
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
+from kfp.dsl import Dataset
+from kfp.dsl import Output
 from kfp.dsl import OutputPath
 
 
 @container_component
-def container_with_concat_placeholder(text1: str, text2: str,
+def container_with_concat_placeholder(text1: str, text2: Output[Dataset],
                                       output_path: OutputPath(str)):
     return ContainerSpec(
         image='python:3.7',
         command=[
             'my_program',
-            placeholders.ConcatPlaceholder(['prefix-', text1, text2])
+            placeholders.ConcatPlaceholder(['prefix-', text1, text2.uri])
         ],
         args=['--output_path', output_path])
 

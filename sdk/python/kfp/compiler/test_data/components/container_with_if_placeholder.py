@@ -16,18 +16,25 @@ from typing import Optional
 from kfp.components import placeholders
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
+from kfp.dsl import Dataset
+from kfp.dsl import Output
 from kfp.dsl import OutputPath
 
 
 @container_component
-def container_with_if_placeholder(optional_input: Optional[str],
-                                  output_path: OutputPath(str)):
+def container_with_if_placeholder(output_path: OutputPath(str),
+                                  dataset: Output[Dataset],
+                                  optional_input: str = 'default'):
     return ContainerSpec(
         image='python:3.7',
         command=[
             'my_program',
             placeholders.IfPresentPlaceholder(
-                input_name='optional_input', then='hi', else_='bye')
+                input_name='optional_input',
+                then=[optional_input],
+                else_=['bye']), '--dataset',
+            placeholders.IfPresentPlaceholder(
+                input_name='optional_input', then=[dataset.uri], else_=['bye'])
         ],
         args=['--output_path', output_path])
 

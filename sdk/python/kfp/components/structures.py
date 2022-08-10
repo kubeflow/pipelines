@@ -25,7 +25,6 @@ from google.protobuf import json_format
 import kfp
 from kfp.compiler import compiler
 from kfp.components import base_model
-from kfp.components import pipeline_channel
 from kfp.components import placeholders
 from kfp.components import utils
 from kfp.components import v1_components
@@ -233,22 +232,6 @@ class ContainerSpec(base_model.BaseModel):
         """Use None instead of empty dict for env."""
         self.env = None if self.env == {} else self.env
 
-    def validate_command(self) -> None:
-        """Validate command doesn't contain artifact channel."""
-        self._validate_no_artifact_channel(self.command)
-
-    def validate_args(self) -> None:
-        self._validate_no_artifact_channel(self.args)
-
-    def _validate_no_artifact_channel(self, args) -> None:
-        if args is None:
-            return
-        for arg in args:
-            if isinstance(arg, ContainerComponentArtifactChannel):
-                raise TypeError(
-                    'Cannot access artifact by itself in the container definition. Please use .uri or .path instead to access the artifact.'
-                )
-
     @classmethod
     def from_container_dict(cls, container_dict: Dict[str,
                                                       Any]) -> 'ContainerSpec':
@@ -433,7 +416,11 @@ def _check_valid_placeholder_reference(
         TypeError: if any argument is neither a str nor a placeholder
             instance.
     """
-    if isinstance(
+    if isinstance(placeholder, ContainerComponentArtifactChannel):
+        raise ValueError(
+            'Cannot access artifact by itself in the container definition. Please use .uri or .path instead to access the artifact.'
+        )
+    elif isinstance(
             placeholder,
         (placeholders.InputValuePlaceholder, placeholders.InputPathPlaceholder,
          placeholders.InputUriPlaceholder)):
