@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { render, screen, waitFor} from '@testing-library/react';
+import { render, waitFor} from '@testing-library/react';
 import { graphlib } from 'dagre';
 import { ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import * as React from 'react';
