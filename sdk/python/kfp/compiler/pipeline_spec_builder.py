@@ -13,14 +13,12 @@
 # limitations under the License.
 """Functions for creating PipelineSpec proto objects."""
 
-import collections
 import json
 import re
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
 from google.protobuf import json_format
 from google.protobuf import struct_pb2
-import kfp
 from kfp import dsl
 from kfp.compiler import pipeline_spec_builder as builder
 from kfp.components import for_loop
