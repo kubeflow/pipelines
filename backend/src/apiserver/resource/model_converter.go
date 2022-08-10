@@ -255,19 +255,9 @@ func runtimeConfigToModelParameters(runtimeConfig *api.PipelineSpec_RuntimeConfi
 	if runtimeConfig == nil {
 		return "", nil
 	}
-	// Use structpb to marshal protobuff value, store them in a map, then marshal the entire map into a single new string
-	paramsStringsMap := make(map[string]string)
-	for k, v := range runtimeConfig.GetParameters() {
-		paramBytes, err := v.MarshalJSON()
-		if err != nil {
-			errMessage := fmt.Sprintf("Failed to marshal RuntimeConfig API parameter as string: %+v", v)
-			return "", util.NewInternalServerError(err, errMessage)
-		}
-		paramsStringsMap[k] = string(paramBytes)
-	}
-	paramsBytes, err := json.Marshal(paramsStringsMap)
+	paramsBytes, err := json.Marshal(runtimeConfig.GetParameters())
 	if err != nil {
-		return "", util.NewInternalServerError(err, "Failed to marshal array RuntimeConfig API parameters as string.")
+		return "", util.NewInternalServerError(err, "Failed to marshal RuntimeConfig API parameters as string.")
 	}
 	return string(paramsBytes), nil
 }

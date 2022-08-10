@@ -94,7 +94,7 @@ func TestToApiRunDetail_RuntimeParams(t *testing.T) {
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: "manifest",
 				RuntimeConfig: model.RuntimeConfig{
-					Parameters:   "{\"param2\":\"\\\"world\\\"\",\"param3\":\"true\",\"param4\":\"[1, 2, 3]\",\"param5\":\"12\",\"param6\":\"{\\\"structParam1\\\":\\\"hello\\\", \\\"structParam2\\\":32}\"}",
+					Parameters:   "{\"param2\":\"world\",\"param3\":true,\"param4\":[1,2,3],\"param5\":12,\"param6\":{\"structParam1\":\"hello\",\"structParam2\":32}}",
 					PipelineRoot: "model-pipeline-root",
 				},
 			},
@@ -741,7 +741,7 @@ func TestToApiRuntimeConfig(t *testing.T) {
 		PipelineRoot: "model-pipeline-root",
 	}
 	modelRuntimeConfig := model.RuntimeConfig{
-		Parameters:   "{\"param2\":\"\\\"world\\\"\",\"param3\":\"true\",\"param4\":\"[1, 2, 3]\",\"param5\":\"12\",\"param6\":\"{\\\"structParam1\\\":\\\"hello\\\", \\\"structParam2\\\":32}\"}",
+		Parameters:   "{\"param2\":\"world\",\"param3\":true,\"param4\":[1,2,3],\"param5\":12,\"param6\":{\"structParam1\":\"hello\",\"structParam2\":32}}",
 		PipelineRoot: "model-pipeline-root",
 	}
 	actualRuntimeConfig, err := toApiRuntimeConfig(modelRuntimeConfig)

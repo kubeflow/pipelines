@@ -153,21 +153,11 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 }
 
 func toApiRuntimeConfig(modelRuntime model.RuntimeConfig) (*api.PipelineSpec_RuntimeConfig, error) {
-	var runtimeParamsStringsMap map[string]string
 	var runtimeParams map[string]*structpb.Value
 	if modelRuntime.Parameters != "" {
-		err := json.Unmarshal([]byte(modelRuntime.Parameters), &runtimeParamsStringsMap)
+		err := json.Unmarshal([]byte(modelRuntime.Parameters), &runtimeParams)
 		if err != nil {
-			return nil, util.NewInternalServerError(err, fmt.Sprintf("Cannot unmarshal RuntimeConfig Parameter to map[string]string, string value: %+v", modelRuntime.Parameters))
-		}
-		runtimeParams = make(map[string]*structpb.Value)
-		for k, v := range runtimeParamsStringsMap {
-			var protoValue structpb.Value
-			err := protoValue.UnmarshalJSON([]byte(v))
-			if err != nil {
-				return nil, util.NewInternalServerError(err, fmt.Sprintf("Cannot unmarshal string %+v to structpb.Value", v))
-			}
-			runtimeParams[k] = &protoValue
+			return nil, util.NewInternalServerError(err, fmt.Sprintf("Cannot unmarshal RuntimeConfig Parameter to map[string]*structpb.Value, string value: %+v", modelRuntime.Parameters))
 		}
 	}
 	apiRuntimeConfig := &api.PipelineSpec_RuntimeConfig{
