@@ -509,8 +509,6 @@ export default class CustomTable extends React.Component<CustomTableProps, Custo
 
   public handleFilterChange = (event: any) => {
     const value = event.target.value;
-    console.log('HERE');
-    console.log(value);
     if (this.props.setFilterString) {
       this.props.setFilterString(value || '');
     }
