@@ -31,5 +31,10 @@ type PipelineSpec struct {
 	WorkflowSpecManifest string `gorm:"column:WorkflowSpecManifest; not null; size:65535"`
 
 	// Store parameters key-value pairs as serialized string.
+	// This field is only used for V1 API. For V2, use the `Parameters` field in RuntimeConfig.
+	// At most one of the fields `Parameters` and `RuntimeConfig` can be non-empty
 	Parameters string `gorm:"column:Parameters; size:65535"`
+
+	// Runtime config of the pipeline, only used for v2 API.
+	RuntimeConfig
 }

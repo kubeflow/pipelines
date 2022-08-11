@@ -25,6 +25,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func TestToApiPipeline(t *testing.T) {
@@ -78,7 +79,7 @@ func TestToApiPipeline_ErrorParsingField(t *testing.T) {
 	assert.Contains(t, apiPipeline.Error, "Parameter with wrong format is stored")
 }
 
-func TestToApiRunDetail(t *testing.T) {
+func TestToApiRunDetail_RuntimeParams(t *testing.T) {
 	modelRun := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "run123",
@@ -92,6 +93,82 @@ func TestToApiRunDetail(t *testing.T) {
 			Conditions:       "running",
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: "manifest",
+				RuntimeConfig: model.RuntimeConfig{
+					Parameters:   "{\"param2\":\"world\",\"param3\":true,\"param4\":[1,2,3],\"param5\":12,\"param6\":{\"structParam1\":\"hello\",\"structParam2\":32}}",
+					PipelineRoot: "model-pipeline-root",
+				},
+			},
+			ResourceReferences: []*model.ResourceReference{
+				{ResourceUUID: "run123", ResourceType: common.Run, ReferenceUUID: "job123",
+					ReferenceName: "j123", ReferenceType: common.Job, Relationship: common.Creator},
+			},
+		},
+		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow123"},
+	}
+	apiRun := ToApiRunDetail(modelRun)
+
+	listParams := []interface{}{1, 2, 3}
+	v2RuntimeListParams, _ := structpb.NewList(listParams)
+
+	structParams := map[string]interface{}{"structParam1": "hello", "structParam2": 32}
+	v2RuntimeStructParams, _ := structpb.NewStruct(structParams)
+
+	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
+	v2RuntimeParams := map[string]*structpb.Value{
+		"param2": structpb.NewStringValue("world"),
+		"param3": structpb.NewBoolValue(true),
+		"param4": structpb.NewListValue(v2RuntimeListParams),
+		"param5": structpb.NewNumberValue(12),
+		"param6": structpb.NewStructValue(v2RuntimeStructParams),
+	}
+
+	expectedApiRun := &api.RunDetail{
+		Run: &api.Run{
+			Id:           "run123",
+			Name:         "displayName123",
+			StorageState: api.Run_STORAGESTATE_AVAILABLE,
+			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+			ScheduledAt:  &timestamp.Timestamp{Seconds: 1},
+			FinishedAt:   &timestamp.Timestamp{Seconds: 1},
+			Status:       "running",
+			PipelineSpec: &api.PipelineSpec{
+				WorkflowManifest: "manifest",
+				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+					Parameters:   v2RuntimeParams,
+					PipelineRoot: "model-pipeline-root",
+				},
+			},
+			ResourceReferences: []*api.ResourceReference{
+				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job123"},
+					Name: "j123", Relationship: api.Relationship_CREATOR},
+			},
+		},
+		PipelineRuntime: &api.PipelineRuntime{
+			WorkflowManifest: "workflow123",
+		},
+	}
+	// Compare the string representation of ApiRuns, since these structs have internal fields
+	// used only by protobuff, and may be different. The .String() method marshal all
+	// exported fields into string format.
+	// See https://github.com/stretchr/testify/issues/758
+	assert.Equal(t, expectedApiRun.String(), apiRun.String())
+}
+
+func TestToApiRunDetail_V1Params(t *testing.T) {
+	modelRun := &model.RunDetail{
+		Run: model.Run{
+			UUID:             "run123",
+			Name:             "name123",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			DisplayName:      "displayName123",
+			Namespace:        "ns123",
+			CreatedAtInSec:   1,
+			ScheduledAtInSec: 1,
+			FinishedAtInSec:  1,
+			Conditions:       "running",
+			PipelineSpec: model.PipelineSpec{
+				WorkflowSpecManifest: "manifest",
+				Parameters:           `[{"name":"param2","value":"world"}]`,
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{ResourceUUID: "run123", ResourceType: common.Run, ReferenceUUID: "job123",
@@ -112,6 +189,8 @@ func TestToApiRunDetail(t *testing.T) {
 			Status:       "running",
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
+				Parameters:       []*api.Parameter{{Name: "param2", Value: "world"}},
+				RuntimeConfig:    &api.PipelineSpec_RuntimeConfig{},
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job123"},
@@ -198,6 +277,7 @@ func TestToApiRuns(t *testing.T) {
 			Status:       "running",
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
+				RuntimeConfig:    &api.PipelineSpec_RuntimeConfig{},
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job1"},
@@ -219,6 +299,7 @@ func TestToApiRuns(t *testing.T) {
 			},
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
+				RuntimeConfig:    &api.PipelineSpec_RuntimeConfig{},
 			},
 			Metrics: []*api.RunMetric{apiMetric2},
 		},
@@ -630,4 +711,44 @@ func TestToApiExperiments(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedApiExps, apiExps)
+}
+
+func TestToApiParameters(t *testing.T) {
+	expectedApiParameters := []*api.Parameter{{Name: "param2", Value: "world"}}
+	modelParameters := `[{"name":"param2","value":"world"}]`
+	actualApiParameters, err := toApiParameters(modelParameters)
+	assert.Nil(t, err)
+	assert.Equal(t, expectedApiParameters, actualApiParameters)
+}
+
+func TestToApiRuntimeConfig(t *testing.T) {
+	listParams := []interface{}{1, 2, 3}
+	v2RuntimeListParams, _ := structpb.NewList(listParams)
+
+	structParams := map[string]interface{}{"structParam1": "hello", "structParam2": 32}
+	v2RuntimeStructParams, _ := structpb.NewStruct(structParams)
+
+	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
+	runtimeParameters := map[string]*structpb.Value{
+		"param2": structpb.NewStringValue("world"),
+		"param3": structpb.NewBoolValue(true),
+		"param4": structpb.NewListValue(v2RuntimeListParams),
+		"param5": structpb.NewNumberValue(12),
+		"param6": structpb.NewStructValue(v2RuntimeStructParams),
+	}
+	expectedRuntimeConfig := &api.PipelineSpec_RuntimeConfig{
+		Parameters:   runtimeParameters,
+		PipelineRoot: "model-pipeline-root",
+	}
+	modelRuntimeConfig := model.RuntimeConfig{
+		Parameters:   "{\"param2\":\"world\",\"param3\":true,\"param4\":[1,2,3],\"param5\":12,\"param6\":{\"structParam1\":\"hello\",\"structParam2\":32}}",
+		PipelineRoot: "model-pipeline-root",
+	}
+	actualRuntimeConfig, err := toApiRuntimeConfig(modelRuntimeConfig)
+	assert.Nil(t, err)
+	// Compare the string representation of ApiRuntimeConfig, since these structs have fields
+	// used only by protobuff, and may be different. The .String() method marshal all
+	// exported fields into string format.
+	// See https://github.com/stretchr/testify/issues/758
+	assert.Equal(t, expectedRuntimeConfig.String(), actualRuntimeConfig.String())
 }
