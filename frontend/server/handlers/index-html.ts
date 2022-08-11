@@ -79,7 +79,7 @@ function replaceRuntimeContent(
       .replace(DEFAULT_FLAG, 'window.KFP_FLAGS.DEPLOYMENT="KUBEFLOW"')
       .replace(
         KUBEFLOW_CLIENT_PLACEHOLDER,
-        `<script id="kubeflow-client-placeholder" src="/dashboard/dashboard_lib.bundle.js"></script>`,
+        `<script id="kubeflow-client-placeholder" src="/dashboard_lib.bundle.js"></script>`,
       );
   }
   if (contentSafe && deployment === Deployments.MARKETPLACE) {
