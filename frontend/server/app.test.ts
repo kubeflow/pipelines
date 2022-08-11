@@ -71,7 +71,7 @@ describe('UIServer apis', () => {
   window.KFP_FLAGS.DEPLOYMENT="KUBEFLOW"
   window.KFP_FLAGS.HIDE_SIDENAV=true
   </script>
-  <script id="kubeflow-client-placeholder" src="/dashboard/dashboard_lib.bundle.js"></script>
+  <script id="kubeflow-client-placeholder" src="/dashboard_lib.bundle.js"></script>
 </head>
 </html>`;
       const configs = loadConfigs(argv, { DEPLOYMENT: 'kubeflow' });
@@ -114,7 +114,7 @@ describe('UIServer apis', () => {
   window.KFP_FLAGS.DEPLOYMENT="KUBEFLOW"
   window.KFP_FLAGS.HIDE_SIDENAV=false
   </script>
-  <script id="kubeflow-client-placeholder" src="/dashboard/dashboard_lib.bundle.js"></script>
+  <script id="kubeflow-client-placeholder" src="/dashboard_lib.bundle.js"></script>
 </head>
 </html>`;
     const configs = loadConfigs(argv, { DEPLOYMENT: 'KUBEFLOW', HIDE_SIDENAV: 'false' });
