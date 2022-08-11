@@ -7,6 +7,22 @@
 ### For Pipeline Authors
 
 ### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+
+## Documentation Updates
+
+# 2.0.0-beta.2
+
+## Major Features and Improvements
+
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
 * Add support for containerized component [\#8066](https://github.com/kubeflow/pipelines/pull/8066)
 
 ## Deprecations
