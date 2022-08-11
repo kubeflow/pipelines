@@ -25,6 +25,18 @@ description: |
           files to be used for this evaluation.
           For prediction results, the files should be named "prediction.results-*".
           For explanation results, the files should be named "explanation.results-*".
+      ground_truth_format(Optional[str]):
+          Required for custom tabular and non tabular data.
+          The file format for the ground truth files. `jsonl` is currently the only allowed format.
+          If not set, defaulted to `jsonl`.
+      ground_truth_gcs_source(Optional[Sequence[str]]):
+          Required for custom tabular and non tabular data.
+          The GCS uris representing where the ground truth is located.
+          Used to provide ground truth for each prediction instance when they are not part of the batch prediction jobs prediction instance.
+      key_columns(Optional[Sequence[str]]):
+          Required for custom tabular and non tabular data.
+          The list of fields in the ground truth gcs source to format the joining key.
+          Used to merge prediction instances with ground truth data.
       ground_truth_column (str):
           The column name of the feature containing ground truth.
           Formatted to be able to find nested columns, delimeted by `.`.
@@ -78,6 +90,9 @@ inputs:
   - { name: root_dir, type: String }
   - { name: predictions_format, type: String, default: "jsonl" }
   - { name: predictions_gcs_source, type: Artifact }
+  - { name: ground_truth_format, type: String, default: "jsonl" }
+  - { name: ground_truth_gcs_source, type: JsonArray, default: "{}" }
+  - { name: key_columns, type: JsonArray, default: "{}" }
   - { name: ground_truth_column, type: String }
   - { name: prediction_score_column, type: String, default: "" }
   - { name: forecasting_type, type: String, default: "point" }
@@ -119,6 +134,14 @@ implementation:
       - { inputValue: predictions_format }
       - --batch_prediction_gcs_source
       - "{{$.inputs.artifacts['predictions_gcs_source'].uri}}"
+      - --ground_truth_format
+      - { inputValue: ground_truth_format }
+      - --ground_truth_gcs_source
+      - { inputValue: ground_truth_gcs_source }
+      - --key_prefix_in_prediction_dataset
+      - "instance"
+      - --key_columns
+      - { inputValue: key_columns }
       - --root_dir
       - "{{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
       - --ground_truth_column
