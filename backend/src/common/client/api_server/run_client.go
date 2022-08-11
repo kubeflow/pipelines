@@ -5,7 +5,6 @@ import (
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
-	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	apiclient "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client"
 	params "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service"
@@ -26,8 +25,7 @@ type RunInterface interface {
 }
 
 type RunClient struct {
-	apiClient      *apiclient.Run
-	authInfoWriter runtime.ClientAuthInfoWriter
+	apiClient *apiclient.Run
 }
 
 func NewRunClient(clientConfig clientcmd.ClientConfig, debug bool) (
@@ -35,28 +33,14 @@ func NewRunClient(clientConfig clientcmd.ClientConfig, debug bool) (
 
 	runtime, err := NewHTTPRuntime(clientConfig, debug)
 	if err != nil {
-		return nil, fmt.Errorf("Error occurred when creating run client: %w", err)
+		return nil, err
 	}
 
 	apiClient := apiclient.New(runtime, strfmt.Default)
 
-	// Creating run client
+	// Creating upload client
 	return &RunClient{
 		apiClient: apiClient,
-	}, nil
-}
-
-func NewKubeflowInClusterRunClient(namespace string, debug bool) (
-	*RunClient, error) {
-
-	runtime := NewKubeflowInClusterHTTPRuntime(namespace, debug)
-
-	apiClient := apiclient.New(runtime, strfmt.Default)
-
-	// Creating run client
-	return &RunClient{
-		apiClient:      apiClient,
-		authInfoWriter: SATokenVolumeProjectionAuth,
 	}, nil
 }
 
@@ -68,7 +52,7 @@ func (c *RunClient) Create(parameters *params.CreateRunParams) (*model.APIRunDet
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.RunService.CreateRun(parameters, c.authInfoWriter)
+	response, err := c.apiClient.RunService.CreateRun(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetRunDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -102,7 +86,7 @@ func (c *RunClient) Get(parameters *params.GetRunParams) (*model.APIRunDetail,
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.RunService.GetRun(parameters, c.authInfoWriter)
+	response, err := c.apiClient.RunService.GetRun(parameters, PassThroughAuth)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetRunDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -135,7 +119,7 @@ func (c *RunClient) Archive(parameters *params.ArchiveRunParams) error {
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.RunService.ArchiveRun(parameters, c.authInfoWriter)
+	_, err := c.apiClient.RunService.ArchiveRun(parameters, PassThroughAuth)
 
 	if err != nil {
 		if defaultError, ok := err.(*params.ListRunsDefault); ok {
@@ -159,7 +143,7 @@ func (c *RunClient) Unarchive(parameters *params.UnarchiveRunParams) error {
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.RunService.UnarchiveRun(parameters, c.authInfoWriter)
+	_, err := c.apiClient.RunService.UnarchiveRun(parameters, PassThroughAuth)
 
 	if err != nil {
 		if defaultError, ok := err.(*params.ListRunsDefault); ok {
@@ -183,7 +167,7 @@ func (c *RunClient) Delete(parameters *params.DeleteRunParams) error {
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.RunService.DeleteRun(parameters, c.authInfoWriter)
+	_, err := c.apiClient.RunService.DeleteRun(parameters, PassThroughAuth)
 
 	if err != nil {
 		if defaultError, ok := err.(*params.ListRunsDefault); ok {
@@ -208,7 +192,7 @@ func (c *RunClient) List(parameters *params.ListRunsParams) (
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.RunService.ListRuns(parameters, c.authInfoWriter)
+	response, err := c.apiClient.RunService.ListRuns(parameters, PassThroughAuth)
 
 	if err != nil {
 		if defaultError, ok := err.(*params.ListRunsDefault); ok {
@@ -261,7 +245,7 @@ func (c *RunClient) Terminate(parameters *params.TerminateRunParams) error {
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.RunService.TerminateRun(parameters, c.authInfoWriter)
+	_, err := c.apiClient.RunService.TerminateRun(parameters, PassThroughAuth)
 	if err != nil {
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to terminate run. Params: %+v", parameters),

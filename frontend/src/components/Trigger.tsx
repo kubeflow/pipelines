@@ -38,6 +38,7 @@ import {
   ParsedTrigger,
 } from '../lib/TriggerUtils';
 import { logger } from 'src/lib/Utils';
+import { t } from 'i18next';
 
 type TriggerInitialProps = {
   maxConcurrentRuns?: string;
@@ -161,7 +162,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
       <div>
         <Input
           select={true}
-          label='Trigger type'
+          label={t('trigger.type')}
           required={true}
           onChange={this.handleChange('type')}
           value={type}
@@ -176,7 +177,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
 
         <div>
           <Input
-            label='Maximum concurrent runs'
+            label={t('trigger.max_concurrent_count')}
             required={true}
             onChange={this.handleChange('maxConcurrentRuns')}
             value={maxConcurrentRuns}
@@ -192,10 +193,10 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
                   onClick={this.handleChange('hasStartDate')}
                 />
               }
-              label='Has start date'
+              label={t('trigger.has_start_date')}
             />
             <Input
-              label='Start date'
+              label={t('trigger.start_date')}
               type='date'
               onChange={this.handleChange('startDate')}
               value={startDate}
@@ -206,7 +207,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
             />
             <Separator />
             <Input
-              label='Start time'
+              label={t('trigger.start_time')}
               type='time'
               onChange={this.handleChange('startTime')}
               value={startTime}
@@ -233,10 +234,10 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
                   onClick={this.handleChange('hasEndDate')}
                 />
               }
-              label='Has end date'
+              label={t('trigger.has_end_date')}
             />
             <Input
-              label='End date'
+              label={t('trigger.end_date')}
               type='date'
               onChange={this.handleChange('endDate')}
               value={endDate}
@@ -247,7 +248,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
             />
             <Separator />
             <Input
-              label='End time'
+              label={t('trigger.end_time')}
               type='time'
               onChange={this.handleChange('endTime')}
               value={endTime}
@@ -273,23 +274,19 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
                   onClick={this.handleChange('catchup')}
                 />
               }
-              label='Catchup'
+              label={t('trigger.catchup')}
             />
             <HelpButton
               helpText={
                 <div>
                   <p>
-                    Whether the recurring run should catch up if behind schedule. Defaults to true.
+                    {t('trigger.help_text_part1')}
                   </p>
                   <p>
-                    For example, if the recurring run is paused for a while and re-enabled
-                    afterwards. If catchup=true, the scheduler will catch up on (backfill) each
-                    missed interval. Otherwise, it only schedules the latest interval if more than
-                    one interval is ready to be scheduled.
+                    {t('trigger.help_text_part2')}
                   </p>
                   <p>
-                    Usually, if your pipeline handles backfill internally, you should turn catchup
-                    off to avoid duplicate backfill.
+                    {t('trigger.help_text_part3')}
                   </p>
                 </div>
               }
@@ -297,7 +294,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
           </span>
 
           <span className={commonCss.flex}>
-            Run every
+            {t('trigger.run_every')}
             {type === TriggerType.INTERVALED && (
               <div className={commonCss.flex}>
                 <Separator />

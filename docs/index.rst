@@ -1,17 +1,24 @@
-Kubeflow Pipelines SDK API Reference
-====================================
+.. Kubeflow Pipelines documentation master file, created by
+   sphinx-quickstart on Wed Mar 27 22:34:54 2019.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
 
-.. mdinclude:: ../sdk/python/README.md
+Kubeflow Pipelines SDK API
+==========================
 
-.. maxdepth and titlesonly settings ensure TOC items don't expand recursively, bloating the TOC (only applies if :hidden: is removed)
+Main documentation: https://www.kubeflow.org/docs/pipelines/
+
+Source code: https://github.com/kubeflow/pipelines/
+
 .. toctree::
+   :maxdepth: 3
    :caption: Contents
-   :maxdepth: 1
-   :titlesonly:
-   :hidden:
 
-   Home <self>
-   API Reference <source/kfp>
-   Command Line Interface <source/cli>
-   Usage Docs (kubeflow.org) <https://kubeflow.org/docs/pipelines/>
-   Source Code <https://github.com/kubeflow/pipelines/>
+   self
+   source/kfp
+
+.. * :ref:`modindex`
+.. * :ref:`kfp-ref`
+.. * :ref:`search`
+
+* :ref:`genindex`

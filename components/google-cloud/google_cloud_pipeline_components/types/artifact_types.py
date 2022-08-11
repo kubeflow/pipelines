@@ -20,7 +20,21 @@ import json
 # The artifact property key for the resource name
 ARTIFACT_PROPERTY_KEY_RESOURCE_NAME = 'resourceName'
 
-class VertexModel(dsl.Artifact):
+
+class GoogleArtifact(dsl.Artifact):
+  # Converts the artifact into executor output artifact
+  # https://github.com/kubeflow/pipelines/blob/master/api/v2alpha1/pipeline_spec.proto#L878
+  def to_executor_output_artifact(self, artifacts: Dict):
+      artifacts_list = artifacts.get('artifacts')
+      if artifacts_list:
+        updated_runtime_artifact = artifacts_list[0]
+        updated_runtime_artifact['uri'] = self.uri
+        updated_runtime_artifact['metadata'] = self.metadata
+        artifacts_list = {'artifacts': [updated_runtime_artifact]}
+      return artifacts_list
+
+
+class VertexModel(GoogleArtifact):
   """An artifact representing a Vertex Model."""
   TYPE_NAME = 'google.VertexModel'
 
@@ -44,7 +58,7 @@ class VertexModel(dsl.Artifact):
         metadata={ARTIFACT_PROPERTY_KEY_RESOURCE_NAME: model_resource_name})
 
 
-class VertexEndpoint(dsl.Artifact):
+class VertexEndpoint(GoogleArtifact):
   """An artifact representing a Vertex Endpoint."""
   TYPE_NAME = 'google.VertexEndpoint'
 
@@ -68,7 +82,7 @@ class VertexEndpoint(dsl.Artifact):
         metadata={ARTIFACT_PROPERTY_KEY_RESOURCE_NAME: endpoint_resource_name})
 
 
-class VertexBatchPredictionJob(dsl.Artifact):
+class VertexBatchPredictionJob(GoogleArtifact):
   """An artifact representing a Vertex BatchPredictionJob."""
   TYPE_NAME = 'google.VertexBatchPredictionJob'
 
@@ -115,7 +129,7 @@ class VertexBatchPredictionJob(dsl.Artifact):
         })
 
 
-class VertexDataset(dsl.Artifact):
+class VertexDataset(GoogleArtifact):
   """An artifact representing a Vertex Dataset."""
   TYPE_NAME = 'google.VertexDataset'
 
@@ -139,7 +153,7 @@ class VertexDataset(dsl.Artifact):
         metadata={ARTIFACT_PROPERTY_KEY_RESOURCE_NAME: dataset_resource_name})
 
 
-class BQMLModel(dsl.Artifact):
+class BQMLModel(GoogleArtifact):
   """An artifact representing a BQML Model."""
   TYPE_NAME = 'google.BQMLModel'
 
@@ -165,7 +179,7 @@ class BQMLModel(dsl.Artifact):
         })
 
 
-class BQTable(dsl.Artifact):
+class BQTable(GoogleArtifact):
   """An artifact representing a BQ Table."""
   TYPE_NAME = 'google.BQTable'
 
@@ -191,7 +205,7 @@ class BQTable(dsl.Artifact):
         })
 
 
-class UnmanagedContainerModel(dsl.Artifact):
+class UnmanagedContainerModel(GoogleArtifact):
   """An artifact representing an unmanaged container model."""
   TYPE_NAME = 'google.UnmanagedContainerModel'
 

@@ -1110,7 +1110,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
             <WithStyles(Checkbox)
               checked={false}
               color="primary"
-              disabled={false}
               indeterminate={false}
               onChange={[Function]}
             >
@@ -1128,7 +1127,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                   }
                 }
                 color="primary"
-                disabled={false}
                 icon={<pure(CheckBoxOutlineBlank) />}
                 indeterminate={false}
                 indeterminateIcon={<pure(IndeterminateCheckBox) />}
@@ -1145,7 +1143,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                       "root": "MuiCheckbox-root-69 MuiCheckbox-colorPrimary-73",
                     }
                   }
-                  disabled={false}
                   icon={<pure(CheckBoxOutlineBlank) />}
                   inputProps={
                     Object {
@@ -1167,7 +1164,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                         "root": "MuiPrivateSwitchBase-root-75 MuiCheckbox-root-69 MuiCheckbox-colorPrimary-73",
                       }
                     }
-                    disabled={false}
                     icon={<pure(CheckBoxOutlineBlank) />}
                     inputProps={
                       Object {
@@ -1189,7 +1185,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                           "root": "MuiPrivateSwitchBase-root-75 MuiCheckbox-root-69 MuiCheckbox-colorPrimary-73",
                         }
                       }
-                      disabled={false}
                       icon={<pure(CheckBoxOutlineBlank) />}
                       inputProps={
                         Object {
@@ -1202,7 +1197,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                       <WithStyles(IconButton)
                         className="MuiPrivateSwitchBase-root-75 MuiCheckbox-root-69 MuiCheckbox-colorPrimary-73"
                         component="span"
-                        disabled={false}
                         onBlur={[Function]}
                         onFocus={[Function]}
                         tabIndex={null}
@@ -1315,7 +1309,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by cre
                                     checked={false}
                                     className="MuiPrivateSwitchBase-input-78"
                                     data-indeterminate={false}
-                                    disabled={false}
                                     onChange={[Function]}
                                     type="checkbox"
                                   />
@@ -8113,7 +8106,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
             <WithStyles(Checkbox)
               checked={false}
               color="primary"
-              disabled={false}
               indeterminate={false}
               onChange={[Function]}
             >
@@ -8131,7 +8123,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                   }
                 }
                 color="primary"
-                disabled={false}
                 icon={<pure(CheckBoxOutlineBlank) />}
                 indeterminate={false}
                 indeterminateIcon={<pure(IndeterminateCheckBox) />}
@@ -8148,7 +8139,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                       "root": "MuiCheckbox-root-210 MuiCheckbox-colorPrimary-214",
                     }
                   }
-                  disabled={false}
                   icon={<pure(CheckBoxOutlineBlank) />}
                   inputProps={
                     Object {
@@ -8170,7 +8160,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                         "root": "MuiPrivateSwitchBase-root-216 MuiCheckbox-root-210 MuiCheckbox-colorPrimary-214",
                       }
                     }
-                    disabled={false}
                     icon={<pure(CheckBoxOutlineBlank) />}
                     inputProps={
                       Object {
@@ -8192,7 +8181,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                           "root": "MuiPrivateSwitchBase-root-216 MuiCheckbox-root-210 MuiCheckbox-colorPrimary-214",
                         }
                       }
-                      disabled={false}
                       icon={<pure(CheckBoxOutlineBlank) />}
                       inputProps={
                         Object {
@@ -8205,7 +8193,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                       <WithStyles(IconButton)
                         className="MuiPrivateSwitchBase-root-216 MuiCheckbox-root-210 MuiCheckbox-colorPrimary-214"
                         component="span"
-                        disabled={false}
                         onBlur={[Function]}
                         onFocus={[Function]}
                         tabIndex={null}
@@ -8318,7 +8305,6 @@ exports[`PipelineVersionList calls Apis to list pipeline versions, sorted by pip
                                     checked={false}
                                     className="MuiPrivateSwitchBase-input-219"
                                     data-indeterminate={false}
-                                    disabled={false}
                                     onChange={[Function]}
                                     type="checkbox"
                                   />

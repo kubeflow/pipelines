@@ -21,7 +21,7 @@ import (
 )
 
 type PipelineClientFake struct {
-	workflows                 map[string]util.ExecutionSpec
+	workflows                 map[string]*util.Workflow
 	scheduledWorkflows        map[string]*util.ScheduledWorkflow
 	err                       error
 	artifacts                 map[string]*api.ReadArtifactResponse
@@ -33,7 +33,7 @@ type PipelineClientFake struct {
 
 func NewPipelineClientFake() *PipelineClientFake {
 	return &PipelineClientFake{
-		workflows:                 make(map[string]util.ExecutionSpec),
+		workflows:                 make(map[string]*util.Workflow),
 		scheduledWorkflows:        make(map[string]*util.ScheduledWorkflow),
 		err:                       nil,
 		artifacts:                 make(map[string]*api.ReadArtifactResponse),
@@ -41,11 +41,11 @@ func NewPipelineClientFake() *PipelineClientFake {
 	}
 }
 
-func (p *PipelineClientFake) ReportWorkflow(workflow util.ExecutionSpec) error {
+func (p *PipelineClientFake) ReportWorkflow(workflow *util.Workflow) error {
 	if p.err != nil {
 		return p.err
 	}
-	p.workflows[getKey(workflow.ExecutionNamespace(), workflow.ExecutionName())] = workflow
+	p.workflows[getKey(workflow.Namespace, workflow.Name)] = workflow
 	return nil
 }
 
@@ -57,15 +57,12 @@ func (p *PipelineClientFake) ReportScheduledWorkflow(swf *util.ScheduledWorkflow
 	return nil
 }
 
-func (p *PipelineClientFake) ReadArtifact(request *api.ReadArtifactRequest, user string) (*api.ReadArtifactResponse, error) {
-	if p.err != nil {
-		return nil, p.err
-	}
+func (p *PipelineClientFake) ReadArtifact(request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error) {
 	p.readArtifactRequest = request
 	return p.artifacts[request.String()], nil
 }
 
-func (p *PipelineClientFake) ReportRunMetrics(request *api.ReportRunMetricsRequest, user string) (*api.ReportRunMetricsResponse, error) {
+func (p *PipelineClientFake) ReportRunMetrics(request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error) {
 	p.reportedMetricsRequest = request
 	return p.reportMetricsResponseStub, p.reportMetricsErrorStub
 }
@@ -74,7 +71,7 @@ func (p *PipelineClientFake) SetError(err error) {
 	p.err = err
 }
 
-func (p *PipelineClientFake) GetWorkflow(namespace string, name string) util.ExecutionSpec {
+func (p *PipelineClientFake) GetWorkflow(namespace string, name string) *util.Workflow {
 	return p.workflows[getKey(namespace, name)]
 }
 

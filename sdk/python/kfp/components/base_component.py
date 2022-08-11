@@ -20,14 +20,12 @@ from kfp.components import structures
 from kfp.components.types import type_utils
 
 
-class BaseComponent(abc.ABC):
+class BaseComponent(metaclass=abc.ABCMeta):
     """Base class for a component.
 
-    **Note:** ``BaseComponent`` is not intended to be used to construct components directly. Use ``@kfp.dsl.component`` or ``kfp.components.load_component_from_*()`` instead.
-
     Attributes:
-      name: Name of the component.
-      component_spec: Component definition.
+      name: The name of the component.
+      component_spec: The component definition.
     """
 
     def __init__(self, component_spec: structures.ComponentSpec):
@@ -42,11 +40,11 @@ class BaseComponent(abc.ABC):
         # Arguments typed as PipelineTaskFinalStatus are special arguments that
         # do not count as user inputs. Instead, they are reserved to for the
         # (backend) system to pass a value.
-        self._component_inputs = {
+        self._component_inputs = set([
             input_name for input_name, input_spec in (
                 self.component_spec.inputs or {}).items()
             if not type_utils.is_task_final_status_type(input_spec.type)
-        }
+        ])
 
     def __call__(self, *args, **kwargs) -> pipeline_task.PipelineTask:
         """Creates a PipelineTask object.
@@ -66,13 +64,17 @@ class BaseComponent(abc.ABC):
             if k not in self._component_inputs:
                 raise TypeError(
                     f'{self.name}() got an unexpected keyword argument "{k}".')
+
+            if k in task_inputs:
+                raise TypeError(
+                    f'{self.name}() got multiple values for argument "{k}".')
             task_inputs[k] = v
 
         # Skip optional inputs and arguments typed as PipelineTaskFinalStatus.
         missing_arguments = [
             input_name for input_name, input_spec in (
                 self.component_spec.inputs or {}).items()
-            if input_name not in task_inputs and not input_spec._optional and
+            if input_name not in task_inputs and not input_spec.optional and
             not type_utils.is_task_final_status_type(input_spec.type)
         ]
         if missing_arguments:
@@ -91,5 +93,12 @@ class BaseComponent(abc.ABC):
 
     @abc.abstractmethod
     def execute(self, **kwargs):
-        """Executes the component locally if implemented by the inheriting
-        subclass."""
+        """Executes the component given the required inputs.
+
+        Subclasses of BaseComponent must override this abstract method
+        in order to be instantiated. For Python function-based
+        component, the implementation of this method could be calling
+        the function. For "Bring your own container" component, the
+        implementation of this method could be `docker run`.
+        """
+        pass

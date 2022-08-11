@@ -11,7 +11,6 @@ spec:
       labels:
         app: workflow-controller
     spec:
-      priorityClassName: workflow-controller
       serviceAccountName: argo
       containers:
         - name: workflow-controller

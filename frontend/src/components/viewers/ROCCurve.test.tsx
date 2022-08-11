@@ -18,7 +18,6 @@ import * as React from 'react';
 import { shallow } from 'enzyme';
 import { PlotType } from './Viewer';
 import ROCCurve from './ROCCurve';
-import { render, screen } from '@testing-library/react';
 
 describe('ROCCurve', () => {
   it('does not break on no config', () => {
@@ -100,12 +99,5 @@ describe('ROCCurve', () => {
 
   it('is aggregatable', () => {
     expect(ROCCurve.prototype.isAggregatable()).toBeTruthy();
-  });
-
-  it('Force legend display even with one config', async () => {
-    const config = { data, type: PlotType.ROC };
-    render(<ROCCurve configs={[config]} forceLegend />);
-
-    screen.getByText('Series #1');
   });
 });

@@ -15,7 +15,6 @@
 package util
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -117,17 +116,6 @@ func TestScheduledWorkflow_ConditionSummary(t *testing.T) {
 
 func TestScheduledWorkflow_ParametersAsString(t *testing.T) {
 	// Base case
-	spec, err := json.Marshal(workflowapi.WorkflowSpec{
-		ServiceAccountName: "SERVICE_ACCOUNT",
-		Arguments: workflowapi.Arguments{
-			Parameters: []workflowapi.Parameter{
-				{Name: "PARAM3", Value: workflowapi.AnyStringPtr("VALUE3")},
-				{Name: "PARAM4", Value: workflowapi.AnyStringPtr("VALUE4")},
-			},
-		},
-	})
-	assert.Nil(t, err)
-
 	workflow := NewScheduledWorkflow(&swfapi.ScheduledWorkflow{
 		Spec: swfapi.ScheduledWorkflowSpec{
 			Workflow: &swfapi.WorkflowResource{
@@ -135,7 +123,15 @@ func TestScheduledWorkflow_ParametersAsString(t *testing.T) {
 					{Name: "PARAM1", Value: "NEW_VALUE1"},
 					{Name: "PARAM2", Value: "NEW_VALUE2"},
 				},
-				Spec: string(spec),
+				Spec: workflowapi.WorkflowSpec{
+					ServiceAccountName: "SERVICE_ACCOUNT",
+					Arguments: workflowapi.Arguments{
+						Parameters: []workflowapi.Parameter{
+							{Name: "PARAM3", Value: workflowapi.AnyStringPtr("VALUE3")},
+							{Name: "PARAM4", Value: workflowapi.AnyStringPtr("VALUE4")},
+						},
+					},
+				},
 			},
 		},
 	})

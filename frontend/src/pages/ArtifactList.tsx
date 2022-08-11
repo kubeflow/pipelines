@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { t } from 'i18next';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { ListRequest } from 'src/lib/Apis';
@@ -75,19 +76,19 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
         {
           customRenderer: this.nameCustomRenderer,
           flex: 2,
-          label: 'Pipeline/Workspace',
+          label: t('artifact.pieline'),
           sortKey: 'pipelineName',
         },
         {
           customRenderer: this.nameCustomRenderer,
           flex: 1,
-          label: 'Name',
+          label: t('artifact.name'),
           sortKey: 'name',
         },
-        { label: 'ID', flex: 1, sortKey: 'id' },
-        { label: 'Type', flex: 2, sortKey: 'type' },
-        { label: 'URI', flex: 2, sortKey: 'uri', customRenderer: this.uriCustomRenderer },
-        { label: 'Created at', flex: 1, sortKey: 'created_at' },
+        { label: t('artifact.id'), flex: 1, sortKey: 'id' },
+        { label: t('artifact.type'), flex: 2, sortKey: 'type' },
+        { label: t('artifact.uri'), flex: 2, sortKey: 'uri', customRenderer: this.uriCustomRenderer },
+        { label: t('artifact.create_time'), flex: 1, sortKey: 'created_at' },
       ],
       expandedRows: new Map(),
       rows: [],
@@ -101,7 +102,7 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
     return {
       actions: {},
       breadcrumbs: [],
-      pageTitle: 'Artifacts',
+      pageTitle: t('artifact.page_title'),
     };
   }
 
@@ -120,7 +121,8 @@ export class ArtifactList extends Page<{}, ArtifactListState> {
           initialSortOrder='asc'
           getExpandComponent={this.getExpandedArtifactsRow}
           toggleExpansion={this.toggleRowExpand}
-          emptyMessage='No artifacts found.'
+          filterLabel={t('artifact.filter_label')}
+          emptyMessage={t('artifact.emptyMessage')}
         />
       </div>
     );

@@ -13,13 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 sys.path.insert(0, __file__ + '/../../../../')
 
-from kfp.deprecated import dsl
 import kfp.deprecated as kfp
+from kfp.deprecated import dsl
 
 
 def component_with_inline_input_artifact(text: str):

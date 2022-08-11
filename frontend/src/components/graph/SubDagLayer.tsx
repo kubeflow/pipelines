@@ -52,7 +52,6 @@ const actionBarCss = stylesheet({
   workspace: {
     ...baseBreadcrumb,
     fontStyle: 'italic',
-    cursor: 'default',
   },
   workspaceSep: {
     display: 'block',

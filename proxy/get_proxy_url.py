@@ -14,6 +14,7 @@
 # limitations under the License.
 """CLI tool that returns URL of the proxy for particular zone and version."""
 import argparse
+import functools
 import json
 import logging
 import re
@@ -72,10 +73,11 @@ def urls_for_zone(zone, location_to_urls_map):
 
 
 def main():
+    unicode_type = functools.partial(unicode, encoding="utf8")
     parser = argparse.ArgumentParser(description="Get proxy URL")
-    parser.add_argument("--config-file-path", required=True, type=str)
-    parser.add_argument("--location", required=True, type=str)
-    parser.add_argument("--version", required=True, type=str)
+    parser.add_argument("--config-file-path", required=True, type=unicode_type)
+    parser.add_argument("--location", required=True, type=unicode_type)
+    parser.add_argument("--version", required=True, type=unicode_type)
 
     args = parser.parse_args()
     with open(args.config_file_path, "r") as config_file:

@@ -15,8 +15,8 @@
 import hashlib
 import warnings
 
-from kfp.components import v1_structures
 import yaml
+from kfp.components import v1_structures
 
 
 def _load_component_spec_from_component_text(

@@ -40,7 +40,7 @@ type FakeClientManager struct {
 	dBStatusStore                 storage.DBStatusStoreInterface
 	defaultExperimentStore        storage.DefaultExperimentStoreInterface
 	objectStore                   storage.ObjectStoreInterface
-	ExecClientFake                *client.FakeExecClient
+	ArgoClientFake                *client.FakeArgoClient
 	swfClientFake                 *client.FakeSwfClient
 	k8sCoreClientFake             *client.FakeKuberneteCoreClient
 	SubjectAccessReviewClientFake client.SubjectAccessReviewInterface
@@ -76,7 +76,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 		jobStore:                      storage.NewJobStore(db, time),
 		runStore:                      storage.NewRunStore(db, time),
 		taskStore:                     storage.NewTaskStore(db, time, uuid),
-		ExecClientFake:                client.NewFakeExecClient(),
+		ArgoClientFake:                client.NewFakeArgoClient(),
 		resourceReferenceStore:        storage.NewResourceReferenceStore(db),
 		dBStatusStore:                 storage.NewDBStatusStore(db),
 		defaultExperimentStore:        storage.NewDefaultExperimentStore(db),
@@ -143,8 +143,8 @@ func (f *FakeClientManager) DB() *storage.DB {
 	return f.db
 }
 
-func (f *FakeClientManager) ExecClient() util.ExecutionClient {
-	return f.ExecClientFake
+func (f *FakeClientManager) ArgoClient() client.ArgoClientInterface {
+	return f.ArgoClientFake
 }
 
 func (f *FakeClientManager) JobStore() storage.JobStoreInterface {

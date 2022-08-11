@@ -13,12 +13,11 @@
 # limitations under the License.
 """Tests for diagnose_me.gcp."""
 
-from typing import Text
 import unittest
+from typing import Text
 from unittest import mock
 
-from kfp.cli.diagnose_me import gcp
-from kfp.cli.diagnose_me import utility
+from kfp.cli.diagnose_me import gcp, utility
 
 
 class GoogleCloudTest(unittest.TestCase):

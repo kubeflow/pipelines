@@ -36,6 +36,7 @@ import { logger } from '../lib/Utils';
 import { useNamespaceChangeEvent } from 'src/lib/KubeflowClient';
 import { Redirect } from 'react-router-dom';
 import { ApiRunStorageState } from 'src/apis/run';
+import { t } from 'i18next';
 
 const css = stylesheet({
   card: {
@@ -120,7 +121,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
       runListToolbarProps: {
         actions: this._getRunInitialToolBarButtons().getToolbarActionMap(),
         breadcrumbs: [],
-        pageTitle: 'Runs',
+        pageTitle: t('run.page_title'),
         topLevelToolbar: false,
       },
       // TODO: remove
@@ -169,7 +170,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
                 elevation={0}
               >
                 <div>
-                  <div className={css.cardTitle}>Recurring run configs</div>
+                  <div className={css.cardTitle}>{t('experiment.run_configs')}</div>
                   <div
                     className={classes(
                       css.cardContent,
@@ -184,7 +185,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
                     disableRipple={true}
                     onClick={() => this.setState({ recurringRunsManagerOpen: true })}
                   >
-                    Manage
+                    {t('experiment.manage')}
                   </Button>
                 </div>
               </Paper>
@@ -194,18 +195,18 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
                 elevation={0}
               >
                 <div className={css.cardTitle}>
-                  <span>Experiment description</span>
+                  <span>{t('experiment.description')}</span>
                   <Button
                     id='expandExperimentDescriptionBtn'
                     onClick={() =>
                       this.props.updateDialog({
                         content: description,
-                        title: 'Experiment description',
+                        title: t('experiment.description'),
                       })
                     }
                     className={classes(css.popOutIcon, 'popOutButton')}
                   >
-                    <Tooltip title='Read more'>
+                    <Tooltip title={t('experiment.read_more')}>
                       <PopOutIcon style={{ fontSize: 18 }} />
                     </Tooltip>
                   </Button>
@@ -254,7 +255,7 @@ export class ExperimentDetails extends Page<{}, ExperimentDetailsState> {
                   onClick={this._recurringRunsManagerClosed.bind(this)}
                   color='secondary'
                 >
-                  Close
+                  {t('experiment.close')}
                 </Button>
               </DialogActions>
             </Dialog>

@@ -17,7 +17,6 @@ package client
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"strconv"
 
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -44,29 +43,25 @@ func NewWorkflowClientFake() *FakeWorkflowClient {
 	}
 }
 
-func (c *FakeWorkflowClient) Create(ctx context.Context, execSpec util.ExecutionSpec, opts v1.CreateOptions) (util.ExecutionSpec, error) {
-	workflow, ok := execSpec.(*util.Workflow)
-	if !ok {
-		return nil, fmt.Errorf("not a valid ExecutionSpec for Workflow")
-	}
+func (c *FakeWorkflowClient) Create(ctx context.Context, workflow *v1alpha1.Workflow, opts v1.CreateOptions) (*v1alpha1.Workflow, error) {
 	if workflow.GenerateName != "" {
 		c.lastGeneratedId += 1
 		workflow.Name = workflow.GenerateName + strconv.Itoa(c.lastGeneratedId)
 		workflow.GenerateName = ""
 	}
-	c.workflows[workflow.Name] = workflow.Workflow
+	c.workflows[workflow.Name] = workflow
 	return workflow, nil
 }
 
-func (c *FakeWorkflowClient) Get(ctx context.Context, name string, options v1.GetOptions) (util.ExecutionSpec, error) {
+func (c *FakeWorkflowClient) Get(ctx context.Context, name string, options v1.GetOptions) (*v1alpha1.Workflow, error) {
 	workflow, ok := c.workflows[name]
 	if ok {
-		return util.NewWorkflow(workflow), nil
+		return workflow, nil
 	}
 	return nil, k8errors.NewNotFound(k8schema.ParseGroupResource("workflows.argoproj.io"), name)
 }
 
-func (c *FakeWorkflowClient) List(ctx context.Context, opts v1.ListOptions) (*util.ExecutionSpecList, error) {
+func (c *FakeWorkflowClient) List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.WorkflowList, error) {
 	glog.Error("This fake method is not yet implemented.")
 	return nil, nil
 }
@@ -76,13 +71,9 @@ func (c *FakeWorkflowClient) Watch(ctx context.Context, opts v1.ListOptions) (wa
 	return nil, nil
 }
 
-func (c *FakeWorkflowClient) Update(ctx context.Context, execSpec util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
-	workflow, ok := execSpec.(*util.Workflow)
-	if !ok {
-		return nil, fmt.Errorf("not a valid ExecutionSpec for Workflow")
-	}
+func (c *FakeWorkflowClient) Update(ctx context.Context, workflow *v1alpha1.Workflow, opts v1.UpdateOptions) (*v1alpha1.Workflow, error) {
 	name := workflow.GetObjectMeta().GetName()
-	_, ok = c.workflows[name]
+	_, ok := c.workflows[name]
 	if ok {
 		return workflow, nil
 	}
@@ -104,7 +95,7 @@ func (c *FakeWorkflowClient) DeleteCollection(ctx context.Context, options v1.De
 }
 
 func (c *FakeWorkflowClient) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions,
-	subresources ...string) (util.ExecutionSpec, error) {
+	subresources ...string) (*v1alpha1.Workflow, error) {
 
 	_, ok := c.workflows[name]
 	if !ok {
@@ -126,7 +117,7 @@ func (c *FakeWorkflowClient) Patch(ctx context.Context, name string, pt types.Pa
 			if ok {
 				newActiveDeadlineSeconds := int64(0)
 				workflow.Spec.ActiveDeadlineSeconds = &newActiveDeadlineSeconds
-				return util.NewWorkflow(workflow), nil
+				return workflow, nil
 			}
 		}
 	}
@@ -138,7 +129,7 @@ func (c *FakeWorkflowClient) Patch(ctx context.Context, name string, pt types.Pa
 				workflow.Labels = map[string]string{}
 			}
 			workflow.Labels[util.LabelKeyWorkflowPersistedFinalState] = "true"
-			return util.NewWorkflow(workflow), nil
+			return workflow, nil
 		}
 	}
 	return nil, errors.New("Failed to patch workflow")
@@ -148,15 +139,15 @@ type FakeBadWorkflowClient struct {
 	FakeWorkflowClient
 }
 
-func (FakeBadWorkflowClient) Create(context.Context, util.ExecutionSpec, v1.CreateOptions) (util.ExecutionSpec, error) {
+func (FakeBadWorkflowClient) Create(context.Context, *v1alpha1.Workflow, v1.CreateOptions) (*v1alpha1.Workflow, error) {
 	return nil, errors.New("some error")
 }
 
-func (FakeBadWorkflowClient) Get(ctx context.Context, name string, options v1.GetOptions) (util.ExecutionSpec, error) {
+func (FakeBadWorkflowClient) Get(ctx context.Context, name string, options v1.GetOptions) (*v1alpha1.Workflow, error) {
 	return nil, errors.New("some error")
 }
 
-func (c *FakeBadWorkflowClient) Update(ctx context.Context, workflow util.ExecutionSpec, opts v1.UpdateOptions) (util.ExecutionSpec, error) {
+func (c *FakeBadWorkflowClient) Update(ctx context.Context, workflow *v1alpha1.Workflow, opts v1.UpdateOptions) (*v1alpha1.Workflow, error) {
 	return nil, errors.New("failed to update workflow")
 }
 

@@ -15,14 +15,15 @@
 package resource
 
 import (
-	"testing"
-
 	"github.com/ghodss/yaml"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
+
+
 
 func TestRetryWorkflowWith(t *testing.T) {
 	wf := `
@@ -134,7 +135,7 @@ status:
 	var workflow util.Workflow
 	err := yaml.Unmarshal([]byte(wf), &workflow)
 	assert.Nil(t, err)
-	newWf, nodes, err := workflow.GenerateRetryExecution()
+	newWf, nodes, err := formulateRetryWorkflow(&workflow)
 
 	newWfString, err := yaml.Marshal(newWf)
 	assert.Nil(t, err)
@@ -234,7 +235,7 @@ func TestConvertPipelineIdToDefaultPipelineVersion(t *testing.T) {
 	_, err := manager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "version_for_run",
 		ResourceReferences: []*api.ResourceReference{
-			{
+			&api.ResourceReference{
 				Key: &api.ResourceKey{
 					Id:   pipeline.UUID,
 					Type: api.ResourceType_PIPELINE,
@@ -292,7 +293,7 @@ func TestConvertPipelineIdToDefaultPipelineVersion_NoOp(t *testing.T) {
 	_, err := manager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "version_for_run",
 		ResourceReferences: []*api.ResourceReference{
-			{
+			&api.ResourceReference{
 				Key: &api.ResourceKey{
 					Id:   pipeline.UUID,
 					Type: api.ResourceType_PIPELINE,

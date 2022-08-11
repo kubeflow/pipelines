@@ -52,20 +52,18 @@ const css = stylesheet({
   },
 });
 
-// Used the following color palette, with some slight brightness modifications, as reference:
-// https://alumni.media.mit.edu/~wad/color/palette.html
-export const lineColors = [
+const lineColors = [
   '#4285f4',
-  '#2b9c1e',
-  '#e00000',
-  '#8026c0',
-  '#9dafff',
-  '#82c57a',
-  '#814a19',
-  '#ff9233',
-  '#29d0d0',
-  '#ffee33',
-  '#f540c9',
+  '#efb4a3',
+  '#684e91',
+  '#d74419',
+  '#7fa6c4',
+  '#ffdc10',
+  '#d7194d',
+  '#6b2f49',
+  '#f9e27c',
+  '#633a70',
+  '#5ec4ec',
 ];
 
 export interface DisplayPoint {
@@ -81,15 +79,11 @@ export interface ROCCurveConfig extends ViewerConfig {
 interface ROCCurveProps {
   configs: ROCCurveConfig[];
   maxDimension?: number;
-  colors?: string[];
-  forceLegend?: boolean; // Forces the legend to display even with just one ROC Curve
-  disableAnimation?: boolean;
 }
 
 interface ROCCurveState {
   hoveredValues: DisplayPoint[];
   lastDrawLocation: { left: number; right: number } | null;
-  highlightIndex: number;
 }
 
 class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
@@ -99,7 +93,6 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
     this.state = {
       hoveredValues: new Array(this.props.configs.length).fill(''),
       lastDrawLocation: null,
-      highlightIndex: -1, // -1 indicates no curve is highlighted
     };
   }
 
@@ -117,17 +110,17 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
     const isSmall = width < 600;
     const datasets = this.props.configs.map(d => d.data);
     const numLines = datasets.length;
-    const labels = this.props.configs.map((_, i) => `threshold (Series #${i + 1})`);
+    const labels = this.props.configs.map((_, i) => `threshold (Series #${i})`);
     const baseLineData = Array.from(Array(100).keys()).map(x => ({ x: x / 100, y: x / 100 }));
 
-    const { hoveredValues, lastDrawLocation, highlightIndex } = this.state;
+    const { hoveredValues, lastDrawLocation } = this.state;
 
     return (
       <div>
         <XYPlot
           width={width}
           height={height}
-          animation={!this.props.disableAnimation && !isSmall}
+          animation={!isSmall}
           classes={{ root: css.root }}
           onMouseLeave={() => this.setState({ hoveredValues: new Array(numLines).fill('') })}
           xDomain={lastDrawLocation && [lastDrawLocation.left, lastDrawLocation.right]}
@@ -148,39 +141,16 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
           />
 
           {/* Lines */}
-          {datasets.map(
-            (data, i) =>
-              highlightIndex !== i && (
-                <LineSeries
-                  key={i}
-                  color={
-                    this.props.colors
-                      ? this.props.colors[i]
-                      : lineColors[i] || lineColors[lineColors.length - 1]
-                  }
-                  strokeWidth={2}
-                  data={data}
-                  onNearestX={(d: any) => this._lineHovered(i, d)}
-                  curve='curveBasis'
-                />
-              ),
-          )}
-
-          {/* Highlighted line, if present */}
-          {highlightIndex >= 0 && (
+          {datasets.map((data, i) => (
             <LineSeries
-              key={highlightIndex}
-              color={
-                this.props.colors
-                  ? this.props.colors[highlightIndex]
-                  : lineColors[highlightIndex] || lineColors[lineColors.length - 1]
-              }
-              strokeWidth={5}
-              data={datasets[highlightIndex]}
-              onNearestX={(d: any) => this._lineHovered(highlightIndex, d)}
+              key={i}
+              color={lineColors[i] || lineColors[lineColors.length - 1]}
+              strokeWidth={2}
+              data={data}
+              onNearestX={(d: any) => this._lineHovered(i, d)}
               curve='curveBasis'
             />
-          )}
+          ))}
 
           {!isSmall && (
             <Highlight
@@ -212,20 +182,14 @@ class ROCCurve extends Viewer<ROCCurveProps, ROCCurveState> {
 
         <div className={commonCss.flex}>
           {/* Legend */}
-          {(this.props.forceLegend || datasets.length > 1) && (
+          {datasets.length > 1 && (
             <div style={{ flexGrow: 1 }}>
               <DiscreteColorLegend
                 items={datasets.map((_, i) => ({
-                  color: this.props.colors ? this.props.colors[i] : lineColors[i],
+                  color: lineColors[i],
                   title: 'Series #' + (i + 1),
                 }))}
                 orientation='horizontal'
-                onItemMouseEnter={(_: any, i: number) => {
-                  this.setState({ highlightIndex: i });
-                }}
-                onItemMouseLeave={() => {
-                  this.setState({ highlightIndex: -1 });
-                }}
               />
             </div>
           )}

@@ -14,50 +14,52 @@
  * limitations under the License.
  */
 
+import * as React from 'react';
+import BusyButton from '../atoms/BusyButton';
 import Button from '@material-ui/core/Button';
+import Buttons from '../lib/Buttons';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
-import InputAdornment from '@material-ui/core/InputAdornment';
-import Radio from '@material-ui/core/Radio';
-import { TextFieldProps } from '@material-ui/core/TextField';
-import * as React from 'react';
-import { Link } from 'react-router-dom';
-import { ExternalLink } from 'src/atoms/ExternalLink';
-import { HelpButton } from 'src/atoms/HelpButton';
-import { classes, stylesheet } from 'typestyle';
-import { ApiExperiment, ApiExperimentStorageState } from '../apis/experiment';
-import { ApiFilter, PredicateOp } from '../apis/filter';
-import { ApiJob, ApiTrigger } from '../apis/job';
-import { ApiParameter, ApiPipeline, ApiPipelineVersion } from '../apis/pipeline';
-import {
-  ApiPipelineRuntime,
-  ApiRelationship,
-  ApiResourceReference,
-  ApiResourceType,
-  ApiRun,
-  ApiRunDetail,
-} from '../apis/run';
-import BusyButton from '../atoms/BusyButton';
 import Input from '../atoms/Input';
-import { CustomRendererProps } from '../components/CustomTable';
-import { NameWithTooltip } from '../components/CustomTableNameColumn';
-import { Description } from '../components/Description';
+import InputAdornment from '@material-ui/core/InputAdornment';
 import NewRunParameters from '../components/NewRunParameters';
-import { QUERY_PARAMS, RoutePage, RouteParams } from '../components/Router';
-import { ToolbarProps } from '../components/Toolbar';
-import Trigger from '../components/Trigger';
-import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
-import { color, commonCss, padding } from '../Css';
-import { Apis, ExperimentSortKeys, PipelineSortKeys, PipelineVersionSortKeys } from '../lib/Apis';
-import Buttons from '../lib/Buttons';
-import RunUtils from '../lib/RunUtils';
-import { URLParser } from '../lib/URLParser';
-import { errorToMessage, logger } from '../lib/Utils';
-import { Workflow } from '../third_party/mlmd/argo_template';
-import { Page } from './Page';
+import Radio from '@material-ui/core/Radio';
 import ResourceSelector from './ResourceSelector';
+import RunUtils from '../lib/RunUtils';
+import { TextFieldProps } from '@material-ui/core/TextField';
+import Trigger from '../components/Trigger';
+import { ApiExperiment, ApiExperimentStorageState } from '../apis/experiment';
+import { ApiPipeline, ApiParameter, ApiPipelineVersion } from '../apis/pipeline';
+import {
+  ApiRun,
+  ApiResourceReference,
+  ApiRelationship,
+  ApiResourceType,
+  ApiRunDetail,
+  ApiPipelineRuntime,
+} from '../apis/run';
+import { ApiTrigger, ApiJob } from '../apis/job';
+import { Apis, PipelineSortKeys, PipelineVersionSortKeys, ExperimentSortKeys } from '../lib/Apis';
+import { Link } from 'react-router-dom';
+import { Page, PageProps } from './Page';
+import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
+import { ToolbarProps } from '../components/Toolbar';
+import { URLParser } from '../lib/URLParser';
+import { Workflow } from '../third_party/mlmd/argo_template';
+import { classes, stylesheet } from 'typestyle';
+import { commonCss, padding, color } from '../Css';
+import { logger, errorToMessage } from '../lib/Utils';
+import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
+import { CustomRendererProps } from '../components/CustomTable';
+import { Description } from '../components/Description';
+import { NamespaceContext } from '../lib/KubeflowClient';
+import { NameWithTooltip } from '../components/CustomTableNameColumn';
+import { PredicateOp, ApiFilter } from '../apis/filter';
+import { HelpButton } from 'src/atoms/HelpButton';
+import { ExternalLink } from 'src/atoms/ExternalLink';
+import { t } from 'i18next';
 
 interface NewRunState {
   description: string;
@@ -139,42 +141,42 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     {
       customRenderer: NameWithTooltip,
       flex: 1,
-      label: 'Pipeline name',
+      label: t('pipeline.name'),
       sortKey: PipelineSortKeys.NAME,
     },
-    { label: 'Description', flex: 2, customRenderer: descriptionCustomRenderer },
-    { label: 'Uploaded on', flex: 1, sortKey: PipelineSortKeys.CREATED_AT },
+    { label: t('pipeline.description'), flex: 2, customRenderer: descriptionCustomRenderer },
+    { label: t('pipeline.uploaded_on'), flex: 1, sortKey: PipelineSortKeys.CREATED_AT },
   ];
 
   private pipelineVersionSelectorColumns = [
     {
       customRenderer: NameWithTooltip,
       flex: 2,
-      label: 'Version name',
+      label: t('pipeline.version_name'),
       sortKey: PipelineVersionSortKeys.NAME,
     },
     // TODO(jingzhang36): version doesn't have description field; remove it and
     // fix the rendering.
-    { label: 'Description', flex: 1, customRenderer: descriptionCustomRenderer },
-    { label: 'Uploaded on', flex: 1, sortKey: PipelineVersionSortKeys.CREATED_AT },
+    { label: t('pipeline.description'), flex: 1, customRenderer: descriptionCustomRenderer },
+    { label: t('pipeline.uploaded_on'), flex: 1, sortKey: PipelineVersionSortKeys.CREATED_AT },
   ];
 
   private experimentSelectorColumns = [
     {
       customRenderer: NameWithTooltip,
       flex: 1,
-      label: 'Experiment name',
+      label: t('experiment.name'),
       sortKey: ExperimentSortKeys.NAME,
     },
-    { label: 'Description', flex: 2 },
-    { label: 'Created at', flex: 1, sortKey: ExperimentSortKeys.CREATED_AT },
+    { label: t('experiment.description'), flex: 2 },
+    { label: t('experiment.create_time'), flex: 1, sortKey: ExperimentSortKeys.CREATED_AT },
   ];
 
   public getInitialToolbarState(): ToolbarProps {
     return {
       actions: {},
-      breadcrumbs: [{ displayName: 'Experiments', href: RoutePage.EXPERIMENTS }],
-      pageTitle: 'Start a new run',
+      breadcrumbs: [{ displayName: t('experiment.page_title'), href: RoutePage.EXPERIMENTS }],
+      pageTitle: t('run.satrt_run_title'),
     };
   }
 
@@ -217,7 +219,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     return (
       <div className={classes(commonCss.page, padding(20, 'lr'))}>
         <div className={commonCss.scrollContainer}>
-          <div className={commonCss.header}>Run details</div>
+          <div className={commonCss.header}>{t('run.run_deatils')}</div>
 
           {/* Pipeline selection */}
           {workflowFromRun && (
@@ -238,7 +240,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
             <Input
               value={pipelineName}
               required={true}
-              label='Pipeline'
+              label={t('run.pipeline')}
               disabled={true}
               variant='outlined'
               InputProps={{
@@ -251,7 +253,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                       onClick={() => this.setStateSafe({ pipelineSelectorOpen: true })}
                       style={{ padding: '3px 5px', margin: 0 }}
                     >
-                      Choose
+                      {t('common.choose')}
                     </Button>
                   </InputAdornment>
                 ),
@@ -263,7 +265,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
             <Input
               value={pipelineVersionName}
               required={true}
-              label='Pipeline Version'
+              label={t('run.pipeline_version')}
               disabled={true}
               variant='outlined'
               InputProps={{
@@ -276,7 +278,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                       onClick={() => this.setStateSafe({ pipelineVersionSelectorOpen: true })}
                       style={{ padding: '3px 5px', margin: 0 }}
                     >
-                      Choose
+                      {t('common.choose')}
                     </Button>
                   </InputAdornment>
                 ),
@@ -295,8 +297,8 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
             <DialogContent>
               <ResourceSelector
                 {...this.props}
-                title='Choose a pipeline'
-                filterLabel='Filter pipelines'
+                title={t('run.choose_pipeline')}
+                filterLabel={t('run.filter_pipeline')}
                 listApi={async (...args) => {
                   const response = await Apis.pipelineServiceApi.listPipelines(...args);
                   return {
@@ -305,7 +307,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                   };
                 }}
                 columns={this.pipelineSelectorColumns}
-                emptyMessage='No pipelines found. Upload a pipeline and then try again.'
+                emptyMessage={t('pipeline.choose_empty_msg')}
                 initialSortColumn={PipelineSortKeys.CREATED_AT}
                 selectionChanged={(selectedPipeline: ApiPipeline) =>
                   this.setStateSafe({ unconfirmedSelectedPipeline: selectedPipeline })
@@ -323,7 +325,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 onClick={() => this._pipelineSelectorClosed(false)}
                 color='secondary'
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 id='usePipelineBtn'
@@ -331,7 +333,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 color='secondary'
                 disabled={!unconfirmedSelectedPipeline}
               >
-                Use this pipeline
+                {t('common.choose_use_pipeline')}
               </Button>
             </DialogActions>
           </Dialog>
@@ -346,8 +348,8 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
             <DialogContent>
               <ResourceSelector
                 {...this.props}
-                title='Choose a pipeline version'
-                filterLabel='Filter pipeline versions'
+                title={t('run.choose_pipeline_version')}
+                filterLabel={t('run.filter_pipeline_versions')}
                 listApi={async (...args) => {
                   const response = await Apis.pipelineServiceApi.listPipelineVersions(
                     'PIPELINE',
@@ -384,7 +386,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 onClick={() => this._pipelineVersionSelectorClosed(false)}
                 color='secondary'
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 id='usePipelineVersionBtn'
@@ -392,7 +394,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 color='secondary'
                 disabled={!unconfirmedSelectedPipelineVersion}
               >
-                Use this pipeline version
+                {t('common.choose_use_pipeline')}
               </Button>
             </DialogActions>
           </Dialog>
@@ -412,8 +414,8 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
             <DialogContent>
               <ResourceSelector
                 {...this.props}
-                title='Choose an experiment'
-                filterLabel='Filter experiments'
+                title={t('run.choose_experiment')}
+                filterLabel={t('run.filter_experiments')}
                 listApi={async (
                   page_token?: string,
                   page_size?: number,
@@ -460,7 +462,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 onClick={() => this._experimentSelectorClosed(false)}
                 color='secondary'
               >
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 id='useExperimentBtn'
@@ -468,14 +470,14 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 color='secondary'
                 disabled={!unconfirmedSelectedExperiment}
               >
-                Use this experiment
+                {t('run.choose_use_choose_experiment')}
               </Button>
             </DialogActions>
           </Dialog>
 
           {/* Run metadata inputs */}
           <Input
-            label={isRecurringRun ? 'Recurring run config name' : 'Run name'}
+            label={isRecurringRun ? t('recurring_run.name') : t('run.name')}
             required={true}
             onChange={this.handleChange('runName')}
             autoFocus={true}
@@ -483,7 +485,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
             variant='outlined'
           />
           <Input
-            label='Description (optional)'
+            label={t('run.description_option')}
             multiline={true}
             onChange={this.handleChange('description')}
             value={description}
@@ -491,11 +493,11 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           />
 
           {/* Experiment selection */}
-          <div>This run will be associated with the following experiment</div>
+          <div>{t('run.experiment_desc')}</div>
           <Input
             value={experimentName}
             required={true}
-            label='Experiment'
+            label={t('run.experiment')}
             disabled={true}
             variant='outlined'
             InputProps={{
@@ -508,7 +510,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                     onClick={() => this.setStateSafe({ experimentSelectorOpen: true })}
                     style={{ padding: '3px 5px', margin: 0 }}
                   >
-                    Choose
+                    {t('common.choose')}
                   </Button>
                 </InputAdornment>
               ),
@@ -517,15 +519,15 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           />
 
           <div>
-            This run will use the following Kubernetes service account.{' '}
+            {t('run.k8s_account')}{' '}
             <HelpButton
               helpText={
                 <div>
-                  Note, the service account needs{' '}
+                  {t('run.help_text_part1')}{' '}
                   <ExternalLink href='https://argoproj.github.io/argo-workflows/workflow-rbac/'>
-                    minimum permissions required by argo workflows
+                  {t('run.help_text_part2')}
                   </ExternalLink>{' '}
-                  and extra permissions the specific task requires.
+                  {t('run.help_text_part3')}
                 </div>
               }
             />
@@ -533,25 +535,25 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           <Input
             value={serviceAccount}
             onChange={this.handleChange('serviceAccount')}
-            label='Service Account (Optional)'
+            label={t('run.service_account')}
             variant='outlined'
           />
 
           {/* One-off/Recurring Run Type */}
-          <div className={commonCss.header}>Run Type</div>
-          {isClone && <span>{isRecurringRun ? 'Recurring' : 'One-off'}</span>}
+          <div className={commonCss.header}>{t('run.run_type')}</div>
+          {isClone && <span>{isRecurringRun ? t('run.recurring') : t('run.one_off')}</span>}
           {!isClone && (
             <React.Fragment>
               <FormControlLabel
                 id='oneOffToggle'
-                label='One-off'
+                label={t('run.one_off')}
                 control={<Radio color='primary' />}
                 onChange={() => this._updateRecurringRunState(false)}
                 checked={!isRecurringRun}
               />
               <FormControlLabel
                 id='recurringToggle'
-                label='Recurring'
+                label={t('run.recurring')}
                 control={<Radio color='primary' />}
                 onChange={() => this._updateRecurringRunState(true)}
                 checked={isRecurringRun}
@@ -562,8 +564,8 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           {/* Recurring run controls */}
           {isRecurringRun && (
             <React.Fragment>
-              <div className={commonCss.header}>Run trigger</div>
-              <div>Choose a method by which new runs will be triggered</div>
+              <div className={commonCss.header}>{t('run.run_trigger')}</div>
+              <div>{t('run.run_trigger_desc')}</div>
 
               <Trigger
                 initialProps={{
@@ -599,7 +601,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
               disabled={!!errorMessage}
               busy={this.state.isBeingStarted}
               className={commonCss.buttonAction}
-              title='Start'
+              title={t('common.start')}
               onClick={this._start.bind(this)}
             />
             <Button
@@ -615,14 +617,14 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
                 );
               }}
             >
-              {isFirstRunInExperiment ? 'Skip this step' : 'Cancel'}
+              {isFirstRunInExperiment ? t('common.skip_step') : t('common.cancel')}
             </Button>
             <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
               {errorMessage}
             </div>
             {this._areParametersMissing() && (
               <div id='missing-parameters-message' style={{ color: 'orange' }}>
-                Some parameters are missing values
+               {t('run.params_missing')}
               </div>
             )}
           </div>
@@ -1047,7 +1049,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
         return 'This pipeline has no parameters';
       }
     }
-    return 'Parameters will appear after you select a pipeline';
+    return t('run.msg_01');
   }
 
   private _start(): void {
@@ -1205,3 +1207,10 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     return parameters.some(parameter => !parameter.value);
   }
 }
+
+const EnhancedNewRun: React.FC<PageProps> = props => {
+  const namespace = React.useContext(NamespaceContext);
+  return <NewRun {...props} namespace={namespace} />;
+};
+
+export default EnhancedNewRun;

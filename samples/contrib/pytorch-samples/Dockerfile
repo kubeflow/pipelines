@@ -17,11 +17,9 @@ FROM ${BASE_IMAGE}
 
 COPY . .
 
-RUN pip install -U pip
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN pip install -U --no-cache-dir -r requirements.txt
-
-RUN pip install pytorch-kfp-components
+RUN pip install --no-cache-dir pytorch-kfp-components
 
 ENV PYTHONPATH /workspace
 

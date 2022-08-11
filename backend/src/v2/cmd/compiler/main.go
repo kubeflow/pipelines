@@ -109,12 +109,8 @@ func loadSpec(path string) (*pipelinespec.PipelineJob, error) {
 		return nil, err
 	}
 	spec := &pipelinespec.PipelineSpec{}
-	specJson, err := yaml.YAMLToJSON(bytes)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to convert pipeline spec from yaml to json, error: %s, spec: %v", err, string(bytes))
-	}
-	if err := protojson.Unmarshal(specJson, spec); err != nil {
-		return nil, fmt.Errorf("Failed to parse pipeline spec, error: %s, spec: %v", err, string(specJson))
+	if err := protojson.Unmarshal(bytes, spec); err != nil {
+		return nil, fmt.Errorf("Failed to parse pipeline spec, error: %s, spec: %v", err, string(bytes))
 	}
 	return jobFromSpec(spec)
 }

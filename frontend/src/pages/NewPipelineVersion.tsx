@@ -22,6 +22,7 @@ import FormControlLabel from '@material-ui/core/FormControlLabel';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import Radio from '@material-ui/core/Radio';
 import { TextFieldProps } from '@material-ui/core/TextField';
+import { t } from 'i18next';
 import * as React from 'react';
 import Dropzone from 'react-dropzone';
 import { DocumentationCompilePipeline } from 'src/components/UploadPipelineDialog';
@@ -151,8 +152,8 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
   public getInitialToolbarState(): ToolbarProps {
     return {
       actions: {},
-      breadcrumbs: [{ displayName: 'Pipeline Versions', href: RoutePage.NEW_PIPELINE_VERSION }],
-      pageTitle: 'Upload Pipeline or Pipeline Version',
+      breadcrumbs: [{ displayName: t('pipeline.page_title'), href: RoutePage.NEW_PIPELINE_VERSION }],
+      pageTitle: t('pipeline.pipeline_version_title'),
     };
   }
 
@@ -183,7 +184,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
           <div className={classes(commonCss.flex, padding(10, 'b'))}>
             <FormControlLabel
               id='createNewPipelineBtn'
-              label='Create a new pipeline'
+              label={t('pipeline.cretate_new_pipeline')}
               checked={newPipeline === true}
               control={<Radio color='primary' />}
               onChange={() =>
@@ -198,7 +199,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
             />
             <FormControlLabel
               id='createPipelineVersionUnderExistingPipelineBtn'
-              label='Create a new pipeline version under an existing pipeline'
+              label={t('pipeline.cretate_new_pipeline_existing')}
               checked={newPipeline === false}
               control={<Radio color='primary' />}
               onChange={() =>
@@ -217,12 +218,12 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
           {/* Pipeline name and help text for uploading new pipeline */}
           {newPipeline === true && (
             <>
-              <div className={css.explanation}>Upload pipeline with the specified package.</div>
+              <div className={css.explanation}>{t('pipeline.upload_pipeline_new')}</div>
               <Input
                 id='newPipelineName'
                 value={pipelineName}
                 required={true}
-                label='Pipeline Name'
+                label={t('pipeline.name')}
                 variant='outlined'
                 inputRef={this._pipelineNameRef}
                 onChange={this.handleChange('pipelineName')}
@@ -233,7 +234,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
                 id='pipelineDescription'
                 value={pipelineDescription}
                 required={true}
-                label='Pipeline Description'
+                label={t('pipeline.description')}
                 variant='outlined'
                 inputRef={this._pipelineDescriptionRef}
                 onChange={this.handleChange('pipelineDescription')}
@@ -248,13 +249,13 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
           {newPipeline === false && (
             <>
               <div className={css.explanation}>
-                Upload pipeline version with the specified package.
+                {t('pipeline.upload_pipeline_version')}
               </div>
               {/* Select pipeline */}
               <Input
                 value={pipelineName}
                 required={true}
-                label='Pipeline'
+                label={t('pipeline.page_title')}
                 disabled={true}
                 variant='outlined'
                 inputRef={this._pipelineNameRef}
@@ -270,7 +271,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
                         onClick={() => this.setStateSafe({ pipelineSelectorOpen: true })}
                         style={{ padding: '3px 5px', margin: 0 }}
                       >
-                        Choose
+                        {t('pipeline.choose')}
                       </Button>
                     </InputAdornment>
                   ),
@@ -286,8 +287,8 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
                 <DialogContent>
                   <ResourceSelector
                     {...this.props}
-                    title='Choose a pipeline'
-                    filterLabel='Filter pipelines'
+                    title={t('pipeline.choose_title')}
+                    filterLabel={t('pipeline.filter_pipelines')}
                     listApi={async (...args) => {
                       const response = await Apis.pipelineServiceApi.listPipelines(...args);
                       return {
@@ -296,7 +297,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
                       };
                     }}
                     columns={this.pipelineSelectorColumns}
-                    emptyMessage='No pipelines found. Upload a pipeline and then try again.'
+                    emptyMessage={t('pipeline.choose_empty_msg')}
                     initialSortColumn={PipelineSortKeys.CREATED_AT}
                     selectionChanged={(selectedPipeline: ApiPipeline) =>
                       this.setStateSafe({ unconfirmedSelectedPipeline: selectedPipeline })
@@ -312,7 +313,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
                     onClick={() => this._pipelineSelectorClosed(false)}
                     color='secondary'
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </Button>
                   <Button
                     id='usePipelineBtn'
@@ -320,7 +321,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
                     color='secondary'
                     disabled={!unconfirmedSelectedPipeline}
                   >
-                    Use this pipeline
+                    {t('pipeline.choose_use_pipeline')}
                   </Button>
                 </DialogActions>
               </Dialog>
@@ -328,7 +329,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
               {/* Set pipeline version name */}
               <Input
                 id='pipelineVersionName'
-                label='Pipeline Version name'
+                label={t('pipeline.pipeline_version_name')}
                 inputRef={this._pipelineVersionNameRef}
                 required={true}
                 onChange={this.handleChange('pipelineVersionName')}
@@ -340,7 +341,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
                 id='pipelineVersionDescription'
                 value={pipelineVersionDescription}
                 required={false}
-                label='Pipeline Version Description'
+                label={t('pipeline.pipeline_version_desc')}
                 variant='outlined'
                 onChange={this.handleChange('pipelineVersionDescription')}
                 autoFocus={true}
@@ -352,17 +353,16 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
           {this.state.importMethod === ImportMethod.LOCAL && (
             <>
               <div className={padding(10, 'b')}>
-                Choose a pipeline package file from your computer, and give the pipeline a unique
-                name.
+                {t('pipeline.upload_pipeline_desc_part1')}
                 <br />
-                You can also drag and drop the file here.
+                {t('pipeline.upload_pipeline_desc_part2')}
               </div>
               <DocumentationCompilePipeline />
             </>
           )}
           {this.state.importMethod === ImportMethod.URL && (
             <>
-              <div className={padding(10, 'b')}>URL must be publicly accessible.</div>
+              <div className={padding(10, 'b')}>{t('pipeline.upload_pipeline_desc_part3')}</div>
               <DocumentationCompilePipeline />
             </>
           )}
@@ -371,7 +371,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
           <div className={classes(commonCss.flex, padding(10, 'b'))}>
             <FormControlLabel
               id='localPackageBtn'
-              label='Upload a file'
+              label={t('pipeline.upload_pipeline_file')}
               checked={importMethod === ImportMethod.LOCAL}
               control={<Radio color='primary' />}
               onChange={() => this.setState({ importMethod: ImportMethod.LOCAL })}
@@ -392,7 +392,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
                 onChange={this.handleChange('fileName')}
                 value={fileName}
                 required={true}
-                label='File'
+                label={t('common.file')}
                 variant='outlined'
                 disabled={importMethod === ImportMethod.URL}
                 // Find a better to align this input box with others
@@ -405,7 +405,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
                         style={{ padding: '3px 5px', margin: 0, whiteSpace: 'nowrap' }}
                         disabled={importMethod === ImportMethod.URL}
                       >
-                        Choose file
+                        {t('common.choose_file')}
                       </Button>
                     </InputAdornment>
                   ),
@@ -421,14 +421,14 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
           <div className={classes(commonCss.flex, padding(10, 'b'))}>
             <FormControlLabel
               id='remotePackageBtn'
-              label='Import by url'
+              label={t('common.import_by_url')}
               checked={importMethod === ImportMethod.URL}
               control={<Radio color='primary' />}
               onChange={() => this.setState({ importMethod: ImportMethod.URL })}
             />
             <Input
               id='pipelinePackageUrl'
-              label='Package Url'
+              label={t('common.package_url')}
               multiline={true}
               onChange={this.handleChange('packageUrl')}
               value={packageUrl}
@@ -445,7 +445,7 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
           {/* Fill pipeline version code source url */}
           <Input
             id='pipelineVersionCodeSource'
-            label='Code Source (optional)'
+            label={t('pipeline.upload_pipeline_code_source')}
             multiline={true}
             onChange={this.handleChange('codeSourceUrl')}
             value={codeSourceUrl}
@@ -459,14 +459,14 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
               disabled={!!validationError}
               busy={isbeingCreated}
               className={commonCss.buttonAction}
-              title={'Create'}
+              title={t('common.create')}
               onClick={this._create.bind(this)}
             />
             <Button
               id='cancelNewPipelineOrVersionBtn'
               onClick={() => this.props.history.push(RoutePage.PIPELINES)}
             >
-              Cancel
+              {t('common.cancel')}
             </Button>
             <div className={css.errorMessage}>{validationError}</div>
           </div>

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import kfp.deprecated.dsl as dsl
+from kfp.deprecated.dsl import _for_loop
 
 
 @dsl.pipeline(name='my-pipeline')

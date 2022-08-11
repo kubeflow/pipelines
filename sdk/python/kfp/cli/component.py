@@ -19,8 +19,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from typing import List, Optional
 import warnings
+from typing import List, Optional
 
 import click
 
@@ -159,7 +159,7 @@ class ComponentBuilder():
     def _load_components(self):
         if not self._component_files:
             logging.error(
-                f'No component files found matching pattern `{self._component_filepattern}` in directory {self._context_directory}'
+                'No component files found matching pattern `{self._component_filepattern}` in directory {self._context_directory}'
             )
             raise sys.exit(1)
 
@@ -325,11 +325,14 @@ class ComponentBuilder():
 @click.group()
 def component():
     """Builds shareable, containerized components."""
+    pass
 
 
 @component.command()
 @click.argument(
-    'components_directory', type=click.Path(exists=True, file_okay=False))
+    'components_directory',
+    type=pathlib.Path,
+)
 @click.option(
     '--component-filepattern',
     type=str,
@@ -340,11 +343,10 @@ def component():
     '--engine',
     type=str,
     default='docker',
-    help="[Deprecated] Engine to use to build the component's container.",
-    hidden=True)
+    help="Engine to use to build the component's container.")
 @click.option(
     '--kfp-package-path',
-    type=click.Path(exists=True),
+    type=pathlib.Path,
     default=None,
     help='A pip-installable path to the KFP package.')
 @click.option(
@@ -360,11 +362,10 @@ def component():
     is_flag=True,
     default=True,
     help='Push the built image to its remote repository.')
-def build(components_directory: str, component_filepattern: str, engine: str,
-          kfp_package_path: Optional[str], overwrite_dockerfile: bool,
-          push_image: bool):
+def build(components_directory: pathlib.Path, component_filepattern: str,
+          engine: str, kfp_package_path: Optional[pathlib.Path],
+          overwrite_dockerfile: bool, push_image: bool):
     """Builds containers for KFP v2 Python-based components."""
-
     if engine != 'docker':
         warnings.warn(
             'The --engine option is deprecated and does not need to be passed. Only Docker engine is supported and will be used by default.',
@@ -372,7 +373,6 @@ def build(components_directory: str, component_filepattern: str, engine: str,
             stacklevel=2)
         sys.exit(1)
 
-    components_directory = pathlib.Path(components_directory)
     components_directory = components_directory.resolve()
 
     if not components_directory.is_dir():
@@ -388,8 +388,6 @@ def build(components_directory: str, component_filepattern: str, engine: str,
             ' optional dependencies by running `pip install kfp[all]`.')
         raise sys.exit(1)
 
-    kfp_package_path = pathlib.Path(
-        kfp_package_path) if kfp_package_path is not None else None
     builder = ComponentBuilder(
         context_directory=components_directory,
         kfp_package_path=kfp_package_path,

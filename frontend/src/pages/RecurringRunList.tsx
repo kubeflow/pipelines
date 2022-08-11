@@ -24,6 +24,7 @@ import { commonCss, color } from '../Css';
 import { formatDateString, errorToMessage } from '../lib/Utils';
 import Tooltip from '@material-ui/core/Tooltip';
 import { ApiJob, ApiTrigger } from '../apis/job';
+import { t } from 'i18next';
 
 interface DisplayRecurringRun {
   experiment?: ExperimentInfo;
@@ -78,19 +79,19 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
       {
         customRenderer: this._nameCustomRenderer,
         flex: 1.5,
-        label: 'Recurring Run Name',
+        label: t('recurring_run.name'),
         sortKey: JobSortKeys.NAME,
       },
-      { customRenderer: this._statusCustomRenderer, label: 'Status', flex: 0.5 },
-      { customRenderer: this._triggerCustomRenderer, label: 'Trigger', flex: 1 },
-      { label: 'Created at', flex: 1, sortKey: JobSortKeys.CREATED_AT },
+      { customRenderer: this._statusCustomRenderer, label: t('recurring_run.status'), flex: 0.5 },
+      { customRenderer: this._triggerCustomRenderer, label: t('recurring_run.trigger'), flex: 1 },
+      { label: t('recurring_run.create_time'), flex: 1, sortKey: JobSortKeys.CREATED_AT },
     ];
 
     if (!this.props.hideExperimentColumn) {
       columns.splice(3, 0, {
         customRenderer: this._experimentCustomRenderer,
         flex: 1,
-        label: 'Experiment',
+        label: t('recurring_run.experiment'),
       });
     }
 
@@ -120,7 +121,7 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
           selectedIds={this.props.selectedIds}
           initialSortColumn={JobSortKeys.CREATED_AT}
           ref={this._tableRef}
-          filterLabel='Filter recurring runs'
+          filterLabel={t('recurring_run.filter_label')}
           updateSelection={this.props.onSelectionChange}
           reload={this._loadRecurringRuns.bind(this)}
           disablePaging={this.props.disablePaging}
@@ -128,12 +129,12 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
           disableSelection={this.props.disableSelection}
           noFilterBox={this.props.noFilterBox}
           emptyMessage={
-            `No available recurring runs found` +
+            t('recurring_run.emptyMessage_part1') +
             `${
               this.props.experimentIdMask
-                ? ' for this experiment'
+                ? t('recurring_run.emptyMessage_part2')
                 : this.props.namespaceMask
-                ? ' for this namespace'
+                ? t('recurring_run.emptyMessage_part3')
                 : ''
             }.`
           }

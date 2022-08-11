@@ -22,7 +22,6 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import Snackbar, { SnackbarProps } from '@material-ui/core/Snackbar';
 import * as React from 'react';
 import { Redirect, Route, Switch } from 'react-router-dom';
-import Compare from 'src/pages/Compare';
 import FrontendFeatures from 'src/pages/FrontendFeatures';
 import RunDetailsRouter from 'src/pages/RunDetailsRouter';
 import { classes, stylesheet } from 'typestyle';
@@ -37,13 +36,14 @@ import AllRecurringRunsList from '../pages/AllRecurringRunsList';
 import AllRunsAndArchive, { AllRunsAndArchiveTab } from '../pages/AllRunsAndArchive';
 import ArtifactDetails from '../pages/ArtifactDetails';
 import ArtifactList from '../pages/ArtifactList';
+import Compare from '../pages/Compare';
 import ExecutionDetails from '../pages/ExecutionDetails';
 import ExecutionList from '../pages/ExecutionList';
 import ExperimentDetails from '../pages/ExperimentDetails';
 import { GettingStarted } from '../pages/GettingStarted';
 import NewExperiment from '../pages/NewExperiment';
 import NewPipelineVersion from '../pages/NewPipelineVersion';
-import NewRunSwitcher from '../pages/NewRunSwitcher';
+import NewRun from '../pages/NewRun';
 import PipelineDetails from '../pages/PipelineDetails';
 import PipelineList from '../pages/PipelineList';
 import RecurringRunDetails from '../pages/RecurringRunDetails';
@@ -186,7 +186,7 @@ const Router: React.FC<RouterProps> = ({ configs }) => {
     { path: RoutePage.EXPERIMENT_DETAILS, Component: ExperimentDetails },
     { path: RoutePage.NEW_EXPERIMENT, Component: NewExperiment },
     { path: RoutePage.NEW_PIPELINE_VERSION, Component: NewPipelineVersion },
-    { path: RoutePage.NEW_RUN, Component: NewRunSwitcher },
+    { path: RoutePage.NEW_RUN, Component: NewRun },
     { path: RoutePage.PIPELINES, Component: PipelineList },
     { path: RoutePage.PIPELINE_DETAILS, Component: PipelineDetails },
     { path: RoutePage.PIPELINE_DETAILS_NO_VERSION, Component: PipelineDetails },

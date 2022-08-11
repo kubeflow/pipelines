@@ -20,7 +20,7 @@ import { shallow } from 'enzyme';
 
 describe('CollapseButton', () => {
   const compareComponent = {
-    collapseSectionsUpdate: jest.fn(),
+    setState: jest.fn(),
     state: {
       collapseSections: {},
     },
@@ -32,7 +32,7 @@ describe('CollapseButton', () => {
     const tree = shallow(
       <CollapseButton
         collapseSections={compareComponent.state.collapseSections}
-        collapseSectionsUpdate={compareComponent.collapseSectionsUpdate}
+        compareSetState={compareComponent.setState}
         sectionName='testSection'
       />,
     );
@@ -44,7 +44,7 @@ describe('CollapseButton', () => {
     const tree = shallow(
       <CollapseButton
         collapseSections={compareComponent.state.collapseSections}
-        collapseSectionsUpdate={compareComponent.collapseSectionsUpdate}
+        compareSetState={compareComponent.setState}
         sectionName='testSection'
       />,
     );
@@ -55,12 +55,14 @@ describe('CollapseButton', () => {
     const tree = shallow(
       <CollapseButton
         collapseSections={compareComponent.state.collapseSections}
-        collapseSectionsUpdate={compareComponent.collapseSectionsUpdate}
+        compareSetState={compareComponent.setState}
         sectionName='testSection'
       />,
     );
     tree.find('WithStyles(Button)').simulate('click');
-    expect(compareComponent.collapseSectionsUpdate).toHaveBeenCalledWith({ testSection: true });
+    expect(compareComponent.setState).toHaveBeenCalledWith({
+      collapseSections: { testSection: true },
+    });
   });
 
   it('expands given section when clicked if it is collapsed', () => {
@@ -68,11 +70,13 @@ describe('CollapseButton', () => {
     const tree = shallow(
       <CollapseButton
         collapseSections={compareComponent.state.collapseSections}
-        collapseSectionsUpdate={compareComponent.collapseSectionsUpdate}
+        compareSetState={compareComponent.setState}
         sectionName='testSection'
       />,
     );
     tree.find('WithStyles(Button)').simulate('click');
-    expect(compareComponent.collapseSectionsUpdate).toHaveBeenCalledWith({ testSection: false });
+    expect(compareComponent.setState).toHaveBeenCalledWith({
+      collapseSections: { testSection: false },
+    });
   });
 });

@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import inspect
-import unittest
-
-from kfp.deprecated.aws import use_aws_secret
 from kfp.deprecated.dsl import ContainerOp
+from kfp.deprecated.aws import use_aws_secret
+import unittest
+import inspect
 
 
 class TestAwsExtension(unittest.TestCase):

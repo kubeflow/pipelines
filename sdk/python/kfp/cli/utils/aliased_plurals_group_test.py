@@ -31,9 +31,8 @@ def command():
 
 class TestAliasedPluralsGroup(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        cls.runner = testing.CliRunner()
+    def setUp(self):
+        self.runner = testing.CliRunner()
 
     def test_aliases_default_success(self):
         result = self.runner.invoke(cli, ['command'])

@@ -4,4 +4,3 @@ resources:
 - ../base
 - ./workflow-controller-rbac
 - ./argo-server-rbac
-namespace: argo

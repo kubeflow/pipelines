@@ -35,4 +35,4 @@ This may include information such as: a description of the process, code snippet
 ---
 
 <!-- Don't delete message below to encourage users to support your issue! -->
-Impacted by this bug? Give it a 👍. 
+Impacted by this bug? Give it a 👍. We prioritise the issues with the most 👍.

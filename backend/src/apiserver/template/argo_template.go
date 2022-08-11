@@ -2,7 +2,6 @@ package template
 
 import (
 	"fmt"
-
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/ghodss/yaml"
@@ -14,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func (t *Argo) RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (util.ExecutionSpec, error) {
+func (t *Argo) RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (*util.Workflow, error) {
 	workflow := util.NewWorkflow(t.wf.Workflow.DeepCopy())
 
 	// Add a KFP specific label for cache service filtering. The cache_enabled flag here is a global control for whether cache server will
@@ -90,11 +89,6 @@ func (t *Argo) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledW
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
-
-	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
-	// TODO: Fix the components to explicitly declare the artifacts they really output.
-	workflow.PatchTemplateOutputArtifacts()
-
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{GenerateName: swfGeneratedName},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
@@ -103,12 +97,21 @@ func (t *Argo) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledW
 			Trigger:        *toCRDTrigger(apiJob.Trigger),
 			Workflow: &scheduledworkflow.WorkflowResource{
 				Parameters: toCRDParameter(apiJob.GetPipelineSpec().GetParameters()),
-				Spec:       workflow.ToStringForSchedule(),
+				Spec:       workflow.Spec,
 			},
 			NoCatchup: util.BoolPointer(apiJob.NoCatchup),
 		},
 	}
 
+	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
+	// TODO: Fix the components to explicitly declare the artifacts they really output.
+	for templateIdx, template := range scheduledWorkflow.Spec.Workflow.Spec.Templates {
+		for artIdx, artifact := range template.Outputs.Artifacts {
+			if artifact.Name == "mlpipeline-ui-metadata" || artifact.Name == "mlpipeline-metrics" {
+				scheduledWorkflow.Spec.Workflow.Spec.Templates[templateIdx].Outputs.Artifacts[artIdx].Optional = true
+			}
+		}
+	}
 	return scheduledWorkflow, nil
 }
 
@@ -168,7 +171,7 @@ func (t *Argo) ParametersJSON() (string, error) {
 	if t == nil {
 		return "", nil
 	}
-	return util.MarshalParameters(util.ArgoWorkflow, t.wf.SpecParameters())
+	return MarshalParameters(t.wf.Spec.Arguments.Parameters)
 }
 
 func NewArgoTemplateFromWorkflow(wf *workflowapi.Workflow) (*Argo, error) {
@@ -197,3 +200,4 @@ func ValidateWorkflow(template []byte) (*util.Workflow, error) {
 	}
 	return util.NewWorkflow(&wf), nil
 }
+

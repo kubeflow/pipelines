@@ -164,7 +164,7 @@ def experiment_id(kfp_client, tmp_path_factory, worker_id):
         return get_experiment_id(kfp_client)
 
     # Locking taking as an example from
-    # https://pytest-xdist.readthedocs.io/en/latest/how-to.html#making-session-scoped-fixtures-execute-only-once
+    # https://github.com/pytest-dev/pytest-xdist#making-session-scoped-fixtures-execute-only-once
     # get the temp directory shared by all workers
     root_tmp_dir = tmp_path_factory.getbasetemp().parent
 

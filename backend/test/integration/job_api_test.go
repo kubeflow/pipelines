@@ -13,12 +13,11 @@ import (
 
 	"github.com/eapache/go-resiliency/retrier"
 	"github.com/kubeflow/pipelines/backend/test"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/yaml"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/glog"
 	experimentparams "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
+	"github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
 	jobparams "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client/job_service"
 	"github.com/kubeflow/pipelines/backend/api/go_http_client/job_model"
 	uploadParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
@@ -30,6 +29,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 const (
@@ -41,7 +42,6 @@ const (
 type JobApiTestSuite struct {
 	suite.Suite
 	namespace            string
-	resourceNamespace    string
 	experimentClient     *api_server.ExperimentClient
 	pipelineClient       *api_server.PipelineClient
 	pipelineUploadClient *api_server.PipelineUploadClient
@@ -70,69 +70,25 @@ func (s *JobApiTestSuite) SetupTest() {
 		}
 	}
 	s.namespace = *namespace
-
-	var newExperimentClient func() (*api_server.ExperimentClient, error)
-	var newPipelineUploadClient func() (*api_server.PipelineUploadClient, error)
-	var newPipelineClient func() (*api_server.PipelineClient, error)
-	var newRunClient func() (*api_server.RunClient, error)
-	var newJobClient func() (*api_server.JobClient, error)
-
-	if *isKubeflowMode {
-		s.resourceNamespace = *resourceNamespace
-
-		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewKubeflowInClusterExperimentClient(s.namespace, *isDebugMode)
-		}
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewKubeflowInClusterPipelineUploadClient(s.namespace, *isDebugMode)
-		}
-		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewKubeflowInClusterPipelineClient(s.namespace, *isDebugMode)
-		}
-		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewKubeflowInClusterRunClient(s.namespace, *isDebugMode)
-		}
-		newJobClient = func() (*api_server.JobClient, error) {
-			return api_server.NewKubeflowInClusterJobClient(s.namespace, *isDebugMode)
-		}
-	} else {
-		clientConfig := test.GetClientConfig(*namespace)
-
-		newExperimentClient = func() (*api_server.ExperimentClient, error) {
-			return api_server.NewExperimentClient(clientConfig, *isDebugMode)
-		}
-		newPipelineUploadClient = func() (*api_server.PipelineUploadClient, error) {
-			return api_server.NewPipelineUploadClient(clientConfig, *isDebugMode)
-		}
-		newPipelineClient = func() (*api_server.PipelineClient, error) {
-			return api_server.NewPipelineClient(clientConfig, *isDebugMode)
-		}
-		newRunClient = func() (*api_server.RunClient, error) {
-			return api_server.NewRunClient(clientConfig, *isDebugMode)
-		}
-		newJobClient = func() (*api_server.JobClient, error) {
-			return api_server.NewJobClient(clientConfig, *isDebugMode)
-		}
-	}
-
+	clientConfig := test.GetClientConfig(*namespace)
 	var err error
-	s.experimentClient, err = newExperimentClient()
-	if err != nil {
-		glog.Exitf("Failed to get experiment client. Error: %v", err)
-	}
-	s.pipelineUploadClient, err = newPipelineUploadClient()
+	s.experimentClient, err = api_server.NewExperimentClient(clientConfig, false)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
 	}
-	s.pipelineClient, err = newPipelineClient()
+	s.pipelineUploadClient, err = api_server.NewPipelineUploadClient(clientConfig, false)
+	if err != nil {
+		glog.Exitf("Failed to get pipeline upload client. Error: %s", err.Error())
+	}
+	s.pipelineClient, err = api_server.NewPipelineClient(clientConfig, false)
 	if err != nil {
 		glog.Exitf("Failed to get pipeline client. Error: %s", err.Error())
 	}
-	s.runClient, err = newRunClient()
+	s.runClient, err = api_server.NewRunClient(clientConfig, false)
 	if err != nil {
 		glog.Exitf("Failed to get run client. Error: %s", err.Error())
 	}
-	s.jobClient, err = newJobClient()
+	s.jobClient, err = api_server.NewJobClient(clientConfig, false)
 	if err != nil {
 		glog.Exitf("Failed to get job client. Error: %s", err.Error())
 	}
@@ -158,7 +114,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new hello world experiment ---------- */
-	experiment := test.GetExperiment("hello world experiment", "", s.resourceNamespace)
+	experiment := &experiment_model.APIExperiment{Name: "hello world experiment"}
 	helloWorldExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
@@ -185,7 +141,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	s.checkHelloWorldJob(t, helloWorldJob, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldPipelineVersion.ID, helloWorldPipelineVersion.Name)
 
 	/* ---------- Create a new argument parameter experiment ---------- */
-	experiment = test.GetExperiment("argument parameter experiment", "", s.resourceNamespace)
+	experiment = &experiment_model.APIExperiment{Name: "argument parameter experiment"}
 	argParamsExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
@@ -219,63 +175,42 @@ func (s *JobApiTestSuite) TestJobApis() {
 	s.checkArgParamsJob(t, argParamsJob, argParamsExperiment.ID, argParamsExperiment.Name)
 
 	/* ---------- List all the jobs. Both jobs should be returned ---------- */
-	jobs, totalSize, _, err := test.ListAllJobs(s.jobClient, s.resourceNamespace)
+	jobs, totalSize, _, err := s.jobClient.List(&jobparams.ListJobsParams{})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, 2, len(jobs))
 
 	/* ---------- List the jobs, paginated, sort by creation time ---------- */
-	jobs, totalSize, nextPageToken, err := test.ListJobs(
-		s.jobClient,
-		&jobparams.ListJobsParams{
-			PageSize: util.Int32Pointer(1),
-			SortBy:   util.StringPointer("created_at")},
-		s.resourceNamespace)
+	jobs, totalSize, nextPageToken, err := s.jobClient.List(
+		&jobparams.ListJobsParams{PageSize: util.Int32Pointer(1), SortBy: util.StringPointer("created_at")})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, "hello world", jobs[0].Name)
-	jobs, totalSize, _, err = test.ListJobs(
-		s.jobClient,
-		&jobparams.ListJobsParams{
-			PageSize:  util.Int32Pointer(1),
-			PageToken: util.StringPointer(nextPageToken)},
-		s.resourceNamespace)
+	jobs, totalSize, _, err = s.jobClient.List(&jobparams.ListJobsParams{
+		PageSize: util.Int32Pointer(1), PageToken: util.StringPointer(nextPageToken)})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, "argument parameter", jobs[0].Name)
 
 	/* ---------- List the jobs, paginated, sort by name ---------- */
-	jobs, totalSize, nextPageToken, err = test.ListJobs(
-		s.jobClient,
-		&jobparams.ListJobsParams{
-			PageSize: util.Int32Pointer(1),
-			SortBy:   util.StringPointer("name")},
-		s.resourceNamespace)
+	jobs, totalSize, nextPageToken, err = s.jobClient.List(&jobparams.ListJobsParams{
+		PageSize: util.Int32Pointer(1), SortBy: util.StringPointer("name")})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, "argument parameter", jobs[0].Name)
-	jobs, totalSize, _, err = test.ListJobs(
-		s.jobClient,
-		&jobparams.ListJobsParams{
-			PageSize:  util.Int32Pointer(1),
-			SortBy:    util.StringPointer("name"),
-			PageToken: util.StringPointer(nextPageToken)},
-		s.resourceNamespace)
+	jobs, totalSize, _, err = s.jobClient.List(&jobparams.ListJobsParams{
+		PageSize: util.Int32Pointer(1), SortBy: util.StringPointer("name"), PageToken: util.StringPointer(nextPageToken)})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, totalSize)
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, "hello world", jobs[0].Name)
 
 	/* ---------- List the jobs, sort by unsupported field ---------- */
-	jobs, _, _, err = test.ListJobs(
-		s.jobClient,
-		&jobparams.ListJobsParams{
-			PageSize: util.Int32Pointer(2),
-			SortBy:   util.StringPointer("unknown")},
-		s.resourceNamespace)
+	jobs, _, _, err = s.jobClient.List(&jobparams.ListJobsParams{
+		PageSize: util.Int32Pointer(2), SortBy: util.StringPointer("unknown")})
 	assert.NotNil(t, err)
 	assert.Equal(t, len(jobs), 0)
 
@@ -350,7 +285,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a periodic job with start and end date in the past and catchup = true ---------- */
-	experiment := test.GetExperiment("periodic catchup true", "", s.resourceNamespace)
+	experiment := &experiment_model.APIExperiment{Name: "periodic catchup true"}
 	periodicCatchupTrueExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
@@ -367,7 +302,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	assert.Nil(t, err)
 
 	/* -------- Create another periodic job with start and end date in the past but catchup = false ------ */
-	experiment = test.GetExperiment("periodic catchup false", "", s.resourceNamespace)
+	experiment = &experiment_model.APIExperiment{Name: "periodic catchup false"}
 	periodicCatchupFalseExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
@@ -384,7 +319,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a cron job with start and end date in the past and catchup = true ---------- */
-	experiment = test.GetExperiment("cron catchup true", "", s.resourceNamespace)
+	experiment = &experiment_model.APIExperiment{Name: "cron catchup true"}
 	cronCatchupTrueExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
@@ -401,7 +336,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	assert.Nil(t, err)
 
 	/* -------- Create another cron job with start and end date in the past but catchup = false ------ */
-	experiment = test.GetExperiment("cron catchup false", "", s.resourceNamespace)
+	experiment = &experiment_model.APIExperiment{Name: "cron catchup false"}
 	cronCatchupFalseExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
 	assert.Nil(t, err)
 
@@ -481,7 +416,7 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 		ID:             job.ID,
 		Name:           "hello world",
 		Description:    "this is hello world",
-		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
+		ServiceAccount: "pipeline-runner",
 		PipelineSpec: &job_model.APIPipelineSpec{
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
 		},
@@ -513,7 +448,7 @@ func (s *JobApiTestSuite) checkArgParamsJob(t *testing.T, job *job_model.APIJob,
 		ID:             job.ID,
 		Name:           "argument parameter",
 		Description:    "this is argument parameter",
-		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
+		ServiceAccount: "pipeline-runner",
 		PipelineSpec: &job_model.APIPipelineSpec{
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
 			Parameters: []*job_model.APIParameter{
@@ -553,29 +488,13 @@ func (s *JobApiTestSuite) TestJobApis_SwfNotFound() {
 		MaxConcurrency: 10,
 		Enabled:        false,
 	}}
-	// In multi-user mode, jobs must be associated with an experiment.
-	if *isKubeflowMode {
-		experiment := test.GetExperiment("test-swf-not-found experiment", "", s.resourceNamespace)
-		swfNotFoundExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
-		assert.Nil(t, err)
-
-		createJobRequest.Body.ResourceReferences = []*job_model.APIResourceReference{
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: swfNotFoundExperiment.ID},
-				Relationship: job_model.APIRelationshipOWNER,
-			},
-		}
-	}
 	job, err := s.jobClient.Create(createJobRequest)
 	require.Nil(t, err)
 
 	// Delete all ScheduledWorkflow custom resources to simulate the situation
 	// that after reinstalling KFP with managed storage, only KFP DB is kept,
 	// but all KFP custom resources are gone.
-	swfNamespace := s.namespace
-	if s.resourceNamespace != "" {
-		swfNamespace = s.resourceNamespace
-	}
-	err = s.swfClient.ScheduledWorkflow(swfNamespace).DeleteCollection(context.Background(), &v1.DeleteOptions{}, v1.ListOptions{})
+	err = s.swfClient.ScheduledWorkflow(s.namespace).DeleteCollection(context.Background(), &v1.DeleteOptions{}, v1.ListOptions{})
 	require.Nil(t, err)
 
 	err = s.jobClient.Delete(&jobparams.DeleteJobParams{ID: job.ID})
@@ -668,10 +587,10 @@ func (s *JobApiTestSuite) TearDownSuite() {
 /** ======== the following are util functions ========= **/
 
 func (s *JobApiTestSuite) cleanUp() {
-	test.DeleteAllExperiments(s.experimentClient, s.resourceNamespace, s.T())
+	test.DeleteAllExperiments(s.experimentClient, s.T())
 	test.DeleteAllPipelines(s.pipelineClient, s.T())
-	test.DeleteAllJobs(s.jobClient, s.resourceNamespace, s.T())
-	test.DeleteAllRuns(s.runClient, s.resourceNamespace, s.T())
+	test.DeleteAllJobs(s.jobClient, s.T())
+	test.DeleteAllRuns(s.runClient, s.T())
 }
 
 func defaultApiJob(pipelineVersionId, experimentId string) *job_model.APIJob {

@@ -12,7 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import sys
 import unittest
+from pathlib import Path
 
 from typing import List, Dict, Union, Optional
 from kfp.deprecated.components.modelbase import ModelBase

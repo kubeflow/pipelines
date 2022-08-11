@@ -12,13 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import tempfile
 import unittest
 
 from kfp.components import python_component
-from kfp.components import structures
 from kfp.components.component_decorator import component
+
+
+def func(text: str) -> str:
+    """Function for lightweight component used throughout tests below."""
+    return text
 
 
 class TestComponentDecorator(unittest.TestCase):
@@ -43,26 +45,17 @@ class TestComponentDecorator(unittest.TestCase):
 
     def test_no_args(self):
 
-        @component
-        def comp(text: str) -> str:
-            return text
-
+        comp = component(func)
         self.assertIsInstance(comp, python_component.PythonComponent)
 
     def test_some_args(self):
 
-        @component(base_image='python:3.9')
-        def comp(text: str) -> str:
-            return text
-
+        comp = component(func, base_image='python:3.9')
         self.assertIsInstance(comp, python_component.PythonComponent)
 
     def test_packages_to_install(self):
 
-        @component(packages_to_install=['numpy', 'tensorflow'])
-        def comp(text: str) -> str:
-            return text
-
+        comp = component(func, packages_to_install=['numpy', 'tensorflow'])
         self.assertIsInstance(comp, python_component.PythonComponent)
 
         concat_command = ' '.join(
@@ -71,13 +64,10 @@ class TestComponentDecorator(unittest.TestCase):
                         'tensorflow' in concat_command)
 
     def test_packages_to_install_with_custom_index_url(self):
-
-        @component(
+        comp = component(
+            func,
             packages_to_install=['numpy', 'tensorflow'],
             pip_index_urls=['https://pypi.org/simple'])
-        def comp(text: str) -> str:
-            return text
-
         self.assertIsInstance(comp, python_component.PythonComponent)
 
         concat_command = ' '.join(
@@ -85,24 +75,3 @@ class TestComponentDecorator(unittest.TestCase):
         self.assertTrue('numpy' in concat_command and
                         'tensorflow' in concat_command)
         self.assertTrue('https://pypi.org/simple' in concat_command)
-
-    def test_output_component_file_parameter(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            filepath = os.path.join(tmpdir, 'my_component.yaml')
-            with self.assertWarnsRegex(
-                    DeprecationWarning,
-                    r'output_component_file parameter is deprecated and will eventually be removed\.'
-            ):
-
-                @component(output_component_file=filepath)
-                def comp(text: str) -> str:
-                    return text
-
-            self.assertIsInstance(comp, python_component.PythonComponent)
-            self.assertTrue(os.path.exists(filepath))
-            with open(filepath, 'r') as f:
-                yaml_text = f.read()
-
-        component_spec = structures.ComponentSpec.load_from_component_yaml(
-            yaml_text)
-        self.assertEqual(component_spec, comp.component_spec)

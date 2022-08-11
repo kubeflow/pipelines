@@ -148,7 +148,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
     };
 
     const showV2Pipeline =
-      isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2 && graphV2.length > 0 && !graph;
+      isFeatureEnabled(FeatureKey.V2) && graphV2 && graphV2.length > 0 && !graph;
     return (
       <div className={classes(commonCss.page, padding(20, 't'))}>
         {showV2Pipeline && (
@@ -206,30 +206,14 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
         // V1: Convert the run's pipeline spec to YAML to be displayed as the pipeline's source.
         // V2: Use the pipeline spec string directly because it can be translated in JSON format.
-        if (
-          isFeatureEnabled(FeatureKey.V2_ALPHA) &&
-          runDetails.run?.pipeline_spec?.pipeline_manifest
-        ) {
-          templateString = runDetails.run.pipeline_spec.pipeline_manifest;
-        } else {
+        try {
+          const workflowManifestString = RunUtils.getWorkflowManifest(runDetails.run) || '';
+          const workflowManifest = JSON.parse(workflowManifestString || '{}');
           try {
-            const workflowManifestString = RunUtils.getWorkflowManifest(runDetails.run) || '';
-            const workflowManifest = JSON.parse(workflowManifestString || '{}');
-            try {
-              if (WorkflowUtils.isPipelineSpec(workflowManifestString)) {
-                templateString = workflowManifestString;
-              } else {
-                templateString = JsYaml.safeDump(workflowManifest);
-              }
-            } catch (err) {
-              await this.showPageError(
-                `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`,
-                err,
-              );
-              logger.error(
-                `Failed to convert pipeline spec YAML from run with ID: ${runDetails.run!.id}.`,
-                err,
-              );
+            if (WorkflowUtils.isPipelineSpec(workflowManifestString)) {
+              templateString = workflowManifestString;
+            } else {
+              templateString = JsYaml.safeDump(workflowManifest);
             }
           } catch (err) {
             await this.showPageError(
@@ -237,10 +221,19 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
               err,
             );
             logger.error(
-              `Failed to parse pipeline spec JSON from run with ID: ${runDetails.run!.id}.`,
+              `Failed to convert pipeline spec YAML from run with ID: ${runDetails.run!.id}.`,
               err,
             );
           }
+        } catch (err) {
+          await this.showPageError(
+            `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`,
+            err,
+          );
+          logger.error(
+            `Failed to parse pipeline spec JSON from run with ID: ${runDetails.run!.id}.`,
+            err,
+          );
         }
 
         const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetails.run);
@@ -338,7 +331,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
     const [graph, reducedGraph, graphV2] = await this._createGraph(templateString);
 
-    if (isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2.length > 0) {
+    if (isFeatureEnabled(FeatureKey.V2) && graphV2.length > 0) {
       this.setStateSafe({
         graph: undefined,
         reducedGraph: undefined,
@@ -375,7 +368,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
       const [graph, reducedGraph, graphV2] = await this._createGraph(
         selectedVersionPipelineTemplate,
       );
-      if (isFeatureEnabled(FeatureKey.V2_ALPHA) && graphV2.length > 0) {
+      if (isFeatureEnabled(FeatureKey.V2) && graphV2.length > 0) {
         this.setStateSafe({
           graph: undefined,
           reducedGraph: undefined,
@@ -429,7 +422,7 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
           if (graph && reducedGraph && compareGraphEdges(graph, reducedGraph)) {
             reducedGraph = undefined; // disable reduction switch
           }
-        } else if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
+        } else if (isFeatureEnabled(FeatureKey.V2)) {
           const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(templateString);
           graphV2 = convertFlowElements(pipelineSpec);
         } else {

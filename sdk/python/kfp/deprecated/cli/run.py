@@ -28,6 +28,7 @@ from kfp.deprecated.cli.output import print_output, OutputFormat
 @click.group()
 def run():
     """manage run resources."""
+    pass
 
 
 @run.command()

@@ -22,6 +22,7 @@ import kfp_server_api
 @click.group()
 def recurring_run():
     """Manage recurring-run resources."""
+    pass
 
 
 @recurring_run.command()

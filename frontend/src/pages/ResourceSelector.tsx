@@ -21,6 +21,7 @@ import { ListRequest } from '../lib/Apis';
 import { RouteComponentProps } from 'react-router-dom';
 import { logger, errorToMessage, formatDateString } from '../lib/Utils';
 import { DialogProps } from '../components/Router';
+import { t } from 'i18next';
 
 interface BaseResponse {
   resources: BaseResource[];
@@ -74,7 +75,7 @@ class ResourceSelector extends React.Component<ResourceSelectorProps, ResourceSe
 
     return (
       <React.Fragment>
-        <Toolbar actions={toolbarActionMap} breadcrumbs={[]} pageTitle={title} />
+        <Toolbar actions={toolbarActionMap} breadcrumbs={[]} pageTitle={t(title)} />
         <CustomTable
           columns={columns}
           rows={rows}

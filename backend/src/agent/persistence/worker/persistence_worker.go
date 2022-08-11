@@ -60,7 +60,7 @@ type PersistenceWorker struct {
 func NewPersistenceWorker(
 	time util.TimeInterface,
 	name string,
-	eventHandler util.ExecutionInformerEventHandler,
+	eventHandler EventHandler,
 	enforceRequeueDelays bool,
 	saver Saver) *PersistenceWorker {
 	worker := &PersistenceWorker{

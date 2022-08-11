@@ -1,3 +1,5 @@
+from typing import Callable
+
 import kfp.deprecated.dsl as dsl
 
 

@@ -1,11 +1,22 @@
-API Reference
-==========================
+.. _kfp-ref:
+
+kfp package
+===========
+
 
 .. toctree::
-   :maxdepth: 1
+    :maxdepth: 2
 
-   dsl
-   compiler
-   client
-   components
-   registry
+    kfp.client
+    kfp.compiler
+    kfp.components
+    kfp.containers
+    kfp.dsl
+    kfp.extensions
+
+.. automodule:: kfp
+    :members:
+    :undoc-members:
+    :show-inheritance:
+    :imported-members:
+    :exclude-members: Client

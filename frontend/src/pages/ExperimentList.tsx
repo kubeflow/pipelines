@@ -43,6 +43,7 @@ import { logger } from '../lib/Utils';
 import { statusToIcon } from './Status';
 import Tooltip from '@material-ui/core/Tooltip';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { t } from 'i18next';
 
 interface DisplayExperiment extends ApiExperiment {
   last5Runs?: ApiRun[];
@@ -85,7 +86,7 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
       breadcrumbs: [],
-      pageTitle: 'Experiments',
+      pageTitle: t('experiment.page_title'),
     };
   }
 
@@ -94,17 +95,17 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
       {
         customRenderer: this._nameCustomRenderer,
         flex: 1,
-        label: 'Experiment name',
+        label: t('experiment.name'),
         sortKey: ExperimentSortKeys.NAME,
       },
       {
         flex: 2,
-        label: 'Description',
+        label: t('experiment.description'),
       },
       {
         customRenderer: this._last5RunsCustomRenderer,
         flex: 1,
-        label: 'Last 5 runs',
+        label: t('experiment.last_runs'),
       },
     ];
 
@@ -132,8 +133,8 @@ export class ExperimentList extends Page<{ namespace?: string }, ExperimentListS
           reload={this._reload.bind(this)}
           toggleExpansion={this._toggleRowExpand.bind(this)}
           getExpandComponent={this._getExpandedExperimentComponent.bind(this)}
-          filterLabel='Filter experiments'
-          emptyMessage='No experiments found. Click "Create experiment" to start.'
+          filterLabel={t('experiment.filter_label')}
+          emptyMessage={t('experiment.emptyMessage')}
         />
       </div>
     );

@@ -19,6 +19,7 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -26,7 +27,7 @@ func ToApiExperiment(experiment *model.Experiment) *api.Experiment {
 	resourceReferences := []*api.ResourceReference(nil)
 	if common.IsMultiUserMode() {
 		resourceReferences = []*api.ResourceReference{
-			{
+			&api.ResourceReference{
 				Key: &api.ResourceKey{
 					Type: api.ResourceType_NAMESPACE,
 					Id:   experiment.Namespace,
@@ -97,7 +98,7 @@ func ToApiPipelineVersion(version *model.PipelineVersion) (*api.PipelineVersion,
 		Description:   version.Description,
 		CodeSourceUrl: version.CodeSourceUrl,
 		ResourceReferences: []*api.ResourceReference{
-			{
+			&api.ResourceReference{
 				Key: &api.ResourceKey{
 					Id:   version.PipelineId,
 					Type: api.ResourceType_PIPELINE,
@@ -129,7 +130,7 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 	if paramsString == "" {
 		return nil, nil
 	}
-	params, err := util.UnmarshalParameters(util.ArgoWorkflow, paramsString)
+	params, err := template.UnmarshalParameters(paramsString)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Parameter with wrong format is stored")
 	}
@@ -137,7 +138,7 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 	for _, param := range params {
 		var value string
 		if param.Value != nil {
-			value = *param.Value
+			value = param.Value.String()
 		}
 		apiParam := api.Parameter{
 			Name:  param.Name,

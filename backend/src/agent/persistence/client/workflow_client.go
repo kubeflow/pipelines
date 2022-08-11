@@ -15,22 +15,23 @@
 package client
 
 import (
+	"github.com/argoproj/argo-workflows/v3/pkg/client/informers/externalversions/workflow/v1alpha1"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/cache"
 )
 
 type WorkflowClientInterface interface {
-	Get(namespace string, name string) (wf util.ExecutionSpec, err error)
+	Get(namespace string, name string) (wf *util.Workflow, err error)
 }
 
 // WorkflowClient is a client to call the Workflow API.
 type WorkflowClient struct {
-	informer util.ExecutionInformer
+	informer v1alpha1.WorkflowInformer
 }
 
 // NewWorkflowClient creates an instance of the WorkflowClient.
-func NewWorkflowClient(informer util.ExecutionInformer) *WorkflowClient {
+func NewWorkflowClient(informer v1alpha1.WorkflowInformer) *WorkflowClient {
 	return &WorkflowClient{
 		informer: informer,
 	}
@@ -38,21 +39,21 @@ func NewWorkflowClient(informer util.ExecutionInformer) *WorkflowClient {
 
 // AddEventHandler adds an event handler.
 func (c *WorkflowClient) AddEventHandler(funcs *cache.ResourceEventHandlerFuncs) {
-	c.informer.AddEventHandler(funcs)
+	c.informer.Informer().AddEventHandler(funcs)
 }
 
 // HasSynced returns true if the shared informer's store has synced.
 func (c *WorkflowClient) HasSynced() func() bool {
-	return c.informer.HasSynced()
+	return c.informer.Informer().HasSynced
 }
 
 // Get returns a Workflow, given a namespace and name.
 func (c *WorkflowClient) Get(namespace string, name string) (
-	wf util.ExecutionSpec, err error) {
-	workflow, notfound, err := c.informer.Get(namespace, name)
-	if err != nil || notfound {
+	wf *util.Workflow, err error) {
+	workflow, err := c.informer.Lister().Workflows(namespace).Get(name)
+	if err != nil {
 		var code util.CustomCode
-		if notfound {
+		if util.IsNotFound(err) {
 			code = util.CUSTOM_CODE_NOT_FOUND
 		} else {
 			code = util.CUSTOM_CODE_GENERIC
@@ -60,5 +61,5 @@ func (c *WorkflowClient) Get(namespace string, name string) (
 		return nil, util.NewCustomError(err, code,
 			"Error retrieving workflow (%v) in namespace (%v): %v", name, namespace, err)
 	}
-	return workflow, nil
+	return util.NewWorkflow(workflow), nil
 }

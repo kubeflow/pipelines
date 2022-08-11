@@ -375,8 +375,6 @@ spec:
                           properties:
                             default:
                               type: string
-                            description:
-                              type: string
                             enum:
                               items:
                                 type: string

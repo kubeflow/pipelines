@@ -1,0 +1,1758 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Compare collapses all sections 1`] = `
+<div
+  className="page"
+>
+  <CollapseButton
+    collapseSections={
+      Object {
+        "Metrics": true,
+        "Parameters": true,
+        "Run overview": true,
+        "Table": true,
+        "Tensorboard": true,
+      }
+    }
+    compareSetState={[Function]}
+    sectionName="Run overview"
+  />
+  <Separator
+    orientation="vertical"
+  />
+  <CollapseButton
+    collapseSections={
+      Object {
+        "Metrics": true,
+        "Parameters": true,
+        "Run overview": true,
+        "Table": true,
+        "Tensorboard": true,
+      }
+    }
+    compareSetState={[Function]}
+    sectionName="Parameters"
+  />
+  <CollapseButton
+    collapseSections={
+      Object {
+        "Metrics": true,
+        "Parameters": true,
+        "Run overview": true,
+        "Table": true,
+        "Tensorboard": true,
+      }
+    }
+    compareSetState={[Function]}
+    sectionName="Metrics"
+  />
+  <Separator
+    orientation="vertical"
+  />
+  <div
+    key="0"
+  >
+    <CollapseButton
+      collapseSections={
+        Object {
+          "Metrics": true,
+          "Parameters": true,
+          "Run overview": true,
+          "Table": true,
+          "Tensorboard": true,
+        }
+      }
+      compareSetState={[Function]}
+      sectionName="Tensorboard"
+    />
+    <Separator
+      orientation="vertical"
+    />
+  </div>
+  <div
+    key="1"
+  >
+    <CollapseButton
+      collapseSections={
+        Object {
+          "Metrics": true,
+          "Parameters": true,
+          "Run overview": true,
+          "Table": true,
+          "Tensorboard": true,
+        }
+      }
+      compareSetState={[Function]}
+      sectionName="Table"
+    />
+    <Separator
+      orientation="vertical"
+    />
+  </div>
+</div>
+`;
+
+exports[`Compare creates a map of viewers 1`] = `
+<div
+  className="page"
+>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Run overview"
+  />
+  <div
+    className="noShrink"
+  >
+    <RunList
+      disablePaging={true}
+      history={
+        Object {
+          "push": [MockFunction],
+        }
+      }
+      location={
+        Object {
+          "pathname": "/compare",
+          "search": "?runlist=run-with-workflow",
+        }
+      }
+      match={Object {}}
+      onError={[Function]}
+      onSelectionChange={[Function]}
+      runIdListMask={
+        Array [
+          "run-with-workflow",
+        ]
+      }
+      selectedIds={
+        Array [
+          "run-with-workflow",
+        ]
+      }
+      toolbarProps={
+        Object {
+          "actions": Object {
+            "collapse": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "collapseBtn",
+              "title": "Collapse all",
+              "tooltip": "Collapse all sections",
+            },
+            "expand": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "expandBtn",
+              "title": "Expand all",
+              "tooltip": "Expand all sections",
+            },
+            "refresh": Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh the list",
+            },
+          },
+          "breadcrumbs": Array [
+            Object {
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "Compare runs",
+        }
+      }
+      updateBanner={[MockFunction]}
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={[MockFunction]}
+    />
+  </div>
+  <Separator
+    orientation="vertical"
+  />
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Parameters"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Separator
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={
+        Array [
+          "test run run-with-workflow",
+        ]
+      }
+      yLabels={Array []}
+    />
+    <Hr />
+  </div>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Metrics"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Separator
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={
+        Array [
+          "test run run-with-workflow",
+        ]
+      }
+      yLabels={Array []}
+    />
+    <Hr />
+  </div>
+  <Separator
+    orientation="vertical"
+  />
+  <div
+    key="0"
+  >
+    <CollapseButton
+      collapseSections={Object {}}
+      compareSetState={[Function]}
+      sectionName="Tensorboard"
+    />
+    <div
+      className="flex outputsRow"
+    >
+      <PlotCard
+        configs={
+          Array [
+            Object {
+              "type": "tensorboard",
+              "url": "gs://path",
+            },
+          ]
+        }
+        key="0"
+        maxDimension={400}
+        title="test run run-with-workflow"
+      />
+      <Separator />
+    </div>
+    <Hr />
+    <Separator
+      orientation="vertical"
+    />
+  </div>
+  <div
+    key="1"
+  >
+    <CollapseButton
+      collapseSections={Object {}}
+      compareSetState={[Function]}
+      sectionName="Table"
+    />
+    <div
+      className="flex outputsRow"
+    >
+      <PlotCard
+        configs={
+          Array [
+            Object {
+              "data": Array [
+                Array [
+                  "test",
+                ],
+              ],
+              "labels": Array [
+                "col1, col2",
+              ],
+              "type": "table",
+            },
+          ]
+        }
+        key="0"
+        maxDimension={400}
+        title="test run run-with-workflow"
+      />
+      <Separator />
+    </div>
+    <Hr />
+    <Separator
+      orientation="vertical"
+    />
+  </div>
+</div>
+`;
+
+exports[`Compare creates an extra aggregation plot for compatible viewers 1`] = `
+<div
+  className="page"
+>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Run overview"
+  />
+  <div
+    className="noShrink"
+  >
+    <RunList
+      disablePaging={true}
+      history={
+        Object {
+          "push": [MockFunction],
+        }
+      }
+      location={
+        Object {
+          "pathname": "/compare",
+          "search": "?runlist=run1-id,run2-id",
+        }
+      }
+      match={Object {}}
+      onError={[Function]}
+      onSelectionChange={[Function]}
+      runIdListMask={
+        Array [
+          "run1-id",
+          "run2-id",
+        ]
+      }
+      selectedIds={
+        Array [
+          "run1-id",
+          "run2-id",
+        ]
+      }
+      toolbarProps={
+        Object {
+          "actions": Object {
+            "collapse": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "collapseBtn",
+              "title": "Collapse all",
+              "tooltip": "Collapse all sections",
+            },
+            "expand": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "expandBtn",
+              "title": "Expand all",
+              "tooltip": "Expand all sections",
+            },
+            "refresh": Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh the list",
+            },
+          },
+          "breadcrumbs": Array [
+            Object {
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "Compare runs",
+        }
+      }
+      updateBanner={[MockFunction]}
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={[MockFunction]}
+    />
+  </div>
+  <Separator
+    orientation="vertical"
+  />
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Parameters"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Separator
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={
+        Array [
+          "test run run1-id",
+          "test run run2-id",
+        ]
+      }
+      yLabels={Array []}
+    />
+    <Hr />
+  </div>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Metrics"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Separator
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={
+        Array [
+          "test run run1-id",
+          "test run run2-id",
+        ]
+      }
+      yLabels={Array []}
+    />
+    <Hr />
+  </div>
+  <Separator
+    orientation="vertical"
+  />
+  <div
+    key="0"
+  >
+    <CollapseButton
+      collapseSections={Object {}}
+      compareSetState={[Function]}
+      sectionName="Tensorboard"
+    />
+    <div
+      className="flex outputsRow"
+    >
+      <PlotCard
+        configs={
+          Array [
+            Object {
+              "type": "tensorboard",
+              "url": "gs://path",
+            },
+            Object {
+              "type": "tensorboard",
+              "url": "gs://path",
+            },
+          ]
+        }
+        maxDimension={400}
+        title="Aggregated view"
+      />
+      <PlotCard
+        configs={
+          Array [
+            Object {
+              "type": "tensorboard",
+              "url": "gs://path",
+            },
+          ]
+        }
+        key="0"
+        maxDimension={400}
+        title="test run run1-id"
+      />
+      <PlotCard
+        configs={
+          Array [
+            Object {
+              "type": "tensorboard",
+              "url": "gs://path",
+            },
+          ]
+        }
+        key="1"
+        maxDimension={400}
+        title="test run run2-id"
+      />
+      <Separator />
+    </div>
+    <Hr />
+    <Separator
+      orientation="vertical"
+    />
+  </div>
+  <div
+    key="1"
+  >
+    <CollapseButton
+      collapseSections={Object {}}
+      compareSetState={[Function]}
+      sectionName="ROC Curve"
+    />
+    <div
+      className="flex outputsRow"
+    >
+      <PlotCard
+        configs={
+          Array [
+            Object {
+              "data": Array [],
+              "type": "roc",
+            },
+            Object {
+              "data": Array [],
+              "type": "roc",
+            },
+          ]
+        }
+        maxDimension={400}
+        title="Aggregated view"
+      />
+      <PlotCard
+        configs={
+          Array [
+            Object {
+              "data": Array [],
+              "type": "roc",
+            },
+          ]
+        }
+        key="0"
+        maxDimension={400}
+        title="test run run1-id"
+      />
+      <PlotCard
+        configs={
+          Array [
+            Object {
+              "data": Array [],
+              "type": "roc",
+            },
+          ]
+        }
+        key="1"
+        maxDimension={400}
+        title="test run run2-id"
+      />
+      <Separator />
+    </div>
+    <Hr />
+    <Separator
+      orientation="vertical"
+    />
+  </div>
+</div>
+`;
+
+exports[`Compare displays a run's metrics if the run has any 1`] = `
+<div
+  className="page"
+>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Run overview"
+  />
+  <div
+    className="noShrink"
+  >
+    <RunList
+      disablePaging={true}
+      history={
+        Object {
+          "push": [MockFunction],
+        }
+      }
+      location={
+        Object {
+          "pathname": "/compare",
+          "search": "?runlist=run-with-metrics",
+        }
+      }
+      match={Object {}}
+      onError={[Function]}
+      onSelectionChange={[Function]}
+      runIdListMask={
+        Array [
+          "run-with-metrics",
+        ]
+      }
+      selectedIds={
+        Array [
+          "run-with-metrics",
+        ]
+      }
+      toolbarProps={
+        Object {
+          "actions": Object {
+            "collapse": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "collapseBtn",
+              "title": "Collapse all",
+              "tooltip": "Collapse all sections",
+            },
+            "expand": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "expandBtn",
+              "title": "Expand all",
+              "tooltip": "Expand all sections",
+            },
+            "refresh": Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh the list",
+            },
+          },
+          "breadcrumbs": Array [
+            Object {
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "Compare runs",
+        }
+      }
+      updateBanner={[MockFunction]}
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={[MockFunction]}
+    />
+  </div>
+  <Separator
+    orientation="vertical"
+  />
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Parameters"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Separator
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={
+        Array [
+          "test run run-with-metrics",
+        ]
+      }
+      yLabels={Array []}
+    />
+    <Hr />
+  </div>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Metrics"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Separator
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={
+        Array [
+          Array [
+            "0.330",
+          ],
+          Array [
+            "0.554",
+          ],
+        ]
+      }
+      xLabels={
+        Array [
+          "test run run-with-metrics",
+        ]
+      }
+      yLabels={
+        Array [
+          "some-metric",
+          "another-metric",
+        ]
+      }
+    />
+    <Hr />
+  </div>
+  <Separator
+    orientation="vertical"
+  />
+</div>
+`;
+
+exports[`Compare displays metrics from multiple runs 1`] = `
+<div
+  className="page"
+>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Run overview"
+  />
+  <div
+    className="noShrink"
+  >
+    <RunList
+      disablePaging={true}
+      history={
+        Object {
+          "push": [MockFunction],
+        }
+      }
+      location={
+        Object {
+          "pathname": "/compare",
+          "search": "?runlist=run1,run2",
+        }
+      }
+      match={Object {}}
+      onError={[Function]}
+      onSelectionChange={[Function]}
+      runIdListMask={
+        Array [
+          "run1",
+          "run2",
+        ]
+      }
+      selectedIds={
+        Array [
+          "run1",
+          "run2",
+        ]
+      }
+      toolbarProps={
+        Object {
+          "actions": Object {
+            "collapse": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "collapseBtn",
+              "title": "Collapse all",
+              "tooltip": "Collapse all sections",
+            },
+            "expand": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "expandBtn",
+              "title": "Expand all",
+              "tooltip": "Expand all sections",
+            },
+            "refresh": Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh the list",
+            },
+          },
+          "breadcrumbs": Array [
+            Object {
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "Compare runs",
+        }
+      }
+      updateBanner={[MockFunction]}
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={[MockFunction]}
+    />
+  </div>
+  <Separator
+    orientation="vertical"
+  />
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Parameters"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Separator
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={
+        Array [
+          "test run run1",
+          "test run run2",
+        ]
+      }
+      yLabels={Array []}
+    />
+    <Hr />
+  </div>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Metrics"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Separator
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={
+        Array [
+          Array [
+            "0.330",
+            "0.670",
+          ],
+          Array [
+            "0.554",
+            "",
+          ],
+        ]
+      }
+      xLabels={
+        Array [
+          "test run run1",
+          "test run run2",
+        ]
+      }
+      yLabels={
+        Array [
+          "some-metric",
+          "another-metric",
+        ]
+      }
+    />
+    <Hr />
+  </div>
+  <Separator
+    orientation="vertical"
+  />
+</div>
+`;
+
+exports[`Compare displays parameters from multiple runs 1`] = `
+<div
+  className="page"
+>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Run overview"
+  />
+  <div
+    className="noShrink"
+  >
+    <RunList
+      disablePaging={true}
+      history={
+        Object {
+          "push": [MockFunction],
+        }
+      }
+      location={
+        Object {
+          "pathname": "/compare",
+          "search": "?runlist=run1,run2",
+        }
+      }
+      match={Object {}}
+      onError={[Function]}
+      onSelectionChange={[Function]}
+      runIdListMask={
+        Array [
+          "run1",
+          "run2",
+        ]
+      }
+      selectedIds={
+        Array [
+          "run1",
+          "run2",
+        ]
+      }
+      toolbarProps={
+        Object {
+          "actions": Object {
+            "collapse": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "collapseBtn",
+              "title": "Collapse all",
+              "tooltip": "Collapse all sections",
+            },
+            "expand": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "expandBtn",
+              "title": "Expand all",
+              "tooltip": "Expand all sections",
+            },
+            "refresh": Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh the list",
+            },
+          },
+          "breadcrumbs": Array [
+            Object {
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "Compare runs",
+        }
+      }
+      updateBanner={[MockFunction]}
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={[MockFunction]}
+    />
+  </div>
+  <Separator
+    orientation="vertical"
+  />
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Parameters"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Separator
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={
+        Array [
+          Array [
+            "r1-shared-val2",
+            "r2-shared-val2",
+          ],
+          Array [
+            "r1-unique-val1",
+            "",
+          ],
+          Array [
+            "",
+            "r2-unique-val1",
+          ],
+        ]
+      }
+      xLabels={
+        Array [
+          "test run run1",
+          "test run run2",
+        ]
+      }
+      yLabels={
+        Array [
+          "shared-param",
+          "r1-unique-param",
+          "r2-unique-param1",
+        ]
+      }
+    />
+    <Hr />
+  </div>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Metrics"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Separator
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={
+        Array [
+          "test run run1",
+          "test run run2",
+        ]
+      }
+      yLabels={Array []}
+    />
+    <Hr />
+  </div>
+  <Separator
+    orientation="vertical"
+  />
+</div>
+`;
+
+exports[`Compare displays run's parameters if the run has any 1`] = `
+<div
+  className="page"
+>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Run overview"
+  />
+  <div
+    className="noShrink"
+  >
+    <RunList
+      disablePaging={true}
+      history={
+        Object {
+          "push": [MockFunction],
+        }
+      }
+      location={
+        Object {
+          "pathname": "/compare",
+          "search": "?runlist=run-with-parameters",
+        }
+      }
+      match={Object {}}
+      onError={[Function]}
+      onSelectionChange={[Function]}
+      runIdListMask={
+        Array [
+          "run-with-parameters",
+        ]
+      }
+      selectedIds={
+        Array [
+          "run-with-parameters",
+        ]
+      }
+      toolbarProps={
+        Object {
+          "actions": Object {
+            "collapse": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "collapseBtn",
+              "title": "Collapse all",
+              "tooltip": "Collapse all sections",
+            },
+            "expand": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "expandBtn",
+              "title": "Expand all",
+              "tooltip": "Expand all sections",
+            },
+            "refresh": Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh the list",
+            },
+          },
+          "breadcrumbs": Array [
+            Object {
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "Compare runs",
+        }
+      }
+      updateBanner={[MockFunction]}
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={[MockFunction]}
+    />
+  </div>
+  <Separator
+    orientation="vertical"
+  />
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Parameters"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Separator
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={
+        Array [
+          Array [
+            "value1",
+          ],
+          Array [
+            "value2",
+          ],
+        ]
+      }
+      xLabels={
+        Array [
+          "test run run-with-parameters",
+        ]
+      }
+      yLabels={
+        Array [
+          "param1",
+          "param2",
+        ]
+      }
+    />
+    <Hr />
+  </div>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Metrics"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Separator
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={
+        Array [
+          "test run run-with-parameters",
+        ]
+      }
+      yLabels={Array []}
+    />
+    <Hr />
+  </div>
+  <Separator
+    orientation="vertical"
+  />
+</div>
+`;
+
+exports[`Compare does not show viewers for deselected runs 1`] = `
+<div
+  className="page"
+>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Run overview"
+  />
+  <div
+    className="noShrink"
+  >
+    <RunList
+      disablePaging={true}
+      history={
+        Object {
+          "push": [MockFunction],
+        }
+      }
+      location={
+        Object {
+          "pathname": "/compare",
+          "search": "?runlist=run-with-workflow-1,run-with-workflow-2",
+        }
+      }
+      match={Object {}}
+      onError={[Function]}
+      onSelectionChange={[Function]}
+      runIdListMask={
+        Array [
+          "run-with-workflow-1",
+          "run-with-workflow-2",
+        ]
+      }
+      selectedIds={Array []}
+      toolbarProps={
+        Object {
+          "actions": Object {
+            "collapse": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "collapseBtn",
+              "title": "Collapse all",
+              "tooltip": "Collapse all sections",
+            },
+            "expand": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "expandBtn",
+              "title": "Expand all",
+              "tooltip": "Expand all sections",
+            },
+            "refresh": Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh the list",
+            },
+          },
+          "breadcrumbs": Array [
+            Object {
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "Compare runs",
+        }
+      }
+      updateBanner={[MockFunction]}
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={[MockFunction]}
+    />
+  </div>
+  <Separator
+    orientation="vertical"
+  />
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Parameters"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Separator
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={Array []}
+      yLabels={Array []}
+    />
+    <Hr />
+  </div>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Metrics"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Separator
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={Array []}
+      yLabels={Array []}
+    />
+    <Hr />
+  </div>
+  <Separator
+    orientation="vertical"
+  />
+</div>
+`;
+
+exports[`Compare expands all sections if they were collapsed 1`] = `
+<div
+  className="page"
+>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Run overview"
+  />
+  <div
+    className="noShrink"
+  >
+    <RunList
+      disablePaging={true}
+      history={
+        Object {
+          "push": [MockFunction],
+        }
+      }
+      location={
+        Object {
+          "pathname": "/compare",
+          "search": "?runlist=run-with-workflow-1,run-with-workflow-2",
+        }
+      }
+      match={Object {}}
+      onError={[Function]}
+      onSelectionChange={[Function]}
+      runIdListMask={
+        Array [
+          "run-with-workflow-1",
+          "run-with-workflow-2",
+        ]
+      }
+      selectedIds={
+        Array [
+          "run-with-workflow-1",
+          "run-with-workflow-2",
+        ]
+      }
+      toolbarProps={
+        Object {
+          "actions": Object {
+            "collapse": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "collapseBtn",
+              "title": "Collapse all",
+              "tooltip": "Collapse all sections",
+            },
+            "expand": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "expandBtn",
+              "title": "Expand all",
+              "tooltip": "Expand all sections",
+            },
+            "refresh": Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh the list",
+            },
+          },
+          "breadcrumbs": Array [
+            Object {
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "Compare runs",
+        }
+      }
+      updateBanner={[MockFunction]}
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={[MockFunction]}
+    />
+  </div>
+  <Separator
+    orientation="vertical"
+  />
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Parameters"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Separator
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={
+        Array [
+          "test run run-with-workflow-1",
+          "test run run-with-workflow-2",
+        ]
+      }
+      yLabels={Array []}
+    />
+    <Hr />
+  </div>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Metrics"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Separator
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={
+        Array [
+          "test run run-with-workflow-1",
+          "test run run-with-workflow-2",
+        ]
+      }
+      yLabels={Array []}
+    />
+    <Hr />
+  </div>
+  <Separator
+    orientation="vertical"
+  />
+  <div
+    key="0"
+  >
+    <CollapseButton
+      collapseSections={Object {}}
+      compareSetState={[Function]}
+      sectionName="Tensorboard"
+    />
+    <div
+      className="flex outputsRow"
+    >
+      <PlotCard
+        configs={
+          Array [
+            Object {
+              "type": "tensorboard",
+              "url": "gs://path",
+            },
+            Object {
+              "type": "tensorboard",
+              "url": "gs://path",
+            },
+          ]
+        }
+        maxDimension={400}
+        title="Aggregated view"
+      />
+      <PlotCard
+        configs={
+          Array [
+            Object {
+              "type": "tensorboard",
+              "url": "gs://path",
+            },
+          ]
+        }
+        key="0"
+        maxDimension={400}
+        title="test run run-with-workflow-1"
+      />
+      <PlotCard
+        configs={
+          Array [
+            Object {
+              "type": "tensorboard",
+              "url": "gs://path",
+            },
+          ]
+        }
+        key="1"
+        maxDimension={400}
+        title="test run run-with-workflow-2"
+      />
+      <Separator />
+    </div>
+    <Hr />
+    <Separator
+      orientation="vertical"
+    />
+  </div>
+  <div
+    key="1"
+  >
+    <CollapseButton
+      collapseSections={Object {}}
+      compareSetState={[Function]}
+      sectionName="Table"
+    />
+    <div
+      className="flex outputsRow"
+    >
+      <PlotCard
+        configs={
+          Array [
+            Object {
+              "data": Array [
+                Array [],
+              ],
+              "labels": Array [
+                "col1, col2",
+              ],
+              "type": "table",
+            },
+          ]
+        }
+        key="0"
+        maxDimension={400}
+        title="test run run-with-workflow-1"
+      />
+      <PlotCard
+        configs={
+          Array [
+            Object {
+              "data": Array [
+                Array [],
+              ],
+              "labels": Array [
+                "col1, col2",
+              ],
+              "type": "table",
+            },
+          ]
+        }
+        key="1"
+        maxDimension={400}
+        title="test run run-with-workflow-2"
+      />
+      <Separator />
+    </div>
+    <Hr />
+    <Separator
+      orientation="vertical"
+    />
+  </div>
+</div>
+`;
+
+exports[`Compare renders a page with multiple runs 1`] = `
+<div
+  className="page"
+>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Run overview"
+  />
+  <div
+    className="noShrink"
+  >
+    <RunList
+      disablePaging={true}
+      history={
+        Object {
+          "push": [MockFunction],
+        }
+      }
+      location={
+        Object {
+          "pathname": "/compare",
+          "search": "?runlist=mock-run-1-id,mock-run-2-id,mock-run-3-id",
+        }
+      }
+      match={Object {}}
+      onError={[Function]}
+      onSelectionChange={[Function]}
+      runIdListMask={
+        Array [
+          "mock-run-1-id",
+          "mock-run-2-id",
+          "mock-run-3-id",
+        ]
+      }
+      selectedIds={
+        Array [
+          "mock-run-1-id",
+          "mock-run-2-id",
+          "mock-run-3-id",
+        ]
+      }
+      toolbarProps={
+        Object {
+          "actions": Object {
+            "collapse": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "collapseBtn",
+              "title": "Collapse all",
+              "tooltip": "Collapse all sections",
+            },
+            "expand": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "expandBtn",
+              "title": "Expand all",
+              "tooltip": "Expand all sections",
+            },
+            "refresh": Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh the list",
+            },
+          },
+          "breadcrumbs": Array [
+            Object {
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "Compare runs",
+        }
+      }
+      updateBanner={[MockFunction]}
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={[MockFunction]}
+    />
+  </div>
+  <Separator
+    orientation="vertical"
+  />
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Parameters"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Separator
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={
+        Array [
+          "test run mock-run-1-id",
+          "test run mock-run-2-id",
+          "test run mock-run-3-id",
+        ]
+      }
+      yLabels={Array []}
+    />
+    <Hr />
+  </div>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Metrics"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Separator
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={
+        Array [
+          "test run mock-run-1-id",
+          "test run mock-run-2-id",
+          "test run mock-run-3-id",
+        ]
+      }
+      yLabels={Array []}
+    />
+    <Hr />
+  </div>
+  <Separator
+    orientation="vertical"
+  />
+</div>
+`;
+
+exports[`Compare renders a page with no runs 1`] = `
+<div
+  className="page"
+>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Run overview"
+  />
+  <div
+    className="noShrink"
+  >
+    <RunList
+      disablePaging={true}
+      history={
+        Object {
+          "push": [MockFunction],
+        }
+      }
+      location={
+        Object {
+          "pathname": "/compare",
+          "search": "",
+        }
+      }
+      match={Object {}}
+      onError={[Function]}
+      onSelectionChange={[Function]}
+      runIdListMask={Array []}
+      selectedIds={Array []}
+      toolbarProps={
+        Object {
+          "actions": Object {
+            "collapse": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "collapseBtn",
+              "title": "Collapse all",
+              "tooltip": "Collapse all sections",
+            },
+            "expand": Object {
+              "action": [Function],
+              "icon": [Function],
+              "id": "expandBtn",
+              "title": "Expand all",
+              "tooltip": "Expand all sections",
+            },
+            "refresh": Object {
+              "action": [Function],
+              "id": "refreshBtn",
+              "title": "Refresh",
+              "tooltip": "Refresh the list",
+            },
+          },
+          "breadcrumbs": Array [
+            Object {
+              "displayName": "Experiments",
+              "href": "/experiments",
+            },
+          ],
+          "pageTitle": "Compare runs",
+        }
+      }
+      updateBanner={[MockFunction]}
+      updateDialog={[MockFunction]}
+      updateSnackbar={[MockFunction]}
+      updateToolbar={[MockFunction]}
+    />
+  </div>
+  <Separator
+    orientation="vertical"
+  />
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Parameters"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Separator
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={Array []}
+      yLabels={Array []}
+    />
+    <Hr />
+  </div>
+  <CollapseButton
+    collapseSections={Object {}}
+    compareSetState={[Function]}
+    sectionName="Metrics"
+  />
+  <div
+    className="noShrink outputsRow"
+  >
+    <Separator
+      orientation="vertical"
+    />
+    <CompareTable
+      rows={Array []}
+      xLabels={Array []}
+      yLabels={Array []}
+    />
+    <Hr />
+  </div>
+  <Separator
+    orientation="vertical"
+  />
+</div>
+`;

@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
+import * as React from 'react';
+import { commonCss } from '../Css';
 import Button from '@material-ui/core/Button';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import TextField from '@material-ui/core/TextField';
-import * as React from 'react';
-import { classes, stylesheet } from 'typestyle';
 import { ApiParameter } from '../apis/pipeline';
-import { color, commonCss, spacing } from '../Css';
+import { classes, stylesheet } from 'typestyle';
+import { color, spacing } from '../Css';
 import Editor from './Editor';
+import { t } from 'i18next';
 
 export interface NewRunParametersProps {
   initialParams: ApiParameter[];
@@ -59,7 +61,7 @@ class NewRunParameters extends React.Component<NewRunParametersProps> {
 
     return (
       <div>
-        <div className={commonCss.header}>Run parameters</div>
+        <div className={commonCss.header}>{t('run_params.run_parameters')}</div>
         <div>{titleMessage}</div>
         {!!initialParams.length && (
           <div>

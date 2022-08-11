@@ -15,11 +15,13 @@
 package resource
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"google.golang.org/protobuf/types/known/structpb"
 
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -57,7 +59,7 @@ func (r *ResourceManager) ToModelRunMetric(metric *api.RunMetric, runUUID string
 
 // The input run might not contain workflowSpecManifest and pipelineSpecManifest, but instead a pipeline ID.
 // The caller would retrieve manifest and pass in.
-func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow util.ExecutionSpec, manifest string, templateType template.TemplateType) (*model.RunDetail, error) {
+func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow *util.Workflow, manifest string, templateType template.TemplateType) (*model.RunDetail, error) {
 	resourceReferences, err := r.toModelResourceReferences(runId, common.Run, run.GetResourceReferences())
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to convert resource references.")
@@ -80,10 +82,10 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 			UUID:               runId,
 			ExperimentUUID:     experimentUUID,
 			DisplayName:        run.Name,
-			Name:               workflow.ExecutionName(),
-			Namespace:          workflow.ExecutionNamespace(),
-			ServiceAccount:     workflow.ServiceAccount(),
-			Conditions:         string(workflow.ExecutionStatus().Condition()),
+			Name:               workflow.Name,
+			Namespace:          workflow.Namespace,
+			ServiceAccount:     workflow.Spec.ServiceAccountName,
+			Conditions:         workflow.Condition(),
 			Description:        run.Description,
 			ResourceReferences: resourceReferences,
 			PipelineSpec: model.PipelineSpec{
@@ -131,10 +133,7 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 	}
 	serviceAccount := ""
 	if swf.Spec.Workflow != nil {
-		execSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, swf.Spec.Workflow)
-		if err == nil {
-			serviceAccount = execSpec.ServiceAccount()
-		}
+		serviceAccount = swf.Spec.Workflow.Spec.ServiceAccountName
 	}
 	modelJob := &model.Job{
 		UUID:               string(swf.UID),
@@ -234,15 +233,15 @@ func apiParametersToModelParameters(apiParams []*api.Parameter) (string, error) 
 	if apiParams == nil || len(apiParams) == 0 {
 		return "", nil
 	}
-	var params util.SpecParameters
+	var params []v1alpha1.Parameter
 	for _, apiParam := range apiParams {
-		param := util.SpecParameter{
+		param := v1alpha1.Parameter{
 			Name:  apiParam.Name,
-			Value: util.StringPointer(apiParam.Value),
+			Value: v1alpha1.AnyStringPtr(apiParam.Value),
 		}
 		params = append(params, param)
 	}
-	paramsBytes, err := util.MarshalParameters(util.ArgoWorkflow, params)
+	paramsBytes, err := json.Marshal(params)
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Failed to stream API parameter as string.")
 	}
@@ -253,23 +252,23 @@ func runtimeConfigToModelParameters(runtimeConfig *api.PipelineSpec_RuntimeConfi
 	if runtimeConfig == nil {
 		return "", nil
 	}
-	var params util.SpecParameters
+	var params []v1alpha1.Parameter
 	for k, v := range runtimeConfig.GetParameters() {
-		param := util.SpecParameter{
+		param := v1alpha1.Parameter{
 			Name: k,
 		}
 		switch t := v.GetKind().(type) {
 		case *structpb.Value_StringValue:
-			param.Value = util.AnyStringPtr(v.GetStringValue())
+			param.Value = v1alpha1.AnyStringPtr(v.GetStringValue())
 		case *structpb.Value_NumberValue:
-			param.Value = util.AnyStringPtr(v.GetNumberValue())
+			param.Value = v1alpha1.AnyStringPtr(v.GetNumberValue())
 		case *structpb.Value_BoolValue:
-			param.Value = util.AnyStringPtr(v.GetBoolValue())
+			param.Value = v1alpha1.AnyStringPtr(v.GetBoolValue())
 		// TODO: revisit if these are right
 		case *structpb.Value_StructValue:
-			param.Value = util.AnyStringPtr(v.GetStructValue())
+			param.Value = v1alpha1.AnyStringPtr(v.GetStructValue())
 		case *structpb.Value_ListValue:
-			param.Value = util.AnyStringPtr(v.GetListValue())
+			param.Value = v1alpha1.AnyStringPtr(v.GetListValue())
 		case *structpb.Value_NullValue:
 			return "", fmt.Errorf("Unsupported property type in pipelineSpec runtimeConfig Parameters: %T", t)
 		default:
@@ -278,7 +277,7 @@ func runtimeConfigToModelParameters(runtimeConfig *api.PipelineSpec_RuntimeConfi
 
 		params = append(params, param)
 	}
-	paramsBytes, err := util.MarshalParameters(util.ArgoWorkflow, params)
+	paramsBytes, err := json.Marshal(params)
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Failed to stream API parameter as string.")
 	}

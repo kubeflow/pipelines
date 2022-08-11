@@ -18,7 +18,7 @@ import warnings
 import yaml
 import copy
 from collections import OrderedDict
-from typing import Any, Dict, List, TypeVar
+from typing import Union, List, Any, Callable, TypeVar, Dict
 
 from kfp.deprecated.compiler._k8s_helper import convert_k8s_obj_to_json
 from kfp.deprecated import dsl

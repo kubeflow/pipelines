@@ -10,6 +10,7 @@ from kfp_server_api.models.api_experiment import ApiExperiment
 @click.group()
 def experiment():
     """Manage experiment resources."""
+    pass
 
 
 @experiment.command()

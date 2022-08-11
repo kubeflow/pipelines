@@ -15,7 +15,7 @@
 package v1beta1
 
 import (
-	"github.com/kubeflow/pipelines/backend/src/common"
+	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/apis/core"
@@ -92,7 +92,7 @@ type WorkflowResource struct {
 	Parameters []Parameter `json:"parameters,omitempty"`
 
 	// Specification of the workflow to start.
-	Spec string `json:"spec,omitempty"`
+	Spec v1alpha1.WorkflowSpec `json:"spec,omitempty"`
 }
 
 type Parameter struct {
@@ -226,7 +226,7 @@ type WorkflowStatus struct {
 	UID types.UID `json:"uid,omitempty"`
 
 	// Phase is a high level summary of the status of the workflow.
-	Phase common.ExecutionPhase `json:"phase,omitempty"`
+	Phase v1alpha1.WorkflowPhase `json:"phase,omitempty"`
 
 	// A human readable message indicating details about why the workflow is in
 	// this condition.

@@ -3,7 +3,3 @@ kind: Kustomization
 resources:
 - cluster-role.yaml
 - cluster-role-binding.yaml
-configMapGenerator:
-- name: persistenceagent-config
-  envs:
-  - params.env

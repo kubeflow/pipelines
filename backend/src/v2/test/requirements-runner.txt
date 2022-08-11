@@ -1,0 +1,2 @@
+-r requirements.txt
+tfx==1.5.0

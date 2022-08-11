@@ -23,6 +23,7 @@ import { ToolbarProps } from '../components/Toolbar';
 import { classes } from 'typestyle';
 import { commonCss, padding } from '../Css';
 import { NamespaceContext } from 'src/lib/KubeflowClient';
+import { t } from 'i18next';
 
 interface AllRunsListState {
   selectedIds: string[];
@@ -55,7 +56,7 @@ export class AllRunsList extends Page<{ namespace?: string }, AllRunsListState> 
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
       breadcrumbs: [],
-      pageTitle: 'Runs',
+      pageTitle: t('run.page_title'),
     };
   }
 

@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import kfp.deprecated.dsl as dsl
+from kubernetes import client as k8s_client
 
 
 @dsl.pipeline(name='Sidecar', description='A pipeline with sidecars.')

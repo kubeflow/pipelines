@@ -16,17 +16,13 @@ import functools
 import itertools
 import os
 import re
-import subprocess
 import tempfile
-from typing import List
 import unittest
 from unittest import mock
 
 from absl.testing import parameterized
-import click
 from click import testing
 from kfp.cli import cli
-from kfp.cli import compile_
 
 
 class TestCliNounAliases(unittest.TestCase):
@@ -35,29 +31,6 @@ class TestCliNounAliases(unittest.TestCase):
         runner = testing.CliRunner()
         self.invoke = functools.partial(
             runner.invoke, cli=cli.cli, catch_exceptions=False, obj={})
-
-    def test_aliases_singular(self):
-        result = self.invoke(args=['component'])
-        self.assertEqual(result.exit_code, 0)
-
-    def test_aliases_plural(self):
-        result = self.invoke(args=['components'])
-        self.assertEqual(result.exit_code, 0)
-
-    def test_aliases_fails(self):
-        result = self.invoke(args=['componentss'])
-        self.assertEqual(result.exit_code, 2)
-        self.assertEqual("Error: Unrecognized command 'componentss'\n",
-                         result.output)
-
-
-class TestAliases(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        runner = testing.CliRunner()
-        cls.invoke = functools.partial(
-            runner.invoke, cli=cli.cli, catch_exceptions=True, obj={})
 
     def test_aliases_singular(self):
         result = self.invoke(args=['component'])
@@ -85,7 +58,7 @@ class TestCliAutocomplete(parameterized.TestCase):
     def test_show_autocomplete(self, shell):
         result = self.invoke(args=['--show-completion', shell])
         expected = cli._create_completion(shell)
-        self.assertIn(expected, result.output)
+        self.assertTrue(expected in result.output)
         self.assertEqual(result.exit_code, 0)
 
     @parameterized.parameters(['bash', 'zsh', 'fish'])
@@ -113,8 +86,8 @@ class TestCliAutocomplete(parameterized.TestCase):
                 os.makedirs(os.path.dirname(temp_path), exist_ok=True)
 
                 existing_file_contents = [
-                    'something\n',
-                    'something else' + ('\n' if has_trailing_newline else ''),
+                    "something\n",
+                    "something else" + ('\n' if has_trailing_newline else ''),
                 ]
                 with open(temp_path, 'w') as f:
                     f.writelines(existing_file_contents)
@@ -140,61 +113,3 @@ class TestCliVersion(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         matches = re.match(r'^kfp \d\.\d\.\d.*', result.output)
         self.assertTrue(matches)
-
-
-class TestDslCompile(parameterized.TestCase):
-
-    def invoke(self, args: List[str]) -> testing.Result:
-        starting_args = ['dsl', 'compile']
-        args = starting_args + args
-        runner = testing.CliRunner()
-        return runner.invoke(
-            cli=cli.cli, args=args, catch_exceptions=False, obj={})
-
-    def invoke_deprecated(self, args: List[str]) -> testing.Result:
-        runner = testing.CliRunner()
-        return runner.invoke(
-            cli=compile_.compile_, args=args, catch_exceptions=False, obj={})
-
-    def test_deprecated_command_is_found(self):
-        result = self.invoke_deprecated(['--help'])
-        self.assertEqual(result.exit_code, 0)
-
-    def test_deprecation_warning(self):
-        res = subprocess.run(['dsl-compile', '--help'], capture_output=True)
-        self.assertIn('Deprecated. Please use `kfp dsl compile` instead.)',
-                      res.stdout.decode('utf-8'))
-
-
-info_dict = cli.cli.to_info_dict(ctx=click.Context(cli.cli))
-commands_dict = {
-    command: list(body.get('commands', {}).keys())
-    for command, body in info_dict['commands'].items()
-}
-noun_verb_list = [
-    (noun, verb) for noun, verbs in commands_dict.items() for verb in verbs
-]
-
-
-class TestSmokeTestAllCommandsWithHelp(parameterized.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.runner = testing.CliRunner()
-
-        cls.vals = [('run', 'list')]
-
-    @parameterized.parameters(*noun_verb_list)
-    def test(self, noun: str, verb: str):
-        with mock.patch('kfp.cli.cli.client.Client'):
-            result = self.runner.invoke(
-                args=[noun, verb, '--help'],
-                cli=cli.cli,
-                catch_exceptions=False,
-                obj={})
-            self.assertTrue(result.output.startswith('Usage: '))
-            self.assertEqual(result.exit_code, 0)
-
-
-if __name__ == '__main__':
-    unittest.main()

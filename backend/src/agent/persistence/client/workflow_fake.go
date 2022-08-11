@@ -22,17 +22,17 @@ import (
 )
 
 type WorkflowClientFake struct {
-	workflows map[string]util.ExecutionSpec
+	workflows map[string]*util.Workflow
 }
 
 func NewWorkflowClientFake() *WorkflowClientFake {
 	return &WorkflowClientFake{
-		workflows: make(map[string]util.ExecutionSpec),
+		workflows: make(map[string]*util.Workflow),
 	}
 }
 
 func (p *WorkflowClientFake) Get(namespace string, name string) (
-	util.ExecutionSpec, error) {
+	wf *util.Workflow, err error) {
 	workflow, ok := p.workflows[getKey(namespace, name)]
 	if !ok {
 		return nil, util.NewCustomError(fmt.Errorf("Error"),
@@ -45,7 +45,7 @@ func (p *WorkflowClientFake) Get(namespace string, name string) (
 	return workflow, nil
 }
 
-func (p *WorkflowClientFake) Put(namespace string, name string, wf util.ExecutionSpec) {
+func (p *WorkflowClientFake) Put(namespace string, name string, wf *util.Workflow) {
 	p.workflows[getKey(namespace, name)] = wf
 }
 

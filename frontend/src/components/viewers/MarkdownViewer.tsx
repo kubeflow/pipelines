@@ -67,19 +67,21 @@ export interface MarkdownViewerProps {
 }
 
 class MarkdownViewer extends Viewer<MarkdownViewerProps, any> {
+  private _config = this.props.configs[0];
+
   public getDisplayName(): string {
     return 'Markdown';
   }
 
   public render(): JSX.Element | null {
-    if (!this.props.configs[0]) {
+    if (!this._config) {
       return null;
     }
     return (
       <div className='markdown-viewer'>
         <MarkdownAdvanced
           maxMarkdownStrLength={this.props.maxLength}
-          content={this.props.configs[0].markdownContent}
+          content={this._config.markdownContent}
         />
       </div>
     );

@@ -13,10 +13,12 @@
 # limitations under the License.
 """Base class for MLMD artifact in KFP SDK."""
 
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 
 from absl import logging
+import enum
 import importlib
+import jsonschema
 import yaml
 
 from google.protobuf import json_format

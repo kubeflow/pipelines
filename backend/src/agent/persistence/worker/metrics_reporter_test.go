@@ -16,7 +16,6 @@ package worker
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -30,11 +29,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-)
-
-const (
-	NamespaceName = "kf-namespace"
-	USER          = "test-user@example.com"
 )
 
 func TestReportMetrics_NoCompletedNode_NoOP(t *testing.T) {
@@ -57,7 +51,7 @@ func TestReportMetrics_NoCompletedNode_NoOP(t *testing.T) {
 			},
 		},
 	})
-	err := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 	assert.Nil(t, err)
 	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
 }
@@ -82,7 +76,7 @@ func TestReportMetrics_NoRunID_NoOP(t *testing.T) {
 			},
 		},
 	})
-	err := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 	assert.Nil(t, err)
 	assert.Nil(t, pipelineFake.GetReadArtifactRequest())
 	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
@@ -109,7 +103,7 @@ func TestReportMetrics_NoArtifact_NoOP(t *testing.T) {
 			},
 		},
 	})
-	err := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 	assert.Nil(t, err)
 	assert.Nil(t, pipelineFake.GetReadArtifactRequest())
 	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
@@ -139,7 +133,7 @@ func TestReportMetrics_NoMetricsArtifact_NoOP(t *testing.T) {
 			},
 		},
 	})
-	err := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 	assert.Nil(t, err)
 	assert.Nil(t, pipelineFake.GetReadArtifactRequest())
 	assert.Nil(t, pipelineFake.GetReportedMetricsRequest())
@@ -182,9 +176,9 @@ func TestReportMetrics_Succeed(t *testing.T) {
 		Results: []*api.ReportRunMetricsResponse_ReportRunMetricResult{},
 	}, nil)
 
-	err1 := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 
-	assert.Nil(t, err1)
+	assert.Nil(t, err)
 	expectedMetricsRequest := &api.ReportRunMetricsRequest{
 		RunId: "run-1",
 		Metrics: []*api.RunMetric{
@@ -203,7 +197,7 @@ func TestReportMetrics_Succeed(t *testing.T) {
 	got := pipelineFake.GetReportedMetricsRequest()
 	if diff := cmp.Diff(expectedMetricsRequest, got, cmpopts.EquateEmpty(), protocmp.Transform()); diff != "" {
 		t.Errorf("parseRuntimeInfo() = %+v, want %+v\nDiff (-want, +got)\n%s", got, expectedMetricsRequest, diff)
-		s, _ := json.MarshalIndent(expectedMetricsRequest, "", "  ")
+		s, _ := json.MarshalIndent(expectedMetricsRequest ,"", "  ")
 		fmt.Printf("Want %s", s)
 	}
 }
@@ -241,7 +235,7 @@ func TestReportMetrics_EmptyArchive_Fail(t *testing.T) {
 			Data: []byte(artifactData),
 		})
 
-	err := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 
 	assert.NotNil(t, err)
 	assert.True(t, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT))
@@ -284,7 +278,7 @@ func TestReportMetrics_MultipleFilesInArchive_Fail(t *testing.T) {
 			Data: []byte(artifactData),
 		})
 
-	err := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 
 	assert.NotNil(t, err)
 	assert.True(t, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT))
@@ -326,7 +320,7 @@ func TestReportMetrics_InvalidMetricsJSON_Fail(t *testing.T) {
 			Data: []byte(artifactData),
 		})
 
-	err := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 
 	assert.NotNil(t, err)
 	assert.True(t, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT))
@@ -387,7 +381,7 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 			Data: []byte(validArtifactData),
 		})
 
-	err := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 
 	// Partial failure is reported while valid metrics are reported.
 	assert.NotNil(t, err)
@@ -410,7 +404,7 @@ func TestReportMetrics_InvalidMetricsJSON_PartialFail(t *testing.T) {
 	got := pipelineFake.GetReportedMetricsRequest()
 	if diff := cmp.Diff(expectedMetricsRequest, got, cmpopts.EquateEmpty(), protocmp.Transform()); diff != "" {
 		t.Errorf("parseRuntimeInfo() = %+v, want %+v\nDiff (-want, +got)\n%s", got, expectedMetricsRequest, diff)
-		s, _ := json.MarshalIndent(expectedMetricsRequest, "", "  ")
+		s, _ := json.MarshalIndent(expectedMetricsRequest ,"", "  ")
 		fmt.Printf("Want %s", s)
 	}
 }
@@ -447,7 +441,7 @@ func TestReportMetrics_CorruptedArchiveFile_Fail(t *testing.T) {
 			Data: []byte("invalid tgz content"),
 		})
 
-	err := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 
 	assert.NotNil(t, err)
 	assert.True(t, util.HasCustomCode(err, util.CUSTOM_CODE_PERMANENT))
@@ -511,54 +505,8 @@ func TestReportMetrics_MultiplMetricErrors_TransientErrowWin(t *testing.T) {
 		},
 	}, nil)
 
-	err := reporter.ReportMetrics(workflow, USER)
+	err := reporter.ReportMetrics(workflow)
 
 	assert.NotNil(t, err)
 	assert.True(t, util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT))
-}
-
-func TestReportMetrics_Unauthorized(t *testing.T) {
-	pipelineFake := client.NewPipelineClientFake()
-	reporter := NewMetricsReporter(pipelineFake)
-	k8sFake := client.NewKubernetesCoreFake()
-	k8sFake.Set(NamespaceName, USER)
-
-	workflow := util.NewWorkflow(&workflowapi.Workflow{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "MY_NAMESPACE",
-			Name:      "MY_NAME",
-			UID:       types.UID("run-1"),
-			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "run-1"},
-		},
-		Status: workflowapi.WorkflowStatus{
-			Nodes: map[string]workflowapi.NodeStatus{
-				"node-1": workflowapi.NodeStatus{
-					ID:    "node-1",
-					Phase: workflowapi.NodeSucceeded,
-					Outputs: &workflowapi.Outputs{
-						Artifacts: []workflowapi.Artifact{{Name: "mlpipeline-metrics"}},
-					},
-				},
-			},
-		},
-	})
-	metricsJSON := `{"metrics": [{"name": "accuracy", "numberValue": 0.77}, {"name": "logloss", "numberValue": 1.2}]}`
-	artifactData, _ := util.ArchiveTgz(map[string]string{"file": metricsJSON})
-	pipelineFake.StubArtifact(
-		&api.ReadArtifactRequest{
-			RunId:        "run-1",
-			NodeId:       "node-1",
-			ArtifactName: "mlpipeline-metrics",
-		},
-		&api.ReadArtifactResponse{
-			Data: []byte(artifactData),
-		})
-	pipelineFake.StubReportRunMetrics(&api.ReportRunMetricsResponse{
-		Results: []*api.ReportRunMetricsResponse_ReportRunMetricResult{},
-	}, errors.New("failed to read artifacts"))
-
-	err1 := reporter.ReportMetrics(workflow, USER)
-
-	assert.NotNil(t, err1)
-	assert.Contains(t, err1.Error(), "failed to read artifacts")
 }
