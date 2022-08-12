@@ -62,7 +62,7 @@ const css = stylesheet({
 
 interface RunV2Props {
   namespace?: string;
-  originalRunId: string | null;
+  existingRunId: string | null;
   apiRun: ApiRunDetail | undefined;
   apiPipeline: ApiPipeline | undefined;
   apiPipelineVersion: ApiPipelineVersion | undefined;
@@ -98,14 +98,14 @@ function NewRunV2(props: NewRunV2Props) {
   const urlParser = new URLParser(props);
   const usePipelineFromRunLabel = 'Using pipeline from existing run.';
   const { apiRun, apiPipeline, apiPipelineVersion } = props;
-  const pipelineDetailsUrl = props.originalRunId
+  const pipelineDetailsUrl = props.existingRunId
     ? RoutePage.PIPELINE_DETAILS.replace(
         ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
         '',
-      ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: props.originalRunId })
+      ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: props.existingRunId })
     : '';
 
-  const { templateString, originalRunId } = props;
+  const { templateString, existingRunId: originalRunId } = props;
   const isTemplatePullSuccess = templateString && templateString !== '';
   const apiResourceRefFromRun = apiRun?.run?.resource_references
     ? apiRun.run?.resource_references

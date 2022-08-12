@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { render, waitFor } from '@testing-library/react';
 import { graphlib } from 'dagre';
 import { ReactWrapper, shallow, ShallowWrapper } from 'enzyme';
 import * as React from 'react';
@@ -203,10 +204,25 @@ describe('PipelineDetails', () => {
     },
   );
 
-  it('parses the workflow source in embedded pipeline spec as JSON and then converts it to YAML', async () => {
+  it('parses the workflow source in embedded pipeline spec as JSON and then converts it to YAML (v1)', async () => {
     testRun.run!.pipeline_spec = {
       pipeline_id: 'run-pipeline-id',
       workflow_manifest: '{"spec": {"arguments": {"parameters": [{"name": "output"}]}}}',
+    };
+
+    tree = shallow(<PipelineDetails {...generateProps(true)} />);
+    await TestUtils.flushPromises();
+
+    expect(tree.state('templateString')).toBe(
+      'spec:\n  arguments:\n    parameters:\n      - name: output\n',
+    );
+  });
+
+  it('directly uses pipeline manifest as template string (v2)', async () => {
+    testRun.run!.pipeline_spec = {
+      pipeline_id: 'run-pipeline-id',
+      workflow_manifest: '{"spec": {"arguments": {"parameters": [{"name": "output"}]}}}',
+      pipeline_manifest: 'spec:\n  arguments:\n    parameters:\n      - name: output\n',
     };
 
     tree = shallow(<PipelineDetails {...generateProps(true)} />);
@@ -223,19 +239,19 @@ describe('PipelineDetails', () => {
       workflow_manifest: 'not valid JSON',
     };
 
-    tree = shallow(<PipelineDetails {...generateProps(true)} />);
-    await TestUtils.flushPromises();
-
-    expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
-    expect(updateBannerSpy).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        additionalInfo: 'Unexpected token o in JSON at position 1',
-        message: `Failed to parse pipeline spec from run with ID: ${
-          testRun.run!.id
-        }. Click Details for more information.`,
-        mode: 'error',
-      }),
-    );
+    render(<PipelineDetails {...generateProps(true)} />);
+    await waitFor(() => {
+      expect(updateBannerSpy).toHaveBeenCalledTimes(2); // Once to clear banner, once to show error
+      expect(updateBannerSpy).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          additionalInfo: 'Unexpected token o in JSON at position 1',
+          message: `Failed to parse pipeline spec from run with ID: ${
+            testRun.run!.id
+          }. Click Details for more information.`,
+          mode: 'error',
+        }),
+      );
+    });
   });
 
   it('shows load error banner when failing to get run details, when loading from run spec', async () => {
