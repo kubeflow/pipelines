@@ -125,6 +125,37 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
 
   @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
   @mock.patch.object(os.path, 'exists', autospec=True)
+  def test_batch_prediction_job_remote_runner_job_exists(
+      self, mock_path_exists, mock_job_service_client):
+    job_client = mock.Mock()
+    mock_job_service_client.return_value = job_client
+
+    create_batch_prediction_job_response = mock.Mock()
+    job_client.create_batch_prediction_job.return_value = create_batch_prediction_job_response
+    create_batch_prediction_job_response.name = self._batch_prediction_job_name
+
+    get_batch_prediction_job_response = mock.Mock()
+    job_client.get_batch_prediction_job.return_value = get_batch_prediction_job_response
+    get_batch_prediction_job_response.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
+    get_batch_prediction_job_response.name = 'job1'
+    get_batch_prediction_job_response.output_info.bigquery_output_table = 'bigquery_output_table'
+    get_batch_prediction_job_response.output_info.bigquery_output_dataset = 'bq://bq_project.bigquery_output_dataset'
+    get_batch_prediction_job_response.output_info.gcs_output_directory = ''
+
+    mock_path_exists.return_value = False
+
+    batch_prediction_job_remote_runner.create_batch_prediction_job(
+        self._job_type, self._project, self._location, self._payload,
+        self._gcp_resources, self._executor_input)
+    remote_runner = job_remote_runner.JobRemoteRunner(type, self._project,
+                                                      self._location,
+                                                      self._gcp_resources)
+    mock_path_exists.return_value = True
+    self.assertEqual(
+        remote_runner.check_if_job_exists(), self._batch_prediction_job_name)
+
+  @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
+  @mock.patch.object(os.path, 'exists', autospec=True)
   def test_batch_prediction_job_remote_runner_succeeded_output_gcs(
       self, mock_path_exists, mock_job_service_client):
     job_client = mock.Mock()
