@@ -72,6 +72,21 @@ type NewRunV2Props = RunV2Props & PageProps;
 export type SpecParameters = { [key: string]: ComponentInputsSpec_ParameterSpec };
 export type RuntimeParameters = { [key: string]: any };
 
+function hasVersionID(apiRun : ApiRunDetail | undefined): boolean {
+  if (!apiRun) {
+    console.log('has version');
+    return true;
+  }
+  let hasVersionType: boolean = false;
+  if (apiRun.run?.resource_references) {
+    apiRun.run.resource_references.forEach(value => {
+      hasVersionType = hasVersionType || value.key?.type === ApiResourceType.PIPELINEVERSION;
+    })
+  }
+  console.log(hasVersionType);
+  return hasVersionType;
+}
+
 function NewRunV2(props: NewRunV2Props) {
   // List of elements we need to create Pipeline Run.
   const [runName, setRunName] = useState('');
@@ -157,7 +172,7 @@ function NewRunV2(props: NewRunV2Props) {
     } else {
       setIsStartButtonEnabled(true);
     }
-  }, [templateString, errorMessage, isParameterValid, apiPipelineVersion, apiResourceRefFromRun]);
+  }, [templateString, errorMessage, isParameterValid]);
 
   useEffect(() => {
     if (apiRun?.run?.pipeline_spec?.runtime_config) {
@@ -208,7 +223,7 @@ function NewRunV2(props: NewRunV2Props) {
       description: runDescription,
       name: runName,
       pipeline_spec: {
-        pipeline_manifest: templateString,
+        pipeline_manifest: hasVersionID(apiRun) ? undefined : templateString,
         runtime_config: {
           // TODO(zijianjoy): determine whether to provide pipeline root.
           pipeline_root: undefined, // pipelineRoot,

@@ -294,7 +294,7 @@ describe('NewRunV2', () => {
           expect.objectContaining({
             description: '',
             pipeline_spec: {
-              pipeline_manifest: v2YamlTemplateString,
+              pipeline_manifest: undefined,
               runtime_config: { parameters: { intParam: 123 }, pipeline_root: undefined },
             },
             resource_references: [
