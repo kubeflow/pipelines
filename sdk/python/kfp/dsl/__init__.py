@@ -15,33 +15,14 @@ compose pipelines."""
 # limitations under the License.
 
 __all__ = [
-    'component',
-    'container_component',
-    'ContainerSpec',
-    'importer',
-    'pipeline',
-    'PipelineTask',
-    'PipelineTaskFinalStatus',
-    'Condition',
-    'ExitHandler',
-    'ParallelFor',
-    'Artifact',
-    'ClassificationMetrics',
-    'Dataset',
-    'HTML',
-    'Markdown',
-    'Metrics',
-    'Model',
-    'SlicedClassificationMetrics',
-    'Input',
-    'Output',
-    'InputPath',
-    'OutputPath',
-    'PIPELINE_JOB_NAME_PLACEHOLDER',
-    'PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER',
-    'PIPELINE_JOB_ID_PLACEHOLDER',
-    'PIPELINE_TASK_NAME_PLACEHOLDER',
-    'PIPELINE_TASK_ID_PLACEHOLDER',
+    'component', 'container_component', 'ContainerSpec', 'importer', 'pipeline',
+    'PipelineTask', 'PipelineTaskFinalStatus', 'Condition', 'ExitHandler',
+    'ParallelFor', 'Artifact', 'ClassificationMetrics', 'Dataset', 'HTML',
+    'Markdown', 'Metrics', 'Model', 'SlicedClassificationMetrics', 'Input',
+    'Output', 'InputPath', 'OutputPath', 'PIPELINE_JOB_NAME_PLACEHOLDER',
+    'PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER', 'PIPELINE_JOB_ID_PLACEHOLDER',
+    'PIPELINE_TASK_NAME_PLACEHOLDER', 'PIPELINE_TASK_ID_PLACEHOLDER',
+    'IfPresentPlaceholder', 'ConcatPlaceholder'
 ]
 
 from kfp.components.component_decorator import component
@@ -49,6 +30,8 @@ from kfp.components.container_component_decorator import container_component
 from kfp.components.importer_node import importer
 from kfp.components.pipeline_context import pipeline
 from kfp.components.pipeline_task import PipelineTask
+from kfp.components.placeholders import ConcatPlaceholder
+from kfp.components.placeholders import IfPresentPlaceholder
 from kfp.components.structures import ContainerSpec
 from kfp.components.task_final_status import PipelineTaskFinalStatus
 from kfp.components.tasks_group import Condition
