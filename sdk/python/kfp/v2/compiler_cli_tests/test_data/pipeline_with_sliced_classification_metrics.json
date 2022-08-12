@@ -1,0 +1,66 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-simple-metric-op": {
+        "executorLabel": "exec-simple-metric-op",
+        "outputDefinitions": {
+          "artifacts": {
+            "sliced_eval_metrics": {
+              "artifactType": {
+                "schemaTitle": "system.SlicedClassificationMetrics",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-simple-metric-op": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "simple_metric_op"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.13' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef simple_metric_op(\n        sliced_eval_metrics: dsl.Output[dsl.SlicedClassificationMetrics]):\n    sliced_eval_metrics._sliced_metrics = {}\n    sliced_eval_metrics.load_confusion_matrix(\n        'a slice', categories=['cat1', 'cat2'], matrix=[[1, 0], [2, 4]])\n\n"
+            ],
+            "image": "python:3.7"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "test-sliced-metric"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "simple-metric-op": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-simple-metric-op"
+            },
+            "taskInfo": {
+              "name": "simple-metric-op"
+            }
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.8.13"
+  },
+  "runtimeConfig": {}
+}
