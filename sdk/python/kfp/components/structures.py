@@ -25,11 +25,12 @@ from google.protobuf import json_format
 import kfp
 from kfp.compiler import compiler
 from kfp.components import base_model
-from kfp.components import pipeline_channel
 from kfp.components import placeholders
 from kfp.components import utils
 from kfp.components import v1_components
 from kfp.components import v1_structures
+from kfp.components.container_component_artifact_channel import \
+    ContainerComponentArtifactChannel
 from kfp.components.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
@@ -415,7 +416,11 @@ def _check_valid_placeholder_reference(
         TypeError: if any argument is neither a str nor a placeholder
             instance.
     """
-    if isinstance(
+    if isinstance(placeholder, ContainerComponentArtifactChannel):
+        raise ValueError(
+            'Cannot access artifact by itself in the container definition. Please use .uri or .path instead to access the artifact.'
+        )
+    elif isinstance(
             placeholder,
         (placeholders.InputValuePlaceholder, placeholders.InputPathPlaceholder,
          placeholders.InputUriPlaceholder)):
