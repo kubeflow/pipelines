@@ -295,6 +295,7 @@ class SlicedClassificationMetrics(Artifact):
                  uri: Optional[str] = None,
                  metadata: Optional[Dict] = None):
         super().__init__(uri=uri, name=name, metadata=metadata)
+        self._sliced_metrics: Dict[str, ClassificationMetrics] = {}
 
     def _upsert_classification_metrics_for_slice(self, slice: str):
         """Upserts the classification metrics instance for a slice."""
