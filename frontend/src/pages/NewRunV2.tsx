@@ -74,7 +74,6 @@ export type RuntimeParameters = { [key: string]: any };
 
 function hasVersionID(apiRun : ApiRunDetail | undefined): boolean {
   if (!apiRun) {
-    console.log('has version');
     return true;
   }
   let hasVersionType: boolean = false;
@@ -83,7 +82,6 @@ function hasVersionID(apiRun : ApiRunDetail | undefined): boolean {
       hasVersionType = hasVersionType || value.key?.type === ApiResourceType.PIPELINEVERSION;
     })
   }
-  console.log(hasVersionType);
   return hasVersionType;
 }
 
@@ -105,23 +103,22 @@ function NewRunV2(props: NewRunV2Props) {
   // TODO(zijianjoy): If creating run from Experiment Page or RunList Page, there is no pipelineId/Version.
   const urlParser = new URLParser(props);
   const usePipelineFromRunLabel = 'Using pipeline from existing run.';
-  const { apiRun, apiPipeline, apiPipelineVersion } = props;
-  const pipelineDetailsUrl = props.existingRunId
+  const { existingRunId, apiRun, apiPipeline, apiPipelineVersion, templateString } = props;
+  const pipelineDetailsUrl = existingRunId
     ? RoutePage.PIPELINE_DETAILS.replace(
         ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
         '',
-      ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: props.existingRunId })
+      ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: existingRunId })
     : '';
 
-  const { templateString, existingRunId: originalRunId } = props;
   const isTemplatePullSuccess = templateString && templateString !== '';
   const apiResourceRefFromRun = apiRun?.run?.resource_references
     ? apiRun.run?.resource_references
     : undefined;
 
   const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
-  const titleVerb = originalRunId ? 'Clone' : 'Start';
-  const titleAdjective = originalRunId ? '' : 'new';
+  const titleVerb = existingRunId ? 'Clone' : 'Start';
+  const titleAdjective = existingRunId ? '' : 'new';
 
   // Title and list of actions on the top of page.
   useEffect(() => {
