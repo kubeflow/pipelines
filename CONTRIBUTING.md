@@ -32,7 +32,7 @@ See the [SDK-specific Contribution Guidelines](https://github.com/kubeflow/pipel
 The frontend part of the project uses [prettier](https://prettier.io/) for formatting, read [frontend/README.md#code-style](frontend/README.md#code-style) for more details.
 
 ### Backend
-Use [gofmt](https://pkg.go.dev/cmd/gofmt) package to format your .go programs. Read [backend/README.md#code-style] for more details. 
+Use [gofmt](https://pkg.go.dev/cmd/gofmt) package to format your .go programs. Read [backend/README.md#code-style](backend/README.md#code-style) for more details. 
 
 ## Unit Testing Best Practices
 
