@@ -1,0 +1,165 @@
+components:
+  comp-aggregator:
+    executorLabel: exec-aggregator
+    inputDefinitions:
+      parameters:
+        strings:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-for-loop-2:
+    dag:
+      tasks:
+        my-component:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-my-component
+          inputs:
+            parameters:
+              string:
+                componentInputParameter: pipelinechannel--loop-item-param-1
+          taskInfo:
+            name: my-component
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: STRING
+  comp-get-list:
+    executorLabel: exec-get-list
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: LIST
+  comp-my-component:
+    executorLabel: exec-my-component
+    inputDefinitions:
+      parameters:
+        string:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-aggregator:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - aggregator
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.2'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef aggregator(strings: List[str]) -> str:\n    return strings[0]\n\
+          \n"
+        image: python:3.7
+    exec-get-list:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - get_list
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.2'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef get_list() -> List[str]:\n    return ['a', 'b', 'c']\n\n"
+        image: python:3.7
+    exec-my-component:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - my_component
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.2'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef my_component(string: str) -> str:\n    print(string)\n    return\
+          \ string\n\n"
+        image: python:3.7
+pipelineInfo:
+  name: pipeline
+root:
+  dag:
+    tasks:
+      aggregator:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-aggregator
+        dependentTasks:
+        - get-list
+        inputs:
+          parameters:
+            strings:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: get-list
+        taskInfo:
+          name: aggregator
+      for-loop-2:
+        componentRef:
+          name: comp-for-loop-2
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-1
+          items:
+            raw: '["a", "b", "c"]'
+        taskInfo:
+          name: for-loop-2
+      get-list:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-get-list
+        taskInfo:
+          name: get-list
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.2

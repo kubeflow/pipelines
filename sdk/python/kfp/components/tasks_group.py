@@ -211,3 +211,7 @@ class ParallelFor(TasksGroup):
     def __enter__(self) -> for_loop.LoopArgument:
         super().__enter__()
         return self.loop_argument
+
+    def __iter__(self):
+        super().__enter__()
+        return iter([self.loop_argument])

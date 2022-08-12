@@ -35,7 +35,6 @@ from kfp.components import for_loop
 from kfp.components import pipeline_channel
 from kfp.components import pipeline_context
 from kfp.components import tasks_group
-from kfp.components import utils as component_utils
 from kfp.components.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
@@ -144,7 +143,6 @@ class Compiler:
 
         with pipeline_context.Pipeline(pipeline_name) as dsl_pipeline:
             pipeline_func(*args_list)
-
         if not dsl_pipeline.tasks:
             raise ValueError('Task is missing from pipeline.')
 
