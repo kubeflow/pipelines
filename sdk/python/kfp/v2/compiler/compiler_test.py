@@ -18,6 +18,8 @@ import shutil
 import tempfile
 import unittest
 
+from typing import List
+
 from kfp import components
 from kfp.dsl import types
 from kfp.v2 import compiler
@@ -552,8 +554,8 @@ implementation:
             print(msg)
 
         @dsl.pipeline(name='test-pipeline')
-        def my_pipeline(json_str: str = json.dumps(['hello', 'world'])):
-            with dsl.ParallelFor(loop_args=json_str, parallelism=5) as item:
+        def my_pipeline(loop_params: List[str] = ['hello', 'world']):
+            with dsl.ParallelFor(loop_args=loop_params, parallelism=5) as item:
                 print_op(item)
 
         with tempfile.TemporaryDirectory() as tempdir:
@@ -574,16 +576,14 @@ implementation:
             print(msg)
 
         @dsl.pipeline(name='test-pipeline')
-        def my_pipeline(json_str: str = json.dumps(['hello', 'world'])):
-            with dsl.ParallelFor(loop_args=json_str, parallelism=-5) as item:
+        def my_pipeline(loop_params: List[str] = ['hello', 'world']):
+            with dsl.ParallelFor(loop_args=loop_params, parallelism=-5) as item:
                 print_op(item)
 
         with tempfile.TemporaryDirectory() as tempdir:
             package_path = os.path.join(tempdir, 'pipeline.json')
             with self.assertRaisesRegex(
-                    ValueError,
-                    'ParallelFor parallelism must be >= 0.'
-            ):
+                    ValueError, 'ParallelFor parallelism must be >= 0.'):
                 compiler.Compiler().compile(
                     pipeline_func=my_pipeline, package_path=package_path)
 
@@ -594,11 +594,11 @@ implementation:
             print(msg)
 
         @dsl.pipeline(name='test-pipeline')
-        def my_pipeline(json_str: str = json.dumps(['hello', 'world'])):
-            with dsl.ParallelFor(loop_args=json_str) as item:
+        def my_pipeline(loop_params: List[str] = ['hello', 'world']):
+            with dsl.ParallelFor(loop_args=loop_params) as item:
                 print_op(item)
 
-            with dsl.ParallelFor(loop_args=json_str, parallelism=0) as item:
+            with dsl.ParallelFor(loop_args=loop_params, parallelism=0) as item:
                 print_op(item)
 
         with tempfile.TemporaryDirectory() as tempdir:
