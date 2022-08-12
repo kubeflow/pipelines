@@ -72,7 +72,7 @@ type NewRunV2Props = RunV2Props & PageProps;
 export type SpecParameters = { [key: string]: ComponentInputsSpec_ParameterSpec };
 export type RuntimeParameters = { [key: string]: any };
 
-function hasVersionID(apiRun : ApiRunDetail | undefined): boolean {
+function hasVersionID(apiRun: ApiRunDetail | undefined): boolean {
   if (!apiRun) {
     return true;
   }
@@ -80,7 +80,7 @@ function hasVersionID(apiRun : ApiRunDetail | undefined): boolean {
   if (apiRun.run?.resource_references) {
     apiRun.run.resource_references.forEach(value => {
       hasVersionType = hasVersionType || value.key?.type === ApiResourceType.PIPELINEVERSION;
-    })
+    });
   }
   return hasVersionType;
 }
@@ -111,7 +111,7 @@ function NewRunV2(props: NewRunV2Props) {
       ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: existingRunId })
     : '';
 
-  const isTemplatePullSuccess = templateString && templateString !== '';
+  const isTemplatePullSuccess = templateString ? true : false;
   const apiResourceRefFromRun = apiRun?.run?.resource_references
     ? apiRun.run?.resource_references
     : undefined;
