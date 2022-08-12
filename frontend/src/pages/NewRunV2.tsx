@@ -20,7 +20,7 @@ import { useMutation } from 'react-query';
 import { Link } from 'react-router-dom';
 import { ApiExperiment, ApiExperimentStorageState } from 'src/apis/experiment';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
-import { ApiTrigger } from 'src/apis/job';
+import { ApiJob, ApiTrigger } from 'src/apis/job';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import {
   ApiRelationship,
@@ -197,6 +197,10 @@ function NewRunV2(props: NewRunV2Props) {
     // return isRecurringRun ? Apis.jobServiceApi.createJob(apiRun) : Apis.runServiceApi.createRun(apiRun);
     return Apis.runServiceApi.createRun(apiRun);
   });
+  const newRecurringRunMutation = useMutation((apiJob: ApiJob) => {
+    return Apis.jobServiceApi.createJob(apiJob);
+  })
+
   const startRun = () => {
     const references: ApiResourceReference[] = [];
     if (apiExperiment) {
@@ -232,17 +236,21 @@ function NewRunV2(props: NewRunV2Props) {
       resource_references: apiResourceRefFromRun ? apiResourceRefFromRun : references,
       service_account: serviceAccount,
     };
-    if (isRecurringRun) {
-      newRun = Object.assign(newRun, {
+
+    let newRecurringRun: ApiJob = Object.assign(newRun, isRecurringRun ? {
         enabled: true,
         max_concurrency: maxConcurrentRuns || '1',
         no_catchup: !catchup,
         trigger: trigger,
-      });
-    }
+      } : {
+        enabled: false,
+        max_concurrency: undefined,
+        no_catchup: undefined,
+        trigger: undefined,
+      } );
     setIsStartingNewRun(true);
 
-    newRunMutation.mutate(newRun, {
+    const runCreation = () => newRunMutation.mutate(newRun, {
       onSuccess: data => {
         setIsStartingNewRun(false);
         if (data.run?.id) {
@@ -265,6 +273,33 @@ function NewRunV2(props: NewRunV2Props) {
         });
       },
     });
+
+    const recurringRunCreation = () => newRecurringRunMutation.mutate(newRecurringRun, {
+      onSuccess: data => {
+        setIsStartingNewRun(false);
+        if (data.id) {
+          props.history.push(RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, data.id));
+        }
+        props.history.push(RoutePage.RUNS);
+
+        props.updateSnackbar({
+          message: `Successfully started new recurring Run: ${data.name}`,
+          open: true,
+        });
+      },
+      onError: async error => {
+        const errorMessage = await errorToMessage(error);
+        props.updateDialog({
+          buttons: [{ text: 'Dismiss' }],
+          onClose: () => setIsStartingNewRun(false),
+          content: errorMessage,
+          title: 'Recurring run creation failed',
+        });
+      },
+    })
+
+    isRecurringRun ? recurringRunCreation() : runCreation();
+
   };
 
   return (
