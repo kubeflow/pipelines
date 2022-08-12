@@ -15,14 +15,35 @@ compose pipelines."""
 # limitations under the License.
 
 __all__ = [
-    'component', 'container_component', 'ContainerSpec', 'importer', 'pipeline',
-    'PipelineTask', 'PipelineTaskFinalStatus', 'Condition', 'ExitHandler',
-    'ParallelFor', 'Artifact', 'ClassificationMetrics', 'Dataset', 'HTML',
-    'Markdown', 'Metrics', 'Model', 'SlicedClassificationMetrics', 'Input',
-    'Output', 'InputPath', 'OutputPath', 'PIPELINE_JOB_NAME_PLACEHOLDER',
-    'PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER', 'PIPELINE_JOB_ID_PLACEHOLDER',
-    'PIPELINE_TASK_NAME_PLACEHOLDER', 'PIPELINE_TASK_ID_PLACEHOLDER',
-    'IfPresentPlaceholder', 'ConcatPlaceholder'
+    'component',
+    'container_component',
+    'ContainerSpec',
+    'importer',
+    'pipeline',
+    'PipelineTask',
+    'PipelineTaskFinalStatus',
+    'Condition',
+    'ExitHandler',
+    'ParallelFor',
+    'Artifact',
+    'ClassificationMetrics',
+    'Dataset',
+    'HTML',
+    'Markdown',
+    'Metrics',
+    'Model',
+    'SlicedClassificationMetrics',
+    'Input',
+    'Output',
+    'InputPath',
+    'OutputPath',
+    'PIPELINE_JOB_NAME_PLACEHOLDER',
+    'PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER',
+    'PIPELINE_JOB_ID_PLACEHOLDER',
+    'PIPELINE_TASK_NAME_PLACEHOLDER',
+    'PIPELINE_TASK_ID_PLACEHOLDER',
+    'IfPresentPlaceholder',
+    'ConcatPlaceholder',
 ]
 
 from kfp.components.component_decorator import component
