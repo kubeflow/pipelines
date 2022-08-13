@@ -1,6 +1,7 @@
 name: Create PersistentVolumeClaim in Kubernetes
 inputs:
 - {name: Name,         type: String}
+- {name: Namespace,    type: String, default: default}
 - {name: Storage size, type: String, default: 1Gi}
 outputs:
 - {name: Name,         type: String}
@@ -16,8 +17,9 @@ implementation:
     - -exc
     - |
       name=$0
-      storage_size=$1
-      output_name_path=$2
+      namespace=$1
+      storage_size=$2
+      output_name_path=$3
       mkdir -p "$(dirname "$output_name_path")"
       object_path=$(mktemp)
 
@@ -26,6 +28,7 @@ implementation:
       kind: PersistentVolumeClaim
       metadata:
         name: $name
+        namespace: $namespace
       spec:
         #storageClassName: standard
         accessModes:
@@ -34,10 +37,11 @@ implementation:
           requests:
             storage: $storage_size
       EOF
-      object_name=$(kubectl apply -f "$object_path" --namespace default --output=name)
+      object_name=$(kubectl apply -f "$object_path" --output=name)
       object_name=${object_name##persistentvolumeclaim/}
       echo "$object_name" >"$output_name_path"
 
     - {inputValue: Name}
+    - {inputValue: Namespace}
     - {inputValue: Storage size}
     - {outputPath: Name}
