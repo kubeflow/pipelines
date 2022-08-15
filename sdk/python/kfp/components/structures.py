@@ -245,7 +245,9 @@ class ContainerSpecImplementation(base_model.BaseModel):
         self.env = None if self.env == {} else self.env
 
     @classmethod
-    def from_container_spec(cls, container_spec: ContainerSpec):
+    def from_container_spec(
+            cls,
+            container_spec: ContainerSpec) -> 'ContainerSpecImplementation':
         return ContainerSpecImplementation(
             image=container_spec.image,
             command=container_spec.command,
