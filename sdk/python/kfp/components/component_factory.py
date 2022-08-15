@@ -419,7 +419,7 @@ def create_component_from_func(func: Callable,
 
     component_spec = extract_component_interface(func)
     component_spec.implementation = structures.Implementation(
-        container=structures.ContainerSpec(
+        container=structures.ContainerSpecImplementation(
             image=component_image,
             command=packages_to_install_command + command,
             args=args,
@@ -481,6 +481,9 @@ def create_container_component_from_func(
             arg_list.append(placeholders.InputValuePlaceholder(io_name))
 
     container_spec = func(*arg_list)
-    component_spec.implementation = structures.Implementation(container_spec)
+    container_spec_implementation = structures.ContainerSpecImplementation.from_container_spec(
+        container_spec)
+    component_spec.implementation = structures.Implementation(
+        container_spec_implementation)
     component_spec.validate_placeholders()
     return container_component.ContainerComponent(component_spec, func)
