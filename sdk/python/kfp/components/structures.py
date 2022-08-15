@@ -179,7 +179,7 @@ class ResourceSpec(base_model.BaseModel):
 
 
 class ContainerSpec(base_model.BaseModel):
-    """Container implementation definition.
+    """Container definition.
 
     This is only used for pipeline authors when constructing a containerized component
     using @container_component decorator.
@@ -214,6 +214,18 @@ class ContainerSpec(base_model.BaseModel):
     args: Optional[List[placeholders.CommandLineElement]] = None
     """Arguments to the container entrypoint."""
 
+
+class ContainerSpecImplementation(base_model.BaseModel):
+    """Container implementation definition."""
+    image: str
+    """Container image."""
+
+    command: Optional[List[placeholders.CommandLineElement]] = None
+    """Container entrypoint."""
+
+    args: Optional[List[placeholders.CommandLineElement]] = None
+    """Arguments to the container entrypoint."""
+
     env: Optional[Mapping[str, placeholders.CommandLineElement]] = None
     """Environment variables to be passed to the container."""
 
@@ -233,17 +245,29 @@ class ContainerSpec(base_model.BaseModel):
         self.env = None if self.env == {} else self.env
 
     @classmethod
-    def from_container_dict(cls, container_dict: Dict[str,
-                                                      Any]) -> 'ContainerSpec':
-        """Creates a ContainerSpec from a PipelineContainerSpec message in dict
-        format (pipeline_spec.deploymentSpec.executors.<executor-
-        key>.container).
+    def from_container_spec(
+            cls,
+            container_spec: ContainerSpec) -> 'ContainerSpecImplementation':
+        return ContainerSpecImplementation(
+            image=container_spec.image,
+            command=container_spec.command,
+            args=container_spec.args,
+            env=None,
+            resources=None)
+
+    @classmethod
+    def from_container_dict(
+            cls, container_dict: Dict[str,
+                                      Any]) -> 'ContainerSpecImplementation':
+        """Creates a ContainerSpecImplementation from a PipelineContainerSpec
+        message in dict format
+        (pipeline_spec.deploymentSpec.executors.<executor- key>.container).
 
         Args:
             container_dict (Dict[str, Any]): PipelineContainerSpec message in dict format.
 
         Returns:
-            ContainerSpec: The ContainerSpec instance.
+            ContainerSpecImplementation: The ContainerSpecImplementation instance.
         """
         args = container_dict.get('args')
         if args is not None:
@@ -257,7 +281,7 @@ class ContainerSpec(base_model.BaseModel):
                 placeholders.maybe_convert_placeholder_string_to_placeholder(c)
                 for c in command
             ]
-        return ContainerSpec(
+        return ContainerSpecImplementation(
             image=container_dict['image'],
             command=command,
             args=args,
@@ -377,7 +401,7 @@ class Implementation(base_model.BaseModel):
         graph: graph implementation details.
         importer: importer implementation details.
     """
-    container: Optional[ContainerSpec] = None
+    container: Optional[ContainerSpecImplementation] = None
     graph: Optional[DagSpec] = None
     importer: Optional[ImporterSpec] = None
 
@@ -396,7 +420,8 @@ class Implementation(base_model.BaseModel):
         """
         executor_key = utils._EXECUTOR_LABEL_PREFIX + component_name
         container = deployment_spec_dict['executors'][executor_key]['container']
-        container_spec = ContainerSpec.from_container_dict(container)
+        container_spec = ContainerSpecImplementation.from_container_dict(
+            container)
         return Implementation(container=container_spec)
 
 
@@ -496,14 +521,14 @@ class ComponentSpec(base_model.BaseModel):
         if getattr(implementation, 'container', None) is None:
             return
 
-        containerSpec: ContainerSpec = implementation.container
+        containerSpecImplementation: ContainerSpecImplementation = implementation.container
 
         valid_inputs = [] if self.inputs is None else list(self.inputs.keys())
         valid_outputs = [] if self.outputs is None else list(
             self.outputs.keys())
 
-        for arg in itertools.chain((containerSpec.command or []),
-                                   (containerSpec.args or [])):
+        for arg in itertools.chain((containerSpecImplementation.command or []),
+                                   (containerSpecImplementation.args or [])):
             _check_valid_placeholder_reference(valid_inputs, valid_outputs, arg)
 
     @classmethod
@@ -549,7 +574,7 @@ class ComponentSpec(base_model.BaseModel):
                 command, component_dict=component_dict)
             for key, command in container.get('env', {}).items()
         }
-        container_spec = ContainerSpec.from_container_dict({
+        container_spec = ContainerSpecImplementation.from_container_dict({
             'image': container['image'],
             'command': container['command'],
             'args': container['args'],

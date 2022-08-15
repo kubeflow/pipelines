@@ -82,7 +82,7 @@ class PipelineTaskTest(parameterized.TestCase):
         expected_component_spec = structures.ComponentSpec(
             name='component1',
             implementation=structures.Implementation(
-                container=structures.ContainerSpec(
+                container=structures.ContainerSpecImplementation(
                     image='alpine',
                     command=['sh', '-c', 'echo "$0" >> "$1"'],
                     args=[
@@ -104,7 +104,7 @@ class PipelineTaskTest(parameterized.TestCase):
             dependent_tasks=[],
             component_ref='component1',
         )
-        expected_container_spec = structures.ContainerSpec(
+        expected_container_spec = structures.ContainerSpecImplementation(
             image='alpine',
             command=['sh', '-c', 'echo "$0" >> "$1"'],
             args=[
