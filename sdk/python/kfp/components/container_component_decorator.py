@@ -43,7 +43,7 @@ def container_component(
             return ContainerSpec(
                 image='gcr.io/my-image',
                 command=['sh', 'my_component.sh'],
-                arguments=[
+                args=[
                 '--dataset_path', dataset_path,
                 '--model_path', model.path,
                 '--output_parameter_path', output_parameter,

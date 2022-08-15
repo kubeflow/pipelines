@@ -207,7 +207,7 @@ class PipelineTask:
         self,
         component_spec: structures.ComponentSpec,
         args: Mapping[str, str],
-    ) -> structures.ContainerSpec:
+    ) -> structures.ContainerSpecImplementation:
         """Resolves the command line argument placeholders in a container spec.
 
         Args:

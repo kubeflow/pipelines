@@ -32,7 +32,7 @@ component_op = TestComponent(
     component_spec=structures.ComponentSpec(
         name='component_1',
         implementation=structures.Implementation(
-            container=structures.ContainerSpec(
+            container=structures.ContainerSpecImplementation(
                 image='alpine',
                 command=[
                     'sh',
