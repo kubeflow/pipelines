@@ -11,12 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Optional
-
-from kfp.components import placeholders
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
 from kfp.dsl import Dataset
+from kfp.dsl import IfPresentPlaceholder
 from kfp.dsl import Output
 from kfp.dsl import OutputPath
 
@@ -29,11 +27,11 @@ def container_with_if_placeholder(output_path: OutputPath(str),
         image='python:3.7',
         command=[
             'my_program',
-            placeholders.IfPresentPlaceholder(
+            IfPresentPlaceholder(
                 input_name='optional_input',
                 then=[optional_input],
                 else_=['bye']), '--dataset',
-            placeholders.IfPresentPlaceholder(
+            IfPresentPlaceholder(
                 input_name='optional_input', then=[dataset.uri], else_=['bye'])
         ],
         args=['--output_path', output_path])
