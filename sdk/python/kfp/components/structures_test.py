@@ -512,7 +512,7 @@ class TestContainerSpec(unittest.TestCase):
                 image='gcr.io/my-image',
                 command=['sh', 'run.sh'],
                 args=[
-                    placeholders.IfPresentPlaceholder(
+                    dsl.IfPresentPlaceholder(
                         input_name='optional_input',
                         then=[dataset_old],
                         else_=[dataset_new])
