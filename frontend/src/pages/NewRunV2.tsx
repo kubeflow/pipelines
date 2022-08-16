@@ -194,7 +194,6 @@ function NewRunV2(props: NewRunV2Props) {
 
   // Defines the behavior when user clicks `Start` button.
   const newRunMutation = useMutation((apiRun: ApiRun) => {
-    // return isRecurringRun ? Apis.jobServiceApi.createJob(apiRun) : Apis.runServiceApi.createRun(apiRun);
     return Apis.runServiceApi.createRun(apiRun);
   });
   const newRecurringRunMutation = useMutation((apiJob: ApiJob) => {
