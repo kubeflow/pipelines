@@ -632,18 +632,32 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
     // (1) new pipeline (and a default version) from local file
     // (2) new pipeline (and a default version) from url
     // (3) new pipeline version (under an existing pipeline) from url
-    const { fileName, pipeline, pipelineVersionName, packageUrl, newPipeline } = this.state;
+    const {
+      fileName,
+      pipeline,
+      pipelineVersionName,
+      packageUrl,
+      newPipeline,
+      pipelineName,
+    } = this.state;
     try {
       if (newPipeline) {
         if (!packageUrl && !fileName) {
           throw new Error('Must specify either package url  or file in .yaml, .zip, or .tar.gz');
         }
+        if (!pipelineName) {
+          throw new Error('Pipeline name is required');
+        }
+        this._isValidName(pipelineName!, 'Pipeline name');
       } else {
         if (!pipeline) {
           throw new Error('Pipeline is required');
         }
         if (!pipelineVersionName) {
           throw new Error('Pipeline version name is required');
+        }
+        if (pipelineVersionName && pipelineVersionName.length > 100) {
+          throw new Error('Pipeline version name must contain no more than 100 characters');
         }
         if (!packageUrl && !fileName) {
           throw new Error('Please specify either package url or file in .yaml, .zip, or .tar.gz');
@@ -652,6 +666,22 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
       this.setState({ validationError: '' });
     } catch (err) {
       this.setState({ validationError: err.message });
+    }
+  }
+
+  private _isValidName(name: string, title: string): void {
+    if (name.length > 100) {
+      throw new Error(title + ' must contain no more than 100 characters');
+    }
+    if (
+      !name
+        .match('[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
+        ?.includes(name)
+    ) {
+      throw new Error(
+        title +
+          " must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters.",
+      );
     }
   }
 
