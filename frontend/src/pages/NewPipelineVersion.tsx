@@ -653,7 +653,6 @@ class NewPipelineVersion extends Page<{}, NewPipelineVersionState> {
         if (!pipeline) {
           throw new Error('Pipeline is required');
         }
-        this._isValidName(pipelineName!, 'Pipeline name');
         if (!pipelineVersionName) {
           throw new Error('Pipeline version name is required');
         }
