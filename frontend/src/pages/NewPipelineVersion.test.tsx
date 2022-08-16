@@ -362,54 +362,33 @@ describe('NewPipelineVersion', () => {
       expect(createPipelineSpy).not.toHaveBeenCalled();
     });
 
-    it('allows updating pipeline name', async () => {
-      // const createPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'createPipeline');
-
-      // createPipelineSpy.mockResolvedValue(MOCK_PIPELINE);
-      // expect(createPipelineSpy).toHaveBeenCalledTimes(1),
-      
+    it('allows updating pipeline version name', async () => {      
       render(
         <TestNewPipelineVersion
         {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
         />,
       );
-
-      const pipelineNameInput = screen.getByLabelText('Pipeline Name')
-
-      fireEvent.change(pipelineNameInput, { target: {value: 'new-pipeline-name'}});
-      expect(pipelineNameInput.closest('input').value).toBe('new-pipeline-name');
-
-      // tree = shallow(
-      //   <TestNewPipelineVersion
-      //     {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
-      //   />,
-      // );
-      // await TestUtils.flushPromises();
-
-      // (tree.instance() as TestNewPipelineVersion).handleChange('pipelineName')({
-      //   target: { value: 'new pipeline name' },
-      // });
-
-      // expect(tree.state()).toHaveProperty('pipelineName', 'new pipeline name');
-      // expect(getPipelineSpy).toHaveBeenCalledTimes(1);
+      const pipelineVersionNameInput = await screen.findByLabelText(/Pipeline Version name/)
+      fireEvent.change(pipelineVersionNameInput, { target: {value: 'new-pipeline-name'}});
+      expect(pipelineVersionNameInput.closest('input')?.value).toBe('new-pipeline-name');
     });
 
     it('disable create button if pipeline name is invalid', async () => {
-      tree = shallow(
+      const res = 
+      render(
         <TestNewPipelineVersion
-          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
+        {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
         />,
       );
-      await TestUtils.flushPromises();
+      const formCtlLabel = screen.getByLabelText('Create a new pipeline')
+      fireEvent.click(formCtlLabel);
+      const pipelineNameInput = await screen.findByLabelText(/Pipeline Name/)
+      fireEvent.change(pipelineNameInput, { target: {value: 'new pipeline name?'}});
+      expect(pipelineNameInput.closest('input')?.value).toBe('new pipeline name?');
 
-      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineName')({
-        target: { value: 'new pipeline name?' },
-      });
-
-      expect(tree.state()).toHaveProperty('pipelineName', 'new pipeline name?');
-      expect(getPipelineSpy).toHaveBeenCalledTimes(1);
-
-      tree.find('#createNewPipelineOrVersionBtn').simulate('disable');
+      const createBtn = await screen.findByText('Create');
+      expect(createBtn.closest('button')?.disabled).toEqual(true);
+      screen.findByText("Pipeline name must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters.");
     });
   });
 });
