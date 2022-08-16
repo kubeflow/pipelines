@@ -7,7 +7,7 @@
 ### For Pipeline Authors
 
 ### For Component Authors
-* Add support for ConcatPlaceholder and IfPresentPlaceholder in containerized component [\#8145](https://github.com/kubeflow/pipelines/pull/8145)
+
 ## Deprecations
 
 ## Bug Fixes and Other Changes
