@@ -32,6 +32,8 @@ def container_with_artifact_output(
             num_epochs,
             '--model_path',
             model.uri,
+            '--model_metadata',
+            model.metadata,
             '--model_config_path',
             model_config_path,
         ])

@@ -163,7 +163,7 @@ class InputValuePlaceholder(base_model.BaseModel,
     """Class that holds an input value placeholder.
 
     Attributes:
-        output_name: Name of the input.
+        input_name: Name of the input.
     """
     input_name: str
     _aliases = {'input_name': 'inputValue'}
@@ -178,7 +178,7 @@ class InputPathPlaceholder(base_model.BaseModel,
     """Class that holds an input path placeholder.
 
     Attributes:
-        output_name: Name of the input.
+        input_name: Name of the input.
     """
     input_name: str
     _aliases = {'input_name': 'inputPath'}
@@ -193,7 +193,7 @@ class InputUriPlaceholder(base_model.BaseModel,
     """Class that holds an input uri placeholder.
 
     Attributes:
-        output_name: Name of the input.
+        input_name: Name of the input.
     """
     input_name: str
     _aliases = {'input_name': 'inputUri'}
@@ -203,12 +203,27 @@ class InputUriPlaceholder(base_model.BaseModel,
     )
 
 
+class InputMetadataPlaceholder(base_model.BaseModel,
+                               RegexPlaceholderSerializationMixin):
+    """Class that holds an input metadata placeholder.
+
+    Attributes:
+        input_name: Name of the input.
+    """
+    input_name: str
+    _aliases = {'input_name': 'inputMetadata'}
+    _TO_PLACEHOLDER = "{{{{$.inputs.artifacts['{input_name}'].metadata}}}}"
+    _FROM_PLACEHOLDER = re.compile(
+        r"^\{\{\$\.inputs\.artifacts\[(?:''|'|\")(?P<input_name>.+?)(?:''|'|\")]\.metadata\}\}$"
+    )
+
+
 class OutputParameterPlaceholder(base_model.BaseModel,
                                  RegexPlaceholderSerializationMixin):
     """Class that holds an output parameter placeholder.
 
     Attributes:
-        output_name: Name of the input.
+        output_name: Name of the output.
     """
     output_name: str
     _aliases = {'output_name': 'outputPath'}
@@ -223,7 +238,7 @@ class OutputPathPlaceholder(base_model.BaseModel,
     """Class that holds an output path placeholder.
 
     Attributes:
-        output_name: Name of the input.
+        output_name: Name of the output.
     """
     output_name: str
     _aliases = {'output_name': 'outputPath'}
@@ -245,6 +260,21 @@ class OutputUriPlaceholder(base_model.BaseModel,
     _TO_PLACEHOLDER = "{{{{$.outputs.artifacts['{output_name}'].uri}}}}"
     _FROM_PLACEHOLDER = re.compile(
         r"^\{\{\$\.outputs\.artifacts\[(?:''|'|\")(?P<output_name>.+?)(?:''|'|\")]\.uri\}\}$"
+    )
+
+
+class OutputMetadataPlaceholder(base_model.BaseModel,
+                                RegexPlaceholderSerializationMixin):
+    """Class that holds an output metadata placeholder.
+
+    Attributes:
+        output_name: Name of the output.
+    """
+    output_name: str
+    _aliases = {'output_name': 'outputMetadata'}
+    _TO_PLACEHOLDER = "{{{{$.outputs.artifacts['{output_name}'].metadata}}}}"
+    _FROM_PLACEHOLDER = re.compile(
+        r"^\{\{\$\.outputs\.artifacts\[(?:''|'|\")(?P<output_name>.+?)(?:''|'|\")]\.metadata\}\}$"
     )
 
 
