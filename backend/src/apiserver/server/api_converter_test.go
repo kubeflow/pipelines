@@ -190,7 +190,6 @@ func TestToApiRunDetail_V1Params(t *testing.T) {
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
 				Parameters:       []*api.Parameter{{Name: "param2", Value: "world"}},
-				RuntimeConfig:    &api.PipelineSpec_RuntimeConfig{},
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job123"},
@@ -277,7 +276,6 @@ func TestToApiRuns(t *testing.T) {
 			Status:       "running",
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
-				RuntimeConfig:    &api.PipelineSpec_RuntimeConfig{},
 			},
 			ResourceReferences: []*api.ResourceReference{
 				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job1"},
@@ -299,7 +297,6 @@ func TestToApiRuns(t *testing.T) {
 			},
 			PipelineSpec: &api.PipelineSpec{
 				WorkflowManifest: "manifest",
-				RuntimeConfig:    &api.PipelineSpec_RuntimeConfig{},
 			},
 			Metrics: []*api.RunMetric{apiMetric2},
 		},
@@ -420,10 +417,9 @@ func TestCronScheduledJobToApiJob(t *testing.T) {
 				Cron:      "1 * *",
 			}}},
 		PipelineSpec: &api.PipelineSpec{
-			Parameters:    []*api.Parameter{{Name: "param2", Value: "world"}},
-			PipelineId:    "1",
-			PipelineName:  "p1",
-			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{},
+			Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
+			PipelineId:   "1",
+			PipelineName: "p1",
 		},
 		ResourceReferences: []*api.ResourceReference{
 			{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: "experiment1"},
@@ -468,10 +464,9 @@ func TestPeriodicScheduledJobToApiJob(t *testing.T) {
 				IntervalSecond: 3,
 			}}},
 		PipelineSpec: &api.PipelineSpec{
-			Parameters:    []*api.Parameter{{Name: "param2", Value: "world"}},
-			PipelineId:    "1",
-			PipelineName:  "p1",
-			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{},
+			Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
+			PipelineId:   "1",
+			PipelineName: "p1",
 		},
 	}
 	assert.Equal(t, expectedJob, apiJob)
@@ -502,10 +497,9 @@ func TestNonScheduledJobToApiJob(t *testing.T) {
 		MaxConcurrency: 1,
 		Trigger:        &api.Trigger{},
 		PipelineSpec: &api.PipelineSpec{
-			Parameters:    []*api.Parameter{{Name: "param2", Value: "world"}},
-			PipelineId:    "1",
-			PipelineName:  "p1",
-			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{},
+			Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
+			PipelineId:   "1",
+			PipelineName: "p1",
 		},
 	}
 	assert.Equal(t, expectedJob, apiJob)
@@ -532,6 +526,63 @@ func TestToApiJob_ErrorParsingField(t *testing.T) {
 	assert.Contains(t, apiJob.Error, "InternalServerError: Parameter with wrong format is stored")
 }
 
+func TestToApiJob_V2(t *testing.T) {
+	modelJob := &model.Job{
+		UUID:        "job1",
+		DisplayName: "name 1",
+		Name:        "name1",
+		Enabled:     true,
+		Trigger: model.Trigger{
+			CronSchedule: model.CronSchedule{
+				CronScheduleStartTimeInSec: util.Int64Pointer(2),
+				Cron:                       util.StringPointer("2 * *"),
+			},
+		},
+		MaxConcurrency: 2,
+		NoCatchup:      true,
+		PipelineSpec: model.PipelineSpec{
+			PipelineId:   "1",
+			PipelineName: "p1",
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   "{\"param1\":\"world\"}",
+				PipelineRoot: "job-1-root",
+			},
+		},
+		CreatedAtInSec: 2,
+		UpdatedAtInSec: 2,
+	}
+	expectedJob := &api.Job{
+		Id:             "job1",
+		Name:           "name 1",
+		Enabled:        true,
+		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
+		MaxConcurrency: 2,
+		NoCatchup:      true,
+		Trigger: &api.Trigger{
+			Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 2},
+				Cron:      "2 * *",
+			}}},
+		PipelineSpec: &api.PipelineSpec{
+			PipelineId:   "1",
+			PipelineName: "p1",
+			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+				Parameters: map[string]*structpb.Value{
+					"param1": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
+				},
+				PipelineRoot: "job-1-root",
+			},
+		},
+	}
+	apiJob := ToApiJob(modelJob)
+	// Compare the string representation of ApiRuns, since these structs have internal fields
+	// used only by protobuff, and may be different. The .String() method marshal all
+	// exported fields into string format.
+	// See https://github.com/stretchr/testify/issues/758
+	assert.Equal(t, expectedJob.String(), apiJob.String())
+}
+
 func TestToApiJobs(t *testing.T) {
 	modelJob1 := model.Job{
 		UUID:        "job1",
@@ -548,7 +599,7 @@ func TestToApiJobs(t *testing.T) {
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   "1",
 			PipelineName: "p1",
-			Parameters:   `[{"name":"param2","value":"world"}]`,
+			Parameters:   `[{"name":"param1","value":"world"}]`,
 		},
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
@@ -569,7 +620,7 @@ func TestToApiJobs(t *testing.T) {
 		PipelineSpec: model.PipelineSpec{
 			PipelineId:   "2",
 			PipelineName: "p2",
-			Parameters:   `[{"name":"param2","value":"world"}]`,
+			Parameters:   `[{"name":"param1","value":"world"}]`,
 		},
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 2,
@@ -589,10 +640,9 @@ func TestToApiJobs(t *testing.T) {
 					Cron:      "1 * *",
 				}}},
 			PipelineSpec: &api.PipelineSpec{
-				Parameters:    []*api.Parameter{{Name: "param2", Value: "world"}},
-				PipelineId:    "1",
-				PipelineName:  "p1",
-				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{},
+				Parameters:   []*api.Parameter{{Name: "param1", Value: "world"}},
+				PipelineId:   "1",
+				PipelineName: "p1",
 			},
 		},
 		{
@@ -609,10 +659,9 @@ func TestToApiJobs(t *testing.T) {
 					Cron:      "2 * *",
 				}}},
 			PipelineSpec: &api.PipelineSpec{
-				Parameters:    []*api.Parameter{{Name: "param2", Value: "world"}},
-				PipelineId:    "2",
-				PipelineName:  "p2",
-				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{},
+				Parameters:   []*api.Parameter{{Name: "param1", Value: "world"}},
+				PipelineId:   "2",
+				PipelineName: "p2",
 			},
 		},
 	}

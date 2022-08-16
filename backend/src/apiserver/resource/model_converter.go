@@ -158,7 +158,7 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 	if templateType == template.V1 {
 		params, err := apiParametersToModelParameters(job.GetPipelineSpec().GetParameters())
 		if err != nil {
-			return nil, util.Wrap(err, "Unable to parse the parameter.")
+			return nil, util.Wrap(err, "Unable to parse the V1 parameter.")
 		}
 		modelJob.Parameters = params
 		modelJob.WorkflowSpecManifest = manifest
@@ -167,7 +167,7 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 	} else if templateType == template.V2 {
 		params, err := runtimeConfigToModelParameters(job.GetPipelineSpec().GetRuntimeConfig())
 		if err != nil {
-			return nil, util.Wrap(err, "Unable to parse the parameter.")
+			return nil, util.Wrap(err, "Unable to parse the V2 parameter.")
 		}
 		modelJob.PipelineSpecManifest = manifest
 		modelJob.PipelineSpec.RuntimeConfig.Parameters = params

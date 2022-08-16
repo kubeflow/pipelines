@@ -153,6 +153,9 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 }
 
 func toApiRuntimeConfig(modelRuntime model.RuntimeConfig) (*api.PipelineSpec_RuntimeConfig, error) {
+	if modelRuntime.Parameters == "" && modelRuntime.PipelineRoot == "" {
+		return nil, nil
+	}
 	var runtimeParams map[string]*structpb.Value
 	if modelRuntime.Parameters != "" {
 		err := json.Unmarshal([]byte(modelRuntime.Parameters), &runtimeParams)
