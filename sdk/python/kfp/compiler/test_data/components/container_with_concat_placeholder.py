@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from kfp.components import placeholders
+from kfp.dsl import ConcatPlaceholder
 from kfp.dsl import container_component
 from kfp.dsl import ContainerSpec
 from kfp.dsl import Dataset
@@ -26,7 +26,7 @@ def container_with_concat_placeholder(text1: str, text2: Output[Dataset],
         image='python:3.7',
         command=[
             'my_program',
-            placeholders.ConcatPlaceholder(['prefix-', text1, text2.uri])
+            ConcatPlaceholder(['prefix-', text1, text2.uri])
         ],
         args=['--output_path', output_path])
 
