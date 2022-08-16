@@ -225,18 +225,19 @@ class PipelineArtifactChannel(PipelineChannel):
         self,
         name: str,
         channel_type: Union[str, Dict],
-        task_name: str,
+        task_name: Optional[str],
     ):
         """Initializes a PipelineArtifactChannel instance.
 
         Args:
-          name: The name of the pipeline channel.
-          channel_type: The type of the pipeline channel.
-          task_name: The name of the task that produces the pipeline channel.
+            name: The name of the pipeline channel.
+            channel_type: The type of the pipeline channel.
+            task_name: Optional; the name of the task that produces the pipeline
+                channel.
 
         Raises:
-          ValueError: If name or task_name contains invalid characters.
-          TypeError: If the channel type is not an artifact type.
+            ValueError: If name or task_name contains invalid characters.
+            TypeError: If the channel type is not an artifact type.
         """
         if type_utils.is_parameter_type(channel_type):
             raise TypeError(f'{channel_type} is not an artifact type.')
@@ -251,7 +252,7 @@ class PipelineArtifactChannel(PipelineChannel):
 def create_pipeline_channel(
     name: str,
     channel_type: Union[str, Dict],
-    task_name: Optional[str],
+    task_name: Optional[str] = None,
     value: Optional[type_utils.PARAMETER_TYPES] = None,
 ) -> PipelineChannel:
     """Creates a PipelineChannel object.

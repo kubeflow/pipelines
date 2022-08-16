@@ -206,14 +206,30 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
 
         // V1: Convert the run's pipeline spec to YAML to be displayed as the pipeline's source.
         // V2: Use the pipeline spec string directly because it can be translated in JSON format.
-        try {
-          const workflowManifestString = RunUtils.getWorkflowManifest(runDetails.run) || '';
-          const workflowManifest = JSON.parse(workflowManifestString || '{}');
+        if (
+          isFeatureEnabled(FeatureKey.V2_ALPHA) &&
+          runDetails.run?.pipeline_spec?.pipeline_manifest
+        ) {
+          templateString = runDetails.run.pipeline_spec.pipeline_manifest;
+        } else {
           try {
-            if (WorkflowUtils.isPipelineSpec(workflowManifestString)) {
-              templateString = workflowManifestString;
-            } else {
-              templateString = JsYaml.safeDump(workflowManifest);
+            const workflowManifestString = RunUtils.getWorkflowManifest(runDetails.run) || '';
+            const workflowManifest = JSON.parse(workflowManifestString || '{}');
+            try {
+              if (WorkflowUtils.isPipelineSpec(workflowManifestString)) {
+                templateString = workflowManifestString;
+              } else {
+                templateString = JsYaml.safeDump(workflowManifest);
+              }
+            } catch (err) {
+              await this.showPageError(
+                `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`,
+                err,
+              );
+              logger.error(
+                `Failed to convert pipeline spec YAML from run with ID: ${runDetails.run!.id}.`,
+                err,
+              );
             }
           } catch (err) {
             await this.showPageError(
@@ -221,19 +237,10 @@ class PipelineDetails extends Page<{}, PipelineDetailsState> {
               err,
             );
             logger.error(
-              `Failed to convert pipeline spec YAML from run with ID: ${runDetails.run!.id}.`,
+              `Failed to parse pipeline spec JSON from run with ID: ${runDetails.run!.id}.`,
               err,
             );
           }
-        } catch (err) {
-          await this.showPageError(
-            `Failed to parse pipeline spec from run with ID: ${runDetails.run!.id}.`,
-            err,
-          );
-          logger.error(
-            `Failed to parse pipeline spec JSON from run with ID: ${runDetails.run!.id}.`,
-            err,
-          );
         }
 
         const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetails.run);

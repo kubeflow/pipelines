@@ -18,6 +18,7 @@ import (
 	"errors"
 
 	"github.com/ghodss/yaml"
+	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -101,6 +102,7 @@ type ExecutionSpec interface {
 	// having Execution prefix to avoid name conflict with underlying data struct
 	ExecutionName() string
 
+	// Set Name of the ExecutionSpec
 	SetExecutionName(name string)
 
 	// Namespace of the ExecutionSpec
@@ -113,7 +115,11 @@ type ExecutionSpec interface {
 	// having Execution prefix to avoid name conflict with underlying data struct
 	ExecutionUID() string
 
-	ExecutionMeta() metav1.ObjectMeta
+	// Get ObjectMeta
+	ExecutionObjectMeta() *metav1.ObjectMeta
+
+	// Get TypeMeta
+	ExecutionTypeMeta() *metav1.TypeMeta
 
 	// Get ScheduledWorkflowUUID from OwnerReferences
 	ScheduledWorkflowUUIDAsStringOrEmpty() string
@@ -130,6 +136,24 @@ type ExecutionSpec interface {
 	// Copy the ExecutionSpec, remove ExecutionStatus
 	// To prevent collisions, clear name, set GenerateName to first 200 runes of previous name.
 	GetExecutionSpec() ExecutionSpec
+
+	// Validate the ExecutionSpec
+	Validate(lint, ignoreEntrypoint bool) error
+
+	// Decompress ExecutionSpec. In most case, decompress infomation in status
+	Decompress() error
+
+	// Check if the ExecutionSpec allows retry, return error if not
+	CanRetry() error
+
+	// Convert Spec to JSON string for ScheduleWorkflow
+	ToStringForSchedule() string
+
+	// Set Labels for ScheduleWorkflow
+	SetCannonicalLabels(name string, nextScheduledEpoch int64, index int64)
+
+	// Set OwnerReferences from a ScheduledWorkflow
+	SetOwnerReferences(schedule *swfapi.ScheduledWorkflow)
 }
 
 // Convert YAML in bytes into ExecutionSpec instance
@@ -204,6 +228,20 @@ func MarshalParameters(execType ExecutionType, params SpecParameters) (string, e
 		return MarshalParametersWorkflow(params)
 	default:
 		return "", NewInternalServerError(
+			errors.New("ExecutionType is not supported"), "type:%s", execType)
+	}
+}
+
+// Unmarshal Spec from ScheduleWorkflow to ExecutionSpec. The returned ExecutionSpec
+// only contains Spec information, and has empty values for the metadata part.
+func ScheduleSpecToExecutionSpec(
+	execType ExecutionType, wfr *swfapi.WorkflowResource) (ExecutionSpec, error) {
+
+	switch execType {
+	case ArgoWorkflow:
+		return NewWorkflowFromScheduleWorkflowSpecBytesJSON([]byte(wfr.Spec))
+	default:
+		return nil, NewInternalServerError(
 			errors.New("ExecutionType is not supported"), "type:%s", execType)
 	}
 }

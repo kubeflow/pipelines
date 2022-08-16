@@ -111,3 +111,7 @@ func ToStringPointer(a *workflowapi.AnyString) *string {
 	}
 	return nil
 }
+
+func AnyStringPtr(val interface{}) *string {
+	return StringPointer(fmt.Sprintf("%v", val))
+}

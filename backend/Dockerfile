@@ -56,7 +56,7 @@ RUN set -e; \
     done
 
 # 3. Start api web server
-FROM debian:stretch
+FROM debian:stable
 
 ARG COMMIT_SHA=unknown
 ENV COMMIT_SHA=${COMMIT_SHA}

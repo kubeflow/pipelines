@@ -1,0 +1,49 @@
+components:
+  comp-container-with-concat-placeholder:
+    executorLabel: exec-container-with-concat-placeholder
+    inputDefinitions:
+      parameters:
+        text1:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        text2:
+          artifactType:
+            schemaTitle: system.Dataset
+            schemaVersion: 0.0.1
+      parameters:
+        output_path:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-container-with-concat-placeholder:
+      container:
+        args:
+        - --output_path
+        - '{{$.outputs.parameters[''output_path''].output_file}}'
+        command:
+        - my_program
+        - '{"Concat": ["prefix-", "{{$.inputs.parameters[''text1'']}}", "{{$.outputs.artifacts[''text2''].uri}}"]}'
+        image: python:3.7
+pipelineInfo:
+  name: container-with-concat-placeholder
+root:
+  dag:
+    tasks:
+      container-with-concat-placeholder:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-container-with-concat-placeholder
+        inputs:
+          parameters:
+            text1:
+              componentInputParameter: text1
+        taskInfo:
+          name: container-with-concat-placeholder
+  inputDefinitions:
+    parameters:
+      text1:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.1

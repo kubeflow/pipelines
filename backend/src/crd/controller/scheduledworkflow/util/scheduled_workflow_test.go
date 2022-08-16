@@ -15,6 +15,7 @@
 package util
 
 import (
+	"encoding/json"
 	"math"
 	"strconv"
 	"testing"
@@ -669,6 +670,17 @@ func TestScheduledWorkflow_NewWorkflow(t *testing.T) {
 	nowEpoch := int64(11 * hour)
 	creationTimestamp := metav1.NewTime(time.Unix(9*hour, 0).UTC())
 
+	spec, err := json.Marshal(workflowapi.WorkflowSpec{
+		ServiceAccountName: "SERVICE_ACCOUNT",
+		Arguments: workflowapi.Arguments{
+			Parameters: []workflowapi.Parameter{
+				{Name: "PARAM1", Value: workflowapi.AnyStringPtr("VALUE1")},
+				{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
+			},
+		},
+	})
+	assert.Nil(t, err)
+
 	schedule := ScheduledWorkflow{&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              "SCHEDULE1",
@@ -687,15 +699,7 @@ func TestScheduledWorkflow_NewWorkflow(t *testing.T) {
 					{Name: "PARAM1", Value: "NEW_VALUE1"},
 					{Name: "PARAM3", Value: "NEW_VALUE3"},
 				},
-				Spec: workflowapi.WorkflowSpec{
-					ServiceAccountName: "SERVICE_ACCOUNT",
-					Arguments: workflowapi.Arguments{
-						Parameters: []workflowapi.Parameter{
-							{Name: "PARAM1", Value: workflowapi.AnyStringPtr("VALUE1")},
-							{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
-						},
-					},
-				},
+				Spec: string(spec),
 			},
 		},
 	}, commonutil.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-426655440001", nil)}
@@ -738,7 +742,7 @@ func TestScheduledWorkflow_NewWorkflow(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, expected, result.Get())
+	assert.Equal(t, expected, result.(*commonutil.Workflow).Get())
 }
 
 func TestScheduledWorkflow_NewWorkflow_Parameterized(t *testing.T) {
@@ -746,6 +750,17 @@ func TestScheduledWorkflow_NewWorkflow_Parameterized(t *testing.T) {
 	scheduledEpoch := int64(10 * hour)
 	nowEpoch := int64(11 * hour)
 	creationTimestamp := metav1.NewTime(time.Unix(9*hour, 0).UTC())
+
+	spec, err := json.Marshal(workflowapi.WorkflowSpec{
+		ServiceAccountName: "SERVICE_ACCOUNT",
+		Arguments: workflowapi.Arguments{
+			Parameters: []workflowapi.Parameter{
+				{Name: "PARAM1", Value: workflowapi.AnyStringPtr("VALUE1")},
+				{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
+			},
+		},
+	})
+	assert.Nil(t, err)
 
 	schedule := ScheduledWorkflow{&swfapi.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{
@@ -765,15 +780,7 @@ func TestScheduledWorkflow_NewWorkflow_Parameterized(t *testing.T) {
 					{Name: "PARAM1", Value: "NEW_VALUE1_[[ScheduledTime]]"},
 					{Name: "PARAM2", Value: "NEW_VALUE2_[[Index]]"},
 				},
-				Spec: workflowapi.WorkflowSpec{
-					ServiceAccountName: "SERVICE_ACCOUNT",
-					Arguments: workflowapi.Arguments{
-						Parameters: []workflowapi.Parameter{
-							{Name: "PARAM1", Value: workflowapi.AnyStringPtr("VALUE1")},
-							{Name: "PARAM2", Value: workflowapi.AnyStringPtr("VALUE2")},
-						},
-					},
-				},
+				Spec: string(spec),
 			},
 		},
 	}, commonutil.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-426655440001", nil)}
@@ -815,5 +822,5 @@ func TestScheduledWorkflow_NewWorkflow_Parameterized(t *testing.T) {
 		},
 	}
 
-	assert.Equal(t, expected, result.Get())
+	assert.Equal(t, expected, result.(*commonutil.Workflow).Get())
 }

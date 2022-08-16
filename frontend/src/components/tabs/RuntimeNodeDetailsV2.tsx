@@ -22,7 +22,7 @@ import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { NodeTypeNames } from 'src/lib/v2/StaticFlow';
-import { getArtifactTypes, LinkedArtifact } from 'src/mlmd/MlmdUtils';
+import { getArtifactTypeName, getArtifactTypes, LinkedArtifact } from 'src/mlmd/MlmdUtils';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { Artifact, ArtifactType, Execution } from 'src/third_party/mlmd';
 import ArtifactPreview from '../ArtifactPreview';
@@ -241,15 +241,9 @@ function ArtifactInfo({
       .getCustomPropertiesMap()
       .get('display_name')
       ?.getStringValue() || '-';
-  let artifactTypeName = '-';
-  if (artifactTypes) {
-    const artifactType = artifactTypes.filter(
-      aType => aType.getId() === linkedArtifact.artifact.getTypeId(),
-    );
-    if (artifactType.length === 1 && artifactTypes[0].getName()) {
-      artifactTypeName = artifactTypes[0].getName();
-    }
-  }
+  let artifactTypeName = artifactTypes
+    ? getArtifactTypeName(artifactTypes, [linkedArtifact])
+    : ['-'];
 
   // Runtime artifact information.
   const createdAt = new Date(linkedArtifact.artifact.getCreateTimeSinceEpoch());
@@ -281,7 +275,7 @@ function ArtifactInfo({
         <DetailsTable<string>
           key={`artifact-url`}
           title='Artifact URL'
-          fields={getArtifactParamList([linkedArtifact])}
+          fields={getArtifactParamList([linkedArtifact], artifactTypeName)}
           valueComponent={ArtifactPreview}
           valueComponentProps={{
             namespace: namespace,

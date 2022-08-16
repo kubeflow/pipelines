@@ -21,6 +21,8 @@ import unittest
 from absl.testing import parameterized
 from google.protobuf import json_format
 from kfp import compiler
+from kfp import dsl
+from kfp.components import component_factory
 from kfp.components import placeholders
 from kfp.components import structures
 from kfp.pipeline_spec import pipeline_spec_pb2
@@ -47,7 +49,7 @@ V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
 COMPONENT_SPEC_IF_PLACEHOLDER = structures.ComponentSpec(
     name='component_if',
     implementation=structures.Implementation(
-        container=structures.ContainerSpec(
+        container=structures.ContainerSpecImplementation(
             image='alpine',
             args=[
                 placeholders.IfPresentPlaceholder(
@@ -81,7 +83,7 @@ V1_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
 COMPONENT_SPEC_CONCAT_PLACEHOLDER = structures.ComponentSpec(
     name='component_concat',
     implementation=structures.Implementation(
-        container=structures.ContainerSpec(
+        container=structures.ContainerSpecImplementation(
             image='alpine',
             args=[
                 placeholders.ConcatPlaceholder(items=[
@@ -120,7 +122,7 @@ V1_YAML_NESTED_PLACEHOLDER = textwrap.dedent("""\
 COMPONENT_SPEC_NESTED_PLACEHOLDER = structures.ComponentSpec(
     name='component_nested',
     implementation=structures.Implementation(
-        container=structures.ContainerSpec(
+        container=structures.ContainerSpecImplementation(
             image='alpine',
             args=[
                 placeholders.ConcatPlaceholder(items=[
@@ -167,7 +169,7 @@ V1_YAML_EXECUTOR_INPUT_PLACEHOLDER = textwrap.dedent("""\
 COMPONENT_SPEC_EXECUTOR_INPUT_PLACEHOLDER = structures.ComponentSpec(
     name='component_executor_input',
     implementation=structures.Implementation(
-        container=structures.ContainerSpec(
+        container=structures.ContainerSpecImplementation(
             image='alpine',
             command=[
                 'python',
@@ -195,7 +197,7 @@ class StructuresTest(parameterized.TestCase):
             structures.ComponentSpec(
                 name='component_1',
                 implementation=structures.Implementation(
-                    container=structures.ContainerSpec(
+                    container=structures.ContainerSpecImplementation(
                         image='alpine',
                         command=[
                             'sh',
@@ -218,7 +220,7 @@ class StructuresTest(parameterized.TestCase):
             structures.ComponentSpec(
                 name='component_1',
                 implementation=structures.Implementation(
-                    container=structures.ContainerSpec(
+                    container=structures.ContainerSpecImplementation(
                         image='alpine',
                         command=[
                             'sh',
@@ -239,7 +241,7 @@ class StructuresTest(parameterized.TestCase):
         original_component_spec = structures.ComponentSpec(
             name='component_1',
             implementation=structures.Implementation(
-                container=structures.ContainerSpec(
+                container=structures.ContainerSpecImplementation(
                     image='alpine',
                     command=[
                         'sh',
@@ -324,7 +326,7 @@ sdkVersion: kfp-2.0.0-alpha.2
         expected_spec = structures.ComponentSpec(
             name='component-1',
             implementation=structures.Implementation(
-                container=structures.ContainerSpec(
+                container=structures.ContainerSpecImplementation(
                     image='alpine',
                     command=[
                         'sh',
@@ -395,7 +397,7 @@ sdkVersion: kfp-2.0.0-alpha.2
         expected_spec = structures.ComponentSpec(
             name='Component with 2 inputs and 2 outputs',
             implementation=structures.Implementation(
-                container=structures.ContainerSpec(
+                container=structures.ContainerSpecImplementation(
                     image='busybox',
                     command=[
                         'sh',
@@ -426,27 +428,28 @@ sdkVersion: kfp-2.0.0-alpha.2
         self.assertEqual(generated_spec, expected_spec)
 
 
-class TestContainerSpec(unittest.TestCase):
+class TestContainerSpecImplementation(unittest.TestCase):
 
     def test_command_and_args(self):
-        obj = structures.ContainerSpec(
+        obj = structures.ContainerSpecImplementation(
             image='image', command=['command'], args=['args'])
         self.assertEqual(obj.command, ['command'])
         self.assertEqual(obj.args, ['args'])
 
-        obj = structures.ContainerSpec(image='image', command=[], args=[])
+        obj = structures.ContainerSpecImplementation(
+            image='image', command=[], args=[])
         self.assertEqual(obj.command, None)
         self.assertEqual(obj.args, None)
 
     def test_env(self):
-        obj = structures.ContainerSpec(
+        obj = structures.ContainerSpecImplementation(
             image='image',
             command=['command'],
             args=['args'],
             env={'env': 'env'})
         self.assertEqual(obj.env, {'env': 'env'})
 
-        obj = structures.ContainerSpec(
+        obj = structures.ContainerSpecImplementation(
             image='image', command=[], args=[], env={})
         self.assertEqual(obj.env, None)
 
@@ -454,7 +457,7 @@ class TestContainerSpec(unittest.TestCase):
         component_spec = structures.ComponentSpec(
             name='test',
             implementation=structures.Implementation(
-                container=structures.ContainerSpec(
+                container=structures.ContainerSpecImplementation(
                     image='python:3.7',
                     command=[
                         'sh', '-c',
@@ -492,8 +495,40 @@ class TestContainerSpec(unittest.TestCase):
             'image': 'python:3.7'
         }
 
-        loaded_container_spec = structures.ContainerSpec.from_container_dict(
+        loaded_container_spec = structures.ContainerSpecImplementation.from_container_dict(
             container_dict)
+
+    def test_raise_error_if_access_artifact_by_itself(self):
+
+        def comp_with_artifact_input(dataset: dsl.Input[dsl.Dataset]):
+            return dsl.ContainerSpec(
+                image='gcr.io/my-image',
+                command=['sh', 'run.sh'],
+                args=[dataset])
+
+        def comp_with_artifact_output(dataset_old: dsl.Output[dsl.Dataset],
+                                      dataset_new: dsl.Output[dsl.Dataset],
+                                      optional_input: str = 'default'):
+            return dsl.ContainerSpec(
+                image='gcr.io/my-image',
+                command=['sh', 'run.sh'],
+                args=[
+                    dsl.IfPresentPlaceholder(
+                        input_name='optional_input',
+                        then=[dataset_old],
+                        else_=[dataset_new])
+                ])
+
+        self.assertRaisesRegex(
+            ValueError,
+            r'Cannot access artifact by itself in the container definition.',
+            component_factory.create_container_component_from_func,
+            comp_with_artifact_input)
+        self.assertRaisesRegex(
+            ValueError,
+            r'Cannot access artifact by itself in the container definition.',
+            component_factory.create_container_component_from_func,
+            comp_with_artifact_output)
 
 
 class TestComponentSpec(unittest.TestCase):
@@ -671,7 +706,7 @@ sdkVersion: kfp-2.0.0-alpha.2""")
         component_spec = structures.ComponentSpec(
             name='component1',
             implementation=structures.Implementation(
-                container=structures.ContainerSpec(
+                container=structures.ContainerSpecImplementation(
                     image='alpine',
                     command=['sh', '-c', 'echo "$0" >> "$1"'],
                     args=[
@@ -738,7 +773,7 @@ sdkVersion: kfp-2.0.0-alpha.2""")
         component_spec = structures.ComponentSpec(
             name='if',
             implementation=structures.Implementation(
-                container=structures.ContainerSpec(
+                container=structures.ContainerSpecImplementation(
                     image='alpine',
                     command=['sh', '-c', 'echo "$0" "$1"'],
                     args=[
@@ -810,7 +845,7 @@ sdkVersion: kfp-2.0.0-alpha.2""")
         component_spec = structures.ComponentSpec(
             name='concat',
             implementation=structures.Implementation(
-                container=structures.ContainerSpec(
+                container=structures.ContainerSpecImplementation(
                     image='alpine',
                     command=[
                         'sh', '-c', 'echo "$0"',

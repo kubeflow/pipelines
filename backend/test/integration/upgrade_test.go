@@ -420,6 +420,9 @@ func checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail) {
 			PipelineID:       runDetail.Run.PipelineSpec.PipelineID,
 			PipelineName:     "hello-world.yaml",
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
+			RuntimeConfig: &run_model.PipelineSpecRuntimeConfig{
+				PipelineRoot: "",
+			},
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: expectedExperimentID},

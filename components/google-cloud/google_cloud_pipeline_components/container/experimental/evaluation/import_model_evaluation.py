@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Module for importing a model evaluation to an existing Vertex model resource."""
-
 import argparse
+import base64
 import json
 import logging
 import os
@@ -26,6 +26,7 @@ from google.protobuf.struct_pb2 import Value, Struct, NULL_VALUE, ListValue
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 
 from google.protobuf import json_format
+from typing import Any, Dict
 
 PROBLEM_TYPE_TO_SCHEMA_URI = {
     'classification':
@@ -50,8 +51,27 @@ parser.add_argument(
     '--metrics',
     dest='metrics',
     type=str,
-    required=True,
-    default=argparse.SUPPRESS)
+    default=None)
+parser.add_argument(
+    '--classification_metrics',
+    dest='classification_metrics',
+    type=str,
+    default=None)
+parser.add_argument(
+    '--forecasting_metrics',
+    dest='forecasting_metrics',
+    type=str,
+    default=None)
+parser.add_argument(
+    '--regression_metrics',
+    dest='regression_metrics',
+    type=str,
+    default=None)
+parser.add_argument(
+    '--feature_attributions',
+    dest='feature_attributions',
+    type=str,
+    default=None)
 parser.add_argument(
     '--metrics_explanation', dest='metrics_explanation', type=str, default=None)
 parser.add_argument('--explanation', dest='explanation', type=str, default=None)
@@ -59,8 +79,7 @@ parser.add_argument(
     '--problem_type',
     dest='problem_type',
     type=str,
-    required=True,
-    default=argparse.SUPPRESS)
+    default=None)
 parser.add_argument(
     '--display_name', nargs='?', dest='display_name', type=str, default=None)
 parser.add_argument(
@@ -82,6 +101,7 @@ parser.add_argument(
     required=True,
     default=argparse.SUPPRESS)
 
+
 def main(argv):
   """Calls ModelService.ImportModelEvaluation."""
   parsed_args, _ = parser.parse_known_args(argv)
@@ -90,23 +110,42 @@ def main(argv):
   api_endpoint = location + '-aiplatform.googleapis.com'
   resource_uri_prefix = f'https://{api_endpoint}/v1/'
 
-  with open(parsed_args.metrics) as metrics_file:
-    model_evaluation = {
-        'metrics':
-            to_value(
-                next(
-                    iter(
-                        json.loads(metrics_file.read())['slicedMetrics'][0]
-                        ['metrics'].values()))),
-        'metrics_schema_uri':
-            PROBLEM_TYPE_TO_SCHEMA_URI.get(parsed_args.problem_type),
-    }
+  if parsed_args.classification_metrics:
+    metrics_file_path = parsed_args.classification_metrics
+    problem_type = 'classification'
+  elif parsed_args.forecasting_metrics:
+    metrics_file_path = parsed_args.forecasting_metrics
+    problem_type = 'forecasting'
+  elif parsed_args.regression_metrics:
+    metrics_file_path = parsed_args.regression_metrics
+    problem_type = 'regression'
+  else:
+    metrics_file_path = parsed_args.metrics
+    problem_type = parsed_args.problem_type
+
+  metrics_file_path = metrics_file_path if not metrics_file_path.startswith(
+      'gs://') else '/gcs' + metrics_file_path[4:]
+
+  schema_uri = PROBLEM_TYPE_TO_SCHEMA_URI.get(problem_type)
+  with open(metrics_file_path) as metrics_file:
+    sliced_metrics = [{
+        **one_slice, 'metrics':
+            to_value(next(iter(one_slice['metrics'].values())))
+    } for one_slice in json.loads(metrics_file.read())['slicedMetrics']]
+
+  model_evaluation = {
+      'metrics': sliced_metrics[0]['metrics'],
+      'metrics_schema_uri': schema_uri
+  }
 
   if parsed_args.explanation and parsed_args.explanation == "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}":
     # metrics_explanation must contain explanation_gcs_path when provided.
     logging.error(
         '"explanation" must contain explanations when provided.')
     sys.exit(13)
+  elif parsed_args.feature_attributions:
+    explanation_file_name = parsed_args.feature_attributions if not parsed_args.feature_attributions.startswith(
+        'gs://') else '/gcs' + parsed_args.feature_attributions[4:]
   elif parsed_args.explanation:
     explanation_file_name = parsed_args.explanation if not parsed_args.explanation.startswith(
         'gs://') else '/gcs' + parsed_args.explanation[4:]
@@ -139,25 +178,55 @@ def main(argv):
   if metadata:
     model_evaluation['metadata'] = to_value(metadata)
 
-  import_model_evaluation_response = aiplatform.gapic.ModelServiceClient(
+  client = aiplatform.gapic.ModelServiceClient(
       client_info=gapic_v1.client_info.ClientInfo(
-          user_agent='google-cloud-pipeline-components',),
+          user_agent='google-cloud-pipeline-components'),
       client_options={
           'api_endpoint': api_endpoint,
-      }).import_model_evaluation(
-          parent=parsed_args.model_name,
-          model_evaluation=model_evaluation,
-      )
+      })
+  import_model_evaluation_response = client.import_model_evaluation(
+      parent=parsed_args.model_name,
+      model_evaluation=model_evaluation,
+  )
   model_evaluation_name = import_model_evaluation_response.name
 
+  resources = GcpResources()
   # Write the model evaluation resource to GcpResources output.
-  model_eval_resources = GcpResources()
-  model_eval_resource = model_eval_resources.resources.add()
+  model_eval_resource = resources.resources.add()
   model_eval_resource.resource_type = RESOURCE_TYPE
   model_eval_resource.resource_uri = f'{resource_uri_prefix}{model_evaluation_name}'
 
+  if len(sliced_metrics) > 1:
+    slice_resources = client.batch_import_model_evaluation_slices(
+        parent=model_evaluation_name,
+        model_evaluation_slices=[{
+            'metrics': one_slice['metrics'],
+            'metrics_schema_uri': schema_uri,
+            'slice_': to_slice(one_slice['singleOutputSlicingSpec']),
+        } for one_slice in sliced_metrics[1:]]).imported_model_evaluation_slices
+
+    for slice_resource in slice_resources:
+      slice_mlmd_resource = resources.resources.add()
+      slice_mlmd_resource.resource_type = 'ModelEvaluationSlice'
+      slice_mlmd_resource.resource_uri = f'{resource_uri_prefix}{slice_resource}'
+
   with open(parsed_args.gcp_resources, 'w') as f:
-    f.write(json_format.MessageToJson(model_eval_resources))
+    f.write(json_format.MessageToJson(resources))
+
+
+def to_slice(slicing_spec: Dict[str, Any]):
+  value = ''
+  if 'bytesValue' in slicing_spec:
+    value = base64.b64decode(slicing_spec['bytesValue']).decode('utf-8')
+  elif 'floatValue' in slicing_spec:
+    value = str(slicing_spec['floatValue'])
+  elif 'int64Value' in slicing_spec:
+    value = str(slicing_spec['in64Value'])
+
+  return {
+      'dimension': 'annotationSpec',
+      'value': value,
+  }
 
 
 def to_value(value):

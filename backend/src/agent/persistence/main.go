@@ -18,8 +18,6 @@ import (
 	"flag"
 	"time"
 
-	workflowclientSet "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned"
-	workflowinformers "github.com/argoproj/argo-workflows/v3/pkg/client/informers/externalversions"
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfclientset "github.com/kubeflow/pipelines/backend/src/crd/pkg/client/clientset/versioned"
@@ -63,6 +61,10 @@ const (
 	clientBurstFlagName                   = "clientBurst"
 )
 
+const (
+	DefaultConnectionTimeout = 6 * time.Minute
+)
+
 func main() {
 	flag.Parse()
 
@@ -81,20 +83,19 @@ func main() {
 		log.Fatalf("Error building schedule clientset: %s", err.Error())
 	}
 
-	workflowClient, err := workflowclientSet.NewForConfig(cfg)
-	if err != nil {
-		log.Fatalf("Error building workflow clientset: %s", err.Error())
-	}
+	clientParam := util.ClientParameters{QPS: float64(cfg.QPS), Burst: cfg.Burst}
+	execInformer := util.NewExecutionInformerOrFatal(util.ArgoWorkflow, namespace, time.Second*30, clientParam)
 
 	var swfInformerFactory swfinformers.SharedInformerFactory
-	var workflowInformerFactory workflowinformers.SharedInformerFactory
 	if namespace == "" {
 		swfInformerFactory = swfinformers.NewSharedInformerFactory(swfClient, time.Second*30)
-		workflowInformerFactory = workflowinformers.NewSharedInformerFactory(workflowClient, time.Second*30)
 	} else {
 		swfInformerFactory = swfinformers.NewFilteredSharedInformerFactory(swfClient, time.Second*30, namespace, nil)
-		workflowInformerFactory = workflowinformers.NewFilteredSharedInformerFactory(workflowClient, time.Second*30, namespace, nil)
 	}
+	k8sCoreClient := client.CreateKubernetesCoreOrFatal(DefaultConnectionTimeout, util.ClientParameters{
+		QPS:   clientQPS,
+		Burst: clientBurst,
+	})
 
 	pipelineClient, err := client.NewPipelineClient(
 		initializeTimeout,
@@ -109,12 +110,13 @@ func main() {
 
 	controller := NewPersistenceAgent(
 		swfInformerFactory,
-		workflowInformerFactory,
+		execInformer,
 		pipelineClient,
+		k8sCoreClient,
 		util.NewRealTime())
 
 	go swfInformerFactory.Start(stopCh)
-	go workflowInformerFactory.Start(stopCh)
+	go execInformer.InformerFactoryStart(stopCh)
 
 	if err = controller.Run(numWorker, stopCh); err != nil {
 		log.Fatalf("Error running controller: %s", err.Error())

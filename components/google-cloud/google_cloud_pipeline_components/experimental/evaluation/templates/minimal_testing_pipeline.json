@@ -249,6 +249,15 @@
             }
           },
           "parameters": {
+            "dataset_path": {
+              "type": "STRING"
+            },
+            "dataset_type": {
+              "type": "STRING"
+            },
+            "display_name": {
+              "type": "STRING"
+            },
             "problem_type": {
               "type": "STRING"
             }
@@ -304,7 +313,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.15"
           }
         },
         "exec-model-evaluation": {
@@ -381,7 +390,7 @@
               "python",
               "/main.py"
             ],
-            "image": "gcr.io/ml-pipeline/model-evaluation:v0.2"
+            "image": "gcr.io/ml-pipeline/model-evaluation:v0.4"
           }
         },
         "exec-model-evaluation-import": {
@@ -393,6 +402,14 @@
               "{{$.inputs.artifacts['metrics'].metadata['explanation_gcs_path']}}",
               "--problem_type",
               "{{$.inputs.parameters['problem_type']}}",
+              "--display_name",
+              "{{$.inputs.parameters['display_name']}}",
+              "--dataset_path",
+              "{{$.inputs.parameters['dataset_path']}}",
+              "--dataset_type",
+              "{{$.inputs.parameters['dataset_type']}}",
+              "--pipeline_job_id",
+              "{{$.pipeline_job_uuid}}",
               "--model_name",
               "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
               "--gcp_resources",
@@ -404,7 +421,7 @@
               "-m",
               "google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.15"
           }
         }
       }
@@ -633,7 +650,7 @@
                 "dataflow_max_workers_num": {
                   "runtimeValue": {
                     "constantValue": {
-                      "stringValue": "25"
+                      "intValue": "5"
                     }
                   }
                 },
@@ -661,7 +678,7 @@
                 "dataflow_workers_num": {
                   "runtimeValue": {
                     "constantValue": {
-                      "stringValue": "10"
+                      "intValue": "1"
                     }
                   }
                 },
@@ -786,6 +803,27 @@
                 }
               },
               "parameters": {
+                "dataset_path": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": ""
+                    }
+                  }
+                },
+                "dataset_type": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": ""
+                    }
+                  }
+                },
+                "display_name": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": ""
+                    }
+                  }
+                },
                 "problem_type": {
                   "componentInputParameter": "prediction_type"
                 }
@@ -849,7 +887,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.8.12"
+    "sdkVersion": "kfp-1.8.13"
   },
   "runtimeConfig": {
     "parameters": {

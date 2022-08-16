@@ -42,7 +42,7 @@ type ExtractLogOptions struct {
 }
 
 type LogArchiveInterface interface {
-	GetLogObjectKey(workflow *util.Workflow, nodeId string) (string, error)
+	GetLogObjectKey(workflow util.ExecutionSpec, nodeId string) (string, error)
 	CopyLogFromArchive(logContent []byte, dst io.Writer, opts ExtractLogOptions) error
 }
 
@@ -245,11 +245,11 @@ func NewLogArchive(logPathPrefix, logFileName string) *LogArchive {
 	}
 }
 
-func (a *LogArchive) GetLogObjectKey(workflow *util.Workflow, nodeID string) (key string, err error) {
+func (a *LogArchive) GetLogObjectKey(workflow util.ExecutionSpec, nodeID string) (key string, err error) {
 	if a.logPathPrefix == "" || a.logFileName == "" || workflow == nil {
 		err = fmt.Errorf("invalid log archive configuration: %v", a)
 	} else {
-		key = strings.Join([]string{a.logPathPrefix, workflow.Name, nodeID, a.logFileName}, "/")
+		key = strings.Join([]string{a.logPathPrefix, workflow.ExecutionName(), nodeID, a.logFileName}, "/")
 	}
 	return
 }

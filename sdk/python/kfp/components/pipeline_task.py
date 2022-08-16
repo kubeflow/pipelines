@@ -69,6 +69,10 @@ class PipelineTask:
         args: Mapping[str, Any],
     ):
         """Initilizes a PipelineTask instance."""
+        # import within __init__ to avoid circular import
+        from kfp.components.tasks_group import TasksGroup
+
+        self.parent_task_group: Union[None, TasksGroup] = None
         args = args or {}
 
         for input_name, argument_value in args.items():
@@ -203,8 +207,9 @@ class PipelineTask:
         self,
         component_spec: structures.ComponentSpec,
         args: Mapping[str, str],
-    ) -> structures.ContainerSpec:
-        """Resolves the command line argument placeholders in a container spec.
+    ) -> structures.ContainerSpecImplementation:
+        """Resolves the command line argument placeholders in a
+        ContainerSpecImplementation.
 
         Args:
             component_spec: The component definition.
@@ -558,5 +563,9 @@ class PipelineTask:
                 task2 = my_component(text='2nd task').after(task1)
         """
         for task in tasks:
+            if task.parent_task_group is not self.parent_task_group:
+                raise ValueError(
+                    f'Cannot use .after() across inner pipelines or DSL control flow features. Tried to set {self.name} after {task.name}, but these tasks do not belong to the same pipeline or are not enclosed in the same control flow content manager.'
+                )
             self._task_spec.dependent_tasks.append(task.name)
         return self

@@ -13,10 +13,14 @@
 # limitations under the License.
 """Tests for kfp.components.pipeline_task."""
 
+import os
+import tempfile
 import textwrap
 import unittest
 
 from absl.testing import parameterized
+from kfp import compiler
+from kfp import dsl
 from kfp.components import pipeline_task
 from kfp.components import placeholders
 from kfp.components import structures
@@ -78,7 +82,7 @@ class PipelineTaskTest(parameterized.TestCase):
         expected_component_spec = structures.ComponentSpec(
             name='component1',
             implementation=structures.Implementation(
-                container=structures.ContainerSpec(
+                container=structures.ContainerSpecImplementation(
                     image='alpine',
                     command=['sh', '-c', 'echo "$0" >> "$1"'],
                     args=[
@@ -100,7 +104,7 @@ class PipelineTaskTest(parameterized.TestCase):
             dependent_tasks=[],
             component_ref='component1',
         )
-        expected_container_spec = structures.ContainerSpec(
+        expected_container_spec = structures.ContainerSpecImplementation(
             image='alpine',
             command=['sh', '-c', 'echo "$0" >> "$1"'],
             args=[
@@ -299,6 +303,137 @@ class PipelineTaskTest(parameterized.TestCase):
         )
         task.set_display_name('test_name')
         self.assertEqual('test_name', task._task_spec.display_name)
+
+
+class TestCannotUseAfterCrossDAG(unittest.TestCase):
+
+    def test_inner_task_prevented(self):
+        with self.assertRaisesRegex(ValueError,
+                                    r'Cannot use \.after\(\) across'):
+
+            @dsl.component
+            def print_op(message: str):
+                print(message)
+
+            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+            def my_pipeline():
+                first_exit_task = print_op(message='First exit task.')
+
+                with dsl.ExitHandler(first_exit_task):
+                    first_print_op = print_op(
+                        message='Inside first exit handler.')
+
+                second_exit_task = print_op(message='Second exit task.')
+                with dsl.ExitHandler(second_exit_task):
+                    print_op(message='Inside second exit handler.').after(
+                        first_print_op)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_exit_handler_task_prevented(self):
+        with self.assertRaisesRegex(ValueError,
+                                    r'Cannot use \.after\(\) across'):
+
+            @dsl.component
+            def print_op(message: str):
+                print(message)
+
+            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+            def my_pipeline():
+                first_exit_task = print_op(message='First exit task.')
+
+                with dsl.ExitHandler(first_exit_task):
+                    first_print_op = print_op(
+                        message='Inside first exit handler.')
+
+                second_exit_task = print_op(message='Second exit task.')
+                with dsl.ExitHandler(second_exit_task):
+                    x = print_op(message='Inside second exit handler.')
+                    x.after(first_exit_task)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_within_same_exit_handler_permitted(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+        def my_pipeline():
+            first_exit_task = print_op(message='First exit task.')
+
+            with dsl.ExitHandler(first_exit_task):
+                first_print_op = print_op(
+                    message='First task inside first exit handler.')
+                second_print_op = print_op(
+                    message='Second task inside first exit handler.').after(
+                        first_print_op)
+
+            second_exit_task = print_op(message='Second exit task.')
+            with dsl.ExitHandler(second_exit_task):
+                print_op(message='Inside second exit handler.')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_outside_of_condition_blocked(self):
+        with self.assertRaisesRegex(ValueError,
+                                    r'Cannot use \.after\(\) across'):
+
+            @dsl.component
+            def print_op(message: str):
+                print(message)
+
+            @dsl.component
+            def return_1() -> int:
+                return 1
+
+            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+            def my_pipeline():
+                return_1_task = return_1()
+
+                with dsl.Condition(return_1_task.output == 1):
+                    one = print_op(message='1')
+                    two = print_op(message='2')
+                three = print_op(message='3').after(one)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_inside_of_condition_permitted(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.component
+        def return_1() -> int:
+            return 1
+
+        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+        def my_pipeline():
+            return_1_task = return_1()
+
+            with dsl.Condition(return_1_task.output == '1'):
+                one = print_op(message='1')
+                two = print_op(message='2').after(one)
+            three = print_op(message='3')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
 
 
 if __name__ == '__main__':

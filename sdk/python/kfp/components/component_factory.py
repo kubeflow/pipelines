@@ -21,9 +21,12 @@ from typing import Callable, List, Optional, Tuple
 import warnings
 
 import docstring_parser
+from kfp.components import container_component
 from kfp.components import placeholders
 from kfp.components import python_component
 from kfp.components import structures
+from kfp.components.container_component_artifact_channel import \
+    ContainerComponentArtifactChannel
 from kfp.components.types import artifact_types
 from kfp.components.types import type_annotations
 from kfp.components.types import type_utils
@@ -171,7 +174,9 @@ def _maybe_make_unique(name: str, names: List[str]):
     raise RuntimeError('Too many arguments with the name {}'.format(name))
 
 
-def extract_component_interface(func: Callable) -> structures.ComponentSpec:
+def extract_component_interface(
+        func: Callable,
+        containerized: bool = False) -> structures.ComponentSpec:
     single_output_name_const = 'Output'
 
     signature = inspect.signature(func)
@@ -248,44 +253,51 @@ def extract_component_interface(func: Callable) -> structures.ComponentSpec:
 
     #Analyzing the return type annotations.
     return_ann = signature.return_annotation
-    if hasattr(return_ann, '_fields'):  #NamedTuple
-        # Getting field type annotations.
-        # __annotations__ does not exist in python 3.5 and earlier
-        # _field_types does not exist in python 3.9 and later
-        field_annotations = getattr(return_ann,
-                                    '__annotations__', None) or getattr(
-                                        return_ann, '_field_types', None)
-        for field_name in return_ann._fields:
-            type_struct = None
-            if field_annotations:
-                type_struct = _annotation_to_type_struct(
-                    field_annotations.get(field_name, None))
+    if not containerized:
+        if hasattr(return_ann, '_fields'):  #NamedTuple
+            # Getting field type annotations.
+            # __annotations__ does not exist in python 3.5 and earlier
+            # _field_types does not exist in python 3.9 and later
+            field_annotations = getattr(return_ann, '__annotations__',
+                                        None) or getattr(
+                                            return_ann, '_field_types', None)
+            for field_name in return_ann._fields:
+                type_struct = None
+                if field_annotations:
+                    type_struct = _annotation_to_type_struct(
+                        field_annotations.get(field_name, None))
 
-            output_name = _maybe_make_unique(field_name, output_names)
+                output_name = _maybe_make_unique(field_name, output_names)
+                output_names.add(output_name)
+                output_spec = structures.OutputSpec(type=type_struct)
+                outputs[output_name] = output_spec
+        # Deprecated dict-based way of declaring multiple outputs. Was only used by
+        # the @component decorator
+        elif isinstance(return_ann, dict):
+            warnings.warn(
+                'The ability to specify multiple outputs using the dict syntax'
+                ' has been deprecated. It will be removed soon after release'
+                ' 0.1.32. Please use typing.NamedTuple to declare multiple'
+                ' outputs.')
+            for output_name, output_type_annotation in return_ann.items():
+                output_type_struct = _annotation_to_type_struct(
+                    output_type_annotation)
+                output_spec = structures.OutputSpec(type=output_type_struct)
+                outputs[name] = output_spec
+        elif signature.return_annotation is not None and signature.return_annotation != inspect.Parameter.empty:
+            output_name = _maybe_make_unique(single_output_name_const,
+                                             output_names)
+            # Fixes exotic, but possible collision:
+            #   `def func(output_path: OutputPath()) -> str: ...`
             output_names.add(output_name)
+            type_struct = _annotation_to_type_struct(
+                signature.return_annotation)
             output_spec = structures.OutputSpec(type=type_struct)
             outputs[output_name] = output_spec
-    # Deprecated dict-based way of declaring multiple outputs. Was only used by
-    # the @component decorator
-    elif isinstance(return_ann, dict):
-        warnings.warn(
-            'The ability to specify multiple outputs using the dict syntax'
-            ' has been deprecated. It will be removed soon after release'
-            ' 0.1.32. Please use typing.NamedTuple to declare multiple'
-            ' outputs.')
-        for output_name, output_type_annotation in return_ann.items():
-            output_type_struct = _annotation_to_type_struct(
-                output_type_annotation)
-            output_spec = structures.OutputSpec(type=output_type_struct)
-            outputs[name] = output_spec
-    elif signature.return_annotation is not None and signature.return_annotation != inspect.Parameter.empty:
-        output_name = _maybe_make_unique(single_output_name_const, output_names)
-        # Fixes exotic, but possible collision:
-        #   `def func(output_path: OutputPath()) -> str: ...`
-        output_names.add(output_name)
-        type_struct = _annotation_to_type_struct(signature.return_annotation)
-        output_spec = structures.OutputSpec(type=type_struct)
-        outputs[output_name] = output_spec
+    elif return_ann != inspect.Parameter.empty and return_ann != structures.ContainerSpec:
+        raise TypeError(
+            'Return annotation should be either ContainerSpec or omitted for container components.'
+        )
 
     # Component name and description are derived from the function's name and
     # docstring.  The name can be overridden by setting setting func.__name__
@@ -407,7 +419,7 @@ def create_component_from_func(func: Callable,
 
     component_spec = extract_component_interface(func)
     component_spec.implementation = structures.Implementation(
-        container=structures.ContainerSpec(
+        container=structures.ContainerSpecImplementation(
             image=component_image,
             command=packages_to_install_command + command,
             args=args,
@@ -435,3 +447,43 @@ def create_component_from_func(func: Callable,
 
     return python_component.PythonComponent(
         component_spec=component_spec, python_func=func)
+
+
+def create_container_component_from_func(
+        func: Callable) -> container_component.ContainerComponent:
+    """Implementation for the @container_component decorator.
+
+    The decorator is defined under container_component_decorator.py. See
+    the decorator for the canonical documentation for this function.
+    """
+
+    component_spec = extract_component_interface(func, containerized=True)
+    arg_list = []
+    signature = inspect.signature(func)
+    parameters = list(signature.parameters.values())
+    for parameter in parameters:
+        parameter_type = type_annotations.maybe_strip_optional_from_annotation(
+            parameter.annotation)
+        io_name = parameter.name
+        if type_annotations.is_input_artifact(parameter_type):
+            arg_list.append(
+                ContainerComponentArtifactChannel(
+                    io_type='input', var_name=io_name))
+        elif type_annotations.is_output_artifact(parameter_type):
+            arg_list.append(
+                ContainerComponentArtifactChannel(
+                    io_type='output', var_name=io_name))
+        elif isinstance(
+                parameter_type,
+            (type_annotations.OutputAnnotation, type_annotations.OutputPath)):
+            arg_list.append(placeholders.OutputParameterPlaceholder(io_name))
+        else:  # parameter is an input value
+            arg_list.append(placeholders.InputValuePlaceholder(io_name))
+
+    container_spec = func(*arg_list)
+    container_spec_implementation = structures.ContainerSpecImplementation.from_container_spec(
+        container_spec)
+    component_spec.implementation = structures.Implementation(
+        container_spec_implementation)
+    component_spec.validate_placeholders()
+    return container_component.ContainerComponent(component_spec, func)

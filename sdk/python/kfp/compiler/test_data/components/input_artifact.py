@@ -11,29 +11,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import NamedTuple
 
 from kfp.dsl import component
 from kfp.dsl import Dataset
 from kfp.dsl import Input
-from kfp.dsl import Model
 
 
 @component
-def train(
-    dataset: Input[Dataset]
-) -> NamedTuple('Outputs', [
-    ('scalar', str),
-    ('model', Model),
-]):
-    """Dummy Training step."""
-    with open(dataset.path) as f:
-        data = f.read()
-    print('Dataset:', data)
+def input_artifact(data: Input[Dataset]):
+    print(data.name)
+    print(data.uri)
+    print(data.metadata)
 
-    scalar = '123'
-    model = f'My model trained using data: {data}'
 
-    from collections import namedtuple
-    output = namedtuple('Outputs', ['scalar', 'model'])
-    return output(scalar, model)
+if __name__ == '__main__':
+    from kfp import compiler
+    compiler.Compiler().compile(
+        pipeline_func=input_artifact,
+        package_path=__file__.replace('.py', '.yaml'))

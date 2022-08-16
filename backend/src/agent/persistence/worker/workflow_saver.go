@@ -15,26 +15,29 @@
 package worker
 
 import (
+	"time"
+
 	"github.com/kubeflow/pipelines/backend/src/agent/persistence/client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	log "github.com/sirupsen/logrus"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"time"
 )
 
 // WorkflowSaver provides a function to persist a workflow to a database.
 type WorkflowSaver struct {
 	client                        client.WorkflowClientInterface
 	pipelineClient                client.PipelineClientInterface
+	k8sClient                     client.KubernetesCoreInterface
 	metricsReporter               *MetricsReporter
 	ttlSecondsAfterWorkflowFinish int64
 }
 
 func NewWorkflowSaver(client client.WorkflowClientInterface,
-		pipelineClient client.PipelineClientInterface, ttlSecondsAfterWorkflowFinish int64) *WorkflowSaver {
+	pipelineClient client.PipelineClientInterface, k8sClient client.KubernetesCoreInterface, ttlSecondsAfterWorkflowFinish int64) *WorkflowSaver {
 	return &WorkflowSaver{
 		client:                        client,
 		pipelineClient:                pipelineClient,
+		k8sClient:                     k8sClient,
 		metricsReporter:               NewMetricsReporter(pipelineClient),
 		ttlSecondsAfterWorkflowFinish: ttlSecondsAfterWorkflowFinish,
 	}
@@ -56,16 +59,22 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 			"Workflow (%s): transient failure: %v", key, err)
 
 	}
-	if _, ok := wf.ObjectMeta.Labels[util.LabelKeyWorkflowRunId]; !ok {
+	if _, ok := wf.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowRunId]; !ok {
 		log.Infof("Skip syncing Workflow (%v): workflow does not have a Run ID label.", name)
 		return nil
 	}
-	if wf.PersistedFinalState() && time.Now().Unix()-wf.FinishedAt() < s.ttlSecondsAfterWorkflowFinish {
+	if wf.PersistedFinalState() && time.Now().Unix()-wf.ExecutionStatus().FinishedAt() < s.ttlSecondsAfterWorkflowFinish {
 		// Skip persisting the workflow if the workflow is finished
 		// and the workflow hasn't being passing the TTL
 		log.Infof("Skip syncing Workflow (%v): workflow marked as persisted.", name)
 		return nil
 	}
+
+	user, err1 := s.k8sClient.GetNamespaceOwner(namespace)
+	if err1 != nil {
+		return util.Wrapf(err1, "Failed get '%v' namespace", namespace)
+	}
+
 	// Save this Workflow to the database.
 	err = s.pipelineClient.ReportWorkflow(wf)
 	retry := util.HasCustomCode(err, util.CUSTOM_CODE_TRANSIENT)
@@ -85,5 +94,5 @@ func (s *WorkflowSaver) Save(key string, namespace string, name string, nowEpoch
 	log.WithFields(log.Fields{
 		"Workflow": name,
 	}).Infof("Syncing Workflow (%v): success, processing complete.", name)
-	return s.metricsReporter.ReportMetrics(wf)
+	return s.metricsReporter.ReportMetrics(wf, user)
 }

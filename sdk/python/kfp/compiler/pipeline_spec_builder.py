@@ -13,18 +13,17 @@
 # limitations under the License.
 """Functions for creating PipelineSpec proto objects."""
 
-import collections
 import json
 import re
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
 from google.protobuf import json_format
 from google.protobuf import struct_pb2
-import kfp
 from kfp import dsl
 from kfp.compiler import pipeline_spec_builder as builder
 from kfp.components import for_loop
 from kfp.components import pipeline_channel
+from kfp.components import pipeline_context
 from kfp.components import pipeline_task
 from kfp.components import placeholders
 from kfp.components import structures
@@ -36,6 +35,13 @@ from kfp.components.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 GroupOrTaskType = Union[tasks_group.TasksGroup, pipeline_task.PipelineTask]
+# must be defined here to avoid circular imports
+group_type_to_dsl_class = {
+    tasks_group.TasksGroupType.PIPELINE: pipeline_context.Pipeline,
+    tasks_group.TasksGroupType.CONDITION: tasks_group.Condition,
+    tasks_group.TasksGroupType.FOR_LOOP: tasks_group.ParallelFor,
+    tasks_group.TasksGroupType.EXIT_HANDLER: tasks_group.ExitHandler,
+}
 
 
 def _additional_input_name_for_pipeline_channel(
@@ -161,8 +167,14 @@ def build_task_spec_for_task(
                         input_name].component_input_artifact = (
                             component_input_artifact)
             else:
-                raise RuntimeError(
-                    f'Artifacts must be produced by a task. Got {input_value}.')
+                component_input_artifact = input_value.full_name
+                if component_input_artifact not in parent_component_inputs.artifacts:
+                    component_input_artifact = (
+                        _additional_input_name_for_pipeline_channel(input_value)
+                    )
+                pipeline_task_spec.inputs.artifacts[
+                    input_name].component_input_artifact = (
+                        component_input_artifact)
 
         elif isinstance(input_value, pipeline_channel.PipelineParameterChannel):
 
@@ -768,7 +780,7 @@ def build_task_spec_for_exit_task(
         pipeline_spec_pb2.PipelineTaskSpec.TriggerPolicy.TriggerStrategy
         .ALL_UPSTREAM_TASKS_COMPLETED)
 
-    for input_name, input_spec in task.component_spec.inputs.items():
+    for input_name, input_spec in (task.component_spec.inputs or {}).items():
         if type_utils.is_task_final_status_type(input_spec.type):
             pipeline_task_spec.inputs.parameters[
                 input_name].task_final_status.producer_task = dependent_task
@@ -921,18 +933,6 @@ def populate_metrics_in_dag_outputs(
                             ))
                     sub_task_name = task_name
                     sub_task_output = unique_output_name
-
-
-def make_invalid_input_type_error_msg(arg_name: str, arg_type: Any) -> str:
-    valid_types = (
-        str.__name__,
-        int.__name__,
-        float.__name__,
-        bool.__name__,
-        dict.__name__,
-        list.__name__,
-    )
-    return f"The pipeline parameter '{arg_name}' of type {arg_type} is not a valid input for this component. Passing artifacts as pipeline inputs is not supported. Consider annotating the parameter with a primitive type such as {valid_types}."
 
 
 def modify_component_spec_for_compile(
@@ -1192,6 +1192,61 @@ def build_spec_by_group(
     )
 
 
+def build_exit_handler_groups_recursively(
+    parent_group: tasks_group.TasksGroup,
+    pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+    deployment_config: pipeline_spec_pb2.PipelineDeploymentConfig,
+):
+    if not parent_group.groups:
+        return
+    for group in parent_group.groups:
+        if isinstance(group, dsl.ExitHandler):
+            exit_task = group.exit_task
+            exit_task_name = utils.sanitize_task_name(exit_task.name)
+            exit_handler_group_task_name = utils.sanitize_task_name(group.name)
+
+            exit_task_task_spec = builder.build_task_spec_for_exit_task(
+                task=exit_task,
+                dependent_task=exit_handler_group_task_name,
+                pipeline_inputs=pipeline_spec.root.input_definitions,
+            )
+
+            exit_task_component_spec = builder.build_component_spec_for_exit_task(
+                task=exit_task)
+
+            exit_task_container_spec = builder.build_container_spec_for_task(
+                task=exit_task)
+
+            # remove this if block to support nested exit handlers
+            if not parent_group.is_root:
+                raise ValueError(
+                    f'{dsl.ExitHandler.__name__} can only be used within the outermost scope of a pipeline function definition. Using an {dsl.ExitHandler.__name__} within {group_type_to_dsl_class[parent_group.group_type].__name__} {parent_group.name} is not allowed.'
+                )
+
+            parent_dag = pipeline_spec.root.dag if parent_group.is_root else pipeline_spec.components[
+                utils.sanitize_component_name(parent_group.name)].dag
+
+            parent_dag.tasks[exit_task_name].CopyFrom(exit_task_task_spec)
+
+            # Add exit task component spec if it does not exist.
+            component_name = exit_task_task_spec.component_ref.name
+            if component_name not in pipeline_spec.components:
+                pipeline_spec.components[component_name].CopyFrom(
+                    exit_task_component_spec)
+
+            # Add exit task container spec if it does not exist.
+            executor_label = exit_task_component_spec.executor_label
+            if executor_label not in deployment_config.executors:
+                deployment_config.executors[executor_label].container.CopyFrom(
+                    exit_task_container_spec)
+                pipeline_spec.deployment_spec.update(
+                    json_format.MessageToDict(deployment_config))
+        build_exit_handler_groups_recursively(
+            parent_group=group,
+            pipeline_spec=pipeline_spec,
+            deployment_config=deployment_config)
+
+
 def get_parent_groups(
     root_group: tasks_group.TasksGroup,
 ) -> Tuple[Mapping[str, List[GroupOrTaskType]], Mapping[str,
@@ -1266,76 +1321,3 @@ def validate_pipeline_name(name: str) -> None:
             'Please specify a pipeline name that matches the regular '
             'expression "^[a-z0-9][a-z0-9-]{0,127}$" using '
             '`dsl.pipeline(name=...)` decorator.' % name)
-
-
-def create_pipeline_spec_for_component(
-        pipeline_name: str,
-        pipeline_args: List[pipeline_channel.PipelineChannel],
-        task_group: tasks_group.TasksGroup) -> pipeline_spec_pb2.PipelineSpec:
-    """Creates a pipeline spec object for a component (single-component
-    pipeline).
-
-    Args:
-        pipeline_name: The pipeline name.
-        pipeline_args: The PipelineChannel arguments to the pipeline.
-        task_group: The pipeline's single task group (containing a single
-            task).
-
-    Returns:
-        A PipelineSpec proto representing the compiled pipeline.
-
-    Raises:
-        ValueError: If the argument is of unsupported types.
-    """
-
-    # this is method is essentially a simplified version
-    # of _create_pipeline_spec
-
-    # one-by-one building up the arguments for self._build_spec_by_group
-    validate_pipeline_name(pipeline_name)
-
-    pipeline_spec = pipeline_spec_pb2.PipelineSpec()
-    pipeline_spec.pipeline_info.name = pipeline_name
-    pipeline_spec.sdk_version = f'kfp-{kfp.__version__}'
-    # Schema version 2.1.0 is required for kfp-pipeline-spec>0.1.13
-    pipeline_spec.schema_version = '2.1.0'
-    pipeline_spec.root.CopyFrom(
-        builder.build_component_spec_for_group(
-            pipeline_channels=pipeline_args,
-            is_root_group=True,
-        ))
-
-    deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
-    root_group = task_group
-
-    task_name_to_parent_groups, group_name_to_parent_groups = get_parent_groups(
-        root_group)
-
-    def get_inputs(task_group: tasks_group.TasksGroup,
-                   task_name_to_parent_groups):
-        inputs = collections.defaultdict(set)
-        if len(task_group.tasks) != 1:
-            raise ValueError(
-                f'Error compiling component. Expected one task in task group, got {len(task_group.tasks)}.'
-            )
-        only_task = task_group.tasks[0]
-        if only_task.channel_inputs:
-            for group_name in task_name_to_parent_groups[only_task.name]:
-                inputs[group_name].add((only_task.channel_inputs[-1], None))
-        return inputs
-
-    inputs = get_inputs(task_group, task_name_to_parent_groups)
-
-    build_spec_by_group(
-        pipeline_spec=pipeline_spec,
-        deployment_config=deployment_config,
-        group=root_group,
-        inputs=inputs,
-        dependencies={},  # no dependencies for single-component pipeline
-        rootgroup_name=root_group.name,
-        task_name_to_parent_groups=task_name_to_parent_groups,
-        group_name_to_parent_groups=group_name_to_parent_groups,
-        name_to_for_loop_group={},  # no for loop for single-component pipeline
-    )
-
-    return pipeline_spec
