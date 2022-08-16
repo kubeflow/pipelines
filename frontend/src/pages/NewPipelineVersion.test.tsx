@@ -362,33 +362,34 @@ describe('NewPipelineVersion', () => {
       expect(createPipelineSpy).not.toHaveBeenCalled();
     });
 
-    it('allows updating pipeline version name', async () => {      
+    it('allows updating pipeline version name', async () => {
       render(
         <TestNewPipelineVersion
-        {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
+          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
         />,
       );
-      const pipelineVersionNameInput = await screen.findByLabelText(/Pipeline Version name/)
-      fireEvent.change(pipelineVersionNameInput, { target: {value: 'new-pipeline-name'}});
+      const pipelineVersionNameInput = await screen.findByLabelText(/Pipeline Version name/);
+      fireEvent.change(pipelineVersionNameInput, { target: { value: 'new-pipeline-name' } });
       expect(pipelineVersionNameInput.closest('input')?.value).toBe('new-pipeline-name');
     });
 
     it('disable create button if pipeline name is invalid', async () => {
-      const res = 
       render(
         <TestNewPipelineVersion
-        {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
+          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
         />,
       );
-      const formCtlLabel = screen.getByLabelText('Create a new pipeline')
+      const formCtlLabel = screen.getByLabelText('Create a new pipeline');
       fireEvent.click(formCtlLabel);
-      const pipelineNameInput = await screen.findByLabelText(/Pipeline Name/)
-      fireEvent.change(pipelineNameInput, { target: {value: 'new pipeline name?'}});
+      const pipelineNameInput = await screen.findByLabelText(/Pipeline Name/);
+      fireEvent.change(pipelineNameInput, { target: { value: 'new pipeline name?' } });
       expect(pipelineNameInput.closest('input')?.value).toBe('new pipeline name?');
 
       const createBtn = await screen.findByText('Create');
       expect(createBtn.closest('button')?.disabled).toEqual(true);
-      screen.findByText("Pipeline name must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters.");
+      screen.findByText(
+        "Pipeline name must contain only lowercase alphanumeric characters, '-' or '.' and start / end with alphanumeric characters.",
+      );
     });
   });
 });
