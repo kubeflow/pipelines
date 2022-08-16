@@ -1,9 +1,14 @@
 # Change log for AWS SageMaker Components
 
 The version of the AWS SageMaker Components is determined by the docker image tag used in YAML spec   
-Repository:  https://hub.docker.com/repository/docker/amazon/aws-sagemaker-kfp-components
+Repository: [Public ECR](https://gallery.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components) or [Dockerhub](https://hub.docker.com/repository/docker/amazon/aws-sagemaker-kfp-components). New releases after v1.1.1 will be using the public ECR repository
 
 ---------------------------------------------
+**Change log for version 2.0.0-alpha1**
+- Introducing SageMaker TrainingJob component v2 in Preview. This release only includes one [TrainingJob component](./TrainingJob/).
+
+> Pull requests : [#](https://github.com/kubeflow/pipelines/pull/)
+
 **Change log for version 1.1.1**
 - Print logs for Batch Transform and Processing jobs.
 

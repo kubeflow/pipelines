@@ -6,7 +6,7 @@ With Amazon SageMaker Components for Kubeflow Pipelines (KFP), you can create an
 ## Components
 Amazon SageMaker Components for Kubeflow Pipelines offer an alternative to launching compute-intensive jobs in Kubernetes and integrate the orchestration benefits of Kubeflow Pipelines. The following Amazon SageMaker components have been created to integrate 6 key Amazon SageMaker features into your ML workflows. You can create a Kubeflow Pipeline built entirely using these components, or integrate individual components into your workflow as needed. 
 
-For an end-to-end tutorial using these components, see [Using Amazon SageMaker Components](https://sagemaker.readthedocs.io/en/stable/workflows/kubernetes/using_amazon_sagemaker_components.html).
+For an end-to-end tutorial using these components, see [Using Amazon SageMaker Components](https://docs.aws.amazon.com/sagemaker/latest/dg/kubernetes-sagemaker-components-tutorials.html).
 
 For more example pipelines, see [Sample AWS SageMaker Kubeflow Pipelines](https://github.com/kubeflow/pipelines/tree/master/samples/contrib/aws-samples).
 
@@ -17,6 +17,8 @@ There is no additional charge for using Amazon SageMaker Components for Kubeflow
 #### Training
 
 The Training component allows you to submit Amazon SageMaker Training jobs directly from a Kubeflow Pipelines workflow. For more information, see [SageMaker Training Kubeflow Pipelines component](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/train).
+
+[SageMaker Training Kubeflow Pipelines component version 2](./TrainingJob/) is in preview. To find out more about it and try it out today, follow the steps in [this guide](./TrainingJob/README.md) and provide us feedback by opening a Github issue with label `area/components/aws/sagemaker`.
 
 #### RLEstimator
 
