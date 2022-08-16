@@ -13,7 +13,9 @@
 # limitations under the License.
 
 from absl.testing import parameterized
-from kfp.components import pipeline_context, for_loop, tasks_group
+from kfp.components import for_loop
+from kfp.components import pipeline_context
+from kfp.components import tasks_group
 
 
 class ParallelForTest(parameterized.TestCase):
