@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import NewPipelineVersion, { ImportMethod } from './NewPipelineVersion';
 import TestUtils from '../TestUtils';
@@ -362,19 +363,35 @@ describe('NewPipelineVersion', () => {
     });
 
     it('allows updating pipeline name', async () => {
-      tree = shallow(
+      // const createPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'createPipeline');
+
+      // createPipelineSpy.mockResolvedValue(MOCK_PIPELINE);
+      // expect(createPipelineSpy).toHaveBeenCalledTimes(1),
+      
+      render(
         <TestNewPipelineVersion
-          {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
+        {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
         />,
       );
-      await TestUtils.flushPromises();
 
-      (tree.instance() as TestNewPipelineVersion).handleChange('pipelineName')({
-        target: { value: 'new pipeline name' },
-      });
+      const pipelineNameInput = screen.getByLabelText('Pipeline Name')
 
-      expect(tree.state()).toHaveProperty('pipelineName', 'new pipeline name');
-      expect(getPipelineSpy).toHaveBeenCalledTimes(1);
+      fireEvent.change(pipelineNameInput, { target: {value: 'new-pipeline-name'}});
+      expect(pipelineNameInput.closest('input').value).toBe('new-pipeline-name');
+
+      // tree = shallow(
+      //   <TestNewPipelineVersion
+      //     {...generateProps(`?${QUERY_PARAMS.pipelineId}=${MOCK_PIPELINE.id}`)}
+      //   />,
+      // );
+      // await TestUtils.flushPromises();
+
+      // (tree.instance() as TestNewPipelineVersion).handleChange('pipelineName')({
+      //   target: { value: 'new pipeline name' },
+      // });
+
+      // expect(tree.state()).toHaveProperty('pipelineName', 'new pipeline name');
+      // expect(getPipelineSpy).toHaveBeenCalledTimes(1);
     });
 
     it('disable create button if pipeline name is invalid', async () => {
