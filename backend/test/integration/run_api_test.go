@@ -318,9 +318,7 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		PipelineSpec: &run_model.APIPipelineSpec{
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
-			RuntimeConfig: &run_model.PipelineSpecRuntimeConfig{
-				PipelineRoot: "",
-			},
+			RuntimeConfig:    &run_model.PipelineSpecRuntimeConfig{},
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
@@ -354,9 +352,7 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
 		PipelineSpec: &run_model.APIPipelineSpec{
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
-			RuntimeConfig: &run_model.PipelineSpecRuntimeConfig{
-				PipelineRoot: "",
-			},
+			RuntimeConfig:    &run_model.PipelineSpecRuntimeConfig{},
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
@@ -396,9 +392,7 @@ func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_m
 				{Name: "param1", Value: "goodbye"},
 				{Name: "param2", Value: "world"},
 			},
-			RuntimeConfig: &run_model.PipelineSpecRuntimeConfig{
-				PipelineRoot: "",
-			},
+			RuntimeConfig: &run_model.PipelineSpecRuntimeConfig{},
 		},
 		ResourceReferences: []*run_model.APIResourceReference{
 			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
