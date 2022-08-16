@@ -172,6 +172,7 @@ class ParallelFor(TasksGroup):
     Args:
         items: The items to loop over. It can be either a constant Python list or a list output from an upstream task.
         name: The name of the for loop group.
+        parallelism: The maximum number of concurrent subtasks that can be scheduled for execution.
 
     Example:
       ::
@@ -188,9 +189,10 @@ class ParallelFor(TasksGroup):
         self,
         items: Union[for_loop.ItemList, pipeline_channel.PipelineChannel],
         name: Optional[str] = None,
-        parallelism: Optional[int] = 0,
+        parallelism: Optional[int] = None,
     ):
         """Initializes a for loop task group."""
+        parallelism = parallelism or 0
         if parallelism < 0:
             raise ValueError(
                 f'ParallelFor parallelism must be >= 0. Got: {parallelism}.')
