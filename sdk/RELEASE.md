@@ -1,5 +1,6 @@
 # Current Version (Still in Development)
 ## Major Features and Improvements
+* Support parallelism setting in ParallelFor [/#8112](https://github.com/kubeflow/pipelines/pull/8112)
 
 ## Breaking Changes
 
