@@ -22,10 +22,8 @@ function NewRunSwitcher(props: PageProps) {
   // runID query by cloneFromRun will be deprecated once v1 is deprecated.
   const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
   const embeddedRunId = urlParser.get(QUERY_PARAMS.fromRunId);
-  // const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
   const [pipelineId, setPipelineId] = useState(urlParser.get(QUERY_PARAMS.pipelineId));
   const experimentId = urlParser.get(QUERY_PARAMS.experimentId);
-  // const pipelineVersionIdParam = urlParser.get(QUERY_PARAMS.pipelineVersionId);
   const [pipelineVersionIdParam, setPipelineVersionIdParam] = useState(
     urlParser.get(QUERY_PARAMS.pipelineVersionId),
   );
@@ -142,7 +140,16 @@ function NewRunSwitcher(props: PageProps) {
   ) {
     return <div>Currently loading pipeline information</div>;
   }
-  return <NewRun {...props} namespace={namespace} existingPipelineId={pipelineId} handlePipelineIdChange={setPipelineId} />;
+  return (
+    <NewRun
+      {...props}
+      namespace={namespace}
+      existingPipelineId={pipelineId}
+      handlePipelineIdChange={setPipelineId}
+      existingPipelineVersionId={pipelineVersionIdParam}
+      handlePipelineVersionIdChange={setPipelineVersionIdParam}
+    />
+  );
 }
 
 export default NewRunSwitcher;

@@ -118,7 +118,13 @@ interface NewRunProps {
 }
 
 export class NewRun extends Page<
-  { namespace?: string; existingPipelineId: string | null; handlePipelineIdChange: (pipelineId: string) => void },
+  {
+    namespace?: string;
+    existingPipelineId: string | null;
+    handlePipelineIdChange: (pipelineId: string) => void;
+    existingPipelineVersionId: string | null;
+    handlePipelineVersionIdChange: (pipelineVersionId: string) => void;
+  },
   NewRunState
 > {
   public state: NewRunState = {
@@ -701,7 +707,8 @@ export class NewRun extends Page<
     } else {
       // If we create a run from an existing pipeline version.
       // Get pipeline and pipeline version id from querystring if any
-      const possiblePipelineId = this.props.existingPipelineId || urlParser.get(QUERY_PARAMS.pipelineId);
+      const possiblePipelineId =
+        this.props.existingPipelineId || urlParser.get(QUERY_PARAMS.pipelineId);
       if (possiblePipelineId) {
         try {
           const pipeline = await Apis.pipelineServiceApi.getPipeline(possiblePipelineId);
@@ -711,6 +718,7 @@ export class NewRun extends Page<
             pipelineName: (pipeline && pipeline.name) || '',
           });
           const possiblePipelineVersionId =
+            this.props.existingPipelineVersionId ||
             urlParser.get(QUERY_PARAMS.pipelineVersionId) ||
             (pipeline.default_version && pipeline.default_version.id);
           if (possiblePipelineVersionId) {
@@ -822,6 +830,7 @@ export class NewRun extends Page<
         parameters = pipelineVersion.parameters || [];
       }
       if (this.state.unconfirmedSelectedPipeline.id) {
+        this.props.handlePipelineVersionIdChange('');
         this.props.handlePipelineIdChange(this.state.unconfirmedSelectedPipeline.id);
       }
     }
@@ -844,6 +853,9 @@ export class NewRun extends Page<
     if (confirmed && this.state.unconfirmedSelectedPipelineVersion) {
       pipelineVersion = this.state.unconfirmedSelectedPipelineVersion;
       parameters = pipelineVersion.parameters || [];
+      if (this.state.unconfirmedSelectedPipelineVersion.id) {
+        this.props.handlePipelineVersionIdChange(this.state.unconfirmedSelectedPipelineVersion.id);
+      }
     }
 
     this.setStateSafe(
