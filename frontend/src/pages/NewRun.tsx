@@ -118,7 +118,7 @@ interface NewRunProps {
 }
 
 export class NewRun extends Page<
-  { namespace?: string; handlePipelineIdChange: (pipelineId: string) => void },
+  { namespace?: string; existingPipelineId: string | null; handlePipelineIdChange: (pipelineId: string) => void },
   NewRunState
 > {
   public state: NewRunState = {
@@ -701,7 +701,7 @@ export class NewRun extends Page<
     } else {
       // If we create a run from an existing pipeline version.
       // Get pipeline and pipeline version id from querystring if any
-      const possiblePipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
+      const possiblePipelineId = this.props.existingPipelineId || urlParser.get(QUERY_PARAMS.pipelineId);
       if (possiblePipelineId) {
         try {
           const pipeline = await Apis.pipelineServiceApi.getPipeline(possiblePipelineId);
