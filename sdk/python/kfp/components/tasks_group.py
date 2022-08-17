@@ -171,18 +171,23 @@ class ParallelFor(TasksGroup):
 
     Args:
         items: The items to loop over. It can be either a constant Python list or a list output from an upstream task.
-        name: The name of the for loop group.
-        parallelism: The maximum number of concurrent subtasks that can be scheduled for execution.
+        name: Optional; the name of the for loop group.
+        parallelism: Optional; the maximum number of concurrent sub-iterations that can be scheduled for execution. A value of 0 represents unconstrained parallelism (default is unconstrained).
 
     Example:
       ::
 
-        with dsl.ParallelFor([{'a': 1, 'b': 10}, {'a': 2, 'b': 20}]) as item:
+        with dsl.ParallelFor(
+          items=[{'a': 1, 'b': 10}, {'a': 2, 'b': 20}],
+          parallelism=1
+        ) as item:
             task1 = MyComponent(..., item.a)
             task2 = MyComponent(..., item.b)
 
-    In the example, ``task1`` would be executed twice, once with case
-    ``args=['echo 1']`` and once with case ``args=['echo 2']``.
+    In the example, the group of tasks containing ``task1`` and ``task2`` would
+    be executed twice, once with case ``args=[{'a': 1, 'b': 10}]`` and once with
+    case ``args=[{'a': 2, 'b': 20}]``. The ``parallelism=1`` setting causes only
+    1 execution to be scheduled at a time.
     """
 
     def __init__(
