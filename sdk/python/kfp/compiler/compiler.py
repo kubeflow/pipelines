@@ -67,7 +67,7 @@ class Compiler:
         self,
         pipeline_func: Union[Callable[..., Any], base_component.BaseComponent],
         package_path: str,
-        pipeline_name: Optional[str] = None,
+        pipeline_name: str = None,
         pipeline_parameters: Optional[Dict[str, Any]] = None,
         type_check: bool = True,
     ) -> None:
