@@ -331,7 +331,7 @@ function NewRunV2(props: NewRunV2Props) {
 
         {!apiRun && (
           <div>
-            {/* Pipelien selection */}
+            {/* Pipeline selection */}
             <Input
               value={pipelineName}
               required={true}
@@ -383,6 +383,14 @@ function NewRunV2(props: NewRunV2Props) {
         )}
 
         {/* Pipeline selector dialog */}
+        {/* <PipelineSelector 
+          {...props}
+          pipelineSelectorOpen={pipelineSelectorOpen}
+          setUpdatedPipeline={setUpdatedPipeline} 
+          setPipelineName={setPipelineName} 
+        /> */}
+
+                
         <Dialog
           open={pipelineSelectorOpen}
           classes={{ paper: css.selectorDialog }}
@@ -640,11 +648,83 @@ const EXPERIMENT_SELECTOR_COLUMNS = [
 
 interface PipelineSelectorSpecificProps {
   namespace?: string;
-  setApiPipeline: (apiPipeline: ApiPipeline) => void;
+  pipelineSelectorOpen: boolean;
+  setUpdatedPipeline: (apiPipeline: ApiPipeline) => void;
+  setPipelineName: (pipelineName: string) => void;
 }
 type PipelineSelectorProps = PageProps & PipelineSelectorSpecificProps;
 
 function PipelineSelector(props: PipelineSelectorProps) {
+  console.log('props')
+  console.log(props.pipelineSelectorOpen);
+
+  const [pipelineSelectorOpen, setPipelineSelectorOpen] = useState(props.pipelineSelectorOpen);
+  const [pendingPipeline, setPendingPipeline] = useState<ApiPipeline>();
+  console.log('inner');
+  console.log(pipelineSelectorOpen);
+
+  return (
+    <>
+      <Dialog
+        open={pipelineSelectorOpen}
+        classes={{ paper: css.selectorDialog }}
+        onClose={() => setPipelineSelectorOpen(false)}
+        PaperProps={{ id: 'pipelineSelectorDialog' }}
+      >
+      <DialogContent>
+        <ResourceSelector
+          {...props}
+          title='Choose a pipeline'
+          filterLabel='Filter pipelines'
+          listApi={async (...args) => {
+            const response = await Apis.pipelineServiceApi.listPipelines(...args);
+            return {
+              nextPageToken: response.next_page_token || '',
+              resources: response.pipelines || [],
+            };
+          }}
+          columns={PIPELINE_SELECTOR_COLUMNS}
+          emptyMessage='No pipelines found. Upload a pipeline and then try again.'
+          initialSortColumn={PipelineSortKeys.CREATED_AT}
+          selectionChanged={(selectedPipeline: ApiPipeline) =>
+            setPendingPipeline(selectedPipeline)
+          }
+          // toolbarActionMap={buttons
+          //   .upload(() =>
+          //     {
+          //       setPipelineSelectorOpen(false);
+          //       setUploadDialogOpen(false);
+          //     },
+          //   )
+          //   .getToolbarActionMap()}
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button
+          id='cancelPipelineSelectionBtn'
+          onClick={() => setPipelineSelectorOpen(false)}
+          color='secondary'
+        >
+          Cancel
+        </Button>
+        <Button
+          id='usePipelineBtn'
+          onClick={() => {
+            if (pendingPipeline && pendingPipeline.name) {
+              props.setUpdatedPipeline(pendingPipeline);
+              props.setPipelineName(pendingPipeline.name);
+            }
+            setPipelineSelectorOpen(false);
+          }}
+          color='secondary'
+          disabled={!pendingPipeline}
+        >
+          Use this pipeline
+        </Button>
+      </DialogActions>
+    </Dialog>
+  </>
+  );
 
 
 }
