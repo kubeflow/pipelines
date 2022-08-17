@@ -112,25 +112,27 @@ function NewRunSwitcher(props: PageProps) {
   }
 
   // Use experiment ID to create new run
-  if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
-    if (experimentId || (!pipelineId && !existingRunId)) {
-      return (
-        <NewRunV2
-          {...props}
-          namespace={namespace}
-          existingRunId={existingRunId}
-          apiRun={apiRun}
-          existingPipelineId={pipelineId}
-          existingPipeline={apiPipeline}
-          handlePipelineIdChange={setPipelineId}
-          existingPipelineVersionId={apiPipelineVersion?.id}
-          handlePipelineVersionIdChange={setPipelineVersionIdParam}
-          existingPipelineVersion={apiPipelineVersion}
-          templateString={templateString}
-        />
-      );
-    }
-  }
+  // Currently use NewRunV1 as default
+  // TODO(jlyaoyuli): set v2 as default once v1 is deprecated.
+  // if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
+  //   if (experimentId || (!pipelineId && !existingRunId)) {
+  //     return (
+  //       <NewRunV2
+  //         {...props}
+  //         namespace={namespace}
+  //         existingRunId={existingRunId}
+  //         apiRun={apiRun}
+  //         existingPipelineId={pipelineId}
+  //         existingPipeline={apiPipeline}
+  //         handlePipelineIdChange={setPipelineId}
+  //         existingPipelineVersionId={apiPipelineVersion?.id}
+  //         handlePipelineVersionIdChange={setPipelineVersionIdParam}
+  //         existingPipelineVersion={apiPipelineVersion}
+  //         templateString={templateString}
+  //       />
+  //     );
+  //   }
+  // }
 
   if (
     runIsFetching ||
@@ -140,7 +142,7 @@ function NewRunSwitcher(props: PageProps) {
   ) {
     return <div>Currently loading pipeline information</div>;
   }
-  return <NewRun {...props} namespace={namespace} handlePipelineIdChange={setPipelineId} />;
+  return <NewRun {...props} namespace={namespace} existingPipelineId={pipelineId} handlePipelineIdChange={setPipelineId} />;
 }
 
 export default NewRunSwitcher;
