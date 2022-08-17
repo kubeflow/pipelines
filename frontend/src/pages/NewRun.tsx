@@ -113,11 +113,14 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props =
 };
 
 interface NewRunProps {
-  namespace?: string,
-  handlePipelinIdChange: (pipelineId: string) => void
+  namespace?: string;
+  handlePipelinIdChange: (pipelineId: string) => void;
 }
 
-export class NewRun extends Page<{ namespace?: string, handlePipelineIdChange: (pipelineId: string) => void }, NewRunState> {
+export class NewRun extends Page<
+  { namespace?: string; handlePipelineIdChange: (pipelineId: string) => void },
+  NewRunState
+> {
   public state: NewRunState = {
     catchup: true,
     description: '',

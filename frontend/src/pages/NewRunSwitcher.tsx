@@ -26,7 +26,9 @@ function NewRunSwitcher(props: PageProps) {
   const [pipelineId, setPipelineId] = useState(urlParser.get(QUERY_PARAMS.pipelineId));
   const experimentId = urlParser.get(QUERY_PARAMS.experimentId);
   // const pipelineVersionIdParam = urlParser.get(QUERY_PARAMS.pipelineVersionId);
-  const [pipelineVersionIdParam, setPipelineVersionIdParam] = useState(urlParser.get(QUERY_PARAMS.pipelineVersionId));
+  const [pipelineVersionIdParam, setPipelineVersionIdParam] = useState(
+    urlParser.get(QUERY_PARAMS.pipelineVersionId),
+  );
   const existingRunId = originalRunId ? originalRunId : embeddedRunId;
 
   const { isSuccess: runIsSuccess, isFetching: runIsFetching, data: apiRun } = useQuery<
@@ -138,13 +140,7 @@ function NewRunSwitcher(props: PageProps) {
   ) {
     return <div>Currently loading pipeline information</div>;
   }
-  return (
-    <NewRun 
-      {...props} 
-      namespace={namespace} 
-      handlePipelineIdChange={setPipelineId} 
-    />
-  );
+  return <NewRun {...props} namespace={namespace} handlePipelineIdChange={setPipelineId} />;
 }
 
 export default NewRunSwitcher;
