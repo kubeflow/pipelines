@@ -29,16 +29,23 @@ class ContainerComponentArtifactChannel:
         self, _name: str
     ) -> Union[placeholders.InputUriPlaceholder, placeholders
                .InputPathPlaceholder, placeholders.OutputUriPlaceholder,
-               placeholders.OutputPathPlaceholder]:
-        if _name not in ['uri', 'path']:
+               placeholders.OutputPathPlaceholder,
+               placeholders.InputMetadataPlaceholder,
+               placeholders.OutputMetadataPlaceholder]:
+        attr_to_placeholder_dict = {
+            'uri': {
+                'input': placeholders.InputUriPlaceholder,
+                'output': placeholders.OutputUriPlaceholder,
+            },
+            'path': {
+                'input': placeholders.InputPathPlaceholder,
+                'output': placeholders.OutputPathPlaceholder,
+            },
+            'metadata': {
+                'input': placeholders.InputMetadataPlaceholder,
+                'output': placeholders.OutputMetadataPlaceholder
+            },
+        }
+        if _name not in ['uri', 'path', 'metadata']:
             raise AttributeError(f'Cannot access artifact attribute "{_name}".')
-        if self._io_type == 'input':
-            if _name == 'uri':
-                return placeholders.InputUriPlaceholder(self._var_name)
-            elif _name == 'path':
-                return placeholders.InputPathPlaceholder(self._var_name)
-        elif self._io_type == 'output':
-            if _name == 'uri':
-                return placeholders.OutputUriPlaceholder(self._var_name)
-            elif _name == 'path':
-                return placeholders.OutputPathPlaceholder(self._var_name)
+        return attr_to_placeholder_dict[_name][self._io_type](self._var_name)
