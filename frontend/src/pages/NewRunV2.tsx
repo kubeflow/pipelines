@@ -72,9 +72,9 @@ interface RunV2Props {
   apiRun: ApiRunDetail | undefined;
   existingPipelineId: string | null;
   existingPipeline: ApiPipeline | undefined;
-  handlePipelineIdChange: (pipelineId: string) => void
+  handlePipelineIdChange: (pipelineId: string) => void;
   existingPipelineVersionId: string | undefined;
-  handlePipelineVersionIdChange: (pipelineVersionId: string) => void
+  handlePipelineVersionIdChange: (pipelineVersionId: string) => void;
   existingPipelineVersion: ApiPipelineVersion | undefined;
   templateString: string | undefined;
 }
@@ -188,8 +188,7 @@ function NewRunV2(props: NewRunV2Props) {
       const cloneRunName = 'Clone of ' + apiRun.run.name;
       setRunName(cloneRunName);
     } else if (pipelineVersion?.name) {
-      const initRunName =
-        'Run of ' + pipelineVersion.name + ' (' + generateRandomString(5) + ')';
+      const initRunName = 'Run of ' + pipelineVersion.name + ' (' + generateRandomString(5) + ')';
       setRunName(initRunName);
     }
   }, [apiRun, pipelineVersion]);
@@ -390,7 +389,6 @@ function NewRunV2(props: NewRunV2Props) {
           setPipelineName={setPipelineName} 
         /> */}
 
-                
         <Dialog
           open={pipelineSelectorOpen}
           classes={{ paper: css.selectorDialog }}
@@ -655,7 +653,7 @@ interface PipelineSelectorSpecificProps {
 type PipelineSelectorProps = PageProps & PipelineSelectorSpecificProps;
 
 function PipelineSelector(props: PipelineSelectorProps) {
-  console.log('props')
+  console.log('props');
   console.log(props.pipelineSelectorOpen);
 
   const [pipelineSelectorOpen, setPipelineSelectorOpen] = useState(props.pipelineSelectorOpen);
@@ -671,62 +669,60 @@ function PipelineSelector(props: PipelineSelectorProps) {
         onClose={() => setPipelineSelectorOpen(false)}
         PaperProps={{ id: 'pipelineSelectorDialog' }}
       >
-      <DialogContent>
-        <ResourceSelector
-          {...props}
-          title='Choose a pipeline'
-          filterLabel='Filter pipelines'
-          listApi={async (...args) => {
-            const response = await Apis.pipelineServiceApi.listPipelines(...args);
-            return {
-              nextPageToken: response.next_page_token || '',
-              resources: response.pipelines || [],
-            };
-          }}
-          columns={PIPELINE_SELECTOR_COLUMNS}
-          emptyMessage='No pipelines found. Upload a pipeline and then try again.'
-          initialSortColumn={PipelineSortKeys.CREATED_AT}
-          selectionChanged={(selectedPipeline: ApiPipeline) =>
-            setPendingPipeline(selectedPipeline)
-          }
-          // toolbarActionMap={buttons
-          //   .upload(() =>
-          //     {
-          //       setPipelineSelectorOpen(false);
-          //       setUploadDialogOpen(false);
-          //     },
-          //   )
-          //   .getToolbarActionMap()}
-        />
-      </DialogContent>
-      <DialogActions>
-        <Button
-          id='cancelPipelineSelectionBtn'
-          onClick={() => setPipelineSelectorOpen(false)}
-          color='secondary'
-        >
-          Cancel
-        </Button>
-        <Button
-          id='usePipelineBtn'
-          onClick={() => {
-            if (pendingPipeline && pendingPipeline.name) {
-              props.setUpdatedPipeline(pendingPipeline);
-              props.setPipelineName(pendingPipeline.name);
+        <DialogContent>
+          <ResourceSelector
+            {...props}
+            title='Choose a pipeline'
+            filterLabel='Filter pipelines'
+            listApi={async (...args) => {
+              const response = await Apis.pipelineServiceApi.listPipelines(...args);
+              return {
+                nextPageToken: response.next_page_token || '',
+                resources: response.pipelines || [],
+              };
+            }}
+            columns={PIPELINE_SELECTOR_COLUMNS}
+            emptyMessage='No pipelines found. Upload a pipeline and then try again.'
+            initialSortColumn={PipelineSortKeys.CREATED_AT}
+            selectionChanged={(selectedPipeline: ApiPipeline) =>
+              setPendingPipeline(selectedPipeline)
             }
-            setPipelineSelectorOpen(false);
-          }}
-          color='secondary'
-          disabled={!pendingPipeline}
-        >
-          Use this pipeline
-        </Button>
-      </DialogActions>
-    </Dialog>
-  </>
+            // toolbarActionMap={buttons
+            //   .upload(() =>
+            //     {
+            //       setPipelineSelectorOpen(false);
+            //       setUploadDialogOpen(false);
+            //     },
+            //   )
+            //   .getToolbarActionMap()}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            id='cancelPipelineSelectionBtn'
+            onClick={() => setPipelineSelectorOpen(false)}
+            color='secondary'
+          >
+            Cancel
+          </Button>
+          <Button
+            id='usePipelineBtn'
+            onClick={() => {
+              if (pendingPipeline && pendingPipeline.name) {
+                props.setUpdatedPipeline(pendingPipeline);
+                props.setPipelineName(pendingPipeline.name);
+              }
+              setPipelineSelectorOpen(false);
+            }}
+            color='secondary'
+            disabled={!pendingPipeline}
+          >
+            Use this pipeline
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
-
-
 }
 
 interface PipelineVersionSelectorSpecificProps {
@@ -735,9 +731,7 @@ interface PipelineVersionSelectorSpecificProps {
 }
 type PipelineVersionSelectorProps = PageProps & PipelineVersionSelectorSpecificProps;
 
-function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
-
-}
+function PipelineVersionSelector(props: PipelineVersionSelectorProps) {}
 
 interface ExperimentSelectorSpecificProps {
   namespace?: string;
