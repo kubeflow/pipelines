@@ -9,7 +9,7 @@ import os
 sagemaker_TrainingJob_op = components.load_component_from_file(
     "../../component.yaml"
 )
-# This section initiazlies complex data structures that will be used for the pipeline.
+# This section initializes complex data structures that will be used for the pipeline.
 
 # S3 bucket where dataset is uploaded
 S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "")
@@ -21,7 +21,7 @@ ROLE_ARN = os.getenv("SAGEMAKER_EXECUTION_ROLE_ARN", "")
 REGION = "us-east-1"
 
 # The URL and tag of your ECR container
-# If you are not on us-east-1 you can find an imageURI here https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-algo-docker-registry-paths.html
+# If you are not on us-east-1 you can find an image URI here https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-algo-docker-registry-paths.html
 TRAINING_IMAGE = "382416733822.dkr.ecr.us-east-1.amazonaws.com/kmeans:1"
 
 

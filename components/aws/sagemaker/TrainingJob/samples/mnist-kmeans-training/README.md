@@ -24,6 +24,8 @@ To train a model with SageMaker, we need an S3 bucket to store the dataset and a
 2. Once the pipeline completes, you can see the outputs under 'Output parameters' in the Training component's Input/Output section.
 
 Example inputs to this pipeline:
+> Note: If you are not using `us-east-1` region you will have to find an training image URI according to the region. https://docs.aws.amazon.com/sagemaker/latest/dg/sagemaker-algo-docker-registry-paths.html. For e.g.: for `us-west-2` the image URI is 174872318107.dkr.ecr.us-west-2.amazonaws.com/kmeans:1
+
 ```
 s3_bucket_name: my_s3_bucket
 sagemaker_role_arn: arn:aws:iam::123456789012:role/service-role/AmazonSageMaker-ExecutionRole
