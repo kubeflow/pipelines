@@ -448,13 +448,16 @@ def _check_valid_placeholder_reference(
     elif isinstance(
             placeholder,
         (placeholders.InputValuePlaceholder, placeholders.InputPathPlaceholder,
-         placeholders.InputUriPlaceholder)):
+         placeholders.InputUriPlaceholder,
+         placeholders.InputMetadataPlaceholder)):
         if placeholder.input_name not in valid_inputs:
             raise ValueError(
                 f'Argument "{placeholder}" references non-existing input.')
-    elif isinstance(placeholder, (placeholders.OutputParameterPlaceholder,
-                                  placeholders.OutputPathPlaceholder,
-                                  placeholders.OutputUriPlaceholder)):
+    elif isinstance(
+            placeholder,
+        (placeholders.OutputParameterPlaceholder,
+         placeholders.OutputPathPlaceholder, placeholders.OutputUriPlaceholder,
+         placeholders.OutputMetadataPlaceholder)):
         if placeholder.output_name not in valid_outputs:
             raise ValueError(
                 f'Argument "{placeholder}" references non-existing output.')
@@ -481,6 +484,8 @@ ValidCommandArgTypes = (str, placeholders.InputValuePlaceholder,
                         placeholders.InputUriPlaceholder,
                         placeholders.OutputPathPlaceholder,
                         placeholders.OutputUriPlaceholder,
+                        placeholders.InputMetadataPlaceholder,
+                        placeholders.OutputMetadataPlaceholder,
                         placeholders.IfPresentPlaceholder,
                         placeholders.ConcatPlaceholder)
 

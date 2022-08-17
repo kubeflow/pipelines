@@ -23,6 +23,8 @@ deploymentSpec:
         - '{{$.inputs.parameters[''num_epochs'']}}'
         - --model_path
         - '{{$.outputs.artifacts[''model''].uri}}'
+        - --model_metadata
+        - '{{$.outputs.artifacts[''model''].metadata}}'
         - --model_config_path
         - '{{$.outputs.parameters[''model_config_path''].output_file}}'
         command:
@@ -50,4 +52,4 @@ root:
       num_epochs:
         parameterType: NUMBER_INTEGER
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.1
+sdkVersion: kfp-2.0.0-beta.2
