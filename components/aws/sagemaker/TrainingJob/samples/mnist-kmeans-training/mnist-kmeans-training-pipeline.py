@@ -4,6 +4,7 @@ import kfp
 from kfp import components
 from kfp import dsl
 import os
+import random
 
 # Training job component, path is relative from this directory.
 sagemaker_TrainingJob_op = components.load_component_from_file(
@@ -64,6 +65,7 @@ def training_output(s3_bucket_name):
 
 @dsl.pipeline(name="TrainingJob", description="SageMaker TrainingJob component")
 def TrainingJob(
+    training_job_name="sample-v2-trainingjob" + str(random.randint(0, 999999)),
     s3_bucket_name=S3_BUCKET_NAME,
     sagemaker_role_arn=ROLE_ARN,
     region=REGION,
