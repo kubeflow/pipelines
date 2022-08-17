@@ -112,7 +112,12 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props =
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
-export class NewRun extends Page<{ namespace?: string }, NewRunState> {
+interface NewRunProps {
+  namespace?: string,
+  handlePipelinIdChange: (pipelineId: string) => void
+}
+
+export class NewRun extends Page<{ namespace?: string, handlePipelineIdChange: (pipelineId: string) => void }, NewRunState> {
   public state: NewRunState = {
     catchup: true,
     description: '',
@@ -812,6 +817,9 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           pipeline.default_version.id!,
         );
         parameters = pipelineVersion.parameters || [];
+      }
+      if (this.state.unconfirmedSelectedPipeline.id) {
+        this.props.handlePipelineIdChange(this.state.unconfirmedSelectedPipeline.id);
       }
     }
 

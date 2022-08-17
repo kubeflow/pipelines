@@ -138,7 +138,13 @@ function NewRunSwitcher(props: PageProps) {
   ) {
     return <div>Currently loading pipeline information</div>;
   }
-  return <NewRun {...props} namespace={namespace} />;
+  return (
+    <NewRun 
+      {...props} 
+      namespace={namespace} 
+      handlePipelineIdChange={setPipelineId} 
+    />
+  );
 }
 
 export default NewRunSwitcher;
