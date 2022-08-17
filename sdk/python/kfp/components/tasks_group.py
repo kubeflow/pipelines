@@ -57,7 +57,7 @@ class TasksGroup:
 
         Args:
           group_type: The type of the group.
-          name: Optional; the name of the group. Used as display name in UI.
+          name: The name of the group. Used as display name in UI.
         """
         self.group_type = group_type
         self.tasks = list()
@@ -171,8 +171,8 @@ class ParallelFor(TasksGroup):
 
     Args:
         items: The items to loop over. It can be either a constant Python list or a list output from an upstream task.
-        name: Optional; the name of the for loop group.
-        parallelism: Optional; the maximum number of concurrent iterations that can be scheduled for execution. A value of 0 represents unconstrained parallelism (default is unconstrained).
+        name: The name of the for loop group.
+        parallelism: The maximum number of concurrent iterations that can be scheduled for execution. A value of 0 represents unconstrained parallelism (default is unconstrained).
 
     Example:
       ::
