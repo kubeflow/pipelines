@@ -78,6 +78,7 @@ def TrainingJob(
     },
 ):
     TrainingJob = sagemaker_TrainingJob_op(
+        training_job_name=training_job_name,
         region=region,
         algorithm_specification=algorithm_specification(training_image),
         enable_inter_container_traffic_encryption=False,
