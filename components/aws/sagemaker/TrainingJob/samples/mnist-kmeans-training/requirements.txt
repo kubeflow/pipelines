@@ -1,0 +1,5 @@
+numpy
+boto3
+sagemaker
+pickle
+kfp==1.8.13

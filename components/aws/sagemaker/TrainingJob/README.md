@@ -20,7 +20,8 @@ Follow this guide to get started with using the SageMaker Training Job pipeline 
 ### Prerequisites
 1. An existing [Kubeflow deployment](https://awslabs.github.io/kubeflow-manifests/docs/deployment/). This guide assumes you have already installed Kubeflow, if you do not have an existing Kubeflow deployment, choose one of the deployment options from the [Kubeflow on AWS Deployment guide](https://awslabs.github.io/kubeflow-manifests/docs/deployment/).
     > *Note:* If you were using the [Kubeflow pipelines standalone](https://www.kubeflow.org/docs/components/pipelines/installation/standalone-deployment/#deploying-kubeflow-pipelines) deployment. You can continue to use it.
-
+1. Install the following tools on your local machine or an EC2 instance:
+    - [kubectl](https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html) – A command line tool for working with Kubernetes clusters.
 ### Setup
 1. Install the [ACK Service Controller for SageMaker](https://github.com/aws-controllers-k8s/sagemaker-controller) version 0.4.1+. Follow the [ML with ACK SageMaker Controller tutorial](https://aws-controllers-k8s.github.io/community/docs/tutorials/sagemaker-example/) to install the SageMaker Controller.
 1. Configure RBAC permissions for the service account used by kubeflow pipeline pods in the user/profile namespace. The pipeline runs are executed in user namespaces using the `default-editor` Kubernetes service account.
@@ -62,6 +63,7 @@ Follow this guide to get started with using the SageMaker Training Job pipeline 
       export CLUSTER_NAME=
       export CLUSTER_REGION=
       ```
+      > Note: You will need to install [eksctl](https://docs.aws.amazon.com/eks/latest/userguide/eksctl.html) (A command line tool for working with Amazon EKS clusters) to run the following command
     - ```
       eksctl create iamserviceaccount --name ${KUBEFLOW_PIPELINE_POD_SERVICE_ACCOUNT} --namespace ${PROFILE_NAMESPACE} --cluster ${CLUSTER_NAME} --region ${CLUSTER_REGION} --attach-policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess --override-existing-serviceaccounts --approve
       ```
@@ -89,8 +91,8 @@ resourceConfig = {
 
 You might also want to look at the [TrainingJob API reference](https://docs.aws.amazon.com/sagemaker/latest/APIReference/API_CreateTrainingJob.html) for a detailed explaination of parameters.
 
-## Sample Pipeline
-TODO in another PR
+## Samples
+Head over to the [samples](./samples/) directory and follow the README to create jobs on SageMaker.
 
 ## References
 - [Model Training on SageMaker](https://docs.aws.amazon.com/sagemaker/latest/dg/how-it-works-training.html)
