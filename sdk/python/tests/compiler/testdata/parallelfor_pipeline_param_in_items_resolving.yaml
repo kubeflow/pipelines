@@ -2,11 +2,11 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: parallelfor-pipeline-param-in-items-resolving-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.2, pipelines.kubeflow.org/pipeline_compilation_time: '2021-09-03T06:18:38.373787',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.13, pipelines.kubeflow.org/pipeline_compilation_time: '2022-08-08T17:39:01.822860',
     pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"name": "fname1", "type":
       "String"}, {"name": "fname2", "type": "String"}], "name": "Parallelfor pipeline
       param in items resolving"}'}
-  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.2}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.13}
 spec:
   entrypoint: parallelfor-pipeline-param-in-items-resolving
   templates:
@@ -36,7 +36,7 @@ spec:
       - {name: loop-item-param-1}
     metadata:
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
@@ -75,7 +75,7 @@ spec:
       - {name: loop-item-param-3-subvar-first_name}
     metadata:
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
@@ -114,7 +114,7 @@ spec:
       - {name: loop-item-param-3-subvar-message}
     metadata:
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
@@ -153,7 +153,7 @@ spec:
       - {name: loop-item-param-5-subvar-first_name}
     metadata:
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
@@ -192,7 +192,7 @@ spec:
       - {name: loop-item-param-5-subvar-message}
     metadata:
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
@@ -206,6 +206,7 @@ spec:
         pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
           "{{inputs.parameters.loop-item-param-5-subvar-message}}"}'}
   - name: for-loop-2
+    parallelism: 0
     inputs:
       parameters:
       - {name: loop-item-param-1}
@@ -217,6 +218,7 @@ spec:
           parameters:
           - {name: loop-item-param-1, value: '{{inputs.parameters.loop-item-param-1}}'}
   - name: for-loop-4
+    parallelism: 0
     inputs:
       parameters:
       - {name: loop-item-param-3-subvar-first_name}
@@ -234,6 +236,7 @@ spec:
           parameters:
           - {name: loop-item-param-3-subvar-message, value: '{{inputs.parameters.loop-item-param-3-subvar-message}}'}
   - name: for-loop-6
+    parallelism: 0
     inputs:
       parameters:
       - {name: loop-item-param-5-subvar-first_name}
@@ -348,7 +351,7 @@ spec:
       - {name: produce-message-Output, path: /tmp/outputs/Output/data}
     metadata:
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
@@ -426,7 +429,7 @@ spec:
       - {name: produce-message-2-Output, path: /tmp/outputs/Output/data}
     metadata:
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":

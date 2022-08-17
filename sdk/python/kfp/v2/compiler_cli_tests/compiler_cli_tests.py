@@ -189,6 +189,9 @@ class CompilerCliTests(unittest.TestCase):
         self._test_compile_py_to_json(
             'experimental_pipeline_with_exit_handler', use_experimental=True)
 
+    def test_pipeline_with_parallelfor_parallelism(self):
+        self._test_compile_py_to_json('pipeline_with_parallelfor_parallelism')
+
     def test_pipeline_with_env(self):
         self._test_compile_py_to_json('pipeline_with_env')
 

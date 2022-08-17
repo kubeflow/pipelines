@@ -2,9 +2,9 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: parallelfor-item-argument-resolving-
-  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.2, pipelines.kubeflow.org/pipeline_compilation_time: '2021-09-03T06:17:22.369925',
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.13, pipelines.kubeflow.org/pipeline_compilation_time: '2022-08-08T17:44:06.630184',
     pipelines.kubeflow.org/pipeline_spec: '{"name": "Parallelfor item argument resolving"}'}
-  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.7.2}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.13}
 spec:
   entrypoint: parallelfor-item-argument-resolving
   templates:
@@ -34,7 +34,7 @@ spec:
       - {name: produce-list-of-strings-Output}
     metadata:
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
@@ -73,7 +73,7 @@ spec:
       - {name: produce-list-of-strings-Output-loop-item}
     metadata:
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
@@ -112,7 +112,7 @@ spec:
       - {name: produce-str-Output}
     metadata:
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
@@ -151,7 +151,7 @@ spec:
       - {name: produce-list-of-ints-Output}
     metadata:
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
@@ -190,7 +190,7 @@ spec:
       - {name: produce-list-of-ints-Output-loop-item}
     metadata:
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
@@ -229,7 +229,7 @@ spec:
       - {name: produce-list-of-dicts-Output}
     metadata:
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
@@ -268,7 +268,7 @@ spec:
       - {name: produce-list-of-dicts-Output-loop-item-subvar-aaa}
     metadata:
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
@@ -304,7 +304,7 @@ spec:
       image: python:3.7
     metadata:
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
@@ -343,7 +343,7 @@ spec:
       - {name: loop-item-param-4}
     metadata:
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
@@ -357,6 +357,7 @@ spec:
         pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"param1":
           "{{inputs.parameters.loop-item-param-4}}"}'}
   - name: for-loop-1
+    parallelism: 0
     inputs:
       parameters:
       - {name: produce-list-of-strings-Output}
@@ -380,6 +381,7 @@ spec:
           parameters:
           - {name: produce-str-Output, value: '{{inputs.parameters.produce-str-Output}}'}
   - name: for-loop-2
+    parallelism: 0
     inputs:
       parameters:
       - {name: produce-list-of-ints-Output}
@@ -397,6 +399,7 @@ spec:
           parameters:
           - {name: produce-list-of-ints-Output-loop-item, value: '{{inputs.parameters.produce-list-of-ints-Output-loop-item}}'}
   - name: for-loop-3
+    parallelism: 0
     inputs:
       parameters:
       - {name: produce-list-of-dicts-Output}
@@ -414,6 +417,7 @@ spec:
           parameters:
           - {name: produce-list-of-dicts-Output-loop-item-subvar-aaa, value: '{{inputs.parameters.produce-list-of-dicts-Output-loop-item-subvar-aaa}}'}
   - name: for-loop-5
+    parallelism: 0
     inputs:
       parameters:
       - {name: loop-item-param-4}
@@ -526,7 +530,7 @@ spec:
       - {name: produce-list-of-dicts-Output, path: /tmp/outputs/Output/data}
     metadata:
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
@@ -609,7 +613,7 @@ spec:
       - {name: produce-list-of-ints-Output, path: /tmp/outputs/Output/data}
     metadata:
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
@@ -691,7 +695,7 @@ spec:
       - {name: produce-list-of-strings-Output, path: /tmp/outputs/Output/data}
     metadata:
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
@@ -764,7 +768,7 @@ spec:
       - {name: produce-str-Output, path: /tmp/outputs/Output/data}
     metadata:
       labels:
-        pipelines.kubeflow.org/kfp_sdk_version: 1.7.2
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
         pipelines.kubeflow.org/pipeline-sdk-type: kfp
         pipelines.kubeflow.org/enable_caching: "true"
       annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":

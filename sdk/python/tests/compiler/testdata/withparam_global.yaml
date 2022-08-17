@@ -1,88 +1,87 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
-  annotations:
-    pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "[3, 5, 7, 9]", "name":
-      "loopidy_doop", "type": "JsonArray"}], "name": "my-pipeline"}'
   generateName: my-pipeline-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.13, pipelines.kubeflow.org/pipeline_compilation_time: '2022-08-08T17:40:47.159588',
+    pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "[3, 5, 7, 9]",
+      "name": "loopidy_doop", "optional": true, "type": "JsonArray"}], "name": "my-pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.13}
 spec:
+  entrypoint: my-pipeline
+  templates:
+  - name: for-loop-1
+    parallelism: 0
+    inputs:
+      parameters:
+      - {name: loopidy_doop-loop-item}
+    dag:
+      tasks:
+      - name: my-in-cop1
+        template: my-in-cop1
+        arguments:
+          parameters:
+          - {name: loopidy_doop-loop-item, value: '{{inputs.parameters.loopidy_doop-loop-item}}'}
+  - name: my-in-cop1
+    container:
+      args: ['echo no output global op1, item: {{inputs.parameters.loopidy_doop-loop-item}}']
+      command: [sh, -c]
+      image: library/bash:4.4.23
+    inputs:
+      parameters:
+      - {name: loopidy_doop-loop-item}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: my-out-cop0
+    container:
+      args: ['python -c "import json; import sys; json.dump([i for i in range(20,
+          31)], open(''/tmp/out.json'', ''w''))"']
+      command: [sh, -c]
+      image: python:alpine3.6
+    outputs:
+      parameters:
+      - name: my-out-cop0-out
+        valueFrom: {path: /tmp/out.json}
+      artifacts:
+      - {name: my-out-cop0-out, path: /tmp/out.json}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: my-out-cop2
+    container:
+      args: ['echo no output global op2, outp: {{inputs.parameters.my-out-cop0-out}}']
+      command: [sh, -c]
+      image: library/bash:4.4.23
+    inputs:
+      parameters:
+      - {name: my-out-cop0-out}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.13
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+  - name: my-pipeline
+    dag:
+      tasks:
+      - name: for-loop-1
+        template: for-loop-1
+        dependencies: [my-out-cop0]
+        arguments:
+          parameters:
+          - {name: loopidy_doop-loop-item, value: '{{item}}'}
+        withParam: '{{workflow.parameters.loopidy_doop}}'
+      - {name: my-out-cop0, template: my-out-cop0}
+      - name: my-out-cop2
+        template: my-out-cop2
+        dependencies: [my-out-cop0]
+        arguments:
+          parameters:
+          - {name: my-out-cop0-out, value: '{{tasks.my-out-cop0.outputs.parameters.my-out-cop0-out}}'}
   arguments:
     parameters:
-    - name: loopidy_doop
-      value: '[3, 5, 7, 9]'
-  entrypoint: my-pipeline
+    - {name: loopidy_doop, value: '[3, 5, 7, 9]'}
   serviceAccountName: pipeline-runner
-  templates:
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: loopidy_doop-loop-item
-            value: '{{inputs.parameters.loopidy_doop-loop-item}}'
-        name: my-in-cop1
-        template: my-in-cop1
-    inputs:
-      parameters:
-      - name: loopidy_doop-loop-item
-    name: for-loop-1
-  - container:
-      args:
-      - 'echo no output global op1, item: {{inputs.parameters.loopidy_doop-loop-item}}'
-      command:
-      - sh
-      - -c
-      image: library/bash:4.4.23
-    inputs:
-      parameters:
-      - name: loopidy_doop-loop-item
-    name: my-in-cop1
-  - container:
-      args:
-      - python -c "import json; import sys; json.dump([i for i in range(20, 31)],
-        open('/tmp/out.json', 'w'))"
-      command:
-      - sh
-      - -c
-      image: python:alpine3.6
-    name: my-out-cop0
-    outputs:
-      artifacts:
-      - name: my-out-cop0-out
-        path: /tmp/out.json
-      parameters:
-      - name: my-out-cop0-out
-        valueFrom:
-          path: /tmp/out.json
-  - container:
-      args:
-      - 'echo no output global op2, outp: {{inputs.parameters.my-out-cop0-out}}'
-      command:
-      - sh
-      - -c
-      image: library/bash:4.4.23
-    inputs:
-      parameters:
-      - name: my-out-cop0-out
-    name: my-out-cop2
-  - dag:
-      tasks:
-      - arguments:
-          parameters:
-          - name: loopidy_doop-loop-item
-            value: '{{item}}'
-        dependencies:
-        - my-out-cop0
-        name: for-loop-1
-        template: for-loop-1
-        withParam: '{{workflow.parameters.loopidy_doop}}'
-      - name: my-out-cop0
-        template: my-out-cop0
-      - arguments:
-          parameters:
-          - name: my-out-cop0-out
-            value: '{{tasks.my-out-cop0.outputs.parameters.my-out-cop0-out}}'
-        dependencies:
-        - my-out-cop0
-        name: my-out-cop2
-        template: my-out-cop2
-    name: my-pipeline

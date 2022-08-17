@@ -18,6 +18,8 @@ import shutil
 import tempfile
 import unittest
 
+from typing import List
+
 from kfp import components
 from kfp.dsl import types
 from kfp.v2 import compiler
@@ -544,6 +546,77 @@ implementation:
             package_path = os.path.join(tempdir, 'pipeline.json')
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_parallel_for_parallelism(self):
+
+        @dsl.component
+        def print_op(msg: str):
+            print(msg)
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(loop_params: List[str] = ['hello', 'world']):
+            with dsl.ParallelFor(loop_args=loop_params, parallelism=5) as item:
+                print_op(item)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.json')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+            with open(package_path, 'r') as f:
+                pipeline_spec_dict = yaml.safe_load(f)
+
+        iterator_policy = pipeline_spec_dict['pipelineSpec']['root']['dag'][
+            'tasks']['for-loop-1']['iteratorPolicy']
+        self.assertEqual(iterator_policy['parallelismLimit'], 5)
+
+    def test_parallel_for_invalid_parallelism(self):
+
+        @dsl.component
+        def print_op(msg: str):
+            print(msg)
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(loop_params: List[str] = ['hello', 'world']):
+            with dsl.ParallelFor(loop_args=loop_params, parallelism=-5) as item:
+                print_op(item)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.json')
+            with self.assertRaisesRegex(
+                    ValueError, 'ParallelFor parallelism must be >= 0.'):
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_parallel_for_no_parallelism(self):
+
+        @dsl.component
+        def print_op(msg: str):
+            print(msg)
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(loop_params: List[str] = ['hello', 'world']):
+            with dsl.ParallelFor(loop_args=loop_params) as item:
+                print_op(item)
+
+            with dsl.ParallelFor(loop_args=loop_params, parallelism=0) as item:
+                print_op(item)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.json')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+            with open(package_path, 'r') as f:
+                pipeline_spec_dict = yaml.safe_load(f)
+
+        for_loop_1 = pipeline_spec_dict['pipelineSpec']['root']['dag']['tasks'][
+            'for-loop-1']
+        with self.assertRaises(KeyError):
+            for_loop_1['iteratorPolicy']
+
+        for_loop_2 = pipeline_spec_dict['pipelineSpec']['root']['dag']['tasks'][
+            'for-loop-2']
+        with self.assertRaises(KeyError):
+            for_loop_2['iteratorPolicy']
 
 
 if __name__ == '__main__':
