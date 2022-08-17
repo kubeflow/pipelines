@@ -172,7 +172,7 @@ class ParallelFor(TasksGroup):
     Args:
         items: The items to loop over. It can be either a constant Python list or a list output from an upstream task.
         name: Optional; the name of the for loop group.
-        parallelism: Optional; the maximum number of concurrent sub-iterations that can be scheduled for execution. A value of 0 represents unconstrained parallelism (default is unconstrained).
+        parallelism: Optional; the maximum number of concurrent iterations that can be scheduled for execution. A value of 0 represents unconstrained parallelism (default is unconstrained).
 
     Example:
       ::
