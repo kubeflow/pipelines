@@ -7,7 +7,7 @@ Repository: [Public ECR](https://gallery.ecr.aws/kubeflow-on-aws/aws-sagemaker-k
 **Change log for version 2.0.0-alpha1**
 - Introducing SageMaker TrainingJob component v2 in Preview. This release only includes one [TrainingJob component](./TrainingJob/).
 
-> Pull requests : [#](https://github.com/kubeflow/pipelines/pull/)
+> Pull requests : [#8158](https://github.com/kubeflow/pipelines/pull/8158)
 
 **Change log for version 1.1.1**
 - Print logs for Batch Transform and Processing jobs.
