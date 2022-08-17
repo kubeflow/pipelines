@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from 'react-query';
 import { QUERY_PARAMS } from 'src/components/Router';
 import { isFeatureEnabled, FeatureKey } from 'src/features';
@@ -22,8 +22,11 @@ function NewRunSwitcher(props: PageProps) {
   // runID query by cloneFromRun will be deprecated once v1 is deprecated.
   const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
   const embeddedRunId = urlParser.get(QUERY_PARAMS.fromRunId);
-  const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
-  const pipelineVersionIdParam = urlParser.get(QUERY_PARAMS.pipelineVersionId);
+  // const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
+  const [pipelineId, setPipelineId] = useState(urlParser.get(QUERY_PARAMS.pipelineId));
+  const experimentId = urlParser.get(QUERY_PARAMS.experimentId);
+  // const pipelineVersionIdParam = urlParser.get(QUERY_PARAMS.pipelineVersionId);
+  const [pipelineVersionIdParam, setPipelineVersionIdParam] = useState(urlParser.get(QUERY_PARAMS.pipelineVersionId));
   const existingRunId = originalRunId ? originalRunId : embeddedRunId;
 
   const { isSuccess: runIsSuccess, isFetching: runIsFetching, data: apiRun } = useQuery<
@@ -94,8 +97,33 @@ function NewRunSwitcher(props: PageProps) {
           namespace={namespace}
           existingRunId={existingRunId}
           apiRun={apiRun}
-          apiPipeline={apiPipeline}
-          apiPipelineVersion={apiPipelineVersion}
+          existingPipelineId={pipelineId}
+          existingPipeline={apiPipeline}
+          handlePipelineIdChange={setPipelineId}
+          existingPipelineVersionId={apiPipelineVersion?.id}
+          handlePipelineVersionIdChange={setPipelineVersionIdParam}
+          existingPipelineVersion={apiPipelineVersion}
+          templateString={templateString}
+        />
+      );
+    }
+  }
+
+  // Use experiment ID to create new run
+  if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
+    if (experimentId || (!pipelineId && !existingRunId)) {
+      return (
+        <NewRunV2
+          {...props}
+          namespace={namespace}
+          existingRunId={existingRunId}
+          apiRun={apiRun}
+          existingPipelineId={pipelineId}
+          existingPipeline={apiPipeline}
+          handlePipelineIdChange={setPipelineId}
+          existingPipelineVersionId={apiPipelineVersion?.id}
+          handlePipelineVersionIdChange={setPipelineVersionIdParam}
+          existingPipelineVersion={apiPipelineVersion}
           templateString={templateString}
         />
       );
