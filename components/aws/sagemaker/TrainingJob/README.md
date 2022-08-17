@@ -1,4 +1,4 @@
-# SageMaker Training Kubeflow Pipelines component
+# SageMaker Training Kubeflow Pipelines component v2
 
 Component to create [SageMaker Training jobs](https://docs.aws.amazon.com/sagemaker/latest/dg/how-it-works-training.html) in a Kubeflow Pipelines workflow.
 
