@@ -68,6 +68,7 @@ CONFIG = {
             'container_with_artifact_output',
             'container_with_concat_placeholder',
             'container_with_if_placeholder',
+            'container_with_custom_artifact_type',
         ],
         'test_data_dir': 'sdk/python/kfp/compiler/test_data/components',
         'config': {

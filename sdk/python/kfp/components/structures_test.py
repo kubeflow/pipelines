@@ -547,6 +547,30 @@ class TestComponentSpec(unittest.TestCase):
             outputs={})
         self.assertEqual(obj.outputs, None)
 
+    def test_custom_artifact_container_component(self):
+
+        class CustomArtifact(dsl.Artifact):
+            TYPE_NAME = 'platform.CustomArtifact'
+            SCHEMA_VERSION = '0.0.0'
+            path = 'path'
+            uri = 'uri'
+            metadata = {}
+
+        @dsl.container_component
+        def comp(x: str, input_: dsl.Input[CustomArtifact],
+                 output_: dsl.Output[CustomArtifact]):
+            return dsl.ContainerSpec(
+                image='python:3.7', command=['echo hello world'])
+
+        self.assertEqual(comp.component_spec.outputs['output_'],
+                         structures.OutputSpec(type='platform.CustomArtifact'))
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = os.path.join(tmpdir, 'comp.yaml')
+            # compiler.Compiler().compile(comp, output)
+
+            # component = components.load_component_from_file(output)
+            # print(component.component_spec.outputs)
+
 
 class TestInputSpec(unittest.TestCase):
 

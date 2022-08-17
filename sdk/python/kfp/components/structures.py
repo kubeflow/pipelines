@@ -134,7 +134,8 @@ class OutputSpec(base_model.BaseModel):
         type_string = ir_parameter_dict[
             'parameterType'] if 'parameterType' in ir_parameter_dict else ir_parameter_dict[
                 'artifactType']['schemaTitle']
-        type_ = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE.get(type_string)
+        type_ = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE.get(
+            type_string) or type_string
         if type_ is None:
             raise ValueError(
                 f'Unknown type {ir_parameter_dict["parameterType"]} found in IR.'

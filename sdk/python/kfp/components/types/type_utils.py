@@ -240,7 +240,7 @@ def verify_type_compatibility(
         given_type = get_parameter_type_name(given_type)
     if is_parameter_type(expected_type):
         expected_type = get_parameter_type_name(expected_type)
-
+    print(given_type, expected_type)
     types_are_compatible = _check_types(given_type, expected_type)
 
     if not types_are_compatible:
