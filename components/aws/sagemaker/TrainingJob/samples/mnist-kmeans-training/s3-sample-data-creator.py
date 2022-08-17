@@ -1,6 +1,7 @@
 import pickle, gzip, numpy, urllib.request, json
 from urllib.parse import urlparse
 import os
+import boto3
 
 # If you are gonna use the default values of the pipeline then
 # give a bucket name which is in us-east-1 region
@@ -22,7 +23,6 @@ with gzip.open("mnist.pkl.gz", "rb") as f:
 # Upload dataset to S3
 from sagemaker.amazon.common import write_numpy_to_dense_tensor
 import io
-import boto3
 
 train_data_key = "mnist_kmeans_example/train_data"
 test_data_key = "mnist_kmeans_example/test_data"
