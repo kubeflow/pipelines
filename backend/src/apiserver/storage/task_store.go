@@ -44,8 +44,8 @@ type TaskStore struct {
 // NewTaskStore creates a new TaskStore.
 func NewTaskStore(db *DB, time util.TimeInterface, uuid util.UUIDGeneratorInterface) *TaskStore {
 	return &TaskStore{
-		db:                     db,
-		time:                   time,
+		db:   db,
+		time: time,
 		uuid: uuid,
 	}
 }
@@ -62,14 +62,14 @@ func (s *TaskStore) CreateTask(task *model.Task) (*model.Task, error) {
 	sql, args, err := sq.
 		Insert(table_name).
 		SetMap(sq.Eq{
-			"UUID":             newTask.UUID,
-			"Namespace":        newTask.Namespace,
-			"PipelineName":     newTask.PipelineName,
-			"RunUUID":          newTask.RunUUID,
-			"MLMDExecutionID":  newTask.MLMDExecutionID,
-			"CreatedTimestamp": newTask.CreatedTimestamp,
-			"FinishedTimestamp":newTask.FinishedTimestamp,
-			"Fingerprint":      newTask.Fingerprint,
+			"UUID":              newTask.UUID,
+			"Namespace":         newTask.Namespace,
+			"PipelineName":      newTask.PipelineName,
+			"RunUUID":           newTask.RunUUID,
+			"MLMDExecutionID":   newTask.MLMDExecutionID,
+			"CreatedTimestamp":  newTask.CreatedTimestamp,
+			"FinishedTimestamp": newTask.FinishedTimestamp,
+			"Fingerprint":       newTask.Fingerprint,
 		}).
 		ToSql()
 	if err != nil {

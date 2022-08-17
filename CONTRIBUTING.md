@@ -25,11 +25,14 @@ again.
 ## Coding style
 
 ### SDK
-See the [SDK-specific Contribution Guidelines](https://github.com/kubeflow/pipelines/blob/master/sdk/README.md) for contribuying to the `kfp` SDK.
+See the [SDK-specific Contribution Guidelines](sdk/CONTRIBUTING.md) for contributing to the `kfp` SDK.
 
 ### Frontend
 
 The frontend part of the project uses [prettier](https://prettier.io/) for formatting, read [frontend/README.md#code-style](frontend/README.md#code-style) for more details.
+
+### Backend
+Use [gofmt](https://pkg.go.dev/cmd/gofmt) package to format your .go source files. Read [backend/README.md#code-style](backend/README.md#code-style) for more details. 
 
 ## Unit Testing Best Practices
 
