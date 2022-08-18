@@ -29,7 +29,7 @@ def component1(text: str, output_gcs: Output[Dataset]):
         command=[
             'sh',
             '-c',
-            '| set -e -x echo "$0" | gsutil cp - "$1$',
+            'echo "$0" | gsutil cp - "$1$',
         ],
         args=[
             text,
@@ -44,7 +44,7 @@ def component2(input_gcs: Input[Dataset]):
         command=[
             'sh',
             '-c',
-            '| set -e -x gsutil cat "$0"',
+            'gsutil cat "$0"',
         ],
         args=[
             input_gcs.path,
