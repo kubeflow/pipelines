@@ -23,10 +23,10 @@ def component1(text: str, output_gcs: dsl.Output[dsl.Dataset]):
         command=[
             'sh',
             '-c',
-            '| set -e -x',
-            'echo',
+            '| set -e -x echo "$0" | gsutil cp - "$1$',
+        ],
+        args=[
             text,
-            '| gsutil cp -',
             output_gcs.uri,
         ])
 
@@ -38,10 +38,11 @@ def component2(input_gcs: dsl.Input[dsl.Dataset]):
         command=[
             'sh',
             '-c',
-            '| set -e -x',
-            'gsutil cat',
+            '| set -e -x gsutil cat "$0"',
         ],
-        args=[input_gcs.path])
+        args=[
+            input_gcs.path,
+        ])
 
 
 @dsl.pipeline(name='containerized-two-step-pipeline')

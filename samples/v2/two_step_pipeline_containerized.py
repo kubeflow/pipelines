@@ -29,10 +29,10 @@ def component1(text: str, output_gcs: Output[Dataset]):
         command=[
             'sh',
             '-c',
-            '| set -e -x',
-            'echo',
+            '| set -e -x echo "$0" | gsutil cp - "$1$',
+        ],
+        args=[
             text,
-            '| gsutil cp -',
             output_gcs.uri,
         ])
 
@@ -44,10 +44,11 @@ def component2(input_gcs: Input[Dataset]):
         command=[
             'sh',
             '-c',
-            '| set -e -x',
-            'gsutil cat',
+            '| set -e -x gsutil cat "$0"',
         ],
-        args=[input_gcs.path])
+        args=[
+            input_gcs.path,
+        ])
 
 
 @pipeline(name='two-step-pipeline-containerized')

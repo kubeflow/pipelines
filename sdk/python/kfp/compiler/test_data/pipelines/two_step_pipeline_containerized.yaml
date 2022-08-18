@@ -23,14 +23,13 @@ deploymentSpec:
   executors:
     exec-component1:
       container:
+        args:
+        - '{{$.inputs.parameters[''text'']}}'
+        - '{{$.outputs.artifacts[''output_gcs''].uri}}'
         command:
         - sh
         - -c
-        - '| set -e -x'
-        - echo
-        - '{{$.inputs.parameters[''text'']}}'
-        - '| gsutil cp -'
-        - '{{$.outputs.artifacts[''output_gcs''].uri}}'
+        - '| set -e -x echo "$0" | gsutil cp - "$1$'
         image: google/cloud-sdk:slim
     exec-component2:
       container:
@@ -39,8 +38,7 @@ deploymentSpec:
         command:
         - sh
         - -c
-        - '| set -e -x'
-        - gsutil cat
+        - '| set -e -x gsutil cat "$0"'
         image: google/cloud-sdk:slim
 pipelineInfo:
   name: containerized-two-step-pipeline
