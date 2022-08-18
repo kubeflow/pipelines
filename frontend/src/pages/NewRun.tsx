@@ -112,11 +112,6 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props =
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
-interface NewRunProps {
-  namespace?: string;
-  handlePipelinIdChange: (pipelineId: string) => void;
-}
-
 export class NewRun extends Page<
   {
     namespace?: string;
@@ -819,6 +814,7 @@ export class NewRun extends Page<
 
   protected async _pipelineSelectorClosed(confirmed: boolean): Promise<void> {
     let { parameters, pipeline, pipelineVersion } = this.state;
+    const urlParser = new URLParser(this.props);
     if (confirmed && this.state.unconfirmedSelectedPipeline) {
       pipeline = this.state.unconfirmedSelectedPipeline;
       // Get the default version of selected pipeline to auto-fill the version
@@ -830,6 +826,11 @@ export class NewRun extends Page<
         parameters = pipelineVersion.parameters || [];
       }
       if (this.state.unconfirmedSelectedPipeline.id) {
+        const searchString = urlParser.build({
+          [QUERY_PARAMS.pipelineId]: this.state.unconfirmedSelectedPipeline.id || '',
+          [QUERY_PARAMS.pipelineVersionId]: '',
+        });
+        this.props.history.replace(searchString);
         this.props.handlePipelineVersionIdChange('');
         this.props.handlePipelineIdChange(this.state.unconfirmedSelectedPipeline.id);
       }
@@ -849,11 +850,17 @@ export class NewRun extends Page<
   }
 
   protected async _pipelineVersionSelectorClosed(confirmed: boolean): Promise<void> {
-    let { parameters, pipelineVersion } = this.state;
+    let { parameters, pipelineVersion, pipeline } = this.state;
+    const urlParser = new URLParser(this.props);
     if (confirmed && this.state.unconfirmedSelectedPipelineVersion) {
       pipelineVersion = this.state.unconfirmedSelectedPipelineVersion;
       parameters = pipelineVersion.parameters || [];
-      if (this.state.unconfirmedSelectedPipelineVersion.id) {
+      if (pipeline && this.state.unconfirmedSelectedPipelineVersion.id) {
+        const searchString = urlParser.build({
+          [QUERY_PARAMS.pipelineId]: pipeline.id || '',
+          [QUERY_PARAMS.pipelineVersionId]: this.state.unconfirmedSelectedPipelineVersion.id || '',
+        });
+        this.props.history.replace(searchString);
         this.props.handlePipelineVersionIdChange(this.state.unconfirmedSelectedPipelineVersion.id);
       }
     }

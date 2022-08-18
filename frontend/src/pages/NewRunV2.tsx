@@ -46,7 +46,6 @@ import { URLParser } from 'src/lib/URLParser';
 import { errorToMessage, generateRandomString } from 'src/lib/Utils';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
 import { classes, stylesheet } from 'typestyle';
-// import NewRunSwitcher from './NewRunSwitcher';
 import { PageProps } from './Page';
 import ResourceSelector from './ResourceSelector';
 
@@ -119,7 +118,12 @@ function NewRunV2(props: NewRunV2Props) {
   //const buttons = new Buttons(props, () => forceUpdate);
   // const [buttons] = useState(new Buttons(props, () => forceUpdate));
 
-  const { templateString, existingRunId: originalRunId } = props;
+  const {
+    templateString,
+    existingRunId: originalRunId,
+    handlePipelineIdChange,
+    handlePipelineVersionIdChange,
+  } = props;
   const isTemplatePullSuccess = templateString && templateString !== '';
   const apiResourceRefFromRun = apiRun?.run?.resource_references
     ? apiRun.run?.resource_references
@@ -128,8 +132,6 @@ function NewRunV2(props: NewRunV2Props) {
   const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
   const titleVerb = originalRunId ? 'Clone' : 'Start';
   const titleAdjective = originalRunId ? '' : 'new';
-  // console.log('outer');
-  // console.log(pipelineSelectorOpen);
 
   useEffect(() => {
     setPipeline(existingPipeline);
@@ -138,16 +140,24 @@ function NewRunV2(props: NewRunV2Props) {
 
   useEffect(() => {
     if (updatedPipeline?.id) {
-      props.handlePipelineVersionIdChange('');
-      props.handlePipelineIdChange(updatedPipeline.id);
+      const searchString = urlParser.build({
+        [QUERY_PARAMS.pipelineId]: updatedPipeline.id || '',
+        [QUERY_PARAMS.pipelineVersionId]: '',
+      });
+      props.history.replace(searchString);
+      handlePipelineVersionIdChange('');
+      handlePipelineIdChange(updatedPipeline.id);
     }
-  }, [updatedPipeline]);
 
-  useEffect(() => {
-    if (updatedPipelineVersion?.id) {
-      props.handlePipelineVersionIdChange(updatedPipelineVersion.id);
+    if (pipeline?.id && updatedPipelineVersion?.id) {
+      const searchString = urlParser.build({
+        [QUERY_PARAMS.pipelineId]: pipeline.id || '',
+        [QUERY_PARAMS.pipelineVersionId]: updatedPipelineVersion.id || '',
+      });
+      props.history.replace(searchString);
+      handlePipelineVersionIdChange(updatedPipelineVersion.id);
     }
-  }, [updatedPipelineVersion]);
+  }, [updatedPipeline, updatedPipelineVersion]);
 
   // Title and list of actions on the top of page.
   useEffect(() => {
@@ -533,14 +543,7 @@ function PipelineSelector(props: PipelineSelectorProps) {
             selectionChanged={(selectedPipeline: ApiPipeline) =>
               setPendingPipeline(selectedPipeline)
             }
-            // toolbarActionMap={buttons
-            //   .upload(() =>
-            //     {
-            //       setPipelineSelectorOpen(false);
-            //       setUploadDialogOpen(false);
-            //     },
-            //   )
-            //   .getToolbarActionMap()}
+            // TODO(jlyaoyuli): enable pipeline upload function in the selector dialog
           />
         </DialogContent>
         <DialogActions>
@@ -642,14 +645,7 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
             selectionChanged={(selectedPipelineVersion: ApiPipelineVersion) =>
               setPendingPipelineVersion(selectedPipelineVersion)
             }
-            // toolbarActionMap={buttons
-            //   .upload(() =>
-            //     {
-            //       setPipelineVersionSelectorOpen(false);
-            //       setUploadDialogOpen(false);
-            //     },
-            //   )
-            //   .getToolbarActionMap()}
+            // TODO(jlyaoyuli): enable pipeline upload function in the selector dialog
           />
         </DialogContent>
         <DialogActions>
@@ -695,6 +691,7 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
     <>
       <Input
         value={experimentName}
+        // TODO(jlyaoyuli): prefill the experimentName if experimentId is existing
         required={true}
         label='Experiment'
         disabled={true}
