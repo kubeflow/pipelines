@@ -57,7 +57,7 @@ describe('NewRunV2', () => {
   };
 
   // Reponse from BE while POST a run for creating New UI-Run
-  const API_UI_RUN_DETAILS_CREATE: ApiRunDetail = {
+  const API_UI_CREATED_NEW_RUN_DETAILS: ApiRunDetail = {
     pipeline_runtime: {
       workflow_manifest: '',
     },
@@ -93,7 +93,7 @@ describe('NewRunV2', () => {
   };
 
   // Reponse from BE while POST a run for cloning UI-Run
-  const API_UI_RUN_DETAILS_CLONE: ApiRunDetail = {
+  const API_UI_CREATED_CLONING_RUN_DETAILS: ApiRunDetail = {
     pipeline_runtime: {
       workflow_manifest: '',
     },
@@ -129,7 +129,7 @@ describe('NewRunV2', () => {
   };
 
   // Reponse from BE while SDK POST a new run for Creating run
-  const API_SDK_RUN_DETAILS_CREATE: ApiRunDetail = {
+  const API_SDK_CREATED_NEW_RUN_DETAILS: ApiRunDetail = {
     pipeline_runtime: {
       workflow_manifest: '',
     },
@@ -158,7 +158,7 @@ describe('NewRunV2', () => {
   };
 
   // Reponse from BE while POST a run for cloning SDK-Run
-  const API_SDK_RUN_DETAILS_CLONE: ApiRunDetail = {
+  const API_SDK_CREATED_CLONING_RUN_DETAILS: ApiRunDetail = {
     pipeline_runtime: {
       workflow_manifest: '',
     },
@@ -368,7 +368,7 @@ describe('NewRunV2', () => {
         Promise.resolve({ template: v2YamlTemplateString }),
       );
       const createRunSpy = jest.spyOn(Apis.runServiceApi, 'createRun');
-      createRunSpy.mockResolvedValue(API_UI_RUN_DETAILS_CREATE);
+      createRunSpy.mockResolvedValue(API_UI_CREATED_NEW_RUN_DETAILS);
 
       render(
         <CommonTestWrapper>
@@ -417,26 +417,26 @@ describe('NewRunV2', () => {
           <NewRunV2
             {...generatePropsClonedRun()}
             existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
-            apiRun={API_UI_RUN_DETAILS_CREATE}
+            apiRun={API_UI_CREATED_NEW_RUN_DETAILS}
             apiPipeline={undefined}
             apiPipelineVersion={undefined}
             templateString={v2YamlTemplateString}
           />
         </CommonTestWrapper>,
       );
-      screen.findByDisplayValue(`Clone of ${API_UI_RUN_DETAILS_CREATE.run?.name}`);
+      screen.findByDisplayValue(`Clone of ${API_UI_CREATED_NEW_RUN_DETAILS.run?.name}`);
     });
 
     it('submits a run (clone UI-created run)', async () => {
       const createRunSpy = jest.spyOn(Apis.runServiceApi, 'createRun');
-      createRunSpy.mockResolvedValue(API_UI_RUN_DETAILS_CLONE);
+      createRunSpy.mockResolvedValue(API_UI_CREATED_CLONING_RUN_DETAILS);
 
       render(
         <CommonTestWrapper>
           <NewRunV2
             {...generatePropsClonedRun()}
             existingRunId={TEST_RUN_ID}
-            apiRun={API_UI_RUN_DETAILS_CREATE}
+            apiRun={API_UI_CREATED_NEW_RUN_DETAILS}
             apiPipeline={undefined}
             apiPipelineVersion={undefined}
             templateString={v2YamlTemplateString}
@@ -484,14 +484,14 @@ describe('NewRunV2', () => {
 
     it('submits a run (clone SDK-created run)', async () => {
       const createRunSpy = jest.spyOn(Apis.runServiceApi, 'createRun');
-      createRunSpy.mockResolvedValue(API_SDK_RUN_DETAILS_CLONE);
+      createRunSpy.mockResolvedValue(API_SDK_CREATED_CLONING_RUN_DETAILS);
 
       render(
         <CommonTestWrapper>
           <NewRunV2
             {...generatePropsClonedRun()}
             existingRunId={TEST_RUN_ID}
-            apiRun={API_SDK_RUN_DETAILS_CREATE}
+            apiRun={API_SDK_CREATED_NEW_RUN_DETAILS}
             apiPipeline={undefined}
             apiPipelineVersion={undefined}
             templateString={v2YamlTemplateString}
