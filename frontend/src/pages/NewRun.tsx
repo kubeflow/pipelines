@@ -26,6 +26,7 @@ import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { HelpButton } from 'src/atoms/HelpButton';
+import { FeatureKey, isFeatureEnabled } from 'src/features';
 import { classes, stylesheet } from 'typestyle';
 import { ApiExperiment, ApiExperimentStorageState } from '../apis/experiment';
 import { ApiFilter, PredicateOp } from '../apis/filter';
@@ -825,7 +826,7 @@ export class NewRun extends Page<
         );
         parameters = pipelineVersion.parameters || [];
       }
-      if (this.state.unconfirmedSelectedPipeline.id) {
+      if (isFeatureEnabled(FeatureKey.V2_ALPHA) && this.state.unconfirmedSelectedPipeline.id) {
         const searchString = urlParser.build({
           [QUERY_PARAMS.pipelineId]: this.state.unconfirmedSelectedPipeline.id || '',
           [QUERY_PARAMS.pipelineVersionId]: '',
@@ -855,7 +856,11 @@ export class NewRun extends Page<
     if (confirmed && this.state.unconfirmedSelectedPipelineVersion) {
       pipelineVersion = this.state.unconfirmedSelectedPipelineVersion;
       parameters = pipelineVersion.parameters || [];
-      if (pipeline && this.state.unconfirmedSelectedPipelineVersion.id) {
+      if (
+        isFeatureEnabled(FeatureKey.V2_ALPHA) &&
+        pipeline &&
+        this.state.unconfirmedSelectedPipelineVersion.id
+      ) {
         const searchString = urlParser.build({
           [QUERY_PARAMS.pipelineId]: pipeline.id || '',
           [QUERY_PARAMS.pipelineVersionId]: this.state.unconfirmedSelectedPipelineVersion.id || '',

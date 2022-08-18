@@ -23,7 +23,7 @@ function NewRunSwitcher(props: PageProps) {
   const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
   const embeddedRunId = urlParser.get(QUERY_PARAMS.fromRunId);
   const [pipelineId, setPipelineId] = useState(urlParser.get(QUERY_PARAMS.pipelineId));
-  const experimentId = urlParser.get(QUERY_PARAMS.experimentId);
+  // const experimentId = urlParser.get(QUERY_PARAMS.experimentId);
   const [pipelineVersionIdParam, setPipelineVersionIdParam] = useState(
     urlParser.get(QUERY_PARAMS.pipelineVersionId),
   );
