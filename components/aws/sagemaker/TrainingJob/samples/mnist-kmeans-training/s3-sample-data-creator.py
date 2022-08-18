@@ -1,5 +1,4 @@
-import pickle, gzip, numpy, urllib.request, json
-from urllib.parse import urlparse
+import pickle, gzip, numpy
 import os
 import boto3
 
