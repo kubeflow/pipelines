@@ -180,7 +180,7 @@ func (p *PipelineClient) ReportRunMetrics(request *api.ReportRunMetricsRequest, 
 	return response, nil
 }
 
-//TODO use config file & viper and "github.com/kubeflow/pipelines/backend/src/apiserver/common.GetKubeflowUserIDHeader()"
+// TODO use config file & viper and "github.com/kubeflow/pipelines/backend/src/apiserver/common.GetKubeflowUserIDHeader()"
 func getKubeflowUserIDHeader() string {
 	if value, ok := os.LookupEnv(common.KubeflowUserIDHeader); ok {
 		return value
@@ -188,7 +188,7 @@ func getKubeflowUserIDHeader() string {
 	return common.GoogleIAPUserIdentityHeader
 }
 
-//TODO use of viper & viper and "github.com/kubeflow/pipelines/backend/src/apiserver/common.GetKubeflowUserIDPrefix()"
+// TODO use of viper & viper and "github.com/kubeflow/pipelines/backend/src/apiserver/common.GetKubeflowUserIDPrefix()"
 func getKubeflowUserIDPrefix() string {
 	if value, ok := os.LookupEnv(common.KubeflowUserIDPrefix); ok {
 		return value
