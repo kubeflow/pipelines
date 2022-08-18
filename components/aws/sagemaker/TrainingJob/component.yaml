@@ -183,7 +183,7 @@ outputs:
 
 implementation:
   container:
-    image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:2.0.0-alpha1
+    image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:2.0.0-alpha2
     command: [python3]
     args:
       - TrainingJob/src/TrainingJob_component.py

@@ -20,12 +20,11 @@ To train a model with SageMaker, we need an S3 bucket to store the dataset and a
 export SAGEMAKER_REGION=us-east-1
 export S3_BUCKET_NAME="data-bucket-${SAGEMAKER_REGION}-$RANDOM"
 
-# [Option 1] if your region is us-east-1
-aws s3api create-bucket --bucket ${S3_BUCKET_NAME} --region ${SAGEMAKER_REGION}
-
-# [Option 2] if your region is NOT us-east-1
-aws s3api create-bucket --bucket ${S3_BUCKET_NAME} --region ${SAGEMAKER_REGION} \
---create-bucket-configuration LocationConstraint=${SAGEMAKER_REGION}
+if [[ $SAGEMAKER_REGION != "us-east-1" ]]; then
+    aws s3api create-bucket --bucket ${S3_BUCKET_NAME} --region ${SAGEMAKER_REGION}
+else
+    aws s3api create-bucket --bucket ${S3_BUCKET_NAME} --region ${SAGEMAKER_REGION --create-bucket-configuration LocationConstraint=${SAGEMAKER_REGION}
+fi
 
 echo ${S3_BUCKET_NAME}
 ```

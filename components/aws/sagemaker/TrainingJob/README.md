@@ -20,7 +20,7 @@ Follow this guide to get started with using the SageMaker Training Job pipeline 
 ### Prerequisites
 1. An existing [Kubeflow deployment](https://awslabs.github.io/kubeflow-manifests/docs/deployment/). This guide assumes you have already installed Kubeflow, if you do not have an existing Kubeflow deployment, choose one of the deployment options from the [Kubeflow on AWS Deployment guide](https://awslabs.github.io/kubeflow-manifests/docs/deployment/).
     > *Note:* If you were using the [Kubeflow pipelines standalone](https://www.kubeflow.org/docs/components/pipelines/installation/standalone-deployment/#deploying-kubeflow-pipelines) deployment. You can continue to use it.
-1. Install the [ACK Service Controller for SageMaker](https://github.com/aws-controllers-k8s/sagemaker-controller) version 0.4.1+. Follow the [ML with ACK SageMaker Controller tutorial](https://aws-controllers-k8s.github.io/community/docs/tutorials/sagemaker-example/) to install the SageMaker Controller.
+1. Install the [ACK Service Controller for SageMaker](https://github.com/aws-controllers-k8s/sagemaker-controller) version 0.4.2+. Follow the [ML with ACK SageMaker Controller tutorial](https://aws-controllers-k8s.github.io/community/docs/tutorials/sagemaker-example/) to install the SageMaker Controller.
     > Note: You only have to install the controller, so you do NOT have to run [Train an XGBoost Model](https://aws-controllers-k8s.github.io/community/docs/tutorials/sagemaker-example/#train-an-xgboost-model) section
 1. This guide assumes you have already installed the following tools on your local machine or an EC2 instance:
     - [kubectl](https://docs.aws.amazon.com/eks/latest/userguide/install-kubectl.html) – A command line tool for working with Kubernetes clusters.
