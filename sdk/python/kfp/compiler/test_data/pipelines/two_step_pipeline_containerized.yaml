@@ -24,7 +24,8 @@ deploymentSpec:
     exec-component1:
       container:
         command:
-        - sh -c | set -e -x
+        - sh -c
+        - '| set -e -x'
         - echo
         - '{{$.inputs.parameters[''text'']}}'
         - '| gsutil cp -'
@@ -33,12 +34,11 @@ deploymentSpec:
     exec-component2:
       container:
         args:
-        - '{{$.inputs.artifacts[''input_gcs''].uri}}'
+        - '{{$.inputs.artifacts[''input_gcs''].path}}'
         command:
-        - sh
-        - -c
-        - '|'
-        - set -e -x gsutil cat
+        - sh -c
+        - '| set -e -x'
+        - gsutil cat
         image: google/cloud-sdk:slim
 pipelineInfo:
   name: containerized-two-step-pipeline
@@ -76,4 +76,4 @@ root:
       text:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.1
+sdkVersion: kfp-2.0.0-beta.2

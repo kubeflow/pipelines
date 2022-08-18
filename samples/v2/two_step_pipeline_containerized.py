@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Two step pipeline using dsl.container_component decorator."""
-import os
 
 from kfp import compiler
 from kfp.dsl import container_component
@@ -28,7 +27,12 @@ def component1(text: str, output_gcs: Output[Dataset]):
     return ContainerSpec(
         image='google/cloud-sdk:slim',
         command=[
-            'sh -c | set -e -x', 'echo', text, '| gsutil cp -', output_gcs.uri
+            'sh -c',
+            '| set -e -x',
+            'echo',
+            text,
+            '| gsutil cp -',
+            output_gcs.uri,
         ])
 
 
@@ -36,7 +40,11 @@ def component1(text: str, output_gcs: Output[Dataset]):
 def component2(input_gcs: Input[Dataset]):
     return ContainerSpec(
         image='google/cloud-sdk:slim',
-        command=['sh', '-c', '|', 'set -e -x gsutil cat'],
+        command=[
+            'sh -c',
+            '| set -e -x',
+            'gsutil cat',
+        ],
         args=[input_gcs.path])
 
 
