@@ -23,7 +23,8 @@ export S3_BUCKET_NAME="data-bucket-${SAGEMAKER_REGION}-$RANDOM"
 if [[ $SAGEMAKER_REGION != "us-east-1" ]]; then
     aws s3api create-bucket --bucket ${S3_BUCKET_NAME} --region ${SAGEMAKER_REGION}
 else
-    aws s3api create-bucket --bucket ${S3_BUCKET_NAME} --region ${SAGEMAKER_REGION --create-bucket-configuration LocationConstraint=${SAGEMAKER_REGION}
+    aws s3api create-bucket --bucket ${S3_BUCKET_NAME} --region ${SAGEMAKER_REGION} \
+    --create-bucket-configuration LocationConstraint=${SAGEMAKER_REGION}
 fi
 
 echo ${S3_BUCKET_NAME}
