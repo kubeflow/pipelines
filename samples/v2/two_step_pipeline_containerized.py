@@ -27,7 +27,8 @@ def component1(text: str, output_gcs: Output[Dataset]):
     return ContainerSpec(
         image='google/cloud-sdk:slim',
         command=[
-            'sh -c',
+            'sh',
+            '-c',
             '| set -e -x',
             'echo',
             text,
@@ -41,7 +42,8 @@ def component2(input_gcs: Input[Dataset]):
     return ContainerSpec(
         image='google/cloud-sdk:slim',
         command=[
-            'sh -c',
+            'sh',
+            '-c',
             '| set -e -x',
             'gsutil cat',
         ],

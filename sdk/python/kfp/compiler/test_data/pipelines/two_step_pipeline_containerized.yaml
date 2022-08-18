@@ -24,7 +24,8 @@ deploymentSpec:
     exec-component1:
       container:
         command:
-        - sh -c
+        - sh
+        - -c
         - '| set -e -x'
         - echo
         - '{{$.inputs.parameters[''text'']}}'
@@ -36,7 +37,8 @@ deploymentSpec:
         args:
         - '{{$.inputs.artifacts[''input_gcs''].path}}'
         command:
-        - sh -c
+        - sh
+        - -c
         - '| set -e -x'
         - gsutil cat
         image: google/cloud-sdk:slim

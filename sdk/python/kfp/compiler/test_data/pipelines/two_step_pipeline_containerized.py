@@ -21,7 +21,8 @@ def component1(text: str, output_gcs: dsl.Output[dsl.Dataset]):
     return dsl.ContainerSpec(
         image='google/cloud-sdk:slim',
         command=[
-            'sh -c',
+            'sh',
+            '-c',
             '| set -e -x',
             'echo',
             text,
@@ -35,7 +36,8 @@ def component2(input_gcs: dsl.Input[dsl.Dataset]):
     return dsl.ContainerSpec(
         image='google/cloud-sdk:slim',
         command=[
-            'sh -c',
+            'sh',
+            '-c',
             '| set -e -x',
             'gsutil cat',
         ],
