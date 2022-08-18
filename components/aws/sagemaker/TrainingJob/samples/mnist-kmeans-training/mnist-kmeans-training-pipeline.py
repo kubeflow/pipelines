@@ -7,7 +7,7 @@ import os
 import random
 
 # Training job component, path is relative from this directory.
-sagemaker_TrainingJob_op = components.load_component_from_file(
+sagemaker_training_op = components.load_component_from_file(
     "../../component.yaml"
 )
 # This section initializes complex data structures that will be used for the pipeline.
@@ -65,7 +65,6 @@ def training_output(s3_bucket_name):
 
 @dsl.pipeline(name="TrainingJob", description="SageMaker TrainingJob component")
 def TrainingJob(
-    training_job_name="sample-v2-trainingjob" + str(random.randint(0, 999999)),
     s3_bucket_name=S3_BUCKET_NAME,
     sagemaker_role_arn=ROLE_ARN,
     region=REGION,
@@ -77,8 +76,7 @@ def TrainingJob(
         "volumeSizeInGB": 10,
     },
 ):
-    TrainingJob = sagemaker_TrainingJob_op(
-        training_job_name=training_job_name,
+    sagemaker_training_op(
         region=region,
         algorithm_specification=algorithm_specification(training_image),
         enable_inter_container_traffic_encryption=False,
