@@ -11,20 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Two step pipeline using dsl.container_component decorator."""
 
 from kfp import compiler
-from kfp.dsl import container_component
-from kfp.dsl import ContainerSpec
-from kfp.dsl import Dataset
-from kfp.dsl import Input
-from kfp.dsl import Output
-from kfp.dsl import pipeline
+from kfp import dsl
 
 
-@container_component
-def component1(text: str, output_gcs: Output[Dataset]):
-    return ContainerSpec(
+@dsl.container_component
+def component1(text: str, output_gcs: dsl.Output[dsl.Dataset]):
+    return dsl.ContainerSpec(
         image='alpine',
         command=[
             'sh',
@@ -34,20 +28,19 @@ def component1(text: str, output_gcs: Output[Dataset]):
         args=[text, output_gcs.path])
 
 
-@container_component
-def component2(input_gcs: Input[Dataset]):
-    return ContainerSpec(image='alpine', command=['cat'], args=[input_gcs.path])
+@dsl.container_component
+def component2(input_gcs: dsl.Input[dsl.Dataset]):
+    return dsl.ContainerSpec(
+        image='alpine', command=['cat'], args=[input_gcs.path])
 
 
-@pipeline(name='two-step-pipeline-containerized')
-def two_step_pipeline_containerized():
-    component_1 = component1(text='hi')
+@dsl.pipeline(name='containerized-two-step-pipeline')
+def my_pipeline(text: str):
+    component_1 = component1(text=text)
     component_2 = component2(input_gcs=component_1.outputs['output_gcs'])
 
 
 if __name__ == '__main__':
-    # execute only if run as a script
-
     compiler.Compiler().compile(
-        pipeline_func=two_step_pipeline_containerized,
-        package_path='two_step_pipeline_containerized.yaml')
+        pipeline_func=my_pipeline,
+        package_path=__file__.replace('.py', '.yaml'))
