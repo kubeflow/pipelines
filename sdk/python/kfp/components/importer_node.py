@@ -60,7 +60,7 @@ def importer(
         # use its TYPE_NAME as-is.
         type_name = artifact_class.TYPE_NAME
     else:
-        type_name = str(artifact_class.__name__)
+        type_name = artifact_class.__name__
 
     component_spec = structures.ComponentSpec(
         name='importer',
