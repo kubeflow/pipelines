@@ -19,30 +19,19 @@ from kfp import dsl
 @dsl.container_component
 def component1(text: str, output_gcs: dsl.Output[dsl.Dataset]):
     return dsl.ContainerSpec(
-        image='google/cloud-sdk:slim',
+        image='alpine',
         command=[
             'sh',
             '-c',
-            'echo "$0" | gsutil cp - "$1"',
+            'mkdir --parents $(dirname "$1") && echo "$0" > "$1"',
         ],
-        args=[
-            text,
-            output_gcs.uri,
-        ])
+        args=[text, output_gcs.path])
 
 
 @dsl.container_component
 def component2(input_gcs: dsl.Input[dsl.Dataset]):
     return dsl.ContainerSpec(
-        image='google/cloud-sdk:slim',
-        command=[
-            'sh',
-            '-c',
-            'gsutil cat "$0"',
-        ],
-        args=[
-            input_gcs.uri,
-        ])
+        image='alpine', command=['cat'], args=[input_gcs.path])
 
 
 @dsl.pipeline(name='containerized-two-step-pipeline')

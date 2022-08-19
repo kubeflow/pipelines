@@ -25,21 +25,19 @@ deploymentSpec:
       container:
         args:
         - '{{$.inputs.parameters[''text'']}}'
-        - '{{$.outputs.artifacts[''output_gcs''].uri}}'
+        - '{{$.outputs.artifacts[''output_gcs''].path}}'
         command:
         - sh
         - -c
-        - echo "$0" | gsutil cp - "$1"
-        image: google/cloud-sdk:slim
+        - mkdir --parents $(dirname "$1") && echo "$0" > "$1"
+        image: alpine
     exec-component2:
       container:
         args:
-        - '{{$.inputs.artifacts[''input_gcs''].uri}}'
+        - '{{$.inputs.artifacts[''input_gcs''].path}}'
         command:
-        - sh
-        - -c
-        - gsutil cat "$0"
-        image: google/cloud-sdk:slim
+        - cat
+        image: alpine
 pipelineInfo:
   name: containerized-two-step-pipeline
 root:
