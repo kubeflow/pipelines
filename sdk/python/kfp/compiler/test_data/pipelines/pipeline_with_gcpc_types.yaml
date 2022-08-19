@@ -29,7 +29,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.3'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -41,7 +41,8 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef consumer_op(model: Input[VertexModel]):\n    pass\n\n"
+          \ *\nimport typing\n\ndef consumer_op(model: Input[VertexModel]):\n    pass\n\
+          \n"
         image: python:3.7
     exec-producer:
       container:
@@ -78,4 +79,4 @@ root:
         taskInfo:
           name: producer
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.5
+sdkVersion: kfp-2.0.0-beta.3

@@ -22,4 +22,4 @@ root:
         taskInfo:
           name: hello-world-container
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.0
+sdkVersion: kfp-2.0.0-beta.3

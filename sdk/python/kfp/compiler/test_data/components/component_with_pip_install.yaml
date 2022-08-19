@@ -17,7 +17,7 @@ deploymentSpec:
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
           \ python3 -m pip install --quiet     --no-warn-script-location --index-url\
           \ https://pypi.org/simple --trusted-host https://pypi.org/simple 'yapf'\
-          \ 'kfp==2.0.0-alpha.5' && \"$0\" \"$@\"\n"
+          \ 'kfp==2.0.0-beta.3' && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -28,8 +28,8 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef component_with_pip_install():\n    import yapf\n    print(dir(yapf))\n\
-          \n"
+          \ *\nimport typing\n\ndef component_with_pip_install():\n    import yapf\n\
+          \    print(dir(yapf))\n\n"
         image: python:3.7
 pipelineInfo:
   name: component-with-pip-install
@@ -44,4 +44,4 @@ root:
         taskInfo:
           name: component-with-pip-install
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.5
+sdkVersion: kfp-2.0.0-beta.3

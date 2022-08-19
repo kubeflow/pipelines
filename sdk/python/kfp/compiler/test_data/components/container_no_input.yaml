@@ -22,4 +22,4 @@ root:
         taskInfo:
           name: container-no-input
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.1
+sdkVersion: kfp-2.0.0-beta.3

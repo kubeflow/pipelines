@@ -73,7 +73,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.3'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -85,8 +85,8 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef add_numbers(first: int, second: int) -> int:\n    return first\
-          \ + second\n\n"
+          \ *\nimport typing\n\ndef add_numbers(first: int, second: int) -> int:\n\
+          \    return first + second\n\n"
         image: python:3.7
     exec-concat-message:
       container:
@@ -100,7 +100,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.3'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -112,8 +112,8 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef concat_message(first: str, second: str) -> str:\n    return first\
-          \ + second\n\n"
+          \ *\nimport typing\n\ndef concat_message(first: str, second: str) -> str:\n\
+          \    return first + second\n\n"
         image: python:3.7
     exec-output-artifact:
       container:
@@ -127,7 +127,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.3'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -139,8 +139,9 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef output_artifact(number: int, message: str) -> Dataset:\n    result\
-          \ = [message for _ in range(number)]\n    return '\\n'.join(result)\n\n"
+          \ *\nimport typing\n\ndef output_artifact(number: int, message: str) ->\
+          \ Dataset:\n    result = [message for _ in range(number)]\n    return '\\\
+          n'.join(result)\n\n"
         image: python:3.7
     exec-output-named-tuple:
       container:
@@ -154,7 +155,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.3'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -166,15 +167,16 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef output_named_tuple(\n    artifact: Input[Dataset]\n) -> NamedTuple('Outputs',\
-          \ [\n    ('scalar', str),\n    ('metrics', Metrics),\n    ('model', Model),\n\
-          ]):\n    scalar = '123'\n\n    import json\n    metrics = json.dumps({\n\
-          \        'metrics': [{\n            'name': 'accuracy',\n            'numberValue':\
-          \ 0.9,\n            'format': 'PERCENTAGE',\n        }]\n    })\n\n    with\
-          \ open(artifact.path) as f:\n        artifact_contents = f.read()\n    model\
-          \ = 'Model contents: ' + artifact_contents\n\n    from collections import\
-          \ namedtuple\n    output = namedtuple('Outputs', ['scalar', 'metrics', 'model'])\n\
-          \    return output(scalar, metrics, model)\n\n"
+          \ *\nimport typing\n\ndef output_named_tuple(\n    artifact: Input[Dataset]\n\
+          ) -> NamedTuple('Outputs', [\n    ('scalar', str),\n    ('metrics', Metrics),\n\
+          \    ('model', Model),\n]):\n    scalar = '123'\n\n    import json\n   \
+          \ metrics = json.dumps({\n        'metrics': [{\n            'name': 'accuracy',\n\
+          \            'numberValue': 0.9,\n            'format': 'PERCENTAGE',\n\
+          \        }]\n    })\n\n    with open(artifact.path) as f:\n        artifact_contents\
+          \ = f.read()\n    model = 'Model contents: ' + artifact_contents\n\n   \
+          \ from collections import namedtuple\n    output = namedtuple('Outputs',\
+          \ ['scalar', 'metrics', 'model'])\n    return output(scalar, metrics, model)\n\
+          \n"
         image: python:3.7
 pipelineInfo:
   name: functions-with-outputs
@@ -265,4 +267,4 @@ root:
           schemaTitle: system.Metrics
           schemaVersion: 0.0.1
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.5
+sdkVersion: kfp-2.0.0-beta.3

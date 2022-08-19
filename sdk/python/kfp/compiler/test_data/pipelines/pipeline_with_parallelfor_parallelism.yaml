@@ -175,7 +175,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.2'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.3'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -187,7 +187,7 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_text(msg: str):\n    print(msg)\n\n"
+          \ *\nimport typing\n\ndef print_text(msg: str):\n    print(msg)\n\n"
         image: python:3.7
     exec-print-text-2:
       container:
@@ -201,7 +201,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.2'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.3'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -213,7 +213,7 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_text(msg: str):\n    print(msg)\n\n"
+          \ *\nimport typing\n\ndef print_text(msg: str):\n    print(msg)\n\n"
         image: python:3.7
     exec-print-text-3:
       container:
@@ -227,7 +227,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.2'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.3'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -239,7 +239,7 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_text(msg: str):\n    print(msg)\n\n"
+          \ *\nimport typing\n\ndef print_text(msg: str):\n    print(msg)\n\n"
         image: python:3.7
     exec-print-text-4:
       container:
@@ -253,7 +253,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.2'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.3'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -265,7 +265,7 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_text(msg: str):\n    print(msg)\n\n"
+          \ *\nimport typing\n\ndef print_text(msg: str):\n    print(msg)\n\n"
         image: python:3.7
     exec-print-text-5:
       container:
@@ -279,7 +279,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.2'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.3'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -291,7 +291,7 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_text(msg: str):\n    print(msg)\n\n"
+          \ *\nimport typing\n\ndef print_text(msg: str):\n    print(msg)\n\n"
         image: python:3.7
     exec-print-text-6:
       container:
@@ -305,7 +305,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.2'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.3'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -317,7 +317,7 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_text(msg: str):\n    print(msg)\n\n"
+          \ *\nimport typing\n\ndef print_text(msg: str):\n    print(msg)\n\n"
         image: python:3.7
 pipelineInfo:
   name: pipeline-with-loops
@@ -353,4 +353,4 @@ root:
       loop_parameter:
         parameterType: LIST
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.2
+sdkVersion: kfp-2.0.0-beta.3

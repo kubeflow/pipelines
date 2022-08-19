@@ -145,7 +145,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.3'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -157,9 +157,10 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin and output heads\
-          \ or tails randomly.\"\"\"\n    import random\n    result = 'heads' if random.randint(0,\
-          \ 1) == 0 else 'tails'\n    return result\n\n"
+          \ *\nimport typing\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin\
+          \ and output heads or tails randomly.\"\"\"\n    import random\n    result\
+          \ = 'heads' if random.randint(0, 1) == 0 else 'tails'\n    return result\n\
+          \n"
         image: python:3.7
     exec-flip-coin-op-2:
       container:
@@ -173,7 +174,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.3'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -185,9 +186,10 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin and output heads\
-          \ or tails randomly.\"\"\"\n    import random\n    result = 'heads' if random.randint(0,\
-          \ 1) == 0 else 'tails'\n    return result\n\n"
+          \ *\nimport typing\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin\
+          \ and output heads or tails randomly.\"\"\"\n    import random\n    result\
+          \ = 'heads' if random.randint(0, 1) == 0 else 'tails'\n    return result\n\
+          \n"
         image: python:3.7
     exec-flip-coin-op-3:
       container:
@@ -201,7 +203,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.3'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -213,9 +215,10 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin and output heads\
-          \ or tails randomly.\"\"\"\n    import random\n    result = 'heads' if random.randint(0,\
-          \ 1) == 0 else 'tails'\n    return result\n\n"
+          \ *\nimport typing\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin\
+          \ and output heads or tails randomly.\"\"\"\n    import random\n    result\
+          \ = 'heads' if random.randint(0, 1) == 0 else 'tails'\n    return result\n\
+          \n"
         image: python:3.7
     exec-flip-coin-op-4:
       container:
@@ -229,7 +232,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.3'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -241,9 +244,10 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin and output heads\
-          \ or tails randomly.\"\"\"\n    import random\n    result = 'heads' if random.randint(0,\
-          \ 1) == 0 else 'tails'\n    return result\n\n"
+          \ *\nimport typing\n\ndef flip_coin_op() -> str:\n    \"\"\"Flip a coin\
+          \ and output heads or tails randomly.\"\"\"\n    import random\n    result\
+          \ = 'heads' if random.randint(0, 1) == 0 else 'tails'\n    return result\n\
+          \n"
         image: python:3.7
     exec-print-op:
       container:
@@ -257,7 +261,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.3'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -269,8 +273,8 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_op(msg: str):\n    \"\"\"Print a message.\"\"\"\n    print(msg)\n\
-          \n"
+          \ *\nimport typing\n\ndef print_op(msg: str):\n    \"\"\"Print a message.\"\
+          \"\"\n    print(msg)\n\n"
         image: python:3.7
     exec-print-op-2:
       container:
@@ -284,7 +288,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.3'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -296,8 +300,8 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_op(msg: str):\n    \"\"\"Print a message.\"\"\"\n    print(msg)\n\
-          \n"
+          \ *\nimport typing\n\ndef print_op(msg: str):\n    \"\"\"Print a message.\"\
+          \"\"\n    print(msg)\n\n"
         image: python:3.7
     exec-print-op-3:
       container:
@@ -311,7 +315,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.3'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -323,8 +327,8 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_op(msg: str):\n    \"\"\"Print a message.\"\"\"\n    print(msg)\n\
-          \n"
+          \ *\nimport typing\n\ndef print_op(msg: str):\n    \"\"\"Print a message.\"\
+          \"\"\n    print(msg)\n\n"
         image: python:3.7
     exec-print-op-4:
       container:
@@ -338,7 +342,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.3'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -350,8 +354,8 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_op(msg: str):\n    \"\"\"Print a message.\"\"\"\n    print(msg)\n\
-          \n"
+          \ *\nimport typing\n\ndef print_op(msg: str):\n    \"\"\"Print a message.\"\
+          \"\"\n    print(msg)\n\n"
         image: python:3.7
 pipelineInfo:
   name: nested-conditions-pipeline
@@ -424,4 +428,4 @@ root:
         taskInfo:
           name: print-op-2
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.5
+sdkVersion: kfp-2.0.0-beta.3
