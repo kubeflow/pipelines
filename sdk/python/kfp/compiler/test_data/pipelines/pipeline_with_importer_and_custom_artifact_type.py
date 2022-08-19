@@ -25,8 +25,9 @@ from kfp.dsl import Model
 
 
 class MyDataset(Dataset):
-  """An artifact representing a Custom Dataset."""
-  TYPE_NAME = 'custom.MyDataset'
+    """An artifact representing a Custom Dataset."""
+    TYPE_NAME = 'custom.MyDataset'
+
 
 @component
 def train(
@@ -53,7 +54,9 @@ def pass_through_op(value: str) -> str:
     return value
 
 
-@dsl.pipeline(name='pipeline-with-importer-and-custom-artifact-type', pipeline_root='dummy_root')
+@dsl.pipeline(
+    name='pipeline-with-importer-and-custom-artifact-type',
+    pipeline_root='dummy_root')
 def my_pipeline(dataset2: str = 'gs://ml-pipeline-playground/shakespeare2.txt'):
 
     importer1 = importer(
