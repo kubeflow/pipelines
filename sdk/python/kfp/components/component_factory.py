@@ -330,6 +330,7 @@ def _get_command_and_args_for_lightweight_component(
         'from kfp import dsl',
         'from kfp.dsl import *',
         'from typing import *',
+        'import typing',
     ]
 
     func_source = _get_function_source_definition(func)
