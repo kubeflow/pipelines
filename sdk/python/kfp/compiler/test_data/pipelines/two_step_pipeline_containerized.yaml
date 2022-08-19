@@ -34,7 +34,7 @@ deploymentSpec:
     exec-component2:
       container:
         args:
-        - '{{$.inputs.artifacts[''input_gcs''].path}}'
+        - '{{$.inputs.artifacts[''input_gcs''].uri}}'
         command:
         - sh
         - -c

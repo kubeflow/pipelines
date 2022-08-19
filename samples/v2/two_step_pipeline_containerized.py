@@ -47,7 +47,7 @@ def component2(input_gcs: Input[Dataset]):
             'gsutil cat "$0"',
         ],
         args=[
-            input_gcs.path,
+            input_gcs.uri,
         ])
 
 
