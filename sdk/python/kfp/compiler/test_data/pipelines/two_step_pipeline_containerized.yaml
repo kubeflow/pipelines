@@ -55,7 +55,7 @@ root:
             text:
               componentInputParameter: text
         taskInfo:
-          name: Producer
+          name: component1
       component2:
         cachingOptions:
           enableCache: true
@@ -70,7 +70,7 @@ root:
                 outputArtifactKey: output_gcs
                 producerTask: component1
         taskInfo:
-          name: Consumer
+          name: component2
   inputDefinitions:
     parameters:
       text:

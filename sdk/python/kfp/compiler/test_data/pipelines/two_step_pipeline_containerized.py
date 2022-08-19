@@ -47,9 +47,8 @@ def component2(input_gcs: dsl.Input[dsl.Dataset]):
 
 @dsl.pipeline(name='containerized-two-step-pipeline')
 def my_pipeline(text: str):
-    component_1 = component1(text=text).set_display_name('Producer')
+    component_1 = component1(text=text)
     component_2 = component2(input_gcs=component_1.outputs['output_gcs'])
-    component_2.set_display_name('Consumer')
 
 
 if __name__ == '__main__':

@@ -53,9 +53,8 @@ def component2(input_gcs: Input[Dataset]):
 
 @pipeline(name='two-step-pipeline-containerized')
 def two_step_pipeline_containerized():
-    component_1 = component1(text='hi').set_display_name('Producer')
+    component_1 = component1(text='hi')
     component_2 = component2(input_gcs=component_1.outputs['output_gcs'])
-    component_2.set_display_name('Consumer')
 
 
 if __name__ == '__main__':
