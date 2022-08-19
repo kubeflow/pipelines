@@ -72,9 +72,7 @@ def importer(
                 reimport=reimport,
                 metadata=metadata)),
         inputs={INPUT_KEY: structures.InputSpec(type='String')},
-        outputs={
-            OUTPUT_KEY: structures.OutputSpec(type=type_name)
-        },
+        outputs={OUTPUT_KEY: structures.OutputSpec(type=type_name)},
     )
 
     importer = importer_component.ImporterComponent(
