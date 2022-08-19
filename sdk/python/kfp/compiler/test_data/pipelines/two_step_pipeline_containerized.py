@@ -23,7 +23,7 @@ def component1(text: str, output_gcs: dsl.Output[dsl.Dataset]):
         command=[
             'sh',
             '-c',
-            'echo "$0" | gsutil cp - "$1$',
+            'echo "$0" | gsutil cp - "$1$"',
         ],
         args=[
             text,

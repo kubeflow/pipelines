@@ -29,7 +29,7 @@ deploymentSpec:
         command:
         - sh
         - -c
-        - echo "$0" | gsutil cp - "$1$
+        - echo "$0" | gsutil cp - "$1$"
         image: google/cloud-sdk:slim
     exec-component2:
       container:
