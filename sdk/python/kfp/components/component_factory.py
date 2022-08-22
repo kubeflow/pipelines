@@ -22,6 +22,7 @@ import warnings
 
 import docstring_parser
 from kfp.components import container_component
+from kfp.components import graph_component
 from kfp.components import placeholders
 from kfp.components import python_component
 from kfp.components import structures
@@ -379,14 +380,16 @@ def _get_command_and_args_for_containerized_component(
     return command, args
 
 
-def create_component_from_func(func: Callable,
-                               base_image: Optional[str] = None,
-                               target_image: Optional[str] = None,
-                               packages_to_install: List[str] = None,
-                               pip_index_urls: Optional[List[str]] = None,
-                               output_component_file: Optional[str] = None,
-                               install_kfp_package: bool = True,
-                               kfp_package_path: Optional[str] = None):
+def create_component_from_func(
+    func: Callable,
+    base_image: Optional[str] = None,
+    target_image: Optional[str] = None,
+    packages_to_install: List[str] = None,
+    pip_index_urls: Optional[List[str]] = None,
+    output_component_file: Optional[str] = None,
+    install_kfp_package: bool = True,
+    kfp_package_path: Optional[str] = None,
+) -> python_component.PythonComponent:
     """Implementation for the @component decorator.
 
     The decorator is defined under component_decorator.py. See the
@@ -487,3 +490,23 @@ def create_container_component_from_func(
         container_spec_implementation)
     component_spec.validate_placeholders()
     return container_component.ContainerComponent(component_spec, func)
+
+
+def create_graph_component_from_func(
+        func: Callable) -> graph_component.GraphComponent:
+    """Implementation for the @pipeline decorator.
+
+    The decorator is defined under pipeline_context.py. See the
+    decorator for the canonical documentation for this function.
+    """
+
+    component_spec = extract_component_interface(func)
+    component_name = getattr(func, '_component_human_name',
+                             None) or _python_function_name_to_component_name(
+                                 func.__name__)
+
+    return graph_component.GraphComponent(
+        component_spec=component_spec,
+        pipeline_func=func,
+        name=component_name,
+    )

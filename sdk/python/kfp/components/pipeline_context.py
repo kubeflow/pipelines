@@ -13,17 +13,13 @@
 # limitations under the License.
 """Definition for Pipeline."""
 
-import textwrap
 from typing import Callable, Optional
 
+from kfp.components import component_factory
+from kfp.components import graph_component
 from kfp.components import pipeline_task
 from kfp.components import tasks_group
 from kfp.components import utils
-
-# This handler is called whenever the @pipeline decorator is applied.
-# It can be used by command-line DSL compiler to inject code that runs for every
-# pipeline definition.
-pipeline_decorator_handler = None
 
 
 def pipeline(name: Optional[str] = None,
@@ -47,20 +43,8 @@ def pipeline(name: Optional[str] = None,
         description: A human-readable description of the pipeline.
         pipeline_root: The root directory from which to read input and output parameters and artifacts.
     """
-    if callable(name):
-        strikethrough_decorator = '\u0336'.join('@pipeline') + '\u0336'
-        raise RuntimeError(
-            textwrap.dedent(
-                f"""The @pipeline decorator must be called (optionally with arguments) in order to construct a pipeline. For example:
-
-                {strikethrough_decorator}
-                @pipeline()
-                def my_pipeline():
-                    ...
-            """))
 
     def _pipeline(func: Callable) -> Callable:
-        func._is_pipeline = True
         if name:
             func._component_human_name = name
         if description:
@@ -68,10 +52,7 @@ def pipeline(name: Optional[str] = None,
         if pipeline_root:
             func.pipeline_root = pipeline_root
 
-        if pipeline_decorator_handler:
-            return pipeline_decorator_handler(func) or func
-        else:
-            return func
+        return component_factory.create_graph_component_from_func(func)
 
     return _pipeline
 
@@ -218,4 +199,4 @@ class Pipeline:
         Returns:
             bool: True if the function is a pipeline function.
         """
-        return callable(func) and getattr(func, '_is_pipeline', False)
+        return isinstance(func, graph_component.GraphComponent)

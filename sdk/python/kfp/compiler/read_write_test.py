@@ -29,13 +29,14 @@ from kfp.components import python_component
 from kfp.components import structures
 import yaml
 
-PROJECT_ROOT = os.path.abspath(os.path.join(__file__, *([os.path.pardir] * 5)))
+_DEFAULT_PIPELINE_FUNC_NAME = 'my_pipeline'
+_PROJECT_ROOT = os.path.abspath(os.path.join(__file__, *([os.path.pardir] * 5)))
 
 
 def expand_config(config: dict) -> List[Dict[str, Any]]:
     parameters: List[Dict[str, Any]] = []
     for name, test_group in config.items():
-        test_data_dir = os.path.join(PROJECT_ROOT, test_group['test_data_dir'])
+        test_data_dir = os.path.join(_PROJECT_ROOT, test_group['test_data_dir'])
         config = test_group['config']
         parameters.extend({
             'name': name + '-' + test_case,
@@ -61,6 +62,10 @@ def collect_pipeline_from_module(
     if len(pipelines) == 1:
         return pipelines[0]
     else:
+        # Try get the pipeline with the default name first.
+        for pipeline in pipelines:
+            if _DEFAULT_PIPELINE_FUNC_NAME == pipeline.pipeline_func.__name__:
+                return pipeline
         raise ValueError(
             f'Expect one pipeline function in module {target_module}, got {len(pipelines)}: {pipelines}. Please specify the pipeline function name with --function.'
         )
