@@ -35,6 +35,11 @@ description: |
           Required for custom tabular and non tabular data.
           The list of fields in the ground truth gcs source to format the joining key.
           Used to merge prediction instances with ground truth data.
+          If prediction & ground truth key column names are different, provide the fields
+          present in prediction source and a mapping to the column name in ground truth.
+      key_column_mapping(Optional[Dict[str, str]]]):
+          Required when joining keys in prediction & ground truth data are different.
+          This maps the prediction data joining key to the ground truth joining key.
       classification_type (Optional[str]):
           The type of classification problem, either `multiclass` or `multilabel`.
           If not set, defaulted to `multiclass`.
@@ -106,6 +111,7 @@ inputs:
   - { name: ground_truth_format, type: String, default: "jsonl" }
   - { name: ground_truth_gcs_source, type: JsonArray, default: "{}" }
   - { name: key_columns, type: JsonArray, default: "{}" }
+  - { name: key_column_mapping, type: JsonObject, default: "{}"}
   - { name: classification_type, type: String, default: "" }
   - { name: class_names, type: JsonArray, default: "{}" }
   - { name: ground_truth_column, type: String }
@@ -154,6 +160,8 @@ implementation:
       - "instance"
       - --key_columns
       - { inputValue: key_columns }
+      - --key_column_mapping
+      - { inputValue: key_column_mapping}
       - --root_dir
       - "{{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
       - --classification_type
