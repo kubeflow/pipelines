@@ -243,8 +243,12 @@ describe('NewRunV2', () => {
           {...generatePropsNewRun()}
           existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
           apiRun={undefined}
-          apiPipeline={TEST_PIPELINE}
-          apiPipelineVersion={TEST_PIPELINE_VERSION}
+          existingPipelineId={''}
+          existingPipeline={TEST_PIPELINE}
+          handlePipelineIdChange={jest.fn()}
+          existingPipelineVersionId={''}
+          existingPipelineVersion={TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={jest.fn()}
           templateString={v2YamlTemplateString}
         />
       </CommonTestWrapper>,
@@ -275,8 +279,12 @@ describe('NewRunV2', () => {
           {...generatePropsNewRun()}
           existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
           apiRun={undefined}
-          apiPipeline={TEST_PIPELINE}
-          apiPipelineVersion={TEST_PIPELINE_VERSION}
+          existingPipelineId={''}
+          existingPipeline={TEST_PIPELINE}
+          handlePipelineIdChange={jest.fn()}
+          existingPipelineVersionId={''}
+          existingPipelineVersion={TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={jest.fn()}
           templateString={v2YamlTemplateString}
         />
       </CommonTestWrapper>,
@@ -305,8 +313,12 @@ describe('NewRunV2', () => {
           {...generatePropsNewRun()}
           existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
           apiRun={undefined}
-          apiPipeline={TEST_PIPELINE}
-          apiPipelineVersion={TEST_PIPELINE_VERSION}
+          existingPipelineId={''}
+          existingPipeline={TEST_PIPELINE}
+          handlePipelineIdChange={jest.fn()}
+          existingPipelineVersionId={''}
+          existingPipelineVersion={TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={jest.fn()}
           templateString={v2YamlTemplateString}
         />
       </CommonTestWrapper>,
@@ -338,8 +350,12 @@ describe('NewRunV2', () => {
             {...generatePropsNewRun()}
             existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
             apiRun={undefined}
-            apiPipeline={TEST_PIPELINE}
-            apiPipelineVersion={TEST_PIPELINE_VERSION}
+            existingPipelineId={''}
+            existingPipeline={TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersionId={''}
+            existingPipelineVersion={TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
             templateString={v2YamlTemplateString}
           />
         </CommonTestWrapper>,
@@ -374,10 +390,14 @@ describe('NewRunV2', () => {
         <CommonTestWrapper>
           <NewRunV2
             {...generatePropsNewRun()}
-            existingRunId={null}
-            apiRun={undefined}
-            apiPipeline={TEST_PIPELINE}
-            apiPipelineVersion={TEST_PIPELINE_VERSION}
+            existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
+            apiRun={API_RUN_DETAILS}
+            existingPipelineId={''}
+            existingPipeline={TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersionId={''}
+            existingPipelineVersion={TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
             templateString={v2YamlTemplateString}
           />
         </CommonTestWrapper>,
@@ -490,10 +510,14 @@ describe('NewRunV2', () => {
         <CommonTestWrapper>
           <NewRunV2
             {...generatePropsClonedRun()}
-            existingRunId={TEST_RUN_ID}
-            apiRun={API_SDK_CREATED_NEW_RUN_DETAILS}
-            apiPipeline={undefined}
-            apiPipelineVersion={undefined}
+            existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
+            apiRun={API_RUN_DETAILS}
+            existingPipelineId={''}
+            existingPipeline={undefined}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersionId={''}
+            existingPipelineVersion={undefined}
+            handlePipelineVersionIdChange={jest.fn()}
             templateString={v2YamlTemplateString}
           />
         </CommonTestWrapper>,
