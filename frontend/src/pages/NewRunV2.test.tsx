@@ -144,8 +144,12 @@ describe('NewRunV2', () => {
           {...generatePropsNewRun()}
           existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
           apiRun={undefined}
-          apiPipeline={TEST_PIPELINE}
-          apiPipelineVersion={TEST_PIPELINE_VERSION}
+          existingPipelineId={''}
+          existingPipeline={TEST_PIPELINE}
+          handlePipelineIdChange={jest.fn()}
+          existingPipelineVersionId={''}
+          existingPipelineVersion={TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={jest.fn()}
           templateString={v2YamlTemplateString}
         />
       </CommonTestWrapper>,
@@ -176,8 +180,12 @@ describe('NewRunV2', () => {
           {...generatePropsNewRun()}
           existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
           apiRun={undefined}
-          apiPipeline={TEST_PIPELINE}
-          apiPipelineVersion={TEST_PIPELINE_VERSION}
+          existingPipelineId={''}
+          existingPipeline={TEST_PIPELINE}
+          handlePipelineIdChange={jest.fn()}
+          existingPipelineVersionId={''}
+          existingPipelineVersion={TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={jest.fn()}
           templateString={v2YamlTemplateString}
         />
       </CommonTestWrapper>,
@@ -205,8 +213,12 @@ describe('NewRunV2', () => {
           {...generatePropsNewRun()}
           existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
           apiRun={undefined}
-          apiPipeline={TEST_PIPELINE}
-          apiPipelineVersion={TEST_PIPELINE_VERSION}
+          existingPipelineId={''}
+          existingPipeline={TEST_PIPELINE}
+          handlePipelineIdChange={jest.fn()}
+          existingPipelineVersionId={''}
+          existingPipelineVersion={TEST_PIPELINE_VERSION}
+          handlePipelineVersionIdChange={jest.fn()}
           templateString={v2YamlTemplateString}
         />
       </CommonTestWrapper>,
@@ -238,8 +250,12 @@ describe('NewRunV2', () => {
             {...generatePropsNewRun()}
             existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
             apiRun={undefined}
-            apiPipeline={TEST_PIPELINE}
-            apiPipelineVersion={TEST_PIPELINE_VERSION}
+            existingPipelineId={''}
+            existingPipeline={TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersionId={''}
+            existingPipelineVersion={TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
             templateString={v2YamlTemplateString}
           />
         </CommonTestWrapper>,
@@ -276,8 +292,12 @@ describe('NewRunV2', () => {
             {...generatePropsNewRun()}
             existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
             apiRun={API_RUN_DETAILS}
-            apiPipeline={TEST_PIPELINE}
-            apiPipelineVersion={TEST_PIPELINE_VERSION}
+            existingPipelineId={''}
+            existingPipeline={TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersionId={''}
+            existingPipelineVersion={TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
             templateString={v2YamlTemplateString}
           />
         </CommonTestWrapper>,
@@ -323,8 +343,12 @@ describe('NewRunV2', () => {
             {...generatePropsClonedRun()}
             existingRunId='e0115ac1-0479-4194-a22d-01e65e09a32b'
             apiRun={API_RUN_DETAILS}
-            apiPipeline={undefined}
-            apiPipelineVersion={undefined}
+            existingPipelineId={''}
+            existingPipeline={undefined}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersionId={''}
+            existingPipelineVersion={undefined}
+            handlePipelineVersionIdChange={jest.fn()}
             templateString={v2YamlTemplateString}
           />
         </CommonTestWrapper>,

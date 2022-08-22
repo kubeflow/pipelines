@@ -101,8 +101,8 @@ function NewRunSwitcher(props: PageProps) {
           existingPipeline={apiPipeline}
           handlePipelineIdChange={setPipelineId}
           existingPipelineVersionId={apiPipelineVersion?.id}
-          handlePipelineVersionIdChange={setPipelineVersionIdParam}
           existingPipelineVersion={apiPipelineVersion}
+          handlePipelineVersionIdChange={setPipelineVersionIdParam}
           templateString={templateString}
         />
       );
@@ -112,26 +112,6 @@ function NewRunSwitcher(props: PageProps) {
   // Use experiment ID to create new run
   // Currently use NewRunV1 as default
   // TODO(jlyaoyuli): set v2 as default once v1 is deprecated.
-  // if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
-  //   if (experimentId || (!pipelineId && !existingRunId)) {
-  //     return (
-  //       <NewRunV2
-  //         {...props}
-  //         namespace={namespace}
-  //         existingRunId={existingRunId}
-  //         apiRun={apiRun}
-  //         existingPipelineId={pipelineId}
-  //         existingPipeline={apiPipeline}
-  //         handlePipelineIdChange={setPipelineId}
-  //         existingPipelineVersionId={apiPipelineVersion?.id}
-  //         handlePipelineVersionIdChange={setPipelineVersionIdParam}
-  //         existingPipelineVersion={apiPipelineVersion}
-  //         templateString={templateString}
-  //       />
-  //     );
-  //   }
-  // }
-
   if (
     runIsFetching ||
     pipelineIsFetching ||

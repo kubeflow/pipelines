@@ -73,8 +73,8 @@ interface RunV2Props {
   existingPipeline: ApiPipeline | undefined;
   handlePipelineIdChange: (pipelineId: string) => void;
   existingPipelineVersionId: string | undefined;
-  handlePipelineVersionIdChange: (pipelineVersionId: string) => void;
   existingPipelineVersion: ApiPipelineVersion | undefined;
+  handlePipelineVersionIdChange: (pipelineVersionId: string) => void;
   templateString: string | undefined;
 }
 
