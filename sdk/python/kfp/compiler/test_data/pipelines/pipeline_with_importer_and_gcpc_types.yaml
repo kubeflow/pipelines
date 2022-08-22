@@ -1,0 +1,74 @@
+components:
+  comp-importer:
+    executorLabel: exec-importer
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: google.VertexDataset
+            schemaVersion: 0.0.1
+  comp-producer:
+    executorLabel: exec-producer
+    inputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: google.VertexDataset
+            schemaVersion: 0.0.1
+defaultPipelineRoot: dummy_root
+deploymentSpec:
+  executors:
+    exec-importer:
+      importer:
+        artifactUri:
+          constant: gs://ml-pipeline-playground/shakespeare1.txt
+        metadata:
+          key: value
+        typeSchema:
+          schemaTitle: google.VertexDataset
+          schemaVersion: 0.0.1
+    exec-producer:
+      container:
+        args:
+        - '{{$.inputs.artifacts[''dataset''].path}}'
+        command:
+        - cmd
+        image: dummy
+pipelineInfo:
+  name: pipeline-with-importer-and-gcpc-type
+root:
+  dag:
+    tasks:
+      importer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer
+        inputs:
+          parameters:
+            uri:
+              runtimeValue:
+                constant: gs://ml-pipeline-playground/shakespeare1.txt
+        taskInfo:
+          name: importer
+      producer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-producer
+        dependentTasks:
+        - importer
+        inputs:
+          artifacts:
+            dataset:
+              taskOutputArtifact:
+                outputArtifactKey: artifact
+                producerTask: importer
+        taskInfo:
+          name: producer
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.3

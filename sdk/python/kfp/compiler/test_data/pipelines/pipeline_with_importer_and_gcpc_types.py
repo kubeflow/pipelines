@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,59 +17,43 @@ from typing import NamedTuple
 
 from kfp import compiler
 from kfp import dsl
+from kfp import components
 from kfp.dsl import component
-from kfp.dsl import Dataset
 from kfp.dsl import importer
 from kfp.dsl import Input
 from kfp.dsl import Model
 
 
-class MyDataset(Dataset):
-    """An artifact representing a Custom Dataset."""
-    TYPE_NAME = 'custom.MyDataset'
+class VertexDataset(dsl.Artifact):
+    """An artifact representing a Vertex Dataset."""
+    TYPE_NAME = 'google.VertexDataset'
 
 
-@component
-def train(
-    dataset: Input[MyDataset]
-) -> NamedTuple('Outputs', [
-    ('scalar', str),
-    ('model', Model),
-]):
-    """Dummy Training step."""
-    with open(dataset.path) as f:
-        data = f.read()
-    print('Dataset:', data)
-
-    scalar = '123'
-    model = f'My model trained using data: {data}'
-
-    from collections import namedtuple
-    output = namedtuple('Outputs', ['scalar', 'model'])
-    return output(scalar, model)
-
-
-@component
-def pass_through_op(value: str) -> str:
-    return value
+consumer_op = components.load_component_from_text("""
+name: producer
+inputs:
+  - {name: dataset, type: google.VertexDataset}
+implementation:
+  container:
+    image: dummy
+    command:
+    - cmd
+    args:
+    - {inputPath: dataset}
+""")
 
 
 @dsl.pipeline(
-    name='pipeline-with-importer-and-custom-artifact-type',
+    name='pipeline-with-importer-and-gcpc-type',
     pipeline_root='dummy_root')
-def my_pipeline(dataset2: str = 'gs://ml-pipeline-playground/shakespeare2.txt'):
+def my_pipeline():
 
     importer1 = importer(
         artifact_uri='gs://ml-pipeline-playground/shakespeare1.txt',
-        artifact_class=MyDataset,
+        artifact_class=VertexDataset,
         reimport=False,
         metadata={'key': 'value'})
-    train1 = train(dataset=importer1.output)
-
-    with dsl.Condition(train1.outputs['scalar'] == '123'):
-        importer2 = importer(
-            artifact_uri=dataset2, artifact_class=MyDataset, reimport=True)
-        train(dataset=importer2.output)
+    consume1 = consumer_op(dataset=importer1.output)
 
 
 if __name__ == '__main__':
