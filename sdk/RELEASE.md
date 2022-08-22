@@ -2,10 +2,13 @@
 
 ## Major Features and Improvements
 * Support parallelism setting in ParallelFor [\#8146](https://github.com/kubeflow/pipelines/pull/8146)
+* Support pipeline as a component [\#8179](https://github.com/kubeflow/pipelines/pull/8179)
 
 ## Breaking Changes
 
 ### For Pipeline Authors
+* Pipeline compilation is now triggered from `@pipeline` decorator instead of `Compiler.compile()` method. 
+Technically no breaking changes but compilation error could be exposed in a different (and earlier) stage. [\#8179](https://github.com/kubeflow/pipelines/pull/8179)
 
 ### For Component Authors
 
