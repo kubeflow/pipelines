@@ -1,0 +1,54 @@
+components:
+  comp-trainer:
+    executorLabel: exec-trainer
+    inputDefinitions:
+      artifacts:
+        input_location:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+    outputDefinitions:
+      artifacts:
+        model_output:
+          artifactType:
+            schemaTitle: system.Model
+            schemaVersion: 0.0.1
+      parameters:
+        model_config:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-trainer:
+      container:
+        args:
+        - --input-location
+        - '{{$.inputs.artifacts[''input_location''].uri}}'
+        - --model
+        - '{{$.outputs.artifacts[''model_output''].uri}}'
+        - --model-config
+        - '{{$.outputs.parameters[''model_config''].output_file}}'
+        image: gcr.io/my-project/my-training
+pipelineInfo:
+  name: trainer
+root:
+  dag:
+    tasks:
+      trainer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-trainer
+        inputs:
+          artifacts:
+            input_location:
+              componentInputArtifact: input_location
+        taskInfo:
+          name: trainer
+  inputDefinitions:
+    artifacts:
+      input_location:
+        artifactType:
+          schemaTitle: system.Artifact
+          schemaVersion: 0.0.1
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.3

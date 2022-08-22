@@ -1185,7 +1185,6 @@ def build_spec_by_group(
 
     pipeline_spec.deployment_spec.update(
         json_format.MessageToDict(deployment_config))
-
     # Surface metrics outputs to the top.
     builder.populate_metrics_in_dag_outputs(
         tasks=group.tasks,

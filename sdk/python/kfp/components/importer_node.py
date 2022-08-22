@@ -65,7 +65,7 @@ def importer(
                 metadata=metadata)),
         inputs={INPUT_KEY: structures.InputSpec(type='String')},
         outputs={
-            OUTPUT_KEY: structures.OutputSpec(type=artifact_class.__name__)
+            OUTPUT_KEY: structures.OutputSpec(type=artifact_class.TYPE_NAME)
         },
     )
 

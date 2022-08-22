@@ -89,6 +89,29 @@ class InputSpec(InputSpec_, base_model.BaseModel):
         default = ir_parameter_dict.get('defaultValue')
         return InputSpec(type=type_, default=default)
 
+    @classmethod
+    def from_ir_artifact_dict(cls, ir_artifact_dict: Dict[str,
+                                                          Any]) -> 'InputSpec':
+        """Creates an InputSpec from a ComponentInputsSpec message in dict
+        format (pipeline_spec.components.<component-
+        key>.inputDefinitions.artifacts.<input-key>).
+
+        Args:
+            ir_parameter_dict (Dict[str, Any]): The ComponentInputsSpec message in dict format.
+
+        Returns:
+            InputSpec: The InputSpec object.
+        """
+        artifact_type = ir_artifact_dict['artifactType']
+        print(artifact_type)
+        # type_ = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE.get()
+        # if type_ is None:
+        #     raise ValueError(
+        #         f'Unknown type {ir_artifact_dict["parameterType"]} found in IR.'
+        #     )
+        # default = ir_artifact_dict.get('defaultValue')
+        # return InputSpec(type=type_, default=default)
+
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for InputSpec. Robust to different type
         representations, such that it respects the maximum amount of
@@ -531,7 +554,6 @@ class ComponentSpec(base_model.BaseModel):
         valid_inputs = [] if self.inputs is None else list(self.inputs.keys())
         valid_outputs = [] if self.outputs is None else list(
             self.outputs.keys())
-
         for arg in itertools.chain((containerSpecImplementation.command or []),
                                    (containerSpecImplementation.args or [])):
             _check_valid_placeholder_reference(valid_inputs, valid_outputs, arg)
@@ -585,14 +607,14 @@ class ComponentSpec(base_model.BaseModel):
             'args': container['args'],
             'env': container['env']
         })
-
+        print(component_dict)
         return ComponentSpec(
             name=component_dict.get('name', 'name'),
             description=component_dict.get('description'),
             implementation=Implementation(container=container_spec),
             inputs={
                 utils.sanitize_input_name(spec['name']): InputSpec(
-                    type=spec.get('type', 'Artifact'),
+                    type=spec.get('type', 'system.Artifact'),
                     default=spec.get('default', None))
                 for spec in component_dict.get('inputs', [])
             },
@@ -616,10 +638,15 @@ class ComponentSpec(base_model.BaseModel):
             component_key = utils._COMPONENT_NAME_PREFIX + component_name
             parameters = components_dict[component_key].get(
                 'inputDefinitions', {}).get('parameters', {})
-            return {
+            parameter_inputs = {
                 name: InputSpec.from_ir_parameter_dict(parameter_dict)
-                for name, parameter_dict in parameters.items()
+                for name, parameter_dict in inputs.items()
             }
+            artifact_inputs = {
+                name: InputSpec.from_ir_parameter_dict(parameter_dict)
+                for name, parameter_dict in inputs.items()
+            }
+            inputs = {**artifacts, **parameters}
 
         def outputs_dict_from_components_dict(
                 components_dict: Dict[str, Any],
@@ -737,7 +764,9 @@ class ComponentSpec(base_model.BaseModel):
         # just build the single task group
         group = tasks_group.TasksGroup(
             group_type=tasks_group.TasksGroupType.PIPELINE)
+        # print(task.channel_inputs)
         group.tasks.append(task)
+        # print("CHANNEL INPUTS", group.tasks[0].channel_inputs)
 
         # Fill in the default values.
         args_list_with_defaults = [
@@ -751,7 +780,6 @@ class ComponentSpec(base_model.BaseModel):
 
         pipeline_name = self.name
         pipeline_args = args_list_with_defaults
-        task_group = group
 
         builder.validate_pipeline_name(pipeline_name)
 
@@ -767,7 +795,7 @@ class ComponentSpec(base_model.BaseModel):
             ))
 
         deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
-        root_group = task_group
+        root_group = group
 
         task_name_to_parent_groups, group_name_to_parent_groups = builder.get_parent_groups(
             root_group)
@@ -785,7 +813,7 @@ class ComponentSpec(base_model.BaseModel):
                     inputs[group_name].add((only_task.channel_inputs[-1], None))
             return inputs
 
-        inputs = get_inputs(task_group, task_name_to_parent_groups)
+        inputs = get_inputs(root_group, task_name_to_parent_groups)
 
         builder.build_spec_by_group(
             pipeline_spec=pipeline_spec,
@@ -798,6 +826,7 @@ class ComponentSpec(base_model.BaseModel):
             group_name_to_parent_groups=group_name_to_parent_groups,
             name_to_for_loop_group={},  # no for loop for single-component pipeline
         )
+        print(pipeline_spec)
 
         return pipeline_spec
 

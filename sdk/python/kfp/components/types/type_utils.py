@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities for component I/O type mapping."""
-import inspect
 import re
 from typing import Any, List, Optional, Type, Union
 import warnings
@@ -27,14 +26,18 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 PARAMETER_TYPES = Union[str, int, float, bool, dict, list]
 
 # ComponentSpec I/O types to DSL ontology artifact classes mapping.
+kfp_artifacts = {
+    artifact_types.Artifact,
+    artifact_types.Model,
+    artifact_types.Dataset,
+    artifact_types.Metrics,
+    artifact_types.ClassificationMetrics,
+    artifact_types.SlicedClassificationMetrics,
+    artifact_types.HTML,
+    artifact_types.Markdown,
+}
 _ARTIFACT_CLASSES_MAPPING = {
-    'model': artifact_types.Model,
-    'dataset': artifact_types.Dataset,
-    'metrics': artifact_types.Metrics,
-    'classificationmetrics': artifact_types.ClassificationMetrics,
-    'slicedclassificationmetrics': artifact_types.SlicedClassificationMetrics,
-    'html': artifact_types.HTML,
-    'markdown': artifact_types.Markdown,
+    artifact.TYPE_NAME: artifact for artifact in kfp_artifacts
 }
 
 _GOOGLE_TYPES_PATTERN = r'^google.[A-Za-z]+$'
@@ -110,7 +113,6 @@ def get_artifact_type_schema(
 ) -> pipeline_spec_pb2.ArtifactTypeSchema:
     """Gets the IR I/O artifact type msg for the given ComponentSpec I/O
     type."""
-    artifact_class = artifact_types.Artifact
     if isinstance(artifact_class_or_type_name, str):
         if re.match(_GOOGLE_TYPES_PATTERN, artifact_class_or_type_name):
             return pipeline_spec_pb2.ArtifactTypeSchema(
@@ -118,14 +120,16 @@ def get_artifact_type_schema(
                 schema_version=_GOOGLE_TYPES_VERSION,
             )
         artifact_class = _ARTIFACT_CLASSES_MAPPING.get(
-            artifact_class_or_type_name.lower(), artifact_types.Artifact)
-    elif inspect.isclass(artifact_class_or_type_name) and issubclass(
-            artifact_class_or_type_name, artifact_types.Artifact):
-        artifact_class = artifact_class_or_type_name
+            artifact_class_or_type_name) or _ARTIFACT_CLASSES_MAPPING.get(
+                'system.' +
+                artifact_class_or_type_name) or artifact_types.Artifact
+        return pipeline_spec_pb2.ArtifactTypeSchema(
+            schema_title=artifact_class.TYPE_NAME,
+            schema_version=artifact_class.VERSION)
 
     return pipeline_spec_pb2.ArtifactTypeSchema(
-        schema_title=artifact_class.TYPE_NAME,
-        schema_version=artifact_class.VERSION)
+        schema_title=artifact_types.Artifact.TYPE_NAME,
+        schema_version=artifact_types.Artifact.VERSION)
 
 
 def get_parameter_type(
@@ -230,9 +234,8 @@ def verify_type_compatibility(
     """
 
     # Generic "Artifact" type is compatible with any specific artifact types.
-    if not is_parameter_type(
-            str(given_type)) and (str(given_type).lower() == 'artifact' or
-                                  str(expected_type).lower() == 'artifact'):
+    if not is_parameter_type(str(given_type)) and (
+            artifact_types.Artifact.TYPE_NAME in [given_type, expected_type]):
         return True
 
     # Normalize parameter type names.

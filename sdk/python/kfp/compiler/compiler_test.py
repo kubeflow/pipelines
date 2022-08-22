@@ -321,7 +321,7 @@ class TestCompilePipeline(parameterized.TestCase):
         producer_op1 = components.load_component_from_text("""
       name: producer compoent
       outputs:
-      - {name: output, type: Artifact}
+      - {name: output, type: system.Artifact}
       implementation:
         container:
           image: dummy
@@ -383,7 +383,7 @@ class TestCompilePipeline(parameterized.TestCase):
         consumer_op1 = components.load_component_from_text("""
       name: consumer compoent
       inputs:
-      - {name: input1, type: Artifact}
+      - {name: input1, type: system.Artifact}
       implementation:
         container:
           image: dummy
@@ -436,7 +436,7 @@ class TestCompilePipeline(parameterized.TestCase):
                 type_utils.InconsistentTypeException,
                 'Incompatible argument passed to the input "input1" of component'
                 ' "consumer-op": Argument type "SomeArbitraryType" is'
-                ' incompatible with the input type "Dataset"'):
+                ' incompatible with the input type "system.Dataset"'):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='result.yaml')
 

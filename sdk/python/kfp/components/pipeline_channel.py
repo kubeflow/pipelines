@@ -268,6 +268,7 @@ def create_pipeline_channel(
         A PipelineParameterChannel or PipelineArtifactChannel object.
     """
     if type_utils.is_parameter_type(channel_type):
+        print('PARAM', name)
         return PipelineParameterChannel(
             name=name,
             channel_type=channel_type,
@@ -275,6 +276,7 @@ def create_pipeline_channel(
             value=value,
         )
     else:
+        print('ARTIFACT', name)
         return PipelineArtifactChannel(
             name=name,
             channel_type=channel_type,

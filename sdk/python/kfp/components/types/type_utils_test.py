@@ -17,7 +17,6 @@ import unittest
 from absl.testing import parameterized
 import kfp
 from kfp.components import v1_structures
-from kfp.components.types import artifact_types
 from kfp.components.types import type_utils
 from kfp.components.types.type_utils import InconsistentTypeException
 from kfp.pipeline_spec import pipeline_spec_pb2 as pb
@@ -43,30 +42,7 @@ _PARAMETER_TYPES = [
     'PipelineTaskFinalStatus',
 ]
 
-_KNOWN_ARTIFACT_TYPES = [
-    'Model',
-    'Dataset',
-    'Schema',
-    'Metrics',
-    'ClassificationMetrics',
-    'SlicedClassificationMetrics',
-    'HTML',
-    'Markdown',
-]
-
 _UNKNOWN_ARTIFACT_TYPES = [None, 'Arbtrary Model', 'dummy']
-
-
-class _ArbitraryClass:
-    pass
-
-
-class _VertexDummy(artifact_types.Artifact):
-    TYPE_NAME = 'google.VertexDummy'
-    VERSION = '0.0.2'
-
-    def __init__(self):
-        super().__init__(uri='uri', name='name', metadata={'dummy': '123'})
 
 
 class TypeUtilsTest(parameterized.TestCase):
@@ -74,7 +50,8 @@ class TypeUtilsTest(parameterized.TestCase):
     @parameterized.parameters(
         [(item, True) for item in _PARAMETER_TYPES] +
         [(item, False)
-         for item in _KNOWN_ARTIFACT_TYPES + _UNKNOWN_ARTIFACT_TYPES])
+         for item in list(type_utils._ARTIFACT_CLASSES_MAPPING.keys()) +
+         _UNKNOWN_ARTIFACT_TYPES])
     def test_is_parameter_type_true(self, type_name, expected_result):
         self.assertEqual(expected_result,
                          type_utils.is_parameter_type(type_name))
@@ -82,49 +59,28 @@ class TypeUtilsTest(parameterized.TestCase):
     @parameterized.parameters(
         {
             'artifact_class_or_type_name':
-                'Model',
+                'system.Model',
             'expected_result':
                 pb.ArtifactTypeSchema(
                     schema_title='system.Model', schema_version='0.0.1')
         },
         {
             'artifact_class_or_type_name':
-                artifact_types.Model,
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.Model', schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                'Dataset',
+                'system.Dataset',
             'expected_result':
                 pb.ArtifactTypeSchema(
                     schema_title='system.Dataset', schema_version='0.0.1')
         },
         {
             'artifact_class_or_type_name':
-                artifact_types.Dataset,
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.Dataset', schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                'Metrics',
+                'system.Metrics',
             'expected_result':
                 pb.ArtifactTypeSchema(
                     schema_title='system.Metrics', schema_version='0.0.1')
         },
         {
             'artifact_class_or_type_name':
-                artifact_types.Metrics,
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.Metrics', schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                'ClassificationMetrics',
+                'system.ClassificationMetrics',
             'expected_result':
                 pb.ArtifactTypeSchema(
                     schema_title='system.ClassificationMetrics',
@@ -132,62 +88,11 @@ class TypeUtilsTest(parameterized.TestCase):
         },
         {
             'artifact_class_or_type_name':
-                artifact_types.ClassificationMetrics,
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.ClassificationMetrics',
-                    schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                'SlicedClassificationMetrics',
+                'system.SlicedClassificationMetrics',
             'expected_result':
                 pb.ArtifactTypeSchema(
                     schema_title='system.SlicedClassificationMetrics',
                     schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                artifact_types.SlicedClassificationMetrics,
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.SlicedClassificationMetrics',
-                    schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                'arbitrary name',
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.Artifact', schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                _ArbitraryClass,
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.Artifact', schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                artifact_types.HTML,
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.HTML', schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                artifact_types.Markdown,
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.Markdown', schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                'some-google-type',
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.Artifact', schema_version='0.0.1')
         },
         {
             'artifact_class_or_type_name':
@@ -195,13 +100,6 @@ class TypeUtilsTest(parameterized.TestCase):
             'expected_result':
                 pb.ArtifactTypeSchema(
                     schema_title='google.VertexModel', schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                _VertexDummy,
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='google.VertexDummy', schema_version='0.0.2')
         },
     )
     def test_get_artifact_type_schema(self, artifact_class_or_type_name,
@@ -366,13 +264,13 @@ class TypeUtilsTest(parameterized.TestCase):
             'is_compatible': False,
         },
         {
-            'given_type': 'Artifact',
-            'expected_type': 'Model',
+            'given_type': 'system.Artifact',
+            'expected_type': 'system.Model',
             'is_compatible': True,
         },
         {
-            'given_type': 'Metrics',
-            'expected_type': 'Artifact',
+            'given_type': 'system.Metrics',
+            'expected_type': 'system.Artifact',
             'is_compatible': True,
         },
     )

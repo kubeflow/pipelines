@@ -21,6 +21,7 @@ from typing import Callable, List, Optional, Tuple
 import warnings
 
 import docstring_parser
+from kfp import components
 from kfp.components import container_component
 from kfp.components import placeholders
 from kfp.components import python_component
@@ -140,14 +141,10 @@ def _annotation_to_type_struct(annotation):
         type_struct = type_utils.get_canonical_type_name_for_type(annotation)
         if type_struct:
             return type_struct
-
-        if issubclass(annotation, artifact_types.Artifact
-                     ) and not annotation.TYPE_NAME.startswith('system.'):
-            # For artifact classes not under the `system` namespace,
-            # use its TYPE_NAME as-is.
+        elif issubclass(annotation, artifact_types.Artifact):
             type_name = annotation.TYPE_NAME
-        else:
-            type_name = str(annotation.__name__)
+        elif annotation is components.task_final_status.PipelineTaskFinalStatus:
+            type_name = components.task_final_status.PipelineTaskFinalStatus.__name__
 
     elif hasattr(annotation,
                  '__forward_arg__'):  # Handling typing.ForwardRef('Type_name')

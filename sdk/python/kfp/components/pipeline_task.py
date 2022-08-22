@@ -146,7 +146,6 @@ class PipelineTask:
         }
 
         self._inputs = args
-
         self._channel_inputs = [
             value for _, value in args.items()
             if isinstance(value, pipeline_channel.PipelineChannel)
