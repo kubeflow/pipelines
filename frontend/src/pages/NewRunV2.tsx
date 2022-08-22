@@ -83,6 +83,19 @@ type NewRunV2Props = RunV2Props & PageProps;
 export type SpecParameters = { [key: string]: ComponentInputsSpec_ParameterSpec };
 export type RuntimeParameters = { [key: string]: any };
 
+function hasVersionID(apiRun: ApiRunDetail | undefined): boolean {
+  if (!apiRun) {
+    return true;
+  }
+  let hasVersionType: boolean = false;
+  if (apiRun.run?.resource_references) {
+    apiRun.run.resource_references.forEach(value => {
+      hasVersionType = hasVersionType || value.key?.type === ApiResourceType.PIPELINEVERSION;
+    });
+  }
+  return hasVersionType;
+}
+
 function NewRunV2(props: NewRunV2Props) {
   // List of elements we need to create Pipeline Run.
   const [pipelineName, setPipelineName] = useState('');
@@ -108,30 +121,24 @@ function NewRunV2(props: NewRunV2Props) {
   // TODO(zijianjoy): If creating run from Experiment Page or RunList Page, there is no pipelineId/Version.
   const urlParser = new URLParser(props);
   const usePipelineFromRunLabel = 'Using pipeline from existing run.';
-  const { apiRun, existingPipeline, existingPipelineVersion } = props;
-  const pipelineDetailsUrl = props.existingRunId
+  const { apiRun, existingPipeline, existingPipelineVersion, templateString, existingRunId, handlePipelineIdChange, handlePipelineVersionIdChange,} = props;
+  const pipelineDetailsUrl = existingRunId
     ? RoutePage.PIPELINE_DETAILS.replace(
         ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
         '',
-      ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: props.existingRunId })
+      ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: existingRunId })
     : '';
   //const buttons = new Buttons(props, () => forceUpdate);
   // const [buttons] = useState(new Buttons(props, () => forceUpdate));
 
-  const {
-    templateString,
-    existingRunId: originalRunId,
-    handlePipelineIdChange,
-    handlePipelineVersionIdChange,
-  } = props;
-  const isTemplatePullSuccess = templateString && templateString !== '';
+  const isTemplatePullSuccess = templateString ? true : false;
   const apiResourceRefFromRun = apiRun?.run?.resource_references
     ? apiRun.run?.resource_references
     : undefined;
 
   const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
-  const titleVerb = originalRunId ? 'Clone' : 'Start';
-  const titleAdjective = originalRunId ? '' : 'new';
+  const titleVerb = existingRunId ? 'Clone' : 'Start';
+  const titleAdjective = existingRunId ? '' : 'new';
 
   useEffect(() => {
     setPipeline(existingPipeline);
@@ -211,18 +218,12 @@ function NewRunV2(props: NewRunV2Props) {
 
   // Handle different change that can affect setIsStartButtonEnabled
   useEffect(() => {
-    if (
-      !templateString ||
-      errorMessage ||
-      !isParameterValid ||
-      !(pipelineVersion || (apiResourceRefFromRun && apiResourceRefFromRun[1]))
-    ) {
+    if (!templateString || errorMessage || !isParameterValid) {
       setIsStartButtonEnabled(false);
     } else {
       setIsStartButtonEnabled(true);
     }
-  }, [templateString, errorMessage, isParameterValid, pipelineVersion, apiResourceRefFromRun]);
-  // TODO(jlyaoyuli): enable the start button for SDK-created run after finishing the showing pipeline details feature.
+  }, [templateString, errorMessage, isParameterValid]);
 
   useEffect(() => {
     if (apiRun?.run?.pipeline_spec?.runtime_config) {
@@ -259,7 +260,7 @@ function NewRunV2(props: NewRunV2Props) {
         relationship: ApiRelationship.OWNER,
       });
     }
-    if (pipelineVersion) {
+    if (pipelineVersion && hasVersionID(apiRun)) {
       references.push({
         key: {
           id: pipelineVersion.id,
@@ -273,6 +274,7 @@ function NewRunV2(props: NewRunV2Props) {
       description: runDescription,
       name: runName,
       pipeline_spec: {
+        pipeline_manifest: hasVersionID(apiRun) ? undefined : templateString,
         runtime_config: {
           // TODO(zijianjoy): determine whether to provide pipeline root.
           pipeline_root: undefined, // pipelineRoot,
