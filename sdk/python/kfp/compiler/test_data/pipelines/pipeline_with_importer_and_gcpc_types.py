@@ -11,13 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Pipeline using dsl.importer."""
-
-from typing import NamedTuple
+"""Pipeline using dsl.importer and GCPC types."""
 
 from kfp import compiler
-from kfp import dsl
 from kfp import components
+from kfp import dsl
 from kfp.dsl import component
 from kfp.dsl import importer
 from kfp.dsl import Input
@@ -25,7 +23,7 @@ from kfp.dsl import Model
 
 
 class VertexDataset(dsl.Artifact):
-    """An artifact representing a Vertex Dataset."""
+    """An artifact representing a GCPC Vertex Dataset."""
     TYPE_NAME = 'google.VertexDataset'
 
 
@@ -44,8 +42,7 @@ implementation:
 
 
 @dsl.pipeline(
-    name='pipeline-with-importer-and-gcpc-type',
-    pipeline_root='dummy_root')
+    name='pipeline-with-importer-and-gcpc-type', pipeline_root='dummy_root')
 def my_pipeline():
 
     importer1 = importer(
