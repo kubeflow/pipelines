@@ -15,6 +15,7 @@
  */
 
 import Button from '@material-ui/core/Button';
+import Switch from '@material-ui/core/Switch';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -73,6 +74,7 @@ interface NewRunState {
   maxConcurrentRuns?: string;
   catchup: boolean;
   parameters: ApiParameter[];
+  isCacheEnabled: boolean;
   pipeline?: ApiPipeline;
   pipelineVersion?: ApiPipelineVersion;
   // This represents a pipeline from a run that is being cloned, or if a user is creating a run from
@@ -133,6 +135,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
     isFirstRunInExperiment: false,
     isRecurringRun: false,
     parameters: [],
+    isCacheEnabled: true,
     pipelineName: '',
     pipelineSelectorOpen: false,
     pipelineVersionName: '',
@@ -198,6 +201,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       isFirstRunInExperiment,
       isRecurringRun,
       parameters,
+      isCacheEnabled,
       pipelineName,
       pipelineVersionName,
       pipelineSelectorOpen,
@@ -599,6 +603,18 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
             titleMessage={this._runParametersMessage()}
             handleParamChange={this._handleParamChange.bind(this)}
           />
+
+          {/* Enable/Disable Caching Checkbox */}
+          <div className={commonCss.header}>
+            Enable Cache
+            <Switch
+              color='primary'
+              checked={isCacheEnabled}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                this.setStateSafe({ isCacheEnabled: event.target.checked })
+              }
+            />
+          </div>
 
           {/* Create/Cancel buttons */}
           <div className={classes(commonCss.flex, padding(20, 'tb'))}>
@@ -1150,6 +1166,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
       },
       resource_references: references,
       service_account: this.state.serviceAccount,
+      disable_cache: !this.state.isCacheEnabled,
     };
     if (this.state.isRecurringRun) {
       newRun = Object.assign(newRun, {

@@ -47,7 +47,8 @@ class ApiJob(object):
         'status': 'str',
         'error': 'str',
         'enabled': 'bool',
-        'no_catchup': 'bool'
+        'no_catchup': 'bool',
+        'disable_cache': 'bool'
     }
 
     attribute_map = {
@@ -65,10 +66,11 @@ class ApiJob(object):
         'status': 'status',
         'error': 'error',
         'enabled': 'enabled',
-        'no_catchup': 'no_catchup'
+        'no_catchup': 'no_catchup',
+        'disable_cache': 'disable_cache'
     }
 
-    def __init__(self, id=None, name=None, description=None, pipeline_spec=None, resource_references=None, service_account=None, max_concurrency=None, trigger=None, mode=None, created_at=None, updated_at=None, status=None, error=None, enabled=None, no_catchup=None, local_vars_configuration=None):  # noqa: E501
+    def __init__(self, id=None, name=None, description=None, pipeline_spec=None, resource_references=None, service_account=None, max_concurrency=None, trigger=None, mode=None, created_at=None, updated_at=None, status=None, error=None, enabled=None, no_catchup=None, disable_cache=None, local_vars_configuration=None):  # noqa: E501
         """ApiJob - a model defined in OpenAPI"""  # noqa: E501
         if local_vars_configuration is None:
             local_vars_configuration = Configuration()
@@ -89,6 +91,7 @@ class ApiJob(object):
         self._error = None
         self._enabled = None
         self._no_catchup = None
+        self._disable_cache = None
         self.discriminator = None
 
         if id is not None:
@@ -121,6 +124,8 @@ class ApiJob(object):
             self.enabled = enabled
         if no_catchup is not None:
             self.no_catchup = no_catchup
+        if disable_cache is not None:
+            self.disable_cache = disable_cache
 
     @property
     def id(self):
@@ -454,6 +459,29 @@ class ApiJob(object):
         """
 
         self._no_catchup = no_catchup
+
+    @property
+    def disable_cache(self):
+        """Gets the disable_cache of this ApiJob.  # noqa: E501
+
+        Optional input field. Specify, whether caching is enabled for this job.  # noqa: E501
+
+        :return: The disable_cache of this ApiJob.  # noqa: E501
+        :rtype: bool
+        """
+        return self._disable_cache
+
+    @disable_cache.setter
+    def disable_cache(self, disable_cache):
+        """Sets the disable_cache of this ApiJob.
+
+        Optional input field. Specify, whether caching is enabled for this job.  # noqa: E501
+
+        :param disable_cache: The disable_cache of this ApiJob.  # noqa: E501
+        :type disable_cache: bool
+        """
+
+        self._disable_cache = disable_cache
 
     def to_dict(self):
         """Returns the model properties as a dict"""

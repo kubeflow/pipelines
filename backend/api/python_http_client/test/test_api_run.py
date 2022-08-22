@@ -52,26 +52,7 @@ class TestApiRun(unittest.TestCase):
                         ], 
                     runtime_config = kfp_server_api.models.pipeline_spec_runtime_config.PipelineSpecRuntimeConfig(
                         parameters = {
-                            'key' : kfp_server_api.models.protobuf_value.protobufValue(
-                                null_value = 'NULL_VALUE', 
-                                number_value = 1.337, 
-                                string_value = '0', 
-                                bool_value = True, 
-                                struct_value = kfp_server_api.models.protobuf_struct.protobufStruct(
-                                    fields = {
-                                        'key' : kfp_server_api.models.protobuf_value.protobufValue(
-                                            number_value = 1.337, 
-                                            string_value = '0', 
-                                            bool_value = True, 
-                                            list_value = kfp_server_api.models.protobuf_list_value.protobufListValue(
-                                                values = [
-                                                    kfp_server_api.models.protobuf_value.protobufValue(
-                                                        number_value = 1.337, 
-                                                        string_value = '0', 
-                                                        bool_value = True, )
-                                                    ], ), )
-                                        }, ), 
-                                list_value = kfp_server_api.models.protobuf_list_value.protobufListValue(), )
+                            'key' : None
                             }, 
                         pipeline_root = '0', ), ), 
                 resource_references = [
@@ -83,6 +64,7 @@ class TestApiRun(unittest.TestCase):
                         relationship = 'UNKNOWN_RELATIONSHIP', )
                     ], 
                 service_account = '0', 
+                disable_cache = True, 
                 created_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                 scheduled_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                 finished_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 

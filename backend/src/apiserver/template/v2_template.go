@@ -21,6 +21,10 @@ type V2Spec struct {
 }
 
 func (t *V2Spec) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
+	for _, task := range t.spec.GetRoot().GetDag().GetTasks() {
+		task.CachingOptions.EnableCache = !apiJob.GetDisableCache()
+	}
+
 	bytes, err := protojson.Marshal(t.spec)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed marshal pipeline spec to json")
@@ -144,6 +148,10 @@ func (t *V2Spec) ParametersJSON() (string, error) {
 }
 
 func (t *V2Spec) RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (util.ExecutionSpec, error) {
+	for _, task := range t.spec.GetRoot().GetDag().GetTasks() {
+		task.CachingOptions.EnableCache = !apiRun.GetDisableCache()
+	}
+
 	bytes, err := protojson.Marshal(t.spec)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed marshal pipeline spec to json")

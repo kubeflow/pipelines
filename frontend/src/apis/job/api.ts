@@ -203,6 +203,12 @@ export interface ApiJob {
    * @memberof ApiJob
    */
   no_catchup?: boolean;
+  /**
+   * Optional. True, if caching for this job is to be disabled.
+   * @type {boolean}
+   * @memberof ApiRun
+   */
+  disable_cache?: boolean;
 }
 
 /**

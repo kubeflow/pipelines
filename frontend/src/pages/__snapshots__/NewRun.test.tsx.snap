@@ -444,6 +444,16 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
       titleMessage="This pipeline has no parameters"
     />
     <div
+      className="header"
+    >
+      Enable Cache
+      <WithStyles(Switch)
+        checked={true}
+        color="primary"
+        onChange={[Function]}
+      />
+    </div>
+    <div
       className="flex"
     >
       <BusyButton
@@ -964,6 +974,16 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
       initialParams={Array []}
       titleMessage="Parameters will appear after you select a pipeline"
     />
+    <div
+      className="header"
+    >
+      Enable Cache
+      <WithStyles(Switch)
+        checked={true}
+        color="primary"
+        onChange={[Function]}
+      />
+    </div>
     <div
       className="flex"
     >
@@ -1504,6 +1524,16 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
       titleMessage="Parameters will appear after you select a pipeline"
     />
     <div
+      className="header"
+    >
+      Enable Cache
+      <WithStyles(Switch)
+        checked={true}
+        color="primary"
+        onChange={[Function]}
+      />
+    </div>
+    <div
       className="flex"
     >
       <BusyButton
@@ -2024,6 +2054,16 @@ exports[`NewRun changes title and form to default state if the new run is a one-
       initialParams={Array []}
       titleMessage="Parameters will appear after you select a pipeline"
     />
+    <div
+      className="header"
+    >
+      Enable Cache
+      <WithStyles(Switch)
+        checked={true}
+        color="primary"
+        onChange={[Function]}
+      />
+    </div>
     <div
       className="flex"
     >
@@ -2546,6 +2586,16 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
       titleMessage="This pipeline has no parameters"
     />
     <div
+      className="header"
+    >
+      Enable Cache
+      <WithStyles(Switch)
+        checked={true}
+        color="primary"
+        onChange={[Function]}
+      />
+    </div>
+    <div
       className="flex"
     >
       <BusyButton
@@ -3064,6 +3114,16 @@ exports[`NewRun renders the new run page 1`] = `
       initialParams={Array []}
       titleMessage="Parameters will appear after you select a pipeline"
     />
+    <div
+      className="header"
+    >
+      Enable Cache
+      <WithStyles(Switch)
+        checked={true}
+        color="primary"
+        onChange={[Function]}
+      />
+    </div>
     <div
       className="flex"
     >
@@ -3604,6 +3664,16 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
       titleMessage="Parameters will appear after you select a pipeline"
     />
     <div
+      className="header"
+    >
+      Enable Cache
+      <WithStyles(Switch)
+        checked={true}
+        color="primary"
+        onChange={[Function]}
+      />
+    </div>
+    <div
       className="flex"
     >
       <BusyButton
@@ -4124,6 +4194,16 @@ exports[`NewRun updates the run's state with the associated experiment if one is
       initialParams={Array []}
       titleMessage="Parameters will appear after you select a pipeline"
     />
+    <div
+      className="header"
+    >
+      Enable Cache
+      <WithStyles(Switch)
+        checked={true}
+        color="primary"
+        onChange={[Function]}
+      />
+    </div>
     <div
       className="flex"
     >

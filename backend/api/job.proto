@@ -259,5 +259,8 @@ message Job {
   // If true, the job will only schedule the latest interval if behind schedule.
   // If false, the job will catch up on each past interval.
   bool no_catchup = 17;
+
+  // Optional input field. Specify, whether caching is enabled for this job.
+  bool disable_cache = 19;
 }
-// Next field number of Job will be 19
+// Next field number of Job will be 20

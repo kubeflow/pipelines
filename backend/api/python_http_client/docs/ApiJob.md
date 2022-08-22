@@ -18,6 +18,7 @@ Name | Type | Description | Notes
 **error** | **str** | In case any error happens retrieving a job field, only job ID and the error message is returned. Client has the flexibility of choosing how to handle error. This is especially useful during listing call. | [optional] 
 **enabled** | **bool** | Input. Whether the job is enabled or not. | [optional] 
 **no_catchup** | **bool** | Optional input field. Whether the job should catch up if behind schedule. If true, the job will only schedule the latest interval if behind schedule. If false, the job will catch up on each past interval. | [optional] 
+**disable_cache** | **bool** | Optional input field. Specify, whether caching is enabled for this job. | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

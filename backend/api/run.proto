@@ -238,6 +238,9 @@ message Run {
   // Optional input field. Specify which Kubernetes service account this run uses.
   string service_account = 14;
 
+  // Optional input field. Specify, whether caching is enabled for this run.
+  bool disable_cache = 15;
+
   // Output. The time that the run created.
   google.protobuf.Timestamp created_at = 6;
 
@@ -263,7 +266,7 @@ message Run {
   // API.
   repeated RunMetric metrics = 9;
 }
-// Next field number of Run will be 15
+// Next field number of Run will be 16
 
 message PipelineRuntime {
   // Output. The runtime JSON manifest of the pipeline, including the status

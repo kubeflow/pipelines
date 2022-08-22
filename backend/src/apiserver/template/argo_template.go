@@ -56,6 +56,11 @@ func (t *Argo) RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (util.Ex
 	}
 	workflow.SetPodMetadataLabels(util.LabelKeyWorkflowRunId, options.RunId)
 
+	// Set cache annotations
+	if err := t.applyCacheSettings(workflow, apiRun.DisableCache); err != nil {
+		return nil, util.Wrap(err, "Failed to apply cache settings")
+	}
+
 	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
 	// TODO: Fix the components to explicitly declare the artifacts they really output.
 	for templateIdx, template := range workflow.Workflow.Spec.Templates {
@@ -95,6 +100,11 @@ func (t *Argo) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledW
 	// TODO: Fix the components to explicitly declare the artifacts they really output.
 	workflow.PatchTemplateOutputArtifacts()
 
+	// Set cache annotations
+	if err := t.applyCacheSettings(workflow, apiJob.DisableCache); err != nil {
+		return nil, util.Wrap(err, "Failed to apply cache settings")
+	}
+
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{GenerateName: swfGeneratedName},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
@@ -110,6 +120,38 @@ func (t *Argo) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledW
 	}
 
 	return scheduledWorkflow, nil
+}
+
+func (t *Argo) applyCacheSettings(workflow *util.Workflow, DisableCache bool) error {
+	// Enable/disable caching by setting the annotation `pipelines.kubeflow.org/max_cache_staleness`
+	// Use a separate annotation `initial_max_cache_staleness` to store non-mutated values. This way, steps in cloned runs may be restored to their initial cache state.
+	for _, template := range workflow.Spec.Templates {
+		annotations := template.Metadata.Annotations
+		if annotations != nil {
+			if DisableCache {
+				// If cache is disabled set maxStaleness to P0D and store initial value to annotations, so that value can be restored when cloning the run
+				if _, initMaxCacheStalenessExists := annotations["pipelines.kubeflow.org/initial_max_cache_staleness"]; !initMaxCacheStalenessExists {
+					if maxCacheStaleness, maxCacheStalenessExists := annotations["pipelines.kubeflow.org/max_cache_staleness"]; maxCacheStalenessExists {
+						annotations["pipelines.kubeflow.org/initial_max_cache_staleness"] = maxCacheStaleness
+					} else {
+						annotations["pipelines.kubeflow.org/initial_max_cache_staleness"] = "-1"
+					}
+				}
+				annotations["pipelines.kubeflow.org/max_cache_staleness"] = "P0D"
+			} else {
+				// If cache is enabled restore initial max cache staleness (if available)
+				if initMaxCacheStaleness, exists := annotations["pipelines.kubeflow.org/initial_max_cache_staleness"]; exists {
+					if initMaxCacheStaleness == "-1" {
+						delete(annotations, "pipelines.kubeflow.org/max_cache_staleness")
+					} else {
+						annotations["pipelines.kubeflow.org/max_cache_staleness"] = initMaxCacheStaleness
+					}
+					delete(annotations, "pipelines.kubeflow.org/initial_max_cache_staleness")
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (t *Argo) GetTemplateType() TemplateType {

@@ -26,6 +26,9 @@ type APIRun struct {
 	// Optional input field. Describing the purpose of the run
 	Description string `json:"description,omitempty"`
 
+	// Optional input field. Specify, whether caching is enabled for this run.
+	DisableCache bool `json:"disable_cache,omitempty"`
+
 	// In case any error happens retrieving a run field, only run ID
 	// and the error message is returned. Client has the flexibility of choosing
 	// how to handle error. This is especially useful during listing call.

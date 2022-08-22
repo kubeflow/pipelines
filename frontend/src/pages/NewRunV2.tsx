@@ -15,6 +15,7 @@
  */
 
 import { Button, Dialog, DialogActions, DialogContent, InputAdornment } from '@material-ui/core';
+import Switch from '@material-ui/core/Switch';
 import React, { useEffect, useState } from 'react';
 import { useMutation } from 'react-query';
 import { Link } from 'react-router-dom';
@@ -122,6 +123,7 @@ function NewRunV2(props: NewRunV2Props) {
   const [errorMessage, setErrorMessage] = useState('');
   const [isParameterValid, setIsParameterValid] = useState(false);
   const [clonedRuntimeConfig, setClonedRuntimeConfig] = useState<PipelineSpecRuntimeConfig>({});
+  const [isCacheEnabled, setIsCacheEnabled] = useState(true);
 
   const urlParser = new URLParser(props);
   const usePipelineFromRunLabel = 'Using pipeline from existing run.';
@@ -270,6 +272,7 @@ function NewRunV2(props: NewRunV2Props) {
       //TODO(jlyaoyuli): deprecate the resource reference and use pipeline / workflow manifest
       resource_references: apiResourceRefFromRun ? apiResourceRefFromRun : references,
       service_account: serviceAccount,
+      disable_cache: !isCacheEnabled,
     };
     setIsStartingNewRun(true);
 
@@ -456,6 +459,16 @@ function NewRunV2(props: NewRunV2Props) {
           handleParameterChange={setRuntimeParameters}
           setIsValidInput={setIsParameterValid}
         />
+
+        {/* Enable/Disable Caching Checkbox */}
+        <div className={commonCss.header}>
+          Enable Cache
+          <Switch
+            color='primary'
+            checked={isCacheEnabled}
+            onChange={event => setIsCacheEnabled(event.target.checked)}
+          />
+        </div>
 
         {/* Create/Cancel buttons */}
         <div className={classes(commonCss.flex, padding(20, 'tb'))}>

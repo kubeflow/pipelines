@@ -1358,6 +1358,7 @@ describe('NewRun', () => {
           parameters: MOCK_PIPELINE.parameters,
         },
         service_account: 'service-account-name',
+        disable_cache: false,
         resource_references: [
           {
             key: {
@@ -1413,6 +1414,7 @@ describe('NewRun', () => {
           parameters: [{ name: 'testName', value: '{\n  "test2": "value2"\n}' }],
         },
         service_account: '',
+        disable_cache: false,
         resource_references: [
           {
             key: {
@@ -1507,6 +1509,7 @@ describe('NewRun', () => {
         },
         service_account: 'pipeline-runner',
         resource_references: [],
+        disable_cache: false,
       });
       // TODO: verify route change happens
     });
@@ -1853,6 +1856,7 @@ describe('NewRun', () => {
           parameters: MOCK_PIPELINE.parameters,
         },
         service_account: 'service-account-name',
+        disable_cache: false,
         resource_references: [
           {
             key: {

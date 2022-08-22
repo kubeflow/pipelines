@@ -26,6 +26,9 @@ type APIJob struct {
 	// Optional input field. Describing the purpose of the job
 	Description string `json:"description,omitempty"`
 
+	// Optional input field. Specify, whether caching is enabled for this job.
+	DisableCache bool `json:"disable_cache,omitempty"`
+
 	// Input. Whether the job is enabled or not.
 	Enabled bool `json:"enabled,omitempty"`
 

@@ -394,6 +394,12 @@ export interface ApiRun {
    * @memberof ApiRun
    */
   metrics?: Array<ApiRunMetric>;
+  /**
+   * Optional. True, if caching for this run is to be disabled.
+   * @type {boolean}
+   * @memberof ApiRun
+   */
+  disable_cache?: boolean;
 }
 
 /**
