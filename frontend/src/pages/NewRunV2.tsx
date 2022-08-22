@@ -206,7 +206,7 @@ function NewRunV2(props: NewRunV2Props) {
         relationship: ApiRelationship.OWNER,
       });
     }
-    if (apiPipelineVersion) {
+    if (apiPipelineVersion && hasVersionID(apiRun)) {
       references.push({
         key: {
           id: apiPipelineVersion.id,
