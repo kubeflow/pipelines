@@ -14,8 +14,8 @@
 """Pipeline as a component (aka graph component)."""
 
 import inspect
-import uuid
 from typing import Callable, List
+import uuid
 
 from kfp.compiler import compiler_utils
 from kfp.compiler import pipeline_spec_builder as builder
