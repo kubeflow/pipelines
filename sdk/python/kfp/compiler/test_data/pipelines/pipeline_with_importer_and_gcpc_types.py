@@ -16,10 +16,7 @@
 from kfp import compiler
 from kfp import components
 from kfp import dsl
-from kfp.dsl import component
 from kfp.dsl import importer
-from kfp.dsl import Input
-from kfp.dsl import Model
 
 
 class VertexDataset(dsl.Artifact):
