@@ -163,7 +163,7 @@ class InputValuePlaceholder(base_model.BaseModel,
     """Class that holds an input value placeholder.
 
     Attributes:
-        output_name: Name of the input.
+        input_name: Name of the input.
     """
     input_name: str
     _aliases = {'input_name': 'inputValue'}
@@ -178,7 +178,7 @@ class InputPathPlaceholder(base_model.BaseModel,
     """Class that holds an input path placeholder.
 
     Attributes:
-        output_name: Name of the input.
+        input_name: Name of the input.
     """
     input_name: str
     _aliases = {'input_name': 'inputPath'}
@@ -193,7 +193,7 @@ class InputUriPlaceholder(base_model.BaseModel,
     """Class that holds an input uri placeholder.
 
     Attributes:
-        output_name: Name of the input.
+        input_name: Name of the input.
     """
     input_name: str
     _aliases = {'input_name': 'inputUri'}
@@ -203,12 +203,27 @@ class InputUriPlaceholder(base_model.BaseModel,
     )
 
 
+class InputMetadataPlaceholder(base_model.BaseModel,
+                               RegexPlaceholderSerializationMixin):
+    """Class that holds an input metadata placeholder.
+
+    Attributes:
+        input_name: Name of the input.
+    """
+    input_name: str
+    _aliases = {'input_name': 'inputMetadata'}
+    _TO_PLACEHOLDER = "{{{{$.inputs.artifacts['{input_name}'].metadata}}}}"
+    _FROM_PLACEHOLDER = re.compile(
+        r"^\{\{\$\.inputs\.artifacts\[(?:''|'|\")(?P<input_name>.+?)(?:''|'|\")]\.metadata\}\}$"
+    )
+
+
 class OutputParameterPlaceholder(base_model.BaseModel,
                                  RegexPlaceholderSerializationMixin):
     """Class that holds an output parameter placeholder.
 
     Attributes:
-        output_name: Name of the input.
+        output_name: Name of the output.
     """
     output_name: str
     _aliases = {'output_name': 'outputPath'}
@@ -223,7 +238,7 @@ class OutputPathPlaceholder(base_model.BaseModel,
     """Class that holds an output path placeholder.
 
     Attributes:
-        output_name: Name of the input.
+        output_name: Name of the output.
     """
     output_name: str
     _aliases = {'output_name': 'outputPath'}
@@ -248,6 +263,21 @@ class OutputUriPlaceholder(base_model.BaseModel,
     )
 
 
+class OutputMetadataPlaceholder(base_model.BaseModel,
+                                RegexPlaceholderSerializationMixin):
+    """Class that holds an output metadata placeholder.
+
+    Attributes:
+        output_name: Name of the output.
+    """
+    output_name: str
+    _aliases = {'output_name': 'outputMetadata'}
+    _TO_PLACEHOLDER = "{{{{$.outputs.artifacts['{output_name}'].metadata}}}}"
+    _FROM_PLACEHOLDER = re.compile(
+        r"^\{\{\$\.outputs\.artifacts\[(?:''|'|\")(?P<output_name>.+?)(?:''|'|\")]\.metadata\}\}$"
+    )
+
+
 CommandLineElement = Union[str, ExecutorInputPlaceholder, InputValuePlaceholder,
                            InputPathPlaceholder, InputUriPlaceholder,
                            OutputParameterPlaceholder, OutputPathPlaceholder,
@@ -259,10 +289,23 @@ class ConcatPlaceholder(base_model.BaseModel, Placeholder):
     """Placeholder for concatenating multiple strings. May contain other
     placeholders.
 
-    Attributes:
-        items: Elements to concatenate.
+    Examples:
+      ::
+
+        @container_component
+        def container_with_concat_placeholder(text1: str, text2: Output[Dataset],
+                                              output_path: OutputPath(str)):
+            return ContainerSpec(
+                image='python:3.7',
+                command=[
+                    'my_program',
+                    ConcatPlaceholder(['prefix-', text1, text2.uri])
+                ],
+                args=['--output_path', output_path]
+            )
     """
     items: List[CommandLineElement]
+    """Elements to concatenate."""
 
     @classmethod
     def split_cel_concat_string(self, string: str) -> List[str]:
@@ -338,18 +381,36 @@ class IfPresentPlaceholder(base_model.BaseModel, Placeholder):
     """Placeholder for handling cases where an input may or may not be passed.
     May contain other placeholders.
 
-    Attributes:
-        input_name: name of the input/output.
-        then: If the input/output specified in name is present
-            the command-line argument will be replaced at run-time by the
-            expanded value of then.
-        else_: If the input/output specified in name is not present,
-            the command-line argument will be replaced at run-time by the
-            expanded value of otherwise.
+    Examples:
+      ::
+
+        @container_component
+        def container_with_if_placeholder(output_path: OutputPath(str),
+                                          dataset: Output[Dataset],
+                                          optional_input: str = 'default'):
+            return ContainerSpec(
+                    image='python:3.7',
+                    command=[
+                        'my_program',
+                        IfPresentPlaceholder(
+                            input_name='optional_input',
+                            then=[optional_input],
+                            else_=['no_input']), '--dataset',
+                        IfPresentPlaceholder(
+                            input_name='optional_input', then=[dataset.uri], else_=['no_dataset'])
+                    ],
+                    args=['--output_path', output_path]
+                )
     """
     input_name: str
+    """name of the input/output."""
+
     then: List[CommandLineElement]
+    """If the input/output specified in name is present, the command-line argument will be replaced at run-time by the expanded value of then."""
+
     else_: Optional[List[CommandLineElement]] = None
+    """If the input/output specified in name is not present, the command-line argument will be replaced at run-time by the expanded value of otherwise."""
+
     _aliases = {'input_name': 'inputName', 'else_': 'else'}
 
     @classmethod

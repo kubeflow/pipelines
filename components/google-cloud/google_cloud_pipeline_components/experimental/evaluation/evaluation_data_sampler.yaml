@@ -60,7 +60,7 @@ outputs:
   - { name: gcp_resources, type: String }
 implementation:
   container:
-    image: gcr.io/ml-pipeline/model-evaluation:v0.4
+    image: gcr.io/ml-pipeline/model-evaluation:v0.5
     command:
       - python
       - /main.py
@@ -87,6 +87,8 @@ implementation:
       - { inputValue: dataflow_subnetwork }
       - --dataflow_use_public_ips
       - { inputValue: dataflow_use_public_ips }
+      - --dataflow_job_prefix
+      - "evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
       - --kms_key_name
       - { inputValue: encryption_spec_key_name }
       - --gcs_output_directory

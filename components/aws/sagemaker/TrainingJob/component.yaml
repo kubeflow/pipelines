@@ -1,0 +1,237 @@
+name: "Sagemaker - TrainingJob"
+description: Create TrainingJob
+inputs:
+  - {
+      name: region,
+      type: String,
+      description: "The region to use for the training job",
+    }
+  ###########################GENERATED SECTION BELOW############################
+  
+  - {
+      name: algorithm_specification,
+      type: JsonObject,
+      default: '{}',
+      description: "The registry path of the Docker image that contains the training algorithm and algorithm-specific me",
+    }
+  - {
+      name: checkpoint_config,
+      type: JsonObject,
+      default: '{}',
+      description: "Contains information about the output location for managed spot training checkpoint data.",
+    }
+  - {
+      name: debug_hook_config,
+      type: JsonObject,
+      default: '{}',
+      description: "Configuration information for the Debugger hook parameters, metric and tensor collections, and stora",
+    }
+  - {
+      name: debug_rule_configurations,
+      type: JsonArray,
+      default: '[]',
+      description: "Configuration information for Debugger rules for debugging output tensors.",
+    }
+  - {
+      name: enable_inter_container_traffic_encryption,
+      type: Bool,
+      default: False,
+      description: "To encrypt all communications between ML compute instances in distributed training, choose True. Enc",
+    }
+  - {
+      name: enable_managed_spot_training,
+      type: Bool,
+      default: False,
+      description: "To train models using managed spot training, choose True. Managed spot training provides a fully man",
+    }
+  - {
+      name: enable_network_isolation,
+      type: Bool,
+      default: False,
+      description: "Isolates the training container. No inbound or outbound network calls can be made, except for calls",
+    }
+  - {
+      name: environment,
+      type: JsonObject,
+      default: '{}',
+      description: "The environment variables to set in the Docker container.",
+    }
+  - {
+      name: experiment_config,
+      type: JsonObject,
+      default: '{}',
+      description: "Associates a SageMaker job as a trial component with an experiment and trial. Specified when you cal",
+    }
+  - {
+      name: hyper_parameters,
+      type: JsonObject,
+      default: '{}',
+      description: "Algorithm-specific parameters that influence the quality of the model. You set hyperparameters befor",
+    }
+  - {
+      name: input_data_config,
+      type: JsonArray,
+      default: '[]',
+      description: "An array of Channel objects. Each channel is a named input source. InputDataConfig describes the inp",
+    }
+  - {
+      name: output_data_config,
+      type: JsonObject,
+      default: '{}',
+      description: "Specifies the path to the S3 location where you want to store model artifacts. Amazon SageMaker crea",
+    }
+  - {
+      name: profiler_config,
+      type: JsonObject,
+      default: '{}',
+      description: "Configuration information for Debugger system monitoring, framework profiling, and storage paths.",
+    }
+  - {
+      name: profiler_rule_configurations,
+      type: JsonArray,
+      default: '[]',
+      description: "Configuration information for Debugger rules for profiling system and framework metrics.",
+    }
+  - {
+      name: resource_config,
+      type: JsonObject,
+      default: '{}',
+      description: "The resources, including the ML compute instances and ML storage volumes, to use for model training.",
+    }
+  - {
+      name: role_arn,
+      type: String,
+      default: '',
+      description: "The Amazon Resource Name (ARN) of an IAM role that Amazon SageMaker can assume to perform tasks on y",
+    }
+  - {
+      name: stopping_condition,
+      type: JsonObject,
+      default: '{}',
+      description: "Specifies a limit to how long a model training job can run. It also specifies how long a managed Spo",
+    }
+  - {
+      name: tags,
+      type: JsonArray,
+      default: '[]',
+      description: "An array of key-value pairs. You can use tags to categorize your Amazon Web Services resources in di",
+    }
+  - {
+      name: tensor_board_output_config,
+      type: JsonObject,
+      default: '{}',
+      description: "Configuration of storage locations for the Debugger TensorBoard output data.",
+    }
+  - {
+      name: training_job_name,
+      type: String,
+      default: '',
+      description: "The name of the training job. The name must be unique within an Amazon Web Services Region in an Ama",
+    }
+  - {
+      name: vpc_config,
+      type: JsonObject,
+      default: '{}',
+      description: "A VpcConfig object that specifies the VPC that you want your training job to connect to. Control acc",
+    }
+  ###########################GENERATED SECTION ABOVE############################
+
+outputs:
+  ###########################GENERATED SECTION BELOW############################
+  
+  - {
+      name: ack_resource_metadata,
+      type: JsonObject,
+      description: "All CRs managed by ACK have a common `Status.ACKResourceMetadata` member that is used to contain res",
+    }
+  - {
+      name: conditions,
+      type: JsonArray,
+      description: "All CRS managed by ACK have a common `Status.Conditions` member that contains a collection of `ackv1",
+    }
+  - {
+      name: debug_rule_evaluation_statuses,
+      type: JsonArray,
+      description: "Evaluation status of Debugger rules for debugging on a training job.",
+    }
+  - {
+      name: failure_reason,
+      type: String,
+      description: "If the training job failed, the reason it failed.",
+    }
+  - {
+      name: model_artifacts,
+      type: JsonObject,
+      description: "Information about the Amazon S3 location that is configured for storing model artifacts.",
+    }
+  - {
+      name: profiler_rule_evaluation_statuses,
+      type: JsonArray,
+      description: "Evaluation status of Debugger rules for profiling on a training job.",
+    }
+  - {
+      name: secondary_status,
+      type: String,
+      description: "Provides detailed information about the state of the training job. For detailed information on the s",
+    }
+  - {
+      name: training_job_status,
+      type: String,
+      description: "The status of the training job.   Amazon SageMaker provides the following training job statuses:",
+    }
+  ###########################GENERATED SECTION ABOVE############################
+
+implementation:
+  container:
+    image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:2.0.0-alpha2
+    command: [python3]
+    args:
+      - TrainingJob/src/TrainingJob_component.py
+      - --region
+      - { inputValue: region }
+      ###########################GENERATED SECTION BELOW############################
+      - --algorithm_specification
+      - { inputValue: algorithm_specification }
+      - --checkpoint_config
+      - { inputValue: checkpoint_config }
+      - --debug_hook_config
+      - { inputValue: debug_hook_config }
+      - --debug_rule_configurations
+      - { inputValue: debug_rule_configurations }
+      - --enable_inter_container_traffic_encryption
+      - { inputValue: enable_inter_container_traffic_encryption }
+      - --enable_managed_spot_training
+      - { inputValue: enable_managed_spot_training }
+      - --enable_network_isolation
+      - { inputValue: enable_network_isolation }
+      - --environment
+      - { inputValue: environment }
+      - --experiment_config
+      - { inputValue: experiment_config }
+      - --hyper_parameters
+      - { inputValue: hyper_parameters }
+      - --input_data_config
+      - { inputValue: input_data_config }
+      - --output_data_config
+      - { inputValue: output_data_config }
+      - --profiler_config
+      - { inputValue: profiler_config }
+      - --profiler_rule_configurations
+      - { inputValue: profiler_rule_configurations }
+      - --resource_config
+      - { inputValue: resource_config }
+      - --role_arn
+      - { inputValue: role_arn }
+      - --stopping_condition
+      - { inputValue: stopping_condition }
+      - --tags
+      - { inputValue: tags }
+      - --tensor_board_output_config
+      - { inputValue: tensor_board_output_config }
+      - --training_job_name
+      - { inputValue: training_job_name }
+      - --vpc_config
+      - { inputValue: vpc_config }
+      
+      ###########################GENERATED SECTION ABOVE############################
+

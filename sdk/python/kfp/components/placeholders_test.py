@@ -95,6 +95,22 @@ class TestInputUriPlaceholder(parameterized.TestCase):
                          placeholder_string)
 
 
+class TestInputMetadataPlaceholder(parameterized.TestCase):
+
+    @parameterized.parameters([
+        ("{{$.inputs.artifacts['input1'].metadata}}",
+         placeholders.InputMetadataPlaceholder('input1')),
+    ])
+    def test_to_from_placeholder(
+            self, placeholder_string: str,
+            placeholder_obj: placeholders.InputMetadataPlaceholder):
+        self.assertEqual(
+            placeholders.InputMetadataPlaceholder.from_placeholder_string(
+                placeholder_string), placeholder_obj)
+        self.assertEqual(placeholder_obj.to_placeholder_string(),
+                         placeholder_string)
+
+
 class TestOutputPathPlaceholder(parameterized.TestCase):
 
     @parameterized.parameters([
@@ -138,6 +154,22 @@ class TestOutputUriPlaceholder(parameterized.TestCase):
             placeholder_obj: placeholders.OutputUriPlaceholder):
         self.assertEqual(
             placeholders.OutputUriPlaceholder.from_placeholder_string(
+                placeholder_string), placeholder_obj)
+        self.assertEqual(placeholder_obj.to_placeholder_string(),
+                         placeholder_string)
+
+
+class TestOutputMetadataPlaceholder(parameterized.TestCase):
+
+    @parameterized.parameters([
+        ("{{$.outputs.artifacts['output1'].metadata}}",
+         placeholders.OutputMetadataPlaceholder('output1')),
+    ])
+    def test_to_from_placeholder(
+            self, placeholder_string: str,
+            placeholder_obj: placeholders.OutputMetadataPlaceholder):
+        self.assertEqual(
+            placeholders.OutputMetadataPlaceholder.from_placeholder_string(
                 placeholder_string), placeholder_obj)
         self.assertEqual(placeholder_obj.to_placeholder_string(),
                          placeholder_string)

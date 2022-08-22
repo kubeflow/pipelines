@@ -1,5 +1,15 @@
-# Current Version 1.0.17.dev (Still in Development)
+# Current Version 1.0.18.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.17
+* Model Evaluation - Rearrange json and yaml files in e2e test to eliminate duplicate defining and reading
+* Model Evaluation - Update JSON templates for evaluation
+* Model Evaluation - Split evaluation component into classification, forecasting, and regression evaluation & create artifact types for `google.__Metrics`
+* Model Evaluation - Match predictions input argument name to other Evaluation components
+* Model Evaluation - Update import_model_evaluation component to accept new `google.___Metrics` artifact types
+* Model Evaluation - Update regression and forecasting to contain ground truth input fields
+* Reverse re.findall order of arguments to (pattern, string) in job_remote_runner
+* Model Evaluation - Update evaluation container to v0.5 for data sampler and splitter preprocessing components
 
 # Release 1.0.16
 * Evaluation - Separate feature attribution from evaluation component to its own component
