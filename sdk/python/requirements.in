@@ -23,7 +23,7 @@ kfp-pipeline-spec>=0.1.16,<0.2.0
 # kfp-server-api.
 # Note, please also update ./requirements.in
 kfp-server-api>=2.0.0a0,<3.0.0
-kubernetes>=8.0.0,<24
+kubernetes>=8.0.0,<19
 protobuf>=3.13.0,<4
 PyYAML>=5.3,<6
 requests-toolbelt>=0.8.0,<1
