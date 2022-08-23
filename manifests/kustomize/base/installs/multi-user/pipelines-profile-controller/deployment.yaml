@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
       - name: profile-controller
-        image: mtr.external.otc.telekomcloud.com/ai/pipelines-profile-controller:1.8.1-namespace-isolation # until the new container is build
+        image: python:3.7
         command: ["python", "/hooks/sync.py"]
         envFrom:
         - configMapRef:
