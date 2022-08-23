@@ -1,0 +1,12 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubeflow-pipelines-profile-controller
+spec:
+  template:
+    spec:
+      serviceAccountName: meta-controller-service
+      containers:
+        - name: profile-controller
+          image: mtr.devops.telekom.de/ai/pipelines-profile-controller:2.0.0-alpha.3
+
