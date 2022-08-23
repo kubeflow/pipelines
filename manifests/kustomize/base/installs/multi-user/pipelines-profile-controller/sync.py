@@ -394,4 +394,3 @@ def server_factory(visualization_server_image,
 
 if __name__ == "__main__":
     main()
-

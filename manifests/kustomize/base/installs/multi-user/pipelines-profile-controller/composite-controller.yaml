@@ -39,4 +39,3 @@ spec:
     sync:
       webhook:
         url: http://kubeflow-pipelines-profile-controller/sync
-
