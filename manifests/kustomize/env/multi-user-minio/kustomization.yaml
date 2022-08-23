@@ -1,11 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# This is a distribution for standalone Kubernetes clusters 
-# (Minikube, Openshift, etc.) that use MinIO as storage backend
-# We will continue to harden this distribution with more security
-# advancements.
-
 bases:
   - ../../base/installs/multi-user
   - ../../base/metadata/base
@@ -17,6 +12,8 @@ bases:
   - ../../third-party/minio/options/istio
   - ../../third-party/metacontroller/base
 
+generatorOptions:
+  disableNameSuffixHash: true
 configMapGenerator:
   - name: kubeflow-pipelines-profile-controller-code
     behavior: replace
@@ -33,9 +30,8 @@ commonLabels:
 # please also update base/cache-deployer/cluster-scoped/cache-deployer-clusterrolebinding.yaml
 namespace: kubeflow
 
-generatorOptions:
-  disableNameSuffixHash: true
 patchesStrategicMerge:
+# profile-controller changes
 - metacontroller/composite-controller-patch.yaml
 - kubeflow-pipelines-profile-controller/kubeflow-pipelines-profile-controller-patch.yaml
 # Increase Loglevel for Argo Workflow Controller
