@@ -33,9 +33,18 @@ class JsonUtilTests(unittest.TestCase):
         payload = '["abc","def", ""]'
         payload_json = json.loads(payload, strict=False)
         payload_json_after = json_util.recursive_remove_empty(payload_json)
-        self.assertEqual(json.dumps(payload_json_after), '["abc", "def"]')
+        self.assertEqual(json.dumps(payload_json_after), '["abc", "def", ""]')
 
         payload = '"abc"'
         payload_json = json.loads(payload, strict=False)
         payload_json_after = json_util.recursive_remove_empty(payload_json)
         self.assertEqual(json.dumps(payload_json_after), '"abc"')
+
+    def test_dont_remove_array_with_zero(self):
+        payload = '{"explanation_spec":{"parameters":{"sampled_shapley_attribution":{"path_count":7}},"metadata":{"inputs":{"ps_calc_14":{"input_baselines":[0.0],"input_tensor_name":"","encoding":0,"modality":"","indices_tensor_name":"","dense_shape_tensor_name":"","index_feature_mapping":[],"encoded_tensor_name":"","encoded_baselines":[],"group_name":""}},"outputs":{"scores":{"display_name_mapping_key":"classes","output_tensor_name":""}},"feature_attributions_schema_uri":"gs://sample/gcs/path/feature_attributions.yaml"}}}'
+        payload_json = json.loads(payload, strict=False)
+        payload_json_after = json_util.recursive_remove_empty(payload_json)
+        self.assertEqual(
+            json.dumps(payload_json_after),
+            '{"explanation_spec": {"parameters": {"sampled_shapley_attribution": {"path_count": 7}}, "metadata": {"inputs": {"ps_calc_14": {"input_baselines": [0.0]}}, "outputs": {"scores": {"display_name_mapping_key": "classes"}}, "feature_attributions_schema_uri": "gs://sample/gcs/path/feature_attributions.yaml"}}}'
+        )

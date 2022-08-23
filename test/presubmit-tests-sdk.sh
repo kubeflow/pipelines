@@ -16,15 +16,12 @@
 source_root=$(pwd)
 
 python3 -m pip install --upgrade pip
-python3 -m pip install coverage==4.5.4 coveralls==1.9.2
-python3 -m pip install -r "$source_root/sdk/python/requirements-test.txt"
+python3 -m pip install coveralls==1.9.2
+python3 -m pip install $(grep 'docker==' sdk/python/requirements-dev.txt)
+python3 -m pip install $(grep 'pytest==' sdk/python/requirements-dev.txt)
+python3 -m pip install $(grep 'pytest-xdist==' sdk/python/requirements-dev.txt)
+python3 -m pip install $(grep 'pytest-cov==' sdk/python/requirements-dev.txt)
 python3 -m pip install --upgrade protobuf
-
-# Testing the component authoring library
-pushd "${source_root}/sdk/python"
-python3 -m pip install -e .
-python3 -m unittest discover --verbose --pattern '*test*.py' --top-level-directory .
-popd
 
 # Installing Argo CLI to lint all compiled workflows
 "${source_root}/test/install-argo-cli.sh"
@@ -32,7 +29,7 @@ popd
 pushd "$source_root/sdk/python"
 python3 -m pip install -e .
 popd # Changing the current directory to the repo root for correct coverall paths
-coverage run --source=kfp --append -m unittest discover --verbose --start-dir sdk/python --pattern '*test*.py'
+pytest sdk/python -n auto --cov=kfp
 
 set +x
 # export COVERALLS_REPO_TOKEN=$(gsutil cat gs://ml-pipeline-test-keys/coveralls_repo_token)

@@ -27,6 +27,8 @@ tests_dir, _ = os.path.split(os.path.abspath(__file__))
 
 templates_dir = os.path.join(os.path.dirname(tests_dir), "templates")
 
+components_dir = tests_dir.split("PyTorch")[0].rstrip("/")
+
 BERT_COMPONENTS = {
     "component_bert_prep":
         components.
@@ -47,7 +49,7 @@ COMPONENT_TB = load_component_from_file(
     f"{templates_dir}/tensorboard_component.yaml"
 )
 COMPONENT_DEPLOY = load_component_from_file(
-    f"{templates_dir}/deploy_component.yaml"
+    f"{components_dir}/kserve/component.yaml"
 )
 COMPONENT_MNIO = components.load_component_from_file(
     f"{templates_dir}/minio_component.yaml"

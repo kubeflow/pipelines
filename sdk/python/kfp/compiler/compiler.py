@@ -18,50 +18,48 @@ https://docs.google.com/document/d/1PUDuSQ8vmeKSBloli53mp7GIvzekaY7sggg6ywy35Dk/
 """
 import collections
 import inspect
-import uuid
+import json
 from typing import (Any, Callable, Dict, List, Mapping, Optional, Set, Tuple,
                     Union)
+import uuid
+import warnings
 
-import kfp
 from google.protobuf import json_format
+import kfp
 from kfp import dsl
 from kfp.compiler import pipeline_spec_builder as builder
 from kfp.compiler.pipeline_spec_builder import GroupOrTaskType
 from kfp.components import base_component
 from kfp.components import component_factory
 from kfp.components import for_loop
+from kfp.components import pipeline_channel
 from kfp.components import pipeline_context
-from kfp.components import pipeline_task
-from kfp.components import structures
 from kfp.components import tasks_group
 from kfp.components import utils as component_utils
 from kfp.components.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
-from kfp.utils import ir_utils
+import yaml
 
 
 class Compiler:
-    """Experimental DSL compiler that targets the PipelineSpec IR.
+    """Compiles pipelines composed using the KFP SDK DSL to a YAML pipeline
+    definition.
 
-    It compiles pipeline function into PipelineSpec json string.
-    PipelineSpec is the IR protobuf message that defines a pipeline:
-    https://github.com/kubeflow/pipelines/blob/237795539f7b85bac77435e2464367226ee19391/api/v2alpha1/pipeline_spec.proto#L8
-    In this initial implementation, we only support components authored through
-    Component yaml spec. And we don't support advanced features like conditions,
-    static and dynamic loops, etc.
+    The pipeline definition is `PipelineSpec IR <https://github.com/kubeflow/pipelines/blob/2060e38c5591806d657d85b53eed2eef2e5de2ae/api/v2alpha1/pipeline_spec.proto#L50>`_, the protobuf message that defines a pipeline.
 
-    Example::
+    Example:
+      ::
 
         @dsl.pipeline(
           name='name',
-          description='description',
         )
-        def my_pipeline(a: int = 1, b: str = "default value"):
+        def my_pipeline(a: int, b: str = 'default value'):
             ...
 
         kfp.compiler.Compiler().compile(
             pipeline_func=my_pipeline,
-            package_path='path/to/pipeline.json',
+            package_path='path/to/pipeline.yaml',
+            pipeline_parameters={'a': 1},
         )
     """
 
@@ -70,20 +68,17 @@ class Compiler:
         pipeline_func: Union[Callable[..., Any], base_component.BaseComponent],
         package_path: str,
         pipeline_name: Optional[str] = None,
-        pipeline_parameters: Optional[Mapping[str, Any]] = None,
+        pipeline_parameters: Optional[Dict[str, Any]] = None,
         type_check: bool = True,
     ) -> None:
-        """Compile the given pipeline function or component into pipeline job
-        json.
+        """Compiles the pipeline or component function into IR YAML.
 
         Args:
-            pipeline_func: Pipeline function with @dsl.pipeline or component with @dsl.component decorator.
-            package_path: The output pipeline spec .yaml file path. For example, "~/pipeline.yaml" or "~/component.yaml".
-            pipeline_name: Optional; the name of the pipeline.
-            pipeline_parameters: Optional; the mapping from parameter names to
-                values.
-            type_check: Optional; whether to enable the type check or not.
-                Default is True.
+            pipeline_func: Pipeline function constructed with the ``@dsl.pipeline`` or component constructed with the ``@dsl.component`` decorator.
+            package_path: Output YAML file path. For example, ``'~/my_pipeline.yaml'`` or ``'~/my_component.yaml'``.
+            pipeline_name: Name of the pipeline.
+            pipeline_parameters: Map of parameter names to argument values.
+            type_check: Whether to enable type checking of component interfaces during compilation.
         """
 
         with type_utils.TypeCheckManager(enable=type_check):
@@ -106,7 +101,7 @@ class Compiler:
                     'subclass of `base_component.BaseComponent` or '
                     '`Callable` constructed with @dsl.pipeline '
                     f'decorator. Got: {type(pipeline_func)}')
-            self._write_pipeline_spec_file(
+            write_pipeline_spec_to_file(
                 pipeline_spec=pipeline_spec, package_path=package_path)
 
     def _create_pipeline(
@@ -141,21 +136,17 @@ class Compiler:
 
         for arg_name in signature.parameters:
             arg_type = pipeline_meta.inputs[arg_name].type
-            if not type_utils.is_parameter_type(arg_type):
-                raise TypeError(
-                    builder.make_invalid_input_type_error_msg(
-                        arg_name, arg_type))
             args_list.append(
-                dsl.PipelineParameterChannel(
-                    name=arg_name, channel_type=arg_type))
+                pipeline_channel.create_pipeline_channel(
+                    name=arg_name,
+                    channel_type=arg_type,
+                ))
 
         with pipeline_context.Pipeline(pipeline_name) as dsl_pipeline:
             pipeline_func(*args_list)
 
         if not dsl_pipeline.tasks:
             raise ValueError('Task is missing from pipeline.')
-
-        self._validate_exit_handler(dsl_pipeline)
 
         pipeline_inputs = pipeline_meta.inputs or {}
 
@@ -170,7 +161,7 @@ class Compiler:
 
         # Fill in the default values.
         args_list_with_defaults = [
-            dsl.PipelineParameterChannel(
+            pipeline_channel.create_pipeline_channel(
                 name=input_name,
                 channel_type=input_spec.type,
                 value=pipeline_parameters_override.get(input_name) or
@@ -193,114 +184,9 @@ class Compiler:
 
         return pipeline_spec
 
-    def _create_pipeline_from_component_spec(
-        self,
-        component_spec: structures.ComponentSpec,
-    ) -> pipeline_spec_pb2.PipelineSpec:
-        """Creates a pipeline instance and constructs the pipeline spec for a
-        primitive component.
-
-        Args:
-            component_spec: The ComponentSpec to convert to PipelineSpec.
-
-        Returns:
-            A PipelineSpec proto representing the compiled component.
-        """
-        args_dict = {}
-
-        for arg_name, input_spec in component_spec.inputs.items():
-            arg_type = input_spec.type
-            if not type_utils.is_parameter_type(
-                    arg_type) or type_utils.is_task_final_status_type(arg_type):
-                raise TypeError(
-                    builder.make_invalid_input_type_error_msg(
-                        arg_name, arg_type))
-            args_dict[arg_name] = dsl.PipelineParameterChannel(
-                name=arg_name, channel_type=arg_type)
-
-        task = pipeline_task.PipelineTask(component_spec, args_dict)
-
-        # instead of constructing a pipeline with pipeline_context.Pipeline,
-        # just build the single task group
-        group = tasks_group.TasksGroup(
-            group_type=tasks_group.TasksGroupType.PIPELINE)
-        group.tasks.append(task)
-
-        pipeline_inputs = component_spec.inputs or {}
-
-        # Fill in the default values.
-        args_list_with_defaults = [
-            dsl.PipelineParameterChannel(
-                name=input_name,
-                channel_type=input_spec.type,
-                value=input_spec.default,
-            ) for input_name, input_spec in pipeline_inputs.items()
-        ]
-        group.name = uuid.uuid4().hex
-
-        return builder.create_pipeline_spec_for_component(
-            pipeline_name=component_spec.name,
-            pipeline_args=args_list_with_defaults,
-            task_group=group,
-        )
-
-    def _write_pipeline_spec_file(
-        self,
-        pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-        package_path: str,
-    ) -> None:
-        """Writes pipeline spec into a YAML or JSON (deprecated) file.
-
-        Args:
-            pipeline_spec: IR pipeline spec.
-            package_path: The file path to be written.
-        """
-
-        json_dict = json_format.MessageToDict(pipeline_spec)
-        ir_utils._write_ir_to_file(json_dict, package_path)
-
-    def _validate_exit_handler(self,
-                               pipeline: pipeline_context.Pipeline) -> None:
-        """Makes sure there is only one global exit handler.
-
-        This is temporary to be compatible with KFP v1.
-
-        Raises:
-            ValueError if there are more than one exit handler.
-        """
-
-        def _validate_exit_handler_helper(
-            group: tasks_group.TasksGroup,
-            exiting_task_names: List[str],
-            handler_exists: bool,
-        ) -> None:
-
-            if isinstance(group, dsl.ExitHandler):
-                if handler_exists or len(exiting_task_names) > 1:
-                    raise ValueError(
-                        'Only one global exit_handler is allowed and all ops need to be included.'
-                    )
-                handler_exists = True
-
-            if group.tasks:
-                exiting_task_names.extend([x.name for x in group.tasks])
-
-            for group in group.groups:
-                _validate_exit_handler_helper(
-                    group=group,
-                    exiting_task_names=exiting_task_names,
-                    handler_exists=handler_exists,
-                )
-
-        _validate_exit_handler_helper(
-            group=pipeline.groups[0],
-            exiting_task_names=[],
-            handler_exists=False,
-        )
-
     def _create_pipeline_spec(
         self,
-        pipeline_args: List[dsl.PipelineChannel],
+        pipeline_args: List[pipeline_channel.PipelineChannel],
         pipeline: pipeline_context.Pipeline,
     ) -> pipeline_spec_pb2.PipelineSpec:
         """Creates a pipeline spec object.
@@ -374,49 +260,11 @@ class Compiler:
                 name_to_for_loop_group=name_to_for_loop_group,
             )
 
-        # TODO: refactor to support multiple exit handler per pipeline.
-        if pipeline.groups[0].groups:
-            first_group = pipeline.groups[0].groups[0]
-            if isinstance(first_group, dsl.ExitHandler):
-                exit_task = first_group.exit_task
-                exit_task_name = component_utils.sanitize_task_name(
-                    exit_task.name)
-                exit_handler_group_task_name = component_utils.sanitize_task_name(
-                    first_group.name)
-                input_parameters_in_current_dag = [
-                    input_name for input_name in
-                    pipeline_spec.root.input_definitions.parameters
-                ]
-                exit_task_task_spec = builder.build_task_spec_for_exit_task(
-                    task=exit_task,
-                    dependent_task=exit_handler_group_task_name,
-                    pipeline_inputs=pipeline_spec.root.input_definitions,
-                )
-
-                exit_task_component_spec = builder.build_component_spec_for_exit_task(
-                    task=exit_task)
-
-                exit_task_container_spec = builder.build_container_spec_for_task(
-                    task=exit_task)
-
-                # Add exit task task spec
-                pipeline_spec.root.dag.tasks[exit_task_name].CopyFrom(
-                    exit_task_task_spec)
-
-                # Add exit task component spec if it does not exist.
-                component_name = exit_task_task_spec.component_ref.name
-                if component_name not in pipeline_spec.components:
-                    pipeline_spec.components[component_name].CopyFrom(
-                        exit_task_component_spec)
-
-                # Add exit task container spec if it does not exist.
-                executor_label = exit_task_component_spec.executor_label
-                if executor_label not in deployment_config.executors:
-                    deployment_config.executors[
-                        executor_label].container.CopyFrom(
-                            exit_task_container_spec)
-                    pipeline_spec.deployment_spec.update(
-                        json_format.MessageToDict(deployment_config))
+        builder.build_exit_handler_groups_recursively(
+            parent_group=root_group,
+            pipeline_spec=pipeline_spec,
+            deployment_config=deployment_config,
+        )
 
         return pipeline_spec
 
@@ -449,7 +297,7 @@ class Compiler:
     def _get_condition_channels_for_tasks(
         self,
         root_group: tasks_group.TasksGroup,
-    ) -> Mapping[str, Set[dsl.PipelineChannel]]:
+    ) -> Mapping[str, Set[pipeline_channel.PipelineChannel]]:
         """Gets channels referenced in conditions of tasks' parents.
 
         Args:
@@ -470,11 +318,11 @@ class Compiler:
                 new_current_conditions_channels = list(
                     current_conditions_channels)
                 if isinstance(group.condition.left_operand,
-                              dsl.PipelineChannel):
+                              pipeline_channel.PipelineChannel):
                     new_current_conditions_channels.append(
                         group.condition.left_operand)
                 if isinstance(group.condition.right_operand,
-                              dsl.PipelineChannel):
+                              pipeline_channel.PipelineChannel):
                     new_current_conditions_channels.append(
                         group.condition.right_operand)
             for task in group.tasks:
@@ -490,13 +338,14 @@ class Compiler:
     def _get_inputs_for_all_groups(
         self,
         pipeline: pipeline_context.Pipeline,
-        pipeline_args: List[dsl.PipelineChannel],
+        pipeline_args: List[pipeline_channel.PipelineChannel],
         root_group: tasks_group.TasksGroup,
         task_name_to_parent_groups: Mapping[str, List[GroupOrTaskType]],
         group_name_to_parent_groups: Mapping[str, List[tasks_group.TasksGroup]],
-        condition_channels: Mapping[str, Set[dsl.PipelineParameterChannel]],
+        condition_channels: Mapping[
+            str, Set[pipeline_channel.PipelineParameterChannel]],
         name_to_for_loop_group: Mapping[str, dsl.ParallelFor],
-    ) -> Mapping[str, List[Tuple[dsl.PipelineChannel, str]]]:
+    ) -> Mapping[str, List[Tuple[pipeline_channel.PipelineChannel, str]]]:
         """Get inputs and outputs of each group and op.
 
         Args:
@@ -580,7 +429,7 @@ class Compiler:
                     else:
                         channel_to_add = channel_to_add.items_or_pipeline_channel
 
-                if isinstance(channel_to_add, dsl.PipelineChannel):
+                if isinstance(channel_to_add, pipeline_channel.PipelineChannel):
                     channels_to_add.append(channel_to_add)
 
                 if channel.task_name:
@@ -723,7 +572,7 @@ class Compiler:
         task_name_to_parent_groups: Mapping[str, List[GroupOrTaskType]],
         group_name_to_parent_groups: Mapping[str, List[tasks_group.TasksGroup]],
         group_name_to_group: Mapping[str, tasks_group.TasksGroup],
-        condition_channels: Dict[str, dsl.PipelineChannel],
+        condition_channels: Dict[str, pipeline_channel.PipelineChannel],
     ) -> Mapping[str, List[GroupOrTaskType]]:
         """Gets dependent groups and tasks for all tasks and groups.
 
@@ -777,14 +626,12 @@ class Compiler:
                     task2=task,
                 )
 
-                # If a task depends on a condition group or a loop group, it
-                # must explicitly dependent on a task inside the group. This
-                # should not be allowed, because it leads to ambiguous
-                # expectations for runtime behaviors.
+                # a task cannot depend on a task created in a for loop group since individual PipelineTask variables are reassigned after each loop iteration
                 dependent_group = group_name_to_group.get(
                     upstream_groups[0], None)
                 if isinstance(dependent_group,
-                              (tasks_group.Condition, tasks_group.ParallelFor)):
+                              (tasks_group.ParallelFor, tasks_group.Condition,
+                               tasks_group.ExitHandler)):
                     raise RuntimeError(
                         f'Task {task.name} cannot dependent on any task inside'
                         f' the group: {upstream_groups[0]}.')
@@ -792,3 +639,33 @@ class Compiler:
                 dependencies[downstream_groups[0]].add(upstream_groups[0])
 
         return dependencies
+
+
+def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+                                package_path: str) -> None:
+    """Writes PipelineSpec into a YAML or JSON (deprecated) file.
+
+    Args:
+        pipeline_spec (pipeline_spec_pb2.PipelineSpec): The PipelineSpec.
+        package_path (str): The path to which to write the PipelineSpec.
+    """
+    json_dict = json_format.MessageToDict(pipeline_spec)
+
+    if package_path.endswith('.json'):
+        warnings.warn(
+            ('Compiling to JSON is deprecated and will be '
+             'removed in a future version. Please compile to a YAML file by '
+             'providing a file path with a .yaml extension instead.'),
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
+        with open(package_path, 'w') as json_file:
+            json.dump(json_dict, json_file, indent=2, sort_keys=True)
+
+    elif package_path.endswith(('.yaml', '.yml')):
+        with open(package_path, 'w') as yaml_file:
+            yaml.dump(json_dict, yaml_file, sort_keys=True)
+
+    else:
+        raise ValueError(
+            f'The output path {package_path} should end with ".yaml".')

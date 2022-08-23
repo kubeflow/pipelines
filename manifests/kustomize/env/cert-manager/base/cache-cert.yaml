@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: kfp-cache-cert
+spec:
+  commonName: kfp-cache-cert
+  isCA: true
+  dnsNames:
+  - cache-server
+  - cache-server.$(kfp-namespace)
+  - cache-server.$(kfp-namespace).svc
+  issuerRef:
+    kind: Issuer
+    name: kfp-cache-selfsigned-issuer
+  secretName: webhook-server-tls

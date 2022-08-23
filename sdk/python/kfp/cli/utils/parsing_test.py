@@ -128,7 +128,7 @@ class TestGetParamDescr(unittest.TestCase):
 
         self.assertEqual(
             host_descr,
-            "The host name to use to talk to Kubeflow Pipelines. If not set, the in-cluster service DNS name will be used, which only works if the current environment is a pod in the same cluster (such as a Jupyter instance spawned by Kubeflow's JupyterHub). Set the host based on https://www.kubeflow.org/docs/components/pipelines/sdk/connect-api/"
+            "Host name to use to talk to Kubeflow Pipelines. If not set, the in-cluster service DNS name will be used, which only works if the current environment is a pod in the same cluster (such as a Jupyter instance spawned by Kubeflow's JupyterHub). (`More information on connecting. <https://www.kubeflow.org/docs/components/pipelines/sdk/connect-api/>`_)"
         )
 
 

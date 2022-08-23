@@ -1,14 +1,12 @@
 boto3
 image
-matplotlib==3.4.2
+matplotlib
 pyarrow
 sklearn
 transformers
-torchtext
+torchdata
 webdataset
-torchvision
 pandas
-numpy
 s3fs
 wget
 torch-model-archiver
@@ -16,4 +14,4 @@ minio
 kfp
 tensorboard
 torchmetrics
-pytorch-lightning==1.5.8
+pytorch-lightning

@@ -284,7 +284,6 @@ class Client(object):
             k8s.config.load_incluster_config()
         except:
             in_cluster = False
-            pass
 
         if in_cluster:
             config.host = Client.IN_CLUSTER_DNS_NAME.format(namespace)

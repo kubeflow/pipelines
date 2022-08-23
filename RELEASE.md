@@ -278,7 +278,7 @@ fill in the description. Detailed steps:
        <pre>
         To deploy Kubeflow Pipelines in an existing cluster, follow the instruction in [here](https://www.kubeflow.org/docs/pipelines/standalone-deployment-gcp/).
 
-        Install kfp-server-api package (python 3.6 above) by running:
+        Install kfp-server-api package (python 3.7 above) by running:
 
         ```bash
         python3 -m pip install kfp-server-api==$VERSION --upgrade

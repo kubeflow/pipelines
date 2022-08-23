@@ -90,6 +90,11 @@ func (t *Argo) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledW
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed")
 	}
+
+	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
+	// TODO: Fix the components to explicitly declare the artifacts they really output.
+	workflow.PatchTemplateOutputArtifacts()
+
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{GenerateName: swfGeneratedName},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
@@ -98,21 +103,12 @@ func (t *Argo) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledW
 			Trigger:        *toCRDTrigger(apiJob.Trigger),
 			Workflow: &scheduledworkflow.WorkflowResource{
 				Parameters: toCRDParameter(apiJob.GetPipelineSpec().GetParameters()),
-				Spec:       workflow.Spec,
+				Spec:       workflow.ToStringForSchedule(),
 			},
 			NoCatchup: util.BoolPointer(apiJob.NoCatchup),
 		},
 	}
 
-	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
-	// TODO: Fix the components to explicitly declare the artifacts they really output.
-	for templateIdx, template := range scheduledWorkflow.Spec.Workflow.Spec.Templates {
-		for artIdx, artifact := range template.Outputs.Artifacts {
-			if artifact.Name == "mlpipeline-ui-metadata" || artifact.Name == "mlpipeline-metrics" {
-				scheduledWorkflow.Spec.Workflow.Spec.Templates[templateIdx].Outputs.Artifacts[artIdx].Optional = true
-			}
-		}
-	}
 	return scheduledWorkflow, nil
 }
 
@@ -172,7 +168,7 @@ func (t *Argo) ParametersJSON() (string, error) {
 	if t == nil {
 		return "", nil
 	}
-	return MarshalParameters(t.wf.Spec.Arguments.Parameters)
+	return util.MarshalParameters(util.ArgoWorkflow, t.wf.SpecParameters())
 }
 
 func NewArgoTemplateFromWorkflow(wf *workflowapi.Workflow) (*Argo, error) {

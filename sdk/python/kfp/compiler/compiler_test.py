@@ -14,16 +14,23 @@
 
 import json
 import os
+import re
+import subprocess
 import tempfile
+from typing import Any, Dict, List, Optional
 import unittest
 
-import yaml
 from absl.testing import parameterized
-from kfp import compiler
+from click import testing
+from google.protobuf import json_format
 from kfp import components
 from kfp import dsl
+from kfp.cli import cli
+from kfp.compiler import compiler
 from kfp.components.types import type_utils
 from kfp.dsl import PipelineTaskFinalStatus
+from kfp.pipeline_spec import pipeline_spec_pb2
+import yaml
 
 VALID_PRODUCER_COMPONENT_SAMPLE = components.load_component_from_text("""
     name: producer
@@ -433,7 +440,7 @@ class TestCompilePipeline(parameterized.TestCase):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='result.yaml')
 
-    def test_invalid_after_dependency(self):
+    def test_invalid_data_dependency_loop(self):
 
         @dsl.component
         def producer_op() -> str:
@@ -444,30 +451,7 @@ class TestCompilePipeline(parameterized.TestCase):
             pass
 
         @dsl.pipeline(name='test-pipeline')
-        def my_pipeline(text: str):
-            with dsl.Condition(text == 'a'):
-                producer_task = producer_op()
-
-            dummy_op().after(producer_task)
-
-        with self.assertRaisesRegex(
-                RuntimeError,
-                'Task dummy-op cannot dependent on any task inside the group:'):
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='result.yaml')
-
-    def test_invalid_data_dependency(self):
-
-        @dsl.component
-        def producer_op() -> str:
-            return 'a'
-
-        @dsl.component
-        def dummy_op(msg: str = ''):
-            pass
-
-        @dsl.pipeline(name='test-pipeline')
-        def my_pipeline(text: bool):
+        def my_pipeline(val: bool):
             with dsl.ParallelFor(['a, b']):
                 producer_task = producer_op()
 
@@ -476,8 +460,125 @@ class TestCompilePipeline(parameterized.TestCase):
         with self.assertRaisesRegex(
                 RuntimeError,
                 'Task dummy-op cannot dependent on any task inside the group:'):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                package_path = os.path.join(tmpdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_valid_data_dependency_loop(self):
+
+        @dsl.component
+        def producer_op() -> str:
+            return 'a'
+
+        @dsl.component
+        def dummy_op(msg: str = ''):
+            pass
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(val: bool):
+            with dsl.ParallelFor(['a, b']):
+                producer_task = producer_op()
+                dummy_op(msg=producer_task.output)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            package_path = os.path.join(tmpdir, 'pipeline.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='result.yaml')
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_invalid_data_dependency_condition(self):
+
+        @dsl.component
+        def producer_op() -> str:
+            return 'a'
+
+        @dsl.component
+        def dummy_op(msg: str = ''):
+            pass
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(val: bool):
+            with dsl.Condition(val == False):
+                producer_task = producer_op()
+
+            dummy_op(msg=producer_task.output)
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                'Task dummy-op cannot dependent on any task inside the group:'):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                package_path = os.path.join(tmpdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_valid_data_dependency_condition(self):
+
+        @dsl.component
+        def producer_op() -> str:
+            return 'a'
+
+        @dsl.component
+        def dummy_op(msg: str = ''):
+            pass
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(val: bool):
+            with dsl.Condition(val == False):
+                producer_task = producer_op()
+                dummy_op(msg=producer_task.output)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            package_path = os.path.join(tmpdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_invalid_data_dependency_exit_handler(self):
+
+        @dsl.component
+        def producer_op() -> str:
+            return 'a'
+
+        @dsl.component
+        def dummy_op(msg: str = ''):
+            pass
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(val: bool):
+            first_producer = producer_op()
+            with dsl.ExitHandler(first_producer):
+                producer_task = producer_op()
+
+            dummy_op(msg=producer_task.output)
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                'Task dummy-op cannot dependent on any task inside the group:'):
+            with tempfile.TemporaryDirectory() as tmpdir:
+                package_path = os.path.join(tmpdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_valid_data_dependency_exit_handler(self):
+
+        @dsl.component
+        def producer_op() -> str:
+            return 'a'
+
+        @dsl.component
+        def dummy_op(msg: str = ''):
+            pass
+
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline(val: bool):
+            first_producer = producer_op()
+            with dsl.ExitHandler(first_producer):
+                producer_task = producer_op()
+                dummy_op(msg=producer_task.output)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            package_path = os.path.join(tmpdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
 
     def test_use_task_final_status_in_non_exit_op(self):
 
@@ -519,8 +620,71 @@ implementation:
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path='result.yaml')
 
+    def test_compile_parallel_for_with_valid_parallelism(self):
 
-# pylint: disable=import-outside-toplevel,unused-import,import-error,redefined-outer-name,reimported
+        @dsl.component
+        def producer_op(item: str) -> str:
+            return item
+
+        @dsl.pipeline(name='test-parallel-for-with-parallelism')
+        def my_pipeline(text: bool):
+            with dsl.ParallelFor(items=['a', 'b'], parallelism=2) as item:
+                producer_task = producer_op(item=item)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=output_yaml)
+            with open(output_yaml, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+        self.assertEqual(
+            pipeline_spec['root']['dag']['tasks']['for-loop-2']
+            ['iteratorPolicy']['parallelismLimit'], 2)
+
+    def test_compile_parallel_for_with_invalid_parallelism(self):
+
+        @dsl.component
+        def producer_op(item: str) -> str:
+            return item
+
+        @dsl.pipeline(name='test-parallel-for-with-parallelism')
+        def my_pipeline(text: bool):
+            with dsl.ParallelFor(items=['a', 'b'], parallelism=-2) as item:
+                producer_task = producer_op(item=item)
+
+        with self.assertRaisesRegex(ValueError,
+                                    'ParallelFor parallelism must be >= 0.'):
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path='result.yaml')
+
+    def test_compile_parallel_for_with_zero_parallelism(self):
+
+        @dsl.component
+        def producer_op(item: str) -> str:
+            return item
+
+        @dsl.pipeline(name='test-parallel-for-with-parallelism')
+        def my_pipeline(text: bool):
+            with dsl.ParallelFor(items=['a', 'b'], parallelism=0) as item:
+                producer_task = producer_op(item=item)
+
+            with dsl.ParallelFor(items=['a', 'b']) as item:
+                producer_task = producer_op(item=item)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=output_yaml)
+            with open(output_yaml, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+        for_loop_2 = pipeline_spec['root']['dag']['tasks']['for-loop-2']
+        for_loop_4 = pipeline_spec['root']['dag']['tasks']['for-loop-4']
+        with self.assertRaises(KeyError):
+            for_loop_2['iteratorPolicy']
+        with self.assertRaises(KeyError):
+            for_loop_4['iteratorPolicy']
+
+
 class V2NamespaceAliasTest(unittest.TestCase):
     """Test that imports of both modules and objects are aliased (e.g. all
     import path variants work)."""
@@ -529,7 +693,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
     # the kfp.v2 module is loaded. Due to the way we run tests in CI/CD, we cannot ensure that the kfp.v2 module will first be loaded in these tests,
     # so we do not test for the DeprecationWarning here.
 
-    def test_import_namespace(self):  # pylint: disable=no-self-use
+    def test_import_namespace(self):
         from kfp import v2
 
         @v2.dsl.component
@@ -553,7 +717,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
             with open(temp_filepath, 'r') as f:
                 yaml.load(f)
 
-    def test_import_modules(self):  # pylint: disable=no-self-use
+    def test_import_modules(self):
         from kfp.v2 import compiler
         from kfp.v2 import dsl
 
@@ -577,7 +741,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
             with open(temp_filepath, 'r') as f:
                 yaml.load(f)
 
-    def test_import_object(self):  # pylint: disable=no-self-use
+    def test_import_object(self):
         from kfp.v2.compiler import Compiler
         from kfp.v2.dsl import component
         from kfp.v2.dsl import pipeline
@@ -693,7 +857,6 @@ class TestWriteToFileTypes(parameterized.TestCase):
             self.assertTrue(os.path.exists(target_json_file))
             with open(target_json_file, 'r') as f:
                 f.read()
-                pass
 
     def test_compile_fails_with_bad_pipeline_func(self):
         with self.assertRaisesRegex(ValueError,
@@ -716,7 +879,7 @@ class TestCompileComponent(parameterized.TestCase):
             output_json = os.path.join(tempdir, f'component{extension}')
             compiler.Compiler().compile(
                 pipeline_func=hello_world, package_path=output_json)
-            with open(output_json, "r") as f:
+            with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
 
         self.assertEqual(pipeline_spec['pipelineInfo']['name'], 'hello-world')
@@ -733,7 +896,7 @@ class TestCompileComponent(parameterized.TestCase):
             output_json = os.path.join(tempdir, 'component.yaml')
             compiler.Compiler().compile(
                 pipeline_func=hello_world, package_path=output_json)
-            with open(output_json, "r") as f:
+            with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
 
         self.assertEqual(
@@ -751,7 +914,7 @@ class TestCompileComponent(parameterized.TestCase):
             output_json = os.path.join(tempdir, 'component.yaml')
             compiler.Compiler().compile(
                 pipeline_func=hello_world, package_path=output_json)
-            with open(output_json, "r") as f:
+            with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
 
         self.assertEqual(pipeline_spec['pipelineInfo']['name'], 'hello-world')
@@ -772,7 +935,7 @@ class TestCompileComponent(parameterized.TestCase):
                 pipeline_func=hello_world,
                 package_path=output_json,
                 pipeline_name='custom-name')
-            with open(output_json, "r") as f:
+            with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
 
         self.assertEqual(pipeline_spec['pipelineInfo']['name'], 'custom-name')
@@ -790,12 +953,110 @@ class TestCompileComponent(parameterized.TestCase):
                 pipeline_func=hello_world,
                 package_path=output_json,
                 pipeline_parameters={'text': 'override_string'})
-            with open(output_json, "r") as f:
+            with open(output_json, 'r') as f:
                 pipeline_spec = yaml.safe_load(f)
 
         self.assertEqual(
             pipeline_spec['root']['inputDefinitions']['parameters']['text']
             ['defaultValue'], 'override_string')
+
+    def test_compile_container_component_simple(self):
+
+        @dsl.container_component
+        def hello_world_container() -> dsl.ContainerSpec:
+            """Hello world component."""
+            return dsl.ContainerSpec(
+                image='python:3.7',
+                command=['echo', 'hello world'],
+                args=[],
+            )
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_json = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=hello_world_container,
+                package_path=output_json,
+                pipeline_name='hello-world-container')
+            with open(output_json, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+        self.assertEqual(
+            pipeline_spec['deploymentSpec']['executors']
+            ['exec-hello-world-container']['container']['command'],
+            ['echo', 'hello world'])
+
+    def test_compile_container_with_simple_io(self):
+
+        @dsl.container_component
+        def container_simple_io(text: str, output_path: dsl.OutputPath(str)):
+            return dsl.ContainerSpec(
+                image='python:3.7',
+                command=['my_program', text],
+                args=['--output_path', output_path])
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_json = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=container_simple_io,
+                package_path=output_json,
+                pipeline_name='container-simple-io')
+            with open(output_json, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+        self.assertEqual(
+            pipeline_spec['components']['comp-container-simple-io']
+            ['inputDefinitions']['parameters']['text']['parameterType'],
+            'STRING')
+        self.assertEqual(
+            pipeline_spec['components']['comp-container-simple-io']
+            ['outputDefinitions']['parameters']['output_path']['parameterType'],
+            'STRING')
+
+    def test_compile_container_with_artifact_output(self):
+
+        @dsl.container_component
+        def container_with_artifact_output(
+                num_epochs: int,  # also as an input
+                model: dsl.Output[dsl.Model],
+                model_config_path: dsl.OutputPath(str),
+        ):
+            return dsl.ContainerSpec(
+                image='gcr.io/my-image',
+                command=['sh', 'run.sh'],
+                args=[
+                    '--epochs',
+                    num_epochs,
+                    '--model_path',
+                    model.uri,
+                    '--model_config_path',
+                    model_config_path,
+                ])
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=container_with_artifact_output,
+                package_path=output_yaml,
+                pipeline_name='container-with-artifact-output')
+            with open(output_yaml, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+        self.assertEqual(
+            pipeline_spec['components']['comp-container-with-artifact-output']
+            ['inputDefinitions']['parameters']['num_epochs']['parameterType'],
+            'NUMBER_INTEGER')
+        self.assertEqual(
+            pipeline_spec['components']['comp-container-with-artifact-output']
+            ['outputDefinitions']['artifacts']['model']['artifactType']
+            ['schemaTitle'], 'system.Model')
+        self.assertEqual(
+            pipeline_spec['components']['comp-container-with-artifact-output']
+            ['outputDefinitions']['parameters']['model_config_path']
+            ['parameterType'], 'STRING')
+        args_to_check = pipeline_spec['deploymentSpec']['executors'][
+            'exec-container-with-artifact-output']['container']['args']
+        self.assertEqual(args_to_check[3],
+                         "{{$.outputs.artifacts['model'].uri}}")
+        self.assertEqual(
+            args_to_check[5],
+            "{{$.outputs.parameters['model_config_path'].output_file}}")
 
 
 class TestCompileBadInput(unittest.TestCase):
@@ -811,6 +1072,291 @@ class TestCompileBadInput(unittest.TestCase):
                                     'Unsupported pipeline_func type.'):
             compiler.Compiler().compile(
                 pipeline_func=1, package_path='output.json')
+
+
+def pipeline_spec_from_file(filepath: str) -> str:
+    with open(filepath, 'r') as f:
+        dictionary = yaml.safe_load(f)
+    return json_format.ParseDict(dictionary, pipeline_spec_pb2.PipelineSpec())
+
+
+class TestWriteIrToFile(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        pipeline_spec = pipeline_spec_pb2.PipelineSpec()
+        pipeline_spec.pipeline_info.name = 'pipeline-name'
+        cls.pipeline_spec = pipeline_spec
+
+    def test_yaml(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            temp_filepath = os.path.join(tempdir, 'output.yaml')
+            compiler.write_pipeline_spec_to_file(self.pipeline_spec,
+                                                 temp_filepath)
+            actual = pipeline_spec_from_file(temp_filepath)
+        self.assertEqual(actual, self.pipeline_spec)
+
+    def test_yml(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            temp_filepath = os.path.join(tempdir, 'output.yml')
+            compiler.write_pipeline_spec_to_file(self.pipeline_spec,
+                                                 temp_filepath)
+            actual = pipeline_spec_from_file(temp_filepath)
+        self.assertEqual(actual, self.pipeline_spec)
+
+    def test_json(self):
+        with tempfile.TemporaryDirectory() as tempdir, self.assertWarnsRegex(
+                DeprecationWarning, r'Compiling to JSON is deprecated'):
+            temp_filepath = os.path.join(tempdir, 'output.json')
+            compiler.write_pipeline_spec_to_file(self.pipeline_spec,
+                                                 temp_filepath)
+            actual = pipeline_spec_from_file(temp_filepath)
+        self.assertEqual(actual, self.pipeline_spec)
+
+    def test_incorrect_extension(self):
+        with tempfile.TemporaryDirectory() as tempdir, self.assertRaisesRegex(
+                ValueError, r'should end with "\.yaml"\.'):
+            temp_filepath = os.path.join(tempdir, 'output.txt')
+            compiler.write_pipeline_spec_to_file(self.pipeline_spec,
+                                                 temp_filepath)
+
+
+PIPELINES_TEST_DATA_DIR = os.path.join(
+    os.path.dirname(__file__), 'test_data', 'pipelines')
+UNSUPPORTED_COMPONENTS_TEST_DATA_DIR = os.path.join(
+    os.path.dirname(__file__), 'test_data', 'components', 'unsupported')
+
+
+class TestReadWriteEquality(parameterized.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.runner = testing.CliRunner()
+
+    def _test_compile(self,
+                      file_base_name: str,
+                      directory: str,
+                      fn: Optional[str] = None,
+                      additional_arguments: Optional[List[str]] = None) -> None:
+        py_file = os.path.join(directory, f'{file_base_name}.py')
+
+        golden_compiled_file = os.path.join(directory, f'{file_base_name}.yaml')
+
+        if additional_arguments is None:
+            additional_arguments = []
+
+        function_parts = [] if fn is None else ['--function', fn]
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            generated_compiled_file = os.path.join(tmpdir,
+                                                   f'{file_base_name}.yaml')
+
+            result = self.runner.invoke(
+                cli=cli.cli,
+                args=[
+                    'dsl', 'compile', '--py', py_file, '--output',
+                    generated_compiled_file
+                ] + function_parts + additional_arguments,
+                catch_exceptions=False)
+
+            if result.exit_code != 0:
+                print(result.output)
+            self.assertEqual(result.exit_code, 0)
+
+            compiled = load_compiled_file(generated_compiled_file)
+
+        golden = load_compiled_file(golden_compiled_file)
+        self.assertEqual(golden, compiled)
+
+    def test_two_step_pipeline(self):
+        self._test_compile(
+            'two_step_pipeline',
+            directory=PIPELINES_TEST_DATA_DIR,
+            additional_arguments=[
+                '--pipeline-parameters', '{"text":"Hello KFP!"}'
+            ])
+
+    def test_two_step_pipeline_failure_parameter_parse(self):
+        with self.assertRaisesRegex(json.decoder.JSONDecodeError,
+                                    r'Unterminated string starting at:'):
+            self._test_compile(
+                'two_step_pipeline',
+                directory=PIPELINES_TEST_DATA_DIR,
+                additional_arguments=[
+                    '--pipeline-parameters', '{"text":"Hello KFP!}'
+                ])
+
+    def test_compile_components_not_found(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Pipeline function or component "step1" not found in module two_step_pipeline\.py\.'
+        ):
+            self._test_compile(
+                'two_step_pipeline',
+                directory=PIPELINES_TEST_DATA_DIR,
+                fn='step1')
+
+    def test_deprecation_warning(self):
+        res = subprocess.run(['dsl-compile', '--help'], capture_output=True)
+        self.assertIn('Deprecated. Please use `kfp dsl compile` instead.)',
+                      res.stdout.decode('utf-8'))
+
+    # TODO: the sample does not throw as expected.
+    # def test_compile_unsupported_components_with_output_named_tuple(self):
+    #     with self.assertRaisesRegex(TODO):
+    #         self._test_compile(
+    #             'output_named_tuple',
+    #             directory=UNSUPPORTED_COMPONENTS_TEST_DATA_DIR,
+    #             fn='output_named_tuple')
+
+    # TODO: the sample does not throw as expected.
+    # def test_compile_unsupported_components_with_task_status(self):
+    #     with self.assertRaisesRegex(TODO):
+    #         self._test_compile(
+    #             'task_status',
+    #             directory=UNSUPPORTED_COMPONENTS_TEST_DATA_DIR,
+    #             fn='task_status')
+
+
+def ignore_kfp_version_helper(spec: Dict[str, Any]) -> Dict[str, Any]:
+    """Ignores kfp sdk versioning in command.
+
+    Takes in a YAML input and ignores the kfp sdk versioning in command
+    for comparison between compiled file and goldens.
+    """
+    pipeline_spec = spec.get('pipelineSpec', spec)
+
+    if 'executors' in pipeline_spec['deploymentSpec']:
+        for executor in pipeline_spec['deploymentSpec']['executors']:
+            pipeline_spec['deploymentSpec']['executors'][
+                executor] = yaml.safe_load(
+                    re.sub(
+                        r"'kfp==(\d+).(\d+).(\d+)(-[a-z]+.\d+)?'", 'kfp',
+                        yaml.dump(
+                            pipeline_spec['deploymentSpec']['executors']
+                            [executor],
+                            sort_keys=True)))
+    return spec
+
+
+def load_compiled_file(filename: str) -> Dict[str, Any]:
+    with open(filename, 'r') as f:
+        contents = yaml.safe_load(f)
+        pipeline_spec = contents[
+            'pipelineSpec'] if 'pipelineSpec' in contents else contents
+        # ignore the sdkVersion
+        del pipeline_spec['sdkVersion']
+        return ignore_kfp_version_helper(contents)
+
+
+class TestSetRetryCompilation(unittest.TestCase):
+
+    def test_set_retry(self):
+
+        @dsl.component
+        def hello_world(text: str) -> str:
+            """Hello world component."""
+            return text
+
+        @dsl.pipeline(name='hello-world', description='A simple intro pipeline')
+        def pipeline_hello_world(text: str = 'hi there'):
+            """Hello world pipeline."""
+
+            hello_world(text=text).set_retry(
+                num_retries=3,
+                backoff_duration='30s',
+                backoff_factor=1.0,
+                backoff_max_duration='3h',
+            )
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_hello_world, package_path=package_path)
+            pipeline_spec = pipeline_spec_from_file(package_path)
+
+        retry_policy = pipeline_spec.root.dag.tasks['hello-world'].retry_policy
+        self.assertEqual(retry_policy.max_retry_count, 3)
+        self.assertEqual(retry_policy.backoff_duration.seconds, 30)
+        self.assertEqual(retry_policy.backoff_factor, 1.0)
+        self.assertEqual(retry_policy.backoff_max_duration.seconds, 3600)
+
+
+from google.protobuf import json_format
+
+
+class TestMultipleExitHandlerCompilation(unittest.TestCase):
+
+    def test_basic(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+        def my_pipeline():
+            first_exit_task = print_op(message='First exit task.')
+
+            with dsl.ExitHandler(first_exit_task):
+                print_op(message='Inside first exit handler.')
+
+            second_exit_task = print_op(message='Second exit task.')
+            with dsl.ExitHandler(second_exit_task):
+                print_op(message='Inside second exit handler.')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+            pipeline_spec = pipeline_spec_from_file(package_path)
+        # check that the exit handler dags exist
+        self.assertEqual(
+            pipeline_spec.components['comp-exit-handler-1'].dag
+            .tasks['print-op-2'].inputs.parameters['message'].runtime_value
+            .constant.string_value, 'Inside first exit handler.')
+        self.assertEqual(
+            pipeline_spec.components['comp-exit-handler-2'].dag
+            .tasks['print-op-4'].inputs.parameters['message'].runtime_value
+            .constant.string_value, 'Inside second exit handler.')
+        # check that the exit handler dags are in the root dag
+        self.assertIn('exit-handler-1', pipeline_spec.root.dag.tasks)
+        self.assertIn('exit-handler-2', pipeline_spec.root.dag.tasks)
+        # check that the exit tasks are in the root dag
+        self.assertIn('print-op', pipeline_spec.root.dag.tasks)
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['print-op'].inputs
+            .parameters['message'].runtime_value.constant.string_value,
+            'First exit task.')
+        self.assertIn('print-op-3', pipeline_spec.root.dag.tasks)
+        self.assertEqual(
+            pipeline_spec.root.dag.tasks['print-op-3'].inputs
+            .parameters['message'].runtime_value.constant.string_value,
+            'Second exit task.')
+
+    def test_nested_unsupported(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+        def my_pipeline():
+            first_exit_task = print_op(message='First exit task.')
+
+            with dsl.ExitHandler(first_exit_task):
+                print_op(message='Inside first exit handler.')
+
+                second_exit_task = print_op(message='Second exit task.')
+                with dsl.ExitHandler(second_exit_task):
+                    print_op(message='Inside second exit handler.')
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'ExitHandler can only be used within the outermost scope of a pipeline function definition\.'
+        ):
+
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path='output.yaml')
 
 
 if __name__ == '__main__':

@@ -13,8 +13,8 @@
 # limitations under the License.
 """Tests for diagnose_me.kubernetes_cluster."""
 
-import unittest
 from typing import Text
+import unittest
 from unittest import mock
 
 from kfp.cli.diagnose_me import kubernetes_cluster as dkc

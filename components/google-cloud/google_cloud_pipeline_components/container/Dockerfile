@@ -25,7 +25,8 @@ RUN pip3 install -U google-cloud-aiplatform
 RUN pip3 install -U google-cloud-storage
 
 # Required by dataflow_launcher
-RUN pip3 install -U apache_beam[gcp]
+# b/238481913: Pinning the version of apache_beam to below 2.34 for now
+RUN pip3 install -U "apache_beam[gcp]<2.34.0"
 
 # Install main package (switch to using pypi package for official release)
 RUN pip3 install "git+https://github.com/kubeflow/pipelines.git#egg=google-cloud-pipeline-components&subdirectory=components/google-cloud"

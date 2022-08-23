@@ -1,0 +1,82 @@
+name: bigquery_ml_arima_coefficients
+description: |
+  Launch a BigQuery ML.ARIMA_COEFFICIENTS job and let you see the ARIMA coefficients. This function only applies to the time-series ARIMA_PLUS and ARIMA models.
+
+    Args:
+        project (str):
+            Required. Project to run the BigQuery job.
+        location (Optional[str]):
+            Location to run the BigQuery job. If not set,
+            default to `US` multi-region.
+            For more details, see https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+        model (google.BQMLModel):
+            Required. BigQuery ML model for ML.ARIMA_COEFFICIENTS.
+            For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-arima-coefficients
+        query_parameters (Optional[Sequence]):
+            jobs.query parameters for standard SQL queries.
+            If query_parameters are both specified in here and in job_configuration_query,
+            the value in here will override the other one.
+        job_configuration_query (Optional[dict]):
+            A json formatted string describing the rest of the job configuration.
+            For more details, see https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+        encryption_spec_key_name(Optional[List[str]]):
+            Describes the Cloud KMS encryption key that will be used to protect
+            destination BigQuery table. The BigQuery Service Account associated with
+            your project requires access to this encryption key.
+            If encryption_spec_key_name are both specified in here and in job_configuration_query,
+            the value in here will override the other one.
+    Returns:
+        arima_coefficients (system.Artifact):
+            Describes arima_coefficients to the type of model supplied.
+            For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-arima-coefficients#mlarima_coefficients_output
+        gcp_resources (str):
+            Serialized gcp_resources proto tracking the BigQuery job.
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
+inputs:
+- {name: project, type: String}
+- {name: location, type: String, default: "us-central1"}
+- {name: model, type: google.BQMLModel}
+- {name: query_parameters, type: JsonArray, optional: true, default: '[]' }
+- {name: job_configuration_query, type: JsonObject, optional: true, default: '{}'}
+- {name: labels, type: JsonArray, optional: true, default: '[]'}
+- {name: encryption_spec_key_name, type: String, optional: true}
+outputs:
+- {name: arima_coefficients, type: system.Artifact}
+- {name: gcp_resources, type: String}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.gcp_launcher.launcher]
+    args: [
+      --type, BigqueryMLArimaCoefficientsJob,
+      --project, {inputValue: project},
+      --location, {inputValue: location},
+      --model_name,
+      concat: [
+          "{{$.inputs.artifacts['model'].metadata['projectId']}}",
+          '.',
+          "{{$.inputs.artifacts['model'].metadata['datasetId']}}",
+          '.',
+          "{{$.inputs.artifacts['model'].metadata['modelId']}}"
+          ],
+      --payload,
+      concat: [
+          '{',
+            '"configuration": {',
+              '"query": ', {inputValue: job_configuration_query},
+              ', "labels": ', {inputValue: labels},
+            '}',
+          '}'
+      ],
+      --job_configuration_query_override,
+      concat: [
+          '{',
+            '"query_parameters": ', {inputValue: query_parameters},
+            ', "destination_encryption_configuration": {',
+            '"kmsKeyName": "', {inputValue: encryption_spec_key_name}, '"}',
+          '}'
+      ],
+      --gcp_resources,
+        { outputPath: gcp_resources },
+      --executor_input, "{{$}}",
+    ]

@@ -15,5 +15,5 @@
 package model
 
 type DefaultExperiment struct {
-	DefaultExperimentId string `gorm:"column:DefaultExperimentId; not null"`
+	DefaultExperimentId string `gorm:"column:DefaultExperimentId; not null; primary_key"`
 }

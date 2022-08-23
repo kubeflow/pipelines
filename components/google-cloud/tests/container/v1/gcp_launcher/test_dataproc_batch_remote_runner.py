@@ -22,6 +22,7 @@ import google.auth
 from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
 from google_cloud_pipeline_components.container.v1.gcp_launcher import dataproc_batch_remote_runner
 from google_cloud_pipeline_components.proto import gcp_resources_pb2
+import re
 import requests
 
 from google.protobuf import json_format
@@ -141,8 +142,10 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(google.auth, 'default', autospec=True)
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
   @mock.patch.object(requests.sessions.Session, 'get', autospec=True)
-  def test_dataproc_batch_remote_runner_existing_operation_succeeded(self, mock_get_requests, _,
-                                         mock_auth_default):
+  def test_dataproc_batch_remote_runner_existing_operation_succeeded(self,
+                                                                     mock_get_requests,
+                                                                     _,
+                                                                     mock_auth_default):
     with open(self._gcp_resources, 'w') as f:
       f.write(
           f'{{"resources": [{{"resourceType": "DataprocLro", "resourceUri": "{self._dataproc_uri_prefix}/projects/{self._project}/regions/{self._location}/operations/{self._operation_id}"}}]}}'
@@ -181,8 +184,9 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(google.auth, 'default', autospec=True)
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
   @mock.patch.object(requests.sessions.Session, 'get', autospec=True)
-  def test_dataproc_batch_remote_runner_existing_operation_failed(self, mock_get_requests, _,
-                                                mock_auth_default):
+  def test_dataproc_batch_remote_runner_existing_operation_failed(self, mock_get_requests,
+                                                                  _,
+                                                                  mock_auth_default):
     with open(self._gcp_resources, 'w') as f:
       f.write(
           f'{{"resources": [{{"resourceType": "DataprocLro", "resourceUri": "{self._dataproc_uri_prefix}/projects/{self._project}/regions/{self._location}/operations/{self._operation_id}"}}]}}'
@@ -221,8 +225,10 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(google.auth, 'default', autospec=True)
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
   @mock.patch.object(requests.sessions.Session, 'get', autospec=True)
-  def test_dataproc_batch_remote_runner_existing_operation_not_found(self, mock_get_requests, _,
-                                                   mock_auth_default):
+  def test_dataproc_batch_remote_runner_existing_operation_not_found(self,
+                                                                     mock_get_requests,
+                                                                     _,
+                                                                     mock_auth_default):
     with open(self._gcp_resources, 'w') as f:
       f.write(
           f'{{"resources": [{{"resourceType": "DataprocLro", "resourceUri": "{self._dataproc_uri_prefix}/projects/{self._project}/regions/{self._location}/operations/{self._operation_id}"}}]}}'
@@ -304,9 +310,12 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(requests.sessions.Session, 'get', autospec=True)
   @mock.patch.object(requests.sessions.Session, 'post', autospec=True)
   @mock.patch.object(time, 'sleep', autospec=True)
-  def test_dataproc_batch_remote_runner_spark_batch_succeeded(self, mock_time_sleep,
-                                                            mock_post_requests, mock_get_requests,
-                                                            _, mock_auth_default):
+  def test_dataproc_batch_remote_runner_spark_batch_succeeded(self,
+                                                              mock_time_sleep,
+                                                              mock_post_requests,
+                                                              mock_get_requests,
+                                                              _,
+                                                              mock_auth_default):
     mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
     mock_creds.token = self._creds_token
     mock_auth_default.return_value = [mock_creds, 'project']
@@ -359,9 +368,72 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(requests.sessions.Session, 'get', autospec=True)
   @mock.patch.object(requests.sessions.Session, 'post', autospec=True)
   @mock.patch.object(time, 'sleep', autospec=True)
-  def test_dataproc_batch_remote_runner_pyspark_batch_succeeded(self, mock_time_sleep,
-                                                                mock_post_requests, mock_get_requests,
-                                                                _, mock_auth_default):
+
+  def test_dataproc_batch_remote_runner_generate_id_succeeded(self,
+                                                              mock_time_sleep,
+                                                              mock_post_requests,
+                                                              mock_get_requests,
+                                                              _,
+                                                              mock_auth_default):
+    mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
+    mock_creds.token = self._creds_token
+    mock_auth_default.return_value = [mock_creds, 'project']
+
+    mock_operation = mock.Mock(spec=requests.models.Response)
+    mock_operation.json.return_value = {
+        'name': f'projects/{self._project}/regions/{self._location}/operations/{self._operation_id}',
+        'metadata': {
+            'batch': f'projects/{self._project}/locations/{self._location}/batches/{self._batch_id}'
+        }
+    }
+    mock_post_requests.return_value = mock_operation
+
+    mock_polled_lro = mock.Mock(spec=requests.models.Response)
+    mock_polled_lro.json.return_value = {
+        'name': f'projects/{self._project}/regions/{self._location}/operations/{self._operation_id}',
+        'done': True,
+        'response': {
+            'name': f'projects/{self._project}/locations/{self._location}/batches/{self._batch_id}',
+            'state': 'SUCCEEDED'
+        }
+    }
+    mock_get_requests.return_value = mock_polled_lro
+
+    dataproc_batch_remote_runner.create_spark_batch(
+        type='DataprocSparkBatch',
+        batch_id='',
+        project=self._project,
+        location=self._location,
+        payload=json.dumps(self._test_spark_batch),
+        gcp_resources=self._gcp_resources
+    )
+    mock_post_requests.assert_called_once_with(
+        self=mock.ANY,
+        url=mock.ANY,
+        data=json.dumps(self._test_spark_batch),
+        headers={'Authorization': f'Bearer {self._creds_token}'}
+    )
+    mock_get_requests.assert_called_once_with(
+        self=mock.ANY,
+        url=f'{self._dataproc_uri_prefix}/projects/{self._project}/regions/{self._location}/operations/{self._operation_id}',
+        headers={'Authorization': f'Bearer {self._creds_token}'}
+    )
+    self.assertEqual(len(re.findall('.*batchId=dataprocsparkbatch-[0-9]{14}-[a-f0-9]{8}',
+                                   mock_post_requests.call_args[1]['url'])), 1)
+    mock_time_sleep.assert_called_once()
+    self._validate_gcp_resources_succeeded()
+
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
+  @mock.patch.object(requests.sessions.Session, 'get', autospec=True)
+  @mock.patch.object(requests.sessions.Session, 'post', autospec=True)
+  @mock.patch.object(time, 'sleep', autospec=True)
+  def test_dataproc_batch_remote_runner_pyspark_batch_succeeded(self,
+                                                                mock_time_sleep,
+                                                                mock_post_requests,
+                                                                mock_get_requests,
+                                                                _,
+                                                                mock_auth_default):
     mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
     mock_creds.token = self._creds_token
     mock_auth_default.return_value = [mock_creds, 'project']
@@ -414,9 +486,12 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(requests.sessions.Session, 'get', autospec=True)
   @mock.patch.object(requests.sessions.Session, 'post', autospec=True)
   @mock.patch.object(time, 'sleep', autospec=True)
-  def test_dataproc_batch_remote_runner_spark_r_batch_succeeded(self, mock_time_sleep,
-                                                                mock_post_requests, mock_get_requests,
-                                                                _, mock_auth_default):
+  def test_dataproc_batch_remote_runner_spark_r_batch_succeeded(self,
+                                                                mock_time_sleep,
+                                                                mock_post_requests,
+                                                                mock_get_requests,
+                                                                _,
+                                                                mock_auth_default):
     mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
     mock_creds.token = self._creds_token
     mock_auth_default.return_value = [mock_creds, 'project']
@@ -469,9 +544,12 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(requests.sessions.Session, 'get', autospec=True)
   @mock.patch.object(requests.sessions.Session, 'post', autospec=True)
   @mock.patch.object(time, 'sleep', autospec=True)
-  def test_dataproc_batch_remote_runner_spark_sql_batch_succeeded(self, mock_time_sleep,
-                                                                  mock_post_requests, mock_get_requests,
-                                                                  _, mock_auth_default):
+  def test_dataproc_batch_remote_runner_spark_sql_batch_succeeded(self,
+                                                                  mock_time_sleep,
+                                                                  mock_post_requests,
+                                                                  mock_get_requests,
+                                                                  _,
+                                                                  mock_auth_default):
     mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
     mock_creds.token = self._creds_token
     mock_auth_default.return_value = [mock_creds, 'project']
@@ -524,9 +602,12 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(requests.sessions.Session, 'get', autospec=True)
   @mock.patch.object(requests.sessions.Session, 'post', autospec=True)
   @mock.patch.object(time, 'sleep', autospec=True)
-  def test_dataproc_batch_remote_runner_spark_sql_batch_with_empty_fields_succeeded(self, mock_time_sleep,
-                                                                                    mock_post_requests, mock_get_requests,
-                                                                                    _, mock_auth_default):
+  def test_dataproc_batch_remote_runner_spark_sql_batch_with_empty_fields_succeeded(self,
+                                                                                    mock_time_sleep,
+                                                                                    mock_post_requests,
+                                                                                    mock_get_requests,
+                                                                                    _,
+                                                                                    mock_auth_default):
     mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
     mock_creds.token = self._creds_token
     mock_auth_default.return_value = [mock_creds, 'project']
@@ -579,9 +660,12 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(requests.sessions.Session, 'get', autospec=True)
   @mock.patch.object(requests.sessions.Session, 'post', autospec=True)
   @mock.patch.object(time, 'sleep', autospec=True)
-  def test_dataproc_batch_remote_runner_spark_sql_batch_with_empty_fields_succeeded(self, mock_time_sleep,
-                                                                                    mock_post_requests, mock_get_requests,
-                                                                                    _, mock_auth_default):
+  def test_dataproc_batch_remote_runner_spark_sql_batch_with_empty_fields_succeeded(self,
+                                                                                    mock_time_sleep,
+                                                                                    mock_post_requests,
+                                                                                    mock_get_requests,
+                                                                                    _,
+                                                                                    mock_auth_default):
     mock_creds = mock.Mock()
     mock_creds.token = self._creds_token
     mock_auth_default.return_value = [mock_creds, 'project']
@@ -634,9 +718,12 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(requests.sessions.Session, 'get', autospec=True)
   @mock.patch.object(requests.sessions.Session, 'post', autospec=True)
   @mock.patch.object(time, 'sleep', autospec=True)
-  def test_dataproc_batch_remote_runner_spark_batch_exception_on_error(self, mock_time_sleep,
-                                                                       mock_post_requests, mock_get_requests,
-                                                                       _, mock_auth_default):
+  def test_dataproc_batch_remote_runner_spark_batch_exception_on_error(self,
+                                                                       mock_time_sleep,
+                                                                       mock_post_requests,
+                                                                       mock_get_requests,
+                                                                       _,
+                                                                       mock_auth_default):
     mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
     mock_creds.token = self._creds_token
     mock_auth_default.return_value = [mock_creds, 'project']
@@ -688,9 +775,11 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
   @mock.patch.object(requests.sessions.Session, 'get', autospec=True)
   @mock.patch.object(time, 'sleep', autospec=True)
-  def test_dataproc_batch_remote_runner_auth_token_refreshed(self, mock_time_sleep,
+  def test_dataproc_batch_remote_runner_auth_token_refreshed(self,
+                                                             mock_time_sleep,
                                                              mock_get_requests,
-                                                             _, mock_auth_default):
+                                                             _,
+                                                             mock_auth_default):
     with open(self._gcp_resources, 'w') as f:
       f.write(
           f'{{"resources": [{{"resourceType": "DataprocLro", "resourceUri": "{self._dataproc_uri_prefix}/projects/{self._project}/regions/{self._location}/operations/{self._operation_id}"}}]}}'

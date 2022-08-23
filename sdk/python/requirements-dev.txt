@@ -1,6 +1,13 @@
 docformatter==1.4
+docker==5.0.3
+isort==5.10.1
 mypy==0.941
+pip-tools==6.0.0
+pre-commit==2.19.0
 pylint==2.12.2
+pytest==7.1.2
+pytest-cov==3.0.0
+pytest-xdist==2.5.0
 types-protobuf==3.19.15
 types-PyYAML==6.0.5
 types-requests==2.27.14

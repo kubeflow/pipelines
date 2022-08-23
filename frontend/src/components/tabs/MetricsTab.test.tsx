@@ -145,7 +145,7 @@ describe('MetricsTab with confidenceMetrics', () => {
     await waitFor(() => getByText('ROC Curve: metrics'));
   });
 
-  it('shows error banner when confidenceMetric type is wrong', async () => {
+  it('shows error banner when confidenceMetrics type is wrong', async () => {
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
     const artifactType = buildClassificationMetricsArtifactType();
     const artifact = buildClassificationMetricsArtifact();
@@ -182,10 +182,12 @@ describe('MetricsTab with confidenceMetrics', () => {
       </CommonTestWrapper>,
     );
 
-    await waitFor(() => getByText("Error in metrics artifact's confidenceMetrics data format."));
+    await waitFor(() =>
+      getByText("Error in metrics (artifact ID #1) artifact's confidenceMetrics data format."),
+    );
   });
 
-  it('shows error banner when confidenceMetric is not array', async () => {
+  it('shows error banner when confidenceMetrics is not array', async () => {
     const execution = buildBasicExecution().setLastKnownState(Execution.State.COMPLETE);
     const artifactType = buildClassificationMetricsArtifactType();
     const artifact = buildClassificationMetricsArtifact();
@@ -211,7 +213,9 @@ describe('MetricsTab with confidenceMetrics', () => {
       </CommonTestWrapper>,
     );
 
-    await waitFor(() => getByText("Error in metrics artifact's confidenceMetrics data format."));
+    await waitFor(() =>
+      getByText("Error in metrics (artifact ID #1) artifact's confidenceMetrics data format."),
+    );
   });
 });
 
@@ -532,6 +536,7 @@ function buildClassificationMetricsArtifactType() {
 
 function buildClassificationMetricsArtifact() {
   const artifact = new Artifact();
+  artifact.setId(1);
   artifact.setTypeId(1);
   return artifact;
 }

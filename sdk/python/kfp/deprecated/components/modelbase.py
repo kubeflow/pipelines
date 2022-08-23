@@ -18,7 +18,7 @@ __all__ = [
 
 import inspect
 from collections import abc, OrderedDict
-from typing import Any, Callable, Dict, List, Mapping, MutableMapping, MutableSequence, Optional, Sequence, Tuple, Type, TypeVar, Union, cast, get_type_hints
+from typing import Any, Dict, List, Mapping, MutableMapping, MutableSequence, Sequence, Type, TypeVar, Union, cast, get_type_hints
 
 T = TypeVar('T')
 
@@ -56,7 +56,6 @@ def verify_object_against_type(x: Any, typ: Type[T]) -> T:
                     return x
                 except Exception as ex:
                     exception_map[possible_type] = ex
-                    pass
             #exception_lines = ['Exception for type {}: {}.'.format(t, e) for t, e in exception_map.items()]
             exception_lines = [str(e) for t, e in exception_map.items()]
             exception_lines.append(
@@ -174,7 +173,6 @@ def parse_object_from_struct_based_on_type(struct: Any, typ: Type[T]) -> T:
                         exception_map[
                             possible_type] = 'Unexpected exception when trying to convert structure "{}" to type "{}": {}: {}'.format(
                                 struct, typ, type(ex), ex)
-                    pass
 
             #Single successful parsing.
             if len(results) == 1:

@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import kfp.deprecated.dsl as dsl
-from kubernetes import client as k8s_client
 from kubernetes.client.models import V1EnvVar
 
 

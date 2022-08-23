@@ -1,7 +1,7 @@
 # Current Version (Still in Development)
 
 ## Major Features and Improvements
-* feat(sdk): Implement Registry Client [\#7597](https://github.com/kubeflow/pipelines/pull/7597)
+* Support parallelism setting in ParallelFor [\#8146](https://github.com/kubeflow/pipelines/pull/8146)
 
 ## Breaking Changes
 
@@ -14,7 +14,98 @@
 ## Bug Fixes and Other Changes
 
 ## Documentation Updates
-# Current Version (2.0.0-alpha.3)
+# 2.0.0-beta.3
+
+## Major Features and Improvements
+
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+* Add support for ConcatPlaceholder and IfPresentPlaceholder in containerized component [\#8145](https://github.com/kubeflow/pipelines/pull/8145)
+## Deprecations
+
+## Bug Fixes and Other Changes
+
+## Documentation Updates
+
+# 2.0.0-beta.2
+
+## Major Features and Improvements
+
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+* Add support for containerized component [\#8066](https://github.com/kubeflow/pipelines/pull/8066)
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+* Enable overriding caching options at submission time [\#7912](https://github.com/kubeflow/pipelines/pull/7912)
+* Allow artifact inputs in pipeline definition. [\#8044](https://github.com/kubeflow/pipelines/pull/8044)
+* Support task-level retry policy [\#7867](https://github.com/kubeflow/pipelines/pull/7867)
+* Support multiple exit handlers per pipeline [\#8088](https://github.com/kubeflow/pipelines/pull/8088)
+
+## Documentation Updates
+
+# 2.0.0-beta.1
+
+## Major Features and Improvements
+
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+* Include default registry context JSON in package distribution [\#7987](https://github.com/kubeflow/pipelines/pull/7987)
+
+## Documentation Updates
+
+# 2.0.0-beta.0
+
+## Major Features and Improvements
+
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+
+## Documentation Updates
+
+# 2.0.0-alpha.5
+
+## Major Features and Improvements
+* Implement Registry Client [\#7597](https://github.com/kubeflow/pipelines/pull/7597), [\#7763](https://github.com/kubeflow/pipelines/pull/7763)
+* Write compiled JSON with formatting (multiline with indentation) [\#7712](https://github.com/kubeflow/pipelines/pull/7712)
+* Add function to sdk client for terminating run [\#7835](https://github.com/kubeflow/pipelines/pull/7835)
+* Re-enable component compilation via @component decorator (deprecated) [\#7554](https://github.com/kubeflow/pipelines/pull/7554)
+
+## Breaking Changes
+* Make CLI output consistent, readable, and usable [\#7739](https://github.com/kubeflow/pipelines/pull/7739)
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+* Fix CLI upload pipeline version [\#7722](https://github.com/kubeflow/pipelines/pull/7722)
+
+## Documentation Updates
+# 2.0.0-alpha.3
 
 ## Major Features and Improvements
 * feat(sdk): add `.list_pipeline_versions` and `.unarchive_experiment` methods to Client [\#7563](https://github.com/kubeflow/pipelines/pull/7563)

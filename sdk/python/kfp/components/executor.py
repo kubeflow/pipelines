@@ -15,8 +15,9 @@ import inspect
 import json
 from typing import Any, Callable, Dict, List, Optional, Union
 
-from kfp.components.types import artifact_types, type_annotations
 from kfp.components import task_final_status
+from kfp.components.types import artifact_types
+from kfp.components.types import type_annotations
 
 
 class Executor():

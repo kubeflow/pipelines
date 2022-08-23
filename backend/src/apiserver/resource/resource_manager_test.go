@@ -39,6 +39,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/structpb"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -189,9 +190,17 @@ func initWithJob(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Job
 func initWithJobV2(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Job) {
 	store, manager, exp := initWithExperiment(t)
 	job := &api.Job{
-		Name:         "j1",
-		Enabled:      true,
-		PipelineSpec: &api.PipelineSpec{PipelineManifest: v2SpecHelloWorld},
+		Name:    "j1",
+		Enabled: true,
+		PipelineSpec: &api.PipelineSpec{
+			PipelineManifest: v2SpecHelloWorld,
+			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+				Parameters: map[string]*structpb.Value{
+					"param1": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
+				},
+				PipelineRoot: "job-1-root",
+			},
+		},
 		ResourceReferences: []*api.ResourceReference{
 			{
 				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: exp.UUID},
@@ -651,15 +660,16 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	}
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
-			UUID:           "123e4567-e89b-12d3-a456-426655440000",
-			ExperimentUUID: experiment.UUID,
-			DisplayName:    "run1",
-			Name:           "workflow-name",
-			Namespace:      "ns1",
-			ServiceAccount: "pipeline-runner",
-			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
-			CreatedAtInSec: 4,
-			Conditions:     "Running",
+			UUID:             "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID:   experiment.UUID,
+			DisplayName:      "run1",
+			Name:             "workflow-name",
+			Namespace:        "ns1",
+			ServiceAccount:   "pipeline-runner",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			CreatedAtInSec:   4,
+			ScheduledAtInSec: 4,
+			Conditions:       "Running",
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           p.UUID,
 				PipelineName:         "p1",
@@ -690,7 +700,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
-	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
 	runDetail, err = manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
@@ -702,13 +712,14 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
-			UUID:           "123e4567-e89b-12d3-a456-426655440000",
-			ExperimentUUID: expectedExperimentUUID,
-			DisplayName:    "run1",
-			Name:           "hello-world-0",
-			ServiceAccount: "pipeline-runner",
-			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
-			CreatedAtInSec: 2,
+			UUID:             "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID:   expectedExperimentUUID,
+			DisplayName:      "run1",
+			Name:             "hello-world-0",
+			ServiceAccount:   "pipeline-runner",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
 			PipelineSpec: model.PipelineSpec{
 				PipelineSpecManifest: v2SpecHelloWorld,
 			},
@@ -725,7 +736,7 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
-	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
 	runDetail, err := manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
@@ -748,15 +759,16 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
-			UUID:           "123e4567-e89b-12d3-a456-426655440000",
-			ExperimentUUID: expectedExperimentUUID,
-			DisplayName:    "run1",
-			Name:           "workflow-name",
-			Namespace:      "ns1",
-			ServiceAccount: "pipeline-runner",
-			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
-			CreatedAtInSec: 2,
-			Conditions:     "Running",
+			UUID:             "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID:   expectedExperimentUUID,
+			DisplayName:      "run1",
+			Name:             "workflow-name",
+			Namespace:        "ns1",
+			ServiceAccount:   "pipeline-runner",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
+			Conditions:       "Running",
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
@@ -777,7 +789,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
-	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
 	runDetail, err := manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
@@ -803,15 +815,16 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
-			UUID:           "123e4567-e89b-12d3-a456-426655440000",
-			ExperimentUUID: expectedExperimentUUID,
-			DisplayName:    "run1",
-			Name:           "workflow-name",
-			Namespace:      "ns1",
-			ServiceAccount: "pipeline-runner",
-			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
-			CreatedAtInSec: 2,
-			Conditions:     "Running",
+			UUID:             "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID:   expectedExperimentUUID,
+			DisplayName:      "run1",
+			Name:             "workflow-name",
+			Namespace:        "ns1",
+			ServiceAccount:   "pipeline-runner",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			CreatedAtInSec:   2,
+			ScheduledAtInSec: 2,
+			Conditions:       "Running",
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 				Parameters:           "[{\"name\":\"param1\",\"value\":\"test-default-bucket\"}]",
@@ -832,7 +845,7 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
-	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
 	runDetail, err := manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
@@ -895,15 +908,16 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
-			UUID:           "123e4567-e89b-12d3-a456-426655440000",
-			ExperimentUUID: experiment.UUID,
-			DisplayName:    "run1",
-			Name:           "workflow-name",
-			Namespace:      "ns1",
-			ServiceAccount: "sa1",
-			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
-			CreatedAtInSec: 4,
-			Conditions:     "Running",
+			UUID:             "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID:   experiment.UUID,
+			DisplayName:      "run1",
+			Name:             "workflow-name",
+			Namespace:        "ns1",
+			ServiceAccount:   "sa1",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			CreatedAtInSec:   4,
+			ScheduledAtInSec: 4,
+			Conditions:       "Running",
 			PipelineSpec: model.PipelineSpec{
 				WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 				Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
@@ -932,7 +946,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
-	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
 	runDetail, err = manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
@@ -996,15 +1010,16 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
-			UUID:           "123e4567-e89b-12d3-a456-426655440000",
-			ExperimentUUID: experiment.UUID,
-			DisplayName:    "run1",
-			Name:           "workflow-name",
-			Namespace:      "ns1",
-			ServiceAccount: "sa1",
-			StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
-			CreatedAtInSec: 4,
-			Conditions:     "Running",
+			UUID:             "123e4567-e89b-12d3-a456-426655440000",
+			ExperimentUUID:   experiment.UUID,
+			DisplayName:      "run1",
+			Name:             "workflow-name",
+			Namespace:        "ns1",
+			ServiceAccount:   "sa1",
+			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			CreatedAtInSec:   4,
+			ScheduledAtInSec: 4,
+			Conditions:       "Running",
 			PipelineSpec: model.PipelineSpec{
 				PipelineId:           pipeline.UUID,
 				PipelineName:         "p1",
@@ -1035,7 +1050,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedRunDetail, runDetail, "The CreateRun return has unexpected value.")
-	assert.Equal(t, 1, store.ArgoClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
+	assert.Equal(t, 1, store.ExecClientFake.GetWorkflowCount(), "Workflow CRD is not created.")
 	runDetail, err = manager.GetRun(runDetail.UUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedRunDetail, runDetail, "CreateRun stored invalid data in database")
@@ -1152,7 +1167,7 @@ func TestCreateRun_CreateWorkflowError(t *testing.T) {
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	defer store.Close()
 	manager := NewResourceManager(store)
-	manager.argoClient = client.NewFakeArgoClientWithBadWorkflow()
+	manager.execClient = client.NewFakeExecClientWithBadWorkflow()
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
@@ -1210,7 +1225,7 @@ func TestDeleteRun_CrdFailure(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeRun(t)
 	defer store.Close()
 
-	manager.argoClient = client.NewFakeArgoClientWithBadWorkflow()
+	manager.execClient = client.NewFakeExecClientWithBadWorkflow()
 	err := manager.DeleteRun(context.Background(), runDetail.UUID)
 	//assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 	//assert.Contains(t, err.Error(), "some error")
@@ -1276,7 +1291,7 @@ func TestDeleteExperiment_CrdFailure(t *testing.T) {
 	store, manager, experiment := initWithExperiment(t)
 	defer store.Close()
 
-	manager.argoClient = client.NewFakeArgoClientWithBadWorkflow()
+	manager.execClient = client.NewFakeExecClientWithBadWorkflow()
 	err := manager.DeleteExperiment(experiment.UUID)
 	assert.Nil(t, err)
 }
@@ -1302,7 +1317,7 @@ func TestTerminateRun(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "Terminating", actualRunDetail.Conditions)
 
-	isTerminated, err := store.ArgoClientFake.IsTerminated(runDetail.Run.Name)
+	isTerminated, err := store.ExecClientFake.IsTerminated(runDetail.Run.Name)
 	assert.Nil(t, err)
 	assert.True(t, isTerminated)
 }
@@ -1385,7 +1400,7 @@ func TestRetryRun_UpdateAndCreateFailed(t *testing.T) {
 	store, manager, runDetail := initWithOneTimeFailedRun(t)
 	defer store.Close()
 
-	manager.argoClient = client.NewFakeArgoClientWithBadWorkflow()
+	manager.execClient = client.NewFakeExecClientWithBadWorkflow()
 	err := manager.RetryRun(context.Background(), runDetail.UUID)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to create or update the run")
@@ -1464,6 +1479,10 @@ func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
 		Conditions:     "NO_STATUS",
 		PipelineSpec: model.PipelineSpec{
 			PipelineSpecManifest: v2SpecHelloWorld,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   "{\"param1\":\"world\"}",
+				PipelineRoot: "job-1-root",
+			},
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{
@@ -1975,15 +1994,16 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 	runDetail, err := manager.GetRun(run.UUID)
 	assert.Nil(t, err)
 	expectedRun := model.Run{
-		UUID:           "123e4567-e89b-12d3-a456-426655440000",
-		ExperimentUUID: expectedExperimentUUID,
-		DisplayName:    "run1",
-		Name:           "workflow-name",
-		Namespace:      "ns1",
-		ServiceAccount: "pipeline-runner",
-		StorageState:   api.Run_STORAGESTATE_AVAILABLE.String(),
-		CreatedAtInSec: 2,
-		Conditions:     "Running",
+		UUID:             "123e4567-e89b-12d3-a456-426655440000",
+		ExperimentUUID:   expectedExperimentUUID,
+		DisplayName:      "run1",
+		Name:             "workflow-name",
+		Namespace:        "ns1",
+		ServiceAccount:   "pipeline-runner",
+		StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+		CreatedAtInSec:   2,
+		ScheduledAtInSec: 2,
+		Conditions:       "Running",
 		PipelineSpec: model.PipelineSpec{
 			WorkflowSpecManifest: testWorkflow.ToStringForStore(),
 			Parameters:           "[{\"name\":\"param1\",\"value\":\"world\"}]",
@@ -2037,10 +2057,10 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 			Name:             "MY_NAME",
 			Namespace:        "MY_NAMESPACE",
 			CreatedAtInSec:   11,
-			ScheduledAtInSec: 0,
+			ScheduledAtInSec: 11,
 			FinishedAtInSec:  0,
 			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: workflow.GetWorkflowSpec().ToStringForStore(),
+				WorkflowSpecManifest: workflow.GetExecutionSpec().ToStringForStore(),
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -2111,10 +2131,10 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 			Name:             "MY_NAME",
 			Namespace:        "MY_NAMESPACE",
 			CreatedAtInSec:   11,
-			ScheduledAtInSec: 0,
+			ScheduledAtInSec: 11,
 			FinishedAtInSec:  0,
 			PipelineSpec: model.PipelineSpec{
-				WorkflowSpecManifest: workflow.GetWorkflowSpec().ToStringForStore(),
+				WorkflowSpecManifest: workflow.GetExecutionSpec().ToStringForStore(),
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
@@ -2166,7 +2186,7 @@ func TestReportWorkflowResource_RunNotFound(t *testing.T) {
 			Labels:    map[string]string{util.LabelKeyWorkflowRunId: "run-id-not-exist"},
 		},
 	})
-	store.ArgoClient().Workflow("kubeflow").Create(ctx, workflow.Workflow, v1.CreateOptions{})
+	store.ExecClient().Execution("kubeflow").Create(ctx, workflow, v1.CreateOptions{})
 	err := manager.ReportWorkflowResource(ctx, workflow)
 	require.NotNil(t, err)
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
@@ -2190,9 +2210,9 @@ func TestReportWorkflowResource_WorkflowCompleted(t *testing.T) {
 	err := manager.ReportWorkflowResource(context.Background(), workflow)
 	assert.Nil(t, err)
 
-	wf, err := store.ArgoClientFake.Workflow(namespace).Get(context.Background(), run.Run.Name, v1.GetOptions{})
+	wf, err := store.ExecClientFake.Execution(namespace).Get(context.Background(), run.Run.Name, v1.GetOptions{})
 	assert.Nil(t, err)
-	assert.Equal(t, wf.Labels[util.LabelKeyWorkflowPersistedFinalState], "true")
+	assert.Equal(t, wf.ExecutionObjectMeta().Labels[util.LabelKeyWorkflowPersistedFinalState], "true")
 }
 
 func TestReportWorkflowResource_WorkflowCompleted_WorkflowNotFound(t *testing.T) {
@@ -2250,7 +2270,7 @@ func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_WorkflowNo
 
 func TestReportWorkflowResource_WorkflowCompleted_FinalStatePersisted_DeleteFailed(t *testing.T) {
 	store, manager, run := initWithOneTimeRun(t)
-	manager.argoClient = client.NewFakeArgoClientWithBadWorkflow()
+	manager.execClient = client.NewFakeExecClientWithBadWorkflow()
 	defer store.Close()
 	// report workflow
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
@@ -3446,73 +3466,59 @@ func TestCreateTask(t *testing.T) {
 }
 
 var v2SpecHelloWorld = `
-{
-  "components": {
-    "comp-hello-world": {
-      "executorLabel": "exec-hello-world",
-      "inputDefinitions": {
-	"parameters": {
-	  "text": {
-	    "type": "STRING"
-	  }
-	}
-      }
-    }
-  },
-  "deploymentSpec": {
-    "executors": {
-      "exec-hello-world": {
-	"container": {
-	  "args": [
-	    "--text",
-	    "{{$.inputs.parameters['text']}}"
-	  ],
-	  "command": [
-	    "sh",
-	    "-ec",
-	    "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
-	    "def hello_world(text):\n    print(text)\n    return text\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Hello world', description='')\n_parser.add_argument(\"--text\", dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = hello_world(**_parsed_args)\n"
-	  ],
-	  "image": "python:3.7"
-	}
-      }
-    }
-  },
-  "pipelineInfo": {
-    "name": "hello-world"
-  },
-  "root": {
-    "dag": {
-      "tasks": {
-	"hello-world": {
-	  "cachingOptions": {
-	    "enableCache": true
-	  },
-	  "componentRef": {
-	    "name": "comp-hello-world"
-	  },
-	  "inputs": {
-	    "parameters": {
-	      "text": {
-		"componentInputParameter": "text"
-	      }
-	    }
-	  },
-	  "taskInfo": {
-	    "name": "hello-world"
-	  }
-	}
-      }
-    },
-    "inputDefinitions": {
-      "parameters": {
-	"text": {
-	  "type": "STRING"
-	}
-      }
-    }
-  },
-  "schemaVersion": "2.0.0",
-  "sdkVersion": "kfp-1.6.5"
-}
+components:
+  comp-hello-world:
+    executorLabel: exec-hello-world
+    inputDefinitions:
+      parameters:
+        text:
+          type: STRING
+deploymentSpec:
+  executors:
+    exec-hello-world:
+      container:
+        args:
+        - "--text"
+        - "{{$.inputs.parameters['text']}}"
+        command:
+        - sh
+        - "-ec"
+        - |
+          program_path=$(mktemp)
+          printf "%s" "$0" > "$program_path"
+          python3 -u "$program_path" "$@"
+        - |
+          def hello_world(text):
+              print(text)
+              return text
+
+          import argparse
+          _parser = argparse.ArgumentParser(prog='Hello world', description='')
+          _parser.add_argument("--text", dest="text", type=str, required=True, default=argparse.SUPPRESS)
+          _parsed_args = vars(_parser.parse_args())
+
+          _outputs = hello_world(**_parsed_args)
+        image: python:3.7
+pipelineInfo:
+  name: hello-world
+root:
+  dag:
+    tasks:
+      hello-world:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-hello-world
+        inputs:
+          parameters:
+            text:
+              componentInputParameter: text
+        taskInfo:
+          name: hello-world
+  inputDefinitions:
+    parameters:
+      text:
+        type: STRING
+schemaVersion: 2.0.0
+sdkVersion: kfp-1.6.5
 `

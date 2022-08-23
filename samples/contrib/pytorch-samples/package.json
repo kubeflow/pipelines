@@ -4,7 +4,7 @@
   "description": "This folder contains different PyTorch Kubeflow pipeline examples using the PyTorch KFP Components SDK.",
   "main": "index.js",
   "dependencies": {
-    "npm": "^7.17.0",
+    "npm": "^8.11.0",
     "yarn": "^1.22.10"
   },
   "devDependencies": {},

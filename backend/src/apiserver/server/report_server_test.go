@@ -21,6 +21,10 @@ func TestReportWorkflow(t *testing.T) {
 	reportServer := NewReportServer(resourceManager)
 
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Workflow",
+			APIVersion: "argoproj.io/v1alpha1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "run1",
 			Namespace: "default",
@@ -29,7 +33,7 @@ func TestReportWorkflow(t *testing.T) {
 		},
 		Spec: v1alpha1.WorkflowSpec{
 			Entrypoint: "testy",
-			Templates: []v1alpha1.Template{v1alpha1.Template{
+			Templates: []v1alpha1.Template{{
 				Name: "testy",
 				Container: &corev1.Container{
 					Image:   "docker/whalesay",
@@ -58,6 +62,10 @@ func TestReportWorkflow_ValidationFailed(t *testing.T) {
 	reportServer := NewReportServer(resourceManager)
 
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Workflow",
+			APIVersion: "argoproj.io/v1alpha1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "default",
 			UID:       types.UID(run.UUID),
@@ -74,6 +82,10 @@ func TestReportWorkflow_ValidationFailed(t *testing.T) {
 func TestValidateReportWorkflowRequest(t *testing.T) {
 	// Name
 	workflow := &v1alpha1.Workflow{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Workflow",
+			APIVersion: "argoproj.io/v1alpha1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "MY_NAME",
 			Namespace: "MY_NAMESPACE",
@@ -89,7 +101,7 @@ func TestValidateReportWorkflowRequest(t *testing.T) {
 	marshalledWorkflow, _ := json.Marshal(workflow)
 	generatedWorkflow, err := ValidateReportWorkflowRequest(&api.ReportWorkflowRequest{Workflow: string(marshalledWorkflow)})
 	assert.Nil(t, err)
-	assert.Equal(t, *util.NewWorkflow(workflow), *generatedWorkflow)
+	assert.Equal(t, util.NewWorkflow(workflow), generatedWorkflow)
 }
 
 func TestValidateReportWorkflowRequest_UnmarshalError(t *testing.T) {
@@ -102,6 +114,10 @@ func TestValidateReportWorkflowRequest_UnmarshalError(t *testing.T) {
 func TestValidateReportWorkflowRequest_MissingField(t *testing.T) {
 	// Name
 	workflow := util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Workflow",
+			APIVersion: "argoproj.io/v1alpha1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "MY_NAMESPACE",
 			UID:       "1",
@@ -120,6 +136,10 @@ func TestValidateReportWorkflowRequest_MissingField(t *testing.T) {
 
 	// Namespace
 	workflow = util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Workflow",
+			APIVersion: "argoproj.io/v1alpha1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "MY_NAME",
 			UID:  "1",
@@ -139,6 +159,10 @@ func TestValidateReportWorkflowRequest_MissingField(t *testing.T) {
 
 	// UID
 	workflow = util.NewWorkflow(&v1alpha1.Workflow{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Workflow",
+			APIVersion: "argoproj.io/v1alpha1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "MY_NAME",
 			Namespace: "MY_NAMESPACE",

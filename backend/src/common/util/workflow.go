@@ -15,16 +15,36 @@
 package util
 
 import (
+	"context"
+	"fmt"
 	"strings"
+	"time"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	argoclient "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned"
+	argoclientwf "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
+	argoinformer "github.com/argoproj/argo-workflows/v3/pkg/client/informers/externalversions"
+	"github.com/argoproj/argo-workflows/v3/pkg/client/informers/externalversions/workflow/v1alpha1"
+	argoinformerwfv1 "github.com/argoproj/argo-workflows/v3/pkg/client/informers/externalversions/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/workflow/common"
+	"github.com/argoproj/argo-workflows/v3/workflow/packer"
+	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
+	"github.com/golang/protobuf/jsonpb"
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	exec "github.com/kubeflow/pipelines/backend/src/common"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/json"
+	"k8s.io/client-go/tools/cache"
 )
 
 // Workflow is a type to help manipulate Workflow objects.
@@ -35,6 +55,24 @@ type Workflow struct {
 func NewWorkflowFromBytes(bytes []byte) (*Workflow, error) {
 	var workflow workflowapi.Workflow
 	err := yaml.Unmarshal(bytes, &workflow)
+	if err != nil {
+		return nil, NewInvalidInputErrorWithDetails(err, "Failed to unmarshal the inputs")
+	}
+	return NewWorkflow(&workflow), nil
+}
+
+func NewWorkflowFromBytesJSON(bytes []byte) (*Workflow, error) {
+	var workflow workflowapi.Workflow
+	err := json.Unmarshal(bytes, &workflow)
+	if err != nil {
+		return nil, NewInvalidInputErrorWithDetails(err, "Failed to unmarshal the inputs")
+	}
+	return NewWorkflow(&workflow), nil
+}
+
+func NewWorkflowFromScheduleWorkflowSpecBytesJSON(bytes []byte) (*Workflow, error) {
+	var workflow workflowapi.Workflow
+	err := json.Unmarshal(bytes, &workflow.Spec)
 	if err != nil {
 		return nil, NewInvalidInputErrorWithDetails(err, "Failed to unmarshal the inputs")
 	}
@@ -56,6 +94,51 @@ func NewWorkflow(workflow *workflowapi.Workflow) *Workflow {
 	}
 }
 
+func UnmarshParametersWorkflow(paramsString string) (SpecParameters, error) {
+	if paramsString == "" {
+		return nil, nil
+	}
+	var params []workflowapi.Parameter
+	err := json.Unmarshal([]byte(paramsString), &params)
+	if err != nil {
+		return nil, NewInternalServerError(err, "Parameters have wrong format")
+	}
+	rev := make(SpecParameters, 0, len(params))
+	for _, param := range params {
+		rev = append(rev, SpecParameter{
+			Name:    param.Name,
+			Default: (*string)(param.Default),
+			Value:   (*string)(param.Value)})
+	}
+	return rev, nil
+}
+
+// Marshal parameters to JSON encoded string.
+// This also checks result is not longer than a limit.
+func MarshalParametersWorkflow(params SpecParameters) (string, error) {
+	if params == nil {
+		return "[]", nil
+	}
+
+	inputParams := make([]workflowapi.Parameter, 0)
+	for _, param := range params {
+		newParam := workflowapi.Parameter{
+			Name:    param.Name,
+			Default: ToAnyStringPointer(param.Default),
+			Value:   ToAnyStringPointer(param.Value),
+		}
+		inputParams = append(inputParams, newParam)
+	}
+	paramBytes, err := json.Marshal(inputParams)
+	if err != nil {
+		return "", NewInvalidInputErrorWithDetails(err, "Failed to marshal the parameter.")
+	}
+	if len(paramBytes) > MaxParameterBytes {
+		return "", NewInvalidInputError("The input parameter length exceed maximum size of %v.", MaxParameterBytes)
+	}
+	return string(paramBytes), nil
+}
+
 // Get ExecutionType: ArgoWorkflow
 func (w *Workflow) ExecutionType() ExecutionType {
 	return ArgoWorkflow
@@ -74,6 +157,130 @@ func (w *Workflow) SetServiceAccount(serviceAccount string) {
 
 func (w *Workflow) ServiceAccount() string {
 	return w.Spec.ServiceAccountName
+}
+
+func (w *Workflow) SpecParameters() SpecParameters {
+	rev := make(SpecParameters, 0, len(w.Spec.Arguments.Parameters))
+	for _, currentParam := range w.Spec.Arguments.Parameters {
+		rev = append(rev, SpecParameter{
+			Name:    currentParam.Name,
+			Default: (*string)(currentParam.Default),
+			Value:   (*string)(currentParam.Value)})
+	}
+	return rev
+}
+
+func (w *Workflow) SetSpecParameters(params SpecParameters) {
+	desiredSlice := make([]workflowapi.Parameter, 0)
+	for _, currentParam := range params {
+		newParam := workflowapi.Parameter{
+			Name:    currentParam.Name,
+			Default: ToAnyStringPointer(currentParam.Default),
+			Value:   ToAnyStringPointer(currentParam.Value),
+		}
+		desiredSlice = append(desiredSlice, newParam)
+	}
+	w.Spec.Arguments.Parameters = desiredSlice
+}
+
+func (w *Workflow) GenerateRetryExecution() (ExecutionSpec, []string, error) {
+	switch w.Status.Phase {
+	case workflowapi.WorkflowFailed, workflowapi.WorkflowError:
+		break
+	default:
+		return nil, nil, NewBadRequestError(errors.New("workflow cannot be retried"), "Workflow must be Failed/Error to retry")
+	}
+
+	newWF := w.Workflow.DeepCopy()
+	// Delete/reset fields which indicate workflow completed
+	delete(newWF.Labels, common.LabelKeyCompleted)
+	// Delete/reset fields which indicate workflow is finished being persisted to the database
+	delete(newWF.Labels, LabelKeyWorkflowPersistedFinalState)
+	newWF.ObjectMeta.Labels[common.LabelKeyPhase] = string(workflowapi.NodeRunning)
+	newWF.Status.Phase = workflowapi.WorkflowRunning
+	newWF.Status.Message = ""
+	newWF.Status.FinishedAt = metav1.Time{}
+	if newWF.Spec.ActiveDeadlineSeconds != nil && *newWF.Spec.ActiveDeadlineSeconds == 0 {
+		// if it was terminated, unset the deadline
+		newWF.Spec.ActiveDeadlineSeconds = nil
+	}
+
+	// Iterate the previous nodes. If it was successful Pod carry it forward
+	newWF.Status.Nodes = make(map[string]workflowapi.NodeStatus)
+	onExitNodeName := w.ObjectMeta.Name + ".onExit"
+	var podsToDelete []string
+	for _, node := range w.Status.Nodes {
+		switch node.Phase {
+		case workflowapi.NodeSucceeded, workflowapi.NodeSkipped:
+			if !strings.HasPrefix(node.Name, onExitNodeName) {
+				newWF.Status.Nodes[node.ID] = node
+				continue
+			}
+		case workflowapi.NodeError, workflowapi.NodeFailed, workflowapi.NodeOmitted:
+			if !strings.HasPrefix(node.Name, onExitNodeName) && node.Type == workflowapi.NodeTypeDAG {
+				newNode := node.DeepCopy()
+				newNode.Phase = workflowapi.NodeRunning
+				newNode.Message = ""
+				newNode.FinishedAt = metav1.Time{}
+				newWF.Status.Nodes[newNode.ID] = *newNode
+				continue
+			}
+			// do not add this status to the node. pretend as if this node never existed.
+		default:
+			// Do not allow retry of workflows with pods in Running/Pending phase
+			return nil, nil, NewInternalServerError(
+				errors.New("workflow cannot be retried"),
+				"Workflow cannot be retried with node %s in %s phase", node.ID, node.Phase)
+		}
+		if node.Type == workflowapi.NodeTypePod {
+			podsToDelete = append(podsToDelete, node.ID)
+		}
+	}
+	return NewWorkflow(newWF), podsToDelete, nil
+}
+
+func (w *Workflow) Version() string {
+	return w.ResourceVersion
+}
+
+func (w *Workflow) SetVersion(version string) {
+	w.ResourceVersion = version
+}
+
+func (w *Workflow) ExecutionName() string {
+	return w.Name
+}
+
+// OverrideName sets the name of a Workflow.
+func (w *Workflow) SetExecutionName(name string) {
+	w.GenerateName = ""
+	w.Name = name
+}
+
+func (w *Workflow) ExecutionNamespace() string {
+	return w.Namespace
+}
+
+func (w *Workflow) SetExecutionNamespace(namespace string) {
+	w.Namespace = namespace
+}
+
+func (w *Workflow) ExecutionUID() string {
+	return string(w.UID)
+}
+
+func (w *Workflow) ExecutionObjectMeta() *metav1.ObjectMeta {
+	return &w.ObjectMeta
+}
+
+func (w *Workflow) ExecutionTypeMeta() *metav1.TypeMeta {
+	return &w.TypeMeta
+}
+
+func (w *Workflow) IsTerminating() bool {
+	return w.Spec.ActiveDeadlineSeconds != nil &&
+		*w.Spec.ActiveDeadlineSeconds == 0 &&
+		!w.IsInFinalState()
 }
 
 // OverrideParameters overrides some of the parameters of a Workflow.
@@ -198,8 +405,138 @@ func (w *Workflow) FinishedAt() int64 {
 	return w.Status.FinishedAt.Unix()
 }
 
-func (w *Workflow) Condition() string {
-	return string(w.Status.Phase)
+func (w *Workflow) Condition() exec.ExecutionPhase {
+	return exec.ExecutionPhase(w.Status.Phase)
+}
+
+func (w *Workflow) Message() string {
+	return w.Status.Message
+}
+
+func (w *Workflow) FinishedAtTime() v1.Time {
+	return w.Status.FinishedAt
+}
+
+func (w *Workflow) StartedAtTime() v1.Time {
+	return w.Status.StartedAt
+}
+
+const (
+	metricsArtifactName = "mlpipeline-metrics"
+	// More than 50 metrics is not scalable with current UI design.
+	maxMetricsCountLimit = 50
+)
+
+func (w *Workflow) CollectionMetrics(retrieveArtifact RetrieveArtifact, user string) ([]*api.RunMetric, []error) {
+	runID := w.Labels[LabelKeyWorkflowRunId]
+	runMetrics := make([]*api.RunMetric, 0, len(w.Status.Nodes))
+	partialFailures := make([]error, 0, len(w.Status.Nodes))
+	for _, nodeStatus := range w.Status.Nodes {
+		nodeMetrics, err := collectNodeMetricsOrNil(runID, &nodeStatus, retrieveArtifact, user)
+		if err != nil {
+			partialFailures = append(partialFailures, err)
+			continue
+		}
+		if nodeMetrics != nil {
+			if len(runMetrics)+len(nodeMetrics) >= maxMetricsCountLimit {
+				leftQuota := maxMetricsCountLimit - len(runMetrics)
+				runMetrics = append(runMetrics, nodeMetrics[0:leftQuota]...)
+				// TODO(#1426): report the error back to api server to notify user
+				log.Errorf("Reported metrics are more than the limit %v", maxMetricsCountLimit)
+				break
+			}
+			runMetrics = append(runMetrics, nodeMetrics...)
+		}
+	}
+	return runMetrics, partialFailures
+}
+
+func collectNodeMetricsOrNil(runID string, nodeStatus *workflowapi.NodeStatus, retrieveArtifact RetrieveArtifact, user string) (
+	[]*api.RunMetric, error) {
+	if !nodeStatus.Completed() {
+		return nil, nil
+	}
+	metricsJSON, err := readNodeMetricsJSONOrEmpty(runID, nodeStatus, retrieveArtifact, user)
+	if err != nil || metricsJSON == "" {
+		return nil, err
+	}
+
+	// Proto json lib requires a proto message before unmarshal data from JSON. We use
+	// ReportRunMetricsRequest as a workaround to hold user's metrics, which is a superset of what
+	// user can provide.
+	reportMetricsRequest := new(api.ReportRunMetricsRequest)
+	err = jsonpb.UnmarshalString(metricsJSON, reportMetricsRequest)
+	if err != nil {
+		// User writes invalid metrics JSON.
+		// TODO(#1426): report the error back to api server to notify user
+		log.WithFields(log.Fields{
+			"run":         runID,
+			"node":        nodeStatus.ID,
+			"raw_content": metricsJSON,
+			"error":       err.Error(),
+		}).Warning("Failed to unmarshal metrics file.")
+		return nil, NewCustomError(err, CUSTOM_CODE_PERMANENT,
+			"failed to unmarshal metrics file from (%s, %s).", runID, nodeStatus.ID)
+	}
+	if reportMetricsRequest.GetMetrics() == nil {
+		return nil, nil
+	}
+	for _, metric := range reportMetricsRequest.GetMetrics() {
+		// User metrics just have name and value but no NodeId.
+		metric.NodeId = nodeStatus.ID
+	}
+	return reportMetricsRequest.GetMetrics(), nil
+}
+
+func readNodeMetricsJSONOrEmpty(runID string, nodeStatus *workflowapi.NodeStatus,
+	retrieveArtifact RetrieveArtifact, user string) (string, error) {
+
+	if nodeStatus.Outputs == nil || nodeStatus.Outputs.Artifacts == nil {
+		return "", nil // No output artifacts, skip the reporting
+	}
+
+	var foundMetricsArtifact bool = false
+	for _, artifact := range nodeStatus.Outputs.Artifacts {
+		if artifact.Name == metricsArtifactName {
+			foundMetricsArtifact = true
+		}
+	}
+	if !foundMetricsArtifact {
+		return "", nil // No metrics artifact, skip the reporting
+	}
+
+	artifactRequest := &api.ReadArtifactRequest{
+		RunId:        runID,
+		NodeId:       nodeStatus.ID,
+		ArtifactName: metricsArtifactName,
+	}
+	artifactResponse, err := retrieveArtifact(artifactRequest, user)
+	if err != nil {
+		return "", err
+	}
+	if artifactResponse == nil || artifactResponse.GetData() == nil || len(artifactResponse.GetData()) == 0 {
+		// If artifact is not found or empty content, skip the reporting.
+		return "", nil
+	}
+	archivedFiles, err := ExtractTgz(string(artifactResponse.GetData()))
+	if err != nil {
+		// Invalid tgz file. This should never happen unless there is a bug in the system and
+		// it is a unrecoverable error.
+		return "", NewCustomError(err, CUSTOM_CODE_PERMANENT,
+			"Unable to extract metrics tgz file read from (%+v): %v", artifactRequest, err)
+	}
+	//There needs to be exactly one metrics file in the artifact archive. We load that file.
+	if len(archivedFiles) == 1 {
+		for _, value := range archivedFiles {
+			return value, nil
+		}
+	}
+	return "", NewCustomErrorf(CUSTOM_CODE_PERMANENT,
+		"There needs to be exactly one metrics file in the artifact archive, but zero or multiple files were found.")
+}
+
+func (w *Workflow) HasMetrics() bool {
+	return w.Status.Nodes != nil
 }
 
 func (w *Workflow) ToStringForStore() string {
@@ -215,7 +552,7 @@ func (w *Workflow) HasScheduledWorkflowAsParent() bool {
 	return containsScheduledWorkflow(w.Workflow.OwnerReferences)
 }
 
-func (w *Workflow) GetWorkflowSpec() *Workflow {
+func (w *Workflow) GetExecutionSpec() ExecutionSpec {
 	workflow := w.DeepCopy()
 	workflow.Status = workflowapi.WorkflowStatus{}
 	workflow.TypeMeta = metav1.TypeMeta{Kind: w.Kind, APIVersion: w.APIVersion}
@@ -227,12 +564,6 @@ func (w *Workflow) GetWorkflowSpec() *Workflow {
 	}
 	workflow.ObjectMeta = metav1.ObjectMeta{GenerateName: string(nameRunes[:length])}
 	return NewWorkflow(workflow)
-}
-
-// OverrideName sets the name of a Workflow.
-func (w *Workflow) OverrideName(name string) {
-	w.GenerateName = ""
-	w.Name = name
 }
 
 // SetAnnotationsToAllTemplatesIfKeyNotExist sets annotations on all templates in a Workflow
@@ -365,4 +696,174 @@ func (w *Workflow) PersistedFinalState() bool {
 func (w *Workflow) IsV2Compatible() bool {
 	value := w.GetObjectMeta().GetAnnotations()["pipelines.kubeflow.org/v2_pipeline"]
 	return value == "true"
+}
+
+func (w *Workflow) Validate(lint, ignoreEntrypoint bool) error {
+	_, err := validate.ValidateWorkflow(nil, nil, w.Workflow, validate.ValidateOpts{
+		Lint:                       lint,
+		IgnoreEntrypoint:           ignoreEntrypoint,
+		WorkflowTemplateValidation: false, // not used by kubeflow
+	})
+
+	return err
+}
+
+func (w *Workflow) Decompress() error {
+	return packer.DecompressWorkflow(w.Workflow)
+}
+
+func (w *Workflow) CanRetry() error {
+	if w.Workflow.Status.OffloadNodeStatusVersion != "" {
+		return NewBadRequestError(errors.New("workflow cannot be retried"), "Cannot retry workflow with offloaded node status")
+	}
+	return nil
+}
+
+func (w *Workflow) ToStringForSchedule() string {
+	spec, err := json.Marshal(w.Workflow.Spec)
+	if err != nil {
+		glog.Errorf("Could not marshal the Spec of workflow: %v", w.Workflow)
+		return ""
+	}
+	return string(spec)
+}
+
+// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
+// TODO: Fix the components to explicitly declare the artifacts they really output.
+func (w *Workflow) PatchTemplateOutputArtifacts() {
+	for templateIdx, template := range w.Spec.Templates {
+		for artIdx, artifact := range template.Outputs.Artifacts {
+			if artifact.Name == "mlpipeline-ui-metadata" || artifact.Name == "mlpipeline-metrics" {
+				w.Spec.Templates[templateIdx].Outputs.Artifacts[artIdx].Optional = true
+			}
+		}
+	}
+}
+
+// implementation of ExecutionClientInterface
+type WorkflowClient struct {
+	client *argoclient.Clientset
+}
+
+func (wc *WorkflowClient) Execution(namespace string) ExecutionInterface {
+	var informer argoinformerwfv1.WorkflowInformer
+	if namespace == "" {
+		informer = argoinformer.NewSharedInformerFactory(wc.client, time.Second*30).
+			Argoproj().V1alpha1().Workflows()
+	} else {
+		informer = argoinformer.NewFilteredSharedInformerFactory(wc.client, time.Second*30, namespace, nil).
+			Argoproj().V1alpha1().Workflows()
+	}
+
+	return &WorkflowInterface{
+		workflowInterface: wc.client.ArgoprojV1alpha1().Workflows(namespace),
+		informer:          informer,
+	}
+}
+
+type WorkflowInterface struct {
+	workflowInterface argoclientwf.WorkflowInterface
+	informer          v1alpha1.WorkflowInformer
+}
+
+func (wfi *WorkflowInterface) Create(ctx context.Context, execution ExecutionSpec, opts v1.CreateOptions) (ExecutionSpec, error) {
+	workflow, ok := execution.(*Workflow)
+	if !ok {
+		return nil, fmt.Errorf("execution is not a valid ExecutionSpec for Argo Workflow")
+	}
+
+	revWorkflow, err := wfi.workflowInterface.Create(ctx, workflow.Workflow, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &Workflow{Workflow: revWorkflow}, nil
+}
+
+func (wfi *WorkflowInterface) Update(ctx context.Context, execution ExecutionSpec, opts v1.UpdateOptions) (ExecutionSpec, error) {
+	workflow, ok := execution.(*Workflow)
+	if !ok {
+		return nil, fmt.Errorf("execution is not a valid ExecutionSpec for Argo Workflow")
+	}
+
+	revWorkflow, err := wfi.workflowInterface.Update(ctx, workflow.Workflow, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &Workflow{Workflow: revWorkflow}, nil
+}
+
+func (wfi *WorkflowInterface) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+	return wfi.workflowInterface.Delete(ctx, name, opts)
+}
+
+func (wfi *WorkflowInterface) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	return wfi.workflowInterface.DeleteCollection(ctx, opts, listOpts)
+}
+
+func (wfi *WorkflowInterface) Get(ctx context.Context, name string, opts v1.GetOptions) (ExecutionSpec, error) {
+	revWorkflow, err := wfi.workflowInterface.Get(ctx, name, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &Workflow{Workflow: revWorkflow}, nil
+}
+
+func (wfi *WorkflowInterface) List(ctx context.Context, opts v1.ListOptions) (*ExecutionSpecList, error) {
+	wlist, err := wfi.workflowInterface.List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	rev := make(ExecutionSpecList, 0, len(wlist.Items))
+	for _, wf := range wlist.Items {
+		rev = append(rev, &Workflow{Workflow: &wf})
+	}
+	return &rev, nil
+}
+
+func (wfi *WorkflowInterface) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (ExecutionSpec, error) {
+	revWorkflow, err := wfi.workflowInterface.Patch(ctx, name, pt, data, opts, subresources...)
+	if err != nil {
+		return nil, err
+	}
+	return &Workflow{Workflow: revWorkflow}, nil
+}
+
+type WorkflowInformer struct {
+	informer argoinformerwfv1.WorkflowInformer
+	factory  argoinformer.SharedInformerFactory
+}
+
+func (wfi *WorkflowInformer) AddEventHandler(funcs cache.ResourceEventHandler) {
+	wfi.informer.Informer().AddEventHandler(funcs)
+}
+
+func (wfi *WorkflowInformer) HasSynced() func() bool {
+	return wfi.informer.Informer().HasSynced
+}
+
+func (wfi *WorkflowInformer) Get(namespace string, name string) (ExecutionSpec, bool, error) {
+	workflow, err := wfi.informer.Lister().Workflows(namespace).Get(name)
+	if err != nil {
+		return nil, IsNotFound(err), errors.Wrapf(err,
+			"Error retrieving workflow (%v) in namespace (%v): %v", name, namespace, err)
+	}
+	return NewWorkflow(workflow), false, nil
+}
+
+func (wfi *WorkflowInformer) List(labels *labels.Selector) (ExecutionSpecList, error) {
+	workflows, err := wfi.informer.Lister().List(*labels)
+	if err != nil {
+		return nil, err
+	}
+
+	rev := make(ExecutionSpecList, 0, len(workflows))
+	for _, workflow := range workflows {
+		rev = append(rev, NewWorkflow(workflow))
+	}
+	return rev, nil
+}
+
+func (wfi *WorkflowInformer) InformerFactoryStart(stopCh <-chan struct{}) {
+	wfi.factory.Start(stopCh)
 }

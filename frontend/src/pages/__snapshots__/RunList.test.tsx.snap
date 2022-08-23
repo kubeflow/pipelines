@@ -1784,6 +1784,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
             <WithStyles(Checkbox)
               checked={false}
               color="primary"
+              disabled={false}
               indeterminate={false}
               onChange={[Function]}
             >
@@ -1801,6 +1802,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                   }
                 }
                 color="primary"
+                disabled={false}
                 icon={<pure(CheckBoxOutlineBlank) />}
                 indeterminate={false}
                 indeterminateIcon={<pure(IndeterminateCheckBox) />}
@@ -1817,6 +1819,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       "root": "MuiCheckbox-root-69 MuiCheckbox-colorPrimary-73",
                     }
                   }
+                  disabled={false}
                   icon={<pure(CheckBoxOutlineBlank) />}
                   inputProps={
                     Object {
@@ -1838,6 +1841,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                         "root": "MuiPrivateSwitchBase-root-75 MuiCheckbox-root-69 MuiCheckbox-colorPrimary-73",
                       }
                     }
+                    disabled={false}
                     icon={<pure(CheckBoxOutlineBlank) />}
                     inputProps={
                       Object {
@@ -1859,6 +1863,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                           "root": "MuiPrivateSwitchBase-root-75 MuiCheckbox-root-69 MuiCheckbox-colorPrimary-73",
                         }
                       }
+                      disabled={false}
                       icon={<pure(CheckBoxOutlineBlank) />}
                       inputProps={
                         Object {
@@ -1871,6 +1876,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                       <WithStyles(IconButton)
                         className="MuiPrivateSwitchBase-root-75 MuiCheckbox-root-69 MuiCheckbox-colorPrimary-73"
                         component="span"
+                        disabled={false}
                         onBlur={[Function]}
                         onFocus={[Function]}
                         tabIndex={null}
@@ -1983,6 +1989,7 @@ exports[`RunList reloads the run when refresh is called 1`] = `
                                     checked={false}
                                     className="MuiPrivateSwitchBase-input-78"
                                     data-indeterminate={false}
+                                    disabled={false}
                                     onChange={[Function]}
                                     type="checkbox"
                                   />

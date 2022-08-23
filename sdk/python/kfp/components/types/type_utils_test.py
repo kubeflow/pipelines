@@ -11,11 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import unittest
 from typing import Any, Dict, List, Union
+import unittest
 
-import kfp
 from absl.testing import parameterized
+import kfp
 from kfp.components import v1_structures
 from kfp.components.types import artifact_types
 from kfp.components.types import type_utils

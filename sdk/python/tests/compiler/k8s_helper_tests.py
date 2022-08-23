@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.deprecated.compiler._k8s_helper import convert_k8s_obj_to_json
 from datetime import datetime
 import unittest
+
+from kfp.deprecated.compiler._k8s_helper import convert_k8s_obj_to_json
 
 
 class TestCompiler(unittest.TestCase):

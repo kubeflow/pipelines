@@ -59,6 +59,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     AWS_ACCESS_KEY_ID,
     AWS_SECRET_ACCESS_KEY,
     AWS_REGION,
+    AWS_S3_ENDPOINT,
     /** http/https base URL */
     HTTP_BASE_URL = '',
     /** http/https fetch with this authorization header key (for example: 'Authorization') */
@@ -124,7 +125,7 @@ export function loadConfigs(argv: string[], env: ProcessEnv): UIConfigs {
     artifacts: {
       aws: {
         accessKey: AWS_ACCESS_KEY_ID || '',
-        endPoint: 's3.amazonaws.com',
+        endPoint: AWS_S3_ENDPOINT || 's3.amazonaws.com',
         region: AWS_REGION || 'us-east-1',
         secretKey: AWS_SECRET_ACCESS_KEY || '',
       },

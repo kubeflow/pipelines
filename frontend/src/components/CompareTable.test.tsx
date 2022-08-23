@@ -17,10 +17,19 @@
 import * as React from 'react';
 import { shallow } from 'enzyme';
 import CompareTable from './CompareTable';
+import { render, screen } from '@testing-library/react';
 
 // tslint:disable-next-line:no-console
 const consoleErrorBackup = console.error;
 let consoleSpy: jest.Mock;
+
+const rows = [
+  ['1', '2', '3'],
+  ['4', '5', '6'],
+  ['cell7', 'cell8', 'cell9'],
+];
+const xLabels = ['col1', 'col2', 'col3'];
+const yLabels = ['row1', 'row2', 'row3'];
 
 describe('CompareTable', () => {
   beforeAll(() => {
@@ -37,14 +46,6 @@ describe('CompareTable', () => {
     expect(tree).toMatchSnapshot();
   });
 
-  const rows = [
-    ['1', '2', '3'],
-    ['4', '5', '6'],
-    ['cell7', 'cell8', 'cell9'],
-  ];
-  const xLabels = ['col1', 'col2', 'col3'];
-  const yLabels = ['row1', 'row2', 'row3'];
-
   it('logs error if ylabels and rows have different lengths', () => {
     shallow(<CompareTable rows={[rows[0], rows[1]]} xLabels={xLabels} yLabels={yLabels} />);
     expect(consoleSpy).toHaveBeenCalledWith(
@@ -55,5 +56,39 @@ describe('CompareTable', () => {
   it('renders one row with three columns', () => {
     const tree = shallow(<CompareTable rows={rows} xLabels={xLabels} yLabels={yLabels} />);
     expect(tree).toMatchSnapshot();
+  });
+});
+
+describe('CompareTable xParentLabels', () => {
+  const xParentLabels = [
+    { colSpan: 2, label: 'parent1' },
+    { colSpan: 1, label: 'parent2' },
+  ];
+
+  it('Hide x-axis parent labels if xlabels and xparentlabels have different lengths', () => {
+    render(
+      <CompareTable
+        rows={rows}
+        xLabels={xLabels}
+        yLabels={yLabels}
+        xParentLabels={[xParentLabels[0]]}
+      />,
+    );
+
+    expect(screen.queryByText(xParentLabels[0].label)).toBeNull();
+  });
+
+  it('X-axis parent labels present if xlabels and xparentlabels have appropriate lengths', () => {
+    render(
+      <CompareTable
+        rows={rows}
+        xLabels={xLabels}
+        yLabels={yLabels}
+        xParentLabels={xParentLabels}
+      />,
+    );
+
+    screen.getByText(xParentLabels[0].label);
+    screen.getByText(xParentLabels[1].label);
   });
 });

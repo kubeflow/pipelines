@@ -1,0 +1,20 @@
+{
+   "host": "{host}",
+   "upload_url": "{host}",
+   "download_version_url": "{host}/{package_name}/{version}",
+   "download_tag_url": "{host}/{package_name}/{tag}",
+   "get_package_url": "{host}/packages/{package_name}",
+   "list_packages_url": "{host}/packages",
+   "delete_package_url": "{host}/packages/{package_name}",
+   "get_tag_url": "{host}/packages/{package_name}/tags/{tag}",
+   "list_tags_url": "{host}/packages/{package_name}/tags",
+   "delete_tag_url": "{host}/packages/{package_name}/tags/{tag}",
+   "create_tag_url": "{host}/packages/{package_name}/tags?tagId={tag}",
+   "update_tag_url": "{host}/packages/{package_name}/tags/{tag}?updateMask=version",
+   "get_version_url": "{host}/packages/{package_name}/versions/{version}",
+   "list_versions_url": "{host}/packages/{package_name}/versions",
+   "delete_version_url": "{host}/packages/{package_name}/versions/{version}",
+   "package_format": "packages/{package_name}",
+   "tag_format": "packages/{package_name}/tags/{tag}",
+   "version_format": "packages/{package_name}/versions/{version}"
+}

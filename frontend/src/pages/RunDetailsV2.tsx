@@ -21,6 +21,7 @@ import { ApiRun, ApiRunDetail, ApiRunStorageState } from 'src/apis/run';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import DetailsTable from 'src/components/DetailsTable';
 import { FlowElementDataBase } from 'src/components/graph/Constants';
+import { PipelineSpecTabContent } from 'src/components/PipelineSpecTabContent';
 import { RoutePage, RouteParams } from 'src/components/Router';
 import SidePanel from 'src/components/SidePanel';
 import { RuntimeNodeDetailsV2 } from 'src/components/tabs/RuntimeNodeDetailsV2';
@@ -50,6 +51,7 @@ import DagCanvas from './v2/DagCanvas';
 
 const QUERY_STALE_TIME = 10000; // 10000 milliseconds == 10 seconds.
 const QUERY_REFETCH_INTERNAL = 10000; // 10000 milliseconds == 10 seconds.
+const TAB_NAMES = ['Graph', 'Detail', 'Pipeline Spec'];
 
 interface MlmdPackage {
   executions: Execution[];
@@ -75,6 +77,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const pipelineJobStr = props.pipeline_job;
   const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(pipelineJobStr);
   const elements = convertFlowElements(pipelineSpec);
+  const templateString = runDetail.run?.pipeline_spec?.pipeline_manifest;
 
   const [flowElements, setFlowElements] = useState(elements);
   const [layers, setLayers] = useState(['root']);
@@ -176,7 +179,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   return (
     <>
       <div className={classes(commonCss.page, padding(20, 't'))}>
-        <MD2Tabs selectedTab={selectedTab} tabs={['Graph', 'Detail']} onSwitch={setSelectedTab} />
+        <MD2Tabs selectedTab={selectedTab} tabs={TAB_NAMES} onSwitch={setSelectedTab} />
         {/* DAG tab */}
         {selectedTab === 0 && (
           <div className={commonCss.page} style={{ position: 'relative', overflow: 'hidden' }}>
@@ -213,6 +216,13 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
           </div>
 
           // TODO(zijianjoy): Wait backend to supply run parameters, so UI can show them.
+        )}
+
+        {/* Pipeline Spec tab */}
+        {selectedTab === 2 && (
+          <div className={commonCss.codeEditor} data-testid={'spec-ir'}>
+            <PipelineSpecTabContent templateString={templateString || ''} />
+          </div>
         )}
       </div>
     </>
@@ -294,6 +304,13 @@ function updateToolBarActions(
 }
 
 function getDetailsFields(apiRun?: ApiRun): Array<KeyValue<string>> {
+  // check if the run has finished or not. The default value for apiRun.finished_at is
+  // Date(0), when it is not specified.
+  let finishedAt = new Date(0);
+  if (apiRun?.finished_at) {
+    finishedAt = apiRun?.finished_at;
+  }
+
   return [
     ['Run ID', apiRun?.id || '-'],
     ['Workflow name', apiRun?.name || '-'],
@@ -301,7 +318,7 @@ function getDetailsFields(apiRun?: ApiRun): Array<KeyValue<string>> {
     ['Description', apiRun?.description || ''],
     ['Created at', apiRun?.created_at ? formatDateString(apiRun.created_at) : '-'],
     ['Started at', formatDateString(apiRun?.scheduled_at)],
-    ['Finished at', formatDateString(apiRun?.finished_at)],
-    ['Duration', getRunDurationFromApiRun(apiRun)],
+    ['Finished at', finishedAt > new Date(0) ? formatDateString(apiRun?.finished_at) : '-'],
+    ['Duration', finishedAt > new Date(0) ? getRunDurationFromApiRun(apiRun) : '-'],
   ];
 }

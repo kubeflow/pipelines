@@ -22,7 +22,39 @@ except ImportError:
 
 __all__ = [
     'ModelEvaluationOp',
+    'ModelImportEvaluationOp',
+    'EvaluationDataSamplerOp',
+    'EvaluationDataSplitterOp',
+    'ModelEvaluationClassificationOp',
+    'ModelEvaluationRegressionOp',
+    'ModelEvaluationForecastingOp',
+    'ModelEvaluationFeatureAttributionOp',
+    'GetVertexModelOp'
 ]
 
 ModelEvaluationOp = load_component_from_file(
-        os.path.join(os.path.dirname(__file__), 'component.yaml'))
+    os.path.join(os.path.dirname(__file__), 'component.yaml'))
+
+ModelImportEvaluationOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'import_model_evaluation.yaml'))
+
+EvaluationDataSamplerOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'evaluation_data_sampler.yaml'))
+
+EvaluationDataSplitterOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'evaluation_data_splitter.yaml'))
+
+ModelEvaluationClassificationOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'classification.yaml'))
+
+ModelEvaluationRegressionOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'regression.yaml'))
+
+ModelEvaluationForecastingOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'forecasting.yaml'))
+
+ModelEvaluationFeatureAttributionOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'feature_attribution.yaml'))
+
+GetVertexModelOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'get_vertex_model.yaml'))

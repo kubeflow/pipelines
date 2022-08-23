@@ -58,10 +58,7 @@ class TestPipelineSpecRuntimeConfig(unittest.TestCase):
                                 }, ), 
                         list_value = kfp_server_api.models.protobuf_list_value.protobufListValue(), )
                     }, 
-                pipeline_root = '0', 
-                parameter_values = {
-                    'key' : '0'
-                    }
+                pipeline_root = '0'
             )
         else :
             return PipelineSpecRuntimeConfig(

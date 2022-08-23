@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.deprecated.dsl.types import check_types, GCSPath
 import unittest
+
+from kfp.deprecated.dsl.types import check_types
+from kfp.deprecated.dsl.types import GCSPath
 
 
 class TestTypes(unittest.TestCase):

@@ -21,7 +21,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-	minio "github.com/minio/minio-go"
+	minio "github.com/minio/minio-go/v6"
 )
 
 const (

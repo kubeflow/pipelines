@@ -21,8 +21,8 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	minio "github.com/minio/minio-go"
-	credentials "github.com/minio/minio-go/pkg/credentials"
+	minio "github.com/minio/minio-go/v6"
+	credentials "github.com/minio/minio-go/v6/pkg/credentials"
 	"github.com/pkg/errors"
 )
 

@@ -13,13 +13,13 @@
 # limitations under the License.
 """Utility function for building Importer Node spec."""
 
-from typing import Any, Union, Optional, Type, Mapping
+from typing import Any, Mapping, Optional, Type, Union
 
-from kfp.components import pipeline_task
+from kfp.components import importer_component
 from kfp.components import pipeline_channel
+from kfp.components import pipeline_task
 from kfp.components import placeholders
 from kfp.components import structures
-from kfp.components import importer_component
 from kfp.components.types import artifact_types
 
 INPUT_KEY = 'uri'
@@ -32,28 +32,34 @@ def importer(
     reimport: bool = False,
     metadata: Optional[Mapping[str, Any]] = None,
 ) -> pipeline_task.PipelineTask:
-    """dsl.importer for importing an existing artifact. Only for v2 pipeline.
+    """Imports an existing artifact for use in a downstream component.
 
     Args:
-      artifact_uri: The artifact uri to import from.
-      artifact_type_schema: The user specified artifact type schema of the
-        artifact to be imported.
-      reimport: Whether to reimport the artifact. Defaults to False.
+      artifact_uri: The URI of the artifact to import.
+      artifact_class: The artifact class being imported.
+      reimport: Whether to reimport the artifact.
       metadata: Properties of the artifact.
 
     Returns:
-      A PipelineTask instance.
+      A task with the artifact accessible via its ``.output`` attribute.
 
-    Raises:
-      ValueError if the passed in artifact_uri is neither a PipelineParam nor a
-        constant string value.
+    Examples::
+
+      @dsl.pipeline(name='pipeline-with-importer')
+      def pipeline_with_importer():
+
+          importer1 = importer(
+              artifact_uri='gs://ml-pipeline-playground/shakespeare1.txt',
+              artifact_class=Dataset,
+              reimport=False)
+          train(dataset=importer1.output)
     """
     component_spec = structures.ComponentSpec(
         name='importer',
         implementation=structures.Implementation(
             importer=structures.ImporterSpec(
-                artifact_uri=placeholders.input_parameter_placeholder(
-                    INPUT_KEY),
+                artifact_uri=placeholders.InputValuePlaceholder(
+                    INPUT_KEY).to_placeholder_string(),
                 type_schema=artifact_class.TYPE_NAME,
                 reimport=reimport,
                 metadata=metadata)),

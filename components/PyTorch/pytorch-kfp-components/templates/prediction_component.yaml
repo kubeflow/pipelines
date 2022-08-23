@@ -40,9 +40,9 @@ implementation:
 
       mkdir -p "$(dirname "$output_metadata_path")"
       curl $input_request > /tmp/input.json
-      curl -v -H "Host: ${host_name}" -H "Cookie: ${cookie}" "${url}/v1/models/${model}:${inference_type}" -d @./tmp/input.json > /tmp/output.json
+      curl -v -H "Host: ${host_name}" -H "Cookie: ${cookie}" "${url}/v2/models/${model}/${inference_type}" -d @./tmp/input.json > /tmp/output.json
 
-      input=$(echo $input_request | sed -e "s/^/\"## Request: \\\n/" | sed -e "s/$/\"/")
+      input=$(cat /tmp/input.json | jq '.| tostring' | sed -e "s/^.\{1\}/&## Request: \\\n\`\`\`json\\\n/" -e "s/.$/\\\n\`\`\`\"/")
       output=$(cat /tmp/output.json | jq '.| tostring' | sed -e "s/^.\{1\}/&## Response: \\\n\`\`\`json\\\n/" -e "s/.$/\\\n\`\`\`\"/")
 
       echo '{
@@ -59,6 +59,7 @@ implementation:
               }
            ]
           }'  > "$output_metadata_path"
+
     - {inputValue: Host Name}
     - {inputValue: Input Request}
     - {outputPath: MLPipeline UI Metadata}

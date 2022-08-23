@@ -56,7 +56,7 @@ __all__ = [
 
 from collections import OrderedDict
 
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, Dict, List, Mapping, Optional, Union
 
 from .modelbase import ModelBase
 

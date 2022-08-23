@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/json"
 
-	workflow "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -32,11 +31,11 @@ type ReportServer struct {
 
 func (s *ReportServer) ReportWorkflow(ctx context.Context,
 	request *api.ReportWorkflowRequest) (*empty.Empty, error) {
-	workflow, err := ValidateReportWorkflowRequest(request)
+	execSpec, err := ValidateReportWorkflowRequest(request)
 	if err != nil {
 		return nil, util.Wrap(err, "Report workflow failed.")
 	}
-	err = s.resourceManager.ReportWorkflowResource(ctx, workflow)
+	err = s.resourceManager.ReportWorkflowResource(ctx, execSpec)
 	if err != nil {
 		return nil, util.Wrap(err, "Report workflow failed.")
 	}
@@ -56,23 +55,21 @@ func (s *ReportServer) ReportScheduledWorkflow(ctx context.Context,
 	return &empty.Empty{}, nil
 }
 
-func ValidateReportWorkflowRequest(request *api.ReportWorkflowRequest) (*util.Workflow, error) {
-	var workflow1 workflow.Workflow
-	err := json.Unmarshal([]byte(request.Workflow), &workflow1)
+func ValidateReportWorkflowRequest(request *api.ReportWorkflowRequest) (util.ExecutionSpec, error) {
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(request.Workflow))
 	if err != nil {
 		return nil, util.NewInvalidInputError("Could not unmarshal workflow: %v: %v", err, request.Workflow)
 	}
-	workflow := util.NewWorkflow(&workflow1)
-	if workflow.Name == "" {
-		return nil, util.NewInvalidInputError("The workflow must have a name: %+v", workflow.Workflow)
+	if execSpec.ExecutionName() == "" {
+		return nil, util.NewInvalidInputError("The workflow must have a name: %+v", execSpec)
 	}
-	if workflow.Namespace == "" {
-		return nil, util.NewInvalidInputError("The workflow must have a namespace: %+v", workflow.Workflow)
+	if execSpec.ExecutionNamespace() == "" {
+		return nil, util.NewInvalidInputError("The workflow must have a namespace: %+v", execSpec)
 	}
-	if workflow.UID == "" {
-		return nil, util.NewInvalidInputError("The workflow must have a UID: %+v", workflow.Workflow)
+	if execSpec.ExecutionUID() == "" {
+		return nil, util.NewInvalidInputError("The workflow must have a UID: %+v", execSpec)
 	}
-	return workflow, nil
+	return execSpec, nil
 }
 
 func ValidateReportScheduledWorkflowRequest(request *api.ReportScheduledWorkflowRequest) (*util.ScheduledWorkflow, error) {

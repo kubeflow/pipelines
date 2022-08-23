@@ -105,6 +105,21 @@ spec:
           initialDelaySeconds: 3
           periodSeconds: 5
           timeoutSeconds: 2
+        # This startup probe provides up to a 60 second grace window before the
+        # liveness probe takes over to accomodate the occasional database
+        # migration.
+        startupProbe:
+          exec:
+            command:
+              - wget
+              - -q # quiet
+              - -S # show server response
+              - -O
+              - "-" # Redirect output to stdout
+              - http://localhost:8888/apis/v1beta1/healthz
+          failureThreshold: 12
+          periodSeconds: 5
+          timeoutSeconds: 2
         resources:
           requests:
             cpu: 250m

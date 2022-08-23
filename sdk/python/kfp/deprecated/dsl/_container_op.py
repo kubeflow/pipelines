@@ -19,7 +19,7 @@ from typing import (Any, Callable, Dict, List, Optional, Sequence, Tuple,
 
 from kfp.deprecated._config import COMPILING_FOR_V2
 from kfp.deprecated.components import _components, _structures
-from kfp.deprecated.dsl import _pipeline_param, dsl_utils
+from kfp.deprecated.dsl import _pipeline_param
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kubernetes.client import V1Affinity, V1Toleration
 from kubernetes.client.models import (V1Container, V1ContainerPort,

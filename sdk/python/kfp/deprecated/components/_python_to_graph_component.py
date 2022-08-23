@@ -16,13 +16,12 @@ __all__ = [
     'create_graph_component_from_pipeline_func',
 ]
 
-import inspect
 from collections import OrderedDict
 from typing import Callable, Mapping, Optional
 
 from . import _components
 from . import structures
-from ._structures import TaskSpec, ComponentSpec, OutputSpec, GraphInputReference, TaskOutputArgument, GraphImplementation, GraphSpec
+from ._structures import ComponentSpec, GraphImplementation, GraphInputReference, GraphSpec, OutputSpec, TaskOutputArgument
 from ._naming import _make_name_unique_by_adding_index
 from ._python_op import _extract_component_interface
 from ._components import _create_task_factory_from_component_spec

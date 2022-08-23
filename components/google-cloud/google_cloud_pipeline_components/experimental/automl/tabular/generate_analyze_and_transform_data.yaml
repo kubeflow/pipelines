@@ -1,0 +1,124 @@
+name: Generate analyze and transform data
+description: |
+  Generates anayze and transform data for Feature Transform Engine.
+
+  Feature Transform Engine (FTE) expects input data in form of an analyze dataset (i.e., the
+  dataset to be analyzed to compute dataset-level statistics such as min, max, average, or
+  vocabulary) and a transform dataset (i.e., the dataset to be transform into engineered features).
+
+  This component takes the common set of training, evaluation, and testing splits and generates
+  analyze dataset (consists of the train split) and transform dataset (consists of all the splits).
+
+    Args:
+        train_split (Dataset):
+            Train split dataset output by stats gen component.
+        eval_split (Dataset):
+            Eval split dataset output by stats gen component.
+        test_split (Dataset):
+            Test split dataset output by stats gen component.
+
+    Returns:
+        analyze_data (Dataset):
+            Analyze data as input for Feature Transform Engine.
+        transform_data (Dataset):
+            Transform data as input for Feature Transform Engine.
+inputs:
+- {name: train_split, type: Dataset, description: Train split dataset output by stats
+    gen component.}
+- {name: eval_split, type: Dataset, description: Eval split dataset output by stats
+    gen component.}
+- {name: test_split, type: Dataset, description: Test split dataset output by stats
+    gen component.}
+outputs:
+- {name: analyze_data, type: Dataset, description: Analyze data for FTE.}
+- {name: transform_data, type: Dataset, description: Transform data for FTE.}
+implementation:
+  container:
+    image: us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220727_0325_RC00
+    command:
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp -d)
+      printf "%s" "$0" > "$program_path/ephemeral_component.py"
+      python3 -m kfp.v2.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+    - |2+
+
+      import kfp
+      from kfp.v2 import dsl
+      from kfp.v2.dsl import *
+      from typing import *
+
+      def _generate_analyze_and_transform_data(
+          train_split: Input[Dataset],
+          eval_split: Input[Dataset],
+          test_split: Input[Dataset],
+          analyze_data: Output[Dataset],
+          transform_data: Output[Dataset],
+      ):
+        """Generate anayze_data and transform_data for FTE.
+
+        Necessary adapter between stats gen and FTE pipeline.
+
+        Args:
+          train_split: Train split dataset output by stats gen component.
+          eval_split: Eval split dataset output by stats gen component.
+          test_split: Test split dataset output by stats gen component.
+          analyze_data: Analyze data for FTE.
+          transform_data: Transform data for FTE.
+        """
+        # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
+        import json
+        # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported
+
+        with open(train_split.path, 'r') as f:
+          train_datasource_json = json.load(f)
+
+        with open(eval_split.path, 'r') as f:
+          eval_datasource_json = json.load(f)
+
+        with open(test_split.path, 'r') as f:
+          test_datasource_json = json.load(f)
+
+        dataset_schema_str = train_datasource_json['tf_record_data_source']['schema']
+        coder = train_datasource_json['tf_record_data_source']['coder']
+
+        analyze_data_file_patterns = []
+        analyze_data_file_patterns.extend(
+            train_datasource_json['tf_record_data_source']['file_patterns'])
+
+        analyze_data_json = {
+            'tf_record_data_source': {
+                'file_patterns': analyze_data_file_patterns,
+                'coder': coder,
+                'schema': dataset_schema_str
+            }
+        }
+
+        transform_data_file_patterns = []
+        transform_data_file_patterns.extend(
+            train_datasource_json['tf_record_data_source']['file_patterns'])
+        transform_data_file_patterns.extend(
+            eval_datasource_json['tf_record_data_source']['file_patterns'])
+        transform_data_file_patterns.extend(
+            test_datasource_json['tf_record_data_source']['file_patterns'])
+
+        transform_data_json = {
+            'tf_record_data_source': {
+                'file_patterns': transform_data_file_patterns,
+                'coder': coder,
+                'schema': dataset_schema_str
+            }
+        }
+
+        with open(analyze_data.path, 'w') as f:
+          json.dump(analyze_data_json, f)
+
+        with open(transform_data.path, 'w') as f:
+          json.dump(transform_data_json, f)
+
+    args:
+    - --executor_input
+    - {executorInput: null}
+    - --function_to_execute
+    - _generate_analyze_and_transform_data

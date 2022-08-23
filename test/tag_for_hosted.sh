@@ -110,8 +110,8 @@ docker tag gcr.io/ml-pipeline/minio:RELEASE.2019-08-14T20-37-41Z-license-complia
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/minio:$SEM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/minio:$MM_VER
 
-docker tag gcr.io/ml-pipeline/mysql:5.7 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/mysql:$SEM_VER
-docker tag gcr.io/ml-pipeline/mysql:5.7 gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/mysql:$MM_VER
+docker tag gcr.io/ml-pipeline/mysql:5.7-debian gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/mysql:$SEM_VER
+docker tag gcr.io/ml-pipeline/mysql:5.7-debian gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/mysql:$MM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/mysql:$SEM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/mysql:$MM_VER
 
@@ -120,12 +120,12 @@ docker tag gcr.io/cloudsql-docker/gce-proxy:1.25.0 gcr.io/$PROJECT_ID/hosted/$CO
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/cloudsqlproxy:$SEM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/cloudsqlproxy:$MM_VER
 
-docker tag gcr.io/ml-pipeline/argoexec:v3.2.3-license-compliance gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/argoexecutor:$SEM_VER
-docker tag gcr.io/ml-pipeline/argoexec:v3.2.3-license-compliance gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/argoexecutor:$MM_VER
+docker tag gcr.io/ml-pipeline/argoexec:v3.3.8-license-compliance gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/argoexecutor:$SEM_VER
+docker tag gcr.io/ml-pipeline/argoexec:v3.3.8-license-compliance gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/argoexecutor:$MM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/argoexecutor:$SEM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/argoexecutor:$MM_VER
 
-docker tag gcr.io/ml-pipeline/workflow-controller:v3.2.3-license-compliance gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/argoworkflowcontroller:$SEM_VER
-docker tag gcr.io/ml-pipeline/workflow-controller:v3.2.3-license-compliance gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/argoworkflowcontroller:$MM_VER
+docker tag gcr.io/ml-pipeline/workflow-controller:v3.3.8-license-compliance gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/argoworkflowcontroller:$SEM_VER
+docker tag gcr.io/ml-pipeline/workflow-controller:v3.3.8-license-compliance gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/argoworkflowcontroller:$MM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/argoworkflowcontroller:$SEM_VER
 docker push gcr.io/$PROJECT_ID/hosted/$COMMIT_SHA/argoworkflowcontroller:$MM_VER

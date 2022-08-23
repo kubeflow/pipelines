@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import { commonCss } from '../Css';
 import Button from '@material-ui/core/Button';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import TextField from '@material-ui/core/TextField';
-import { ApiParameter } from '../apis/pipeline';
+import * as React from 'react';
 import { classes, stylesheet } from 'typestyle';
-import { color, spacing } from '../Css';
+import { ApiParameter } from '../apis/pipeline';
+import { color, commonCss, spacing } from '../Css';
 import Editor from './Editor';
 
 export interface NewRunParametersProps {

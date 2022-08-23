@@ -43,11 +43,7 @@ class HTMLViewer extends Viewer<HTMLViewerProps, any> {
     },
   });
 
-  public getDisplayName(): string {
-    return 'Static HTML';
-  }
-
-  public componentDidMount(): void {
+  private _updateHtmlContent(config: HTMLViewerConfig): void {
     // TODO: iframe.srcdoc doesn't work on Edge yet. It's been added, but not
     // yet rolled out as of the time of writing this (6/14/18):
     // https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/12375527/
@@ -55,8 +51,21 @@ class HTMLViewer extends Viewer<HTMLViewerProps, any> {
     // iframe, while allowing Javascript, but without needing to require
     // "allow-same-origin" sandbox rule.
     if (this._iframeRef.current) {
-      this._iframeRef.current!.srcdoc = this._config.htmlContent;
+      this._iframeRef.current!.srcdoc = config.htmlContent;
     }
+  }
+
+  public getDisplayName(): string {
+    return 'Static HTML';
+  }
+
+  public componentDidMount(): void {
+    this._updateHtmlContent(this._config);
+  }
+
+  public componentDidUpdate(): void {
+    this._config = this.props.configs[0];
+    this._updateHtmlContent(this._config);
   }
 
   public render(): JSX.Element | null {

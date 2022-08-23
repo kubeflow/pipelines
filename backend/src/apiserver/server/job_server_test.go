@@ -19,6 +19,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/protobuf/types/known/structpb"
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
@@ -301,6 +302,82 @@ func TestCreateJob(t *testing.T) {
 	assert.Equal(t, commonExpectedJob, job)
 }
 
+func TestCreateJob_V2(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+
+	listParams := []interface{}{1, 2, 3}
+	v2RuntimeListParams, _ := structpb.NewList(listParams)
+	structParams := map[string]interface{}{"structParam1": "hello", "structParam2": 32}
+	v2RuntimeStructParams, _ := structpb.NewStruct(structParams)
+
+	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
+	v2RuntimeParams := map[string]*structpb.Value{
+		"param1": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
+		"param2": &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: true}},
+		"param3": &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
+		"param4": &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: 12}},
+		"param5": &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: v2RuntimeStructParams}},
+	}
+
+	apiJob_V2 := &api.Job{
+		Name:           "job1",
+		Enabled:        true,
+		MaxConcurrency: 1,
+		Trigger: &api.Trigger{
+			Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}}},
+		PipelineSpec: &api.PipelineSpec{
+			PipelineManifest: v2SpecHelloWorld,
+			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+				Parameters:   v2RuntimeParams,
+				PipelineRoot: "model-pipeline-root",
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: "123e4567-e89b-12d3-a456-426655440000"},
+				Relationship: api.Relationship_OWNER,
+			},
+		},
+	}
+
+	expectedJob_V2 := &api.Job{
+		Id:             "123e4567-e89b-12d3-a456-426655440000",
+		Name:           "job1",
+		ServiceAccount: "pipeline-runner",
+		Enabled:        true,
+		MaxConcurrency: 1,
+		Trigger: &api.Trigger{
+			Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}}},
+		CreatedAt: &timestamp.Timestamp{Seconds: 2},
+		UpdatedAt: &timestamp.Timestamp{Seconds: 2},
+		Status:    "NO_STATUS",
+		PipelineSpec: &api.PipelineSpec{
+			PipelineManifest: v2SpecHelloWorld,
+			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+				Parameters:   v2RuntimeParams,
+				PipelineRoot: "model-pipeline-root",
+			},
+		},
+		ResourceReferences: []*api.ResourceReference{
+			{
+				Key:  &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: "123e4567-e89b-12d3-a456-426655440000"},
+				Name: "exp1", Relationship: api.Relationship_OWNER,
+			},
+		},
+	}
+	job, err := server.CreateJob(nil, &api.CreateJobRequest{Job: apiJob_V2})
+	assert.Nil(t, err)
+	assert.Equal(t, expectedJob_V2, job)
+}
+
 func TestCreateJob_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
@@ -529,7 +606,7 @@ func TestListJobs_Multiuser(t *testing.T) {
 		} else {
 			if err != nil {
 				t.Errorf("TestListJobs_Multiuser(%v) expect no error but got %v", tc.name, err)
-			} else if !cmp.Equal(tc.expectedJobs, response.Jobs, cmpopts.EquateEmpty(), protocmp.Transform(),cmpopts.IgnoreFields(api.Job{}, "Trigger", "UpdatedAt", "CreatedAt"),
+			} else if !cmp.Equal(tc.expectedJobs, response.Jobs, cmpopts.EquateEmpty(), protocmp.Transform(), cmpopts.IgnoreFields(api.Job{}, "Trigger", "UpdatedAt", "CreatedAt"),
 				cmpopts.IgnoreFields(api.Run{}, "CreatedAt")) {
 				t.Errorf("TestListJobs_Multiuser(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedJobs, response.Jobs)
 			}

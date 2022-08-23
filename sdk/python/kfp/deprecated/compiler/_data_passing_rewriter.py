@@ -1,11 +1,7 @@
 import copy
 import json
-import os
 import re
-from typing import Any, Dict, List, Optional, Set, Tuple
-
-from kfp.deprecated.dsl import _component_bridge
-from kfp.deprecated import dsl
+from typing import List, Optional, Set
 
 
 def fix_big_data_passing(workflow: dict) -> dict:

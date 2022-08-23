@@ -19,12 +19,12 @@ import (
 	"errors"
 
 	"github.com/golang/glog"
-	applyv1 "k8s.io/client-go/applyconfigurations/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/policy/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
+	applyv1 "k8s.io/client-go/applyconfigurations/core/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -33,12 +33,7 @@ type FakePodClient struct {
 	patchIsCalled bool
 }
 
-func (FakePodClient) GetEphemeralContainers(context.Context, string, v1.GetOptions) (*corev1.EphemeralContainers, error) {
-	glog.Error("This fake method is not yet implemented.")
-	return nil, nil
-}
-
-func (FakePodClient) UpdateEphemeralContainers(context.Context, string, *corev1.EphemeralContainers, v1.UpdateOptions) (*corev1.EphemeralContainers, error) {
+func (FakePodClient) UpdateEphemeralContainers(context.Context, string, *corev1.Pod, v1.UpdateOptions) (*corev1.Pod, error) {
 	glog.Error("This fake method is not yet implemented.")
 	return nil, nil
 }

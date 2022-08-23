@@ -61,7 +61,7 @@ INSTANCE_ZONE="${INSTANCE_ZONE##/*/}"
 if [[ -z "${PROXY_URL}" ]]; then
   # Get latest Proxy server URL
   wget https://storage.googleapis.com/ml-pipeline/proxy-agent-config.json
-  PROXY_URL=$(python ${DIR}/get_proxy_url.py --config-file-path "proxy-agent-config.json" --location "${INSTANCE_ZONE}" --version "latest")
+  PROXY_URL=$(python3 ${DIR}/get_proxy_url.py --config-file-path "proxy-agent-config.json" --location "${INSTANCE_ZONE}" --version "latest")
 fi
 if [[ -z "${PROXY_URL}" ]]; then
     echo "Proxy URL for the zone ${INSTANCE_ZONE} no found, exiting."

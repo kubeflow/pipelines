@@ -377,8 +377,33 @@ export function filterLinkedArtifactsByType(
   return artifacts.filter(x => artifactTypeIds.includes(x.artifact.getTypeId()));
 }
 
+export function getExecutionDisplayName(execution: Execution): string | undefined {
+  return execution
+    .getCustomPropertiesMap()
+    .get('display_name')
+    ?.getStringValue();
+}
+
 export function getArtifactName(linkedArtifact: LinkedArtifact): string | undefined {
   return getArtifactNameFromEvent(linkedArtifact.event);
+}
+
+export function getArtifactTypeName(
+  artifactTypes: ArtifactType[],
+  linkedArtifacts: LinkedArtifact[],
+): string[] {
+  let artifactTypeNames: string[] = [];
+  if (artifactTypes && linkedArtifacts) {
+    Object.values(linkedArtifacts).forEach(linkedArtifact => {
+      const artifactType = artifactTypes.filter(
+        aType => aType.getId() === linkedArtifact.artifact.getTypeId(),
+      );
+      artifactTypeNames.push(
+        artifactType.length === 1 && artifactType[0].getName() ? artifactType[0].getName() : '-',
+      );
+    });
+  }
+  return artifactTypeNames;
 }
 
 export function getArtifactNameFromEvent(event: Event): string | undefined {

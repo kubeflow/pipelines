@@ -1,0 +1,47 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+bases:
+  - ../../dev
+  - ../base
+namespace: kubeflow
+
+# Delete the cache deployer as we use the cert-manager instead 
+patchesStrategicMerge:
+  - ./delete-cache-deployer.yaml
+
+resources:
+- namespace.yaml
+
+vars:
+# NOTE: var name must be unique globally to allow composition of multiple kustomize
+# packages. Therefore, we added prefix `kfp-dev-` to distinguish it from
+# others.
+- name: kfp-dev-namespace
+  objref:
+    # ml-pipeline sa's metadata.namespace will be first transformed by namespace field in kustomization.yaml
+    # so that we only need to change kustomization.yaml's namespace field for namespace customization.
+    kind: ServiceAccount
+    name: ml-pipeline
+    apiVersion: v1
+  fieldref:
+    fieldpath: metadata.namespace
+configurations:
+- params.yaml
+
+# Pass proper arguments to cache-server to use cert-manager certificate
+patches:
+- patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/args/-
+      value: "--tls_cert_filename=tls.crt"
+  target:
+    kind: Deployment
+    name: cache-server
+- patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/args/-
+      value: "--tls_key_filename=tls.key"
+  target:
+    kind: Deployment
+    name: cache-server

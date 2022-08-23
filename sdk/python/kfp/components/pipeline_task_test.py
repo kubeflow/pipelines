@@ -13,67 +13,67 @@
 # limitations under the License.
 """Tests for kfp.components.pipeline_task."""
 
+import os
+import tempfile
 import textwrap
 import unittest
 
 from absl.testing import parameterized
+from kfp import compiler
+from kfp import dsl
 from kfp.components import pipeline_task
+from kfp.components import placeholders
 from kfp.components import structures
 
 V2_YAML = textwrap.dedent("""\
-    name: component1
-    inputs:
-      input1: {type: String}
-    outputs:
-      output1: {type: Artifact}
-    implementation:
+components:
+  comp-component1:
+    executorLabel: exec-component1
+    inputDefinitions:
+      parameters:
+        input1:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        output1:
+          artifactType:
+            schemaTitle: system.Artifact
+            schemaVersion: 0.0.1
+deploymentSpec:
+  executors:
+    exec-component1:
       container:
-        image: alpine
+        args:
+        - '{{$.inputs.parameters[''input1'']}}'
+        - '{{$.outputs.artifacts[''output1''].path}}'
         command:
         - sh
         - -c
         - echo "$0" >> "$1"
-        args:
-        - {inputValue: input1}
-        - {outputPath: output1}
-""")
-
-V2_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
-    name: component_if
-    inputs:
-      optional_input_1: {type: String}
-    implementation:
-      container:
         image: alpine
-        command:
-        - sh
-        - -c
-        - echo "$0" "$1"
-        args:
-        - ifPresent:
-            inputName: optional_input_1
-            then:
-            - "input: "
-            - {inputValue: optional_input_1}
-            else:
-            - "default: "
-            - "Hello world!"
+pipelineInfo:
+  name: component1
+root:
+  dag:
+    tasks:
+      component1:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-component1
+        inputs:
+          parameters:
+            input1:
+              componentInputParameter: input1
+        taskInfo:
+          name: component1
+  inputDefinitions:
+    parameters:
+      input1:
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-alpha.2
 """)
-
-V2_YAML_CONCAT_PLACEHOLDER = textwrap.dedent("""\
-    name: component_concat
-    inputs:
-      input1: {type: String}
-      input2: {type: String}
-    implementation:
-      container:
-        image: alpine
-        command:
-        - sh
-        - -c
-        - echo "$0"
-        - concat: [{inputValue: input1}, "+", {inputValue: input2}]
-    """)
 
 
 class PipelineTaskTest(parameterized.TestCase):
@@ -82,12 +82,13 @@ class PipelineTaskTest(parameterized.TestCase):
         expected_component_spec = structures.ComponentSpec(
             name='component1',
             implementation=structures.Implementation(
-                container=structures.ContainerSpec(
+                container=structures.ContainerSpecImplementation(
                     image='alpine',
                     command=['sh', '-c', 'echo "$0" >> "$1"'],
                     args=[
-                        structures.InputValuePlaceholder(input_name='input1'),
-                        structures.OutputPathPlaceholder(output_name='output1'),
+                        placeholders.InputValuePlaceholder(input_name='input1'),
+                        placeholders.OutputPathPlaceholder(
+                            output_name='output1'),
                     ],
                 )),
             inputs={
@@ -103,7 +104,7 @@ class PipelineTaskTest(parameterized.TestCase):
             dependent_tasks=[],
             component_ref='component1',
         )
-        expected_container_spec = structures.ContainerSpec(
+        expected_container_spec = structures.ContainerSpecImplementation(
             image='alpine',
             command=['sh', '-c', 'echo "$0" >> "$1"'],
             args=[
@@ -117,7 +118,7 @@ class PipelineTaskTest(parameterized.TestCase):
                 V2_YAML),
             args={'input1': 'value'},
         )
-        self.assertEqual(task.task_spec, expected_task_spec)
+        self.assertEqual(task._task_spec, expected_task_spec)
         self.assertEqual(task.component_spec, expected_component_spec)
         self.assertEqual(task.container_spec, expected_container_spec)
 
@@ -143,72 +144,6 @@ class PipelineTaskTest(parameterized.TestCase):
                 },
             )
 
-    @parameterized.parameters(
-        {
-            'component_yaml':
-                V2_YAML_IF_PLACEHOLDER,
-            'args': {
-                'optional_input_1': 'value'
-            },
-            'expected_container_spec':
-                structures.ContainerSpec(
-                    image='alpine',
-                    command=['sh', '-c', 'echo "$0" "$1"'],
-                    args=[
-                        'input: ',
-                        "{{$.inputs.parameters['optional_input_1']}}",
-                    ],
-                )
-        },
-        {
-            'component_yaml':
-                V2_YAML_IF_PLACEHOLDER,
-            'args': {},
-            'expected_container_spec':
-                structures.ContainerSpec(
-                    image='alpine',
-                    command=['sh', '-c', 'echo "$0" "$1"'],
-                    args=[
-                        'default: ',
-                        'Hello world!',
-                    ],
-                )
-        },
-    )
-    def test_resolve_if_placeholder(
-        self,
-        component_yaml: str,
-        args: dict,
-        expected_container_spec: structures.ContainerSpec,
-    ):
-        task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.load_from_component_yaml(
-                component_yaml),
-            args=args,
-        )
-        self.assertEqual(task.container_spec, expected_container_spec)
-
-    def test_resolve_concat_placeholder(self):
-        expected_container_spec = structures.ContainerSpec(
-            image='alpine',
-            command=[
-                'sh',
-                '-c',
-                'echo "$0"',
-                "{{$.inputs.parameters['input1']}}+{{$.inputs.parameters['input2']}}",
-            ],
-        )
-
-        task = pipeline_task.PipelineTask(
-            component_spec=structures.ComponentSpec.load_from_component_yaml(
-                V2_YAML_CONCAT_PLACEHOLDER),
-            args={
-                'input1': '1',
-                'input2': '2',
-            },
-        )
-        self.assertEqual(task.container_spec, expected_container_spec)
-
     def test_set_caching_options(self):
         task = pipeline_task.PipelineTask(
             component_spec=structures.ComponentSpec.load_from_component_yaml(
@@ -216,7 +151,7 @@ class PipelineTaskTest(parameterized.TestCase):
             args={'input1': 'value'},
         )
         task.set_caching_options(False)
-        self.assertEqual(False, task.task_spec.enable_caching)
+        self.assertEqual(False, task._task_spec.enable_caching)
 
     @parameterized.parameters(
         {
@@ -367,7 +302,138 @@ class PipelineTaskTest(parameterized.TestCase):
             args={'input1': 'value'},
         )
         task.set_display_name('test_name')
-        self.assertEqual('test_name', task.task_spec.display_name)
+        self.assertEqual('test_name', task._task_spec.display_name)
+
+
+class TestCannotUseAfterCrossDAG(unittest.TestCase):
+
+    def test_inner_task_prevented(self):
+        with self.assertRaisesRegex(ValueError,
+                                    r'Cannot use \.after\(\) across'):
+
+            @dsl.component
+            def print_op(message: str):
+                print(message)
+
+            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+            def my_pipeline():
+                first_exit_task = print_op(message='First exit task.')
+
+                with dsl.ExitHandler(first_exit_task):
+                    first_print_op = print_op(
+                        message='Inside first exit handler.')
+
+                second_exit_task = print_op(message='Second exit task.')
+                with dsl.ExitHandler(second_exit_task):
+                    print_op(message='Inside second exit handler.').after(
+                        first_print_op)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_exit_handler_task_prevented(self):
+        with self.assertRaisesRegex(ValueError,
+                                    r'Cannot use \.after\(\) across'):
+
+            @dsl.component
+            def print_op(message: str):
+                print(message)
+
+            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+            def my_pipeline():
+                first_exit_task = print_op(message='First exit task.')
+
+                with dsl.ExitHandler(first_exit_task):
+                    first_print_op = print_op(
+                        message='Inside first exit handler.')
+
+                second_exit_task = print_op(message='Second exit task.')
+                with dsl.ExitHandler(second_exit_task):
+                    x = print_op(message='Inside second exit handler.')
+                    x.after(first_exit_task)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_within_same_exit_handler_permitted(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+        def my_pipeline():
+            first_exit_task = print_op(message='First exit task.')
+
+            with dsl.ExitHandler(first_exit_task):
+                first_print_op = print_op(
+                    message='First task inside first exit handler.')
+                second_print_op = print_op(
+                    message='Second task inside first exit handler.').after(
+                        first_print_op)
+
+            second_exit_task = print_op(message='Second exit task.')
+            with dsl.ExitHandler(second_exit_task):
+                print_op(message='Inside second exit handler.')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_outside_of_condition_blocked(self):
+        with self.assertRaisesRegex(ValueError,
+                                    r'Cannot use \.after\(\) across'):
+
+            @dsl.component
+            def print_op(message: str):
+                print(message)
+
+            @dsl.component
+            def return_1() -> int:
+                return 1
+
+            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+            def my_pipeline():
+                return_1_task = return_1()
+
+                with dsl.Condition(return_1_task.output == 1):
+                    one = print_op(message='1')
+                    two = print_op(message='2')
+                three = print_op(message='3').after(one)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_inside_of_condition_permitted(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.component
+        def return_1() -> int:
+            return 1
+
+        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+        def my_pipeline():
+            return_1_task = return_1()
+
+            with dsl.Condition(return_1_task.output == '1'):
+                one = print_op(message='1')
+                two = print_op(message='2').after(one)
+            three = print_op(message='3')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
 
 
 if __name__ == '__main__':

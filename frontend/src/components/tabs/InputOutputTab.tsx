@@ -14,22 +14,23 @@
  * limitations under the License.
  */
 
-import { Struct } from 'google-protobuf/google/protobuf/struct_pb';
 import React from 'react';
 import { useQuery } from 'react-query';
 import { Link } from 'react-router-dom';
 import { ErrorBoundary } from 'src/atoms/ErrorBoundary';
 import { commonCss, padding } from 'src/Css';
+import { KeyValue } from 'src/lib/StaticGraphParser';
+import { getMetadataValue } from 'src/mlmd/library';
 import {
   filterEventWithInputArtifact,
   filterEventWithOutputArtifact,
   getArtifactName,
+  getArtifactTypeName,
+  getArtifactTypes,
   getLinkedArtifactsByExecution,
   LinkedArtifact,
 } from 'src/mlmd/MlmdUtils';
-import { KeyValue } from 'src/lib/StaticGraphParser';
-import { getMetadataValue } from 'src/mlmd/library';
-import { Execution } from 'src/third_party/mlmd';
+import { ArtifactType, Execution } from 'src/third_party/mlmd';
 import ArtifactPreview from '../ArtifactPreview';
 import Banner from '../Banner';
 import DetailsTable from '../DetailsTable';
@@ -46,21 +47,39 @@ export interface IOTabProps {
 export function InputOutputTab({ execution, namespace }: IOTabProps) {
   const executionId = execution.getId();
 
+  // TODO(jlyaoyuli): Showing input/output parameter for unexecuted node (retrieves from PipelineSpec).
+  // TODO(jlyaoyuli): Display other information (container, args, image, command)
+
   // Retrieves input and output artifacts from Metadata store.
-  const { isSuccess, error, data } = useQuery<LinkedArtifact[], Error>(
+  const { isSuccess, error, data: linkedArtifacts } = useQuery<LinkedArtifact[], Error>(
     ['execution_artifact', { id: executionId, state: execution.getLastKnownState() }],
     () => getLinkedArtifactsByExecution(execution),
     { staleTime: Infinity },
   );
+
+  const { data: artifactTypes } = useQuery<ArtifactType[], Error>(
+    ['artifact_types', { linkedArtifact: linkedArtifacts }],
+    () => getArtifactTypes(),
+    {},
+  );
+
+  const artifactTypeNames =
+    linkedArtifacts && artifactTypes ? getArtifactTypeName(artifactTypes, linkedArtifacts) : [];
 
   // Restructs artifacts and parameters for visualization.
   const inputParams = extractInputFromExecution(execution);
   const outputParams = extractOutputFromExecution(execution);
   let inputArtifacts: ParamList = [];
   let outputArtifacts: ParamList = [];
-  if (isSuccess && data) {
-    inputArtifacts = getArtifactParamList(filterEventWithInputArtifact(data));
-    outputArtifacts = getArtifactParamList(filterEventWithOutputArtifact(data));
+  if (isSuccess && linkedArtifacts) {
+    inputArtifacts = getArtifactParamList(
+      filterEventWithInputArtifact(linkedArtifacts),
+      artifactTypeNames,
+    );
+    outputArtifacts = getArtifactParamList(
+      filterEventWithOutputArtifact(linkedArtifacts),
+      artifactTypeNames,
+    );
   }
 
   let isIoEmpty = false;
@@ -147,49 +166,41 @@ export function InputOutputTab({ execution, namespace }: IOTabProps) {
 export default InputOutputTab;
 
 function extractInputFromExecution(execution: Execution): KeyValue<string>[] {
-  return extractParamFromExecution(execution, /input:(?<inputName>.+)/, 'inputName');
+  return extractParamFromExecution(execution, 'inputs');
 }
 
 function extractOutputFromExecution(execution: Execution): KeyValue<string>[] {
-  return extractParamFromExecution(execution, /output:(?<outputName>.+)/, 'outputName');
+  return extractParamFromExecution(execution, 'outputs');
 }
 
-function extractParamFromExecution(
-  execution: Execution,
-  pattern: RegExp,
-  groupName: string,
-): KeyValue<string>[] {
+function extractParamFromExecution(execution: Execution, name: string): KeyValue<string>[] {
   const result: KeyValue<string>[] = [];
   execution.getCustomPropertiesMap().forEach((value, key) => {
-    const found = key.match(pattern);
-    if (found?.groups?.[groupName]) {
-      result.push([found.groups[groupName], prettyPrintValue(getMetadataValue(value))]);
+    if (key === name) {
+      const param = getMetadataValue(value);
+      if (typeof param == 'object') {
+        Object.entries(param.toJavaScript()).forEach(parameter => {
+          result.push([parameter[0], JSON.stringify(parameter[1])]);
+        });
+      }
     }
   });
   return result;
 }
 
-function prettyPrintValue(value: string | number | Struct | undefined): string {
-  if (value == null) {
-    return '';
-  }
-  if (typeof value === 'string') {
-    return value;
-  }
-  if (typeof value === 'number') {
-    return JSON.stringify(value);
-  }
-  // value is Struct
-  const jsObject = value.toJavaScript();
-  // When Struct is converted to js object, it may contain a top level "struct"
-  // or "list" key depending on its type, but the key is meaningless and we can
-  // omit it in visualization.
-  return JSON.stringify(jsObject?.struct || jsObject?.list || jsObject, null, 2);
-}
-
-export function getArtifactParamList(inputArtifacts: LinkedArtifact[]): ParamList {
-  return inputArtifacts.map(linkedArtifact => {
-    const key = getArtifactName(linkedArtifact);
+export function getArtifactParamList(
+  inputArtifacts: LinkedArtifact[],
+  artifactTypeNames: string[],
+): ParamList {
+  return Object.values(inputArtifacts).map((linkedArtifact, index) => {
+    let key = getArtifactName(linkedArtifact);
+    if (
+      key &&
+      (artifactTypeNames[index] === 'system.Metrics' ||
+        artifactTypeNames[index] === 'system.ClassificationMetrics')
+    ) {
+      key += ' (This is an empty file by default)';
+    }
     const artifactId = linkedArtifact.artifact.getId();
     const artifactElement = RoutePageFactory.artifactDetails(artifactId) ? (
       <Link className={commonCss.link} to={RoutePageFactory.artifactDetails(artifactId)}>

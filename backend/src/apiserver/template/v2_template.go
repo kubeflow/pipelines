@@ -54,12 +54,6 @@ func (t *V2Spec) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.Schedule
 		return nil, util.Wrap(err, "Create job failed")
 	}
 
-	// TODO: remove cast
-	workflow, ok := executionSpec.(*util.Workflow)
-	if !ok {
-		return nil, util.NewInternalServerError(fmt.Errorf("cast error"), "not Workflow struct")
-	}
-
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{GenerateName: swfGeneratedName},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
@@ -68,7 +62,7 @@ func (t *V2Spec) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.Schedule
 			Trigger:        *toCRDTrigger(apiJob.Trigger),
 			Workflow: &scheduledworkflow.WorkflowResource{
 				Parameters: toCRDParameter(apiJob.GetPipelineSpec().GetParameters()),
-				Spec:       workflow.Spec,
+				Spec:       executionSpec.ToStringForSchedule(),
 			},
 			NoCatchup: util.BoolPointer(apiJob.NoCatchup),
 		},
@@ -109,10 +103,15 @@ func (t *V2Spec) Bytes() []byte {
 	}
 	bytes, err := protojson.Marshal(t.spec)
 	if err != nil {
-		// this is unexpected
+		// this is unexpected, cannot convert proto message to JSON
 		return nil
 	}
-	return bytes
+	bytesYAML, err := yaml.JSONToYAML(bytes)
+	if err != nil {
+		// this is unexpected, cannot convert JSON to YAML
+		return nil
+	}
+	return bytesYAML
 }
 
 func (t *V2Spec) IsV2() bool {

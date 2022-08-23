@@ -26,6 +26,7 @@ Check the following prerequisites before running the examples
 2. compiling and uploading to KFP mentioned in [Option 2](##-Option-2.-Compiling-and-Running-by-uploading-to-Kubeflow-Pipelines)
 
 ## Option 1. Running from Kubeflow Jupyter Notebook
+
 This involves steps for building and running the pipeline from Kubeflow Jupyter notebook.
 Here the pipeline is defined in a Jupyter notebook and run directly from the Jupyter notebook.
 
@@ -37,8 +38,9 @@ Bert - [Pipeline-Bert.ipynb](Pipeline-Bert.ipynb)
 
 **[Steps to Run the example pipelines from Kubeflow Jupyter Notebook](cluster_build.md)**
 
-## Option 2. Compiling and Running by uploading to Kubeflow Pipelines 
-This involves steps to build the pipeline in local machine and run it by uploading the 
+## Option 2. Compiling and Running by uploading to Kubeflow Pipelines
+
+This involves steps to build the pipeline in local machine and run it by uploading the
 pipeline file to the Kubeflow Dashboard. Here we have a python file that defines the pipeline. The python file containing the pipeline is compiled and the generated yaml is uploaded to the KFP for creating a run out of it.
 
 Use the following python files building the pipeline locally for Cifar 10 and Bert examples
@@ -74,7 +76,7 @@ Cifar 10 HPO - [Pipeline-Cifar10-hpo.ipynb](Pipeline-Cifar10-hpo.ipynb)
 
 ## PyTorch Distributed Training with PyTorch Job Operator
 
-In this example, we deploy a pipeline to launch the distributed training of this BERT model file using the pytorch operator and deploy with torchserve using KFServing. 
+In this example, we deploy a pipeline to launch the distributed training of this BERT model file using the pytorch operator and deploy with torchserve using KServe.
 
 ### Run the notebook
 
@@ -86,4 +88,4 @@ Bert Distributed Training - [Pipeline-Bert-Dist.ipynb](Pipeline-Bert-Dist.ipynb)
 
 ## Contributing to PyTorch KFP Samples
 
-Before you start contributing to PyTorch KFP Samples, read the guidelines in [How to Contribute](contributing.md). To learn how to build and deploy PyTorch components with pytorch-kfp-components SDK. 
+Before you start contributing to PyTorch KFP Samples, read the guidelines in [How to Contribute](contributing.md). To learn how to build and deploy PyTorch components with pytorch-kfp-components SDK.

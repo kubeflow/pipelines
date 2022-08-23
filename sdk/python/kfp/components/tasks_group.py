@@ -17,8 +17,8 @@ import enum
 from typing import Optional, Union
 
 from kfp.components import for_loop
-from kfp.components import pipeline_context
 from kfp.components import pipeline_channel
+from kfp.components import pipeline_context
 from kfp.components import pipeline_task
 
 
@@ -44,24 +44,27 @@ class TasksGroup:
         groups: A list of TasksGroups in this group.
         display_name: The optional user given name of the group.
         dependencies: A list of tasks or groups this group depends on.
+        is_root: If TasksGroup is root group.
     """
 
     def __init__(
         self,
         group_type: TasksGroupType,
         name: Optional[str] = None,
+        is_root: bool = False,
     ):
         """Create a new instance of TasksGroup.
 
         Args:
           group_type: The type of the group.
-          name: Optional; the name of the group. Used as display name in UI.
+          name: The name of the group. Used as display name in UI.
         """
         self.group_type = group_type
         self.tasks = list()
         self.groups = list()
         self.display_name = name
         self.dependencies = []
+        self.is_root = is_root
 
     def __enter__(self):
         if not pipeline_context.Pipeline.get_default_pipeline():
@@ -94,8 +97,12 @@ class TasksGroup:
 
 
 class ExitHandler(TasksGroup):
-    """Represents an exit handler that is invoked upon exiting a group of
-    tasks.
+    """A class for setting an exit handler task that is invoked upon exiting a
+    group of other tasks.
+
+    Args:
+        exit_task: The task that is invoked after exiting a group of other tasks.
+        name: The name of the exit handler group.
 
     Example:
       ::
@@ -104,9 +111,6 @@ class ExitHandler(TasksGroup):
         with ExitHandler(exit_task):
             task1 = MyComponent1(...)
             task2 = MyComponent2(...)
-
-    Attributes:
-        exit_task: The exit handler task.
     """
 
     def __init__(
@@ -114,16 +118,12 @@ class ExitHandler(TasksGroup):
         exit_task: pipeline_task.PipelineTask,
         name: Optional[str] = None,
     ):
-        """Initializes a Condition task group.
-
-        Args:
-            exit_task: An operator invoked at exiting a group of ops.
-            name: Optional; the name of the exit handler group.
-
-        Raises:
-            ValueError: Raised if the exit_task is invalid.
-        """
-        super().__init__(group_type=TasksGroupType.EXIT_HANDLER, name=name)
+        """Initializes a Condition task group."""
+        super().__init__(
+            group_type=TasksGroupType.EXIT_HANDLER,
+            name=name,
+            is_root=False,
+        )
 
         if exit_task.dependent_tasks:
             raise ValueError('exit_task cannot depend on any other tasks.')
@@ -139,7 +139,12 @@ class ExitHandler(TasksGroup):
 
 
 class Condition(TasksGroup):
-    """Represents an condition group with a condition.
+    """A class for creating conditional control flow within a pipeline
+    definition.
+
+    Args:
+        condition: The condition expression. Can be constructed using constants or outputs from upstream tasks.
+        name: The name of the condition group.
 
     Example:
       ::
@@ -147,59 +152,61 @@ class Condition(TasksGroup):
         with Condition(param1=='pizza', '[param1 is pizza]'):
             task1 = MyComponent1(...)
             task2 = MyComponent2(...)
-
-    Attributes:
-        condition: The condition expression.
     """
 
     def __init__(
         self,
         condition: pipeline_channel.ConditionOperator,
         name: Optional[str] = None,
+        is_root=False,
     ):
-        """Initializes a conditional task group.
-
-        Args:
-            condition: The condition expression.
-            name: Optional; the name of the condition group.
-        """
+        """Initializes a conditional task group."""
         super().__init__(group_type=TasksGroupType.CONDITION, name=name)
         self.condition = condition
 
 
 class ParallelFor(TasksGroup):
-    """Represents a parallel for loop over a static set of items.
+    """A class for creating parallelized for loop control flow over a static
+    set of items within a pipeline definition.
+
+    Args:
+        items: The items to loop over. It can be either a constant Python list or a list output from an upstream task.
+        name: The name of the for loop group.
+        parallelism: The maximum number of concurrent iterations that can be scheduled for execution. A value of 0 represents unconstrained parallelism (default is unconstrained).
 
     Example:
       ::
 
-        with dsl.ParallelFor([{'a': 1, 'b': 10}, {'a': 2, 'b': 20}]) as item:
+        with dsl.ParallelFor(
+          items=[{'a': 1, 'b': 10}, {'a': 2, 'b': 20}],
+          parallelism=1
+        ) as item:
             task1 = MyComponent(..., item.a)
             task2 = MyComponent(..., item.b)
 
-    In this case :code:`task1` would be executed twice, once with case
-    :code:`args=['echo 1']` and once with case :code:`args=['echo 2']`::
-
-
-    Attributes:
-        loop_argument: The argument for each loop iteration.
-        items_is_pipeline_channel: Whether the loop items is PipelineChannel
-            instead of raw items.
+    In the example, the group of tasks containing ``task1`` and ``task2`` would
+    be executed twice, once with case ``args=[{'a': 1, 'b': 10}]`` and once with
+    case ``args=[{'a': 2, 'b': 20}]``. The ``parallelism=1`` setting causes only
+    1 execution to be scheduled at a time.
     """
 
     def __init__(
         self,
         items: Union[for_loop.ItemList, pipeline_channel.PipelineChannel],
         name: Optional[str] = None,
+        parallelism: Optional[int] = None,
     ):
-        """Initializes a for loop task group.
+        """Initializes a for loop task group."""
+        parallelism = parallelism or 0
+        if parallelism < 0:
+            raise ValueError(
+                f'ParallelFor parallelism must be >= 0. Got: {parallelism}.')
 
-        Args:
-            items: The argument to loop over. It can be either a raw list or a
-                pipeline channel.
-            name: Optional; the name of the for loop group.
-        """
-        super().__init__(group_type=TasksGroupType.FOR_LOOP, name=name)
+        super().__init__(
+            group_type=TasksGroupType.FOR_LOOP,
+            name=name,
+            is_root=False,
+        )
 
         if isinstance(items, pipeline_channel.PipelineChannel):
             self.loop_argument = for_loop.LoopArgument.from_pipeline_channel(
@@ -212,6 +219,8 @@ class ParallelFor(TasksGroup):
                 .get_next_group_id(),
             )
             self.items_is_pipeline_channel = False
+
+        self.parallelism_limit = parallelism
 
     def __enter__(self) -> for_loop.LoopArgument:
         super().__enter__()

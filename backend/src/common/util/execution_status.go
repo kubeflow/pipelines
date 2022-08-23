@@ -14,6 +14,14 @@
 
 package util
 
+import (
+	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/src/common"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+type RetrieveArtifact func(request *api.ReadArtifactRequest, user string) (*api.ReadArtifactResponse, error)
+
 // Abstract interface to encapsulate the resources of the execution runtime specifically
 // for status information. This interface is mainly to access the status related information
 type ExecutionStatus interface {
@@ -21,6 +29,29 @@ type ExecutionStatus interface {
 	// S3 artifact with the specified nodeID and artifactName. Returns empty if nothing is found.
 	FindObjectStoreArtifactKeyOrEmpty(nodeID string, artifactName string) string
 
-	// Get information of current phase
-	Condition() string
+	// Get information of current phase, high-level summary of where the Execution is in its lifecycle.
+	Condition() common.ExecutionPhase
+
+	// UNIX time the execution finished. If Execution is not finished, return 0
+	FinishedAt() int64
+
+	// FinishedAt in Time format
+	FinishedAtTime() v1.Time
+
+	// StartedAt in Time format
+	StartedAtTime() v1.Time
+
+	// IsInFinalState whether the workflow is in a final state.
+	IsInFinalState() bool
+
+	// details about the ExecutionSpec's current condition.
+	Message() string
+
+	// This function was in metrics_reporter.go. Moved to here because it
+	// accesses the orchestration engine specific data struct. encapsulate the
+	// specific data struct and provide a abstract function here.
+	CollectionMetrics(retrieveArtifact RetrieveArtifact, user string) ([]*api.RunMetric, []error)
+
+	// does ExecutionStatus contain any finished node or not
+	HasMetrics() bool
 }

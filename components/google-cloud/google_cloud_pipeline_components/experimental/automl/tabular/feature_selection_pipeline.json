@@ -1,0 +1,336 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-get-data-source-artifact": {
+        "executorLabel": "exec-get-data-source-artifact",
+        "inputDefinitions": {
+          "parameters": {
+            "data_source_bigquery_table_path": {
+              "type": "STRING"
+            },
+            "data_source_csv_filenames": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "data_source_artifact": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-tabular-feature-ranking-and-selection": {
+        "executorLabel": "exec-tabular-feature-ranking-and-selection",
+        "inputDefinitions": {
+          "artifacts": {
+            "data_source": {
+              "artifactType": {
+                "schemaTitle": "system.Dataset",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "algorithm": {
+              "type": "STRING"
+            },
+            "binary_classification": {
+              "type": "STRING"
+            },
+            "dataflow_disk_size_gb": {
+              "type": "INT"
+            },
+            "dataflow_machine_type": {
+              "type": "STRING"
+            },
+            "dataflow_max_num_workers": {
+              "type": "INT"
+            },
+            "dataflow_subnetwork": {
+              "type": "STRING"
+            },
+            "dataflow_use_public_ips": {
+              "type": "STRING"
+            },
+            "encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "max_selected_features": {
+              "type": "INT"
+            },
+            "prediction_type": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "root_dir": {
+              "type": "STRING"
+            },
+            "target_column_name": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "feature_ranking": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "selected_features": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "gcp_resources": {
+              "type": "STRING"
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-get-data-source-artifact": {
+          "container": {
+            "args": [
+              "--data-source-csv-filenames",
+              "{{$.inputs.parameters['data_source_csv_filenames']}}",
+              "--data-source-bigquery-table-path",
+              "{{$.inputs.parameters['data_source_bigquery_table_path']}}",
+              "--data-source-artifact",
+              "{{$.outputs.artifacts['data_source_artifact'].path}}"
+            ],
+            "command": [
+              "sh",
+              "-ec",
+              "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+              "def _make_parent_dirs_and_return_path(file_path: str):\n    import os\n    os.makedirs(os.path.dirname(file_path), exist_ok=True)\n    return file_path\n\ndef _get_data_source_artifact(\n    data_source_csv_filenames,\n    data_source_bigquery_table_path,\n    data_source_artifact,\n):\n  \"\"\"Compose data source artifact from serialized data source string input.\n\n  Args:\n    data_source_csv_filenames: A string that represents a list of comma\n      separated CSV filenames.\n    data_source_bigquery_table_path: The BigQuery table path of format\n      bq://bq_project.bq_dataset.bq_table\n    data_source_artifact: artifact uri for input data source.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  import json\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  if data_source_csv_filenames:\n    data_source_dict = {\n        'csv_data_source': {\n            'csv_filenames': data_source_csv_filenames.split(',')\n        }\n    }\n  elif data_source_bigquery_table_path:\n    data_source_dict = {\n        'big_query_data_source': {\n            'big_query_table_path': data_source_bigquery_table_path\n        }\n    }\n  else:\n    raise ValueError(\n        'One of data_source_csv_filenames and data_source_bigquery_table_path must be specified.'\n    )\n  with open(data_source_artifact, 'w') as f:\n    f.write(json.dumps(data_source_dict))\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Get data source artifact', description='Compose data source artifact from serialized data source string input.')\n_parser.add_argument(\"--data-source-csv-filenames\", dest=\"data_source_csv_filenames\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--data-source-bigquery-table-path\", dest=\"data_source_bigquery_table_path\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--data-source-artifact\", dest=\"data_source_artifact\", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs = _get_data_source_artifact(**_parsed_args)\n"
+            ],
+            "image": "python:3.7-slim"
+          }
+        },
+        "exec-tabular-feature-ranking-and-selection": {
+          "container": {
+            "args": [
+              "--type",
+              "CustomJob",
+              "--project",
+              "{{$.inputs.parameters['project']}}",
+              "--location",
+              "{{$.inputs.parameters['location']}}",
+              "--gcp_resources",
+              "{{$.outputs.parameters['gcp_resources'].output_file}}",
+              "--payload",
+              "{\"display_name\": \"tabular-feature-selection-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\": {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20220727_0325_RC00\", \"args\": [\"feature_selection\", \"--data_source={{$.inputs.artifacts['data_source'].uri}}\", \"--target_column={{$.inputs.parameters['target_column_name']}}\", \"--prediction_type={{$.inputs.parameters['prediction_type']}}\", \"--binary_classification={{$.inputs.parameters['binary_classification']}}\", \"--algorithm={{$.inputs.parameters['algorithm']}}\", \"--feature_selection_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/feature_selection/\", \"--job_name=tabular-feature-selection-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"--dataflow_project={{$.inputs.parameters['project']}}\", \"--error_file_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--dataflow_staging_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging\", \"--dataflow_tmp_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\", \"--dataflow_max_num_workers={{$.inputs.parameters['dataflow_max_num_workers']}}\", \"--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220727_0325_RC00\", \"--dataflow_machine_type={{$.inputs.parameters['dataflow_machine_type']}}\", \"--dataflow_disk_size_gb={{$.inputs.parameters['dataflow_disk_size_gb']}}\", \"--dataflow_subnetwork_fully_qualified={{$.inputs.parameters['dataflow_subnetwork']}}\", \"--dataflow_use_public_ips={{$.inputs.parameters['dataflow_use_public_ips']}}\", \"--dataflow_kms_key={{$.inputs.parameters['encryption_spec_key_name']}}\", \"--max_selected_features={{$.inputs.parameters['max_selected_features']}}\", \"--feature_selection_result_path={{$.outputs.artifacts['feature_ranking'].uri}}\", \"--selected_features_path={{$.outputs.artifacts['selected_features'].uri}}\", \"--parse_json=true\"]}}]}}"
+            ],
+            "command": [
+              "python3",
+              "-u",
+              "-m",
+              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+            ],
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "feature-selection"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "get-data-source-artifact": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-get-data-source-artifact"
+            },
+            "inputs": {
+              "parameters": {
+                "data_source_bigquery_table_path": {
+                  "componentInputParameter": "data_source_bigquery_table_path"
+                },
+                "data_source_csv_filenames": {
+                  "componentInputParameter": "data_source_csv_filenames"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "get-data-source-artifact"
+            }
+          },
+          "tabular-feature-ranking-and-selection": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-tabular-feature-ranking-and-selection"
+            },
+            "dependentTasks": [
+              "get-data-source-artifact"
+            ],
+            "inputs": {
+              "artifacts": {
+                "data_source": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "data_source_artifact",
+                    "producerTask": "get-data-source-artifact"
+                  }
+                }
+              },
+              "parameters": {
+                "algorithm": {
+                  "componentInputParameter": "algorithm"
+                },
+                "binary_classification": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "false"
+                    }
+                  }
+                },
+                "dataflow_disk_size_gb": {
+                  "componentInputParameter": "stats_and_example_gen_dataflow_disk_size_gb"
+                },
+                "dataflow_machine_type": {
+                  "componentInputParameter": "stats_and_example_gen_dataflow_machine_type"
+                },
+                "dataflow_max_num_workers": {
+                  "componentInputParameter": "stats_and_example_gen_dataflow_max_num_workers"
+                },
+                "dataflow_subnetwork": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": ""
+                    }
+                  }
+                },
+                "dataflow_use_public_ips": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "true"
+                    }
+                  }
+                },
+                "encryption_spec_key_name": {
+                  "componentInputParameter": "encryption_spec_key_name"
+                },
+                "location": {
+                  "componentInputParameter": "location"
+                },
+                "max_selected_features": {
+                  "componentInputParameter": "max_selected_features"
+                },
+                "prediction_type": {
+                  "componentInputParameter": "prediction_type"
+                },
+                "project": {
+                  "componentInputParameter": "project"
+                },
+                "root_dir": {
+                  "componentInputParameter": "root_dir"
+                },
+                "target_column_name": {
+                  "componentInputParameter": "target_column_name"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "tabular-feature-ranking-and-selection"
+            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "algorithm": {
+            "type": "STRING"
+          },
+          "data_source_bigquery_table_path": {
+            "type": "STRING"
+          },
+          "data_source_csv_filenames": {
+            "type": "STRING"
+          },
+          "encryption_spec_key_name": {
+            "type": "STRING"
+          },
+          "location": {
+            "type": "STRING"
+          },
+          "max_selected_features": {
+            "type": "INT"
+          },
+          "prediction_type": {
+            "type": "STRING"
+          },
+          "project": {
+            "type": "STRING"
+          },
+          "root_dir": {
+            "type": "STRING"
+          },
+          "stats_and_example_gen_dataflow_disk_size_gb": {
+            "type": "INT"
+          },
+          "stats_and_example_gen_dataflow_machine_type": {
+            "type": "STRING"
+          },
+          "stats_and_example_gen_dataflow_max_num_workers": {
+            "type": "INT"
+          },
+          "target_column_name": {
+            "type": "STRING"
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.8.11"
+  },
+  "runtimeConfig": {
+    "parameters": {
+      "algorithm": {
+        "stringValue": "AMI"
+      },
+      "data_source_bigquery_table_path": {
+        "stringValue": ""
+      },
+      "data_source_csv_filenames": {
+        "stringValue": ""
+      },
+      "encryption_spec_key_name": {
+        "stringValue": ""
+      },
+      "max_selected_features": {
+        "intValue": "1000"
+      },
+      "stats_and_example_gen_dataflow_disk_size_gb": {
+        "intValue": "40"
+      },
+      "stats_and_example_gen_dataflow_machine_type": {
+        "stringValue": "n1-standard-16"
+      },
+      "stats_and_example_gen_dataflow_max_num_workers": {
+        "intValue": "25"
+      }
+    }
+  }
+}

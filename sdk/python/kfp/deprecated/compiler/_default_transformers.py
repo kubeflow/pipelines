@@ -14,7 +14,7 @@
 
 import warnings
 from kubernetes import client as k8s_client
-from typing import Callable, Dict, Optional, Text
+from typing import Callable, Dict, Optional
 from kfp.deprecated.dsl._container_op import BaseOp, ContainerOp
 
 

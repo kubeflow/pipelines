@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import kfp.deprecated.dsl as dsl
 from kfp.deprecated.dsl import graph_component
+import kfp.deprecated.dsl as dsl
 
 
 class FlipCoinOp(dsl.ContainerOp):

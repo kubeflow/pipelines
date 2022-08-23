@@ -14,7 +14,7 @@
 
 # Generate client code (go & json) from API protocol buffers
 FROM golang:1.15.10 as generator
-ENV GRPC_GATEWAY_VERSION v1.9.0
+ENV GRPC_GATEWAY_VERSION v1.9.6
 ENV GO_SWAGGER_VERSION v0.18.0
 ENV GOLANG_PROTOBUF_VERSION v1.5.1
 ENV GRPC_VERSION v1.23.0

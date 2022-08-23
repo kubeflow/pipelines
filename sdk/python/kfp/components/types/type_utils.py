@@ -14,8 +14,8 @@
 """Utilities for component I/O type mapping."""
 import inspect
 import re
+from typing import Any, List, Optional, Type, Union
 import warnings
-from typing import List, Optional, Type, Union
 
 import kfp
 from kfp.components import task_final_status
@@ -204,12 +204,10 @@ def get_input_artifact_type_schema(
 class InconsistentTypeException(Exception):
     """InconsistencyTypeException is raised when two types are not
     consistent."""
-    pass
 
 
 class InconsistentTypeWarning(Warning):
     """InconsistentTypeWarning is issued when two types are not consistent."""
-    pass
 
 
 def verify_type_compatibility(
@@ -343,3 +341,57 @@ class TypeCheckManager:
     def __exit__(self, *unused_args) -> None:
         """Restore type check mode to its previous state."""
         kfp.TYPE_CHECK = self._prev
+
+
+# for reading in IR back to in-memory data structures
+IR_TYPE_TO_IN_MEMORY_SPEC_TYPE = {
+    'STRING':
+        'String',
+    'NUMBER_INTEGER':
+        'Integer',
+    'NUMBER_DOUBLE':
+        'Float',
+    'LIST':
+        'List',
+    'STRUCT':
+        'Dict',
+    'BOOLEAN':
+        'Boolean',
+    artifact_types.Artifact.TYPE_NAME:
+        'Artifact',
+    artifact_types.Model.TYPE_NAME:
+        'Model',
+    artifact_types.Dataset.TYPE_NAME:
+        'Dataset',
+    artifact_types.Metrics.TYPE_NAME:
+        'Metrics',
+    artifact_types.ClassificationMetrics.TYPE_NAME:
+        'ClassificationMetrics',
+    artifact_types.SlicedClassificationMetrics.TYPE_NAME:
+        'SlicedClassificationMetrics',
+    artifact_types.HTML.TYPE_NAME:
+        'HTML',
+    artifact_types.Markdown.TYPE_NAME:
+        'Markdown',
+}
+
+
+def get_canonical_name_for_outer_generic(type_name: Any) -> str:
+    """Maps a complex/nested type name back to a canonical type.
+
+    E.g.
+        >>> get_canonical_name_for_outer_generic('typing.List[str]')
+        'List'
+        >>> get_canonical_name_for_outer_generic('typing.Dict[typing.List[str], str]')
+        'Dict'
+
+    Args:
+        type_name (Any): The type. Returns input if not a string.
+
+    Returns:
+        str: The canonical type.
+    """
+    if not isinstance(type_name, str) or not type_name.startswith('typing.'):
+        return type_name
+
+    return type_name.lstrip('typing.').split('[')[0]

@@ -38,7 +38,15 @@ def camel_case_to_snake_case_recursive(j):
 def __remove_empty(j):
   """Remove the empty fields in the Json."""
   if isinstance(j, list):
-    return list(filter(None, [__remove_empty(i) for i in j]))
+    res = []
+    for i in j:
+      # Don't remove empty primitive types. Only remove other empty types.
+      if isinstance(i, int) or isinstance(i, float) or isinstance(
+          i, str) or isinstance(i, bool):
+        res.append(i)
+      elif __remove_empty(i):
+        res.append(__remove_empty(i))
+    return res
 
   if isinstance(j, dict):
     final_dict = {}

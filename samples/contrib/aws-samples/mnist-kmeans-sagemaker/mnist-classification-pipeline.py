@@ -87,7 +87,7 @@ def mnist_classification(role_arn="", bucket_name=""):
         input_config=[
             processing_input(
                 "mnist_tar",
-                "s3://sagemaker-sample-data-us-east-1/algorithms/kmeans/mnist/mnist.pkl.gz",
+                "s3://sagemaker-sample-files/datasets/image/MNIST/mnist.pkl.gz",
                 "/opt/ml/processing/input",
             ),
             processing_input(
