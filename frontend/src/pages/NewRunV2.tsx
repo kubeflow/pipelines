@@ -76,6 +76,7 @@ interface RunV2Props {
   existingPipelineVersion: ApiPipelineVersion | undefined;
   handlePipelineVersionIdChange: (pipelineVersionId: string) => void;
   templateString: string | undefined;
+  chosenExperiment: ApiExperiment | undefined;
 }
 
 type NewRunV2Props = RunV2Props & PageProps;
@@ -98,16 +99,18 @@ function hasVersionID(apiRun: ApiRunDetail | undefined): boolean {
 
 function NewRunV2(props: NewRunV2Props) {
   // List of elements we need to create Pipeline Run.
-  const [pipelineName, setPipelineName] = useState('');
-  const [pipelineVersionName, setPipelineVersionName] = useState('');
   const [runName, setRunName] = useState('');
   const [runDescription, setRunDescription] = useState('');
   const [pipeline, setPipeline] = useState<ApiPipeline>();
+  const [pipelineName, setPipelineName] = useState('');
   const [updatedPipeline, setUpdatedPipeline] = useState<ApiPipeline>();
   const [pipelineVersion, setPipelineVersion] = useState<ApiPipelineVersion>();
+  const [pipelineVersionName, setPipelineVersionName] = useState('');
   const [updatedPipelineVersion, setUpdatedPipelineVersion] = useState<ApiPipelineVersion>();
   // const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [experimentId, setExperimentId] = useState('');
   const [apiExperiment, setApiExperiment] = useState<ApiExperiment>();
+  const [experimentName, setExperimentName] = useState('');
   const [serviceAccount, setServiceAccount] = useState('');
   const [specParameters, setSpecParameters] = useState<SpecParameters>({});
   const [runtimeParameters, setRuntimeParameters] = useState<RuntimeParameters>({});
@@ -121,7 +124,16 @@ function NewRunV2(props: NewRunV2Props) {
   // TODO(zijianjoy): If creating run from Experiment Page or RunList Page, there is no pipelineId/Version.
   const urlParser = new URLParser(props);
   const usePipelineFromRunLabel = 'Using pipeline from existing run.';
-  const { apiRun, existingPipeline, existingPipelineVersion, templateString, existingRunId, handlePipelineIdChange, handlePipelineVersionIdChange,} = props;
+  const {
+    existingRunId,
+    apiRun,
+    existingPipeline,
+    handlePipelineIdChange,
+    existingPipelineVersion,
+    handlePipelineVersionIdChange,
+    templateString,
+    chosenExperiment,
+  } = props;
   const pipelineDetailsUrl = existingRunId
     ? RoutePage.PIPELINE_DETAILS.replace(
         ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
@@ -143,11 +155,13 @@ function NewRunV2(props: NewRunV2Props) {
   useEffect(() => {
     setPipeline(existingPipeline);
     setPipelineVersion(existingPipelineVersion);
-  }, [existingPipeline, existingPipelineVersion]);
+    setApiExperiment(chosenExperiment);
+  }, [existingPipeline, existingPipelineVersion, chosenExperiment]);
 
   useEffect(() => {
     if (updatedPipeline?.id) {
       const searchString = urlParser.build({
+        [QUERY_PARAMS.experimentId]: experimentId || '',
         [QUERY_PARAMS.pipelineId]: updatedPipeline.id || '',
         [QUERY_PARAMS.pipelineVersionId]: '',
       });
@@ -155,16 +169,19 @@ function NewRunV2(props: NewRunV2Props) {
       handlePipelineVersionIdChange('');
       handlePipelineIdChange(updatedPipeline.id);
     }
+  }, [updatedPipeline]);
 
+  useEffect(() => {
     if (pipeline?.id && updatedPipelineVersion?.id) {
       const searchString = urlParser.build({
+        [QUERY_PARAMS.experimentId]: experimentId || '',
         [QUERY_PARAMS.pipelineId]: pipeline.id || '',
         [QUERY_PARAMS.pipelineVersionId]: updatedPipelineVersion.id || '',
       });
       props.history.replace(searchString);
       handlePipelineVersionIdChange(updatedPipelineVersion.id);
     }
-  }, [updatedPipeline, updatedPipelineVersion]);
+  }, [updatedPipelineVersion]);
 
   // Title and list of actions on the top of page.
   useEffect(() => {
@@ -184,7 +201,13 @@ function NewRunV2(props: NewRunV2Props) {
     if (pipelineVersion?.name) {
       setPipelineVersionName(pipelineVersion.name);
     }
-  }, [pipeline, pipelineVersion]);
+    if (apiExperiment?.name) {
+      setExperimentName(apiExperiment.name);
+    }
+    if (apiExperiment?.id) {
+      setExperimentId(apiExperiment.id);
+    }
+  }, [pipeline, pipelineVersion, apiExperiment]);
 
   // When loading a pipeline version, automatically set the default run name.
   useEffect(() => {
@@ -208,6 +231,8 @@ function NewRunV2(props: NewRunV2Props) {
     const params = spec.root?.inputDefinitions?.parameters;
     if (params) {
       setSpecParameters(params);
+    } else {
+      setSpecParameters({});
     }
 
     const root = spec.defaultPipelineRoot;
@@ -372,7 +397,13 @@ function NewRunV2(props: NewRunV2Props) {
 
         {/* Experiment selection */}
         <div>This run will be associated with the following experiment</div>
-        <ExperimentSelector {...props} setApiExperiment={setApiExperiment} />
+        <ExperimentSelector
+          {...props}
+          experimentName={experimentName}
+          setExperimentId={setExperimentId}
+          setExperimentName={setExperimentName}
+          setApiExperiment={setApiExperiment}
+        />
 
         {/* Service account selection */}
         <div>
@@ -680,19 +711,21 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
 
 interface ExperimentSelectorSpecificProps {
   namespace?: string;
+  experimentName: string | undefined;
+  setExperimentId: (experimentId: string) => void;
+  setExperimentName: (experimentName: string) => void;
   setApiExperiment: (apiExperiment: ApiExperiment) => void;
 }
 type ExperimentSelectorProps = PageProps & ExperimentSelectorSpecificProps;
 
 function ExperimentSelector(props: ExperimentSelectorProps) {
-  const [experimentName, setExperimentName] = useState('');
-
-  const [pendingExperiment, setPendingExperiment] = useState<ApiExperiment>();
   const [experimentSelectorOpen, setExperimentSelectorOpen] = useState(false);
+  const [pendingExperiment, setPendingExperiment] = useState<ApiExperiment>();
+
   return (
     <>
       <Input
-        value={experimentName}
+        value={props.experimentName}
         // TODO(jlyaoyuli): prefill the experimentName if experimentId is existing
         required={true}
         label='Experiment'
@@ -779,9 +812,10 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
           <Button
             id='useExperimentBtn'
             onClick={() => {
-              if (pendingExperiment && pendingExperiment.name) {
+              if (pendingExperiment && pendingExperiment.id && pendingExperiment.name) {
                 props.setApiExperiment(pendingExperiment);
-                setExperimentName(pendingExperiment.name);
+                props.setExperimentId(pendingExperiment.id)
+                props.setExperimentName(pendingExperiment.name);
               }
               setExperimentSelectorOpen(false);
             }}
