@@ -89,6 +89,22 @@ class InputSpec(InputSpec_, base_model.BaseModel):
         default = ir_parameter_dict.get('defaultValue')
         return InputSpec(type=type_, default=default)
 
+    @classmethod
+    def from_ir_artifact_dict(cls, ir_artifact_dict: Dict[str,
+                                                          Any]) -> 'InputSpec':
+        """Creates an InputSpec from a ComponentInputsSpec message in dict
+        format (pipeline_spec.components.<component-
+        key>.inputDefinitions.artifacts.<input-key>).
+
+        Args:
+            ir_artifact_dict (Dict[str, Any]): The ComponentInputsSpec message in dict format.
+
+        Returns:
+            InputSpec: The InputSpec object.
+        """
+        schema_title = ir_artifact_dict['artifactType']['schemaTitle']
+        return InputSpec(type=schema_title.lstrip('system.'))
+
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for InputSpec. Robust to different type
         representations, such that it respects the maximum amount of
@@ -140,6 +156,22 @@ class OutputSpec(base_model.BaseModel):
                 f'Unknown type {ir_parameter_dict["parameterType"]} found in IR.'
             )
         return OutputSpec(type=type_)
+
+    @classmethod
+    def from_ir_artifact_dict(cls, ir_artifact_dict: Dict[str,
+                                                          Any]) -> 'OutputSpec':
+        """Creates an OutputSpec from a ComponentOutputsSpec message in dict
+        format (pipeline_spec.components.<component-
+        key>.outputDefinitions.artifacts.<input-key>).
+
+        Args:
+            ir_artifact_dict (Dict[str, Any]): The ComponentOutputsSpec message in dict format.
+
+        Returns:
+            OutputSpec: The InputSpec object.
+        """
+        schema_title = ir_artifact_dict['artifactType']['schemaTitle']
+        return OutputSpec(type=schema_title.lstrip('system.'))
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for OutputSpec. Robust to different type
@@ -586,21 +618,48 @@ class ComponentSpec(base_model.BaseModel):
             'env': container['env']
         })
 
+        def is_known_parameter_type(type_name: str) -> bool:
+            return type_name.lower() in {
+                **type_utils._PARAMETER_TYPES_MAPPING,
+                **type_utils._ARTIFACT_CLASSES_MAPPING
+            }
+
+        inputs = {}
+        for spec in component_dict.get('inputs', []):
+            stated_type = spec.get('type')
+            if isinstance(stated_type,
+                          str) and (is_known_parameter_type(stated_type) or
+                                    re.match(type_utils._GOOGLE_TYPES_PATTERN,
+                                             stated_type.lower()) or
+                                    stated_type == 'PipelineTaskFinalStatus'):
+                type_ = stated_type
+                default = spec.get('default', None)
+            else:
+                type_ = 'Artifact'
+                default = None
+            inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
+                type=type_, default=default)
+
+        outputs = {}
+        for spec in component_dict.get('outputs', []):
+            stated_type = spec.get('type')
+            if isinstance(stated_type,
+                          str) and (is_known_parameter_type(stated_type) or
+                                    re.match(type_utils._GOOGLE_TYPES_PATTERN,
+                                             stated_type.lower())):
+                type_ = stated_type
+            else:
+                type_ = 'Artifact'
+            outputs[utils.sanitize_input_name(
+                spec['name'])] = OutputSpec(type=type_)
+
         return ComponentSpec(
             name=component_dict.get('name', 'name'),
             description=component_dict.get('description'),
             implementation=Implementation(container=container_spec),
-            inputs={
-                utils.sanitize_input_name(spec['name']): InputSpec(
-                    type=spec.get('type', 'Artifact'),
-                    default=spec.get('default', None))
-                for spec in component_dict.get('inputs', [])
-            },
-            outputs={
-                utils.sanitize_input_name(spec['name']):
-                OutputSpec(type=spec.get('type', 'Artifact'))
-                for spec in component_dict.get('outputs', [])
-            })
+            inputs=inputs,
+            outputs=outputs,
+        )
 
     @classmethod
     def from_pipeline_spec_dict(
@@ -616,10 +675,18 @@ class ComponentSpec(base_model.BaseModel):
             component_key = utils._COMPONENT_NAME_PREFIX + component_name
             parameters = components_dict[component_key].get(
                 'inputDefinitions', {}).get('parameters', {})
-            return {
+            parameter_input_specs = {
                 name: InputSpec.from_ir_parameter_dict(parameter_dict)
                 for name, parameter_dict in parameters.items()
             }
+
+            artifacts = components_dict[component_key].get(
+                'inputDefinitions', {}).get('artifacts', {})
+            artifact_input_specs = {
+                name: InputSpec.from_ir_artifact_dict(artifact_dict)
+                for name, artifact_dict in artifacts.items()
+            }
+            return {**parameter_input_specs, **artifact_input_specs}
 
         def outputs_dict_from_components_dict(
                 components_dict: Dict[str, Any],
