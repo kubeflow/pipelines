@@ -430,15 +430,13 @@ class TestCompilePipeline(parameterized.TestCase):
         @dsl.pipeline(name='test-pipeline')
         def my_pipeline():
             consumer_op(input1=producer_op1().output)
-            consumer_op(input1=producer_op2().output)
 
-        with self.assertRaisesRegex(
-                type_utils.InconsistentTypeException,
-                'Incompatible argument passed to the input "input1" of component'
-                ' "consumer-op": Argument type "SomeArbitraryType" is'
-                ' incompatible with the input type "Dataset"'):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            target_yaml_file = os.path.join(tmpdir, 'result.yaml')
             compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path='result.yaml')
+                pipeline_func=my_pipeline, package_path=target_yaml_file)
+
+            self.assertTrue(os.path.exists(target_yaml_file))
 
     def test_invalid_data_dependency_loop(self):
 
