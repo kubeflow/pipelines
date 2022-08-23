@@ -25,7 +25,7 @@ class VertexDataset(dsl.Artifact):
 
 
 consumer_op = components.load_component_from_text("""
-name: producer
+name: consumer_op
 inputs:
   - {name: dataset, type: google.VertexDataset}
 implementation:
