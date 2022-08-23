@@ -814,7 +814,7 @@ export class NewRun extends Page<
   }
 
   protected async _pipelineSelectorClosed(confirmed: boolean): Promise<void> {
-    let { parameters, pipeline, pipelineVersion } = this.state;
+    let { parameters, pipeline, pipelineVersion, experiment } = this.state;
     const urlParser = new URLParser(this.props);
     if (confirmed && this.state.unconfirmedSelectedPipeline) {
       pipeline = this.state.unconfirmedSelectedPipeline;
@@ -828,6 +828,7 @@ export class NewRun extends Page<
       }
       if (isFeatureEnabled(FeatureKey.V2_ALPHA) && this.state.unconfirmedSelectedPipeline.id) {
         const searchString = urlParser.build({
+          [QUERY_PARAMS.experimentId]: experiment?.id || '',
           [QUERY_PARAMS.pipelineId]: this.state.unconfirmedSelectedPipeline.id || '',
           [QUERY_PARAMS.pipelineVersionId]: '',
         });
@@ -851,7 +852,7 @@ export class NewRun extends Page<
   }
 
   protected async _pipelineVersionSelectorClosed(confirmed: boolean): Promise<void> {
-    let { parameters, pipelineVersion, pipeline } = this.state;
+    let { parameters, pipelineVersion, pipeline, experiment } = this.state;
     const urlParser = new URLParser(this.props);
     if (confirmed && this.state.unconfirmedSelectedPipelineVersion) {
       pipelineVersion = this.state.unconfirmedSelectedPipelineVersion;
@@ -862,6 +863,7 @@ export class NewRun extends Page<
         this.state.unconfirmedSelectedPipelineVersion.id
       ) {
         const searchString = urlParser.build({
+          [QUERY_PARAMS.experimentId]: experiment?.id || '',
           [QUERY_PARAMS.pipelineId]: pipeline.id || '',
           [QUERY_PARAMS.pipelineVersionId]: this.state.unconfirmedSelectedPipelineVersion.id || '',
         });

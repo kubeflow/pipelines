@@ -11,6 +11,7 @@ import { PageProps } from './Page';
 import { isTemplateV2 } from 'src/lib/v2/WorkflowUtils';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import { ApiRunDetail } from 'src/apis/run';
+import { ApiExperiment } from 'src/apis/experiment';
 
 function NewRunSwitcher(props: PageProps) {
   const namespace = React.useContext(NamespaceContext);
@@ -23,7 +24,7 @@ function NewRunSwitcher(props: PageProps) {
   const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
   const embeddedRunId = urlParser.get(QUERY_PARAMS.fromRunId);
   const [pipelineId, setPipelineId] = useState(urlParser.get(QUERY_PARAMS.pipelineId));
-  // const experimentId = urlParser.get(QUERY_PARAMS.experimentId);
+  const experimentId = urlParser.get(QUERY_PARAMS.experimentId);
   const [pipelineVersionIdParam, setPipelineVersionIdParam] = useState(
     urlParser.get(QUERY_PARAMS.pipelineVersionId),
   );
@@ -86,6 +87,17 @@ function NewRunSwitcher(props: PageProps) {
     { enabled: !!apiPipelineVersion, staleTime: Infinity },
   );
 
+  const { data: apiExperiment } = useQuery<ApiExperiment, Error>(
+    [experimentId],
+    async () => {
+      if (!experimentId) {
+        throw new Error('Experiment ID is missing');
+      }
+      return Apis.experimentServiceApi.getExperiment(experimentId);
+    },
+    { staleTime: Infinity },
+  );
+
   const templateString =
     templateStrFromRunId === '' ? templateStrFromPipelineId : templateStrFromRunId;
 
@@ -104,6 +116,7 @@ function NewRunSwitcher(props: PageProps) {
           existingPipelineVersion={apiPipelineVersion}
           handlePipelineVersionIdChange={setPipelineVersionIdParam}
           templateString={templateString}
+          chosenExperiment={apiExperiment}
         />
       );
     }
