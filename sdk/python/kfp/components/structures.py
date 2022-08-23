@@ -168,7 +168,7 @@ class OutputSpec(base_model.BaseModel):
             ir_artifact_dict (Dict[str, Any]): The ComponentOutputsSpec message in dict format.
 
         Returns:
-            OutputSpec: The InputSpec object.
+            OutputSpec: The OutputSpec object.
         """
         schema_title = ir_artifact_dict['artifactType']['schemaTitle']
         return OutputSpec(type=schema_title.lstrip('system.'))
