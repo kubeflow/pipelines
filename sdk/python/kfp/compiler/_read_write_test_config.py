@@ -82,6 +82,9 @@ CONFIG = {
             'if_placeholder_component',
             'add_component',
             'ingestion_component',
+            'fancy_trainer_component',
+            'trainer_component',
+            'serving_component',
         ],
         'test_data_dir': 'sdk/python/kfp/compiler/test_data/v1_component_yaml',
         'config': {
