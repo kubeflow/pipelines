@@ -1,0 +1,39 @@
+name: resolve_vertex_model
+description: |
+  Imports a model evaluation artifact to an existing Vertex model with ModelService.ImportModelEvaluation
+  Args:
+    model (Optional[google.VertexModel]):
+      model or model_name is required.
+      Vertex model resource with a resourceName attribute in the format of projects/{project}/locations/{location}/models/{model} or projects/{project}/locations/{location}/models/{model}@{model_version_id or model_version_alias}
+    model_name (Optional[str]):
+      model or model_name is required.
+      Vertex model resource name in the format of projects/{project}/locations/{location}/models/{model}
+    model_version (Optional[str]):
+      The desired Vertex Model version to resolve.
+      If model and model_version are provided, model_version will override any version or aliasing
+      that the resourceName attribute on model contains.
+inputs:
+  - {name: model, type: google.VertexModel, optional: True}
+  - {name: model_name, type: String, default: ''}
+  - {name: model_version, type: String, default: ''}
+outputs:
+  - {name: model, type: google.VertexModel}
+  - {name: gcp_resources, type: String}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.experimental.model.resolve_vertex_model]
+    args:
+      - if:
+          cond: {isPresent: model}
+          then:
+          - --model_artifact_resource_name
+          - "{{$.inputs.artifacts['model'].metadata['resourceName']}}"
+      - --model_name
+      - {inputValue: model_name}
+      - --model_version
+      - {inputValue: model_version}
+      - --gcp_resources
+      - {outputPath: gcp_resources}
+      - --executor_input
+      - "{{$}}"
