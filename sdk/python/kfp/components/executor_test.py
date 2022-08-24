@@ -119,6 +119,21 @@ class ExecutorTest(unittest.TestCase):
 
         self._get_executor(test_func).execute()
 
+    def test_input_artifact_custom_type(self):
+
+        class VertexDataset(Dataset):
+            pass
+
+        def test_func(input_artifact_one_path: Input[VertexDataset]):
+            self.assertEqual(input_artifact_one_path.uri,
+                             'gs://some-bucket/input_artifact_one')
+            self.assertEqual(
+                input_artifact_one_path.path,
+                os.path.join(self._test_dir, 'some-bucket/input_artifact_one'))
+            self.assertEqual(input_artifact_one_path.name, 'input_artifact_one')
+
+        self._get_executor(test_func).execute()
+
     def test_input_artifact(self):
 
         def test_func(input_artifact_one_path: Input[Dataset]):
@@ -688,6 +703,104 @@ class ExecutorTest(unittest.TestCase):
                         'Error message: The DAG failed because some tasks failed. The failed tasks are: [fail-op].'
                 },
             })
+
+    @parameterized.parameters(
+        {
+            'runtime_artifact': {
+                'metadata': {},
+                'name': 'input_artifact_one',
+                'type': {
+                    'schemaTitle': 'system.Artifact'
+                },
+                'uri': 'gs://some-bucket/input_artifact_one'
+            },
+            'expected_type': artifact_types.Artifact,
+        },
+        {
+            'runtime_artifact': {
+                'metadata': {},
+                'name': 'input_artifact_one',
+                'type': {
+                    'schemaTitle': 'system.Model'
+                },
+                'uri': 'gs://some-bucket/input_artifact_one'
+            },
+            'expected_type': artifact_types.Model,
+        },
+        {
+            'runtime_artifact': {
+                'metadata': {},
+                'name': 'input_artifact_one',
+                'type': {
+                    'schemaTitle': 'system.Dataset'
+                },
+                'uri': 'gs://some-bucket/input_artifact_one'
+            },
+            'expected_type': artifact_types.Dataset,
+        },
+        {
+            'runtime_artifact': {
+                'metadata': {},
+                'name': 'input_artifact_one',
+                'type': {
+                    'schemaTitle': 'system.Metrics'
+                },
+                'uri': 'gs://some-bucket/input_artifact_one'
+            },
+            'expected_type': artifact_types.Metrics,
+        },
+        {
+            'runtime_artifact': {
+                'metadata': {},
+                'name': 'input_artifact_one',
+                'type': {
+                    'schemaTitle': 'system.ClassificationMetrics'
+                },
+                'uri': 'gs://some-bucket/input_artifact_one'
+            },
+            'expected_type': artifact_types.ClassificationMetrics,
+        },
+        {
+            'runtime_artifact': {
+                'metadata': {},
+                'name': 'input_artifact_one',
+                'type': {
+                    'schemaTitle': 'system.SlicedClassificationMetrics'
+                },
+                'uri': 'gs://some-bucket/input_artifact_one'
+            },
+            'expected_type': artifact_types.SlicedClassificationMetrics,
+        },
+        {
+            'runtime_artifact': {
+                'metadata': {},
+                'name': 'input_artifact_one',
+                'type': {
+                    'schemaTitle': 'system.HTML'
+                },
+                'uri': 'gs://some-bucket/input_artifact_one'
+            },
+            'expected_type': artifact_types.HTML,
+        },
+        {
+            'runtime_artifact': {
+                'metadata': {},
+                'name': 'input_artifact_one',
+                'type': {
+                    'schemaTitle': 'system.Markdown'
+                },
+                'uri': 'gs://some-bucket/input_artifact_one'
+            },
+            'expected_type': artifact_types.Markdown,
+        },
+    )
+    def test_create_artifact_instance(
+        self,
+        runtime_artifact,
+        expected_type,
+    ):
+        self.assertIsInstance(
+            executor.create_artifact_instance(runtime_artifact), expected_type)
 
 
 if __name__ == '__main__':
