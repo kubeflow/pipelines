@@ -1058,6 +1058,29 @@ class TestCompileComponent(parameterized.TestCase):
             args_to_check[5],
             "{{$.outputs.parameters['model_config_path'].output_file}}")
 
+    def test_compile_container_with_default_parameter(self):
+
+        @dsl.container_component
+        def container_with_default_parameter(
+                output_path: dsl.OutputPath(str), text: str = 'hi'):
+            return dsl.ContainerSpec(
+                image='python:3.7',
+                command=['my_program', text],
+                args=['--output_path', output_path])
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=container_with_default_parameter,
+                package_path=output_yaml,
+                pipeline_name='container-with-default-parameter')
+            with open(output_yaml, 'r') as f:
+                pipeline_spec = yaml.safe_load(f)
+        self.assertEqual(
+            pipeline_spec['deploymentSpec']['executors']
+            ['exec-container-with-default-parameter']['container']['command']
+            [1], 'hi')
+
 
 class TestCompileBadInput(unittest.TestCase):
 

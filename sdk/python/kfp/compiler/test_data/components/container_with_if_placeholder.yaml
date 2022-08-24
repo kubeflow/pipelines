@@ -24,8 +24,8 @@ deploymentSpec:
         - '{{$.outputs.parameters[''output_path''].output_file}}'
         command:
         - my_program
-        - '{"IfPresent": {"InputName": "optional_input", "Then": ["{{$.inputs.parameters[''optional_input'']}}"],
-          "Else": ["bye"]}}'
+        - '{"IfPresent": {"InputName": "optional_input", "Then": ["default"], "Else":
+          ["bye"]}}'
         - --dataset
         - '{"IfPresent": {"InputName": "optional_input", "Then": ["{{$.outputs.artifacts[''dataset''].uri}}"],
           "Else": ["bye"]}}'
@@ -52,4 +52,4 @@ root:
         defaultValue: default
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.1
+sdkVersion: kfp-2.0.0-beta.3

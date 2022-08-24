@@ -473,6 +473,8 @@ def create_container_component_from_func(
             arg_list.append(
                 ContainerComponentArtifactChannel(
                     io_type='output', var_name=io_name))
+        elif parameter.default != inspect._empty:
+            arg_list.append(parameter.default)
         elif isinstance(
                 parameter_type,
             (type_annotations.OutputAnnotation, type_annotations.OutputPath)):

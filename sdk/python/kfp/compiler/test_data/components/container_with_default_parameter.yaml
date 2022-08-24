@@ -1,0 +1,46 @@
+components:
+  comp-container-with-default-parameter:
+    executorLabel: exec-container-with-default-parameter
+    inputDefinitions:
+      parameters:
+        text:
+          defaultValue: hi
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        output_path:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-container-with-default-parameter:
+      container:
+        args:
+        - --output_path
+        - '{{$.outputs.parameters[''output_path''].output_file}}'
+        command:
+        - my_program
+        - hi
+        image: python:3.7
+pipelineInfo:
+  name: container-with-default-parameter
+root:
+  dag:
+    tasks:
+      container-with-default-parameter:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-container-with-default-parameter
+        inputs:
+          parameters:
+            text:
+              componentInputParameter: text
+        taskInfo:
+          name: container-with-default-parameter
+  inputDefinitions:
+    parameters:
+      text:
+        defaultValue: hi
+        parameterType: STRING
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.3
