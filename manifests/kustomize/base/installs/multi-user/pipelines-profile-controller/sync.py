@@ -88,7 +88,7 @@ def get_settings_from_env(controller_port=None,
 
     settings["minio_ssl"] = \
         minio_ssl or \
-        os.environ.get("MINIO_SSL") == "true"
+        os.environ.get("MINIO_SSL")
 
     settings["minio_host"] = \
         minio_host or \
