@@ -1,4 +1,4 @@
-# Copyright 2022 The Kubeflow Authors
+# Copyright 2022-2023 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -1359,6 +1359,7 @@ class Client:
         pipeline_package_path: str,
         pipeline_name: Optional[str] = None,
         description: Optional[str] = None,
+        namespace: str = None,
     ) -> kfp_server_api.ApiPipeline:
         """Uploads a pipeline.
 
@@ -1367,6 +1368,9 @@ class Client:
             pipeline_name: Name of the pipeline to be shown in the UI.
             description: Description of the pipeline to be shown in
                 the UI.
+            namespace:  Optional. Kubernetes namespace where the pipeline should be uploaded.
+              For single user deployment, leave it as None;
+              For multi user, input a namespace where the user is authorized.
 
         Returns:
             ``ApiPipeline`` object.
@@ -1375,8 +1379,12 @@ class Client:
             pipeline_yaml = self._extract_pipeline_yaml(pipeline_package_path)
             pipeline_name = pipeline_yaml['pipelineInfo']['name']
         validate_pipeline_resource_name(pipeline_name)
+        namespace = namespace or self.get_user_namespace()
         response = self._upload_api.upload_pipeline(
-            pipeline_package_path, name=pipeline_name, description=description)
+            pipeline_package_path,
+            name=pipeline_name,
+            description=description,
+            namespace=namespace)
         link = f'{self._get_url_prefix()}/#/pipelines/details/{response.id}'
         if self._is_ipython():
             import IPython
@@ -1388,12 +1396,13 @@ class Client:
         return response
 
     def upload_pipeline_version(
-        self,
-        pipeline_package_path: str,
-        pipeline_version_name: str,
-        pipeline_id: Optional[str] = None,
-        pipeline_name: Optional[str] = None,
-        description: Optional[str] = None,
+            self,
+            pipeline_package_path: str,
+            pipeline_version_name: str,
+            pipeline_id: Optional[str] = None,
+            pipeline_name: Optional[str] = None,
+            description: Optional[str] = None,
+            namespace: Optional[str] = None
     ) -> kfp_server_api.ApiPipelineVersion:
         """Uploads a new version of the pipeline.
 
@@ -1404,6 +1413,9 @@ class Client:
             pipeline_id: ID of the pipeline.
             pipeline_name: Name of the pipeline.
             description: Description of the pipeline version to show in the UI.
+            namespace:  Optional. Kubernetes namespace where the pipeline should be uploaded.
+              For single user deployment, leave it as None;
+              For multi user, input a namespace where the user is authorized.
 
         Returns:
             ``ApiPipelineVersion`` object.
@@ -1422,6 +1434,9 @@ class Client:
 
         if description:
             kwargs['description'] = description
+
+        if namespace:
+            kwargs['namespace'] = namespace or self.get_user_namespace()
 
         response = self._upload_api.upload_pipeline_version(
             pipeline_package_path, **kwargs)
