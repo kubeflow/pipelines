@@ -27,7 +27,8 @@ def main():
 def get_settings_from_env(controller_port=None,
                           visualization_server_image=None, frontend_image=None,
                           visualization_server_tag=None, frontend_tag=None, disable_istio_sidecar=None,
-                          minio_access_key=None, minio_secret_key=None, kfp_default_pipeline_root=None):
+                          minio_access_key=None, minio_secret_key=None, kfp_default_pipeline_root=None,
+                          minio_ssl=None, minio_host=None, minio_port=None):
     """
     Returns a dict of settings from environment variables relevant to the controller
 
@@ -43,6 +44,9 @@ def get_settings_from_env(controller_port=None,
         disable_istio_sidecar: Required (no default)
         minio_access_key: Required (no default)
         minio_secret_key: Required (no default)
+        minio_ssl: Required (no default)
+        minio_host: Required (no default)
+        minio_port: Required (no default)
     """
     settings = dict()
     settings["controller_port"] = \
@@ -82,6 +86,18 @@ def get_settings_from_env(controller_port=None,
         minio_secret_key or \
         base64.b64encode(bytes(os.environ.get("MINIO_SECRET_KEY"), 'utf-8')).decode('utf-8')
 
+    settings["minio_ssl"] = \
+        minio_ssl or \
+        os.environ.get("MINIO_SSL") == "true"
+
+    settings["minio_host"] = \
+        minio_host or \
+        os.environ.get("MINIO_HOST")
+
+    settings["minio_port"] = \
+        minio_port or \
+        os.environ.get("MINIO_PORT")
+
     # KFP_DEFAULT_PIPELINE_ROOT is optional
     settings["kfp_default_pipeline_root"] = \
         kfp_default_pipeline_root or \
@@ -93,7 +109,8 @@ def get_settings_from_env(controller_port=None,
 def server_factory(visualization_server_image,
                    visualization_server_tag, frontend_image, frontend_tag,
                    disable_istio_sidecar, minio_access_key,
-                   minio_secret_key, kfp_default_pipeline_root=None,
+                   minio_secret_key, minio_ssl, minio_host, minio_port,
+                   kfp_default_pipeline_root=None,
                    url="", controller_port=8080):
     """
     Returns an HTTPServer populated with Handler with customized settings
@@ -317,6 +334,18 @@ def server_factory(visualization_server_image,
                                                     "name": "mlpipeline-minio-artifact"
                                                 }
                                             }
+                                        },
+                                        {
+                                            "name": "MINIO_SSL",
+                                            "value": minio_ssl
+                                        },
+                                        {
+                                            "name": "MINIO_HOST",
+                                            "value": minio_host
+                                        },
+                                        {
+                                            "name": "MINIO_PORT",
+                                            "value": minio_port
                                         }
                                     ],
                                     "resources": {

@@ -38,6 +38,24 @@ spec:
             secretKeyRef:
               name: mlpipeline-minio-artifact
               key: secretkey
+        - name: MINIO_SSL
+          valueFrom:
+              configMapKeyRef:
+                optional: true
+                key: minioSSL
+                name: pipeline-install-config
+        - name: MINIO_PORT
+          valueFrom:
+              configMapKeyRef:
+                optional: true
+                key: minioServicePort
+                name: pipeline-install-config
+        - name: MINIO_HOST
+          valueFrom:
+              configMapKeyRef:
+                optional: true
+                key: minioServiceHost
+                name: pipeline-install-config
         volumeMounts:
         - name: hooks
           mountPath: /hooks
