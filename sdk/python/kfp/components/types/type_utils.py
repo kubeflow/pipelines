@@ -124,8 +124,8 @@ def get_artifact_type_schema(
         artifact_class = artifact_class_or_type_name
 
     return pipeline_spec_pb2.ArtifactTypeSchema(
-        schema_title=artifact_class.TYPE_NAME,
-        schema_version=artifact_class.VERSION)
+        schema_title=artifact_class.schema_title,
+        schema_version=artifact_class.schema_version)
 
 
 def get_parameter_type(
@@ -357,21 +357,21 @@ IR_TYPE_TO_IN_MEMORY_SPEC_TYPE = {
         'Dict',
     'BOOLEAN':
         'Boolean',
-    artifact_types.Artifact.TYPE_NAME:
+    artifact_types.Artifact.schema_title:
         'Artifact',
-    artifact_types.Model.TYPE_NAME:
+    artifact_types.Model.schema_title:
         'Model',
-    artifact_types.Dataset.TYPE_NAME:
+    artifact_types.Dataset.schema_title:
         'Dataset',
-    artifact_types.Metrics.TYPE_NAME:
+    artifact_types.Metrics.schema_title:
         'Metrics',
-    artifact_types.ClassificationMetrics.TYPE_NAME:
+    artifact_types.ClassificationMetrics.schema_title:
         'ClassificationMetrics',
-    artifact_types.SlicedClassificationMetrics.TYPE_NAME:
+    artifact_types.SlicedClassificationMetrics.schema_title:
         'SlicedClassificationMetrics',
-    artifact_types.HTML.TYPE_NAME:
+    artifact_types.HTML.schema_title:
         'HTML',
-    artifact_types.Markdown.TYPE_NAME:
+    artifact_types.Markdown.schema_title:
         'Markdown',
 }
 

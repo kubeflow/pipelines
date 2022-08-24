@@ -21,7 +21,7 @@ from kfp.dsl import importer
 
 class VertexDataset(dsl.Artifact):
     """An artifact representing a GCPC Vertex Dataset."""
-    TYPE_NAME = 'google.VertexDataset'
+    schema_title = 'google.VertexDataset'
 
 
 consumer_op = components.load_component_from_text("""
