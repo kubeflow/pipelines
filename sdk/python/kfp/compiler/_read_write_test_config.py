@@ -38,7 +38,6 @@ CONFIG = {
             'pipeline_with_exit_handler',
             'pipeline_with_env',
             'component_with_optional_inputs',
-            'pipeline_with_gcpc_types',
             'pipeline_with_placeholders',
             'pipeline_with_task_final_status',
             'pipeline_with_task_final_status_yaml',
