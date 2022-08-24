@@ -14,21 +14,18 @@
 """Pipeline as a component (aka graph component)."""
 
 import inspect
-from typing import Callable, List
+from typing import Callable
 import uuid
 
-from kfp.compiler import compiler_utils
 from kfp.compiler import pipeline_spec_builder as builder
 from kfp.components import base_component
 from kfp.components import pipeline_channel
 from kfp.components import pipeline_context
 from kfp.components import structures
-from kfp.components import tasks_group
-from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 class GraphComponent(base_component.BaseComponent):
-    """A component definced via @dsl.pipeline decorator.
+    """A component defined via @dsl.pipeline decorator.
 
     Attribute:
         pipeline_func: The function that becomes the implementation of this component.

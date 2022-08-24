@@ -14,7 +14,6 @@
 """Functions for creating PipelineSpec proto objects."""
 
 import json
-import re
 from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 import warnings
 
@@ -93,8 +92,6 @@ def build_task_spec_for_task(
     task: pipeline_task.PipelineTask,
     parent_component_inputs: pipeline_spec_pb2.ComponentInputsSpec,
     tasks_in_current_dag: List[str],
-    input_parameters_in_current_dag: List[str],
-    input_artifacts_in_current_dag: List[str],
 ) -> pipeline_spec_pb2.PipelineTaskSpec:
     """Builds PipelineTaskSpec for a pipeline task.
 
@@ -118,10 +115,6 @@ def build_task_spec_for_task(
         task: The task to build a PipelineTaskSpec for.
         parent_component_inputs: The task's parent component's input specs.
         tasks_in_current_dag: The list of tasks names for tasks in the same dag.
-        input_parameters_in_current_dag: The list of input parameters in the DAG
-            component.
-        input_artifacts_in_current_dag: The list of input artifacts in the DAG
-            component.
 
     Returns:
         A PipelineTaskSpec object representing the task.
@@ -771,8 +764,6 @@ def build_task_spec_for_exit_task(
         task=task,
         parent_component_inputs=pipeline_inputs,
         tasks_in_current_dag=[],  # Does not matter for exit task
-        input_parameters_in_current_dag=pipeline_inputs.parameters.keys(),
-        input_artifacts_in_current_dag=[],
     )
     pipeline_task_spec.dependent_tasks.extend([dependent_task])
     pipeline_task_spec.trigger_policy.strategy = (
@@ -876,7 +867,6 @@ def populate_metrics_in_dag_outputs(
     tasks: List[pipeline_task.PipelineTask],
     task_name_to_parent_groups: Mapping[str,
                                         List[compiler_utils.GroupOrTaskType]],
-    task_name_to_task_spec: Mapping[str, pipeline_spec_pb2.PipelineTaskSpec],
     task_name_to_component_spec: Mapping[str, pipeline_spec_pb2.ComponentSpec],
     pipeline_spec: pipeline_spec_pb2.PipelineSpec,
 ) -> None:
@@ -888,7 +878,6 @@ def populate_metrics_in_dag_outputs(
             Key is the task's name. Value is a list of ancestor groups including
             the task itself. The list of a given op is sorted in a way that the
             farthest group is the first and the task itself is the last.
-        task_name_to_task_spec: The dict of task name to PipelineTaskSpec.
         task_name_to_component_spec: The dict of task name to ComponentSpec.
         pipeline_spec: The pipeline_spec to update in-place.
     """
@@ -1031,14 +1020,6 @@ def build_spec_by_group(
         tasks_in_current_dag = [
             utils.sanitize_task_name(subgroup.name) for subgroup in subgroups
         ]
-        input_parameters_in_current_dag = [
-            input_name
-            for input_name in group_component_spec.input_definitions.parameters
-        ]
-        input_artifacts_in_current_dag = [
-            input_name
-            for input_name in group_component_spec.input_definitions.artifacts
-        ]
         is_parent_component_root = (group_component_spec == pipeline_spec.root)
 
         if isinstance(subgroup, pipeline_task.PipelineTask):
@@ -1047,8 +1028,6 @@ def build_spec_by_group(
                 task=subgroup,
                 parent_component_inputs=group_component_spec.input_definitions,
                 tasks_in_current_dag=tasks_in_current_dag,
-                input_parameters_in_current_dag=input_parameters_in_current_dag,
-                input_artifacts_in_current_dag=input_artifacts_in_current_dag,
             )
             task_name_to_task_spec[subgroup.name] = subgroup_task_spec
 
@@ -1072,17 +1051,12 @@ def build_spec_by_group(
                         executor_label].importer.CopyFrom(
                             subgroup_importer_spec)
                 elif subgroup.pipeline_spec is not None:
-                    merge_deployment_spec(
-                        pipeline_spec=pipeline_spec,
-                        deployment_config=deployment_config,
-                        sub_pipeline_spec=subgroup.pipeline_spec,
-                    )
-                    merge_component_spec(
-                        pipeline_spec=pipeline_spec,
+                    merge_deployment_spec_and_component_spec(
+                        main_pipeline_spec=pipeline_spec,
+                        main_deployment_config=deployment_config,
                         sub_pipeline_spec=subgroup.pipeline_spec,
                         sub_pipeline_component_name=subgroup_component_name,
                     )
-
                 else:
                     raise RuntimeError
         elif isinstance(subgroup, tasks_group.ParallelFor):
@@ -1197,7 +1171,6 @@ def build_spec_by_group(
     populate_metrics_in_dag_outputs(
         tasks=group.tasks,
         task_name_to_parent_groups=task_name_to_parent_groups,
-        task_name_to_task_spec=task_name_to_task_spec,
         task_name_to_component_spec=task_name_to_component_spec,
         pipeline_spec=pipeline_spec,
     )
@@ -1258,23 +1231,69 @@ def build_exit_handler_groups_recursively(
             deployment_config=deployment_config)
 
 
-def merge_deployment_spec(
-    pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-    deployment_config: pipeline_spec_pb2.PipelineDeploymentConfig,
+def merge_deployment_spec_and_component_spec(
+    main_pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+    main_deployment_config: pipeline_spec_pb2.PipelineDeploymentConfig,
+    sub_pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+    sub_pipeline_component_name: str,
+) -> None:
+    """Merges deployment spec and component spec from a sub pipeline spec into
+    the main spec.
+
+    We need to make sure that we keep the original sub pipeline spec
+    unchanged--in case the pipeline is reused (instantiated) multiple times,
+    the "template" should not carry any "signs of usage".
+
+    Args:
+        main_pipeline_spec: The main pipeline spec to merge into.
+        main_deployment_config: The main deployment config to merge into.
+        sub_pipeline_spec: The pipeline spec of an inner pipeline whose
+            deployment specs and component specs need to be copied into the main
+            specs.
+        sub_pipeline_component_name: The name of sub pipeline's root component
+            spec.
+    """
+    # Make a copy of the sub_pipeline_spec so that the "template" remains
+    # unchanged and works even the pipeline is reused multiple times.
+    sub_pipeline_spec_copy = pipeline_spec_pb2.PipelineSpec()
+    sub_pipeline_spec_copy.CopyFrom(sub_pipeline_spec)
+
+    _merge_deployment_spec(
+        main_deployment_config=main_deployment_config,
+        sub_pipeline_spec=sub_pipeline_spec_copy)
+    _merge_component_spec(
+        main_pipeline_spec=main_pipeline_spec,
+        sub_pipeline_spec=sub_pipeline_spec_copy,
+        sub_pipeline_component_name=sub_pipeline_component_name,
+    )
+
+
+def _merge_deployment_spec(
+    main_deployment_config: pipeline_spec_pb2.PipelineDeploymentConfig,
     sub_pipeline_spec: pipeline_spec_pb2.PipelineSpec,
 ) -> None:
+    """Merges deployment config from a sub pipeline spec into the main config.
+
+    During the merge we need to ensure all executor specs have unique executor
+    labels, that means we might need to update the `executor_label` referenced
+    from component specs in sub_pipeline_spec.
+
+    Args:
+        main_deployment_config: The main deployment config to merge into.
+        sub_pipeline_spec: The pipeline spec of an inner pipeline whose
+            deployment configs need to be merged into the main config.
+    """
 
     def _rename_executor_labels(
         pipeline_spec: pipeline_spec_pb2.PipelineSpec,
         old_executor_label: str,
         new_executor_label: str,
     ) -> None:
+        """Renames the old executor_label to the new one in component spec."""
         for _, component_spec in pipeline_spec.components.items():
             if component_spec.executor_label == old_executor_label:
                 component_spec.executor_label = new_executor_label
 
-    sub_deployment_config = json_format.MessageToDict(
-        sub_pipeline_spec.deployment_spec)
     sub_deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
     json_format.ParseDict(
         json_format.MessageToDict(sub_pipeline_spec.deployment_spec),
@@ -1282,55 +1301,69 @@ def merge_deployment_spec(
 
     for executor_label, executor_spec in sub_deployment_config.executors.items(
     ):
-        if executor_label in deployment_config.executors:
+        if executor_label in main_deployment_config.executors:
             old_executor_label = executor_label
             executor_label = utils.make_name_unique_by_adding_index(
                 name=executor_label,
-                collection=list(deployment_config.executors.keys()),
+                collection=list(main_deployment_config.executors.keys()),
                 delimiter='-')
             _rename_executor_labels(
                 pipeline_spec=sub_pipeline_spec,
                 old_executor_label=old_executor_label,
                 new_executor_label=executor_label)
 
-        deployment_config.executors[executor_label].CopyFrom(executor_spec)
+        main_deployment_config.executors[executor_label].CopyFrom(executor_spec)
 
 
-def merge_component_spec(
-    pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+def _merge_component_spec(
+    main_pipeline_spec: pipeline_spec_pb2.PipelineSpec,
     sub_pipeline_spec: pipeline_spec_pb2.PipelineSpec,
     sub_pipeline_component_name: str,
 ) -> None:
+    """Merges component spec from a sub pipeline spec into the main config.
+
+    During the merge we need to ensure all component specs have unique component
+    name, that means we might need to update the `component_ref` referenced from
+    task specs in sub_pipeline_spec.
+
+    Args:
+        main_pipeline_spec: The main pipeline spec to merge into.
+        sub_pipeline_spec: The pipeline spec of an inner pipeline whose
+            component specs need to be merged into the global config.
+        sub_pipeline_component_name: The name of sub pipeline's root component
+            spec.
+    """
 
     def _rename_component_refs(
         pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-        old_component_name: str,
-        new_component_name: str,
+        old_component_ref: str,
+        new_component_ref: str,
     ) -> None:
+        """Renames the old component_ref to the new one in task spec."""
         for _, component_spec in pipeline_spec.components.items():
             if component_spec.dag:
                 for _, task_spec in component_spec.dag.tasks.items():
-                    if task_spec.component_ref.name == old_component_name:
-                        task_spec.component_ref.name = new_component_name
+                    if task_spec.component_ref.name == old_component_ref:
+                        task_spec.component_ref.name = new_component_ref
 
         for _, task_spec in pipeline_spec.root.dag.tasks.items():
-            if task_spec.component_ref.name == old_component_name:
-                task_spec.component_ref.name = new_component_name
+            if task_spec.component_ref.name == old_component_ref:
+                task_spec.component_ref.name = new_component_ref
 
     for component_name, component_spec in sub_pipeline_spec.components.items():
-        if component_name in pipeline_spec.components:
+        if component_name in main_pipeline_spec.components:
             old_component_name = component_name
             component_name = utils.make_name_unique_by_adding_index(
                 name=component_name,
-                collection=list(pipeline_spec.components.keys()),
+                collection=list(main_pipeline_spec.components.keys()),
                 delimiter='-')
             _rename_component_refs(
                 pipeline_spec=sub_pipeline_spec,
-                old_component_name=old_component_name,
-                new_component_name=component_name)
-        pipeline_spec.components[component_name].CopyFrom(component_spec)
+                old_component_ref=old_component_name,
+                new_component_ref=component_name)
+        main_pipeline_spec.components[component_name].CopyFrom(component_spec)
 
-    pipeline_spec.components[sub_pipeline_component_name].CopyFrom(
+    main_pipeline_spec.components[sub_pipeline_component_name].CopyFrom(
         sub_pipeline_spec.root)
 
 

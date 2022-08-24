@@ -152,7 +152,7 @@ class Pipeline:
         task_name = utils.make_name_unique_by_adding_index(
             task_name, list(self.tasks.keys()), '-')
         if task_name == '':
-            task_name = utils._make_name_unique_by_adding_index(
+            task_name = utils.make_name_unique_by_adding_index(
                 'task', list(self.tasks.keys()), '-')
 
         self.tasks[task_name] = task

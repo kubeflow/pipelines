@@ -31,16 +31,38 @@ def print_op2(msg: str):
     )
 
 
+print_op3 = components.load_component_from_text("""
+name: Print Op
+inputs:
+- {name: msg, type: String}
+implementation:
+  container:
+    image: alpine
+    command:
+    - echo
+    - {inputValue: msg}
+""")
+
+
 @dsl.pipeline(name='inner-pipeline')
 def graph_component(msg: str):
     task = print_op1(msg=msg)
-    print_op2(msg=task.output)
+    with dsl.Condition(task.output == 'Hello'):
+        print_op2(msg='world')
+    with dsl.Condition(task.output != 'Hello'):
+        print_op3(msg='Bye!')
 
 
-@dsl.pipeline(name='pipeline-in-pipeline')
+@dsl.pipeline(name='pipeline-not-used')
+def pipeline_not_used():
+    graph_component(msg='abc')
+
+
+@dsl.pipeline(name='pipeline-in-pipeline-complex')
 def my_pipeline():
     print_op1(msg='Hello')
-    graph_component(msg='world')
+    with dsl.ParallelFor(['Hello', 'world!']) as item:
+        graph_component(msg=item)
 
 
 if __name__ == '__main__':

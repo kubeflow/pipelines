@@ -305,11 +305,11 @@ def extract_component_interface(
     # attribute (of the legacy func._component_human_name attribute).  The
     # description can be overridden by setting the func.__doc__ attribute (or
     # the legacy func._component_description attribute).
-    component_name = getattr(func, '_component_human_name',
-                             None) or _python_function_name_to_component_name(
-                                 func.__name__)
+    component_name = getattr(
+        func, '_component_human_name',
+        _python_function_name_to_component_name(func.__name__))
     description = getattr(func, '_component_description',
-                          None) or parsed_docstring.short_description
+                          parsed_docstring.short_description)
     if description:
         description = description.strip()
 
@@ -501,9 +501,9 @@ def create_graph_component_from_func(
     """
 
     component_spec = extract_component_interface(func)
-    component_name = getattr(func, '_component_human_name',
-                             None) or _python_function_name_to_component_name(
-                                 func.__name__)
+    component_name = getattr(
+        func, '_component_human_name',
+        _python_function_name_to_component_name(func.__name__))
 
     return graph_component.GraphComponent(
         component_spec=component_spec,

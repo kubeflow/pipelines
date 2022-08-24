@@ -47,6 +47,7 @@ CONFIG = {
             'pipeline_with_multiple_exit_handlers',
             'pipeline_with_parallelfor_parallelism',
             'pipeline_in_pipeline',
+            'pipeline_in_pipeline_complex',
         ],
         'test_data_dir': 'sdk/python/kfp/compiler/test_data/pipelines',
         'config': {
