@@ -16,6 +16,7 @@ CONFIG = {
     'pipelines': {
         'test_cases': [
             'pipeline_with_importer',
+            'pipeline_with_importer_and_gcpc_types',
             'pipeline_with_ontology',
             'pipeline_with_if_placeholder',
             'pipeline_with_concat_placeholder',
