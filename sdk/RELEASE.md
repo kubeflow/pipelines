@@ -2,6 +2,7 @@
 
 ## Major Features and Improvements
 * Support parallelism setting in ParallelFor [\#8146](https://github.com/kubeflow/pipelines/pull/8146)
+* Support for Python v3.10 [\#8186](https://github.com/kubeflow/pipelines/pull/8186)
 
 ## Breaking Changes
 
