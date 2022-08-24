@@ -51,6 +51,7 @@ CONFIG = {
             'pipeline_with_outputs',
             'pipeline_in_pipeline_loaded_from_yaml',
             'pipeline_as_exit_task',
+            'pipeline_with_custom_artifact_type',
         ],
         'test_data_dir': 'sdk/python/kfp/compiler/test_data/pipelines',
         'config': {
