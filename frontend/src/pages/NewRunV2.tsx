@@ -41,7 +41,6 @@ import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
 import { color, commonCss, padding } from 'src/Css';
 import { ComponentInputsSpec_ParameterSpec } from 'src/generated/pipeline_spec/pipeline_spec';
 import { Apis, ExperimentSortKeys, PipelineSortKeys, PipelineVersionSortKeys } from 'src/lib/Apis';
-// import Buttons from 'src/lib/Buttons';
 import { URLParser } from 'src/lib/URLParser';
 import { errorToMessage, generateRandomString } from 'src/lib/Utils';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
@@ -107,7 +106,6 @@ function NewRunV2(props: NewRunV2Props) {
   const [pipelineVersion, setPipelineVersion] = useState<ApiPipelineVersion>();
   const [pipelineVersionName, setPipelineVersionName] = useState('');
   const [updatedPipelineVersion, setUpdatedPipelineVersion] = useState<ApiPipelineVersion>();
-  // const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [experimentId, setExperimentId] = useState('');
   const [apiExperiment, setApiExperiment] = useState<ApiExperiment>();
   const [experimentName, setExperimentName] = useState('');
@@ -120,8 +118,7 @@ function NewRunV2(props: NewRunV2Props) {
   const [errorMessage, setErrorMessage] = useState('');
   const [isParameterValid, setIsParameterValid] = useState(false);
   const [clonedRuntimeConfig, setClonedRuntimeConfig] = useState<PipelineSpecRuntimeConfig>({});
-  // const [, forceUpdate] = useState();
-  // TODO(zijianjoy): If creating run from Experiment Page or RunList Page, there is no pipelineId/Version.
+
   const urlParser = new URLParser(props);
   const usePipelineFromRunLabel = 'Using pipeline from existing run.';
 <<<<<<< HEAD
@@ -144,8 +141,6 @@ function NewRunV2(props: NewRunV2Props) {
         '',
       ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: existingRunId })
     : '';
-  //const buttons = new Buttons(props, () => forceUpdate);
-  // const [buttons] = useState(new Buttons(props, () => forceUpdate));
 
   const {
     templateString,
@@ -162,12 +157,14 @@ function NewRunV2(props: NewRunV2Props) {
   const titleVerb = originalRunId ? 'Clone' : 'Start';
   const titleAdjective = originalRunId ? '' : 'new';
 
+  // Use pipeline, pipeline version, and experiment from parent component
   useEffect(() => {
     setPipeline(existingPipeline);
     setPipelineVersion(existingPipelineVersion);
     setApiExperiment(chosenExperiment);
   }, [existingPipeline, existingPipelineVersion, chosenExperiment]);
 
+  // If pipeline is changed, call back to NewRunSwitcher
   useEffect(() => {
     if (updatedPipeline?.id) {
       const searchString = urlParser.build({
@@ -181,6 +178,7 @@ function NewRunV2(props: NewRunV2Props) {
     }
   }, [updatedPipeline]);
 
+  // If pipeline version is changed, call back to NewRunSwitcher
   useEffect(() => {
     if (pipeline?.id && updatedPipelineVersion?.id) {
       const searchString = urlParser.build({
@@ -204,6 +202,7 @@ function NewRunV2(props: NewRunV2Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Pre-fill names for pipeline, pipeline version and experiment.
   useEffect(() => {
     if (pipeline?.name) {
       setPipelineName(pipeline.name);
@@ -309,6 +308,7 @@ function NewRunV2(props: NewRunV2Props) {
       description: runDescription,
       name: runName,
       pipeline_spec: {
+        // FE can only provide either pipeline_manifest or pipeline version
         pipeline_manifest: hasVersionID(apiRun) ? undefined : templateString,
         runtime_config: {
           // TODO(zijianjoy): determine whether to provide pipeline root.
@@ -824,7 +824,7 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
             onClick={() => {
               if (pendingExperiment && pendingExperiment.id && pendingExperiment.name) {
                 props.setApiExperiment(pendingExperiment);
-                props.setExperimentId(pendingExperiment.id)
+                props.setExperimentId(pendingExperiment.id);
                 props.setExperimentName(pendingExperiment.name);
               }
               setExperimentSelectorOpen(false);
