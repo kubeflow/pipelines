@@ -826,6 +826,7 @@ export class NewRun extends Page<
         );
         parameters = pipelineVersion.parameters || [];
       }
+      // To avoid breaking current v1 behavior, only allow switch between v1 and v2 when V2 feature is enabled.
       if (isFeatureEnabled(FeatureKey.V2_ALPHA) && this.state.unconfirmedSelectedPipeline.id) {
         const searchString = urlParser.build({
           [QUERY_PARAMS.experimentId]: experiment?.id || '',
@@ -857,6 +858,7 @@ export class NewRun extends Page<
     if (confirmed && this.state.unconfirmedSelectedPipelineVersion) {
       pipelineVersion = this.state.unconfirmedSelectedPipelineVersion;
       parameters = pipelineVersion.parameters || [];
+      // To avoid breaking current v1 behavior, only allow switch between v1 and v2 when V2 feature is enabled.
       if (
         isFeatureEnabled(FeatureKey.V2_ALPHA) &&
         pipeline &&
