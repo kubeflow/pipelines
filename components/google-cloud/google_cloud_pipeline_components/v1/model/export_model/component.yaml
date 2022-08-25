@@ -39,6 +39,10 @@ description: |
         output_info (str):
             Details of the completed export with output destination paths to
             the artifacts or container image.
+        gcp_resources (str):
+            Serialized gcp_resources proto tracking the export model's long running operation.
+
+            For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
 inputs:
 - {name: model, type: google.VertexModel}
 - {name: export_format_id, type: String}
