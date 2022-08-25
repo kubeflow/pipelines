@@ -190,21 +190,11 @@ function NewRunV2(props: NewRunV2Props) {
   }, [updatedPipelineVersion]);
 
   useEffect(() => {
-    if (apiExperiment?.id && pipeline?.id && updatedPipelineVersion?.id) {
+    if (apiExperiment?.id && pipeline?.id && pipelineVersion?.id) {
       const searchString = urlParser.build({
         [QUERY_PARAMS.experimentId]: apiExperiment.id || '',
         [QUERY_PARAMS.pipelineId]: pipeline.id || '',
-        [QUERY_PARAMS.pipelineVersionId]: updatedPipelineVersion.id || '',
-      });
-      props.history.replace(searchString);
-      return;
-    }
-
-    if (apiExperiment?.id && pipeline?.id) {
-      const searchString = urlParser.build({
-        [QUERY_PARAMS.experimentId]: apiExperiment.id || '',
-        [QUERY_PARAMS.pipelineId]: pipeline.id || '',
-        [QUERY_PARAMS.pipelineVersionId]: '',
+        [QUERY_PARAMS.pipelineVersionId]: pipelineVersion.id || '',
       });
       props.history.replace(searchString);
       return;
