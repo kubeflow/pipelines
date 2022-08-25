@@ -30,6 +30,7 @@ var jobColumns = []string{"UUID", "DisplayName", "Name", "Namespace", "ServiceAc
 	"NoCatchup", "CreatedAtInSec", "UpdatedAtInSec", "Enabled", "CronScheduleStartTimeInSec", "CronScheduleEndTimeInSec",
 	"Schedule", "PeriodicScheduleStartTimeInSec", "PeriodicScheduleEndTimeInSec", "IntervalSecond",
 	"PipelineId", "PipelineName", "PipelineSpecManifest", "WorkflowSpecManifest", "Parameters", "Conditions",
+	"RuntimeParameters", "PipelineRoot",
 }
 
 type JobStoreInterface interface {
@@ -187,7 +188,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			description, parameters, pipelineSpecManifest, workflowSpecManifest string
 		var cronScheduleStartTimeInSec, cronScheduleEndTimeInSec,
 			periodicScheduleStartTimeInSec, periodicScheduleEndTimeInSec, intervalSecond sql.NullInt64
-		var cron, resourceReferencesInString sql.NullString
+		var cron, resourceReferencesInString, runtimeParameters, pipelineRoot sql.NullString
 		var enabled, noCatchup bool
 		var createdAtInSec, updatedAtInSec, maxConcurrency int64
 		err := r.Scan(
@@ -195,11 +196,13 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 			&maxConcurrency, &noCatchup, &createdAtInSec, &updatedAtInSec, &enabled,
 			&cronScheduleStartTimeInSec, &cronScheduleEndTimeInSec, &cron,
 			&periodicScheduleStartTimeInSec, &periodicScheduleEndTimeInSec, &intervalSecond,
-			&pipelineId, &pipelineName, &pipelineSpecManifest, &workflowSpecManifest, &parameters, &conditions, &resourceReferencesInString)
+			&pipelineId, &pipelineName, &pipelineSpecManifest, &workflowSpecManifest, &parameters,
+			&conditions, &runtimeParameters, &pipelineRoot, &resourceReferencesInString)
 		if err != nil {
 			return nil, err
 		}
 		resourceReferences, err := parseResourceReferences(resourceReferencesInString)
+		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
 		jobs = append(jobs, &model.Job{
 			UUID:               uuid,
 			DisplayName:        displayName,
@@ -230,6 +233,7 @@ func (s *JobStore) scanRows(r *sql.Rows) ([]*model.Job, error) {
 				PipelineSpecManifest: pipelineSpecManifest,
 				WorkflowSpecManifest: workflowSpecManifest,
 				Parameters:           parameters,
+				RuntimeConfig:        runtimeConfig,
 			},
 			CreatedAtInSec: createdAtInSec,
 			UpdatedAtInSec: updatedAtInSec,
@@ -294,6 +298,8 @@ func (s *JobStore) CreateJob(j *model.Job) (*model.Job, error) {
 			"PipelineSpecManifest":           j.PipelineSpecManifest,
 			"WorkflowSpecManifest":           j.WorkflowSpecManifest,
 			"Parameters":                     j.Parameters,
+			"RuntimeParameters":              j.PipelineSpec.RuntimeConfig.Parameters,
+			"PipelineRoot":                   j.PipelineSpec.RuntimeConfig.PipelineRoot,
 		}).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to add job to job table: %v",

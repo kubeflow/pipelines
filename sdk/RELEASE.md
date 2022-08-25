@@ -3,6 +3,7 @@
 ## Major Features and Improvements
 * Support parallelism setting in ParallelFor [\#8146](https://github.com/kubeflow/pipelines/pull/8146)
 * Support pipeline as a component [\#8179](https://github.com/kubeflow/pipelines/pull/8179)
+* Support for Python v3.10 [\#8186](https://github.com/kubeflow/pipelines/pull/8186)
 
 ## Breaking Changes
 
@@ -17,6 +18,7 @@ Technically no breaking changes but compilation error could be exposed in a diff
 ## Bug Fixes and Other Changes
 
 ## Documentation Updates
+
 # 2.0.0-beta.3
 
 ## Major Features and Improvements

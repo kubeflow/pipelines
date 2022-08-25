@@ -300,9 +300,7 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 			// throw internal exception if failed to parse the resource reference.
 			return nil, util.NewInternalServerError(err, "Failed to parse resource reference.")
 		}
-
 		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
-
 		runs = append(runs, &model.RunDetail{Run: model.Run{
 			UUID:               uuid,
 			ExperimentUUID:     experimentUUID,
