@@ -801,30 +801,9 @@ export class NewRun extends Page<
   };
 
   protected async _experimentSelectorClosed(confirmed: boolean): Promise<void> {
-    let { experiment, pipeline, pipelineVersion } = this.state;
-    const urlParser = new URLParser(this.props);
+    let { experiment } = this.state;
     if (confirmed && this.state.unconfirmedSelectedExperiment) {
       experiment = this.state.unconfirmedSelectedExperiment;
-      if (experiment.id && pipeline?.id && this.state.unconfirmedSelectedPipelineVersion?.id) {
-        const searchString = urlParser.build({
-          [QUERY_PARAMS.experimentId]: experiment?.id || '',
-          [QUERY_PARAMS.pipelineId]: pipeline.id || '',
-          [QUERY_PARAMS.pipelineVersionId]: this.state.unconfirmedSelectedPipelineVersion.id || '',
-        });
-        this.props.history.replace(searchString);
-      } else if (experiment.id && pipeline?.id) {
-        const searchString = urlParser.build({
-          [QUERY_PARAMS.experimentId]: experiment?.id || '',
-          [QUERY_PARAMS.pipelineId]: pipeline.id || '',
-          [QUERY_PARAMS.pipelineVersionId]: '',
-        });
-        this.props.history.replace(searchString);
-      } else if (experiment.id) {
-        const searchString = urlParser.build({
-          [QUERY_PARAMS.experimentId]: experiment?.id || '',
-        });
-        this.props.history.replace(searchString);
-      }
     }
 
     this.setStateSafe({
