@@ -153,6 +153,9 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 }
 
 func toApiRuntimeConfig(modelRuntime model.RuntimeConfig) (*api.PipelineSpec_RuntimeConfig, error) {
+	if modelRuntime.Parameters == "" && modelRuntime.PipelineRoot == "" {
+		return nil, nil
+	}
 	var runtimeParams map[string]*structpb.Value
 	if modelRuntime.Parameters != "" {
 		err := json.Unmarshal([]byte(modelRuntime.Parameters), &runtimeParams)
@@ -252,7 +255,16 @@ func ToApiTasks(tasks []*model.Task) []*api.Task {
 	return apiTasks
 }
 func ToApiJob(job *model.Job) *api.Job {
+	// v1 parameters
 	params, err := toApiParameters(job.Parameters)
+	if err != nil {
+		return &api.Job{
+			Id:    job.UUID,
+			Error: err.Error(),
+		}
+	}
+	// v2 RuntimeConfig
+	runtimeConfig, err := toApiRuntimeConfig(job.PipelineSpec.RuntimeConfig)
 	if err != nil {
 		return &api.Job{
 			Id:    job.UUID,
@@ -277,6 +289,7 @@ func ToApiJob(job *model.Job) *api.Job {
 			WorkflowManifest: job.WorkflowSpecManifest,
 			PipelineManifest: job.PipelineSpecManifest,
 			Parameters:       params,
+			RuntimeConfig:    runtimeConfig,
 		},
 		ResourceReferences: toApiResourceReferences(job.ResourceReferences),
 	}

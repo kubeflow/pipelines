@@ -39,6 +39,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/structpb"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -189,9 +190,17 @@ func initWithJob(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Job
 func initWithJobV2(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Job) {
 	store, manager, exp := initWithExperiment(t)
 	job := &api.Job{
-		Name:         "j1",
-		Enabled:      true,
-		PipelineSpec: &api.PipelineSpec{PipelineManifest: v2SpecHelloWorld},
+		Name:    "j1",
+		Enabled: true,
+		PipelineSpec: &api.PipelineSpec{
+			PipelineManifest: v2SpecHelloWorld,
+			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+				Parameters: map[string]*structpb.Value{
+					"param1": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
+				},
+				PipelineRoot: "job-1-root",
+			},
+		},
 		ResourceReferences: []*api.ResourceReference{
 			{
 				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: exp.UUID},
@@ -1470,6 +1479,10 @@ func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
 		Conditions:     "NO_STATUS",
 		PipelineSpec: model.PipelineSpec{
 			PipelineSpecManifest: v2SpecHelloWorld,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   "{\"param1\":\"world\"}",
+				PipelineRoot: "job-1-root",
+			},
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{
