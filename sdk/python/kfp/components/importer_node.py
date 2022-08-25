@@ -21,6 +21,7 @@ from kfp.components import pipeline_task
 from kfp.components import placeholders
 from kfp.components import structures
 from kfp.components.types import artifact_types
+from kfp.components.types import type_annotations
 
 INPUT_KEY = 'uri'
 OUTPUT_KEY = 'artifact'
@@ -54,8 +55,9 @@ def importer(
               reimport=False)
           train(dataset=importer1.output)
     """
-    if issubclass(artifact_class, artifact_types.Artifact
-                 ) and not artifact_class.schema_title.startswith('system.'):
+    if type_annotations.is_artifact(
+            artifact_class
+    ) and not artifact_class.schema_title.startswith('system.'):
         # For artifact classes not under the `system` namespace,
         # use its schema_title as-is.
         schema_title = artifact_class.schema_title
