@@ -28,7 +28,6 @@ from kfp.components import python_component
 from kfp.components import structures
 from kfp.components.container_component_artifact_channel import \
     ContainerComponentArtifactChannel
-from kfp.components.types import artifact_types
 from kfp.components.types import type_annotations
 from kfp.components.types import type_utils
 
@@ -142,8 +141,9 @@ def _annotation_to_type_struct(annotation):
         if type_struct:
             return type_struct
 
-        if issubclass(annotation, artifact_types.Artifact
-                     ) and not annotation.schema_title.startswith('system.'):
+        if type_annotations.is_artifact(
+                annotation
+        ) and not annotation.schema_title.startswith('system.'):
             # For artifact classes not under the `system` namespace,
             # use its schema_title as-is.
             schema_title = annotation.schema_title
@@ -205,7 +205,7 @@ def extract_component_interface(
             # parameter_type is type_annotations.Artifact or one of its subclasses.
             parameter_type = type_annotations.get_io_artifact_class(
                 parameter_type)
-            if not issubclass(parameter_type, artifact_types.Artifact):
+            if not type_annotations.is_artifact(parameter_type):
                 raise ValueError(
                     'Input[T] and Output[T] are only supported when T is a '
                     'subclass of Artifact. Found `{} with type {}`'.format(

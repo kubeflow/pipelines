@@ -17,8 +17,8 @@ import json
 import os
 import tempfile
 from typing import Callable, Dict, List, NamedTuple, Optional
-import unittest
 
+from absl.testing import parameterized
 from kfp.components import executor
 from kfp.components.task_final_status import PipelineTaskFinalStatus
 from kfp.components.types import artifact_types
@@ -90,7 +90,7 @@ _EXECUTOR_INPUT = """\
 """
 
 
-class ExecutorTest(unittest.TestCase):
+class ExecutorTest(parameterized.TestCase):
 
     @classmethod
     def setUp(cls):
