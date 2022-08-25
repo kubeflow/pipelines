@@ -119,8 +119,9 @@ def get_artifact_type_schema(
             )
         artifact_class = _ARTIFACT_CLASSES_MAPPING.get(
             artifact_class_or_type_name.lower(), artifact_types.Artifact)
-    elif inspect.isclass(artifact_class_or_type_name) and issubclass(
-            artifact_class_or_type_name, artifact_types.Artifact):
+    elif inspect.isclass(
+            artifact_class_or_type_name) and type_annotations.is_artifact(
+                artifact_class_or_type_name):
         artifact_class = artifact_class_or_type_name
 
     return pipeline_spec_pb2.ArtifactTypeSchema(

@@ -19,6 +19,8 @@ These are only compatible with v2 Pipelines.
 import re
 from typing import TypeVar, Union
 
+from kfp.components.types import artifact_types
+
 try:
     from typing import Annotated
 except ImportError:
@@ -252,3 +254,11 @@ def get_short_type_name(type_name: str) -> str:
         return match.group('type')
     else:
         return type_name
+
+
+def is_artifact(
+        artifact_class_or_instance: Union[type,
+                                          artifact_types.Artifact]) -> bool:
+    # we do not yet support non-pre-registered custom artifact types with instance_schema attribute
+    return hasattr(artifact_class_or_instance, 'schema_title') and hasattr(
+        artifact_class_or_instance, 'schema_version')
