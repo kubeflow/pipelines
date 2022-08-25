@@ -265,7 +265,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
             };
 
             return (
-              <div>
+              <div key='inputParamField'>
                 <ParamEditor
                   key={k}
                   id={k}
