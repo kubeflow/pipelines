@@ -52,7 +52,7 @@ function NewRunSwitcher(props: PageProps) {
       }
       return Apis.pipelineServiceApi.getPipeline(pipelineId);
     },
-    { enabled: !!pipelineId, staleTime: Infinity },
+    { enabled: !!pipelineId, staleTime: Infinity, cacheTime: Infinity },
   );
 
   const { isFetching: pipelineVersionIsFetching, data: apiPipelineVersion } = useQuery<
@@ -67,7 +67,7 @@ function NewRunSwitcher(props: PageProps) {
       }
       return Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionId);
     },
-    { enabled: !!apiPipeline, staleTime: Infinity },
+    { enabled: !!apiPipeline, staleTime: Infinity, cacheTime: Infinity },
   );
 
   const {
@@ -84,7 +84,7 @@ function NewRunSwitcher(props: PageProps) {
       const template = await Apis.pipelineServiceApi.getPipelineVersionTemplate(pipelineVersionId);
       return template?.template || '';
     },
-    { enabled: !!apiPipelineVersion, staleTime: Infinity },
+    { enabled: !!apiPipelineVersion, staleTime: Infinity, cacheTime: Infinity },
   );
 
   const { data: apiExperiment } = useQuery<ApiExperiment, Error>(
@@ -109,10 +109,8 @@ function NewRunSwitcher(props: PageProps) {
           namespace={namespace}
           existingRunId={existingRunId}
           apiRun={apiRun}
-          existingPipelineId={pipelineId}
           existingPipeline={apiPipeline}
           handlePipelineIdChange={setPipelineId}
-          existingPipelineVersionId={apiPipelineVersion?.id}
           existingPipelineVersion={apiPipelineVersion}
           handlePipelineVersionIdChange={setPipelineVersionIdParam}
           templateString={templateString}
