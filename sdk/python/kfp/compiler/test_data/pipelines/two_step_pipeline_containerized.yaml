@@ -23,23 +23,21 @@ deploymentSpec:
   executors:
     exec-component1:
       container:
-        command:
-        - sh -c | set -e -x
-        - echo
-        - '{{$.inputs.parameters[''text'']}}'
-        - '| gsutil cp -'
-        - '{{$.outputs.artifacts[''output_gcs''].uri}}'
-        image: google/cloud-sdk:slim
-    exec-component2:
-      container:
         args:
-        - '{{$.inputs.artifacts[''input_gcs''].uri}}'
+        - '{{$.inputs.parameters[''text'']}}'
+        - '{{$.outputs.artifacts[''output_gcs''].path}}'
         command:
         - sh
         - -c
-        - '|'
-        - set -e -x gsutil cat
-        image: google/cloud-sdk:slim
+        - mkdir --parents $(dirname "$1") && echo "$0" > "$1"
+        image: alpine
+    exec-component2:
+      container:
+        args:
+        - '{{$.inputs.artifacts[''input_gcs''].path}}'
+        command:
+        - cat
+        image: alpine
 pipelineInfo:
   name: containerized-two-step-pipeline
 root:
@@ -55,7 +53,7 @@ root:
             text:
               componentInputParameter: text
         taskInfo:
-          name: Producer
+          name: component1
       component2:
         cachingOptions:
           enableCache: true
@@ -70,10 +68,10 @@ root:
                 outputArtifactKey: output_gcs
                 producerTask: component1
         taskInfo:
-          name: Consumer
+          name: component2
   inputDefinitions:
     parameters:
       text:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.1
+sdkVersion: kfp-2.0.0-beta.2
