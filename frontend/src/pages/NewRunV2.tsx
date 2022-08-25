@@ -68,10 +68,8 @@ interface RunV2Props {
   namespace?: string;
   existingRunId: string | null;
   apiRun: ApiRunDetail | undefined;
-  existingPipelineId: string | null;
   existingPipeline: ApiPipeline | undefined;
   handlePipelineIdChange: (pipelineId: string) => void;
-  existingPipelineVersionId: string | undefined;
   existingPipelineVersion: ApiPipelineVersion | undefined;
   handlePipelineVersionIdChange: (pipelineVersionId: string) => void;
   templateString: string | undefined;
@@ -180,6 +178,36 @@ function NewRunV2(props: NewRunV2Props) {
       handlePipelineVersionIdChange(updatedPipelineVersion.id);
     }
   }, [updatedPipelineVersion]);
+
+  useEffect(() => {
+    if (apiExperiment?.id && pipeline?.id && updatedPipelineVersion?.id) {
+      const searchString = urlParser.build({
+        [QUERY_PARAMS.experimentId]: apiExperiment.id || '',
+        [QUERY_PARAMS.pipelineId]: pipeline.id || '',
+        [QUERY_PARAMS.pipelineVersionId]: updatedPipelineVersion.id || '',
+      });
+      props.history.replace(searchString);
+      return;
+    }
+
+    if (apiExperiment?.id && pipeline?.id) {
+      const searchString = urlParser.build({
+        [QUERY_PARAMS.experimentId]: apiExperiment.id || '',
+        [QUERY_PARAMS.pipelineId]: pipeline.id || '',
+        [QUERY_PARAMS.pipelineVersionId]: '',
+      });
+      props.history.replace(searchString);
+      return;
+    }
+
+    if (apiExperiment?.id) {
+      const searchString = urlParser.build({
+        [QUERY_PARAMS.experimentId]: apiExperiment.id || '',
+      });
+      props.history.replace(searchString);
+      return;
+    }
+  }, [apiExperiment]);
 
   // Title and list of actions on the top of page.
   useEffect(() => {

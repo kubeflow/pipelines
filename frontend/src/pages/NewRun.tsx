@@ -801,9 +801,30 @@ export class NewRun extends Page<
   };
 
   protected async _experimentSelectorClosed(confirmed: boolean): Promise<void> {
-    let { experiment } = this.state;
+    let { experiment, pipeline, pipelineVersion } = this.state;
+    const urlParser = new URLParser(this.props);
     if (confirmed && this.state.unconfirmedSelectedExperiment) {
       experiment = this.state.unconfirmedSelectedExperiment;
+      if (experiment.id && pipeline?.id && this.state.unconfirmedSelectedPipelineVersion?.id) {
+        const searchString = urlParser.build({
+          [QUERY_PARAMS.experimentId]: experiment?.id || '',
+          [QUERY_PARAMS.pipelineId]: pipeline.id || '',
+          [QUERY_PARAMS.pipelineVersionId]: this.state.unconfirmedSelectedPipelineVersion.id || '',
+        });
+        this.props.history.replace(searchString);
+      } else if (experiment.id && pipeline?.id) {
+        const searchString = urlParser.build({
+          [QUERY_PARAMS.experimentId]: experiment?.id || '',
+          [QUERY_PARAMS.pipelineId]: pipeline.id || '',
+          [QUERY_PARAMS.pipelineVersionId]: '',
+        });
+        this.props.history.replace(searchString);
+      } else if (experiment.id) {
+        const searchString = urlParser.build({
+          [QUERY_PARAMS.experimentId]: experiment?.id || '',
+        });
+        this.props.history.replace(searchString);
+      }
     }
 
     this.setStateSafe({
@@ -827,15 +848,15 @@ export class NewRun extends Page<
         parameters = pipelineVersion.parameters || [];
       }
       // To avoid breaking current v1 behavior, only allow switch between v1 and v2 when V2 feature is enabled.
-      if (isFeatureEnabled(FeatureKey.V2_ALPHA) && this.state.unconfirmedSelectedPipeline.id) {
+      if (isFeatureEnabled(FeatureKey.V2_ALPHA) && pipeline.id) {
         const searchString = urlParser.build({
           [QUERY_PARAMS.experimentId]: experiment?.id || '',
-          [QUERY_PARAMS.pipelineId]: this.state.unconfirmedSelectedPipeline.id || '',
+          [QUERY_PARAMS.pipelineId]: pipeline.id || '',
           [QUERY_PARAMS.pipelineVersionId]: '',
         });
         this.props.history.replace(searchString);
         this.props.handlePipelineVersionIdChange('');
-        this.props.handlePipelineIdChange(this.state.unconfirmedSelectedPipeline.id);
+        this.props.handlePipelineIdChange(pipeline.id);
       }
     }
 
@@ -859,18 +880,14 @@ export class NewRun extends Page<
       pipelineVersion = this.state.unconfirmedSelectedPipelineVersion;
       parameters = pipelineVersion.parameters || [];
       // To avoid breaking current v1 behavior, only allow switch between v1 and v2 when V2 feature is enabled.
-      if (
-        isFeatureEnabled(FeatureKey.V2_ALPHA) &&
-        pipeline &&
-        this.state.unconfirmedSelectedPipelineVersion.id
-      ) {
+      if (isFeatureEnabled(FeatureKey.V2_ALPHA) && pipeline && pipelineVersion.id) {
         const searchString = urlParser.build({
           [QUERY_PARAMS.experimentId]: experiment?.id || '',
           [QUERY_PARAMS.pipelineId]: pipeline.id || '',
-          [QUERY_PARAMS.pipelineVersionId]: this.state.unconfirmedSelectedPipelineVersion.id || '',
+          [QUERY_PARAMS.pipelineVersionId]: pipelineVersion.id || '',
         });
         this.props.history.replace(searchString);
-        this.props.handlePipelineVersionIdChange(this.state.unconfirmedSelectedPipelineVersion.id);
+        this.props.handlePipelineVersionIdChange(pipelineVersion.id);
       }
     }
 
