@@ -13,6 +13,7 @@
 # limitations under the License.
 """Definition for Pipeline."""
 
+import functools
 from typing import Callable, Optional
 
 from kfp.components import component_factory
@@ -22,7 +23,9 @@ from kfp.components import tasks_group
 from kfp.components import utils
 
 
-def pipeline(name: Optional[str] = None,
+def pipeline(func: Optional[Callable] = None,
+             *,
+             name: Optional[str] = None,
              description: Optional[str] = None,
              pipeline_root: Optional[str] = None) -> Callable:
     """Decorator used to construct a pipeline.
@@ -39,22 +42,29 @@ def pipeline(name: Optional[str] = None,
           ...
 
     Args:
-        name: The pipeline name. Defaults to a sanitized version of the decorated function name.
+        func: The Python function that defines a pipeline.
+        name: The pipeline name. Defaults to a sanitized version of the
+            decorated function name.
         description: A human-readable description of the pipeline.
-        pipeline_root: The root directory from which to read input and output parameters and artifacts.
+        pipeline_root: The root directory from which to read input and output
+            parameters and artifacts.
     """
+    if func is None:
+        return functools.partial(
+            pipeline,
+            name=name,
+            description=description,
+            pipeline_root=pipeline_root,
+        )
 
-    def _pipeline(func: Callable) -> Callable:
-        if name:
-            func._component_human_name = name
-        if description:
-            func._component_description = description
-        if pipeline_root:
-            func.pipeline_root = pipeline_root
+    if name:
+        func._component_human_name = name
+    if description:
+        func._component_description = description
+    if pipeline_root:
+        func.pipeline_root = pipeline_root
 
-        return component_factory.create_graph_component_from_func(func)
-
-    return _pipeline
+    return component_factory.create_graph_component_from_func(func)
 
 
 class Pipeline:

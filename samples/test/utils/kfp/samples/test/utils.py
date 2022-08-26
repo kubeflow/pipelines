@@ -117,9 +117,10 @@ def run_pipeline_func(test_cases: list[TestCase]):
                 )
             if case.pipeline_func:
                 # TODO: remove accessing of protected member
-                pipeline_name = getattr(case.pipeline_func,
-                                        '_component_human_name',
-                                        case.pipeline_func.name)
+                pipeline_name = getattr(
+                    case.pipeline_func, 'name',
+                    getattr(case.pipeline_func, '_component_human_name',
+                            'pipeline'))
             else:
                 pipeline_name = os.path.basename(case.pipeline_file)
             if not case.run_pipeline:

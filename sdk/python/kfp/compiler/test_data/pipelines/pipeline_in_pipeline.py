@@ -31,8 +31,8 @@ def print_op2(msg: str):
     )
 
 
-@dsl.pipeline(name='inner-pipeline')
-def graph_component(msg: str):
+@dsl.pipeline
+def inner_pipeline(msg: str):
     task = print_op1(msg=msg)
     print_op2(msg=task.output)
 
@@ -40,7 +40,7 @@ def graph_component(msg: str):
 @dsl.pipeline(name='pipeline-in-pipeline')
 def my_pipeline():
     print_op1(msg='Hello')
-    graph_component(msg='world')
+    inner_pipeline(msg='world')
 
 
 if __name__ == '__main__':
