@@ -86,6 +86,40 @@ class UtilsTest(parameterized.TestCase):
                 delimiter=delimiter,
             ))
 
+    @parameterized.parameters(
+        {
+            'pipeline_name': 'my-pipeline',
+            'is_valid': True,
+        },
+        {
+            'pipeline_name': 'p' * 128,
+            'is_valid': True,
+        },
+        {
+            'pipeline_name': 'p' * 129,
+            'is_valid': False,
+        },
+        {
+            'pipeline_name': 'my_pipeline',
+            'is_valid': False,
+        },
+        {
+            'pipeline_name': '-my-pipeline',
+            'is_valid': False,
+        },
+        {
+            'pipeline_name': 'My pipeline',
+            'is_valid': False,
+        },
+    )
+    def test(self, pipeline_name, is_valid):
+
+        if is_valid:
+            utils.validate_pipeline_name(pipeline_name)
+        else:
+            with self.assertRaisesRegex(ValueError, 'Invalid pipeline name: '):
+                utils.validate_pipeline_name('my_pipeline')
+
 
 if __name__ == '__main__':
     unittest.main()
