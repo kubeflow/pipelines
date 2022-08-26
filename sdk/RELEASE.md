@@ -7,6 +7,8 @@
 ## Breaking Changes
 
 ### For Pipeline Authors
+* Pipeline compilation is now triggered from `@pipeline` decorator instead of `Compiler.compile()` method. 
+Technically no breaking changes but compilation error could be exposed in a different (and earlier) stage. [\#8179](https://github.com/kubeflow/pipelines/pull/8179)
 
 ### For Component Authors
 
@@ -15,6 +17,7 @@
 ## Bug Fixes and Other Changes
 
 ## Documentation Updates
+
 # 2.0.0-beta.3
 
 ## Major Features and Improvements
