@@ -23,7 +23,6 @@ import uuid
 
 from google.protobuf import json_format
 import kfp
-from kfp.compiler import compiler
 from kfp.components import base_model
 from kfp.components import placeholders
 from kfp.components import utils
@@ -366,17 +365,6 @@ class TaskSpec(base_model.BaseModel):
     retry_policy: Optional[RetryPolicy] = None
 
 
-class DagSpec(base_model.BaseModel):
-    """DAG(graph) implementation definition.
-
-    Attributes:
-        tasks: The tasks inside the DAG.
-        outputs: Defines how the outputs of the dag are linked to the sub tasks.
-    """
-    tasks: Mapping[str, TaskSpec]
-    outputs: Mapping[str, Any]
-
-
 class ImporterSpec(base_model.BaseModel):
     """ImporterSpec definition.
 
@@ -402,8 +390,9 @@ class Implementation(base_model.BaseModel):
         importer: importer implementation details.
     """
     container: Optional[ContainerSpecImplementation] = None
-    graph: Optional[DagSpec] = None
     importer: Optional[ImporterSpec] = None
+    # Use type forward reference to skip the type validation in BaseModel.
+    graph: Optional['pipeline_spec_pb2.PipelineSpec'] = None
 
     @classmethod
     def from_deployment_spec_dict(cls, deployment_spec_dict: Dict[str, Any],
@@ -702,9 +691,10 @@ class ComponentSpec(base_model.BaseModel):
         Args:
             output_file: File path to store the component yaml.
         """
+        from kfp.compiler import pipeline_spec_builder as builder
 
         pipeline_spec = self.to_pipeline_spec()
-        compiler.write_pipeline_spec_to_file(pipeline_spec, output_file)
+        builder.write_pipeline_spec_to_file(pipeline_spec, output_file)
 
     def to_pipeline_spec(self) -> pipeline_spec_pb2.PipelineSpec:
         """Creates a pipeline instance and constructs the pipeline spec for a
@@ -717,6 +707,7 @@ class ComponentSpec(base_model.BaseModel):
             A PipelineSpec proto representing the compiled component.
         """
         # import here to aviod circular module dependency
+        from kfp.compiler import compiler_utils
         from kfp.compiler import pipeline_spec_builder as builder
         from kfp.components import pipeline_channel
         from kfp.components import pipeline_task
@@ -753,7 +744,7 @@ class ComponentSpec(base_model.BaseModel):
         pipeline_args = args_list_with_defaults
         task_group = group
 
-        builder.validate_pipeline_name(pipeline_name)
+        utils.validate_pipeline_name(pipeline_name)
 
         pipeline_spec = pipeline_spec_pb2.PipelineSpec()
         pipeline_spec.pipeline_info.name = pipeline_name
@@ -769,7 +760,7 @@ class ComponentSpec(base_model.BaseModel):
         deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
         root_group = task_group
 
-        task_name_to_parent_groups, group_name_to_parent_groups = builder.get_parent_groups(
+        task_name_to_parent_groups, group_name_to_parent_groups = compiler_utils.get_parent_groups(
             root_group)
 
         def get_inputs(task_group: tasks_group.TasksGroup,

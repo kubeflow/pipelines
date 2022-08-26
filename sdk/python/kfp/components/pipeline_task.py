@@ -125,6 +125,7 @@ class PipelineTask:
 
         self.importer_spec = None
         self.container_spec = None
+        self.pipeline_spec = None
 
         if component_spec.implementation.container is not None:
 
@@ -135,6 +136,8 @@ class PipelineTask:
         elif component_spec.implementation.importer is not None:
             self.importer_spec = component_spec.implementation.importer
             self.importer_spec.artifact_uri = args['uri']
+        else:
+            self.pipeline_spec = self.component_spec.implementation.graph
 
         self._outputs = {
             output_name: pipeline_channel.create_pipeline_channel(
