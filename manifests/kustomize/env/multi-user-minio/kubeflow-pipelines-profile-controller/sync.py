@@ -263,7 +263,6 @@ def server_factory(frontend_image, frontend_tag,
                 "kubeflow-pipelines-ready":
                     len(children["NetworkPolicy.networking.k8s.io/v1"]) == 1 and \
                     len(children["PodDefault.kubeflow.org/v1alpha1"]) == 1 and \
-                    len(children["NetworkAttachmentDefinition.k8s.cni.cncf.io/v1"]) == 1 and \
                     len(children["LimitRange.v1"]) == 1 and \
                     len(children["Secret.v1"]) == 1 and
                     len(children["ConfigMap.v1"]) == desired_configmap_count and
@@ -381,14 +380,6 @@ def server_factory(frontend_image, frontend_tag,
                         "selector": {
                             "app": "ml-pipeline-ui-artifact"
                         }
-                    }
-                },
-                {
-                    "apiVersion": "k8s.cni.cncf.io/v1",
-                    "kind": "NetworkAttachmentDefinition",
-                    "metadata": {
-                        "name": "istio-cni",
-                        "namespace": namespace
                     }
                 },
                 {
