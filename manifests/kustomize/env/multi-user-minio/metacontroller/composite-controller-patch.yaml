@@ -28,10 +28,6 @@ spec:
     resource: services
     updateStrategy:
       method: InPlace
-  - apiVersion: k8s.cni.cncf.io/v1
-    resource: network-attachment-definitions
-    updateStrategy:
-      method: InPlace
   - apiVersion: v1
     resource: limitranges
     updateStrategy:
