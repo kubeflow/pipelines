@@ -155,12 +155,12 @@ function NewRunV2(props: NewRunV2Props) {
   // If pipeline is changed, call back to NewRunSwitcher
   useEffect(() => {
     if (updatedPipeline?.id) {
-      const searchString = urlParser.build({
-        [QUERY_PARAMS.experimentId]: experimentId || '',
-        [QUERY_PARAMS.pipelineId]: updatedPipeline.id || '',
-        [QUERY_PARAMS.pipelineVersionId]: '',
-      });
-      props.history.replace(searchString);
+      // const searchString = urlParser.build({
+      //   [QUERY_PARAMS.experimentId]: experimentId || '',
+      //   [QUERY_PARAMS.pipelineId]: updatedPipeline.id || '',
+      //   [QUERY_PARAMS.pipelineVersionId]: '',
+      // });
+      // props.history.replace(searchString);
       handlePipelineVersionIdChange('');
       handlePipelineIdChange(updatedPipeline.id);
     }
@@ -169,16 +169,17 @@ function NewRunV2(props: NewRunV2Props) {
   // If pipeline version is changed, call back to NewRunSwitcher
   useEffect(() => {
     if (pipeline?.id && updatedPipelineVersion?.id) {
-      const searchString = urlParser.build({
-        [QUERY_PARAMS.experimentId]: experimentId || '',
-        [QUERY_PARAMS.pipelineId]: pipeline.id || '',
-        [QUERY_PARAMS.pipelineVersionId]: updatedPipelineVersion.id || '',
-      });
-      props.history.replace(searchString);
+      // const searchString = urlParser.build({
+      //   [QUERY_PARAMS.experimentId]: experimentId || '',
+      //   [QUERY_PARAMS.pipelineId]: pipeline.id || '',
+      //   [QUERY_PARAMS.pipelineVersionId]: updatedPipelineVersion.id || '',
+      // });
+      // props.history.replace(searchString);
       handlePipelineVersionIdChange(updatedPipelineVersion.id);
     }
   }, [updatedPipelineVersion]);
 
+  /*
   useEffect(() => {
     if (apiExperiment?.id && pipeline?.id && pipelineVersion?.id) {
       const searchString = urlParser.build({
@@ -198,6 +199,7 @@ function NewRunV2(props: NewRunV2Props) {
       return;
     }
   }, [apiExperiment]);
+  */
 
   // Title and list of actions on the top of page.
   useEffect(() => {
