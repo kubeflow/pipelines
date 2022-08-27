@@ -88,9 +88,6 @@ describe('deploy helloworld sample run', () => {
     $('#choosePipelineVersionBtn').waitForVisible();
     $('#choosePipelineVersionBtn').click();
 
-    $('#RunNameInput').waitForVisible();
-    $('#RunNameInput').setValue('Run for hello world');
-
     $('.tableRow').waitForVisible();
     $('.tableRow').click();
 
@@ -98,7 +95,9 @@ describe('deploy helloworld sample run', () => {
 
     $('#pipelineVersionSelectorDialog').waitForVisible(waitTimeout, true);
 
-    browser.keys('Tab');
+    // $('#RunNameInput').waitForVisible();
+    // $('#RunNameInput').setValue('Run for hello world');
+    // browser.keys('Tab');
     browser.keys(runName);
 
     browser.keys('Tab');
