@@ -40,7 +40,7 @@ function NewRunSwitcher(props: PageProps) {
       }
       return Apis.runServiceApi.getRun(existingRunId);
     },
-    { staleTime: Infinity },
+    { enabled: !!existingRunId, staleTime: Infinity },
   );
   const templateStrFromRunId = apiRun ? apiRun.run?.pipeline_spec?.pipeline_manifest : '';
 
@@ -55,20 +55,42 @@ function NewRunSwitcher(props: PageProps) {
     { enabled: !!pipelineId, staleTime: Infinity }, // cacheTime: Infinity },
   );
 
+  const pipelineVersionId = pipelineVersionIdParam || apiPipeline?.default_version?.id;
   const { isFetching: pipelineVersionIsFetching, data: apiPipelineVersion } = useQuery<
     ApiPipelineVersion,
     Error
   >(
     ['ApiPipelineVersion', apiPipeline, pipelineVersionIdParam],
     () => {
-      const pipelineVersionId = pipelineVersionIdParam || apiPipeline?.default_version?.id;
       if (!pipelineVersionId) {
         throw new Error('Pipeline Version ID is missing');
       }
       return Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionId);
     },
-    { enabled: !!apiPipeline, staleTime: Infinity }, //cacheTime: Infinity },
+    { enabled: !!apiPipeline && !!pipelineVersionId, staleTime: Infinity }, //cacheTime: Infinity },
   );
+
+  const GENERATE_RANDOM_STRING = (length: number) => {
+    let d = 0;
+    function randomChar(): string {
+      const r = Math.trunc((d + Math.random() * 16) % 16);
+      d = Math.floor(d / 16);
+      return r.toString(16);
+    }
+    let str = '';
+    for (let i = 0; i < length; ++i) {
+      str += randomChar();
+    }
+    return str;
+  };
+
+  const GET_RUN_NAME = (pipelineVersionName: string) => {
+    return 'Run of ' + pipelineVersionName + ' (' + GENERATE_RANDOM_STRING(5) + ')';
+  };
+
+  const UPDATE_VERSION_ID = (versionId: string) => {
+    setPipelineVersionIdParam(versionId);
+  };
 
   const {
     isSuccess: isTemplatePullSuccessFromPipeline,
@@ -95,7 +117,7 @@ function NewRunSwitcher(props: PageProps) {
       }
       return Apis.experimentServiceApi.getExperiment(experimentId);
     },
-    { staleTime: Infinity },
+    { enabled: !!experimentId, staleTime: Infinity },
   );
 
   const templateString =
@@ -112,7 +134,7 @@ function NewRunSwitcher(props: PageProps) {
           existingPipeline={apiPipeline}
           handlePipelineIdChange={setPipelineId}
           existingPipelineVersion={apiPipelineVersion}
-          handlePipelineVersionIdChange={setPipelineVersionIdParam}
+          handlePipelineVersionIdChange={UPDATE_VERSION_ID}
           templateString={templateString}
           chosenExperiment={apiExperiment}
         />
@@ -138,7 +160,7 @@ function NewRunSwitcher(props: PageProps) {
       existingPipelineId={pipelineId}
       handlePipelineIdChange={setPipelineId}
       existingPipelineVersionId={pipelineVersionIdParam}
-      handlePipelineVersionIdChange={setPipelineVersionIdParam}
+      handlePipelineVersionIdChange={UPDATE_VERSION_ID}
     />
   );
 }

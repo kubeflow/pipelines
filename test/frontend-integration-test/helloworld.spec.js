@@ -88,6 +88,9 @@ describe('deploy helloworld sample run', () => {
     $('#choosePipelineVersionBtn').waitForVisible();
     $('#choosePipelineVersionBtn').click();
 
+    $('#RunNameInput').waitForVisible();
+    $('#RunNameInput').setValue('Run for hello world');
+
     $('.tableRow').waitForVisible();
     $('.tableRow').click();
 

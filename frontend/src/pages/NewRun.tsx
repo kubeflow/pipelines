@@ -485,6 +485,7 @@ export class NewRun extends Page<
 
           {/* Run metadata inputs */}
           <Input
+            className='RunNameInput'
             label={isRecurringRun ? 'Recurring run config name' : 'Run name'}
             required={true}
             onChange={this.handleChange('runName')}
