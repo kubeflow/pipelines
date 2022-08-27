@@ -900,8 +900,8 @@ def populate_metrics_in_dag_outputs(
             if artifact_spec.artifact_type.WhichOneof(
                     'kind'
             ) == 'schema_title' and artifact_spec.artifact_type.schema_title in [
-                    artifact_types.Metrics.TYPE_NAME,
-                    artifact_types.ClassificationMetrics.TYPE_NAME,
+                    artifact_types.Metrics.schema_title,
+                    artifact_types.ClassificationMetrics.schema_title,
             ]:
                 unique_output_name = '{}-{}'.format(task.name, output_name)
 

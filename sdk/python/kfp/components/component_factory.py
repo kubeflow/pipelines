@@ -143,24 +143,24 @@ def _annotation_to_type_struct(annotation):
             return type_struct
 
         if issubclass(annotation, artifact_types.Artifact
-                     ) and not annotation.TYPE_NAME.startswith('system.'):
+                     ) and not annotation.schema_title.startswith('system.'):
             # For artifact classes not under the `system` namespace,
-            # use its TYPE_NAME as-is.
-            type_name = annotation.TYPE_NAME
+            # use its schema_title as-is.
+            schema_title = annotation.schema_title
         else:
-            type_name = str(annotation.__name__)
+            schema_title = str(annotation.__name__)
 
     elif hasattr(annotation,
                  '__forward_arg__'):  # Handling typing.ForwardRef('Type_name')
-        type_name = str(annotation.__forward_arg__)
+        schema_title = str(annotation.__forward_arg__)
     else:
-        type_name = str(annotation)
+        schema_title = str(annotation)
 
     # It's also possible to get the converter by type name
-    type_struct = type_utils.get_canonical_type_name_for_type(type_name)
+    type_struct = type_utils.get_canonical_type_name_for_type(schema_title)
     if type_struct:
         return type_struct
-    return type_name
+    return schema_title
 
 
 def _maybe_make_unique(name: str, names: List[str]):

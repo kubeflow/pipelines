@@ -16,7 +16,7 @@
 These are only compatible with v2 Pipelines.
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Type
 
 _GCS_LOCAL_MOUNT_PREFIX = '/gcs/'
 _MINIO_LOCAL_MOUNT_PREFIX = '/minio/'
@@ -63,8 +63,8 @@ class Artifact:
 
     Note: Other artifacts are used similarly to the usage of ``Artifact`` in the example above (within ``Input[]`` and ``Output[]``).
     """
-    TYPE_NAME = 'system.Artifact'
-    VERSION = '0.0.1'
+    schema_title = 'system.Artifact'
+    schema_version = '0.0.1'
 
     def __init__(self,
                  name: Optional[str] = None,
@@ -110,7 +110,7 @@ class Model(Artifact):
         uri: The model's location on disk or cloud storage.
         metadata: Arbitrary key-value pairs about the model.
     """
-    TYPE_NAME = 'system.Model'
+    schema_title = 'system.Model'
 
     def __init__(self,
                  name: Optional[str] = None,
@@ -141,7 +141,7 @@ class Dataset(Artifact):
         uri: The dataset's location on disk or cloud storage.
         metadata: Arbitrary key-value pairs about the dataset.
     """
-    TYPE_NAME = 'system.Dataset'
+    schema_title = 'system.Dataset'
 
     def __init__(self,
                  name: Optional[str] = None,
@@ -158,7 +158,7 @@ class Metrics(Artifact):
         uri: The metrics artifact's location on disk or cloud storage.
         metadata: Key-value scalar metrics.
     """
-    TYPE_NAME = 'system.Metrics'
+    schema_title = 'system.Metrics'
 
     def __init__(self,
                  name: Optional[str] = None,
@@ -184,7 +184,7 @@ class ClassificationMetrics(Artifact):
         uri: The metrics artifact's location on disk or cloud storage.
         metadata: The key-value scalar metrics.
     """
-    TYPE_NAME = 'system.ClassificationMetrics'
+    schema_title = 'system.ClassificationMetrics'
 
     def __init__(self,
                  name: Optional[str] = None,
@@ -347,7 +347,7 @@ class SlicedClassificationMetrics(Artifact):
         metadata: Arbitrary key-value pairs about the metrics artifact.
     """
 
-    TYPE_NAME = 'system.SlicedClassificationMetrics'
+    schema_title = 'system.SlicedClassificationMetrics'
 
     def __init__(self,
                  name: Optional[str] = None,
@@ -472,7 +472,7 @@ class HTML(Artifact):
         uri: The HTML file's location on disk or cloud storage.
         metadata: Arbitrary key-value pairs about the HTML file.
     """
-    TYPE_NAME = 'system.HTML'
+    schema_title = 'system.HTML'
 
     def __init__(self,
                  name: Optional[str] = None,
@@ -489,7 +489,7 @@ class Markdown(Artifact):
         uri: The markdown file's location on disk or cloud storage.
         metadata: Arbitrary key-value pairs about the markdown file.
     """
-    TYPE_NAME = 'system.Markdown'
+    schema_title = 'system.Markdown'
 
     def __init__(self,
                  name: Optional[str] = None,
@@ -498,8 +498,8 @@ class Markdown(Artifact):
         super().__init__(uri=uri, name=name, metadata=metadata)
 
 
-_SCHEMA_TITLE_TO_TYPE: Dict[str, Artifact] = {
-    x.TYPE_NAME: x for x in [
+_SCHEMA_TITLE_TO_TYPE: Dict[str, Type[Artifact]] = {
+    x.schema_title: x for x in [
         Artifact,
         Model,
         Dataset,
