@@ -20,7 +20,7 @@ from kfp.dsl import Input
 
 
 class VertexModel(dsl.Artifact):
-    TYPE_NAME = 'google.VertexModel'
+    schema_title = 'google.VertexModel'
 
 
 producer_op = components.load_component_from_text("""
