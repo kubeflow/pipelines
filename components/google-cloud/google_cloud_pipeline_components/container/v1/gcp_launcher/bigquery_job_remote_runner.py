@@ -21,9 +21,9 @@ import time
 import google.auth
 import google.auth.transport.requests
 
-from ...utils import execution_context
-from .utils import json_util
-from .utils import artifact_util
+from google_cloud_pipeline_components.container.utils import execution_context
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
 from google.cloud import bigquery
 from google.protobuf import json_format
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
@@ -2099,3 +2099,58 @@ def bigquery_detect_anomalies_model_job(
   return bigquery_query_job(type, project, location, payload,
                             json.dumps(job_configuration_query_override_json),
                             gcp_resources, executor_input)
+
+JOB_TYPE_TO_ACTION_MAP = {
+    'BigqueryQueryJob':
+        bigquery_query_job,
+    'BigqueryCreateModelJob':
+        bigquery_create_model_job,
+    'BigqueryDropModelJob':
+        bigquery_drop_model_job,
+    'BigqueryPredictModelJob':
+        bigquery_predict_model_job,
+    'BigqueryMLForecastJob':
+        bigquery_forecast_model_job,
+    'BigqueryExplainPredictModelJob':
+        bigquery_explain_predict_model_job,
+    'BigqueryExplainForecastModelJob':
+        bigquery_explain_forecast_model_job,
+    'BigqueryExportModelJob':
+        bigquery_export_model_job,
+    'BigqueryEvaluateModelJob':
+        bigquery_evaluate_model_job,
+    'BigqueryMLArimaCoefficientsJob':
+        bigquery_ml_arima_coefficients,
+    'BigqueryMLArimaEvaluateJob':
+        bigquery_ml_arima_evaluate_job,
+    'BigqueryMLCentroidsJob':
+        bigquery_ml_centroids_job,
+    'BigqueryMLWeightsJob':
+        bigquery_ml_weights_job,
+    'BigqueryMLReconstructionLossJob':
+        bigquery_ml_reconstruction_loss_job,
+    'BigqueryMLTrialInfoJob':
+        bigquery_ml_trial_info_job,
+    'BigqueryMLTrainingInfoJob':
+        bigquery_ml_training_info_job,
+    'BigqueryMLAdvancedWeightsJob':
+        bigquery_ml_advanced_weights_job,
+    'BigqueryMLConfusionMatrixJob':
+        bigquery_ml_confusion_matrix_job,
+    'BigqueryMLFeatureInfoJob':
+        bigquery_ml_feature_info_job,
+    'BigqueryMLRocCurveJob':
+        bigquery_ml_roc_curve_job,
+    'BigqueryMLPrincipalComponentsJob':
+        bigquery_ml_principal_components_job,
+    'BigqueryMLPrincipalComponentInfoJob':
+        bigquery_ml_principal_component_info_job,
+    'BigqueryMLFeatureImportanceJob':
+        bigquery_ml_feature_importance_job,
+    'BigqueryMLRecommendJob':
+        bigquery_ml_recommend_job,
+    'BigqueryMLGlobalExplainJob':
+        bigquery_ml_global_explain_job,
+    'BigqueryDetectAnomaliesModelJob':
+        bigquery_detect_anomalies_model_job,
+}

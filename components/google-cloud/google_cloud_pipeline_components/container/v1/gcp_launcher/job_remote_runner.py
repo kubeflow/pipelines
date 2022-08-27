@@ -27,10 +27,10 @@ import google.auth
 import google.auth.transport.requests
 from google.cloud import aiplatform
 from google.cloud.aiplatform_v1.types import job_state as gca_job_state
+from google_cloud_pipeline_components.container.utils import execution_context
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util, json_util
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 import requests
-from ...utils import execution_context
-from .utils import json_util, error_util
 
 from google.protobuf import json_format
 
@@ -55,7 +55,7 @@ _JOB_ERROR_STATES = (
 _JOB_USER_ERROR_CODES = (
     3,  # INVALID_ARGUMENT
     5,  # NOT_FOUND
-    7, # PERMISSION_DENIED
+    7,  # PERMISSION_DENIED
     6,  # ALREADY_EXISTS
     9,  # FAILED_PRECONDITION
     11,  # OUT_OF_RANGE
