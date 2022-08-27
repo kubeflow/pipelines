@@ -119,9 +119,6 @@ function NewRunV2(props: NewRunV2Props) {
 
   const urlParser = new URLParser(props);
   const usePipelineFromRunLabel = 'Using pipeline from existing run.';
-<<<<<<< HEAD
-  const { existingRunId, apiRun, apiPipeline, apiPipelineVersion, templateString } = props;
-=======
   const {
     existingRunId,
     apiRun,
@@ -132,7 +129,6 @@ function NewRunV2(props: NewRunV2Props) {
     templateString,
     chosenExperiment,
   } = props;
->>>>>>> Pre-fill experiment name for NewRunV2.
   const pipelineDetailsUrl = existingRunId
     ? RoutePage.PIPELINE_DETAILS.replace(
         ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
@@ -140,20 +136,14 @@ function NewRunV2(props: NewRunV2Props) {
       ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: existingRunId })
     : '';
 
-  const {
-    templateString,
-    existingRunId: originalRunId,
-    handlePipelineIdChange,
-    handlePipelineVersionIdChange,
-  } = props;
-  const isTemplatePullSuccess = templateString && templateString !== '';
+  const isTemplatePullSuccess = templateString ? true : false;
   const apiResourceRefFromRun = apiRun?.run?.resource_references
     ? apiRun.run?.resource_references
     : undefined;
 
   const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
-  const titleVerb = originalRunId ? 'Clone' : 'Start';
-  const titleAdjective = originalRunId ? '' : 'new';
+  const titleVerb = existingRunId ? 'Clone' : 'Start';
+  const titleAdjective = existingRunId ? '' : 'new';
 
   // Use pipeline, pipeline version, and experiment from parent component
   useEffect(() => {
@@ -314,7 +304,7 @@ function NewRunV2(props: NewRunV2Props) {
         relationship: ApiRelationship.OWNER,
       });
     }
-    if (apiPipelineVersion && hasVersionID(apiRun)) {
+    if (pipelineVersion && hasVersionID(apiRun)) {
       references.push({
         key: {
           id: pipelineVersion.id,
