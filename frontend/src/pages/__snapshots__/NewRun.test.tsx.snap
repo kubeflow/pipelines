@@ -338,6 +338,7 @@ exports[`NewRun arriving from pipeline details page indicates that a pipeline is
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
+      className="RunNameInput"
       label="Run name"
       onChange={[Function]}
       required={true}
@@ -859,6 +860,7 @@ exports[`NewRun changes the exit button's text if query params indicate this is 
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
+      className="RunNameInput"
       label="Run name"
       onChange={[Function]}
       required={true}
@@ -1380,6 +1382,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
+      className="RunNameInput"
       label="Recurring run config name"
       onChange={[Function]}
       required={true}
@@ -1919,6 +1922,7 @@ exports[`NewRun changes title and form to default state if the new run is a one-
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
+      className="RunNameInput"
       label="Run name"
       onChange={[Function]}
       required={true}
@@ -2440,6 +2444,7 @@ exports[`NewRun fetches the associated pipeline if one is present in the query p
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
+      className="RunNameInput"
       label="Run name"
       onChange={[Function]}
       required={true}
@@ -2959,6 +2964,7 @@ exports[`NewRun renders the new run page 1`] = `
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
+      className="RunNameInput"
       label="Run name"
       onChange={[Function]}
       required={true}
@@ -3480,6 +3486,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
+      className="RunNameInput"
       label="Recurring run config name"
       onChange={[Function]}
       required={true}
@@ -4019,6 +4026,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
+      className="RunNameInput"
       label="Run name"
       onChange={[Function]}
       required={true}
@@ -4540,6 +4548,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
+      className="RunNameInput"
       label="Run name"
       onChange={[Function]}
       required={true}
@@ -5072,6 +5081,7 @@ exports[`NewRun starting a new run updates the pipeline params as user selects d
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
+      className="RunNameInput"
       label="Run name"
       onChange={[Function]}
       required={true}
@@ -5593,6 +5603,7 @@ exports[`NewRun updates the run's state with the associated experiment if one is
     </WithStyles(Dialog)>
     <Input
       autoFocus={true}
+      className="RunNameInput"
       label="Run name"
       onChange={[Function]}
       required={true}
