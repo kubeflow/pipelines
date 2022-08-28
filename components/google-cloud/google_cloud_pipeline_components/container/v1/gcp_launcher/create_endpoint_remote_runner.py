@@ -14,8 +14,8 @@
 
 import json
 from . import lro_remote_runner
-from .utils import artifact_util
-from .utils import json_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 from google_cloud_pipeline_components.types.artifact_types import VertexEndpoint
 
 
@@ -45,3 +45,8 @@ def create_endpoint(
                                    vertex_uri_prefix + endpoint_resource_name,
                                    endpoint_resource_name)
   artifact_util.update_output_artifacts(executor_input, [vertex_endpoint])
+
+
+JOB_TYPE_TO_ACTION_MAP = {
+    'CreateEndpoint': create_endpoint,
+}

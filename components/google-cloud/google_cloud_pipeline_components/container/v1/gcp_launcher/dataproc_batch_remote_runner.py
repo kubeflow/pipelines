@@ -24,16 +24,15 @@ from typing import Any, Dict, Union
 import uuid
 
 import google.auth.transport.requests
+from google_cloud_pipeline_components.container.utils import execution_context
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 from google_cloud_pipeline_components.proto import gcp_resources_pb2
 import requests
 from requests.adapters import HTTPAdapter
 from requests.sessions import Session
 from urllib3.util.retry import Retry
-from ...utils import execution_context
-from .utils import json_util
 
 from google.protobuf import json_format
-
 
 _POLL_INTERVAL_SECONDS = 20
 _CONNECTION_ERROR_RETRY_LIMIT = 5
@@ -46,13 +45,8 @@ _DATAPROC_OPERATION_URI_TEMPLATE = rf'({_DATAPROC_URI_PREFIX}/projects/(?P<proje
 class DataprocBatchRemoteRunner():
   """Common module for creating and polling Dataproc Serverless Batch workloads."""
 
-  def __init__(
-      self,
-      type: str,
-      project: str,
-      location: str,
-      gcp_resources: str
-  ) -> None:
+  def __init__(self, type: str, project: str, location: str,
+               gcp_resources: str) -> None:
     """Initializes a DataprocBatchRemoteRunner object."""
     self._type = type
     self._project = project
@@ -67,8 +61,7 @@ class DataprocBatchRemoteRunner():
         total=_CONNECTION_ERROR_RETRY_LIMIT,
         status_forcelist=[429, 503],
         backoff_factor=_CONNECTION_RETRY_BACKOFF_FACTOR,
-        method_whitelist=['GET', 'POST']
-    )
+        method_whitelist=['GET', 'POST'])
     adapter = HTTPAdapter(max_retries=retry)
     session = requests.Session()
     session.headers.update({
@@ -92,18 +85,19 @@ class DataprocBatchRemoteRunner():
     """
     if not self._creds.valid:
       self._creds.refresh(google.auth.transport.requests.Request())
-    headers = {'Authorization': 'Bearer '+ self._creds.token}
+    headers = {'Authorization': 'Bearer ' + self._creds.token}
 
     result = self._session.get(url, headers=headers)
     try:
       result.raise_for_status()
       return result.json()
     except requests.exceptions.HTTPError as err:
-      raise RuntimeError('Failed to GET resource: {}. Error response:\n{}'
-                         .format(url, result)) from err
+      raise RuntimeError(
+          'Failed to GET resource: {}. Error response:\n{}'.format(
+              url, result)) from err
     except json.decoder.JSONDecodeError as err:
-      raise RuntimeError('Failed to decode JSON from response: {}'
-                         .format(result)) from err
+      raise RuntimeError(
+          'Failed to decode JSON from response: {}'.format(result)) from err
 
   def _post_resource(self, url: str, post_data: str) -> Dict[str, Any]:
     """POST a http request.
@@ -120,7 +114,7 @@ class DataprocBatchRemoteRunner():
     """
     if not self._creds.valid:
       self._creds.refresh(google.auth.transport.requests.Request())
-    headers = {'Authorization': 'Bearer '+ self._creds.token}
+    headers = {'Authorization': 'Bearer ' + self._creds.token}
 
     result = self._session.post(url=url, data=post_data, headers=headers)
     try:
@@ -128,11 +122,12 @@ class DataprocBatchRemoteRunner():
       json_data = result.json()
       return json_data
     except requests.exceptions.HTTPError as err:
-      raise RuntimeError('Failed to POST resource: {}. Error response:\n{}'
-                         .format(url, result)) from err
+      raise RuntimeError(
+          'Failed to POST resource: {}. Error response:\n{}'.format(
+              url, result)) from err
     except json.decoder.JSONDecodeError as err:
-      raise RuntimeError('Failed to decode JSON from response: {}'
-                         .format(result)) from err
+      raise RuntimeError(
+          'Failed to decode JSON from response: {}'.format(result)) from err
 
   def _cancel_batch(self, lro_name) -> None:
     """Cancels a Dataproc batch workload."""
@@ -147,14 +142,16 @@ class DataprocBatchRemoteRunner():
     """Check if a Dataproc Batch operation already exists.
 
     Returns:
-      Dict of the long-running Operation resource if it exists. For more details, see:
+      Dict of the long-running Operation resource if it exists. For more
+      details, see:
          https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.regions.operations#resource:-operation
       None if the Operation resource does not exist.
 
     Raises:
       ValueError: Operation resource uri format is invalid.
     """
-    if path.exists(self._gcp_resources) and os.stat(self._gcp_resources).st_size != 0:
+    if path.exists(
+        self._gcp_resources) and os.stat(self._gcp_resources).st_size != 0:
       with open(self._gcp_resources) as f:
         serialized_gcp_resources = f.read()
 
@@ -185,11 +182,8 @@ class DataprocBatchRemoteRunner():
     else:
       return None
 
-  def wait_for_batch(
-      self,
-      lro: Dict[str, Any],
-      poll_interval_seconds: int
-  ) -> Dict[str, Any]:
+  def wait_for_batch(self, lro: Dict[str, Any],
+                     poll_interval_seconds: int) -> Dict[str, Any]:
     """Waits for a Dataproc batch workload to reach a final state.
 
     Args:
@@ -214,17 +208,13 @@ class DataprocBatchRemoteRunner():
         logging.info('Polled operation: %s', lro_name)
 
       if 'error' in lro and lro['error']['code']:
-        raise RuntimeError(
-            'Operation failed. Error: {}'.format(lro['error']))
+        raise RuntimeError('Operation failed. Error: {}'.format(lro['error']))
       else:
         logging.info('Operation complete: %s', lro)
         return lro
 
-  def create_batch(
-      self,
-      batch_id: str,
-      batch_request: Dict[str, Any]
-  ) -> Dict[str, Any]:
+  def create_batch(self, batch_id: str,
+                   batch_request: Dict[str, Any]) -> Dict[str, Any]:
     """Common function for creating a batch workload.
 
     Args:
@@ -279,10 +269,11 @@ def _create_batch(
     batch_request = json_util.recursive_remove_empty(
         json.loads(payload, strict=False))
   except json.decoder.JSONDecodeError as err:
-    raise RuntimeError('Failed to decode JSON from payload: {}'
-                       .format(payload)) from err
+    raise RuntimeError(
+        'Failed to decode JSON from payload: {}'.format(payload)) from err
 
-  remote_runner = DataprocBatchRemoteRunner(type, project, location, gcp_resources)
+  remote_runner = DataprocBatchRemoteRunner(type, project, location,
+                                            gcp_resources)
   lro = remote_runner.check_if_operation_exists()
   if not lro:
     if not batch_id:
@@ -298,3 +289,10 @@ create_pyspark_batch = _create_batch
 create_spark_batch = _create_batch
 create_spark_r_batch = _create_batch
 create_spark_sql_batch = _create_batch
+
+JOB_TYPE_TO_ACTION_MAP = {
+    'DataprocPySparkBatch': create_pyspark_batch,
+    'DataprocSparkBatch': create_spark_batch,
+    'DataprocSparkRBatch': create_spark_r_batch,
+    'DataprocSparkSqlBatch': create_spark_sql_batch,
+}

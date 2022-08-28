@@ -21,9 +21,9 @@ import time
 import google.auth
 import google.auth.transport.requests
 
-from ...utils import execution_context
-from .utils import json_util
-from .utils import artifact_util
+from google_cloud_pipeline_components.container.utils import execution_context
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
 from google.cloud import bigquery
 from google.protobuf import json_format
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
@@ -35,7 +35,7 @@ _POLLING_INTERVAL_IN_SECONDS = 20
 _BQ_JOB_NAME_TEMPLATE = r'(https://www.googleapis.com/bigquery/v2/projects/(?P<project>.*)/jobs/(?P<job>.*)\?location=(?P<location>.*))'
 _ARTIFACT_PROPERTY_KEY_SCHEMA = 'schema'
 _ARTIFACT_PROPERTY_KEY_ROWS = 'rows'
-
+_BIGQUERY_SLA_ERROR_RETRY_LIMIT = 32 # See https://cloud.google.com/bigquery/sla
 
 def _back_quoted_if_needed(resource_name) -> str:
   """Enclose resource name with ` if it's not yet."""
@@ -206,6 +206,25 @@ def _send_cancel_request(job_uri, creds):
   logging.info('Cancel response: %s', response)
 
 
+def _retry_job(job_fn, args, poll_fn, creds) -> dict:
+  interval = 1
+  while True:
+    job_uri = job_fn(*args)
+    try:
+      job = poll_fn(job_uri, creds)
+      break
+    except RuntimeError as err:
+      if "Error: 80038528'" in str(err):
+        time.sleep(interval)
+        interval *= 2
+        if interval > _BIGQUERY_SLA_ERROR_RETRY_LIMIT:
+          break
+        continue
+      else:
+        raise
+  return job
+
+
 def bigquery_query_job(
     type,
     project,
@@ -307,12 +326,13 @@ def bigquery_create_model_job(
   creds, _ = google.auth.default()
   job_uri = _check_if_job_exists(gcp_resources)
   if job_uri is None:
-    job_uri = _create_query_job(project, location, payload,
-                                job_configuration_query_override, creds,
-                                gcp_resources)
-
-  # Poll bigquery job status until finished.
-  job = _poll_job(job_uri, creds)
+    job = _retry_job(_create_query_job,
+                     (project, location, payload,
+                      job_configuration_query_override, creds, gcp_resources),
+                     _poll_job, creds)
+  else:
+    # Poll bigquery job status until finished.
+    job = _poll_job(job_uri, creds)
 
   if 'statistics' not in job or 'query' not in job['statistics']:
     raise RuntimeError('Unexpected create model job: {}'.format(job))
@@ -1110,8 +1130,8 @@ def bigquery_explain_predict_model_job(
         https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-explain-predict#threshold
       num_integral_steps: This argument specifies the number of steps to sample
         between the example being explained and its baseline for approximating
-        the integral in integrated gradients attribution methods.
-        For more details, see
+        the integral in integrated gradients attribution methods. For more
+        details, see
         https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-explain-predict#num_integral_steps
       payload: A json serialized Job proto. For more details, see
         https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
@@ -1120,8 +1140,6 @@ def bigquery_explain_predict_model_job(
         https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
       gcp_resources: File path for storing `gcp_resources` output parameter.
       executor_input: A json serialized pipeline executor input.
-
-
   """
   if not (not query_statement) ^ (not table_name):
     raise ValueError(
@@ -1139,7 +1157,7 @@ def bigquery_explain_predict_model_job(
 
   if num_integral_steps is not None and num_integral_steps > 0:
     settings_field_sql_list.append('%s AS num_integral_steps' %
-                                  num_integral_steps)
+                                   num_integral_steps)
 
   settings_field_sql = ','.join(settings_field_sql_list)
   settings_sql = ', STRUCT(%s)' % settings_field_sql
@@ -1806,8 +1824,9 @@ def bigquery_ml_global_explain_job(
   """
   job_configuration_query_override_json = json.loads(
       job_configuration_query_override, strict=False)
-  job_configuration_query_override_json[
-      'query'] = 'SELECT * FROM ML.GLOBAL_EXPLAIN(MODEL %s, STRUCT(TRUE AS class_level_explain))' % (
+  job_configuration_query_override_json['query'] = (
+      'SELECT * FROM ML.GLOBAL_EXPLAIN(MODEL %s, STRUCT(TRUE AS '
+      'class_level_explain))') % (
           _back_quoted_if_needed(model_name))
   return bigquery_query_job(type, project, location, payload,
                             json.dumps(job_configuration_query_override_json),
@@ -2099,3 +2118,59 @@ def bigquery_detect_anomalies_model_job(
   return bigquery_query_job(type, project, location, payload,
                             json.dumps(job_configuration_query_override_json),
                             gcp_resources, executor_input)
+
+
+JOB_TYPE_TO_ACTION_MAP = {
+    'BigqueryQueryJob':
+        bigquery_query_job,
+    'BigqueryCreateModelJob':
+        bigquery_create_model_job,
+    'BigqueryDropModelJob':
+        bigquery_drop_model_job,
+    'BigqueryPredictModelJob':
+        bigquery_predict_model_job,
+    'BigqueryMLForecastJob':
+        bigquery_forecast_model_job,
+    'BigqueryExplainPredictModelJob':
+        bigquery_explain_predict_model_job,
+    'BigqueryExplainForecastModelJob':
+        bigquery_explain_forecast_model_job,
+    'BigqueryExportModelJob':
+        bigquery_export_model_job,
+    'BigqueryEvaluateModelJob':
+        bigquery_evaluate_model_job,
+    'BigqueryMLArimaCoefficientsJob':
+        bigquery_ml_arima_coefficients,
+    'BigqueryMLArimaEvaluateJob':
+        bigquery_ml_arima_evaluate_job,
+    'BigqueryMLCentroidsJob':
+        bigquery_ml_centroids_job,
+    'BigqueryMLWeightsJob':
+        bigquery_ml_weights_job,
+    'BigqueryMLReconstructionLossJob':
+        bigquery_ml_reconstruction_loss_job,
+    'BigqueryMLTrialInfoJob':
+        bigquery_ml_trial_info_job,
+    'BigqueryMLTrainingInfoJob':
+        bigquery_ml_training_info_job,
+    'BigqueryMLAdvancedWeightsJob':
+        bigquery_ml_advanced_weights_job,
+    'BigqueryMLConfusionMatrixJob':
+        bigquery_ml_confusion_matrix_job,
+    'BigqueryMLFeatureInfoJob':
+        bigquery_ml_feature_info_job,
+    'BigqueryMLRocCurveJob':
+        bigquery_ml_roc_curve_job,
+    'BigqueryMLPrincipalComponentsJob':
+        bigquery_ml_principal_components_job,
+    'BigqueryMLPrincipalComponentInfoJob':
+        bigquery_ml_principal_component_info_job,
+    'BigqueryMLFeatureImportanceJob':
+        bigquery_ml_feature_importance_job,
+    'BigqueryMLRecommendJob':
+        bigquery_ml_recommend_job,
+    'BigqueryMLGlobalExplainJob':
+        bigquery_ml_global_explain_job,
+    'BigqueryDetectAnomaliesModelJob':
+        bigquery_detect_anomalies_model_job,
+}

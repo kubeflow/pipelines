@@ -12,15 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import partial
 import logging
 import re
 import time
 
-from functools import partial
+from google_cloud_pipeline_components.container.utils import execution_context
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 import googleapiclient.discovery as discovery
-from .utils import error_util
-from ...utils import execution_context
 
 from google.protobuf.json_format import Parse
 
@@ -143,3 +143,8 @@ def _send_cancel_request(project, job_id, location):
   job = df_client.projects().locations().jobs().get(
       projectId=project, jobId=job_id, location=location, view=None).execute()
   logging.info('dataflow_cancelled_job: %s', job)
+
+
+JOB_TYPE_TO_ACTION_MAP = {
+    'Wait': wait_gcp_resources,
+}
