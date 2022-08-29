@@ -12,12 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import collections
 import json
 import os
 import re
 import subprocess
 import tempfile
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, NamedTuple, Optional
 import unittest
 
 from absl.testing import parameterized
@@ -680,6 +681,48 @@ implementation:
                     1, len(pipeline_spec['deploymentSpec']['executors']))
                 self.assertTrue('exec-print-op' in
                                 pipeline_spec['deploymentSpec']['executors'])
+
+    def test_pipeline_with_invalid_output(self):
+        with self.assertRaisesRegex(ValueError,
+                                    'Pipeline output not defined: msg1'):
+
+            @dsl.component
+            def print_op(msg: str) -> str:
+                print(msg)
+
+            @dsl.pipeline
+            def my_pipeline() -> NamedTuple('Outputs', [
+                ('msg', str),
+            ]):
+                task = print_op(msg='Hello')
+                output = collections.namedtuple('Outputs', ['msg1'])
+                return output(task.output)
+
+    def test_pipeline_with_missing_output(self):
+        with self.assertRaisesRegex(ValueError, 'Missing pipeline output: msg'):
+
+            @dsl.component
+            def print_op(msg: str) -> str:
+                print(msg)
+
+            @dsl.pipeline
+            def my_pipeline() -> NamedTuple('Outputs', [
+                ('msg', str),
+            ]):
+                task = print_op(msg='Hello')
+
+        with self.assertRaisesRegex(ValueError,
+                                    'Missing pipeline output: model'):
+
+            @dsl.component
+            def print_op(msg: str) -> str:
+                print(msg)
+
+            @dsl.pipeline
+            def my_pipeline() -> NamedTuple('Outputs', [
+                ('model', dsl.Model),
+            ]):
+                task = print_op(msg='Hello')
 
 
 class V2NamespaceAliasTest(unittest.TestCase):
