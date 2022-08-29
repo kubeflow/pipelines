@@ -73,11 +73,25 @@ class Compiler:
 
         with type_utils.TypeCheckManager(enable=type_check):
             if isinstance(pipeline_func, graph_component.GraphComponent):
-                pipeline_spec = self._create_pipeline(
-                    pipeline_func=pipeline_func.pipeline_func,
-                    pipeline_name=pipeline_name,
-                    pipeline_parameters_override=pipeline_parameters,
-                )
+                # Retrieve the pre-comppiled pipeline spec.
+                pipeline_spec = pipeline_func.component_spec.implementation.graph
+
+                # Verify that pipeline_parameters contains only input names
+                # that match the pipeline inputs definition.
+                for input_name, input_value in (pipeline_parameters or
+                                                {}).items():
+                    if input_name in pipeline_spec.root.input_definitions.parameters:
+                        pipeline_spec.root.input_definitions.parameters[
+                            input_name].default_value.CopyFrom(
+                                builder.to_protobuf_value(input_value))
+                    elif input_name in pipeline_spec.root.input_definitions.artifacts:
+                        raise NotImplementedError(
+                            'Default value for artifact input is not supported yet.'
+                        )
+                    else:
+                        raise ValueError(
+                            'Pipeline parameter {} does not match any known '
+                            'pipeline input.'.format(input_name))
 
             elif isinstance(pipeline_func, base_component.BaseComponent):
                 component_spec = builder.modify_component_spec_for_compile(
@@ -94,87 +108,3 @@ class Compiler:
                     f'decorator. Got: {type(pipeline_func)}')
             builder.write_pipeline_spec_to_file(
                 pipeline_spec=pipeline_spec, package_path=package_path)
-
-    def _create_pipeline(
-        self,
-        pipeline_func: Callable[..., Any],
-        pipeline_name: Optional[str] = None,
-        pipeline_parameters_override: Optional[Mapping[str, Any]] = None,
-    ) -> pipeline_spec_pb2.PipelineSpec:
-        """Creates a pipeline instance and constructs the pipeline spec from
-        it.
-
-        Args:
-            pipeline_func: The pipeline function with @dsl.pipeline decorator.
-            pipeline_name: Optional; the name of the pipeline.
-            pipeline_parameters_override: Optional; the mapping from parameter
-                names to values.
-
-        Returns:
-            A PipelineSpec proto representing the compiled pipeline.
-        """
-
-        # pipeline_func is a GraphComponent instance, retrieve its the original
-        # pipeline function
-        pipeline_func = getattr(pipeline_func, 'python_func', pipeline_func)
-
-        # Create the arg list with no default values and call pipeline function.
-        # Assign type information to the PipelineChannel
-        pipeline_meta = component_factory.extract_component_interface(
-            pipeline_func)
-        pipeline_name = pipeline_name or pipeline_meta.name
-
-        pipeline_root = getattr(pipeline_func, 'pipeline_root', None)
-
-        args_list = []
-        signature = inspect.signature(pipeline_func)
-
-        for arg_name in signature.parameters:
-            arg_type = pipeline_meta.inputs[arg_name].type
-            args_list.append(
-                pipeline_channel.create_pipeline_channel(
-                    name=arg_name,
-                    channel_type=arg_type,
-                ))
-
-        with pipeline_context.Pipeline(pipeline_name) as dsl_pipeline:
-            pipeline_func(*args_list)
-
-        if not dsl_pipeline.tasks:
-            raise ValueError('Task is missing from pipeline.')
-
-        pipeline_inputs = pipeline_meta.inputs or {}
-
-        # Verify that pipeline_parameters_override contains only input names
-        # that match the pipeline inputs definition.
-        pipeline_parameters_override = pipeline_parameters_override or {}
-        for input_name in pipeline_parameters_override:
-            if input_name not in pipeline_inputs:
-                raise ValueError(
-                    'Pipeline parameter {} does not match any known '
-                    'pipeline argument.'.format(input_name))
-
-        # Fill in the default values.
-        args_list_with_defaults = [
-            pipeline_channel.create_pipeline_channel(
-                name=input_name,
-                channel_type=input_spec.type,
-                value=pipeline_parameters_override.get(input_name) or
-                input_spec.default,
-            ) for input_name, input_spec in pipeline_inputs.items()
-        ]
-
-        # Making the pipeline group name unique to prevent name clashes with
-        # templates
-        pipeline_group = dsl_pipeline.groups[0]
-        pipeline_group.name = uuid.uuid4().hex
-
-        pipeline_spec, _ = builder.create_pipeline_spec_and_deployment_config(
-            pipeline_args=args_list_with_defaults,
-            pipeline=dsl_pipeline,
-        )
-
-        if pipeline_root:
-            pipeline_spec.default_pipeline_root = pipeline_root
-
-        return pipeline_spec

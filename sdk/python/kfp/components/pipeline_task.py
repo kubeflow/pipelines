@@ -189,7 +189,9 @@ class PipelineTask:
         Used when a task has exactly one output parameter.
         """
         if len(self._outputs) != 1:
-            raise AttributeError
+            raise AttributeError(
+                'The task has multiple outputs. Please reference the output by its name.'
+            )
         return list(self._outputs.values())[0]
 
     @property
