@@ -1125,6 +1125,9 @@ def build_spec_by_group(
         ]
         is_parent_component_root = (group_component_spec == pipeline_spec.root)
 
+        # Track if component spec is addeded from merging pipeline spec.
+        component_spec_added = False
+
         if isinstance(subgroup, pipeline_task.PipelineTask):
 
             subgroup_task_spec = build_task_spec_for_task(
@@ -1138,30 +1141,33 @@ def build_spec_by_group(
                 task=subgroup)
             task_name_to_component_spec[subgroup.name] = subgroup_component_spec
 
-            executor_label = subgroup_component_spec.executor_label
+            if subgroup_component_spec.executor_label:
+                executor_label = utils.make_name_unique_by_adding_index(
+                    name=subgroup_component_spec.executor_label,
+                    collection=list(deployment_config.executors.keys()),
+                    delimiter='-')
+                subgroup_component_spec.executor_label = executor_label
 
-            if executor_label not in deployment_config.executors:
-                if subgroup.container_spec is not None:
-                    subgroup_container_spec = build_container_spec_for_task(
-                        task=subgroup)
-                    deployment_config.executors[
-                        executor_label].container.CopyFrom(
-                            subgroup_container_spec)
-                elif subgroup.importer_spec is not None:
-                    subgroup_importer_spec = build_importer_spec_for_task(
-                        task=subgroup)
-                    deployment_config.executors[
-                        executor_label].importer.CopyFrom(
-                            subgroup_importer_spec)
-                elif subgroup.pipeline_spec is not None:
-                    merge_deployment_spec_and_component_spec(
-                        main_pipeline_spec=pipeline_spec,
-                        main_deployment_config=deployment_config,
-                        sub_pipeline_spec=subgroup.pipeline_spec,
-                        sub_pipeline_component_name=subgroup_component_name,
-                    )
-                else:
-                    raise RuntimeError
+            if subgroup.container_spec is not None:
+                subgroup_container_spec = build_container_spec_for_task(
+                    task=subgroup)
+                deployment_config.executors[executor_label].container.CopyFrom(
+                    subgroup_container_spec)
+            elif subgroup.importer_spec is not None:
+                subgroup_importer_spec = build_importer_spec_for_task(
+                    task=subgroup)
+                deployment_config.executors[executor_label].importer.CopyFrom(
+                    subgroup_importer_spec)
+            elif subgroup.pipeline_spec is not None:
+                merge_deployment_spec_and_component_spec(
+                    main_pipeline_spec=pipeline_spec,
+                    main_deployment_config=deployment_config,
+                    sub_pipeline_spec=subgroup.pipeline_spec,
+                    sub_pipeline_component_name=subgroup_component_name,
+                )
+                component_spec_added = True
+            else:
+                raise RuntimeError
         elif isinstance(subgroup, tasks_group.ParallelFor):
 
             # "Punch the hole", adding additional inputs (other than loop
@@ -1258,8 +1264,14 @@ def build_spec_by_group(
             subgroup_task_spec.dependent_tasks.extend(
                 [utils.sanitize_task_name(dep) for dep in group_dependencies])
 
-        # Add component spec if not exists
-        if subgroup_component_name not in pipeline_spec.components:
+        # Add component spec if not already added from merging pipeline spec.
+        if not component_spec_added:
+            subgroup_component_name = utils.make_name_unique_by_adding_index(
+                name=subgroup_component_name,
+                collection=list(pipeline_spec.components.keys()),
+                delimiter='-')
+
+            subgroup_task_spec.component_ref.name = subgroup_component_name
             pipeline_spec.components[subgroup_component_name].CopyFrom(
                 subgroup_component_spec)
 

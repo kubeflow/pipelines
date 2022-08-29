@@ -580,14 +580,16 @@ class TestInputSpec(unittest.TestCase):
         self.assertEqual(input_spec.default, None)
         self.assertEqual(input_spec._optional, False)
 
-    def test_from_ir_parameter_dict(self):
+    def test_from_ir_component_inputs_dict(self):
         parameter_dict = {'parameterType': 'STRING'}
-        input_spec = structures.InputSpec.from_ir_parameter_dict(parameter_dict)
+        input_spec = structures.InputSpec.from_ir_component_inputs_dict(
+            parameter_dict)
         self.assertEqual(input_spec.type, 'String')
         self.assertEqual(input_spec.default, None)
 
         parameter_dict = {'parameterType': 'NUMBER_INTEGER'}
-        input_spec = structures.InputSpec.from_ir_parameter_dict(parameter_dict)
+        input_spec = structures.InputSpec.from_ir_component_inputs_dict(
+            parameter_dict)
         self.assertEqual(input_spec.type, 'Integer')
         self.assertEqual(input_spec.default, None)
 
@@ -595,20 +597,32 @@ class TestInputSpec(unittest.TestCase):
             'defaultValue': 'default value',
             'parameterType': 'STRING'
         }
-        input_spec = structures.InputSpec.from_ir_parameter_dict(parameter_dict)
+        input_spec = structures.InputSpec.from_ir_component_inputs_dict(
+            parameter_dict)
         self.assertEqual(input_spec.type, 'String')
         self.assertEqual(input_spec.default, 'default value')
 
-        input_spec = structures.InputSpec.from_ir_parameter_dict(parameter_dict)
+        input_spec = structures.InputSpec.from_ir_component_inputs_dict(
+            parameter_dict)
         self.assertEqual(input_spec.type, 'String')
         self.assertEqual(input_spec.default, 'default value')
+
+        artifact_dict = {
+            'artifactType': {
+                'schemaTitle': 'system.Artifact',
+                'schemaVersion': '0.0.1'
+            }
+        }
+        input_spec = structures.InputSpec.from_ir_component_inputs_dict(
+            artifact_dict)
+        self.assertEqual(input_spec.type, 'Artifact')
 
 
 class TestOutputSpec(parameterized.TestCase):
 
-    def test_from_ir_parameter_dict(self):
+    def test_from_ir_component_outputs_dict(self):
         parameter_dict = {'parameterType': 'STRING'}
-        output_spec = structures.OutputSpec.from_ir_parameter_dict(
+        output_spec = structures.OutputSpec.from_ir_component_outputs_dict(
             parameter_dict)
         self.assertEqual(output_spec.type, 'String')
 
@@ -618,7 +632,7 @@ class TestOutputSpec(parameterized.TestCase):
                 'schemaVersion': '0.0.1'
             }
         }
-        output_spec = structures.OutputSpec.from_ir_parameter_dict(
+        output_spec = structures.OutputSpec.from_ir_component_outputs_dict(
             artifact_dict)
         self.assertEqual(output_spec.type, 'Artifact')
 

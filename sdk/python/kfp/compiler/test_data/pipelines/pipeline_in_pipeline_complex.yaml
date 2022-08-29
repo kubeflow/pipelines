@@ -227,9 +227,13 @@ root:
         inputs:
           parameters:
             msg:
-              runtimeValue:
-                constant: Hello
+              componentInputParameter: msg
         taskInfo:
           name: print-op1
+  inputDefinitions:
+    parameters:
+      msg:
+        defaultValue: Hello
+        parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-beta.3
