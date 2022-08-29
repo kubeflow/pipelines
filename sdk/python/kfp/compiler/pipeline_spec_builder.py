@@ -42,6 +42,8 @@ group_type_to_dsl_class = {
     tasks_group.TasksGroupType.EXIT_HANDLER: tasks_group.ExitHandler,
 }
 
+_SINGLE_OUTPUT_NAME = 'Output'
+
 
 def _additional_input_name_for_pipeline_channel(
         channel_or_name: Union[pipeline_channel.PipelineChannel, str]) -> str:
@@ -55,7 +57,7 @@ def _additional_input_name_for_pipeline_channel(
         channel_or_name)
 
 
-def _to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
+def to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
     """Creates a google.protobuf.struct_pb2.Value message out of a provide
     value.
 
@@ -77,11 +79,11 @@ def _to_protobuf_value(value: type_utils.PARAMETER_TYPES) -> struct_pb2.Value:
     elif isinstance(value, dict):
         return struct_pb2.Value(
             struct_value=struct_pb2.Struct(
-                fields={k: _to_protobuf_value(v) for k, v in value.items()}))
+                fields={k: to_protobuf_value(v) for k, v in value.items()}))
     elif isinstance(value, list):
         return struct_pb2.Value(
             list_value=struct_pb2.ListValue(
-                values=[_to_protobuf_value(v) for v in value]))
+                values=[to_protobuf_value(v) for v in value]))
     else:
         raise ValueError('Value must be one of the following types: '
                          'str, int, float, bool, dict, and list. Got: '
@@ -298,7 +300,7 @@ def build_task_spec_for_task(
 
             pipeline_task_spec.inputs.parameters[
                 input_name].runtime_value.constant.CopyFrom(
-                    _to_protobuf_value(input_value))
+                    to_protobuf_value(input_value))
 
         else:
             raise ValueError(
@@ -360,7 +362,7 @@ def build_component_spec_for_task(
             if input_spec.default is not None:
                 component_spec.input_definitions.parameters[
                     input_name].default_value.CopyFrom(
-                        _to_protobuf_value(input_spec.default))
+                        to_protobuf_value(input_spec.default))
 
         else:
             component_spec.input_definitions.artifacts[
@@ -378,6 +380,107 @@ def build_component_spec_for_task(
                     type_utils.get_artifact_type_schema(output_spec.type))
 
     return component_spec
+
+
+# TODO(chensun): merge with build_component_spec_for_task
+def _build_component_spec_from_component_spec_structure(
+    component_spec_struct: structures.ComponentSpec,
+) -> pipeline_spec_pb2.ComponentSpec:
+    """Builds ComponentSpec proto from ComponentSpec structure."""
+    component_spec = pipeline_spec_pb2.ComponentSpec()
+
+    for input_name, input_spec in (component_spec_struct.inputs or {}).items():
+
+        # Special handling for PipelineTaskFinalStatus first.
+        if type_utils.is_task_final_status_type(input_spec.type):
+            component_spec.input_definitions.parameters[
+                input_name].parameter_type = pipeline_spec_pb2.ParameterType.STRUCT
+            continue
+
+        if type_utils.is_parameter_type(input_spec.type):
+            component_spec.input_definitions.parameters[
+                input_name].parameter_type = type_utils.get_parameter_type(
+                    input_spec.type)
+            if input_spec.default is not None:
+                component_spec.input_definitions.parameters[
+                    input_name].default_value.CopyFrom(
+                        to_protobuf_value(input_spec.default))
+
+        else:
+            component_spec.input_definitions.artifacts[
+                input_name].artifact_type.CopyFrom(
+                    type_utils.get_artifact_type_schema(input_spec.type))
+
+    for output_name, output_spec in (component_spec_struct.outputs or
+                                     {}).items():
+        if type_utils.is_parameter_type(output_spec.type):
+            component_spec.output_definitions.parameters[
+                output_name].parameter_type = type_utils.get_parameter_type(
+                    output_spec.type)
+        else:
+            component_spec.output_definitions.artifacts[
+                output_name].artifact_type.CopyFrom(
+                    type_utils.get_artifact_type_schema(output_spec.type))
+
+    return component_spec
+
+
+def _connect_dag_outputs(
+    component_spec: pipeline_spec_pb2.ComponentSpec,
+    output_name: str,
+    output_channel: pipeline_channel.PipelineChannel,
+) -> None:
+    """Connects dag ouptut to a subtask output.
+
+    Args:
+        component_spec: The component spec to modify its dag outputs.
+        output_name: The name of the dag output.
+        output_channel: The pipeline channel selected for the dag output.
+    """
+    if isinstance(output_channel, pipeline_channel.PipelineArtifactChannel):
+        if output_name not in component_spec.output_definitions.artifacts:
+            raise ValueError(f'Pipeline output not defined: {output_name}.')
+        component_spec.dag.outputs.artifacts[
+            output_name].artifact_selectors.append(
+                pipeline_spec_pb2.DagOutputsSpec.ArtifactSelectorSpec(
+                    producer_subtask=output_channel.task_name,
+                    output_artifact_key=output_channel.name,
+                ))
+    elif isinstance(output_channel, pipeline_channel.PipelineParameterChannel):
+        if output_name not in component_spec.output_definitions.parameters:
+            raise ValueError(f'Pipeline output not defined: {output_name}.')
+        component_spec.dag.outputs.parameters[
+            output_name].value_from_parameter.producer_subtask = output_channel.task_name
+        component_spec.dag.outputs.parameters[
+            output_name].value_from_parameter.output_parameter_key = output_channel.name
+
+
+def _build_dag_outputs(
+    component_spec: pipeline_spec_pb2.ComponentSpec,
+    dag_outputs: Optional[Any],
+) -> None:
+    """Builds DAG output spec."""
+    if dag_outputs is not None:
+        if isinstance(dag_outputs, pipeline_channel.PipelineChannel):
+            _connect_dag_outputs(
+                component_spec=component_spec,
+                output_name=_SINGLE_OUTPUT_NAME,
+                output_channel=dag_outputs,
+            )
+        elif isinstance(dag_outputs, tuple) and hasattr(dag_outputs, '_asdict'):
+            for output_name, output_channel in dag_outputs._asdict().items():
+                _connect_dag_outputs(
+                    component_spec=component_spec,
+                    output_name=output_name,
+                    output_channel=output_channel,
+                )
+    # Valid dag outputs covers all outptus in component definition.
+    for output_name in component_spec.output_definitions.artifacts:
+        if output_name not in component_spec.dag.outputs.artifacts:
+            raise ValueError(f'Missing pipeline output: {output_name}.')
+    for output_name in component_spec.output_definitions.parameters:
+        if output_name not in component_spec.dag.outputs.parameters:
+            raise ValueError(f'Missing pipeline output: {output_name}.')
 
 
 def build_importer_spec_for_task(
@@ -480,11 +583,11 @@ def _fill_in_component_input_default_value(
     elif pipeline_spec_pb2.ParameterType.STRUCT == parameter_type:
         component_spec.input_definitions.parameters[
             input_name].default_value.CopyFrom(
-                _to_protobuf_value(default_value))
+                to_protobuf_value(default_value))
     elif pipeline_spec_pb2.ParameterType.LIST == parameter_type:
         component_spec.input_definitions.parameters[
             input_name].default_value.CopyFrom(
-                _to_protobuf_value(default_value))
+                to_protobuf_value(default_value))
 
 
 def build_component_spec_for_group(
@@ -1369,14 +1472,16 @@ def _merge_component_spec(
 
 def create_pipeline_spec_and_deployment_config(
     pipeline: pipeline_context.Pipeline,
-    pipeline_args: List[pipeline_channel.PipelineChannel],
+    component_spec: structures.ComponentSpec,
+    pipeline_outputs: Optional[Any] = None,
 ) -> Tuple[pipeline_spec_pb2.PipelineSpec,
            pipeline_spec_pb2.PipelineDeploymentConfig]:
     """Creates a pipeline spec object.
 
     Args:
         pipeline: The instantiated pipeline object.
-        pipeline_args: The list of pipeline input parameters.
+        component_spec: The component spec structures.
+        pipeline_outputs: The pipeline outputs via return.
 
     Returns:
         A tuple of PipelineSpec proto representing the compiled pipeline and its
@@ -1396,10 +1501,10 @@ def create_pipeline_spec_and_deployment_config(
     pipeline_spec.schema_version = '2.1.0'
 
     pipeline_spec.root.CopyFrom(
-        build_component_spec_for_group(
-            pipeline_channels=pipeline_args,
-            is_root_group=True,
-        ))
+        _build_component_spec_from_component_spec_structure(component_spec))
+
+    _build_dag_outputs(
+        component_spec=pipeline_spec.root, dag_outputs=pipeline_outputs)
 
     root_group = pipeline.groups[0]
 
