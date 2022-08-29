@@ -54,21 +54,10 @@ class GraphComponent(base_component.BaseComponent):
 
         with pipeline_context.Pipeline(
                 self.component_spec.name) as dsl_pipeline:
-            pipeline_func(*args_list)
+            pipeline_outputs = pipeline_func(*args_list)
 
         if not dsl_pipeline.tasks:
             raise ValueError('Task is missing from pipeline.')
-
-        component_inputs = self.component_spec.inputs or {}
-
-        # Fill in the default values.
-        args_list_with_defaults = [
-            pipeline_channel.create_pipeline_channel(
-                name=input_name,
-                channel_type=input_spec.type,
-                value=input_spec.default,
-            ) for input_name, input_spec in component_inputs.items()
-        ]
 
         # Making the pipeline group name unique to prevent name clashes with
         # templates
@@ -77,7 +66,14 @@ class GraphComponent(base_component.BaseComponent):
 
         self.pipeline_spec, self.deployment_config = (
             builder.create_pipeline_spec_and_deployment_config(
-                pipeline=dsl_pipeline, pipeline_args=args_list_with_defaults))
+                pipeline=dsl_pipeline,
+                component_spec=self.component_spec,
+                pipeline_outputs=pipeline_outputs,
+            ))
+
+        pipeline_root = getattr(pipeline_func, 'pipeline_root', None)
+        if pipeline_root is not None:
+            self.pipeline_spec.default_pipeline_root = pipeline_root
 
         self.component_spec.implementation.graph = self.pipeline_spec
 
