@@ -19,6 +19,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	&& rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
+# Pin pip version to work around https://github.com/apache/beam/issues/22218
+RUN python3 -m pip install pip==21.2.4
 RUN python3 -m pip install -r \
     requirements.txt --quiet --no-cache-dir \
     && rm -f requirements.txt
