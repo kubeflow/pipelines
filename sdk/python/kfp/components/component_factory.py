@@ -28,6 +28,7 @@ from kfp.components import python_component
 from kfp.components import structures
 from kfp.components.container_component_artifact_channel import \
     ContainerComponentArtifactChannel
+from kfp.components.types import custom_artifact_types
 from kfp.components.types import type_annotations
 from kfp.components.types import type_utils
 
@@ -322,7 +323,7 @@ def _get_command_and_args_for_lightweight_component(
         'from kfp import dsl',
         'from kfp.dsl import *',
         'from typing import *',
-    ]
+    ] + custom_artifact_types.get_custom_artifact_type_import_statements(func)
 
     func_source = _get_function_source_definition(func)
     source = textwrap.dedent('''
