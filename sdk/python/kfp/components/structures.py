@@ -618,17 +618,6 @@ class ComponentSpec(base_model.BaseModel):
                 for name, input_dict in all_inputs.items()
             }
 
-        def inputs_dict_from_component_spec_pb(
-            component_spec: pipeline_spec_pb2.ComponentSpec
-        ) -> Dict[str, InputSpec]:
-            parameters = component_spec.input_definitions.parameters
-            artifacts = component_spec.input_definitions.artifacts
-            all_inputs = {**parameters, **artifacts}
-            return {
-                name: InputSpec.from_ir_parameter_dict(parameter_dict)
-                for name, parameter_dict in all_inputs.items()
-            }
-
         def outputs_dict_from_component_spec_dict(
                 components_spec_dict: Dict[str, Any]) -> Dict[str, OutputSpec]:
             parameters = component_spec_dict.get('outputDefinitions',
