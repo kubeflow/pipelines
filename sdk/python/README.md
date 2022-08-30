@@ -48,8 +48,8 @@ def add_pipeline(
     a: float=1.0,
     b: float=7.0,
 ):
-    first_add_task = add_op(a, 4.0)
-    second_add_task = add_op(first_add_task.output, b)
+    first_add_task = add_op(a=a, b=4.0)
+    second_add_task = add_op(a=first_add_task.output, b=b)
 
 # instantiate a client and submit your pipeline with arguments
 client = kfp.Client(host='<my-host-url>')
