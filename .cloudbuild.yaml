@@ -60,7 +60,7 @@ steps:
         -f /workspace/frontend/Dockerfile \
         /workspace
   id:   'buildFrontend'
-  waitFor: ['copyPythonSDK']
+  waitFor: ['-']
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: /bin/bash
   args:
