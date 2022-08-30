@@ -2692,11 +2692,7 @@ metadata:
 spec:
   descriptor:
     type: Kubeflow Pipelines
-<<<<<<< HEAD
-    version: 2.0.0-alpha.2
-=======
-    version: 1.8.4
->>>>>>> 4c1d42e10 (Upgrade argo for GCP Markerplace (#8208))
+    version: 2.0.0-alpha.3
     description: |-
       Reusable end-to-end ML workflow
     maintainers:
