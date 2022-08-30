@@ -45,18 +45,18 @@ add_op = create_component_from_func(add)
     name='Addition pipeline',
     description='An example pipeline that performs addition calculations.')
 def add_pipeline(
-    a='1',
-    b='7',
+    a: float=1.0,
+    b: float=7.0,
 ):
-    first_add_task = add_op(a, 4)
-    second_add_task = add_op(first_add_task.output, b)
+    first_add_task = add_op(a=a, b=4.0)
+    second_add_task = add_op(a=first_add_task.output, b=b)
 
 # instantiate a client and submit your pipeline with arguments
 client = kfp.Client(host='<my-host-url>')
 client.create_run_from_pipeline_func(
     add_pipeline, arguments={
-        'a': '7',
-        'b': '8'
+        'a': 7.0,
+        'b': 8.0
     })
 
 ```
