@@ -1433,23 +1433,23 @@ describe('NewRun', () => {
       });
       // TODO: verify route change happens
     });
-    
+
     it('updates the pipeline params as user selects different pipelines', async () => {
       tree = shallow(<TestNewRun {...generateProps()} />);
 
       const pipelineWithParams = newMockPipeline();
-      const pipelineVersionWithParams = newMockPipelineVersion()
+      const pipelineVersionWithParams = newMockPipelineVersion();
       pipelineWithParams.default_version = pipelineVersionWithParams;
 
       pipelineWithParams.id = 'pipeline-with-params-id';
-      pipelineWithParams.name = 'pipeline-with-params'
+      pipelineWithParams.name = 'pipeline-with-params';
       pipelineVersionWithParams.id = 'pipeline-version-with-params-id';
       pipelineVersionWithParams.name = 'pipeline-version-with-params';
       pipelineVersionWithParams.parameters = [
         { name: 'param-1', value: 'prefilled value 1' },
         { name: 'param-2', value: 'prefilled value 2' },
       ];
-      
+
       const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
       const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
       const listPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelines');
@@ -1463,13 +1463,13 @@ describe('NewRun', () => {
 
       render(
         <CommonTestWrapper>
-          <NewRun 
+          <NewRun
             {...generateProps()}
             namespace=''
             existingPipelineId=''
             handlePipelineIdChange={jest.fn()}
             existingPipelineVersionId=''
-            handlePipelineVersionIdChange={jest.fn()} 
+            handlePipelineVersionIdChange={jest.fn()}
           />
         </CommonTestWrapper>,
       );
@@ -1489,9 +1489,9 @@ describe('NewRun', () => {
       await screen.findByDisplayValue(pipelineWithParams.name);
       await screen.findByDisplayValue(pipelineVersionWithParams.name);
       await screen.findByLabelText('param-1');
-      await screen.findByDisplayValue('prefilled value 1')
+      await screen.findByDisplayValue('prefilled value 1');
       await screen.findByLabelText('param-2');
-      await screen.findByDisplayValue('prefilled value 2')
+      await screen.findByDisplayValue('prefilled value 2');
     });
 
     it('trims whitespace from the pipeline params', async () => {

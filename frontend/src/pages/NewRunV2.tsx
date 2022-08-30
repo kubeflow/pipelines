@@ -744,7 +744,6 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
     <>
       <Input
         value={props.experimentName}
-        // TODO(jlyaoyuli): prefill the experimentName if experimentId is existing
         required={true}
         label='Experiment'
         disabled={true}
