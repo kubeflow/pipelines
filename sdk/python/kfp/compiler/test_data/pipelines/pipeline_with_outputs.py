@@ -11,13 +11,23 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import collections
+from typing import NamedTuple
 
 from kfp import compiler
 from kfp import dsl
+from kfp.dsl import Artifact
+from kfp.dsl import Output
+
+
+@dsl.component
+def print_op1(msg: str) -> str:
+    print(msg)
+    return msg
 
 
 @dsl.container_component
-def component1(text: str, output_gcs: dsl.Output[dsl.Dataset]):
+def print_op2(msg: str, data: Output[Artifact]):
     return dsl.ContainerSpec(
         image='alpine',
         command=[
@@ -25,19 +35,28 @@ def component1(text: str, output_gcs: dsl.Output[dsl.Dataset]):
             '-c',
             'mkdir --parents $(dirname "$1") && echo "$0" > "$1"',
         ],
-        args=[text, output_gcs.path])
+        args=[msg, data.path],
+    )
 
 
-@dsl.container_component
-def component2(input_gcs: dsl.Input[dsl.Dataset]):
-    return dsl.ContainerSpec(
-        image='alpine', command=['cat'], args=[input_gcs.path])
+@dsl.pipeline
+def inner_pipeline(
+        msg: str) -> NamedTuple('Outputs', [
+            ('msg', str),
+            ('data', Artifact),
+        ]):
+    task1 = print_op1(msg=msg)
+    task2 = print_op2(msg=task1.output)
+
+    output = collections.namedtuple('Outputs', ['msg', 'data'])
+    return output(task1.output, task2.output)
 
 
-@dsl.pipeline(name='containerized-two-step-pipeline')
-def my_pipeline(text: str):
-    component_1 = component1(text=text)
-    component_2 = component2(input_gcs=component_1.outputs['output_gcs'])
+@dsl.pipeline(name='pipeline-in-pipeline')
+def my_pipeline() -> Artifact:
+    task1 = print_op1(msg='Hello')
+    task2 = inner_pipeline(msg='world')
+    return task2.outputs['data']
 
 
 if __name__ == '__main__':

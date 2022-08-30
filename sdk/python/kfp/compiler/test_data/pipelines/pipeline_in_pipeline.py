@@ -13,31 +13,34 @@
 # limitations under the License.
 
 from kfp import compiler
+from kfp import components
 from kfp import dsl
 
 
+@dsl.component
+def print_op1(msg: str) -> str:
+    print(msg)
+    return msg
+
+
 @dsl.container_component
-def component1(text: str, output_gcs: dsl.Output[dsl.Dataset]):
+def print_op2(msg: str):
     return dsl.ContainerSpec(
         image='alpine',
-        command=[
-            'sh',
-            '-c',
-            'mkdir --parents $(dirname "$1") && echo "$0" > "$1"',
-        ],
-        args=[text, output_gcs.path])
+        command=['echo', msg],
+    )
 
 
-@dsl.container_component
-def component2(input_gcs: dsl.Input[dsl.Dataset]):
-    return dsl.ContainerSpec(
-        image='alpine', command=['cat'], args=[input_gcs.path])
+@dsl.pipeline
+def inner_pipeline(msg: str):
+    task = print_op1(msg=msg)
+    print_op2(msg=task.output)
 
 
-@dsl.pipeline(name='containerized-two-step-pipeline')
-def my_pipeline(text: str):
-    component_1 = component1(text=text)
-    component_2 = component2(input_gcs=component_1.outputs['output_gcs'])
+@dsl.pipeline(name='pipeline-in-pipeline')
+def my_pipeline():
+    print_op1(msg='Hello')
+    inner_pipeline(msg='world')
 
 
 if __name__ == '__main__':

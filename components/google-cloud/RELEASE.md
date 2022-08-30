@@ -1,5 +1,9 @@
-# Current Version 1.0.18.dev (Still in Development)
+# Current Version 1.0.19.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.18
+* Model Evaluation - Give evaluation preprocessing components unique dataflow job names
+* Add vertex_notification_email component on v1 folder
 
 # Release 1.0.17
 * Model Evaluation - Rearrange json and yaml files in e2e test to eliminate duplicate defining and reading

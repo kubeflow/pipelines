@@ -62,8 +62,8 @@ class _ArbitraryClass:
 
 
 class _VertexDummy(artifact_types.Artifact):
-    TYPE_NAME = 'google.VertexDummy'
-    VERSION = '0.0.2'
+    schema_title = 'google.VertexDummy'
+    schema_version = '0.0.2'
 
     def __init__(self):
         super().__init__(uri='uri', name='name', metadata={'dummy': '123'})

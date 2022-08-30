@@ -17,12 +17,12 @@ description: |
         unmanaged_container_model (Optional[google.UnmanagedContainerModel]):
             Optional. The unmanaged container model to be uploaded.
 
-            The model can be passed from an upstream step, or imported via an importer node.
+            The model can be passed from an upstream step, or imported via an importer.
             ```
-              from kfp.v2.components import importer_node
+              from kfp.v2.dsl import importer
               from google_cloud_pipeline_components.types import artifact_types
 
-              importer_spec = importer_node.importer(
+              importer_spec = importer(
                 artifact_uri='gs://managed-pipeline-gcpc-e2e-test/automl-tabular/model',
                 artifact_class=artifact_types.UnmanagedContainerModel,
                 metadata={

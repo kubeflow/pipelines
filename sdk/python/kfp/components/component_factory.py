@@ -22,6 +22,7 @@ import warnings
 
 import docstring_parser
 from kfp.components import container_component
+from kfp.components import graph_component
 from kfp.components import placeholders
 from kfp.components import python_component
 from kfp.components import structures
@@ -142,24 +143,24 @@ def _annotation_to_type_struct(annotation):
             return type_struct
 
         if issubclass(annotation, artifact_types.Artifact
-                     ) and not annotation.TYPE_NAME.startswith('system.'):
+                     ) and not annotation.schema_title.startswith('system.'):
             # For artifact classes not under the `system` namespace,
-            # use its TYPE_NAME as-is.
-            type_name = annotation.TYPE_NAME
+            # use its schema_title as-is.
+            schema_title = annotation.schema_title
         else:
-            type_name = str(annotation.__name__)
+            schema_title = str(annotation.__name__)
 
     elif hasattr(annotation,
                  '__forward_arg__'):  # Handling typing.ForwardRef('Type_name')
-        type_name = str(annotation.__forward_arg__)
+        schema_title = str(annotation.__forward_arg__)
     else:
-        type_name = str(annotation)
+        schema_title = str(annotation)
 
     # It's also possible to get the converter by type name
-    type_struct = type_utils.get_canonical_type_name_for_type(type_name)
+    type_struct = type_utils.get_canonical_type_name_for_type(schema_title)
     if type_struct:
         return type_struct
-    return type_name
+    return schema_title
 
 
 def _maybe_make_unique(name: str, names: List[str]):
@@ -304,11 +305,11 @@ def extract_component_interface(
     # attribute (of the legacy func._component_human_name attribute).  The
     # description can be overridden by setting the func.__doc__ attribute (or
     # the legacy func._component_description attribute).
-    component_name = getattr(func, '_component_human_name',
-                             None) or _python_function_name_to_component_name(
-                                 func.__name__)
+    component_name = getattr(
+        func, '_component_human_name',
+        _python_function_name_to_component_name(func.__name__))
     description = getattr(func, '_component_description',
-                          None) or parsed_docstring.short_description
+                          parsed_docstring.short_description)
     if description:
         description = description.strip()
 
@@ -379,14 +380,16 @@ def _get_command_and_args_for_containerized_component(
     return command, args
 
 
-def create_component_from_func(func: Callable,
-                               base_image: Optional[str] = None,
-                               target_image: Optional[str] = None,
-                               packages_to_install: List[str] = None,
-                               pip_index_urls: Optional[List[str]] = None,
-                               output_component_file: Optional[str] = None,
-                               install_kfp_package: bool = True,
-                               kfp_package_path: Optional[str] = None):
+def create_component_from_func(
+    func: Callable,
+    base_image: Optional[str] = None,
+    target_image: Optional[str] = None,
+    packages_to_install: List[str] = None,
+    pip_index_urls: Optional[List[str]] = None,
+    output_component_file: Optional[str] = None,
+    install_kfp_package: bool = True,
+    kfp_package_path: Optional[str] = None,
+) -> python_component.PythonComponent:
     """Implementation for the @component decorator.
 
     The decorator is defined under component_decorator.py. See the
@@ -487,3 +490,23 @@ def create_container_component_from_func(
         container_spec_implementation)
     component_spec.validate_placeholders()
     return container_component.ContainerComponent(component_spec, func)
+
+
+def create_graph_component_from_func(
+        func: Callable) -> graph_component.GraphComponent:
+    """Implementation for the @pipeline decorator.
+
+    The decorator is defined under pipeline_context.py. See the
+    decorator for the canonical documentation for this function.
+    """
+
+    component_spec = extract_component_interface(func)
+    component_name = getattr(
+        func, '_component_human_name',
+        _python_function_name_to_component_name(func.__name__))
+
+    return graph_component.GraphComponent(
+        component_spec=component_spec,
+        pipeline_func=func,
+        name=component_name,
+    )

@@ -11,18 +11,4 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Executor for running Vertex Notification Email components."""
-
-
-def main():
-  """Raises an error when notifications are requested on Kubeflow Pipelines.
-
-  The notification email component works only on Vertex Pipelines. This function
-  raises an exception when this component is used on Kubeflow Pipelines.
-  """
-  raise NotImplementedError('The notification email component is supported '
-                            'only on Vertex Pipelines.')
-
-
-if __name__ == '__main__':
-  main()
+"""Google Cloud Pipeline Components - Batch Prediction Job Launcher and Remote Runner."""
