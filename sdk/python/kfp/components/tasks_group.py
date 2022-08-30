@@ -143,7 +143,7 @@ class Condition(TasksGroup):
     definition.
 
     Args:
-        condition: A comparative expression that evaluates to True or False. At least one of the operands must be an output from an upstream task.
+        condition: A comparative expression that evaluates to True or False. At least one of the operands must be an output from an upstream task or a pipeline parameter.
         name: The name of the condition group.
 
     Example:
