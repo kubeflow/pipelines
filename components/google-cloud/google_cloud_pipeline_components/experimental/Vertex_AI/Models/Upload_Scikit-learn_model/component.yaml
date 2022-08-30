@@ -1,0 +1,434 @@
+name: Upload Scikit learn pickle model to Google Cloud Vertex AI
+description: Imports Scikit-learn model into Vertex AI Model registry.
+inputs:
+- {name: model, type: ScikitLearnPickleModel, description: Scikit-learn pickled model}
+- {name: sklearn_version, type: String, description: Scikit-learn version, optional: true}
+- name: display_name
+  type: String
+  description: |-
+    Required. The display name of the Model. The name can be up to 128
+    characters long and can be consist of any UTF-8 characters.
+  optional: true
+- {name: description, type: String, description: The description of the model., optional: true}
+- name: instance_schema_uri
+  type: String
+  description: |-
+    Points to a YAML file stored on Google Cloud
+    Storage describing the format of a single instance, which
+    are used in
+    ``PredictRequest.instances``,
+    ``ExplainRequest.instances``
+    and
+    ``BatchPredictionJob.input_config``.
+    The schema is defined as an OpenAPI 3.0.2 `Schema
+    Object <https://tinyurl.com/y538mdwt#schema-object>`__.
+    AutoML Models always have this field populated by AI
+    Platform. Note: The URI given on output will be immutable
+    and probably different, including the URI scheme, than the
+    one given on input. The output URI will point to a location
+    where the user only has a read access.
+
+    For more details on PredictionSchema, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#predictschemata.
+  optional: true
+- name: parameters_schema_uri
+  type: String
+  description: |-
+    Points to a YAML file stored on Google Cloud
+    Storage describing the parameters of prediction and
+    explanation via
+    ``PredictRequest.parameters``,
+    ``ExplainRequest.parameters``
+    and
+    ``BatchPredictionJob.model_parameters``.
+    The schema is defined as an OpenAPI 3.0.2 `Schema
+    Object <https://tinyurl.com/y538mdwt#schema-object>`__.
+    AutoML Models always have this field populated by AI
+    Platform, if no parameters are supported it is set to an
+    empty string. Note: The URI given on output will be
+    immutable and probably different, including the URI scheme,
+    than the one given on input. The output URI will point to a
+    location where the user only has a read access.
+
+    For more details on PredictionSchema, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#predictschemata.
+  optional: true
+- name: prediction_schema_uri
+  type: String
+  description: |-
+    Points to a YAML file stored on Google Cloud
+    Storage describing the format of a single prediction
+    produced by this Model, which are returned via
+    ``PredictResponse.predictions``,
+    ``ExplainResponse.explanations``,
+    and
+    ``BatchPredictionJob.output_config``.
+    The schema is defined as an OpenAPI 3.0.2 `Schema
+    Object <https://tinyurl.com/y538mdwt#schema-object>`__.
+    AutoML Models always have this field populated by AI
+    Platform. Note: The URI given on output will be immutable
+    and probably different, including the URI scheme, than the
+    one given on input. The output URI will point to a location
+    where the user only has a read access.
+
+    For more details on PredictionSchema, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#predictschemata
+  optional: true
+- name: explanation_metadata
+  type: JsonObject
+  description: |-
+    Metadata describing the Model's input and output for explanation.
+    Both `explanation_metadata` and `explanation_parameters` must be
+    passed together when used.
+
+    For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
+  optional: true
+- name: explanation_parameters
+  type: JsonObject
+  description: |-
+    Parameters to configure explaining for Model's predictions.
+
+    For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
+  optional: true
+- {name: project, type: String, description: Required. Project to upload this model
+    to., optional: true}
+- name: location
+  type: String
+  description: |-
+    Optional location to upload this model to. If not set,
+    default to us-central1.
+  optional: true
+- name: labels
+  type: JsonObject
+  description: |-
+    The labels with user-defined metadata to organize your model.
+
+    Label keys and values can be no longer than
+    64 characters (Unicode codepoints), can only contain lowercase
+    letters, numeric characters, underscores and dashes.
+    International characters are allowed.
+
+    See https://goo.gl/xmQnxf for more information and examples of labels.
+  optional: true
+- name: encryption_spec_key_name
+  type: String
+  description: |-
+    Customer-managed encryption key spec for a Model.
+    If set, this Model and all sub-resources of this Model will
+    be secured by this key.
+
+    Has the form:
+    ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+    The key needs to be in the same region as where the compute
+    resource is created.
+  optional: true
+- {name: staging_bucket, type: String, optional: true}
+outputs:
+- {name: model_name, type: String}
+- {name: model_dict, type: JsonObject}
+implementation:
+  container:
+    image: python:3.9
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'google-cloud-aiplatform==1.16.0' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
+      -m pip install --quiet --no-warn-script-location 'google-cloud-aiplatform==1.16.0'
+      --user) && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def upload_Scikit_learn_pickle_model_to_Google_Cloud_Vertex_AI(
+          model_path,
+          sklearn_version = None,
+
+          display_name = None,
+          description = None,
+
+          instance_schema_uri = None,
+          parameters_schema_uri = None,
+          prediction_schema_uri = None,
+          explanation_metadata = None,
+          explanation_parameters = None,
+
+          project = None,
+          location = None,
+          labels = None,
+          encryption_spec_key_name = None,
+          staging_bucket = None,
+      ):
+          """Imports Scikit-learn model into Vertex AI Model registry.
+          For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/upload.
+
+          Args:
+              model_path:
+                  Scikit-learn pickled model
+              sklearn_version:
+                  Scikit-learn version
+
+              display_name:
+                  Required. The display name of the Model. The name can be up to 128
+                  characters long and can be consist of any UTF-8 characters.
+              description:
+                  The description of the model.
+
+              instance_schema_uri:
+                  Points to a YAML file stored on Google Cloud
+                  Storage describing the format of a single instance, which
+                  are used in
+                  ``PredictRequest.instances``,
+                  ``ExplainRequest.instances``
+                  and
+                  ``BatchPredictionJob.input_config``.
+                  The schema is defined as an OpenAPI 3.0.2 `Schema
+                  Object <https://tinyurl.com/y538mdwt#schema-object>`__.
+                  AutoML Models always have this field populated by AI
+                  Platform. Note: The URI given on output will be immutable
+                  and probably different, including the URI scheme, than the
+                  one given on input. The output URI will point to a location
+                  where the user only has a read access.
+
+                  For more details on PredictionSchema, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#predictschemata.
+              parameters_schema_uri:
+                  Points to a YAML file stored on Google Cloud
+                  Storage describing the parameters of prediction and
+                  explanation via
+                  ``PredictRequest.parameters``,
+                  ``ExplainRequest.parameters``
+                  and
+                  ``BatchPredictionJob.model_parameters``.
+                  The schema is defined as an OpenAPI 3.0.2 `Schema
+                  Object <https://tinyurl.com/y538mdwt#schema-object>`__.
+                  AutoML Models always have this field populated by AI
+                  Platform, if no parameters are supported it is set to an
+                  empty string. Note: The URI given on output will be
+                  immutable and probably different, including the URI scheme,
+                  than the one given on input. The output URI will point to a
+                  location where the user only has a read access.
+
+                  For more details on PredictionSchema, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#predictschemata.
+              prediction_schema_uri:
+                  Points to a YAML file stored on Google Cloud
+                  Storage describing the format of a single prediction
+                  produced by this Model, which are returned via
+                  ``PredictResponse.predictions``,
+                  ``ExplainResponse.explanations``,
+                  and
+                  ``BatchPredictionJob.output_config``.
+                  The schema is defined as an OpenAPI 3.0.2 `Schema
+                  Object <https://tinyurl.com/y538mdwt#schema-object>`__.
+                  AutoML Models always have this field populated by AI
+                  Platform. Note: The URI given on output will be immutable
+                  and probably different, including the URI scheme, than the
+                  one given on input. The output URI will point to a location
+                  where the user only has a read access.
+
+                  For more details on PredictionSchema, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models#predictschemata
+              explanation_metadata (Optional[dict]):
+                  Metadata describing the Model's input and output for explanation.
+                  Both `explanation_metadata` and `explanation_parameters` must be
+                  passed together when used.
+
+                  For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
+              explanation_parameters (Optional[dict]):
+                  Parameters to configure explaining for Model's predictions.
+
+                  For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
+
+              project:
+                  Required. Project to upload this model to.
+              location:
+                  Optional location to upload this model to. If not set,
+                  default to us-central1.
+              labels:
+                  The labels with user-defined metadata to organize your model.
+
+                  Label keys and values can be no longer than
+                  64 characters (Unicode codepoints), can only contain lowercase
+                  letters, numeric characters, underscores and dashes.
+                  International characters are allowed.
+
+                  See https://goo.gl/xmQnxf for more information and examples of labels.
+              encryption_spec_key_name:
+                  Customer-managed encryption key spec for a Model.
+                  If set, this Model and all sub-resources of this Model will
+                  be secured by this key.
+
+                  Has the form:
+                  ``projects/my-project/locations/my-location/keyRings/my-kr/cryptoKeys/my-key``.
+                  The key needs to be in the same region as where the compute
+                  resource is created.
+
+          Returns:
+              model_name:
+                  Vertex Model resource name.
+              model_dict:
+                  Representation of the created Vertex Model.
+          """
+          import json
+          import os
+          import shutil
+          import tempfile
+          from google.cloud import aiplatform
+
+          if not location:
+              location = os.environ.get("CLOUD_ML_REGION")
+
+          if not labels:
+              labels = {}
+          labels["google-ready-to-go-vertex"] = "1"
+
+          # The serving container decides the model type based on the model file extension.
+          # So we need to rename the mode file (e.g. /tmp/inputs/model/data) to *.pkl
+          _, renamed_model_path = tempfile.mkstemp(suffix=".pkl")
+          shutil.copyfile(src=model_path, dst=renamed_model_path)
+
+          model = aiplatform.Model.upload_scikit_learn_model_file(
+              model_file_path=renamed_model_path,
+              sklearn_version=sklearn_version,
+
+              display_name=display_name,
+              description=description,
+
+              instance_schema_uri=instance_schema_uri,
+              parameters_schema_uri=parameters_schema_uri,
+              prediction_schema_uri=prediction_schema_uri,
+              explanation_metadata=explanation_metadata,
+              explanation_parameters=explanation_parameters,
+
+              project=project,
+              location=location,
+              labels=labels,
+              encryption_spec_key_name=encryption_spec_key_name,
+              staging_bucket=staging_bucket,
+          )
+          model_json = json.dumps(model.to_dict(), indent=2)
+          print(model_json)
+          return (model.resource_name, model_json)
+
+      def _serialize_json(obj) -> str:
+          if isinstance(obj, str):
+              return obj
+          import json
+          def default_serializer(obj):
+              if hasattr(obj, 'to_struct'):
+                  return obj.to_struct()
+              else:
+                  raise TypeError("Object of type '%s' is not JSON serializable and does not have .to_struct() method." % obj.__class__.__name__)
+          return json.dumps(obj, default=default_serializer, sort_keys=True)
+
+      def _serialize_str(str_value: str) -> str:
+          if not isinstance(str_value, str):
+              raise TypeError('Value "{}" has type "{}" instead of str.'.format(str(str_value), str(type(str_value))))
+          return str_value
+
+      import json
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Upload Scikit learn pickle model to Google Cloud Vertex AI', description='Imports Scikit-learn model into Vertex AI Model registry.')
+      _parser.add_argument("--model", dest="model_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--sklearn-version", dest="sklearn_version", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--display-name", dest="display_name", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--description", dest="description", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--instance-schema-uri", dest="instance_schema_uri", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--parameters-schema-uri", dest="parameters_schema_uri", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--prediction-schema-uri", dest="prediction_schema_uri", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--explanation-metadata", dest="explanation_metadata", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--explanation-parameters", dest="explanation_parameters", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--project", dest="project", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--location", dest="location", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--labels", dest="labels", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--encryption-spec-key-name", dest="encryption_spec_key_name", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--staging-bucket", dest="staging_bucket", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=2)
+      _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = upload_Scikit_learn_pickle_model_to_Google_Cloud_Vertex_AI(**_parsed_args)
+
+      _output_serializers = [
+          _serialize_str,
+          _serialize_json,
+
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - --model
+    - {inputPath: model}
+    - if:
+        cond: {isPresent: sklearn_version}
+        then:
+        - --sklearn-version
+        - {inputValue: sklearn_version}
+    - if:
+        cond: {isPresent: display_name}
+        then:
+        - --display-name
+        - {inputValue: display_name}
+    - if:
+        cond: {isPresent: description}
+        then:
+        - --description
+        - {inputValue: description}
+    - if:
+        cond: {isPresent: instance_schema_uri}
+        then:
+        - --instance-schema-uri
+        - {inputValue: instance_schema_uri}
+    - if:
+        cond: {isPresent: parameters_schema_uri}
+        then:
+        - --parameters-schema-uri
+        - {inputValue: parameters_schema_uri}
+    - if:
+        cond: {isPresent: prediction_schema_uri}
+        then:
+        - --prediction-schema-uri
+        - {inputValue: prediction_schema_uri}
+    - if:
+        cond: {isPresent: explanation_metadata}
+        then:
+        - --explanation-metadata
+        - {inputValue: explanation_metadata}
+    - if:
+        cond: {isPresent: explanation_parameters}
+        then:
+        - --explanation-parameters
+        - {inputValue: explanation_parameters}
+    - if:
+        cond: {isPresent: project}
+        then:
+        - --project
+        - {inputValue: project}
+    - if:
+        cond: {isPresent: location}
+        then:
+        - --location
+        - {inputValue: location}
+    - if:
+        cond: {isPresent: labels}
+        then:
+        - --labels
+        - {inputValue: labels}
+    - if:
+        cond: {isPresent: encryption_spec_key_name}
+        then:
+        - --encryption-spec-key-name
+        - {inputValue: encryption_spec_key_name}
+    - if:
+        cond: {isPresent: staging_bucket}
+        then:
+        - --staging-bucket
+        - {inputValue: staging_bucket}
+    - '----output-paths'
+    - {outputPath: model_name}
+    - {outputPath: model_dict}
