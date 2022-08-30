@@ -14,24 +14,24 @@
 """Test Vertex AI Batch Prediction Job Remote Runner Client module."""
 
 import json
-from logging import raiseExceptions
 import os
 import time
-import unittest
-from unittest import mock
 
-from google.cloud import aiplatform
-from google.cloud.aiplatform.explain import ExplanationMetadata
-from google.cloud.aiplatform.compat.types import job_state as gca_job_state
-from google.protobuf import json_format
-from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
-from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
-from google_cloud_pipeline_components.container.v1.gcp_launcher import batch_prediction_job_remote_runner
-from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
-from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
-import requests
 import google.auth
 import google.auth.transport.requests
+from google.cloud import aiplatform
+from google.cloud.aiplatform.compat.types import job_state as gca_job_state
+from google.cloud.aiplatform.explain import ExplanationMetadata
+from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
+from google_cloud_pipeline_components.container.v1.batch_prediction_job import remote_runner as batch_prediction_job_remote_runner
+from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
+from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
+import requests
+
+from google.protobuf import json_format
+import unittest
+from unittest import mock
 
 
 class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):

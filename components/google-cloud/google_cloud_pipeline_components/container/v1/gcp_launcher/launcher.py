@@ -15,10 +15,8 @@
 
 import argparse
 import logging
-import os
 import sys
 
-from . import batch_prediction_job_remote_runner
 from . import bigquery_job_remote_runner
 from . import create_endpoint_remote_runner
 from . import custom_job_remote_runner
@@ -31,12 +29,11 @@ from . import hyperparameter_tuning_job_remote_runner
 from . import undeploy_model_remote_runner
 from . import upload_model_remote_runner
 from . import wait_gcp_resources
+from .utils import parser_util
 
 _JOB_TYPE_TO_ACTION_MAP = {
     'CustomJob':
         custom_job_remote_runner.create_custom_job,
-    'BatchPredictionJob':
-        batch_prediction_job_remote_runner.create_batch_prediction_job,
     'HyperparameterTuningJob':
         hyperparameter_tuning_job_remote_runner
         .create_hyperparameter_tuning_job,
@@ -119,42 +116,9 @@ _JOB_TYPE_TO_ACTION_MAP = {
 }
 
 
-def _make_parent_dirs_and_return_path(file_path: str):
-  os.makedirs(os.path.dirname(file_path), exist_ok=True)
-  return file_path
-
-
 def _parse_args(args):
   """Parse command line arguments."""
-  parser = argparse.ArgumentParser(
-      prog='Vertex Pipelines service launcher', description='')
-  parser.add_argument(
-      '--type', dest='type', type=str, required=True, default=argparse.SUPPRESS)
-  parser.add_argument(
-      '--project',
-      dest='project',
-      type=str,
-      required=True,
-      default=argparse.SUPPRESS)
-  parser.add_argument(
-      '--location',
-      dest='location',
-      type=str,
-      required=True,
-      default=argparse.SUPPRESS)
-  parser.add_argument(
-      '--payload',
-      dest='payload',
-      type=str,
-      required=True,
-      default=argparse.SUPPRESS)
-  parser.add_argument(
-      '--gcp_resources',
-      dest='gcp_resources',
-      type=_make_parent_dirs_and_return_path,
-      required=True,
-      default=argparse.SUPPRESS)
-  parsed_args, _ = parser.parse_known_args(args)
+  parser, parsed_args = parser_util.parse_default_args(args)
   # Parse the conditionally required arguments
   parser.add_argument(
       '--executor_input',
@@ -164,7 +128,6 @@ def _parse_args(args):
       required=(parsed_args.type in {
           'UploadModel',
           'CreateEndpoint',
-          'BatchPredictionJob',
           'BigqueryQueryJob',
           'BigqueryCreateModelJob',
           'BigqueryPredictModelJob',
