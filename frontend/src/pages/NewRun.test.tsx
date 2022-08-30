@@ -14,19 +14,21 @@
  * limitations under the License.
  */
 
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import * as React from 'react';
 import { NewRun } from './NewRun';
 import TestUtils from '../TestUtils';
-import { shallow, ShallowWrapper, ReactWrapper, mount, render } from 'enzyme';
+import { shallow, ShallowWrapper, ReactWrapper, mount } from 'enzyme';
 import { PageProps } from './Page';
 import { Apis } from '../lib/Apis';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { ApiExperiment, ApiListExperimentsResponse } from '../apis/experiment';
-import { ApiPipeline, ApiPipelineVersion } from '../apis/pipeline';
+import { ApiListPipelinesResponse, ApiPipeline, ApiPipelineVersion } from '../apis/pipeline';
 import { ApiResourceType, ApiRunDetail, ApiParameter, ApiRelationship } from '../apis/run';
 import { MemoryRouter } from 'react-router';
 import { logger } from '../lib/Utils';
 import { NamespaceContext } from '../lib/KubeflowClient';
+import { CommonTestWrapper } from 'src/TestWrapper';
 import { ApiFilter, PredicateOp } from '../apis/filter';
 import { ApiExperimentStorageState } from '../apis/experiment';
 import { ApiJob } from 'src/apis/job';
@@ -570,6 +572,7 @@ describe('NewRun', () => {
       expect(tree.state('pipeline')).toEqual(newPipeline);
       expect(tree.state('pipelineName')).toEqual(newPipeline.name);
       expect(tree.state('pipelineSelectorOpen')).toBe(false);
+      expect((tree.state() as any).runName).toMatch(/Run of original mock pipeline version name/);
       await TestUtils.flushPromises();
     });
 
@@ -1430,47 +1433,65 @@ describe('NewRun', () => {
       });
       // TODO: verify route change happens
     });
-
+    
     it('updates the pipeline params as user selects different pipelines', async () => {
       tree = shallow(<TestNewRun {...generateProps()} />);
-      await TestUtils.flushPromises();
 
-      // No parameters should be showing
-      expect(tree).toMatchSnapshot();
+      const pipelineWithParams = newMockPipeline();
+      const pipelineVersionWithParams = newMockPipelineVersion()
+      pipelineWithParams.default_version = pipelineVersionWithParams;
 
-      // Select a pipeline version with parameters
-      const pipeline = newMockPipeline();
-      const pipelineVersionWithParams = newMockPipelineVersion();
-      pipelineVersionWithParams.id = 'pipeline-version-with-params';
+      pipelineWithParams.id = 'pipeline-with-params-id';
+      pipelineWithParams.name = 'pipeline-with-params'
+      pipelineVersionWithParams.id = 'pipeline-version-with-params-id';
+      pipelineVersionWithParams.name = 'pipeline-version-with-params';
       pipelineVersionWithParams.parameters = [
         { name: 'param-1', value: 'prefilled value 1' },
         { name: 'param-2', value: 'prefilled value 2' },
       ];
-      getPipelineSpy.mockImplementationOnce(() => pipeline);
-      getPipelineVersionSpy.mockImplementationOnce(() => pipelineVersionWithParams);
-      tree.setState({ unconfirmedSelectedPipeline: pipeline });
-      tree.setState({ unconfirmedSelectedPipelineVersion: pipelineVersionWithParams });
-      const instance = tree.instance() as TestNewRun;
-      instance._pipelineSelectorClosed(true);
-      instance._pipelineVersionSelectorClosed(true);
-      await TestUtils.flushPromises();
-      // expect(tree).toMatchSnapshot();
+      
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
+      const listPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelines');
+      listPipelineSpy.mockImplementation(() => {
+        const response: ApiListPipelinesResponse = {
+          pipelines: [pipelineWithParams],
+          total_size: 1,
+        };
+        return response;
+      });
 
-      // Select a new pipeline with no parameters
-      const noParamsPipeline = newMockPipeline();
-      noParamsPipeline.id = 'no-params-pipeline';
-      noParamsPipeline.parameters = [];
-      const noParamsPipelineVersion = newMockPipelineVersion();
-      noParamsPipelineVersion.id = 'no-params-pipeline-version';
-      noParamsPipelineVersion.parameters = [];
-      getPipelineSpy.mockImplementationOnce(() => noParamsPipeline);
-      getPipelineVersionSpy.mockImplementationOnce(() => noParamsPipelineVersion);
-      tree.setState({ unconfirmedSelectedPipeline: noParamsPipeline });
-      tree.setState({ unconfirmedSelectedPipelineVersion: noParamsPipelineVersion });
-      instance._pipelineSelectorClosed(true);
-      instance._pipelineVersionSelectorClosed(true);
-      await TestUtils.flushPromises();
-      // expect(tree).toMatchSnapshot();
+      render(
+        <CommonTestWrapper>
+          <NewRun 
+            {...generateProps()}
+            namespace=''
+            existingPipelineId=''
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersionId=''
+            handlePipelineVersionIdChange={jest.fn()} 
+          />
+        </CommonTestWrapper>,
+      );
+
+      const choosePipelineButton = screen.getAllByText('Choose')[0];
+      fireEvent.click(choosePipelineButton);
+
+      getPipelineSpy.mockImplementationOnce(() => pipelineWithParams);
+      getPipelineVersionSpy.mockImplementationOnce(() => pipelineVersionWithParams);
+
+      const expectedPipeline = await screen.findByText(pipelineWithParams.name);
+      fireEvent.click(expectedPipeline);
+
+      const usePipelineButton = screen.getByText('Use this pipeline');
+      fireEvent.click(usePipelineButton);
+
+      await screen.findByDisplayValue(pipelineWithParams.name);
+      await screen.findByDisplayValue(pipelineVersionWithParams.name);
+      await screen.findByLabelText('param-1');
+      await screen.findByDisplayValue('prefilled value 1')
+      await screen.findByLabelText('param-2');
+      await screen.findByDisplayValue('prefilled value 2')
     });
 
     it('trims whitespace from the pipeline params', async () => {
