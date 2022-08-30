@@ -59,7 +59,7 @@ importlib-metadata==4.11.3
     #   jsonschema
 jsonschema==3.2.0
     # via -r requirements.in
-kfp-pipeline-spec==0.1.14
+kfp-pipeline-spec==0.1.16
     # via -r requirements.in
 kfp-server-api==2.0.0a2
     # via -r requirements.in
@@ -120,7 +120,7 @@ termcolor==1.1.0
     # via fire
 typer==0.4.1
     # via -r requirements.in
-typing-extensions==4.2.0 ; python_version < "3.9"
+typing-extensions==4.2.0
     # via
     #   -r requirements.in
     #   importlib-metadata
