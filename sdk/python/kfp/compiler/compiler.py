@@ -17,18 +17,13 @@ Implementation of KFP compiler that compiles KFP pipeline into Pipeline IR:
 https://docs.google.com/document/d/1PUDuSQ8vmeKSBloli53mp7GIvzekaY7sggg6ywy35Dk/
 """
 
-import inspect
-from typing import Any, Callable, Dict, Mapping, Optional, Union
-import uuid
+from typing import Any, Callable, Dict, Optional, Union
 
 from kfp.compiler import pipeline_spec_builder as builder
 from kfp.components import base_component
-from kfp.components import component_factory
 from kfp.components import graph_component
-from kfp.components import pipeline_channel
-from kfp.components import pipeline_context
+from kfp.components import yaml_component
 from kfp.components.types import type_utils
-from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 class Compiler:
@@ -72,39 +67,17 @@ class Compiler:
         """
 
         with type_utils.TypeCheckManager(enable=type_check):
-            if isinstance(pipeline_func, graph_component.GraphComponent):
-                # Retrieve the pre-comppiled pipeline spec.
-                pipeline_spec = pipeline_func.component_spec.implementation.graph
-
-                # Verify that pipeline_parameters contains only input names
-                # that match the pipeline inputs definition.
-                for input_name, input_value in (pipeline_parameters or
-                                                {}).items():
-                    if input_name in pipeline_spec.root.input_definitions.parameters:
-                        pipeline_spec.root.input_definitions.parameters[
-                            input_name].default_value.CopyFrom(
-                                builder.to_protobuf_value(input_value))
-                    elif input_name in pipeline_spec.root.input_definitions.artifacts:
-                        raise NotImplementedError(
-                            'Default value for artifact input is not supported yet.'
-                        )
-                    else:
-                        raise ValueError(
-                            'Pipeline parameter {} does not match any known '
-                            'pipeline input.'.format(input_name))
-
-            elif isinstance(pipeline_func, base_component.BaseComponent):
-                component_spec = builder.modify_component_spec_for_compile(
-                    component_spec=pipeline_func.component_spec,
-                    pipeline_name=pipeline_name,
-                    pipeline_parameters_override=pipeline_parameters,
-                )
-                pipeline_spec = component_spec.to_pipeline_spec()
-            else:
+            if not isinstance(pipeline_func, base_component.BaseComponent):
                 raise ValueError(
                     'Unsupported pipeline_func type. Expected '
                     'subclass of `base_component.BaseComponent` or '
                     '`Callable` constructed with @dsl.pipeline '
                     f'decorator. Got: {type(pipeline_func)}')
+
+            pipeline_spec = builder.modify_pipeline_spec_with_override(
+                pipeline_spec=pipeline_func.pipeline_spec,
+                pipeline_name=pipeline_name,
+                pipeline_parameters=pipeline_parameters,
+            )
             builder.write_pipeline_spec_to_file(
                 pipeline_spec=pipeline_spec, package_path=package_path)

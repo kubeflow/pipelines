@@ -54,7 +54,7 @@ CONFIG = {
         ],
         'test_data_dir': 'sdk/python/kfp/compiler/test_data/pipelines',
         'config': {
-            'read': False,
+            'read': True,
             'write': True
         }
     },

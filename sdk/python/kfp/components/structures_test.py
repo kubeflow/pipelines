@@ -255,12 +255,17 @@ class StructuresTest(parameterized.TestCase):
             inputs={'input1': structures.InputSpec(type='String')},
             outputs={'output1': structures.OutputSpec(type='String')},
         )
-        from kfp.components import yaml_component
-        yaml_component = yaml_component.YamlComponent(
-            component_spec=original_component_spec)
+        from kfp.components import base_component
+
+        class TestComponent(base_component.BaseComponent):
+
+            def execute(self, **kwargs):
+                pass
+
+        test_component = TestComponent(component_spec=original_component_spec)
         with tempfile.TemporaryDirectory() as tempdir:
             output_path = os.path.join(tempdir, 'component.yaml')
-            compiler.Compiler().compile(yaml_component, output_path)
+            compiler.Compiler().compile(test_component, output_path)
 
             # test that it can be read back correctly
             with open(output_path, 'r') as f:
