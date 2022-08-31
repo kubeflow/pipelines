@@ -179,6 +179,7 @@ function NewRunV2(props: NewRunV2Props) {
     }
   }, [updatedPipelineVersion]);
 
+  /*
   useEffect(() => {
     if (apiExperiment?.id && pipeline?.id && pipelineVersion?.id) {
       const searchString = urlParser.build({
@@ -198,6 +199,7 @@ function NewRunV2(props: NewRunV2Props) {
       return;
     }
   }, [apiExperiment]);
+  */
 
   // Title and list of actions on the top of page.
   useEffect(() => {
@@ -418,9 +420,28 @@ function NewRunV2(props: NewRunV2Props) {
         <ExperimentSelector
           {...props}
           experimentName={experimentName}
-          setExperimentId={setExperimentId}
-          setExperimentName={setExperimentName}
-          setApiExperiment={setApiExperiment}
+          handleExperimentChange={(experiment: ApiExperiment) => {
+            setApiExperiment(experiment);
+            if (experiment.name) {
+              setExperimentName(experiment.name);
+            }
+            if (experiment.id) {
+              setExperimentId(experiment.id)
+              let searchString;
+              if (existingPipeline?.id && existingPipelineVersion?.id) {
+                searchString = urlParser.build({
+                  [QUERY_PARAMS.experimentId]: experiment.id || '',
+                  [QUERY_PARAMS.pipelineId]: existingPipeline.id || '',
+                  [QUERY_PARAMS.pipelineVersionId]: existingPipelineVersion.id || '',
+                });
+              } else {
+                searchString = urlParser.build({
+                  [QUERY_PARAMS.experimentId]: experiment.id || '',
+                });
+              }
+              props.history.replace(searchString);
+            }
+          }}
         />
 
         {/* Service account selection */}
@@ -730,9 +751,10 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
 interface ExperimentSelectorSpecificProps {
   namespace?: string;
   experimentName: string | undefined;
-  setExperimentId: (experimentId: string) => void;
-  setExperimentName: (experimentName: string) => void;
-  setApiExperiment: (apiExperiment: ApiExperiment) => void;
+  handleExperimentChange: (experiment: ApiExperiment) => void;
+  // setExperimentId: (experimentId: string) => void;
+  // setExperimentName: (experimentName: string) => void;
+  // setApiExperiment: (apiExperiment: ApiExperiment) => void;
 }
 type ExperimentSelectorProps = PageProps & ExperimentSelectorSpecificProps;
 
@@ -829,10 +851,8 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
           <Button
             id='useExperimentBtn'
             onClick={() => {
-              if (pendingExperiment && pendingExperiment.id && pendingExperiment.name) {
-                props.setApiExperiment(pendingExperiment);
-                props.setExperimentId(pendingExperiment.id);
-                props.setExperimentName(pendingExperiment.name);
+              if (pendingExperiment) {
+                props.handleExperimentChange(pendingExperiment);
               }
               setExperimentSelectorOpen(false);
             }}
