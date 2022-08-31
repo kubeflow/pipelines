@@ -1027,40 +1027,46 @@ def populate_metrics_in_dag_outputs(
                     sub_task_output = unique_output_name
 
 
-def modify_component_spec_for_compile(
-    component_spec: structures.ComponentSpec,
+def modify_pipeline_spec_with_override(
+    pipeline_spec: pipeline_spec_pb2.PipelineSpec,
     pipeline_name: Optional[str],
-    pipeline_parameters_override: Optional[Mapping[str, Any]],
-) -> structures.ComponentSpec:
-    """Modifies the ComponentSpec using arguments passed to the
-    Compiler.compile method.
+    pipeline_parameters: Optional[Mapping[str, Any]],
+) -> pipeline_spec_pb2.PipelineSpec:
+    """Modifies the PipelineSpec using arguments passed to the Compiler.compile
+    method.
 
     Args:
-        component_spec (structures.ComponentSpec): ComponentSpec to modify.
+        pipeline_spec (pipeline_spec_pb2.PipelineSpec): PipelineSpec to modify.
         pipeline_name (Optional[str]): Name of the pipeline. Overrides component name.
-        pipeline_parameters_override (Optional[Mapping[str, Any]]): Pipeline parameters. Overrides component input default values.
-
-    Raises:
-        ValueError: If a parameter is passed to the compiler that is not a component input.
+        pipeline_parameters (Optional[Mapping[str, Any]]): Pipeline parameters. Overrides component input default values.
 
     Returns:
-        structures.ComponentSpec: The modified ComponentSpec.
+        The modified PipelineSpec copy.
+    Raises:
+        ValueError: If a parameter is passed to the compiler that is not a component input.
     """
-    pipeline_name = pipeline_name or utils.sanitize_component_name(
-        component_spec.name).replace(utils._COMPONENT_NAME_PREFIX, '')
+    pipeline_spec_new = pipeline_spec_pb2.PipelineSpec()
+    pipeline_spec_new.CopyFrom(pipeline_spec)
+    pipeline_spec = pipeline_spec_new
 
-    component_spec.name = pipeline_name
-    if component_spec.inputs is not None:
-        pipeline_parameters_override = pipeline_parameters_override or {}
-        for input_name in pipeline_parameters_override:
-            if input_name not in component_spec.inputs:
-                raise ValueError(
-                    f'Parameter {input_name} does not match any known component parameters.'
-                )
-            component_spec.inputs[
-                input_name].default = pipeline_parameters_override[input_name]
+    if pipeline_name is not None:
+        pipeline_spec.pipeline_info.name = pipeline_name
 
-    return component_spec
+    # Verify that pipeline_parameters contains only input names
+    # that match the pipeline inputs definition.
+    for input_name, input_value in (pipeline_parameters or {}).items():
+        if input_name in pipeline_spec.root.input_definitions.parameters:
+            pipeline_spec.root.input_definitions.parameters[
+                input_name].default_value.CopyFrom(
+                    to_protobuf_value(input_value))
+        elif input_name in pipeline_spec.root.input_definitions.artifacts:
+            raise NotImplementedError(
+                'Default value for artifact input is not supported.')
+        else:
+            raise ValueError('Pipeline parameter {} does not match any known '
+                             'pipeline input.'.format(input_name))
+
+    return pipeline_spec
 
 
 def build_spec_by_group(
@@ -1125,6 +1131,9 @@ def build_spec_by_group(
         ]
         is_parent_component_root = (group_component_spec == pipeline_spec.root)
 
+        # Track if component spec is addeded from merging pipeline spec.
+        component_spec_added = False
+
         if isinstance(subgroup, pipeline_task.PipelineTask):
 
             subgroup_task_spec = build_task_spec_for_task(
@@ -1138,30 +1147,33 @@ def build_spec_by_group(
                 task=subgroup)
             task_name_to_component_spec[subgroup.name] = subgroup_component_spec
 
-            executor_label = subgroup_component_spec.executor_label
+            if subgroup_component_spec.executor_label:
+                executor_label = utils.make_name_unique_by_adding_index(
+                    name=subgroup_component_spec.executor_label,
+                    collection=list(deployment_config.executors.keys()),
+                    delimiter='-')
+                subgroup_component_spec.executor_label = executor_label
 
-            if executor_label not in deployment_config.executors:
-                if subgroup.container_spec is not None:
-                    subgroup_container_spec = build_container_spec_for_task(
-                        task=subgroup)
-                    deployment_config.executors[
-                        executor_label].container.CopyFrom(
-                            subgroup_container_spec)
-                elif subgroup.importer_spec is not None:
-                    subgroup_importer_spec = build_importer_spec_for_task(
-                        task=subgroup)
-                    deployment_config.executors[
-                        executor_label].importer.CopyFrom(
-                            subgroup_importer_spec)
-                elif subgroup.pipeline_spec is not None:
-                    merge_deployment_spec_and_component_spec(
-                        main_pipeline_spec=pipeline_spec,
-                        main_deployment_config=deployment_config,
-                        sub_pipeline_spec=subgroup.pipeline_spec,
-                        sub_pipeline_component_name=subgroup_component_name,
-                    )
-                else:
-                    raise RuntimeError
+            if subgroup.container_spec is not None:
+                subgroup_container_spec = build_container_spec_for_task(
+                    task=subgroup)
+                deployment_config.executors[executor_label].container.CopyFrom(
+                    subgroup_container_spec)
+            elif subgroup.importer_spec is not None:
+                subgroup_importer_spec = build_importer_spec_for_task(
+                    task=subgroup)
+                deployment_config.executors[executor_label].importer.CopyFrom(
+                    subgroup_importer_spec)
+            elif subgroup.pipeline_spec is not None:
+                merge_deployment_spec_and_component_spec(
+                    main_pipeline_spec=pipeline_spec,
+                    main_deployment_config=deployment_config,
+                    sub_pipeline_spec=subgroup.pipeline_spec,
+                    sub_pipeline_component_name=subgroup_component_name,
+                )
+                component_spec_added = True
+            else:
+                raise RuntimeError
         elif isinstance(subgroup, tasks_group.ParallelFor):
 
             # "Punch the hole", adding additional inputs (other than loop
@@ -1258,8 +1270,14 @@ def build_spec_by_group(
             subgroup_task_spec.dependent_tasks.extend(
                 [utils.sanitize_task_name(dep) for dep in group_dependencies])
 
-        # Add component spec if not exists
-        if subgroup_component_name not in pipeline_spec.components:
+        # Add component spec if not already added from merging pipeline spec.
+        if not component_spec_added:
+            subgroup_component_name = utils.make_name_unique_by_adding_index(
+                name=subgroup_component_name,
+                collection=list(pipeline_spec.components.keys()),
+                delimiter='-')
+
+            subgroup_task_spec.component_ref.name = subgroup_component_name
             pipeline_spec.components[subgroup_component_name].CopyFrom(
                 subgroup_component_spec)
 
@@ -1470,12 +1488,11 @@ def _merge_component_spec(
         sub_pipeline_spec.root)
 
 
-def create_pipeline_spec_and_deployment_config(
+def create_pipeline_spec(
     pipeline: pipeline_context.Pipeline,
     component_spec: structures.ComponentSpec,
     pipeline_outputs: Optional[Any] = None,
-) -> Tuple[pipeline_spec_pb2.PipelineSpec,
-           pipeline_spec_pb2.PipelineDeploymentConfig]:
+) -> pipeline_spec_pb2.PipelineSpec:
     """Creates a pipeline spec object.
 
     Args:
@@ -1484,8 +1501,7 @@ def create_pipeline_spec_and_deployment_config(
         pipeline_outputs: The pipeline outputs via return.
 
     Returns:
-        A tuple of PipelineSpec proto representing the compiled pipeline and its
-        PipelineDeploymentconfig proto object.
+        A PipelineSpec proto representing the compiled pipeline.
 
     Raises:
         ValueError if the argument is of unsupported types.
@@ -1553,7 +1569,7 @@ def create_pipeline_spec_and_deployment_config(
         deployment_config=deployment_config,
     )
 
-    return pipeline_spec, deployment_config
+    return pipeline_spec
 
 
 def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,

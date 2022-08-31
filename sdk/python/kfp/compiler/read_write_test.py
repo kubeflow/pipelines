@@ -126,11 +126,15 @@ def load_compiled_file(filename: str) -> Dict[str, Any]:
         return ignore_kfp_version_helper(contents)
 
 
-def set_description_in_component_spec_to_none(
+def strip_some_component_spec_fields(
         component_spec: structures.ComponentSpec) -> structures.ComponentSpec:
-    """Sets the description field of a ComponentSpec to None."""
+    """Strips some component spec fields that should be ignored when comparing
+    with golden result."""
     # Ignore description when comparing components specs read in from v1 component YAML and from IR YAML, because non lightweight Python components defined in v1 YAML can have a description field, but IR YAML does not preserve this field unless the component is a lightweight Python function-based component
     component_spec.description = None
+    # ignore SDK version so that golden snapshots don't need to be updated between SDK version bump
+    if component_spec.implementation.graph is not None:
+        component_spec.implementation.graph.sdk_version = ''
     return component_spec
 
 
@@ -158,10 +162,8 @@ class ReadWriteTest(parameterized.TestCase):
         reloaded_component = self._compile_and_load_component(
             original_component)
         self.assertEqual(
-            set_description_in_component_spec_to_none(
-                original_component.component_spec),
-            set_description_in_component_spec_to_none(
-                reloaded_component.component_spec))
+            strip_some_component_spec_fields(original_component.component_spec),
+            strip_some_component_spec_fields(reloaded_component.component_spec))
 
     def _test_serialization_correctness(self,
                                         python_file: str,
