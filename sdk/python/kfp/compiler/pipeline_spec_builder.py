@@ -1352,11 +1352,7 @@ def build_exit_handler_groups_recursively(
                 exit_task_component_spec)
 
             # Add exit task task spec.
-            if parent_group.is_root:
-                parent_dag = pipeline_spec.root.dag
-            else:
-                parent_dag = pipeline_spec.components[
-                    utils.sanitize_component_name(parent_group.name)].dag
+            parent_dag = pipeline_spec.root.dag
             parent_dag.tasks[exit_task_name].CopyFrom(exit_task_task_spec)
 
             pipeline_spec.deployment_spec.update(
