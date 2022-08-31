@@ -90,8 +90,8 @@ x-google-marketplace:
       - type: ClusterRole # This is a cluster-wide ClusterRole
         rulesType: CUSTOM # We specify our own custom RBAC roles
         rules:
-          - apiGroups: ['apiextensions.k8s.io', 'rbac.authorization.k8s.io']
-            resources: ['customresourcedefinitions', 'clusterroles', 'clusterrolebindings']
+          - apiGroups: ['apiextensions.k8s.io', 'rbac.authorization.k8s.io', 'scheduling.k8s.io']
+            resources: ['customresourcedefinitions', 'clusterroles', 'clusterrolebindings', 'priorityclasses']
             verbs: ['*']
       # For CRs in the following deployer-applied Roles:
       # - kubeflow-pipelines-cache-role
@@ -114,12 +114,15 @@ x-google-marketplace:
               - 'workflowtemplates/finalizers'
               - 'cronworkflows'
               - 'cronworkflows/finalizers'
+              - 'workflowtaskresults'
+              - 'workflowtasksets'
+              - 'workflowtasksets/finalizers'
             verbs: ['*']
           - apiGroups: ['kubeflow.org']
             resources: ['*']
             verbs: ['*']
           - apiGroups: ['']
-            resources: ['configmaps', 'events', 'pods/log', 'persistentvolumes', 'persistentvolumeclaims', 'pods', 'pods/exec']
+            resources: ['configmaps', 'events', 'pods/log', 'persistentvolumes', 'persistentvolumeclaims', 'persistentvolumeclaims/finalizers', 'pods', 'pods/exec']
             verbs: ['*']
           # Needed by argo v3.1.0+
           - apiGroups: ['coordination.k8s.io']
@@ -169,19 +172,6 @@ properties:
     type: string
     x-google-marketplace:
       type: NAMESPACE
-  executor.emissary:
-    type: boolean
-    title: Use emissary executor (Alpha)
-    default: false
-    description: |-
-      Warning, Kubeflow Pipelines does not work on Google Kubernetes Engine (GKE) 1.19+ by
-      default. You cluster node image must be configured to use docker as container runtime.
-
-      Using emissary executor removes the restriction on container runtime, but note some of
-      your pipelines may require manual migrations.
-
-      Refer to Argo Workflow Executors documentation for detailed configuration and migration instructions for both options:
-      https://www.kubeflow.org/docs/components/pipelines/installation/choose-executor/
   managedstorage.enabled:
     type: boolean
     title: Use managed storage
