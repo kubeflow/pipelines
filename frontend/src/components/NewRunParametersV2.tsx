@@ -157,7 +157,7 @@ function convertNonUserInputParamToString(
 }
 
 function NewRunParametersV2(props: NewRunParametersProps) {
-  const { specParameters, clonedRuntimeConfig, setIsValidInput } = props;
+  const { specParameters, clonedRuntimeConfig, handleParameterChange, setIsValidInput } = props;
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
   const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
   const [errorMessages, setErrorMessages] = useState([]);
@@ -181,8 +181,8 @@ function NewRunParametersV2(props: NewRunParametersProps) {
         setIsValidInput(true);
       }
 
-      if (props.handleParameterChange) {
-        props.handleParameterChange(clonedRuntimeConfig.parameters);
+      if (handleParameterChange) {
+        handleParameterChange(clonedRuntimeConfig.parameters);
       }
       return;
     }
@@ -208,7 +208,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     if (setIsValidInput) {
       setIsValidInput(allParamtersWithDefault);
     }
-  }, [clonedRuntimeConfig, specParameters]);
+  }, [clonedRuntimeConfig, specParameters, handleParameterChange, setIsValidInput]);
 
   return (
     <div>
@@ -283,8 +283,8 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                         specParameters[k1].parameterType,
                       );
                     });
-                    if (props.handleParameterChange) {
-                      props.handleParameterChange(parametersInRealType);
+                    if (handleParameterChange) {
+                      handleParameterChange(parametersInRealType);
                     }
 
                     errorMessages[k] = generateInputValidationErrMsg(
@@ -297,8 +297,8 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                       allInputsValid = allInputsValid && errorMessage === null;
                     });
 
-                    if (props.setIsValidInput) {
-                      props.setIsValidInput(allInputsValid);
+                    if (setIsValidInput) {
+                      setIsValidInput(allInputsValid);
                     }
                   }}
                   param={param}

@@ -98,12 +98,8 @@ function NewRunV2(props: NewRunV2Props) {
   // List of elements we need to create Pipeline Run.
   const [runName, setRunName] = useState('');
   const [runDescription, setRunDescription] = useState('');
-  // const [existingPipeline, setPipeline] = useState<ApiPipeline>();
   const [pipelineName, setPipelineName] = useState('');
-  const [updatedPipeline, setUpdatedPipeline] = useState<ApiPipeline>();
-  // const [existingPipelineVersion, setPipelineVersion] = useState<ApiPipelineVersion>();
   const [pipelineVersionName, setPipelineVersionName] = useState('');
-  const [updatedPipelineVersion, setUpdatedPipelineVersion] = useState<ApiPipelineVersion>();
   const [experimentId, setExperimentId] = useState('');
   const [apiExperiment, setApiExperiment] = useState<ApiExperiment>();
   const [experimentName, setExperimentName] = useState('');
