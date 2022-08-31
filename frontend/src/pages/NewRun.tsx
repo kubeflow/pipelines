@@ -121,10 +121,7 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props =
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
-export class NewRun extends Page<
-  NewRunProps,
-  NewRunState
-> {
+export class NewRun extends Page<NewRunProps, NewRunState> {
   public state: NewRunState = {
     catchup: true,
     description: '',

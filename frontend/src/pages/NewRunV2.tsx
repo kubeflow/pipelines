@@ -179,7 +179,8 @@ function NewRunV2(props: NewRunV2Props) {
       const cloneRunName = 'Clone of ' + apiRun.run.name;
       setRunName(cloneRunName);
     } else if (existingPipelineVersion?.name) {
-      const initRunName = 'Run of ' + existingPipelineVersion.name + ' (' + generateRandomString(5) + ')';
+      const initRunName =
+        'Run of ' + existingPipelineVersion.name + ' (' + generateRandomString(5) + ')';
       setRunName(initRunName);
     }
   }, [apiRun, existingPipelineVersion]);
@@ -328,7 +329,7 @@ function NewRunV2(props: NewRunV2Props) {
             <PipelineSelector
               {...props}
               pipelineName={pipelineName}
-              handlePipelineChange={(updatedPipeline) => {
+              handlePipelineChange={updatedPipeline => {
                 if (updatedPipeline.name) {
                   setPipelineName(updatedPipeline.name);
                 }
@@ -350,7 +351,7 @@ function NewRunV2(props: NewRunV2Props) {
               {...props}
               pipeline={existingPipeline}
               pipelineVersionName={pipelineVersionName}
-              handlePipelineVersionChange={(updatedPipelineVersion) => {
+              handlePipelineVersionChange={updatedPipelineVersion => {
                 if (updatedPipelineVersion.name) {
                   setPipelineVersionName(updatedPipelineVersion.name);
                 }
@@ -365,7 +366,6 @@ function NewRunV2(props: NewRunV2Props) {
                 }
               }}
             />
-
           </div>
         )}
 
@@ -391,13 +391,13 @@ function NewRunV2(props: NewRunV2Props) {
         <ExperimentSelector
           {...props}
           experimentName={experimentName}
-          handleExperimentChange={(experiment: ApiExperiment) => {
+          handleExperimentChange={experiment => {
             setApiExperiment(experiment);
             if (experiment.name) {
               setExperimentName(experiment.name);
             }
             if (experiment.id) {
-              setExperimentId(experiment.id)
+              setExperimentId(experiment.id);
               let searchString;
               if (existingPipeline?.id && existingPipelineVersion?.id) {
                 searchString = urlParser.build({

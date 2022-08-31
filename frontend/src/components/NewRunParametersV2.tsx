@@ -189,7 +189,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     // TODO(jlyaoyuli): If we have parameters from run, put original default value next to the paramKey
     const runtimeParametersWithDefault: RuntimeParameters = {};
     let allParamtersWithDefault = true;
-    let errMsg : string[] = [];
+    let errMsg: string[] = [];
     Object.keys(specParameters).forEach(key => {
       if (specParameters[key].defaultValue) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.
