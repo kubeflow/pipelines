@@ -23,7 +23,12 @@ import { PageProps } from './Page';
 import { Apis } from '../lib/Apis';
 import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
 import { ApiExperiment, ApiListExperimentsResponse } from '../apis/experiment';
-import { ApiListPipelinesResponse, ApiPipeline, ApiPipelineVersion } from '../apis/pipeline';
+import {
+  ApiListPipelinesResponse,
+  ApiListPipelineVersionsResponse,
+  ApiPipeline,
+  ApiPipelineVersion,
+} from '../apis/pipeline';
 import { ApiResourceType, ApiRunDetail, ApiParameter, ApiRelationship } from '../apis/run';
 import { MemoryRouter } from 'react-router';
 import { logger } from '../lib/Utils';
@@ -540,40 +545,59 @@ describe('NewRun', () => {
     });
 
     it('sets the pipeline from the selector modal when confirmed', async () => {
-      tree = TestUtils.mountWithRouter(<TestNewRun {...(generateProps() as any)} />);
-      await TestUtils.flushPromises();
+      tree = shallow(<TestNewRun {...generateProps()} />);
 
       const oldPipeline = newMockPipeline();
-      oldPipeline.id = 'old-pipeline-id';
-      oldPipeline.name = 'old-pipeline-name';
       const newPipeline = newMockPipeline();
+      const newPipelineVersion = newMockPipelineVersion();
+      newPipeline.default_version = newPipelineVersion;
+
       newPipeline.id = 'new-pipeline-id';
-      newPipeline.name = 'new-pipeline-name';
-      getPipelineSpy.mockImplementation(() => newPipeline);
-      tree.setState({ pipeline: oldPipeline, pipelineName: oldPipeline.name });
+      newPipeline.name = 'new-pipeline';
+      newPipelineVersion.id = 'new-pipeline-version-id';
+      newPipelineVersion.name = 'new-pipeline-params';
 
-      tree
-        .find('#choosePipelineBtn')
-        .at(0)
-        .simulate('click');
-      expect(tree.state('pipelineSelectorOpen')).toBe(true);
+      const getPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipeline');
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
+      const listPipelineSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelines');
+      listPipelineSpy.mockImplementation(() => {
+        const response: ApiListPipelinesResponse = {
+          pipelines: [oldPipeline, newPipeline],
+          total_size: 2,
+        };
+        return response;
+      });
 
-      // Simulate selecting pipeline
-      tree.setState({ unconfirmedSelectedPipeline: newPipeline });
+      render(
+        <CommonTestWrapper>
+          <NewRun
+            {...generateProps()}
+            namespace=''
+            existingPipelineId=''
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersionId=''
+            handlePipelineVersionIdChange={jest.fn()}
+          />
+        </CommonTestWrapper>,
+      );
 
-      // Confirm pipeline selector
-      tree
-        .find('#usePipelineBtn')
-        .at(0)
-        .simulate('click');
-      await TestUtils.flushPromises();
-      expect(tree.state('pipelineSelectorOpen')).toBe(false);
+      const choosePipelineButton = screen.getAllByText('Choose')[0];
+      fireEvent.click(choosePipelineButton);
 
-      expect(tree.state('pipeline')).toEqual(newPipeline);
-      expect(tree.state('pipelineName')).toEqual(newPipeline.name);
-      expect(tree.state('pipelineSelectorOpen')).toBe(false);
-      expect((tree.state() as any).runName).toMatch(/Run of original mock pipeline version name/);
-      await TestUtils.flushPromises();
+      getPipelineSpy.mockImplementationOnce(() => newPipeline);
+      getPipelineVersionSpy.mockImplementationOnce(() => newPipelineVersion);
+
+      const expectedPipeline = await screen.findByText(newPipeline.name);
+      fireEvent.click(expectedPipeline);
+
+      const usePipelineButton = screen.getByText('Use this pipeline');
+      fireEvent.click(usePipelineButton);
+
+      await screen.findByDisplayValue(newPipeline.name);
+      await screen.findByDisplayValue(newPipelineVersion.name);
+      await screen.findByDisplayValue((content, _) =>
+        content.startsWith(`Run of ${newPipelineVersion.name}`),
+      );
     });
 
     it('does not set the pipeline from the selector modal when cancelled', async () => {
@@ -609,6 +633,59 @@ describe('NewRun', () => {
       expect(tree.state('pipelineName')).toEqual(oldPipeline.name);
       expect(tree.state('pipelineSelectorOpen')).toBe(false);
       await TestUtils.flushPromises();
+    });
+  });
+
+  describe('choosing a pipeline version', () => {
+    it('sets the pipeline version from the selector modal when confirmed', async () => {
+      tree = shallow(<TestNewRun {...generateProps()} />);
+
+      const oldPipelineVersion = newMockPipelineVersion();
+      oldPipelineVersion.id = 'pipeline-version-id';
+      oldPipelineVersion.name = 'pipeline-version';
+
+      const latestPipelineVersion = newMockPipelineVersion();
+      latestPipelineVersion.id = 'latest-pipeline-version-id';
+      latestPipelineVersion.name = 'latest-pipeline-version';
+
+      const listPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'listPipelineVersions');
+      listPipelineVersionSpy.mockImplementation(() => {
+        const response: ApiListPipelineVersionsResponse = {
+          versions: [oldPipelineVersion, latestPipelineVersion],
+          total_size: 2,
+        };
+        return response;
+      });
+
+      render(
+        <CommonTestWrapper>
+          <NewRun
+            {...generateProps()}
+            namespace=''
+            existingPipelineId=''
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersionId=''
+            handlePipelineVersionIdChange={jest.fn()}
+          />
+        </CommonTestWrapper>,
+      );
+
+      const choosePipelineVersionButton = screen.getAllByText('Choose')[1];
+      fireEvent.click(choosePipelineVersionButton);
+
+      const getPipelineVersionSpy = jest.spyOn(Apis.pipelineServiceApi, 'getPipelineVersion');
+      getPipelineVersionSpy.mockImplementationOnce(() => latestPipelineVersion);
+
+      const expectedPipelineVersion = await screen.findByText(latestPipelineVersion.name);
+      fireEvent.click(expectedPipelineVersion);
+
+      const usePipelineVersionBtn = screen.getByText('Use this pipeline version');
+      fireEvent.click(usePipelineVersionBtn);
+
+      await screen.findByDisplayValue(latestPipelineVersion.name);
+      await screen.findByDisplayValue((content, _) =>
+        content.startsWith(`Run of ${latestPipelineVersion.name}`),
+      );
     });
   });
 
