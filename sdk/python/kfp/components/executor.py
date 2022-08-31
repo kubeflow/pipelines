@@ -67,7 +67,14 @@ class Executor():
         func: Callable,
     ) -> Any:
         artifact_cls = func.__annotations__.get(name)
-        return create_artifact_instance(runtime_artifact, artifact_cls)
+        if type_annotations.is_artifact(artifact_cls):
+            # handles artifacts
+            return create_artifact_instance(
+                runtime_artifact, artifact_cls=artifact_cls)
+        else:
+            # handles InputPath and OutputPath
+            return create_artifact_instance(
+                runtime_artifact, artifact_cls=artifact_types.Artifact)
 
     def makedirs_recursively(self, path: str) -> None:
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -317,10 +324,9 @@ def create_artifact_instance(
     dictionary."""
     schema_title = runtime_artifact.get('type', {}).get('schemaTitle', '')
 
-    artifact_type = artifact_types._SCHEMA_TITLE_TO_TYPE.get(schema_title)
-    if not artifact_type:
-        artifact_type = artifact_cls or artifact_types.Artifact
-    return artifact_type(
+    artifact_cls = artifact_types._SCHEMA_TITLE_TO_TYPE.get(
+        schema_title) or artifact_cls or artifact_types.Artifact
+    return artifact_cls(
         uri=runtime_artifact.get('uri', ''),
         name=runtime_artifact.get('name', ''),
         metadata=runtime_artifact.get('metadata', {}),
