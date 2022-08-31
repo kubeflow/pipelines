@@ -89,7 +89,7 @@ function NewRunSwitcher(props: PageProps) {
   );
 
   const { data: apiExperiment } = useQuery<ApiExperiment, Error>(
-    [experimentId],
+    ['experiment', experimentId],
     async () => {
       if (!experimentId) {
         throw new Error('Experiment ID is missing');

@@ -97,6 +97,14 @@ interface NewRunState {
   usePipelineFromRunLabel: string;
 }
 
+interface NewRunProps {
+  namespace?: string;
+  existingPipelineId: string | null;
+  handlePipelineIdChange: (pipelineId: string) => void;
+  existingPipelineVersionId: string | null;
+  handlePipelineVersionIdChange: (pipelineVersionId: string) => void;
+}
+
 const css = stylesheet({
   nonEditableInput: {
     color: color.secondaryText,
@@ -114,13 +122,7 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props =
 };
 
 export class NewRun extends Page<
-  {
-    namespace?: string;
-    existingPipelineId: string | null;
-    handlePipelineIdChange: (pipelineId: string) => void;
-    existingPipelineVersionId: string | null;
-    handlePipelineVersionIdChange: (pipelineVersionId: string) => void;
-  },
+  NewRunProps,
   NewRunState
 > {
   public state: NewRunState = {

@@ -1488,6 +1488,9 @@ describe('NewRun', () => {
 
       await screen.findByDisplayValue(pipelineWithParams.name);
       await screen.findByDisplayValue(pipelineVersionWithParams.name);
+      await screen.findByDisplayValue((content, _) =>
+        content.startsWith(`Run of ${pipelineVersionWithParams.name}`),
+      );
       await screen.findByLabelText('param-1');
       await screen.findByDisplayValue('prefilled value 1');
       await screen.findByLabelText('param-2');

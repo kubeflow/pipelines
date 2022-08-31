@@ -98,10 +98,10 @@ function NewRunV2(props: NewRunV2Props) {
   // List of elements we need to create Pipeline Run.
   const [runName, setRunName] = useState('');
   const [runDescription, setRunDescription] = useState('');
-  const [pipeline, setPipeline] = useState<ApiPipeline>();
+  // const [existingPipeline, setPipeline] = useState<ApiPipeline>();
   const [pipelineName, setPipelineName] = useState('');
   const [updatedPipeline, setUpdatedPipeline] = useState<ApiPipeline>();
-  const [pipelineVersion, setPipelineVersion] = useState<ApiPipelineVersion>();
+  // const [existingPipelineVersion, setPipelineVersion] = useState<ApiPipelineVersion>();
   const [pipelineVersionName, setPipelineVersionName] = useState('');
   const [updatedPipelineVersion, setUpdatedPipelineVersion] = useState<ApiPipelineVersion>();
   const [experimentId, setExperimentId] = useState('');
@@ -147,10 +147,8 @@ function NewRunV2(props: NewRunV2Props) {
 
   // Use pipeline, pipeline version, and experiment from parent component
   useEffect(() => {
-    setPipeline(existingPipeline);
-    setPipelineVersion(existingPipelineVersion);
     setApiExperiment(chosenExperiment);
-  }, [existingPipeline, existingPipelineVersion, chosenExperiment]);
+  }, [chosenExperiment]);
 
   // Title and list of actions on the top of page.
   useEffect(() => {
@@ -165,11 +163,11 @@ function NewRunV2(props: NewRunV2Props) {
 
   // Pre-fill names for pipeline, pipeline version and experiment.
   useEffect(() => {
-    if (pipeline?.name) {
-      setPipelineName(pipeline.name);
+    if (existingPipeline?.name) {
+      setPipelineName(existingPipeline.name);
     }
-    if (pipelineVersion?.name) {
-      setPipelineVersionName(pipelineVersion.name);
+    if (existingPipelineVersion?.name) {
+      setPipelineVersionName(existingPipelineVersion.name);
     }
     if (apiExperiment?.name) {
       setExperimentName(apiExperiment.name);
@@ -177,18 +175,18 @@ function NewRunV2(props: NewRunV2Props) {
     if (apiExperiment?.id) {
       setExperimentId(apiExperiment.id);
     }
-  }, [pipeline, pipelineVersion, apiExperiment]);
+  }, [existingPipeline, existingPipelineVersion, apiExperiment]);
 
   // When loading a pipeline version, automatically set the default run name.
   useEffect(() => {
     if (apiRun?.run?.name) {
       const cloneRunName = 'Clone of ' + apiRun.run.name;
       setRunName(cloneRunName);
-    } else if (pipelineVersion?.name) {
-      const initRunName = 'Run of ' + pipelineVersion.name + ' (' + generateRandomString(5) + ')';
+    } else if (existingPipelineVersion?.name) {
+      const initRunName = 'Run of ' + existingPipelineVersion.name + ' (' + generateRandomString(5) + ')';
       setRunName(initRunName);
     }
-  }, [apiRun, pipelineVersion]);
+  }, [apiRun, existingPipelineVersion]);
 
   // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
   useEffect(() => {
@@ -255,10 +253,10 @@ function NewRunV2(props: NewRunV2Props) {
         relationship: ApiRelationship.OWNER,
       });
     }
-    if (pipelineVersion && hasVersionID(apiRun)) {
+    if (existingPipelineVersion && hasVersionID(apiRun)) {
       references.push({
         key: {
-          id: pipelineVersion.id,
+          id: existingPipelineVersion.id,
           type: ApiResourceType.PIPELINEVERSION,
         },
         relationship: ApiRelationship.CREATOR,
