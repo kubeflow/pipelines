@@ -152,55 +152,6 @@ function NewRunV2(props: NewRunV2Props) {
     setApiExperiment(chosenExperiment);
   }, [existingPipeline, existingPipelineVersion, chosenExperiment]);
 
-  // If pipeline is changed, call back to NewRunSwitcher
-  useEffect(() => {
-    if (updatedPipeline?.id) {
-      const searchString = urlParser.build({
-        [QUERY_PARAMS.experimentId]: experimentId || '',
-        [QUERY_PARAMS.pipelineId]: updatedPipeline.id || '',
-        [QUERY_PARAMS.pipelineVersionId]: '',
-      });
-      props.history.replace(searchString);
-      handlePipelineVersionIdChange('');
-      handlePipelineIdChange(updatedPipeline.id);
-    }
-  }, [updatedPipeline]);
-
-  // If pipeline version is changed, call back to NewRunSwitcher
-  useEffect(() => {
-    if (pipeline?.id && updatedPipelineVersion?.id) {
-      const searchString = urlParser.build({
-        [QUERY_PARAMS.experimentId]: experimentId || '',
-        [QUERY_PARAMS.pipelineId]: pipeline.id || '',
-        [QUERY_PARAMS.pipelineVersionId]: updatedPipelineVersion.id || '',
-      });
-      props.history.replace(searchString);
-      handlePipelineVersionIdChange(updatedPipelineVersion.id);
-    }
-  }, [updatedPipelineVersion]);
-
-  /*
-  useEffect(() => {
-    if (apiExperiment?.id && pipeline?.id && pipelineVersion?.id) {
-      const searchString = urlParser.build({
-        [QUERY_PARAMS.experimentId]: apiExperiment.id || '',
-        [QUERY_PARAMS.pipelineId]: pipeline.id || '',
-        [QUERY_PARAMS.pipelineVersionId]: pipelineVersion.id || '',
-      });
-      props.history.replace(searchString);
-      return;
-    }
-
-    if (apiExperiment?.id) {
-      const searchString = urlParser.build({
-        [QUERY_PARAMS.experimentId]: apiExperiment.id || '',
-      });
-      props.history.replace(searchString);
-      return;
-    }
-  }, [apiExperiment]);
-  */
-
   // Title and list of actions on the top of page.
   useEffect(() => {
     props.updateToolbar({
@@ -382,19 +333,45 @@ function NewRunV2(props: NewRunV2Props) {
             {/* Pipeline selection */}
             <PipelineSelector
               {...props}
-              setUpdatedPipeline={setUpdatedPipeline}
               pipelineName={pipelineName}
-              setPipelineName={setPipelineName}
+              handlePipelineChange={(updatedPipeline) => {
+                if (updatedPipeline.name) {
+                  setPipelineName(updatedPipeline.name);
+                }
+                if (updatedPipeline.id) {
+                  const searchString = urlParser.build({
+                    [QUERY_PARAMS.experimentId]: experimentId || '',
+                    [QUERY_PARAMS.pipelineId]: updatedPipeline.id || '',
+                    [QUERY_PARAMS.pipelineVersionId]: '',
+                  });
+                  props.history.replace(searchString);
+                  handlePipelineVersionIdChange('');
+                  handlePipelineIdChange(updatedPipeline.id);
+                }
+              }}
             />
 
             {/* Pipeline version selection */}
             <PipelineVersionSelector
               {...props}
-              pipeline={pipeline}
-              setUpdatedPipelineVersion={setUpdatedPipelineVersion}
+              pipeline={existingPipeline}
               pipelineVersionName={pipelineVersionName}
-              setPipelineVersionName={setPipelineVersionName}
+              handlePipelineVersionChange={(updatedPipelineVersion) => {
+                if (updatedPipelineVersion.name) {
+                  setPipelineVersionName(updatedPipelineVersion.name);
+                }
+                if (existingPipeline?.id && updatedPipelineVersion.id) {
+                  const searchString = urlParser.build({
+                    [QUERY_PARAMS.experimentId]: experimentId || '',
+                    [QUERY_PARAMS.pipelineId]: existingPipeline.id || '',
+                    [QUERY_PARAMS.pipelineVersionId]: updatedPipelineVersion.id || '',
+                  });
+                  props.history.replace(searchString);
+                  handlePipelineVersionIdChange(updatedPipelineVersion.id);
+                }
+              }}
             />
+
           </div>
         )}
 
@@ -554,9 +531,8 @@ const EXPERIMENT_SELECTOR_COLUMNS = [
 
 interface PipelineSelectorSpecificProps {
   namespace?: string;
-  setUpdatedPipeline: (apiPipeline: ApiPipeline) => void;
   pipelineName: string | undefined;
-  setPipelineName: (pipelineName: string) => void;
+  handlePipelineChange: (pipeline: ApiPipeline) => void;
 }
 type PipelineSelectorProps = PageProps & PipelineSelectorSpecificProps;
 
@@ -629,9 +605,8 @@ function PipelineSelector(props: PipelineSelectorProps) {
           <Button
             id='usePipelineBtn'
             onClick={() => {
-              if (pendingPipeline && pendingPipeline.name) {
-                props.setUpdatedPipeline(pendingPipeline);
-                props.setPipelineName(pendingPipeline.name);
+              if (pendingPipeline) {
+                props.handlePipelineChange(pendingPipeline);
               }
               setPipelineSelectorOpen(false);
             }}
@@ -649,9 +624,8 @@ function PipelineSelector(props: PipelineSelectorProps) {
 interface PipelineVersionSelectorSpecificProps {
   namespace?: string;
   pipeline: ApiPipeline | undefined;
-  setUpdatedPipelineVersion: (apiPipelineVersion: ApiPipelineVersion) => void;
   pipelineVersionName: string | undefined;
-  setPipelineVersionName: (pipelineVersionName: string) => void;
+  handlePipelineVersionChange: (pipelineVersion: ApiPipelineVersion) => void;
 }
 type PipelineVersionSelectorProps = PageProps & PipelineVersionSelectorSpecificProps;
 
@@ -731,9 +705,8 @@ function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
           <Button
             id='usePipelineVersionBtn'
             onClick={() => {
-              if (pendingPipelineVersion && pendingPipelineVersion.name) {
-                props.setUpdatedPipelineVersion(pendingPipelineVersion);
-                props.setPipelineVersionName(pendingPipelineVersion.name);
+              if (pendingPipelineVersion) {
+                props.handlePipelineVersionChange(pendingPipelineVersion);
               }
               setPipelineVersionSelectorOpen(false);
             }}
@@ -752,9 +725,6 @@ interface ExperimentSelectorSpecificProps {
   namespace?: string;
   experimentName: string | undefined;
   handleExperimentChange: (experiment: ApiExperiment) => void;
-  // setExperimentId: (experimentId: string) => void;
-  // setExperimentName: (experimentName: string) => void;
-  // setApiExperiment: (apiExperiment: ApiExperiment) => void;
 }
 type ExperimentSelectorProps = PageProps & ExperimentSelectorSpecificProps;
 
