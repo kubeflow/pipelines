@@ -96,12 +96,22 @@ function hasVersionID(apiRun: ApiRunDetail | undefined): boolean {
 
 function NewRunV2(props: NewRunV2Props) {
   // List of elements we need to create Pipeline Run.
+  const {
+    existingRunId,
+    apiRun,
+    existingPipeline,
+    handlePipelineIdChange,
+    existingPipelineVersion,
+    handlePipelineVersionIdChange,
+    templateString,
+    chosenExperiment,
+  } = props;
   const [runName, setRunName] = useState('');
   const [runDescription, setRunDescription] = useState('');
   const [pipelineName, setPipelineName] = useState('');
   const [pipelineVersionName, setPipelineVersionName] = useState('');
   const [experimentId, setExperimentId] = useState('');
-  const [apiExperiment, setApiExperiment] = useState<ApiExperiment>();
+  const [apiExperiment, setApiExperiment] = useState(chosenExperiment);
   const [experimentName, setExperimentName] = useState('');
   const [serviceAccount, setServiceAccount] = useState('');
   const [specParameters, setSpecParameters] = useState<SpecParameters>({});
@@ -115,16 +125,6 @@ function NewRunV2(props: NewRunV2Props) {
 
   const urlParser = new URLParser(props);
   const usePipelineFromRunLabel = 'Using pipeline from existing run.';
-  const {
-    existingRunId,
-    apiRun,
-    existingPipeline,
-    handlePipelineIdChange,
-    existingPipelineVersion,
-    handlePipelineVersionIdChange,
-    templateString,
-    chosenExperiment,
-  } = props;
   const pipelineDetailsUrl = existingRunId
     ? RoutePage.PIPELINE_DETAILS.replace(
         ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
@@ -140,11 +140,6 @@ function NewRunV2(props: NewRunV2Props) {
   const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
   const titleVerb = existingRunId ? 'Clone' : 'Start';
   const titleAdjective = existingRunId ? '' : 'new';
-
-  // Use pipeline, pipeline version, and experiment from parent component
-  useEffect(() => {
-    setApiExperiment(chosenExperiment);
-  }, [chosenExperiment]);
 
   // Title and list of actions on the top of page.
   useEffect(() => {
@@ -404,6 +399,11 @@ function NewRunV2(props: NewRunV2Props) {
                   [QUERY_PARAMS.experimentId]: experiment.id || '',
                   [QUERY_PARAMS.pipelineId]: existingPipeline.id || '',
                   [QUERY_PARAMS.pipelineVersionId]: existingPipelineVersion.id || '',
+                });
+              } else if (existingRunId) {
+                searchString = urlParser.build({
+                  [QUERY_PARAMS.experimentId]: experiment.id || '',
+                  [QUERY_PARAMS.cloneFromRun]: existingRunId || '',
                 });
               } else {
                 searchString = urlParser.build({
