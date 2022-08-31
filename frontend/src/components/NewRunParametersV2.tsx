@@ -160,7 +160,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
   const { specParameters, clonedRuntimeConfig, handleParameterChange, setIsValidInput } = props;
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
   const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
-  const [errorMessages, setErrorMessages] = useState([]);
+  const [errorMessages, setErrorMessages] = useState<string[]>([]);
 
   const [updatedParameters, setUpdatedParameters] = useState({});
   useEffect(() => {
@@ -189,6 +189,7 @@ function NewRunParametersV2(props: NewRunParametersProps) {
     // TODO(jlyaoyuli): If we have parameters from run, put original default value next to the paramKey
     const runtimeParametersWithDefault: RuntimeParameters = {};
     let allParamtersWithDefault = true;
+    let errMsg : string[] = [];
     Object.keys(specParameters).forEach(key => {
       if (specParameters[key].defaultValue) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.
@@ -200,11 +201,11 @@ function NewRunParametersV2(props: NewRunParametersProps) {
         );
       } else {
         allParamtersWithDefault = false;
-        errorMessages[key] = 'Missing parameter.';
+        errMsg[key] = 'Missing parameter.';
       }
     });
     setUpdatedParameters(runtimeParametersWithDefault);
-    setErrorMessages(errorMessages);
+    setErrorMessages(errMsg);
     if (setIsValidInput) {
       setIsValidInput(allParamtersWithDefault);
     }
