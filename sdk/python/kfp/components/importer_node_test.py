@@ -13,7 +13,6 @@
 # limitations under the License.
 import unittest
 
-from kfp import compiler
 from kfp import dsl
 from kfp.components import importer_node
 from kfp.components.types.artifact_types import Dataset
@@ -35,8 +34,7 @@ class TestImporterSupportsDynamicMetadata(unittest.TestCase):
                     'string-2': meta_inp
                 })
 
-        pipeline_spec = compiler.Compiler()._create_pipeline(
-            pipeline_func=my_pipeline)
+        pipeline_spec = my_pipeline.pipeline_spec
         input_keys = list(pipeline_spec.components['comp-importer']
                           .input_definitions.parameters.keys())
         self.assertIn('meta_inp', input_keys)
@@ -63,8 +61,7 @@ class TestImporterSupportsDynamicMetadata(unittest.TestCase):
                     meta_inp: meta_inp
                 })
 
-        pipeline_spec = compiler.Compiler()._create_pipeline(
-            pipeline_func=my_pipeline)
+        pipeline_spec = my_pipeline.pipeline_spec
         input_keys = list(pipeline_spec.components['comp-importer']
                           .input_definitions.parameters.keys())
         self.assertIn('meta_inp', input_keys)
@@ -102,8 +99,7 @@ class TestImporterSupportsDynamicMetadata(unittest.TestCase):
                     'string-2': task2.output
                 })
 
-        pipeline_spec = compiler.Compiler()._create_pipeline(
-            pipeline_func=my_pipeline)
+        pipeline_spec = my_pipeline.pipeline_spec
         input_keys = list(pipeline_spec.components['comp-importer']
                           .input_definitions.parameters.keys())
         self.assertIn('Output', input_keys)
@@ -136,8 +132,7 @@ class TestImporterSupportsDynamicMetadata(unittest.TestCase):
                     task.output: task.output
                 })
 
-        pipeline_spec = compiler.Compiler()._create_pipeline(
-            pipeline_func=my_pipeline)
+        pipeline_spec = my_pipeline.pipeline_spec
         input_keys = list(pipeline_spec.components['comp-importer']
                           .input_definitions.parameters.keys())
         self.assertIn('Output', input_keys)
