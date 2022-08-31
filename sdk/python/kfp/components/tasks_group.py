@@ -158,10 +158,13 @@ class Condition(TasksGroup):
         self,
         condition: pipeline_channel.ConditionOperator,
         name: Optional[str] = None,
-        is_root=False,
     ):
         """Initializes a conditional task group."""
-        super().__init__(group_type=TasksGroupType.CONDITION, name=name)
+        super().__init__(
+            group_type=TasksGroupType.CONDITION,
+            name=name,
+            is_root=False,
+        )
         self.condition = condition
 
 
