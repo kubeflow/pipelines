@@ -26,7 +26,6 @@ import * as React from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { HelpButton } from 'src/atoms/HelpButton';
-import { FeatureKey, isFeatureEnabled } from 'src/features';
 import { classes, stylesheet } from 'typestyle';
 import { ApiExperiment, ApiExperimentStorageState } from '../apis/experiment';
 import { ApiFilter, PredicateOp } from '../apis/filter';
