@@ -50,10 +50,11 @@ CONFIG = {
             'pipeline_in_pipeline',
             'pipeline_in_pipeline_complex',
             'pipeline_with_outputs',
+            'pipeline_in_pipeline_loaded_from_yaml',
         ],
         'test_data_dir': 'sdk/python/kfp/compiler/test_data/pipelines',
         'config': {
-            'read': False,
+            'read': True,
             'write': True
         }
     },

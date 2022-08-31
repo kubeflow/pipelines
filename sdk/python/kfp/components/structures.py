@@ -67,26 +67,31 @@ class InputSpec(InputSpec_, base_model.BaseModel):
         self._optional = 'default' in kwargs
 
     @classmethod
-    def from_ir_parameter_dict(
-            cls, ir_parameter_dict: Dict[str, Any]) -> 'InputSpec':
+    def from_ir_component_inputs_dict(
+            cls, ir_component_inputs_dict: Dict[str, Any]) -> 'InputSpec':
         """Creates an InputSpec from a ComponentInputsSpec message in dict
         format (pipeline_spec.components.<component-
         key>.inputDefinitions.parameters.<input-key>).
 
         Args:
-            ir_parameter_dict (Dict[str, Any]): The ComponentInputsSpec message in dict format.
+            ir_component_inputs_dict (Dict[str, Any]): The ComponentInputsSpec
+                message in dict format.
 
         Returns:
             InputSpec: The InputSpec object.
         """
-        type_ = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE.get(
-            ir_parameter_dict['parameterType'])
+        if 'parameterType' in ir_component_inputs_dict:
+            type_string = ir_component_inputs_dict['parameterType']
+            default_value = ir_component_inputs_dict.get('defaultValue')
+        else:
+            type_string = ir_component_inputs_dict['artifactType'][
+                'schemaTitle']
+            default_value = None
+        type_ = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE.get(type_string)
         if type_ is None:
-            raise ValueError(
-                f'Unknown type {ir_parameter_dict["parameterType"]} found in IR.'
-            )
-        default = ir_parameter_dict.get('defaultValue')
-        return InputSpec(type=type_, default=default)
+            raise ValueError(f'Unknown type {type_string} found in IR.')
+
+        return InputSpec(type=type_, default=default_value)
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for InputSpec. Robust to different type
@@ -118,26 +123,27 @@ class OutputSpec(base_model.BaseModel):
     type: Union[str, dict]
 
     @classmethod
-    def from_ir_parameter_dict(
-            cls, ir_parameter_dict: Dict[str, Any]) -> 'OutputSpec':
+    def from_ir_component_outputs_dict(
+            cls, ir_component_outputs_dict: Dict[str, Any]) -> 'OutputSpec':
         """Creates an OutputSpec from a ComponentOutputsSpec message in dict
         format (pipeline_spec.components.<component-
         key>.outputDefinitions.parameters|artifacts.<output-key>).
 
         Args:
-            ir_parameter_dict (Dict[str, Any]): The ComponentOutputsSpec in dict format.
+            ir_component_outputs_dict (Dict[str, Any]): The ComponentOutputsSpec
+                in dict format.
 
         Returns:
             OutputSpec: The OutputSpec object.
         """
-        type_string = ir_parameter_dict[
-            'parameterType'] if 'parameterType' in ir_parameter_dict else ir_parameter_dict[
-                'artifactType']['schemaTitle']
+        if 'parameterType' in ir_component_outputs_dict:
+            type_string = ir_component_outputs_dict['parameterType']
+        else:
+            type_string = ir_component_outputs_dict['artifactType'][
+                'schemaTitle']
         type_ = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE.get(type_string)
         if type_ is None:
-            raise ValueError(
-                f'Unknown type {ir_parameter_dict["parameterType"]} found in IR.'
-            )
+            raise ValueError(f'Unknown type {type_string} found in IR.')
         return OutputSpec(type=type_)
 
     def __eq__(self, other: Any) -> bool:
@@ -395,8 +401,8 @@ class Implementation(base_model.BaseModel):
     graph: Optional['pipeline_spec_pb2.PipelineSpec'] = None
 
     @classmethod
-    def from_deployment_spec_dict(cls, deployment_spec_dict: Dict[str, Any],
-                                  component_name: str) -> 'Implementation':
+    def from_pipeline_spec_dict(cls, pipeline_spec_dict: Dict[str, Any],
+                                component_name: str) -> 'Implementation':
         """Creates an Implmentation object from a deployment spec message in
         dict format (pipeline_spec.deploymentSpec).
 
@@ -407,11 +413,17 @@ class Implementation(base_model.BaseModel):
         Returns:
             Implementation: An implementation object.
         """
-        executor_key = utils._EXECUTOR_LABEL_PREFIX + component_name
-        container = deployment_spec_dict['executors'][executor_key]['container']
-        container_spec = ContainerSpecImplementation.from_container_dict(
-            container)
-        return Implementation(container=container_spec)
+        executor_key = utils.sanitize_executor_label(component_name)
+        executor = pipeline_spec_dict['deploymentSpec']['executors'].get(
+            executor_key)
+        if executor is not None:
+            container_spec = ContainerSpecImplementation.from_container_dict(
+                executor['container']) if executor else None
+            return Implementation(container=container_spec)
+        else:
+            pipeline_spec = json_format.ParseDict(
+                pipeline_spec_dict, pipeline_spec_pb2.PipelineSpec())
+            return Implementation(graph=pipeline_spec)
 
 
 def _check_valid_placeholder_reference(
@@ -511,18 +523,16 @@ class ComponentSpec(base_model.BaseModel):
     def validate_placeholders(self):
         """Validates that input/output placeholders refer to an existing
         input/output."""
-        implementation = self.implementation
-        if getattr(implementation, 'container', None) is None:
+        if self.implementation.container is None:
             return
-
-        containerSpecImplementation: ContainerSpecImplementation = implementation.container
 
         valid_inputs = [] if self.inputs is None else list(self.inputs.keys())
         valid_outputs = [] if self.outputs is None else list(
             self.outputs.keys())
 
-        for arg in itertools.chain((containerSpecImplementation.command or []),
-                                   (containerSpecImplementation.args or [])):
+        for arg in itertools.chain(
+            (self.implementation.container.command or []),
+            (self.implementation.container.args or [])):
             _check_valid_placeholder_reference(valid_inputs, valid_outputs, arg)
 
     @classmethod
@@ -596,32 +606,28 @@ class ComponentSpec(base_model.BaseModel):
             cls, pipeline_spec_dict: Dict[str, Any]) -> 'ComponentSpec':
         raw_name = pipeline_spec_dict['pipelineInfo']['name']
 
-        implementation = Implementation.from_deployment_spec_dict(
-            pipeline_spec_dict['deploymentSpec'], raw_name)
-
-        def inputs_dict_from_components_dict(
-                components_dict: Dict[str, Any],
-                component_name: str) -> Dict[str, InputSpec]:
-            component_key = utils._COMPONENT_NAME_PREFIX + component_name
-            parameters = components_dict[component_key].get(
-                'inputDefinitions', {}).get('parameters', {})
+        def inputs_dict_from_component_spec_dict(
+                component_spec_dict: Dict[str, Any]) -> Dict[str, InputSpec]:
+            parameters = component_spec_dict.get('inputDefinitions',
+                                                 {}).get('parameters', {})
+            artifacts = component_spec_dict.get('inputDefinitions',
+                                                {}).get('artifacts', {})
+            all_inputs = {**parameters, **artifacts}
             return {
-                name: InputSpec.from_ir_parameter_dict(parameter_dict)
-                for name, parameter_dict in parameters.items()
+                name: InputSpec.from_ir_component_inputs_dict(input_dict)
+                for name, input_dict in all_inputs.items()
             }
 
-        def outputs_dict_from_components_dict(
-                components_dict: Dict[str, Any],
-                component_name: str) -> Dict[str, OutputSpec]:
-            component_key = utils._COMPONENT_NAME_PREFIX + component_name
-            parameters = components_dict[component_key].get(
-                'outputDefinitions', {}).get('parameters', {})
-            artifacts = components_dict[component_key].get(
-                'outputDefinitions', {}).get('artifacts', {})
+        def outputs_dict_from_component_spec_dict(
+                components_spec_dict: Dict[str, Any]) -> Dict[str, OutputSpec]:
+            parameters = component_spec_dict.get('outputDefinitions',
+                                                 {}).get('parameters', {})
+            artifacts = components_spec_dict.get('outputDefinitions',
+                                                 {}).get('artifacts', {})
             all_outputs = {**parameters, **artifacts}
             return {
-                name: OutputSpec.from_ir_parameter_dict(parameter_dict)
-                for name, parameter_dict in all_outputs.items()
+                name: OutputSpec.from_ir_component_outputs_dict(output_dict)
+                for name, output_dict in all_outputs.items()
             }
 
         def extract_description_from_command(
@@ -637,13 +643,20 @@ class ComponentSpec(base_model.BaseModel):
                                 return docstring
             return None
 
-        inputs = inputs_dict_from_components_dict(
-            pipeline_spec_dict['components'], raw_name)
-        outputs = outputs_dict_from_components_dict(
-            pipeline_spec_dict['components'], raw_name)
+        component_key = utils.sanitize_component_name(raw_name)
+        component_spec_dict = pipeline_spec_dict['components'].get(
+            component_key, pipeline_spec_dict['root'])
+
+        inputs = inputs_dict_from_component_spec_dict(component_spec_dict)
+        outputs = outputs_dict_from_component_spec_dict(component_spec_dict)
+
+        implementation = Implementation.from_pipeline_spec_dict(
+            pipeline_spec_dict, raw_name)
 
         description = extract_description_from_command(
-            implementation.container.command or [])
+            implementation.container.command or
+            []) if implementation.container else None
+
         return ComponentSpec(
             name=raw_name,
             implementation=implementation,
