@@ -1340,7 +1340,9 @@ def build_exit_handler_groups_recursively(
                 )
                 exit_task_component_spec = exit_task_pipeline_spec.root
             else:
-                raise RuntimeError
+                raise RuntimeError(
+                    f'Exit task {exit_task_name} is missing both container spec and pipeline spec.'
+                )
 
             # Add exit task component spec.
             component_name = utils.make_name_unique_by_adding_index(
