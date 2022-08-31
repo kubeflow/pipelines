@@ -95,7 +95,6 @@ describe('deploy helloworld sample run', () => {
 
     $('#pipelineVersionSelectorDialog').waitForVisible(waitTimeout, true);
 
-    browser.keys('Tab');
     browser.keys(runName);
 
     browser.keys('Tab');

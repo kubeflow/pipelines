@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from 'react-query';
 import { QUERY_PARAMS } from 'src/components/Router';
 import { isFeatureEnabled, FeatureKey } from 'src/features';
@@ -11,6 +11,7 @@ import { PageProps } from './Page';
 import { isTemplateV2 } from 'src/lib/v2/WorkflowUtils';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import { ApiRunDetail } from 'src/apis/run';
+import { ApiExperiment } from 'src/apis/experiment';
 
 function NewRunSwitcher(props: PageProps) {
   const namespace = React.useContext(NamespaceContext);
@@ -22,12 +23,16 @@ function NewRunSwitcher(props: PageProps) {
   // runID query by cloneFromRun will be deprecated once v1 is deprecated.
   const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
   const embeddedRunId = urlParser.get(QUERY_PARAMS.fromRunId);
-  const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
-  const pipelineVersionIdParam = urlParser.get(QUERY_PARAMS.pipelineVersionId);
+  const [pipelineId, setPipelineId] = useState(urlParser.get(QUERY_PARAMS.pipelineId));
+  const experimentId = urlParser.get(QUERY_PARAMS.experimentId);
+  const [pipelineVersionIdParam, setPipelineVersionIdParam] = useState(
+    urlParser.get(QUERY_PARAMS.pipelineVersionId),
+  );
   const existingRunId = originalRunId ? originalRunId : embeddedRunId;
 
   const { isSuccess: runIsSuccess, isFetching: runIsFetching, data: apiRun } = useQuery<
-    ApiRunDetail
+    ApiRunDetail,
+    Error
   >(
     ['ApiRun', existingRunId],
     () => {
@@ -36,7 +41,7 @@ function NewRunSwitcher(props: PageProps) {
       }
       return Apis.runServiceApi.getRun(existingRunId);
     },
-    { staleTime: Infinity },
+    { enabled: !!existingRunId, staleTime: Infinity },
   );
   const templateStrFromRunId = apiRun ? apiRun.run?.pipeline_spec?.pipeline_manifest : '';
 
@@ -48,7 +53,7 @@ function NewRunSwitcher(props: PageProps) {
       }
       return Apis.pipelineServiceApi.getPipeline(pipelineId);
     },
-    { enabled: !!pipelineId, staleTime: Infinity },
+    { enabled: !!pipelineId, staleTime: Infinity, cacheTime: Infinity },
   );
 
   const { isFetching: pipelineVersionIsFetching, data: apiPipelineVersion } = useQuery<
@@ -63,7 +68,7 @@ function NewRunSwitcher(props: PageProps) {
       }
       return Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionId);
     },
-    { enabled: !!apiPipeline, staleTime: Infinity },
+    { enabled: !!apiPipeline, staleTime: Infinity, cacheTime: Infinity },
   );
 
   const {
@@ -80,7 +85,18 @@ function NewRunSwitcher(props: PageProps) {
       const template = await Apis.pipelineServiceApi.getPipelineVersionTemplate(pipelineVersionId);
       return template?.template || '';
     },
-    { enabled: !!apiPipelineVersion, staleTime: Infinity },
+    { enabled: !!apiPipelineVersion, staleTime: Infinity, cacheTime: Infinity },
+  );
+
+  const { data: apiExperiment } = useQuery<ApiExperiment, Error>(
+    ['experiment', experimentId],
+    async () => {
+      if (!experimentId) {
+        throw new Error('Experiment ID is missing');
+      }
+      return Apis.experimentServiceApi.getExperiment(experimentId);
+    },
+    { enabled: !!experimentId, staleTime: Infinity },
   );
 
   const templateString =
@@ -94,14 +110,20 @@ function NewRunSwitcher(props: PageProps) {
           namespace={namespace}
           existingRunId={existingRunId}
           apiRun={apiRun}
-          apiPipeline={apiPipeline}
-          apiPipelineVersion={apiPipelineVersion}
+          existingPipeline={apiPipeline}
+          handlePipelineIdChange={setPipelineId}
+          existingPipelineVersion={apiPipelineVersion}
+          handlePipelineVersionIdChange={setPipelineVersionIdParam}
           templateString={templateString}
+          chosenExperiment={apiExperiment}
         />
       );
     }
   }
 
+  // Use experiment ID to create new run
+  // Currently use NewRunV1 as default
+  // TODO(jlyaoyuli): set v2 as default once v1 is deprecated.
   if (
     runIsFetching ||
     pipelineIsFetching ||
@@ -110,7 +132,16 @@ function NewRunSwitcher(props: PageProps) {
   ) {
     return <div>Currently loading pipeline information</div>;
   }
-  return <NewRun {...props} namespace={namespace} />;
+  return (
+    <NewRun
+      {...props}
+      namespace={namespace}
+      existingPipelineId={pipelineId}
+      handlePipelineIdChange={setPipelineId}
+      existingPipelineVersionId={pipelineVersionIdParam}
+      handlePipelineVersionIdChange={setPipelineVersionIdParam}
+    />
+  );
 }
 
 export default NewRunSwitcher;
