@@ -17,6 +17,8 @@ import tempfile
 
 def create_temporary_non_kfp_artifact_package(
         temp_dir: tempfile.TemporaryDirectory) -> None:
+    """Creates a fake temporary module that can be used as a non-kfp package
+    for testing purposes."""
     import inspect
     import os
     import textwrap
@@ -57,6 +59,7 @@ def create_temporary_non_kfp_artifact_package(
 
 
 # remove try finally when a third-party package adds pre-registered custom artifact types that we can use for testing
+# this is a compilation test only and is not executable, since dummy_third_party_package does not exist and cannot be installed or imported at runtime
 try:
     temp_dir = tempfile.TemporaryDirectory()
     sys.path.append(temp_dir.name)
