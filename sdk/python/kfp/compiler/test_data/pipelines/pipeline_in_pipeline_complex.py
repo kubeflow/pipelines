@@ -59,8 +59,8 @@ def pipeline_not_used():
 
 
 @dsl.pipeline(name='pipeline-in-pipeline-complex')
-def my_pipeline():
-    print_op1(msg='Hello')
+def my_pipeline(msg: str = 'Hello'):
+    print_op1(msg=msg)
     with dsl.ParallelFor(['Hello', 'world!']) as item:
         graph_component(msg=item)
 
