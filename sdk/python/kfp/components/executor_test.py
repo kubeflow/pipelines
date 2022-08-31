@@ -112,7 +112,8 @@ class ExecutorTest(unittest.TestCase):
         """
 
         class VertexDataset:
-            TYPE_NAME = 'google.VertexDataset'
+            schema_title = 'google.VertexDataset'
+            schema_version = '0.0.0'
 
             def __init__(self, name: str, uri: str, metadata: dict) -> None:
                 self.name = name
@@ -121,15 +122,15 @@ class ExecutorTest(unittest.TestCase):
 
             @property
             def path(self) -> str:
-                return self.uri.replace('gs://', '/gcs/')
+                return self.uri.replace('gs://',
+                                        artifact_types._GCS_LOCAL_MOUNT_PREFIX)
 
         def test_func(input_artifact_one: Input[VertexDataset]):
             self.assertEqual(input_artifact_one.uri,
                              'gs://some-bucket/input_artifact_one')
             self.assertEqual(
                 input_artifact_one.path,
-                os.path.join(self._test_dir,
-                             '/gcs/some-bucket/input_artifact_one'))
+                os.path.join(self._test_dir, 'some-bucket/input_artifact_one'))
             self.assertEqual(input_artifact_one.name, 'input_artifact_one')
             self.assertIsInstance(input_artifact_one, VertexDataset)
 
@@ -832,7 +833,7 @@ class VertexDataset:
 
     @property
     def path(self) -> str:
-        return self.uri.replace('gs://', '/gcs/')
+        return self.uri.replace('gs://', artifact_types._GCS_LOCAL_MOUNT_PREFIX)
 
 
 class TestDictToArtifact(parameterized.TestCase):
