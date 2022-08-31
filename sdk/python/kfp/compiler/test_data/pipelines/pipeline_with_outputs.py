@@ -53,8 +53,8 @@ def inner_pipeline(
 
 
 @dsl.pipeline(name='pipeline-in-pipeline')
-def my_pipeline() -> Artifact:
-    task1 = print_op1(msg='Hello')
+def my_pipeline(msg: str = 'Hello') -> Artifact:
+    task1 = print_op1(msg=msg)
     task2 = inner_pipeline(msg='world')
     return task2.outputs['data']
 

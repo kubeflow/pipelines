@@ -255,12 +255,17 @@ class StructuresTest(parameterized.TestCase):
             inputs={'input1': structures.InputSpec(type='String')},
             outputs={'output1': structures.OutputSpec(type='String')},
         )
-        from kfp.components import yaml_component
-        yaml_component = yaml_component.YamlComponent(
-            component_spec=original_component_spec)
+        from kfp.components import base_component
+
+        class TestComponent(base_component.BaseComponent):
+
+            def execute(self, **kwargs):
+                pass
+
+        test_component = TestComponent(component_spec=original_component_spec)
         with tempfile.TemporaryDirectory() as tempdir:
             output_path = os.path.join(tempdir, 'component.yaml')
-            compiler.Compiler().compile(yaml_component, output_path)
+            compiler.Compiler().compile(test_component, output_path)
 
             # test that it can be read back correctly
             with open(output_path, 'r') as f:
@@ -580,14 +585,16 @@ class TestInputSpec(unittest.TestCase):
         self.assertEqual(input_spec.default, None)
         self.assertEqual(input_spec._optional, False)
 
-    def test_from_ir_parameter_dict(self):
+    def test_from_ir_component_inputs_dict(self):
         parameter_dict = {'parameterType': 'STRING'}
-        input_spec = structures.InputSpec.from_ir_parameter_dict(parameter_dict)
+        input_spec = structures.InputSpec.from_ir_component_inputs_dict(
+            parameter_dict)
         self.assertEqual(input_spec.type, 'String')
         self.assertEqual(input_spec.default, None)
 
         parameter_dict = {'parameterType': 'NUMBER_INTEGER'}
-        input_spec = structures.InputSpec.from_ir_parameter_dict(parameter_dict)
+        input_spec = structures.InputSpec.from_ir_component_inputs_dict(
+            parameter_dict)
         self.assertEqual(input_spec.type, 'Integer')
         self.assertEqual(input_spec.default, None)
 
@@ -595,20 +602,32 @@ class TestInputSpec(unittest.TestCase):
             'defaultValue': 'default value',
             'parameterType': 'STRING'
         }
-        input_spec = structures.InputSpec.from_ir_parameter_dict(parameter_dict)
+        input_spec = structures.InputSpec.from_ir_component_inputs_dict(
+            parameter_dict)
         self.assertEqual(input_spec.type, 'String')
         self.assertEqual(input_spec.default, 'default value')
 
-        input_spec = structures.InputSpec.from_ir_parameter_dict(parameter_dict)
+        input_spec = structures.InputSpec.from_ir_component_inputs_dict(
+            parameter_dict)
         self.assertEqual(input_spec.type, 'String')
         self.assertEqual(input_spec.default, 'default value')
+
+        artifact_dict = {
+            'artifactType': {
+                'schemaTitle': 'system.Artifact',
+                'schemaVersion': '0.0.1'
+            }
+        }
+        input_spec = structures.InputSpec.from_ir_component_inputs_dict(
+            artifact_dict)
+        self.assertEqual(input_spec.type, 'Artifact')
 
 
 class TestOutputSpec(parameterized.TestCase):
 
-    def test_from_ir_parameter_dict(self):
+    def test_from_ir_component_outputs_dict(self):
         parameter_dict = {'parameterType': 'STRING'}
-        output_spec = structures.OutputSpec.from_ir_parameter_dict(
+        output_spec = structures.OutputSpec.from_ir_component_outputs_dict(
             parameter_dict)
         self.assertEqual(output_spec.type, 'String')
 
@@ -618,7 +637,7 @@ class TestOutputSpec(parameterized.TestCase):
                 'schemaVersion': '0.0.1'
             }
         }
-        output_spec = structures.OutputSpec.from_ir_parameter_dict(
+        output_spec = structures.OutputSpec.from_ir_component_outputs_dict(
             artifact_dict)
         self.assertEqual(output_spec.type, 'Artifact')
 
