@@ -1434,12 +1434,12 @@ def _merge_deployment_spec(
 
     for executor_label, executor_spec in sub_deployment_config.executors.items(
     ):
-        if executor_label in main_deployment_config.executors:
-            old_executor_label = executor_label
-            executor_label = utils.make_name_unique_by_adding_index(
-                name=executor_label,
-                collection=list(main_deployment_config.executors.keys()),
-                delimiter='-')
+        old_executor_label = executor_label
+        executor_label = utils.make_name_unique_by_adding_index(
+            name=executor_label,
+            collection=list(main_deployment_config.executors.keys()),
+            delimiter='-')
+        if executor_label != old_executor_label:
             _rename_executor_labels(
                 pipeline_spec=sub_pipeline_spec,
                 old_executor_label=old_executor_label,
@@ -1471,27 +1471,38 @@ def _merge_component_spec(
     ) -> None:
         """Renames the old component_ref to the new one in task spec."""
         for _, component_spec in pipeline_spec.components.items():
-            if component_spec.dag:
-                for _, task_spec in component_spec.dag.tasks.items():
-                    if task_spec.component_ref.name == old_component_ref:
-                        task_spec.component_ref.name = new_component_ref
+            if not component_spec.dag:
+                continue
+            for _, task_spec in component_spec.dag.tasks.items():
+                if task_spec.component_ref.name == old_component_ref:
+                    task_spec.component_ref.name = new_component_ref
 
         for _, task_spec in pipeline_spec.root.dag.tasks.items():
             if task_spec.component_ref.name == old_component_ref:
                 task_spec.component_ref.name = new_component_ref
 
+    # Do all the renaming in place, then do the acutal merge of component specs
+    # in a second pass. This would ensure all component specs are in the final
+    # state at the time of merging.
+    old_name_to_new_name = {}
     for component_name, component_spec in sub_pipeline_spec.components.items():
-        if component_name in main_pipeline_spec.components:
-            old_component_name = component_name
-            component_name = utils.make_name_unique_by_adding_index(
-                name=component_name,
-                collection=list(main_pipeline_spec.components.keys()),
-                delimiter='-')
+        old_component_name = component_name
+        new_component_name = utils.make_name_unique_by_adding_index(
+            name=component_name,
+            collection=list(main_pipeline_spec.components.keys()),
+            delimiter='-')
+        old_name_to_new_name[old_component_name] = new_component_name
+
+        if new_component_name != old_component_name:
             _rename_component_refs(
                 pipeline_spec=sub_pipeline_spec,
                 old_component_ref=old_component_name,
-                new_component_ref=component_name)
-        main_pipeline_spec.components[component_name].CopyFrom(component_spec)
+                new_component_ref=new_component_name)
+
+    for old_component_name, component_spec in sub_pipeline_spec.components.items(
+    ):
+        main_pipeline_spec.components[
+            old_name_to_new_name[old_component_name]].CopyFrom(component_spec)
 
 
 def create_pipeline_spec(
