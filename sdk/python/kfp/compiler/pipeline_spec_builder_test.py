@@ -226,30 +226,28 @@ class PipelineSpecBuilderTest(parameterized.TestCase):
             pipeline_spec_pb2.ComponentSpec(executor_label='exec-1-2'))
         expected_main_pipeline_spec.components['comp-2'].CopyFrom(
             pipeline_spec_pb2.ComponentSpec(executor_label='exec-2'))
-        expected_main_pipeline_spec.components['inner-pipeline'].CopyFrom(
-            pipeline_spec_pb2.ComponentSpec(dag=pipeline_spec_pb2.DagSpec()))
-        expected_main_pipeline_spec.components['inner-pipeline'].dag.tasks[
-            'task-1'].CopyFrom(
-                pipeline_spec_pb2.PipelineTaskSpec(
-                    component_ref=pipeline_spec_pb2.ComponentRef(
-                        name='comp-1-2')))
-        expected_main_pipeline_spec.components['inner-pipeline'].dag.tasks[
-            'task-2'].CopyFrom(
-                pipeline_spec_pb2.PipelineTaskSpec(
-                    component_ref=pipeline_spec_pb2.ComponentRef(
-                        name='comp-2')))
 
-        pipeline_spec_builder.merge_deployment_spec_and_component_spec(
+        expected_sub_pipeline_spec_root = pipeline_spec_pb2.ComponentSpec(
+            dag=pipeline_spec_pb2.DagSpec())
+        expected_sub_pipeline_spec_root.dag.tasks['task-1'].CopyFrom(
+            pipeline_spec_pb2.PipelineTaskSpec(
+                component_ref=pipeline_spec_pb2.ComponentRef(name='comp-1-2')))
+        expected_sub_pipeline_spec_root.dag.tasks['task-2'].CopyFrom(
+            pipeline_spec_pb2.PipelineTaskSpec(
+                component_ref=pipeline_spec_pb2.ComponentRef(name='comp-2')))
+
+        sub_pipeline_spec_copy = pipeline_spec_builder.merge_deployment_spec_and_component_spec(
             main_pipeline_spec=main_pipeline_spec,
             main_deployment_config=main_deployment_config,
             sub_pipeline_spec=sub_pipeline_spec,
-            sub_pipeline_component_name='inner-pipeline',
         )
 
         self.assertEqual(sub_pipeline_spec, expected_sub_pipeline_spec)
         self.assertEqual(main_pipeline_spec, expected_main_pipeline_spec)
         self.assertEqual(main_deployment_config,
                          expected_main_deployment_config)
+        self.assertEqual(sub_pipeline_spec_copy.root,
+                         expected_sub_pipeline_spec_root)
 
 
 def pipeline_spec_from_file(filepath: str) -> str:

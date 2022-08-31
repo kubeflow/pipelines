@@ -1131,9 +1131,6 @@ def build_spec_by_group(
         ]
         is_parent_component_root = (group_component_spec == pipeline_spec.root)
 
-        # Track if component spec is addeded from merging pipeline spec.
-        component_spec_added = False
-
         if isinstance(subgroup, pipeline_task.PipelineTask):
 
             subgroup_task_spec = build_task_spec_for_task(
@@ -1165,13 +1162,12 @@ def build_spec_by_group(
                 deployment_config.executors[executor_label].importer.CopyFrom(
                     subgroup_importer_spec)
             elif subgroup.pipeline_spec is not None:
-                merge_deployment_spec_and_component_spec(
+                sub_pipeline_spec = merge_deployment_spec_and_component_spec(
                     main_pipeline_spec=pipeline_spec,
                     main_deployment_config=deployment_config,
                     sub_pipeline_spec=subgroup.pipeline_spec,
-                    sub_pipeline_component_name=subgroup_component_name,
                 )
-                component_spec_added = True
+                subgroup_component_spec = sub_pipeline_spec.root
             else:
                 raise RuntimeError
         elif isinstance(subgroup, tasks_group.ParallelFor):
@@ -1270,16 +1266,15 @@ def build_spec_by_group(
             subgroup_task_spec.dependent_tasks.extend(
                 [utils.sanitize_task_name(dep) for dep in group_dependencies])
 
-        # Add component spec if not already added from merging pipeline spec.
-        if not component_spec_added:
-            subgroup_component_name = utils.make_name_unique_by_adding_index(
-                name=subgroup_component_name,
-                collection=list(pipeline_spec.components.keys()),
-                delimiter='-')
+        # Add component spec
+        subgroup_component_name = utils.make_name_unique_by_adding_index(
+            name=subgroup_component_name,
+            collection=list(pipeline_spec.components.keys()),
+            delimiter='-')
 
-            subgroup_task_spec.component_ref.name = subgroup_component_name
-            pipeline_spec.components[subgroup_component_name].CopyFrom(
-                subgroup_component_spec)
+        subgroup_task_spec.component_ref.name = subgroup_component_name
+        pipeline_spec.components[subgroup_component_name].CopyFrom(
+            subgroup_component_spec)
 
         # Add task spec
         group_component_spec.dag.tasks[subgroup.name].CopyFrom(
@@ -1306,6 +1301,13 @@ def build_exit_handler_groups_recursively(
         return
     for group in parent_group.groups:
         if isinstance(group, tasks_group.ExitHandler):
+
+            # remove this if block to support nested exit handlers
+            if not parent_group.is_root:
+                raise ValueError(
+                    f'{tasks_group.ExitHandler.__name__} can only be used within the outermost scope of a pipeline function definition. Using an {tasks_group.ExitHandler.__name__} within {group_type_to_dsl_class[parent_group.group_type].__name__} {parent_group.name} is not allowed.'
+                )
+
             exit_task = group.exit_task
             exit_task_name = utils.sanitize_task_name(exit_task.name)
             exit_handler_group_task_name = utils.sanitize_task_name(group.name)
@@ -1319,33 +1321,47 @@ def build_exit_handler_groups_recursively(
             exit_task_component_spec = build_component_spec_for_exit_task(
                 task=exit_task)
 
-            exit_task_container_spec = build_container_spec_for_task(
-                task=exit_task)
-
-            # remove this if block to support nested exit handlers
-            if not parent_group.is_root:
-                raise ValueError(
-                    f'{tasks_group.ExitHandler.__name__} can only be used within the outermost scope of a pipeline function definition. Using an {tasks_group.ExitHandler.__name__} within {group_type_to_dsl_class[parent_group.group_type].__name__} {parent_group.name} is not allowed.'
-                )
-
-            parent_dag = pipeline_spec.root.dag if parent_group.is_root else pipeline_spec.components[
-                utils.sanitize_component_name(parent_group.name)].dag
-
-            parent_dag.tasks[exit_task_name].CopyFrom(exit_task_task_spec)
-
-            # Add exit task component spec if it does not exist.
-            component_name = exit_task_task_spec.component_ref.name
-            if component_name not in pipeline_spec.components:
-                pipeline_spec.components[component_name].CopyFrom(
-                    exit_task_component_spec)
-
-            # Add exit task container spec if it does not exist.
-            executor_label = exit_task_component_spec.executor_label
-            if executor_label not in deployment_config.executors:
+            # Add exit task container spec if applicable.
+            if exit_task.container_spec is not None:
+                exit_task_container_spec = build_container_spec_for_task(
+                    task=exit_task)
+                executor_label = utils.make_name_unique_by_adding_index(
+                    name=exit_task_component_spec.executor_label,
+                    collection=list(deployment_config.executors.keys()),
+                    delimiter='-')
+                exit_task_component_spec.executor_label = executor_label
                 deployment_config.executors[executor_label].container.CopyFrom(
                     exit_task_container_spec)
-                pipeline_spec.deployment_spec.update(
-                    json_format.MessageToDict(deployment_config))
+            elif exit_task.pipeline_spec is not None:
+                exit_task_pipeline_spec = merge_deployment_spec_and_component_spec(
+                    main_pipeline_spec=pipeline_spec,
+                    main_deployment_config=deployment_config,
+                    sub_pipeline_spec=exit_task.pipeline_spec,
+                )
+                exit_task_component_spec = exit_task_pipeline_spec.root
+            else:
+                raise RuntimeError
+
+            # Add exit task component spec.
+            component_name = utils.make_name_unique_by_adding_index(
+                name=exit_task_task_spec.component_ref.name,
+                collection=list(pipeline_spec.components.keys()),
+                delimiter='-')
+            exit_task_task_spec.component_ref.name = component_name
+            pipeline_spec.components[component_name].CopyFrom(
+                exit_task_component_spec)
+
+            # Add exit task task spec.
+            if parent_group.is_root:
+                parent_dag = pipeline_spec.root.dag
+            else:
+                parent_dag = pipeline_spec.components[
+                    utils.sanitize_component_name(parent_group.name)].dag
+            parent_dag.tasks[exit_task_name].CopyFrom(exit_task_task_spec)
+
+            pipeline_spec.deployment_spec.update(
+                json_format.MessageToDict(deployment_config))
+
         build_exit_handler_groups_recursively(
             parent_group=group,
             pipeline_spec=pipeline_spec,
@@ -1356,8 +1372,7 @@ def merge_deployment_spec_and_component_spec(
     main_pipeline_spec: pipeline_spec_pb2.PipelineSpec,
     main_deployment_config: pipeline_spec_pb2.PipelineDeploymentConfig,
     sub_pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-    sub_pipeline_component_name: str,
-) -> None:
+) -> pipeline_spec_pb2.PipelineSpec:
     """Merges deployment spec and component spec from a sub pipeline spec into
     the main spec.
 
@@ -1371,8 +1386,9 @@ def merge_deployment_spec_and_component_spec(
         sub_pipeline_spec: The pipeline spec of an inner pipeline whose
             deployment specs and component specs need to be copied into the main
             specs.
-        sub_pipeline_component_name: The name of sub pipeline's root component
-            spec.
+
+    Returns:
+        The possibly modified copy of pipeline spec.
     """
     # Make a copy of the sub_pipeline_spec so that the "template" remains
     # unchanged and works even the pipeline is reused multiple times.
@@ -1385,8 +1401,8 @@ def merge_deployment_spec_and_component_spec(
     _merge_component_spec(
         main_pipeline_spec=main_pipeline_spec,
         sub_pipeline_spec=sub_pipeline_spec_copy,
-        sub_pipeline_component_name=sub_pipeline_component_name,
     )
+    return sub_pipeline_spec_copy
 
 
 def _merge_deployment_spec(
@@ -1439,7 +1455,6 @@ def _merge_deployment_spec(
 def _merge_component_spec(
     main_pipeline_spec: pipeline_spec_pb2.PipelineSpec,
     sub_pipeline_spec: pipeline_spec_pb2.PipelineSpec,
-    sub_pipeline_component_name: str,
 ) -> None:
     """Merges component spec from a sub pipeline spec into the main config.
 
@@ -1451,8 +1466,6 @@ def _merge_component_spec(
         main_pipeline_spec: The main pipeline spec to merge into.
         sub_pipeline_spec: The pipeline spec of an inner pipeline whose
             component specs need to be merged into the global config.
-        sub_pipeline_component_name: The name of sub pipeline's root component
-            spec.
     """
 
     def _rename_component_refs(
@@ -1483,9 +1496,6 @@ def _merge_component_spec(
                 old_component_ref=old_component_name,
                 new_component_ref=component_name)
         main_pipeline_spec.components[component_name].CopyFrom(component_spec)
-
-    main_pipeline_spec.components[sub_pipeline_component_name].CopyFrom(
-        sub_pipeline_spec.root)
 
 
 def create_pipeline_spec(
