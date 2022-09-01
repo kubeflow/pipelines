@@ -30,6 +30,7 @@ from kfp.components import v1_components
 from kfp.components import v1_structures
 from kfp.components.container_component_artifact_channel import \
     ContainerComponentArtifactChannel
+from kfp.components.types import artifact_types
 from kfp.components.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
@@ -44,7 +45,9 @@ class InputSpec_(base_model.BaseModel):
         description: Optional: the user description of the input.
     """
     type: Union[str, dict]
-    default: Union[Any, None] = None
+    default: Optional[Any] = None
+    # only used for artifact inputs
+    schema_version: Optional[str] = None
 
 
 # Hack to allow access to __init__ arguments for setting _optional value
@@ -82,16 +85,22 @@ class InputSpec(InputSpec_, base_model.BaseModel):
         """
         if 'parameterType' in ir_component_inputs_dict:
             type_string = ir_component_inputs_dict['parameterType']
+            type_ = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE.get(type_string)
+            if type_ is None:
+                raise ValueError(f'Unknown type {type_string} found in IR.')
             default_value = ir_component_inputs_dict.get('defaultValue')
+            schema_version = None
         else:
-            type_string = ir_component_inputs_dict['artifactType'][
-                'schemaTitle']
+            type_ = ir_component_inputs_dict['artifactType']['schemaTitle']
             default_value = None
-        type_ = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE.get(type_string)
-        if type_ is None:
-            raise ValueError(f'Unknown type {type_string} found in IR.')
+            schema_version = ir_component_inputs_dict['artifactType'][
+                'schemaVersion']
 
-        return InputSpec(type=type_, default=default_value)
+        return InputSpec(
+            type=type_,
+            default=default_value,
+            schema_version=schema_version,
+        )
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for InputSpec. Robust to different type
@@ -108,8 +117,10 @@ class InputSpec(InputSpec_, base_model.BaseModel):
         """
         if isinstance(other, InputSpec):
             return type_utils.get_canonical_name_for_outer_generic(
-                self.type) == type_utils.get_canonical_name_for_outer_generic(
-                    other.type) and self.default == other.default
+                self.type
+            ) == type_utils.get_canonical_name_for_outer_generic(
+                other.type
+            ) and self.default == other.default and self.schema_version == other.schema_version
         else:
             return False
 
@@ -121,6 +132,8 @@ class OutputSpec(base_model.BaseModel):
         type: The type of the output.
     """
     type: Union[str, dict]
+    # only used for artifact outputs
+    schema_version: Optional[str] = None
 
     @classmethod
     def from_ir_component_outputs_dict(
@@ -138,13 +151,18 @@ class OutputSpec(base_model.BaseModel):
         """
         if 'parameterType' in ir_component_outputs_dict:
             type_string = ir_component_outputs_dict['parameterType']
+            type_ = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE.get(type_string)
+            if type_ is None:
+                raise ValueError(f'Unknown type {type_string} found in IR.')
+            schema_version = None
         else:
-            type_string = ir_component_outputs_dict['artifactType'][
-                'schemaTitle']
-        type_ = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE.get(type_string)
-        if type_ is None:
-            raise ValueError(f'Unknown type {type_string} found in IR.')
-        return OutputSpec(type=type_)
+            type_ = ir_component_outputs_dict['artifactType']['schemaTitle']
+            schema_version = ir_component_outputs_dict['artifactType'][
+                'schemaVersion']
+        return OutputSpec(
+            type=type_,
+            schema_version=schema_version,
+        )
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for OutputSpec. Robust to different type
@@ -162,7 +180,7 @@ class OutputSpec(base_model.BaseModel):
         if isinstance(other, OutputSpec):
             return type_utils.get_canonical_name_for_outer_generic(
                 self.type) == type_utils.get_canonical_name_for_outer_generic(
-                    other.type)
+                    other.type) and self.schema_version == other.schema_version
         else:
             return False
 
@@ -376,13 +394,15 @@ class ImporterSpec(base_model.BaseModel):
 
     Attributes:
         artifact_uri: The URI of the artifact.
-        type_schema: The type of the artifact.
+        schema_title: The schema_title of the artifact.
+        schema_version: The schema_version of the artifact.
         reimport: Whether or not import an artifact regardless it has been
          imported before.
         metadata (optional): the properties of the artifact.
     """
     artifact_uri: str
-    type_schema: str
+    schema_title: str
+    schema_version: str
     reimport: bool
     metadata: Optional[Mapping[str, Any]] = None
 
@@ -585,21 +605,81 @@ class ComponentSpec(base_model.BaseModel):
             'env': container['env']
         })
 
+        inputs = {}
+        for spec in component_dict.get('inputs', []):
+            type_ = spec.get('type')
+
+            if isinstance(type_, str) and type_.lower(
+            ) in type_utils._PARAMETER_TYPES_MAPPING:
+                schema_version = None
+
+            elif isinstance(type_, str) and re.match(
+                    type_utils._GOOGLE_TYPES_PATTERN, type_):
+                schema_version = type_utils._GOOGLE_TYPES_VERSION
+
+            elif isinstance(type_, str) and type_.lower(
+            ) in type_utils._ARTIFACT_CLASSES_MAPPING:
+                artifact_class = type_utils._ARTIFACT_CLASSES_MAPPING[
+                    type_.lower()]
+                type_ = artifact_class.schema_title
+                schema_version = artifact_class.schema_version
+
+            elif type_ == 'PipelineTaskFinalStatus':
+                schema_version = type_utils.DEFAULT_ARTIFACT_SCHEMA_VERSION
+
+            elif type_ is None or isinstance(type_, dict) or type_.lower(
+            ) not in type_utils._ARTIFACT_CLASSES_MAPPING:
+                type_ = artifact_types.Artifact.schema_title
+                schema_version = artifact_types.Artifact.schema_version
+
+            else:
+                schema_version = type_utils.DEFAULT_ARTIFACT_SCHEMA_VERSION
+
+            default = spec.get('default', None)
+            inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
+                type=type_,
+                default=default,
+                schema_version=schema_version,
+            )
+
+        outputs = {}
+        for spec in component_dict.get('outputs', []):
+            type_ = spec.get('type')
+
+            if isinstance(type_, str) and type_.lower(
+            ) in type_utils._PARAMETER_TYPES_MAPPING:
+                schema_version = None
+
+            elif isinstance(type_, str) and re.match(
+                    type_utils._GOOGLE_TYPES_PATTERN, type_):
+                schema_version = type_utils._GOOGLE_TYPES_VERSION
+
+            elif isinstance(type_, str) and type_.lower(
+            ) in type_utils._ARTIFACT_CLASSES_MAPPING:
+                artifact_class = type_utils._ARTIFACT_CLASSES_MAPPING[
+                    type_.lower()]
+                type_ = artifact_class.schema_title
+                schema_version = artifact_class.schema_version
+
+            elif type_ is None or isinstance(type_, dict) or type_.lower(
+            ) not in type_utils._ARTIFACT_CLASSES_MAPPING:
+                type_ = artifact_types.Artifact.schema_title
+                schema_version = artifact_types.Artifact.schema_version
+
+            else:
+                schema_version = type_utils.DEFAULT_ARTIFACT_SCHEMA_VERSION
+            outputs[utils.sanitize_input_name(spec['name'])] = OutputSpec(
+                type=type_,
+                schema_version=schema_version,
+            )
+
         return ComponentSpec(
             name=component_dict.get('name', 'name'),
             description=component_dict.get('description'),
             implementation=Implementation(container=container_spec),
-            inputs={
-                utils.sanitize_input_name(spec['name']): InputSpec(
-                    type=spec.get('type', 'Artifact'),
-                    default=spec.get('default', None))
-                for spec in component_dict.get('inputs', [])
-            },
-            outputs={
-                utils.sanitize_input_name(spec['name']):
-                OutputSpec(type=spec.get('type', 'Artifact'))
-                for spec in component_dict.get('outputs', [])
-            })
+            inputs=inputs,
+            outputs=outputs,
+        )
 
     @classmethod
     def from_pipeline_spec_dict(
@@ -725,15 +805,15 @@ class ComponentSpec(base_model.BaseModel):
         from kfp.components import pipeline_channel
         from kfp.components import pipeline_task
         from kfp.components import tasks_group
-        from kfp.components.types import type_utils
 
         args_dict = {}
         pipeline_inputs = self.inputs or {}
 
         for arg_name, input_spec in pipeline_inputs.items():
-            arg_type = input_spec.type
             args_dict[arg_name] = pipeline_channel.create_pipeline_channel(
-                name=arg_name, channel_type=arg_type)
+                name=arg_name,
+                channel_type=input_spec.type,
+                schema_version=input_spec.schema_version)
 
         task = pipeline_task.PipelineTask(self, args_dict)
 
@@ -749,7 +829,8 @@ class ComponentSpec(base_model.BaseModel):
                 name=input_name,
                 channel_type=input_spec.type,
                 value=input_spec.default,
-            ) for input_name, input_spec in pipeline_inputs.items()
+                schema_version=input_spec.schema_version)
+            for input_name, input_spec in pipeline_inputs.items()
         ]
         group.name = uuid.uuid4().hex
 

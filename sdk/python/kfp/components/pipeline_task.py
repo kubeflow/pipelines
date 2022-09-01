@@ -144,7 +144,8 @@ class PipelineTask:
                 name=output_name,
                 channel_type=output_spec.type,
                 task_name=self._task_spec.name,
-            ) for output_name, output_spec in (
+                schema_version=output_spec.schema_version)
+            for output_name, output_spec in (
                 component_spec.outputs or {}).items()
         }
 

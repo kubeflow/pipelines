@@ -12,18 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Utilities for component I/O type mapping."""
-import inspect
+
 import re
-from typing import Any, List, Optional, Type, Union
+from typing import Any, Optional, Type, Union
 import warnings
 
 import kfp
 from kfp.components import task_final_status
-from kfp.components import v1_structures
 from kfp.components.types import artifact_types
 from kfp.components.types import type_annotations
 from kfp.pipeline_spec import pipeline_spec_pb2
 
+DEFAULT_ARTIFACT_SCHEMA_VERSION = '0.0.1'
 PARAMETER_TYPES = Union[str, int, float, bool, dict, list]
 
 # ComponentSpec I/O types to DSL ontology artifact classes mapping.
@@ -105,28 +105,28 @@ def is_parameter_type(type_name: Optional[Union[str, dict]]) -> bool:
 
 
 def get_artifact_type_schema(
-    artifact_class_or_type_name: Optional[Union[str,
-                                                Type[artifact_types.Artifact]]]
-) -> pipeline_spec_pb2.ArtifactTypeSchema:
+        schema_title: Union[str, dict],
+        schema_version: Union[str,
+                              None]) -> pipeline_spec_pb2.ArtifactTypeSchema:
     """Gets the IR I/O artifact type msg for the given ComponentSpec I/O
     type."""
-    artifact_class = artifact_types.Artifact
-    if isinstance(artifact_class_or_type_name, str):
-        if re.match(_GOOGLE_TYPES_PATTERN, artifact_class_or_type_name):
-            return pipeline_spec_pb2.ArtifactTypeSchema(
-                schema_title=artifact_class_or_type_name,
-                schema_version=_GOOGLE_TYPES_VERSION,
-            )
-        artifact_class = _ARTIFACT_CLASSES_MAPPING.get(
-            artifact_class_or_type_name.lower(), artifact_types.Artifact)
-    elif inspect.isclass(
-            artifact_class_or_type_name) and type_annotations.is_artifact(
-                artifact_class_or_type_name):
-        artifact_class = artifact_class_or_type_name
+    # handles compatibility with v1 component YAML that use Google types (where schema_version is not included in YAML)
+    if re.match(_GOOGLE_TYPES_PATTERN, schema_title):
+        return pipeline_spec_pb2.ArtifactTypeSchema(
+            schema_title=schema_title,
+            schema_version=_GOOGLE_TYPES_VERSION,
+        )
+    if schema_title.lower() in _ARTIFACT_CLASSES_MAPPING:
+        # handles the way we currently truncate system.Artifact(s) to the suffix (Artifact, Dataset)
+        schema_title = _ARTIFACT_CLASSES_MAPPING.get(
+            schema_title.lower()).schema_title
+        # handles v1 artifacts that do not have a schema_version
+        schema_version = schema_version or DEFAULT_ARTIFACT_SCHEMA_VERSION
 
     return pipeline_spec_pb2.ArtifactTypeSchema(
-        schema_title=artifact_class.schema_title,
-        schema_version=artifact_class.schema_version)
+        schema_title=schema_title,
+        schema_version=schema_version or DEFAULT_ARTIFACT_SCHEMA_VERSION,
+    )
 
 
 def get_parameter_type(
@@ -177,30 +177,6 @@ def get_parameter_type_field_name(type_name: Optional[str]) -> str:
     """
     return _PARAMETER_TYPES_VALUE_REFERENCE_MAPPING.get(
         get_parameter_type(type_name))
-
-
-def get_input_artifact_type_schema(
-    input_name: str,
-    inputs: List[v1_structures.InputSpec],
-) -> Optional[str]:
-    """Find the input artifact type by input name.
-
-    Args:
-      input_name: The name of the component input.
-      inputs: The list of InputSpec
-
-    Returns:
-      The artifact type schema of the input.
-
-    Raises:
-      AssertionError if input not found, or input found but not an artifact type.
-    """
-    for component_input in inputs:
-        if component_input.name == input_name:
-            assert not is_parameter_type(
-                component_input.type), 'Input is not an artifact type.'
-            return get_artifact_type_schema(component_input.type)
-    assert False, 'Input not found.'
 
 
 class InconsistentTypeException(Exception):
@@ -376,34 +352,12 @@ class TypeCheckManager:
 
 # for reading in IR back to in-memory data structures
 IR_TYPE_TO_IN_MEMORY_SPEC_TYPE = {
-    'STRING':
-        'String',
-    'NUMBER_INTEGER':
-        'Integer',
-    'NUMBER_DOUBLE':
-        'Float',
-    'LIST':
-        'List',
-    'STRUCT':
-        'Dict',
-    'BOOLEAN':
-        'Boolean',
-    artifact_types.Artifact.schema_title:
-        'Artifact',
-    artifact_types.Model.schema_title:
-        'Model',
-    artifact_types.Dataset.schema_title:
-        'Dataset',
-    artifact_types.Metrics.schema_title:
-        'Metrics',
-    artifact_types.ClassificationMetrics.schema_title:
-        'ClassificationMetrics',
-    artifact_types.SlicedClassificationMetrics.schema_title:
-        'SlicedClassificationMetrics',
-    artifact_types.HTML.schema_title:
-        'HTML',
-    artifact_types.Markdown.schema_title:
-        'Markdown',
+    'STRING': 'String',
+    'NUMBER_INTEGER': 'Integer',
+    'NUMBER_DOUBLE': 'Float',
+    'LIST': 'List',
+    'STRUCT': 'Dict',
+    'BOOLEAN': 'Boolean',
 }
 
 
