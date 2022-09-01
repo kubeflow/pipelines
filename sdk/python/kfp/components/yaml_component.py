@@ -28,7 +28,7 @@ class YamlComponent(components.BaseComponent):
 
     **Note:** ``YamlComponent`` is not intended to be used to construct components directly. Use ``kfp.components.load_component_from_*()`` instead.
 
-    Artribute:
+    Attribute:
         component_spec: Component definition.
         component_yaml: The yaml string that this component is loaded from.
     """

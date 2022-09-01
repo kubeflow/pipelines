@@ -403,11 +403,11 @@ class Implementation(base_model.BaseModel):
     @classmethod
     def from_pipeline_spec_dict(cls, pipeline_spec_dict: Dict[str, Any],
                                 component_name: str) -> 'Implementation':
-        """Creates an Implmentation object from a deployment spec message in
-        dict format (pipeline_spec.deploymentSpec).
+        """Creates an Implementation object from a PipelineSpec message in dict
+        format.
 
         Args:
-            deployment_spec_dict (Dict[str, Any]): PipelineDeploymentConfig message in dict format.
+            pipeline_spec_dict (Dict[str, Any]): PipelineSpec message in dict format.
             component_name (str): The name of the component.
 
         Returns:
