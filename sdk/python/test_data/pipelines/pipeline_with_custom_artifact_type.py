@@ -23,8 +23,8 @@ def create_temporary_non_kfp_artifact_package(
     import os
     import textwrap
 
-    class ThirdPartyModel:
-        schema_title = 'third_party.ThirdPartyModel'
+    class VertexModel:
+        schema_title = 'google.VertexModel'
         schema_version = '0.0.0'
 
         def __init__(self, name: str, uri: str, metadata: dict) -> None:
@@ -36,8 +36,8 @@ def create_temporary_non_kfp_artifact_package(
         def path(self) -> str:
             return self.uri.replace('gs://', '/')
 
-    class ThirdPartyDataset:
-        schema_title = 'third_party.ThirdPartyDataset'
+    class VertexDataset:
+        schema_title = 'google.VertexDataset'
         schema_version = '0.0.0'
 
         def __init__(self, name: str, uri: str, metadata: dict) -> None:
@@ -50,24 +50,23 @@ def create_temporary_non_kfp_artifact_package(
             return self.uri.replace('gs://', '/')
 
     class_source = textwrap.dedent(
-        inspect.getsource(ThirdPartyModel)) + '\n\n' + textwrap.dedent(
-            inspect.getsource(ThirdPartyDataset))
+        inspect.getsource(VertexModel)) + '\n\n' + textwrap.dedent(
+            inspect.getsource(VertexDataset))
 
-    with open(os.path.join(temp_dir.name, 'dummy_third_party_package.py'),
-              'w') as f:
+    with open(os.path.join(temp_dir.name, 'aiplatform.py'), 'w') as f:
         f.write(class_source)
 
 
 # remove try finally when a third-party package adds pre-registered custom artifact types that we can use for testing
-# this is a compilation test only and is not executable, since dummy_third_party_package does not exist and cannot be installed or imported at runtime
+# NOTE: this is a compilation test only and is not executable, since dummy_third_party_package does not exist and cannot be installed or imported at runtime
 try:
     temp_dir = tempfile.TemporaryDirectory()
     sys.path.append(temp_dir.name)
     create_temporary_non_kfp_artifact_package(temp_dir)
 
-    import dummy_third_party_package
-    from dummy_third_party_package import ThirdPartyDataset
-    from dummy_third_party_package import ThirdPartyModel
+    import aiplatform
+    from aiplatform import VertexDataset
+    from aiplatform import VertexModel
     from kfp import compiler
     from kfp import dsl
     from kfp.dsl import Input
@@ -76,17 +75,15 @@ try:
     PACKAGES_TO_INSTALL = ['dummy-third-party-package']
 
     @dsl.component(packages_to_install=PACKAGES_TO_INSTALL)
-    def model_producer(
-            model: Output[dummy_third_party_package.ThirdPartyModel]):
+    def model_producer(model: Output[aiplatform.VertexModel]):
 
-        assert isinstance(
-            model, dummy_third_party_package.ThirdPartyModel), type(model)
+        assert isinstance(model, aiplatform.VertexModel), type(model)
         with open(model.path, 'w') as f:
             f.write('my model')
 
     @dsl.component(packages_to_install=PACKAGES_TO_INSTALL)
-    def model_consumer(model: Input[ThirdPartyModel],
-                       dataset: Input[ThirdPartyDataset]):
+    def model_consumer(model: Input[VertexModel],
+                       dataset: Input[VertexDataset]):
         print('Model')
         print('artifact.type: ', type(model))
         print('artifact.name: ', model.name)
@@ -104,7 +101,7 @@ try:
         producer_task = model_producer()
         importer = dsl.importer(
             artifact_uri='gs://ml-pipeline-playground/shakespeare1.txt',
-            artifact_class=ThirdPartyDataset,
+            artifact_class=VertexDataset,
             reimport=False,
             metadata={'key': 'value'})
         model_consumer(
