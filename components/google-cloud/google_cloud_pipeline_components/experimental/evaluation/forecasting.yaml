@@ -105,7 +105,7 @@ inputs:
   - { name: ground_truth_column, type: String }
   - { name: prediction_score_column, type: String, default: "" }
   - { name: forecasting_type, type: String, default: "point" }
-  - { name: forecasting_quantiles, type: JsonArray, default: "{}" }
+  - { name: forecasting_quantiles, type: JsonArray, default: "[0.5]" }
   - { name: example_weight_column, type: String, default: "" }
   - { name: dataflow_service_account, type: String, default: "" }
   - { name: dataflow_disk_size, type: Integer, default: 50 }
