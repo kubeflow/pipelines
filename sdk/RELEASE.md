@@ -4,7 +4,7 @@
 * Support parallelism setting in ParallelFor [\#8146](https://github.com/kubeflow/pipelines/pull/8146)
 * Support for Python v3.10 [\#8186](https://github.com/kubeflow/pipelines/pull/8186)
 * Support pipeline as a component [\#8179](https://github.com/kubeflow/pipelines/pull/8179), [\#8204](https://github.com/kubeflow/pipelines/pull/8204), [\#8209](https://github.com/kubeflow/pipelines/pull/8209)
-* Extend upper bound for Kubernetes to <24 in KFP SDK [\#8173](https://github.com/kubeflow/pipelines/pull/8173)
+* Support using pipeline in exit handlers [\#8220](https://github.com/kubeflow/pipelines/pull/8220)
 
 ## Breaking Changes
 
@@ -17,6 +17,8 @@ Technically no breaking changes but compilation error could be exposed in a diff
 ## Deprecations
 
 ## Bug Fixes and Other Changes
+
+* Extend upper bound for Kubernetes to <24 in KFP SDK [\#8173](https://github.com/kubeflow/pipelines/pull/8173)
 
 ## Documentation Updates
 
