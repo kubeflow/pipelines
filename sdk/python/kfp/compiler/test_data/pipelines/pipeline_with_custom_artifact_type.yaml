@@ -1,8 +1,24 @@
 components:
+  comp-importer:
+    executorLabel: exec-importer
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: third_party.ThirdPartyDataset
+            schemaVersion: 0.0.1
   comp-model-consumer:
     executorLabel: exec-model-consumer
     inputDefinitions:
       artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: third_party.ThirdPartyDataset
+            schemaVersion: 0.0.0
         model:
           artifactType:
             schemaTitle: third_party.ThirdPartyModel
@@ -17,6 +33,15 @@ components:
             schemaVersion: 0.0.0
 deploymentSpec:
   executors:
+    exec-importer:
+      importer:
+        artifactUri:
+          constant: gs://ml-pipeline-playground/shakespeare1.txt
+        metadata:
+          key: value
+        typeSchema:
+          schemaTitle: third_party.ThirdPartyDataset
+          schemaVersion: 0.0.0
     exec-model-consumer:
       container:
         args:
@@ -41,10 +66,14 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\nfrom dummy_third_party_package import ThirdPartyModel\n\ndef model_consumer(model:\
-          \ Input[ThirdPartyModel]):\n    print('artifact.type: ', type(model))\n\
-          \    print('artifact.name: ', model.name)\n    print('artifact.uri: ', model.uri)\n\
-          \    print('artifact.metadata: ', model.metadata)\n\n"
+          \ *\nfrom dummy_third_party_package import ThirdPartyModel\nfrom dummy_third_party_package\
+          \ import ThirdPartyDataset\n\ndef model_consumer(model: Input[ThirdPartyModel],\n\
+          \                   dataset: Input[ThirdPartyDataset]):\n    print('Model')\n\
+          \    print('artifact.type: ', type(model))\n    print('artifact.name: ',\
+          \ model.name)\n    print('artifact.uri: ', model.uri)\n    print('artifact.metadata:\
+          \ ', model.metadata)\n\n    print('Dataset')\n    print('artifact.type:\
+          \ ', type(dataset))\n    print('artifact.name: ', dataset.name)\n    print('artifact.uri:\
+          \ ', dataset.uri)\n    print('artifact.metadata: ', dataset.metadata)\n\n"
         image: python:3.7
     exec-model-producer:
       container:
@@ -80,15 +109,32 @@ pipelineInfo:
 root:
   dag:
     tasks:
+      importer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer
+        inputs:
+          parameters:
+            uri:
+              runtimeValue:
+                constant: gs://ml-pipeline-playground/shakespeare1.txt
+        taskInfo:
+          name: importer
       model-consumer:
         cachingOptions:
           enableCache: true
         componentRef:
           name: comp-model-consumer
         dependentTasks:
+        - importer
         - model-producer
         inputs:
           artifacts:
+            dataset:
+              taskOutputArtifact:
+                outputArtifactKey: artifact
+                producerTask: importer
             model:
               taskOutputArtifact:
                 outputArtifactKey: model
