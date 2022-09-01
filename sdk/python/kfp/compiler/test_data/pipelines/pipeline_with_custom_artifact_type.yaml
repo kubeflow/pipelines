@@ -5,16 +5,16 @@ components:
       artifacts:
         model:
           artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
+            schemaTitle: third_party.ThirdPartyModel
+            schemaVersion: 0.0.0
   comp-model-producer:
     executorLabel: exec-model-producer
     outputDefinitions:
       artifacts:
         model:
           artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
+            schemaTitle: third_party.ThirdPartyModel
+            schemaVersion: 0.0.0
 deploymentSpec:
   executors:
     exec-model-consumer:
@@ -30,7 +30,7 @@ deploymentSpec:
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
           \ python3 -m pip install --quiet     --no-warn-script-location 'dummy-third-party-package'\
-          \ 'kfp==2.0.0-beta.3' 'kfp==2.0.0-beta.3' && \"$0\" \"$@\"\n"
+          \ 'kfp==2.0.0-beta.4' 'kfp==2.0.0-beta.4' && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -59,7 +59,7 @@ deploymentSpec:
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
           \ python3 -m pip install --quiet     --no-warn-script-location 'dummy-third-party-package'\
-          \ 'kfp==2.0.0-beta.3' && \"$0\" \"$@\"\n"
+          \ 'kfp==2.0.0-beta.4' && \"$0\" \"$@\"\n"
         - sh
         - -ec
         - 'program_path=$(mktemp -d)
@@ -103,4 +103,4 @@ root:
         taskInfo:
           name: model-producer
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.3
+sdkVersion: kfp-2.0.0-beta.4
