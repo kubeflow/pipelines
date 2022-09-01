@@ -1,0 +1,151 @@
+components:
+  comp-importer:
+    executorLabel: exec-importer
+    inputDefinitions:
+      parameters:
+        uri:
+          parameterType: STRING
+    outputDefinitions:
+      artifacts:
+        artifact:
+          artifactType:
+            schemaTitle: third_party.ThirdPartyDataset
+            schemaVersion: 0.0.1
+  comp-model-consumer:
+    executorLabel: exec-model-consumer
+    inputDefinitions:
+      artifacts:
+        dataset:
+          artifactType:
+            schemaTitle: third_party.ThirdPartyDataset
+            schemaVersion: 0.0.0
+        model:
+          artifactType:
+            schemaTitle: third_party.ThirdPartyModel
+            schemaVersion: 0.0.0
+  comp-model-producer:
+    executorLabel: exec-model-producer
+    outputDefinitions:
+      artifacts:
+        model:
+          artifactType:
+            schemaTitle: third_party.ThirdPartyModel
+            schemaVersion: 0.0.0
+deploymentSpec:
+  executors:
+    exec-importer:
+      importer:
+        artifactUri:
+          constant: gs://ml-pipeline-playground/shakespeare1.txt
+        metadata:
+          key: value
+        typeSchema:
+          schemaTitle: third_party.ThirdPartyDataset
+          schemaVersion: 0.0.0
+    exec-model-consumer:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - model_consumer
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'dummy-third-party-package'\
+          \ 'kfp==2.0.0-beta.4' 'kfp==2.0.0-beta.4' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef model_consumer(model: Input[ThirdPartyModel],\n             \
+          \      dataset: Input[ThirdPartyDataset]):\n    print('Model')\n    print('artifact.type:\
+          \ ', type(model))\n    print('artifact.name: ', model.name)\n    print('artifact.uri:\
+          \ ', model.uri)\n    print('artifact.metadata: ', model.metadata)\n\n  \
+          \  print('Dataset')\n    print('artifact.type: ', type(dataset))\n    print('artifact.name:\
+          \ ', dataset.name)\n    print('artifact.uri: ', dataset.uri)\n    print('artifact.metadata:\
+          \ ', dataset.metadata)\n\n"
+        image: python:3.7
+    exec-model-producer:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - model_producer
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'dummy-third-party-package'\
+          \ 'kfp==2.0.0-beta.4' && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef model_producer(\n        model: Output[dummy_third_party_package.ThirdPartyModel]):\n\
+          \n    assert isinstance(\n        model, dummy_third_party_package.ThirdPartyModel),\
+          \ type(model)\n    with open(model.path, 'w') as f:\n        f.write('my\
+          \ model')\n\n"
+        image: python:3.7
+pipelineInfo:
+  name: pipeline-with-vertex-types
+root:
+  dag:
+    tasks:
+      importer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-importer
+        inputs:
+          parameters:
+            uri:
+              runtimeValue:
+                constant: gs://ml-pipeline-playground/shakespeare1.txt
+        taskInfo:
+          name: importer
+      model-consumer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-model-consumer
+        dependentTasks:
+        - importer
+        - model-producer
+        inputs:
+          artifacts:
+            dataset:
+              taskOutputArtifact:
+                outputArtifactKey: artifact
+                producerTask: importer
+            model:
+              taskOutputArtifact:
+                outputArtifactKey: model
+                producerTask: model-producer
+        taskInfo:
+          name: model-consumer
+      model-producer:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-model-producer
+        taskInfo:
+          name: model-producer
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.4
