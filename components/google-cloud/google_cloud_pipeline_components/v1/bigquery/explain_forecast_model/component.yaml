@@ -94,6 +94,7 @@ implementation:
           '{',
             '"configuration": {',
               '"query": ', {inputValue: job_configuration_query},
+              ', "labels": ', {inputValue: labels},
             '}',
           '}'
       ],
