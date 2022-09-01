@@ -326,6 +326,71 @@ class TypeUtilsTest(parameterized.TestCase):
                          type_utils.is_task_final_status_type(given_type))
 
 
+class TestGetArtifactTypeSchema(parameterized.TestCase):
+
+    @parameterized.parameters([
+        # v2 standard system types
+        {
+            'schema_title': 'system.Artifact',
+            'schema_version': '0.0.1',
+            'exp_schema_title': 'system.Artifact',
+            'exp_schema_version': '0.0.1',
+        },
+        {
+            'schema_title': 'system.Dataset',
+            'schema_version': '0.0.1',
+            'exp_schema_title': 'system.Dataset',
+            'exp_schema_version': '0.0.1',
+        },
+        # v1 back compat
+        {
+            'schema_title': 'Dataset',
+            'schema_version': '0.0.1',
+            'exp_schema_title': 'system.Dataset',
+            'exp_schema_version': '0.0.1',
+        },
+        {
+            'schema_title': 'Model',
+            'schema_version': '0.0.1',
+            'exp_schema_title': 'system.Model',
+            'exp_schema_version': '0.0.1',
+        },
+        # google type with schema_version
+        {
+            'schema_title': 'google.VertexDataset',
+            'schema_version': '0.0.2',
+            'exp_schema_title': 'google.VertexDataset',
+            'exp_schema_version': '0.0.2',
+        },
+        # google type without schema_version
+        {
+            'schema_title': 'google.VertexDataset',
+            'schema_version': None,
+            'exp_schema_title': 'google.VertexDataset',
+            'exp_schema_version': '0.0.1',
+        },
+    ])
+    def test_valid(
+        self,
+        schema_title: str,
+        schema_version: str,
+        exp_schema_title: str,
+        exp_schema_version: str,
+    ):
+        artifact_type_schema = type_utils.get_artifact_type_schema(
+            schema_title, schema_version)
+        self.assertEqual(artifact_type_schema.schema_title, exp_schema_title)
+        self.assertEqual(artifact_type_schema.schema_version,
+                         exp_schema_version)
+
+    def test_exception(self):
+        with self.assertRaisesRegex(
+                TypeError,
+                r"Only 'system\.' and 'google\.' artifact schema_title are permitted\."
+        ):
+            type_utils.get_artifact_type_schema('some_invalid_type', '0.0.1')
+
+
 class TestTypeCheckManager(unittest.TestCase):
 
     def test_true_to_falsewq(self):

@@ -110,19 +110,24 @@ def get_artifact_type_schema(
                               None]) -> pipeline_spec_pb2.ArtifactTypeSchema:
     """Gets the IR I/O artifact type msg for the given ComponentSpec I/O
     type."""
+
     # handles compatibility with v1 component YAML that use Google types (where schema_version is not included in YAML)
     if re.match(_GOOGLE_TYPES_PATTERN, schema_title):
         return pipeline_spec_pb2.ArtifactTypeSchema(
             schema_title=schema_title,
             schema_version=schema_version or _GOOGLE_TYPES_VERSION,
         )
-    if schema_title.lower() in _ARTIFACT_CLASSES_MAPPING:
+    elif schema_title.lower() in _ARTIFACT_CLASSES_MAPPING:
         # handles the way we currently truncate system.Artifact(s) to the suffix (Artifact, Dataset)
         schema_title = _ARTIFACT_CLASSES_MAPPING.get(
             schema_title.lower()).schema_title
         # handles v1 artifacts that do not have a schema_version
         schema_version = schema_version or DEFAULT_ARTIFACT_SCHEMA_VERSION
-
+    elif not schema_title.startswith('system.') and not schema_title.startswith(
+            'google.'):
+        raise TypeError(
+            f"Only 'system.' and 'google.' artifact schema_title are permitted. Got: {schema_title}."
+        )
     return pipeline_spec_pb2.ArtifactTypeSchema(
         schema_title=schema_title,
         schema_version=schema_version or DEFAULT_ARTIFACT_SCHEMA_VERSION,
