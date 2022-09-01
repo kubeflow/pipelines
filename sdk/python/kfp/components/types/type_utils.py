@@ -235,6 +235,10 @@ def verify_type_compatibility(
                                   str(expected_type).lower() == 'artifact'):
         return True
 
+    # Special handling for PipelineTaskFinalStatus, treat it as Dict type.
+    if is_task_final_status_type(given_type):
+        given_type = 'Dict'
+
     # Normalize parameter type names.
     if is_parameter_type(given_type):
         given_type = get_parameter_type_name(given_type)
