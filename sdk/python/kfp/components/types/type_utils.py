@@ -114,7 +114,7 @@ def get_artifact_type_schema(
     if re.match(_GOOGLE_TYPES_PATTERN, schema_title):
         return pipeline_spec_pb2.ArtifactTypeSchema(
             schema_title=schema_title,
-            schema_version=_GOOGLE_TYPES_VERSION,
+            schema_version=schema_version or _GOOGLE_TYPES_VERSION,
         )
     if schema_title.lower() in _ARTIFACT_CLASSES_MAPPING:
         # handles the way we currently truncate system.Artifact(s) to the suffix (Artifact, Dataset)
