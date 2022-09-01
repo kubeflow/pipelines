@@ -72,7 +72,7 @@ try:
     from kfp.dsl import Input
     from kfp.dsl import Output
 
-    PACKAGES_TO_INSTALL = ['dummy-third-party-package']
+    PACKAGES_TO_INSTALL = ['aiplatform']
 
     @dsl.component(packages_to_install=PACKAGES_TO_INSTALL)
     def model_producer(model: Output[aiplatform.VertexModel]):
