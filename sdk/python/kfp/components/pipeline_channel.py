@@ -68,6 +68,7 @@ class PipelineChannel(abc.ABC):
         name: str,
         channel_type: Union[str, Dict],
         task_name: Optional[str] = None,
+        schema_version: Optional[str] = None,
     ):
         """Initializes a PipelineChannel instance.
 
@@ -95,6 +96,7 @@ class PipelineChannel(abc.ABC):
         # so that serialization and unserialization remain consistent
         # (i.e. None => '' => None)
         self.task_name = task_name or None
+        self.schema_version = schema_version
 
     @property
     def full_name(self) -> str:
@@ -206,6 +208,7 @@ class PipelineParameterChannel(PipelineChannel):
             name=name,
             channel_type=channel_type,
             task_name=task_name,
+            schema_version=None,
         )
 
 
@@ -226,6 +229,7 @@ class PipelineArtifactChannel(PipelineChannel):
         name: str,
         channel_type: Union[str, Dict],
         task_name: Optional[str],
+        schema_version: Optional[str] = None,
     ):
         """Initializes a PipelineArtifactChannel instance.
 
@@ -246,6 +250,7 @@ class PipelineArtifactChannel(PipelineChannel):
             name=name,
             channel_type=channel_type,
             task_name=task_name,
+            schema_version=schema_version,
         )
 
 
@@ -254,6 +259,7 @@ def create_pipeline_channel(
     channel_type: Union[str, Dict],
     task_name: Optional[str] = None,
     value: Optional[type_utils.PARAMETER_TYPES] = None,
+    schema_version: Optional[str] = None,
 ) -> PipelineChannel:
     """Creates a PipelineChannel object.
 
@@ -279,6 +285,7 @@ def create_pipeline_channel(
             name=name,
             channel_type=channel_type,
             task_name=task_name,
+            schema_version=schema_version,
         )
 
 

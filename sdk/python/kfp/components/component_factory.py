@@ -140,12 +140,7 @@ def _annotation_to_type_struct(annotation):
         type_struct = type_utils.get_canonical_type_name_for_type(annotation)
         if type_struct:
             return type_struct
-
-        if type_annotations.is_artifact(
-                annotation
-        ) and not annotation.schema_title.startswith('system.'):
-            # For artifact classes not under the `system` namespace,
-            # use its schema_title as-is.
+        elif type_annotations.is_artifact(annotation):
             schema_title = annotation.schema_title
         else:
             schema_title = str(annotation.__name__)
@@ -237,18 +232,29 @@ def extract_component_interface(
         ]:
             io_name = _maybe_make_unique(io_name, output_names)
             output_names.add(io_name)
-            output_spec = structures.OutputSpec(type=type_struct)
+            if type_annotations.is_artifact(parameter_type):
+                schema_version = parameter_type.schema_version
+            else:
+                schema_version = None
+            output_spec = structures.OutputSpec(
+                type=type_struct, schema_version=schema_version)
             outputs[io_name] = output_spec
         else:
             io_name = _maybe_make_unique(io_name, input_names)
             input_names.add(io_name)
+            if type_annotations.is_artifact(parameter_type):
+                schema_version = parameter_type.schema_version
+            else:
+                schema_version = None
             if parameter.default is not inspect.Parameter.empty:
                 input_spec = structures.InputSpec(
                     type=type_struct,
                     default=parameter.default,
+                    schema_version=schema_version,
                 )
             else:
-                input_spec = structures.InputSpec(type=type_struct)
+                input_spec = structures.InputSpec(
+                    type=type_struct, schema_version=schema_version)
 
             inputs[io_name] = input_spec
 
