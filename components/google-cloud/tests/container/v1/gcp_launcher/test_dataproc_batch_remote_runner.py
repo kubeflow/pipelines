@@ -238,8 +238,20 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
     mock_creds.token = self._creds_token
     mock_auth_default.return_value = [mock_creds, 'project']
 
+    mock_exception = requests.exceptions.HTTPError(
+        request=mock.Mock(url='test-url'),
+        response=mock.Mock(status_code=404)
+    )
+
     mock_polled_lro = mock.Mock(spec=requests.models.Response)
-    mock_polled_lro.raise_for_status.side_effect = requests.exceptions.HTTPError(mock.Mock(status=404), 'Not found')
+    mock_polled_lro.json.return_value = {
+        'error': {
+            'code': 404,
+            'message': 'Operation not found',
+            'status': 'NOT_FOUND',
+        }
+    }
+    mock_polled_lro.raise_for_status.side_effect = mock_exception
     mock_get_requests.return_value = mock_polled_lro
 
     with self.assertRaises(RuntimeError):
