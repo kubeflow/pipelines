@@ -331,43 +331,23 @@ class TestGetArtifactTypeSchema(parameterized.TestCase):
     @parameterized.parameters([
         # v2 standard system types
         {
-            'schema_title': 'system.Artifact',
+            'schema_title': 'system.Artifact@0.0.1',
             'schema_version': '0.0.1',
             'exp_schema_title': 'system.Artifact',
             'exp_schema_version': '0.0.1',
         },
         {
-            'schema_title': 'system.Dataset',
+            'schema_title': 'system.Dataset@0.0.1',
             'schema_version': '0.0.1',
             'exp_schema_title': 'system.Dataset',
-            'exp_schema_version': '0.0.1',
-        },
-        # v1 back compat
-        {
-            'schema_title': 'Dataset',
-            'schema_version': '0.0.1',
-            'exp_schema_title': 'system.Dataset',
-            'exp_schema_version': '0.0.1',
-        },
-        {
-            'schema_title': 'Model',
-            'schema_version': '0.0.1',
-            'exp_schema_title': 'system.Model',
             'exp_schema_version': '0.0.1',
         },
         # google type with schema_version
         {
-            'schema_title': 'google.VertexDataset',
+            'schema_title': 'google.VertexDataset@0.0.2',
             'schema_version': '0.0.2',
             'exp_schema_title': 'google.VertexDataset',
             'exp_schema_version': '0.0.2',
-        },
-        # google type without schema_version
-        {
-            'schema_title': 'google.VertexDataset',
-            'schema_version': None,
-            'exp_schema_title': 'google.VertexDataset',
-            'exp_schema_version': '0.0.1',
         },
     ])
     def test_valid(
@@ -377,7 +357,7 @@ class TestGetArtifactTypeSchema(parameterized.TestCase):
         exp_schema_title: str,
         exp_schema_version: str,
     ):
-        artifact_type_schema = type_utils.get_artifact_type_schema(
+        artifact_type_schema = type_utils.get_artifact_type_schema_proto(
             schema_title, schema_version)
         self.assertEqual(artifact_type_schema.schema_title, exp_schema_title)
         self.assertEqual(artifact_type_schema.schema_version,
@@ -388,7 +368,8 @@ class TestGetArtifactTypeSchema(parameterized.TestCase):
                 TypeError,
                 r"Only 'system\.' and 'google\.' artifact schema_title are permitted\."
         ):
-            type_utils.get_artifact_type_schema('some_invalid_type', '0.0.1')
+            type_utils.get_artifact_type_schema_proto('some_invalid_type',
+                                                      '0.0.1')
 
 
 class TestTypeCheckManager(unittest.TestCase):
@@ -404,6 +385,134 @@ class TestTypeCheckManager(unittest.TestCase):
         with type_utils.TypeCheckManager(enable=False):
             self.assertEqual(kfp.TYPE_CHECK, False)
         self.assertEqual(kfp.TYPE_CHECK, True)
+
+
+class TestCreateBundledArtifacttType(parameterized.TestCase):
+
+    @parameterized.parameters([
+        {
+            'schema_title': 'system.Artifact',
+            'schema_version': '0.0.2',
+            'expected': 'system.Artifact@0.0.2'
+        },
+        {
+            'schema_title': 'google.Artifact',
+            'schema_version': '0.0.3',
+            'expected': 'google.Artifact@0.0.3'
+        },
+        {
+            'schema_title': 'system.Artifact',
+            'schema_version': None,
+            'expected': 'system.Artifact@0.0.1'
+        },
+        {
+            'schema_title': 'google.Artifact',
+            'schema_version': None,
+            'expected': 'google.Artifact@0.0.1'
+        },
+    ])
+    def test(self, schema_title: str, schema_version: Union[str, None],
+             expected: str):
+        actual = type_utils.create_bundled_artifact_type(
+            schema_title, schema_version)
+        self.assertEqual(actual, expected)
+
+
+class TestValidateBundledArtifactType(parameterized.TestCase):
+
+    @parameterized.parameters([
+        {
+            'type_': 'system.Artifact@0.0.1'
+        },
+        {
+            'type_': 'system.Dataset@2.0.1'
+        },
+        {
+            'type_': 'google.Model@2.0.0'
+        },
+    ])
+    def test_valid(self, type_: str):
+        type_utils.validate_bundled_artifact_type(type_)
+
+    @parameterized.parameters([
+        {
+            'type_': 'system.Artifact'
+        },
+        {
+            'type_': '2.0.1'
+        },
+        {
+            'type_': 'google.Model2.0.0'
+        },
+        {
+            'type_': 'google.Model2.0.0'
+        },
+        {
+            'type_': 'google.Model@'
+        },
+        {
+            'type_': 'google.Model@'
+        },
+        {
+            'type_': '@2.0.0'
+        },
+    ])
+    def test_missing_part(self, type_: str):
+        with self.assertRaisesRegex(
+                TypeError,
+                r'Artifacts must have both a schema_title and a schema_version, separated by `@`'
+        ):
+            type_utils.validate_bundled_artifact_type(type_)
+
+    @parameterized.parameters([
+        {
+            'type_': 'system@0.0.1'
+        },
+        {
+            'type_': 'google@0.0.1'
+        },
+        {
+            'type_': 'other@0.0.1'
+        },
+        {
+            'type_': 'Artifact@0.0.1'
+        },
+    ])
+    def test_one_part_schema_title(self, type_: str):
+        with self.assertRaisesRegex(
+                TypeError,
+                r'Artifact schema_title must have both a namespace and a name'):
+            type_utils.validate_bundled_artifact_type(type_)
+
+    @parameterized.parameters([
+        {
+            'type_': 'other.Artifact@0.0.1'
+        },
+    ])
+    def test_must_be_system_or_google_namespace(self, type_: str):
+        with self.assertRaisesRegex(
+                TypeError,
+                r'Artifact schema_title must belong to `system` or `google` namespace'
+        ):
+            type_utils.validate_bundled_artifact_type(type_)
+
+    @parameterized.parameters([
+        {
+            'type_': 'system.Artifact@0'
+        },
+        {
+            'type_': 'system.Artifact@0.0'
+        },
+        {
+            'type_': 'google.Artifact@0.01'
+        },
+    ])
+    def test_must_be_valid_semantic_version(self, type_: str):
+        with self.assertRaisesRegex(
+                TypeError,
+                r'Artifact schema_version must use three-part semantic versioning'
+        ):
+            type_utils.validate_bundled_artifact_type(type_)
 
 
 if __name__ == '__main__':
