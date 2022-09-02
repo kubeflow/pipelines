@@ -175,8 +175,8 @@ class InconsistentTypeWarning(Warning):
 
 
 def verify_type_compatibility(
-    given_type: Union[str, dict, artifact_types.Artifact, type],
-    expected_type: Union[str, dict, artifact_types.Artifact, type],
+    given_type: str,
+    expected_type: str,
     error_message_prefix: str,
 ) -> bool:
     """Verifies the given argument type is compatible with the expected type.
@@ -210,22 +210,20 @@ def verify_type_compatibility(
 
         types_are_compatible = check_parameter_type_compatibility(
             given_type, expected_type)
-
-    # handle artifacts
-    elif isinstance(given_type, str):
-        return (given_type
-                == expected_type) or artifact_types.Artifact.schema_title in {
-                    given_type.split('@')[0],
-                    expected_type.split('@')[0]
-                }
-
     else:
-        types_are_compatible = (given_type.schema_title
-                                == expected_type.schema_title) or (
-                                    given_type.schema_title
-                                    == artifact_types.Artifact.schema_title
-                                ) or (expected_type.schema_title
-                                      == artifact_types.Artifact.schema_title)
+        # handle artifacts
+        given_schema_title, given_schema_version = given_type.split('@')
+        expected_schema_title, expected_schema_version = expected_type.split(
+            '@')
+        if artifact_types.Artifact.schema_title in {
+                given_schema_title, expected_schema_title
+        }:
+            types_are_compatible = True
+        else:
+            schema_title_compatible = given_schema_title == expected_schema_title
+            schema_version_compatible = given_schema_version.split(
+                '.')[0] == expected_schema_version.split('.')[0]
+            types_are_compatible = schema_title_compatible and schema_version_compatible
 
     # maybe raise, maybe warn, return bool
     if not types_are_compatible:

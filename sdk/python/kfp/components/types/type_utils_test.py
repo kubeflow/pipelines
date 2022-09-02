@@ -16,7 +16,6 @@ import unittest
 
 from absl.testing import parameterized
 import kfp
-from kfp import dsl
 from kfp.components.types import artifact_types
 from kfp.components.types import type_utils
 from kfp.components.types.type_utils import InconsistentTypeException
@@ -170,55 +169,53 @@ class TypeUtilsTest(parameterized.TestCase):
             type_utils.get_parameter_type_schema(None)
 
     @parameterized.parameters(
+        # param True
         {
             'given_type': 'String',
             'expected_type': 'String',
             'is_compatible': True,
         },
+        # param False
         {
             'given_type': 'String',
             'expected_type': 'Integer',
             'is_compatible': False,
         },
+        # param Artifact compat, irrespective of version
         {
-            'given_type': 'system.Artifact',
-            'expected_type': 'system.Model',
+            'given_type': 'system.Artifact@1.0.0',
+            'expected_type': 'system.Model@0.0.1',
             'is_compatible': True,
         },
+        # param Artifact compat, irrespective of version, other way
         {
-            'given_type': 'system.Metrics',
-            'expected_type': 'system.Artifact',
+            'given_type': 'system.Metrics@1.0.0',
+            'expected_type': 'system.Artifact@0.0.1',
             'is_compatible': True,
         },
+        # different schema_title incompat, irrespective of version
         {
-            'given_type': dsl.Metrics,
-            'expected_type': dsl.Artifact,
-            'is_compatible': True,
-        },
-        {
-            'given_type': dsl.Artifact,
-            'expected_type': dsl.Metrics,
-            'is_compatible': True,
-        },
-        {
-            'given_type': _VertexDummy,
-            'expected_type': dsl.Artifact,
-            'is_compatible': True,
-        },
-        {
-            'given_type': dsl.Artifact,
-            'expected_type': _VertexDummy,
-            'is_compatible': True,
-        },
-        {
-            'given_type': dsl.Metrics,
-            'expected_type': _VertexDummy,
+            'given_type': 'system.Metrics@1.0.0',
+            'expected_type': 'system.Dataset@1.0.0',
             'is_compatible': False,
         },
+        # different major version incompat
         {
-            'given_type': _VertexDummy,
-            'expected_type': dsl.Metrics,
+            'given_type': 'system.Metrics@1.0.0',
+            'expected_type': 'system.Metrics@2.1.1',
             'is_compatible': False,
+        },
+        # namespace must match
+        {
+            'given_type': 'google.Model@1.0.0',
+            'expected_type': 'system.Model@1.0.0',
+            'is_compatible': False,
+        },
+        # system.Artifact compatible works across namespace
+        {
+            'given_type': 'google.Model@1.0.0',
+            'expected_type': 'system.Artifact@1.0.0',
+            'is_compatible': True,
         },
     )
     def test_verify_type_compatibility(
