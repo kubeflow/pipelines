@@ -137,24 +137,19 @@ class TestFuncToRootAnnotationSymbol(unittest.TestCase):
         self.assertEqual(actual, expected)
 
 
-class MyCustomArtifact:
-    schema_title = 'my_custom_artifact'
-    schema_version = '0.0.0'
-
-
 class _TestCaseWithThirdPartyPackage(parameterized.TestCase):
 
     @classmethod
     def setUpClass(cls):
 
-        class ThirdPartyArtifact:
-            schema_title = 'custom.my_third_party_artifact'
+        class VertexDataset:
+            schema_title = 'google.VertexDataset'
             schema_version = '0.0.0'
 
-        class_source = textwrap.dedent(inspect.getsource(ThirdPartyArtifact))
+        class_source = textwrap.dedent(inspect.getsource(VertexDataset))
 
         tmp_dir = tempfile.TemporaryDirectory()
-        with open(os.path.join(tmp_dir.name, 'my_package.py'), 'w') as f:
+        with open(os.path.join(tmp_dir.name, 'aiplatform.py'), 'w') as f:
             f.write(class_source)
         sys.path.append(tmp_dir.name)
         cls.tmp_dir = tmp_dir
@@ -233,11 +228,11 @@ class TestGetFullQualnameForArtifact(_TestCaseWithThirdPartyPackage):
             custom_artifact_types.get_full_qualname_for_artifact(obj),
             expected_qualname)
 
-    def test_my_package_artifact(self):
-        import my_package
+    def test_aiplatform_artifact(self):
+        import aiplatform
         self.assertEqual(
             custom_artifact_types.get_full_qualname_for_artifact(
-                my_package.ThirdPartyArtifact), 'my_package.ThirdPartyArtifact')
+                aiplatform.VertexDataset), 'aiplatform.VertexDataset')
 
 
 class TestGetArtifactImportItemsFromFunction(_TestCaseWithThirdPartyPackage):
@@ -253,44 +248,44 @@ class TestGetArtifactImportItemsFromFunction(_TestCaseWithThirdPartyPackage):
         self.assertEqual(actual, expected)
 
     def test_no_return(self):
-        from my_package import ThirdPartyArtifact
+        from aiplatform import VertexDataset
 
-        def func(a: int, b: Input[ThirdPartyArtifact]):
+        def func(a: int, b: Input[VertexDataset]):
             pass
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
             func)
-        expected = ['my_package.ThirdPartyArtifact']
+        expected = ['aiplatform.VertexDataset']
         self.assertEqual(actual, expected)
 
     def test_with_return(self):
-        from my_package import ThirdPartyArtifact
+        from aiplatform import VertexDataset
 
-        def func(a: int, b: Input[ThirdPartyArtifact]) -> int:
+        def func(a: int, b: Input[VertexDataset]) -> int:
             return 1
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
             func)
-        expected = ['my_package.ThirdPartyArtifact']
+        expected = ['aiplatform.VertexDataset']
         self.assertEqual(actual, expected)
 
     def test_multiline(self):
-        from my_package import ThirdPartyArtifact
+        from aiplatform import VertexDataset
 
         def func(
             a: int,
-            b: Input[ThirdPartyArtifact],
+            b: Input[VertexDataset],
         ) -> int:
             return 1
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
             func)
-        expected = ['my_package.ThirdPartyArtifact']
+        expected = ['aiplatform.VertexDataset']
         self.assertEqual(actual, expected)
 
     def test_alias(self):
-        from my_package import ThirdPartyArtifact
-        Alias = ThirdPartyArtifact
+        from aiplatform import VertexDataset
+        Alias = VertexDataset
 
         def func(a: int, b: Input[Alias]):
             pass
@@ -301,20 +296,20 @@ class TestGetArtifactImportItemsFromFunction(_TestCaseWithThirdPartyPackage):
                 func)
 
     def test_long_form_annotation(self):
-        import my_package
+        import aiplatform
 
-        def func(a: int, b: Output[my_package.ThirdPartyArtifact]):
+        def func(a: int, b: Output[aiplatform.VertexDataset]):
             pass
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
             func)
-        expected = ['my_package']
+        expected = ['aiplatform']
         self.assertEqual(actual, expected)
 
     def test_aliased_module_throws_error(self):
-        import my_package as my_package_alias
+        import aiplatform as aiplatform_alias
 
-        def func(a: int, b: Output[my_package_alias.ThirdPartyArtifact]):
+        def func(a: int, b: Output[aiplatform_alias.VertexDataset]):
             pass
 
         with self.assertRaisesRegex(
@@ -323,18 +318,18 @@ class TestGetArtifactImportItemsFromFunction(_TestCaseWithThirdPartyPackage):
                 func)
 
     def test_input_output_path(self):
-        from my_package import ThirdPartyArtifact
+        from aiplatform import VertexDataset
 
         def func(
             a: int,
             b: InputPath('Dataset'),
-            c: Output[ThirdPartyArtifact],
+            c: Output[VertexDataset],
         ) -> OutputPath('Dataset'):
             return 'dataset'
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
             func)
-        self.assertEqual(actual, ['my_package.ThirdPartyArtifact'])
+        self.assertEqual(actual, ['aiplatform.VertexDataset'])
 
 
 class TestFuncToAnnotationObject(_TestCaseWithThirdPartyPackage):
@@ -349,66 +344,66 @@ class TestFuncToAnnotationObject(_TestCaseWithThirdPartyPackage):
         self.assertEqual(actual, expected)
 
     def test_no_return(self):
-        from my_package import ThirdPartyArtifact
+        from aiplatform import VertexDataset
 
-        def func(a: int, b: Input[ThirdPartyArtifact]):
+        def func(a: int, b: Input[VertexDataset]):
             pass
 
         actual = custom_artifact_types.func_to_annotation_object(func)
 
-        import my_package
+        import aiplatform
         expected = {
             'a':
                 int,
             'b':
                 typing_extensions.Annotated[
-                    my_package.ThirdPartyArtifact,
+                    aiplatform.VertexDataset,
                     kfp.components.types.type_annotations.InputAnnotation]
         }
         self.assertEqual(actual, expected)
 
     def test_with_return(self):
-        from my_package import ThirdPartyArtifact
+        from aiplatform import VertexDataset
 
-        def func(a: int, b: Input[ThirdPartyArtifact]) -> int:
+        def func(a: int, b: Input[VertexDataset]) -> int:
             return 1
 
-        import my_package
+        import aiplatform
         actual = custom_artifact_types.func_to_annotation_object(func)
         expected = {
             'a':
                 int,
             'b':
                 typing_extensions.Annotated[
-                    my_package.ThirdPartyArtifact,
+                    aiplatform.VertexDataset,
                     kfp.components.types.type_annotations.InputAnnotation]
         }
         self.assertEqual(actual, expected)
 
     def test_alias(self):
-        from my_package import ThirdPartyArtifact
-        Alias = ThirdPartyArtifact
+        from aiplatform import VertexDataset
+        Alias = VertexDataset
 
         def func(a: int, b: Input[Alias]):
             pass
 
         actual = custom_artifact_types.func_to_annotation_object(func)
 
-        import my_package
+        import aiplatform
         expected = {
             'a':
                 int,
             'b':
                 typing_extensions.Annotated[
-                    my_package.ThirdPartyArtifact,
+                    aiplatform.VertexDataset,
                     kfp.components.types.type_annotations.InputAnnotation]
         }
         self.assertEqual(actual, expected)
 
     def test_long_form_annotation(self):
-        import my_package
+        import aiplatform
 
-        def func(a: int, b: Output[my_package.ThirdPartyArtifact]):
+        def func(a: int, b: Output[aiplatform.VertexDataset]):
             pass
 
         actual = custom_artifact_types.func_to_annotation_object(func)
@@ -418,43 +413,43 @@ class TestFuncToAnnotationObject(_TestCaseWithThirdPartyPackage):
                 int,
             'b':
                 typing_extensions.Annotated[
-                    my_package.ThirdPartyArtifact,
+                    aiplatform.VertexDataset,
                     kfp.components.types.type_annotations.OutputAnnotation]
         }
         self.assertEqual(actual, expected)
 
     def test_aliased_module(self):
-        import my_package as my_package_alias
+        import aiplatform as aiplatform_alias
 
-        def func(a: int, b: Output[my_package_alias.ThirdPartyArtifact]):
+        def func(a: int, b: Output[aiplatform_alias.VertexDataset]):
             pass
 
         actual = custom_artifact_types.func_to_annotation_object(func)
 
-        import my_package
+        import aiplatform
         expected = {
             'a':
                 int,
             'b':
                 typing_extensions.Annotated[
-                    my_package.ThirdPartyArtifact,
+                    aiplatform.VertexDataset,
                     kfp.components.types.type_annotations.OutputAnnotation]
         }
         self.assertEqual(actual, expected)
 
     def test_input_output_path(self):
-        from my_package import ThirdPartyArtifact
+        from aiplatform import VertexDataset
 
         def func(
             a: int,
             b: InputPath('Dataset'),
-            c: Output[ThirdPartyArtifact],
+            c: Output[VertexDataset],
         ) -> OutputPath('Dataset'):
             return 'dataset'
 
         actual = custom_artifact_types.func_to_annotation_object(func)
 
-        import my_package
+        import aiplatform
         expected = {
             'a':
                 int,
@@ -462,7 +457,7 @@ class TestFuncToAnnotationObject(_TestCaseWithThirdPartyPackage):
                 kfp.components.types.type_annotations.InputPath('Dataset'),
             'c':
                 typing_extensions.Annotated[
-                    my_package.ThirdPartyArtifact,
+                    aiplatform.VertexDataset,
                     kfp.components.types.type_annotations.OutputAnnotation]
         }
         self.assertEqual(actual, expected)
@@ -481,32 +476,32 @@ class TestGetCustomArtifactTypeImportStatements(_TestCaseWithThirdPartyPackage):
         self.assertEqual(actual, expected)
 
     def test_no_return(self):
-        from my_package import ThirdPartyArtifact
+        from aiplatform import VertexDataset
 
-        def func(a: int, b: Input[ThirdPartyArtifact]):
+        def func(a: int, b: Input[VertexDataset]):
             pass
 
         actual = custom_artifact_types.get_custom_artifact_type_import_statements(
             func)
 
-        expected = ['from my_package import ThirdPartyArtifact']
+        expected = ['from aiplatform import VertexDataset']
         self.assertEqual(actual, expected)
 
     def test_with_return(self):
-        from my_package import ThirdPartyArtifact
+        from aiplatform import VertexDataset
 
-        def func(a: int, b: Input[ThirdPartyArtifact]) -> int:
+        def func(a: int, b: Input[VertexDataset]) -> int:
             return 1
 
-        import my_package
+        import aiplatform
         actual = custom_artifact_types.get_custom_artifact_type_import_statements(
             func)
-        expected = ['from my_package import ThirdPartyArtifact']
+        expected = ['from aiplatform import VertexDataset']
         self.assertEqual(actual, expected)
 
     def test_alias(self):
-        from my_package import ThirdPartyArtifact
-        Alias = ThirdPartyArtifact
+        from aiplatform import VertexDataset
+        Alias = VertexDataset
 
         def func(a: int, b: Input[Alias]):
             pass
@@ -517,21 +512,21 @@ class TestGetCustomArtifactTypeImportStatements(_TestCaseWithThirdPartyPackage):
                 func)
 
     def test_long_form_annotation(self):
-        import my_package
+        import aiplatform
 
-        def func(a: int, b: Output[my_package.ThirdPartyArtifact]):
+        def func(a: int, b: Output[aiplatform.VertexDataset]):
             pass
 
         actual = custom_artifact_types.get_custom_artifact_type_import_statements(
             func)
 
-        expected = ['import my_package']
+        expected = ['import aiplatform']
         self.assertEqual(actual, expected)
 
     def test_aliased_module(self):
-        import my_package as my_package_alias
+        import aiplatform as aiplatform_alias
 
-        def func(a: int, b: Output[my_package_alias.ThirdPartyArtifact]):
+        def func(a: int, b: Output[aiplatform_alias.VertexDataset]):
             pass
 
         with self.assertRaisesRegex(
@@ -540,37 +535,37 @@ class TestGetCustomArtifactTypeImportStatements(_TestCaseWithThirdPartyPackage):
                 func)
 
     def test_input_output_path(self):
-        from my_package import ThirdPartyArtifact
+        from aiplatform import VertexDataset
 
         def func(
             a: int,
             b: InputPath('Dataset'),
-            c: Output[ThirdPartyArtifact],
+            c: Output[VertexDataset],
         ) -> OutputPath('Dataset'):
             return 'dataset'
 
         actual = custom_artifact_types.get_custom_artifact_type_import_statements(
             func)
 
-        expected = ['from my_package import ThirdPartyArtifact']
+        expected = ['from aiplatform import VertexDataset']
         self.assertEqual(actual, expected)
 
 
 class TestImportStatementAdded(_TestCaseWithThirdPartyPackage):
 
     def test(self):
-        import my_package
-        from my_package import ThirdPartyArtifact
+        import aiplatform
+        from aiplatform import VertexDataset
 
         @dsl.component
         def one(
             a: int,
-            b: Output[ThirdPartyArtifact],
+            b: Output[VertexDataset],
         ):
             pass
 
         @dsl.component
-        def two(a: Input[my_package.ThirdPartyArtifact],):
+        def two(a: Input[aiplatform.VertexDataset],):
             pass
 
         @dsl.pipeline()
@@ -587,11 +582,11 @@ class TestImportStatementAdded(_TestCaseWithThirdPartyPackage):
                 pipeline_spec = yaml.safe_load(f)
 
         self.assertIn(
-            'from my_package import ThirdPartyArtifact',
+            'from aiplatform import VertexDataset',
             ' '.join(pipeline_spec['deploymentSpec']['executors']['exec-one']
                      ['container']['command']))
         self.assertIn(
-            'import my_package',
+            'import aiplatform',
             ' '.join(pipeline_spec['deploymentSpec']['executors']['exec-two']
                      ['container']['command']))
 
