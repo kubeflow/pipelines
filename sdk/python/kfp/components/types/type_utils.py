@@ -219,15 +219,7 @@ def verify_type_compatibility(
                     expected_type.split('@')[0]
                 }
 
-    elif isinstance(given_type, dict) or isinstance(expected_type, dict):
-        # v1 compat
-        given_type_name = list(given_type.keys())[0]
-        expected_type_name = list(expected_type.keys())[0]
-        types_are_compatible = given_type_name == expected_type_name and given_type[
-            given_type_name] == expected_type[expected_type_name]
-
     else:
-        # v2
         types_are_compatible = (given_type.schema_title
                                 == expected_type.schema_title) or (
                                     given_type.schema_title

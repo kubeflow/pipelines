@@ -181,32 +181,6 @@ class TypeUtilsTest(parameterized.TestCase):
             'is_compatible': False,
         },
         {
-            'given_type': {
-                'type_a': {
-                    'property': 'property_b',
-                }
-            },
-            'expected_type': {
-                'type_a': {
-                    'property': 'property_b',
-                }
-            },
-            'is_compatible': True,
-        },
-        {
-            'given_type': {
-                'type_a': {
-                    'property': 'property_b',
-                }
-            },
-            'expected_type': {
-                'type_a': {
-                    'property': 'property_c',
-                }
-            },
-            'is_compatible': False,
-        },
-        {
             'given_type': 'system.Artifact',
             'expected_type': 'system.Model',
             'is_compatible': True,
