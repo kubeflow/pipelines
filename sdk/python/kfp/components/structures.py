@@ -633,7 +633,7 @@ class ComponentSpec(base_model.BaseModel):
                 schema_version = artifact_types.Artifact.schema_version
 
             else:
-                schema_version = type_utils.DEFAULT_ARTIFACT_SCHEMA_VERSION
+                raise ValueError(f'Unknown input: {type_}')
 
             default = spec.get('default', None)
             inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
@@ -667,7 +667,7 @@ class ComponentSpec(base_model.BaseModel):
                 schema_version = artifact_types.Artifact.schema_version
 
             else:
-                schema_version = type_utils.DEFAULT_ARTIFACT_SCHEMA_VERSION
+                raise ValueError(f'Unknown output: {type_}')
             outputs[utils.sanitize_input_name(spec['name'])] = OutputSpec(
                 type=type_,
                 schema_version=schema_version,
