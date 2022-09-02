@@ -124,7 +124,7 @@ html_theme_options = {
         True,
     'version_info': [
         {
-            'version': 'https://kubeflow-pipelines.readthedocs.io/en/2.0.0b3/',
+            'version': 'https://kubeflow-pipelines.readthedocs.io/en/2.0.0b4/',
             'title': 'v2.0.0b4 [pre-release]',
             'aliases': [],
         },
