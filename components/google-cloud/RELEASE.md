@@ -1,5 +1,13 @@
-# Current Version 1.0.19.dev (Still in Development)
-* Add notes for next release here.
+# Release 1.0.19
+* Propagating labels for explain_forecast_model component
+* Model Evaluation - Add evaluation forecasting default of 0.5 for quantiles
+* Dataproc - Fix missing error payload from logging
+* Added BigQuery input support to evaluation components
+* Model Evaluation - Allow dataset paths list
+* Fix the docstring for ml_advanced_weights component
+* Fix the duplicated arguments in bigquery_ml_global_explain_job
+* Import importer from dsl namespace instead
+* Convert batch_prediction_job_remote_runner into individual launcher
 
 # Release 1.0.18
 * Model Evaluation - Give evaluation preprocessing components unique dataflow job names

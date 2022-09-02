@@ -69,7 +69,7 @@ outputs:
   - { name: gcp_resources, type: String }
 implementation:
   container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.19
     command:
       [
         python3,
