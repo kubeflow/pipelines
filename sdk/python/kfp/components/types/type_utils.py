@@ -368,9 +368,10 @@ def get_canonical_name_for_outer_generic(type_name: Any) -> str:
     """Maps a complex/nested type name back to a canonical type.
 
     E.g.
-        >>> get_canonical_name_for_outer_generic('typing.List[str]')
+        get_canonical_name_for_outer_generic('typing.List[str]')
         'List'
-        >>> get_canonical_name_for_outer_generic('typing.Dict[typing.List[str], str]')
+
+        get_canonical_name_for_outer_generic('typing.Dict[typing.List[str], str]')
         'Dict'
 
     Args:
@@ -383,3 +384,9 @@ def get_canonical_name_for_outer_generic(type_name: Any) -> str:
         return type_name
 
     return type_name.lstrip('typing.').split('[')[0]
+
+
+def create_bundled_artifact_type(schema_title: str,
+                                 schema_version: Optional[str] = None) -> str:
+    return schema_title + '@' + (
+        schema_version or DEFAULT_ARTIFACT_SCHEMA_VERSION)

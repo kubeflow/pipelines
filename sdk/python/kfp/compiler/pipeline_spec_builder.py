@@ -620,10 +620,11 @@ def build_component_spec_for_group(
             _additional_input_name_for_pipeline_channel(channel))
 
         if isinstance(channel, pipeline_channel.PipelineArtifactChannel):
+            schema_title, schema_version = channel.channel_type.split('@')
             component_spec.input_definitions.artifacts[
                 input_name].artifact_type.CopyFrom(
-                    type_utils.get_artifact_type_schema(channel.channel_type,
-                                                        channel.schema_version))
+                    type_utils.get_artifact_type_schema(schema_title,
+                                                        schema_version))
         else:
             # channel is one of PipelineParameterChannel, LoopArgument, or
             # LoopArgumentVariable.

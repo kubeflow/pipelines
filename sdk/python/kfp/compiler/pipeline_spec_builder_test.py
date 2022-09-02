@@ -44,8 +44,8 @@ class PipelineSpecBuilderTest(parameterized.TestCase):
                 pipeline_channel.PipelineArtifactChannel(
                     name='output1',
                     task_name='task1',
-                    channel_type='system.Artifact',
-                    schema_version='0.0.1'),
+                    channel_type='system.Artifact@0.0.1',
+                ),
             'expected':
                 'pipelinechannel--task1-output1',
         },

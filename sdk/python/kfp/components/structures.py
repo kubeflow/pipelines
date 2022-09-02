@@ -812,8 +812,10 @@ class ComponentSpec(base_model.BaseModel):
         for arg_name, input_spec in pipeline_inputs.items():
             args_dict[arg_name] = pipeline_channel.create_pipeline_channel(
                 name=arg_name,
-                channel_type=input_spec.type,
-                schema_version=input_spec.schema_version)
+                channel_type=type_utils.create_bundled_artifact_type(
+                    input_spec.type, input_spec.schema_version)
+                if input_spec.schema_version else input_spec.type,
+            )
 
         task = pipeline_task.PipelineTask(self, args_dict)
 
@@ -827,10 +829,11 @@ class ComponentSpec(base_model.BaseModel):
         args_list_with_defaults = [
             pipeline_channel.create_pipeline_channel(
                 name=input_name,
-                channel_type=input_spec.type,
+                channel_type=type_utils.create_bundled_artifact_type(
+                    input_spec.type, input_spec.schema_version)
+                if input_spec.schema_version else input_spec.type,
                 value=input_spec.default,
-                schema_version=input_spec.schema_version)
-            for input_name, input_spec in pipeline_inputs.items()
+            ) for input_name, input_spec in pipeline_inputs.items()
         ]
         group.name = uuid.uuid4().hex
 

@@ -82,7 +82,11 @@ class PipelineTask:
                     f'Component "{component_spec.name}" got an unexpected input:'
                     f' {input_name}.')
 
-            input_type = component_spec.inputs[input_name].type
+            input_spec = component_spec.inputs[input_name]
+            input_type = input_spec.type
+            if input_spec.schema_version:
+                input_type = type_utils.create_bundled_artifact_type(
+                    input_type, input_spec.schema_version)
             argument_type = None
 
             if isinstance(argument_value, pipeline_channel.PipelineChannel):
@@ -142,10 +146,11 @@ class PipelineTask:
         self._outputs = {
             output_name: pipeline_channel.create_pipeline_channel(
                 name=output_name,
-                channel_type=output_spec.type,
+                channel_type=type_utils.create_bundled_artifact_type(
+                    output_spec.type, output_spec.schema_version)
+                if output_spec.schema_version else output_spec.type,
                 task_name=self._task_spec.name,
-                schema_version=output_spec.schema_version)
-            for output_name, output_spec in (
+            ) for output_name, output_spec in (
                 component_spec.outputs or {}).items()
         }
 

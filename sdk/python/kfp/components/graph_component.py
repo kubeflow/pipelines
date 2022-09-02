@@ -22,6 +22,7 @@ from kfp.components import base_component
 from kfp.components import pipeline_channel
 from kfp.components import pipeline_context
 from kfp.components import structures
+from kfp.components.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 
 
@@ -50,8 +51,9 @@ class GraphComponent(base_component.BaseComponent):
             args_list.append(
                 pipeline_channel.create_pipeline_channel(
                     name=arg_name,
-                    channel_type=input_spec.type,
-                    schema_version=input_spec.schema_version,
+                    channel_type=type_utils.create_bundled_artifact_type(
+                        input_spec.type, input_spec.schema_version)
+                    if input_spec.schema_version else input_spec.type,
                 ))
 
         with pipeline_context.Pipeline(

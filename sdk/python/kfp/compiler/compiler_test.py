@@ -287,7 +287,7 @@ class TestCompilePipeline(parameterized.TestCase):
                 type_utils.InconsistentTypeException,
                 'Incompatible argument passed to the input "some_input" of '
                 'component "compoent": Argument type "STRING" is incompatible '
-                'with the input type "system.Artifact"'):
+                'with the input type "system.Artifact@0.0.1"'):
 
             @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
             def my_pipeline(input1: str):
