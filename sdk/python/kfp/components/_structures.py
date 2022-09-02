@@ -30,6 +30,7 @@ __all__ = [
     'IfPlaceholder',
     'ContainerSpec',
     'ContainerImplementation',
+    'MetadataSpec',
     'ComponentSpec',
     'ComponentReference',
     'GraphInputReference',
