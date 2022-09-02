@@ -89,18 +89,20 @@ class InputSpec(InputSpec_, base_model.BaseModel):
             if type_ is None:
                 raise ValueError(f'Unknown type {type_string} found in IR.')
             default_value = ir_component_inputs_dict.get('defaultValue')
-            schema_version = None
+            return InputSpec(
+                type=type_,
+                default=default_value,
+            )
+
         else:
             type_ = ir_component_inputs_dict['artifactType']['schemaTitle']
-            default_value = None
             schema_version = ir_component_inputs_dict['artifactType'][
                 'schemaVersion']
-
-        return InputSpec(
-            type=type_,
-            default=default_value,
-            schema_version=schema_version,
-        )
+            return InputSpec(
+                type=type_utils.create_bundled_artifact_type(
+                    type_, schema_version),
+                schema_version=schema_version,
+            )
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for InputSpec. Robust to different type
@@ -154,15 +156,16 @@ class OutputSpec(base_model.BaseModel):
             type_ = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE.get(type_string)
             if type_ is None:
                 raise ValueError(f'Unknown type {type_string} found in IR.')
-            schema_version = None
+            return OutputSpec(type=type_,)
         else:
             type_ = ir_component_outputs_dict['artifactType']['schemaTitle']
             schema_version = ir_component_outputs_dict['artifactType'][
                 'schemaVersion']
-        return OutputSpec(
-            type=type_,
-            schema_version=schema_version,
-        )
+            return OutputSpec(
+                type=type_utils.create_bundled_artifact_type(
+                    type_, schema_version),
+                schema_version=schema_version,
+            )
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for OutputSpec. Robust to different type
@@ -610,35 +613,37 @@ class ComponentSpec(base_model.BaseModel):
             type_ = spec.get('type')
 
             if isinstance(type_, str) and type_.lower(
-            ) in type_utils._PARAMETER_TYPES_MAPPING:
-                schema_version = None
+            ) in type_utils._PARAMETER_TYPES_MAPPING or type_ == 'PipelineTaskFinalStatus':
+                default = spec.get('default')
+                inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
+                    type=type_,
+                    default=default,
+                )
+                continue
 
             elif isinstance(type_, str) and re.match(
                     type_utils._GOOGLE_TYPES_PATTERN, type_):
+                schema_title = type_
                 schema_version = type_utils._GOOGLE_TYPES_VERSION
 
             elif isinstance(type_, str) and type_.lower(
             ) in type_utils._ARTIFACT_CLASSES_MAPPING:
                 artifact_class = type_utils._ARTIFACT_CLASSES_MAPPING[
                     type_.lower()]
-                type_ = artifact_class.schema_title
+                schema_title = artifact_class.schema_title
                 schema_version = artifact_class.schema_version
-
-            elif type_ == 'PipelineTaskFinalStatus':
-                schema_version = type_utils.DEFAULT_ARTIFACT_SCHEMA_VERSION
 
             elif type_ is None or isinstance(type_, dict) or type_.lower(
             ) not in type_utils._ARTIFACT_CLASSES_MAPPING:
-                type_ = artifact_types.Artifact.schema_title
+                schema_title = artifact_types.Artifact.schema_title
                 schema_version = artifact_types.Artifact.schema_version
 
             else:
                 raise ValueError(f'Unknown input: {type_}')
 
-            default = spec.get('default', None)
             inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
-                type=type_,
-                default=default,
+                type=type_utils.create_bundled_artifact_type(
+                    schema_title, schema_version),
                 schema_version=schema_version,
             )
 
@@ -648,28 +653,33 @@ class ComponentSpec(base_model.BaseModel):
 
             if isinstance(type_, str) and type_.lower(
             ) in type_utils._PARAMETER_TYPES_MAPPING:
-                schema_version = None
+                outputs[utils.sanitize_input_name(
+                    spec['name'])] = OutputSpec(type=type_)
+                continue
 
             elif isinstance(type_, str) and re.match(
                     type_utils._GOOGLE_TYPES_PATTERN, type_):
+                schema_title = type_
                 schema_version = type_utils._GOOGLE_TYPES_VERSION
 
             elif isinstance(type_, str) and type_.lower(
             ) in type_utils._ARTIFACT_CLASSES_MAPPING:
                 artifact_class = type_utils._ARTIFACT_CLASSES_MAPPING[
                     type_.lower()]
-                type_ = artifact_class.schema_title
+                schema_title = artifact_class.schema_title
                 schema_version = artifact_class.schema_version
 
             elif type_ is None or isinstance(type_, dict) or type_.lower(
             ) not in type_utils._ARTIFACT_CLASSES_MAPPING:
-                type_ = artifact_types.Artifact.schema_title
+                schema_title = artifact_types.Artifact.schema_title
                 schema_version = artifact_types.Artifact.schema_version
 
             else:
                 raise ValueError(f'Unknown output: {type_}')
+
             outputs[utils.sanitize_input_name(spec['name'])] = OutputSpec(
-                type=type_,
+                type=type_utils.create_bundled_artifact_type(
+                    schema_title, schema_version),
                 schema_version=schema_version,
             )
 

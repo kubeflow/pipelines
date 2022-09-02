@@ -13,6 +13,7 @@
 # limitations under the License.
 """Utilities for component I/O type mapping."""
 
+import inspect
 import re
 from typing import Any, Optional, Type, Union
 import warnings
@@ -104,7 +105,7 @@ def is_parameter_type(type_name: Optional[Union[str, dict]]) -> bool:
     ) in _PARAMETER_TYPES_MAPPING or is_task_final_status_type(type_name)
 
 
-def get_artifact_type_schema(
+def get_artifact_type_schema_proto(
         schema_title: Union[str, dict],
         schema_version: Union[str,
                               None]) -> pipeline_spec_pb2.ArtifactTypeSchema:
@@ -128,9 +129,11 @@ def get_artifact_type_schema(
         raise TypeError(
             f"Only 'system.' and 'google.' artifact schema_title are permitted. Got: {schema_title}."
         )
+    # print('schema_title', schema_title)
+    schema_title, schema_version = schema_title.split('@')
     return pipeline_spec_pb2.ArtifactTypeSchema(
         schema_title=schema_title,
-        schema_version=schema_version or DEFAULT_ARTIFACT_SCHEMA_VERSION,
+        schema_version=schema_version,
     )
 
 
@@ -166,7 +169,7 @@ def get_parameter_type_name(
         get_parameter_type(param_type))
 
 
-def get_parameter_type_field_name(type_name: Optional[str]) -> str:
+def get_parameter_type_field_name(type_name: Optional[str]) -> Optional[str]:
     """Get the IR field name for the given primitive type.
 
     For example: 'str' -> 'string_value', 'double' -> 'double_value', etc.
@@ -363,6 +366,10 @@ IR_TYPE_TO_IN_MEMORY_SPEC_TYPE = {
     'BOOLEAN': 'Boolean',
 }
 
+IN_MEMORY_SPEC_TYPE_TO_IR_TYPE = {
+    v: k for k, v in IR_TYPE_TO_IN_MEMORY_SPEC_TYPE.items()
+}
+
 
 def get_canonical_name_for_outer_generic(type_name: Any) -> str:
     """Maps a complex/nested type name back to a canonical type.
@@ -388,5 +395,63 @@ def get_canonical_name_for_outer_generic(type_name: Any) -> str:
 
 def create_bundled_artifact_type(schema_title: str,
                                  schema_version: Optional[str] = None) -> str:
+    if not isinstance(schema_title, str):
+        raise ValueError
     return schema_title + '@' + (
         schema_version or DEFAULT_ARTIFACT_SCHEMA_VERSION)
+
+
+def validate_schema_version(schema_version: str) -> None:
+    split_schema_version = schema_version.split('.')
+    if len(split_schema_version) != 3:
+        raise TypeError(
+            f'Artifact schema_version must use three-part semantic versioning. Got: {schema_version}'
+        )
+
+
+def validate_schema_title(schema_title: str) -> None:
+    split_schema_title = schema_title.split('.')
+    if len(split_schema_title) != 2:
+        raise TypeError(
+            f'Artifact schema_title must have both a namespace and a name, separated by a `.`. Got: {schema_title}'
+        )
+    namespace, _ = split_schema_title
+    if namespace not in {'system', 'google'}:
+        raise TypeError(
+            f'Artifact schema_title must belong to `system` or `google` namespace. Got: {schema_title}'
+        )
+
+
+def validate_bundled_artifact_type(type_: str) -> None:
+    split_type = type_.split('@')
+    # two parts and neither are empty strings
+    if len(split_type) != 2 or not all(split_type):
+        raise TypeError(
+            f'Artifacts must have both a schema_title and a schema_version, separated by `@`. Got: {type_}'
+        )
+    schema_title, schema_version = split_type
+    validate_schema_title(schema_title)
+    validate_schema_version(schema_version)
+
+
+def _annotation_to_type_struct(annotation):
+    if not annotation or annotation == inspect.Parameter.empty:
+        return None
+    if hasattr(annotation, 'to_dict'):
+        annotation = annotation.to_dict()
+    if isinstance(annotation, dict):
+        return annotation
+    if isinstance(annotation, type):
+        type_struct = get_canonical_type_name_for_type(annotation)
+        if type_struct:
+            return type_struct
+        elif type_annotations.is_artifact(annotation):
+            schema_title = annotation.schema_title
+        else:
+            schema_title = str(annotation.__name__)
+    elif hasattr(annotation, '__forward_arg__'):
+        schema_title = str(annotation.__forward_arg__)
+    else:
+        schema_title = str(annotation)
+    type_struct = get_canonical_type_name_for_type(schema_title)
+    return type_struct or schema_title
