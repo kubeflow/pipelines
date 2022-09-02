@@ -10,7 +10,7 @@ components:
         artifact:
           artifactType:
             schemaTitle: google.VertexDataset
-            schemaVersion: 0.0.1
+            schemaVersion: 0.0.0
   comp-model-consumer:
     executorLabel: exec-model-consumer
     inputDefinitions:
