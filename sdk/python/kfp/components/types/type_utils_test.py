@@ -207,13 +207,13 @@ class TypeUtilsTest(parameterized.TestCase):
             'is_compatible': False,
         },
         {
-            'given_type': 'Artifact',
-            'expected_type': 'Model',
+            'given_type': 'system.Artifact',
+            'expected_type': 'system.Model',
             'is_compatible': True,
         },
         {
-            'given_type': 'Metrics',
-            'expected_type': 'Artifact',
+            'given_type': 'system.Metrics',
+            'expected_type': 'system.Artifact',
             'is_compatible': True,
         },
         {

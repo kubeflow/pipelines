@@ -232,13 +232,11 @@ def verify_type_compatibility(
 
     # handle artifacts
     elif isinstance(given_type, str):
-        # v1 compat
-        given_suffix = given_type.lower().split('.')[-1]
-        expected_suffix = expected_type.lower().split('.')[-1]
-        types_are_compatible = (given_suffix
-                                == expected_suffix) or 'artifact' in {
-                                    given_suffix, expected_suffix
-                                }
+        return (given_type
+                == expected_type) or artifact_types.Artifact.schema_title in {
+                    given_type.split('@')[0],
+                    expected_type.split('@')[0]
+                }
 
     elif isinstance(given_type, dict) or isinstance(expected_type, dict):
         # v1 compat
