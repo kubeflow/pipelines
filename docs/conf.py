@@ -24,7 +24,7 @@ import sys
 from typing import List, Optional
 
 import sphinx
-from sphinx import application
+from sphinx import application  # noqa
 
 # -- Path setup --------------------------------------------------------------
 
@@ -57,16 +57,86 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx_click',
     'm2r2',
+    'sphinx_immaterial',
 ]
 
-html_theme = 'sphinx_rtd_theme'
-
+html_theme = 'sphinx_immaterial'
 html_title = 'KFP SDK API Reference'
 html_static_path = ['_static']
 html_css_files = ['custom.css']
 html_logo = '_static/kubeflow.png'
 html_favicon = '_static/favicon.ico'
-
+html_theme_options = {
+    'icon': {
+        'repo': 'fontawesome/brands/github',
+    },
+    'repo_url':
+        'https://github.com/kubeflow/pipelines/',
+    'repo_name':
+        'pipelines',
+    'repo_type':
+        'github',
+    'edit_uri':
+        'blob/master/docs',
+    'globaltoc_collapse':
+        True,
+    'features': [
+        'navigation.expand',
+        # "navigation.tabs",
+        # "toc.integrate",
+        'navigation.sections',
+        # "navigation.instant",
+        # "header.autohide",
+        'navigation.top',
+        # "navigation.tracking",
+        'search.highlight',
+        'search.share',
+        'toc.follow',
+        'toc.sticky',
+    ],
+    'palette': [
+        {
+            'media': '(prefers-color-scheme: dark)',
+            'scheme': 'slate',
+            'primary': 'kfpblue',
+            # "accent": "lime",
+            'toggle': {
+                'icon': 'material/lightbulb',
+                'name': 'Switch to light mode',
+            },
+        },
+        {
+            'media': '(prefers-color-scheme: light)',
+            'scheme': 'default',
+            'primary': 'kfpblue',
+            # "accent": "light-blue",
+            'toggle': {
+                'icon': 'material/lightbulb-outline',
+                'name': 'Switch to dark mode',
+            },
+        },
+    ],
+    'font': {
+        'text': 'Open Sans'
+    },
+    # BEGIN: version_dropdown
+    'version_dropdown':
+        True,
+    'version_info': [
+        {
+            'version': 'https://kubeflow-pipelines.readthedocs.io/en/2.0.0b3/',
+            'title': 'v2.0.0b4 [pre-release]',
+            'aliases': [],
+        },
+        {
+            'version': 'https://kubeflow-pipelines.readthedocs.io/en/1.8.13/',
+            'title': 'v1.8.13',
+            'aliases': ['stable'],
+        },
+    ],
+    # END: version_dropdown
+    # "toc_title_is_page_title": True,
+}
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
