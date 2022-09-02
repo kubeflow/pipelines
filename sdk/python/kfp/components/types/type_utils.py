@@ -14,7 +14,6 @@
 """Utilities for component I/O type mapping."""
 
 import inspect
-import re
 from typing import Any, Optional, Type, Union
 import warnings
 
@@ -39,7 +38,7 @@ _ARTIFACT_CLASSES_MAPPING = {
 }
 
 _GOOGLE_TYPES_PATTERN = r'^google.[A-Za-z]+$'
-_GOOGLE_TYPES_VERSION = '0.0.1'
+_GOOGLE_TYPES_VERSION = DEFAULT_ARTIFACT_SCHEMA_VERSION
 
 # ComponentSpec I/O types to (IR) PipelineTaskSpec I/O types mapping.
 # The keys are normalized (lowercased). These are types viewed as Parameters.
@@ -105,34 +104,13 @@ def is_parameter_type(type_name: Optional[Union[str, dict]]) -> bool:
     ) in _PARAMETER_TYPES_MAPPING or is_task_final_status_type(type_name)
 
 
-def get_artifact_type_schema_proto(
-        schema_title: Union[str, dict],
-        schema_version: Union[str,
-                              None]) -> pipeline_spec_pb2.ArtifactTypeSchema:
-    """Gets the IR I/O artifact type msg for the given ComponentSpec I/O
-    type."""
-
-    # handles compatibility with v1 component YAML that use Google types (where schema_version is not included in YAML)
-    if re.match(_GOOGLE_TYPES_PATTERN, schema_title):
-        return pipeline_spec_pb2.ArtifactTypeSchema(
-            schema_title=schema_title,
-            schema_version=schema_version or _GOOGLE_TYPES_VERSION,
-        )
-    elif schema_title.lower() in _ARTIFACT_CLASSES_MAPPING:
-        # handles the way we currently truncate system.Artifact(s) to the suffix (Artifact, Dataset)
-        schema_title = _ARTIFACT_CLASSES_MAPPING.get(
-            schema_title.lower()).schema_title
-        # handles v1 artifacts that do not have a schema_version
-        schema_version = schema_version or DEFAULT_ARTIFACT_SCHEMA_VERSION
-    elif not schema_title.startswith('system.') and not schema_title.startswith(
-            'google.'):
-        raise TypeError(
-            f"Only 'system.' and 'google.' artifact schema_title are permitted. Got: {schema_title}."
-        )
-    # print('schema_title', schema_title)
-    schema_title, schema_version = schema_title.split('@')
+def bundled_artifact_to_artifact_proto(
+        bundled_artifact_str: str) -> pipeline_spec_pb2.ArtifactTypeSchema:
+    """Gets the IR ArtifactTypeSchema proto for a bundled artifact in form
+    `<namespace>.<Name>@x.x.x` (e.g., system.Artifact@0.0.1)."""
+    bundled_artifact_str, schema_version = bundled_artifact_str.split('@')
     return pipeline_spec_pb2.ArtifactTypeSchema(
-        schema_title=schema_title,
+        schema_title=bundled_artifact_str,
         schema_version=schema_version,
     )
 

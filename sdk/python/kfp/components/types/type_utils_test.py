@@ -332,20 +332,17 @@ class TestGetArtifactTypeSchema(parameterized.TestCase):
         # v2 standard system types
         {
             'schema_title': 'system.Artifact@0.0.1',
-            'schema_version': '0.0.1',
             'exp_schema_title': 'system.Artifact',
             'exp_schema_version': '0.0.1',
         },
         {
             'schema_title': 'system.Dataset@0.0.1',
-            'schema_version': '0.0.1',
             'exp_schema_title': 'system.Dataset',
             'exp_schema_version': '0.0.1',
         },
         # google type with schema_version
         {
             'schema_title': 'google.VertexDataset@0.0.2',
-            'schema_version': '0.0.2',
             'exp_schema_title': 'google.VertexDataset',
             'exp_schema_version': '0.0.2',
         },
@@ -353,23 +350,14 @@ class TestGetArtifactTypeSchema(parameterized.TestCase):
     def test_valid(
         self,
         schema_title: str,
-        schema_version: str,
         exp_schema_title: str,
         exp_schema_version: str,
     ):
-        artifact_type_schema = type_utils.get_artifact_type_schema_proto(
-            schema_title, schema_version)
+        artifact_type_schema = type_utils.bundled_artifact_to_artifact_proto(
+            schema_title)
         self.assertEqual(artifact_type_schema.schema_title, exp_schema_title)
         self.assertEqual(artifact_type_schema.schema_version,
                          exp_schema_version)
-
-    def test_exception(self):
-        with self.assertRaisesRegex(
-                TypeError,
-                r"Only 'system\.' and 'google\.' artifact schema_title are permitted\."
-        ):
-            type_utils.get_artifact_type_schema_proto('some_invalid_type',
-                                                      '0.0.1')
 
 
 class TestTypeCheckManager(unittest.TestCase):
