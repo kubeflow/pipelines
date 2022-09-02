@@ -31,6 +31,7 @@ from kfp.components import v1_structures
 from kfp.components.container_component_artifact_channel import \
     ContainerComponentArtifactChannel
 from kfp.components.types import artifact_types
+from kfp.components.types import type_annotations
 from kfp.components.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
@@ -46,8 +47,6 @@ class InputSpec_(base_model.BaseModel):
     """
     type: Union[str, dict]
     default: Optional[Any] = None
-    # only used for artifact inputs
-    schema_version: Optional[str] = None
 
 
 # Hack to allow access to __init__ arguments for setting _optional value
@@ -100,9 +99,7 @@ class InputSpec(InputSpec_, base_model.BaseModel):
                 'schemaVersion']
             return InputSpec(
                 type=type_utils.create_bundled_artifact_type(
-                    type_, schema_version),
-                schema_version=schema_version,
-            )
+                    type_, schema_version))
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for InputSpec. Robust to different type
@@ -119,12 +116,20 @@ class InputSpec(InputSpec_, base_model.BaseModel):
         """
         if isinstance(other, InputSpec):
             return type_utils.get_canonical_name_for_outer_generic(
-                self.type
-            ) == type_utils.get_canonical_name_for_outer_generic(
-                other.type
-            ) and self.default == other.default and self.schema_version == other.schema_version
+                self.type) == type_utils.get_canonical_name_for_outer_generic(
+                    other.type) and self.default == other.default
         else:
             return False
+
+    def validate_type(self) -> None:
+        """Type should either be a parameter or a valid bundled artifact type
+        by the time it gets to InputSpec.
+
+        This allows us to perform fewer checks downstream.
+        """
+        # TODO: add transformation logic so that we don't have to transform inputs at every place they are used, including v1 back compat support
+        if not spec_type_is_parameter(self.type):
+            type_utils.validate_bundled_artifact_type(self.type)
 
 
 class OutputSpec(base_model.BaseModel):
@@ -134,8 +139,6 @@ class OutputSpec(base_model.BaseModel):
         type: The type of the output.
     """
     type: Union[str, dict]
-    # only used for artifact outputs
-    schema_version: Optional[str] = None
 
     @classmethod
     def from_ir_component_outputs_dict(
@@ -163,9 +166,7 @@ class OutputSpec(base_model.BaseModel):
                 'schemaVersion']
             return OutputSpec(
                 type=type_utils.create_bundled_artifact_type(
-                    type_, schema_version),
-                schema_version=schema_version,
-            )
+                    type_, schema_version))
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for OutputSpec. Robust to different type
@@ -183,9 +184,26 @@ class OutputSpec(base_model.BaseModel):
         if isinstance(other, OutputSpec):
             return type_utils.get_canonical_name_for_outer_generic(
                 self.type) == type_utils.get_canonical_name_for_outer_generic(
-                    other.type) and self.schema_version == other.schema_version
+                    other.type)
         else:
             return False
+
+    def validate_type(self):
+        """Type should either be a parameter or a valid bundled artifact type
+        by the time it gets to OutputSpec.
+
+        This allows us to perform fewer checks downstream.
+        """
+        # TODO: add transformation logic so that we don't have to transform outputs at every place they are used, including v1 back compat support
+        if not spec_type_is_parameter(self.type):
+            type_utils.validate_bundled_artifact_type(self.type)
+
+
+def spec_type_is_parameter(type_: str) -> bool:
+    in_memory_type = type_annotations.maybe_strip_optional_from_annotation_string(
+        type_utils.get_canonical_name_for_outer_generic(type_))
+
+    return in_memory_type in type_utils.IN_MEMORY_SPEC_TYPE_TO_IR_TYPE or in_memory_type == 'PipelineTaskFinalStatus'
 
 
 class ResourceSpec(base_model.BaseModel):
@@ -611,12 +629,23 @@ class ComponentSpec(base_model.BaseModel):
         inputs = {}
         for spec in component_dict.get('inputs', []):
             type_ = spec.get('type')
+            print('TYPE', type_)
 
-            if isinstance(type_, str) and type_.lower(
-            ) in type_utils._PARAMETER_TYPES_MAPPING or type_ == 'PipelineTaskFinalStatus':
+            if isinstance(type_, str) and type_ == 'PipelineTaskFinalStatus':
+                inputs[utils.sanitize_input_name(
+                    spec['name'])] = InputSpec(type=type_)
+                continue
+
+            elif isinstance(type_, str) and type_.lower(
+            ) in type_utils._PARAMETER_TYPES_MAPPING:
                 default = spec.get('default')
+                type_enum = type_utils._PARAMETER_TYPES_MAPPING[type_.lower()]
+                ir_parameter_type_name = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
+                    type_enum)
+                in_memory_parameter_type_name = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE[
+                    ir_parameter_type_name]
                 inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
-                    type=type_,
+                    type=in_memory_parameter_type_name,
                     default=default,
                 )
                 continue
@@ -641,11 +670,17 @@ class ComponentSpec(base_model.BaseModel):
             else:
                 raise ValueError(f'Unknown input: {type_}')
 
-            inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
-                type=type_utils.create_bundled_artifact_type(
-                    schema_title, schema_version),
-                schema_version=schema_version,
-            )
+            if spec.get('optional', False):
+                # handles a v1 edge-case where a user marks an artifact input as optional with no default value. some of these v1 component YAMLs exist.
+                inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
+                    type=type_utils.create_bundled_artifact_type(
+                        schema_title, schema_version),
+                    default=None,
+                )
+            else:
+                inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
+                    type=type_utils.create_bundled_artifact_type(
+                        schema_title, schema_version))
 
         outputs = {}
         for spec in component_dict.get('outputs', []):
@@ -653,6 +688,11 @@ class ComponentSpec(base_model.BaseModel):
 
             if isinstance(type_, str) and type_.lower(
             ) in type_utils._PARAMETER_TYPES_MAPPING:
+                type_enum = type_utils._PARAMETER_TYPES_MAPPING[type_.lower()]
+                ir_parameter_type_name = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
+                    type_enum)
+                in_memory_parameter_type_name = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE[
+                    ir_parameter_type_name]
                 outputs[utils.sanitize_input_name(
                     spec['name'])] = OutputSpec(type=type_)
                 continue
@@ -679,9 +719,7 @@ class ComponentSpec(base_model.BaseModel):
 
             outputs[utils.sanitize_input_name(spec['name'])] = OutputSpec(
                 type=type_utils.create_bundled_artifact_type(
-                    schema_title, schema_version),
-                schema_version=schema_version,
-            )
+                    schema_title, schema_version))
 
         return ComponentSpec(
             name=component_dict.get('name', 'name'),
@@ -821,11 +859,7 @@ class ComponentSpec(base_model.BaseModel):
 
         for arg_name, input_spec in pipeline_inputs.items():
             args_dict[arg_name] = pipeline_channel.create_pipeline_channel(
-                name=arg_name,
-                channel_type=type_utils.create_bundled_artifact_type(
-                    input_spec.type, input_spec.schema_version)
-                if input_spec.schema_version else input_spec.type,
-            )
+                name=arg_name, channel_type=input_spec.type)
 
         task = pipeline_task.PipelineTask(self, args_dict)
 
@@ -839,9 +873,7 @@ class ComponentSpec(base_model.BaseModel):
         args_list_with_defaults = [
             pipeline_channel.create_pipeline_channel(
                 name=input_name,
-                channel_type=type_utils.create_bundled_artifact_type(
-                    input_spec.type, input_spec.schema_version)
-                if input_spec.schema_version else input_spec.type,
+                channel_type=input_spec.type,
                 value=input_spec.default,
             ) for input_name, input_spec in pipeline_inputs.items()
         ]
