@@ -162,7 +162,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 TypeError,
-                ' type "system.Model" cannot be paired with InputValuePlaceholder.'
+                ' type "system.Model@0.0.1" cannot be paired with InputValuePlaceholder.'
         ):
 
             @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
@@ -282,7 +282,6 @@ class TestCompilePipeline(parameterized.TestCase):
           args:
           - {inputPath: some_input}
       """)
-
         with self.assertRaisesRegex(
                 type_utils.InconsistentTypeException,
                 'Incompatible argument passed to the input "some_input" of '

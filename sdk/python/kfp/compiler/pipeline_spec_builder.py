@@ -367,8 +367,8 @@ def build_component_spec_for_task(
         else:
             component_spec.input_definitions.artifacts[
                 input_name].artifact_type.CopyFrom(
-                    type_utils.get_artifact_type_schema(
-                        input_spec.type, input_spec.schema_version))
+                    type_utils.bundled_artifact_to_artifact_proto(
+                        input_spec.type))
 
     for output_name, output_spec in (task.component_spec.outputs or {}).items():
         if type_utils.is_parameter_type(output_spec.type):
@@ -378,8 +378,8 @@ def build_component_spec_for_task(
         else:
             component_spec.output_definitions.artifacts[
                 output_name].artifact_type.CopyFrom(
-                    type_utils.get_artifact_type_schema(
-                        output_spec.type, output_spec.schema_version))
+                    type_utils.bundled_artifact_to_artifact_proto(
+                        output_spec.type))
 
     return component_spec
 
@@ -411,10 +411,8 @@ def _build_component_spec_from_component_spec_structure(
         else:
             component_spec.input_definitions.artifacts[
                 input_name].artifact_type.CopyFrom(
-                    type_utils.get_artifact_type_schema(
-                        input_spec.type,
-                        input_spec.schema_version,
-                    ))
+                    type_utils.bundled_artifact_to_artifact_proto(
+                        input_spec.type))
 
     for output_name, output_spec in (component_spec_struct.outputs or
                                      {}).items():
@@ -425,10 +423,8 @@ def _build_component_spec_from_component_spec_structure(
         else:
             component_spec.output_definitions.artifacts[
                 output_name].artifact_type.CopyFrom(
-                    type_utils.get_artifact_type_schema(
-                        output_spec.type,
-                        output_spec.schema_version,
-                    ))
+                    type_utils.bundled_artifact_to_artifact_proto(
+                        output_spec.type))
 
     return component_spec
 
@@ -502,8 +498,8 @@ def build_importer_spec_for_task(
     Returns:
         A ImporterSpec object for the task.
     """
-    type_schema = type_utils.get_artifact_type_schema(
-        task.importer_spec.schema_title, task.importer_spec.schema_version)
+    type_schema = type_utils.bundled_artifact_to_artifact_proto(
+        task.importer_spec.schema_title)
     importer_spec = pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec(
         type_schema=type_schema, reimport=task.importer_spec.reimport)
 
@@ -620,11 +616,10 @@ def build_component_spec_for_group(
             _additional_input_name_for_pipeline_channel(channel))
 
         if isinstance(channel, pipeline_channel.PipelineArtifactChannel):
-            schema_title, schema_version = channel.channel_type.split('@')
             component_spec.input_definitions.artifacts[
                 input_name].artifact_type.CopyFrom(
-                    type_utils.get_artifact_type_schema(schema_title,
-                                                        schema_version))
+                    type_utils.bundled_artifact_to_artifact_proto(
+                        channel.channel_type))
         else:
             # channel is one of PipelineParameterChannel, LoopArgument, or
             # LoopArgumentVariable.

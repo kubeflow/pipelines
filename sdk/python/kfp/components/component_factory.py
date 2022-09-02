@@ -129,35 +129,6 @@ def _get_function_source_definition(func: Callable) -> str:
     return '\n'.join(func_code_lines)
 
 
-def _annotation_to_type_struct(annotation):
-    if not annotation or annotation == inspect.Parameter.empty:
-        return None
-    if hasattr(annotation, 'to_dict'):
-        annotation = annotation.to_dict()
-    if isinstance(annotation, dict):
-        return annotation
-    if isinstance(annotation, type):
-        type_struct = type_utils.get_canonical_type_name_for_type(annotation)
-        if type_struct:
-            return type_struct
-        elif type_annotations.is_artifact(annotation):
-            schema_title = annotation.schema_title
-        else:
-            schema_title = str(annotation.__name__)
-
-    elif hasattr(annotation,
-                 '__forward_arg__'):  # Handling typing.ForwardRef('Type_name')
-        schema_title = str(annotation.__forward_arg__)
-    else:
-        schema_title = str(annotation)
-
-    # It's also possible to get the converter by type name
-    type_struct = type_utils.get_canonical_type_name_for_type(schema_title)
-    if type_struct:
-        return type_struct
-    return schema_title
-
-
 def _maybe_make_unique(name: str, names: List[str]):
     if name not in names:
         return name
@@ -222,7 +193,7 @@ def extract_component_interface(
                     'Path inputs only support default values of None. Default'
                     ' values for outputs are not supported.')
 
-        type_struct = _annotation_to_type_struct(parameter_type)
+        type_struct = type_utils._annotation_to_type_struct(parameter_type)
         if type_struct is None:
             raise TypeError('Missing type annotation for argument: {}'.format(
                 parameter.name))
@@ -234,27 +205,28 @@ def extract_component_interface(
             output_names.add(io_name)
             if type_annotations.is_artifact(parameter_type):
                 schema_version = parameter_type.schema_version
+                output_spec = structures.OutputSpec(
+                    type=type_utils.create_bundled_artifact_type(
+                        type_struct, schema_version))
             else:
-                schema_version = None
-            output_spec = structures.OutputSpec(
-                type=type_struct, schema_version=schema_version)
+                output_spec = structures.OutputSpec(type=type_struct)
             outputs[io_name] = output_spec
         else:
             io_name = _maybe_make_unique(io_name, input_names)
             input_names.add(io_name)
             if type_annotations.is_artifact(parameter_type):
                 schema_version = parameter_type.schema_version
-            else:
-                schema_version = None
-            if parameter.default is not inspect.Parameter.empty:
                 input_spec = structures.InputSpec(
-                    type=type_struct,
-                    default=parameter.default,
-                    schema_version=schema_version,
-                )
+                    type=type_utils.create_bundled_artifact_type(
+                        type_struct, schema_version))
             else:
-                input_spec = structures.InputSpec(
-                    type=type_struct, schema_version=schema_version)
+                if parameter.default is not inspect.Parameter.empty:
+                    input_spec = structures.InputSpec(
+                        type=type_struct,
+                        default=parameter.default,
+                    )
+                else:
+                    input_spec = structures.InputSpec(type=type_struct,)
 
             inputs[io_name] = input_spec
 
@@ -271,12 +243,19 @@ def extract_component_interface(
             for field_name in return_ann._fields:
                 type_struct = None
                 if field_annotations:
-                    type_struct = _annotation_to_type_struct(
+                    type_struct = type_utils._annotation_to_type_struct(
                         field_annotations.get(field_name, None))
 
                 output_name = _maybe_make_unique(field_name, output_names)
                 output_names.add(output_name)
-                output_spec = structures.OutputSpec(type=type_struct)
+                if type_struct.lower() in type_utils._PARAMETER_TYPES_MAPPING:
+
+                    output_spec = structures.OutputSpec(type=type_struct)
+                else:
+                    output_spec = structures.OutputSpec(
+                        type=type_utils.create_bundled_artifact_type(
+                            type_struct,
+                            field_annotations.get(field_name).schema_version))
                 outputs[output_name] = output_spec
         # Deprecated dict-based way of declaring multiple outputs. Was only used by
         # the @component decorator
@@ -287,7 +266,7 @@ def extract_component_interface(
                 ' 0.1.32. Please use typing.NamedTuple to declare multiple'
                 ' outputs.')
             for output_name, output_type_annotation in return_ann.items():
-                output_type_struct = _annotation_to_type_struct(
+                output_type_struct = type_utils._annotation_to_type_struct(
                     output_type_annotation)
                 output_spec = structures.OutputSpec(type=output_type_struct)
                 outputs[name] = output_spec
@@ -297,9 +276,15 @@ def extract_component_interface(
             # Fixes exotic, but possible collision:
             #   `def func(output_path: OutputPath()) -> str: ...`
             output_names.add(output_name)
-            type_struct = _annotation_to_type_struct(
-                signature.return_annotation)
-            output_spec = structures.OutputSpec(type=type_struct)
+            return_ann = signature.return_annotation
+            if type_annotations.is_artifact(signature.return_annotation):
+                output_spec = structures.OutputSpec(
+                    type=type_utils.create_bundled_artifact_type(
+                        return_ann.schema_title, return_ann.schema_version))
+            else:
+                type_struct = type_utils._annotation_to_type_struct(return_ann)
+                output_spec = structures.OutputSpec(type=type_struct)
+
             outputs[output_name] = output_spec
     elif return_ann != inspect.Parameter.empty and return_ann != structures.ContainerSpec:
         raise TypeError(

@@ -21,6 +21,7 @@ from kfp.components import pipeline_task
 from kfp.components import placeholders
 from kfp.components import structures
 from kfp.components.types import artifact_types
+from kfp.components.types import type_utils
 
 INPUT_KEY = 'uri'
 OUTPUT_KEY = 'artifact'
@@ -61,13 +62,18 @@ def importer(
             importer=structures.ImporterSpec(
                 artifact_uri=placeholders.InputValuePlaceholder(
                     INPUT_KEY).to_placeholder_string(),
-                schema_title=artifact_class.schema_title,
+                schema_title=type_utils.create_bundled_artifact_type(
+                    artifact_class.schema_title, artifact_class.schema_version),
                 schema_version=artifact_class.schema_version,
                 reimport=reimport,
                 metadata=metadata)),
         inputs={INPUT_KEY: structures.InputSpec(type='String')},
         outputs={
-            OUTPUT_KEY: structures.OutputSpec(type=artifact_class.schema_title)
+            OUTPUT_KEY:
+                structures.OutputSpec(
+                    type=type_utils.create_bundled_artifact_type(
+                        artifact_class.schema_title,
+                        artifact_class.schema_version))
         },
     )
 
