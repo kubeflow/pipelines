@@ -65,6 +65,8 @@ type UploadPipelineParams struct {
 	Description *string
 	/*Name*/
 	Name *string
+	/*Namespace*/
+	Namespace *string
 	/*Uploadfile
 	  The pipeline to upload. Maximum size of 32MB is supported.
 
@@ -131,6 +133,17 @@ func (o *UploadPipelineParams) SetName(name *string) {
 	o.Name = name
 }
 
+// WithNamespace adds the namespace to the upload pipeline params
+func (o *UploadPipelineParams) WithNamespace(namespace *string) *UploadPipelineParams {
+	o.SetNamespace(namespace)
+	return o
+}
+
+// SetNamespace adds the namespace to the upload pipeline params
+func (o *UploadPipelineParams) SetNamespace(namespace *string) {
+	o.Namespace = namespace
+}
+
 // WithUploadfile adds the uploadfile to the upload pipeline params
 func (o *UploadPipelineParams) WithUploadfile(uploadfile runtime.NamedReadCloser) *UploadPipelineParams {
 	o.SetUploadfile(uploadfile)
@@ -176,6 +189,22 @@ func (o *UploadPipelineParams) WriteToRequest(r runtime.ClientRequest, reg strfm
 		qName := qrName
 		if qName != "" {
 			if err := r.SetQueryParam("name", qName); err != nil {
+				return err
+			}
+		}
+
+	}
+
+	if o.Namespace != nil {
+
+		// query param namespace
+		var qrNamespace string
+		if o.Namespace != nil {
+			qrNamespace = *o.Namespace
+		}
+		qNamespace := qrNamespace
+		if qNamespace != "" {
+			if err := r.SetQueryParam("namespace", qNamespace); err != nil {
 				return err
 			}
 		}
