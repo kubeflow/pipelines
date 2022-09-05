@@ -157,8 +157,16 @@ implementation:
       - { inputValue: ground_truth_gcs_source }
       - --ground_truth_bigquery_source
       - { inputValue: ground_truth_bigquery_source }
-      - --key_prefix_in_prediction_dataset
-      - "instance"
+      - if:
+          cond: {isPresent: predictions_gcs_source}
+          then:
+          - --key_prefix_in_prediction_dataset
+          - "instance"
+      - if:
+          cond: {isPresent: predictions_bigquery_source}
+          then:
+          - --key_prefix_in_prediction_dataset
+          - ""
       - --key_columns
       - { inputValue: key_columns }
       - --root_dir
