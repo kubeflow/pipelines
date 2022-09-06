@@ -205,6 +205,7 @@ def prepare_parameters(kwargs: Dict[str, Any],
       value = resolve_init_args(key, value) if is_init else resolve_input_args(
           value, param_type)
       deserializer = utils.get_deserializer(param_type)
+      print(key)
       if deserializer:
         value = deserializer(value)
       else:
