@@ -32,7 +32,7 @@ METHOD_KEY = 'method'
 
 # Container image that is used for component containers
 # TODO tie the container version to sdk release version instead of latest
-DEFAULT_CONTAINER_IMAGE = 'gcr.io/ml-pipeline/google-cloud-pipeline-components:latest'
+DEFAULT_CONTAINER_IMAGE = 'gcr.io/ml-pipeline/google-cloud-pipeline-components@sha256:1ce987a89c512359233b26eff16c15b868977d1a9e5910f723ed16945046e49b'
 
 # map of MB SDK type to Metadata type
 RESOURCE_TO_METADATA_TYPE = {

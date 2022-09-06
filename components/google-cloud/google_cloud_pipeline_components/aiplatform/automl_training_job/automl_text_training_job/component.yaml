@@ -133,7 +133,7 @@ outputs:
 - {name: model, type: google.VertexModel}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components@sha256:1ce987a89c512359233b26eff16c15b868977d1a9e5910f723ed16945046e49b
     command: [python3, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner,
       --cls_name, AutoMLTextTrainingJob, --method_name, run]
     args:
