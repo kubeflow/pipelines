@@ -30,7 +30,7 @@ def component_op(
 
 
 @dsl.pipeline(name='v2-component-optional-input')
-def pipeline():
+def my_pipeline():
     component_op(
         input1='Hello',
         input2='World',
@@ -39,4 +39,5 @@ def pipeline():
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline,
+        package_path=__file__.replace('.py', '.yaml'))

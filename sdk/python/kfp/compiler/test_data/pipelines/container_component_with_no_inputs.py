@@ -26,10 +26,11 @@ def hello_world_container():
 
 
 @dsl.pipeline(name='v2-container-component-no-input')
-def pipeline():
+def my_pipeline():
     hello_world_container()
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=my_pipeline,
+        package_path=__file__.replace('.py', '.yaml'))
