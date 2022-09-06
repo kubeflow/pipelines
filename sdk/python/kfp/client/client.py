@@ -1049,7 +1049,7 @@ class Client:
             ``RunPipelineResult`` object containing information about the pipeline run.
         """
         #TODO: Check arguments against the pipeline function
-        pipeline_name = pipeline_func.__name__
+        pipeline_name = pipeline_func.name
         run_name = run_name or pipeline_name + ' ' + datetime.datetime.now(
         ).strftime('%Y-%m-%d %H-%M-%S')
 
