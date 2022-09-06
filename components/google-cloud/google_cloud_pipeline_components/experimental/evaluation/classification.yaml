@@ -107,7 +107,6 @@ inputs:
   - { name: project, type: String }
   - { name: location, type: String, default: "us-central1" }
   - { name: root_dir, type: String }
-  - { name: problem_type, type: String }
   - { name: predictions_format, type: String, default: "jsonl" }
   - { name: predictions_gcs_source, type: Artifact, optional: True }
   - { name: predictions_bigquery_source, type: google.BQTable, optional: True }
