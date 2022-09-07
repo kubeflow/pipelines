@@ -21,7 +21,8 @@ from kfp.dsl import component
 @component
 def print_env_op():
     import os
-    print(os.environ['ENV1'])
+    print('ENV1', os.environ.get('ENV1'))
+    print('ENV2', os.environ.get('ENV2'))
 
 
 print_env_2_op = components.load_component_from_text("""
