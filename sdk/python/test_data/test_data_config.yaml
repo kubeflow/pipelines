@@ -12,14 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# this YAML configures test cases for
-## sdk/python/kfp/compiler/read_write_test.py (serialization/deserialization correctness and consistency)
-## test/sdk-execution-tests/sdk_execution_tests.py (execution of tests)
-
-# execute may be false if (a) isn't a complete example (e.g., a dependency doesn't exist in the image, the image is fake, etc) or (b) the KFP BE cannot execute the pipeline
-
 pipelines:
-  test_data_dir: sdk/python/kfp/compiler/test_data/pipelines
+  test_data_dir: sdk/python/test_data/pipelines
   read: true
   write: true
   test_cases:
@@ -109,7 +103,7 @@ pipelines:
     - module: pipeline_as_exit_task
       execute: false
 components:
-  test_data_dir: sdk/python/kfp/compiler/test_data/components
+  test_data_dir: sdk/python/test_data/components
   read: true
   write: true
   test_cases:
@@ -152,7 +146,7 @@ components:
     - module: container_with_if_placeholder
       execute: false
 v1_components:
-  test_data_dir: sdk/python/kfp/compiler/test_data/v1_component_yaml
+  test_data_dir: sdk/python/test_data/v1_component_yaml
   read: true
   write: false
   test_cases:

@@ -27,7 +27,7 @@ KFP_ENDPOINT = os.environ['KFP_ENDPOINT']
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.abspath(
     os.path.join(CURRENT_DIR, *([os.path.pardir] * 2)))
-CONFIG_PATH = os.path.join(PROJECT_ROOT, 'sdk', 'python', 'kfp', 'compiler',
+CONFIG_PATH = os.path.join(PROJECT_ROOT, 'sdk', 'python', 'test_data',
                            'test_data_config.yaml')
 kfp_client = client.Client(host=KFP_ENDPOINT)
 DEFAULT_PIPELINE_FUNC_NAME = 'my_pipeline'

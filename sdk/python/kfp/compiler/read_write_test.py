@@ -32,8 +32,8 @@ _PROJECT_ROOT = os.path.abspath(os.path.join(__file__, *([os.path.pardir] * 5)))
 
 def create_test_cases() -> List[Dict[str, Any]]:
     parameters: List[Dict[str, Any]] = []
-    config_path = os.path.join(
-        os.path.dirname(__file__), 'test_data_config.yaml')
+    config_path = os.path.join(_PROJECT_ROOT, 'sdk', 'python', 'test_data',
+                               'test_data_config.yaml')
     with open(config_path) as f:
         config = yaml.safe_load(f)
     for name, test_group in config.items():
