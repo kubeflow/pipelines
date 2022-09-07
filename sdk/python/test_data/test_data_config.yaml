@@ -22,14 +22,13 @@ pipelines:
     - module: pipeline_with_importer_and_gcpc_types
       execute: false
     - module: pipeline_with_ontology
-      execute: true
+      execute: false
     - module: pipeline_with_if_placeholder
-      execute: true
-      arguments: { "input0": "a", "input1": "b", "input2": "c" }
+      execute: false
     - module: pipeline_with_concat_placeholder
-      execute: true
+      execute: false
     - module: pipeline_with_resource_spec
-      execute: true
+      execute: false
     - module: pipeline_with_various_io_types
       execute: false
     - module: pipeline_with_reused_component
@@ -48,7 +47,7 @@ pipelines:
     - module: pipeline_with_nested_loops
       execute: false
     - module: pipeline_with_loops_and_conditions
-      execute: true
+      execute: false
     - module: pipeline_with_params_containing_format
       execute: false
     - module: lightweight_python_functions_pipeline
@@ -74,7 +73,7 @@ pipelines:
     - module: component_with_optional_inputs
       execute: true
     - module: pipeline_with_gcpc_types
-      execute: true
+      execute: false
     - module: pipeline_with_placeholders
       execute: true
     - module: pipeline_with_task_final_status
