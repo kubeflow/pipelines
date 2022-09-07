@@ -90,7 +90,7 @@ def run(test_case: TestCase) -> Tuple[str, client.client.RunPipelineResult]:
     )
     run_url = f'{KFP_ENDPOINT}/#/runs/details/{run_result.run_id}'
     print(
-        f'- Created run {test_case.name} from\n\tModule: {test_case.module_path}\n\tURL: {run_url}\n'
+        f'- Created run {test_case.name}\n\tModule: {test_case.module_path}\n\tURL: {run_url}\n'
     )
     return run_url, run_result
 
@@ -107,4 +107,4 @@ async def test(test_case: TestCase) -> None:
             f'Error triggering pipeline {test_case.name}.') from e
 
     api_run = await event_loop.run_in_executor(None, wait, run_result)
-    assert api_run.run.status == 'Succeeded', f'Pipeline {test_case.name} ended with incorrect status: {api_run.run.status}. More info: {run_url}.'
+    assert api_run.run.status == 'Succeeded', f'Pipeline {test_case.name} ended with incorrect status: {api_run.run.status}. More info: {run_url}'
