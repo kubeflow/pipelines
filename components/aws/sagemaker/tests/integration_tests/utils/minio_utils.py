@@ -41,18 +41,13 @@ def get_artifact_in_minio(workflow_json, step_name, artifact_name, output_dir):
 
 
 
-def artifact_download_iterator(workflow_json, outputs_dict, output_dir,v2=False):
+def artifact_download_iterator(workflow_json, outputs_dict, output_dir):
     output_files = {}
     for step_name, artifacts in outputs_dict.items():
         output_files[step_name] = {}
         for artifact in artifacts:
-            if v2:
-                output_files[step_name][artifact] = get_artifact_in_minio(
-                    workflow_json, step_name, artifact, output_dir
-                )
-            else:
-                output_files[step_name][artifact] = get_artifact_in_minio(
-                    workflow_json, step_name, step_name + "-" + artifact, output_dir
-                )
+            output_files[step_name][artifact] = get_artifact_in_minio(
+                workflow_json, step_name, step_name + "-" + artifact, output_dir
+            )
 
     return output_files

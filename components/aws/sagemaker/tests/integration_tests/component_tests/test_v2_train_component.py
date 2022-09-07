@@ -35,18 +35,17 @@ def test_trainingjobV2(kfp_client, experiment_id, k8s_client, test_file_dir):
         test_params["Timeout"],
     )
     outputs = {
-        "trainingjob": [
-            "sagemaker-trainingjob-ack_resource_metadata",
-            "sagemaker-trainingjob-model_artifacts",
+        "sagemaker-trainingjob": [
+            "model_artifacts",
         ]
     }
     
     #Get output data
     output_files = minio_utils.artifact_download_iterator(
-        workflow_json, outputs, download_dir, v2=True
+        workflow_json, outputs, download_dir
     )
     model_artifact = utils.read_from_file_in_tar(
-        output_files["trainingjob"]["sagemaker-trainingjob-model_artifacts"]
+        output_files["sagemaker-trainingjob"]["model_artifacts"]
     )
 
     # Verify Training job was successful on SageMaker
