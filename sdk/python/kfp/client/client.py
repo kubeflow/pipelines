@@ -1579,7 +1579,7 @@ def _validate_pipeline_arguments(pipeline_obj: Dict[str, Any],
         arguments: Arguments to the pipeline function.
     """
 
-    input_definitions = pipeline_obj['root']['inputDefinitions']
+    input_definitions = pipeline_obj['root'].get('inputDefinitions', {})
     parameters = input_definitions.get('parameters', {})
     artifacts = input_definitions.get('artifacts', {})
     # note: artifact inputs are not supported at outermost pipeline level
@@ -1589,8 +1589,8 @@ def _validate_pipeline_arguments(pipeline_obj: Dict[str, Any],
     required_artifacts = {
         name for name, body in artifacts.items() if 'defaultValue' not in body
     }
-    not_provided_arguments = (required_parameters + required_artifacts) - set(
-        arguments.keys())
+    not_provided_arguments = required_parameters.union(
+        required_artifacts) - set(arguments.keys())
     if not_provided_arguments:
         raise ValueError(
             f'Cannot run pipeline. Pipeline submission is missing the following arguments: {not_provided_arguments}'
