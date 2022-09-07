@@ -33,7 +33,7 @@ _PROJECT_ROOT = os.path.abspath(os.path.join(__file__, *([os.path.pardir] * 5)))
 def create_test_cases() -> List[Dict[str, Any]]:
     parameters: List[Dict[str, Any]] = []
     config_path = os.path.join(
-        os.path.dirname(__file__), 'read_write_test_config.yaml')
+        os.path.dirname(__file__), 'test_data_config.yaml')
     with open(config_path) as f:
         config = yaml.safe_load(f)
     for name, test_group in config.items():
@@ -41,9 +41,9 @@ def create_test_cases() -> List[Dict[str, Any]]:
 
         parameters.extend({
             'name':
-                name + '-' + test_case,
+                name + '-' + test_case['module'],
             'test_case':
-                test_case,
+                test_case['module'],
             'test_data_dir':
                 test_data_dir,
             'read':
@@ -52,7 +52,7 @@ def create_test_cases() -> List[Dict[str, Any]]:
                 test_group['write'],
             'function':
                 _DEFAULT_PIPELINE_FUNC_NAME if name ==
-                'pipelines' else test_case,
+                'pipelines' else test_case['module'],
         } for test_case in test_group['test_cases'])
 
     return parameters

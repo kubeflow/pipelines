@@ -1,0 +1,166 @@
+# Copyright 2022 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# this YAML configures test cases for
+## sdk/python/kfp/compiler/read_write_test.py (serialization/deserialization correctness and consistency)
+## test/sdk-execution-tests/sdk_execution_tests.py (execution of tests)
+
+# execute may be false if (a) isn't a complete example (e.g., a dependency doesn't exist in the image, the image is fake, etc) or (b) the KFP BE cannot execute the pipeline
+
+pipelines:
+  test_data_dir: sdk/python/kfp/compiler/test_data/pipelines
+  read: true
+  write: true
+  test_cases:
+    - module: pipeline_with_importer
+      execute: false
+    - module: pipeline_with_importer_and_gcpc_types
+      execute: false
+    - module: pipeline_with_ontology
+      execute: true
+    - module: pipeline_with_if_placeholder
+      execute: true
+      arguments: { "input0": "a", "input1": "b", "input2": "c" }
+    - module: pipeline_with_concat_placeholder
+      execute: true
+    - module: pipeline_with_resource_spec
+      execute: true
+    - module: pipeline_with_various_io_types
+      execute: false
+    - module: pipeline_with_reused_component
+      execute: true
+    - module: pipeline_with_after
+      execute: true
+    - module: pipeline_with_condition
+      execute: true
+    - module: pipeline_with_nested_conditions
+      execute: true
+    - module: pipeline_with_nested_conditions_yaml
+      execute: true
+    - module: pipeline_with_loops
+      execute: true
+      arguments: { "loop_parameter": ["a", "b"] }
+    - module: pipeline_with_nested_loops
+      execute: false
+    - module: pipeline_with_loops_and_conditions
+      execute: true
+    - module: pipeline_with_params_containing_format
+      execute: false
+    - module: lightweight_python_functions_pipeline
+      execute: true
+      arguments: { "message": "here is my message" }
+    - module: lightweight_python_functions_with_outputs
+      execute: true
+      arguments:
+        {
+          "first_message": "a",
+          "second_message": "b",
+          "first_number": 1,
+          "second_number": 2,
+        }
+    - module: xgboost_sample_pipeline
+      execute: false
+    - module: pipeline_with_metrics_outputs
+      execute: true
+    - module: pipeline_with_exit_handler
+      execute: true
+    - module: pipeline_with_env
+      execute: true
+    - module: component_with_optional_inputs
+      execute: true
+    - module: pipeline_with_gcpc_types
+      execute: true
+    - module: pipeline_with_placeholders
+      execute: true
+    - module: pipeline_with_task_final_status
+      execute: false
+    - module: pipeline_with_task_final_status_yaml
+      execute: false
+    - module: component_with_pip_index_urls
+      execute: true
+    - module: container_component_with_no_inputs
+      execute: true
+    - module: two_step_pipeline_containerized
+      execute: true
+      arguments: { "text": "a" }
+    - module: pipeline_with_multiple_exit_handlers
+      execute: true
+    - module: pipeline_with_parallelfor_parallelism
+      execute: false
+    - module: pipeline_in_pipeline
+      execute: false
+    - module: pipeline_in_pipeline_complex
+      execute: true
+    - module: pipeline_with_outputs
+      execute: true
+    - module: pipeline_in_pipeline_loaded_from_yaml
+      execute: false
+    - module: pipeline_as_exit_task
+      execute: false
+components:
+  test_data_dir: sdk/python/kfp/compiler/test_data/components
+  read: true
+  write: true
+  test_cases:
+    - module: add_numbers
+      execute: true
+      arguments: { "a": 1, "b": 2 }
+    - module: component_with_pip_install
+      execute: true
+    - module: concat_message
+      execute: true
+      arguments: { "message1": "input message", "message2": other message" }
+    - module: dict_input
+      execute: true
+      arguments: { "struct": { "a": 1, "b": 2 } }
+    - module: identity
+      execute: true
+      arguments: { "value": "a" }
+    - module: input_artifact
+      execute: false
+    - module: nested_return
+      execute: true
+    - module: output_metrics
+      execute: true
+    - module: preprocess
+      execute: true
+      arguments:
+        {
+          "input_dict_parameter": { "a": 1 },
+          "input_list_parameter": [1, 2, 3],
+          "message": "another message",
+        }
+    - module: container_no_input
+      execute: true
+    - module: container_io
+      execute: false
+    - module: container_with_artifact_output
+      execute: false
+    - module: container_with_concat_placeholder
+      execute: false
+    - module: container_with_if_placeholder
+      execute: false
+v1_components:
+  test_data_dir: sdk/python/kfp/compiler/test_data/v1_component_yaml
+  read: true
+  write: false
+  test_cases:
+    - module: concat_placeholder_component
+      execute: false
+    - module: if_placeholder_component
+      execute: false
+    - module: add_component
+      execute: false
+    - module: ingestion_component
+      execute: false
