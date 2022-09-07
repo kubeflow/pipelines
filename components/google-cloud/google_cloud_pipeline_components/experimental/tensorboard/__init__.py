@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2022 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,6 +11,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Contains the version string of Google Cloud Pipeline Components."""
+"""Google Cloud Pipeline Tensorboard Components."""
 
-__version__ = "1.0.20.dev"
+import os
+
+try:
+  from kfp.v2.components import load_component_from_file
+except ImportError:
+  from kfp.components import load_component_from_file
+
+__all__ = [
+    'TensorboardExperimentCreatorOp',
+]
+
+TensorboardExperimentCreatorOp = load_component_from_file(
+        os.path.join(os.path.dirname(__file__), 'tensorboard_experiment_creator.yaml'))
