@@ -19,4 +19,6 @@ python3 -m pip install --upgrade pip
 python3 -m pip install $source_root/sdk/python
 python3 -m pip install -r $source_root/test/sdk-execution-tests/requirements.txt
 
-KFP_ENDPOINT="https://$(curl https://raw.githubusercontent.com/kubeflow/testing/master/test-infra/kfp/endpoint)" pytest $source_root/test/sdk-execution-tests/sdk_execution_tests.py --asyncio-task-timeout 1800
+export KFP_ENDPOINT="https://$(curl https://raw.githubusercontent.com/kubeflow/testing/master/test-infra/kfp/endpoint)"
+export TIMEOUT_SECONDS=2700
+pytest $source_root/test/sdk-execution-tests/sdk_execution_tests.py --asyncio-task-timeout $TIMEOUT_SECONDS

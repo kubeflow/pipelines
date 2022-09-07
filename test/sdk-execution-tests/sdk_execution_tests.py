@@ -24,13 +24,15 @@ import pytest
 import yaml
 
 KFP_ENDPOINT = os.environ['KFP_ENDPOINT']
+TIMEOUT_SECONDS = os.environ['TIMEOUT_SECONDS']
 CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
 PROJECT_ROOT = os.path.abspath(
     os.path.join(CURRENT_DIR, *([os.path.pardir] * 2)))
 CONFIG_PATH = os.path.join(PROJECT_ROOT, 'sdk', 'python', 'test_data',
                            'test_data_config.yaml')
-kfp_client = client.Client(host=KFP_ENDPOINT)
 DEFAULT_PIPELINE_FUNC_NAME = 'my_pipeline'
+
+kfp_client = client.Client(host=KFP_ENDPOINT)
 
 
 @dataclasses.dataclass
@@ -67,7 +69,7 @@ def create_test_case_parameters() -> List[TestCase]:
 
 def wait(run_result: client.client.RunPipelineResult) -> kfp_server_api.ApiRun:
     return kfp_client.wait_for_run_completion(
-        run_id=run_result.run_id, timeout=60 * 30)
+        run_id=run_result.run_id, timeout=int(TIMEOUT_SECONDS))
 
 
 def import_obj_from_file(python_path: str, obj_name: str) -> Any:
