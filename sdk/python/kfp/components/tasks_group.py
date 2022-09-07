@@ -109,8 +109,8 @@ class ExitHandler(TasksGroup):
 
         exit_task = ExitComponent(...)
         with ExitHandler(exit_task):
-            task1 = MyComponent1(...)
-            task2 = MyComponent2(...)
+            task1 = my_component1(...)
+            task2 = my_component2(...)
     """
 
     def __init__(
@@ -143,15 +143,15 @@ class Condition(TasksGroup):
     definition.
 
     Args:
-        condition: The condition expression. Can be constructed using constants or outputs from upstream tasks.
+        condition: A comparative expression that evaluates to True or False. At least one of the operands must be an output from an upstream task or a pipeline parameter.
         name: The name of the condition group.
 
     Example:
       ::
 
-        with Condition(param1=='pizza', '[param1 is pizza]'):
-            task1 = MyComponent1(...)
-            task2 = MyComponent2(...)
+        task1 = my_component1(...)
+        with Condition(task1.output=='pizza', 'pizza-condition'):
+            task2 = my_component2(...)
     """
 
     def __init__(
@@ -184,8 +184,8 @@ class ParallelFor(TasksGroup):
           items=[{'a': 1, 'b': 10}, {'a': 2, 'b': 20}],
           parallelism=1
         ) as item:
-            task1 = MyComponent(..., item.a)
-            task2 = MyComponent(..., item.b)
+            task1 = my_component(..., number=item.a)
+            task2 = my_component(..., number=item.b)
 
     In the example, the group of tasks containing ``task1`` and ``task2`` would
     be executed twice, once with case ``args=[{'a': 1, 'b': 10}]`` and once with

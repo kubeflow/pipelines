@@ -11,6 +11,4 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Contains the version string of Google Cloud Pipeline Components."""
-
-__version__ = "1.0.20.dev"
+"""Google Cloud Pipeline Tensorboard Components AI Platform root."""
