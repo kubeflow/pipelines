@@ -40,7 +40,6 @@ def get_artifact_in_minio(workflow_json, step_name, artifact_name, output_dir):
     return output_file
 
 
-
 def artifact_download_iterator(workflow_json, outputs_dict, output_dir):
     output_files = {}
     for step_name, artifacts in outputs_dict.items():

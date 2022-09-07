@@ -191,7 +191,6 @@ function install_ack(){
   cd -
 
   kubectl apply -f ${CHART_EXPORT_PATH}/${SERVICE}-chart/crds
-  kubectl version
   helm install -n ${ACK_K8S_NAMESPACE} --create-namespace --skip-crds ack-${SERVICE}-controller \
   ${CHART_EXPORT_PATH}/${SERVICE}-chart
   kubectl apply -f ack-rbac.yaml
