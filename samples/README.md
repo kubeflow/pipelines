@@ -100,4 +100,4 @@ If no config yaml is provided, pipeline parameters will be substituted by their 
 [`test/sample_test.yaml`](https://github.com/kubeflow/pipelines/blob/ecd93a50564652553260f8008c9a2d75ab907971/test/sample_test.yaml#L69)
 4. (*Optional*) The current sample test infra only checks if runs succeed without custom validation logic. 
 If needed, runtime checks should be included in the sample itself. However, there is no custom validation logic 
-injection support for `*.py` samples, in which case the test infra compiles the sample, submit and run the sample, and check if it succeeds.
+injection support for `*.py` samples, in which case the test infra compiles the sample, submit and run the sample, and check if it succeeds. 
