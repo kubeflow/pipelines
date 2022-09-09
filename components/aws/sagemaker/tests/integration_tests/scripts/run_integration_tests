@@ -83,7 +83,10 @@ function cleanup() {
   set +e
 
   cleanup_kfp
-  uninstall_ack
+  # If installation fails before ack installation resources should be freed.
+  if [[ -v ACK_K8S_NAMESPACE ]]; then
+    uninstall_ack
+  fi
   delete_assumed_role
   
   [ "${SKIP_KFP_OIDC_SETUP}" == "false" ] && delete_oidc_role
