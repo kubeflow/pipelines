@@ -25,11 +25,10 @@ def component_op():
 
 
 @dsl.pipeline(name='v2-component-pip-index-urls')
-def my_pipeline():
+def pipeline():
     component_op()
 
 
 if __name__ == '__main__':
     compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+        pipeline_func=pipeline, package_path=__file__.replace('.py', '.yaml'))
