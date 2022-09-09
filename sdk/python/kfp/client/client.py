@@ -15,15 +15,18 @@
 
 import copy
 import datetime
+import itertools
 import json
 import logging
 import os
 import re
+import sys
 import tarfile
 import tempfile
+import threading
 import time
 from types import ModuleType
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 import warnings
 import zipfile
 
@@ -1337,6 +1340,150 @@ class Client:
                 raise TimeoutError('Run timeout')
             time.sleep(5)
         return get_run_response
+
+    def watch_status(self, run_id: str) -> None:
+        """Watch the progress of a specified run using a TUI progress bar.
+
+        Args:
+            run_id: The ID of a run.
+        """
+        link = f"{self._get_url_prefix()}/#/runs/details/{run_id}"
+        print(f"Run details: {link}")
+
+        is_valid_token = False
+        attempts = 0
+        sleep_interval = 0
+        while attempts < 3:
+            try:
+                total = self._get_total_components(run_id)
+                self._loop_progress_bar(run_id, total)
+                is_valid_token = True
+                break
+            except (TypeError, KeyError):
+                # These errors surface when a call to watch_status is made immediately
+                # after creating a run. In that scenario, watch_status tries to retrieve
+                # information about a run that's not accessible yet and an exception is
+                # raised. To address that edge case, we have implemented a rudimentary
+                # rolling back-off.
+                attempts += 1
+                sleep_interval += 1
+                time.sleep(attempts)
+            except kfp_server_api.ApiException as api_ex:
+                # if the token is valid but receiving 401 Unauthorized error then
+                # refresh the token.
+                if is_valid_token and api_ex.status == 401:
+                    logging.info('Access token has expired !!! Refreshing ...')
+                    self._refresh_api_client_token()
+                    continue
+                else:
+                    raise api_ex
+
+    def _get_total_components(self, run_id: str) -> int:
+        """Retrieve the total component count of a specified run.
+
+        Args:
+            run_id: The ID of a run.
+
+        Returns:
+            Total component count.
+        """
+        run = self.get_run(run_id)
+
+        workflow_manifest = json.loads(run.pipeline_runtime.workflow_manifest)
+        component_root = json.loads(
+            workflow_manifest\
+                ["metadata"]\
+                ["annotations"]\
+                ["pipelines.kubeflow.org/components-root"]\
+        )
+        task_list = component_root["dag"]["tasks"]
+
+        return len(task_list)
+
+    def _parse_run_status(self, run_id: str) -> Tuple[int, str]:
+        """Retrieve the finished component count and overall phase of a
+        specified run.
+
+        Args:
+            run_id: The ID of a run.
+
+        Returns:
+            The completed component count and phase of the run.
+        """
+        run = self.get_run(run_id)
+        workflow_manifest = json.loads(run.pipeline_runtime.workflow_manifest)
+        status = workflow_manifest.get("status", {})
+        nodes = status.get("nodes", {})
+
+        completed = 0
+        for _, value in nodes.items():
+            # We only want to include nodes that execute the user-defined component
+            # code. The auxiliary nodes are implementation details that users are likely
+            # oblivious about and would be confused by.
+            # Source: https://github.com/kubeflow/pipelines/blob/master/backend/src/v2/compiler/argocompiler/container.go#L167
+            if value["templateName"] == "system-container-impl":
+                if value["phase"] in ["Succeeded", "Error", "Failed"]:
+                    completed += 1
+
+        phase = status.get("phase", {})
+
+        return completed, phase
+
+    def _render_progress_bar(self, completed: int, total: int):
+        """Render the progress bar.
+
+        Args:
+            completed: The number of completed components.
+            total: The total number of components.
+        """
+        cursor_hider = "\033[?25l"
+        prefix = "Progress → "
+        size = 50
+        x = int(size * completed / total)
+        output = f"{cursor_hider}{prefix}[{u'#'*x}{('.'*(size-x))}] {completed}/{total}"
+        sys.stdout.write(output)
+        sys.stdout.flush()
+
+    def _render_loading_animation(self):
+        """Render a loading animation."""
+        frames = ['|', '/', '-', '\\']
+        for c in itertools.cycle(frames):
+            sys.stdout.write('\r' + c + ' ')
+            sys.stdout.flush()
+            time.sleep(0.2)
+
+    def _loop_progress_bar(self, run_id: str, total: int):
+        """This method runs the loop and thread required to generate the
+        progress bar.
+
+        Args:
+            run_id: The ID of a run.
+            total: The total number of components in the specified run.
+        """
+        self._render_progress_bar(0, total)
+
+        # We execute the loading animation in a dedicated thread since it updates much
+        # more frequently than the progress bar.
+        t = threading.Thread(target=self._render_loading_animation, daemon=True)
+        t.start()
+
+        while True:
+            completed, phase = self._parse_run_status(run_id)
+            if phase in ["Error", "Failed"]:
+                self._render_progress_bar(completed, total)
+                print(f"\nRun did not succeed; phase: {phase}.")
+                break
+            elif phase == "Succeeded":
+                self._render_progress_bar(completed, total)
+                print("\n")
+                break
+            elif phase in ["Pending", "Running"]:
+                if completed != total:
+                    self._render_progress_bar(completed, total)
+                time.sleep(5)
+            else:
+                print(f"\nUnhandled phase: {phase}")
+                break
 
     def _get_workflow_json(self, run_id: str) -> dict:
         """Gets the workflow json.
