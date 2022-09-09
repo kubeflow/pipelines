@@ -7,7 +7,6 @@ import utils
 from datetime import datetime
 from filelock import FileLock
 
-from kubernetes import config
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -148,10 +147,6 @@ def s3_client(boto3_session):
 def kfp_client():
     kfp_installed_namespace = utils.get_kfp_namespace()
     return kfp.Client(namespace=kfp_installed_namespace)
-
-@pytest.fixture(scope="session")
-def k8s_client():
-    return config.new_client_from_config()
 
 def get_experiment_id(kfp_client):
     exp_name = datetime.now().strftime("%Y-%m-%d-%H-%M")

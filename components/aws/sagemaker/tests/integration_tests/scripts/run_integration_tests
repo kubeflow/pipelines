@@ -38,6 +38,12 @@ ROBOMAKER_EXECUTION_ROLE_ARN=${ROBOMAKER_EXECUTION_ROLE_ARN:-""}
 
 SKIP_FSX_TESTS=${SKIP_FSX_TESTS:-"false"}
 
+ACK_RELEASE_VERSION=${ACK_RELEASE_VERSION:-"v0.4.3"}
+HELM_EXPERIMENTAL_OCI=1
+SERVICE=sagemaker
+CHART_EXPORT_PATH=/tmp/chart
+CHART_REF=sagemaker-chart
+
 while getopts ":n:r:s:" opt; do
   case $opt in
     n)
@@ -169,15 +175,7 @@ function install_kfp() {
 }
 
 function install_ack(){
-
-  eksctl utils associate-iam-oidc-provider --cluster ${EKS_CLUSTER_NAME} \
-  --region ${REGION} --approve
-
-  local HELM_EXPERIMENTAL_OCI=1
-  SERVICE=sagemaker
-  local ACK_RELEASE_VERSION=v0.4.3
-  CHART_EXPORT_PATH=/tmp/chart
-  local CHART_REF=sagemaker-chart
+  
   local CHART_REPO=public.ecr.aws/aws-controllers-k8s/${CHART_REF}
   local CHART_PACKAGE=${CHART_REF}-${ACK_RELEASE_VERSION}.tgz
   ACK_K8S_NAMESPACE=ack-system

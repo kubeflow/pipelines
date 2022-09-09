@@ -1,5 +1,9 @@
-from kubernetes import client
+from time import sleep
+from kubernetes import client,config
 import os
+
+def k8s_client():
+    return config.new_client_from_config()
 
 def _get_resource(k8s_client,job_name,kvars):
     """Get the custom resource detail similar to: kubectl describe <resource> JOB_NAME -n NAMESPACE.
@@ -25,3 +29,11 @@ def describe_training_job(k8s_client,training_job_name):
         "plural":"trainingjobs",
     }
     return _get_resource(k8s_client,training_job_name,training_vars)
+
+#TODO: Make this a generalized function for non-job resources.
+def wait_for_trainingjob_status(k8s_client,training_job_name,desiredStatuses,wait_periods,period_length):
+    for _ in range(wait_periods):
+        response = describe_training_job(k8s_client,training_job_name)
+        if response["status"]["trainingJobStatus"] in desiredStatuses:return True
+        sleep(period_length)
+    return False

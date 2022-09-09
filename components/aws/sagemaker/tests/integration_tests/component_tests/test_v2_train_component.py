@@ -1,11 +1,9 @@
-from curses import meta
 import pytest
 import os
 import utils
 from utils import kfp_client_utils
 from utils import minio_utils
 from utils import ack_utils
-from utils import argo_utils
 import ast
 
 
@@ -13,7 +11,8 @@ import ast
     "test_file_dir",
     [pytest.param("resources/config/ack-training-job", marks=pytest.mark.canary_test)],
 )
-def test_trainingjobV2(kfp_client, experiment_id, k8s_client, test_file_dir):
+def test_trainingjobV2(kfp_client, experiment_id, test_file_dir):
+    k8s_client = ack_utils.k8s_client()
     test_file_dir = "resources/config/ack-training-job"
     download_dir = utils.mkdir(os.path.join(test_file_dir + "/generated"))
     test_params = utils.load_params(
@@ -59,15 +58,12 @@ def test_trainingjobV2(kfp_client, experiment_id, k8s_client, test_file_dir):
     assert model_uri == train_response["status"]["modelArtifacts"]["s3ModelArtifacts"]
     assert input_job_name in model_uri
 
-    assert not argo_utils.error_in_cw_logs(
-        workflow_json["metadata"]["name"]
-    ), "Found the CloudWatch error message in the log output. Check SageMaker to see if the job has failed."
-    
 
     utils.remove_dir(download_dir)
 
 
-def test_terminate_trainingjob(kfp_client, experiment_id, region, k8s_client):
+def test_terminate_trainingjob(kfp_client, experiment_id):
+    k8s_client = ack_utils.k8s_client()
     test_file_dir = "resources/config/ack-training-job"
     download_dir = utils.mkdir(os.path.join(test_file_dir + "/generated_terminate"))
 
@@ -92,7 +88,9 @@ def test_terminate_trainingjob(kfp_client, experiment_id, region, k8s_client):
     )
     print(f"Terminating run: {run_id} where Training job_name: {input_job_name}")
     kfp_client_utils.terminate_run(kfp_client, run_id)
-    response = ack_utils.describe_training_job(k8s_client, input_job_name)
-    assert response["status"]["trainingJobStatus"] in ["Stopping", "Stopped"]
-
+    # response = ack_utils.describe_training_job(k8s_client, input_job_name)
+    desiredStatuses = ["Stopping", "Stopped"]
+    training_status_reached = ack_utils.wait_for_trainingjob_status(k8s_client,input_job_name,desiredStatuses,10,6)
+    assert training_status_reached
+    
     utils.remove_dir(download_dir)
