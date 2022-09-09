@@ -16,7 +16,7 @@ import os
 import re
 import sys
 import tempfile
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Union
 import unittest
 
 from absl.testing import parameterized
@@ -26,7 +26,6 @@ from kfp.components import python_component
 from kfp.components import structures
 import yaml
 
-_DEFAULT_PIPELINE_FUNC_NAME = 'my_pipeline'
 _PROJECT_ROOT = os.path.abspath(os.path.join(__file__, *([os.path.pardir] * 5)))
 
 
@@ -40,19 +39,12 @@ def create_test_cases() -> List[Dict[str, Any]]:
         test_data_dir = os.path.join(_PROJECT_ROOT, test_group['test_data_dir'])
 
         parameters.extend({
-            'name':
-                name + '-' + test_case['module'],
-            'test_case':
-                test_case['module'],
-            'test_data_dir':
-                test_data_dir,
-            'read':
-                test_group['read'],
-            'write':
-                test_group['write'],
-            'function':
-                _DEFAULT_PIPELINE_FUNC_NAME if name ==
-                'pipelines' else test_case['module'],
+            'name': name + '-' + test_case['module'],
+            'test_case': test_case['module'],
+            'test_data_dir': test_data_dir,
+            'read': test_group['read'],
+            'write': test_group['write'],
+            'function': test_case['name']
         } for test_case in test_group['test_cases'])
 
     return parameters
@@ -138,10 +130,12 @@ class ReadWriteTest(parameterized.TestCase):
             strip_some_component_spec_fields(original_component.component_spec),
             strip_some_component_spec_fields(reloaded_component.component_spec))
 
-    def _test_serialization_correctness(self,
-                                        python_file: str,
-                                        yaml_file: str,
-                                        function_name: Optional[str] = None):
+    def _test_serialization_correctness(
+        self,
+        python_file: str,
+        yaml_file: str,
+        function_name: str,
+    ):
         """Tests serialization correctness."""
         pipeline = import_obj_from_file(python_file, function_name)
         compiled_result = self._compile_and_read_yaml(pipeline)
@@ -154,7 +148,7 @@ class ReadWriteTest(parameterized.TestCase):
         name: str,
         test_case: str,
         test_data_dir: str,
-        function: Optional[str],
+        function: str,
         read: bool,
         write: bool,
     ):
