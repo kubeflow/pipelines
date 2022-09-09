@@ -11,14 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 import asyncio
 import dataclasses
+import functools
 import os
 import sys
 from typing import Any, Dict, List, Tuple
 
 from kfp import client
+from kfp import dsl  # noqa
 import kfp_server_api
 import pytest
 import yaml
@@ -97,10 +98,25 @@ def run(test_case: TestCase) -> Tuple[str, client.client.RunPipelineResult]:
     return run_url, run_result
 
 
+def get_kfp_package_path() -> str:
+    if os.environ.get('PULL_NUMBER') is not None:
+        path = f'git+https://github.com/kubeflow/pipelines.git@refs/pull/{os.environ.get("PULL_NUMBER")}/merge#subdirectory=sdk/python'
+    else:
+        path = 'git+https://github.com/kubeflow/pipelines.git@master#subdirectory=sdk/python'
+    print(f'Using the following KFP package path for tests: {path}')
+    return path
+
+
+partial_component_decorator = functools.partial(
+    dsl.component, kfp_package_path=get_kfp_package_path())
+
+
 @pytest.mark.asyncio_cooperative
 @pytest.mark.parametrize('test_case', create_test_case_parameters())
-async def test(test_case: TestCase) -> None:
+async def test(test_case: TestCase, mocker) -> None:
     """Asynchronously runs all samples and test that they succeed."""
+    mocker.patch.object(dsl, 'component', partial_component_decorator)
+
     event_loop = asyncio.get_running_loop()
     try:
         run_url, run_result = run(test_case)
