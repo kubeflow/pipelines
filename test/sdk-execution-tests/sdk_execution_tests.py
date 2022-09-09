@@ -31,7 +31,6 @@ PROJECT_ROOT = os.path.abspath(
     os.path.join(CURRENT_DIR, *([os.path.pardir] * 2)))
 CONFIG_PATH = os.path.join(PROJECT_ROOT, 'sdk', 'python', 'test_data',
                            'test_data_config.yaml')
-DEFAULT_PIPELINE_FUNC_NAME = 'my_pipeline'
 
 kfp_client = client.Client(host=KFP_ENDPOINT)
 
@@ -59,11 +58,9 @@ def create_test_case_parameters() -> List[TestCase]:
                                          f'{test_case["module"]}.py'),
                 yaml_path=os.path.join(test_data_dir,
                                        f'{test_case["module"]}.yaml'),
-                function_name='my_pipeline' if name ==
-                'pipelines' else test_case['module'],
-                arguments=test_case.get('arguments'))
-            for test_case in test_group['test_cases']
-            if test_case['execute'])
+                function_name=test_case['name'],
+                arguments=test_case.get('arguments'),
+            ) for test_case in test_group['test_cases'] if test_case['execute'])
 
     return parameters
 
