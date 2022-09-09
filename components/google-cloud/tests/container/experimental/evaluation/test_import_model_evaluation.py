@@ -362,6 +362,28 @@ class ImportModelEvaluationTest(unittest.TestCase):
         })
 
   @mock_api_call
+  def test_import_model_evaluation_with_pipeline_resource_name(
+      self, mock_api, _):
+    main([
+        '--metrics', self.metrics_path, '--problem_type', 'classification',
+        '--model_name', self._model_name, '--pipeline_job_resource_name',
+        PIPELINE_JOB_ID, '--gcp_resources', self._gcp_resources
+    ])
+    mock_api.assert_called_with(
+        mock.ANY,
+        parent=self._model_name,
+        model_evaluation={
+            'metrics':
+                to_value(
+                    json.loads(METRICS)['slicedMetrics'][0]['metrics']
+                    ['regression']),
+            'metrics_schema_uri':
+                PROBLEM_TYPE_TO_SCHEMA_URI['classification'],
+            'metadata':
+                to_value({'pipeline_job_resource_name': PIPELINE_JOB_ID})
+        })
+
+  @mock_api_call
   def test_import_model_evaluation_slice(self, _, mock_api):
     main([
         '--metrics', self.metrics_path, '--problem_type', 'classification',
