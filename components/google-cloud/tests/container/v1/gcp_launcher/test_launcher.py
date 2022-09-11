@@ -317,6 +317,41 @@ class LauncherBigqueryExportModelJobUtilsTests(unittest.TestCase):
           executor_input='executor_input')
 
 
+class LauncherBigqueryExportTableJobUtilsTests(unittest.TestCase):
+
+  def setUp(self):
+    super(LauncherBigqueryExportTableJobUtilsTests, self).setUp()
+    self._gcp_resources = os.path.join(
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
+        'test_file_path/test_file.txt')
+    self._input_args = [
+        '--type', 'BigqueryExportTableJob', '--project', 'test_project',
+        '--location', 'us_central1', '--payload', 'test_payload',
+        '--table_name', 'test_project.test_dataset.test_table_name',
+        '--destination_path', 'gs://test_destination_path/testpath',
+        '--destination_format', 'test_format',
+        '--gcp_resources', self._gcp_resources,
+        '--executor_input', 'executor_input'
+    ]
+
+  def test_launcher_on_bigquery_export_table_job_type(self):
+    mock_bigquery_export_table_job = mock.Mock()
+    with mock.patch.dict(
+        launcher._JOB_TYPE_TO_ACTION_MAP,
+        {'BigqueryExportTableJob': mock_bigquery_export_table_job}):
+      launcher.main(self._input_args)
+      mock_bigquery_export_table_job.assert_called_once_with(
+          type='BigqueryExportTableJob',
+          project='test_project',
+          location='us_central1',
+          payload='test_payload',
+          table_name='test_project.test_dataset.test_table_name',
+          destination_path='gs://test_destination_path/testpath',
+          destination_format='test_format',
+          gcp_resources=self._gcp_resources,
+          executor_input='executor_input')
+
+
 class LauncherUnsupportedJobTypeTests(unittest.TestCase):
 
   def setUp(self):

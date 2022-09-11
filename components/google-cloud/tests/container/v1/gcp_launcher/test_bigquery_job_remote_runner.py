@@ -42,7 +42,10 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._location = 'US'
     self._job_uri = 'https://www.googleapis.com/bigquery/v2/projects/test_project/jobs/fake_job?location=US'
     self._model_name = 'testproject.testdataset.testmodel'
+    self._table_name = 'testproject.testdataset.testtable'
     self._model_destination_path = 'gs://testproject/testmodelpah'
+    self._destination_path = ['gs://testproject/testtablepath1', 'gs://testproject/testtablepath2']
+    self._destination_format = 'CSV'
     self._exported_model_path = os.path.join(
         os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
         'exported_model_path')
@@ -51,6 +54,25 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._output_file_path = os.path.join(
         os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'localpath/foo')
     self._executor_input = '{"outputs":{"artifacts":{"destination_table":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQTable"}}]}},"outputFile":"' + self._output_file_path + '"}}'
+
+    self._executor_input_export_table = {
+        "outputs": {
+          "artifacts": {
+            "gcs_output_directory": {
+              "artifacts": [
+                {
+                  "metadata": {},
+                  "name": "foobar",
+                  "type": {
+                    "schemaTitle": "system.Artifact",
+                  }
+                }
+              ]
+            }
+          },
+          "outputFile": self._output_file_path,
+        }
+      }
 
   def tearDown(self):
     if os.path.exists(self._gcp_resources):
@@ -1490,6 +1512,156 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     # Call cancellation handler
     mock_execution_context.call_args[1]['on_cancel']()
     self.assertEqual(mock_post_requests.call_count, 2)
+    mock_post_requests.assert_called_with(
+        url='https://www.googleapis.com/bigquery/v2/projects/test_project/jobs/fake_job/cancel',
+        data='',
+        headers={
+            'Content-type': 'application/json',
+            'Authorization': 'Bearer fake_token',
+        })
+
+# Tests for Export Table
+
+  def test_export_table_job_failed_invalid_format(self):
+    self._payload = '{"configuration": {"extract": {}, "labels": {}}}'
+    with self.assertRaises(ValueError):
+      bigquery_job_remote_runner.bigquery_export_table_job(
+        self._job_type, self._project, self._location, self._table_name,
+        self._destination_path, 'TEST_FORMAT', self._payload,
+        self._gcp_resources, json.dumps(self._executor_input_export_table))
+
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
+  @mock.patch.object(requests, 'get', autospec=True)
+  @mock.patch.object(time, 'sleep', autospec=True)
+  def test_export_table_job_poll_existing_job_succeeded(self, mock_time_sleep,
+                                                        mock_get_requests, _,
+                                                        mock_auth):
+    # Mimic the case that self._gcp_resources already stores the job uri.
+    with open(self._gcp_resources, 'w') as f:
+      f.write(
+        '{"resources": [{"resourceType": "BigqueryExportTableJob", "resourceUri": "' + self._job_uri + '"}]}'
+      )
+
+    creds = mock.Mock()
+    creds.token = 'fake_token'
+    mock_auth.return_value = [creds, 'project']
+
+    mock_polled_bq_job = mock.Mock()
+    mock_polled_bq_job.json.return_value = {
+      'selfLink': self._job_uri,
+      'status': {
+        'state': 'DONE'
+      },
+      'configuration': {
+        'extract': {
+          'destinationUris': self._destination_path,
+        }
+      }
+    }
+    mock_get_requests.return_value = mock_polled_bq_job
+
+    self._payload = '{"configuration": {"extract": {}, "labels": {}}}'
+    bigquery_job_remote_runner.bigquery_export_table_job(
+        self._job_type, self._project, self._location, self._table_name,
+        self._destination_path, self._destination_format, self._payload,
+        self._gcp_resources, json.dumps(self._executor_input_export_table))
+
+    # Check if the output artifact is as expected
+    with open(self._output_file_path) as f:
+      output = {"artifacts": self._executor_input_export_table["outputs"]["artifacts"]}
+      output["artifacts"]["gcs_output_directory"]["artifacts"][0]["uri"] = self._destination_path
+      self.assertEqual(json.dumps(output), f.read())
+    # Check if the method "_poll_job" was called with mock job_uri
+    self.assertEqual(mock_time_sleep.call_count, 1)
+    self.assertEqual(mock_get_requests.call_count, 1)
+    args, _ = mock_get_requests.call_args
+    self.assertEqual(self._job_uri, args[0])
+
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
+  @mock.patch.object(requests, 'get', autospec=True)
+  @mock.patch.object(time, 'sleep', autospec=True)
+  def test_export_table_job_poll_existing_job_failed(self, mock_time_sleep,
+                                                     mock_get_requests, _,
+                                                     mock_auth):
+    # Mimic the case that self._gcp_resources already stores the job uri.
+    with open(self._gcp_resources, 'w') as f:
+      f.write(
+        '{"resources": [{"resourceType": "BigqueryExportTableJob", "resourceUri": "' + self._job_uri + '"}]}'
+      )
+
+    creds = mock.Mock()
+    creds.token = 'fake_token'
+    mock_auth.return_value = [creds, 'project']
+
+    # job status with errorResult field
+    mock_polled_bq_job = mock.Mock()
+    mock_polled_bq_job.json.return_value = {
+        'selfLink': self._job_uri,
+        'status': {
+            'errorResult': {
+                'reason': 'testError',
+            },
+            'state': 'ERROR'
+        }
+    }
+    mock_get_requests.return_value = mock_polled_bq_job
+
+    self._payload = '{"configuration": {"extract": {}, "labels": {}}}'
+    with self.assertRaises(RuntimeError):
+      bigquery_job_remote_runner.bigquery_export_table_job(
+        self._job_type, self._project, self._location, self._table_name,
+        self._destination_path, self._destination_format, self._payload,
+        self._gcp_resources, json.dumps(self._executor_input_export_table))
+
+    self.assertEqual(mock_time_sleep.call_count, 1)
+    self.assertEqual(mock_get_requests.call_count, 1)
+
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
+  @mock.patch.object(requests, 'post', autospec=True)
+  @mock.patch.object(requests, 'get', autospec=True)
+  @mock.patch.object(time, 'sleep', autospec=True)
+  @mock.patch.object(ExecutionContext, '__init__', autospec=True)
+  def test_export_table_job_cancel(self, mock_execution_context,
+                                   mock_time_sleep,
+                                   mock_get_requests, mock_post_requests,
+                                   _, mock_auth):
+    creds = mock.Mock()
+    creds.token = 'fake_token'
+    mock_auth.return_value = [creds, 'project']
+
+    mock_created_bq_job = mock.Mock()
+    mock_created_bq_job.json.return_value = {'selfLink': self._job_uri}
+    mock_post_requests.return_value = mock_created_bq_job
+    mock_execution_context.return_value = None
+
+    mock_get_table_resp = mock.Mock()
+    mock_get_table_resp.json.return_value = {'id': 'test_table'}
+    mock_polled_bq_job = mock.Mock()
+    mock_polled_bq_job.json.return_value = {
+        'selfLink': self._job_uri,
+        'status': {
+            'state': 'DONE'
+        },
+        'configuration': {
+            'extract': {
+                'destinationUris': self._destination_path,
+            }
+        }
+    }
+    mock_get_requests.side_effect = [mock_get_table_resp, mock_polled_bq_job]
+    self._payload = '{"configuration": {"extract": {}, "labels": {}}}'
+    bigquery_job_remote_runner.bigquery_export_table_job(
+        self._job_type, self._project, self._location, self._table_name,
+        self._destination_path, self._destination_format, self._payload,
+        self._gcp_resources, json.dumps(self._executor_input_export_table))
+
+    # Call cancellation handler
+    mock_execution_context.call_args[1]['on_cancel']()
+    self.assertEqual(mock_post_requests.call_count, 2)
+    self.assertEqual(mock_time_sleep.call_count, 1)
     mock_post_requests.assert_called_with(
         url='https://www.googleapis.com/bigquery/v2/projects/test_project/jobs/fake_job/cancel',
         data='',

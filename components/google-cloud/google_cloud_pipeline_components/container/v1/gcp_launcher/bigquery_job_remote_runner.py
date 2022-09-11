@@ -30,6 +30,7 @@ from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResource
 from google_cloud_pipeline_components.types.artifact_types import BQTable, BQMLModel
 from os import path
 from typing import Optional
+from kfp.v2 import dsl
 
 _POLLING_INTERVAL_IN_SECONDS = 20
 _BQ_JOB_NAME_TEMPLATE = r'(https://www.googleapis.com/bigquery/v2/projects/(?P<project>.*)/jobs/(?P<job>.*)\?location=(?P<location>.*))'
@@ -426,6 +427,131 @@ def _get_model(model_reference, creds):
   return requests.get(model_uri, headers=headers).json()
 
 
+def _get_table(table_reference, creds):
+  if not creds.valid:
+    creds.refresh(google.auth.transport.requests.Request())
+  headers = {
+    'Content-type': 'application/json',
+    'Authorization': 'Bearer ' + creds.token
+  }
+  table_uri = 'https://bigquery.googleapis.com/bigquery/v2/projects/{projectId}/datasets/{datasetId}/tables/{tableId}'.format(
+    projectId=table_reference['projectId'],
+    datasetId=table_reference['datasetId'],
+    tableId=table_reference['tableId'],
+  )
+  return requests.get(table_uri, headers=headers).json()
+
+
+def _get_request_json(_type: str, uri: str, payload: str, destination_path: str,
+                      destination_format: str = 'CSV'):
+  uri_split = uri.split('.')
+  if len(uri_split) != 3:
+    raise ValueError(
+      f'The model name or table name must be in the format like "projectId.datasetId.modelId". Supplied: {uri}')
+
+  creds, _ = google.auth.default()
+  job_request_json = json.loads(payload, strict=False)
+  job_request_json['configuration']['extract']['destinationUris'] = [
+    destination_path
+  ]
+
+  if _type == 'model':
+    model_reference = {
+        'projectId': uri_split[0],
+        'datasetId': uri_split[1],
+        'modelId': uri_split[2],
+    }
+    job_request_json['configuration']['extract']['sourceModel'] = model_reference
+
+    model = _get_model(model_reference, creds)
+    if not model or 'modelType' not in model:
+      raise ValueError(
+          'Cannot get model resource. The model name must be in the format "projectId.datasetId.modelId".'
+      )
+    if model['modelType'].startswith('BOOSTED_TREE'):
+      # Default format is ML_TF_SAVED_MODEL.
+      job_request_json['configuration']['extract']['destinationFormat'] = 'ML_XGBOOST_BOOSTER'
+  elif _type == 'table':
+    table_reference = {
+      'projectId': uri_split[0],
+      'datasetId': uri_split[1],
+      'tableId': uri_split[2],
+    }
+    job_request_json['configuration']['extract']['sourceTable'] = table_reference
+
+    if 'destinationFormat' not in job_request_json['configuration']['extract']:
+      job_request_json['configuration']['extract']['destinationFormat'] = destination_format
+    table = _get_table(table_reference, creds)
+    if not table:
+      raise ValueError(
+        'Cannot get table resource. The table name must be in the format "projectId.datasetId.tableId".'
+      )
+  return job_request_json
+
+
+def bigquery_export_table_job(
+    type,
+    project,
+    location,
+    table_name,
+    destination_path,
+    destination_format,
+    payload,
+    gcp_resources,
+    executor_input,
+):
+  """Create and poll bigquery export table job till it reaches a final state.
+
+  This follows the typical launching logic:
+  1. Read if the bigquery job already exists in gcp_resources
+     - If already exists, jump to step 3 and poll the job status. This happens
+     if the launcher container experienced unexpected termination, such as
+     preemption
+  2. Deserialize the payload into the job spec and create the bigquery job
+  3. Poll the bigquery job status every
+  job_remote_runner._POLLING_INTERVAL_IN_SECONDS seconds
+     - If the bigquery job is succeeded, return succeeded
+     - If the bigquery job is pending/running, continue polling the status
+
+  Also retry on ConnectionError up to
+  job_remote_runner._CONNECTION_ERROR_RETRY_LIMIT times during the poll.
+
+
+  Args:
+      type: BigQuery export table job type.
+      project: Project to run BigQuery table export job.
+      location: Location of the job to export the BigQuery table. If not set,
+        default to `US` multi-region. For more details, see
+          https://cloud.google.com/bigquery/docs/locations#specifying_your_location
+      table_name: BigQuery table name to export.
+      destination_path: The file path to export the table to.
+      destination_format: File format of the destination files. If not set,
+        default to `CSV`. For more details, see
+          https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#jobconfigurationextract
+      payload: A json serialized Job proto. For more details, see
+        https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
+      gcp_resources: File path for storing `gcp_resources` output parameter.
+      executor_input:A json serialized pipeline executor input.
+  """
+  if destination_format not in ('CSV', 'NEWLINE_DELIMITED_JSON', 'PARQUET', 'AVRO'):
+    raise ValueError('destination_format: {} is not supported for table export. '
+                     'Use "CSV", "NEWLINE_DELIMITED_JSON", "PARQUET" or "AVRO."'.format(destination_format))
+  creds, _ = google.auth.default()
+  job_uri = _check_if_job_exists(gcp_resources)
+  if job_uri is None:
+    # Post a job only if no existing job
+    job_request_json = _get_request_json('table', table_name, payload,
+                                         destination_path, destination_format)
+    job_uri = _create_job(project, location, job_request_json, creds, gcp_resources)
+
+  # Poll bigquery job status until finished.
+  job = _poll_job(job_uri, creds)
+
+  # write destination_table output parameter
+  artifact_util.update_output_artifacts(executor_input, [
+    dsl.Artifact('gcs_output_directory', job['configuration']['extract']['destinationUris'][0])])
+
+
 def bigquery_export_model_job(
     type,
     project,
@@ -462,8 +588,6 @@ def bigquery_export_model_job(
           https://cloud.google.com/bigquery/docs/locations#specifying_your_location
       model_name: BigQuery ML model name to export.
       model_destination_path: The gcs bucket to export the model to.
-      trial_id: The trial id if it's a hp tuned model. For more details, see
-          https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-export-model
       payload: A json serialized Job proto. For more details, see
         https://cloud.google.com/bigquery/docs/reference/rest/v2/Job
       exported_model_path: File path for the `exported_model_path` output
@@ -475,38 +599,8 @@ def bigquery_export_model_job(
   job_uri = _check_if_job_exists(gcp_resources)
   if job_uri is None:
     # Post a job only if no existing job
-    model_name_split = model_name.split('.')
-    if len(model_name_split) != 3:
-      raise ValueError(
-          'The model name must be in the format "projectId.datasetId.modelId"')
-    model_reference = {
-        'projectId': model_name_split[0],
-        'datasetId': model_name_split[1],
-        'modelId': model_name_split[2],
-    }
-
-    model = _get_model(model_reference, creds)
-    if not model or 'modelType' not in model:
-      raise ValueError(
-          'Cannot get model resource. The model name must be in the format "projectId.datasetId.modelId" '
-      )
-
-    job_request_json = json.loads(payload, strict=False)
-
-    job_request_json['configuration']['extract'][
-        'sourceModel'] = model_reference
-
-    if model['modelType'].startswith('BOOSTED_TREE'):
-      # Default format is ML_TF_SAVED_MODEL.
-      job_request_json['configuration']['extract'][
-          'destinationFormat'] = 'ML_XGBOOST_BOOSTER'
-
-    job_request_json['configuration']['extract']['destinationUris'] = [
-        model_destination_path
-    ]
-
-    job_uri = _create_job(project, location, job_request_json, creds,
-                          gcp_resources)
+    job_request_json = _get_request_json('model', model_name, payload, model_destination_path)
+    job_uri = _create_job(project, location, job_request_json, creds, gcp_resources)
 
   # Poll bigquery job status until finished.
   job = _poll_job(job_uri, creds)
