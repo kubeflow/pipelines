@@ -1120,10 +1120,11 @@ def pipeline_spec_from_file(filepath: str) -> str:
     return json_format.ParseDict(dictionary, pipeline_spec_pb2.PipelineSpec())
 
 
-PIPELINES_TEST_DATA_DIR = os.path.join(
-    os.path.dirname(__file__), 'test_data', 'pipelines')
-UNSUPPORTED_COMPONENTS_TEST_DATA_DIR = os.path.join(
-    os.path.dirname(__file__), 'test_data', 'components', 'unsupported')
+_PROJECT_ROOT = os.path.abspath(os.path.join(__file__, *([os.path.pardir] * 5)))
+_TEST_DATA_DIR = os.path.join(_PROJECT_ROOT, 'sdk', 'python', 'test_data')
+PIPELINES_TEST_DATA_DIR = os.path.join(_TEST_DATA_DIR, 'pipelines')
+UNSUPPORTED_COMPONENTS_TEST_DATA_DIR = os.path.join(_TEST_DATA_DIR,
+                                                    'components', 'unsupported')
 
 
 class TestReadWriteEquality(parameterized.TestCase):
