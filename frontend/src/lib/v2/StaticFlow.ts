@@ -121,7 +121,7 @@ function buildDag(pipelineSpec: PipelineSpec, componentSpec: ComponentSpec): Ele
   let flowGraph: FlowElement[] = [];
 
   const tasksMap = dag.tasks || {};
-  console.log('tasksMap count: ' + tasksMap.length);
+  // console.log('tasksMap count: ' + tasksMap.length);
 
   addTaskNodes(tasksMap, componentsMap, flowGraph);
   addArtifactNodes(tasksMap, componentsMap, flowGraph);

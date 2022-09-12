@@ -34,7 +34,7 @@ import { KeyValue } from 'src/lib/StaticGraphParser';
 import { hasFinished, NodePhase } from 'src/lib/StatusUtils';
 import { formatDateString, getRunDurationFromApiRun } from 'src/lib/Utils';
 import { getNodeMlmdInfo, updateFlowElementsState } from 'src/lib/v2/DynamicFlow';
-import { convertFlowElements } from 'src/lib/v2/StaticFlow';
+import { convertFlowElements, convertSubDagToFlowElements } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import {
   getArtifactsFromContext,
@@ -91,6 +91,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const layerChange = (layers: string[]) => {
     setSelectedNode(null);
     setLayers(layers);
+    setFlowElements(convertSubDagToFlowElements(pipelineSpec, layers)); // render elements in the sub-layer.
   };
 
   const getNodeName = function(element: FlowElement<FlowElementDataBase> | null): string {
