@@ -89,10 +89,13 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   // TODO(zijianjoy): Update elements and states when layers change.
   const layerChange = (layers: string[]) => {
+    // console.log(layers);
     setSelectedNode(null);
     setLayers(layers);
     setFlowElements(convertSubDagToFlowElements(pipelineSpec, layers)); // render elements in the sub-layer.
   };
+
+  console.log(elements);
 
   const getNodeName = function(element: FlowElement<FlowElementDataBase> | null): string {
     if (element && element.data && element.data.label) {
@@ -201,6 +204,8 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
                 defaultWidth={'50%'}
               >
                 <RuntimeNodeDetailsV2
+                  layers={layers}
+                  onLayerChange={layerChange}
                   element={selectedNode}
                   elementMlmdInfo={selectedNodeMlmdInfo}
                   namespace={namespace}

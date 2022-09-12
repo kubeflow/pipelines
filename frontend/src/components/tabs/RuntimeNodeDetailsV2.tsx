@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
+import { Button } from '@material-ui/core';
 import * as React from 'react';
 import { useState } from 'react';
 import { FlowElement } from 'react-flow-renderer';
+import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import { useQuery } from 'react-query';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';
 import { KeyValue } from 'src/lib/StaticGraphParser';
-import { NodeTypeNames } from 'src/lib/v2/StaticFlow';
+import { getTaskKeyFromNodeKey, NodeTypeNames } from 'src/lib/v2/StaticFlow';
 import { getArtifactTypeName, getArtifactTypes, LinkedArtifact } from 'src/mlmd/MlmdUtils';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { Artifact, ArtifactType, Execution } from 'src/third_party/mlmd';
@@ -50,12 +52,16 @@ const NODE_STATE_UNAVAILABLE = (
 );
 
 interface RuntimeNodeDetailsV2Props {
+  layers: string[];
+  onLayerChange: (layers: string[]) => void;
   element?: FlowElement<FlowElementDataBase> | null;
   elementMlmdInfo?: NodeMlmdInfo | null;
   namespace: string | undefined;
 }
 
 export function RuntimeNodeDetailsV2({
+  layers,
+  onLayerChange,
   element,
   elementMlmdInfo,
   namespace,
@@ -86,8 +92,9 @@ export function RuntimeNodeDetailsV2({
     } else if (NodeTypeNames.SUB_DAG === element.type) {
       return (
         <SubDAGNodeDetail
-        
-        
+          element={element}
+          layers={layers}
+          onLayerChange={onLayerChange}
         />
       )
     }
@@ -295,8 +302,34 @@ function ArtifactInfo({
   );
 }
 
-function SubDAGNodeDetail() {
+interface SubDAGNodeDetailProps {
+  element: FlowElement<FlowElementDataBase>;
+  layers: string[];
+  onLayerChange: (layers: string[]) => void;
+}
+
+function SubDAGNodeDetail({
+    element,
+    layers,
+    onLayerChange,
+}: SubDAGNodeDetailProps) {
+  const taskKey = getTaskKeyFromNodeKey(element.id);
+  // const componentSpec = getComponentSpec(pipelineSpec, layers, taskKey);
+  // if (!componentSpec) {
+  //   return NODE_INFO_UNKNOWN;
+  // }
+
+  const onSubDagOpenClick = () => {
+    onLayerChange([...layers, taskKey]);
+  };
+
   return (
-    <div>sub dag information</div>
+
+      <div>
+        <Button variant='contained' onClick={onSubDagOpenClick}>
+          Open Workflow
+        </Button>
+      </div>
+
   );
 }
