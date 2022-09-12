@@ -14,10 +14,12 @@
 import sys
 import tempfile
 
+# NOTE: this is a compilation test only and is not executable, since dummy_third_party_package does not exist and cannot be installed or imported at runtime
 
-def create_temporary_non_kfp_artifact_package(
+
+def create_temporary_google_artifact_package(
         temp_dir: tempfile.TemporaryDirectory) -> None:
-    """Creates a fake temporary module that can be used as a non-kfp package
+    """Creates a fake temporary module that can be used as a Vertex SDK mock
     for testing purposes."""
     import inspect
     import os
@@ -58,11 +60,10 @@ def create_temporary_non_kfp_artifact_package(
 
 
 # remove try finally when a third-party package adds pre-registered custom artifact types that we can use for testing
-# NOTE: this is a compilation test only and is not executable, since dummy_third_party_package does not exist and cannot be installed or imported at runtime
 try:
     temp_dir = tempfile.TemporaryDirectory()
     sys.path.append(temp_dir.name)
-    create_temporary_non_kfp_artifact_package(temp_dir)
+    create_temporary_google_artifact_package(temp_dir)
 
     import aiplatform
     from aiplatform import VertexDataset
@@ -96,7 +97,7 @@ try:
         print('artifact.uri: ', dataset.uri)
         print('artifact.metadata: ', dataset.metadata)
 
-    @dsl.pipeline(name='pipeline-with-vertex-types')
+    @dsl.pipeline(name='pipeline-with-google-types')
     def my_pipeline():
         producer_task = model_producer()
         importer = dsl.importer(
