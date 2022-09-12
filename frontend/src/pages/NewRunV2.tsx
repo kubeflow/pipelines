@@ -16,24 +16,31 @@
 
 import { Button, Dialog, DialogActions, DialogContent, InputAdornment } from '@material-ui/core';
 import React, { useEffect, useState } from 'react';
-import { useMutation, useQuery } from 'react-query';
+import { useMutation } from 'react-query';
+import { Link } from 'react-router-dom';
 import { ApiExperiment, ApiExperimentStorageState } from 'src/apis/experiment';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
-import { ApiRelationship, ApiResourceReference, ApiResourceType, ApiRun } from 'src/apis/run';
+import {
+  ApiRelationship,
+  ApiResourceReference,
+  ApiResourceType,
+  ApiRun,
+  ApiRunDetail,
+  PipelineSpecRuntimeConfig,
+} from 'src/apis/run';
 import BusyButton from 'src/atoms/BusyButton';
 import { ExternalLink } from 'src/atoms/ExternalLink';
 import { HelpButton } from 'src/atoms/HelpButton';
 import Input from 'src/atoms/Input';
+import { CustomRendererProps } from 'src/components/CustomTable';
 import { NameWithTooltip } from 'src/components/CustomTableNameColumn';
+import { Description } from 'src/components/Description';
 import NewRunParametersV2 from 'src/components/NewRunParametersV2';
 import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
 import { color, commonCss, padding } from 'src/Css';
-import {
-  ComponentInputsSpec_ParameterSpec,
-  PipelineSpec,
-} from 'src/generated/pipeline_spec/pipeline_spec';
-import { Apis, ExperimentSortKeys } from 'src/lib/Apis';
+import { ComponentInputsSpec_ParameterSpec } from 'src/generated/pipeline_spec/pipeline_spec';
+import { Apis, ExperimentSortKeys, PipelineSortKeys, PipelineVersionSortKeys } from 'src/lib/Apis';
 import { URLParser } from 'src/lib/URLParser';
 import { errorToMessage, generateRandomString } from 'src/lib/Utils';
 import { convertYamlToV2PipelineSpec } from 'src/lib/v2/WorkflowUtils';
@@ -53,8 +60,20 @@ const css = stylesheet({
   },
 });
 
+const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props => {
+  return <Description description={props.value || ''} forceInline={true} />;
+};
+
 interface RunV2Props {
   namespace?: string;
+  existingRunId: string | null;
+  apiRun: ApiRunDetail | undefined;
+  existingPipeline: ApiPipeline | undefined;
+  handlePipelineIdChange: (pipelineId: string) => void;
+  existingPipelineVersion: ApiPipelineVersion | undefined;
+  handlePipelineVersionIdChange: (pipelineVersionId: string) => void;
+  templateString: string | undefined;
+  chosenExperiment: ApiExperiment | undefined;
 }
 
 type NewRunV2Props = RunV2Props & PageProps;
@@ -62,13 +81,39 @@ type NewRunV2Props = RunV2Props & PageProps;
 export type SpecParameters = { [key: string]: ComponentInputsSpec_ParameterSpec };
 export type RuntimeParameters = { [key: string]: any };
 
+function hasVersionID(apiRun: ApiRunDetail | undefined): boolean {
+  if (!apiRun) {
+    return true;
+  }
+  let hasVersionType: boolean = false;
+  if (apiRun.run?.resource_references) {
+    apiRun.run.resource_references.forEach(value => {
+      hasVersionType = hasVersionType || value.key?.type === ApiResourceType.PIPELINEVERSION;
+    });
+  }
+  return hasVersionType;
+}
+
 function NewRunV2(props: NewRunV2Props) {
   // List of elements we need to create Pipeline Run.
+  const {
+    existingRunId,
+    apiRun,
+    existingPipeline,
+    handlePipelineIdChange,
+    existingPipelineVersion,
+    handlePipelineVersionIdChange,
+    templateString,
+    chosenExperiment,
+  } = props;
   const [runName, setRunName] = useState('');
   const [runDescription, setRunDescription] = useState('');
-  const [apiExperiment, setApiExperiment] = useState<ApiExperiment>();
+  const [pipelineName, setPipelineName] = useState('');
+  const [pipelineVersionName, setPipelineVersionName] = useState('');
+  const [experimentId, setExperimentId] = useState('');
+  const [apiExperiment, setApiExperiment] = useState(chosenExperiment);
+  const [experimentName, setExperimentName] = useState('');
   const [serviceAccount, setServiceAccount] = useState('');
-  const [pipelineSpec, setPipelineSpec] = useState<PipelineSpec>();
   const [specParameters, setSpecParameters] = useState<SpecParameters>({});
   const [runtimeParameters, setRuntimeParameters] = useState<RuntimeParameters>({});
   const [pipelineRoot, setPipelineRoot] = useState<string>();
@@ -76,69 +121,64 @@ function NewRunV2(props: NewRunV2Props) {
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isParameterValid, setIsParameterValid] = useState(false);
+  const [clonedRuntimeConfig, setClonedRuntimeConfig] = useState<PipelineSpecRuntimeConfig>({});
 
-  // TODO(zijianjoy): If creating run from Experiment Page or RunList Page, there is no pipelineId/Version.
   const urlParser = new URLParser(props);
-  const pipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
-  const pipelineVersionIdParam = urlParser.get(QUERY_PARAMS.pipelineVersionId);
+  const usePipelineFromRunLabel = 'Using pipeline from existing run.';
+  const pipelineDetailsUrl = existingRunId
+    ? RoutePage.PIPELINE_DETAILS.replace(
+        ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
+        '',
+      ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: existingRunId })
+    : '';
 
-  // Retrieve Pipeline Detail using pipeline ID and pipeline version ID from backend.
-  // It validates that the pipeline entity indeed exists with pipeline ID.
-  // TODO(zijianjoy): Need to implement the feature to choose pipeline ID and pipeline version ID from this page.
-  // TODO(zijianjoy): Need to show error if pipeline fetch failed to show up.
-  const { isSuccess: isPipelinePullSuccess, data: apiPipeline } = useQuery<ApiPipeline, Error>(
-    ['ApiPipeline', pipelineId],
-    () => {
-      if (!pipelineId) {
-        throw new Error('Pipeline ID is missing');
-      }
-      return Apis.pipelineServiceApi.getPipeline(pipelineId);
-    },
-    { enabled: !!pipelineId, staleTime: Infinity },
-  );
-  const { isSuccess: isPipelineVersionPullSuccess, data: apiPipelineVersion } = useQuery<
-    ApiPipelineVersion,
-    Error
-  >(
-    ['ApiPipelineVersion', apiPipeline, pipelineVersionIdParam],
-    () => {
-      const pipelineVersionId = pipelineVersionIdParam || apiPipeline?.default_version?.id;
-      if (!pipelineVersionId) {
-        throw new Error('Pipeline Version ID is missing');
-      }
-      return Apis.pipelineServiceApi.getPipelineVersion(pipelineVersionId);
-    },
-    { enabled: !!apiPipeline, staleTime: Infinity },
-  );
-  const { isSuccess: isTemplatePullSuccess, data: templateString } = useQuery<string, Error>(
-    ['ApiPipelineVersionTemplate', apiPipeline, pipelineVersionIdParam],
-    async () => {
-      const pipelineVersionId = apiPipelineVersion?.id;
-      if (!pipelineVersionId) {
-        return '';
-      }
-      const template = await Apis.pipelineServiceApi.getPipelineVersionTemplate(pipelineVersionId);
-      return template?.template || '';
-    },
-    { enabled: !!apiPipelineVersion, staleTime: Infinity },
-  );
+  const isTemplatePullSuccess = templateString ? true : false;
+  const apiResourceRefFromRun = apiRun?.run?.resource_references
+    ? apiRun.run?.resource_references
+    : undefined;
+
+  const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
+  const titleVerb = existingRunId ? 'Clone' : 'Start';
+  const titleAdjective = existingRunId ? '' : 'new';
 
   // Title and list of actions on the top of page.
   useEffect(() => {
     props.updateToolbar({
       actions: {},
-      pageTitle: 'Start a new run',
+      pageTitle: isRecurringRun
+        ? `${titleVerb} a recurring run`
+        : `${titleVerb} a ${titleAdjective} run`,
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Pre-fill names for pipeline, pipeline version and experiment.
+  useEffect(() => {
+    if (existingPipeline?.name) {
+      setPipelineName(existingPipeline.name);
+    }
+    if (existingPipelineVersion?.name) {
+      setPipelineVersionName(existingPipelineVersion.name);
+    }
+    if (apiExperiment?.name) {
+      setExperimentName(apiExperiment.name);
+    }
+    if (apiExperiment?.id) {
+      setExperimentId(apiExperiment.id);
+    }
+  }, [existingPipeline, existingPipelineVersion, apiExperiment]);
 
   // When loading a pipeline version, automatically set the default run name.
   useEffect(() => {
-    if (apiPipelineVersion?.name) {
+    if (apiRun?.run?.name) {
+      const cloneRunName = 'Clone of ' + apiRun.run.name;
+      setRunName(cloneRunName);
+    } else if (existingPipelineVersion?.name) {
       const initRunName =
-        'Run of ' + apiPipelineVersion.name + ' (' + generateRandomString(5) + ')';
+        'Run of ' + existingPipelineVersion.name + ' (' + generateRandomString(5) + ')';
       setRunName(initRunName);
     }
-  }, [apiPipelineVersion]);
+  }, [apiRun, existingPipelineVersion]);
 
   // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
   useEffect(() => {
@@ -147,11 +187,12 @@ function NewRunV2(props: NewRunV2Props) {
     }
 
     const spec = convertYamlToV2PipelineSpec(templateString);
-    setPipelineSpec(spec);
 
     const params = spec.root?.inputDefinitions?.parameters;
     if (params) {
       setSpecParameters(params);
+    } else {
+      setSpecParameters({});
     }
 
     const root = spec.defaultPipelineRoot;
@@ -168,6 +209,12 @@ function NewRunV2(props: NewRunV2Props) {
       setIsStartButtonEnabled(true);
     }
   }, [templateString, errorMessage, isParameterValid]);
+
+  useEffect(() => {
+    if (apiRun?.run?.pipeline_spec?.runtime_config) {
+      setClonedRuntimeConfig(apiRun?.run?.pipeline_spec?.runtime_config);
+    }
+  }, [apiRun]);
 
   // Whenever any input value changes, validate and show error if needed.
   // TODO(zijianjoy): Validate run name for now, we need to validate others first.
@@ -198,10 +245,10 @@ function NewRunV2(props: NewRunV2Props) {
         relationship: ApiRelationship.OWNER,
       });
     }
-    if (apiPipelineVersion) {
+    if (existingPipelineVersion && hasVersionID(apiRun)) {
       references.push({
         key: {
-          id: apiPipelineVersion.id,
+          id: existingPipelineVersion.id,
           type: ApiResourceType.PIPELINEVERSION,
         },
         relationship: ApiRelationship.CREATOR,
@@ -212,13 +259,16 @@ function NewRunV2(props: NewRunV2Props) {
       description: runDescription,
       name: runName,
       pipeline_spec: {
+        // FE can only provide either pipeline_manifest or pipeline version
+        pipeline_manifest: hasVersionID(apiRun) ? undefined : templateString,
         runtime_config: {
           // TODO(zijianjoy): determine whether to provide pipeline root.
           pipeline_root: undefined, // pipelineRoot,
           parameters: runtimeParameters,
         },
       },
-      resource_references: references,
+      //TODO(jlyaoyuli): deprecate the resource reference and use pipeline / workflow manifest
+      resource_references: apiResourceRefFromRun ? apiResourceRefFromRun : references,
       service_account: serviceAccount,
     };
     setIsStartingNewRun(true);
@@ -253,31 +303,66 @@ function NewRunV2(props: NewRunV2Props) {
       <div className={commonCss.scrollContainer}>
         <div className={commonCss.header}>Run details</div>
 
-        {/* Pipeline selection */}
-        <Input
-          value={apiPipeline?.name || ''}
-          required={true}
-          label='Pipeline'
-          disabled={true}
-          variant='outlined'
-          InputProps={{
-            classes: { disabled: css.nonEditableInput },
-            readOnly: true,
-          }}
-        />
+        {apiRun && (
+          <div>
+            <div>
+              <span>{usePipelineFromRunLabel}</span>
+            </div>
+            <div className={classes(padding(10, 't'))}>
+              {apiRun && (
+                <Link className={classes(commonCss.link)} to={pipelineDetailsUrl}>
+                  [View pipeline]
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
 
-        {/* Pipeline version selection */}
-        <Input
-          value={apiPipelineVersion?.name || ''}
-          required={true}
-          label='Pipeline Version'
-          disabled={true}
-          variant='outlined'
-          InputProps={{
-            classes: { disabled: css.nonEditableInput },
-            readOnly: true,
-          }}
-        />
+        {!apiRun && (
+          <div>
+            {/* Pipeline selection */}
+            <PipelineSelector
+              {...props}
+              pipelineName={pipelineName}
+              handlePipelineChange={updatedPipeline => {
+                if (updatedPipeline.name) {
+                  setPipelineName(updatedPipeline.name);
+                }
+                if (updatedPipeline.id) {
+                  const searchString = urlParser.build({
+                    [QUERY_PARAMS.experimentId]: experimentId || '',
+                    [QUERY_PARAMS.pipelineId]: updatedPipeline.id || '',
+                    [QUERY_PARAMS.pipelineVersionId]: '',
+                  });
+                  props.history.replace(searchString);
+                  handlePipelineVersionIdChange('');
+                  handlePipelineIdChange(updatedPipeline.id);
+                }
+              }}
+            />
+
+            {/* Pipeline version selection */}
+            <PipelineVersionSelector
+              {...props}
+              pipeline={existingPipeline}
+              pipelineVersionName={pipelineVersionName}
+              handlePipelineVersionChange={updatedPipelineVersion => {
+                if (updatedPipelineVersion.name) {
+                  setPipelineVersionName(updatedPipelineVersion.name);
+                }
+                if (existingPipeline?.id && updatedPipelineVersion.id) {
+                  const searchString = urlParser.build({
+                    [QUERY_PARAMS.experimentId]: experimentId || '',
+                    [QUERY_PARAMS.pipelineId]: existingPipeline.id || '',
+                    [QUERY_PARAMS.pipelineVersionId]: updatedPipelineVersion.id || '',
+                  });
+                  props.history.replace(searchString);
+                  handlePipelineVersionIdChange(updatedPipelineVersion.id);
+                }
+              }}
+            />
+          </div>
+        )}
 
         {/* Run info inputs */}
         <Input
@@ -298,7 +383,37 @@ function NewRunV2(props: NewRunV2Props) {
 
         {/* Experiment selection */}
         <div>This run will be associated with the following experiment</div>
-        <ExperimentSelector {...props} setApiExperiment={setApiExperiment} />
+        <ExperimentSelector
+          {...props}
+          experimentName={experimentName}
+          handleExperimentChange={experiment => {
+            setApiExperiment(experiment);
+            if (experiment.name) {
+              setExperimentName(experiment.name);
+            }
+            if (experiment.id) {
+              setExperimentId(experiment.id);
+              let searchString;
+              if (existingPipeline?.id && existingPipelineVersion?.id) {
+                searchString = urlParser.build({
+                  [QUERY_PARAMS.experimentId]: experiment.id || '',
+                  [QUERY_PARAMS.pipelineId]: existingPipeline.id || '',
+                  [QUERY_PARAMS.pipelineVersionId]: existingPipelineVersion.id || '',
+                });
+              } else if (existingRunId) {
+                searchString = urlParser.build({
+                  [QUERY_PARAMS.experimentId]: experiment.id || '',
+                  [QUERY_PARAMS.cloneFromRun]: existingRunId || '',
+                });
+              } else {
+                searchString = urlParser.build({
+                  [QUERY_PARAMS.experimentId]: experiment.id || '',
+                });
+              }
+              props.history.replace(searchString);
+            }
+          }}
+        />
 
         {/* Service account selection */}
         <div>
@@ -337,6 +452,7 @@ function NewRunV2(props: NewRunV2Props) {
               : 'This pipeline has no parameters'
           }
           specParameters={specParameters}
+          clonedRuntimeConfig={clonedRuntimeConfig}
           handleParameterChange={setRuntimeParameters}
           setIsValidInput={setIsParameterValid}
         />
@@ -372,6 +488,30 @@ function NewRunV2(props: NewRunV2Props) {
 
 export default NewRunV2;
 
+const PIPELINE_SELECTOR_COLUMNS = [
+  {
+    customRenderer: NameWithTooltip,
+    flex: 1,
+    label: 'Pipeline name',
+    sortKey: PipelineSortKeys.NAME,
+  },
+  { label: 'Description', flex: 2, customRenderer: descriptionCustomRenderer },
+  { label: 'Uploaded on', flex: 1, sortKey: PipelineSortKeys.CREATED_AT },
+];
+
+const PIPELINE_VERSION_SELECTOR_COLUMNS = [
+  {
+    customRenderer: NameWithTooltip,
+    flex: 2,
+    label: 'Version name',
+    sortKey: PipelineVersionSortKeys.NAME,
+  },
+  // TODO(jingzhang36): version doesn't have description field; remove it and
+  // fix the rendering.
+  { label: 'Description', flex: 1, customRenderer: descriptionCustomRenderer },
+  { label: 'Uploaded on', flex: 1, sortKey: PipelineVersionSortKeys.CREATED_AT },
+];
+
 const EXPERIMENT_SELECTOR_COLUMNS = [
   {
     customRenderer: NameWithTooltip,
@@ -383,21 +523,213 @@ const EXPERIMENT_SELECTOR_COLUMNS = [
   { label: 'Created at', flex: 1, sortKey: ExperimentSortKeys.CREATED_AT },
 ];
 
+interface PipelineSelectorSpecificProps {
+  namespace?: string;
+  pipelineName: string | undefined;
+  handlePipelineChange: (pipeline: ApiPipeline) => void;
+}
+type PipelineSelectorProps = PageProps & PipelineSelectorSpecificProps;
+
+function PipelineSelector(props: PipelineSelectorProps) {
+  const [pipelineSelectorOpen, setPipelineSelectorOpen] = useState(false);
+  const [pendingPipeline, setPendingPipeline] = useState<ApiPipeline>();
+
+  return (
+    <>
+      <Input
+        value={props.pipelineName}
+        required={true}
+        label='Pipeline'
+        disabled={true}
+        variant='outlined'
+        InputProps={{
+          classes: { disabled: css.nonEditableInput },
+          endAdornment: (
+            <InputAdornment position='end'>
+              <Button
+                color='secondary'
+                id='choosePipelineBtn'
+                onClick={() => setPipelineSelectorOpen(true)}
+                style={{ padding: '3px 5px', margin: 0 }}
+              >
+                Choose
+              </Button>
+            </InputAdornment>
+          ),
+          readOnly: true,
+        }}
+      />
+
+      {/* Pipeline selector dialog */}
+      <Dialog
+        open={pipelineSelectorOpen}
+        classes={{ paper: css.selectorDialog }}
+        onClose={() => setPipelineSelectorOpen(false)}
+        PaperProps={{ id: 'pipelineSelectorDialog' }}
+      >
+        <DialogContent>
+          <ResourceSelector
+            {...props}
+            title='Choose a pipeline'
+            filterLabel='Filter pipelines'
+            listApi={async (...args) => {
+              const response = await Apis.pipelineServiceApi.listPipelines(...args);
+              return {
+                nextPageToken: response.next_page_token || '',
+                resources: response.pipelines || [],
+              };
+            }}
+            columns={PIPELINE_SELECTOR_COLUMNS}
+            emptyMessage='No pipelines found. Upload a pipeline and then try again.'
+            initialSortColumn={PipelineSortKeys.CREATED_AT}
+            selectionChanged={(selectedPipeline: ApiPipeline) =>
+              setPendingPipeline(selectedPipeline)
+            }
+            // TODO(jlyaoyuli): enable pipeline upload function in the selector dialog
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            id='cancelPipelineSelectionBtn'
+            onClick={() => setPipelineSelectorOpen(false)}
+            color='secondary'
+          >
+            Cancel
+          </Button>
+          <Button
+            id='usePipelineBtn'
+            onClick={() => {
+              if (pendingPipeline) {
+                props.handlePipelineChange(pendingPipeline);
+              }
+              setPipelineSelectorOpen(false);
+            }}
+            color='secondary'
+            disabled={!pendingPipeline}
+          >
+            Use this pipeline
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+}
+
+interface PipelineVersionSelectorSpecificProps {
+  namespace?: string;
+  pipeline: ApiPipeline | undefined;
+  pipelineVersionName: string | undefined;
+  handlePipelineVersionChange: (pipelineVersion: ApiPipelineVersion) => void;
+}
+type PipelineVersionSelectorProps = PageProps & PipelineVersionSelectorSpecificProps;
+
+function PipelineVersionSelector(props: PipelineVersionSelectorProps) {
+  const [pipelineVersionSelectorOpen, setPipelineVersionSelectorOpen] = useState(false);
+  const [pendingPipelineVersion, setPendingPipelineVersion] = useState<ApiPipeline>();
+
+  return (
+    <>
+      <Input
+        value={props.pipelineVersionName}
+        required={true}
+        label='Pipeline Version'
+        disabled={true}
+        variant='outlined'
+        InputProps={{
+          classes: { disabled: css.nonEditableInput },
+          endAdornment: (
+            <InputAdornment position='end'>
+              <Button
+                color='secondary'
+                id='choosePipelineVersionBtn'
+                onClick={() => setPipelineVersionSelectorOpen(true)}
+                style={{ padding: '3px 5px', margin: 0 }}
+              >
+                Choose
+              </Button>
+            </InputAdornment>
+          ),
+          readOnly: true,
+        }}
+      />
+
+      {/* Pipeline version selector dialog */}
+      <Dialog
+        open={pipelineVersionSelectorOpen}
+        classes={{ paper: css.selectorDialog }}
+        onClose={() => setPipelineVersionSelectorOpen(false)}
+        PaperProps={{ id: 'pipelineVersionSelectorDialog' }}
+      >
+        <DialogContent>
+          <ResourceSelector
+            {...props}
+            title='Choose a pipeline version'
+            filterLabel='Filter pipeline versions'
+            listApi={async (...args) => {
+              const response = await Apis.pipelineServiceApi.listPipelineVersions(
+                'PIPELINE',
+                props.pipeline ? props.pipeline!.id! : '',
+                args[1] /* page size */,
+                args[0] /* page token*/,
+                args[2] /* sort by */,
+                args[3] /* filter */,
+              );
+              return {
+                nextPageToken: response.next_page_token || '',
+                resources: response.versions || [],
+              };
+            }}
+            columns={PIPELINE_VERSION_SELECTOR_COLUMNS}
+            emptyMessage='No pipeline versions found. Select or upload a pipeline then try again.'
+            initialSortColumn={PipelineVersionSortKeys.CREATED_AT}
+            selectionChanged={(selectedPipelineVersion: ApiPipelineVersion) =>
+              setPendingPipelineVersion(selectedPipelineVersion)
+            }
+            // TODO(jlyaoyuli): enable pipeline upload function in the selector dialog
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            id='cancelPipelineVersionSelectionBtn'
+            onClick={() => setPipelineVersionSelectorOpen(false)}
+            color='secondary'
+          >
+            Cancel
+          </Button>
+          <Button
+            id='usePipelineVersionBtn'
+            onClick={() => {
+              if (pendingPipelineVersion) {
+                props.handlePipelineVersionChange(pendingPipelineVersion);
+              }
+              setPipelineVersionSelectorOpen(false);
+            }}
+            color='secondary'
+            disabled={!pendingPipelineVersion}
+          >
+            Use this pipeline version
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
+  );
+}
+
 interface ExperimentSelectorSpecificProps {
   namespace?: string;
-  setApiExperiment: (apiExperiment: ApiExperiment) => void;
+  experimentName: string | undefined;
+  handleExperimentChange: (experiment: ApiExperiment) => void;
 }
 type ExperimentSelectorProps = PageProps & ExperimentSelectorSpecificProps;
 
 function ExperimentSelector(props: ExperimentSelectorProps) {
-  const [experimentName, setExperimentName] = useState('');
-
-  const [pendingExperiment, setPendingExperiment] = useState<ApiExperiment>();
   const [experimentSelectorOpen, setExperimentSelectorOpen] = useState(false);
+  const [pendingExperiment, setPendingExperiment] = useState<ApiExperiment>();
+
   return (
     <>
       <Input
-        value={experimentName}
+        value={props.experimentName}
         required={true}
         label='Experiment'
         disabled={true}
@@ -483,9 +815,8 @@ function ExperimentSelector(props: ExperimentSelectorProps) {
           <Button
             id='useExperimentBtn'
             onClick={() => {
-              if (pendingExperiment && pendingExperiment.name) {
-                props.setApiExperiment(pendingExperiment);
-                setExperimentName(pendingExperiment.name);
+              if (pendingExperiment) {
+                props.handleExperimentChange(pendingExperiment);
               }
               setExperimentSelectorOpen(false);
             }}

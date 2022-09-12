@@ -13,20 +13,19 @@
 # limitations under the License.
 """Definition for Pipeline."""
 
-import textwrap
+import functools
 from typing import Callable, Optional
 
+from kfp.components import component_factory
+from kfp.components import graph_component
 from kfp.components import pipeline_task
 from kfp.components import tasks_group
 from kfp.components import utils
 
-# This handler is called whenever the @pipeline decorator is applied.
-# It can be used by command-line DSL compiler to inject code that runs for every
-# pipeline definition.
-pipeline_decorator_handler = None
 
-
-def pipeline(name: Optional[str] = None,
+def pipeline(func: Optional[Callable] = None,
+             *,
+             name: Optional[str] = None,
              description: Optional[str] = None,
              pipeline_root: Optional[str] = None) -> Callable:
     """Decorator used to construct a pipeline.
@@ -43,37 +42,29 @@ def pipeline(name: Optional[str] = None,
           ...
 
     Args:
-        name: The pipeline name. Defaults to a sanitized version of the decorated function name.
+        func: The Python function that defines a pipeline.
+        name: The pipeline name. Defaults to a sanitized version of the
+            decorated function name.
         description: A human-readable description of the pipeline.
-        pipeline_root: The root directory from which to read input and output parameters and artifacts.
+        pipeline_root: The root directory from which to read input and output
+            parameters and artifacts.
     """
-    if callable(name):
-        strikethrough_decorator = '\u0336'.join('@pipeline') + '\u0336'
-        raise RuntimeError(
-            textwrap.dedent(
-                f"""The @pipeline decorator must be called (optionally with arguments) in order to construct a pipeline. For example:
+    if func is None:
+        return functools.partial(
+            pipeline,
+            name=name,
+            description=description,
+            pipeline_root=pipeline_root,
+        )
 
-                {strikethrough_decorator}
-                @pipeline()
-                def my_pipeline():
-                    ...
-            """))
+    if name:
+        func._component_human_name = name
+    if description:
+        func._component_description = description
+    if pipeline_root:
+        func.pipeline_root = pipeline_root
 
-    def _pipeline(func: Callable) -> Callable:
-        func._is_pipeline = True
-        if name:
-            func._component_human_name = name
-        if description:
-            func._component_description = description
-        if pipeline_root:
-            func.pipeline_root = pipeline_root
-
-        if pipeline_decorator_handler:
-            return pipeline_decorator_handler(func) or func
-        else:
-            return func
-
-    return _pipeline
+    return component_factory.create_graph_component_from_func(func)
 
 
 class Pipeline:
@@ -118,7 +109,9 @@ class Pipeline:
         # Add the root group.
         self.groups = [
             tasks_group.TasksGroup(
-                group_type=tasks_group.TasksGroupType.PIPELINE, name=name)
+                group_type=tasks_group.TasksGroupType.PIPELINE,
+                name=name,
+                is_root=True)
         ]
         self._group_id = 0
 
@@ -169,11 +162,12 @@ class Pipeline:
         task_name = utils.make_name_unique_by_adding_index(
             task_name, list(self.tasks.keys()), '-')
         if task_name == '':
-            task_name = utils._make_name_unique_by_adding_index(
+            task_name = utils.make_name_unique_by_adding_index(
                 'task', list(self.tasks.keys()), '-')
 
         self.tasks[task_name] = task
         if add_to_group:
+            task.parent_task_group = self.groups[-1]
             self.groups[-1].tasks.append(task)
 
         return task_name
@@ -215,4 +209,4 @@ class Pipeline:
         Returns:
             bool: True if the function is a pipeline function.
         """
-        return callable(func) and getattr(func, '_is_pipeline', False)
+        return isinstance(func, graph_component.GraphComponent)

@@ -14,24 +14,24 @@
 """Test Vertex AI Batch Prediction Job Remote Runner Client module."""
 
 import json
-from logging import raiseExceptions
 import os
 import time
-import unittest
-from unittest import mock
 
-from google.cloud import aiplatform
-from google.cloud.aiplatform.explain import ExplanationMetadata
-from google.cloud.aiplatform.compat.types import job_state as gca_job_state
-from google.protobuf import json_format
-from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
-from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
-from google_cloud_pipeline_components.container.v1.gcp_launcher import batch_prediction_job_remote_runner
-from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
-from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
-import requests
 import google.auth
 import google.auth.transport.requests
+from google.cloud import aiplatform
+from google.cloud.aiplatform.compat.types import job_state as gca_job_state
+from google.cloud.aiplatform.explain import ExplanationMetadata
+from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
+from google_cloud_pipeline_components.container.v1.batch_prediction_job import remote_runner as batch_prediction_job_remote_runner
+from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
+from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
+import requests
+
+from google.protobuf import json_format
+import unittest
+from unittest import mock
 
 
 class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
@@ -122,6 +122,37 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
               "batchpredictionjob": {"artifacts": [{"metadata": {"resourceName": "job1", "bigqueryOutputDataset": "bq://bq_project.bigquery_output_dataset","bigqueryOutputTable": "bigquery_output_table","gcsOutputDirectory": ""}, "name": "foobar", "type": {"schemaTitle": "google.VertexBatchPredictionJob"}, "uri": "https://test_region-aiplatform.googleapis.com/v1/job1"}]},\
               "bigquery_output_table": {"artifacts": [{"metadata": {"projectId": "bq_project", "datasetId": "bigquery_output_dataset", "tableId": "bigquery_output_table"}, "name": "bq_table", "type": {"schemaTitle": "google.BQTable"}, "uri": "https://www.googleapis.com/bigquery/v2/projects/bq_project/datasets/bigquery_output_dataset/tables/bigquery_output_table"}]}}}'
                     ))
+
+  @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
+  @mock.patch.object(os.path, 'exists', autospec=True)
+  def test_batch_prediction_job_remote_runner_job_exists(
+      self, mock_path_exists, mock_job_service_client):
+    job_client = mock.Mock()
+    mock_job_service_client.return_value = job_client
+
+    create_batch_prediction_job_response = mock.Mock()
+    job_client.create_batch_prediction_job.return_value = create_batch_prediction_job_response
+    create_batch_prediction_job_response.name = self._batch_prediction_job_name
+
+    get_batch_prediction_job_response = mock.Mock()
+    job_client.get_batch_prediction_job.return_value = get_batch_prediction_job_response
+    get_batch_prediction_job_response.state = gca_job_state.JobState.JOB_STATE_SUCCEEDED
+    get_batch_prediction_job_response.name = 'job1'
+    get_batch_prediction_job_response.output_info.bigquery_output_table = 'bigquery_output_table'
+    get_batch_prediction_job_response.output_info.bigquery_output_dataset = 'bq://bq_project.bigquery_output_dataset'
+    get_batch_prediction_job_response.output_info.gcs_output_directory = ''
+
+    mock_path_exists.return_value = False
+
+    batch_prediction_job_remote_runner.create_batch_prediction_job(
+        self._job_type, self._project, self._location, self._payload,
+        self._gcp_resources, self._executor_input)
+    remote_runner = job_remote_runner.JobRemoteRunner(type, self._project,
+                                                      self._location,
+                                                      self._gcp_resources)
+    mock_path_exists.return_value = True
+    self.assertEqual(
+        remote_runner.check_if_job_exists(), self._batch_prediction_job_name)
 
   @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
   @mock.patch.object(os.path, 'exists', autospec=True)

@@ -15,11 +15,15 @@
 package server
 
 import (
+	"encoding/json"
+	"fmt"
+
 	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func ToApiExperiment(experiment *model.Experiment) *api.Experiment {
@@ -148,8 +152,35 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 	return apiParams, nil
 }
 
+func toApiRuntimeConfig(modelRuntime model.RuntimeConfig) (*api.PipelineSpec_RuntimeConfig, error) {
+	if modelRuntime.Parameters == "" && modelRuntime.PipelineRoot == "" {
+		return nil, nil
+	}
+	var runtimeParams map[string]*structpb.Value
+	if modelRuntime.Parameters != "" {
+		err := json.Unmarshal([]byte(modelRuntime.Parameters), &runtimeParams)
+		if err != nil {
+			return nil, util.NewInternalServerError(err, fmt.Sprintf("Cannot unmarshal RuntimeConfig Parameter to map[string]*structpb.Value, string value: %+v", modelRuntime.Parameters))
+		}
+	}
+	apiRuntimeConfig := &api.PipelineSpec_RuntimeConfig{
+		Parameters:   runtimeParams,
+		PipelineRoot: modelRuntime.PipelineRoot,
+	}
+	return apiRuntimeConfig, nil
+}
+
 func toApiRun(run *model.Run) *api.Run {
+	// v1 parameters
 	params, err := toApiParameters(run.Parameters)
+	if err != nil {
+		return &api.Run{
+			Id:    run.UUID,
+			Error: err.Error(),
+		}
+	}
+	// v2 RuntimeConfig
+	runtimeConfig, err := toApiRuntimeConfig(run.PipelineSpec.RuntimeConfig)
 	if err != nil {
 		return &api.Run{
 			Id:    run.UUID,
@@ -179,6 +210,7 @@ func toApiRun(run *model.Run) *api.Run {
 			WorkflowManifest: run.WorkflowSpecManifest,
 			PipelineManifest: run.PipelineSpecManifest,
 			Parameters:       params,
+			RuntimeConfig:    runtimeConfig,
 		},
 		ResourceReferences: toApiResourceReferences(run.ResourceReferences),
 	}
@@ -223,7 +255,16 @@ func ToApiTasks(tasks []*model.Task) []*api.Task {
 	return apiTasks
 }
 func ToApiJob(job *model.Job) *api.Job {
+	// v1 parameters
 	params, err := toApiParameters(job.Parameters)
+	if err != nil {
+		return &api.Job{
+			Id:    job.UUID,
+			Error: err.Error(),
+		}
+	}
+	// v2 RuntimeConfig
+	runtimeConfig, err := toApiRuntimeConfig(job.PipelineSpec.RuntimeConfig)
 	if err != nil {
 		return &api.Job{
 			Id:    job.UUID,
@@ -248,6 +289,7 @@ func ToApiJob(job *model.Job) *api.Job {
 			WorkflowManifest: job.WorkflowSpecManifest,
 			PipelineManifest: job.PipelineSpecManifest,
 			Parameters:       params,
+			RuntimeConfig:    runtimeConfig,
 		},
 		ResourceReferences: toApiResourceReferences(job.ResourceReferences),
 	}

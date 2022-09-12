@@ -14,51 +14,50 @@
  * limitations under the License.
  */
 
-import * as React from 'react';
-import BusyButton from '../atoms/BusyButton';
 import Button from '@material-ui/core/Button';
-import Buttons from '../lib/Buttons';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
-import Input from '../atoms/Input';
 import InputAdornment from '@material-ui/core/InputAdornment';
-import NewRunParameters from '../components/NewRunParameters';
 import Radio from '@material-ui/core/Radio';
-import ResourceSelector from './ResourceSelector';
-import RunUtils from '../lib/RunUtils';
 import { TextFieldProps } from '@material-ui/core/TextField';
-import Trigger from '../components/Trigger';
-import { ApiExperiment, ApiExperimentStorageState } from '../apis/experiment';
-import { ApiPipeline, ApiParameter, ApiPipelineVersion } from '../apis/pipeline';
-import {
-  ApiRun,
-  ApiResourceReference,
-  ApiRelationship,
-  ApiResourceType,
-  ApiRunDetail,
-  ApiPipelineRuntime,
-} from '../apis/run';
-import { ApiTrigger, ApiJob } from '../apis/job';
-import { Apis, PipelineSortKeys, PipelineVersionSortKeys, ExperimentSortKeys } from '../lib/Apis';
+import * as React from 'react';
 import { Link } from 'react-router-dom';
-import { Page, PageProps } from './Page';
-import { RoutePage, RouteParams, QUERY_PARAMS } from '../components/Router';
-import { ToolbarProps } from '../components/Toolbar';
-import { URLParser } from '../lib/URLParser';
-import { Workflow } from '../third_party/mlmd/argo_template';
-import { classes, stylesheet } from 'typestyle';
-import { commonCss, padding, color } from '../Css';
-import { logger, errorToMessage } from '../lib/Utils';
-import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
-import { CustomRendererProps } from '../components/CustomTable';
-import { Description } from '../components/Description';
-import { NamespaceContext } from '../lib/KubeflowClient';
-import { NameWithTooltip } from '../components/CustomTableNameColumn';
-import { PredicateOp, ApiFilter } from '../apis/filter';
-import { HelpButton } from 'src/atoms/HelpButton';
 import { ExternalLink } from 'src/atoms/ExternalLink';
+import { HelpButton } from 'src/atoms/HelpButton';
+import { classes, stylesheet } from 'typestyle';
+import { ApiExperiment, ApiExperimentStorageState } from '../apis/experiment';
+import { ApiFilter, PredicateOp } from '../apis/filter';
+import { ApiJob, ApiTrigger } from '../apis/job';
+import { ApiParameter, ApiPipeline, ApiPipelineVersion } from '../apis/pipeline';
+import {
+  ApiPipelineRuntime,
+  ApiRelationship,
+  ApiResourceReference,
+  ApiResourceType,
+  ApiRun,
+  ApiRunDetail,
+} from '../apis/run';
+import BusyButton from '../atoms/BusyButton';
+import Input from '../atoms/Input';
+import { CustomRendererProps } from '../components/CustomTable';
+import { NameWithTooltip } from '../components/CustomTableNameColumn';
+import { Description } from '../components/Description';
+import NewRunParameters from '../components/NewRunParameters';
+import { QUERY_PARAMS, RoutePage, RouteParams } from '../components/Router';
+import { ToolbarProps } from '../components/Toolbar';
+import Trigger from '../components/Trigger';
+import UploadPipelineDialog, { ImportMethod } from '../components/UploadPipelineDialog';
+import { color, commonCss, padding } from '../Css';
+import { Apis, ExperimentSortKeys, PipelineSortKeys, PipelineVersionSortKeys } from '../lib/Apis';
+import Buttons from '../lib/Buttons';
+import RunUtils from '../lib/RunUtils';
+import { URLParser } from '../lib/URLParser';
+import { errorToMessage, logger } from '../lib/Utils';
+import { Workflow } from '../third_party/mlmd/argo_template';
+import { Page } from './Page';
+import ResourceSelector from './ResourceSelector';
 
 interface NewRunState {
   description: string;
@@ -97,6 +96,14 @@ interface NewRunState {
   usePipelineFromRunLabel: string;
 }
 
+interface NewRunProps {
+  namespace?: string;
+  existingPipelineId: string | null;
+  handlePipelineIdChange: (pipelineId: string) => void;
+  existingPipelineVersionId: string | null;
+  handlePipelineVersionIdChange: (pipelineVersionId: string) => void;
+}
+
 const css = stylesheet({
   nonEditableInput: {
     color: color.secondaryText,
@@ -113,7 +120,7 @@ const descriptionCustomRenderer: React.FC<CustomRendererProps<string>> = props =
   return <Description description={props.value || ''} forceInline={true} />;
 };
 
-export class NewRun extends Page<{ namespace?: string }, NewRunState> {
+export class NewRun extends Page<NewRunProps, NewRunState> {
   public state: NewRunState = {
     catchup: true,
     description: '',
@@ -694,7 +701,8 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
     } else {
       // If we create a run from an existing pipeline version.
       // Get pipeline and pipeline version id from querystring if any
-      const possiblePipelineId = urlParser.get(QUERY_PARAMS.pipelineId);
+      const possiblePipelineId =
+        this.props.existingPipelineId || urlParser.get(QUERY_PARAMS.pipelineId);
       if (possiblePipelineId) {
         try {
           const pipeline = await Apis.pipelineServiceApi.getPipeline(possiblePipelineId);
@@ -704,6 +712,7 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
             pipelineName: (pipeline && pipeline.name) || '',
           });
           const possiblePipelineVersionId =
+            this.props.existingPipelineVersionId ||
             urlParser.get(QUERY_PARAMS.pipelineVersionId) ||
             (pipeline.default_version && pipeline.default_version.id);
           if (possiblePipelineVersionId) {
@@ -790,9 +799,30 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
   };
 
   protected async _experimentSelectorClosed(confirmed: boolean): Promise<void> {
-    let { experiment } = this.state;
+    let { experiment, pipeline } = this.state;
+    const urlParser = new URLParser(this.props);
     if (confirmed && this.state.unconfirmedSelectedExperiment) {
       experiment = this.state.unconfirmedSelectedExperiment;
+      if (experiment.id && pipeline?.id && this.state.unconfirmedSelectedPipelineVersion?.id) {
+        const searchString = urlParser.build({
+          [QUERY_PARAMS.experimentId]: experiment?.id || '',
+          [QUERY_PARAMS.pipelineId]: pipeline.id || '',
+          [QUERY_PARAMS.pipelineVersionId]: this.state.unconfirmedSelectedPipelineVersion.id || '',
+        });
+        this.props.history.replace(searchString);
+      } else if (experiment.id && pipeline?.id) {
+        const searchString = urlParser.build({
+          [QUERY_PARAMS.experimentId]: experiment?.id || '',
+          [QUERY_PARAMS.pipelineId]: pipeline.id || '',
+          [QUERY_PARAMS.pipelineVersionId]: '',
+        });
+        this.props.history.replace(searchString);
+      } else if (experiment.id) {
+        const searchString = urlParser.build({
+          [QUERY_PARAMS.experimentId]: experiment?.id || '',
+        });
+        this.props.history.replace(searchString);
+      }
     }
 
     this.setStateSafe({
@@ -803,7 +833,8 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
   }
 
   protected async _pipelineSelectorClosed(confirmed: boolean): Promise<void> {
-    let { parameters, pipeline, pipelineVersion } = this.state;
+    let { parameters, pipeline, pipelineVersion, experiment } = this.state;
+    const urlParser = new URLParser(this.props);
     if (confirmed && this.state.unconfirmedSelectedPipeline) {
       pipeline = this.state.unconfirmedSelectedPipeline;
       // Get the default version of selected pipeline to auto-fill the version
@@ -813,6 +844,17 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
           pipeline.default_version.id!,
         );
         parameters = pipelineVersion.parameters || [];
+      }
+      // To avoid breaking current v1 behavior, only allow switch between v1 and v2 when V2 feature is enabled.
+      if (pipeline.id) {
+        const searchString = urlParser.build({
+          [QUERY_PARAMS.experimentId]: experiment?.id || '',
+          [QUERY_PARAMS.pipelineId]: pipeline.id || '',
+          [QUERY_PARAMS.pipelineVersionId]: '',
+        });
+        this.props.history.replace(searchString);
+        this.props.handlePipelineVersionIdChange('');
+        this.props.handlePipelineIdChange(pipeline.id);
       }
     }
 
@@ -824,16 +866,30 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
         pipelineSelectorOpen: false,
         pipelineVersion,
         pipelineVersionName: (pipelineVersion && pipelineVersion.name) || '',
+        runName: this._getRunNameFromPipelineVersion(
+          (pipelineVersion && pipelineVersion.name) || '',
+        ),
       },
       () => this._validate(),
     );
   }
 
   protected async _pipelineVersionSelectorClosed(confirmed: boolean): Promise<void> {
-    let { parameters, pipelineVersion } = this.state;
+    let { parameters, pipelineVersion, pipeline, experiment } = this.state;
+    const urlParser = new URLParser(this.props);
     if (confirmed && this.state.unconfirmedSelectedPipelineVersion) {
       pipelineVersion = this.state.unconfirmedSelectedPipelineVersion;
       parameters = pipelineVersion.parameters || [];
+      // To avoid breaking current v1 behavior, only allow switch between v1 and v2 when V2 feature is enabled.
+      if (pipeline && pipelineVersion.id) {
+        const searchString = urlParser.build({
+          [QUERY_PARAMS.experimentId]: experiment?.id || '',
+          [QUERY_PARAMS.pipelineId]: pipeline.id || '',
+          [QUERY_PARAMS.pipelineVersionId]: pipelineVersion.id || '',
+        });
+        this.props.history.replace(searchString);
+        this.props.handlePipelineVersionIdChange(pipelineVersion.id);
+      }
     }
 
     this.setStateSafe(
@@ -842,6 +898,9 @@ export class NewRun extends Page<{ namespace?: string }, NewRunState> {
         pipelineVersion,
         pipelineVersionName: (pipelineVersion && pipelineVersion.name) || '',
         pipelineVersionSelectorOpen: false,
+        runName: this._getRunNameFromPipelineVersion(
+          (pipelineVersion && pipelineVersion.name) || '',
+        ),
       },
       () => this._validate(),
     );

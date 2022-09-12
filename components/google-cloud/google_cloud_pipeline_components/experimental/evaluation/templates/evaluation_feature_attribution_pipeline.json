@@ -1,7 +1,7 @@
 {
   "pipelineSpec": {
     "components": {
-      "comp-condition-1": {
+      "comp-condition-classification-1": {
         "dag": {
           "outputs": {
             "artifacts": {
@@ -39,11 +39,7 @@
                 },
                 "parameters": {
                   "class_names": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--evaluation_class_names"
                   },
                   "classification_type": {
                     "runtimeValue": {
@@ -73,7 +69,7 @@
                   "dataflow_workers_num": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "10"
+                        "intValue": "1"
                       }
                     }
                   },
@@ -98,25 +94,13 @@
                     "componentInputParameter": "pipelineparam--target_column_name"
                   },
                   "ground_truth_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_instances_format"
                   },
                   "ground_truth_gcs_source": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_gcs_source_uris"
                   },
                   "key_columns": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--ground_truth_key_columns"
                   },
                   "location": {
                     "componentInputParameter": "pipelineparam--location"
@@ -136,25 +120,13 @@
                     }
                   },
                   "prediction_label_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--evaluation_prediction_label_column"
                   },
                   "prediction_score_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--evaluation_prediction_score_column"
                   },
                   "predictions_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_predictions_format"
                   },
                   "problem_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
@@ -186,11 +158,7 @@
                 },
                 "parameters": {
                   "class_names": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--evaluation_class_names"
                   },
                   "classification_type": {
                     "runtimeValue": {
@@ -212,32 +180,20 @@
                     "componentInputParameter": "pipelineparam--dataflow_service_account"
                   },
                   "dataflow_subnetwork": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--dataflow_subnetwork"
                   },
                   "dataflow_use_public_ips": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "true"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--dataflow_use_public_ips"
                   },
                   "dataflow_workers_num": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "10"
+                        "intValue": "1"
                       }
                     }
                   },
                   "encryption_spec_key_name": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
                   },
                   "example_weight_column": {
                     "runtimeValue": {
@@ -257,25 +213,13 @@
                     "componentInputParameter": "pipelineparam--target_column_name"
                   },
                   "ground_truth_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_instances_format"
                   },
                   "ground_truth_gcs_source": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_gcs_source_uris"
                   },
                   "key_columns": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--ground_truth_key_columns"
                   },
                   "location": {
                     "componentInputParameter": "pipelineparam--location"
@@ -295,25 +239,13 @@
                     }
                   },
                   "prediction_label_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--evaluation_prediction_label_column"
                   },
                   "prediction_score_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--evaluation_prediction_score_column"
                   },
                   "predictions_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_predictions_format"
                   },
                   "problem_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
@@ -360,6 +292,27 @@
                   }
                 },
                 "parameters": {
+                  "dataset_path": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "dataset_type": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "display_name": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
                   "problem_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
                   }
@@ -393,6 +346,15 @@
             }
           },
           "parameters": {
+            "pipelineparam--batch_predict_gcs_source_uris": {
+              "type": "STRING"
+            },
+            "pipelineparam--batch_predict_instances_format": {
+              "type": "STRING"
+            },
+            "pipelineparam--batch_predict_predictions_format": {
+              "type": "STRING"
+            },
             "pipelineparam--dataflow_disk_size_gb": {
               "type": "INT"
             },
@@ -412,6 +374,18 @@
               "type": "STRING"
             },
             "pipelineparam--encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "pipelineparam--evaluation_class_names": {
+              "type": "STRING"
+            },
+            "pipelineparam--evaluation_prediction_label_column": {
+              "type": "STRING"
+            },
+            "pipelineparam--evaluation_prediction_score_column": {
+              "type": "STRING"
+            },
+            "pipelineparam--ground_truth_key_columns": {
               "type": "STRING"
             },
             "pipelineparam--location": {
@@ -448,7 +422,7 @@
           }
         }
       },
-      "comp-condition-2": {
+      "comp-condition-forecasting-2": {
         "dag": {
           "outputs": {
             "artifacts": {
@@ -520,16 +494,12 @@
                   "dataflow_workers_num": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "10"
+                        "intValue": "1"
                       }
                     }
                   },
                   "encryption_spec_key_name": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
                   },
                   "example_weight_column": {
                     "runtimeValue": {
@@ -549,25 +519,13 @@
                     "componentInputParameter": "pipelineparam--target_column_name"
                   },
                   "ground_truth_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_instances_format"
                   },
                   "ground_truth_gcs_source": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_gcs_source_uris"
                   },
                   "key_columns": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--ground_truth_key_columns"
                   },
                   "location": {
                     "componentInputParameter": "pipelineparam--location"
@@ -594,18 +552,10 @@
                     }
                   },
                   "prediction_score_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--evaluation_prediction_score_column"
                   },
                   "predictions_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_predictions_format"
                   },
                   "problem_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
@@ -671,16 +621,12 @@
                   "dataflow_workers_num": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "10"
+                        "intValue": "1"
                       }
                     }
                   },
                   "encryption_spec_key_name": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
                   },
                   "example_weight_column": {
                     "runtimeValue": {
@@ -700,25 +646,13 @@
                     "componentInputParameter": "pipelineparam--target_column_name"
                   },
                   "ground_truth_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_instances_format"
                   },
                   "ground_truth_gcs_source": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_gcs_source_uris"
                   },
                   "key_columns": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--ground_truth_key_columns"
                   },
                   "location": {
                     "componentInputParameter": "pipelineparam--location"
@@ -745,18 +679,10 @@
                     }
                   },
                   "prediction_score_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--evaluation_prediction_score_column"
                   },
                   "predictions_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
+                    "componentInputParameter": "pipelineparam--batch_predict_predictions_format"
                   },
                   "problem_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
@@ -803,6 +729,27 @@
                   }
                 },
                 "parameters": {
+                  "dataset_path": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "dataset_type": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "display_name": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
                   "problem_type": {
                     "componentInputParameter": "pipelineparam--prediction_type"
                   }
@@ -836,6 +783,15 @@
             }
           },
           "parameters": {
+            "pipelineparam--batch_predict_gcs_source_uris": {
+              "type": "STRING"
+            },
+            "pipelineparam--batch_predict_instances_format": {
+              "type": "STRING"
+            },
+            "pipelineparam--batch_predict_predictions_format": {
+              "type": "STRING"
+            },
             "pipelineparam--dataflow_disk_size_gb": {
               "type": "INT"
             },
@@ -852,6 +808,15 @@
               "type": "STRING"
             },
             "pipelineparam--dataflow_use_public_ips": {
+              "type": "STRING"
+            },
+            "pipelineparam--encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "pipelineparam--evaluation_prediction_score_column": {
+              "type": "STRING"
+            },
+            "pipelineparam--ground_truth_key_columns": {
               "type": "STRING"
             },
             "pipelineparam--location": {
@@ -884,6 +849,531 @@
                 "schemaTitle": "system.Metrics",
                 "schemaVersion": "0.0.1"
               }
+            }
+          }
+        }
+      },
+      "comp-condition-regression-3": {
+        "dag": {
+          "outputs": {
+            "artifacts": {
+              "model-evaluation-5-evaluation_metrics": {
+                "artifactSelectors": [
+                  {
+                    "outputArtifactKey": "evaluation_metrics",
+                    "producerSubtask": "model-evaluation-5"
+                  }
+                ]
+              },
+              "model-evaluation-6-evaluation_metrics": {
+                "artifactSelectors": [
+                  {
+                    "outputArtifactKey": "evaluation_metrics",
+                    "producerSubtask": "model-evaluation-6"
+                  }
+                ]
+              }
+            }
+          },
+          "tasks": {
+            "model-evaluation-5": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-model-evaluation-5"
+              },
+              "inputs": {
+                "artifacts": {
+                  "batch_prediction_job": {
+                    "componentInputArtifact": "pipelineparam--model-batch-predict-batchpredictionjob"
+                  }
+                },
+                "parameters": {
+                  "class_names": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "classification_type": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "dataflow_disk_size": {
+                    "componentInputParameter": "pipelineparam--dataflow_disk_size_gb"
+                  },
+                  "dataflow_machine_type": {
+                    "componentInputParameter": "pipelineparam--dataflow_machine_type"
+                  },
+                  "dataflow_max_workers_num": {
+                    "componentInputParameter": "pipelineparam--dataflow_max_num_workers"
+                  },
+                  "dataflow_service_account": {
+                    "componentInputParameter": "pipelineparam--dataflow_service_account"
+                  },
+                  "dataflow_subnetwork": {
+                    "componentInputParameter": "pipelineparam--dataflow_subnetwork"
+                  },
+                  "dataflow_use_public_ips": {
+                    "componentInputParameter": "pipelineparam--dataflow_use_public_ips"
+                  },
+                  "dataflow_workers_num": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "1"
+                      }
+                    }
+                  },
+                  "encryption_spec_key_name": {
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
+                  },
+                  "example_weight_column": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "generate_feature_attribution": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "0"
+                      }
+                    }
+                  },
+                  "ground_truth_column": {
+                    "componentInputParameter": "pipelineparam--target_column_name"
+                  },
+                  "ground_truth_format": {
+                    "componentInputParameter": "pipelineparam--batch_predict_instances_format"
+                  },
+                  "ground_truth_gcs_source": {
+                    "componentInputParameter": "pipelineparam--batch_predict_gcs_source_uris"
+                  },
+                  "key_columns": {
+                    "componentInputParameter": "pipelineparam--ground_truth_key_columns"
+                  },
+                  "location": {
+                    "componentInputParameter": "pipelineparam--location"
+                  },
+                  "positive_classes": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "prediction_id_column": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "prediction_label_column": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "prediction_score_column": {
+                    "componentInputParameter": "pipelineparam--evaluation_prediction_score_column"
+                  },
+                  "predictions_format": {
+                    "componentInputParameter": "pipelineparam--batch_predict_predictions_format"
+                  },
+                  "problem_type": {
+                    "componentInputParameter": "pipelineparam--prediction_type"
+                  },
+                  "project": {
+                    "componentInputParameter": "pipelineparam--project"
+                  },
+                  "root_dir": {
+                    "componentInputParameter": "pipelineparam--root_dir"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "model-evaluation-5"
+              }
+            },
+            "model-evaluation-6": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-model-evaluation-6"
+              },
+              "inputs": {
+                "artifacts": {
+                  "batch_prediction_job": {
+                    "componentInputArtifact": "pipelineparam--model-batch-predict-2-batchpredictionjob"
+                  }
+                },
+                "parameters": {
+                  "class_names": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "classification_type": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "dataflow_disk_size": {
+                    "componentInputParameter": "pipelineparam--dataflow_disk_size_gb"
+                  },
+                  "dataflow_machine_type": {
+                    "componentInputParameter": "pipelineparam--dataflow_machine_type"
+                  },
+                  "dataflow_max_workers_num": {
+                    "componentInputParameter": "pipelineparam--dataflow_max_num_workers"
+                  },
+                  "dataflow_service_account": {
+                    "componentInputParameter": "pipelineparam--dataflow_service_account"
+                  },
+                  "dataflow_subnetwork": {
+                    "componentInputParameter": "pipelineparam--dataflow_subnetwork"
+                  },
+                  "dataflow_use_public_ips": {
+                    "componentInputParameter": "pipelineparam--dataflow_use_public_ips"
+                  },
+                  "dataflow_workers_num": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "1"
+                      }
+                    }
+                  },
+                  "encryption_spec_key_name": {
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
+                  },
+                  "example_weight_column": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "generate_feature_attribution": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "1"
+                      }
+                    }
+                  },
+                  "ground_truth_column": {
+                    "componentInputParameter": "pipelineparam--target_column_name"
+                  },
+                  "ground_truth_format": {
+                    "componentInputParameter": "pipelineparam--batch_predict_instances_format"
+                  },
+                  "ground_truth_gcs_source": {
+                    "componentInputParameter": "pipelineparam--batch_predict_gcs_source_uris"
+                  },
+                  "key_columns": {
+                    "componentInputParameter": "pipelineparam--ground_truth_key_columns"
+                  },
+                  "location": {
+                    "componentInputParameter": "pipelineparam--location"
+                  },
+                  "positive_classes": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "prediction_id_column": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "prediction_label_column": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "prediction_score_column": {
+                    "componentInputParameter": "pipelineparam--evaluation_prediction_score_column"
+                  },
+                  "predictions_format": {
+                    "componentInputParameter": "pipelineparam--batch_predict_predictions_format"
+                  },
+                  "problem_type": {
+                    "componentInputParameter": "pipelineparam--prediction_type"
+                  },
+                  "project": {
+                    "componentInputParameter": "pipelineparam--project"
+                  },
+                  "root_dir": {
+                    "componentInputParameter": "pipelineparam--root_dir"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "model-evaluation-6"
+              }
+            },
+            "model-evaluation-import-3": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-model-evaluation-import-3"
+              },
+              "dependentTasks": [
+                "model-evaluation-5",
+                "model-evaluation-6"
+              ],
+              "inputs": {
+                "artifacts": {
+                  "explanation": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "evaluation_metrics",
+                      "producerTask": "model-evaluation-6"
+                    }
+                  },
+                  "metrics": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "evaluation_metrics",
+                      "producerTask": "model-evaluation-5"
+                    }
+                  },
+                  "model": {
+                    "componentInputArtifact": "pipelineparam--get-vertex-model-model"
+                  }
+                },
+                "parameters": {
+                  "dataset_path": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "dataset_type": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "display_name": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "problem_type": {
+                    "componentInputParameter": "pipelineparam--prediction_type"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "model-evaluation-import-3"
+              }
+            }
+          }
+        },
+        "inputDefinitions": {
+          "artifacts": {
+            "pipelineparam--get-vertex-model-model": {
+              "artifactType": {
+                "schemaTitle": "google.VertexModel",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "pipelineparam--model-batch-predict-2-batchpredictionjob": {
+              "artifactType": {
+                "schemaTitle": "google.VertexBatchPredictionJob",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "pipelineparam--model-batch-predict-batchpredictionjob": {
+              "artifactType": {
+                "schemaTitle": "google.VertexBatchPredictionJob",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "pipelineparam--batch_predict_gcs_source_uris": {
+              "type": "STRING"
+            },
+            "pipelineparam--batch_predict_instances_format": {
+              "type": "STRING"
+            },
+            "pipelineparam--batch_predict_predictions_format": {
+              "type": "STRING"
+            },
+            "pipelineparam--dataflow_disk_size_gb": {
+              "type": "INT"
+            },
+            "pipelineparam--dataflow_machine_type": {
+              "type": "STRING"
+            },
+            "pipelineparam--dataflow_max_num_workers": {
+              "type": "INT"
+            },
+            "pipelineparam--dataflow_service_account": {
+              "type": "STRING"
+            },
+            "pipelineparam--dataflow_subnetwork": {
+              "type": "STRING"
+            },
+            "pipelineparam--dataflow_use_public_ips": {
+              "type": "STRING"
+            },
+            "pipelineparam--encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "pipelineparam--evaluation_prediction_score_column": {
+              "type": "STRING"
+            },
+            "pipelineparam--ground_truth_key_columns": {
+              "type": "STRING"
+            },
+            "pipelineparam--location": {
+              "type": "STRING"
+            },
+            "pipelineparam--prediction_type": {
+              "type": "STRING"
+            },
+            "pipelineparam--project": {
+              "type": "STRING"
+            },
+            "pipelineparam--root_dir": {
+              "type": "STRING"
+            },
+            "pipelineparam--target_column_name": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "model-evaluation-5-evaluation_metrics": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "model-evaluation-6-evaluation_metrics": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
+      "comp-evaluation-data-sampler": {
+        "executorLabel": "exec-evaluation-data-sampler",
+        "inputDefinitions": {
+          "parameters": {
+            "dataflow_service_account": {
+              "type": "STRING"
+            },
+            "dataflow_subnetwork": {
+              "type": "STRING"
+            },
+            "dataflow_use_public_ips": {
+              "type": "STRING"
+            },
+            "encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "gcs_source_uris": {
+              "type": "STRING"
+            },
+            "instances_format": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "root_dir": {
+              "type": "STRING"
+            },
+            "sample_size": {
+              "type": "INT"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "gcp_resources": {
+              "type": "STRING"
+            },
+            "gcs_output_directory": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-evaluation-data-splitter": {
+        "executorLabel": "exec-evaluation-data-splitter",
+        "inputDefinitions": {
+          "parameters": {
+            "dataflow_service_account": {
+              "type": "STRING"
+            },
+            "dataflow_subnetwork": {
+              "type": "STRING"
+            },
+            "dataflow_use_public_ips": {
+              "type": "STRING"
+            },
+            "encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "gcs_source_uris": {
+              "type": "STRING"
+            },
+            "ground_truth_column": {
+              "type": "STRING"
+            },
+            "instances_format": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "root_dir": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "gcp_resources": {
+              "type": "STRING"
+            },
+            "gcs_output_directory": {
+              "type": "STRING"
             }
           }
         }
@@ -1538,6 +2028,216 @@
           }
         }
       },
+      "comp-model-evaluation-5": {
+        "executorLabel": "exec-model-evaluation-5",
+        "inputDefinitions": {
+          "artifacts": {
+            "batch_prediction_job": {
+              "artifactType": {
+                "schemaTitle": "google.VertexBatchPredictionJob",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "class_names": {
+              "type": "STRING"
+            },
+            "classification_type": {
+              "type": "STRING"
+            },
+            "dataflow_disk_size": {
+              "type": "INT"
+            },
+            "dataflow_machine_type": {
+              "type": "STRING"
+            },
+            "dataflow_max_workers_num": {
+              "type": "INT"
+            },
+            "dataflow_service_account": {
+              "type": "STRING"
+            },
+            "dataflow_subnetwork": {
+              "type": "STRING"
+            },
+            "dataflow_use_public_ips": {
+              "type": "STRING"
+            },
+            "dataflow_workers_num": {
+              "type": "INT"
+            },
+            "encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "example_weight_column": {
+              "type": "STRING"
+            },
+            "generate_feature_attribution": {
+              "type": "STRING"
+            },
+            "ground_truth_column": {
+              "type": "STRING"
+            },
+            "ground_truth_format": {
+              "type": "STRING"
+            },
+            "ground_truth_gcs_source": {
+              "type": "STRING"
+            },
+            "key_columns": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "positive_classes": {
+              "type": "STRING"
+            },
+            "prediction_id_column": {
+              "type": "STRING"
+            },
+            "prediction_label_column": {
+              "type": "STRING"
+            },
+            "prediction_score_column": {
+              "type": "STRING"
+            },
+            "predictions_format": {
+              "type": "STRING"
+            },
+            "problem_type": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "root_dir": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "evaluation_metrics": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "gcp_resources": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-model-evaluation-6": {
+        "executorLabel": "exec-model-evaluation-6",
+        "inputDefinitions": {
+          "artifacts": {
+            "batch_prediction_job": {
+              "artifactType": {
+                "schemaTitle": "google.VertexBatchPredictionJob",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "class_names": {
+              "type": "STRING"
+            },
+            "classification_type": {
+              "type": "STRING"
+            },
+            "dataflow_disk_size": {
+              "type": "INT"
+            },
+            "dataflow_machine_type": {
+              "type": "STRING"
+            },
+            "dataflow_max_workers_num": {
+              "type": "INT"
+            },
+            "dataflow_service_account": {
+              "type": "STRING"
+            },
+            "dataflow_subnetwork": {
+              "type": "STRING"
+            },
+            "dataflow_use_public_ips": {
+              "type": "STRING"
+            },
+            "dataflow_workers_num": {
+              "type": "INT"
+            },
+            "encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "example_weight_column": {
+              "type": "STRING"
+            },
+            "generate_feature_attribution": {
+              "type": "STRING"
+            },
+            "ground_truth_column": {
+              "type": "STRING"
+            },
+            "ground_truth_format": {
+              "type": "STRING"
+            },
+            "ground_truth_gcs_source": {
+              "type": "STRING"
+            },
+            "key_columns": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "positive_classes": {
+              "type": "STRING"
+            },
+            "prediction_id_column": {
+              "type": "STRING"
+            },
+            "prediction_label_column": {
+              "type": "STRING"
+            },
+            "prediction_score_column": {
+              "type": "STRING"
+            },
+            "predictions_format": {
+              "type": "STRING"
+            },
+            "problem_type": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "root_dir": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "evaluation_metrics": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "gcp_resources": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
       "comp-model-evaluation-import": {
         "executorLabel": "exec-model-evaluation-import",
         "inputDefinitions": {
@@ -1562,6 +2262,15 @@
             }
           },
           "parameters": {
+            "dataset_path": {
+              "type": "STRING"
+            },
+            "dataset_type": {
+              "type": "STRING"
+            },
+            "display_name": {
+              "type": "STRING"
+            },
             "problem_type": {
               "type": "STRING"
             }
@@ -1599,6 +2308,61 @@
             }
           },
           "parameters": {
+            "dataset_path": {
+              "type": "STRING"
+            },
+            "dataset_type": {
+              "type": "STRING"
+            },
+            "display_name": {
+              "type": "STRING"
+            },
+            "problem_type": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "gcp_resources": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-model-evaluation-import-3": {
+        "executorLabel": "exec-model-evaluation-import-3",
+        "inputDefinitions": {
+          "artifacts": {
+            "explanation": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "metrics": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "model": {
+              "artifactType": {
+                "schemaTitle": "google.VertexModel",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "dataset_path": {
+              "type": "STRING"
+            },
+            "dataset_type": {
+              "type": "STRING"
+            },
+            "display_name": {
+              "type": "STRING"
+            },
             "problem_type": {
               "type": "STRING"
             }
@@ -1615,6 +2379,88 @@
     },
     "deploymentSpec": {
       "executors": {
+        "exec-evaluation-data-sampler": {
+          "container": {
+            "args": [
+              "--task",
+              "data_sampler",
+              "--display_name",
+              "data-sampler-run",
+              "--project_id",
+              "{{$.inputs.parameters['project']}}",
+              "--location",
+              "{{$.inputs.parameters['location']}}",
+              "--root_dir",
+              "{{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
+              "--gcs_source_uris",
+              "{{$.inputs.parameters['gcs_source_uris']}}",
+              "--instances_format",
+              "{{$.inputs.parameters['instances_format']}}",
+              "--sample_size",
+              "{{$.inputs.parameters['sample_size']}}",
+              "--dataflow_service_account",
+              "{{$.inputs.parameters['dataflow_service_account']}}",
+              "--dataflow_subnetwork",
+              "{{$.inputs.parameters['dataflow_subnetwork']}}",
+              "--dataflow_use_public_ips",
+              "{{$.inputs.parameters['dataflow_use_public_ips']}}",
+              "--kms_key_name",
+              "{{$.inputs.parameters['encryption_spec_key_name']}}",
+              "--gcs_output_directory",
+              "{{$.outputs.parameters['gcs_output_directory'].output_file}}",
+              "--gcp_resources",
+              "{{$.outputs.parameters['gcp_resources'].output_file}}",
+              "--executor_input",
+              "{{$}}"
+            ],
+            "command": [
+              "python",
+              "/main.py"
+            ],
+            "image": "gcr.io/ml-pipeline/model-evaluation:v0.4"
+          }
+        },
+        "exec-evaluation-data-splitter": {
+          "container": {
+            "args": [
+              "--task",
+              "data_splitter",
+              "--display_name",
+              "data-splitter-run",
+              "--project_id",
+              "{{$.inputs.parameters['project']}}",
+              "--location",
+              "{{$.inputs.parameters['location']}}",
+              "--root_dir",
+              "{{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
+              "--gcs_source_uris",
+              "{{$.inputs.parameters['gcs_source_uris']}}",
+              "--instances_format",
+              "{{$.inputs.parameters['instances_format']}}",
+              "--ground_truth_column",
+              "{{$.inputs.parameters['ground_truth_column']}}",
+              "--dataflow_service_account",
+              "{{$.inputs.parameters['dataflow_service_account']}}",
+              "--dataflow_subnetwork",
+              "{{$.inputs.parameters['dataflow_subnetwork']}}",
+              "--dataflow_use_public_ips",
+              "{{$.inputs.parameters['dataflow_use_public_ips']}}",
+              "--kms_key_name",
+              "{{$.inputs.parameters['encryption_spec_key_name']}}",
+              "--gcs_output_directory",
+              "{{$.outputs.parameters['gcs_output_directory'].output_file}}",
+              "--gcp_resources",
+              "{{$.outputs.parameters['gcp_resources'].output_file}}",
+              "--executor_input",
+              "{{$}}"
+            ],
+            "command": [
+              "python",
+              "/main.py"
+            ],
+            "image": "gcr.io/ml-pipeline/model-evaluation:v0.4"
+          }
+        },
         "exec-get-vertex-model": {
           "container": {
             "args": [
@@ -1654,7 +2500,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.15"
           }
         },
         "exec-model-batch-predict-2": {
@@ -1679,7 +2525,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.15"
           }
         },
         "exec-model-evaluation": {
@@ -1756,7 +2602,7 @@
               "python",
               "/main.py"
             ],
-            "image": "gcr.io/ml-pipeline/model-evaluation:v0.2"
+            "image": "gcr.io/ml-pipeline/model-evaluation:v0.4"
           }
         },
         "exec-model-evaluation-2": {
@@ -1833,7 +2679,7 @@
               "python",
               "/main.py"
             ],
-            "image": "gcr.io/ml-pipeline/model-evaluation:v0.2"
+            "image": "gcr.io/ml-pipeline/model-evaluation:v0.4"
           }
         },
         "exec-model-evaluation-3": {
@@ -1910,7 +2756,7 @@
               "python",
               "/main.py"
             ],
-            "image": "gcr.io/ml-pipeline/model-evaluation:v0.2"
+            "image": "gcr.io/ml-pipeline/model-evaluation:v0.4"
           }
         },
         "exec-model-evaluation-4": {
@@ -1987,7 +2833,161 @@
               "python",
               "/main.py"
             ],
-            "image": "gcr.io/ml-pipeline/model-evaluation:v0.2"
+            "image": "gcr.io/ml-pipeline/model-evaluation:v0.4"
+          }
+        },
+        "exec-model-evaluation-5": {
+          "container": {
+            "args": [
+              "--setup_file",
+              "/setup.py",
+              "--json_mode",
+              "true",
+              "--project_id",
+              "{{$.inputs.parameters['project']}}",
+              "--location",
+              "{{$.inputs.parameters['location']}}",
+              "--problem_type",
+              "{{$.inputs.parameters['problem_type']}}",
+              "--batch_prediction_format",
+              "{{$.inputs.parameters['predictions_format']}}",
+              "--batch_prediction_gcs_source",
+              "{{$.inputs.artifacts['batch_prediction_job'].metadata['gcsOutputDirectory']}}",
+              "--ground_truth_format",
+              "{{$.inputs.parameters['ground_truth_format']}}",
+              "--ground_truth_gcs_source",
+              "{{$.inputs.parameters['ground_truth_gcs_source']}}",
+              "--key_prefix_in_prediction_dataset",
+              "instance",
+              "--key_columns",
+              "{{$.inputs.parameters['key_columns']}}",
+              "--root_dir",
+              "{{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
+              "--classification_type",
+              "{{$.inputs.parameters['classification_type']}}",
+              "--class_names",
+              "{{$.inputs.parameters['class_names']}}",
+              "--ground_truth_column",
+              "instance.{{$.inputs.parameters['ground_truth_column']}}",
+              "--prediction_score_column",
+              "{{$.inputs.parameters['prediction_score_column']}}",
+              "--prediction_label_column",
+              "{{$.inputs.parameters['prediction_label_column']}}",
+              "--prediction_id_column",
+              "{{$.inputs.parameters['prediction_id_column']}}",
+              "--example_weight_column",
+              "{{$.inputs.parameters['example_weight_column']}}",
+              "--positive_classes",
+              "{{$.inputs.parameters['positive_classes']}}",
+              "--generate_feature_attribution",
+              "{{$.inputs.parameters['generate_feature_attribution']}}",
+              "--dataflow_job_prefix",
+              "evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
+              "--dataflow_service_account",
+              "{{$.inputs.parameters['dataflow_service_account']}}",
+              "--dataflow_disk_size",
+              "{{$.inputs.parameters['dataflow_disk_size']}}",
+              "--dataflow_machine_type",
+              "{{$.inputs.parameters['dataflow_machine_type']}}",
+              "--dataflow_workers_num",
+              "{{$.inputs.parameters['dataflow_workers_num']}}",
+              "--dataflow_max_workers_num",
+              "{{$.inputs.parameters['dataflow_max_workers_num']}}",
+              "--dataflow_subnetwork",
+              "{{$.inputs.parameters['dataflow_subnetwork']}}",
+              "--dataflow_use_public_ips",
+              "{{$.inputs.parameters['dataflow_use_public_ips']}}",
+              "--kms_key_name",
+              "{{$.inputs.parameters['encryption_spec_key_name']}}",
+              "--output_metrics_gcs_path",
+              "{{$.outputs.artifacts['evaluation_metrics'].uri}}",
+              "--gcp_resources",
+              "{{$.outputs.parameters['gcp_resources'].output_file}}",
+              "--executor_input",
+              "{{$}}"
+            ],
+            "command": [
+              "python",
+              "/main.py"
+            ],
+            "image": "gcr.io/ml-pipeline/model-evaluation:v0.4"
+          }
+        },
+        "exec-model-evaluation-6": {
+          "container": {
+            "args": [
+              "--setup_file",
+              "/setup.py",
+              "--json_mode",
+              "true",
+              "--project_id",
+              "{{$.inputs.parameters['project']}}",
+              "--location",
+              "{{$.inputs.parameters['location']}}",
+              "--problem_type",
+              "{{$.inputs.parameters['problem_type']}}",
+              "--batch_prediction_format",
+              "{{$.inputs.parameters['predictions_format']}}",
+              "--batch_prediction_gcs_source",
+              "{{$.inputs.artifacts['batch_prediction_job'].metadata['gcsOutputDirectory']}}",
+              "--ground_truth_format",
+              "{{$.inputs.parameters['ground_truth_format']}}",
+              "--ground_truth_gcs_source",
+              "{{$.inputs.parameters['ground_truth_gcs_source']}}",
+              "--key_prefix_in_prediction_dataset",
+              "instance",
+              "--key_columns",
+              "{{$.inputs.parameters['key_columns']}}",
+              "--root_dir",
+              "{{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
+              "--classification_type",
+              "{{$.inputs.parameters['classification_type']}}",
+              "--class_names",
+              "{{$.inputs.parameters['class_names']}}",
+              "--ground_truth_column",
+              "instance.{{$.inputs.parameters['ground_truth_column']}}",
+              "--prediction_score_column",
+              "{{$.inputs.parameters['prediction_score_column']}}",
+              "--prediction_label_column",
+              "{{$.inputs.parameters['prediction_label_column']}}",
+              "--prediction_id_column",
+              "{{$.inputs.parameters['prediction_id_column']}}",
+              "--example_weight_column",
+              "{{$.inputs.parameters['example_weight_column']}}",
+              "--positive_classes",
+              "{{$.inputs.parameters['positive_classes']}}",
+              "--generate_feature_attribution",
+              "{{$.inputs.parameters['generate_feature_attribution']}}",
+              "--dataflow_job_prefix",
+              "evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
+              "--dataflow_service_account",
+              "{{$.inputs.parameters['dataflow_service_account']}}",
+              "--dataflow_disk_size",
+              "{{$.inputs.parameters['dataflow_disk_size']}}",
+              "--dataflow_machine_type",
+              "{{$.inputs.parameters['dataflow_machine_type']}}",
+              "--dataflow_workers_num",
+              "{{$.inputs.parameters['dataflow_workers_num']}}",
+              "--dataflow_max_workers_num",
+              "{{$.inputs.parameters['dataflow_max_workers_num']}}",
+              "--dataflow_subnetwork",
+              "{{$.inputs.parameters['dataflow_subnetwork']}}",
+              "--dataflow_use_public_ips",
+              "{{$.inputs.parameters['dataflow_use_public_ips']}}",
+              "--kms_key_name",
+              "{{$.inputs.parameters['encryption_spec_key_name']}}",
+              "--output_metrics_gcs_path",
+              "{{$.outputs.artifacts['evaluation_metrics'].uri}}",
+              "--gcp_resources",
+              "{{$.outputs.parameters['gcp_resources'].output_file}}",
+              "--executor_input",
+              "{{$}}"
+            ],
+            "command": [
+              "python",
+              "/main.py"
+            ],
+            "image": "gcr.io/ml-pipeline/model-evaluation:v0.4"
           }
         },
         "exec-model-evaluation-import": {
@@ -2001,6 +3001,14 @@
               "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}",
               "--problem_type",
               "{{$.inputs.parameters['problem_type']}}",
+              "--display_name",
+              "{{$.inputs.parameters['display_name']}}",
+              "--dataset_path",
+              "{{$.inputs.parameters['dataset_path']}}",
+              "--dataset_type",
+              "{{$.inputs.parameters['dataset_type']}}",
+              "--pipeline_job_id",
+              "{{$.pipeline_job_uuid}}",
               "--model_name",
               "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
               "--gcp_resources",
@@ -2012,7 +3020,7 @@
               "-m",
               "google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.15"
           }
         },
         "exec-model-evaluation-import-2": {
@@ -2026,6 +3034,14 @@
               "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}",
               "--problem_type",
               "{{$.inputs.parameters['problem_type']}}",
+              "--display_name",
+              "{{$.inputs.parameters['display_name']}}",
+              "--dataset_path",
+              "{{$.inputs.parameters['dataset_path']}}",
+              "--dataset_type",
+              "{{$.inputs.parameters['dataset_type']}}",
+              "--pipeline_job_id",
+              "{{$.pipeline_job_uuid}}",
               "--model_name",
               "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
               "--gcp_resources",
@@ -2037,13 +3053,46 @@
               "-m",
               "google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.8"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.15"
+          }
+        },
+        "exec-model-evaluation-import-3": {
+          "container": {
+            "args": [
+              "--metrics",
+              "{{$.inputs.artifacts['metrics'].path}}",
+              "--metrics_explanation",
+              "{{$.inputs.artifacts['metrics'].metadata['explanation_gcs_path']}}",
+              "--explanation",
+              "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}",
+              "--problem_type",
+              "{{$.inputs.parameters['problem_type']}}",
+              "--display_name",
+              "{{$.inputs.parameters['display_name']}}",
+              "--dataset_path",
+              "{{$.inputs.parameters['dataset_path']}}",
+              "--dataset_type",
+              "{{$.inputs.parameters['dataset_type']}}",
+              "--pipeline_job_id",
+              "{{$.pipeline_job_uuid}}",
+              "--model_name",
+              "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
+              "--gcp_resources",
+              "{{$.outputs.parameters['gcp_resources'].output_file}}"
+            ],
+            "command": [
+              "python3",
+              "-u",
+              "-m",
+              "google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation"
+            ],
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.15"
           }
         }
       }
     },
     "pipelineInfo": {
-      "name": "evaluation-tabular-feature-attribution-pipeline"
+      "name": "vertex-evaluation-feature-attribution-pipeline"
     },
     "root": {
       "dag": {
@@ -2053,7 +3102,7 @@
               "artifactSelectors": [
                 {
                   "outputArtifactKey": "model-evaluation-2-evaluation_metrics",
-                  "producerSubtask": "condition-1"
+                  "producerSubtask": "condition-classification-1"
                 }
               ]
             },
@@ -2061,7 +3110,7 @@
               "artifactSelectors": [
                 {
                   "outputArtifactKey": "model-evaluation-3-evaluation_metrics",
-                  "producerSubtask": "condition-2"
+                  "producerSubtask": "condition-forecasting-2"
                 }
               ]
             },
@@ -2069,7 +3118,23 @@
               "artifactSelectors": [
                 {
                   "outputArtifactKey": "model-evaluation-4-evaluation_metrics",
-                  "producerSubtask": "condition-2"
+                  "producerSubtask": "condition-forecasting-2"
+                }
+              ]
+            },
+            "model-evaluation-5-evaluation_metrics": {
+              "artifactSelectors": [
+                {
+                  "outputArtifactKey": "model-evaluation-5-evaluation_metrics",
+                  "producerSubtask": "condition-regression-3"
+                }
+              ]
+            },
+            "model-evaluation-6-evaluation_metrics": {
+              "artifactSelectors": [
+                {
+                  "outputArtifactKey": "model-evaluation-6-evaluation_metrics",
+                  "producerSubtask": "condition-regression-3"
                 }
               ]
             },
@@ -2077,16 +3142,16 @@
               "artifactSelectors": [
                 {
                   "outputArtifactKey": "model-evaluation-evaluation_metrics",
-                  "producerSubtask": "condition-1"
+                  "producerSubtask": "condition-classification-1"
                 }
               ]
             }
           }
         },
         "tasks": {
-          "condition-1": {
+          "condition-classification-1": {
             "componentRef": {
-              "name": "comp-condition-1"
+              "name": "comp-condition-classification-1"
             },
             "dependentTasks": [
               "get-vertex-model",
@@ -2115,6 +3180,15 @@
                 }
               },
               "parameters": {
+                "pipelineparam--batch_predict_gcs_source_uris": {
+                  "componentInputParameter": "batch_predict_gcs_source_uris"
+                },
+                "pipelineparam--batch_predict_instances_format": {
+                  "componentInputParameter": "batch_predict_instances_format"
+                },
+                "pipelineparam--batch_predict_predictions_format": {
+                  "componentInputParameter": "batch_predict_predictions_format"
+                },
                 "pipelineparam--dataflow_disk_size_gb": {
                   "componentInputParameter": "dataflow_disk_size_gb"
                 },
@@ -2136,6 +3210,18 @@
                 "pipelineparam--encryption_spec_key_name": {
                   "componentInputParameter": "encryption_spec_key_name"
                 },
+                "pipelineparam--evaluation_class_names": {
+                  "componentInputParameter": "evaluation_class_names"
+                },
+                "pipelineparam--evaluation_prediction_label_column": {
+                  "componentInputParameter": "evaluation_prediction_label_column"
+                },
+                "pipelineparam--evaluation_prediction_score_column": {
+                  "componentInputParameter": "evaluation_prediction_score_column"
+                },
+                "pipelineparam--ground_truth_key_columns": {
+                  "componentInputParameter": "ground_truth_key_columns"
+                },
                 "pipelineparam--location": {
                   "componentInputParameter": "location"
                 },
@@ -2154,15 +3240,15 @@
               }
             },
             "taskInfo": {
-              "name": "condition-1"
+              "name": "condition-classification-1"
             },
             "triggerPolicy": {
-              "condition": "inputs.parameters['pipelineparam--prediction_type'].string_value == 'regression'"
+              "condition": "inputs.parameters['pipelineparam--prediction_type'].string_value == 'classification'"
             }
           },
-          "condition-2": {
+          "condition-forecasting-2": {
             "componentRef": {
-              "name": "comp-condition-2"
+              "name": "comp-condition-forecasting-2"
             },
             "dependentTasks": [
               "get-vertex-model",
@@ -2191,6 +3277,15 @@
                 }
               },
               "parameters": {
+                "pipelineparam--batch_predict_gcs_source_uris": {
+                  "componentInputParameter": "batch_predict_gcs_source_uris"
+                },
+                "pipelineparam--batch_predict_instances_format": {
+                  "componentInputParameter": "batch_predict_instances_format"
+                },
+                "pipelineparam--batch_predict_predictions_format": {
+                  "componentInputParameter": "batch_predict_predictions_format"
+                },
                 "pipelineparam--dataflow_disk_size_gb": {
                   "componentInputParameter": "dataflow_disk_size_gb"
                 },
@@ -2208,6 +3303,15 @@
                 },
                 "pipelineparam--dataflow_use_public_ips": {
                   "componentInputParameter": "dataflow_use_public_ips"
+                },
+                "pipelineparam--encryption_spec_key_name": {
+                  "componentInputParameter": "encryption_spec_key_name"
+                },
+                "pipelineparam--evaluation_prediction_score_column": {
+                  "componentInputParameter": "evaluation_prediction_score_column"
+                },
+                "pipelineparam--ground_truth_key_columns": {
+                  "componentInputParameter": "ground_truth_key_columns"
                 },
                 "pipelineparam--location": {
                   "componentInputParameter": "location"
@@ -2227,10 +3331,213 @@
               }
             },
             "taskInfo": {
-              "name": "condition-2"
+              "name": "condition-forecasting-2"
             },
             "triggerPolicy": {
-              "condition": "inputs.parameters['pipelineparam--prediction_type'].string_value == 'classification'"
+              "condition": "inputs.parameters['pipelineparam--prediction_type'].string_value == 'forecasting'"
+            }
+          },
+          "condition-regression-3": {
+            "componentRef": {
+              "name": "comp-condition-regression-3"
+            },
+            "dependentTasks": [
+              "get-vertex-model",
+              "model-batch-predict",
+              "model-batch-predict-2"
+            ],
+            "inputs": {
+              "artifacts": {
+                "pipelineparam--get-vertex-model-model": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "model",
+                    "producerTask": "get-vertex-model"
+                  }
+                },
+                "pipelineparam--model-batch-predict-2-batchpredictionjob": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "batchpredictionjob",
+                    "producerTask": "model-batch-predict-2"
+                  }
+                },
+                "pipelineparam--model-batch-predict-batchpredictionjob": {
+                  "taskOutputArtifact": {
+                    "outputArtifactKey": "batchpredictionjob",
+                    "producerTask": "model-batch-predict"
+                  }
+                }
+              },
+              "parameters": {
+                "pipelineparam--batch_predict_gcs_source_uris": {
+                  "componentInputParameter": "batch_predict_gcs_source_uris"
+                },
+                "pipelineparam--batch_predict_instances_format": {
+                  "componentInputParameter": "batch_predict_instances_format"
+                },
+                "pipelineparam--batch_predict_predictions_format": {
+                  "componentInputParameter": "batch_predict_predictions_format"
+                },
+                "pipelineparam--dataflow_disk_size_gb": {
+                  "componentInputParameter": "dataflow_disk_size_gb"
+                },
+                "pipelineparam--dataflow_machine_type": {
+                  "componentInputParameter": "dataflow_machine_type"
+                },
+                "pipelineparam--dataflow_max_num_workers": {
+                  "componentInputParameter": "dataflow_max_num_workers"
+                },
+                "pipelineparam--dataflow_service_account": {
+                  "componentInputParameter": "dataflow_service_account"
+                },
+                "pipelineparam--dataflow_subnetwork": {
+                  "componentInputParameter": "dataflow_subnetwork"
+                },
+                "pipelineparam--dataflow_use_public_ips": {
+                  "componentInputParameter": "dataflow_use_public_ips"
+                },
+                "pipelineparam--encryption_spec_key_name": {
+                  "componentInputParameter": "encryption_spec_key_name"
+                },
+                "pipelineparam--evaluation_prediction_score_column": {
+                  "componentInputParameter": "evaluation_prediction_score_column"
+                },
+                "pipelineparam--ground_truth_key_columns": {
+                  "componentInputParameter": "ground_truth_key_columns"
+                },
+                "pipelineparam--location": {
+                  "componentInputParameter": "location"
+                },
+                "pipelineparam--prediction_type": {
+                  "componentInputParameter": "prediction_type"
+                },
+                "pipelineparam--project": {
+                  "componentInputParameter": "project"
+                },
+                "pipelineparam--root_dir": {
+                  "componentInputParameter": "root_dir"
+                },
+                "pipelineparam--target_column_name": {
+                  "componentInputParameter": "target_column_name"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "condition-regression-3"
+            },
+            "triggerPolicy": {
+              "condition": "inputs.parameters['pipelineparam--prediction_type'].string_value == 'regression'"
+            }
+          },
+          "evaluation-data-sampler": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-evaluation-data-sampler"
+            },
+            "dependentTasks": [
+              "evaluation-data-splitter"
+            ],
+            "inputs": {
+              "parameters": {
+                "dataflow_service_account": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": ""
+                    }
+                  }
+                },
+                "dataflow_subnetwork": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": ""
+                    }
+                  }
+                },
+                "dataflow_use_public_ips": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": "true"
+                    }
+                  }
+                },
+                "encryption_spec_key_name": {
+                  "runtimeValue": {
+                    "constantValue": {
+                      "stringValue": ""
+                    }
+                  }
+                },
+                "gcs_source_uris": {
+                  "taskOutputParameter": {
+                    "outputParameterKey": "gcs_output_directory",
+                    "producerTask": "evaluation-data-splitter"
+                  }
+                },
+                "instances_format": {
+                  "componentInputParameter": "batch_predict_instances_format"
+                },
+                "location": {
+                  "componentInputParameter": "location"
+                },
+                "project": {
+                  "componentInputParameter": "project"
+                },
+                "root_dir": {
+                  "componentInputParameter": "root_dir"
+                },
+                "sample_size": {
+                  "componentInputParameter": "batch_predict_explanation_data_sample_size"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "evaluation-data-sampler"
+            }
+          },
+          "evaluation-data-splitter": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-evaluation-data-splitter"
+            },
+            "inputs": {
+              "parameters": {
+                "dataflow_service_account": {
+                  "componentInputParameter": "dataflow_service_account"
+                },
+                "dataflow_subnetwork": {
+                  "componentInputParameter": "dataflow_subnetwork"
+                },
+                "dataflow_use_public_ips": {
+                  "componentInputParameter": "dataflow_use_public_ips"
+                },
+                "encryption_spec_key_name": {
+                  "componentInputParameter": "encryption_spec_key_name"
+                },
+                "gcs_source_uris": {
+                  "componentInputParameter": "batch_predict_gcs_source_uris"
+                },
+                "ground_truth_column": {
+                  "componentInputParameter": "target_column_name"
+                },
+                "instances_format": {
+                  "componentInputParameter": "batch_predict_instances_format"
+                },
+                "location": {
+                  "componentInputParameter": "location"
+                },
+                "project": {
+                  "componentInputParameter": "project"
+                },
+                "root_dir": {
+                  "componentInputParameter": "root_dir"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "evaluation-data-splitter"
             }
           },
           "get-vertex-model": {
@@ -2259,6 +3566,7 @@
               "name": "comp-model-batch-predict"
             },
             "dependentTasks": [
+              "evaluation-data-splitter",
               "get-vertex-model"
             ],
             "inputs": {
@@ -2300,11 +3608,7 @@
                   }
                 },
                 "encryption_spec_key_name": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": ""
-                    }
-                  }
+                  "componentInputParameter": "encryption_spec_key_name"
                 },
                 "explanation_metadata": {
                   "runtimeValue": {
@@ -2324,7 +3628,10 @@
                   "componentInputParameter": "root_dir"
                 },
                 "gcs_source_uris": {
-                  "componentInputParameter": "batch_predict_gcs_source_uris"
+                  "taskOutputParameter": {
+                    "outputParameterKey": "gcs_output_directory",
+                    "producerTask": "evaluation-data-splitter"
+                  }
                 },
                 "generate_explanation": {
                   "runtimeValue": {
@@ -2374,11 +3681,7 @@
                   }
                 },
                 "predictions_format": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "jsonl"
-                    }
-                  }
+                  "componentInputParameter": "batch_predict_predictions_format"
                 },
                 "project": {
                   "componentInputParameter": "project"
@@ -2400,6 +3703,7 @@
               "name": "comp-model-batch-predict-2"
             },
             "dependentTasks": [
+              "evaluation-data-sampler",
               "get-vertex-model"
             ],
             "inputs": {
@@ -2441,11 +3745,7 @@
                   }
                 },
                 "encryption_spec_key_name": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": ""
-                    }
-                  }
+                  "componentInputParameter": "encryption_spec_key_name"
                 },
                 "explanation_metadata": {
                   "componentInputParameter": "batch_predict_explanation_metadata"
@@ -2457,7 +3757,10 @@
                   "componentInputParameter": "root_dir"
                 },
                 "gcs_source_uris": {
-                  "componentInputParameter": "batch_predict_gcs_source_uris"
+                  "taskOutputParameter": {
+                    "outputParameterKey": "gcs_output_directory",
+                    "producerTask": "evaluation-data-sampler"
+                  }
                 },
                 "generate_explanation": {
                   "runtimeValue": {
@@ -2507,11 +3810,7 @@
                   }
                 },
                 "predictions_format": {
-                  "runtimeValue": {
-                    "constantValue": {
-                      "stringValue": "jsonl"
-                    }
-                  }
+                  "componentInputParameter": "batch_predict_predictions_format"
                 },
                 "project": {
                   "componentInputParameter": "project"
@@ -2529,6 +3828,9 @@
       },
       "inputDefinitions": {
         "parameters": {
+          "batch_predict_explanation_data_sample_size": {
+            "type": "INT"
+          },
           "batch_predict_explanation_metadata": {
             "type": "STRING"
           },
@@ -2546,6 +3848,9 @@
           },
           "batch_predict_max_replica_count": {
             "type": "INT"
+          },
+          "batch_predict_predictions_format": {
+            "type": "STRING"
           },
           "batch_predict_starting_replica_count": {
             "type": "INT"
@@ -2571,8 +3876,17 @@
           "encryption_spec_key_name": {
             "type": "STRING"
           },
-          "explanation_sample_size": {
-            "type": "INT"
+          "evaluation_class_names": {
+            "type": "STRING"
+          },
+          "evaluation_prediction_label_column": {
+            "type": "STRING"
+          },
+          "evaluation_prediction_score_column": {
+            "type": "STRING"
+          },
+          "ground_truth_key_columns": {
+            "type": "STRING"
           },
           "location": {
             "type": "STRING"
@@ -2614,6 +3928,18 @@
               "schemaVersion": "0.0.1"
             }
           },
+          "model-evaluation-5-evaluation_metrics": {
+            "artifactType": {
+              "schemaTitle": "system.Metrics",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "model-evaluation-6-evaluation_metrics": {
+            "artifactType": {
+              "schemaTitle": "system.Metrics",
+              "schemaVersion": "0.0.1"
+            }
+          },
           "model-evaluation-evaluation_metrics": {
             "artifactType": {
               "schemaTitle": "system.Metrics",
@@ -2624,10 +3950,13 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.8.12"
+    "sdkVersion": "kfp-1.8.13"
   },
   "runtimeConfig": {
     "parameters": {
+      "batch_predict_explanation_data_sample_size": {
+        "intValue": "10000"
+      },
       "batch_predict_explanation_metadata": {
         "stringValue": "{}"
       },
@@ -2640,6 +3969,9 @@
       "batch_predict_max_replica_count": {
         "intValue": "10"
       },
+      "batch_predict_predictions_format": {
+        "stringValue": "jsonl"
+      },
       "batch_predict_starting_replica_count": {
         "intValue": "5"
       },
@@ -2650,7 +3982,7 @@
         "stringValue": "n1-standard-4"
       },
       "dataflow_max_num_workers": {
-        "intValue": "25"
+        "intValue": "5"
       },
       "dataflow_service_account": {
         "stringValue": ""
@@ -2664,8 +3996,14 @@
       "encryption_spec_key_name": {
         "stringValue": ""
       },
-      "explanation_sample_size": {
-        "intValue": "10000"
+      "evaluation_class_names": {
+        "stringValue": "[]"
+      },
+      "evaluation_prediction_label_column": {
+        "stringValue": ""
+      },
+      "evaluation_prediction_score_column": {
+        "stringValue": "prediction"
       }
     }
   }

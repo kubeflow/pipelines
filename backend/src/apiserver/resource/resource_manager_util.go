@@ -25,10 +25,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func formulateRetryWorkflow(wf util.ExecutionSpec) (util.ExecutionSpec, []string, error) {
-	return wf.GenerateRetryExecution()
-}
-
 func deletePods(ctx context.Context, k8sCoreClient client.KubernetesCoreInterface, podsToDelete []string, namespace string) error {
 	for _, podId := range podsToDelete {
 		err := k8sCoreClient.PodClient(namespace).Delete(ctx, podId, metav1.DeleteOptions{})

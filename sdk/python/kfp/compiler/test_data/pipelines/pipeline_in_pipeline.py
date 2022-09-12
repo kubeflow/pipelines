@@ -12,18 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from kfp.dsl import component
-from kfp.dsl import Dataset
+from kfp import compiler
+from kfp import components
+from kfp import dsl
 
 
-@component
-def output_artifact(number: int, message: str) -> Dataset:
-    result = [message for _ in range(number)]
-    return '\n'.join(result)
+@dsl.component
+def print_op1(msg: str) -> str:
+    print(msg)
+    return msg
+
+
+@dsl.container_component
+def print_op2(msg: str):
+    return dsl.ContainerSpec(
+        image='alpine',
+        command=['echo', msg],
+    )
+
+
+@dsl.pipeline
+def inner_pipeline(msg: str):
+    task = print_op1(msg=msg)
+    print_op2(msg=task.output)
+
+
+@dsl.pipeline(name='pipeline-in-pipeline')
+def my_pipeline():
+    print_op1(msg='Hello')
+    inner_pipeline(msg='world')
 
 
 if __name__ == '__main__':
-    from kfp import compiler
     compiler.Compiler().compile(
-        pipeline_func=output_artifact,
+        pipeline_func=my_pipeline,
         package_path=__file__.replace('.py', '.yaml'))

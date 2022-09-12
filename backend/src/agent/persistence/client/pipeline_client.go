@@ -17,6 +17,9 @@ package client
 import (
 	"context"
 	"fmt"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"google.golang.org/grpc/metadata"
+	"os"
 	"time"
 
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
@@ -31,10 +34,10 @@ const (
 )
 
 type PipelineClientInterface interface {
-	ReportWorkflow(workflow *util.Workflow) error
+	ReportWorkflow(workflow util.ExecutionSpec) error
 	ReportScheduledWorkflow(swf *util.ScheduledWorkflow) error
-	ReadArtifact(request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error)
-	ReportRunMetrics(request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error)
+	ReadArtifact(request *api.ReadArtifactRequest, user string) (*api.ReadArtifactResponse, error)
+	ReportRunMetrics(request *api.ReportRunMetricsRequest, user string) (*api.ReportRunMetricsResponse, error)
 }
 
 type PipelineClient struct {
@@ -72,7 +75,7 @@ func NewPipelineClient(
 	}, nil
 }
 
-func (p *PipelineClient) ReportWorkflow(workflow *util.Workflow) error {
+func (p *PipelineClient) ReportWorkflow(workflow util.ExecutionSpec) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
@@ -91,7 +94,7 @@ func (p *PipelineClient) ReportWorkflow(workflow *util.Workflow) error {
 				statusCode.Code(),
 				statusCode.Message(),
 				err.Error(),
-				workflow.Workflow)
+				workflow.ToStringForStore())
 		} else {
 			// Retry otherwise
 			return util.NewCustomError(err, util.CUSTOM_CODE_TRANSIENT,
@@ -99,7 +102,7 @@ func (p *PipelineClient) ReportWorkflow(workflow *util.Workflow) error {
 				statusCode.Code(),
 				statusCode.Message(),
 				err.Error(),
-				workflow.Workflow)
+				workflow.ToStringForStore())
 		}
 	}
 	return nil
@@ -139,8 +142,13 @@ func (p *PipelineClient) ReportScheduledWorkflow(swf *util.ScheduledWorkflow) er
 
 // ReadArtifact reads artifact content from run service. If the artifact is not present, returns
 // nil response.
-func (p *PipelineClient) ReadArtifact(request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+func (p *PipelineClient) ReadArtifact(request *api.ReadArtifactRequest, user string) (*api.ReadArtifactResponse, error) {
+	pctx := context.Background()
+	if user != "" {
+		pctx = metadata.AppendToOutgoingContext(pctx, getKubeflowUserIDHeader(),
+			getKubeflowUserIDPrefix()+user)
+	}
+	ctx, cancel := context.WithTimeout(pctx, time.Minute)
 	defer cancel()
 
 	response, err := p.runServiceClient.ReadArtifact(ctx, request)
@@ -153,8 +161,13 @@ func (p *PipelineClient) ReadArtifact(request *api.ReadArtifactRequest) (*api.Re
 }
 
 // ReportRunMetrics reports run metrics to run service.
-func (p *PipelineClient) ReportRunMetrics(request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+func (p *PipelineClient) ReportRunMetrics(request *api.ReportRunMetricsRequest, user string) (*api.ReportRunMetricsResponse, error) {
+	pctx := context.Background()
+	if user != "" {
+		pctx = metadata.AppendToOutgoingContext(pctx, getKubeflowUserIDHeader(),
+			getKubeflowUserIDPrefix()+user)
+	}
+	ctx, cancel := context.WithTimeout(pctx, time.Minute)
 	defer cancel()
 
 	response, err := p.runServiceClient.ReportRunMetrics(ctx, request)
@@ -165,4 +178,20 @@ func (p *PipelineClient) ReportRunMetrics(request *api.ReportRunMetricsRequest) 
 			"Error while reporting metrics (%+v): %+v", request, err)
 	}
 	return response, nil
+}
+
+// TODO use config file & viper and "github.com/kubeflow/pipelines/backend/src/apiserver/common.GetKubeflowUserIDHeader()"
+func getKubeflowUserIDHeader() string {
+	if value, ok := os.LookupEnv(common.KubeflowUserIDHeader); ok {
+		return value
+	}
+	return common.GoogleIAPUserIdentityHeader
+}
+
+// TODO use of viper & viper and "github.com/kubeflow/pipelines/backend/src/apiserver/common.GetKubeflowUserIDPrefix()"
+func getKubeflowUserIDPrefix() string {
+	if value, ok := os.LookupEnv(common.KubeflowUserIDPrefix); ok {
+		return value
+	}
+	return common.GoogleIAPUserIdentityPrefix
 }

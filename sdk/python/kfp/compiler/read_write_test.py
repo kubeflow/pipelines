@@ -29,13 +29,14 @@ from kfp.components import python_component
 from kfp.components import structures
 import yaml
 
-PROJECT_ROOT = os.path.abspath(os.path.join(__file__, *([os.path.pardir] * 5)))
+_DEFAULT_PIPELINE_FUNC_NAME = 'my_pipeline'
+_PROJECT_ROOT = os.path.abspath(os.path.join(__file__, *([os.path.pardir] * 5)))
 
 
 def expand_config(config: dict) -> List[Dict[str, Any]]:
     parameters: List[Dict[str, Any]] = []
     for name, test_group in config.items():
-        test_data_dir = os.path.join(PROJECT_ROOT, test_group['test_data_dir'])
+        test_data_dir = os.path.join(_PROJECT_ROOT, test_group['test_data_dir'])
         config = test_group['config']
         parameters.extend({
             'name': name + '-' + test_case,
@@ -61,6 +62,10 @@ def collect_pipeline_from_module(
     if len(pipelines) == 1:
         return pipelines[0]
     else:
+        # Try get the pipeline with the default name first.
+        for pipeline in pipelines:
+            if _DEFAULT_PIPELINE_FUNC_NAME == pipeline.pipeline_func.__name__:
+                return pipeline
         raise ValueError(
             f'Expect one pipeline function in module {target_module}, got {len(pipelines)}: {pipelines}. Please specify the pipeline function name with --function.'
         )
@@ -121,11 +126,15 @@ def load_compiled_file(filename: str) -> Dict[str, Any]:
         return ignore_kfp_version_helper(contents)
 
 
-def set_description_in_component_spec_to_none(
+def strip_some_component_spec_fields(
         component_spec: structures.ComponentSpec) -> structures.ComponentSpec:
-    """Sets the description field of a ComponentSpec to None."""
+    """Strips some component spec fields that should be ignored when comparing
+    with golden result."""
     # Ignore description when comparing components specs read in from v1 component YAML and from IR YAML, because non lightweight Python components defined in v1 YAML can have a description field, but IR YAML does not preserve this field unless the component is a lightweight Python function-based component
     component_spec.description = None
+    # ignore SDK version so that golden snapshots don't need to be updated between SDK version bump
+    if component_spec.implementation.graph is not None:
+        component_spec.implementation.graph.sdk_version = ''
     return component_spec
 
 
@@ -153,10 +162,8 @@ class ReadWriteTest(parameterized.TestCase):
         reloaded_component = self._compile_and_load_component(
             original_component)
         self.assertEqual(
-            set_description_in_component_spec_to_none(
-                original_component.component_spec),
-            set_description_in_component_spec_to_none(
-                reloaded_component.component_spec))
+            strip_some_component_spec_fields(original_component.component_spec),
+            strip_some_component_spec_fields(reloaded_component.component_spec))
 
     def _test_serialization_correctness(self,
                                         python_file: str,

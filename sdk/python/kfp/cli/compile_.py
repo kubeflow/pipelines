@@ -75,7 +75,7 @@ def parse_parameters(parameters: Optional[str]) -> Dict:
         raise e
 
 
-@click.command()
+@click.command(name='compile')
 @click.option(
     '--py',
     type=click.Path(exists=True, dir_okay=False),
@@ -103,7 +103,7 @@ def parse_parameters(parameters: Optional[str]) -> Dict:
     is_flag=True,
     default=False,
     help='Whether to disable type checking.')
-def dsl_compile(
+def compile_(
     py: str,
     output: str,
     function_name: Optional[str] = None,
@@ -127,13 +127,13 @@ def dsl_compile(
 def main():
     logging.basicConfig(format='%(message)s', level=logging.INFO)
     try:
-        dsl_compile.help = '(Deprecated. Please use `kfp dsl compile` instead.)\n\n' + dsl_compile.help
+        compile_.help = '(Deprecated. Please use `kfp dsl compile` instead.)\n\n' + compile_.help
 
         click.echo(
             '`dsl-compile` is deprecated. Please use `kfp dsl compile` instead.',
             err=True)
 
-        dsl_compile(obj={}, auto_envvar_prefix='KFP')
+        compile_(obj={}, auto_envvar_prefix='KFP')
     except Exception as e:
         click.echo(str(e), err=True)
         sys.exit(1)

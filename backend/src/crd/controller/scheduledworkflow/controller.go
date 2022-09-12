@@ -20,8 +20,6 @@ import (
 	"time"
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	workflowclientset "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned"
-	workflowinformers "github.com/argoproj/argo-workflows/v3/pkg/client/informers/externalversions"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/client"
 	"github.com/kubeflow/pipelines/backend/src/crd/controller/scheduledworkflow/util"
@@ -81,15 +79,14 @@ type Controller struct {
 func NewController(
 	kubeClientSet kubernetes.Interface,
 	swfClientSet swfclientset.Interface,
-	workflowClientSet workflowclientset.Interface,
+	workflowClientSet commonutil.ExecutionClient,
 	swfInformerFactory swfinformers.SharedInformerFactory,
-	workflowInformerFactory workflowinformers.SharedInformerFactory,
+	executionInformer commonutil.ExecutionInformer,
 	time commonutil.TimeInterface,
 	location *time.Location) *Controller {
 
 	// obtain references to shared informers
 	swfInformer := swfInformerFactory.Scheduledworkflow().V1beta1().ScheduledWorkflows()
-	workflowInformer := workflowInformerFactory.Argoproj().V1alpha1().Workflows()
 
 	// Add controller types to the default Kubernetes Scheme so Events can be
 	// logged for controller types.
@@ -105,7 +102,7 @@ func NewController(
 	controller := &Controller{
 		kubeClient:     client.NewKubeClient(kubeClientSet, recorder),
 		swfClient:      client.NewScheduledWorkflowClient(swfClientSet, swfInformer),
-		workflowClient: client.NewWorkflowClient(workflowClientSet, workflowInformer),
+		workflowClient: client.NewWorkflowClient(workflowClientSet, executionInformer),
 		workqueue: workqueue.NewNamedRateLimitingQueue(
 			workqueue.NewItemExponentialFailureRateLimiter(DefaultJobBackOff, MaxJobBackOff), swfregister.Kind),
 		time:     time,
@@ -509,7 +506,7 @@ func (c *Controller) submitNewWorkflowIfNotAlreadySubmitted(
 	if err != nil {
 		return false, "", err
 	}
-	return true, createdWorkflow.Name, nil
+	return true, createdWorkflow.ExecutionName(), nil
 }
 
 func (c *Controller) updateStatus(

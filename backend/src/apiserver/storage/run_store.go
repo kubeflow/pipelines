@@ -34,7 +34,7 @@ import (
 
 var runColumns = []string{"UUID", "ExperimentUUID", "DisplayName", "Name", "StorageState", "Namespace", "ServiceAccount", "Description",
 	"CreatedAtInSec", "ScheduledAtInSec", "FinishedAtInSec", "Conditions", "PipelineId", "PipelineName", "PipelineSpecManifest",
-	"WorkflowSpecManifest", "Parameters", "pipelineRuntimeManifest", "WorkflowRuntimeManifest",
+	"WorkflowSpecManifest", "Parameters", "RuntimeParameters", "PipelineRoot", "pipelineRuntimeManifest", "WorkflowRuntimeManifest",
 }
 
 type RunStoreInterface interface {
@@ -258,7 +258,7 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 			pipelineName, pipelineSpecManifest, workflowSpecManifest, parameters, conditions, pipelineRuntimeManifest,
 			workflowRuntimeManifest string
 		var createdAtInSec, scheduledAtInSec, finishedAtInSec int64
-		var metricsInString, resourceReferencesInString sql.NullString
+		var metricsInString, resourceReferencesInString, runtimeParameters, pipelineRoot sql.NullString
 		err := rows.Scan(
 			&uuid,
 			&experimentUUID,
@@ -277,6 +277,8 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 			&pipelineSpecManifest,
 			&workflowSpecManifest,
 			&parameters,
+			&runtimeParameters,
+			&pipelineRoot,
 			&pipelineRuntimeManifest,
 			&workflowRuntimeManifest,
 			&resourceReferencesInString,
@@ -298,6 +300,7 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 			// throw internal exception if failed to parse the resource reference.
 			return nil, util.NewInternalServerError(err, "Failed to parse resource reference.")
 		}
+		runtimeConfig := parseRuntimeConfig(runtimeParameters, pipelineRoot)
 		runs = append(runs, &model.RunDetail{Run: model.Run{
 			UUID:               uuid,
 			ExperimentUUID:     experimentUUID,
@@ -319,6 +322,7 @@ func (s *RunStore) scanRowsToRunDetails(rows *sql.Rows) ([]*model.RunDetail, err
 				PipelineSpecManifest: pipelineSpecManifest,
 				WorkflowSpecManifest: workflowSpecManifest,
 				Parameters:           parameters,
+				RuntimeConfig:        runtimeConfig,
 			},
 		},
 			PipelineRuntime: model.PipelineRuntime{
@@ -337,6 +341,17 @@ func parseMetrics(metricsInString sql.NullString) ([]*model.RunMetric, error) {
 		return nil, fmt.Errorf("failed unmarshal metrics '%s'. error: %v", metricsInString.String, err)
 	}
 	return metrics, nil
+}
+
+func parseRuntimeConfig(runtimeParameters sql.NullString, pipelineRoot sql.NullString) model.RuntimeConfig {
+	var runtimeParametersString, pipelineRootString string
+	if runtimeParameters.Valid {
+		runtimeParametersString = runtimeParameters.String
+	}
+	if pipelineRoot.Valid {
+		pipelineRootString = pipelineRoot.String
+	}
+	return model.RuntimeConfig{Parameters: runtimeParametersString, PipelineRoot: pipelineRootString}
 }
 
 func parseResourceReferences(resourceRefString sql.NullString) ([]*model.ResourceReference, error) {
@@ -380,6 +395,8 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 			"PipelineSpecManifest":    r.PipelineSpecManifest,
 			"WorkflowSpecManifest":    r.WorkflowSpecManifest,
 			"Parameters":              r.Parameters,
+			"RuntimeParameters":       r.PipelineSpec.RuntimeConfig.Parameters,
+			"PipelineRoot":            r.PipelineSpec.RuntimeConfig.PipelineRoot,
 		}).ToSql()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create query to store run to run table: '%v/%v",

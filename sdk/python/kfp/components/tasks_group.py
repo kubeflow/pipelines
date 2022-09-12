@@ -44,24 +44,27 @@ class TasksGroup:
         groups: A list of TasksGroups in this group.
         display_name: The optional user given name of the group.
         dependencies: A list of tasks or groups this group depends on.
+        is_root: If TasksGroup is root group.
     """
 
     def __init__(
         self,
         group_type: TasksGroupType,
         name: Optional[str] = None,
+        is_root: bool = False,
     ):
         """Create a new instance of TasksGroup.
 
         Args:
           group_type: The type of the group.
-          name: Optional; the name of the group. Used as display name in UI.
+          name: The name of the group. Used as display name in UI.
         """
         self.group_type = group_type
         self.tasks = list()
         self.groups = list()
         self.display_name = name
         self.dependencies = []
+        self.is_root = is_root
 
     def __enter__(self):
         if not pipeline_context.Pipeline.get_default_pipeline():
@@ -106,8 +109,8 @@ class ExitHandler(TasksGroup):
 
         exit_task = ExitComponent(...)
         with ExitHandler(exit_task):
-            task1 = MyComponent1(...)
-            task2 = MyComponent2(...)
+            task1 = my_component1(...)
+            task2 = my_component2(...)
     """
 
     def __init__(
@@ -116,7 +119,11 @@ class ExitHandler(TasksGroup):
         name: Optional[str] = None,
     ):
         """Initializes a Condition task group."""
-        super().__init__(group_type=TasksGroupType.EXIT_HANDLER, name=name)
+        super().__init__(
+            group_type=TasksGroupType.EXIT_HANDLER,
+            name=name,
+            is_root=False,
+        )
 
         if exit_task.dependent_tasks:
             raise ValueError('exit_task cannot depend on any other tasks.')
@@ -136,15 +143,15 @@ class Condition(TasksGroup):
     definition.
 
     Args:
-        condition: The condition expression. Can be constructed using constants or outputs from upstream tasks.
+        condition: A comparative expression that evaluates to True or False. At least one of the operands must be an output from an upstream task or a pipeline parameter.
         name: The name of the condition group.
 
     Example:
       ::
 
-        with Condition(param1=='pizza', '[param1 is pizza]'):
-            task1 = MyComponent1(...)
-            task2 = MyComponent2(...)
+        task1 = my_component1(...)
+        with Condition(task1.output=='pizza', 'pizza-condition'):
+            task2 = my_component2(...)
     """
 
     def __init__(
@@ -153,7 +160,11 @@ class Condition(TasksGroup):
         name: Optional[str] = None,
     ):
         """Initializes a conditional task group."""
-        super().__init__(group_type=TasksGroupType.CONDITION, name=name)
+        super().__init__(
+            group_type=TasksGroupType.CONDITION,
+            name=name,
+            is_root=False,
+        )
         self.condition = condition
 
 
@@ -164,25 +175,41 @@ class ParallelFor(TasksGroup):
     Args:
         items: The items to loop over. It can be either a constant Python list or a list output from an upstream task.
         name: The name of the for loop group.
+        parallelism: The maximum number of concurrent iterations that can be scheduled for execution. A value of 0 represents unconstrained parallelism (default is unconstrained).
 
     Example:
       ::
 
-        with dsl.ParallelFor([{'a': 1, 'b': 10}, {'a': 2, 'b': 20}]) as item:
-            task1 = MyComponent(..., item.a)
-            task2 = MyComponent(..., item.b)
+        with dsl.ParallelFor(
+          items=[{'a': 1, 'b': 10}, {'a': 2, 'b': 20}],
+          parallelism=1
+        ) as item:
+            task1 = my_component(..., number=item.a)
+            task2 = my_component(..., number=item.b)
 
-    In the example, ``task1`` would be executed twice, once with case
-    ``args=['echo 1']`` and once with case ``args=['echo 2']``.
+    In the example, the group of tasks containing ``task1`` and ``task2`` would
+    be executed twice, once with case ``args=[{'a': 1, 'b': 10}]`` and once with
+    case ``args=[{'a': 2, 'b': 20}]``. The ``parallelism=1`` setting causes only
+    1 execution to be scheduled at a time.
     """
 
     def __init__(
         self,
         items: Union[for_loop.ItemList, pipeline_channel.PipelineChannel],
         name: Optional[str] = None,
+        parallelism: Optional[int] = None,
     ):
         """Initializes a for loop task group."""
-        super().__init__(group_type=TasksGroupType.FOR_LOOP, name=name)
+        parallelism = parallelism or 0
+        if parallelism < 0:
+            raise ValueError(
+                f'ParallelFor parallelism must be >= 0. Got: {parallelism}.')
+
+        super().__init__(
+            group_type=TasksGroupType.FOR_LOOP,
+            name=name,
+            is_root=False,
+        )
 
         if isinstance(items, pipeline_channel.PipelineChannel):
             self.loop_argument = for_loop.LoopArgument.from_pipeline_channel(
@@ -195,6 +222,8 @@ class ParallelFor(TasksGroup):
                 .get_next_group_id(),
             )
             self.items_is_pipeline_channel = False
+
+        self.parallelism_limit = parallelism
 
     def __enter__(self) -> for_loop.LoopArgument:
         super().__enter__()

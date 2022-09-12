@@ -29,6 +29,7 @@ import zipfile
 
 from kfp import compiler
 from kfp.client import auth
+from kfp.client import set_volume_credentials
 from kfp.components import base_component
 import kfp_server_api
 import yaml
@@ -367,9 +368,8 @@ class Client:
         # implement more and more credentials, we can have some heuristic and
         # choose from a number of options.
         # See https://github.com/kubeflow/pipelines/pull/5287#issuecomment-805654121
-
-        # TODO: auth.ServiceAccountCredentials does not exist... dead code path?
-        credentials = auth.ServiceAccountTokenVolumeCredentials()
+        credentials = set_volume_credentials.ServiceAccountTokenVolumeCredentials(
+        )
         config_copy = copy.deepcopy(config)
 
         try:
@@ -477,11 +477,14 @@ class Client:
                 resource_references=resource_references)
             experiment = self._experiment_api.create_experiment(body=experiment)
 
+        link = f"{self._get_url_prefix()}/#/experiments/details/{experiment.id}"
         if self._is_ipython():
             import IPython
-            html = \
-                f'<a href="{self._get_url_prefix()}/#/experiments/details/{experiment.id}" target="_blank" >Experiment details</a>.'
+            html = f'<a href="{link}" target="_blank" >Experiment details</a>.'
             IPython.display.display(IPython.display.HTML(html))
+        else:
+            print(f"Experiment details: {link}")
+
         return experiment
 
     def get_pipeline_id(self, name: str) -> Optional[str]:
@@ -781,12 +784,14 @@ class Client:
 
         response = self._run_api.create_run(body=run_body)
 
+        link = f"{self._get_url_prefix()}/#/runs/details/{response.run.id}"
         if self._is_ipython():
             import IPython
-            html = (
-                f'<a href="{self._get_url_prefix()}/#/runs/details/{response.run.id}" target="_blank" >Run details</a>.'
-            )
+            html = (f'<a href="{link}" target="_blank" >Run details</a>.')
             IPython.display.display(IPython.display.HTML(html))
+        else:
+            print(f"Run details: {link}")
+
         return response.run
 
     def archive_run(self, run_id: str) -> dict:
@@ -1372,10 +1377,14 @@ class Client:
         validate_pipeline_resource_name(pipeline_name)
         response = self._upload_api.upload_pipeline(
             pipeline_package_path, name=pipeline_name, description=description)
+        link = f"{self._get_url_prefix()}/#/pipelines/details/{response.id}"
         if self._is_ipython():
             import IPython
-            html = f'<a href={self._get_url_prefix()}/#/pipelines/details/{response.id}>Pipeline details</a>.'
+            html = f'<a href="{link}" target="_blank" >Pipeline details</a>.'
             IPython.display.display(IPython.display.HTML(html))
+        else:
+            print(f"Pipeline details: {link}")
+
         return response
 
     def upload_pipeline_version(
@@ -1417,10 +1426,14 @@ class Client:
         response = self._upload_api.upload_pipeline_version(
             pipeline_package_path, **kwargs)
 
+        link = f"{self._get_url_prefix()}/#/pipelines/details/{response.id}"
         if self._is_ipython():
             import IPython
-            html = f'<a href={self._get_url_prefix()}/#/pipelines/details/{response.id}>Pipeline details</a>.'
+            html = f'<a href="{link}" target="_blank" >Pipeline details</a>.'
             IPython.display.display(IPython.display.HTML(html))
+        else:
+            print(f"Pipeline details: {link}")
+
         return response
 
     def get_pipeline(self, pipeline_id: str) -> kfp_server_api.ApiPipeline:

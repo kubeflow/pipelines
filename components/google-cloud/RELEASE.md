@@ -1,5 +1,37 @@
-# Current Version 1.0.16.dev (Still in Development)
+# Current Version 1.0.20.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.19
+* Propagating labels for explain_forecast_model component
+* Model Evaluation - Add evaluation forecasting default of 0.5 for quantiles
+* Dataproc - Fix missing error payload from logging
+* Added BigQuery input support to evaluation components
+* Model Evaluation - Allow dataset paths list
+* Fix the docstring for ml_advanced_weights component
+* Fix the duplicated arguments in bigquery_ml_global_explain_job
+* Import importer from dsl namespace instead
+* Convert batch_prediction_job_remote_runner into individual launcher
+
+# Release 1.0.18
+* Model Evaluation - Give evaluation preprocessing components unique dataflow job names
+* Add vertex_notification_email component on v1 folder
+
+# Release 1.0.17
+* Model Evaluation - Rearrange json and yaml files in e2e test to eliminate duplicate defining and reading
+* Model Evaluation - Update JSON templates for evaluation
+* Model Evaluation - Split evaluation component into classification, forecasting, and regression evaluation & create artifact types for `google.__Metrics`
+* Model Evaluation - Match predictions input argument name to other Evaluation components
+* Model Evaluation - Update import_model_evaluation component to accept new `google.___Metrics` artifact types
+* Model Evaluation - Update regression and forecasting to contain ground truth input fields
+* Reverse re.findall order of arguments to (pattern, string) in job_remote_runner
+* Model Evaluation - Update evaluation container to v0.5 for data sampler and splitter preprocessing components
+
+# Release 1.0.16
+* Evaluation - Separate feature attribution from evaluation component to its own component
+* AutoML Tables - Include fix AMI issues for criteo dataset
+* AutoML Tables - Change Vertex evaluation pipeline templates
+* Model Evaluation - Import model evaluation slices when available in the metrics
+* Model Evaluation - Add nargs to allow for empty string input by component
 
 # Release 1.0.15
 * Sync AutomL components' code to GCPC codebase to reflect bug fix in FTE component spec

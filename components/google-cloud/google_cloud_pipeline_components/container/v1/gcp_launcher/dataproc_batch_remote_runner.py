@@ -95,15 +95,25 @@ class DataprocBatchRemoteRunner():
     headers = {'Authorization': 'Bearer '+ self._creds.token}
 
     result = self._session.get(url, headers=headers)
+    json_data = {}
     try:
+      json_data = result.json()
       result.raise_for_status()
-      return result.json()
+      return json_data
     except requests.exceptions.HTTPError as err:
-      raise RuntimeError('Failed to GET resource: {}. Error response:\n{}'
-                         .format(url, result)) from err
+      try:
+        err_msg = ('Error {} returned from GET: {}. Status: {}, Message: {}'
+                   .format(err.response.status_code,
+                           err.request.url,
+                           json_data['error']['status'],
+                           json_data['error']['message']))
+      except (KeyError, TypeError):
+        err_msg = err.response.text
+      raise RuntimeError(err_msg) from err
+
     except json.decoder.JSONDecodeError as err:
-      raise RuntimeError('Failed to decode JSON from response: {}'
-                         .format(result)) from err
+      raise RuntimeError('Failed to decode JSON from response:\n{}'
+                         .format(err.doc)) from err
 
   def _post_resource(self, url: str, post_data: str) -> Dict[str, Any]:
     """POST a http request.
@@ -123,16 +133,24 @@ class DataprocBatchRemoteRunner():
     headers = {'Authorization': 'Bearer '+ self._creds.token}
 
     result = self._session.post(url=url, data=post_data, headers=headers)
+    json_data = {}
     try:
-      result.raise_for_status()
       json_data = result.json()
+      result.raise_for_status()
       return json_data
     except requests.exceptions.HTTPError as err:
-      raise RuntimeError('Failed to POST resource: {}. Error response:\n{}'
-                         .format(url, result)) from err
+      try:
+        err_msg = ('Error {} returned from POST: {}. Status: {}, Message: {}'
+                   .format(err.response.status_code,
+                           err.request.url,
+                           json_data['error']['status'],
+                           json_data['error']['message']))
+      except (KeyError, TypeError):
+        err_msg = err.response.text
+      raise RuntimeError(err_msg) from err
     except json.decoder.JSONDecodeError as err:
-      raise RuntimeError('Failed to decode JSON from response: {}'
-                         .format(result)) from err
+      raise RuntimeError('Failed to decode JSON from response:\n{}'
+                         .format(err.doc)) from err
 
   def _cancel_batch(self, lro_name) -> None:
     """Cancels a Dataproc batch workload."""
@@ -280,7 +298,7 @@ def _create_batch(
         json.loads(payload, strict=False))
   except json.decoder.JSONDecodeError as err:
     raise RuntimeError('Failed to decode JSON from payload: {}'
-                       .format(payload)) from err
+                       .format(err.doc)) from err
 
   remote_runner = DataprocBatchRemoteRunner(type, project, location, gcp_resources)
   lro = remote_runner.check_if_operation_exists()

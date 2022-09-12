@@ -25,6 +25,10 @@ spec:
             value: "86400"
           - name: NUM_WORKERS
             value: "2"
+          - name: KUBEFLOW_USERID_HEADER
+            value: kubeflow-userid
+          - name: KUBEFLOW_USERID_PREFIX
+            value: ""
         image: gcr.io/ml-pipeline/persistenceagent:dummy
         imagePullPolicy: IfNotPresent
         name: ml-pipeline-persistenceagent

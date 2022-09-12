@@ -153,6 +153,21 @@ func TestToModelRunDetail(t *testing.T) {
 	store, manager, experiment := initWithExperiment(t)
 	defer store.Close()
 
+	listParams := []interface{}{1, 2, 3}
+	v2RuntimeListParams, _ := structpb.NewList(listParams)
+
+	structParams := map[string]interface{}{"structParam1": "hello", "structParam2": 32}
+	v2RuntimeStructParams, _ := structpb.NewStruct(structParams)
+
+	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
+	v2RuntimeParams := map[string]*structpb.Value{
+		"param2": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
+		"param3": &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: true}},
+		"param4": &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
+		"param5": &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: 12}},
+		"param6": &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: v2RuntimeStructParams}},
+	}
+
 	tests := []struct {
 		name                   string
 		apiRun                 *api.Run
@@ -217,9 +232,10 @@ func TestToModelRunDetail(t *testing.T) {
 				Id:          "run1",
 				Name:        "name1",
 				Description: "this is a run",
-				PipelineSpec: &api.PipelineSpec{RuntimeConfig: &api.PipelineSpec_RuntimeConfig{Parameters: map[string]*structpb.Value{
-					"param2": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
-				}}},
+				PipelineSpec: &api.PipelineSpec{
+					RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+						Parameters: v2RuntimeParams,
+					}},
 				ResourceReferences: []*api.ResourceReference{
 					{
 						Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: experiment.UUID},
@@ -241,7 +257,10 @@ func TestToModelRunDetail(t *testing.T) {
 					Description:    "this is a run",
 					PipelineSpec: model.PipelineSpec{
 						PipelineSpecManifest: "pipeline spec",
-						Parameters:           `[{"name":"param2","value":"world"}]`,
+						RuntimeConfig: model.RuntimeConfig{
+							// Note: for some versions of structpb.Value.MarshalJSON(), there is a trailing space after array items or struct items
+							Parameters: "{\"param2\":\"world\",\"param3\":true,\"param4\":[1,2,3],\"param5\":12,\"param6\":{\"structParam1\":\"hello\",\"structParam2\":32}}",
+						},
 					},
 					ResourceReferences: []*model.ResourceReference{
 						{
@@ -385,7 +404,9 @@ func TestToModelJob(t *testing.T) {
 					PipelineId:           pipeline.UUID,
 					PipelineName:         pipeline.Name,
 					PipelineSpecManifest: "pipeline spec",
-					Parameters:           `[{"name":"param2","value":"world"}]`,
+					RuntimeConfig: model.RuntimeConfig{
+						Parameters: "{\"param2\":\"world\"}",
+					},
 				},
 				ResourceReferences: []*model.ResourceReference{
 					{

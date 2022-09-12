@@ -16,6 +16,7 @@ CONFIG = {
     'pipelines': {
         'test_cases': [
             'pipeline_with_importer',
+            'pipeline_with_importer_and_gcpc_types',
             'pipeline_with_ontology',
             'pipeline_with_if_placeholder',
             'pipeline_with_concat_placeholder',
@@ -42,10 +43,19 @@ CONFIG = {
             'pipeline_with_task_final_status',
             'pipeline_with_task_final_status_yaml',
             'component_with_pip_index_urls',
+            'container_component_with_no_inputs',
+            'two_step_pipeline_containerized',
+            'pipeline_with_multiple_exit_handlers',
+            'pipeline_with_parallelfor_parallelism',
+            'pipeline_in_pipeline',
+            'pipeline_in_pipeline_complex',
+            'pipeline_with_outputs',
+            'pipeline_in_pipeline_loaded_from_yaml',
+            'pipeline_as_exit_task',
         ],
         'test_data_dir': 'sdk/python/kfp/compiler/test_data/pipelines',
         'config': {
-            'read': False,
+            'read': True,
             'write': True
         }
     },
@@ -56,10 +66,15 @@ CONFIG = {
             'concat_message',
             'dict_input',
             'identity',
+            'input_artifact',
             'nested_return',
-            'output_artifact',
             'output_metrics',
             'preprocess',
+            'container_no_input',
+            'container_io',
+            'container_with_artifact_output',
+            'container_with_concat_placeholder',
+            'container_with_if_placeholder',
         ],
         'test_data_dir': 'sdk/python/kfp/compiler/test_data/components',
         'config': {

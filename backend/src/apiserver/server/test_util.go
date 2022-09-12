@@ -29,6 +29,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -252,6 +253,12 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 
 func initWithOneTimeRun(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.RunDetail) {
 	clientManager, manager, exp := initWithExperiment(t)
+
+	ctx := context.Background()
+	if common.IsMultiUserMode() {
+		md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+		ctx = metadata.NewIncomingContext(context.Background(), md)
+	}
 	apiRun := &api.Run{
 		Name: "run1",
 		PipelineSpec: &api.PipelineSpec{
@@ -267,7 +274,7 @@ func initWithOneTimeRun(t *testing.T) (*resource.FakeClientManager, *resource.Re
 			},
 		},
 	}
-	runDetail, err := manager.CreateRun(context.Background(), apiRun)
+	runDetail, err := manager.CreateRun(ctx, apiRun)
 	assert.Nil(t, err)
 	return clientManager, manager, runDetail
 }

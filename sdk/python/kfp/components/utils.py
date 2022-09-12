@@ -105,3 +105,23 @@ def make_name_unique_by_adding_index(
             if unique_name not in collection:
                 break
     return unique_name
+
+
+def validate_pipeline_name(name: str) -> None:
+    """Validate pipeline name.
+
+    A valid pipeline name should match ^[a-z0-9][a-z0-9-]{0,127}$.
+
+    Args:
+        name: The pipeline name.
+
+    Raises:
+        ValueError if the pipeline name doesn't conform to the regular expression.
+    """
+    pattern = re.compile(r'^[a-z0-9][a-z0-9-]{0,127}$')
+    if not pattern.match(name):
+        raise ValueError(
+            'Invalid pipeline name: %s.\n'
+            'Please specify a pipeline name that matches the regular '
+            'expression "^[a-z0-9][a-z0-9-]{0,127}$" using '
+            '`dsl.pipeline(name=...)` decorator.' % name)

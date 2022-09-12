@@ -19,9 +19,7 @@ import (
 	"fmt"
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
-	"google.golang.org/protobuf/types/known/structpb"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	api "github.com/kubeflow/pipelines/backend/api/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -98,7 +96,7 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 	if templateType == template.V1 {
 		params, err := apiParametersToModelParameters(run.GetPipelineSpec().GetParameters())
 		if err != nil {
-			return nil, util.Wrap(err, "Unable to parse the parameter.")
+			return nil, util.Wrap(err, "Unable to parse the V1 parameter.")
 		}
 		runDetail.Parameters = params
 		runDetail.WorkflowSpecManifest = manifest
@@ -108,10 +106,11 @@ func (r *ResourceManager) ToModelRunDetail(run *api.Run, runId string, workflow 
 	} else if templateType == template.V2 {
 		params, err := runtimeConfigToModelParameters(run.GetPipelineSpec().GetRuntimeConfig())
 		if err != nil {
-			return nil, util.Wrap(err, "Unable to parse the parameter.")
+			return nil, util.Wrap(err, "Unable to parse the V2 parameter.")
 		}
-		runDetail.Parameters = params
 		runDetail.PipelineSpecManifest = manifest
+		runDetail.PipelineSpec.RuntimeConfig.Parameters = params
+		runDetail.PipelineSpec.RuntimeConfig.PipelineRoot = run.GetPipelineSpec().GetRuntimeConfig().GetPipelineRoot()
 		return runDetail, nil
 
 	} else {
@@ -133,7 +132,10 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 	}
 	serviceAccount := ""
 	if swf.Spec.Workflow != nil {
-		serviceAccount = swf.Spec.Workflow.Spec.ServiceAccountName
+		execSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, swf.Spec.Workflow)
+		if err == nil {
+			serviceAccount = execSpec.ServiceAccount()
+		}
 	}
 	modelJob := &model.Job{
 		UUID:               string(swf.UID),
@@ -156,7 +158,7 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 	if templateType == template.V1 {
 		params, err := apiParametersToModelParameters(job.GetPipelineSpec().GetParameters())
 		if err != nil {
-			return nil, util.Wrap(err, "Unable to parse the parameter.")
+			return nil, util.Wrap(err, "Unable to parse the parameters.")
 		}
 		modelJob.Parameters = params
 		modelJob.WorkflowSpecManifest = manifest
@@ -165,10 +167,11 @@ func (r *ResourceManager) ToModelJob(job *api.Job, swf *util.ScheduledWorkflow, 
 	} else if templateType == template.V2 {
 		params, err := runtimeConfigToModelParameters(job.GetPipelineSpec().GetRuntimeConfig())
 		if err != nil {
-			return nil, util.Wrap(err, "Unable to parse the parameter.")
+			return nil, util.Wrap(err, "Unable to parse the parameters inside runtimeConfig.")
 		}
-		modelJob.Parameters = params
 		modelJob.PipelineSpecManifest = manifest
+		modelJob.PipelineSpec.RuntimeConfig.Parameters = params
+		modelJob.PipelineSpec.RuntimeConfig.PipelineRoot = job.GetPipelineSpec().GetRuntimeConfig().GetPipelineRoot()
 		return modelJob, nil
 
 	} else {
@@ -233,15 +236,15 @@ func apiParametersToModelParameters(apiParams []*api.Parameter) (string, error) 
 	if apiParams == nil || len(apiParams) == 0 {
 		return "", nil
 	}
-	var params []v1alpha1.Parameter
+	var params util.SpecParameters
 	for _, apiParam := range apiParams {
-		param := v1alpha1.Parameter{
+		param := util.SpecParameter{
 			Name:  apiParam.Name,
-			Value: v1alpha1.AnyStringPtr(apiParam.Value),
+			Value: util.StringPointer(apiParam.Value),
 		}
 		params = append(params, param)
 	}
-	paramsBytes, err := json.Marshal(params)
+	paramsBytes, err := util.MarshalParameters(util.ArgoWorkflow, params)
 	if err != nil {
 		return "", util.NewInternalServerError(err, "Failed to stream API parameter as string.")
 	}
@@ -252,34 +255,9 @@ func runtimeConfigToModelParameters(runtimeConfig *api.PipelineSpec_RuntimeConfi
 	if runtimeConfig == nil {
 		return "", nil
 	}
-	var params []v1alpha1.Parameter
-	for k, v := range runtimeConfig.GetParameters() {
-		param := v1alpha1.Parameter{
-			Name: k,
-		}
-		switch t := v.GetKind().(type) {
-		case *structpb.Value_StringValue:
-			param.Value = v1alpha1.AnyStringPtr(v.GetStringValue())
-		case *structpb.Value_NumberValue:
-			param.Value = v1alpha1.AnyStringPtr(v.GetNumberValue())
-		case *structpb.Value_BoolValue:
-			param.Value = v1alpha1.AnyStringPtr(v.GetBoolValue())
-		// TODO: revisit if these are right
-		case *structpb.Value_StructValue:
-			param.Value = v1alpha1.AnyStringPtr(v.GetStructValue())
-		case *structpb.Value_ListValue:
-			param.Value = v1alpha1.AnyStringPtr(v.GetListValue())
-		case *structpb.Value_NullValue:
-			return "", fmt.Errorf("Unsupported property type in pipelineSpec runtimeConfig Parameters: %T", t)
-		default:
-			return "", fmt.Errorf("Unknown property type in pipelineSpec runtimeConfig Parameters: %T", t)
-		}
-
-		params = append(params, param)
-	}
-	paramsBytes, err := json.Marshal(params)
+	paramsBytes, err := json.Marshal(runtimeConfig.GetParameters())
 	if err != nil {
-		return "", util.NewInternalServerError(err, "Failed to stream API parameter as string.")
+		return "", util.NewInternalServerError(err, "Failed to marshal RuntimeConfig API parameters as string.")
 	}
 	return string(paramsBytes), nil
 }

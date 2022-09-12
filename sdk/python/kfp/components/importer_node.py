@@ -54,19 +54,25 @@ def importer(
               reimport=False)
           train(dataset=importer1.output)
     """
+    if issubclass(artifact_class, artifact_types.Artifact
+                 ) and not artifact_class.schema_title.startswith('system.'):
+        # For artifact classes not under the `system` namespace,
+        # use its schema_title as-is.
+        schema_title = artifact_class.schema_title
+    else:
+        schema_title = artifact_class.__name__
+
     component_spec = structures.ComponentSpec(
         name='importer',
         implementation=structures.Implementation(
             importer=structures.ImporterSpec(
                 artifact_uri=placeholders.InputValuePlaceholder(
                     INPUT_KEY).to_placeholder_string(),
-                type_schema=artifact_class.TYPE_NAME,
+                type_schema=artifact_class.schema_title,
                 reimport=reimport,
                 metadata=metadata)),
         inputs={INPUT_KEY: structures.InputSpec(type='String')},
-        outputs={
-            OUTPUT_KEY: structures.OutputSpec(type=artifact_class.__name__)
-        },
+        outputs={OUTPUT_KEY: structures.OutputSpec(type=schema_title)},
     )
 
     importer = importer_component.ImporterComponent(
