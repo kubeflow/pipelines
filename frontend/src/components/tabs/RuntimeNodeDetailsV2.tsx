@@ -60,6 +60,8 @@ export function RuntimeNodeDetailsV2({
   elementMlmdInfo,
   namespace,
 }: RuntimeNodeDetailsV2Props) {
+  // console.log(element);
+
   if (!element) {
     return NODE_INFO_UNKNOWN;
   }
@@ -81,6 +83,13 @@ export function RuntimeNodeDetailsV2({
           namespace={namespace}
         />
       );
+    } else if (NodeTypeNames.SUB_DAG === element.type) {
+      return (
+        <SubDAGNodeDetail
+        
+        
+        />
+      )
     }
     return NODE_INFO_UNKNOWN;
   })();
@@ -283,5 +292,11 @@ function ArtifactInfo({
         />
       </div>
     </div>
+  );
+}
+
+function SubDAGNodeDetail() {
+  return (
+    <div>sub dag information</div>
   );
 }
