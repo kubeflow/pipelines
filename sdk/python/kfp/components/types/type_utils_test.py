@@ -16,7 +16,6 @@ import unittest
 
 from absl.testing import parameterized
 import kfp
-from kfp.components import v1_structures
 from kfp.components.types import artifact_types
 from kfp.components.types import type_utils
 from kfp.components.types.type_utils import InconsistentTypeException
@@ -78,137 +77,6 @@ class TypeUtilsTest(parameterized.TestCase):
     def test_is_parameter_type_true(self, type_name, expected_result):
         self.assertEqual(expected_result,
                          type_utils.is_parameter_type(type_name))
-
-    @parameterized.parameters(
-        {
-            'artifact_class_or_type_name':
-                'Model',
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.Model', schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                artifact_types.Model,
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.Model', schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                'Dataset',
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.Dataset', schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                artifact_types.Dataset,
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.Dataset', schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                'Metrics',
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.Metrics', schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                artifact_types.Metrics,
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.Metrics', schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                'ClassificationMetrics',
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.ClassificationMetrics',
-                    schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                artifact_types.ClassificationMetrics,
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.ClassificationMetrics',
-                    schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                'SlicedClassificationMetrics',
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.SlicedClassificationMetrics',
-                    schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                artifact_types.SlicedClassificationMetrics,
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.SlicedClassificationMetrics',
-                    schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                'arbitrary name',
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.Artifact', schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                _ArbitraryClass,
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.Artifact', schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                artifact_types.HTML,
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.HTML', schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                artifact_types.Markdown,
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.Markdown', schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                'some-google-type',
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='system.Artifact', schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                'google.VertexModel',
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='google.VertexModel', schema_version='0.0.1')
-        },
-        {
-            'artifact_class_or_type_name':
-                _VertexDummy,
-            'expected_result':
-                pb.ArtifactTypeSchema(
-                    schema_title='google.VertexDummy', schema_version='0.0.2')
-        },
-    )
-    def test_get_artifact_type_schema(self, artifact_class_or_type_name,
-                                      expected_result):
-        self.assertEqual(
-            expected_result,
-            type_utils.get_artifact_type_schema(artifact_class_or_type_name))
 
     @parameterized.parameters(
         {
@@ -300,79 +168,53 @@ class TypeUtilsTest(parameterized.TestCase):
         with self.assertRaises(AttributeError):
             type_utils.get_parameter_type_schema(None)
 
-    def test_get_input_artifact_type_schema(self):
-        input_specs = [
-            v1_structures.InputSpec(name='input1', type='String'),
-            v1_structures.InputSpec(name='input2', type='Model'),
-            v1_structures.InputSpec(name='input3', type=None),
-        ]
-        # input not found.
-        with self.assertRaises(AssertionError) as cm:
-            type_utils.get_input_artifact_type_schema('input0', input_specs)
-            self.assertEqual('Input not found.', str(cm))
-
-        # input found, but it doesn't map to an artifact type.
-        with self.assertRaises(AssertionError) as cm:
-            type_utils.get_input_artifact_type_schema('input1', input_specs)
-            self.assertEqual('Input is not an artifact type.', str(cm))
-
-        # input found, and a matching artifact type schema returned.
-        self.assertEqual(
-            'system.Model',
-            type_utils.get_input_artifact_type_schema('input2',
-                                                      input_specs).schema_title)
-
-        # input found, and the default artifact type schema returned.
-        self.assertEqual(
-            'system.Artifact',
-            type_utils.get_input_artifact_type_schema('input3',
-                                                      input_specs).schema_title)
-
     @parameterized.parameters(
+        # param True
         {
             'given_type': 'String',
             'expected_type': 'String',
             'is_compatible': True,
         },
+        # param False
         {
             'given_type': 'String',
             'expected_type': 'Integer',
             'is_compatible': False,
         },
+        # param Artifact compat, irrespective of version
         {
-            'given_type': {
-                'type_a': {
-                    'property': 'property_b',
-                }
-            },
-            'expected_type': {
-                'type_a': {
-                    'property': 'property_b',
-                }
-            },
+            'given_type': 'system.Artifact@1.0.0',
+            'expected_type': 'system.Model@0.0.1',
             'is_compatible': True,
         },
+        # param Artifact compat, irrespective of version, other way
         {
-            'given_type': {
-                'type_a': {
-                    'property': 'property_b',
-                }
-            },
-            'expected_type': {
-                'type_a': {
-                    'property': 'property_c',
-                }
-            },
+            'given_type': 'system.Metrics@1.0.0',
+            'expected_type': 'system.Artifact@0.0.1',
+            'is_compatible': True,
+        },
+        # different schema_title incompat, irrespective of version
+        {
+            'given_type': 'system.Metrics@1.0.0',
+            'expected_type': 'system.Dataset@1.0.0',
             'is_compatible': False,
         },
+        # different major version incompat
         {
-            'given_type': 'Artifact',
-            'expected_type': 'Model',
-            'is_compatible': True,
+            'given_type': 'system.Metrics@1.0.0',
+            'expected_type': 'system.Metrics@2.1.1',
+            'is_compatible': False,
         },
+        # namespace must match
         {
-            'given_type': 'Metrics',
-            'expected_type': 'Artifact',
+            'given_type': 'google.Model@1.0.0',
+            'expected_type': 'system.Model@1.0.0',
+            'is_compatible': False,
+        },
+        # system.Artifact compatible works across namespace
+        {
+            'given_type': 'google.Model@1.0.0',
+            'expected_type': 'system.Artifact@1.0.0',
             'is_compatible': True,
         },
     )
@@ -455,19 +297,181 @@ class TypeUtilsTest(parameterized.TestCase):
                          type_utils.is_task_final_status_type(given_type))
 
 
+class TestGetArtifactTypeSchema(parameterized.TestCase):
+
+    @parameterized.parameters([
+        # v2 standard system types
+        {
+            'schema_title': 'system.Artifact@0.0.1',
+            'exp_schema_title': 'system.Artifact',
+            'exp_schema_version': '0.0.1',
+        },
+        {
+            'schema_title': 'system.Dataset@0.0.1',
+            'exp_schema_title': 'system.Dataset',
+            'exp_schema_version': '0.0.1',
+        },
+        # google type with schema_version
+        {
+            'schema_title': 'google.VertexDataset@0.0.2',
+            'exp_schema_title': 'google.VertexDataset',
+            'exp_schema_version': '0.0.2',
+        },
+    ])
+    def test_valid(
+        self,
+        schema_title: str,
+        exp_schema_title: str,
+        exp_schema_version: str,
+    ):
+        artifact_type_schema = type_utils.bundled_artifact_to_artifact_proto(
+            schema_title)
+        self.assertEqual(artifact_type_schema.schema_title, exp_schema_title)
+        self.assertEqual(artifact_type_schema.schema_version,
+                         exp_schema_version)
+
+
 class TestTypeCheckManager(unittest.TestCase):
 
-    def test_false_to_true(self):
+    def test_true_to_falsewq(self):
         kfp.TYPE_CHECK = False
         with type_utils.TypeCheckManager(enable=True):
             self.assertEqual(kfp.TYPE_CHECK, True)
         self.assertEqual(kfp.TYPE_CHECK, False)
 
-    def test_false_to_true(self):
+    def test_true_to_false(self):
         kfp.TYPE_CHECK = True
         with type_utils.TypeCheckManager(enable=False):
             self.assertEqual(kfp.TYPE_CHECK, False)
         self.assertEqual(kfp.TYPE_CHECK, True)
+
+
+class TestCreateBundledArtifacttType(parameterized.TestCase):
+
+    @parameterized.parameters([
+        {
+            'schema_title': 'system.Artifact',
+            'schema_version': '0.0.2',
+            'expected': 'system.Artifact@0.0.2'
+        },
+        {
+            'schema_title': 'google.Artifact',
+            'schema_version': '0.0.3',
+            'expected': 'google.Artifact@0.0.3'
+        },
+        {
+            'schema_title': 'system.Artifact',
+            'schema_version': None,
+            'expected': 'system.Artifact@0.0.1'
+        },
+        {
+            'schema_title': 'google.Artifact',
+            'schema_version': None,
+            'expected': 'google.Artifact@0.0.1'
+        },
+    ])
+    def test(self, schema_title: str, schema_version: Union[str, None],
+             expected: str):
+        actual = type_utils.create_bundled_artifact_type(
+            schema_title, schema_version)
+        self.assertEqual(actual, expected)
+
+
+class TestValidateBundledArtifactType(parameterized.TestCase):
+
+    @parameterized.parameters([
+        {
+            'type_': 'system.Artifact@0.0.1'
+        },
+        {
+            'type_': 'system.Dataset@2.0.1'
+        },
+        {
+            'type_': 'google.Model@2.0.0'
+        },
+    ])
+    def test_valid(self, type_: str):
+        type_utils.validate_bundled_artifact_type(type_)
+
+    @parameterized.parameters([
+        {
+            'type_': 'system.Artifact'
+        },
+        {
+            'type_': '2.0.1'
+        },
+        {
+            'type_': 'google.Model2.0.0'
+        },
+        {
+            'type_': 'google.Model2.0.0'
+        },
+        {
+            'type_': 'google.Model@'
+        },
+        {
+            'type_': 'google.Model@'
+        },
+        {
+            'type_': '@2.0.0'
+        },
+    ])
+    def test_missing_part(self, type_: str):
+        with self.assertRaisesRegex(
+                TypeError,
+                r'Artifacts must have both a schema_title and a schema_version, separated by `@`'
+        ):
+            type_utils.validate_bundled_artifact_type(type_)
+
+    @parameterized.parameters([
+        {
+            'type_': 'system@0.0.1'
+        },
+        {
+            'type_': 'google@0.0.1'
+        },
+        {
+            'type_': 'other@0.0.1'
+        },
+        {
+            'type_': 'Artifact@0.0.1'
+        },
+    ])
+    def test_one_part_schema_title(self, type_: str):
+        with self.assertRaisesRegex(
+                TypeError,
+                r'Artifact schema_title must have both a namespace and a name'):
+            type_utils.validate_bundled_artifact_type(type_)
+
+    @parameterized.parameters([
+        {
+            'type_': 'other.Artifact@0.0.1'
+        },
+    ])
+    def test_must_be_system_or_google_namespace(self, type_: str):
+        with self.assertRaisesRegex(
+                TypeError,
+                r'Artifact schema_title must belong to `system` or `google` namespace'
+        ):
+            type_utils.validate_bundled_artifact_type(type_)
+
+    @parameterized.parameters([
+        {
+            'type_': 'system.Artifact@0'
+        },
+        {
+            'type_': 'system.Artifact@0.0'
+        },
+        {
+            'type_': 'google.Artifact@0.01'
+        },
+    ])
+    def test_must_be_valid_semantic_version(self, type_: str):
+        with self.assertRaisesRegex(
+                TypeError,
+                r'Artifact schema_version must use three-part semantic versioning'
+        ):
+            type_utils.validate_bundled_artifact_type(type_)
 
 
 if __name__ == '__main__':

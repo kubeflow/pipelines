@@ -82,7 +82,8 @@ class PipelineTask:
                     f'Component "{component_spec.name}" got an unexpected input:'
                     f' {input_name}.')
 
-            input_type = component_spec.inputs[input_name].type
+            input_spec = component_spec.inputs[input_name]
+            input_type = input_spec.type
             argument_type = None
 
             if isinstance(argument_value, pipeline_channel.PipelineChannel):

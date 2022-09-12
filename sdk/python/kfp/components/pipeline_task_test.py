@@ -95,7 +95,7 @@ class PipelineTaskTest(parameterized.TestCase):
                 'input1': structures.InputSpec(type='String'),
             },
             outputs={
-                'output1': structures.OutputSpec(type='Artifact'),
+                'output1': structures.OutputSpec(type='system.Artifact@0.0.1'),
             },
         )
         expected_task_spec = structures.TaskSpec(
