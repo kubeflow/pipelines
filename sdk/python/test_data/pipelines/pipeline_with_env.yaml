@@ -36,7 +36,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-alpha.5'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.4'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -48,8 +48,8 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef print_env_op():\n    import os\n    print(os.environ['ENV1'])\n\
-          \n"
+          \ *\n\ndef print_env_op():\n    import os\n    print('ENV1', os.environ.get('ENV1'))\n\
+          \    print('ENV2', os.environ.get('ENV2'))\n\n"
         env:
         - name: ENV1
           value: val1
@@ -74,4 +74,4 @@ root:
         taskInfo:
           name: print-env-op
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.5
+sdkVersion: kfp-2.0.0-beta.4
