@@ -66,8 +66,9 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef model_consumer(model: Input[VertexModel],\n                 \
-          \  dataset: Input[VertexDataset]):\n    print('Model')\n    print('artifact.type:\
+          \ *\nfrom aiplatform import VertexModel\nfrom aiplatform import VertexDataset\n\
+          \ndef model_consumer(model: Input[VertexModel],\n                   dataset:\
+          \ Input[VertexDataset]):\n    print('Model')\n    print('artifact.type:\
           \ ', type(model))\n    print('artifact.name: ', model.name)\n    print('artifact.uri:\
           \ ', model.uri)\n    print('artifact.metadata: ', model.metadata)\n\n  \
           \  print('Dataset')\n    print('artifact.type: ', type(dataset))\n    print('artifact.name:\
@@ -98,9 +99,9 @@ deploymentSpec:
 
           '
         - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
-          \ *\n\ndef model_producer(model: Output[aiplatform.VertexModel]):\n\n  \
-          \  assert isinstance(model, aiplatform.VertexModel), type(model)\n    with\
-          \ open(model.path, 'w') as f:\n        f.write('my model')\n\n"
+          \ *\nimport aiplatform\n\ndef model_producer(model: Output[aiplatform.VertexModel]):\n\
+          \n    assert isinstance(model, aiplatform.VertexModel), type(model)\n  \
+          \  with open(model.path, 'w') as f:\n        f.write('my model')\n\n"
         image: python:3.7
 pipelineInfo:
   name: pipeline-with-google-types
