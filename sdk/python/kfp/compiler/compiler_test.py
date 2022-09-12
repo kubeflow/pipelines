@@ -162,7 +162,8 @@ class TestCompilePipeline(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 TypeError,
-                ' type "Model" cannot be paired with InputValuePlaceholder.'):
+                ' type "system.Model@0.0.1" cannot be paired with InputValuePlaceholder.'
+        ):
 
             @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
             def my_pipeline():
@@ -281,12 +282,11 @@ class TestCompilePipeline(parameterized.TestCase):
           args:
           - {inputPath: some_input}
       """)
-
         with self.assertRaisesRegex(
                 type_utils.InconsistentTypeException,
                 'Incompatible argument passed to the input "some_input" of '
                 'component "compoent": Argument type "STRING" is incompatible '
-                'with the input type "Artifact"'):
+                'with the input type "system.Artifact@0.0.1"'):
 
             @dsl.pipeline(name='test-pipeline', pipeline_root='gs://path')
             def my_pipeline(input1: str):
@@ -414,16 +414,16 @@ class TestCompilePipeline(parameterized.TestCase):
         def consumer_op(input1: dsl.Input[dsl.Dataset]):
             pass
 
-        with self.assertRaisesRegex(
-                type_utils.InconsistentTypeException,
-                'Incompatible argument passed to the input "input1" of component'
-                ' "consumer-op": Argument type "SomeArbitraryType" is'
-                ' incompatible with the input type "Dataset"'):
+        @dsl.pipeline(name='test-pipeline')
+        def my_pipeline():
+            consumer_op(input1=producer_op1().output)
 
-            @dsl.pipeline(name='test-pipeline')
-            def my_pipeline():
-                consumer_op(input1=producer_op1().output)
-                consumer_op(input1=producer_op2().output)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            target_yaml_file = os.path.join(tmpdir, 'result.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=target_yaml_file)
+
+            self.assertTrue(os.path.exists(target_yaml_file))
 
     def test_invalid_data_dependency_loop(self):
 

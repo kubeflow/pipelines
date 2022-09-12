@@ -95,9 +95,6 @@ pipelines:
     - module: component_with_optional_inputs
       name: pipeline
       execute: true
-    - module: pipeline_with_gcpc_types
-      name: my_pipeline
-      execute: false
     - module: pipeline_with_placeholders
       name: my_pipeline
       execute: true
@@ -136,6 +133,9 @@ pipelines:
       name: my_pipeline
       execute: false
     - module: pipeline_as_exit_task
+      name: my_pipeline
+      execute: false
+    - module: pipeline_with_google_artifact_type
       name: my_pipeline
       execute: false
 components:

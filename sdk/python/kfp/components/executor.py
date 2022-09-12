@@ -170,7 +170,7 @@ class Executor():
     @classmethod
     def _is_artifact(cls, annotation: Any) -> bool:
         if type(annotation) == type:
-            return issubclass(annotation, artifact_types.Artifact)
+            return type_annotations.is_artifact(annotation)
         return False
 
     @classmethod
