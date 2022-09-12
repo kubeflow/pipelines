@@ -21,14 +21,6 @@ components:
       parameters:
         Output:
           parameterType: STRING
-        Output-2:
-          parameterType: STRING
-        Output-3:
-          parameterType: STRING
-        Output-4:
-          parameterType: STRING
-        Output-5:
-          parameterType: STRING
         uri:
           parameterType: STRING
     outputDefinitions:
@@ -57,9 +49,11 @@ deploymentSpec:
         metadata:
           containerSpec:
             imageUri: '{{$.inputs.parameters[''pipeline_input_image_uri'']}}'
-          name: '{{$.inputs.parameters[''name'']}}'
+          name:
+          - '{{$.inputs.parameters[''name'']}}'
+          - '{{$.inputs.parameters[''name'']}}'
         typeSchema:
-          schemaTitle: system.Artifact
+          schemaTitle: system.Dataset
           schemaVersion: 0.0.1
     exec-importer-2:
       importer:
@@ -69,12 +63,12 @@ deploymentSpec:
           containerSpec:
             imageUri: us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest
           list_field:
-          - '{{$.inputs.parameters[''Output-2'']}}'
-          - '{{$.inputs.parameters[''Output-3'']}}'
+          - '{{$.inputs.parameters[''Output'']}}'
+          - '{{$.inputs.parameters[''Output'']}}'
           name: '{{$.inputs.parameters[''Output'']}}'
-          '{{$.inputs.parameters[''Output-5'']}}': '{{$.inputs.parameters[''Output-4'']}}'
+          '{{$.inputs.parameters[''Output'']}}': '{{$.inputs.parameters[''Output'']}}'
         typeSchema:
-          schemaTitle: system.Artifact
+          schemaTitle: system.Dataset
           schemaVersion: 0.0.1
     exec-make-name:
       container:
@@ -88,7 +82,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.1'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.4'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -135,22 +129,6 @@ root:
               taskOutputParameter:
                 outputParameterKey: Output
                 producerTask: make-name
-            Output-2:
-              taskOutputParameter:
-                outputParameterKey: Output
-                producerTask: make-name
-            Output-3:
-              taskOutputParameter:
-                outputParameterKey: Output
-                producerTask: make-name
-            Output-4:
-              taskOutputParameter:
-                outputParameterKey: Output
-                producerTask: make-name
-            Output-5:
-              taskOutputParameter:
-                outputParameterKey: Output
-                producerTask: make-name
             uri:
               runtimeValue:
                 constant: gs://ml-pipeline-playground/shakespeare1.txt
@@ -171,6 +149,7 @@ root:
   inputDefinitions:
     parameters:
       name:
+        defaultValue: hi
         parameterType: STRING
       pipeline_input_artifact_uri:
         defaultValue: gs://ml-pipeline-playground/shakespeare1.txt
@@ -179,4 +158,4 @@ root:
         defaultValue: us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.1
+sdkVersion: kfp-2.0.0-beta.4
