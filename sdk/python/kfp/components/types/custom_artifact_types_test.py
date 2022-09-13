@@ -129,12 +129,21 @@ class TestFuncToRootAnnotationSymbol(_TestCaseWithThirdPartyPackage):
         def func(
             a: int,
             b: Input[Artifact],
-        ) -> typing.NamedTuple('MyNamedTuple', [('a', int), (
-                'b', Artifact), ('c', artifact_types.Artifact)]):
-            InnerNamedTuple = typing.NamedTuple(
-                'MyNamedTuple', [('a', int), ('b', Artifact),
-                                 ('c', artifact_types.Artifact)])
-            return InnerNamedTuple(a=a, b=b, c=b)  # type: ignore
+        ) -> typing.NamedTuple('MyNamedTuple', [
+            ('c', int),
+            ('d', Artifact),
+            ('e', artifact_types.Artifact),
+        ]):
+            InnerNamedTuple = typing.NamedTuple('MyNamedTuple', [
+                ('c', int),
+                ('d', Artifact),
+                ('e', artifact_types.Artifact),
+            ])
+            return InnerNamedTuple(
+                c=a,
+                d=b,
+                e=b,
+            )
 
         actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
         expected = {'b': 'Artifact'}
@@ -215,15 +224,19 @@ class TestGetParamToAnnObj(unittest.TestCase):
 
     def test_named_tuple(self):
 
-        MyNamedTuple = typing.NamedTuple('MyNamedTuple', [('a', int),
-                                                          ('b', str)])
+        MyNamedTuple = typing.NamedTuple('MyNamedTuple', [
+            ('c', int),
+            ('d', str),
+        ])
 
         def func(
             a: int,
             b: Input[Artifact],
         ) -> MyNamedTuple:
-            InnerNamedTuple = typing.NamedTuple('MyNamedTuple', [('a', int),
-                                                                 ('b', str)])
+            InnerNamedTuple = typing.NamedTuple('MyNamedTuple', [
+                ('c', int),
+                ('d', str),
+            ])
             return InnerNamedTuple(a=a, b='string')  # type: ignore
 
         actual = custom_artifact_types.get_param_to_annotation_object(func)
