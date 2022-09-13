@@ -172,7 +172,7 @@ def extract_component_interface(
             # parameter_type is type_annotations.Artifact or one of its subclasses.
             parameter_type = type_annotations.get_io_artifact_class(
                 parameter_type)
-            if not type_annotations.is_artifact(parameter_type):
+            if not type_annotations.is_artifact_class(parameter_type):
                 raise ValueError(
                     'Input[T] and Output[T] are only supported when T is a '
                     'subclass of Artifact. Found `{} with type {}`'.format(
@@ -204,7 +204,7 @@ def extract_component_interface(
         ]:
             io_name = _maybe_make_unique(io_name, output_names)
             output_names.add(io_name)
-            if type_annotations.is_artifact(parameter_type):
+            if type_annotations.is_artifact_class(parameter_type):
                 schema_version = parameter_type.schema_version
                 output_spec = structures.OutputSpec(
                     type=type_utils.create_bundled_artifact_type(
@@ -215,7 +215,7 @@ def extract_component_interface(
         else:
             io_name = _maybe_make_unique(io_name, input_names)
             input_names.add(io_name)
-            if type_annotations.is_artifact(parameter_type):
+            if type_annotations.is_artifact_class(parameter_type):
                 schema_version = parameter_type.schema_version
                 input_spec = structures.InputSpec(
                     type=type_utils.create_bundled_artifact_type(
@@ -278,7 +278,7 @@ def extract_component_interface(
             #   `def func(output_path: OutputPath()) -> str: ...`
             output_names.add(output_name)
             return_ann = signature.return_annotation
-            if type_annotations.is_artifact(signature.return_annotation):
+            if type_annotations.is_artifact_class(signature.return_annotation):
                 output_spec = structures.OutputSpec(
                     type=type_utils.create_bundled_artifact_type(
                         return_ann.schema_title, return_ann.schema_version))

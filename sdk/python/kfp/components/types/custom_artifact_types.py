@@ -58,7 +58,9 @@ def get_full_qualname_for_artifact(obj: type) -> str:
     """Gets the fully qualified name for an object. For example, for class Foo
     in module bar.baz, this function returns bar.baz.Foo.
 
-    Note: typing.get_type_hints purports to do the same thing, but it behaves differently when executed within the scope of a test, so preferring this approach instead.
+    Note: typing.get_type_hints purports to do the same thing, but it behaves
+    differently when executed within the scope of a test, so preferring this
+    approach instead.
 
     Args:
         obj: The class or module for which to get the fully qualified name.

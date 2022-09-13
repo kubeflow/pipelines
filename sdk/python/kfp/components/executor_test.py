@@ -43,8 +43,8 @@ class ExecutorTest(unittest.TestCase):
         artifact_types._MINIO_LOCAL_MOUNT_PREFIX = cls._test_dir + '/minio/'
         artifact_types._S3_LOCAL_MOUNT_PREFIX = cls._test_dir + '/s3/'
 
-    def execute_and_load_output_metadata(
-            self, func: Callable, executor_input: str) -> executor.Executor:
+    def execute_and_load_output_metadata(self, func: Callable,
+                                         executor_input: str) -> dict:
         executor_input_dict = json.loads(executor_input %
                                          {'test_dir': self._test_dir})
 
@@ -55,7 +55,7 @@ class ExecutorTest(unittest.TestCase):
                   'r') as f:
             return json.loads(f.read())
 
-    def test_input_parameter(self):
+    def test_input_and_output_parameters(self):
         executor_input = """\
         {
           "inputs": {
@@ -95,7 +95,7 @@ class ExecutorTest(unittest.TestCase):
                 "artifacts": [
                   {
                     "metadata": {},
-                    "name": "input_artifact_one",
+                    "name": "input_artifact_one_name",
                     "type": {
                       "schemaTitle": "google.VertexDataset"
                     },
@@ -130,8 +130,9 @@ class ExecutorTest(unittest.TestCase):
                              'gs://some-bucket/input_artifact_one')
             self.assertEqual(
                 input_artifact_one.path,
-                os.path.join(self._test_dir, 'some-bucket/input_artifact_one'))
-            self.assertEqual(input_artifact_one.name, 'input_artifact_one')
+                os.path.join(artifact_types._GCS_LOCAL_MOUNT_PREFIX,
+                             'some-bucket/input_artifact_one'))
+            self.assertEqual(input_artifact_one.name, 'input_artifact_one_name')
             self.assertIsInstance(input_artifact_one, VertexDataset)
 
         self.execute_and_load_output_metadata(test_func, executor_input)
@@ -140,8 +141,6 @@ class ExecutorTest(unittest.TestCase):
         executor_input = """\
         {
           "inputs": {
-            "parameterValues": {
-            },
             "artifacts": {
               "input_artifact_one": {
                 "artifacts": [
@@ -177,8 +176,6 @@ class ExecutorTest(unittest.TestCase):
     def test_output_artifact(self):
         executor_input = """\
         {
-          "inputs": {
-          },
           "outputs": {
             "artifacts": {
               "output_artifact_one": {

@@ -67,7 +67,7 @@ class Executor():
         func: Callable,
     ) -> Any:
         artifact_cls = func.__annotations__.get(name)
-        if type_annotations.is_artifact(artifact_cls):
+        if type_annotations.is_artifact_class(artifact_cls):
             # handles artifacts
             return create_artifact_instance(
                 runtime_artifact, artifact_cls=artifact_cls)
@@ -187,7 +187,7 @@ class Executor():
     @classmethod
     def _is_artifact(cls, annotation: Any) -> bool:
         if type(annotation) == type:
-            return type_annotations.is_artifact(annotation)
+            return type_annotations.is_artifact_class(annotation)
         return False
 
     @classmethod
@@ -318,14 +318,14 @@ class Executor():
 
 def create_artifact_instance(
     runtime_artifact: Dict,
-    artifact_cls=None,
-) -> artifact_types.Artifact:
+    artifact_cls=artifact_types.Artifact,
+) -> type:
     """Creates an artifact class instances from a runtime artifact
     dictionary."""
     schema_title = runtime_artifact.get('type', {}).get('schemaTitle', '')
 
     artifact_cls = artifact_types._SCHEMA_TITLE_TO_TYPE.get(
-        schema_title) or artifact_cls or artifact_types.Artifact
+        schema_title, artifact_cls)
     return artifact_cls(
         uri=runtime_artifact.get('uri', ''),
         name=runtime_artifact.get('name', ''),

@@ -413,7 +413,7 @@ def _annotation_to_type_struct(annotation):
         type_struct = get_canonical_type_name_for_type(annotation)
         if type_struct:
             return type_struct
-        elif type_annotations.is_artifact(annotation):
+        elif type_annotations.is_artifact_class(annotation):
             schema_title = annotation.schema_title
         else:
             schema_title = str(annotation.__name__)

@@ -118,7 +118,7 @@ termcolor==1.1.0
     # via fire
 typer==0.6.1
     # via -r requirements.in
-typing-extensions==4.3.0
+typing-extensions==4.3.0 ; python_version < "3.9"
     # via
     #   -r requirements.in
     #   importlib-metadata
