@@ -217,6 +217,7 @@ deploymentSpec:
         - '{{$.inputs.parameters[''select'']}}'
         - '{{$.inputs.parameters[''where'']}}'
         - '{{$.inputs.parameters[''limit'']}}'
+        - '{{$.inputs.parameters[''format'']}}'
         image: byrnedo/alpine-curl@sha256:548379d0a4a0c08b9e55d9d87a592b7d35d9ab3037f4936f5ccd09d0b625a342
     exec-convert-csv-to-apache-parquet:
       container:
@@ -884,4 +885,4 @@ root:
         taskInfo:
           name: xgboost-train-2
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.5
+sdkVersion: kfp-2.0.0-beta.4
