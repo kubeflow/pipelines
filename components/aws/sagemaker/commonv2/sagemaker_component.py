@@ -11,14 +11,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from distutils import util
 import os
 import sys
 import signal
 import string
 import logging
 import json
-from enum import Enum, auto
 from types import FunctionType
 import yaml
 import random

@@ -24,14 +24,6 @@ class SpecInputParsers:
     """Utility class to define argparse validator methods."""
 
     @staticmethod
-    def nullable_string_argument(value):
-        """Strips strings and returns None if they are empty."""
-        value = value.strip()
-        if not value:
-            return None
-        return value
-
-    @staticmethod
     def _yaml_or_json_str(value):
         if value == "" or value == None:
             return None

@@ -98,37 +98,3 @@ COMMON_INPUTS = SageMakerComponentCommonInputs(
         description="The region for the SageMaker resource.",
     ),
 )
-
-
-@dataclass(frozen=False)
-class SpotInstanceInputs(SageMakerComponentBaseInputs):
-    """Inputs to enable spot instance support."""
-
-    spot_instance: SageMakerComponentInput
-    max_wait_time: SageMakerComponentInput
-    max_run_time: SageMakerComponentInput
-    checkpoint_config: SageMakerComponentInput
-
-
-SPOT_INSTANCE_INPUTS = SpotInstanceInputs(
-    spot_instance=SageMakerComponentInputValidator(
-        input_type=SpecInputParsers.str_to_bool,
-        description="Use managed spot training.",
-        default=False,
-    ),
-    max_wait_time=SageMakerComponentInputValidator(
-        input_type=int,
-        description="The maximum time in seconds you are willing to wait for a managed spot training job to complete.",
-        default=86400,
-    ),
-    max_run_time=SageMakerComponentInputValidator(
-        input_type=int,
-        description="The maximum run time in seconds for the training job.",
-        default=86400,
-    ),
-    checkpoint_config=SageMakerComponentInputValidator(
-        input_type=SpecInputParsers.yaml_or_json_dict,
-        description="Dictionary of information about the output location for managed spot training checkpoint data.",
-        default={},
-    ),
-)
