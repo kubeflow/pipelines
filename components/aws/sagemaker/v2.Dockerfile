@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License. 
 
+# Dockerfile for v2, to use the v2.Dockerfile.dockerignore, before building:
+# export DOCKER_BUILDKIT=1 
 
 FROM amazonlinux:2
 
