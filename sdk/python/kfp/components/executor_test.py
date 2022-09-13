@@ -65,7 +65,7 @@ class ExecutorTest(unittest.TestCase):
           },
           "outputs": {
             "parameters": {
-              "output": {
+              "Output": {
                 "outputFile": "gs://some-bucket/output"
               }
             },
@@ -182,7 +182,7 @@ class ExecutorTest(unittest.TestCase):
                 "artifacts": [
                   {
                     "metadata": {},
-                    "name": "output_artifact_one",
+                    "name": "output_artifact_one_name",
                     "type": {
                       "schemaTitle": "system.Model"
                     },
@@ -203,7 +203,8 @@ class ExecutorTest(unittest.TestCase):
             self.assertEqual(
                 output_artifact_one.path,
                 os.path.join(self._test_dir, 'some-bucket/output_artifact_one'))
-            self.assertEqual(output_artifact_one.name, 'output_artifact_one')
+            self.assertEqual(output_artifact_one.name,
+                             'output_artifact_one_name')
             self.assertIsInstance(output_artifact_one, Model)
 
         self.execute_and_load_output_metadata(test_func, executor_input)
@@ -269,8 +270,6 @@ class ExecutorTest(unittest.TestCase):
     def test_output_path_artifact(self):
         executor_input = """\
       {
-        "inputs": {
-        },
         "outputs": {
           "artifacts": {
             "output_artifact_one_path": {
@@ -363,7 +362,7 @@ class ExecutorTest(unittest.TestCase):
       },
       "outputs": {
         "parameters": {
-          "output": {
+          "Output": {
             "outputFile": "gs://some-bucket/output"
           }
         },
@@ -398,7 +397,7 @@ class ExecutorTest(unittest.TestCase):
       },
       "outputs": {
         "parameters": {
-          "output": {
+          "Output": {
             "outputFile": "gs://some-bucket/output"
           }
         },
@@ -429,7 +428,7 @@ class ExecutorTest(unittest.TestCase):
       },
       "outputs": {
         "parameters": {
-          "output": {
+          "Output": {
             "outputFile": "gs://some-bucket/output"
           }
         },
@@ -461,7 +460,7 @@ class ExecutorTest(unittest.TestCase):
       },
       "outputs": {
         "parameters": {
-          "output": {
+          "Output": {
             "outputFile": "gs://some-bucket/output"
           }
         },
@@ -493,7 +492,7 @@ class ExecutorTest(unittest.TestCase):
       },
       "outputs": {
         "parameters": {
-          "output": {
+          "Output": {
             "outputFile": "gs://some-bucket/output"
           }
         },
@@ -528,7 +527,7 @@ class ExecutorTest(unittest.TestCase):
       },
       "outputs": {
         "parameters": {
-          "output": {
+          "Output": {
             "outputFile": "gs://some-bucket/output"
           }
         },
@@ -560,7 +559,7 @@ class ExecutorTest(unittest.TestCase):
       },
       "outputs": {
         "parameters": {
-          "output": {
+          "Output": {
             "outputFile": "gs://some-bucket/output"
           }
         },
@@ -605,6 +604,11 @@ class ExecutorTest(unittest.TestCase):
                 "uri": "gs://some-bucket/output"
               }
             ]
+          }
+        },
+        "parameters": {
+          "Output": {
+            "outputFile": "gs://some-bucket/output"
           }
         },
         "outputFile": "%(test_dir)s/output_metadata.json"
@@ -729,7 +733,7 @@ class ExecutorTest(unittest.TestCase):
           },
           "outputs": {
             "parameters": {
-              "output": {
+              "Output": {
                 "outputFile": "gs://some-bucket/output"
               }
             },
@@ -787,7 +791,7 @@ class ExecutorTest(unittest.TestCase):
       },
       "outputs": {
         "parameters": {
-          "output": {
+          "Output": {
             "outputFile": "gs://some-bucket/output"
           }
         },
