@@ -38,8 +38,8 @@ def test_trainingjobV2(kfp_client, experiment_id, test_file_dir):
             "model_artifacts",
         ]
     }
-    
-    #Get output data
+
+    # Get output data
     output_files = minio_utils.artifact_download_iterator(
         workflow_json, outputs, download_dir
     )
@@ -57,7 +57,6 @@ def test_trainingjobV2(kfp_client, experiment_id, test_file_dir):
     print(f"model_artifact_url: {model_uri}")
     assert model_uri == train_response["status"]["modelArtifacts"]["s3ModelArtifacts"]
     assert input_job_name in model_uri
-
 
     utils.remove_dir(download_dir)
 
@@ -90,7 +89,9 @@ def test_terminate_trainingjob(kfp_client, experiment_id):
     kfp_client_utils.terminate_run(kfp_client, run_id)
     # response = ack_utils.describe_training_job(k8s_client, input_job_name)
     desiredStatuses = ["Stopping", "Stopped"]
-    training_status_reached = ack_utils.wait_for_trainingjob_status(k8s_client,input_job_name,desiredStatuses,10,6)
+    training_status_reached = ack_utils.wait_for_trainingjob_status(
+        k8s_client, input_job_name, desiredStatuses, 10, 6
+    )
     assert training_status_reached
-    
+
     utils.remove_dir(download_dir)
