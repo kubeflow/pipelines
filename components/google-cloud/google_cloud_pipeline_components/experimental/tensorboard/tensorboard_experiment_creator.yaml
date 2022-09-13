@@ -57,8 +57,8 @@ implementation:
       - "tensorboard_experiment_creator-run"
       - --tensorboard_resource_name
       - { inputValue: tensorboard_resource_name }
-      - --tensorboard_experiment_name
-      - { inputValue: tensorboard_experiment_name }
+      - --tensorboard_experiment_id
+      - { inputValue: tensorboard_experiment_id }
       - --tensorboard_experiment_display_name
       - { inputValue: tensorboard_experiment_display_name }
       - --tensorboard_experiment_description
