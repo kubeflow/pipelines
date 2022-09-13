@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.8.*
+  - python=3.7.*
   - pip=20.0.*
   - awscli=1.18.141
   - boto3=1.15.0
@@ -13,7 +13,7 @@ dependencies:
   - flake8-black=0.1.*
   - filelock=3.0.*
   - pip:
-    - kubernetes==24.2.*
+    - kubernetes==11.0.*
     - kfp==1.7.*
     - minio==5.0.10
     - sagemaker==2.1.*
