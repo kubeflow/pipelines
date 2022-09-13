@@ -41,102 +41,6 @@ Alias = Artifact
 artifact_types_alias = artifact_types
 
 
-class TestFuncToRootAnnotationSymbol(unittest.TestCase):
-
-    def test_no_annotations(self):
-
-        def func(a, b):
-            pass
-
-        actual = custom_artifact_types.func_to_root_annotation_symbols_for_artifacts(
-            func)
-        expected = {}
-        self.assertEqual(actual, expected)
-
-    def test_no_return(self):
-
-        def func(a: int, b: Input[Artifact]):
-            pass
-
-        actual = custom_artifact_types.func_to_root_annotation_symbols_for_artifacts(
-            func)
-        expected = {'b': 'Artifact'}
-        self.assertEqual(actual, expected)
-
-    def test_with_return(self):
-
-        def func(a: int, b: Input[Artifact]) -> int:
-            return 1
-
-        actual = custom_artifact_types.func_to_root_annotation_symbols_for_artifacts(
-            func)
-        expected = {'b': 'Artifact'}
-        self.assertEqual(actual, expected)
-
-    def test_multiline(self):
-
-        def func(
-            a: int,
-            b: Input[Artifact],
-        ) -> int:
-            return 1
-
-        actual = custom_artifact_types.func_to_root_annotation_symbols_for_artifacts(
-            func)
-        expected = {'b': 'Artifact'}
-        self.assertEqual(actual, expected)
-
-    def test_alias(self):
-
-        def func(a: int, b: Input[Alias]):
-            pass
-
-        actual = custom_artifact_types.func_to_root_annotation_symbols_for_artifacts(
-            func)
-        expected = {'b': 'Alias'}
-        self.assertEqual(actual, expected)
-
-    def test_long_form_annotation(self):
-
-        def func(a: int, b: Input[artifact_types.Artifact]):
-            pass
-
-        actual = custom_artifact_types.func_to_root_annotation_symbols_for_artifacts(
-            func)
-        expected = {'b': 'artifact_types'}
-        self.assertEqual(actual, expected)
-
-    def test_named_tuple(self):
-
-        def func(
-            a: int,
-            b: Input[Artifact],
-        ) -> typing.NamedTuple('MyNamedTuple', [('a', int), (
-                'b', Artifact), ('c', artifact_types.Artifact)]):
-            InnerNamedTuple = typing.NamedTuple(
-                'MyNamedTuple', [('a', int), ('b', Artifact),
-                                 ('c', artifact_types.Artifact)])
-            return InnerNamedTuple(a=a, b=b, c=b)  # type: ignore
-
-        actual = custom_artifact_types.func_to_root_annotation_symbols_for_artifacts(
-            func)
-        expected = {'b': 'Artifact'}
-        self.assertEqual(actual, expected)
-
-    def test_input_output_path(self):
-
-        def func(
-                a: int,
-                b: InputPath('Dataset'),
-        ) -> OutputPath('Dataset'):
-            return 'dataset'
-
-        actual = custom_artifact_types.func_to_root_annotation_symbols_for_artifacts(
-            func)
-        expected = {'b': 'InputPath'}
-        self.assertEqual(actual, expected)
-
-
 class _TestCaseWithThirdPartyPackage(parameterized.TestCase):
 
     @classmethod
@@ -158,6 +62,135 @@ class _TestCaseWithThirdPartyPackage(parameterized.TestCase):
     def teardownClass(cls):
         sys.path.pop()
         cls.tmp_dir.cleanup()
+
+
+class TestFuncToRootAnnotationSymbol(_TestCaseWithThirdPartyPackage):
+
+    def test_no_annotations(self):
+
+        def func(a, b):
+            pass
+
+        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
+        expected = {}
+        self.assertEqual(actual, expected)
+
+    def test_input_output_path(self):
+
+        def func(
+                a: int,
+                b: InputPath('Dataset'),
+                c: OutputPath('Dataset'),
+        ) -> str:
+            return 'dataset'
+
+        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
+        expected = {}
+        self.assertEqual(actual, expected)
+
+    def test_no_return(self):
+
+        def func(a: int, b: Input[Artifact]):
+            pass
+
+        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
+        expected = {'b': 'Artifact'}
+        self.assertEqual(actual, expected)
+
+    def test_with_return(self):
+
+        def func(a: int, b: Input[Artifact]) -> int:
+            return 1
+
+        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
+        expected = {'b': 'Artifact'}
+        self.assertEqual(actual, expected)
+
+    def test_module_base_symbol(self):
+
+        def func(a: int, b: Input[artifact_types.Artifact]):
+            pass
+
+        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
+        expected = {'b': 'artifact_types'}
+        self.assertEqual(actual, expected)
+
+    def test_alias(self):
+
+        def func(a: int, b: Input[Alias]):
+            pass
+
+        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
+        expected = {'b': 'Alias'}
+        self.assertEqual(actual, expected)
+
+    def test_named_tuple(self):
+
+        def func(
+            a: int,
+            b: Input[Artifact],
+        ) -> typing.NamedTuple('MyNamedTuple', [('a', int), (
+                'b', Artifact), ('c', artifact_types.Artifact)]):
+            InnerNamedTuple = typing.NamedTuple(
+                'MyNamedTuple', [('a', int), ('b', Artifact),
+                                 ('c', artifact_types.Artifact)])
+            return InnerNamedTuple(a=a, b=b, c=b)  # type: ignore
+
+        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
+        expected = {'b': 'Artifact'}
+        self.assertEqual(actual, expected)
+
+    def test_google_type_class_symbol(self):
+        from aiplatform import VertexDataset
+
+        def func(a: int, b: Input[VertexDataset]) -> int:
+            return 1
+
+        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
+        expected = {'b': 'VertexDataset'}
+        self.assertEqual(actual, expected)
+
+    def test_google_type_module_base_symbol(self):
+        import aiplatform
+
+        def func(a: int, b: Input[aiplatform.VertexDataset]):
+            pass
+
+        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
+        expected = {'b': 'aiplatform'}
+        self.assertEqual(actual, expected)
+
+    def test_google_type_alias(self):
+        from aiplatform import VertexDataset
+
+        Alias = VertexDataset
+
+        def func(a: int, b: Input[Alias]) -> int:
+            return 1
+
+        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
+        expected = {'b': 'Alias'}
+        self.assertEqual(actual, expected)
+
+    def test_using_dsl_symbol_for_generic(self):
+
+        def func(a: int, b: dsl.Input[Artifact],
+                 c: dsl.Output[dsl.Dataset]) -> int:
+            return 1
+
+        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
+        expected = {'b': 'Artifact', 'c': 'dsl'}
+        self.assertEqual(actual, expected)
+
+    def test_using_kfp_symbol_for_generic(self):
+
+        def func(a: int, b: kfp.dsl.Input[Artifact],
+                 c: kfp.dsl.Output[dsl.Dataset]) -> int:
+            return 1
+
+        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
+        expected = {'b': 'Artifact', 'c': 'dsl'}
+        self.assertEqual(actual, expected)
 
 
 class TestGetParamToAnnObj(unittest.TestCase):
@@ -208,7 +241,8 @@ class TestGetParamToAnnObj(unittest.TestCase):
         def func(
                 a: int,
                 b: InputPath('Dataset'),
-        ) -> OutputPath('Dataset'):
+                c: OutputPath('Dataset'),
+        ) -> str:
             return 'dataset'
 
         actual = custom_artifact_types.get_param_to_annotation_object(func)
@@ -321,10 +355,11 @@ class TestGetArtifactImportItemsFromFunction(_TestCaseWithThirdPartyPackage):
         from aiplatform import VertexDataset
 
         def func(
-            a: int,
-            b: InputPath('Dataset'),
-            c: Output[VertexDataset],
-        ) -> OutputPath('Dataset'):
+                a: int,
+                b: InputPath('Dataset'),
+                c: Output[VertexDataset],
+                d: OutputPath('Dataset'),
+        ) -> str:
             return 'dataset'
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
@@ -441,10 +476,11 @@ class TestFuncToAnnotationObject(_TestCaseWithThirdPartyPackage):
         from aiplatform import VertexDataset
 
         def func(
-            a: int,
-            b: InputPath('Dataset'),
-            c: Output[VertexDataset],
-        ) -> OutputPath('Dataset'):
+                a: int,
+                b: InputPath('Dataset'),
+                c: Output[VertexDataset],
+                d: OutputPath('Dataset'),
+        ) -> str:
             return 'dataset'
 
         actual = custom_artifact_types.func_to_annotation_object(func)
@@ -458,7 +494,9 @@ class TestFuncToAnnotationObject(_TestCaseWithThirdPartyPackage):
             'c':
                 typing_extensions.Annotated[
                     aiplatform.VertexDataset,
-                    kfp.components.types.type_annotations.OutputAnnotation]
+                    kfp.components.types.type_annotations.OutputAnnotation],
+            'd':
+                kfp.components.types.type_annotations.OutputPath('Dataset'),
         }
         self.assertEqual(actual, expected)
 
@@ -490,7 +528,7 @@ class TestGetCustomArtifactTypeImportStatements(_TestCaseWithThirdPartyPackage):
     def test_with_return(self):
         from aiplatform import VertexDataset
 
-        def func(a: int, b: Input[VertexDataset]) -> int:
+        def func(a: int, b: kfp.dsl.Input[VertexDataset]) -> int:
             return 1
 
         import aiplatform
@@ -514,7 +552,7 @@ class TestGetCustomArtifactTypeImportStatements(_TestCaseWithThirdPartyPackage):
     def test_long_form_annotation(self):
         import aiplatform
 
-        def func(a: int, b: Output[aiplatform.VertexDataset]):
+        def func(a: int, b: dsl.Output[aiplatform.VertexDataset]):
             pass
 
         actual = custom_artifact_types.get_custom_artifact_type_import_statements(
@@ -538,10 +576,11 @@ class TestGetCustomArtifactTypeImportStatements(_TestCaseWithThirdPartyPackage):
         from aiplatform import VertexDataset
 
         def func(
-            a: int,
-            b: InputPath('Dataset'),
-            c: Output[VertexDataset],
-        ) -> OutputPath('Dataset'):
+                a: int,
+                b: InputPath('Dataset'),
+                c: Output[VertexDataset],
+                d: OutputPath('Dataset'),
+        ) -> str:
             return 'dataset'
 
         actual = custom_artifact_types.get_custom_artifact_type_import_statements(

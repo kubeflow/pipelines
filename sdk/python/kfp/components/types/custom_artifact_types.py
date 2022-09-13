@@ -75,22 +75,22 @@ def get_full_qualname_for_artifact(obj: type) -> str:
     return name
 
 
-def get_import_item_from_annotation_string_and_ann_obj(artifact_str: str,
-                                                       qualname: str) -> str:
-    """Gets the fully qualified names of the module or type to import from the
-    annotation string and the annotation object.
+def get_symbol_import_path(artifact_class_base_symbol: str,
+                           qualname: str) -> str:
+    """Gets the fully qualified names of the module or type to import.
 
     Args:
-        artifact_str: The type annotation string.
+        artifact_class_base_symbol: The base symbol from which the artifact class is referenced (e.g., aiplatform for aiplatform.VertexDataset).
         qualname: The fully qualified type annotation name as a string.
 
     Returns:
         The fully qualified names of the module or type to import.
     """
     split_qualname = qualname.split('.')
-    if artifact_str in split_qualname:
+    if artifact_class_base_symbol in split_qualname:
         name_to_import = '.'.join(
-            split_qualname[:split_qualname.index(artifact_str) + 1])
+            split_qualname[:split_qualname.index(artifact_class_base_symbol) +
+                           1])
     else:
         raise TypeError(
             f"Module or type name aliases are not supported. You appear to be using an alias in your type annotation: '{qualname}'. This may be due to use of an 'as' statement in an import statement or a reassignment of a module or type to a new name. Reference the module and/or type using the name as defined in the source from which the module or type is imported."
@@ -107,8 +107,7 @@ def func_to_annotation_object(func: Callable) -> Dict[str, str]:
     }
 
 
-def func_to_root_annotation_symbols_for_artifacts(
-        func: Callable) -> Dict[str, str]:
+def func_to_artifact_class_base_symbol(func: Callable) -> Dict[str, str]:
     """Gets a map of parameter name to the root symbol used to reference an
     annotation for a function.
 
@@ -134,17 +133,8 @@ def func_to_root_annotation_symbols_for_artifacts(
         arg_to_ann = {}
         for arg in args:
             annotation = arg.annotation
-            # Handle InputPath() and OutputPath()
-            if isinstance(annotation, ast.Call):
-                if isinstance(annotation.func, ast.Name):
-                    arg_to_ann[arg.arg] = annotation.func.id
-                elif isinstance(annotation.func, ast.Attribute):
-                    arg_to_ann[arg.arg] = annotation.func.value.id
-                else:
-                    raise TypeError(
-                        f'Unexpected type annotation for {annotation.func}.')
             # annotations with a subtype like Input[Artifact]
-            elif isinstance(annotation, ast.Subscript):
+            if isinstance(annotation, ast.Subscript):
                 # get inner type
                 if PYTHON_VERSION < '3.9':
                     # see "Changed in version 3.9" https://docs.python.org/3/library/ast.html#node-classes
@@ -157,9 +147,6 @@ def func_to_root_annotation_symbols_for_artifacts(
                         arg_to_ann[arg.arg] = annotation.slice.id
                     if isinstance(annotation.slice, ast.Attribute):
                         arg_to_ann[arg.arg] = annotation.slice.value.id
-            # annotations like type_annotations.Input[Artifact]
-            elif isinstance(annotation, ast.Attribute):
-                arg_to_ann[arg.arg] = annotation.value.id
         return arg_to_ann
 
     return convert_ast_arg_node_to_param_annotation_dict_for_artifacts(args)
@@ -176,7 +163,7 @@ def get_custom_artifact_import_items_from_function(func: Callable) -> List[str]:
     """
 
     param_to_ann_obj = func_to_annotation_object(func)
-    param_to_ann_string = func_to_root_annotation_symbols_for_artifacts(func)
+    param_to_ann_string = func_to_artifact_class_base_symbol(func)
 
     import_items = []
     seen = set()
@@ -197,7 +184,6 @@ def get_custom_artifact_import_items_from_function(func: Callable) -> List[str]:
             if not artifact_qualname.startswith('kfp.'):
                 # kfp artifacts are already imported by default
                 import_items.append(
-                    get_import_item_from_annotation_string_and_ann_obj(
-                        ann_string, artifact_qualname))
+                    get_symbol_import_path(ann_string, artifact_qualname))
 
     return import_items
