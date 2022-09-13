@@ -14,13 +14,13 @@
 
 import ast
 import inspect
-import sys
-from typing import Any, Callable, Dict, List
+from typing import Callable, Dict, List, Union
 
 from kfp.components import component_factory
 from kfp.components.types import type_annotations
+from kfp.components.types import type_utils
 
-PYTHON_VERSION = str(sys.version_info.major) + '.' + str(sys.version_info.minor)
+RETURN_PREFIX = 'return-'
 
 
 def get_custom_artifact_type_import_statements(func: Callable) -> List[str]:
@@ -37,21 +37,44 @@ def get_custom_artifact_type_import_statements(func: Callable) -> List[str]:
     return imports_source
 
 
-def get_param_to_annotation_object(func: Callable) -> Dict[str, Any]:
-    """Gets a dictionary of parameter name to type annotation object from a
-    function.
+def get_param_to_custom_artifact_class(func: Callable) -> Dict[str, type]:
+    """Gets a map of parameter names to custom artifact classes.
 
-    Args:
-        func: The function.
-
-    Returns:
-        Dictionary of parameter name to type annotation object.
+    Return key is 'return-' for normal returns and 'return-<field>' for
+    typing.NamedTuple returns.
     """
+    param_to_artifact_cls: Dict[str, type] = {}
+    kfp_artifact_classes = set(type_utils._ARTIFACT_CLASSES_MAPPING.values())
+
     signature = inspect.signature(func)
-    return {
-        name: parameter.annotation
-        for name, parameter in signature.parameters.items()
-    }
+    for name, param in signature.parameters.items():
+        annotation = param.annotation
+        if type_annotations.is_artifact_annotation(annotation):
+            artifact_class = type_annotations.get_io_artifact_class(annotation)
+            if artifact_class not in kfp_artifact_classes:
+                param_to_artifact_cls[name] = artifact_class
+        elif type_annotations.is_artifact_class(annotation):
+            param_to_artifact_cls[name] = annotation
+            if artifact_class not in kfp_artifact_classes:
+                param_to_artifact_cls[name] = artifact_class
+
+    return_annotation = signature.return_annotation
+
+    if return_annotation is inspect.Signature.empty:
+        pass
+
+    elif type_utils.is_typed_named_tuple_annotation(return_annotation):
+        for name, annotation in return_annotation.__annotations__.items():
+            if type_annotations.is_artifact_class(
+                    annotation) and annotation not in kfp_artifact_classes:
+                param_to_artifact_cls[f'{RETURN_PREFIX}{name}'] = annotation
+
+    elif type_annotations.is_artifact_class(
+            return_annotation
+    ) and return_annotation not in kfp_artifact_classes:
+        param_to_artifact_cls[RETURN_PREFIX] = return_annotation
+
+    return param_to_artifact_cls
 
 
 def get_full_qualname_for_artifact(obj: type) -> str:
@@ -77,7 +100,8 @@ def get_full_qualname_for_artifact(obj: type) -> str:
 
 def get_symbol_import_path(artifact_class_base_symbol: str,
                            qualname: str) -> str:
-    """Gets the fully qualified names of the module or type to import.
+    """Gets the fully qualified name of the symbol that must be imported for
+    the custom artifact type annotation to be referenced successfully.
 
     Args:
         artifact_class_base_symbol: The base symbol from which the artifact class is referenced (e.g., aiplatform for aiplatform.VertexDataset).
@@ -98,92 +122,70 @@ def get_symbol_import_path(artifact_class_base_symbol: str,
     return name_to_import
 
 
-def func_to_annotation_object(func: Callable) -> Dict[str, str]:
-    """Gets a dict of parameter name to annotation object for a function."""
-    signature = inspect.signature(func)
-    return {
-        name: parameter.annotation
-        for name, parameter in signature.parameters.items()
-    }
+def traverse_ast_node_values_to_get_id(obj: Union[ast.Slice, None]) -> str:
+    while not hasattr(obj, 'id'):
+        obj = getattr(obj, 'value')
+    return obj.id
 
 
-def func_to_artifact_class_base_symbol(func: Callable) -> Dict[str, str]:
-    """Gets a map of parameter name to the root symbol used to reference an
-    annotation for a function.
-
-    For example, the annotation `type_module.Artifact` has the root
-    symbol `type_module` and the annotation `Artifact` has the root
-    symbol `Artifact`.
-    """
+def get_custom_artifact_base_symbol_for_parameter(func: Callable,
+                                                  arg_name: str) -> str:
+    """Gets the symbol required for the custom artifact type annotation to be
+    referenced correctly."""
     module_node = ast.parse(
         component_factory._get_function_source_definition(func))
     args = module_node.body[0].args.args
+    args = {arg.arg: arg for arg in args}
+    annotation = args[arg_name].annotation
+    return traverse_ast_node_values_to_get_id(annotation.slice)
 
-    def convert_ast_arg_node_to_param_annotation_dict_for_artifacts(
-            args: List[ast.arg]) -> Dict[str, str]:
-        """Converts a list of ast.arg nodes to a dictionary of the parameter
-        name to type annotation as a string (for artifact annotations only).
 
-        Args:
-            args: AST argument nodes for a function.
+def get_custom_artifact_base_symbol_for_return(func: Callable,
+                                               return_name: str) -> str:
+    """Gets the symbol required for the custom artifact type return annotation
+    to be referenced correctly."""
+    module_node = ast.parse(
+        component_factory._get_function_source_definition(func))
+    return_ann = module_node.body[0].returns
 
-        Returns:
-            A dictionary of parameter name to type annotation as a string.
-        """
-        arg_to_ann = {}
-        for arg in args:
-            annotation = arg.annotation
-            # annotations with a subtype like Input[Artifact]
-            if isinstance(annotation, ast.Subscript):
-                # get inner type
-                if PYTHON_VERSION < '3.9':
-                    # see "Changed in version 3.9" https://docs.python.org/3/library/ast.html#node-classes
-                    if isinstance(annotation.slice.value, ast.Name):
-                        arg_to_ann[arg.arg] = annotation.slice.value.id
-                    if isinstance(annotation.slice.value, ast.Attribute):
-                        arg_to_ann[arg.arg] = annotation.slice.value.value.id
-                else:
-                    if isinstance(annotation.slice, ast.Name):
-                        arg_to_ann[arg.arg] = annotation.slice.id
-                    if isinstance(annotation.slice, ast.Attribute):
-                        arg_to_ann[arg.arg] = annotation.slice.value.id
-        return arg_to_ann
+    if return_name == RETURN_PREFIX:
+        if isinstance(return_ann, (ast.Name, ast.Attribute)):
+            return traverse_ast_node_values_to_get_id(return_ann)
+    elif isinstance(return_ann, ast.Call):
+        func = return_ann.func
+        # handles NamedTuple and typing.NamedTuple
+        if (isinstance(func, ast.Attribute) and func.value.id == 'typing' and
+                func.attr == 'NamedTuple') or (isinstance(func, ast.Name) and
+                                               func.id == 'NamedTuple'):
+            nt_field_list = return_ann.args[1].elts
+            for el in nt_field_list:
+                if f'{RETURN_PREFIX}{el.elts[0].s}' == return_name:
+                    return traverse_ast_node_values_to_get_id(el.elts[1])
 
-    return convert_ast_arg_node_to_param_annotation_dict_for_artifacts(args)
+    raise TypeError(f"Unexpected type annotation '{return_ann}' for {func}.")
 
 
 def get_custom_artifact_import_items_from_function(func: Callable) -> List[str]:
-    """Gets a list of fully qualified names of the modules or types to import.
+    """Gets the fully qualified name of the symbol that must be imported for
+    the custom artifact type annotation to be referenced successfully from a
+    component function."""
 
-    Args:
-        func: The component function.
-
-    Returns:
-        A list containing the fully qualified names of the module or type to import.
-    """
-
-    param_to_ann_obj = func_to_annotation_object(func)
-    param_to_ann_string = func_to_artifact_class_base_symbol(func)
-
+    param_to_ann_obj = get_param_to_custom_artifact_class(func)
     import_items = []
-    seen = set()
-    for param_name, ann_string in param_to_ann_string.items():
-        # don't process the same annotation string multiple times
-        # use the string, not the object in the seen set, since the same object can be referenced different ways in the same function signature
-        if ann_string in seen:
-            continue
-        else:
-            seen.add(ann_string)
+    for param_name, artifact_class in param_to_ann_obj.items():
 
-        actual_ann = param_to_ann_obj.get(param_name)
+        base_symbol = get_custom_artifact_base_symbol_for_return(
+            func, param_name
+        ) if param_name.startswith(
+            RETURN_PREFIX) else get_custom_artifact_base_symbol_for_parameter(
+                func, param_name)
+        artifact_qualname = get_full_qualname_for_artifact(artifact_class)
+        symbol_import_path = get_symbol_import_path(base_symbol,
+                                                    artifact_qualname)
 
-        if actual_ann is not None and type_annotations.is_artifact_annotation(
-                actual_ann):
-            artifact_class = type_annotations.get_io_artifact_class(actual_ann)
-            artifact_qualname = get_full_qualname_for_artifact(artifact_class)
-            if not artifact_qualname.startswith('kfp.'):
-                # kfp artifacts are already imported by default
-                import_items.append(
-                    get_symbol_import_path(ann_string, artifact_qualname))
+        # could use set here, but want to be have deterministic import ordering
+        # in compilation
+        if symbol_import_path not in import_items:
+            import_items.append(symbol_import_path)
 
     return import_items

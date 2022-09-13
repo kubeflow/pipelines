@@ -23,19 +23,15 @@ import unittest
 
 from absl.testing import parameterized
 import kfp
-from kfp import compiler
 from kfp import dsl
 from kfp.components.types import artifact_types
 from kfp.components.types import custom_artifact_types
-from kfp.components.types import type_annotations
 from kfp.components.types.artifact_types import Artifact
 from kfp.components.types.artifact_types import Dataset
 from kfp.components.types.type_annotations import Input
 from kfp.components.types.type_annotations import InputPath
 from kfp.components.types.type_annotations import Output
 from kfp.components.types.type_annotations import OutputPath
-import typing_extensions
-import yaml
 
 Alias = Artifact
 artifact_types_alias = artifact_types
@@ -64,203 +60,160 @@ class _TestCaseWithThirdPartyPackage(parameterized.TestCase):
         cls.tmp_dir.cleanup()
 
 
-class TestFuncToRootAnnotationSymbol(_TestCaseWithThirdPartyPackage):
+class TestGetParamToCustomArtifactClass(_TestCaseWithThirdPartyPackage):
 
-    def test_no_annotations(self):
+    def test_no_ann(self):
 
-        def func(a, b):
+        def func():
             pass
 
-        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
-        expected = {}
-        self.assertEqual(actual, expected)
+        actual = custom_artifact_types.get_param_to_custom_artifact_class(func)
+        self.assertEqual(actual, {})
 
-    def test_input_output_path(self):
+    def test_primitives(self):
 
-        def func(
-                a: int,
-                b: InputPath('Dataset'),
-                c: OutputPath('Dataset'),
-        ) -> str:
-            return 'dataset'
-
-        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
-        expected = {}
-        self.assertEqual(actual, expected)
-
-    def test_no_return(self):
-
-        def func(a: int, b: Input[Artifact]):
+        def func(a: str, b: int) -> str:
             pass
 
-        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
-        expected = {'b': 'Artifact'}
-        self.assertEqual(actual, expected)
+        actual = custom_artifact_types.get_param_to_custom_artifact_class(func)
+        self.assertEqual(actual, {})
 
-    def test_with_return(self):
+    def test_input_path(self):
 
-        def func(a: int, b: Input[Artifact]) -> int:
-            return 1
-
-        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
-        expected = {'b': 'Artifact'}
-        self.assertEqual(actual, expected)
-
-    def test_module_base_symbol(self):
-
-        def func(a: int, b: Input[artifact_types.Artifact]):
+        def func(a: InputPath(str), b: InputPath('Dataset')) -> str:
             pass
 
-        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
-        expected = {'b': 'artifact_types'}
-        self.assertEqual(actual, expected)
+        actual = custom_artifact_types.get_param_to_custom_artifact_class(func)
+        self.assertEqual(actual, {})
 
-    def test_alias(self):
+    def test_output_path(self):
 
-        def func(a: int, b: Input[Alias]):
+        def func(a: OutputPath(str), b: OutputPath('Dataset')) -> str:
             pass
 
-        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
-        expected = {'b': 'Alias'}
-        self.assertEqual(actual, expected)
+        actual = custom_artifact_types.get_param_to_custom_artifact_class(func)
+        self.assertEqual(actual, {})
 
-    def test_named_tuple(self):
+    def test_input_kfp_artifact(self):
 
-        def func(
-            a: int,
-            b: Input[Artifact],
-        ) -> typing.NamedTuple('MyNamedTuple', [
-            ('c', int),
-            ('d', Artifact),
-            ('e', artifact_types.Artifact),
+        def func(a: Input[Artifact]):
+            pass
+
+        actual = custom_artifact_types.get_param_to_custom_artifact_class(func)
+        self.assertEqual(actual, {})
+
+    def test_output_kfp_artifact(self):
+
+        def func(a: Output[Artifact]):
+            pass
+
+        actual = custom_artifact_types.get_param_to_custom_artifact_class(func)
+        self.assertEqual(actual, {})
+
+    def test_return_kfp_artifact1(self):
+
+        def func() -> Artifact:
+            pass
+
+        actual = custom_artifact_types.get_param_to_custom_artifact_class(func)
+        self.assertEqual(actual, {})
+
+    def test_return_kfp_artifact2(self):
+
+        def func() -> dsl.Artifact:
+            pass
+
+        actual = custom_artifact_types.get_param_to_custom_artifact_class(func)
+        self.assertEqual(actual, {})
+
+    def test_named_tuple_primitives(self):
+
+        def func() -> typing.NamedTuple('Outputs', [
+            ('a', str),
+            ('b', int),
         ]):
-            InnerNamedTuple = typing.NamedTuple('MyNamedTuple', [
-                ('c', int),
-                ('d', Artifact),
-                ('e', artifact_types.Artifact),
-            ])
-            return InnerNamedTuple(
-                c=a,
-                d=b,
-                e=b,
-            )
+            pass
 
-        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
-        expected = {'b': 'Artifact'}
-        self.assertEqual(actual, expected)
+        actual = custom_artifact_types.get_param_to_custom_artifact_class(func)
+        self.assertEqual(actual, {})
 
-    def test_google_type_class_symbol(self):
+    def test_input_google_artifact(self):
+        import aiplatform
         from aiplatform import VertexDataset
 
-        def func(a: int, b: Input[VertexDataset]) -> int:
-            return 1
+        def func(
+            a: Input[aiplatform.VertexDataset],
+            b: Input[VertexDataset],
+            c: dsl.Input[aiplatform.VertexDataset],
+            d: kfp.dsl.Input[VertexDataset],
+        ):
+            pass
 
-        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
-        expected = {'b': 'VertexDataset'}
-        self.assertEqual(actual, expected)
+        actual = custom_artifact_types.get_param_to_custom_artifact_class(func)
+        self.assertEqual(
+            actual, {
+                'a': aiplatform.VertexDataset,
+                'b': aiplatform.VertexDataset,
+                'c': aiplatform.VertexDataset,
+                'd': aiplatform.VertexDataset,
+            })
 
-    def test_google_type_module_base_symbol(self):
+    def test_output_google_artifact(self):
+        import aiplatform
+        from aiplatform import VertexDataset
+
+        def func(
+            a: Output[aiplatform.VertexDataset],
+            b: Output[VertexDataset],
+            c: dsl.Output[aiplatform.VertexDataset],
+            d: kfp.dsl.Output[VertexDataset],
+        ):
+            pass
+
+        actual = custom_artifact_types.get_param_to_custom_artifact_class(func)
+        self.assertEqual(
+            actual, {
+                'a': aiplatform.VertexDataset,
+                'b': aiplatform.VertexDataset,
+                'c': aiplatform.VertexDataset,
+                'd': aiplatform.VertexDataset,
+            })
+
+    def test_return_google_artifact1(self):
+        import aiplatform
+        from aiplatform import VertexDataset
+
+        def func() -> VertexDataset:
+            pass
+
+        actual = custom_artifact_types.get_param_to_custom_artifact_class(func)
+        self.assertEqual(actual, {'return-': aiplatform.VertexDataset})
+
+    def test_return_google_artifact2(self):
         import aiplatform
 
-        def func(a: int, b: Input[aiplatform.VertexDataset]):
+        def func() -> aiplatform.VertexDataset:
             pass
 
-        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
-        expected = {'b': 'aiplatform'}
-        self.assertEqual(actual, expected)
+        actual = custom_artifact_types.get_param_to_custom_artifact_class(func)
+        self.assertEqual(actual, {'return-': aiplatform.VertexDataset})
 
-    def test_google_type_alias(self):
+    def test_named_tuple_google_artifact(self):
+        import aiplatform
         from aiplatform import VertexDataset
 
-        Alias = VertexDataset
+        def func() -> typing.NamedTuple('Outputs', [
+            ('a', aiplatform.VertexDataset),
+            ('b', VertexDataset),
+        ]):
+            pass
 
-        def func(a: int, b: Input[Alias]) -> int:
-            return 1
-
-        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
-        expected = {'b': 'Alias'}
-        self.assertEqual(actual, expected)
-
-    def test_using_dsl_symbol_for_generic(self):
-
-        def func(a: int, b: dsl.Input[Artifact],
-                 c: dsl.Output[dsl.Dataset]) -> int:
-            return 1
-
-        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
-        expected = {'b': 'Artifact', 'c': 'dsl'}
-        self.assertEqual(actual, expected)
-
-    def test_using_kfp_symbol_for_generic(self):
-
-        def func(a: int, b: kfp.dsl.Input[Artifact],
-                 c: kfp.dsl.Output[dsl.Dataset]) -> int:
-            return 1
-
-        actual = custom_artifact_types.func_to_artifact_class_base_symbol(func)
-        expected = {'b': 'Artifact', 'c': 'dsl'}
-        self.assertEqual(actual, expected)
-
-
-class TestGetParamToAnnObj(unittest.TestCase):
-
-    def test_no_named_tuple(self):
-
-        def func(
-            a: int,
-            b: Input[Artifact],
-        ) -> int:
-            return 1
-
-        actual = custom_artifact_types.get_param_to_annotation_object(func)
-        expected = {
-            'a':
-                int,
-            'b':
-                typing_extensions.Annotated[Artifact,
-                                            type_annotations.InputAnnotation]
-        }
-        self.assertEqual(actual, expected)
-
-    def test_named_tuple(self):
-
-        MyNamedTuple = typing.NamedTuple('MyNamedTuple', [
-            ('c', int),
-            ('d', str),
-        ])
-
-        def func(
-            a: int,
-            b: Input[Artifact],
-        ) -> MyNamedTuple:
-            InnerNamedTuple = typing.NamedTuple('MyNamedTuple', [
-                ('c', int),
-                ('d', str),
-            ])
-            return InnerNamedTuple(a=a, b='string')  # type: ignore
-
-        actual = custom_artifact_types.get_param_to_annotation_object(func)
-        expected = {
-            'a':
-                int,
-            'b':
-                typing_extensions.Annotated[Artifact,
-                                            type_annotations.InputAnnotation]
-        }
-        self.assertEqual(actual, expected)
-
-    def test_input_output_path(self):
-
-        def func(
-                a: int,
-                b: InputPath('Dataset'),
-                c: OutputPath('Dataset'),
-        ) -> str:
-            return 'dataset'
-
-        actual = custom_artifact_types.get_param_to_annotation_object(func)
-        self.assertEqual(actual['a'], int)
-        self.assertIsInstance(actual['b'], InputPath)
+        actual = custom_artifact_types.get_param_to_custom_artifact_class(func)
+        self.assertEqual(
+            actual, {
+                'return-a': aiplatform.VertexDataset,
+                'return-b': aiplatform.VertexDataset,
+            })
 
 
 class TestGetFullQualnameForArtifact(_TestCaseWithThirdPartyPackage):
@@ -282,365 +235,292 @@ class TestGetFullQualnameForArtifact(_TestCaseWithThirdPartyPackage):
                 aiplatform.VertexDataset), 'aiplatform.VertexDataset')
 
 
-class TestGetArtifactImportItemsFromFunction(_TestCaseWithThirdPartyPackage):
+class TestGetSymbolImportPath(parameterized.TestCase):
 
-    def test_no_annotations(self):
-
-        def func(a, b):
-            pass
-
-        actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
-            func)
-        expected = []
+    @parameterized.parameters([
+        {
+            'artifact_class_base_symbol': 'aiplatform',
+            'qualname': 'aiplatform.VertexDataset',
+            'expected': 'aiplatform'
+        },
+        {
+            'artifact_class_base_symbol': 'VertexDataset',
+            'qualname': 'aiplatform.VertexDataset',
+            'expected': 'aiplatform.VertexDataset'
+        },
+        {
+            'artifact_class_base_symbol': 'e',
+            'qualname': 'a.b.c.d.e',
+            'expected': 'a.b.c.d.e'
+        },
+        {
+            'artifact_class_base_symbol': 'c',
+            'qualname': 'a.b.c.d.e',
+            'expected': 'a.b.c'
+        },
+    ])
+    def test(self, artifact_class_base_symbol: str, qualname: str,
+             expected: str):
+        actual = custom_artifact_types.get_symbol_import_path(
+            artifact_class_base_symbol, qualname)
         self.assertEqual(actual, expected)
 
-    def test_no_return(self):
-        from aiplatform import VertexDataset
 
-        def func(a: int, b: Input[VertexDataset]):
-            pass
+class TestGetCustomArtifactBaseSymbolForParameter(_TestCaseWithThirdPartyPackage
+                                                 ):
 
-        actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
-            func)
-        expected = ['aiplatform.VertexDataset']
-        self.assertEqual(actual, expected)
-
-    def test_with_return(self):
-        from aiplatform import VertexDataset
-
-        def func(a: int, b: Input[VertexDataset]) -> int:
-            return 1
-
-        actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
-            func)
-        expected = ['aiplatform.VertexDataset']
-        self.assertEqual(actual, expected)
-
-    def test_multiline(self):
+    def test_input_google_artifact(self):
+        import aiplatform
         from aiplatform import VertexDataset
 
         def func(
-            a: int,
+            a: Input[aiplatform.VertexDataset],
             b: Input[VertexDataset],
-        ) -> int:
-            return 1
-
-        actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
-            func)
-        expected = ['aiplatform.VertexDataset']
-        self.assertEqual(actual, expected)
-
-    def test_alias(self):
-        from aiplatform import VertexDataset
-        Alias = VertexDataset
-
-        def func(a: int, b: Input[Alias]):
+            c: dsl.Input[aiplatform.VertexDataset],
+            d: kfp.dsl.Input[VertexDataset],
+        ):
             pass
 
-        with self.assertRaisesRegex(
-                TypeError, r'Module or type name aliases are not supported'):
-            custom_artifact_types.get_custom_artifact_import_items_from_function(
-                func)
+        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
+            func, 'a')
+        self.assertEqual(actual, 'aiplatform')
 
-    def test_long_form_annotation(self):
+        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
+            func, 'b')
+        self.assertEqual(actual, 'VertexDataset')
+
+        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
+            func, 'c')
+        self.assertEqual(actual, 'aiplatform')
+
+        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
+            func, 'd')
+        self.assertEqual(actual, 'VertexDataset')
+
+    def test_output_google_artifact(self):
+        import aiplatform
+        from aiplatform import VertexDataset
+
+        def func(
+            a: Output[aiplatform.VertexDataset],
+            b: Output[VertexDataset],
+            c: dsl.Output[aiplatform.VertexDataset],
+            d: kfp.dsl.Output[VertexDataset],
+        ):
+            pass
+
+        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
+            func, 'a')
+        self.assertEqual(actual, 'aiplatform')
+
+        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
+            func, 'b')
+        self.assertEqual(actual, 'VertexDataset')
+
+        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
+            func, 'c')
+        self.assertEqual(actual, 'aiplatform')
+
+        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_parameter(
+            func, 'd')
+        self.assertEqual(actual, 'VertexDataset')
+
+
+class TestGetCustomArtifactBaseSymbolForReturn(_TestCaseWithThirdPartyPackage):
+
+    def test_return_google_artifact1(self):
+        from aiplatform import VertexDataset
+
+        def func() -> VertexDataset:
+            pass
+
+        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_return(
+            func, 'return-')
+        self.assertEqual(actual, 'VertexDataset')
+
+    def test_return_google_artifact2(self):
         import aiplatform
 
-        def func(a: int, b: Output[aiplatform.VertexDataset]):
+        def func() -> aiplatform.VertexDataset:
+            pass
+
+        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_return(
+            func, 'return-')
+        self.assertEqual(actual, 'aiplatform')
+
+    def test_named_tuple_google_artifact(self):
+        import aiplatform
+        from aiplatform import VertexDataset
+
+        def func() -> typing.NamedTuple('Outputs', [
+            ('a', aiplatform.VertexDataset),
+            ('b', VertexDataset),
+        ]):
+            pass
+
+        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_return(
+            func, 'return-a')
+        self.assertEqual(actual, 'aiplatform')
+
+        actual = custom_artifact_types.get_custom_artifact_base_symbol_for_return(
+            func, 'return-b')
+        self.assertEqual(actual, 'VertexDataset')
+
+
+class TestGetCustomArtifactImportItemsFromFunction(
+        _TestCaseWithThirdPartyPackage):
+
+    def test_no_ann(self):
+
+        def func():
             pass
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
             func)
-        expected = ['aiplatform']
-        self.assertEqual(actual, expected)
+        self.assertEqual(actual, [])
 
-    def test_aliased_module_throws_error(self):
-        import aiplatform as aiplatform_alias
+    def test_primitives(self):
 
-        def func(a: int, b: Output[aiplatform_alias.VertexDataset]):
+        def func(a: str, b: int) -> str:
             pass
 
-        with self.assertRaisesRegex(
-                TypeError, r'Module or type name aliases are not supported'):
-            custom_artifact_types.get_custom_artifact_import_items_from_function(
-                func)
+        actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
+            func)
+        self.assertEqual(actual, [])
 
-    def test_input_output_path(self):
+    def test_input_path(self):
+
+        def func(a: InputPath(str), b: InputPath('Dataset')) -> str:
+            pass
+
+        actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
+            func)
+        self.assertEqual(actual, [])
+
+    def test_output_path(self):
+
+        def func(a: OutputPath(str), b: OutputPath('Dataset')) -> str:
+            pass
+
+        actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
+            func)
+        self.assertEqual(actual, [])
+
+    def test_input_kfp_artifact(self):
+
+        def func(a: Input[Artifact]):
+            pass
+
+        actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
+            func)
+        self.assertEqual(actual, [])
+
+    def test_output_kfp_artifact(self):
+
+        def func(a: Output[Artifact]):
+            pass
+
+        actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
+            func)
+        self.assertEqual(actual, [])
+
+    def test_return_kfp_artifact1(self):
+
+        def func() -> Artifact:
+            pass
+
+        actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
+            func)
+        self.assertEqual(actual, [])
+
+    def test_return_kfp_artifact2(self):
+
+        def func() -> dsl.Artifact:
+            pass
+
+        actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
+            func)
+        self.assertEqual(actual, [])
+
+    def test_named_tuple_primitives(self):
+
+        def func() -> typing.NamedTuple('Outputs', [
+            ('a', str),
+            ('b', int),
+        ]):
+            pass
+
+        actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
+            func)
+        self.assertEqual(actual, [])
+
+    def test_input_google_artifact(self):
+        import aiplatform
         from aiplatform import VertexDataset
 
         def func(
-                a: int,
-                b: InputPath('Dataset'),
-                c: Output[VertexDataset],
-                d: OutputPath('Dataset'),
-        ) -> str:
-            return 'dataset'
+            a: Input[aiplatform.VertexDataset],
+            b: Input[VertexDataset],
+            c: dsl.Input[aiplatform.VertexDataset],
+            d: kfp.dsl.Input[VertexDataset],
+        ):
+            pass
+
+        actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
+            func)
+        self.assertEqual(actual, ['aiplatform', 'aiplatform.VertexDataset'])
+
+    def test_output_google_artifact(self):
+        import aiplatform
+        from aiplatform import VertexDataset
+
+        def func(
+            a: Output[aiplatform.VertexDataset],
+            b: Output[VertexDataset],
+            c: dsl.Output[aiplatform.VertexDataset],
+            d: kfp.dsl.Output[VertexDataset],
+        ):
+            pass
+
+        actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
+            func)
+
+        self.assertEqual(actual, ['aiplatform', 'aiplatform.VertexDataset'])
+
+    def test_return_google_artifact1(self):
+        import aiplatform
+        from aiplatform import VertexDataset
+
+        def func() -> VertexDataset:
+            pass
 
         actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
             func)
         self.assertEqual(actual, ['aiplatform.VertexDataset'])
 
-
-class TestFuncToAnnotationObject(_TestCaseWithThirdPartyPackage):
-
-    def test_no_annotations(self):
-
-        def func(a, b):
-            pass
-
-        actual = custom_artifact_types.func_to_annotation_object(func)
-        expected = {'a': inspect._empty, 'b': inspect._empty}
-        self.assertEqual(actual, expected)
-
-    def test_no_return(self):
-        from aiplatform import VertexDataset
-
-        def func(a: int, b: Input[VertexDataset]):
-            pass
-
-        actual = custom_artifact_types.func_to_annotation_object(func)
-
-        import aiplatform
-        expected = {
-            'a':
-                int,
-            'b':
-                typing_extensions.Annotated[
-                    aiplatform.VertexDataset,
-                    kfp.components.types.type_annotations.InputAnnotation]
-        }
-        self.assertEqual(actual, expected)
-
-    def test_with_return(self):
-        from aiplatform import VertexDataset
-
-        def func(a: int, b: Input[VertexDataset]) -> int:
-            return 1
-
-        import aiplatform
-        actual = custom_artifact_types.func_to_annotation_object(func)
-        expected = {
-            'a':
-                int,
-            'b':
-                typing_extensions.Annotated[
-                    aiplatform.VertexDataset,
-                    kfp.components.types.type_annotations.InputAnnotation]
-        }
-        self.assertEqual(actual, expected)
-
-    def test_alias(self):
-        from aiplatform import VertexDataset
-        Alias = VertexDataset
-
-        def func(a: int, b: Input[Alias]):
-            pass
-
-        actual = custom_artifact_types.func_to_annotation_object(func)
-
-        import aiplatform
-        expected = {
-            'a':
-                int,
-            'b':
-                typing_extensions.Annotated[
-                    aiplatform.VertexDataset,
-                    kfp.components.types.type_annotations.InputAnnotation]
-        }
-        self.assertEqual(actual, expected)
-
-    def test_long_form_annotation(self):
+    def test_return_google_artifact2(self):
         import aiplatform
 
-        def func(a: int, b: Output[aiplatform.VertexDataset]):
+        def func() -> aiplatform.VertexDataset:
             pass
 
-        actual = custom_artifact_types.func_to_annotation_object(func)
-
-        expected = {
-            'a':
-                int,
-            'b':
-                typing_extensions.Annotated[
-                    aiplatform.VertexDataset,
-                    kfp.components.types.type_annotations.OutputAnnotation]
-        }
-        self.assertEqual(actual, expected)
-
-    def test_aliased_module(self):
-        import aiplatform as aiplatform_alias
-
-        def func(a: int, b: Output[aiplatform_alias.VertexDataset]):
-            pass
-
-        actual = custom_artifact_types.func_to_annotation_object(func)
-
-        import aiplatform
-        expected = {
-            'a':
-                int,
-            'b':
-                typing_extensions.Annotated[
-                    aiplatform.VertexDataset,
-                    kfp.components.types.type_annotations.OutputAnnotation]
-        }
-        self.assertEqual(actual, expected)
-
-    def test_input_output_path(self):
-        from aiplatform import VertexDataset
-
-        def func(
-                a: int,
-                b: InputPath('Dataset'),
-                c: Output[VertexDataset],
-                d: OutputPath('Dataset'),
-        ) -> str:
-            return 'dataset'
-
-        actual = custom_artifact_types.func_to_annotation_object(func)
-
-        import aiplatform
-        expected = {
-            'a':
-                int,
-            'b':
-                kfp.components.types.type_annotations.InputPath('Dataset'),
-            'c':
-                typing_extensions.Annotated[
-                    aiplatform.VertexDataset,
-                    kfp.components.types.type_annotations.OutputAnnotation],
-            'd':
-                kfp.components.types.type_annotations.OutputPath('Dataset'),
-        }
-        self.assertEqual(actual, expected)
-
-
-class TestGetCustomArtifactTypeImportStatements(_TestCaseWithThirdPartyPackage):
-
-    def test_no_annotations(self):
-
-        def func(a, b):
-            pass
-
-        actual = custom_artifact_types.get_custom_artifact_type_import_statements(
+        actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
             func)
-        expected = []
-        self.assertEqual(actual, expected)
+        self.assertEqual(actual, ['aiplatform'])
 
-    def test_no_return(self):
-        from aiplatform import VertexDataset
-
-        def func(a: int, b: Input[VertexDataset]):
-            pass
-
-        actual = custom_artifact_types.get_custom_artifact_type_import_statements(
-            func)
-
-        expected = ['from aiplatform import VertexDataset']
-        self.assertEqual(actual, expected)
-
-    def test_with_return(self):
-        from aiplatform import VertexDataset
-
-        def func(a: int, b: kfp.dsl.Input[VertexDataset]) -> int:
-            return 1
-
-        import aiplatform
-        actual = custom_artifact_types.get_custom_artifact_type_import_statements(
-            func)
-        expected = ['from aiplatform import VertexDataset']
-        self.assertEqual(actual, expected)
-
-    def test_alias(self):
-        from aiplatform import VertexDataset
-        Alias = VertexDataset
-
-        def func(a: int, b: Input[Alias]):
-            pass
-
-        with self.assertRaisesRegex(
-                TypeError, r'Module or type name aliases are not supported'):
-            custom_artifact_types.get_custom_artifact_type_import_statements(
-                func)
-
-    def test_long_form_annotation(self):
-        import aiplatform
-
-        def func(a: int, b: dsl.Output[aiplatform.VertexDataset]):
-            pass
-
-        actual = custom_artifact_types.get_custom_artifact_type_import_statements(
-            func)
-
-        expected = ['import aiplatform']
-        self.assertEqual(actual, expected)
-
-    def test_aliased_module(self):
-        import aiplatform as aiplatform_alias
-
-        def func(a: int, b: Output[aiplatform_alias.VertexDataset]):
-            pass
-
-        with self.assertRaisesRegex(
-                TypeError, r'Module or type name aliases are not supported'):
-            custom_artifact_types.get_custom_artifact_type_import_statements(
-                func)
-
-    def test_input_output_path(self):
-        from aiplatform import VertexDataset
-
-        def func(
-                a: int,
-                b: InputPath('Dataset'),
-                c: Output[VertexDataset],
-                d: OutputPath('Dataset'),
-        ) -> str:
-            return 'dataset'
-
-        actual = custom_artifact_types.get_custom_artifact_type_import_statements(
-            func)
-
-        expected = ['from aiplatform import VertexDataset']
-        self.assertEqual(actual, expected)
-
-
-class TestImportStatementAdded(_TestCaseWithThirdPartyPackage):
-
-    def test(self):
+    def test_named_tuple_google_artifact(self):
         import aiplatform
         from aiplatform import VertexDataset
 
-        @dsl.component
-        def one(
-            a: int,
-            b: Output[VertexDataset],
-        ):
+        def func() -> typing.NamedTuple('Outputs', [
+            ('a', aiplatform.VertexDataset),
+            ('b', VertexDataset),
+        ]):
             pass
 
-        @dsl.component
-        def two(a: Input[aiplatform.VertexDataset],):
-            pass
-
-        @dsl.pipeline()
-        def my_pipeline():
-            one_task = one(a=1)
-            two_task = two(a=one_task.outputs['b'])
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            output_path = os.path.join(tmpdir, 'pipeline.yaml')
-
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=output_path)
-            with open(output_path) as f:
-                pipeline_spec = yaml.safe_load(f)
-
-        self.assertIn(
-            'from aiplatform import VertexDataset',
-            ' '.join(pipeline_spec['deploymentSpec']['executors']['exec-one']
-                     ['container']['command']))
-        self.assertIn(
-            'import aiplatform',
-            ' '.join(pipeline_spec['deploymentSpec']['executors']['exec-two']
-                     ['container']['command']))
+        actual = custom_artifact_types.get_custom_artifact_import_items_from_function(
+            func)
+        self.assertEqual(actual, ['aiplatform', 'aiplatform.VertexDataset'])
 
 
 if __name__ == '__main__':
