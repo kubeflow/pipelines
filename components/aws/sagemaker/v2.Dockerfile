@@ -24,8 +24,8 @@ RUN yum update -y \
     wget \
     unzip
 
-COPY v2requirements.txt .
-RUN pip3 install -r v2requirements.txt
+COPY requirements_v2.txt .
+RUN pip3 install -r requirements_v2.txt
 
 WORKDIR /app
 
