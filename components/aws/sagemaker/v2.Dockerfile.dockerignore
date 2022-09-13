@@ -13,6 +13,5 @@ process
 rlestimator
 simulation_job
 simulation_job_batch
-tests
 train
 workteam
