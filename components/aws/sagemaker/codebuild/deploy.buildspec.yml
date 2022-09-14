@@ -9,4 +9,4 @@ phases:
   build:
     commands:
       - cd components/aws/sagemaker
-      - ./codebuild/scripts/deploy.sh -d "${DRY_RUN}"
+      - ./codebuild/scripts/deploy.sh -d "${DRY_RUN}" -b "${BUILD_VERSION}"
