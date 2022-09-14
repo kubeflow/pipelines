@@ -23,6 +23,8 @@ components:
           parameterType: STRING
         metadata-2:
           parameterType: STRING
+        metadata-3:
+          parameterType: NUMBER_INTEGER
         uri:
           parameterType: STRING
     outputDefinitions:
@@ -64,9 +66,10 @@ deploymentSpec:
         metadata:
           containerSpec:
             imageUri: us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest
-          list-of-strings:
+          list-of-data:
           - '{{$.inputs.parameters[''metadata'']}}'
           - '{{$.inputs.parameters[''metadata-2'']}}'
+          - '{{$.inputs.parameters[''metadata-3'']}}'
           name: '{{$.inputs.parameters[''metadata'']}}'
           '{{$.inputs.parameters[''metadata'']}}': '{{$.inputs.parameters[''metadata'']}}'
           '{{$.inputs.parameters[''metadata-2'']}}': us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest
@@ -134,6 +137,8 @@ root:
                 producerTask: make-name
             metadata-2:
               componentInputParameter: name
+            metadata-3:
+              componentInputParameter: int_input
             uri:
               runtimeValue:
                 constant: gs://ml-pipeline-playground/shakespeare1.txt
@@ -153,6 +158,9 @@ root:
           name: make-name
   inputDefinitions:
     parameters:
+      int_input:
+        defaultValue: 1.0
+        parameterType: NUMBER_INTEGER
       name:
         defaultValue: default-name
         parameterType: STRING
