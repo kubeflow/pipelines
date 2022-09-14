@@ -69,7 +69,7 @@ outputs:
 implementation:
   container:
     image: gcr.io/managed-pipeline-test/google-cloud-pipeline-components:latest
-    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.gcp_launcher.launcher]
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.bigquery.feature_importance.launcher]
     args: [
       --type, BigqueryMLFeatureImportanceJob,
       --project, {inputValue: project},
