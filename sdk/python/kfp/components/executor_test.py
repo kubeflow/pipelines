@@ -177,44 +177,6 @@ class ExecutorTest(unittest.TestCase):
 
         self.execute_and_load_output_metadata(test_func, executor_input)
 
-    def test_output_artifact(self):
-        executor_input = """\
-        {
-          "outputs": {
-            "artifacts": {
-              "output_artifact_one": {
-                "artifacts": [
-                  {
-                    "metadata": {},
-                    "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
-                    "type": {
-                      "schemaTitle": "system.Model"
-                    },
-                    "uri": "gs://some-bucket/output_artifact_one"
-                  }
-                ]
-              }
-            },
-            "outputFile": "%(test_dir)s/output_metadata.json"
-          }
-        }
-        """
-
-        def test_func(output_artifact_one: Output[Model]):
-            self.assertEqual(output_artifact_one.uri,
-                             'gs://some-bucket/output_artifact_one')
-
-            self.assertEqual(
-                output_artifact_one.path,
-                os.path.join(self._test_dir, 'some-bucket/output_artifact_one'))
-            self.assertEqual(
-                output_artifact_one.name,
-                'projects/123/locations/us-central1/metadataStores/default/artifacts/123'
-            )
-            self.assertIsInstance(output_artifact_one, Model)
-
-        self.execute_and_load_output_metadata(test_func, executor_input)
-
     def test_output_parameter(self):
         executor_input = """\
         {
@@ -704,6 +666,44 @@ class ExecutorTest(unittest.TestCase):
         with open(os.path.join(self._test_dir, 'some-bucket/output'), 'r') as f:
             artifact_payload = f.read()
         self.assertEqual(artifact_payload, 'Hello, World')
+
+    def test_output_artifact3(self):
+        executor_input = """\
+        {
+          "outputs": {
+            "artifacts": {
+              "output_artifact_one": {
+                "artifacts": [
+                  {
+                    "metadata": {},
+                    "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
+                    "type": {
+                      "schemaTitle": "system.Model"
+                    },
+                    "uri": "gs://some-bucket/output_artifact_one"
+                  }
+                ]
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(output_artifact_one: Output[Model]):
+            self.assertEqual(output_artifact_one.uri,
+                             'gs://some-bucket/output_artifact_one')
+
+            self.assertEqual(
+                output_artifact_one.path,
+                os.path.join(self._test_dir, 'some-bucket/output_artifact_one'))
+            self.assertEqual(
+                output_artifact_one.name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/123'
+            )
+            self.assertIsInstance(output_artifact_one, Model)
+
+        self.execute_and_load_output_metadata(test_func, executor_input)
 
     def test_named_tuple_output(self):
         executor_input = """\
