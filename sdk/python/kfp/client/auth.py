@@ -227,13 +227,64 @@ def get_auth_code(client_id: str):
                 'scope=openid%20email&access_type=offline&'
                 f'redirect_uri={redirect_uri}')
 
+    authorization_response = None
+    if ('SSH_CONNECTION' in os.environ) | ('SSH_CLIENT' in os.environ):
+        try:
+            print((
+                'SSH connection detected. Please follow the instructions below.'
+                ' Otherwise, press CTRL+C if you are not connected via SSH.'))
+            authorization_response = get_auth_response_ssh(host, port, auth_url)
+        except KeyboardInterrupt:
+            authorization_response = None
+            logging.warning('User pressed CTRL+C. Trying to open browser...')
+    if authorization_response is None:
+        try:
+            print(('Using a local web-server. Please follow the instructions '
+                   'below. Otherwise, press CTRL+C to cancel and manually '
+                   'copy-paste the response URL.'))
+            authorization_response = get_auth_response_local(
+                host, port, auth_url)
+        except KeyboardInterrupt:
+            logging.warning('User pressed CTRL+C. See instructions below.')
+            authorization_response = get_auth_response_ssh(host, port, auth_url)
+    token = fetch_auth_token_from_response(authorization_response)
+    return token, redirect_uri
+
+
+def get_auth_response_ssh(host: str, port: int, auth_url: str):
+    """Fetches OAuth authorization response URL for remote SSH connection.
+
+    Args:
+        host (str): hostname of redirect_uri
+        port (int): port of redirect_uri
+        auth_url (str): OAuth authorization code request URL
+    Returns:
+        str: a URL containing authorization code
+    """
+    print(auth_url)
+    authorization_response = input(
+        'Carefully follow these steps: (1) open the URL above in your'
+        ' browser, (2) authenticate and copy a url of the response page'
+        f' that starts with http://{host}:{port}..., and (3) paste it'
+        ' below:\n')
+    return authorization_response
+
+
+def get_auth_response_local(host: str, port: int, auth_url: str):
+    """Fetches OAuth authorization response URL using a local web-server.
+
+    Args:
+        host (str): hostname of the server
+        port (int): port of the server
+        auth_url (str): OAuth authorization code request URL
+    Returns:
+        str: a URL containing authorization code
+    """
     with get_local_server_app(host, port) as (local_server, wsgi_app):
         open_new_tab(auth_url)
         print(f'Please visit this URL to authorize Kubeflow SDK: {auth_url}.')
         local_server.handle_request()
-        authorization_response = wsgi_app.last_request_uri
-        token = fetch_auth_token_from_response(authorization_response)
-    return token, redirect_uri
+        return wsgi_app.last_request_uri
 
 
 def get_refresh_token_from_code(auth_code: str, client_id: str,
