@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2022 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,8 +26,13 @@ import google.auth.transport.requests
 from google.protobuf import json_format
 from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
-from google_cloud_pipeline_components.container.v1.gcp_launcher import bigquery_job_remote_runner
-from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
+from google_cloud_pipeline_components.container.v1.bigquery.query_job import remote_runner as query_job_remote_runner
+from google_cloud_pipeline_components.container.v1.bigquery.create_model import remote_runner as create_model_remote_runner
+from google_cloud_pipeline_components.container.v1.bigquery.export_model import remote_runner as export_model_remote_runner
+from google_cloud_pipeline_components.container.v1.bigquery.evaluate_model import remote_runner as evaluate_model_remote_runner
+from google_cloud_pipeline_components.container.v1.bigquery.ml_reconstruction_loss import remote_runner as ml_reconstruction_loss_remote_runner
+from google_cloud_pipeline_components.container.v1.bigquery.ml_trial_info import remote_runner as ml_trial_info_remote_runner
+from google_cloud_pipeline_components.container.v1.bigquery.predict_model import remote_runner as predict_model_remote_runner
 
 
 class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
@@ -44,8 +49,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._model_name = 'testproject.testdataset.testmodel'
     self._model_destination_path = 'gs://testproject/testmodelpah'
     self._exported_model_path = os.path.join(
-        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'),
-        'exported_model_path')
+        os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'exported_model_path')
     self._gcp_resources = os.path.join(
         os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'gcp_resources')
     self._output_file_path = os.path.join(
@@ -92,7 +96,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._payload = ('{"configuration": {"query": {"query": "SELECT * FROM '
                      '`bigquery-public-data.ml_datasets.penguins`"}}}')
     self._executor_input = '{"outputs":{"artifacts":{"destination_table":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQTable"}}]}},"outputFile":"' + self._output_file_path + '"}}'
-    bigquery_job_remote_runner.bigquery_query_job(
+    query_job_remote_runner.bigquery_query_job(
         self._job_type, self._project, self._location, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
         self._executor_input)
@@ -167,7 +171,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     job_configuration_query_override = ('{"query":"SELECT * FROM foo", '
                                         '"query_parameters": "abc"}')
-    bigquery_job_remote_runner.bigquery_query_job(
+    query_job_remote_runner.bigquery_query_job(
         self._job_type, self._project, self._location, self._payload,
         job_configuration_query_override, self._gcp_resources,
         self._executor_input)
@@ -241,7 +245,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
                      '`bigquery-public-data.ml_datasets.penguins`"}}}')
     self._executor_input = '{"outputs":{"artifacts":{"destination_table":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQTable"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
-    bigquery_job_remote_runner.bigquery_query_job(
+    query_job_remote_runner.bigquery_query_job(
         self._job_type, self._project, self._location, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
         self._executor_input)
@@ -272,7 +276,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._executor_input = '{"outputs":{"artifacts":{"destination_table":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQTable"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
     with self.assertRaises(ValueError):
-      bigquery_job_remote_runner.bigquery_query_job(
+      query_job_remote_runner.bigquery_query_job(
           self._job_type, self._project, self._location, self._payload,
           self._job_configuration_query_override, self._gcp_resources,
           self._executor_input)
@@ -292,7 +296,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._executor_input = '{"outputs":{"artifacts":{"destination_table":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQTable"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
     with self.assertRaises(RuntimeError):
-      bigquery_job_remote_runner.bigquery_query_job(
+      query_job_remote_runner.bigquery_query_job(
           self._job_type, self._project, self._location, self._payload,
           self._job_configuration_query_override, self._gcp_resources,
           self._executor_input)
@@ -346,7 +350,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
                      '`bigquery-public-data.ml_datasets.penguins`"}}}')
     self._executor_input = '{"outputs":{"artifacts":{"destination_table":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQTable"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
-    bigquery_job_remote_runner.bigquery_query_job(
+    query_job_remote_runner.bigquery_query_job(
         self._job_type, self._project, self._location, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
         self._executor_input)
@@ -401,7 +405,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._executor_input = '{"outputs":{"artifacts":{"destination_table":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQTable"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
     with self.assertRaises(RuntimeError):
-      bigquery_job_remote_runner.bigquery_query_job(
+      query_job_remote_runner.bigquery_query_job(
           self._job_type, self._project, self._location, self._payload,
           self._job_configuration_query_override, self._gcp_resources,
           self._executor_input)
@@ -446,7 +450,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._payload = ('{"configuration": {"query": {"query": "SELECT * FROM '
                      '`bigquery-public-data.ml_datasets.penguins`"}}}')
     self._executor_input = '{"outputs":{"artifacts":{"destination_table":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQTable"}}]}},"outputFile":"' + self._output_file_path + '"}}'
-    bigquery_job_remote_runner.bigquery_query_job(
+    query_job_remote_runner.bigquery_query_job(
         self._job_type, self._project, self._location, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
         self._executor_input)
@@ -503,7 +507,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         'NULL"}}}')
     self._executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
-    bigquery_job_remote_runner.bigquery_create_model_job(
+    create_model_remote_runner.bigquery_create_model_job(
         self._job_type, self._project, self._location, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
         self._executor_input)
@@ -583,7 +587,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     job_configuration_query_override = ('{"query":"SELECT * FROM foo", '
                                         '"query_parameters": "abc"}')
-    bigquery_job_remote_runner.bigquery_create_model_job(
+    create_model_remote_runner.bigquery_create_model_job(
         self._job_type, self._project, self._location, self._payload,
         job_configuration_query_override, self._gcp_resources,
         self._executor_input)
@@ -663,7 +667,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         'NULL"}}}')
     self._executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
-    bigquery_job_remote_runner.bigquery_create_model_job(
+    create_model_remote_runner.bigquery_create_model_job(
         self._job_type, self._project, self._location, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
         self._executor_input)
@@ -698,7 +702,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
     with self.assertRaises(ValueError):
-      bigquery_job_remote_runner.bigquery_create_model_job(
+      create_model_remote_runner.bigquery_create_model_job(
           self._job_type, self._project, self._location, self._payload,
           self._job_configuration_query_override, self._gcp_resources,
           self._executor_input)
@@ -723,7 +727,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
     with self.assertRaises(RuntimeError):
-      bigquery_job_remote_runner.bigquery_create_model_job(
+      create_model_remote_runner.bigquery_create_model_job(
           self._job_type, self._project, self._location, self._payload,
           self._job_configuration_query_override, self._gcp_resources,
           self._executor_input)
@@ -784,7 +788,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
     with self.assertRaises(RuntimeError):
-      bigquery_job_remote_runner.bigquery_create_model_job(
+      create_model_remote_runner.bigquery_create_model_job(
           self._job_type, self._project, self._location, self._payload,
           self._job_configuration_query_override, self._gcp_resources,
           self._executor_input)
@@ -831,7 +835,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
     with self.assertRaises(RuntimeError):
-      bigquery_job_remote_runner.bigquery_create_model_job(
+      create_model_remote_runner.bigquery_create_model_job(
           self._job_type, self._project, self._location, self._payload,
           self._job_configuration_query_override, self._gcp_resources,
           self._executor_input)
@@ -883,7 +887,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
     with self.assertRaises(RuntimeError):
-      bigquery_job_remote_runner.bigquery_create_model_job(
+      create_model_remote_runner.bigquery_create_model_job(
           self._job_type, self._project, self._location, self._payload,
           self._job_configuration_query_override, self._gcp_resources,
           self._executor_input)
@@ -897,9 +901,9 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(requests, 'get', autospec=True)
   @mock.patch.object(time, 'sleep', autospec=True)
   @mock.patch.object(ExecutionContext, '__init__', autospec=True)
-  def test_create_model_job_cancel(self, mock_execution_context, mock_time_sleep,
-                            mock_get_requests, mock_post_requests, _,
-                            mock_auth):
+  def test_create_model_job_cancel(self, mock_execution_context,
+                                   mock_time_sleep, mock_get_requests,
+                                   mock_post_requests, _, mock_auth):
     creds = mock.Mock()
     creds.token = 'fake_token'
     mock_auth.return_value = [creds, 'project']
@@ -935,7 +939,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         'NULL"}}}')
     self._executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
-    bigquery_job_remote_runner.bigquery_create_model_job(
+    create_model_remote_runner.bigquery_create_model_job(
         self._job_type, self._project, self._location, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
         self._executor_input)
@@ -992,7 +996,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._query_statement = ('SELECT * FROM '
                              '`bigquery-public-data.ml_datasets.penguins`')
     self._threshold = None
-    bigquery_job_remote_runner.bigquery_predict_model_job(
+    predict_model_remote_runner.bigquery_predict_model_job(
         self._job_type, self._project, self._location, self._model_name,
         self._table_name, self._query_statement, self._threshold, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
@@ -1069,7 +1073,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._table_name = 'bigquery-public-data.ml_datasets.penguins'
     self._query_statement = None
     self._threshold = None
-    bigquery_job_remote_runner.bigquery_predict_model_job(
+    predict_model_remote_runner.bigquery_predict_model_job(
         self._job_type, self._project, self._location, self._model_name,
         self._table_name, self._query_statement, self._threshold, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
@@ -1113,9 +1117,8 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(time, 'sleep', autospec=True)
   @mock.patch.object(ExecutionContext, '__init__', autospec=True)
   def test_predict_model_job_query_cancel(self, mock_execution_context,
-                                          mock_time_sleep,
-                                          mock_get_requests, mock_post_requests,
-                                          _, mock_auth):
+                                          mock_time_sleep, mock_get_requests,
+                                          mock_post_requests, _, mock_auth):
     creds = mock.Mock()
     creds.token = 'fake_token'
     mock_auth.return_value = [creds, 'project']
@@ -1149,7 +1152,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._query_statement = ('SELECT * FROM '
                              '`bigquery-public-data.ml_datasets.penguins`')
     self._threshold = None
-    bigquery_job_remote_runner.bigquery_predict_model_job(
+    predict_model_remote_runner.bigquery_predict_model_job(
         self._job_type, self._project, self._location, self._model_name,
         self._table_name, self._query_statement, self._threshold, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
@@ -1202,11 +1205,10 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._payload = '{"configuration": {"extract": {}, "labels": {}}}'
     self._executor_input = '{"outputs":{"artifacts":{"model_destination_path":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
-    bigquery_job_remote_runner.bigquery_export_model_job(
+    export_model_remote_runner.bigquery_export_model_job(
         self._job_type, self._project, self._location, self._model_name,
-        self._model_destination_path, self._payload,
-        self._exported_model_path, self._gcp_resources,
-        self._executor_input)
+        self._model_destination_path, self._payload, self._exported_model_path,
+        self._gcp_resources, self._executor_input)
 
     mock_post_requests.assert_called_once_with(
         data='{"configuration": {"extract": {"sourceModel": {"projectId": "testproject", "datasetId": "testdataset", "modelId": "testmodel"}, "destinationUris": ["gs://testproject/testmodelpah"]}, "labels": {}}, "jobReference": {"location": "US"}}',
@@ -1271,11 +1273,10 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._payload = '{"configuration": {"extract": {}, "labels": {}}}'
     self._executor_input = '{"outputs":{"artifacts":{"model_destination_path":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
-    bigquery_job_remote_runner.bigquery_export_model_job(
+    export_model_remote_runner.bigquery_export_model_job(
         self._job_type, self._project, self._location, self._model_name,
-        self._model_destination_path, self._payload,
-        self._exported_model_path, self._gcp_resources,
-        self._executor_input)
+        self._model_destination_path, self._payload, self._exported_model_path,
+        self._gcp_resources, self._executor_input)
 
     mock_post_requests.assert_called_once_with(
         data='{"configuration": {"extract": {"sourceModel": {"projectId": "testproject", "datasetId": "testdataset", "modelId": "testmodel"}, "destinationFormat": "ML_XGBOOST_BOOSTER", "destinationUris": ["gs://testproject/testmodelpah"]}, "labels": {}}, "jobReference": {"location": "US"}}',
@@ -1337,11 +1338,10 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._payload = '{"configuration": {"extract": {}, "labels": {}}}'
     self._executor_input = '{"outputs":{"artifacts":{"model_destination_path":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
-    bigquery_job_remote_runner.bigquery_export_model_job(
+    export_model_remote_runner.bigquery_export_model_job(
         self._job_type, self._project, self._location, self._model_name,
-        self._model_destination_path, self._payload,
-        self._exported_model_path, self._gcp_resources,
-        self._executor_input)
+        self._model_destination_path, self._payload, self._exported_model_path,
+        self._gcp_resources, self._executor_input)
 
     with open(self._output_file_path) as f:
       self.assertEqual(
@@ -1375,7 +1375,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
     with self.assertRaises(RuntimeError):
-      bigquery_job_remote_runner.bigquery_create_model_job(
+      create_model_remote_runner.bigquery_create_model_job(
           self._job_type, self._project, self._location, self._payload,
           self._job_configuration_query_override, self._gcp_resources,
           self._executor_input)
@@ -1436,7 +1436,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._executor_input = '{"outputs":{"artifacts":{"model":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
     with self.assertRaises(RuntimeError):
-      bigquery_job_remote_runner.bigquery_create_model_job(
+      create_model_remote_runner.bigquery_create_model_job(
           self._job_type, self._project, self._location, self._payload,
           self._job_configuration_query_override, self._gcp_resources,
           self._executor_input)
@@ -1451,9 +1451,8 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(time, 'sleep', autospec=True)
   @mock.patch.object(ExecutionContext, '__init__', autospec=True)
   def test_export_model_job_cancel(self, mock_execution_context,
-                                   mock_time_sleep,
-                                   mock_get_requests, mock_post_requests,
-                                   _, mock_auth):
+                                   mock_time_sleep, mock_get_requests,
+                                   mock_post_requests, _, mock_auth):
     creds = mock.Mock()
     creds.token = 'fake_token'
     mock_auth.return_value = [creds, 'project']
@@ -1481,11 +1480,10 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._payload = '{"configuration": {"extract": {}, "labels": {}}}'
     self._executor_input = '{"outputs":{"artifacts":{"model_destination_path":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
-    bigquery_job_remote_runner.bigquery_export_model_job(
+    export_model_remote_runner.bigquery_export_model_job(
         self._job_type, self._project, self._location, self._model_name,
-        self._model_destination_path, self._payload,
-        self._exported_model_path, self._gcp_resources,
-        self._executor_input)
+        self._model_destination_path, self._payload, self._exported_model_path,
+        self._gcp_resources, self._executor_input)
 
     # Call cancellation handler
     mock_execution_context.call_args[1]['on_cancel']()
@@ -1497,6 +1495,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
         })
+
 
 # Tests for evaluate model job.
 
@@ -1540,7 +1539,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._query_statement = ('SELECT * FROM '
                              '`bigquery-public-data.ml_datasets.penguins`')
     self._threshold = None
-    bigquery_job_remote_runner.bigquery_evaluate_model_job(
+    evaluate_model_remote_runner.bigquery_evaluate_model_job(
         self._job_type, self._project, self._location, self._model_name,
         self._table_name, self._query_statement, self._threshold, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
@@ -1584,9 +1583,8 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(time, 'sleep', autospec=True)
   @mock.patch.object(ExecutionContext, '__init__', autospec=True)
   def test_evaluate_model_job_cancel(self, mock_execution_context,
-                                     mock_time_sleep,
-                                     mock_get_requests, mock_post_requests,
-                                     _, mock_auth):
+                                     mock_time_sleep, mock_get_requests,
+                                     mock_post_requests, _, mock_auth):
     creds = mock.Mock()
     creds.token = 'fake_token'
     mock_auth.return_value = [creds, 'project']
@@ -1620,7 +1618,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._query_statement = ('SELECT * FROM '
                              '`bigquery-public-data.ml_datasets.penguins`')
     self._threshold = None
-    bigquery_job_remote_runner.bigquery_evaluate_model_job(
+    evaluate_model_remote_runner.bigquery_evaluate_model_job(
         self._job_type, self._project, self._location, self._model_name,
         self._table_name, self._query_statement, self._threshold, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
@@ -1685,7 +1683,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._table_name = None
     self._query_statement = ('SELECT * FROM '
                              '`bigquery-public-data.ml_datasets.penguins`')
-    bigquery_job_remote_runner.bigquery_ml_reconstruction_loss_job(
+    ml_reconstruction_loss_remote_runner.bigquery_ml_reconstruction_loss_job(
         self._job_type, self._project, self._location, self._model_name,
         self._table_name, self._query_statement, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
@@ -1775,7 +1773,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._model_name = 'bqml_tutorial.penguins_model'
     self._table_name = 'bigquery-public-data.ml_datasets.penguins'
     self._query_statement = None
-    bigquery_job_remote_runner.bigquery_ml_reconstruction_loss_job(
+    ml_reconstruction_loss_remote_runner.bigquery_ml_reconstruction_loss_job(
         self._job_type, self._project, self._location, self._model_name,
         self._table_name, self._query_statement, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
@@ -1868,7 +1866,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._table_name = None
     self._query_statement = ('SELECT * FROM '
                              '`bigquery-public-data.ml_datasets.penguins`')
-    bigquery_job_remote_runner.bigquery_ml_reconstruction_loss_job(
+    ml_reconstruction_loss_remote_runner.bigquery_ml_reconstruction_loss_job(
         self._job_type, self._project, self._location, self._model_name,
         self._table_name, self._query_statement, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
@@ -1925,7 +1923,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         '"type":{"schemaTitle":"system.Artifact"}}]}},"outputFile":"' +
         self._output_file_path + '"}}')
     self._model_name = 'bqml_tutorial.penguins_model'
-    bigquery_job_remote_runner.bigquery_ml_trial_info_job(
+    ml_trial_info_remote_runner.bigquery_ml_trial_info_job(
         self._job_type, self._project, self._location, self._model_name,
         self._payload, self._job_configuration_query_override,
         self._gcp_resources, self._executor_input)
