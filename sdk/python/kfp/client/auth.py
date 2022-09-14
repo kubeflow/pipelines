@@ -307,7 +307,14 @@ def get_refresh_token_from_code(auth_code: str, client_id: str,
         'grant_type': 'authorization_code'
     }
     res = requests.post(OAUTH_TOKEN_URI, data=payload)
-    res.raise_for_status()
+    try:
+        res.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        raise ValueError(
+            ('Some HTTPErrors are caused by expired credentials in '
+             '~/.config/kfp/context.json. Try renaming or moving '
+             'them to another directory before trying again.')) from err
+
     parsed_res = json.loads(res.text)
     if 'refresh_token' in parsed_res:
         return str(parsed_res['refresh_token'])
@@ -334,7 +341,13 @@ def id_token_from_refresh_token(client_id: str, client_secret: str,
         'audience': audience
     }
     res = requests.post(OAUTH_TOKEN_URI, data=payload)
-    res.raise_for_status()
+    try:
+        res.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+        raise ValueError(
+            ('Some HTTPErrors are caused by expired credentials in '
+             '~/.config/kfp/context.json. Try renaming or moving '
+             'them to another directory before trying again.')) from err
     return str(json.loads(res.text)['id_token'])
 
 
@@ -350,7 +363,7 @@ def get_local_server_app(host: str, port: int):
         RedirectWSGIApp: WSGI app to handle the authorization redirect
     """
     success_message = ('Kubeflow SDK authentication is completed.'
-                       'You may close this window now.')
+                       ' You may close this window now.')
     wsgi_app = RedirectWSGIApp(success_message)
     wsgiref.simple_server.WSGIServer.allow_reuse_address = False
     local_server = wsgiref.simple_server.make_server(
@@ -411,7 +424,8 @@ def fetch_auth_token_from_response(url: str):
     if 'code' in parsed_query:
         if parsed_query['code']:
             return parsed_query['code']
-    raise KeyError((
-        'Authorization code is missing or empty in the response.'
-        'Please, try again or check'
-        'https://www.kubeflow.org/docs/distributions/gke/deploy/oauth-setup/.'))
+    raise KeyError(
+        ('Authorization code is missing or empty in the response.'
+         ' Please, try again or check'
+         ' https://www.kubeflow.org/docs/distributions/gke/deploy/oauth-setup/.'
+        ))
