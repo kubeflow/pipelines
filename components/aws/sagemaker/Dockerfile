@@ -11,7 +11,7 @@
 # limitations under the License. 
 
 
-FROM public.ecr.aws/amazonlinux/amazonlinux:2022
+FROM public.ecr.aws/amazonlinux/amazonlinux:2
 
 ENV PYTHONPATH /app
 
