@@ -28,7 +28,7 @@ def make_name(name: str) -> str:
 
 
 @dsl.pipeline(name='pipeline-with-importer', pipeline_root='dummy_root')
-def my_pipeline(name: str = 'hi',
+def my_pipeline(name: str = 'default-name',
                 pipeline_input_artifact_uri: str = DEFAULT_ARTIFACT_URI,
                 pipeline_input_image_uri: str = DEFAULT_IMAGE_URI):
 
@@ -37,13 +37,13 @@ def my_pipeline(name: str = 'hi',
         artifact_class=Dataset,
         reimport=False,
         metadata={
-            'name': [name, name],
+            'name': [name, 'alias-name'],
             'containerSpec': {
                 'imageUri': pipeline_input_image_uri
             }
         })
 
-    make_name_op = make_name(name='the_name')
+    make_name_op = make_name(name='a-different-name')
 
     importer2 = importer(
         artifact_uri=DEFAULT_ARTIFACT_URI,
@@ -51,8 +51,9 @@ def my_pipeline(name: str = 'hi',
         reimport=False,
         metadata={
             'name': make_name_op.output,
-            'list_field': [make_name_op.output, make_name_op.output],
+            'list-of-strings': [make_name_op.output, name],
             make_name_op.output: make_name_op.output,
+            name: DEFAULT_IMAGE_URI,
             'containerSpec': {
                 'imageUri': DEFAULT_IMAGE_URI
             }

@@ -3,9 +3,9 @@ components:
     executorLabel: exec-importer
     inputDefinitions:
       parameters:
-        name:
+        metadata:
           parameterType: STRING
-        pipeline_input_image_uri:
+        metadata-2:
           parameterType: STRING
         uri:
           parameterType: STRING
@@ -19,7 +19,9 @@ components:
     executorLabel: exec-importer-2
     inputDefinitions:
       parameters:
-        Output:
+        metadata:
+          parameterType: STRING
+        metadata-2:
           parameterType: STRING
         uri:
           parameterType: STRING
@@ -48,10 +50,10 @@ deploymentSpec:
           runtimeParameter: uri
         metadata:
           containerSpec:
-            imageUri: '{{$.inputs.parameters[''pipeline_input_image_uri'']}}'
+            imageUri: '{{$.inputs.parameters[''metadata-2'']}}'
           name:
-          - '{{$.inputs.parameters[''name'']}}'
-          - '{{$.inputs.parameters[''name'']}}'
+          - '{{$.inputs.parameters[''metadata'']}}'
+          - alias-name
         typeSchema:
           schemaTitle: system.Dataset
           schemaVersion: 0.0.1
@@ -62,11 +64,12 @@ deploymentSpec:
         metadata:
           containerSpec:
             imageUri: us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest
-          list_field:
-          - '{{$.inputs.parameters[''Output'']}}'
-          - '{{$.inputs.parameters[''Output'']}}'
-          name: '{{$.inputs.parameters[''Output'']}}'
-          '{{$.inputs.parameters[''Output'']}}': '{{$.inputs.parameters[''Output'']}}'
+          list-of-strings:
+          - '{{$.inputs.parameters[''metadata'']}}'
+          - '{{$.inputs.parameters[''metadata-2'']}}'
+          name: '{{$.inputs.parameters[''metadata'']}}'
+          '{{$.inputs.parameters[''metadata'']}}': '{{$.inputs.parameters[''metadata'']}}'
+          '{{$.inputs.parameters[''metadata-2'']}}': us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest
         typeSchema:
           schemaTitle: system.Dataset
           schemaVersion: 0.0.1
@@ -108,9 +111,9 @@ root:
           name: comp-importer
         inputs:
           parameters:
-            name:
+            metadata:
               componentInputParameter: name
-            pipeline_input_image_uri:
+            metadata-2:
               componentInputParameter: pipeline_input_image_uri
             uri:
               componentInputParameter: pipeline_input_artifact_uri
@@ -125,10 +128,12 @@ root:
         - make-name
         inputs:
           parameters:
-            Output:
+            metadata:
               taskOutputParameter:
                 outputParameterKey: Output
                 producerTask: make-name
+            metadata-2:
+              componentInputParameter: name
             uri:
               runtimeValue:
                 constant: gs://ml-pipeline-playground/shakespeare1.txt
@@ -143,13 +148,13 @@ root:
           parameters:
             name:
               runtimeValue:
-                constant: the_name
+                constant: a-different-name
         taskInfo:
           name: make-name
   inputDefinitions:
     parameters:
       name:
-        defaultValue: hi
+        defaultValue: default-name
         parameterType: STRING
       pipeline_input_artifact_uri:
         defaultValue: gs://ml-pipeline-playground/shakespeare1.txt
