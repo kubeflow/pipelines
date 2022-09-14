@@ -88,14 +88,12 @@ class ExecutorTest(unittest.TestCase):
         executor_input = """\
         {
           "inputs": {
-            "parameterValues": {
-            },
             "artifacts": {
               "input_artifact_one": {
                 "artifacts": [
                   {
                     "metadata": {},
-                    "name": "input_artifact_one_name",
+                    "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
                     "type": {
                       "schemaTitle": "google.VertexDataset"
                     },
@@ -132,7 +130,10 @@ class ExecutorTest(unittest.TestCase):
                 input_artifact_one.path,
                 os.path.join(artifact_types._GCS_LOCAL_MOUNT_PREFIX,
                              'some-bucket/input_artifact_one'))
-            self.assertEqual(input_artifact_one.name, 'input_artifact_one_name')
+            self.assertEqual(
+                input_artifact_one.name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/123'
+            )
             self.assertIsInstance(input_artifact_one, VertexDataset)
 
         self.execute_and_load_output_metadata(test_func, executor_input)
@@ -146,7 +147,7 @@ class ExecutorTest(unittest.TestCase):
                 "artifacts": [
                   {
                     "metadata": {},
-                    "name": "input_artifact_one",
+                    "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
                     "type": {
                       "schemaTitle": "google.VertexDataset"
                     },
@@ -168,7 +169,10 @@ class ExecutorTest(unittest.TestCase):
             self.assertEqual(
                 input_artifact_one.path,
                 os.path.join(self._test_dir, 'some-bucket/input_artifact_one'))
-            self.assertEqual(input_artifact_one.name, 'input_artifact_one')
+            self.assertEqual(
+                input_artifact_one.name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/123'
+            )
             self.assertIsInstance(input_artifact_one, Dataset)
 
         self.execute_and_load_output_metadata(test_func, executor_input)
@@ -182,7 +186,7 @@ class ExecutorTest(unittest.TestCase):
                 "artifacts": [
                   {
                     "metadata": {},
-                    "name": "output_artifact_one_name",
+                    "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
                     "type": {
                       "schemaTitle": "system.Model"
                     },
@@ -203,8 +207,10 @@ class ExecutorTest(unittest.TestCase):
             self.assertEqual(
                 output_artifact_one.path,
                 os.path.join(self._test_dir, 'some-bucket/output_artifact_one'))
-            self.assertEqual(output_artifact_one.name,
-                             'output_artifact_one_name')
+            self.assertEqual(
+                output_artifact_one.name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/123'
+            )
             self.assertIsInstance(output_artifact_one, Model)
 
         self.execute_and_load_output_metadata(test_func, executor_input)
@@ -212,8 +218,6 @@ class ExecutorTest(unittest.TestCase):
     def test_output_parameter(self):
         executor_input = """\
         {
-          "inputs": {
-          },
           "outputs": {
             "parameters": {
               "output_parameter_path": {
@@ -244,7 +248,7 @@ class ExecutorTest(unittest.TestCase):
               "artifacts": [
                 {
                   "metadata": {},
-                  "name": "input_artifact_one",
+                  "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
                   "type": {
                     "schemaTitle": "system.Dataset"
                   },
@@ -276,7 +280,7 @@ class ExecutorTest(unittest.TestCase):
               "artifacts": [
                 {
                   "metadata": {},
-                  "name": "output_artifact_one",
+                  "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
                   "type": {
                     "schemaTitle": "system.Model"
                   },
@@ -300,15 +304,13 @@ class ExecutorTest(unittest.TestCase):
     def test_output_metadata(self):
         executor_input = """\
       {
-        "inputs": {
-        },
         "outputs": {
           "artifacts": {
             "output_artifact_two": {
               "artifacts": [
                 {
                   "metadata": {},
-                  "name": "output_artifact_two",
+                  "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
                   "type": {
                     "schemaTitle": "system.Metrics"
                   },
@@ -338,8 +340,10 @@ class ExecutorTest(unittest.TestCase):
                 'artifacts': {
                     'output_artifact_two': {
                         'artifacts': [{
-                            'name': 'output_artifact_two',
-                            'uri': 'new-uri',
+                            'name':
+                                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                            'uri':
+                                'new-uri',
                             'metadata': {
                                 'key_1': 'value_1',
                                 'key_2': 2,
@@ -583,7 +587,7 @@ class ExecutorTest(unittest.TestCase):
             },
         })
 
-    def test_artifact_output(self):
+    def test_artifact_output1(self):
         executor_input = """\
     {
       "inputs": {
@@ -597,7 +601,8 @@ class ExecutorTest(unittest.TestCase):
           "output": {
             "artifacts": [
               {
-                "name": "output",
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
                 "type": {
                   "schemaTitle": "system.Artifact"
                 },
@@ -630,8 +635,10 @@ class ExecutorTest(unittest.TestCase):
                     'output': {
                         'artifacts': [{
                             'metadata': {},
-                            'name': 'output',
-                            'uri': 'gs://some-bucket/output'
+                            'name':
+                                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                            'uri':
+                                'gs://some-bucket/output'
                         }]
                     }
                 },
@@ -644,6 +651,60 @@ class ExecutorTest(unittest.TestCase):
             artifact_payload = f.read()
         self.assertEqual(artifact_payload, 'artifact output')
 
+    def test_artifact_output2(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "parameterValues": {
+          "first":  "Hello",
+          "second": "World"
+        }
+      },
+      "outputs": {
+        "artifacts": {
+          "Output": {
+            "artifacts": [
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
+                "type": {
+                  "schemaTitle": "system.Artifact"
+                },
+                "uri": "gs://some-bucket/output"
+              }
+            ]
+          }
+        },
+        "outputFile": "%(test_dir)s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(first: str, second: str) -> Artifact:
+            return first + ', ' + second
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
+        self.assertDictEqual(
+            output_metadata, {
+                'artifacts': {
+                    'Output': {
+                        'artifacts': [{
+                            'metadata': {},
+                            'name':
+                                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                            'uri':
+                                'gs://some-bucket/output'
+                        }]
+                    }
+                },
+            })
+
+        with open(os.path.join(self._test_dir, 'some-bucket/output'), 'r') as f:
+            artifact_payload = f.read()
+        self.assertEqual(artifact_payload, 'Hello, World')
+
     def test_named_tuple_output(self):
         executor_input = """\
         {
@@ -652,7 +713,8 @@ class ExecutorTest(unittest.TestCase):
               "output_dataset": {
                 "artifacts": [
                   {
-                    "name": "output_dataset",
+                    "metadata": {},
+                    "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
                     "type": {
                       "schemaTitle": "system.Dataset"
                     },
@@ -705,8 +767,10 @@ class ExecutorTest(unittest.TestCase):
                         'output_dataset': {
                             'artifacts': [{
                                 'metadata': {},
-                                'name': 'output_dataset',
-                                'uri': 'gs://some-bucket/output_dataset'
+                                'name':
+                                    'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                                'uri':
+                                    'gs://some-bucket/output_dataset'
                             }]
                         }
                     },
