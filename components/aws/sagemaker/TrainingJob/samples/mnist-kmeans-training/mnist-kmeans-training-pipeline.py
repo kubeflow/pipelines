@@ -7,9 +7,7 @@ import os
 import random
 
 # Training job component, path is relative from this directory.
-sagemaker_training_op = components.load_component_from_file(
-    "../../component.yaml"
-)
+sagemaker_training_op = components.load_component_from_file("../../component.yaml")
 # This section initializes complex data structures that will be used for the pipeline.
 
 # S3 bucket where dataset is uploaded
