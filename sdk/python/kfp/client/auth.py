@@ -12,10 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from contextlib import contextmanager
 import json
 import logging
 import os
+from urllib.parse import parse_qs
+from urllib.parse import urlparse
 from webbrowser import open_new_tab
+import wsgiref.simple_server
+import wsgiref.util
 
 import google.auth
 import google.auth.app_engine
@@ -40,7 +45,7 @@ def get_gcp_access_token():
     """
     token = None
     try:
-        creds, project = google.auth.default(
+        creds, _ = google.auth.default(
             scopes=['https://www.googleapis.com/auth/cloud-platform'])
         if not creds.valid:
             auth_req = Request()
@@ -93,7 +98,7 @@ def get_auth_token(client_id, other_client_id, other_client_secret):
     return token
 
 
-def get_auth_token_from_sa(client_id):
+def get_auth_token_from_sa(client_id: str):
     """Gets auth token from default service account.
 
     If no service account credential is found, returns None.
@@ -104,14 +109,20 @@ def get_auth_token_from_sa(client_id):
     return None
 
 
-def get_service_account_credentials(client_id):
-    # Figure out what environment we're running in and get some preliminary
-    # information about the service account.
+def get_service_account_credentials(client_id: str):
+    """Figure out what environment we're running in and get some preliminary
+    information about the service account.
+
+    Args:
+        client_id (str): OAuth client ID
+    Returns:
+        google.oauth2.service_account.Credentials or None
+    """
     bootstrap_credentials, _ = google.auth.default(scopes=[IAM_SCOPE])
     if isinstance(bootstrap_credentials, google.oauth2.credentials.Credentials):
         logging.info('Found OAuth2 credentials and skip SA auth.')
         return None
-    elif isinstance(bootstrap_credentials, google.auth.app_engine.Credentials):
+    if isinstance(bootstrap_credentials, google.auth.app_engine.Credentials):
         requests_toolbelt.adapters.appengine.monkeypatch()
 
     # For service account's using the Compute Engine metadata service,
@@ -179,40 +190,91 @@ def get_google_open_id_connect_token(service_account_credentials):
     return token_response['id_token']
 
 
-def get_refresh_token_from_client_id(client_id, client_secret):
+def get_refresh_token_from_client_id(client_id: str, client_secret: str):
     """Obtains the ID token for provided Client ID with user accounts.
 
     Flow: get authorization code -> exchange for refresh token -> obtain and
     return ID token.
+
+    Args:
+        client_id (str): OAuth client ID
+        client_secret (str): OAuth client secret
+          https://console.cloud.google.com/apis/credentials
+    Returns:
+        str: OAuth short-lived access token or long-lived refresh token
     """
-    auth_code = get_auth_code(client_id)
-    return get_refresh_token_from_code(auth_code, client_id, client_secret)
+    auth_code, redirect_uri = get_auth_code(client_id)
+    token = get_refresh_token_from_code(auth_code, client_id, client_secret,
+                                        redirect_uri)
+    return token
 
 
-def get_auth_code(client_id):
-    auth_url = 'https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&response_type=code&scope=openid%%20email&access_type=offline&redirect_uri=urn:ietf:wg:oauth:2.0:oob' % client_id
-    print(auth_url)
-    open_new_tab(auth_url)
-    return input(
-        "If there's no browser window prompt, please direct to the URL above, "
-        'then copy and paste the authorization code here: ')
+def get_auth_code(client_id: str):
+    """Retrieves authorization token using Loopback flow.
+
+    Args:
+        client_id (str): OAuth client ID from
+          https://console.cloud.google.com/apis/credentials
+    Returns:
+        str: authorization token
+        str: redirect_uri parameter
+    """
+    host = 'localhost'
+    port = 9999
+    redirect_uri = f'http://{host}:{port}'
+    auth_url = ('https://accounts.google.com/o/oauth2/v2/auth?'
+                f'client_id={client_id}&response_type=code&'
+                'scope=openid%20email&access_type=offline&'
+                f'redirect_uri={redirect_uri}')
+
+    with get_local_server_app(host, port) as (local_server, wsgi_app):
+        open_new_tab(auth_url)
+        print(f'Please visit this URL to authorize Kubeflow SDK: {auth_url}.')
+        local_server.handle_request()
+        authorization_response = wsgi_app.last_request_uri
+        token = fetch_auth_token_from_response(authorization_response)
+    return token, redirect_uri
 
 
-def get_refresh_token_from_code(auth_code, client_id, client_secret):
+def get_refresh_token_from_code(auth_code: str, client_id: str,
+                                client_secret: str, redirect_uri: str):
+    """Returns refresh or access token from authorization code.
+
+    Args:
+        auth_code (str): OAuth authorization code
+        client_id (str): OAuth client ID
+        client_secret (str): OAuth client secret
+        redirect_uri (str): redirect uri used to obtain auth_code
+    Returns:
+        str: long-lived refresh or short-lived access token
+    """
     payload = {
         'code': auth_code,
         'client_id': client_id,
         'client_secret': client_secret,
-        'redirect_uri': 'urn:ietf:wg:oauth:2.0:oob',
+        'redirect_uri': redirect_uri,
         'grant_type': 'authorization_code'
     }
     res = requests.post(OAUTH_TOKEN_URI, data=payload)
     res.raise_for_status()
-    return str(json.loads(res.text)[u'refresh_token'])
+    parsed_res = json.loads(res.text)
+    if 'refresh_token' in parsed_res:
+        return str(parsed_res['refresh_token'])
+    return str(parsed_res['access_token'])
 
 
-def id_token_from_refresh_token(client_id, client_secret, refresh_token,
-                                audience):
+def id_token_from_refresh_token(client_id: str, client_secret: str,
+                                refresh_token: str, audience: str):
+    """Returns ID token from refresh token.
+
+    Args:
+        client_id (str): OAuth client ID
+        client_secret (str): OAuth client secret
+        refresh_token (str): OAuth refresh token
+        audience (str): OAuth audience
+    Returns:
+        str: ID token
+    """
     payload = {
         'client_id': client_id,
         'client_secret': client_secret,
@@ -222,4 +284,83 @@ def id_token_from_refresh_token(client_id, client_secret, refresh_token,
     }
     res = requests.post(OAUTH_TOKEN_URI, data=payload)
     res.raise_for_status()
-    return str(json.loads(res.text)[u'id_token'])
+    return str(json.loads(res.text)['id_token'])
+
+
+@contextmanager
+def get_local_server_app(host: str, port: int):
+    """Creates a local web-server for given host and port.
+
+    Args:
+        host (str): hostname of the server
+        port (int): port of the server
+    Returns:
+        WSGIServer: local server instance
+        RedirectWSGIApp: WSGI app to handle the authorization redirect
+    """
+    success_message = ('Kubeflow SDK authentication is completed.'
+                       'You may close this window now.')
+    wsgi_app = RedirectWSGIApp(success_message)
+    wsgiref.simple_server.WSGIServer.allow_reuse_address = False
+    local_server = wsgiref.simple_server.make_server(
+        host,
+        port,
+        wsgi_app,
+        handler_class=wsgiref.simple_server.WSGIRequestHandler)
+    try:
+        yield local_server, wsgi_app
+    finally:
+        local_server.server_close()
+        del wsgi_app
+
+
+class RedirectWSGIApp:
+    """WSGI app to handle the authorization redirect.
+
+    Stores the request URI and displays the given success message.
+    """
+
+    def __init__(self, success_message):
+        """
+        Args:
+            success_message (str): The message to display in the web browser
+                the authorization flow is complete.
+        """
+        self.last_request_uri = None
+        self._success_message = success_message
+
+    def __call__(self, environ, start_response):
+        """WSGI Callable. Updates environment dictionary with parameters
+        required for WSGI and returns it.
+
+        Args:
+            environ (Mapping[str, Any]): The WSGI environment.
+            start_response (Callable[str, list]): The WSGI start_response
+                callable.
+        Returns:
+            Iterable[bytes]: The response body.
+        """
+        wsgiref.util.setup_testing_defaults(environ)
+        start_response('200 OK',
+                       [('Content-type', 'text/plain; charset=utf-8')])
+        self.last_request_uri = wsgiref.util.request_uri(environ)
+        return [self._success_message.encode('utf-8')]
+
+
+def fetch_auth_token_from_response(url: str):
+    """Fetches authorization code for OAuth2.0 Loopback flow.
+
+    Args:
+        url (str): a string containing the response URL
+    Returns:
+        str: an access code
+    """
+    parsed_url = urlparse(url)
+    parsed_query = parse_qs(parsed_url.query)
+    if 'code' in parsed_query:
+        if parsed_query['code']:
+            return parsed_query['code']
+    raise KeyError((
+        'Authorization code is missing or empty in the response.'
+        'Please, try again or check'
+        'https://www.kubeflow.org/docs/distributions/gke/deploy/oauth-setup/.'))
