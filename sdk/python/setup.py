@@ -76,8 +76,7 @@ setuptools.setup(
     extras_require={
         'all': ['docker'],
     },
-    packages=setuptools.find_packages(
-        where=os.path.dirname(__file__), exclude=['*test*']),
+    packages=setuptools.find_packages(exclude=['*test*']),
     classifiers=[
         'Intended Audience :: Developers',
         'Intended Audience :: Education',
