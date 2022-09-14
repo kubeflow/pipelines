@@ -13,11 +13,12 @@
 # limitations under the License.
 """GCP launcher for batch prediction jobs based on the AI Platform SDK."""
 
+import argparse
 import logging
 import sys
 
 from . import remote_runner
-from ..gcp_launcher.utils import parser_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import parser_util
 
 
 def _parse_args(args):
@@ -29,7 +30,8 @@ def _parse_args(args):
       dest='executor_input',
       type=str,
       # executor_input is only needed for components that emit output artifacts.
-      required=True)
+      required=True,
+      default=argparse.SUPPRESS)
   parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)
 

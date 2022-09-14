@@ -16,83 +16,48 @@ import os
 import re
 import sys
 import tempfile
-import types
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Union
 import unittest
 
 from absl.testing import parameterized
 from kfp import compiler
 from kfp import components
-from kfp.compiler._read_write_test_config import CONFIG
-from kfp.components import pipeline_context
 from kfp.components import python_component
 from kfp.components import structures
 import yaml
 
-_DEFAULT_PIPELINE_FUNC_NAME = 'my_pipeline'
 _PROJECT_ROOT = os.path.abspath(os.path.join(__file__, *([os.path.pardir] * 5)))
 
 
-def expand_config(config: dict) -> List[Dict[str, Any]]:
+def create_test_cases() -> List[Dict[str, Any]]:
     parameters: List[Dict[str, Any]] = []
+    config_path = os.path.join(_PROJECT_ROOT, 'sdk', 'python', 'test_data',
+                               'test_data_config.yaml')
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
     for name, test_group in config.items():
         test_data_dir = os.path.join(_PROJECT_ROOT, test_group['test_data_dir'])
-        config = test_group['config']
+
         parameters.extend({
-            'name': name + '-' + test_case,
-            'test_case': test_case,
+            'name': name + '-' + test_case['module'],
+            'test_case': test_case['module'],
             'test_data_dir': test_data_dir,
-            'read': config['read'],
-            'write': config['write'],
-            'function': None if name == 'pipelines' else test_case,
+            'read': test_group['read'],
+            'write': test_group['write'],
+            'function': test_case['name']
         } for test_case in test_group['test_cases'])
 
     return parameters
 
 
-def collect_pipeline_from_module(
-    target_module: types.ModuleType
-) -> Union[Callable[..., Any], python_component.PythonComponent]:
-    pipelines = []
-    module_attrs = dir(target_module)
-    for attr in module_attrs:
-        obj = getattr(target_module, attr)
-        if pipeline_context.Pipeline.is_pipeline_func(obj):
-            pipelines.append(obj)
-    if len(pipelines) == 1:
-        return pipelines[0]
-    else:
-        # Try get the pipeline with the default name first.
-        for pipeline in pipelines:
-            if _DEFAULT_PIPELINE_FUNC_NAME == pipeline.pipeline_func.__name__:
-                return pipeline
+def import_obj_from_file(python_path: str, obj_name: str) -> Any:
+    sys.path.insert(0, os.path.dirname(python_path))
+    module_name = os.path.splitext(os.path.split(python_path)[1])[0]
+    module = __import__(module_name, fromlist=[obj_name])
+    if not hasattr(module, obj_name):
         raise ValueError(
-            f'Expect one pipeline function in module {target_module}, got {len(pipelines)}: {pipelines}. Please specify the pipeline function name with --function.'
-        )
-
-
-def collect_pipeline_func(
-    python_file: str,
-    function_name: Optional[str] = None
-) -> Union[Callable[..., Any], python_component.PythonComponent]:
-    sys.path.insert(0, os.path.dirname(python_file))
-    try:
-        filename = os.path.basename(python_file)
-        module_name = os.path.splitext(filename)[0]
-        if function_name is None:
-            return collect_pipeline_from_module(
-                target_module=__import__(module_name))
-
-        module = __import__(module_name, fromlist=[function_name])
-        if not hasattr(module, function_name):
-            raise ValueError(
-                f'Pipeline function or component "{function_name}" not found in module {filename}.'
-            )
-
-        return getattr(module, function_name)
-
-    finally:
-        del sys.path[0]
+            f'Object "{obj_name}" not found in module {python_path}.')
+    return getattr(module, obj_name)
 
 
 def ignore_kfp_version_helper(spec: Dict[str, Any]) -> Dict[str, Any]:
@@ -165,24 +130,25 @@ class ReadWriteTest(parameterized.TestCase):
             strip_some_component_spec_fields(original_component.component_spec),
             strip_some_component_spec_fields(reloaded_component.component_spec))
 
-    def _test_serialization_correctness(self,
-                                        python_file: str,
-                                        yaml_file: str,
-                                        function_name: Optional[str] = None):
+    def _test_serialization_correctness(
+        self,
+        python_file: str,
+        yaml_file: str,
+        function_name: str,
+    ):
         """Tests serialization correctness."""
-        pipeline = collect_pipeline_func(
-            python_file, function_name=function_name)
+        pipeline = import_obj_from_file(python_file, function_name)
         compiled_result = self._compile_and_read_yaml(pipeline)
         golden_result = load_compiled_file(yaml_file)
         self.assertEqual(compiled_result, golden_result)
 
-    @parameterized.parameters(expand_config((CONFIG)))
+    @parameterized.parameters(create_test_cases())
     def test(
         self,
         name: str,
         test_case: str,
         test_data_dir: str,
-        function: Optional[str],
+        function: str,
         read: bool,
         write: bool,
     ):

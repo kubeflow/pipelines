@@ -82,7 +82,8 @@ class PipelineTask:
                     f'Component "{component_spec.name}" got an unexpected input:'
                     f' {input_name}.')
 
-            input_type = component_spec.inputs[input_name].type
+            input_spec = component_spec.inputs[input_name]
+            input_type = input_spec.type
             argument_type = None
 
             if isinstance(argument_value, pipeline_channel.PipelineChannel):
@@ -128,7 +129,6 @@ class PipelineTask:
         self.pipeline_spec = None
 
         if component_spec.implementation.container is not None:
-
             self.container_spec = self._resolve_command_line_and_arguments(
                 component_spec=component_spec,
                 args=args,
@@ -250,18 +250,15 @@ class PipelineTask:
                         f'Input "{input_name}" with type '
                         f'"{inputs_dict[input_name].type}" cannot be paired with '
                         'InputValuePlaceholder.')
-
                 if input_name in args or type_utils.is_task_final_status_type(
                         inputs_dict[input_name].type):
                     return arg.to_placeholder_string()
-
                 input_spec = inputs_dict[input_name]
                 if input_spec.default is None:
                     raise ValueError(
                         f'No value provided for input: {input_name}.')
-
                 else:
-                    return None
+                    return arg.to_placeholder_string()
 
             elif isinstance(arg, placeholders.InputUriPlaceholder):
                 input_name = arg.input_name
@@ -340,7 +337,6 @@ class PipelineTask:
             return expanded_list
 
         container_spec = component_spec.implementation.container
-
         resolved_container_spec = copy.deepcopy(container_spec)
         resolved_container_spec.command = expand_argument_list(
             container_spec.command)

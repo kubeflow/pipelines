@@ -1,0 +1,214 @@
+# Copyright 2022 The Kubeflow Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+pipelines:
+  test_data_dir: sdk/python/test_data/pipelines
+  read: true
+  write: true
+  test_cases:
+    - module: pipeline_with_importer
+      name: my_pipeline
+      execute: false
+    - module: pipeline_with_importer_and_gcpc_types
+      name: my_pipeline
+      execute: false
+    - module: pipeline_with_ontology
+      name: my_pipeline
+      execute: false
+    - module: pipeline_with_if_placeholder
+      name: my_pipeline
+      execute: false
+    - module: pipeline_with_concat_placeholder
+      name: my_pipeline
+      execute: false
+    - module: pipeline_with_resource_spec
+      name: my_pipeline
+      execute: false
+    - module: pipeline_with_various_io_types
+      name: my_pipeline
+      execute: false
+    - module: pipeline_with_reused_component
+      name: my_pipeline
+      execute: true
+    - module: pipeline_with_after
+      name: my_pipeline
+      execute: true
+    - module: pipeline_with_condition
+      name: my_pipeline
+      execute: true
+    - module: pipeline_with_nested_conditions
+      name: my_pipeline
+      execute: true
+    - module: pipeline_with_nested_conditions_yaml
+      name: my_pipeline
+      execute: true
+    - module: pipeline_with_loops
+      name: my_pipeline
+      execute: true
+      arguments: { "loop_parameter": ["a", "b"] }
+    - module: pipeline_with_nested_loops
+      name: my_pipeline
+      execute: false
+    - module: pipeline_with_loops_and_conditions
+      name: my_pipeline
+      execute: false
+    - module: pipeline_with_params_containing_format
+      name: my_pipeline
+      execute: false
+    - module: lightweight_python_functions_pipeline
+      name: pipeline
+      execute: true
+      arguments: { "message": "here is my message" }
+    - module: lightweight_python_functions_with_outputs
+      name: pipeline
+      execute: true
+      arguments:
+        {
+          "first_message": "a",
+          "second_message": "b",
+          "first_number": 1,
+          "second_number": 2,
+        }
+    - module: xgboost_sample_pipeline
+      name: xgboost_pipeline
+      execute: false
+    - module: pipeline_with_metrics_outputs
+      name: my_pipeline
+      execute: true
+    - module: pipeline_with_exit_handler
+      name: my_pipeline
+      execute: true
+    - module: pipeline_with_env
+      name: my_pipeline
+      execute: true
+    - module: component_with_optional_inputs
+      name: pipeline
+      execute: true
+    - module: pipeline_with_placeholders
+      name: my_pipeline
+      execute: true
+    - module: pipeline_with_task_final_status
+      name: my_pipeline
+      execute: false
+    - module: pipeline_with_task_final_status_yaml
+      name: my_pipeline
+      execute: false
+    - module: component_with_pip_index_urls
+      name: pipeline
+      execute: true
+    - module: container_component_with_no_inputs
+      name: pipeline
+      execute: true
+    - module: two_step_pipeline_containerized
+      name: my_pipeline
+      execute: true
+      arguments: { "text": "a" }
+    - module: pipeline_with_multiple_exit_handlers
+      name: my_pipeline
+      execute: true
+    - module: pipeline_with_parallelfor_parallelism
+      name: my_pipeline
+      execute: false
+    - module: pipeline_in_pipeline
+      name: my_pipeline
+      execute: false
+    - module: pipeline_in_pipeline_complex
+      name: my_pipeline
+      execute: true
+    - module: pipeline_with_outputs
+      name: my_pipeline
+      execute: true
+    - module: pipeline_in_pipeline_loaded_from_yaml
+      name: my_pipeline
+      execute: false
+    - module: pipeline_as_exit_task
+      name: my_pipeline
+      execute: false
+    - module: pipeline_with_google_artifact_type
+      name: my_pipeline
+      execute: false
+components:
+  test_data_dir: sdk/python/test_data/components
+  read: true
+  write: true
+  test_cases:
+    - module: add_numbers
+      name: add_numbers
+      execute: true
+      arguments: { "a": 1, "b": 2 }
+    - module: component_with_pip_install
+      name: component_with_pip_install
+      execute: true
+    - module: concat_message
+      name: concat_message
+      execute: true
+      arguments: { "message1": "input message", "message2": other message" }
+    - module: dict_input
+      name: dict_input
+      execute: true
+      arguments: { "struct": { "a": 1, "b": 2 } }
+    - module: identity
+      name: identity
+      execute: true
+      arguments: { "value": "a" }
+    - module: input_artifact
+      name: input_artifact
+      execute: false
+    - module: nested_return
+      name: nested_return
+      execute: true
+    - module: output_metrics
+      name: output_metrics
+      execute: true
+    - module: preprocess
+      name: preprocess
+      execute: true
+      arguments:
+        {
+          "input_dict_parameter": { "a": 1 },
+          "input_list_parameter": [1, 2, 3],
+          "message": "another message",
+        }
+    - module: container_no_input
+      name: container_no_input
+      execute: true
+    - module: container_io
+      name: container_io
+      execute: false
+    - module: container_with_artifact_output
+      name: container_with_artifact_output
+      execute: false
+    - module: container_with_concat_placeholder
+      name: container_with_concat_placeholder
+      execute: false
+    - module: container_with_if_placeholder
+      name: container_with_if_placeholder
+      execute: false
+v1_components:
+  test_data_dir: sdk/python/test_data/v1_component_yaml
+  read: true
+  write: false
+  test_cases:
+    - module: concat_placeholder_component
+      name: Component with concat placeholder
+      execute: false
+    - module: if_placeholder_component
+      name: Component with optional inputs
+      execute: false
+    - module: add_component
+      name: Add
+      execute: false
+    - module: ingestion_component
+      name: Ingestion
+      execute: false

@@ -423,12 +423,14 @@ sdkVersion: kfp-2.0.0-alpha.2
                     env={},
                 )),
             inputs={
-                'input_parameter': structures.InputSpec(type='String'),
-                'input_artifact': structures.InputSpec(type='Artifact')
+                'input_parameter':
+                    structures.InputSpec(type='String'),
+                'input_artifact':
+                    structures.InputSpec(type='system.Artifact@0.0.1')
             },
             outputs={
-                'output_1': structures.OutputSpec(type='Artifact'),
-                'output_2': structures.OutputSpec(type='Artifact'),
+                'output_1': structures.OutputSpec(type='system.Artifact@0.0.1'),
+                'output_2': structures.OutputSpec(type='system.Artifact@0.0.1'),
             })
         self.assertEqual(generated_spec, expected_spec)
 
@@ -557,11 +559,11 @@ class TestInputSpec(unittest.TestCase):
 
     def test_equality(self):
         self.assertEqual(
-            structures.InputSpec(type='str', default=None),
-            structures.InputSpec(type='str', default=None))
+            structures.InputSpec(type='String', default=None),
+            structures.InputSpec(type='String', default=None))
         self.assertNotEqual(
-            structures.InputSpec(type='str', default=None),
-            structures.InputSpec(type='str', default='test'))
+            structures.InputSpec(type='String', default=None),
+            structures.InputSpec(type='String', default='test'))
         self.assertEqual(
             structures.InputSpec(type='List', default=None),
             structures.InputSpec(type='typing.List', default=None))
@@ -573,15 +575,15 @@ class TestInputSpec(unittest.TestCase):
             structures.InputSpec(type='typing.List[typing.Dict[str, str]]'))
 
     def test_optional(self):
-        input_spec = structures.InputSpec(type='str', default='test')
+        input_spec = structures.InputSpec(type='String', default='test')
         self.assertEqual(input_spec.default, 'test')
         self.assertEqual(input_spec._optional, True)
 
-        input_spec = structures.InputSpec(type='str', default=None)
+        input_spec = structures.InputSpec(type='String', default=None)
         self.assertEqual(input_spec.default, None)
         self.assertEqual(input_spec._optional, True)
 
-        input_spec = structures.InputSpec(type='str')
+        input_spec = structures.InputSpec(type='String')
         self.assertEqual(input_spec.default, None)
         self.assertEqual(input_spec._optional, False)
 
@@ -620,7 +622,7 @@ class TestInputSpec(unittest.TestCase):
         }
         input_spec = structures.InputSpec.from_ir_component_inputs_dict(
             artifact_dict)
-        self.assertEqual(input_spec.type, 'Artifact')
+        self.assertEqual(input_spec.type, 'system.Artifact@0.0.1')
 
 
 class TestOutputSpec(parameterized.TestCase):
@@ -639,7 +641,7 @@ class TestOutputSpec(parameterized.TestCase):
         }
         output_spec = structures.OutputSpec.from_ir_component_outputs_dict(
             artifact_dict)
-        self.assertEqual(output_spec.type, 'Artifact')
+        self.assertEqual(output_spec.type, 'system.Artifact@0.0.1')
 
 
 V1_YAML = textwrap.dedent("""\
@@ -741,7 +743,9 @@ sdkVersion: kfp-2.0.0-alpha.2""")
             inputs={
                 'input1': structures.InputSpec(type='String', default=None)
             },
-            outputs={'output1': structures.OutputSpec(type='Artifact')})
+            outputs={
+                'output1': structures.OutputSpec(type='system.Artifact@0.0.1')
+            })
         self.assertEqual(loaded_component_spec, component_spec)
 
     def test_if_placeholder(self):

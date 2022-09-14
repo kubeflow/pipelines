@@ -85,6 +85,11 @@ parser.add_argument(
 parser.add_argument(
     '--pipeline_job_id', dest='pipeline_job_id', type=str, default=None)
 parser.add_argument(
+    '--pipeline_job_resource_name',
+    dest='pipeline_job_resource_name',
+    type=str,
+    default=None)
+parser.add_argument(
     '--dataset_path', nargs='?', dest='dataset_path', type=str, default=None)
 parser.add_argument(
     '--dataset_paths', nargs='?', dest='dataset_paths', type=str, default='[]')
@@ -184,6 +189,7 @@ def main(argv):
   metadata = {
       key: value for key, value in {
           'pipeline_job_id': parsed_args.pipeline_job_id,
+          'pipeline_job_resource_name': parsed_args.pipeline_job_resource_name,
           'evaluation_dataset_type': parsed_args.dataset_type,
           'evaluation_dataset_path': dataset_paths or None,
       }.items() if value is not None

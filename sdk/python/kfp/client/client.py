@@ -477,11 +477,14 @@ class Client:
                 resource_references=resource_references)
             experiment = self._experiment_api.create_experiment(body=experiment)
 
+        link = f"{self._get_url_prefix()}/#/experiments/details/{experiment.id}"
         if self._is_ipython():
             import IPython
-            html = \
-                f'<a href="{self._get_url_prefix()}/#/experiments/details/{experiment.id}" target="_blank" >Experiment details</a>.'
+            html = f'<a href="{link}" target="_blank" >Experiment details</a>.'
             IPython.display.display(IPython.display.HTML(html))
+        else:
+            print(f"Experiment details: {link}")
+
         return experiment
 
     def get_pipeline_id(self, name: str) -> Optional[str]:
@@ -781,12 +784,14 @@ class Client:
 
         response = self._run_api.create_run(body=run_body)
 
+        link = f"{self._get_url_prefix()}/#/runs/details/{response.run.id}"
         if self._is_ipython():
             import IPython
-            html = (
-                f'<a href="{self._get_url_prefix()}/#/runs/details/{response.run.id}" target="_blank" >Run details</a>.'
-            )
+            html = (f'<a href="{link}" target="_blank" >Run details</a>.')
             IPython.display.display(IPython.display.HTML(html))
+        else:
+            print(f"Run details: {link}")
+
         return response.run
 
     def archive_run(self, run_id: str) -> dict:
@@ -1049,7 +1054,7 @@ class Client:
             ``RunPipelineResult`` object containing information about the pipeline run.
         """
         #TODO: Check arguments against the pipeline function
-        pipeline_name = pipeline_func.__name__
+        pipeline_name = pipeline_func.name
         run_name = run_name or pipeline_name + ' ' + datetime.datetime.now(
         ).strftime('%Y-%m-%d %H-%M-%S')
 
@@ -1372,10 +1377,14 @@ class Client:
         validate_pipeline_resource_name(pipeline_name)
         response = self._upload_api.upload_pipeline(
             pipeline_package_path, name=pipeline_name, description=description)
+        link = f"{self._get_url_prefix()}/#/pipelines/details/{response.id}"
         if self._is_ipython():
             import IPython
-            html = f'<a href={self._get_url_prefix()}/#/pipelines/details/{response.id}>Pipeline details</a>.'
+            html = f'<a href="{link}" target="_blank" >Pipeline details</a>.'
             IPython.display.display(IPython.display.HTML(html))
+        else:
+            print(f"Pipeline details: {link}")
+
         return response
 
     def upload_pipeline_version(
@@ -1417,10 +1426,14 @@ class Client:
         response = self._upload_api.upload_pipeline_version(
             pipeline_package_path, **kwargs)
 
+        link = f"{self._get_url_prefix()}/#/pipelines/details/{response.id}"
         if self._is_ipython():
             import IPython
-            html = f'<a href={self._get_url_prefix()}/#/pipelines/details/{response.id}>Pipeline details</a>.'
+            html = f'<a href="{link}" target="_blank" >Pipeline details</a>.'
             IPython.display.display(IPython.display.HTML(html))
+        else:
+            print(f"Pipeline details: {link}")
+
         return response
 
     def get_pipeline(self, pipeline_id: str) -> kfp_server_api.ApiPipeline:
