@@ -26,6 +26,7 @@ from kfp.components.types import type_utils
 
 INPUT_KEY = 'uri'
 OUTPUT_KEY = 'artifact'
+METADATA_KEY = 'metadata'
 
 
 def importer(
@@ -57,14 +58,35 @@ def importer(
           train(dataset=importer1.output)
     """
 
-    metadata_pipeline_param_channels = set()
+    component_inputs: Dict[str, structures.InputSpec] = {}
+    call_inputs: Dict[str, Any] = {}
 
     def traverse_dict_and_create_metadata_inputs(d: Any) -> Any:
         if isinstance(d, pipeline_channel.PipelineParameterChannel):
-            metadata_pipeline_param_channels.add(d)
-            result = placeholders.InputValuePlaceholder(
-                input_name=d.name).to_placeholder_string()
-            return result
+            reversed_call_inputs = {
+                pipeline_param_chan: name
+                for name, pipeline_param_chan in call_inputs.items()
+            }
+
+            # minimizes importer spec interface by not creating new
+            # inputspec/parameters if the same input is used multiple places
+            # in metadata
+            unique_name = reversed_call_inputs.get(
+                d,
+                make_placeholder_unique(
+                    METADATA_KEY,
+                    list(call_inputs),
+                    '-',
+                ),
+            )
+
+            call_inputs[unique_name] = d
+            component_inputs[unique_name] = structures.InputSpec(
+                type=d.channel_type)
+
+            return placeholders.InputValuePlaceholder(
+                input_name=unique_name).to_placeholder_string()
+
         elif isinstance(d, dict):
             return {
                 traverse_dict_and_create_metadata_inputs(k):
@@ -79,19 +101,6 @@ def importer(
 
     metadata_with_placeholders = traverse_dict_and_create_metadata_inputs(
         metadata)
-
-    component_inputs: Dict[str, structures.InputSpec] = {}
-    call_inputs: Dict[str, Any] = {}
-
-    for pipeline_param_channel in metadata_pipeline_param_channels:
-        unique_name = make_placeholder_unique(
-            pipeline_param_channel.name,
-            list(component_inputs),
-            '-',
-        )
-        component_inputs[unique_name] = structures.InputSpec(
-            type=pipeline_param_channel.channel_type)
-        call_inputs[unique_name] = pipeline_param_channel
 
     component_spec = structures.ComponentSpec(
         name='importer',
