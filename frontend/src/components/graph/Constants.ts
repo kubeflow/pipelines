@@ -23,6 +23,7 @@ export type FlowElementDataBase = {
 export type SubDagFlowElementData = FlowElementDataBase & {
   // Callback action if a SubDag expand button is clicked.
   expand: (nodeKey: string) => void;
+  state?: Execution.State;
 };
 
 export type ExecutionFlowElementData = FlowElementDataBase & {

@@ -15,9 +15,20 @@
  */
 
 import CropFreeIcon from '@material-ui/icons/CropFree';
-import React from 'react';
+import CheckCircleIcon from '@material-ui/icons/CheckCircle';
+import CloudDownloadIcon from '@material-ui/icons/CloudDownload';
+import ErrorIcon from '@material-ui/icons/Error';
+import ListAltIcon from '@material-ui/icons/ListAlt';
+import PowerSettingsNewIcon from '@material-ui/icons/PowerSettingsNew';
+import RefreshIcon from '@material-ui/icons/Refresh';
+import RemoveCircleOutlineIcon from '@material-ui/icons/RemoveCircleOutline';
+import React, { ReactElement } from 'react';
 import { Handle, Position } from 'react-flow-renderer';
+import { classes } from 'typestyle';
+import { Execution } from 'src/third_party/mlmd';
 import { SubDagFlowElementData } from './Constants';
+import MoreHorizIcon from '@material-ui/icons/MoreHoriz';
+import StopCircle from 'src/icons/StopCircle';
 // import ExpandLessIcon from '@material-ui/icons/ExpandLess';
 // import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 
@@ -31,6 +42,9 @@ interface SubDagNodeProps {
 
 function SubDagNode({ id, data }: SubDagNodeProps) {
   // TODO(zijianjoy): Implements interaction with expand and sidepanel
+  let icon = getIcon(data.state);
+  let executionIcon = getExecutionIcon(data.state);
+
   const handleClick = (event: React.MouseEvent) => {
     event.stopPropagation();
     data.expand(id);
@@ -46,11 +60,15 @@ function SubDagNode({ id, data }: SubDagNodeProps) {
           <div className='flex justify-center place-self-center self-center relative h-14 w-72 '>
             <div className='transition transform hover:scale-105'>
               <div className=' flex justify-between flex-row h-14 relative overflow:hidden bg-white shadow-lg rounded-xl w-60 z-20'>
+                <div className='w-8 pl-2 h-full flex flex-col justify-center rounded-l-lg'>
+                  {executionIcon}
+                </div>
                 <div className='px-6 py-4 w-60 flex flex-col justify-center items-center '>
                   <span className='w-full truncate' id={id}>
                     {data.label}
                   </span>
                 </div>
+                {icon}
               </div>
               <div className='flex absolute top-0 overflow:hidden bg-white shadow-lg rounded-xl h-14 w-60 ml-1 mt-1 z-10'></div>
             </div>
@@ -88,3 +106,64 @@ function SubDagNode({ id, data }: SubDagNodeProps) {
 }
 
 export default SubDagNode;
+
+function getExecutionIcon(state: Execution.State | undefined) {
+  if (state === undefined) {
+    return <ListAltIcon className='text-mui-grey-500' />;
+  }
+  return <ListAltIcon className='text-mui-blue-600' />;
+}
+
+function getIcon(state: Execution.State | undefined) {
+  if (state === undefined) {
+    return null;
+  }
+  switch (state) {
+    case Execution.State.UNKNOWN:
+      return getStateIconWrapper(
+        <MoreHorizIcon className='text-mui-grey-600' />,
+        'bg-mui-grey-200',
+      );
+
+    case Execution.State.NEW:
+      return getStateIconWrapper(
+        <PowerSettingsNewIcon className='text-mui-blue-600' />,
+        'bg-mui-blue-50',
+      );
+    case Execution.State.RUNNING:
+      return getStateIconWrapper(<RefreshIcon className='text-mui-green-600' />, 'bg-mui-green-50');
+    case Execution.State.CACHED:
+      return getStateIconWrapper(
+        <CloudDownloadIcon className='text-mui-green-600' />,
+        'bg-mui-green-50',
+      );
+    case Execution.State.FAILED:
+      return getStateIconWrapper(<ErrorIcon className='text-mui-red-600' />, 'bg-mui-red-50');
+    case Execution.State.CANCELED:
+      return getStateIconWrapper(
+        <StopCircle colorClass={'text-mui-grey-600'} />,
+        'bg-mui-grey-200',
+      );
+    case Execution.State.COMPLETE:
+      return getStateIconWrapper(
+        <CheckCircleIcon className='text-mui-green-600 bla' />,
+        'bg-mui-green-50',
+      );
+    default:
+      console.error('Unknown exeuction state: ' + state);
+      return getStateIconWrapper(<RemoveCircleOutlineIcon className='text-white' />, 'bg-black');
+  }
+}
+
+function getStateIconWrapper(element: ReactElement, backgroundClasses: string) {
+  return (
+    <div
+      className={classes(
+        'px-2 h-full flex flex-col justify-center rounded-r-lg ',
+        backgroundClasses,
+      )}
+    >
+      {element}
+    </div>
+  );
+}

@@ -95,8 +95,6 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     setFlowElements(convertSubDagToFlowElements(pipelineSpec, layers)); // render elements in the sub-layer.
   };
 
-  console.log(elements);
-
   const getNodeName = function(element: FlowElement<FlowElementDataBase> | null): string {
     if (element && element.data && element.data.label) {
       return element.data.label;

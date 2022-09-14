@@ -66,8 +66,6 @@ export function RuntimeNodeDetailsV2({
   elementMlmdInfo,
   namespace,
 }: RuntimeNodeDetailsV2Props) {
-  // console.log(element);
-
   if (!element) {
     return NODE_INFO_UNKNOWN;
   }
@@ -93,8 +91,10 @@ export function RuntimeNodeDetailsV2({
       return (
         <SubDAGNodeDetail
           element={element}
+          execution={elementMlmdInfo?.execution}
           layers={layers}
           onLayerChange={onLayerChange}
+          namespace={namespace}
         />
       )
     }
@@ -304,14 +304,18 @@ function ArtifactInfo({
 
 interface SubDAGNodeDetailProps {
   element: FlowElement<FlowElementDataBase>;
+  execution?: Execution;
   layers: string[];
   onLayerChange: (layers: string[]) => void;
+  namespace: string | undefined;
 }
 
 function SubDAGNodeDetail({
     element,
+    execution,
     layers,
     onLayerChange,
+    namespace,
 }: SubDAGNodeDetailProps) {
   const taskKey = getTaskKeyFromNodeKey(element.id);
   // const componentSpec = getComponentSpec(pipelineSpec, layers, taskKey);
@@ -323,13 +327,40 @@ function SubDAGNodeDetail({
     onLayerChange([...layers, taskKey]);
   };
 
-  return (
+  const [selectedTab, setSelectedTab] = useState(0);
 
+  return (
+    <div>
       <div>
         <Button variant='contained' onClick={onSubDagOpenClick}>
           Open Workflow
         </Button>
       </div>
+    
+      <div className={commonCss.page}>
+        <MD2Tabs
+          tabs={['Input/Output', 'Task Details']}
+          selectedTab={selectedTab}
+          onSwitch={tab => setSelectedTab(tab)}
+        />
+        <div className={commonCss.page}>
+          {/* Input/Output tab */}
+          {selectedTab === 0 &&
+            (() => {
+              if (execution) {
+                return <InputOutputTab execution={execution} namespace={namespace}></InputOutputTab>;
+              }
+              return NODE_STATE_UNAVAILABLE;
+            })()}
 
+          {/* Task Details tab */}
+          {selectedTab === 1 && (
+            <div className={padding(20)}>
+              <DetailsTable title='Task Details' fields={getTaskDetailsFields(element, execution)} />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
