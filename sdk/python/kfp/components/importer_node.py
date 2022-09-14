@@ -24,7 +24,7 @@ from kfp.components import structures
 from kfp.components.types import artifact_types
 from kfp.components.types import type_utils
 
-INPUT_KEY = 'uri'
+URI_KEY = 'uri'
 OUTPUT_KEY = 'artifact'
 METADATA_KEY = 'metadata'
 
@@ -107,14 +107,14 @@ def importer(
         implementation=structures.Implementation(
             importer=structures.ImporterSpec(
                 artifact_uri=placeholders.InputValuePlaceholder(
-                    INPUT_KEY)._to_placeholder_string(),
+                    URI_KEY).to_placeholder_string(),
                 schema_title=type_utils.create_bundled_artifact_type(
                     artifact_class.schema_title, artifact_class.schema_version),
                 schema_version=artifact_class.schema_version,
                 reimport=reimport,
                 metadata=metadata_with_placeholders)),
         inputs={
-            INPUT_KEY: structures.InputSpec(type='String'),
+            URI_KEY: structures.InputSpec(type='String'),
             **component_inputs
         },
         outputs={
