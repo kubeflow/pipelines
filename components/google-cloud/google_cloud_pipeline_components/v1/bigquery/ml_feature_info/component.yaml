@@ -64,7 +64,7 @@ outputs:
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
-    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.gcp_launcher.launcher]
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.bigquery.ml_feature_info.launcher]
     args: [
       --type, BigqueryMLFeatureInfoJob,
       --project, {inputValue: project},
