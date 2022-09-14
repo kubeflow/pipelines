@@ -68,7 +68,7 @@ echo "Deploying version ${FULL_VERSION_TAG}"
 FULL_VERSION_IMAGE="${REMOTE_REPOSITORY}:${FULL_VERSION_TAG}"
 
 if [ "${BUILD_VERSION}" == "v2" ]; then
-    echo "Building V2 image"
+	echo "Building V2 image"
 	docker build . -f v2.Dockerfile -t "${FULL_VERSION_IMAGE}"
 else
 	echo "Building V1 image"
