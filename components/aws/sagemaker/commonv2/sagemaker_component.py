@@ -262,8 +262,6 @@ class SageMakerComponent:
         except Exception as e:
             logging.exception("An error occurred while polling for job status")
             return False
-        finally:
-            self._print_logs_for_job()
 
         if status.has_error:
             logging.error(status.error_message)
@@ -523,6 +521,11 @@ class SageMakerComponent:
                         "Terminating the run because resource encountered a Validation Exception. Please describe the resource for further debugging and retry with correct parameters."
                     )
                     return False
+                elif "InvalidParameter" in condition_message:
+                    logging.error(
+                        "Terminating the run because resource encountered InvalidParameters. Please describe the resource for further debugging and retry with correct parameters."
+                    )
+                    return False
                 else:
                     logging.error(
                         "Waiting for error to be resolved . . . Please fix the error or terminate the job and retry with correct parameters if this is not a transient error"
@@ -534,7 +537,7 @@ class SageMakerComponent:
     def _get_resource_synced_status(self, ack_statuses: Dict):
         conditions = ack_statuses.get("conditions", None)  # Conditions has to be there
         if conditions == None:
-            return True
+            return None
         for condition in conditions:
             if condition["type"] == "ACK.ResourceSynced":
                 if condition["status"] == "True":
@@ -626,10 +629,6 @@ class SageMakerComponent:
 
         return _response, False
 
-    @abstractmethod
-    def _print_logs_for_job(self):
-        """Print the associated logs for the current job."""
-        pass
 
     @staticmethod
     def _generate_unique_timestamped_id(
