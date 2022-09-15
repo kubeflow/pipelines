@@ -49,11 +49,12 @@ def transform_metadata_and_get_inputs(
             metadata_inputs[unique_name] = d
             return make_input_parameter_placeholder(unique_name)
         elif isinstance(d, dict):
-            return {
-                traverse_dict_and_create_metadata_inputs(k):
-                traverse_dict_and_create_metadata_inputs(v)
-                for k, v in d.items()
-            }
+            res = {}
+            for k, v in d.items():
+                new_k = traverse_dict_and_create_metadata_inputs(k)
+                new_v = traverse_dict_and_create_metadata_inputs(v)
+                res[new_k] = new_v
+            return res
 
         elif isinstance(d, list):
             return [traverse_dict_and_create_metadata_inputs(el) for el in d]
