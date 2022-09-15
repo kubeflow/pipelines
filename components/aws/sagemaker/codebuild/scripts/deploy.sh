@@ -16,7 +16,7 @@ set -e
 REMOTE_REPOSITORY="public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components"
 DRYRUN="true"
 FULL_VERSION_TAG=""
-BUILD_VERSION="v1"
+BUILD_VERSION=""
 DOCKER_CONFIG_PATH=${DOCKER_CONFIG_PATH:-"/root/.docker"}
 
 while getopts ":d:v:b:" opt; do
@@ -36,6 +36,12 @@ while getopts ":d:v:b:" opt; do
 			;;
 	esac
 done
+
+# Check that build version is not empty
+if [ -z "$BUILD_VERSION" ]; then
+  >&2 echo "BUILD_VERSION is required, please provide the variable in codebuild or -b <BUILD_VERSION> if running locally"
+  exit 1
+fi
 
 function docker_tag_exists() {
     curl --silent -f -lSL https://index.docker.io/v1/repositories/$1/tags/$2 > /dev/null 2> /dev/null
