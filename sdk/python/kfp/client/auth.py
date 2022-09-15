@@ -431,8 +431,11 @@ class RedirectWSGIApp:
         self.last_request_uri = None
         self._success_message = success_message
 
-    def __call__(self, environ: Dict[str, Any],
-                 start_response: Callable[str, list]) -> Iterable[bytes]:
+    def __call__(
+        self, environ: Dict[str, Any], start_response: Callable[[str, list],
+                                                                Callable[...,
+                                                                         None]]
+    ) -> Iterable[bytes]:
         """WSGI Callable. Updates environment dictionary with parameters
         required for WSGI and returns it.
 
