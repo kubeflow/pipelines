@@ -629,7 +629,6 @@ class ComponentSpec(base_model.BaseModel):
         inputs = {}
         for spec in component_dict.get('inputs', []):
             type_ = spec.get('type')
-            print('TYPE', type_)
 
             if isinstance(type_, str) and type_ == 'PipelineTaskFinalStatus':
                 inputs[utils.sanitize_input_name(

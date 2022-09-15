@@ -106,7 +106,7 @@ class InputPath:
 
 def construct_type_for_inputpath_or_outputpath(
         type_: Union[str, Type, None]) -> Union[str, None]:
-    if type_annotations.is_artifact(type_):
+    if type_annotations.is_artifact_class(type_):
         return type_utils.create_bundled_artifact_type(type_.schema_title,
                                                        type_.schema_version)
     elif isinstance(
@@ -274,7 +274,7 @@ def get_short_type_name(type_name: str) -> str:
         return type_name
 
 
-def is_artifact(artifact_class_or_instance: Type) -> bool:
+def is_artifact_class(artifact_class_or_instance: Type) -> bool:
     # we do not yet support non-pre-registered custom artifact types with instance_schema attribute
     return hasattr(artifact_class_or_instance, 'schema_title') and hasattr(
         artifact_class_or_instance, 'schema_version')

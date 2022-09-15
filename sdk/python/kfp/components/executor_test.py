@@ -19,6 +19,7 @@ import tempfile
 from typing import Callable, Dict, List, NamedTuple, Optional
 import unittest
 
+from absl.testing import parameterized
 from kfp.components import executor
 from kfp.components.task_final_status import PipelineTaskFinalStatus
 from kfp.components.types import artifact_types
@@ -31,64 +32,6 @@ from kfp.components.types.type_annotations import InputPath
 from kfp.components.types.type_annotations import Output
 from kfp.components.types.type_annotations import OutputPath
 
-_EXECUTOR_INPUT = """\
-{
-  "inputs": {
-    "parameterValues": {
-      "input_parameter": "Hello, KFP"
-    },
-    "artifacts": {
-      "input_artifact_one_path": {
-        "artifacts": [
-          {
-            "metadata": {},
-            "name": "input_artifact_one",
-            "type": {
-              "schemaTitle": "system.Dataset"
-            },
-            "uri": "gs://some-bucket/input_artifact_one"
-          }
-        ]
-      }
-    }
-  },
-  "outputs": {
-    "artifacts": {
-      "output_artifact_one_path": {
-        "artifacts": [
-          {
-            "metadata": {},
-            "name": "output_artifact_one",
-            "type": {
-              "schemaTitle": "system.Model"
-            },
-            "uri": "gs://some-bucket/output_artifact_one"
-          }
-        ]
-      },
-      "output_artifact_two": {
-        "artifacts": [
-          {
-            "metadata": {},
-            "name": "output_artifact_two",
-            "type": {
-              "schemaTitle": "system.Metrics"
-            },
-            "uri": "gs://some-bucket/output_artifact_two"
-          }
-        ]
-      }
-    },
-    "parameters": {
-      "output_parameter_path": {
-        "outputFile": "%(test_dir)s/gcs/some-bucket/some_task/nested/output_parameter"
-      }
-    },
-    "outputFile": "%(test_dir)s/output_metadata.json"
-  }
-}
-"""
-
 
 class ExecutorTest(unittest.TestCase):
 
@@ -100,52 +43,153 @@ class ExecutorTest(unittest.TestCase):
         artifact_types._MINIO_LOCAL_MOUNT_PREFIX = cls._test_dir + '/minio/'
         artifact_types._S3_LOCAL_MOUNT_PREFIX = cls._test_dir + '/s3/'
 
-    def _get_executor(
-            self,
-            func: Callable,
-            executor_input: Optional[str] = None) -> executor.Executor:
-        if executor_input is None:
-            executor_input = _EXECUTOR_INPUT
+    def execute_and_load_output_metadata(self, func: Callable,
+                                         executor_input: str) -> dict:
         executor_input_dict = json.loads(executor_input %
                                          {'test_dir': self._test_dir})
 
-        return executor.Executor(
-            executor_input=executor_input_dict, function_to_execute=func)
+        executor.Executor(
+            executor_input=executor_input_dict,
+            function_to_execute=func).execute()
+        with open(os.path.join(self._test_dir, 'output_metadata.json'),
+                  'r') as f:
+            return json.loads(f.read())
 
-    def test_input_parameter(self):
+    def test_input_and_output_parameters(self):
+        executor_input = """\
+        {
+          "inputs": {
+            "parameterValues": {
+              "input_parameter": "Hello, KFP"
+            }
+          },
+          "outputs": {
+            "parameters": {
+              "Output": {
+                "outputFile": "gs://some-bucket/output"
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
 
-        def test_func(input_parameter: str):
+        def test_func(input_parameter: str) -> str:
             self.assertEqual(input_parameter, 'Hello, KFP')
+            return input_parameter
 
-        self._get_executor(test_func).execute()
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+        self.assertEqual({'parameterValues': {
+            'Output': 'Hello, KFP'
+        }}, output_metadata)
 
-    def test_input_artifact(self):
+    def test_input_artifact_custom_type(self):
+        executor_input = """\
+        {
+          "inputs": {
+            "artifacts": {
+              "input_artifact_one": {
+                "artifacts": [
+                  {
+                    "metadata": {},
+                    "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
+                    "type": {
+                      "schemaTitle": "google.VertexDataset"
+                    },
+                    "uri": "gs://some-bucket/input_artifact_one"
+                  }
+                ]
+              }
+            }
+          },
+          "outputs": {
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
 
-        def test_func(input_artifact_one_path: Input[Dataset]):
-            self.assertEqual(input_artifact_one_path.uri,
+        class VertexDataset:
+            schema_title = 'google.VertexDataset'
+            schema_version = '0.0.0'
+
+            def __init__(self, name: str, uri: str, metadata: dict) -> None:
+                self.name = name
+                self.uri = uri
+                self.metadata = metadata
+
+            @property
+            def path(self) -> str:
+                return self.uri.replace('gs://',
+                                        artifact_types._GCS_LOCAL_MOUNT_PREFIX)
+
+        def test_func(input_artifact_one: Input[VertexDataset]):
+            self.assertEqual(input_artifact_one.uri,
                              'gs://some-bucket/input_artifact_one')
             self.assertEqual(
-                input_artifact_one_path.path,
-                os.path.join(self._test_dir, 'some-bucket/input_artifact_one'))
-            self.assertEqual(input_artifact_one_path.name, 'input_artifact_one')
-
-        self._get_executor(test_func).execute()
-
-    def test_output_artifact(self):
-
-        def test_func(output_artifact_one_path: Output[Model]):
-            self.assertEqual(output_artifact_one_path.uri,
-                             'gs://some-bucket/output_artifact_one')
-
+                input_artifact_one.path,
+                os.path.join(artifact_types._GCS_LOCAL_MOUNT_PREFIX,
+                             'some-bucket/input_artifact_one'))
             self.assertEqual(
-                output_artifact_one_path.path,
-                os.path.join(self._test_dir, 'some-bucket/output_artifact_one'))
-            self.assertEqual(output_artifact_one_path.name,
-                             'output_artifact_one')
+                input_artifact_one.name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/123'
+            )
+            self.assertIsInstance(input_artifact_one, VertexDataset)
 
-        self._get_executor(test_func).execute()
+        self.execute_and_load_output_metadata(test_func, executor_input)
+
+    def test_input_artifact(self):
+        executor_input = """\
+        {
+          "inputs": {
+            "artifacts": {
+              "input_artifact_one": {
+                "artifacts": [
+                  {
+                    "metadata": {},
+                    "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
+                    "type": {
+                      "schemaTitle": "google.VertexDataset"
+                    },
+                    "uri": "gs://some-bucket/input_artifact_one"
+                  }
+                ]
+              }
+            }
+          },
+          "outputs": {
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(input_artifact_one: Input[Dataset]):
+            self.assertEqual(input_artifact_one.uri,
+                             'gs://some-bucket/input_artifact_one')
+            self.assertEqual(
+                input_artifact_one.path,
+                os.path.join(self._test_dir, 'some-bucket/input_artifact_one'))
+            self.assertEqual(
+                input_artifact_one.name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/123'
+            )
+            self.assertIsInstance(input_artifact_one, Dataset)
+
+        self.execute_and_load_output_metadata(test_func, executor_input)
 
     def test_output_parameter(self):
+        executor_input = """\
+        {
+          "outputs": {
+            "parameters": {
+              "output_parameter_path": {
+                "outputFile": "%(test_dir)s/gcs/some-bucket/some_task/nested/output_parameter"
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
 
         def test_func(output_parameter_path: OutputPath(str)):
             # Test that output parameters just use the passed in filename.
@@ -155,27 +199,92 @@ class ExecutorTest(unittest.TestCase):
             with open(output_parameter_path, 'w') as f:
                 f.write('Hello, World!')
 
-        self._get_executor(test_func).execute()
+        self.execute_and_load_output_metadata(test_func, executor_input)
 
     def test_input_path_artifact(self):
+        executor_input = """\
+      {
+        "inputs": {
+          "artifacts": {
+            "input_artifact_one_path": {
+              "artifacts": [
+                {
+                  "metadata": {},
+                  "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
+                  "type": {
+                    "schemaTitle": "system.Dataset"
+                  },
+                  "uri": "gs://some-bucket/input_artifact_one"
+                }
+              ]
+            }
+          }
+        },
+        "outputs": {
+          "outputFile": "%(test_dir)s/output_metadata.json"
+        }
+      }
+      """
 
         def test_func(input_artifact_one_path: InputPath('Dataset')):
             self.assertEqual(
                 input_artifact_one_path,
                 os.path.join(self._test_dir, 'some-bucket/input_artifact_one'))
 
-        self._get_executor(test_func).execute()
+        self.execute_and_load_output_metadata(test_func, executor_input)
 
     def test_output_path_artifact(self):
+        executor_input = """\
+      {
+        "outputs": {
+          "artifacts": {
+            "output_artifact_one_path": {
+              "artifacts": [
+                {
+                  "metadata": {},
+                  "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
+                  "type": {
+                    "schemaTitle": "system.Model"
+                  },
+                  "uri": "gs://some-bucket/output_artifact_one"
+                }
+              ]
+            }
+          },
+          "outputFile": "%(test_dir)s/output_metadata.json"
+        }
+      }
+      """
 
         def test_func(output_artifact_one_path: OutputPath('Model')):
             self.assertEqual(
                 output_artifact_one_path,
                 os.path.join(self._test_dir, 'some-bucket/output_artifact_one'))
 
-        self._get_executor(test_func).execute()
+        self.execute_and_load_output_metadata(test_func, executor_input)
 
     def test_output_metadata(self):
+        executor_input = """\
+      {
+        "outputs": {
+          "artifacts": {
+            "output_artifact_two": {
+              "artifacts": [
+                {
+                  "metadata": {},
+                  "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
+                  "type": {
+                    "schemaTitle": "system.Metrics"
+                  },
+                  "uri": "gs://some-bucket/output_artifact_two"
+                }
+              ]
+            }
+          },
+          "outputFile": "%(test_dir)s/output_metadata.json"
+        }
+      }
+      """
 
         def test_func(output_artifact_two: Output[Metrics]):
             output_artifact_two.metadata['key_1'] = 'value_1'
@@ -185,24 +294,18 @@ class ExecutorTest(unittest.TestCase):
             # log_metric works here since the schema is specified as Metrics.
             output_artifact_two.log_metric('metric', 0.9)
 
-        self._get_executor(test_func).execute()
-        with open(os.path.join(self._test_dir, 'output_metadata.json'),
-                  'r') as f:
-            output_metadata = json.loads(f.read())
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
         self.assertDictEqual(
             output_metadata, {
                 'artifacts': {
-                    'output_artifact_one_path': {
-                        'artifacts': [{
-                            'name': 'output_artifact_one',
-                            'uri': 'gs://some-bucket/output_artifact_one',
-                            'metadata': {}
-                        }]
-                    },
                     'output_artifact_two': {
                         'artifacts': [{
-                            'name': 'output_artifact_two',
-                            'uri': 'new-uri',
+                            'name':
+                                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                            'uri':
+                                'new-uri',
                             'metadata': {
                                 'key_1': 'value_1',
                                 'key_2': 2,
@@ -219,13 +322,13 @@ class ExecutorTest(unittest.TestCase):
       "inputs": {
         "parameterValues": {
           "first_message": "Hello",
-          "second_message": "",
+          "second_message": ", ",
           "third_message": "World"
         }
       },
       "outputs": {
         "parameters": {
-          "output": {
+          "Output": {
             "outputFile": "gs://some-bucket/output"
           }
         },
@@ -239,15 +342,13 @@ class ExecutorTest(unittest.TestCase):
             second_message: str,
             third_message: str,
         ) -> str:
-            return first_message + ', ' + second_message + ', ' + third_message
+            return first_message + second_message + third_message
 
-        self._get_executor(test_func, executor_input).execute()
-        with open(os.path.join(self._test_dir, 'output_metadata.json'),
-                  'r') as f:
-            output_metadata = json.loads(f.read())
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
         self.assertDictEqual(output_metadata, {
             'parameterValues': {
-                'Output': 'Hello, , World'
+                'Output': 'Hello, World'
             },
         })
 
@@ -262,7 +363,7 @@ class ExecutorTest(unittest.TestCase):
       },
       "outputs": {
         "parameters": {
-          "output": {
+          "Output": {
             "outputFile": "gs://some-bucket/output"
           }
         },
@@ -274,10 +375,8 @@ class ExecutorTest(unittest.TestCase):
         def test_func(first: int, second: int) -> int:
             return first + second
 
-        self._get_executor(test_func, executor_input).execute()
-        with open(os.path.join(self._test_dir, 'output_metadata.json'),
-                  'r') as f:
-            output_metadata = json.loads(f.read())
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
         self.assertDictEqual(output_metadata, {
             'parameterValues': {
                 'Output': 42
@@ -295,7 +394,7 @@ class ExecutorTest(unittest.TestCase):
       },
       "outputs": {
         "parameters": {
-          "output": {
+          "Output": {
             "outputFile": "gs://some-bucket/output"
           }
         },
@@ -307,10 +406,9 @@ class ExecutorTest(unittest.TestCase):
         def test_func(first: float, second: float) -> float:
             return first + second
 
-        self._get_executor(test_func, executor_input).execute()
-        with open(os.path.join(self._test_dir, 'output_metadata.json'),
-                  'r') as f:
-            output_metadata = json.loads(f.read())
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
         self.assertDictEqual(output_metadata, {
             'parameterValues': {
                 'Output': 1.2
@@ -328,7 +426,7 @@ class ExecutorTest(unittest.TestCase):
       },
       "outputs": {
         "parameters": {
-          "output": {
+          "Output": {
             "outputFile": "gs://some-bucket/output"
           }
         },
@@ -340,10 +438,9 @@ class ExecutorTest(unittest.TestCase):
         def test_func(first: int, second: int) -> List:
             return [first, second]
 
-        self._get_executor(test_func, executor_input).execute()
-        with open(os.path.join(self._test_dir, 'output_metadata.json'),
-                  'r') as f:
-            output_metadata = json.loads(f.read())
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
         self.assertDictEqual(output_metadata, {
             'parameterValues': {
                 'Output': [40, 2]
@@ -361,7 +458,7 @@ class ExecutorTest(unittest.TestCase):
       },
       "outputs": {
         "parameters": {
-          "output": {
+          "Output": {
             "outputFile": "gs://some-bucket/output"
           }
         },
@@ -373,10 +470,9 @@ class ExecutorTest(unittest.TestCase):
         def test_func(first: int, second: int) -> Dict:
             return {'first': first, 'second': second}
 
-        self._get_executor(test_func, executor_input).execute()
-        with open(os.path.join(self._test_dir, 'output_metadata.json'),
-                  'r') as f:
-            output_metadata = json.loads(f.read())
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
         self.assertDictEqual(output_metadata, {
             'parameterValues': {
                 'Output': {
@@ -397,7 +493,7 @@ class ExecutorTest(unittest.TestCase):
       },
       "outputs": {
         "parameters": {
-          "output": {
+          "Output": {
             "outputFile": "gs://some-bucket/output"
           }
         },
@@ -409,10 +505,9 @@ class ExecutorTest(unittest.TestCase):
         def test_func(first: int, second: int) -> List[int]:
             return [first, second]
 
-        self._get_executor(test_func, executor_input).execute()
-        with open(os.path.join(self._test_dir, 'output_metadata.json'),
-                  'r') as f:
-            output_metadata = json.loads(f.read())
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
         self.assertDictEqual(output_metadata, {
             'parameterValues': {
                 'Output': [40, 2]
@@ -430,7 +525,7 @@ class ExecutorTest(unittest.TestCase):
       },
       "outputs": {
         "parameters": {
-          "output": {
+          "Output": {
             "outputFile": "gs://some-bucket/output"
           }
         },
@@ -442,10 +537,9 @@ class ExecutorTest(unittest.TestCase):
         def test_func(first: int, second: int) -> Dict[str, int]:
             return {'first': first, 'second': second}
 
-        self._get_executor(test_func, executor_input).execute()
-        with open(os.path.join(self._test_dir, 'output_metadata.json'),
-                  'r') as f:
-            output_metadata = json.loads(f.read())
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
         self.assertDictEqual(output_metadata, {
             'parameterValues': {
                 'Output': {
@@ -455,7 +549,71 @@ class ExecutorTest(unittest.TestCase):
             },
         })
 
-    def test_artifact_output(self):
+    def test_artifact_output1(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "parameterValues": {
+          "first":  "Hello",
+          "second": "World"
+        }
+      },
+      "outputs": {
+        "artifacts": {
+          "output": {
+            "artifacts": [
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
+                "type": {
+                  "schemaTitle": "system.Artifact"
+                },
+                "uri": "gs://some-bucket/output"
+              }
+            ]
+          }
+        },
+        "parameters": {
+          "Output": {
+            "outputFile": "gs://some-bucket/output"
+          }
+        },
+        "outputFile": "%(test_dir)s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(first: str, second: str, output: Output[Artifact]) -> str:
+            with open(output.path, 'w') as f:
+                f.write('artifact output')
+            return first + ', ' + second
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
+        self.assertDictEqual(
+            output_metadata, {
+                'artifacts': {
+                    'output': {
+                        'artifacts': [{
+                            'metadata': {},
+                            'name':
+                                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                            'uri':
+                                'gs://some-bucket/output'
+                        }]
+                    }
+                },
+                'parameterValues': {
+                    'Output': 'Hello, World'
+                }
+            })
+
+        with open(os.path.join(self._test_dir, 'some-bucket/output'), 'r') as f:
+            artifact_payload = f.read()
+        self.assertEqual(artifact_payload, 'artifact output')
+
+    def test_artifact_output2(self):
         executor_input = """\
     {
       "inputs": {
@@ -469,7 +627,8 @@ class ExecutorTest(unittest.TestCase):
           "Output": {
             "artifacts": [
               {
-                "name": "output",
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
                 "type": {
                   "schemaTitle": "system.Artifact"
                 },
@@ -486,56 +645,96 @@ class ExecutorTest(unittest.TestCase):
         def test_func(first: str, second: str) -> Artifact:
             return first + ', ' + second
 
-        self._get_executor(test_func, executor_input).execute()
-        with open(os.path.join(self._test_dir, 'output_metadata.json'),
-                  'r') as f:
-            output_metadata = json.loads(f.read())
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
         self.assertDictEqual(
             output_metadata, {
                 'artifacts': {
                     'Output': {
                         'artifacts': [{
                             'metadata': {},
-                            'name': 'output',
-                            'uri': 'gs://some-bucket/output'
+                            'name':
+                                'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                            'uri':
+                                'gs://some-bucket/output'
                         }]
                     }
-                }
+                },
             })
 
         with open(os.path.join(self._test_dir, 'some-bucket/output'), 'r') as f:
             artifact_payload = f.read()
         self.assertEqual(artifact_payload, 'Hello, World')
 
+    def test_output_artifact3(self):
+        executor_input = """\
+        {
+          "outputs": {
+            "artifacts": {
+              "output_artifact_one": {
+                "artifacts": [
+                  {
+                    "metadata": {},
+                    "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
+                    "type": {
+                      "schemaTitle": "system.Model"
+                    },
+                    "uri": "gs://some-bucket/output_artifact_one"
+                  }
+                ]
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(output_artifact_one: Output[Model]):
+            self.assertEqual(output_artifact_one.uri,
+                             'gs://some-bucket/output_artifact_one')
+
+            self.assertEqual(
+                output_artifact_one.path,
+                os.path.join(self._test_dir, 'some-bucket/output_artifact_one'))
+            self.assertEqual(
+                output_artifact_one.name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/123'
+            )
+            self.assertIsInstance(output_artifact_one, Model)
+
+        self.execute_and_load_output_metadata(test_func, executor_input)
+
     def test_named_tuple_output(self):
         executor_input = """\
-    {
-      "outputs": {
-        "artifacts": {
-          "output_dataset": {
-            "artifacts": [
-              {
-                "name": "output_dataset",
-                "type": {
-                  "schemaTitle": "system.Dataset"
-                },
-                "uri": "gs://some-bucket/output_dataset"
+        {
+          "outputs": {
+            "artifacts": {
+              "output_dataset": {
+                "artifacts": [
+                  {
+                    "metadata": {},
+                    "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/123",
+                    "type": {
+                      "schemaTitle": "system.Dataset"
+                    },
+                    "uri": "gs://some-bucket/output_dataset"
+                  }
+                ]
               }
-            ]
+            },
+            "parameters": {
+              "output_int": {
+                "outputFile": "gs://some-bucket/output_int"
+              },
+              "output_string": {
+                "outputFile": "gs://some-bucket/output_string"
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
           }
-        },
-        "parameters": {
-          "output_int": {
-            "outputFile": "gs://some-bucket/output_int"
-          },
-          "output_string": {
-            "outputFile": "gs://some-bucket/output_string"
-          }
-        },
-        "outputFile": "%(test_dir)s/output_metadata.json"
-      }
-    }
-    """
+        }
+        """
 
         # Functions returning named tuples should work.
         def func_returning_named_tuple() -> NamedTuple('Outputs', [
@@ -559,19 +758,19 @@ class ExecutorTest(unittest.TestCase):
         for test_func in [
                 func_returning_named_tuple, func_returning_plain_tuple
         ]:
-            self._get_executor(test_func, executor_input).execute()
-            with open(
-                    os.path.join(self._test_dir, 'output_metadata.json'),
-                    'r') as f:
-                output_metadata = json.loads(f.read())
+            output_metadata = self.execute_and_load_output_metadata(
+                test_func, executor_input)
+
             self.assertDictEqual(
                 output_metadata, {
                     'artifacts': {
                         'output_dataset': {
                             'artifacts': [{
                                 'metadata': {},
-                                'name': 'output_dataset',
-                                'uri': 'gs://some-bucket/output_dataset'
+                                'name':
+                                    'projects/123/locations/us-central1/metadataStores/default/artifacts/123',
+                                'uri':
+                                    'gs://some-bucket/output_dataset'
                             }]
                         }
                     },
@@ -589,29 +788,29 @@ class ExecutorTest(unittest.TestCase):
 
     def test_function_with_optional_inputs(self):
         executor_input = """\
-    {
-      "inputs": {
-        "parameterValues": {
-          "first_message": "Hello",
-          "second_message": "World"
-        }
-      },
-      "outputs": {
-        "parameters": {
-          "output": {
-            "outputFile": "gs://some-bucket/output"
+        {
+          "inputs": {
+            "parameterValues": {
+              "first_message": "Hello",
+              "second_message": "World"
+            }
+          },
+          "outputs": {
+            "parameters": {
+              "Output": {
+                "outputFile": "gs://some-bucket/output"
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
           }
-        },
-        "outputFile": "%(test_dir)s/output_metadata.json"
-      }
-    }
-    """
+        }
+        """
 
         def test_func(
             first_message: str = 'default value',
             second_message: Optional[str] = None,
             third_message: Optional[str] = None,
-            forth_argument: str = 'abc',
+            fourth_argument: str = 'abc',
             fifth_argument: int = 100,
             sixth_argument: float = 1.23,
             seventh_argument: bool = True,
@@ -621,17 +820,16 @@ class ExecutorTest(unittest.TestCase):
             return (f'{first_message} ({type(first_message)}), '
                     f'{second_message} ({type(second_message)}), '
                     f'{third_message} ({type(third_message)}), '
-                    f'{forth_argument} ({type(forth_argument)}), '
+                    f'{fourth_argument} ({type(fourth_argument)}), '
                     f'{fifth_argument} ({type(fifth_argument)}), '
                     f'{sixth_argument} ({type(sixth_argument)}), '
                     f'{seventh_argument} ({type(seventh_argument)}), '
                     f'{eighth_argument} ({type(eighth_argument)}), '
                     f'{ninth_argument} ({type(ninth_argument)}).')
 
-        self._get_executor(test_func, executor_input).execute()
-        with open(os.path.join(self._test_dir, 'output_metadata.json'),
-                  'r') as f:
-            output_metadata = json.loads(f.read())
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
         self.assertDictEqual(
             output_metadata, {
                 'parameterValues': {
@@ -657,7 +855,7 @@ class ExecutorTest(unittest.TestCase):
       },
       "outputs": {
         "parameters": {
-          "output": {
+          "Output": {
             "outputFile": "gs://some-bucket/output"
           }
         },
@@ -673,10 +871,9 @@ class ExecutorTest(unittest.TestCase):
                     f'Error code: {status.error_code}\n'
                     f'Error message: {status.error_message}')
 
-        self._get_executor(test_func, executor_input).execute()
-        with open(os.path.join(self._test_dir, 'output_metadata.json'),
-                  'r') as f:
-            output_metadata = json.loads(f.read())
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
         self.assertDictEqual(
             output_metadata, {
                 'parameterValues': {
@@ -688,6 +885,155 @@ class ExecutorTest(unittest.TestCase):
                         'Error message: The DAG failed because some tasks failed. The failed tasks are: [fail-op].'
                 },
             })
+
+
+class VertexDataset:
+    schema_title = 'google.VertexDataset'
+    schema_version = '0.0.0'
+
+    def __init__(self, name: str, uri: str, metadata: dict) -> None:
+        self.name = name
+        self.uri = uri
+        self.metadata = metadata
+
+    @property
+    def path(self) -> str:
+        return self.uri.replace('gs://', artifact_types._GCS_LOCAL_MOUNT_PREFIX)
+
+
+class TestDictToArtifact(parameterized.TestCase):
+
+    @parameterized.parameters(
+        {
+            'runtime_artifact': {
+                'metadata': {},
+                'name': 'input_artifact_one',
+                'type': {
+                    'schemaTitle': 'system.Artifact'
+                },
+                'uri': 'gs://some-bucket/input_artifact_one'
+            },
+            'artifact_cls': artifact_types.Artifact,
+            'expected_type': artifact_types.Artifact,
+        },
+        {
+            'runtime_artifact': {
+                'metadata': {},
+                'name': 'input_artifact_one',
+                'type': {
+                    'schemaTitle': 'system.Model'
+                },
+                'uri': 'gs://some-bucket/input_artifact_one'
+            },
+            'artifact_cls': artifact_types.Model,
+            'expected_type': artifact_types.Model,
+        },
+        {
+            'runtime_artifact': {
+                'metadata': {},
+                'name': 'input_artifact_one',
+                'type': {
+                    'schemaTitle': 'system.Dataset'
+                },
+                'uri': 'gs://some-bucket/input_artifact_one'
+            },
+            'artifact_cls': artifact_types.Dataset,
+            'expected_type': artifact_types.Dataset,
+        },
+        {
+            'runtime_artifact': {
+                'metadata': {},
+                'name': 'input_artifact_one',
+                'type': {
+                    'schemaTitle': 'system.Metrics'
+                },
+                'uri': 'gs://some-bucket/input_artifact_one'
+            },
+            'artifact_cls': artifact_types.Metrics,
+            'expected_type': artifact_types.Metrics,
+        },
+        {
+            'runtime_artifact': {
+                'metadata': {},
+                'name': 'input_artifact_one',
+                'type': {
+                    'schemaTitle': 'system.ClassificationMetrics'
+                },
+                'uri': 'gs://some-bucket/input_artifact_one'
+            },
+            'artifact_cls': artifact_types.ClassificationMetrics,
+            'expected_type': artifact_types.ClassificationMetrics,
+        },
+        {
+            'runtime_artifact': {
+                'metadata': {},
+                'name': 'input_artifact_one',
+                'type': {
+                    'schemaTitle': 'system.SlicedClassificationMetrics'
+                },
+                'uri': 'gs://some-bucket/input_artifact_one'
+            },
+            'artifact_cls': artifact_types.SlicedClassificationMetrics,
+            'expected_type': artifact_types.SlicedClassificationMetrics,
+        },
+        {
+            'runtime_artifact': {
+                'metadata': {},
+                'name': 'input_artifact_one',
+                'type': {
+                    'schemaTitle': 'system.HTML'
+                },
+                'uri': 'gs://some-bucket/input_artifact_one'
+            },
+            'artifact_cls': None,
+            'expected_type': artifact_types.HTML,
+        },
+        {
+            'runtime_artifact': {
+                'metadata': {},
+                'name': 'input_artifact_one',
+                'type': {
+                    'schemaTitle': 'system.Markdown'
+                },
+                'uri': 'gs://some-bucket/input_artifact_one'
+            },
+            'artifact_cls': None,
+            'expected_type': artifact_types.Markdown,
+        },
+    )
+    def test_dict_to_artifact_kfp_artifact(
+        self,
+        runtime_artifact,
+        artifact_cls,
+        expected_type,
+    ):
+        # with artifact_cls
+        self.assertIsInstance(
+            executor.create_artifact_instance(
+                runtime_artifact, artifact_cls=artifact_cls), expected_type)
+
+        # without artifact_cls
+        self.assertIsInstance(
+            executor.create_artifact_instance(runtime_artifact), expected_type)
+
+    def test_dict_to_artifact_nonkfp_artifact(self):
+        runtime_artifact = {
+            'metadata': {},
+            'name': 'input_artifact_one',
+            'type': {
+                'schemaTitle': 'google.VertexDataset'
+            },
+            'uri': 'gs://some-bucket/input_artifact_one'
+        }
+        # with artifact_cls
+        self.assertIsInstance(
+            executor.create_artifact_instance(
+                runtime_artifact, artifact_cls=VertexDataset), VertexDataset)
+
+        # without artifact_cls
+        self.assertIsInstance(
+            executor.create_artifact_instance(runtime_artifact),
+            artifact_types.Artifact)
 
 
 if __name__ == '__main__':
