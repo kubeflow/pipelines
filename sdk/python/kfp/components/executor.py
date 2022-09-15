@@ -66,7 +66,18 @@ class Executor():
         name: str,
         func: Callable,
     ) -> Any:
-        artifact_cls = func.__annotations__.get(name)
+        annotation = func.__annotations__.get(name)
+        if isinstance(annotation, type_annotations.InputPath):
+            schema_title, _ = annotation.type.split('@')
+            if schema_title in artifact_types._SCHEMA_TITLE_TO_TYPE:
+                artifact_cls = artifact_types._SCHEMA_TITLE_TO_TYPE[
+                    schema_title]
+            else:
+                raise TypeError(
+                    f'Invalid type argument to {type_annotations.InputPath.__name__}: {annotation.type}'
+                )
+        else:
+            artifact_cls = annotation
         return create_artifact_instance(
             runtime_artifact, artifact_cls=artifact_cls)
 
@@ -80,6 +91,7 @@ class Executor():
         return self._output_artifacts.get(name)
 
     def _get_input_parameter_value(self, parameter_name: str):
+        print
         parameter_values = self._input.get('inputs',
                                            {}).get('parameterValues', None)
 
