@@ -14,12 +14,6 @@ Copyright (c) 2016-2017 Jukka Lehtosalo and contributors
 ** kubernetes; version 12.0.1 --
 https://github.com/kubernetes-client/python
 Copyright 2021 The Kubernetes Authors.
-** inquirer; version 2.9.2 --
-https://github.com/magmax/python-inquirer
-Copyright (c) 2014-2021 Miguel Ángel García (@magmax_en), based on Inquirer.js, by Simon Boudrias (@vaxilart)
-** requests; version 2.28.1 --
-https://requests.readthedocs.io/en/latest/
-Copyright 2019 Kenneth Reitz
 
 
 Apache License
