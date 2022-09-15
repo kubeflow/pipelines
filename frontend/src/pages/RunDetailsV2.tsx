@@ -127,6 +127,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     },
   );
 
+  // TODO(jlyaoyuli): modify the function to update the Sub-DAG node status immediately.
   if (isSuccess && data) {
     updateFlowElementsState(flowElements, data.executions, data.events, data.artifacts);
   }
