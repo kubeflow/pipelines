@@ -11,6 +11,7 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
+* Migrate Out-Of-Band (OOB) authentication flow[\#8262](https://github.com/kubeflow/pipelines/pull/8262)
 
 ## Documentation Updates
 
@@ -25,7 +26,7 @@
 ## Breaking Changes
 
 ### For Pipeline Authors
-* Pipeline compilation is now triggered from `@pipeline` decorator instead of `Compiler.compile()` method. 
+* Pipeline compilation is now triggered from `@pipeline` decorator instead of `Compiler.compile()` method.
 Technically no breaking changes but compilation error could be exposed in a different (and earlier) stage. [\#8179](https://github.com/kubeflow/pipelines/pull/8179)
 
 ### For Component Authors
