@@ -15,8 +15,10 @@
 package util
 
 import (
+	"encoding/json"
 	"errors"
 
+	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -240,7 +242,27 @@ func ScheduleSpecToExecutionSpec(
 
 	switch execType {
 	case ArgoWorkflow:
-		return NewWorkflowFromScheduleWorkflowSpecBytesJSON([]byte(wfr.Spec))
+		if executionSpecStr, ok := wfr.Spec.(string); ok {
+			return NewWorkflowFromScheduleWorkflowSpecBytesJSON([]byte(executionSpecStr))
+		}
+		// fall back to Argo WorkflowSpec, need to marshal back to json string then unmarshal to
+		// argo WorkflowSpec because wfr.Spec is a map at this moment
+		raw, err := json.Marshal(wfr.Spec)
+		if err != nil {
+			return nil, NewInternalServerError(
+				errors.New("can't marshal WorkflowResource.Spec"), "err:%v", err)
+		}
+		var spec workflowapi.WorkflowSpec
+		if err := json.Unmarshal(raw, &spec); err != nil {
+			return nil, NewInternalServerError(
+				errors.New("can't unmarshal WorkflowResource.Spec"), "err:%v", err)
+		}
+		workflow := &workflowapi.Workflow{
+			Spec: spec,
+		}
+		workflow.APIVersion = "argoproj.io/v1alpha1"
+		workflow.Kind = "Workflow"
+		return NewWorkflow(workflow), nil
 	default:
 		return nil, NewInternalServerError(
 			errors.New("ExecutionType is not supported"), "type:%s", execType)
