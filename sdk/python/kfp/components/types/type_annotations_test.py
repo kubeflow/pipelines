@@ -161,31 +161,31 @@ class TestIsArtifact(parameterized.TestCase):
         'obj': obj
     } for obj in artifact_types._SCHEMA_TITLE_TO_TYPE.values()])
     def test_true_class(self, obj):
-        self.assertTrue(type_annotations.is_artifact(obj))
+        self.assertTrue(type_annotations.is_artifact_class(obj))
 
     @parameterized.parameters([{
         'obj': obj(name='name', uri='uri', metadata={})
     } for obj in artifact_types._SCHEMA_TITLE_TO_TYPE.values()])
     def test_true_instance(self, obj):
-        self.assertTrue(type_annotations.is_artifact(obj))
+        self.assertTrue(type_annotations.is_artifact_class(obj))
 
     @parameterized.parameters([{'obj': 'string'}, {'obj': 1}, {'obj': int}])
     def test_false(self, obj):
-        self.assertFalse(type_annotations.is_artifact(obj))
+        self.assertFalse(type_annotations.is_artifact_class(obj))
 
     def test_false_no_schema_title(self):
 
         class NotArtifact:
             schema_version = ''
 
-        self.assertFalse(type_annotations.is_artifact(NotArtifact))
+        self.assertFalse(type_annotations.is_artifact_class(NotArtifact))
 
     def test_false_no_schema_version(self):
 
         class NotArtifact:
             schema_title = ''
 
-        self.assertFalse(type_annotations.is_artifact(NotArtifact))
+        self.assertFalse(type_annotations.is_artifact_class(NotArtifact))
 
 
 if __name__ == '__main__':
