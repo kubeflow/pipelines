@@ -16,6 +16,7 @@ from contextlib import contextmanager
 import json
 import logging
 import os
+from typing import Any, Callable, Dict, Generator, Iterable, Tuple, Union
 from urllib.parse import parse_qs
 from urllib.parse import urlparse
 from webbrowser import open_new_tab
@@ -37,11 +38,12 @@ OAUTH_TOKEN_URI = 'https://www.googleapis.com/oauth2/v4/token'
 LOCAL_KFP_CREDENTIAL = os.path.expanduser('~/.config/kfp/credentials.json')
 
 
-def get_gcp_access_token():
+def get_gcp_access_token() -> Union[str, None]:
     """Gets GCP access token for the current Application Default Credentials.
 
-    If not set, returns None. For more information, see
-    https://cloud.google.com/sdk/gcloud/reference/auth/application-default/print-access-token
+    Returns:
+        GCP access token or None, if it is not set. For more information, see
+    https://cloud.google.com/sdk/gcloud/reference/auth/application-default/print-access-token.
     """
     token = None
     try:
@@ -57,8 +59,13 @@ def get_gcp_access_token():
     return token
 
 
-def get_auth_token(client_id, other_client_id, other_client_secret):
-    """Gets auth token from default service account or user account."""
+def get_auth_token(client_id: str, other_client_id: str,
+                   other_client_secret: str) -> Union[str, None]:
+    """Gets auth token from default service account or user account.
+
+    Returns:
+        Authorization token or None, if not found.
+    """
     if os.path.exists(LOCAL_KFP_CREDENTIAL):
         # fetch IAP auth token using the locally stored credentials.
         with open(LOCAL_KFP_CREDENTIAL, 'r') as f:
@@ -98,10 +105,11 @@ def get_auth_token(client_id, other_client_id, other_client_secret):
     return token
 
 
-def get_auth_token_from_sa(client_id: str):
+def get_auth_token_from_sa(client_id: str) -> Union[str, None]:
     """Gets auth token from default service account.
 
-    If no service account credential is found, returns None.
+    Returns:
+        Authorization token or None, if not found.
     """
     service_account_credentials = get_service_account_credentials(client_id)
     if service_account_credentials:
@@ -109,14 +117,17 @@ def get_auth_token_from_sa(client_id: str):
     return None
 
 
-def get_service_account_credentials(client_id: str):
+def get_service_account_credentials(
+        client_id: str
+) -> Union[google.oauth2.service_account.Credentials, None]:
     """Figure out what environment we're running in and get some preliminary
     information about the service account.
 
     Args:
-        client_id (str): OAuth client ID
+        client_id: OAuth client ID.
+
     Returns:
-        google.oauth2.service_account.Credentials or None
+        OAuth2 credentials or None.
     """
     bootstrap_credentials, _ = google.auth.default(scopes=[IAM_SCOPE])
     if isinstance(bootstrap_credentials, google.oauth2.credentials.Credentials):
@@ -124,7 +135,6 @@ def get_service_account_credentials(client_id: str):
         return None
     if isinstance(bootstrap_credentials, google.auth.app_engine.Credentials):
         requests_toolbelt.adapters.appengine.monkeypatch()
-
     # For service account's using the Compute Engine metadata service,
     # service_account_email isn't available until refresh is called.
     bootstrap_credentials.refresh(Request())
@@ -149,7 +159,6 @@ def get_service_account_credentials(client_id: str):
     else:
         # A Signer object can sign a JWT using the service account's key.
         signer = bootstrap_credentials.signer
-
     # Construct OAuth 2.0 service account credentials using the signer
     # and email acquired from the bootstrap credentials.
     return google.oauth2.service_account.Credentials(
@@ -159,7 +168,9 @@ def get_service_account_credentials(client_id: str):
         additional_claims={'target_audience': client_id})
 
 
-def get_google_open_id_connect_token(service_account_credentials):
+def get_google_open_id_connect_token(
+    service_account_credentials: google.oauth2.service_account.Credentials
+) -> str:
     """Gets an OpenID Connect token issued by Google for the service account.
 
     This function:
@@ -175,9 +186,11 @@ def get_google_open_id_connect_token(service_account_credentials):
     The HTTP/REST example on that page describes the JWT structure and
     demonstrates how to call the token endpoint. (The example on that page
     shows how to get an OAuth2 access token; this code is using a
-    modified version of it to get an OpenID Connect token.)
-    """
+    modified version of it to get an OpenID Connect token).
 
+    Returns:
+        OAuth ID token.
+    """
     service_account_jwt = (
         service_account_credentials._make_authorization_grant_assertion())
     request = google.auth.transport.requests.Request()
@@ -190,18 +203,18 @@ def get_google_open_id_connect_token(service_account_credentials):
     return token_response['id_token']
 
 
-def get_refresh_token_from_client_id(client_id: str, client_secret: str):
+def get_refresh_token_from_client_id(client_id: str, client_secret: str) -> str:
     """Obtains the ID token for provided Client ID with user accounts.
-
     Flow: get authorization code -> exchange for refresh token -> obtain and
     return ID token.
 
     Args:
-        client_id (str): OAuth client ID
-        client_secret (str): OAuth client secret
-          https://console.cloud.google.com/apis/credentials
+        client_id: OAuth client ID.
+        client_secret: OAuth client secret.
+            See https://console.cloud.google.com/apis/credentials.
+
     Returns:
-        str: OAuth short-lived access token or long-lived refresh token
+        OAuth short-lived access token or long-lived refresh token.
     """
     auth_code, redirect_uri = get_auth_code(client_id)
     token = get_refresh_token_from_code(auth_code, client_id, client_secret,
@@ -209,26 +222,28 @@ def get_refresh_token_from_client_id(client_id: str, client_secret: str):
     return token
 
 
-def get_auth_code(client_id: str):
+def get_auth_code(client_id: str) -> Tuple[str, str]:
     """Retrieves authorization token using Loopback flow.
 
     Args:
-        client_id (str): OAuth client ID from
-          https://console.cloud.google.com/apis/credentials
+        client_id: OAuth client ID. To retrieve it, visit
+          https://console.cloud.google.com/apis/credentials.
+
     Returns:
-        str: authorization token
-        str: redirect_uri parameter
+        A tuple of (authorization token, redirect_uri parameter).
+
+    Raises:
+        ValueError: If the provided authorization_response is empty.
     """
     host = 'localhost'
-    port = 9999
+    port = 9901
     redirect_uri = f'http://{host}:{port}'
     auth_url = ('https://accounts.google.com/o/oauth2/v2/auth?'
                 f'client_id={client_id}&response_type=code&'
                 'scope=openid%20email&access_type=offline&'
                 f'redirect_uri={redirect_uri}')
-
     authorization_response = None
-    if ('SSH_CONNECTION' in os.environ) | ('SSH_CLIENT' in os.environ):
+    if ('SSH_CONNECTION' in os.environ) or ('SSH_CLIENT' in os.environ):
         try:
             print((
                 'SSH connection detected. Please follow the instructions below.'
@@ -247,19 +262,33 @@ def get_auth_code(client_id: str):
         except KeyboardInterrupt:
             logging.warning('User pressed CTRL+C. See instructions below.')
             authorization_response = get_auth_response_ssh(host, port, auth_url)
+        except OSError as err:
+            logging.warning(
+                ('%s.\n Error occurred while creating a local web-server. '
+                 'Possibly http://%s:%i is allocated to '
+                 'another process. Falling back to manual mode. '
+                 'See instructions below.'), err, host, port)
+            authorization_response = get_auth_response_ssh(host, port, auth_url)
+    if authorization_response is None:
+        raise ValueError(
+            'Authorization response URL is empty. This may be caused by '
+            f'corrupted or expired credentials in {LOCAL_KFP_CREDENTIAL}'
+            '. Try renaming or moving them to another directory before '
+            'running again.')
     token = fetch_auth_token_from_response(authorization_response)
     return token, redirect_uri
 
 
-def get_auth_response_ssh(host: str, port: int, auth_url: str):
+def get_auth_response_ssh(host: str, port: int, auth_url: str) -> str:
     """Fetches OAuth authorization response URL for remote SSH connection.
 
     Args:
-        host (str): hostname of redirect_uri
-        port (int): port of redirect_uri
-        auth_url (str): OAuth authorization code request URL
+        host: Hostname in redirect_uri.
+        port: Port in redirect_uri.
+        auth_url: OAuth request URL.
+
     Returns:
-        str: a URL containing authorization code
+        A URL containing authorization code.
     """
     print(auth_url)
     authorization_response = input(
@@ -270,34 +299,44 @@ def get_auth_response_ssh(host: str, port: int, auth_url: str):
     return authorization_response
 
 
-def get_auth_response_local(host: str, port: int, auth_url: str):
+def get_auth_response_local(host: str, port: int,
+                            auth_url: str) -> Union[str, None]:
     """Fetches OAuth authorization response URL using a local web-server.
 
     Args:
-        host (str): hostname of the server
-        port (int): port of the server
-        auth_url (str): OAuth authorization code request URL
+        host: Hostname of the server.
+        port: Port of the server.
+        auth_url: OAuth request URL.
+
     Returns:
-        str: a URL containing authorization code
+        A URL containing authorization code.
     """
     with get_local_server_app(host, port) as (local_server, wsgi_app):
         open_new_tab(auth_url)
-        print(f'Please visit this URL to authorize Kubeflow SDK: {auth_url}.')
+        print(f'Please visit this URL to authorize Kubeflow SDK: {auth_url}')
+        print((f'Make sure that http://{host}:{port} is added to Authorized'
+               ' redirect URIs for your OAuth 2.0 Client ID. Check it here:'
+               ' https://console.cloud.google.com/apis/credentials'))
         local_server.handle_request()
         return wsgi_app.last_request_uri
 
 
 def get_refresh_token_from_code(auth_code: str, client_id: str,
-                                client_secret: str, redirect_uri: str):
+                                client_secret: str, redirect_uri: str) -> str:
     """Returns refresh or access token from authorization code.
 
     Args:
-        auth_code (str): OAuth authorization code
-        client_id (str): OAuth client ID
-        client_secret (str): OAuth client secret
-        redirect_uri (str): redirect uri used to obtain auth_code
+        auth_code: OAuth authorization code.
+        client_id: OAuth client ID.
+        client_secret: OAuth client secret.
+        redirect_uri: Redirect uri used to obtain auth_code.
+
     Returns:
-        str: long-lived refresh or short-lived access token
+        Long-lived refresh token or short-lived access token.
+
+    Raises:
+        ValueError: If HTTP request returns
+            a requests.exceptions.HTTPError.
     """
     payload = {
         'code': auth_code,
@@ -312,26 +351,31 @@ def get_refresh_token_from_code(auth_code: str, client_id: str,
     except requests.exceptions.HTTPError as err:
         raise ValueError(
             ('Some HTTPErrors are caused by expired credentials in '
-             '~/.config/kfp/context.json. Try renaming or moving '
-             'them to another directory before trying again.')) from err
-
+             f'{LOCAL_KFP_CREDENTIAL} Try renaming or moving '
+             'them to another directory before running again.')) from err
     parsed_res = json.loads(res.text)
-    if 'refresh_token' in parsed_res:
-        return str(parsed_res['refresh_token'])
-    return str(parsed_res['access_token'])
+    token = parsed_res.get('refresh_token')
+    if token is None:
+        token = parsed_res.get('access_token')
+    return str(token)
 
 
 def id_token_from_refresh_token(client_id: str, client_secret: str,
-                                refresh_token: str, audience: str):
+                                refresh_token: str, audience: str) -> str:
     """Returns ID token from refresh token.
 
     Args:
-        client_id (str): OAuth client ID
-        client_secret (str): OAuth client secret
-        refresh_token (str): OAuth refresh token
-        audience (str): OAuth audience
+        client_id: OAuth client ID.
+        client_secret: OAuth client secret.
+        refresh_token: OAuth refresh token.
+        audience: OAuth audience.
+
     Returns:
-        str: ID token
+        OAuth ID token.
+
+    Raises:
+        ValueError: If HTTP request returns
+            a requests.exceptions.HTTPError.
     """
     payload = {
         'client_id': client_id,
@@ -346,21 +390,60 @@ def id_token_from_refresh_token(client_id: str, client_secret: str,
     except requests.exceptions.HTTPError as err:
         raise ValueError(
             ('Some HTTPErrors are caused by expired credentials in '
-             '~/.config/kfp/context.json. Try renaming or moving '
-             'them to another directory before trying again.')) from err
-    return str(json.loads(res.text)['id_token'])
+             f'{LOCAL_KFP_CREDENTIAL}. Try renaming or moving '
+             'them to another directory before running again.')) from err
+    return str(json.loads(res.text).get('id_token'))
+
+
+class RedirectWSGIApp:
+    """WSGI app to handle the authorization redirect.
+
+    Stores the request URI and displays the given success message.
+    """
+
+    def __init__(self, success_message: str) -> None:
+        """
+        Args:
+            success_message: The message to display in the web browser
+                the authorization flow is complete.
+        """
+        self.last_request_uri = None
+        self._success_message = success_message
+
+    def __call__(self, environ: Dict[str, Any],
+                 start_response: Callable[str, list]) -> Iterable[bytes]:
+        """WSGI Callable. Updates environment dictionary with parameters
+        required for WSGI and returns it.
+
+        Args:
+            environ: The WSGI environment.
+            start_response: The WSGI start_response
+                callable.
+
+        Returns:
+            The response body.
+        """
+        wsgiref.util.setup_testing_defaults(environ)
+        start_response('200 OK',
+                       [('Content-type', 'text/plain; charset=utf-8')])
+        self.last_request_uri = wsgiref.util.request_uri(environ)
+        return [self._success_message.encode('utf-8')]
 
 
 @contextmanager
-def get_local_server_app(host: str, port: int):
+def get_local_server_app(
+    host: str, port: int
+) -> Generator[Tuple[wsgiref.simple_server.WSGIServer, RedirectWSGIApp], None,
+               None]:
     """Creates a local web-server for given host and port.
 
     Args:
-        host (str): hostname of the server
-        port (int): port of the server
+        host: Hostname of the server.
+        port: Port of the server.
+
     Returns:
-        WSGIServer: local server instance
-        RedirectWSGIApp: WSGI app to handle the authorization redirect
+        Tuple of (a local server instance, WSGI app that handles
+            the authorization redirect).
     """
     success_message = ('Kubeflow SDK authentication is completed.'
                        ' You may close this window now.')
@@ -378,54 +461,27 @@ def get_local_server_app(host: str, port: int):
         del wsgi_app
 
 
-class RedirectWSGIApp:
-    """WSGI app to handle the authorization redirect.
-
-    Stores the request URI and displays the given success message.
-    """
-
-    def __init__(self, success_message):
-        """
-        Args:
-            success_message (str): The message to display in the web browser
-                the authorization flow is complete.
-        """
-        self.last_request_uri = None
-        self._success_message = success_message
-
-    def __call__(self, environ, start_response):
-        """WSGI Callable. Updates environment dictionary with parameters
-        required for WSGI and returns it.
-
-        Args:
-            environ (Mapping[str, Any]): The WSGI environment.
-            start_response (Callable[str, list]): The WSGI start_response
-                callable.
-        Returns:
-            Iterable[bytes]: The response body.
-        """
-        wsgiref.util.setup_testing_defaults(environ)
-        start_response('200 OK',
-                       [('Content-type', 'text/plain; charset=utf-8')])
-        self.last_request_uri = wsgiref.util.request_uri(environ)
-        return [self._success_message.encode('utf-8')]
-
-
-def fetch_auth_token_from_response(url: str):
+def fetch_auth_token_from_response(url: str) -> str:
     """Fetches authorization code for OAuth2.0 Loopback flow.
 
     Args:
-        url (str): a string containing the response URL
+        url: A string containing the response URL.
+
     Returns:
-        str: an access code
+        An access code.
+
+    Raises:
+        KeyError: If no authorization code is found in the provided url.
     """
     parsed_url = urlparse(url)
     parsed_query = parse_qs(parsed_url.query)
-    if 'code' in parsed_query:
-        if parsed_query['code']:
-            return parsed_query['code']
-    raise KeyError(
-        ('Authorization code is missing or empty in the response.'
-         ' Please, try again or check'
-         ' https://www.kubeflow.org/docs/distributions/gke/deploy/oauth-setup/.'
+    access_code = parsed_query.get('code')
+    if access_code is None:
+        raise KeyError((
+            'Authorization code is missing or empty in the response.'
+            ' Please, try again or check '
+            'https://www.kubeflow.org/docs/distributions/gke/deploy/oauth-setup'
         ))
+    if isinstance(access_code, list):
+        access_code = str(access_code.pop(0))
+    return access_code
