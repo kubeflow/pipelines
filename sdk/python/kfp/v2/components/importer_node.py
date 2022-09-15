@@ -13,23 +13,61 @@
 # limitations under the License.
 """Utility function for building Importer Node spec."""
 
-from typing import Any, Union, Optional, Type, Mapping
-from google.protobuf import struct_pb2
+import sys
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Type, Union
 
-from kfp.dsl import _container_op
-from kfp.dsl import _pipeline_param
-from kfp.dsl import dsl_utils
+from google.protobuf import struct_pb2
+from kfp.dsl import _container_op, _pipeline_param, dsl_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.v2.components.types import artifact_types, type_utils
 
-INPUT_KEY = 'uri'
+URI_KEY = 'uri'
 OUTPUT_KEY = 'artifact'
+METADATA_KEY = 'metadata'
+
+
+def make_input_parameter_placeholder(key: str) -> str:
+    return f"{{{{$.inputs.parameters['{key}']}}}}"
+
+
+def transform_metadata_and_get_inputs(
+    metadata: Dict[Union[str, _pipeline_param.PipelineParam],
+                   Union[_pipeline_param.PipelineParam, Any]]
+) -> Tuple[Dict[str, Any], Dict[str, _pipeline_param.PipelineParam]]:
+    metadata_inputs: Dict[str, _pipeline_param.PipelineParam] = {}
+
+    def traverse_dict_and_create_metadata_inputs(d: Any) -> Any:
+        if isinstance(d, _pipeline_param.PipelineParam):
+            reversed_metadata_inputs = {
+                pipeline_param: name
+                for name, pipeline_param in metadata_inputs.items()
+            }
+            unique_name = reversed_metadata_inputs.get(
+                d,
+                make_placeholder_unique(METADATA_KEY, metadata_inputs, '-'),
+            )
+            metadata_inputs[unique_name] = d
+            return make_input_parameter_placeholder(unique_name)
+        elif isinstance(d, dict):
+            return {
+                traverse_dict_and_create_metadata_inputs(k):
+                traverse_dict_and_create_metadata_inputs(v)
+                for k, v in d.items()
+            }
+
+        elif isinstance(d, list):
+            return [traverse_dict_and_create_metadata_inputs(el) for el in d]
+        else:
+            return d
+
+    new_metadata = traverse_dict_and_create_metadata_inputs(metadata)
+    return new_metadata, metadata_inputs
 
 
 def _build_importer_spec(
     artifact_uri: Union[_pipeline_param.PipelineParam, str],
     artifact_type_schema: pipeline_spec_pb2.ArtifactTypeSchema,
-    metadata: Optional[Mapping[str, Any]] = None,
+    metadata_with_placeholders: Optional[Mapping[str, Any]] = None,
 ) -> pipeline_spec_pb2.PipelineDeploymentConfig.ImporterSpec:
     """Builds an importer executor spec.
 
@@ -37,6 +75,8 @@ def _build_importer_spec(
       artifact_uri: The artifact uri to import from.
       artifact_type_schema: The user specified artifact type schema of the
         artifact to be imported.
+      metadata_with_placeholders: Metadata to assign to the artifact, with pipeline parameters 
+        replaced with string placeholders.
 
     Returns:
       An importer spec.
@@ -45,13 +85,13 @@ def _build_importer_spec(
     importer_spec.type_schema.CopyFrom(artifact_type_schema)
 
     if isinstance(artifact_uri, _pipeline_param.PipelineParam):
-        importer_spec.artifact_uri.runtime_parameter = INPUT_KEY
+        importer_spec.artifact_uri.runtime_parameter = URI_KEY
     elif isinstance(artifact_uri, str):
         importer_spec.artifact_uri.constant_value.string_value = artifact_uri
 
-    if metadata:
+    if metadata_with_placeholders:
         metadata_protobuf_struct = struct_pb2.Struct()
-        metadata_protobuf_struct.update(metadata)
+        metadata_protobuf_struct.update(metadata_with_placeholders)
         importer_spec.metadata.CopyFrom(metadata_protobuf_struct)
 
     return importer_spec
@@ -60,12 +100,14 @@ def _build_importer_spec(
 def _build_importer_task_spec(
     importer_base_name: str,
     artifact_uri: Union[_pipeline_param.PipelineParam, str],
+    metadata_inputs: Dict[str, _pipeline_param.PipelineParam],
 ) -> pipeline_spec_pb2.PipelineTaskSpec:
     """Builds an importer task spec.
 
     Args:
       importer_base_name: The base name of the importer node.
       artifact_uri: The artifact uri to import from.
+      metadata_inputs: Pipeline parameters for metadata.
 
     Returns:
       An importer node task spec.
@@ -78,16 +120,27 @@ def _build_importer_task_spec(
         param = artifact_uri
         if param.op_name:
             result.inputs.parameters[
-                INPUT_KEY].task_output_parameter.producer_task = (
+                URI_KEY].task_output_parameter.producer_task = (
                     dsl_utils.sanitize_task_name(param.op_name))
             result.inputs.parameters[
-                INPUT_KEY].task_output_parameter.output_parameter_key = param.name
+                URI_KEY].task_output_parameter.output_parameter_key = param.name
         else:
             result.inputs.parameters[
-                INPUT_KEY].component_input_parameter = param.full_name
+                URI_KEY].component_input_parameter = param.full_name
     elif isinstance(artifact_uri, str):
         result.inputs.parameters[
-            INPUT_KEY].runtime_value.constant_value.string_value = artifact_uri
+            URI_KEY].runtime_value.constant_value.string_value = artifact_uri
+
+    for unique_name, pipeline_param in metadata_inputs.items():
+        if pipeline_param.op_name:
+            result.inputs.parameters[
+                unique_name].task_output_parameter.producer_task = (
+                    dsl_utils.sanitize_task_name(pipeline_param.op_name))
+            result.inputs.parameters[
+                unique_name].task_output_parameter.output_parameter_key = pipeline_param.name
+        else:
+            result.inputs.parameters[
+                unique_name].component_input_parameter = pipeline_param.full_name
 
     return result
 
@@ -95,6 +148,7 @@ def _build_importer_task_spec(
 def _build_importer_component_spec(
     importer_base_name: str,
     artifact_type_schema: pipeline_spec_pb2.ArtifactTypeSchema,
+    metadata_inputs: Dict[str, _pipeline_param.PipelineParam],
 ) -> pipeline_spec_pb2.ComponentSpec:
     """Builds an importer component spec.
 
@@ -102,6 +156,7 @@ def _build_importer_component_spec(
       importer_base_name: The base name of the importer node.
       artifact_type_schema: The user specified artifact type schema of the
         artifact to be imported.
+      metadata_inputs: Pipeline parameters for metadata.
 
     Returns:
       An importer node component spec.
@@ -110,17 +165,24 @@ def _build_importer_component_spec(
     result.executor_label = dsl_utils.sanitize_executor_label(
         importer_base_name)
     result.input_definitions.parameters[
-        INPUT_KEY].type = pipeline_spec_pb2.PrimitiveType.STRING
+        URI_KEY].type = pipeline_spec_pb2.PrimitiveType.STRING
     result.output_definitions.artifacts[OUTPUT_KEY].artifact_type.CopyFrom(
         artifact_type_schema)
+
+    for unique_name, pipeline_param in metadata_inputs.items():
+        result.input_definitions.parameters[
+            unique_name].type = type_utils._PARAMETER_TYPES_MAPPING.get(
+                pipeline_param.param_type.lower())
 
     return result
 
 
-def importer(artifact_uri: Union[_pipeline_param.PipelineParam, str],
-             artifact_class: Type[artifact_types.Artifact],
-             reimport: bool = False,
-             metadata: Optional[Mapping[str, Any]] = None) -> _container_op.ContainerOp:
+def importer(
+        artifact_uri: Union[_pipeline_param.PipelineParam, str],
+        artifact_class: Type[artifact_types.Artifact],
+        reimport: bool = False,
+        metadata: Optional[Mapping[str,
+                                   Any]] = None) -> _container_op.ContainerOp:
     """dsl.importer for importing an existing artifact. Only for v2 pipeline.
 
     Args:
@@ -128,6 +190,7 @@ def importer(artifact_uri: Union[_pipeline_param.PipelineParam, str],
       artifact_type_schema: The user specified artifact type schema of the
         artifact to be imported.
       reimport: Whether to reimport the artifact. Defaults to False.
+      metadata: Metadata to assign to the artifact.
 
     Returns:
       A ContainerOp instance.
@@ -139,9 +202,10 @@ def importer(artifact_uri: Union[_pipeline_param.PipelineParam, str],
 
     if isinstance(artifact_uri, _pipeline_param.PipelineParam):
         input_param = artifact_uri
+
     elif isinstance(artifact_uri, str):
         input_param = _pipeline_param.PipelineParam(
-            name='uri', value=artifact_uri, param_type='String')
+            name=URI_KEY, value=artifact_uri, param_type='String')
     else:
         raise ValueError(
             'Importer got unexpected artifact_uri: {} of type: {}.'.format(
@@ -160,13 +224,42 @@ def importer(artifact_uri: Union[_pipeline_param.PipelineParam, str],
     )
     _container_op.ContainerOp._DISABLE_REUSABLE_COMPONENT_WARNING = old_warn_value
 
+    metadata_with_placeholders, metadata_inputs = transform_metadata_and_get_inputs(
+        metadata)
+
     artifact_type_schema = type_utils.get_artifact_type_schema(artifact_class)
     task.importer_spec = _build_importer_spec(
-        artifact_uri=artifact_uri, artifact_type_schema=artifact_type_schema, metadata=metadata)
+        artifact_uri=artifact_uri,
+        artifact_type_schema=artifact_type_schema,
+        metadata_with_placeholders=metadata_with_placeholders,
+    )
     task.task_spec = _build_importer_task_spec(
-        importer_base_name=task.name, artifact_uri=artifact_uri)
+        importer_base_name=task.name,
+        artifact_uri=artifact_uri,
+        metadata_inputs=metadata_inputs,
+    )
     task.component_spec = _build_importer_component_spec(
-        importer_base_name=task.name, artifact_type_schema=artifact_type_schema)
+        importer_base_name=task.name,
+        artifact_type_schema=artifact_type_schema,
+        metadata_inputs=metadata_inputs,
+    )
+
     task.inputs = [input_param]
+    task.inputs += list(metadata_inputs.values())
 
     return task
+
+
+def make_placeholder_unique(
+    name: str,
+    collection: List[str],
+    delimiter: str,
+) -> str:
+    """Makes a unique name by adding index."""
+    unique_name = name
+    if unique_name in collection:
+        for i in range(2, sys.maxsize**10):
+            unique_name = name + delimiter + str(i)
+            if unique_name not in collection:
+                break
+    return unique_name
