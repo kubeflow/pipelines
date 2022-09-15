@@ -252,13 +252,13 @@ class PipelineTask:
                         'InputValuePlaceholder.')
                 if input_name in args or type_utils.is_task_final_status_type(
                         inputs_dict[input_name].type):
-                    return arg.to_placeholder_string()
+                    return arg._to_placeholder_string()
                 input_spec = inputs_dict[input_name]
                 if input_spec.default is None:
                     raise ValueError(
                         f'No value provided for input: {input_name}.')
                 else:
-                    return arg.to_placeholder_string()
+                    return arg._to_placeholder_string()
 
             elif isinstance(arg, placeholders.InputUriPlaceholder):
                 input_name = arg.input_name
@@ -269,7 +269,7 @@ class PipelineTask:
                         'InputUriPlaceholder.')
 
                 if input_name in args:
-                    return arg.to_placeholder_string()
+                    return arg._to_placeholder_string()
                 input_spec = inputs_dict[input_name]
                 if input_spec.default is None:
                     raise ValueError(
@@ -287,7 +287,7 @@ class PipelineTask:
                         'InputPathPlaceholder.')
 
                 if input_name in args:
-                    return arg.to_placeholder_string()
+                    return arg._to_placeholder_string()
                 input_spec = inputs_dict[input_name]
                 if input_spec._optional:
                     return None
@@ -303,20 +303,20 @@ class PipelineTask:
                         f'"{outputs_dict[output_name].type}" cannot be paired with '
                         'OutputUriPlaceholder.')
 
-                return arg.to_placeholder_string()
+                return arg._to_placeholder_string()
 
             elif isinstance(arg, (placeholders.OutputPathPlaceholder,
                                   placeholders.OutputParameterPlaceholder)):
                 output_name = arg.output_name
                 return placeholders.OutputParameterPlaceholder(
-                    arg.output_name).to_placeholder_string(
+                    arg.output_name)._to_placeholder_string(
                     ) if type_utils.is_parameter_type(
                         outputs_dict[output_name].type
                     ) else placeholders.OutputPathPlaceholder(
-                        arg.output_name).to_placeholder_string()
+                        arg.output_name)._to_placeholder_string()
 
             elif isinstance(arg, placeholders.Placeholder):
-                return arg.to_placeholder_string()
+                return arg._to_placeholder_string()
 
             else:
                 raise TypeError(f'Unrecognized argument type: {arg}.')
