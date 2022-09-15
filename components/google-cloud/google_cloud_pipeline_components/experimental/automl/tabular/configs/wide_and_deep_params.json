@@ -22,7 +22,7 @@
   {
     "parameter_id": "optimizer_type",
     "categorical_value_spec": {
-      "values": ["adam", "ftrl", "sgd"]
+      "values": ["adam"]
     }
   },
   {
@@ -90,7 +90,7 @@
   {
     "parameter_id": "dnn_optimizer_type",
     "categorical_value_spec": {
-      "values": ["adam", "ftrl", "sgd"]
+      "values": ["adam"]
     }
   },
   {

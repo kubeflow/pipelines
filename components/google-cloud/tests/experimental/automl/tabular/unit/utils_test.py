@@ -142,7 +142,7 @@ class UtilsTest(unittest.TestCase):
     self.assertEqual(parameter_values, expected_parameter_values)
 
   def test_get_distill_skip_evaluation_pipeline_and_parameters(self):
-    _, parameter_values = utils.get_distill_skip_evaluation_pipeline_and_parameters(
+    _, parameter_values = utils.get_automl_tabular_pipeline_and_parameters(
         'project',
         'us-central1',
         'gs://foo',
@@ -150,100 +150,41 @@ class UtilsTest(unittest.TestCase):
         'classification',
         'maximize-au-prc', {'auto': {
             'column_name': 'feature_1'
-        }}, {
-            'fraction_split': {
-                'training_fraction': 0.8,
-                'validation_fraction': 0.2,
-                'test_fraction': 0.0
-            }
-        }, {'csv_data_source': {
-            'csv_filenames': ['gs://foo/bar.csv']
         }},
-        1000,
+        training_fraction=0.8,
+        validation_fraction=0.2,
+        test_fraction=0.0,
+        data_source_csv_filenames='gs://foo/bar.csv',
+        train_budget_milli_node_hours=1000,
         distill_batch_predict_machine_type='n1-standard-32',
         distill_batch_predict_starting_replica_count=40,
         distill_batch_predict_max_replica_count=80)
 
     self.assertEqual(
         parameter_values, {
-            'cv_trainer_worker_pool_specs_override':
-                '',
-            'data_source':
-                '{\\"csv_data_source\\": {\\"csv_filenames\\": [\\"gs://foo/bar.csv\\"]}}',
-            'dataflow_subnetwork':
-                '',
-            'dataflow_use_public_ips':
-                True,
-            'encryption_spec_key_name':
-                '',
-            'export_additional_model_without_custom_ops':
-                False,
-            'location':
-                'us-central1',
-            'optimization_objective':
-                'maximize-au-prc',
-            'optimization_objective_precision_value':
-                -1,
-            'optimization_objective_recall_value':
-                -1,
-            'prediction_type':
-                'classification',
-            'project':
-                'project',
-            'reduce_search_space_mode':
-                'minimal',
-            'root_dir':
-                'gs://foo',
-            'split_spec':
-                '{\\"fraction_split\\": {\\"training_fraction\\": 0.8, \\"validation_fraction\\": 0.2, \\"test_fraction\\": 0.0}}',
-            'stage_1_deadline_hours':
-                0.7708333333333334,
-            'stage_1_num_parallel_trials':
-                35,
-            'stage_1_num_selected_trials':
-                7,
-            'stage_1_single_run_max_secs':
-                634,
-            'stage_1_tuner_worker_pool_specs_override':
-                '',
-            'stage_2_deadline_hours':
-                0.22916666666666663,
-            'stage_2_num_parallel_trials':
-                35,
-            'stage_2_num_selected_trials':
-                5,
-            'stage_2_single_run_max_secs':
-                634,
-            'stats_and_example_gen_dataflow_disk_size_gb':
-                40,
-            'stats_and_example_gen_dataflow_machine_type':
-                'n1-standard-16',
-            'stats_and_example_gen_dataflow_max_num_workers':
-                25,
-            'study_spec_override':
-                '',
-            'target_column_name':
-                'target',
-            'transform_dataflow_disk_size_gb':
-                40,
-            'transform_dataflow_machine_type':
-                'n1-standard-16',
-            'transform_dataflow_max_num_workers':
-                25,
-            'transformations':
-                '{\\"auto\\": {\\"column_name\\": \\"feature_1\\"}}',
-            'weight_column_name':
-                '',
-            'distill_batch_predict_machine_type':
-                'n1-standard-32',
-            'distill_batch_predict_max_replica_count':
-                80,
-            'distill_batch_predict_starting_replica_count':
-                40,
-            'distill_stage_1_deadline_hours':
-                3 * 634 * 1.3 / 3600,
-            'run_distillation':
-                True
+            'additional_experiments': {},
+            'cv_trainer_worker_pool_specs_override': [],
+            'data_source_csv_filenames': 'gs://foo/bar.csv',
+            'dataflow_use_public_ips': True,
+            'export_additional_model_without_custom_ops': False,
+            'location': 'us-central1',
+            'optimization_objective': 'maximize-au-prc',
+            'prediction_type': 'classification',
+            'project': 'project',
+            'root_dir': 'gs://foo',
+            'run_evaluation': True,
+            'stage_1_tuner_worker_pool_specs_override': [],
+            'study_spec_parameters_override': {},
+            'target_column': 'target',
+            'test_fraction': 0.0,
+            'train_budget_milli_node_hours': 1000,
+            'training_fraction': 0.8,
+            'transformations': {
+                'auto': {
+                    'column_name': 'feature_1'
+                }
+            },
+            'validation_fraction': 0.2
         })
 
   def test_get_default_pipeline_and_parameters_with_eval_and_distill(self):
@@ -447,7 +388,7 @@ class UtilsTest(unittest.TestCase):
             'use_wide': True,
             'embed_categories': True,
             'dnn_dropout': 0,
-            'dnn_optimizer_type': 'ftrl',
+            'dnn_optimizer_type': 'adam',
             'dnn_l1_regularization_strength': 0,
             'dnn_l2_regularization_strength': 0,
             'dnn_l2_shrinkage_regularization_strength': 0,
@@ -465,10 +406,7 @@ class UtilsTest(unittest.TestCase):
             'transform_dataflow_machine_type': 'n1-standard-16',
             'transform_dataflow_max_num_workers': 25,
             'transform_dataflow_disk_size_gb': 40,
-            'training_machine_spec': {
-                'machine_type': 'c2-standard-16'
-            },
-            'training_replica_count': 1,
+            'worker_pool_specs_override': [],
             'run_evaluation': True,
             'evaluation_batch_predict_machine_type': 'n1-standard-16',
             'evaluation_batch_predict_starting_replica_count': 25,
@@ -483,6 +421,213 @@ class UtilsTest(unittest.TestCase):
         })
 
   def test_get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(self):
+    _, parameter_values = utils.get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
+        'project',
+        'us-central1',
+        'gs://foo',
+        'target',
+        'classification', 'gs://foo/transform_config', [{
+            'metric_id': 'loss',
+            'goal': 'MINIMIZE'
+        }], [{
+            'parameter_id': 'dnn_learning_rate',
+            'double_value_spec': {
+                'min_value': 0.0001,
+                'max_value': 0.01
+            },
+            'scale_type': 'UNIT_LINEAR_SCALE'
+        }, {
+            'parameter_id': 'learning_rate',
+            'double_value_spec': {
+                'min_value': 0.001,
+                'max_value': 0.01
+            },
+            'scale_type': 'UNIT_LINEAR_SCALE'
+        }, {
+            'parameter_id': 'max_steps',
+            'discrete_value_spec': {
+                'values': [2]
+            }
+        }],
+        2,
+        1,
+        training_fraction=0.8,
+        validation_fraction=0.2,
+        test_fraction=0.0,
+        data_source_csv_filenames='gs://foo/bar.csv',
+        dataflow_service_account='service-account')
+    self.assertEqual(
+        parameter_values, {
+            'project': 'project',
+            'location': 'us-central1',
+            'root_dir': 'gs://foo',
+            'target_column': 'target',
+            'prediction_type': 'classification',
+            'transform_config': 'gs://foo/transform_config',
+            'data_source_csv_filenames': 'gs://foo/bar.csv',
+            'training_fraction': 0.8,
+            'validation_fraction': 0.2,
+            'test_fraction': 0.0,
+            'study_spec_metrics': [{
+                'metric_id': 'loss',
+                'goal': 'MINIMIZE'
+            }],
+            'study_spec_parameters_override': [{
+                'parameter_id': 'dnn_learning_rate',
+                'double_value_spec': {
+                    'min_value': 0.0001,
+                    'max_value': 0.01
+                },
+                'scale_type': 'UNIT_LINEAR_SCALE'
+            }, {
+                'parameter_id': 'learning_rate',
+                'double_value_spec': {
+                    'min_value': 0.001,
+                    'max_value': 0.01
+                },
+                'scale_type': 'UNIT_LINEAR_SCALE'
+            }, {
+                'parameter_id': 'max_steps',
+                'discrete_value_spec': {
+                    'values': [2]
+                }
+            }],
+            'max_trial_count': 2,
+            'parallel_trial_count': 1,
+            'enable_profiler': False,
+            'seed': 1,
+            'eval_steps': 0,
+            'eval_frequency_secs': 600,
+            'weight_column': '',
+            'max_failed_trial_count': 0,
+            'study_spec_algorithm': 'ALGORITHM_UNSPECIFIED',
+            'study_spec_measurement_selection_type': 'BEST_MEASUREMENT',
+            'stats_and_example_gen_dataflow_machine_type': 'n1-standard-16',
+            'stats_and_example_gen_dataflow_max_num_workers': 25,
+            'stats_and_example_gen_dataflow_disk_size_gb': 40,
+            'transform_dataflow_machine_type': 'n1-standard-16',
+            'transform_dataflow_max_num_workers': 25,
+            'transform_dataflow_disk_size_gb': 40,
+            'worker_pool_specs_override': [],
+            'run_evaluation': True,
+            'evaluation_batch_predict_machine_type': 'n1-standard-16',
+            'evaluation_batch_predict_starting_replica_count': 25,
+            'evaluation_batch_predict_max_replica_count': 25,
+            'evaluation_dataflow_machine_type': 'n1-standard-4',
+            'evaluation_dataflow_max_num_workers': 25,
+            'evaluation_dataflow_disk_size_gb': 50,
+            'dataflow_service_account': 'service-account',
+            'dataflow_subnetwork': '',
+            'dataflow_use_public_ips': True,
+            'encryption_spec_key_name': ''
+        })
+
+  def test_get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
+      self):
+    _, parameter_values = utils.get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
+        'project',
+        'us-central1',
+        'gs://foo',
+        'target',
+        'classification',
+        'gs://foo/transform_config', [{
+            'metric_id': 'loss',
+            'goal': 'MINIMIZE'
+        }], [{
+            'parameter_id': 'dnn_learning_rate',
+            'double_value_spec': {
+                'min_value': 0.0001,
+                'max_value': 0.01
+            },
+            'scale_type': 'UNIT_LINEAR_SCALE'
+        }, {
+            'parameter_id': 'learning_rate',
+            'double_value_spec': {
+                'min_value': 0.001,
+                'max_value': 0.01
+            },
+            'scale_type': 'UNIT_LINEAR_SCALE'
+        }, {
+            'parameter_id': 'max_steps',
+            'discrete_value_spec': {
+                'values': [2]
+            }
+        }],
+        2,
+        1,
+        training_fraction=0.8,
+        validation_fraction=0.2,
+        test_fraction=0.0,
+        data_source_csv_filenames='gs://foo/bar.csv',
+        dataflow_service_account='service-account')
+    self.assertEqual(
+        parameter_values, {
+            'project': 'project',
+            'location': 'us-central1',
+            'root_dir': 'gs://foo',
+            'target_column': 'target',
+            'prediction_type': 'classification',
+            'transform_config': 'gs://foo/transform_config',
+            'data_source_csv_filenames': 'gs://foo/bar.csv',
+            'training_fraction': 0.8,
+            'validation_fraction': 0.2,
+            'test_fraction': 0.0,
+            'study_spec_metrics': [{
+                'metric_id': 'loss',
+                'goal': 'MINIMIZE'
+            }],
+            'study_spec_parameters_override': [{
+                'parameter_id': 'dnn_learning_rate',
+                'double_value_spec': {
+                    'min_value': 0.0001,
+                    'max_value': 0.01
+                },
+                'scale_type': 'UNIT_LINEAR_SCALE'
+            }, {
+                'parameter_id': 'learning_rate',
+                'double_value_spec': {
+                    'min_value': 0.001,
+                    'max_value': 0.01
+                },
+                'scale_type': 'UNIT_LINEAR_SCALE'
+            }, {
+                'parameter_id': 'max_steps',
+                'discrete_value_spec': {
+                    'values': [2]
+                }
+            }],
+            'max_trial_count': 2,
+            'parallel_trial_count': 1,
+            'enable_profiler': False,
+            'seed': 1,
+            'eval_steps': 0,
+            'eval_frequency_secs': 600,
+            'weight_column': '',
+            'max_failed_trial_count': 0,
+            'study_spec_algorithm': 'ALGORITHM_UNSPECIFIED',
+            'study_spec_measurement_selection_type': 'BEST_MEASUREMENT',
+            'stats_and_example_gen_dataflow_machine_type': 'n1-standard-16',
+            'stats_and_example_gen_dataflow_max_num_workers': 25,
+            'stats_and_example_gen_dataflow_disk_size_gb': 40,
+            'transform_dataflow_machine_type': 'n1-standard-16',
+            'transform_dataflow_max_num_workers': 25,
+            'transform_dataflow_disk_size_gb': 40,
+            'worker_pool_specs_override': [],
+            'run_evaluation': True,
+            'evaluation_batch_predict_machine_type': 'n1-standard-16',
+            'evaluation_batch_predict_starting_replica_count': 25,
+            'evaluation_batch_predict_max_replica_count': 25,
+            'evaluation_dataflow_machine_type': 'n1-standard-4',
+            'evaluation_dataflow_max_num_workers': 25,
+            'evaluation_dataflow_disk_size_gb': 50,
+            'dataflow_service_account': 'service-account',
+            'dataflow_subnetwork': '',
+            'dataflow_use_public_ips': True,
+            'encryption_spec_key_name': ''
+        })
+
+  def test_get_tabnet_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
+      self):
     _, parameter_values = utils.get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
         'project',
         'us-central1',
@@ -557,7 +702,6 @@ class UtilsTest(unittest.TestCase):
             }],
             'max_trial_count': 2,
             'parallel_trial_count': 1,
-            'tabnet': True,
             'enable_profiler': False,
             'seed': 1,
             'eval_steps': 0,
@@ -572,10 +716,7 @@ class UtilsTest(unittest.TestCase):
             'transform_dataflow_machine_type': 'n1-standard-16',
             'transform_dataflow_max_num_workers': 25,
             'transform_dataflow_disk_size_gb': 40,
-            'training_machine_spec': {
-                'machine_type': 'c2-standard-16'
-            },
-            'training_replica_count': 1,
+            'worker_pool_specs_override': [],
             'run_evaluation': True,
             'evaluation_batch_predict_machine_type': 'n1-standard-16',
             'evaluation_batch_predict_starting_replica_count': 25,
@@ -589,7 +730,7 @@ class UtilsTest(unittest.TestCase):
             'encryption_spec_key_name': ''
         })
 
-  def test_get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
+  def test_get_wide_and_deep_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
       self):
     _, parameter_values = utils.get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
         'project',
@@ -666,7 +807,6 @@ class UtilsTest(unittest.TestCase):
             }],
             'max_trial_count': 2,
             'parallel_trial_count': 1,
-            'wide_and_deep': True,
             'enable_profiler': False,
             'seed': 1,
             'eval_steps': 0,
@@ -681,10 +821,7 @@ class UtilsTest(unittest.TestCase):
             'transform_dataflow_machine_type': 'n1-standard-16',
             'transform_dataflow_max_num_workers': 25,
             'transform_dataflow_disk_size_gb': 40,
-            'training_machine_spec': {
-                'machine_type': 'c2-standard-16'
-            },
-            'training_replica_count': 1,
+            'worker_pool_specs_override': [],
             'run_evaluation': True,
             'evaluation_batch_predict_machine_type': 'n1-standard-16',
             'evaluation_batch_predict_starting_replica_count': 25,
@@ -758,10 +895,7 @@ class UtilsTest(unittest.TestCase):
             'transform_dataflow_machine_type': 'n1-standard-16',
             'transform_dataflow_max_num_workers': 25,
             'transform_dataflow_disk_size_gb': 40,
-            'training_machine_spec': {
-                'machine_type': 'c2-standard-16'
-            },
-            'training_replica_count': 1,
+            'worker_pool_specs_override': [],
             'run_evaluation': True,
             'evaluation_batch_predict_machine_type': 'n1-standard-16',
             'evaluation_batch_predict_starting_replica_count': 25,
@@ -1052,7 +1186,7 @@ class UtilsTest(unittest.TestCase):
     }, {
         'parameter_id': 'optimizer_type',
         'categorical_value_spec': {
-            'values': ['adam', 'ftrl', 'sgd']
+            'values': ['adam']
         }
     }, {
         'parameter_id': 'l1_regularization_strength',
@@ -1109,7 +1243,7 @@ class UtilsTest(unittest.TestCase):
     }, {
         'parameter_id': 'dnn_optimizer_type',
         'categorical_value_spec': {
-            'values': ['adam', 'ftrl', 'sgd']
+            'values': ['adam']
         }
     }, {
         'parameter_id': 'dnn_l1_regularization_strength',
