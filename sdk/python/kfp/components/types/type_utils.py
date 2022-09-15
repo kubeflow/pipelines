@@ -28,6 +28,7 @@ PARAMETER_TYPES = Union[str, int, float, bool, dict, list]
 
 # ComponentSpec I/O types to DSL ontology artifact classes mapping.
 _ARTIFACT_CLASSES_MAPPING = {
+    'artifact': artifact_types.Artifact,
     'model': artifact_types.Model,
     'dataset': artifact_types.Dataset,
     'metrics': artifact_types.Metrics,
@@ -413,7 +414,7 @@ def _annotation_to_type_struct(annotation):
         type_struct = get_canonical_type_name_for_type(annotation)
         if type_struct:
             return type_struct
-        elif type_annotations.is_artifact(annotation):
+        elif type_annotations.is_artifact_class(annotation):
             schema_title = annotation.schema_title
         else:
             schema_title = str(annotation.__name__)
@@ -423,3 +424,8 @@ def _annotation_to_type_struct(annotation):
         schema_title = str(annotation)
     type_struct = get_canonical_type_name_for_type(schema_title)
     return type_struct or schema_title
+
+
+def is_typed_named_tuple_annotation(annotation: Any) -> bool:
+    return hasattr(annotation, '_fields') and hasattr(annotation,
+                                                      '__annotations__')
