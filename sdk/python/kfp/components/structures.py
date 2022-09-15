@@ -692,8 +692,8 @@ class ComponentSpec(base_model.BaseModel):
                     type_enum)
                 in_memory_parameter_type_name = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE[
                     ir_parameter_type_name]
-                outputs[utils.sanitize_input_name(
-                    spec['name'])] = OutputSpec(type=type_)
+                outputs[utils.sanitize_input_name(spec['name'])] = OutputSpec(
+                    type=in_memory_parameter_type_name)
                 continue
 
             elif isinstance(type_, str) and re.match(
