@@ -158,7 +158,6 @@ class SageMakerComponentSpec(Generic[IT, OT]):
                 # Outputs are appended with _output_path to differentiate them programatically
                 parser.add_argument(
                     f"--{key}{SageMakerComponentSpec.OUTPUT_ARGUMENT_SUFFIX}",
-                    # default=f"/tmp/{key}",
                     default=f"/tmp/outputs/{key}/data",
                     type=str,
                     help=props.description,

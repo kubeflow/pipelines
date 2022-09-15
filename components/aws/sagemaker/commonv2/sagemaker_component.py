@@ -165,11 +165,6 @@ class SageMakerComponent:
         config.load_incluster_config()
         return ApiClient()
 
-        # # when running tests in call_components_locally
-        # if bool(util.strtobool(os.environ.get("LOAD_IN_CLUSTER_KUBECONFIG", "false"))):
-        #     config.load_incluster_config()
-        #     return ApiClient()
-        # return config.new_client_from_config()
 
     def _get_current_namespace(self):
         """
@@ -587,11 +582,7 @@ class SageMakerComponent:
         """Handles any SIGTERM events."""
         pass
 
-    def _delete_custom_resource(
-        self,
-        wait_periods=4,
-        period_length=5,
-    ):
+    def _delete_custom_resource(self):
         """Delete custom resource from cluster and wait for it to be removed by
         the server.
 
@@ -621,13 +612,8 @@ class SageMakerComponent:
                 self.plural.lower(),
                 self.job_name.lower(),
             )
-
-        for _ in range(wait_periods):
-            sleep(period_length)
-            if not self._get_resource_exists():
-                return _response, True
-
-        return _response, False
+        
+        return _response, True
 
 
     @staticmethod
