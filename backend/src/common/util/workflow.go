@@ -25,7 +25,6 @@ import (
 	argoclientwf "github.com/argoproj/argo-workflows/v3/pkg/client/clientset/versioned/typed/workflow/v1alpha1"
 	argoinformer "github.com/argoproj/argo-workflows/v3/pkg/client/informers/externalversions"
 	"github.com/argoproj/argo-workflows/v3/pkg/client/informers/externalversions/workflow/v1alpha1"
-	argoinformerwfv1 "github.com/argoproj/argo-workflows/v3/pkg/client/informers/externalversions/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/workflow/common"
 	"github.com/argoproj/argo-workflows/v3/workflow/packer"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
@@ -39,7 +38,6 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -76,6 +74,8 @@ func NewWorkflowFromScheduleWorkflowSpecBytesJSON(bytes []byte) (*Workflow, erro
 	if err != nil {
 		return nil, NewInvalidInputErrorWithDetails(err, "Failed to unmarshal the inputs")
 	}
+	workflow.APIVersion = "argoproj.io/v1alpha1"
+	workflow.Kind = "Workflow"
 	return NewWorkflow(&workflow), nil
 }
 
@@ -413,11 +413,11 @@ func (w *Workflow) Message() string {
 	return w.Status.Message
 }
 
-func (w *Workflow) FinishedAtTime() v1.Time {
+func (w *Workflow) FinishedAtTime() metav1.Time {
 	return w.Status.FinishedAt
 }
 
-func (w *Workflow) StartedAtTime() v1.Time {
+func (w *Workflow) StartedAtTime() metav1.Time {
 	return w.Status.StartedAt
 }
 
@@ -746,7 +746,7 @@ type WorkflowClient struct {
 }
 
 func (wc *WorkflowClient) Execution(namespace string) ExecutionInterface {
-	var informer argoinformerwfv1.WorkflowInformer
+	var informer v1alpha1.WorkflowInformer
 	if namespace == "" {
 		informer = argoinformer.NewSharedInformerFactory(wc.client, time.Second*30).
 			Argoproj().V1alpha1().Workflows()
@@ -766,7 +766,7 @@ type WorkflowInterface struct {
 	informer          v1alpha1.WorkflowInformer
 }
 
-func (wfi *WorkflowInterface) Create(ctx context.Context, execution ExecutionSpec, opts v1.CreateOptions) (ExecutionSpec, error) {
+func (wfi *WorkflowInterface) Create(ctx context.Context, execution ExecutionSpec, opts metav1.CreateOptions) (ExecutionSpec, error) {
 	workflow, ok := execution.(*Workflow)
 	if !ok {
 		return nil, fmt.Errorf("execution is not a valid ExecutionSpec for Argo Workflow")
@@ -779,7 +779,7 @@ func (wfi *WorkflowInterface) Create(ctx context.Context, execution ExecutionSpe
 	return &Workflow{Workflow: revWorkflow}, nil
 }
 
-func (wfi *WorkflowInterface) Update(ctx context.Context, execution ExecutionSpec, opts v1.UpdateOptions) (ExecutionSpec, error) {
+func (wfi *WorkflowInterface) Update(ctx context.Context, execution ExecutionSpec, opts metav1.UpdateOptions) (ExecutionSpec, error) {
 	workflow, ok := execution.(*Workflow)
 	if !ok {
 		return nil, fmt.Errorf("execution is not a valid ExecutionSpec for Argo Workflow")
@@ -792,15 +792,15 @@ func (wfi *WorkflowInterface) Update(ctx context.Context, execution ExecutionSpe
 	return &Workflow{Workflow: revWorkflow}, nil
 }
 
-func (wfi *WorkflowInterface) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+func (wfi *WorkflowInterface) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	return wfi.workflowInterface.Delete(ctx, name, opts)
 }
 
-func (wfi *WorkflowInterface) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+func (wfi *WorkflowInterface) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
 	return wfi.workflowInterface.DeleteCollection(ctx, opts, listOpts)
 }
 
-func (wfi *WorkflowInterface) Get(ctx context.Context, name string, opts v1.GetOptions) (ExecutionSpec, error) {
+func (wfi *WorkflowInterface) Get(ctx context.Context, name string, opts metav1.GetOptions) (ExecutionSpec, error) {
 	revWorkflow, err := wfi.workflowInterface.Get(ctx, name, opts)
 	if err != nil {
 		return nil, err
@@ -808,7 +808,7 @@ func (wfi *WorkflowInterface) Get(ctx context.Context, name string, opts v1.GetO
 	return &Workflow{Workflow: revWorkflow}, nil
 }
 
-func (wfi *WorkflowInterface) List(ctx context.Context, opts v1.ListOptions) (*ExecutionSpecList, error) {
+func (wfi *WorkflowInterface) List(ctx context.Context, opts metav1.ListOptions) (*ExecutionSpecList, error) {
 	wlist, err := wfi.workflowInterface.List(ctx, opts)
 	if err != nil {
 		return nil, err
@@ -821,7 +821,7 @@ func (wfi *WorkflowInterface) List(ctx context.Context, opts v1.ListOptions) (*E
 	return &rev, nil
 }
 
-func (wfi *WorkflowInterface) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (ExecutionSpec, error) {
+func (wfi *WorkflowInterface) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (ExecutionSpec, error) {
 	revWorkflow, err := wfi.workflowInterface.Patch(ctx, name, pt, data, opts, subresources...)
 	if err != nil {
 		return nil, err
@@ -830,7 +830,7 @@ func (wfi *WorkflowInterface) Patch(ctx context.Context, name string, pt types.P
 }
 
 type WorkflowInformer struct {
-	informer argoinformerwfv1.WorkflowInformer
+	informer v1alpha1.WorkflowInformer
 	factory  argoinformer.SharedInformerFactory
 }
 
