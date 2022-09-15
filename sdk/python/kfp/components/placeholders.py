@@ -461,7 +461,7 @@ class IfPresentPlaceholder(base_model.BaseModel, Placeholder):
         }
         return IfPresentPlaceholder(**kwargs)
 
-    def transform_else(self) -> None:
+    def _transform_else(self) -> None:
         """Use None instead of empty list for optional."""
         self.else_ = None if self.else_ == [] else self.else_
 
