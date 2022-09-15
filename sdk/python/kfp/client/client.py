@@ -259,9 +259,8 @@ class Client:
             token = existing_token
             self._is_refresh_token = False
         elif client_id:
-            token = auth.get_auth_token(client_id, other_client_id,
-                                        other_client_secret)
-            self._is_refresh_token = True
+            token, self._is_refresh_token = auth.get_auth_token(
+                client_id, other_client_id, other_client_secret)
         elif self._is_inverse_proxy_host(host):
             token = auth.get_gcp_access_token()
             self._is_refresh_token = False
@@ -477,13 +476,13 @@ class Client:
                 resource_references=resource_references)
             experiment = self._experiment_api.create_experiment(body=experiment)
 
-        link = f"{self._get_url_prefix()}/#/experiments/details/{experiment.id}"
+        link = f'{self._get_url_prefix()}/#/experiments/details/{experiment.id}'
         if self._is_ipython():
             import IPython
             html = f'<a href="{link}" target="_blank" >Experiment details</a>.'
             IPython.display.display(IPython.display.HTML(html))
         else:
-            print(f"Experiment details: {link}")
+            print(f'Experiment details: {link}')
 
         return experiment
 
@@ -784,13 +783,13 @@ class Client:
 
         response = self._run_api.create_run(body=run_body)
 
-        link = f"{self._get_url_prefix()}/#/runs/details/{response.run.id}"
+        link = f'{self._get_url_prefix()}/#/runs/details/{response.run.id}'
         if self._is_ipython():
             import IPython
             html = (f'<a href="{link}" target="_blank" >Run details</a>.')
             IPython.display.display(IPython.display.HTML(html))
         else:
-            print(f"Run details: {link}")
+            print(f'Run details: {link}')
 
         return response.run
 
@@ -1377,13 +1376,13 @@ class Client:
         validate_pipeline_resource_name(pipeline_name)
         response = self._upload_api.upload_pipeline(
             pipeline_package_path, name=pipeline_name, description=description)
-        link = f"{self._get_url_prefix()}/#/pipelines/details/{response.id}"
+        link = f'{self._get_url_prefix()}/#/pipelines/details/{response.id}'
         if self._is_ipython():
             import IPython
             html = f'<a href="{link}" target="_blank" >Pipeline details</a>.'
             IPython.display.display(IPython.display.HTML(html))
         else:
-            print(f"Pipeline details: {link}")
+            print(f'Pipeline details: {link}')
 
         return response
 
@@ -1426,13 +1425,13 @@ class Client:
         response = self._upload_api.upload_pipeline_version(
             pipeline_package_path, **kwargs)
 
-        link = f"{self._get_url_prefix()}/#/pipelines/details/{response.id}"
+        link = f'{self._get_url_prefix()}/#/pipelines/details/{response.id}'
         if self._is_ipython():
             import IPython
             html = f'<a href="{link}" target="_blank" >Pipeline details</a>.'
             IPython.display.display(IPython.display.HTML(html))
         else:
-            print(f"Pipeline details: {link}")
+            print(f'Pipeline details: {link}')
 
         return response
 

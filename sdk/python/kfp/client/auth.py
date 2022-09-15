@@ -60,30 +60,42 @@ def get_gcp_access_token() -> Union[str, None]:
 
 
 def get_auth_token(client_id: str, other_client_id: str,
-                   other_client_secret: str) -> Union[str, None]:
+                   other_client_secret: str) -> Tuple[Union[str, None], bool]:
     """Gets auth token from default service account or user account.
 
     Returns:
-        Authorization token or None, if not found.
+        Tuple of (ID token or None, if not found, and a boolean
+        indicating whether a refresh token has been saved locally)
     """
+    is_refresh_token = True
     if os.path.exists(LOCAL_KFP_CREDENTIAL):
         # fetch IAP auth token using the locally stored credentials.
         with open(LOCAL_KFP_CREDENTIAL, 'r') as f:
             credentials = json.load(f)
         if client_id in credentials:
-            return id_token_from_refresh_token(
-                credentials[client_id]['other_client_id'],
-                credentials[client_id]['other_client_secret'],
-                credentials[client_id]['refresh_token'], client_id)
+            saved_refresh_token = credentials[client_id].get('refresh_token')
+            saved_other_client_id = credentials[client_id].get(
+                'other_client_id')
+            saved_other_client_secret = credentials[client_id].get(
+                'other_client_secret')
+            if None not in {
+                    saved_refresh_token, saved_other_client_id,
+                    saved_other_client_secret
+            }:
+                return id_token_from_refresh_token(saved_other_client_id,
+                                                   saved_other_client_secret,
+                                                   saved_refresh_token,
+                                                   client_id), is_refresh_token
     if other_client_id is None or other_client_secret is None:
         # fetch IAP auth token: service accounts
         token = get_auth_token_from_sa(client_id)
+        is_refresh_token = False
     else:
         # fetch IAP auth token: user account
         # Obtain the ID token for provided Client ID with user accounts.
         # Flow: get authorization code -> exchange for refresh token -> obtain
         # and return ID token
-        refresh_token = get_refresh_token_from_client_id(
+        refresh_token, is_refresh_token = get_refresh_token_from_client_id(
             other_client_id, other_client_secret)
         credentials = {}
         if os.path.exists(LOCAL_KFP_CREDENTIAL):
@@ -92,7 +104,10 @@ def get_auth_token(client_id: str, other_client_id: str,
         credentials[client_id] = {}
         credentials[client_id]['other_client_id'] = other_client_id
         credentials[client_id]['other_client_secret'] = other_client_secret
-        credentials[client_id]['refresh_token'] = refresh_token
+        if is_refresh_token:
+            credentials[client_id]['refresh_token'] = refresh_token
+        else:
+            credentials[client_id]['access_token'] = refresh_token
         # TODO: handle the case when the refresh_token expires, which only
         # happens if the refresh_token is not used once for six months.
         if not os.path.exists(os.path.dirname(LOCAL_KFP_CREDENTIAL)):
@@ -102,7 +117,7 @@ def get_auth_token(client_id: str, other_client_id: str,
         token = id_token_from_refresh_token(other_client_id,
                                             other_client_secret, refresh_token,
                                             client_id)
-    return token
+    return token, is_refresh_token
 
 
 def get_auth_token_from_sa(client_id: str) -> Union[str, None]:
@@ -203,7 +218,8 @@ def get_google_open_id_connect_token(
     return token_response['id_token']
 
 
-def get_refresh_token_from_client_id(client_id: str, client_secret: str) -> str:
+def get_refresh_token_from_client_id(client_id: str,
+                                     client_secret: str) -> Tuple[str, bool]:
     """Obtains the ID token for provided Client ID with user accounts.
     Flow: get authorization code -> exchange for refresh token -> obtain and
     return ID token.
@@ -214,12 +230,13 @@ def get_refresh_token_from_client_id(client_id: str, client_secret: str) -> str:
             See https://console.cloud.google.com/apis/credentials.
 
     Returns:
-        OAuth short-lived access token or long-lived refresh token.
+        Tuple of (OAuth short-lived access token or long-lived refresh token,
+        and a boolean indicating whether the returned token is refresh_token)
     """
     auth_code, redirect_uri = get_auth_code(client_id)
-    token = get_refresh_token_from_code(auth_code, client_id, client_secret,
-                                        redirect_uri)
-    return token
+    token, is_refresh_token = get_refresh_token_from_code(
+        auth_code, client_id, client_secret, redirect_uri)
+    return token, is_refresh_token
 
 
 def get_auth_code(client_id: str) -> Tuple[str, str]:
@@ -322,7 +339,8 @@ def get_auth_response_local(host: str, port: int,
 
 
 def get_refresh_token_from_code(auth_code: str, client_id: str,
-                                client_secret: str, redirect_uri: str) -> str:
+                                client_secret: str,
+                                redirect_uri: str) -> Tuple[str, bool]:
     """Returns refresh or access token from authorization code.
 
     Args:
@@ -332,7 +350,8 @@ def get_refresh_token_from_code(auth_code: str, client_id: str,
         redirect_uri: Redirect uri used to obtain auth_code.
 
     Returns:
-        Long-lived refresh token or short-lived access token.
+        Tuple of (OAuth short-lived access token or long-lived refresh token,
+        and a boolean indicating whether the returned token is refresh_token)
 
     Raises:
         ValueError: If HTTP request returns
@@ -355,9 +374,11 @@ def get_refresh_token_from_code(auth_code: str, client_id: str,
              'them to another directory before running again.')) from err
     parsed_res = json.loads(res.text)
     token = parsed_res.get('refresh_token')
+    is_refresh_token = True
     if token is None:
         token = parsed_res.get('access_token')
-    return str(token)
+        is_refresh_token = False
+    return str(token), is_refresh_token
 
 
 def id_token_from_refresh_token(client_id: str, client_secret: str,
