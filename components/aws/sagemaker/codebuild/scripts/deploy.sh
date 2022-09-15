@@ -47,7 +47,12 @@ if [[ ! -z "${FULL_VERSION_TAG}" && ! "${FULL_VERSION_TAG}" =~ ^[0-9]+\.[0-9]+\.
 fi
 
 # Check version does not already exist
-VERSION_LICENSE_FILE="THIRD-PARTY-LICENSES.txt"
+if [ "${BUILD_VERSION}" == "v2" ]; then
+	VERSION_LICENSE_FILE="THIRD-PARTY-LICENSES.v2.txt"
+else
+	VERSION_LICENSE_FILE="THIRD-PARTY-LICENSES.txt"
+fi
+
 if [[ -z "${FULL_VERSION_TAG}" ]]; then
 	FULL_VERSION_TAG="$(cat ${VERSION_LICENSE_FILE} | head -n1 | grep -Po '(?<=version )\d.\d.\d')"
 fi
