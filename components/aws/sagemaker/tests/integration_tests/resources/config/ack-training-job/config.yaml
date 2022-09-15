@@ -1,0 +1,34 @@
+PipelineDefinition: resources/definition/trainingv2_pipeline.py
+TestName: ack-training-job
+Timeout: 600
+ExpectedTrainingImage: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
+Arguments:
+  region: ((REGION))
+  algorithm_specification:
+    trainingImage: ((KMEANS_REGISTRY)).dkr.ecr.((REGION)).amazonaws.com/kmeans:1
+    trainingInputMode: File
+  hyper_parameters:
+    k: "10"
+    feature_dim: "784"
+  input_data_config:
+    - channelName: train
+      dataSource:
+        s3DataSource:
+          s3URI: s3://((DATA_BUCKET))/mnist_kmeans_example/data
+          s3DataType: S3Prefix
+          s3DataDistributionType: FullyReplicated
+      compressionType: None
+      recordWrapperType: None
+      inputMode: File
+  resource_config:
+    instanceCount: 1
+    instanceType: ml.m4.xlarge
+    volumeSizeInGB: 20
+  stopping_condition:
+    maxRuntimeInSeconds: 3600
+  output_data_config:
+    s3OutputPath: s3://((DATA_BUCKET))/mnist_kmeans_example/output
+  enable_network_isolation: "True"
+  enable_managed_spot_training: "False"
+  enable_inter_container_traffic_encryption: "False"
+  role_arn: ((SAGEMAKER_ROLE_ARN))

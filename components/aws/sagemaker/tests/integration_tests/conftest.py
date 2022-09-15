@@ -148,7 +148,6 @@ def kfp_client():
     kfp_installed_namespace = utils.get_kfp_namespace()
     return kfp.Client(namespace=kfp_installed_namespace)
 
-
 def get_experiment_id(kfp_client):
     exp_name = datetime.now().strftime("%Y-%m-%d-%H-%M")
     try:
