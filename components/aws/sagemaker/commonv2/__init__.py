@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 def snake_to_camel(name):
     """Convert snake case to camel case."""
     if name == "role_arn":

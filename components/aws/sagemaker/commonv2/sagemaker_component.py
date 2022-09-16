@@ -165,7 +165,6 @@ class SageMakerComponent:
         config.load_incluster_config()
         return ApiClient()
 
-
     def _get_current_namespace(self):
         """
         Get the current namespace.
@@ -399,7 +398,6 @@ class SageMakerComponent:
         _api_client = self._get_k8s_api_client()
         _api = client.CustomObjectsApi(_api_client)
 
-
         if self.namespace is None:
             return _api.create_cluster_custom_object(
                 self.group.lower(),
@@ -612,9 +610,8 @@ class SageMakerComponent:
                 self.plural.lower(),
                 self.job_name.lower(),
             )
-        
-        return _response, True
 
+        return _response, True
 
     @staticmethod
     def _generate_unique_timestamped_id(
