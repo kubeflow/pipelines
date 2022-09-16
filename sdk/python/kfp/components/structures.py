@@ -121,7 +121,7 @@ class InputSpec(InputSpec_, base_model.BaseModel):
         else:
             return False
 
-    def validate_type(self) -> None:
+    def _validate_type(self) -> None:
         """Type should either be a parameter or a valid bundled artifact type
         by the time it gets to InputSpec.
 
@@ -188,7 +188,7 @@ class OutputSpec(base_model.BaseModel):
         else:
             return False
 
-    def validate_type(self):
+    def _validate_type(self):
         """Type should either be a parameter or a valid bundled artifact type
         by the time it gets to OutputSpec.
 
@@ -276,15 +276,15 @@ class ContainerSpecImplementation(base_model.BaseModel):
     resources: Optional[ResourceSpec] = None
     """Specification on the resource requirements."""
 
-    def transform_command(self) -> None:
+    def _transform_command(self) -> None:
         """Use None instead of empty list for command."""
         self.command = None if self.command == [] else self.command
 
-    def transform_args(self) -> None:
+    def _transform_args(self) -> None:
         """Use None instead of empty list for args."""
         self.args = None if self.args == [] else self.args
 
-    def transform_env(self) -> None:
+    def _transform_env(self) -> None:
         """Use None instead of empty dict for env."""
         self.env = None if self.env == {} else self.env
 
@@ -549,19 +549,19 @@ class ComponentSpec(base_model.BaseModel):
     inputs: Optional[Dict[str, InputSpec]] = None
     outputs: Optional[Dict[str, OutputSpec]] = None
 
-    def transform_name(self) -> None:
+    def _transform_name(self) -> None:
         """Converts the name to a valid name."""
         self.name = utils.maybe_rename_for_k8s(self.name)
 
-    def transform_inputs(self) -> None:
+    def _transform_inputs(self) -> None:
         """Use None instead of empty list for inputs."""
         self.inputs = None if self.inputs == {} else self.inputs
 
-    def transform_outputs(self) -> None:
+    def _transform_outputs(self) -> None:
         """Use None instead of empty list for outputs."""
         self.outputs = None if self.outputs == {} else self.outputs
 
-    def validate_placeholders(self):
+    def _validate_placeholders(self):
         """Validates that input/output placeholders refer to an existing
         input/output."""
         if self.implementation.container is None:

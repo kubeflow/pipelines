@@ -61,7 +61,7 @@ def importer(
         implementation=structures.Implementation(
             importer=structures.ImporterSpec(
                 artifact_uri=placeholders.InputValuePlaceholder(
-                    INPUT_KEY).to_placeholder_string(),
+                    INPUT_KEY)._to_placeholder_string(),
                 schema_title=type_utils.create_bundled_artifact_type(
                     artifact_class.schema_title, artifact_class.schema_version),
                 schema_version=artifact_class.schema_version,

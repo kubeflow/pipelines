@@ -365,7 +365,7 @@ def _get_command_and_args_for_containerized_component(
 
     args = [
         '--executor_input',
-        placeholders.ExecutorInputPlaceholder().to_placeholder_string(),
+        placeholders.ExecutorInputPlaceholder()._to_placeholder_string(),
         '--function_to_execute',
         function_name,
     ]
@@ -480,7 +480,7 @@ def create_container_component_from_func(
         container_spec)
     component_spec.implementation = structures.Implementation(
         container_spec_implementation)
-    component_spec.validate_placeholders()
+    component_spec._validate_placeholders()
     return container_component.ContainerComponent(component_spec, func)
 
 

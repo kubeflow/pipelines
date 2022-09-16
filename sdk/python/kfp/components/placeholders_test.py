@@ -28,9 +28,9 @@ class TestExecutorInputPlaceholder(parameterized.TestCase):
             self, placeholder_string: str,
             placeholder_obj: placeholders.ExecutorInputPlaceholder):
         self.assertEqual(
-            placeholders.ExecutorInputPlaceholder.from_placeholder_string(
+            placeholders.ExecutorInputPlaceholder._from_placeholder_string(
                 placeholder_string), placeholder_obj)
-        self.assertEqual(placeholder_obj.to_placeholder_string(),
+        self.assertEqual(placeholder_obj._to_placeholder_string(),
                          placeholder_string)
 
 
@@ -44,9 +44,9 @@ class TestInputValuePlaceholder(parameterized.TestCase):
             self, placeholder_string: str,
             placeholder_obj: placeholders.InputValuePlaceholder):
         self.assertEqual(
-            placeholders.InputValuePlaceholder.from_placeholder_string(
+            placeholders.InputValuePlaceholder._from_placeholder_string(
                 placeholder_string), placeholder_obj)
-        self.assertEqual(placeholder_obj.to_placeholder_string(),
+        self.assertEqual(placeholder_obj._to_placeholder_string(),
                          placeholder_string)
 
     @parameterized.parameters([
@@ -59,7 +59,7 @@ class TestInputValuePlaceholder(parameterized.TestCase):
             self, placeholder_string: str,
             placeholder_obj: placeholders.InputValuePlaceholder):
         self.assertEqual(
-            placeholders.InputValuePlaceholder.from_placeholder_string(
+            placeholders.InputValuePlaceholder._from_placeholder_string(
                 placeholder_string), placeholder_obj)
 
 
@@ -73,9 +73,9 @@ class TestInputPathPlaceholder(parameterized.TestCase):
             self, placeholder_string: str,
             placeholder_obj: placeholders.InputPathPlaceholder):
         self.assertEqual(
-            placeholders.InputPathPlaceholder.from_placeholder_string(
+            placeholders.InputPathPlaceholder._from_placeholder_string(
                 placeholder_string), placeholder_obj)
-        self.assertEqual(placeholder_obj.to_placeholder_string(),
+        self.assertEqual(placeholder_obj._to_placeholder_string(),
                          placeholder_string)
 
 
@@ -89,9 +89,9 @@ class TestInputUriPlaceholder(parameterized.TestCase):
             self, placeholder_string: str,
             placeholder_obj: placeholders.InputUriPlaceholder):
         self.assertEqual(
-            placeholders.InputUriPlaceholder.from_placeholder_string(
+            placeholders.InputUriPlaceholder._from_placeholder_string(
                 placeholder_string), placeholder_obj)
-        self.assertEqual(placeholder_obj.to_placeholder_string(),
+        self.assertEqual(placeholder_obj._to_placeholder_string(),
                          placeholder_string)
 
 
@@ -105,9 +105,9 @@ class TestInputMetadataPlaceholder(parameterized.TestCase):
             self, placeholder_string: str,
             placeholder_obj: placeholders.InputMetadataPlaceholder):
         self.assertEqual(
-            placeholders.InputMetadataPlaceholder.from_placeholder_string(
+            placeholders.InputMetadataPlaceholder._from_placeholder_string(
                 placeholder_string), placeholder_obj)
-        self.assertEqual(placeholder_obj.to_placeholder_string(),
+        self.assertEqual(placeholder_obj._to_placeholder_string(),
                          placeholder_string)
 
 
@@ -121,9 +121,9 @@ class TestOutputPathPlaceholder(parameterized.TestCase):
             self, placeholder_string: str,
             placeholder_obj: placeholders.OutputPathPlaceholder):
         self.assertEqual(
-            placeholders.OutputPathPlaceholder.from_placeholder_string(
+            placeholders.OutputPathPlaceholder._from_placeholder_string(
                 placeholder_string), placeholder_obj)
-        self.assertEqual(placeholder_obj.to_placeholder_string(),
+        self.assertEqual(placeholder_obj._to_placeholder_string(),
                          placeholder_string)
 
 
@@ -137,9 +137,9 @@ class TestOutputParameterPlaceholder(parameterized.TestCase):
             self, placeholder_string: str,
             placeholder_obj: placeholders.OutputParameterPlaceholder):
         self.assertEqual(
-            placeholders.OutputParameterPlaceholder.from_placeholder_string(
+            placeholders.OutputParameterPlaceholder._from_placeholder_string(
                 placeholder_string), placeholder_obj)
-        self.assertEqual(placeholder_obj.to_placeholder_string(),
+        self.assertEqual(placeholder_obj._to_placeholder_string(),
                          placeholder_string)
 
 
@@ -153,9 +153,9 @@ class TestOutputUriPlaceholder(parameterized.TestCase):
             self, placeholder_string: str,
             placeholder_obj: placeholders.OutputUriPlaceholder):
         self.assertEqual(
-            placeholders.OutputUriPlaceholder.from_placeholder_string(
+            placeholders.OutputUriPlaceholder._from_placeholder_string(
                 placeholder_string), placeholder_obj)
-        self.assertEqual(placeholder_obj.to_placeholder_string(),
+        self.assertEqual(placeholder_obj._to_placeholder_string(),
                          placeholder_string)
 
 
@@ -169,9 +169,9 @@ class TestOutputMetadataPlaceholder(parameterized.TestCase):
             self, placeholder_string: str,
             placeholder_obj: placeholders.OutputMetadataPlaceholder):
         self.assertEqual(
-            placeholders.OutputMetadataPlaceholder.from_placeholder_string(
+            placeholders.OutputMetadataPlaceholder._from_placeholder_string(
                 placeholder_string), placeholder_obj)
-        self.assertEqual(placeholder_obj.to_placeholder_string(),
+        self.assertEqual(placeholder_obj._to_placeholder_string(),
                          placeholder_string)
 
 
@@ -211,9 +211,9 @@ class TestIfPresentPlaceholderStructure(parameterized.TestCase):
             self, placeholder_string: str,
             placeholder_obj: placeholders.ConcatPlaceholder):
         self.assertEqual(
-            placeholders.IfPresentPlaceholder.from_placeholder_string(
+            placeholders.IfPresentPlaceholder._from_placeholder_string(
                 placeholder_string), placeholder_obj)
-        self.assertEqual(placeholder_obj.to_placeholder_string(),
+        self.assertEqual(placeholder_obj._to_placeholder_string(),
                          placeholder_string)
 
 
@@ -238,9 +238,9 @@ class TestConcatPlaceholder(parameterized.TestCase):
             self, placeholder_string: str,
             placeholder_obj: placeholders.ConcatPlaceholder):
         self.assertEqual(
-            placeholders.ConcatPlaceholder.from_placeholder_string(
+            placeholders.ConcatPlaceholder._from_placeholder_string(
                 placeholder_string), placeholder_obj)
-        self.assertEqual(placeholder_obj.to_placeholder_string(),
+        self.assertEqual(placeholder_obj._to_placeholder_string(),
                          placeholder_string)
 
     @parameterized.parameters([
@@ -252,7 +252,7 @@ class TestConcatPlaceholder(parameterized.TestCase):
         "some value{{$.inputs.parameters[''input_infix'']}}some value"
     ])
     def test_is_match(self, placeholder: str):
-        self.assertTrue(placeholders.ConcatPlaceholder.is_match(placeholder))
+        self.assertTrue(placeholders.ConcatPlaceholder._is_match(placeholder))
 
     @parameterized.parameters([
         ("{{$.inputs.parameters[''input1'']}}something{{$.inputs.parameters[''input2'']}}",
@@ -277,8 +277,8 @@ class TestConcatPlaceholder(parameterized.TestCase):
     def test_split_cel_concat_string(self, placeholder: str,
                                      expected: List[str]):
         self.assertEqual(
-            placeholders.ConcatPlaceholder.split_cel_concat_string(placeholder),
-            expected)
+            placeholders.ConcatPlaceholder._split_cel_concat_string(
+                placeholder), expected)
 
 
 class TestProcessCommandArg(unittest.TestCase):
