@@ -257,7 +257,7 @@ def build_task_spec_for_task(
                                 existing_input_name, additional_input_name))
 
                 additional_input_placeholder = placeholders.InputValuePlaceholder(
-                    additional_input_name).to_placeholder_string()
+                    additional_input_name)._to_placeholder_string()
                 input_value = input_value.replace(channel.pattern,
                                                   additional_input_placeholder)
 
