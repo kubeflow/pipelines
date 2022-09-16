@@ -15,6 +15,7 @@
 package storage
 
 import (
+	"log"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
@@ -134,7 +135,7 @@ func TestGetExecutionCacheWithLatestCacheEntry(t *testing.T) {
 	require.Equal(t, &executionCacheExpected, executionCache)
 }
 
-func TestGetExecutionCacheWithExpiredMaxCacheStaleness(t *testing.T) {
+func TestGetExecutionCacheWithExpiredDatabaseCacheStaleness(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
 	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
@@ -148,6 +149,46 @@ func TestGetExecutionCacheWithExpiredMaxCacheStaleness(t *testing.T) {
 
 	var executionCache *model.ExecutionCache
 	executionCache, err := executionCacheStore.GetExecutionCache("testKey", -1, -1)
+	require.Contains(t, err.Error(), "Execution cache not found")
+	require.Nil(t, executionCache)
+}
+
+func TestGetExecutionCacheWithExpiredAnnotationCacheStaleness(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
+	executionCacheToPersist := &model.ExecutionCache{
+		ExecutionCacheKey: "testKey",
+		ExecutionTemplate: "testTemplate",
+		ExecutionOutput:   "testOutput",
+		MaxCacheStaleness: -1,
+	}
+	executionCacheStore.CreateExecutionCache(executionCacheToPersist)
+
+	var executionCache *model.ExecutionCache
+	executionCache, err := executionCacheStore.GetExecutionCache("testKey", 0, -1)
+	log.Println(executionCache)
+	log.Println("error: " + err.Error())
+	require.Contains(t, err.Error(), "CacheStaleness=0, Cache is disabled.")
+	require.Nil(t, executionCache)
+}
+
+func TestGetExecutionCacheWithExpiredMaximumCacheStaleness(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
+	executionCacheToPersist := &model.ExecutionCache{
+		ExecutionCacheKey: "testKey",
+		ExecutionTemplate: "testTemplate",
+		ExecutionOutput:   "testOutput",
+		MaxCacheStaleness: -1,
+	}
+	executionCacheStore.CreateExecutionCache(executionCacheToPersist)
+
+	var executionCache *model.ExecutionCache
+	executionCache, err := executionCacheStore.GetExecutionCache("testKey", -1, 0)
+	log.Println(executionCache)
+	log.Println("error: " + err.Error())
 	require.Contains(t, err.Error(), "Execution cache not found")
 	require.Nil(t, executionCache)
 }
