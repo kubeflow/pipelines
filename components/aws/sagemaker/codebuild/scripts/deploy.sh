@@ -13,12 +13,13 @@
 
 set -e
 
-REMOTE_REPOSITORY="amazon/aws-sagemaker-kfp-components"
+REMOTE_REPOSITORY="public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components"
 DRYRUN="true"
 FULL_VERSION_TAG=""
+BUILD_VERSION=""
 DOCKER_CONFIG_PATH=${DOCKER_CONFIG_PATH:-"/root/.docker"}
 
-while getopts ":d:v:" opt; do
+while getopts ":d:v:b:" opt; do
 	case ${opt} in
 		d)
 			if [[ "${OPTARG}" = "false" ]]; then
@@ -30,8 +31,17 @@ while getopts ":d:v:" opt; do
 		v)
 			FULL_VERSION_TAG="${OPTARG}"
 			;;
+		b)
+			BUILD_VERSION="${OPTARG}"
+			;;
 	esac
 done
+
+# Check that build version is not empty
+if [ -z "$BUILD_VERSION" ]; then
+  >&2 echo "BUILD_VERSION is required, please provide the variable in codebuild or -b <BUILD_VERSION> if running locally"
+  exit 1
+fi
 
 function docker_tag_exists() {
     curl --silent -f -lSL https://index.docker.io/v1/repositories/$1/tags/$2 > /dev/null 2> /dev/null
@@ -43,7 +53,12 @@ if [[ ! -z "${FULL_VERSION_TAG}" && ! "${FULL_VERSION_TAG}" =~ ^[0-9]+\.[0-9]+\.
 fi
 
 # Check version does not already exist
-VERSION_LICENSE_FILE="THIRD-PARTY-LICENSES.txt"
+if [ "${BUILD_VERSION}" == "v2" ]; then
+	VERSION_LICENSE_FILE="THIRD-PARTY-LICENSES.v2.txt"
+else
+	VERSION_LICENSE_FILE="THIRD-PARTY-LICENSES.txt"
+fi
+
 if [[ -z "${FULL_VERSION_TAG}" ]]; then
 	FULL_VERSION_TAG="$(cat ${VERSION_LICENSE_FILE} | head -n1 | grep -Po '(?<=version )\d.\d.\d')"
 fi
@@ -62,7 +77,14 @@ echo "Deploying version ${FULL_VERSION_TAG}"
 
 # Build the image
 FULL_VERSION_IMAGE="${REMOTE_REPOSITORY}:${FULL_VERSION_TAG}"
-docker build . -f Dockerfile -t "${FULL_VERSION_IMAGE}"
+
+if [ "${BUILD_VERSION}" == "v2" ]; then
+	echo "Building V2 image"
+	docker build . -f v2.Dockerfile -t "${FULL_VERSION_IMAGE}"
+else
+	echo "Building V1 image"
+	docker build . -f Dockerfile -t "${FULL_VERSION_IMAGE}"
+fi
 
 # Get the minor and major versions
 [[ $FULL_VERSION_TAG =~ ^[0-9]+\.[0-9]+ ]] && MINOR_VERSION_IMAGE="${REMOTE_REPOSITORY}:${BASH_REMATCH[0]}"

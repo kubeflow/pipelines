@@ -46,12 +46,10 @@ class GraphComponent(base_component.BaseComponent):
         signature = inspect.signature(pipeline_func)
 
         for arg_name in signature.parameters:
-            arg_type = component_spec.inputs[arg_name].type
+            input_spec = component_spec.inputs[arg_name]
             args_list.append(
                 pipeline_channel.create_pipeline_channel(
-                    name=arg_name,
-                    channel_type=arg_type,
-                ))
+                    name=arg_name, channel_type=input_spec.type))
 
         with pipeline_context.Pipeline(
                 self.component_spec.name) as dsl_pipeline:

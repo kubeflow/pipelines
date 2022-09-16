@@ -38,6 +38,12 @@ ROBOMAKER_EXECUTION_ROLE_ARN=${ROBOMAKER_EXECUTION_ROLE_ARN:-""}
 
 SKIP_FSX_TESTS=${SKIP_FSX_TESTS:-"false"}
 
+ACK_RELEASE_VERSION=${ACK_RELEASE_VERSION:-"v0.4.3"}
+HELM_EXPERIMENTAL_OCI=1
+SERVICE=sagemaker
+CHART_EXPORT_PATH=/tmp/chart
+CHART_REF=sagemaker-chart
+
 while getopts ":n:r:s:" opt; do
   case $opt in
     n)
@@ -83,6 +89,10 @@ function cleanup() {
   set +e
 
   cleanup_kfp
+  # If installation fails before ack installation resources should be freed.
+  if [[ -v ACK_K8S_NAMESPACE ]]; then
+    uninstall_ack
+  fi
   delete_assumed_role
   
   [ "${SKIP_KFP_OIDC_SETUP}" == "false" ] && delete_oidc_role
@@ -162,6 +172,35 @@ function install_kfp() {
   sleep 3m
 
   echo "[Installing KFP] Pipeline pods are ready"
+}
+
+function install_ack(){
+  
+  local CHART_REPO=public.ecr.aws/aws-controllers-k8s/${CHART_REF}
+  local CHART_PACKAGE=${CHART_REF}-${ACK_RELEASE_VERSION}.tgz
+  ACK_K8S_NAMESPACE=ack-system
+
+  mkdir -p ${CHART_EXPORT_PATH}
+  
+  helm pull oci://${CHART_REPO} --version ${ACK_RELEASE_VERSION} -d ${CHART_EXPORT_PATH}
+  tar xvf ${CHART_EXPORT_PATH}/${CHART_PACKAGE} -C ${CHART_EXPORT_PATH}
+  
+  export OIDC_ROLE_ARN
+  cd ${CHART_EXPORT_PATH}/${SERVICE}-chart
+  yq e '.aws.region = env(REGION)' -i values.yaml
+  yq e '.serviceAccount.annotations."eks.amazonaws.com/role-arn" = strenv(OIDC_ROLE_ARN)' -i values.yaml
+  cd -
+
+  kubectl apply -f ${CHART_EXPORT_PATH}/${SERVICE}-chart/crds
+  helm install -n ${ACK_K8S_NAMESPACE} --create-namespace --skip-crds ack-${SERVICE}-controller \
+  ${CHART_EXPORT_PATH}/${SERVICE}-chart
+  kubectl apply -f ack-rbac.yaml
+}
+
+function uninstall_ack(){
+  kubectl delete trainingjob --all -n ${KFP_NAMESPACE}
+  kubectl delete -f ${CHART_EXPORT_PATH}/${SERVICE}-chart/crds
+  kubectl delete namespace $ACK_K8S_NAMESPACE
 }
 
 function generate_oidc_role_name() {
@@ -261,6 +300,7 @@ fi
 install_kfp
 [ "${SKIP_KFP_OIDC_SETUP}" == "false" ] && install_oidc_role
 generate_assumed_role
+install_ack
 
 pytest_args=( --region "${REGION}" --sagemaker-role-arn "${SAGEMAKER_EXECUTION_ROLE_ARN}" \
   --s3-data-bucket "${S3_DATA_BUCKET}" --kfp-namespace "${KFP_NAMESPACE}" \
@@ -279,4 +319,4 @@ fi
 
 DIR_THIS_FILE="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-cd $DIR_THIS_FILE/../ && python -m pytest "${pytest_args[@]}" --junitxml ./integration_tests.log -n 10
+cd $DIR_THIS_FILE/../ && python -m pytest "${pytest_args[@]}" --junitxml ./integration_tests.log -n 9

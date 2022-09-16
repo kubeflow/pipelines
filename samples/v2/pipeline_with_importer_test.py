@@ -16,14 +16,15 @@
 from __future__ import annotations
 
 import unittest
-from pprint import pprint
 
 import kfp.deprecated as kfp
+from kfp.samples.test.utils import KfpTask
+from kfp.samples.test.utils import run_pipeline_func
+from kfp.samples.test.utils import TestCase
 import kfp_server_api
 from ml_metadata.proto import Execution
 
 from .pipeline_with_importer import pipeline_with_importer
-from kfp.samples.test.utils import KfpTask, run_pipeline_func, TestCase
 
 
 def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
@@ -60,14 +61,12 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
             'outputs': {
                 'artifacts': [{
                     'name': 'artifact',
-                    'type': 'system.Artifact',
-                    # 'type': 'system.Dataset',
+                    'type': 'system.Dataset',
                 }],
             },
             'type': 'system.ImporterExecution',
             'state': Execution.State.COMPLETE,
-        },
-        importer_dict)
+        }, importer_dict)
 
     t.assertEqual(
         {
@@ -75,9 +74,7 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
             'inputs': {
                 'artifacts': [{
                     'name': 'dataset',
-                    # TODO(chesu): compiled pipeline spec incorrectly sets importer artifact type to system.Artifact, but in the pipeline, it should be system.Dataset.
-                    'type': 'system.Artifact',
-                    # 'type': 'system.Dataset'
+                    'type': 'system.Dataset'
                 }],
             },
             'outputs': {
@@ -94,8 +91,7 @@ def verify(t: unittest.TestCase, run: kfp_server_api.ApiRun,
             },
             'type': 'system.ContainerExecution',
             'state': Execution.State.COMPLETE,
-        },
-        train_dict)
+        }, train_dict)
 
 
 if __name__ == '__main__':

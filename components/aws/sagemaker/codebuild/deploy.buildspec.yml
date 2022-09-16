@@ -1,12 +1,16 @@
 version: 0.2
 
+env:
+  variables: 
+    DOCKER_BUILDKIT: "1"
+
 phases:
   pre_build:
     commands:
       # Log in to Dockerhub
-      - docker login -u $DOCKER_CONFIG_USERNAME -p $DOCKER_CONFIG_PASSWORD
+      - aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/kubeflow-on-aws
 
   build:
     commands:
       - cd components/aws/sagemaker
-      - ./codebuild/scripts/deploy.sh -d "${DRY_RUN}"
+      - ./codebuild/scripts/deploy.sh -d "${DRY_RUN}" -b "${BUILD_VERSION}"

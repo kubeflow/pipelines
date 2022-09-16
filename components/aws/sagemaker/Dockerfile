@@ -11,12 +11,12 @@
 # limitations under the License. 
 
 
-FROM amazonlinux:2
+FROM public.ecr.aws/amazonlinux/amazonlinux:2
 
 ENV PYTHONPATH /app
 
 RUN yum update -y \
- && yum install -y -q \
+    && yum install -y -q \
     ca-certificates \
     python3 \
     wget \

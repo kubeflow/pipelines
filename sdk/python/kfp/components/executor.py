@@ -13,6 +13,7 @@
 # limitations under the License.
 import inspect
 import json
+import os
 from typing import Any, Callable, Dict, List, Optional, Union
 
 from kfp.components import task_final_status
@@ -37,30 +38,40 @@ class Executor():
                                                {}).get('artifacts', {}).items():
             artifacts_list = artifacts.get('artifacts')
             if artifacts_list:
-                self._input_artifacts[name] = self._make_input_artifact(
-                    artifacts_list[0])
+                self._input_artifacts[name] = self.make_artifact(
+                    artifacts_list[0],
+                    name,
+                    self._func,
+                )
 
         for name, artifacts in self._input.get('outputs',
                                                {}).get('artifacts', {}).items():
             artifacts_list = artifacts.get('artifacts')
             if artifacts_list:
-                self._output_artifacts[name] = self._make_output_artifact(
-                    artifacts_list[0])
+                output_artifact = self.make_artifact(
+                    artifacts_list[0],
+                    name,
+                    self._func,
+                )
+                self._output_artifacts[name] = output_artifact
+                self.makedirs_recursively(output_artifact.path)
 
         self._return_annotation = inspect.signature(
             self._func).return_annotation
         self._executor_output = {}
 
-    @classmethod
-    def _make_input_artifact(cls, runtime_artifact: Dict):
-        return artifact_types.create_runtime_artifact(runtime_artifact)
+    def make_artifact(
+        self,
+        runtime_artifact: Dict,
+        name: str,
+        func: Callable,
+    ) -> Any:
+        artifact_cls = func.__annotations__.get(name)
+        return create_artifact_instance(
+            runtime_artifact, artifact_cls=artifact_cls)
 
-    @classmethod
-    def _make_output_artifact(cls, runtime_artifact: Dict):
-        import os
-        artifact = artifact_types.create_runtime_artifact(runtime_artifact)
-        os.makedirs(os.path.dirname(artifact.path), exist_ok=True)
-        return artifact
+    def makedirs_recursively(self, path: str) -> None:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
 
     def _get_input_artifact(self, name: str):
         return self._input_artifacts.get(name)
@@ -170,7 +181,7 @@ class Executor():
     @classmethod
     def _is_artifact(cls, annotation: Any) -> bool:
         if type(annotation) == type:
-            return issubclass(annotation, artifact_types.Artifact)
+            return type_annotations.is_artifact_class(annotation)
         return False
 
     @classmethod
@@ -297,3 +308,20 @@ class Executor():
 
         result = self._func(**func_kwargs)
         self._write_executor_output(result)
+
+
+def create_artifact_instance(
+    runtime_artifact: Dict,
+    artifact_cls=artifact_types.Artifact,
+) -> type:
+    """Creates an artifact class instances from a runtime artifact
+    dictionary."""
+    schema_title = runtime_artifact.get('type', {}).get('schemaTitle', '')
+
+    artifact_cls = artifact_types._SCHEMA_TITLE_TO_TYPE.get(
+        schema_title, artifact_cls)
+    return artifact_cls(
+        uri=runtime_artifact.get('uri', ''),
+        name=runtime_artifact.get('name', ''),
+        metadata=runtime_artifact.get('metadata', {}),
+    )

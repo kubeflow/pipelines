@@ -111,11 +111,11 @@ class PipelineChannelTest(parameterized.TestCase):
             'pipeline_channel':
                 pipeline_channel.PipelineArtifactChannel(
                     name='channel5',
-                    channel_type='Artifact',
+                    channel_type='system.Artifact@0.0.1',
                     task_name='task5',
                 ),
             'str_repr':
-                '{{channel:task=task5;name=channel5;type=Artifact;}}',
+                '{{channel:task=task5;name=channel5;type=system.Artifact@0.0.1;}}',
         },
     )
     def test_str_repr(self, pipeline_channel, str_repr):
