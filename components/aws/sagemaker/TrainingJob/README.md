@@ -2,8 +2,6 @@
 
 Component to create [SageMaker Training jobs](https://docs.aws.amazon.com/sagemaker/latest/dg/how-it-works-training.html) in a Kubeflow Pipelines workflow.
 
-| :warning: WARNING: This component is in Preview Release Phase. It is not GA |
-| --- |
 
 ## Overview
 
@@ -74,7 +72,11 @@ Follow this guide to get started with using the SageMaker Training Job pipeline 
 Head over to the [samples](./samples/) directory and follow the README to create jobs on SageMaker.
 
 ## Inputs Parameters
-Find the high level component input parameters and their description in the [component's input specification](./component.yaml). The parameters with `JsonObject` or `JsonArray` type inputs have nested fields, you will have to refer to the [TrainingJob CRD specification](https://aws-controllers-k8s.github.io/community/reference/sagemaker/v1alpha1/trainingjob/) for the respective structure and pass the input in JSON format. For e.g. the `resourceConfig` in the `TrainingJob` CRD looks like:
+Find the high level component input parameters and their description in the [component's input specification](./component.yaml). The parameters with `JsonObject` or `JsonArray` type inputs have nested fields, you will have to refer to the [TrainingJob CRD specification](https://aws-controllers-k8s.github.io/community/reference/sagemaker/v1alpha1/trainingjob/) for the respective structure and pass the input in JSON format. 
+
+A quick way to see the converted JSON style input is to copy the [sample TrainingJob spec](https://aws-controllers-k8s.github.io/community/reference/sagemaker/v1alpha1/trainingjob/#spec) and convert it to JSON using a YAML to JSON converter like [this website](https://jsonformatter.org/yaml-to-json).
+
+For e.g. the `resourceConfig` in the `TrainingJob` CRD looks like:
 
 ```
 resourceConfig: 

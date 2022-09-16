@@ -16,10 +16,14 @@ def pytest_addoption(parser):
         help="AWS region where test will run",
     )
     parser.addoption(
-        "--sagemaker-role-arn", required=True, help="SageMaker execution IAM role ARN",
+        "--sagemaker-role-arn",
+        required=True,
+        help="SageMaker execution IAM role ARN",
     )
     parser.addoption(
-        "--robomaker-role-arn", required=True, help="RoboMaker execution IAM role ARN",
+        "--robomaker-role-arn",
+        required=True,
+        help="RoboMaker execution IAM role ARN",
     )
     parser.addoption(
         "--assume-role-arn",
@@ -147,6 +151,7 @@ def s3_client(boto3_session):
 def kfp_client():
     kfp_installed_namespace = utils.get_kfp_namespace()
     return kfp.Client(namespace=kfp_installed_namespace)
+
 
 def get_experiment_id(kfp_client):
     exp_name = datetime.now().strftime("%Y-%m-%d-%H-%M")
