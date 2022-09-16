@@ -91,7 +91,6 @@ class Executor():
         return self._output_artifacts.get(name)
 
     def _get_input_parameter_value(self, parameter_name: str):
-        print
         parameter_values = self._input.get('inputs',
                                            {}).get('parameterValues', None)
 
