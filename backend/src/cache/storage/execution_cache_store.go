@@ -36,15 +36,20 @@ type ExecutionCacheStore struct {
 }
 
 func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string, cacheStaleness int64, maximumCacheStaleness int64) (*model.ExecutionCache, error) {
+	rowsAffected, err := s.cleanDatabase(maximumCacheStaleness)
+	log.Printf("Number of deleted rows: %d", rowsAffected)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to cleanup old cache entries: %s", err)
+	}
 	if cacheStaleness == 0 {
-		return nil, fmt.Errorf("MaxCacheStaleness=0, Cache is disabled.")
+		return nil, fmt.Errorf("CacheStaleness=0, Cache is disabled.")
 	}
 	r, err := s.db.Table("execution_caches").Where("ExecutionCacheKey = ?", executionCacheKey).Rows()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get execution cache: %q", executionCacheKey)
 	}
 	defer r.Close()
-	executionCaches, err := s.scanRows(r, cacheStaleness, maximumCacheStaleness)
+	executionCaches, err := s.scanRows(r, cacheStaleness)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get execution cache: %q", executionCacheKey)
 	}
@@ -58,7 +63,21 @@ func (s *ExecutionCacheStore) GetExecutionCache(executionCacheKey string, cacheS
 	return latestCache, nil
 }
 
-func (s *ExecutionCacheStore) scanRows(rows *sql.Rows, podCacheStaleness int64, maximumCacheStaleness int64) ([]*model.ExecutionCache, error) {
+func (s *ExecutionCacheStore) cleanDatabase(maximumCacheStaleness int64) (int64, error) {
+	// Expire any entry for any pipeline that is
+	// older than os.LookupEnv("MAXIMUM_CACHE_STALENESS")
+	if maximumCacheStaleness < 0 {
+		return 0, nil
+	}
+	log.Printf("Cleaning cache entries older than maximumCacheStaleness=%d", maximumCacheStaleness)
+	db := s.db.Exec(
+		"DELETE FROM execution_caches WHERE " +
+			strconv.FormatInt(int64(s.time.Now().UTC().Unix()), 10) + " - StartedAtInSec" +
+			" > " + strconv.FormatInt(int64(maximumCacheStaleness), 10) + ";")
+	return db.RowsAffected, db.Error
+}
+
+func (s *ExecutionCacheStore) scanRows(rows *sql.Rows, podCacheStaleness int64) ([]*model.ExecutionCache, error) {
 	var executionCaches []*model.ExecutionCache
 	for rows.Next() {
 		var executionCacheKey, executionTemplate, executionOutput string
@@ -89,19 +108,6 @@ func (s *ExecutionCacheStore) scanRows(rows *sql.Rows, podCacheStaleness int64, 
 				StartedAtInSec:    startedAtInSec,
 				EndedAtInSec:      endedAtInSec,
 			})
-		}
-		// Expire any entry for any pipeline that is
-		// older than os.LookupEnv("MAXIMUM_CACHE_STALENESS")
-		if maximumCacheStaleness >= 0 {
-			log.Printf("Cleaning cache entries older than maximumCacheStaleness=%d", maximumCacheStaleness)
-			db := s.db.Exec(
-				"DELETE FROM execution_caches WHERE " +
-					strconv.FormatInt(int64(s.time.Now().UTC().Unix()), 10) + " - StartedAtInSec" +
-					" > " + strconv.FormatInt(int64(maximumCacheStaleness), 10) + ";")
-			log.Printf("Number of deleted rows: %d", db.RowsAffected)
-			if db.Error != nil {
-				return nil, fmt.Errorf("Failed to cleanup old cache entries: %s", db.Error)
-			}
 		}
 	}
 	return executionCaches, nil
