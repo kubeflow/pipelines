@@ -85,7 +85,7 @@ def importer(
                 type=d.channel_type)
 
             return placeholders.InputValuePlaceholder(
-                input_name=unique_name).to_placeholder_string()
+                input_name=unique_name)._to_placeholder_string()
 
         elif isinstance(d, dict):
             return {
@@ -120,7 +120,7 @@ def importer(
         implementation=structures.Implementation(
             importer=structures.ImporterSpec(
                 artifact_uri=placeholders.InputValuePlaceholder(
-                    URI_KEY).to_placeholder_string(),
+                    URI_KEY)._to_placeholder_string(),
                 schema_title=type_utils.create_bundled_artifact_type(
                     artifact_class.schema_title, artifact_class.schema_version),
                 schema_version=artifact_class.schema_version,
