@@ -180,7 +180,7 @@ class TestImporterSupportsDynamicMetadata(unittest.TestCase):
             'importer'].struct_value.fields['metadata']
         self.assertEqual(
             metadata.struct_value.fields[
-                "prefix1-{{$.inputs.parameters[\'metadata-2\']}}"].string_value,
-            "prefix2-{{$.inputs.parameters[\'metadata\']}}")
+                "prefix1-{{$.inputs.parameters[\'metadata\']}}"].string_value,
+            "prefix2-{{$.inputs.parameters[\'metadata-2\']}}")
         self.assertEqual(metadata.struct_value.fields['key'].string_value,
                          'value')

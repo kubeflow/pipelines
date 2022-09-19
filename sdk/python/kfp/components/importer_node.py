@@ -88,11 +88,13 @@ def importer(
                 input_name=unique_name)._to_placeholder_string()
 
         elif isinstance(d, dict):
-            return {
-                traverse_dict_and_create_metadata_inputs(k):
-                traverse_dict_and_create_metadata_inputs(v)
-                for k, v in d.items()
-            }
+            # use this instead of list comprehension to ensure compiles are identical across Python versions
+            res = {}
+            for k, v in d.items():
+                new_k = traverse_dict_and_create_metadata_inputs(k)
+                new_v = traverse_dict_and_create_metadata_inputs(v)
+                res[new_k] = new_v
+            return res
 
         elif isinstance(d, list):
             return [traverse_dict_and_create_metadata_inputs(el) for el in d]
