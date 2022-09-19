@@ -96,7 +96,7 @@ export function RuntimeNodeDetailsV2({
           onLayerChange={onLayerChange}
           namespace={namespace}
         />
-      )
+      );
     }
     return NODE_INFO_UNKNOWN;
   })();
@@ -311,11 +311,11 @@ interface SubDAGNodeDetailProps {
 }
 
 function SubDAGNodeDetail({
-    element,
-    execution,
-    layers,
-    onLayerChange,
-    namespace,
+  element,
+  execution,
+  layers,
+  onLayerChange,
+  namespace,
 }: SubDAGNodeDetailProps) {
   const taskKey = getTaskKeyFromNodeKey(element.id);
   // const componentSpec = getComponentSpec(pipelineSpec, layers, taskKey);
@@ -336,7 +336,7 @@ function SubDAGNodeDetail({
           Open Workflow
         </Button>
       </div>
-    
+
       <div className={commonCss.page}>
         <MD2Tabs
           tabs={['Input/Output', 'Task Details']}
@@ -348,7 +348,9 @@ function SubDAGNodeDetail({
           {selectedTab === 0 &&
             (() => {
               if (execution) {
-                return <InputOutputTab execution={execution} namespace={namespace}></InputOutputTab>;
+                return (
+                  <InputOutputTab execution={execution} namespace={namespace}></InputOutputTab>
+                );
               }
               return NODE_STATE_UNAVAILABLE;
             })()}
@@ -356,7 +358,10 @@ function SubDAGNodeDetail({
           {/* Task Details tab */}
           {selectedTab === 1 && (
             <div className={padding(20)}>
-              <DetailsTable title='Task Details' fields={getTaskDetailsFields(element, execution)} />
+              <DetailsTable
+                title='Task Details'
+                fields={getTaskDetailsFields(element, execution)}
+              />
             </div>
           )}
         </div>
