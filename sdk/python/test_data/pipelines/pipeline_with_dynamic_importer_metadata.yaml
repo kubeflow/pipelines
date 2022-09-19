@@ -70,7 +70,7 @@ deploymentSpec:
           - '{{$.inputs.parameters[''metadata'']}}'
           - '{{$.inputs.parameters[''metadata-2'']}}'
           - '{{$.inputs.parameters[''metadata-3'']}}'
-          name: '{{$.inputs.parameters[''metadata'']}}'
+          name: prefix-{{$.inputs.parameters['metadata']}}
           '{{$.inputs.parameters[''metadata'']}}': '{{$.inputs.parameters[''metadata'']}}'
           '{{$.inputs.parameters[''metadata-2'']}}': us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest
         typeSchema:

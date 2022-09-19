@@ -149,3 +149,38 @@ class TestImporterSupportsDynamicMetadata(unittest.TestCase):
         self.assertEqual(
             metadata.struct_value.fields["{{$.inputs.parameters['metadata']}}"]
             .string_value, "{{$.inputs.parameters['metadata']}}")
+
+    def test_dynamic_fstring_in_metadata(self):
+
+        @dsl.component
+        def string_task() -> str:
+            return 'string'
+
+        @dsl.pipeline()
+        def my_pipeline(integer: int = 1):
+            task = string_task()
+            dataset = importer_node.importer(
+                'gs://my_bucket',
+                Dataset,
+                reimport=True,
+                metadata={
+                    f'prefix1-{integer}': f'prefix2-{task.output}',
+                    'key': 'value'
+                })
+
+        pipeline_spec = my_pipeline.pipeline_spec
+        input_keys = list(pipeline_spec.components['comp-importer']
+                          .input_definitions.parameters.keys())
+        self.assertIn('metadata', input_keys)
+        self.assertIn('metadata-2', input_keys)
+        self.assertNotIn('metadata-3', input_keys)
+        deployment_spec = pipeline_spec.deployment_spec.fields[
+            'executors'].struct_value.fields['exec-importer']
+        metadata = deployment_spec.struct_value.fields[
+            'importer'].struct_value.fields['metadata']
+        self.assertEqual(
+            metadata.struct_value.fields[
+                "prefix1-{{$.inputs.parameters[\'metadata-2\']}}"].string_value,
+            "prefix2-{{$.inputs.parameters[\'metadata\']}}")
+        self.assertEqual(metadata.struct_value.fields['key'].string_value,
+                         'value')

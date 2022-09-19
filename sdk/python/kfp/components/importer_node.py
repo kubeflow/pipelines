@@ -96,6 +96,19 @@ def importer(
 
         elif isinstance(d, list):
             return [traverse_dict_and_create_metadata_inputs(el) for el in d]
+
+        elif isinstance(d, str):
+            # extract pipeline channels from f-strings, if any
+            pipeline_channels = pipeline_channel.extract_pipeline_channels_from_any(
+                d)
+
+            # pass the channel back into the recursive function to create the placeholder, component inputs, and call inputs, then replace the channel with the placeholder
+            for channel in pipeline_channels:
+                input_placeholder = traverse_dict_and_create_metadata_inputs(
+                    channel)
+                d = d.replace(channel.pattern, input_placeholder)
+            return d
+
         else:
             return d
 

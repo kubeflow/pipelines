@@ -51,7 +51,7 @@ def my_pipeline(name: str = 'default-name',
         artifact_class=Dataset,
         reimport=False,
         metadata={
-            'name': make_name_op.output,
+            'name': f'prefix-{make_name_op.output}',
             'list-of-data': [make_name_op.output, name, int_input],
             make_name_op.output: make_name_op.output,
             name: DEFAULT_IMAGE_URI,
