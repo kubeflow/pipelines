@@ -13,14 +13,14 @@
 # limitations under the License.
 """Utility function for building Importer Node spec."""
 
-import sys
-from typing import Any, Dict, List, Mapping, Optional, Type, Union
+from typing import Any, Dict, Mapping, Optional, Type, Union
 
 from kfp.components import importer_component
 from kfp.components import pipeline_channel
 from kfp.components import pipeline_task
 from kfp.components import placeholders
 from kfp.components import structures
+from kfp.components import utils
 from kfp.components.types import artifact_types
 from kfp.components.types import type_utils
 
@@ -73,7 +73,7 @@ def importer(
             # in metadata
             unique_name = reversed_call_inputs.get(
                 d,
-                make_placeholder_unique(
+                utils.make_name_unique_by_adding_index(
                     METADATA_KEY,
                     list(call_inputs),
                     '-',
@@ -128,18 +128,3 @@ def importer(
     importer = importer_component.ImporterComponent(
         component_spec=component_spec)
     return importer(uri=artifact_uri, **call_inputs)
-
-
-def make_placeholder_unique(
-    name: str,
-    collection: List[str],
-    delimiter: str,
-) -> str:
-    """Makes a unique name by adding index."""
-    unique_name = name
-    if unique_name in collection:
-        for i in range(2, sys.maxsize**10):
-            unique_name = name + delimiter + str(i)
-            if unique_name not in collection:
-                break
-    return unique_name
