@@ -891,10 +891,19 @@ class VertexDataset:
     schema_title = 'google.VertexDataset'
     schema_version = '0.0.0'
 
-    def __init__(self, name: str, uri: str, metadata: dict) -> None:
-        self.name = name
-        self.uri = uri
-        self.metadata = metadata
+    @classmethod
+    def _from_executor_fields(
+        cls,
+        name: str,
+        uri: str,
+        metadata: dict,
+    ) -> 'VertexDataset':
+
+        instance = VertexDataset()
+        instance.name = name
+        instance.uri = uri
+        instance.metadata = metadata
+        return instance
 
     @property
     def path(self) -> str:
@@ -1016,7 +1025,7 @@ class TestDictToArtifact(parameterized.TestCase):
         self.assertIsInstance(
             executor.create_artifact_instance(runtime_artifact), expected_type)
 
-    def test_dict_to_artifact_nonkfp_artifact(self):
+    def test_dict_to_artifact_google_artifact(self):
         runtime_artifact = {
             'metadata': {},
             'name': 'input_artifact_one',
