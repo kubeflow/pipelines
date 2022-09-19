@@ -20,6 +20,7 @@ from google.protobuf import struct_pb2
 from kfp.dsl import _container_op, _pipeline_param, dsl_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 from kfp.v2.components.types import artifact_types, type_utils
+from kfp.components import _naming
 
 URI_KEY = 'uri'
 OUTPUT_KEY = 'artifact'
@@ -44,7 +45,8 @@ def transform_metadata_and_get_inputs(
             }
             unique_name = reversed_metadata_inputs.get(
                 d,
-                make_placeholder_unique(METADATA_KEY, metadata_inputs, '-'),
+                _naming._make_name_unique_by_adding_index(
+                    METADATA_KEY, metadata_inputs, '-'),
             )
             metadata_inputs[unique_name] = d
             return make_input_parameter_placeholder(unique_name)
@@ -249,18 +251,3 @@ def importer(
     task.inputs += list(metadata_inputs.values())
 
     return task
-
-
-def make_placeholder_unique(
-    name: str,
-    collection: List[str],
-    delimiter: str,
-) -> str:
-    """Makes a unique name by adding index."""
-    unique_name = name
-    if unique_name in collection:
-        for i in range(2, sys.maxsize**10):
-            unique_name = name + delimiter + str(i)
-            if unique_name not in collection:
-                break
-    return unique_name
