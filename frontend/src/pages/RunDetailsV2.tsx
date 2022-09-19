@@ -89,7 +89,6 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
 
   // TODO(zijianjoy): Update elements and states when layers change.
   const layerChange = (layers: string[]) => {
-    // console.log(layers);
     setSelectedNode(null);
     setLayers(layers);
     setFlowElements(convertSubDagToFlowElements(pipelineSpec, layers)); // render elements in the sub-layer.
