@@ -25,6 +25,7 @@ from . import delete_model_remote_runner
 from . import deploy_model_remote_runner
 from . import export_model_remote_runner
 from . import hyperparameter_tuning_job_remote_runner
+from . import infra_validation_job_remote_runner
 from . import undeploy_model_remote_runner
 from . import upload_model_remote_runner
 from . import wait_gcp_resources
@@ -58,6 +59,8 @@ _JOB_TYPE_TO_ACTION_MAP = {
         dataproc_batch_remote_runner.create_spark_r_batch,
     'DataprocSparkSqlBatch':
         dataproc_batch_remote_runner.create_spark_sql_batch,
+    'InfraValidationJob':
+        infra_validation_job_remote_runner.create_infra_validation_job,
     'Wait':
         wait_gcp_resources.wait_gcp_resources
 }
@@ -74,7 +77,7 @@ def _parse_args(args):
       # executor_input is only needed for components that emit output artifacts.
       required=(parsed_args.type in {
           'UploadModel',
-          'CreateEndpoint',
+          'InfraValidationJob'
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
