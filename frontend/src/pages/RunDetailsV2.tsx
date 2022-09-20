@@ -34,7 +34,7 @@ import { KeyValue } from 'src/lib/StaticGraphParser';
 import { hasFinished, NodePhase } from 'src/lib/StatusUtils';
 import { formatDateString, getRunDurationFromApiRun } from 'src/lib/Utils';
 import { getNodeMlmdInfo, updateFlowElementsState } from 'src/lib/v2/DynamicFlow';
-import { convertFlowElements } from 'src/lib/v2/StaticFlow';
+import { convertFlowElements, convertSubDagToFlowElements } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import {
   getArtifactsFromContext,
@@ -91,6 +91,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const layerChange = (layers: string[]) => {
     setSelectedNode(null);
     setLayers(layers);
+    setFlowElements(convertSubDagToFlowElements(pipelineSpec, layers)); // render elements in the sub-layer.
   };
 
   const getNodeName = function(element: FlowElement<FlowElementDataBase> | null): string {
@@ -125,6 +126,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     },
   );
 
+  // TODO(jlyaoyuli): modify the function to update the Sub-DAG node status immediately.
   if (isSuccess && data) {
     updateFlowElementsState(flowElements, data.executions, data.events, data.artifacts);
   }
@@ -200,6 +202,8 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
                 defaultWidth={'50%'}
               >
                 <RuntimeNodeDetailsV2
+                  layers={layers}
+                  onLayerChange={layerChange}
                   element={selectedNode}
                   elementMlmdInfo={selectedNodeMlmdInfo}
                   namespace={namespace}
