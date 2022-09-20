@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: automl_tabular_builtin_algorithm_hyperparameter_tuning_job
+name: wide_and_deep_hyperparameter_tuning_job
 description: |
-  Launch a built-in algorithm hyperparameter tuning job using Vertex HyperparameterTuningJob API.
+  Launch a Wide & Deep hyperparameter tuning job using Vertex HyperparameterTuningJob API.
 
     Args:
         project (str):
@@ -40,10 +40,13 @@ description: |
             dataset. If set to 0, it means run evaluation for a fixed number of samples.
         eval_frequency_secs (Optional[int]):
             Frequency at which evaluation and checkpointing will take place.
-        study_spec_metrics (list[dict]):
-            Required. List of dictionaries representing metrics to optimize.
-            The dictionary contains the metric_id, which is reported by the training
-            job, ands the optimization goal of the metric. One of "minimize" or "maximize".
+        study_spec_metric_id (str):
+            Required. Metric to optimize, , possible values: [
+            'loss', 'average_loss', 'rmse', 'mae', 'mql', 'accuracy', 'auc',
+            'precision', 'recall'].
+        study_spec_metric_goal (str):
+            Required. Optimization goal of the metric, possible values:
+            "MAXIMIZE", "MINIMIZE".
         study_spec_parameters_override (list[str]):
             List of dictionaries representing parameters to
             optimize. The dictionary key is the parameter_id, which is passed to
@@ -53,10 +56,6 @@ description: |
             Required. The desired total number of trials.
         parallel_trial_count (int):
             Required. The desired number of trials to run in parallel.
-        tabnet (Optional[bool]):
-            Train the TabNet model.
-        wide_and_deep (Optional[bool]):
-            Train the Wide & Deep model.
         max_failed_trial_count (Optional[int]):
             The number of failed trials that need to be
             seen before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides how
@@ -69,10 +68,8 @@ description: |
             service automatically selects the final measurement from previously
             reported intermediate measurements. One of "BEST_MEASUREMENT" or
             "LAST_MEASUREMENT".
-        replica_count (Optional[int]):
-            The replica count.
-        machine_spec (Optional[Dict[str, Any]]):
-            The machine spec. See https://cloud.google.com/compute/docs/machine-types for options.
+        training_machine_spec (Optional[Dict[str, Any]]):
+            The training machine spec. See https://cloud.google.com/compute/docs/machine-types for options.
         instance_baseline (AutoMLTabularInstanceBaseline):
             The path to a JSON file for baseline values.
         metadata (TabularExampleGenMetadata):
@@ -81,8 +78,6 @@ description: |
             The path to the materialized train split.
         materialized_eval_split (MaterializedSplit):
             The path to the materialized validation split.
-        materialized_test_split (MaterializedSplit):
-            The path to the materialized test split.
         transform_output (TransformOutput):
             The path to transform output.
         training_schema_uri (TrainingSchema):
@@ -113,22 +108,19 @@ inputs:
   - { name: seed, type: Integer, default: 1 }
   - { name: eval_steps, type: Integer, default: 0 }
   - { name: eval_frequency_secs, type: Integer, default: 600 }
-  - { name: study_spec_metrics, type: JsonArray }
+  - { name: study_spec_metric_id, type: String }
+  - { name: study_spec_metric_goal, type: String }
   - { name: study_spec_parameters_override, type: JsonArray }
   - { name: max_trial_count, type: Integer }
   - { name: parallel_trial_count, type: Integer }
-  - { name: tabnet, type: Boolean, optional: true }
-  - { name: wide_and_deep, type: Boolean, optional: true }
   - { name: max_failed_trial_count, type: Integer, default: 0, optional: true }
   - { name: study_spec_algorithm, type: String, default: 'ALGORITHM_UNSPECIFIED', optional: true }
   - { name: study_spec_measurement_selection_type, type: String, default: 'BEST_MEASUREMENT', optional: true }
-  - { name: replica_count, type: Integer, default: 1 }
-  - { name: machine_spec, type: JsonObject, default: '{"machine_type": "c2-standard-16"}' }
+  - { name: training_machine_spec, type: JsonObject, default: '{"machine_type": "c2-standard-16"}' }
   - { name: instance_baseline, type: AutoMLTabularInstanceBaseline }
   - { name: metadata, type: TabularExampleGenMetadata }
   - { name: materialized_train_split, type: MaterializedSplit }
   - { name: materialized_eval_split, type: MaterializedSplit }
-  - { name: materialized_test_split, type: MaterializedSplit, default: "" }
   - { name: transform_output, type: TransformOutput }
   - { name: training_schema_uri, type: TrainingSchema }
   - { name: encryption_spec_key_name, type: String, default: "" }
@@ -151,11 +143,13 @@ implementation:
       --gcp_resources, { outputPath: gcp_resources },
       --payload,
       concat: [
-          '{"display_name": "automl-tabular-builtin-algorithm-hyperparameter-tuning-job-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
+          '{"display_name": "wide-and-deep-hyperparameter-tuning-job-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
           { inputValue: encryption_spec_key_name },
-          '"}, "study_spec": {"metrics": ',
-          { inputValue: study_spec_metrics },
-          ', "parameters": ',
+          '"}, "study_spec": {"metrics": [{"metric_id": "',
+          { inputValue: study_spec_metric_id },
+          '", "goal": "',
+          { inputValue: study_spec_metric_goal },
+          '"}], "parameters": ',
           { inputValue: study_spec_parameters_override },
           ', "algorithm": "',
           { inputValue: study_spec_algorithm },
@@ -168,18 +162,11 @@ implementation:
           ', "max_failed_trial_count": ',
           { inputValue: max_failed_trial_count },
           ', "trial_job_spec": {"worker_pool_specs": [{"replica_count":"',
-          { inputValue: replica_count },
+          '1',
           '", "machine_spec": ',
-          { inputValue: machine_spec },
+          { inputValue: training_machine_spec },
           ', "container_spec": {"image_uri":"',
-          {if: {
-            cond: {isPresent: tabnet},
-            then: ['us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20220727_0325_RC00']
-          }},
-          {if: {
-            cond: {isPresent: wide_and_deep},
-            then: ['us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:20220727_0325_RC00']
-          }},
+          'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/wide-and-deep-training:20220920_0325_RC00',
           '", "args": ["--target_column=',
           { inputValue: target_column },
           '", "--weight_column=',
@@ -187,7 +174,7 @@ implementation:
           '", "--model_type=',
           { inputValue: prediction_type },
           '", "--prediction_docker_uri=',
-          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20220727_0325_RC00',
+          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20220920_0325_RC00',
           '", "--prediction_docker_uri_artifact_path=',
           { outputPath: prediction_docker_uri_output },
           '", "--baseline_path=',
@@ -210,8 +197,6 @@ implementation:
           { inputUri: materialized_train_split },
           '", "--validation_data_path=',
           { inputUri: materialized_eval_split },
-          '", "--test_data_path=',
-          { inputUri: materialized_test_split },
           '", "--enable_profiler=',
           { inputValue: enable_profiler },
           '", "--seed=',
