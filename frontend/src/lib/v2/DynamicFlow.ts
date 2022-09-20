@@ -18,6 +18,7 @@ import {
   ArtifactFlowElementData,
   ExecutionFlowElementData,
   FlowElementDataBase,
+  SubDagFlowElementData,
 } from 'src/components/graph/Constants';
 import {
   getArtifactNodeKey,
@@ -95,6 +96,9 @@ export function updateFlowElementsState(
       (updatedElem.data as ArtifactFlowElementData).state = linkedArtifact?.artifact?.getState();
     } else if (NodeTypeNames.SUB_DAG === elem.type) {
       // TODO: Update sub-dag state based on future design.
+      const taskName = getTaskKeyFromNodeKey(elem.id);
+      const execution = taskNameToExecution.get(taskName);
+      (updatedElem.data as SubDagFlowElementData).state = execution?.getLastKnownState();
     } else {
       // Edges don't have types yet.
       // For any element that don't match the above types, copy over directly.
@@ -131,6 +135,9 @@ export function getNodeMlmdInfo(
     return { execution, linkedArtifact };
   } else if (NodeTypeNames.SUB_DAG === elem.type) {
     // TODO: Update sub-dag state based on future design.
+    const taskName = getTaskKeyFromNodeKey(elem.id);
+    const execution = taskNameToExecution.get(taskName);
+    return { execution };
   } else {
     // Edges don't have types yet.
     // For any element that don't match the above types, copy over directly.
