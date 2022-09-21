@@ -1,6 +1,5 @@
 # Current Version (Still in Development)
 ## Major Features and Improvements
-* Support parallelism setting in ParallelFor [/#8112](https://github.com/kubeflow/pipelines/pull/8112)
 
 ## Breaking Changes
 
@@ -11,9 +10,26 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
-* Migrate Out-Of-Band (OOB) authentication flow[\#8262](https://github.com/kubeflow/pipelines/pull/8262)
 
 ## Documentation Updates
+# 1.8.14
+## Major Features and Improvements
+* Support parallelism setting in ParallelFor [/#8112](https://github.com/kubeflow/pipelines/pull/8112)
+
+## Breaking Changes
+
+### For Pipeline Authors
+* Support dynamic importer metadata [/#8226](https://github.com/kubeflow/pipelines/pull/8226)
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+* Migrate Out-Of-Band (OOB) authentication flow [\#8262](https://github.com/kubeflow/pipelines/pull/8262)
+
+## Documentation Updates
+* Add importer documentation [\#3344](https://github.com/kubeflow/website/pull/3344)
 
 # 1.8.13
 ## Major Features and Improvements
