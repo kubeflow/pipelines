@@ -65,17 +65,17 @@ implementation:
       - --tensorboard_experiment_id
       - { inputValue: tensorboard_experiment_id }
       - if:
-          cond:{isPresent: tensorboard_experiment_display_name}
+          cond: { isPresent: tensorboard_experiment_display_name }
           then:
             - --tensorboard_experiment_display_name
             - { inputValue: tensorboard_experiment_display_name }
       - if:
-          cond:{isPresent: tensorboard_experiment_description}
+          cond: { isPresent: tensorboard_experiment_description }
           then:
             - --tensorboard_experiment_description
             - { inputValue: tensorboard_experiment_description }
       - if:
-          cond:{isPresent: tensorboard_experiment_labels}
+          cond: { isPresent: tensorboard_experiment_labels }
           then:
             - --tensorboard_experiment_labels
             - { inputValue: tensorboard_experiment_labels }
