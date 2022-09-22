@@ -15,7 +15,7 @@ sagemaker_process_op = components.load_component_from_url(
     "https://raw.githubusercontent.com/kubeflow/pipelines/f162b248f42f0a9a8999b8e709fb05fa05b40b8d/components/aws/sagemaker/process/component.yaml"
 )
 sagemaker_TrainingJob_op = components.load_component_from_url(
-    "https://raw.githubusercontent.com/kubeflow/pipelines/f162b248f42f0a9a8999b8e709fb05fa05b40b8d/components/aws/sagemaker/TrainingJob/component.yaml"
+    "https://raw.githubusercontent.com/kubeflow/pipelines/58d22d4ba91b42e9c63ce88c5e349eadbe26d33b/components/aws/sagemaker/TrainingJob/component.yaml"
 )
 sagemaker_model_op = components.load_component_from_url(
     "https://raw.githubusercontent.com/kubeflow/pipelines/f162b248f42f0a9a8999b8e709fb05fa05b40b8d/components/aws/sagemaker/model/component.yaml"
