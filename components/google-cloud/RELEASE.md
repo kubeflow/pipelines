@@ -1,5 +1,8 @@
-# Current Version 1.0.22.dev (Still in Development)
+# Current Version 1.0.23.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.22
+* TensorBoard: Make some input parameters optional to provide better user experience
 
 # Release 1.0.21
 * Fix input parameter in tensorboard experiment creator component
