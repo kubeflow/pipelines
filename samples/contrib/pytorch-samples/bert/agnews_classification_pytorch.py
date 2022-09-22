@@ -111,8 +111,8 @@ if "accelerator" in ptl_dict and ptl_dict["accelerator"] == "None":
 # Setting the trainer specific arguments
 trainer_args = {
     "logger": tboard,
-    "checkpoint_callback": True,
-    "callbacks": [lr_logger, early_stopping, checkpoint_callback],
+    "enable_checkpointing": False,
+    "callbacks": [lr_logger, early_stopping],
 }
 
 if not ptl_dict["max_epochs"]:
@@ -184,6 +184,15 @@ if trainer.ptl_trainer.global_rank == 0:
     }
 
     MarGeneration(mar_config=mar_config, mar_save_path=CHECKPOINT_DIR)
+
+    print("Generated checkpoint files")
+    for root, dirs, files in os.walk(CHECKPOINT_DIR):  # pylint: disable=unused-variable
+        for file in files:
+            path = os.path.join(root, file)
+            size = os.stat(path).st_size  # in bytes
+            if ".pth" in file:
+                print("Removing file: ", path)
+                os.remove(path)
 
     classes = [
         "World",
