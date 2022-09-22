@@ -41,6 +41,10 @@ kubectl port-forward svc/istio-ingressgateway -n istio-system 8080:80
 
 To view the captum insights UI in the local environment, run the following port forwarding command
 
+Open `Pipeline-Cifar10-Captum-Insights.ipynb` notebook and `Launch classic notebook` from `Help` menu and run the  notebook file for captum visualization.
+
+![](serve.png)
+
 ```
 kubectl port-forward <notebook-server-pod-name> -n kubeflow-user-example-com <port>:6080
 ```
