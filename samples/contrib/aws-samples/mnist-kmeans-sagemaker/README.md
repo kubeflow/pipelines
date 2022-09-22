@@ -1,11 +1,20 @@
 # MNIST Classification with KMeans
 
-The `mnist-classification-pipeline.py` sample runs a pipeline to train a classficiation model using Kmeans with MNIST dataset on SageMaker. This example was taken from an existing [SageMaker example](https://github.com/awslabs/amazon-sagemaker-examples/blob/master/sagemaker-python-sdk/1P_kmeans_highlevel/kmeans_mnist.ipynb) and modified to work with the Amazon SageMaker Components for Kubeflow Pipelines.
+This sample aims to showcase the usage of v1 components and the new v2 training job component together in a Kubeflow pipeline workflow. The `mnist-classification-pipeline.py` sample runs a pipeline to train a classficiation model using Kmeans with MNIST dataset on SageMaker. This example was taken from an existing [SageMaker example](https://github.com/awslabs/amazon-sagemaker-examples/blob/master/sagemaker-python-sdk/1P_kmeans_highlevel/kmeans_mnist.ipynb) and modified to work with the Amazon SageMaker Components for Kubeflow Pipelines.
 
 ## Prerequisites 
 
-### Setup K8s cluster and authentication
-Make sure you have the setup explained in this [README.md](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/README.md)
+1. Make sure you meet all the configuration prerequisites *including the optional step* for using the v2 components from sagemaker/TrainingJob README (https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/TrainingJob). 
+2. The optional step in the guide (https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/TrainingJob) is required for this sample to run. Here are the commands in case you missed it:
+    1. Grant SageMaker access to the service account used by kubeflow pipeline pods. Export your cluster name and cluster region
+    2. ```
+       export CLUSTER_NAME=
+       export CLUSTER_REGION=
+       ```
+    3. ```
+       eksctl create iamserviceaccount --name ${KUBEFLOW_PIPELINE_POD_SERVICE_ACCOUNT} --namespace ${PROFILE_NAMESPACE} --cluster ${CLUSTER_NAME} --region ${CLUSTER_REGION} --attach-policy-arn arn:aws:iam::aws:policy/AmazonSageMakerFullAccess --override-existing-serviceaccounts --approve
+       ```
+3. You have created an S3 bucket and SageMaker execution role created from the sample prerequisites (https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/TrainingJob/samples#prerequisites).
 
 ### Sample MNIST dataset
 
@@ -20,28 +29,18 @@ This can be done with the following command, replacing `<bucket-name>` with the 
     aws s3 cp mnist-kmeans-sagemaker/kmeans_preprocessing.py s3://<bucket-name>/mnist_kmeans_example/processing_code/kmeans_preprocessing.py
     ```
 
-## Compiling the pipeline template
+## Compile and run the pipelines
 
-Follow the guide to [building a pipeline](https://www.kubeflow.org/docs/guides/pipelines/build-pipeline/) to install the Kubeflow Pipelines SDK, then run the following command to compile the sample Python into a workflow specification. The specification takes the form of a YAML file compressed into a `.tar.gz` file.
-
-```bash
-dsl-compile --py mnist-classification-pipeline.py --output mnist-classification-pipeline.tar.gz
-```
-
-
-## Deploying the pipeline
-
-Open the Kubeflow pipelines UI. Create a new pipeline, and then upload the compiled specification (`.tar.gz` file) as a new pipeline template.
-
-Provide the `role_arn` and `bucket_name` you created as pipeline inputs.
-
-Once the pipeline done, you can go to `batch_transform_ouput` to check your batch prediction results.
-You will also have an model endpoint in service. Refer to [Prediction section](#Prediction) below to run predictions aganist your deployed model aganist the endpoint. Please remember to clean up the endpoint.
+1. To compile the pipeline run: `python mnist-classification-pipeline.py`. This will create a `tar.gz` file.
+2. In the Kubeflow Pipelines UI, upload this compiled pipeline specification (the *.tar.gz* file) and click on create run.
+3. Provide the sagemaker execution `role_arn` you created and `bucket_name` you created as pipeline inputs.
+4. Once the pipeline completes, you can go to `batch_transform_output` to check your batch prediction results.
+You will also have an model endpoint in service. Refer to [Prediction section](#Prediction) below to run predictions aganist your deployed model aganist the endpoint. Please remember to [clean up the endpoint](https://docs.aws.amazon.com/sagemaker/latest/dg/realtime-endpoints-delete-resources.html).
 
 
 ## Prediction
 
-1. Find your endpoint name either by,
+1. Find your endpoint name either by:
   - Opening SageMaker [console](https://us-east-1.console.aws.amazon.com/sagemaker/home?region=us-east-1#/endpoints),  or
   - Clicking the `sagemaker-deploy-model-endpoint_name` under `Output artifacts` of `SageMaker - Deploy Model` component of the pipeline run
 
@@ -91,9 +90,6 @@ print(result)
 
 Hyperparameter Tuning:
   [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/hyperparameter_tuning/src)
-
-Training:
-  [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/train/src)
 
 Model creation:
   [source code](https://github.com/kubeflow/pipelines/tree/master/components/aws/sagemaker/model/src)
