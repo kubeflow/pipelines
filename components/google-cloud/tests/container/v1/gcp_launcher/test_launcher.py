@@ -56,6 +56,26 @@ class LauncherJobUtilsTests(unittest.TestCase):
           payload=payload,
           gcp_resources=self._gcp_resources)
 
+  def test_launcher_on_infra_validation_job_type(self):
+    job_type = 'InfraValidationJob'
+    payload = '{"infra_validation_example_path": "test_infra_validator_path"}'
+    input_args = [
+        '--type', job_type, '--project', self._project, '--location',
+        self._location, '--gcp_resources', self._gcp_resources,
+        '--executor_input', 'executor_input', '--payload', payload
+    ]
+    mock_create_infra_validation_job = mock.Mock()
+    with mock.patch.dict(launcher._JOB_TYPE_TO_ACTION_MAP,
+                         {job_type: mock_create_infra_validation_job}):
+      launcher.main(input_args)
+      mock_create_infra_validation_job.assert_called_once_with(
+          type=job_type,
+          project=self._project,
+          location=self._location,
+          gcp_resources=self._gcp_resources,
+          executor_input='executor_input',
+          payload=payload)
+
   def test_launcher_on_batch_prediction_job_type(self):
     job_type = 'BatchPredictionJob'
     payload = ('{"batchPredictionJob": {"displayName": '
