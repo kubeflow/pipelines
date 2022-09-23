@@ -1,5 +1,9 @@
-# Current Version 1.0.23.dev (Still in Development)
+# Current Version 1.0.24.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.23
+* AutoML: Sync GCPC staging to prod to include recent API changes
+* TensorBoard: Make some input parameters optional to provide better user experience
 
 # Release 1.0.22
 * TensorBoard: Make some input parameters optional to provide better user experience
