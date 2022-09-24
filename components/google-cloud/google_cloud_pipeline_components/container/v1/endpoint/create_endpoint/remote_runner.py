@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2022 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,9 +13,9 @@
 # limitations under the License.
 
 import json
-from . import lro_remote_runner
-from .utils import artifact_util
-from .utils import json_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher import lro_remote_runner
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 from google_cloud_pipeline_components.types.artifact_types import VertexEndpoint
 
 
