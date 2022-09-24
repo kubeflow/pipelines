@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2022 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@ import time
 from functools import partial
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 import googleapiclient.discovery as discovery
-from .utils import error_util
-from ...utils import execution_context
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
+from google_cloud_pipeline_components.container.utils import execution_context
 
 from google.protobuf.json_format import Parse
 

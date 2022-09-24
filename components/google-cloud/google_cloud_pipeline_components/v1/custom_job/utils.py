@@ -298,7 +298,7 @@ def create_custom_training_job_op_from_component(
   if component_spec.component_spec.description:
     # TODO(chavoshi) Add support for docstring parsing.
     component_description = 'A custom job that wraps '
-    component_description += f'{component_spec.component_spec.name}.\n\nOrigional component'
+    component_description += f'{component_spec.component_spec.name}.\n\nOriginal component'
     component_description += f' description:\n{component_spec.component_spec.description}\n\nCustom'
     component_description += ' Job wrapper description:\n'
     component_description += custom_training_job_json['description']
