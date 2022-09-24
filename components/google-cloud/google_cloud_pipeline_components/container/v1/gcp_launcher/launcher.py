@@ -18,24 +18,16 @@ import logging
 import sys
 
 from . import create_endpoint_remote_runner
-from . import custom_job_remote_runner
 from . import dataproc_batch_remote_runner
 from . import delete_endpoint_remote_runner
 from . import delete_model_remote_runner
 from . import deploy_model_remote_runner
 from . import export_model_remote_runner
-from . import hyperparameter_tuning_job_remote_runner
 from . import undeploy_model_remote_runner
 from . import upload_model_remote_runner
-from . import wait_gcp_resources
 from .utils import parser_util
 
 _JOB_TYPE_TO_ACTION_MAP = {
-    'CustomJob':
-        custom_job_remote_runner.create_custom_job,
-    'HyperparameterTuningJob':
-        hyperparameter_tuning_job_remote_runner
-        .create_hyperparameter_tuning_job,
     'UploadModel':
         upload_model_remote_runner.upload_model,
     'CreateEndpoint':
@@ -58,8 +50,6 @@ _JOB_TYPE_TO_ACTION_MAP = {
         dataproc_batch_remote_runner.create_spark_r_batch,
     'DataprocSparkSqlBatch':
         dataproc_batch_remote_runner.create_spark_sql_batch,
-    'Wait':
-        wait_gcp_resources.wait_gcp_resources
 }
 
 

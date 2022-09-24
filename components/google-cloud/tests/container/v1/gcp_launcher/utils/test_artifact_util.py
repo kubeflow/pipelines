@@ -17,7 +17,7 @@ import os
 import time
 import unittest
 from unittest import mock
-from google_cloud_pipeline_components.container.v1.gcp_launcher import custom_job_remote_runner
+from google_cloud_pipeline_components.container.v1.custom_job import remote_runner as custom_job_remote_runner
 from google.cloud import aiplatform
 from google.cloud.aiplatform.compat.types import job_state as gca_job_state
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
