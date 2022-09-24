@@ -17,11 +17,9 @@ import argparse
 import logging
 import sys
 
-from . import create_endpoint_remote_runner
 from . import dataproc_batch_remote_runner
 from . import delete_endpoint_remote_runner
 from . import delete_model_remote_runner
-from . import deploy_model_remote_runner
 from . import export_model_remote_runner
 from . import undeploy_model_remote_runner
 from . import upload_model_remote_runner
@@ -30,14 +28,10 @@ from .utils import parser_util
 _JOB_TYPE_TO_ACTION_MAP = {
     'UploadModel':
         upload_model_remote_runner.upload_model,
-    'CreateEndpoint':
-        create_endpoint_remote_runner.create_endpoint,
     'DeleteEndpoint':
         delete_endpoint_remote_runner.delete_endpoint,
     'ExportModel':
         export_model_remote_runner.export_model,
-    'DeployModel':
-        deploy_model_remote_runner.deploy_model,
     'DeleteModel':
         delete_model_remote_runner.delete_model,
     'UndeployModel':
@@ -64,7 +58,6 @@ def _parse_args(args):
       # executor_input is only needed for components that emit output artifacts.
       required=(parsed_args.type in {
           'UploadModel',
-          'CreateEndpoint',
       }),
       default=argparse.SUPPRESS)
   parser.add_argument(
