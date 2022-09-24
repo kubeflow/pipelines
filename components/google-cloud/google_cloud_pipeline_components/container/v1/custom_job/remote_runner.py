@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors. All Rights Reserved.
+# Copyright 2022 The Kubeflow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,9 +13,10 @@
 # limitations under the License.
 """GCP launcher for custom jobs based on the AI Platform SDK."""
 
-from . import job_remote_runner
-from .utils import error_util
 from google.api_core import retry
+from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
+
 
 _CUSTOM_JOB_RETRY_DEADLINE_SECONDS = 10.0 * 60.0
 

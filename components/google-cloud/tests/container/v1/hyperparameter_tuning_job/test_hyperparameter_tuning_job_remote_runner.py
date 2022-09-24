@@ -22,7 +22,7 @@ from unittest import mock
 from google.cloud import aiplatform
 from google.cloud.aiplatform.compat.types import job_state as gca_job_state
 from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
-from google_cloud_pipeline_components.container.v1.gcp_launcher import hyperparameter_tuning_job_remote_runner
+from google_cloud_pipeline_components.container.v1.hyperparameter_tuning_job import remote_runner as hyperparameter_tuning_job_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
