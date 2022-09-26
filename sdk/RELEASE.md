@@ -6,7 +6,7 @@
 
 ## Deprecations
 
-## Bug fixes and small changes
+## Bug fixes and other changes
 
 
 ## Documentation updates
@@ -21,7 +21,7 @@
 
 ## Deprecations
 
-## Bug fixes and small changes
+## Bug fixes and other changes
 * Migrate Out-Of-Band (OOB) authentication flow [\#8262](https://github.com/kubeflow/pipelines/pull/8262)
 
 ## Documentation updates
