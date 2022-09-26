@@ -119,13 +119,22 @@ html_theme_options = {
     'font': {
         'text': 'Open Sans'
     },
-    # BEGIN: version_dropdown
     'version_dropdown':
         True,
     'version_info': [
         {
+            'version': 'https://kubeflow-pipelines.readthedocs.io/en/master/',
+            'title': 'master',
+            'aliases': [],
+        },
+        {
+            'version': 'https://kubeflow-pipelines.readthedocs.io/en/2.0.0b5/',
+            'title': 'v2.0.0b5',
+            'aliases': [],
+        },
+        {
             'version': 'https://kubeflow-pipelines.readthedocs.io/en/2.0.0b4/',
-            'title': 'v2.0.0b4 [pre-release]',
+            'title': 'v2.0.0b4',
             'aliases': [],
         },
         {
@@ -134,7 +143,6 @@ html_theme_options = {
             'aliases': ['stable'],
         },
     ],
-    # END: version_dropdown
     # "toc_title_is_page_title": True,
 }
 # Add any paths that contain templates here, relative to this directory.
