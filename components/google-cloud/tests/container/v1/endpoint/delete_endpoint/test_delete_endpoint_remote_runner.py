@@ -20,7 +20,7 @@ import time
 import unittest
 from unittest import mock
 from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
-from google_cloud_pipeline_components.container.v1.gcp_launcher import delete_endpoint_remote_runner
+from google_cloud_pipeline_components.container.v1.endpoint.delete_endpoint import remote_runner as delete_endpoint_remote_runner
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 from google.protobuf import json_format
 import requests
