@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""GCP launcher for Deploy Model based on the AI Platform SDK."""
+"""GCP launcher for Upload Model based on the AI Platform SDK."""
 
 import argparse
 import logging
@@ -23,7 +23,15 @@ from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import par
 
 def _parse_args(args):
   """Parse command line arguments."""
-  _, parsed_args = parser_util.parse_default_args(args)
+  parser, parsed_args = parser_util.parse_default_args(args)
+  parser.add_argument(
+      '--executor_input',
+      dest='executor_input',
+      type=str,
+      # executor_input is only needed for components that emit output artifacts.
+      required=True,
+      default=argparse.SUPPRESS)
+  parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)
 
 
@@ -45,12 +53,12 @@ def main(argv):
   parsed_args = _parse_args(argv)
   job_type = parsed_args['type']
 
-  if job_type != 'DeployModel':
+  if job_type != 'UploadModel':
     raise ValueError('Incorrect job type: ' + job_type)
 
   logging.info('Job started for type: ' + job_type)
 
-  remote_runner.deploy_model(**parsed_args)
+  remote_runner.upload_model(**parsed_args)
 
 
 if __name__ == '__main__':

@@ -20,7 +20,7 @@ import time
 import unittest
 from unittest import mock
 from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
-from google_cloud_pipeline_components.container.v1.gcp_launcher import upload_model_remote_runner
+from google_cloud_pipeline_components.container.v1.model.upload_model import remote_runner as upload_model_remote_runner
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 from google.protobuf import json_format
 import requests

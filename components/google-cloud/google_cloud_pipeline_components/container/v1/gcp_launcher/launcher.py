@@ -18,24 +18,9 @@ import logging
 import sys
 
 from . import dataproc_batch_remote_runner
-from . import delete_endpoint_remote_runner
-from . import delete_model_remote_runner
-from . import export_model_remote_runner
-from . import undeploy_model_remote_runner
-from . import upload_model_remote_runner
 from .utils import parser_util
 
 _JOB_TYPE_TO_ACTION_MAP = {
-    'UploadModel':
-        upload_model_remote_runner.upload_model,
-    'DeleteEndpoint':
-        delete_endpoint_remote_runner.delete_endpoint,
-    'ExportModel':
-        export_model_remote_runner.export_model,
-    'DeleteModel':
-        delete_model_remote_runner.delete_model,
-    'UndeployModel':
-        undeploy_model_remote_runner.undeploy_model,
     'DataprocPySparkBatch':
         dataproc_batch_remote_runner.create_pyspark_batch,
     'DataprocSparkBatch':
@@ -51,22 +36,6 @@ def _parse_args(args):
   """Parse command line arguments."""
   parser, parsed_args = parser_util.parse_default_args(args)
   # Parse the conditionally required arguments
-  parser.add_argument(
-      '--executor_input',
-      dest='executor_input',
-      type=str,
-      # executor_input is only needed for components that emit output artifacts.
-      required=(parsed_args.type in {
-          'UploadModel',
-      }),
-      default=argparse.SUPPRESS)
-  parser.add_argument(
-      '--output_info',
-      dest='output_info',
-      type=str,
-      # output_info is only needed for ExportModel component.
-      required=(parsed_args.type == 'ExportModel'),
-      default=argparse.SUPPRESS)
   parser.add_argument(
       '--batch_id',
       dest='batch_id',

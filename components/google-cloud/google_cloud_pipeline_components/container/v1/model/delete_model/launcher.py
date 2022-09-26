@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""GCP launcher for Deploy Model based on the AI Platform SDK."""
+"""GCP launcher for Delete Model based on the AI Platform SDK."""
 
 import argparse
 import logging
@@ -45,12 +45,12 @@ def main(argv):
   parsed_args = _parse_args(argv)
   job_type = parsed_args['type']
 
-  if job_type != 'DeployModel':
+  if job_type != 'DeleteModel':
     raise ValueError('Incorrect job type: ' + job_type)
 
   logging.info('Job started for type: ' + job_type)
 
-  remote_runner.deploy_model(**parsed_args)
+  remote_runner.delete_model(**parsed_args)
 
 
 if __name__ == '__main__':
