@@ -18,7 +18,7 @@ import { Button } from '@material-ui/core';
 import * as React from 'react';
 import { useState } from 'react';
 import { FlowElement } from 'react-flow-renderer';
-import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
+// import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import { useQuery } from 'react-query';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';
