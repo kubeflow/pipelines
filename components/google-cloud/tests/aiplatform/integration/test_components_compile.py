@@ -142,6 +142,7 @@ class ComponentsCompileTest(unittest.TestCase):
           ],
           target_column="longitude",
           dataset=dataset_create_op.outputs["dataset"],
+          model_version_description="description",
       )
 
       dataset_export_op = TabularDatasetExportDataOp(
@@ -150,15 +151,10 @@ class ComponentsCompileTest(unittest.TestCase):
           output_dir=self._gcs_output_dir,
       )
 
+    self.assertFalse(os.path.exists(self._package_path))
     compiler.Compiler().compile(
         pipeline_func=pipeline, package_path=self._package_path)
-    with open(self._package_path) as f:
-      executor_output_json = json.load(f, strict=False)
-    with open("testdata/automl_tabular_pipeline.json") as ef:
-      expected_executor_output_json = json.load(ef, strict=False)
-    # Ignore the kfp SDK version during comparison
-    del executor_output_json["sdkVersion"]
-    self.assertEqual(executor_output_json, expected_executor_output_json)
+    self.assertTrue(os.path.exists(self._package_path))
 
   def test_automl_text_component_compile(self):
 
@@ -271,14 +267,18 @@ class ComponentsCompileTest(unittest.TestCase):
           training_fraction_split=0.6,
           test_fraction_split=0.2,
           model_display_name=self._model_display_name,
-          target_column='target_column',
-          time_column='time_column',
-          time_series_identifier_column='time_series_identifier_column',
+          target_column="target_column",
+          time_column="time_column",
+          time_series_identifier_column="time_series_identifier_column",
           unavailable_at_forecast_columns=[],
           available_at_forecast_columns=[],
           forecast_horizon=12,
-          data_granularity_unit='data_granularity_unit',
+          data_granularity_unit="day",
           data_granularity_count=1,
+          holiday_regions=["GLOBAL"],
+          hierarchy_group_total_weight=1.0,
+          window_stride_length=1,
+          model_version_description="description",
       )
 
       dataset_export_op = TimeSeriesDatasetExportDataOp(
@@ -287,15 +287,10 @@ class ComponentsCompileTest(unittest.TestCase):
           output_dir=self._gcs_output_dir,
       )
 
+    self.assertFalse(os.path.exists(self._package_path))
     compiler.Compiler().compile(
         pipeline_func=pipeline, package_path=self._package_path)
-    with open(self._package_path) as f:
-      executor_output_json = json.load(f, strict=False)
-    with open("testdata/automl_forecasting_pipeline.json") as ef:
-      expected_executor_output_json = json.load(ef, strict=False)
-    # Ignore the kfp SDK version during comparison
-    del executor_output_json["sdkVersion"]
-    self.assertEqual(executor_output_json, expected_executor_output_json)
+    self.assertTrue(os.path.exists(self._package_path))
 
   def test_batch_prediction_op_compile(self):
 
