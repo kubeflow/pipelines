@@ -39,9 +39,12 @@ class LauncherBigqueryQueryJobUtilsTests(unittest.TestCase):
         'test_file_path/test_file.txt')
     self._input_args = [
         '--type', 'BigqueryQueryJob', '--project', 'test_project', '--location',
-        'us_central1', '--payload', 'test_payload',
-        '--job_configuration_query_override', '{}', '--gcp_resources',
-        self._gcp_resources, '--executor_input', 'executor_input'
+        'us_central1', '--job_configuration_query',
+        'test_job_configuration_query', '--labels', 'test_labels', '--query',
+        'test_query', '--query_parameters', 'test_query_parameters',
+        '--encryption_spec_key_name', 'test_encryption_spec_key_name',
+        '--gcp_resources', self._gcp_resources, '--executor_input',
+        'executor_input'
     ]
 
   @mock.patch.object(
@@ -52,8 +55,11 @@ class LauncherBigqueryQueryJobUtilsTests(unittest.TestCase):
         type='BigqueryQueryJob',
         project='test_project',
         location='us_central1',
-        payload='test_payload',
-        job_configuration_query_override='{}',
+        job_configuration_query='test_job_configuration_query',
+        labels='test_labels',
+        query='test_query',
+        query_parameters='test_query_parameters',
+        encryption_spec_key_name='test_encryption_spec_key_name',
         gcp_resources=self._gcp_resources,
         executor_input='executor_input')
 

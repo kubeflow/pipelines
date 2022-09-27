@@ -447,13 +447,11 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         }
     }
     mock_get_requests.return_value = mock_polled_bq_job
-    self._payload = ('{"configuration": {"query": {"query": "SELECT * FROM '
-                     '`bigquery-public-data.ml_datasets.penguins`"}}}')
     self._executor_input = '{"outputs":{"artifacts":{"destination_table":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQTable"}}]}},"outputFile":"' + self._output_file_path + '"}}'
-    query_job_remote_runner.bigquery_query_job(
-        self._job_type, self._project, self._location, self._payload,
-        self._job_configuration_query_override, self._gcp_resources,
-        self._executor_input)
+    query_job_remote_runner.bigquery_query_job(self._job_type, self._project,
+                                               self._location, '', '', '', '',
+                                               '', self._gcp_resources,
+                                               self._executor_input)
     # Call cancellation handler
     mock_execution_context.call_args[1]['on_cancel']()
     self.assertEqual(mock_post_requests.call_count, 2)
