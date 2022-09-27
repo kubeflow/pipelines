@@ -2235,7 +2235,7 @@
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "google_cloud_pipeline_components.container.v1.custom_job.launcher"
             ],
             "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.21"
           }
@@ -2536,7 +2536,7 @@
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "google_cloud_pipeline_components.container.v1.hyperparameter_tuning_job.launcher"
             ],
             "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.21"
           }
@@ -2559,7 +2559,7 @@
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "google_cloud_pipeline_components.container.v1.custom_job.launcher"
             ],
             "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.21"
           }
@@ -2582,7 +2582,7 @@
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "google_cloud_pipeline_components.container.v1.custom_job.launcher"
             ],
             "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.21"
           }
