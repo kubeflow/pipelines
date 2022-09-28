@@ -18,7 +18,7 @@ import logging
 import sys
 
 from . import dataproc_batch_remote_runner
-from .utils import parser_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import parser_util
 
 _JOB_TYPE_TO_ACTION_MAP = {
     'DataprocPySparkBatch':

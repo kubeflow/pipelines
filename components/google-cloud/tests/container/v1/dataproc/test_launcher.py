@@ -14,11 +14,11 @@
 """Test Vertex AI Launcher Client module."""
 
 import os
-from unittest import mock
 
-from google_cloud_pipeline_components.container.v1.gcp_launcher import launcher
+from google_cloud_pipeline_components.container.v1.dataproc import launcher
 
 import unittest
+from unittest import mock
 
 
 class LauncherUnsupportedJobTypeTests(unittest.TestCase):

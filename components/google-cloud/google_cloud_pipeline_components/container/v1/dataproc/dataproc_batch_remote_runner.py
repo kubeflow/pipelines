@@ -24,13 +24,13 @@ from typing import Any, Dict, Union
 import uuid
 
 import google.auth.transport.requests
+from google_cloud_pipeline_components.container.utils import execution_context
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 from google_cloud_pipeline_components.proto import gcp_resources_pb2
 import requests
 from requests.adapters import HTTPAdapter
 from requests.sessions import Session
 from urllib3.util.retry import Retry
-from ...utils import execution_context
-from .utils import json_util
 
 from google.protobuf import json_format
 

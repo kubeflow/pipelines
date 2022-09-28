@@ -20,7 +20,7 @@ from unittest import mock
 
 import google.auth
 from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
-from google_cloud_pipeline_components.container.v1.gcp_launcher import dataproc_batch_remote_runner
+from google_cloud_pipeline_components.container.v1.dataproc import dataproc_batch_remote_runner
 from google_cloud_pipeline_components.proto import gcp_resources_pb2
 import re
 import requests
