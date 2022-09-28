@@ -14,6 +14,7 @@
 
 import os
 import tempfile
+from typing import Dict, List, NamedTuple
 import unittest
 
 from kfp.components import python_component
@@ -106,3 +107,46 @@ class TestComponentDecorator(unittest.TestCase):
         component_spec = structures.ComponentSpec.load_from_component_yaml(
             yaml_text)
         self.assertEqual(component_spec, comp.component_spec)
+
+    def test_output_named_tuple_with_dict(self):
+
+        @component
+        def comp(
+                text: str) -> NamedTuple('outputs', [('data', Dict[str, str])]):
+            outputs = NamedTuple('outputs', [('data', Dict[str, str])])
+            return outputs(data={text: text})
+
+        # TODO: ideally should be the canonical type string, rather than the specific annotation as string, but both work
+        self.assertEqual(comp.component_spec.outputs['data'].type,
+                         'typing.Dict[str, str]')
+
+    def test_output_dict(self):
+
+        @component
+        def comp(text: str) -> Dict[str, str]:
+            return {text: text}
+
+        # TODO: ideally should be the canonical type string, rather than the specific annotation as string, but both work
+        self.assertEqual(comp.component_spec.outputs['Output'].type,
+                         'typing.Dict[str, str]')
+
+    def test_output_named_tuple_with_list(self):
+
+        @component
+        def comp(text: str) -> NamedTuple('outputs', [('data', List[str])]):
+            outputs = NamedTuple('outputs', [('data', List[str])])
+            return outputs(data={text: text})
+
+        # TODO: ideally should be the canonical type string, rather than the specific annotation as string, but both work
+        self.assertEqual(comp.component_spec.outputs['data'].type,
+                         'typing.List[str]')
+
+    def test_output_list(self):
+
+        @component
+        def comp(text: str) -> List[str]:
+            return {text: text}
+
+        # TODO: ideally should be the canonical type string, rather than the specific annotation as string, but both work
+        self.assertEqual(comp.component_spec.outputs['Output'].type,
+                         'typing.List[str]')
