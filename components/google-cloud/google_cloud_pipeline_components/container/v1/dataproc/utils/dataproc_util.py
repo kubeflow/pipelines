@@ -29,8 +29,8 @@ import requests
 from requests.adapters import HTTPAdapter
 from requests.sessions import Session
 from urllib3.util.retry import Retry
-from ...utils import execution_context
-from .utils import json_util
+from google_cloud_pipeline_components.container.utils import execution_context
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 
 from google.protobuf import json_format
 
@@ -270,7 +270,7 @@ class DataprocBatchRemoteRunner():
     return lro
 
 
-def _create_batch(
+def create_batch(
     type: str,
     project: str,
     location: str,
@@ -309,10 +309,3 @@ def _create_batch(
     lro = remote_runner.create_batch(batch_id, batch_request)
   # Wait for the Batch workload to finish.
   return remote_runner.wait_for_batch(lro, _POLL_INTERVAL_SECONDS)
-
-
-# A common function can be used for all Batch workload types.
-create_pyspark_batch = _create_batch
-create_spark_batch = _create_batch
-create_spark_r_batch = _create_batch
-create_spark_sql_batch = _create_batch
