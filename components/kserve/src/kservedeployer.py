@@ -421,6 +421,7 @@ def main():
                 del model_status['components']['predictor']['latestRolledoutRevision']
                 del model_status['components']['predictor']['url']
                 del model_status['spec']
+                del model_status["status"]["url"]
         except KeyError:
             pass
 
