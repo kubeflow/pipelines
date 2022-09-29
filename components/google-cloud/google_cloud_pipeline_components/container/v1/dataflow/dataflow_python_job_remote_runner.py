@@ -28,6 +28,13 @@ from google.protobuf import json_format
 # Set logging level to info
 logging.basicConfig(level=logging.INFO)
 
+# Job ID pattern for Dataflow jobs
+_DATAFLOW_JOB_ID_PATTERN = br'.*console.cloud.google.com/dataflow/jobs/(?P<location>[a-z|0-9|A-Z|\-|\_]+)/(?P<job_id>[a-z|0-9|A-Z|\-|\_]+).*'
+
+# Args, if provided, that should be staged locally.
+_ARGS_FILES_TO_STAGE = ('--requirements_file', '--setup_file', '--sdk_location',
+                        '--extra_package')
+
 
 def create_python_job(python_module_path: str,
                       project: str,
@@ -65,9 +72,9 @@ def create_python_job(python_module_path: str,
     args_list = json.loads(args)
 
   python_file_path = stage_file(python_module_path)
-  # If --setup_file or --requirements_file are provided stage them locally.
+  # If an option in _ARGS_FILES_TO_STAGE is provided, stage them locally.
   for idx, param in enumerate(args_list):
-    if param in ('--requirements_file', '--setup_file'):
+    if param in _ARGS_FILES_TO_STAGE:
       args_list[idx + 1] = stage_file(args_list[idx + 1])
       logging.info('Staging %s at %s locally.', param, args_list[idx + 1])
 
@@ -104,9 +111,7 @@ def prepare_cmd(project_id, region, python_file_path, args, temp_location):
 
 def extract_job_id_and_location(line):
   """Returns (job_id, location) from matched log."""
-  job_id_pattern = re.compile(
-      br'.*console.cloud.google.com/dataflow/jobs/(?P<location>[a-z|0-9|A-Z|\-|\_]+)/(?P<job_id>[a-z|0-9|A-Z|\-|\_]+).*'
-  )
+  job_id_pattern = re.compile(_DATAFLOW_JOB_ID_PATTERN)
   matched_job_id = job_id_pattern.search(line or '')
   if matched_job_id:
     return (matched_job_id.group('job_id').decode(),
