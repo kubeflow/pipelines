@@ -1,5 +1,8 @@
-# Current Version 1.0.24.dev (Still in Development)
-* Add notes for next release here.
+# Release 1.0.24
+* Add notification v1 doc
+* Convert all v1 components into individual launchers and remote runners
+* Update AutoML Tables components to have latest SDK features
+* Add support for staging Dataflow options (sdk_location and extra_package)
 
 # Release 1.0.23
 * AutoML: Sync GCPC staging to prod to include recent API changes
