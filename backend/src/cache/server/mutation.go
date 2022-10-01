@@ -127,21 +127,15 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 
 	userCacheStaleness, exists := annotations[MaxCacheStalenessKey]
 	if exists {
-		log.Printf("userCacheStaleness: %s", userCacheStaleness)
 		userCacheStalenessInSeconds = stalenessToSeconds(userCacheStaleness)
-		log.Printf("userCacheStalenessInSeconds: %d", userCacheStalenessInSeconds)
 	}
 	defaultCacheStaleness, exists := os.LookupEnv("DEFAULT_CACHE_STALENESS")
 	if exists {
-		log.Printf("defaultCacheStaleness: %s", defaultCacheStaleness)
 		defaultCacheStalenessInSeconds = stalenessToSeconds(defaultCacheStaleness)
-		log.Printf("defaultCacheStalenessInSeconds: %d", defaultCacheStalenessInSeconds)
 	}
 	maximumCacheStaleness, exists := os.LookupEnv("MAXIMUM_CACHE_STALENESS")
 	if exists {
-		log.Printf("maximumCacheStaleness: %s", maximumCacheStaleness)
 		maximumCacheStalenessInSeconds = stalenessToSeconds(maximumCacheStaleness)
-		log.Printf("maximumCacheStalenessInSeconds: %d", maximumCacheStalenessInSeconds)
 	}
 
 	if userCacheStalenessInSeconds < 0 {
