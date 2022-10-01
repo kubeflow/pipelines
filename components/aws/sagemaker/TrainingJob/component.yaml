@@ -12,7 +12,7 @@ inputs:
       name: algorithm_specification,
       type: JsonObject,
       default: '{}',
-      description: "The registry path of the Docker image that contains the training algorithm and algorithm-specific me",
+      description: "The registry path of the Docker image that contains the training algorithm and algorithm-specific metadata, including the input mode.",
     }
   - {
       name: checkpoint_config,
@@ -24,7 +24,7 @@ inputs:
       name: debug_hook_config,
       type: JsonObject,
       default: '{}',
-      description: "Configuration information for the Debugger hook parameters, metric and tensor collections, and stora",
+      description: "Configuration information for the Debugger hook parameters, metric and tensor collections, and storage paths.",
     }
   - {
       name: debug_rule_configurations,
@@ -36,19 +36,19 @@ inputs:
       name: enable_inter_container_traffic_encryption,
       type: Bool,
       default: False,
-      description: "To encrypt all communications between ML compute instances in distributed training, choose True. Enc",
+      description: "To encrypt all communications between ML compute instances in distributed training, choose True.",
     }
   - {
       name: enable_managed_spot_training,
       type: Bool,
       default: False,
-      description: "To train models using managed spot training, choose True. Managed spot training provides a fully man",
+      description: "To train models using managed spot training, choose True.",
     }
   - {
       name: enable_network_isolation,
       type: Bool,
       default: False,
-      description: "Isolates the training container. No inbound or outbound network calls can be made, except for calls",
+      description: "Isolates the training container.",
     }
   - {
       name: environment,
@@ -60,25 +60,25 @@ inputs:
       name: experiment_config,
       type: JsonObject,
       default: '{}',
-      description: "Associates a SageMaker job as a trial component with an experiment and trial. Specified when you cal",
+      description: "Associates a SageMaker job as a trial component with an experiment and trial.",
     }
   - {
       name: hyper_parameters,
       type: JsonObject,
       default: '{}',
-      description: "Algorithm-specific parameters that influence the quality of the model. You set hyperparameters befor",
+      description: "Algorithm-specific parameters that influence the quality of the model.",
     }
   - {
       name: input_data_config,
       type: JsonArray,
       default: '[]',
-      description: "An array of Channel objects. Each channel is a named input source. InputDataConfig describes the inp",
+      description: "An array of Channel objects.",
     }
   - {
       name: output_data_config,
       type: JsonObject,
       default: '{}',
-      description: "Specifies the path to the S3 location where you want to store model artifacts. Amazon SageMaker crea",
+      description: "Specifies the path to the S3 location where you want to store model artifacts.",
     }
   - {
       name: profiler_config,
@@ -102,19 +102,19 @@ inputs:
       name: role_arn,
       type: String,
       default: '',
-      description: "The Amazon Resource Name (ARN) of an IAM role that Amazon SageMaker can assume to perform tasks on y",
+      description: "The Amazon Resource Name (ARN) of an IAM role that Amazon SageMaker can assume to perform tasks on your behalf.",
     }
   - {
       name: stopping_condition,
       type: JsonObject,
       default: '{}',
-      description: "Specifies a limit to how long a model training job can run. It also specifies how long a managed Spo",
+      description: "Specifies a limit to how long a model training job can run.",
     }
   - {
       name: tags,
       type: JsonArray,
       default: '[]',
-      description: "An array of key-value pairs. You can use tags to categorize your Amazon Web Services resources in di",
+      description: "An array of key-value pairs.",
     }
   - {
       name: tensor_board_output_config,
@@ -126,13 +126,13 @@ inputs:
       name: training_job_name,
       type: String,
       default: '',
-      description: "The name of the training job. The name must be unique within an Amazon Web Services Region in an Ama",
+      description: "The name of the training job.",
     }
   - {
       name: vpc_config,
       type: JsonObject,
       default: '{}',
-      description: "A VpcConfig object that specifies the VPC that you want your training job to connect to. Control acc",
+      description: "A VpcConfig object that specifies the VPC that you want your training job to connect to.",
     }
   ###########################GENERATED SECTION ABOVE############################
 
@@ -142,12 +142,12 @@ outputs:
   - {
       name: ack_resource_metadata,
       type: JsonObject,
-      description: "All CRs managed by ACK have a common `Status.ACKResourceMetadata` member that is used to contain res",
+      description: "All CRs managed by ACK have a common `Status.",
     }
   - {
       name: conditions,
       type: JsonArray,
-      description: "All CRS managed by ACK have a common `Status.Conditions` member that contains a collection of `ackv1",
+      description: "All CRS managed by ACK have a common `Status.",
     }
   - {
       name: debug_rule_evaluation_statuses,
@@ -172,18 +172,18 @@ outputs:
   - {
       name: secondary_status,
       type: String,
-      description: "Provides detailed information about the state of the training job. For detailed information on the s",
+      description: "Provides detailed information about the state of the training job.",
     }
   - {
       name: training_job_status,
       type: String,
-      description: "The status of the training job.   Amazon SageMaker provides the following training job statuses:",
+      description: "The status of the training job.",
     }
   ###########################GENERATED SECTION ABOVE############################
 
 implementation:
   container:
-    image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:2.0.0-alpha2
+    image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:2.0.0
     command: [python3]
     args:
       - TrainingJob/src/TrainingJob_component.py

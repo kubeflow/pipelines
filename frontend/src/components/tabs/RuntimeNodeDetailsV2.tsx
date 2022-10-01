@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
+import { Button } from '@material-ui/core';
 import * as React from 'react';
 import { useState } from 'react';
 import { FlowElement } from 'react-flow-renderer';
+// import { ComponentSpec, PipelineSpec } from 'src/generated/pipeline_spec';
 import { useQuery } from 'react-query';
 import MD2Tabs from 'src/atoms/MD2Tabs';
 import { commonCss, padding } from 'src/Css';
 import { KeyValue } from 'src/lib/StaticGraphParser';
-import { NodeTypeNames } from 'src/lib/v2/StaticFlow';
+import { getTaskKeyFromNodeKey, NodeTypeNames } from 'src/lib/v2/StaticFlow';
 import { getArtifactTypeName, getArtifactTypes, LinkedArtifact } from 'src/mlmd/MlmdUtils';
 import { NodeMlmdInfo } from 'src/pages/RunDetailsV2';
 import { Artifact, ArtifactType, Execution } from 'src/third_party/mlmd';
@@ -50,12 +52,16 @@ const NODE_STATE_UNAVAILABLE = (
 );
 
 interface RuntimeNodeDetailsV2Props {
+  layers: string[];
+  onLayerChange: (layers: string[]) => void;
   element?: FlowElement<FlowElementDataBase> | null;
   elementMlmdInfo?: NodeMlmdInfo | null;
   namespace: string | undefined;
 }
 
 export function RuntimeNodeDetailsV2({
+  layers,
+  onLayerChange,
   element,
   elementMlmdInfo,
   namespace,
@@ -78,6 +84,16 @@ export function RuntimeNodeDetailsV2({
         <ArtifactNodeDetail
           execution={elementMlmdInfo?.execution}
           linkedArtifact={elementMlmdInfo?.linkedArtifact}
+          namespace={namespace}
+        />
+      );
+    } else if (NodeTypeNames.SUB_DAG === element.type) {
+      return (
+        <SubDAGNodeDetail
+          element={element}
+          execution={elementMlmdInfo?.execution}
+          layers={layers}
+          onLayerChange={onLayerChange}
           namespace={namespace}
         />
       );
@@ -281,6 +297,74 @@ function ArtifactInfo({
             namespace: namespace,
           }}
         />
+      </div>
+    </div>
+  );
+}
+
+interface SubDAGNodeDetailProps {
+  element: FlowElement<FlowElementDataBase>;
+  execution?: Execution;
+  layers: string[];
+  onLayerChange: (layers: string[]) => void;
+  namespace: string | undefined;
+}
+
+function SubDAGNodeDetail({
+  element,
+  execution,
+  layers,
+  onLayerChange,
+  namespace,
+}: SubDAGNodeDetailProps) {
+  const taskKey = getTaskKeyFromNodeKey(element.id);
+  // const componentSpec = getComponentSpec(pipelineSpec, layers, taskKey);
+  // if (!componentSpec) {
+  //   return NODE_INFO_UNKNOWN;
+  // }
+
+  const onSubDagOpenClick = () => {
+    onLayerChange([...layers, taskKey]);
+  };
+
+  const [selectedTab, setSelectedTab] = useState(0);
+
+  return (
+    <div>
+      <div>
+        <Button variant='contained' onClick={onSubDagOpenClick}>
+          Open Workflow
+        </Button>
+      </div>
+
+      <div className={commonCss.page}>
+        <MD2Tabs
+          tabs={['Input/Output', 'Task Details']}
+          selectedTab={selectedTab}
+          onSwitch={tab => setSelectedTab(tab)}
+        />
+        <div className={commonCss.page}>
+          {/* Input/Output tab */}
+          {selectedTab === 0 &&
+            (() => {
+              if (execution) {
+                return (
+                  <InputOutputTab execution={execution} namespace={namespace}></InputOutputTab>
+                );
+              }
+              return NODE_STATE_UNAVAILABLE;
+            })()}
+
+          {/* Task Details tab */}
+          {selectedTab === 1 && (
+            <div className={padding(20)}>
+              <DetailsTable
+                title='Task Details'
+                fields={getTaskDetailsFields(element, execution)}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

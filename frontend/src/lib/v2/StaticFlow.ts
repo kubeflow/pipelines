@@ -121,7 +121,6 @@ function buildDag(pipelineSpec: PipelineSpec, componentSpec: ComponentSpec): Ele
   let flowGraph: FlowElement[] = [];
 
   const tasksMap = dag.tasks || {};
-  console.log('tasksMap count: ' + tasksMap.length);
 
   addTaskNodes(tasksMap, componentsMap, flowGraph);
   addArtifactNodes(tasksMap, componentsMap, flowGraph);
@@ -203,7 +202,9 @@ function addArtifactNodes(
     // Output: components -> key/value -> outputDefinitions -> artifacts -> name/key
     // Calculate Output in this function.
     const outputDefinitions = componentSpec.outputDefinitions;
-    if (!outputDefinitions) return;
+    if (!outputDefinitions) {
+      continue;
+    }
     const artifacts = outputDefinitions.artifacts;
     for (let artifactKey in artifacts) {
       const node: Node<FlowElementDataBase> = {
@@ -236,7 +237,9 @@ function addTaskToArtifactEdges(
     }
     const { componentSpec } = componentPair;
     const outputDefinitions = componentSpec.outputDefinitions;
-    if (!outputDefinitions) return;
+    if (!outputDefinitions) {
+      continue;
+    }
     const artifacts = outputDefinitions.artifacts;
     for (let artifactKey in artifacts) {
       const edge: Edge = {
@@ -309,7 +312,7 @@ function addTaskToTaskEdges(
         const producerTask = taskOutputParameter.producerTask;
         const edgeId = getTaskToTaskEdgeKey(producerTask, inputTaskKey);
         if (edgeKeys.has(edgeId)) {
-          return;
+          continue;
         }
 
         const edge: Edge = {

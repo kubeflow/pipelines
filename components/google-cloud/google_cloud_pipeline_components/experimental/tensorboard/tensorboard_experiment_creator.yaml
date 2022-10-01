@@ -34,22 +34,27 @@ description: |
 
 inputs:
   - { name: tensorboard_resource_name, type: String }
-  - { name: tensorboard_experiment_id, type: String, default: "{{$.pipeline_task_name}}"}
-  - { name: tensorboard_experiment_display_name, type: String, optional: true}
+  - {
+      name: tensorboard_experiment_id,
+      type: String,
+      default: "{{$.pipeline_task_name}}",
+    }
+  - { name: tensorboard_experiment_display_name, type: String, optional: true }
   - { name: tensorboard_experiment_description, type: String, optional: true }
-  - { name: tensorboard_experiment_labels, type: Dict, optional: true}
+  - { name: tensorboard_experiment_labels, type: Dict, optional: true }
 #TODO(b/244597396)
 outputs:
   - { name: gcp_resources, type: String }
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
-    command: [
-      python3,
-      -u,
-      -m,
-      google_cloud_pipeline_components.container.experimental.tensorboard.tensorboard_experiment_creator
-    ]
+    command:
+      [
+        python3,
+        -u,
+        -m,
+        google_cloud_pipeline_components.container.experimental.tensorboard.tensorboard_experiment_creator,
+      ]
     args:
       - --task
       - "tensorboard_experiment_creator"
@@ -59,12 +64,20 @@ implementation:
       - { inputValue: tensorboard_resource_name }
       - --tensorboard_experiment_id
       - { inputValue: tensorboard_experiment_id }
-      - --tensorboard_experiment_display_name
-      - { inputValue: tensorboard_experiment_display_name }
-      - --tensorboard_experiment_description
-      - { inputValue: tensorboard_experiment_description }
-      - --tensorboard_experiment_labels
-      - { inputValue: tensorboard_experiment_labels }
+      - if:
+          cond: { isPresent: tensorboard_experiment_display_name }
+          then:
+            - --tensorboard_experiment_display_name
+            - { inputValue: tensorboard_experiment_display_name }
+      - if:
+          cond: { isPresent: tensorboard_experiment_description }
+          then:
+            - --tensorboard_experiment_description
+            - { inputValue: tensorboard_experiment_description }
+      - if:
+          cond: { isPresent: tensorboard_experiment_labels }
+          then:
+            - --tensorboard_experiment_labels
+            - { inputValue: tensorboard_experiment_labels }
       - --gcp_resources
-      - {outputPath: gcp_resources}
-
+      - { outputPath: gcp_resources }

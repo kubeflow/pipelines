@@ -242,21 +242,17 @@ def extract_component_interface(
                                         None) or getattr(
                                             return_ann, '_field_types', None)
             for field_name in return_ann._fields:
-                type_struct = None
-                if field_annotations:
-                    type_struct = type_utils._annotation_to_type_struct(
-                        field_annotations.get(field_name, None))
-
                 output_name = _maybe_make_unique(field_name, output_names)
                 output_names.add(output_name)
-                if type_struct.lower() in type_utils._PARAMETER_TYPES_MAPPING:
-
-                    output_spec = structures.OutputSpec(type=type_struct)
-                else:
+                annotation = field_annotations.get(field_name)
+                if type_annotations.is_artifact_class(annotation):
                     output_spec = structures.OutputSpec(
                         type=type_utils.create_bundled_artifact_type(
-                            type_struct,
-                            field_annotations.get(field_name).schema_version))
+                            annotation.schema_title, annotation.schema_version))
+                else:
+                    type_struct = type_utils._annotation_to_type_struct(
+                        annotation)
+                    output_spec = structures.OutputSpec(type=type_struct)
                 outputs[output_name] = output_spec
         # Deprecated dict-based way of declaring multiple outputs. Was only used by
         # the @component decorator
@@ -365,7 +361,7 @@ def _get_command_and_args_for_containerized_component(
 
     args = [
         '--executor_input',
-        placeholders.ExecutorInputPlaceholder().to_placeholder_string(),
+        placeholders.ExecutorInputPlaceholder()._to_placeholder_string(),
         '--function_to_execute',
         function_name,
     ]
@@ -480,7 +476,7 @@ def create_container_component_from_func(
         container_spec)
     component_spec.implementation = structures.Implementation(
         container_spec_implementation)
-    component_spec.validate_placeholders()
+    component_spec._validate_placeholders()
     return container_component.ContainerComponent(component_spec, func)
 
 

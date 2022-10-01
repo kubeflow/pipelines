@@ -1,0 +1,5 @@
+# Runtime requirements
+pathlib2==2.3.5
+pyyaml==5.4.1
+mypy-extensions==0.4.3
+kubernetes==12.0.1

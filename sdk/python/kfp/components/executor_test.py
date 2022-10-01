@@ -886,15 +886,140 @@ class ExecutorTest(unittest.TestCase):
                 },
             })
 
+    def test_component_with_input_path(self):
+        executor_input = """\
+        {
+            "inputs": {
+                "artifacts": {
+                    "dataset_one_path": {
+                        "artifacts": [
+                            {
+                                "name": "84085",
+                                "type": {
+                                    "instanceSchema": ""
+                                },
+                                "uri": "gs://mlpipeline/v2/artifacts/my-test-pipeline-beta/b2b0cdee-b15c-48ff-b8bc-a394ae46c854/preprocess/output_dataset_one",
+                                "metadata": {
+                                    "display_name": "output_dataset_one"
+                                }
+                            }
+                        ]
+                    }
+                },
+                "parameterValues": {
+                    "input_bool": true,
+                    "input_dict": {
+                        "A": 1,
+                        "B": 2
+                    },
+                    "input_list": [
+                        "a",
+                        "b",
+                        "c"
+                    ],
+                    "message": "here is my message",
+                    "num_steps": 100
+                }
+            },
+            "outputs": {
+                "artifacts": {
+                    "model": {
+                        "artifacts": [
+                            {
+                                "type": {
+                                    "schemaTitle": "system.Model",
+                                    "schemaVersion": "0.0.1"
+                                },
+                                "uri": "gs://mlpipeline/v2/artifacts/my-test-pipeline-beta/b2b0cdee-b15c-48ff-b8bc-a394ae46c854/train/model"
+                            }
+                        ]
+                    }
+                },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+            }
+        }
+        """
+        path = os.path.join(
+            self._test_dir,
+            'mlpipeline/v2/artifacts/my-test-pipeline-beta/b2b0cdee-b15c-48ff-b8bc-a394ae46c854/preprocess/output_dataset_one'
+        )
+        os.makedirs(os.path.dirname(path))
+        with open(path, 'w+') as f:
+            f.write('data!')
+
+        def test_func(
+            # Use InputPath to get a locally accessible path for the input artifact
+            # of type `Dataset`.
+            dataset_one_path: InputPath('Dataset'),
+            # An input parameter of type string.
+            message: str,
+            # Use Output[T] to get a metadata-rich handle to the output artifact
+            # of type `Dataset`.
+            model: Output[Model],
+            # An input parameter of type bool.
+            input_bool: bool,
+            # An input parameter of type dict.
+            input_dict: Dict[str, int],
+            # An input parameter of type List[str].
+            input_list: List[str],
+            # An input parameter of type int with a default value.
+            num_steps: int = 100,
+        ):
+            """Dummy Training step."""
+            with open(dataset_one_path) as input_file:
+                dataset_one_contents = input_file.read()
+
+            line = (f'dataset_one_contents: {dataset_one_contents} || '
+                    f'message: {message} || '
+                    f'input_bool: {input_bool}, type {type(input_bool)} || '
+                    f'input_dict: {input_dict}, type {type(input_dict)} || '
+                    f'input_list: {input_list}, type {type(input_list)} \n')
+
+            with open(model.path, 'w') as output_file:
+                for i in range(num_steps):
+                    output_file.write(f'Step {i}\n{line}\n=====\n')
+
+            # model is an instance of Model artifact, which has a .metadata dictionary
+            # to store arbitrary metadata for the output artifact.
+            model.metadata['accuracy'] = 0.9
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+        self.assertEqual(
+            output_metadata, {
+                'artifacts': {
+                    'model': {
+                        'artifacts': [{
+                            'name':
+                                '',
+                            'uri':
+                                'gs://mlpipeline/v2/artifacts/my-test-pipeline-beta/b2b0cdee-b15c-48ff-b8bc-a394ae46c854/train/model',
+                            'metadata': {
+                                'accuracy': 0.9
+                            }
+                        }]
+                    }
+                }
+            })
+
 
 class VertexDataset:
     schema_title = 'google.VertexDataset'
     schema_version = '0.0.0'
 
-    def __init__(self, name: str, uri: str, metadata: dict) -> None:
-        self.name = name
-        self.uri = uri
-        self.metadata = metadata
+    @classmethod
+    def _from_executor_fields(
+        cls,
+        name: str,
+        uri: str,
+        metadata: dict,
+    ) -> 'VertexDataset':
+
+        instance = VertexDataset()
+        instance.name = name
+        instance.uri = uri
+        instance.metadata = metadata
+        return instance
 
     @property
     def path(self) -> str:
@@ -1016,7 +1141,7 @@ class TestDictToArtifact(parameterized.TestCase):
         self.assertIsInstance(
             executor.create_artifact_instance(runtime_artifact), expected_type)
 
-    def test_dict_to_artifact_nonkfp_artifact(self):
+    def test_dict_to_artifact_google_artifact(self):
         runtime_artifact = {
             'metadata': {},
             'name': 'input_artifact_one',

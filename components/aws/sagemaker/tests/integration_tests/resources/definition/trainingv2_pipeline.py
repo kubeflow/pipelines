@@ -2,7 +2,10 @@ import kfp
 from kfp import components
 from kfp import dsl
 
-sagemaker_TrainingJob_op = components.load_component_from_file("../../TrainingJob/component.yaml")
+sagemaker_TrainingJob_op = components.load_component_from_file(
+    "../../TrainingJob/component.yaml"
+)
+
 
 @dsl.pipeline(name="TrainingJob", description="SageMaker TrainingJob component")
 def TrainingJob(
@@ -33,6 +36,8 @@ def TrainingJob(
         stopping_condition=stopping_condition,
         training_job_name=training_job_name,
     )
+
+
 if __name__ == "__main__":
     kfp.compiler.Compiler().compile(
         TrainingJob, "SageMaker_trainingJob_pipeline" + ".yaml"

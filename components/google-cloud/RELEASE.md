@@ -1,5 +1,24 @@
-# Current Version 1.0.20.dev (Still in Development)
+# Current Version 1.0.24.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.23
+* AutoML: Sync GCPC staging to prod to include recent API changes
+* TensorBoard: Make some input parameters optional to provide better user experience
+
+# Release 1.0.22
+* TensorBoard: Make some input parameters optional to provide better user experience
+
+# Release 1.0.21
+* Fix input parameter in tensorboard experiment creator component
+* Convert bigquery components into individual launchers and remote runners
+* Model Evaluation: Add metadata field for pipeline resource name
+
+# Release 1.0.20
+* Add special case in json_util.py where explanation_spec metadata outputs can have empty values
+* Update the docstring for missing arguments on feature_importance component
+* Create new tensorboard experiment creator component
+* Remove unused input in evaluation classification yaml
+* Update the docstring for exported_model_path in export_model
 
 # Release 1.0.19
 * Propagating labels for explain_forecast_model component

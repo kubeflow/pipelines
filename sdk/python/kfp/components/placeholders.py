@@ -36,7 +36,7 @@ class Placeholder(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def from_placeholder_string(cls, placeholder_string: str) -> 'Placeholder':
+    def _from_placeholder_string(cls, placeholder_string: str) -> 'Placeholder':
         """Converts a placeholder string to the placeholder object that
         implements this method.
 
@@ -50,7 +50,7 @@ class Placeholder(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def is_match(cls, placeholder_string: str) -> bool:
+    def _is_match(cls, placeholder_string: str) -> bool:
         """Checks if the placeholder string matches the placeholder object that
         implements this method.
 
@@ -63,7 +63,7 @@ class Placeholder(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def to_placeholder_string(self) -> str:
+    def _to_placeholder_string(self) -> str:
         """Converts the placeholder object that implements this to a
         placeholder string.
 
@@ -94,7 +94,7 @@ class RegexPlaceholderSerializationMixin(Placeholder):
     _TO_PLACEHOLDER: Union[str, type(NotImplemented)] = NotImplemented
 
     @classmethod
-    def is_match(cls, placeholder_string: str) -> bool:
+    def _is_match(cls, placeholder_string: str) -> bool:
         """Determines if the placeholder_string matches the placeholder pattern
         using the _FROM_PLACEHOLDER regex.
 
@@ -107,7 +107,7 @@ class RegexPlaceholderSerializationMixin(Placeholder):
         return cls._FROM_PLACEHOLDER.match(placeholder_string) is not None
 
     @classmethod
-    def from_placeholder_string(
+    def _from_placeholder_string(
             cls,
             placeholder_string: str) -> 'RegexPlaceholderSerializationMixin':
         """Converts a placeholder string into a placeholder object.
@@ -134,7 +134,7 @@ class RegexPlaceholderSerializationMixin(Placeholder):
         kwargs = {field_name: matches[field_name] for field_name in field_names}
         return cls(**kwargs)
 
-    def to_placeholder_string(self) -> str:
+    def _to_placeholder_string(self) -> str:
         """Converts a placeholder object into a placeholder string.
 
         Returns:
@@ -154,7 +154,7 @@ class ExecutorInputPlaceholder(base_model.BaseModel,
     _TO_PLACEHOLDER = '{{$}}'
     _FROM_PLACEHOLDER = re.compile(r'\{\{\$\}\}')
 
-    def to_placeholder_string(self) -> str:
+    def _to_placeholder_string(self) -> str:
         return self._TO_PLACEHOLDER
 
 
@@ -308,7 +308,7 @@ class ConcatPlaceholder(base_model.BaseModel, Placeholder):
     """Elements to concatenate."""
 
     @classmethod
-    def split_cel_concat_string(self, string: str) -> List[str]:
+    def _split_cel_concat_string(self, string: str) -> List[str]:
         """Splits a cel string into a list of strings, which may be normal
         strings or placeholder strings.
 
@@ -337,15 +337,15 @@ class ConcatPlaceholder(base_model.BaseModel, Placeholder):
         return items
 
     @classmethod
-    def is_match(cls, placeholder_string: str) -> bool:
+    def _is_match(cls, placeholder_string: str) -> bool:
         # 'Concat' is the explicit struct for concatenation
         # cel splitting handles the cases of {{input}}+{{input}} and {{input}}otherstring
         return 'Concat' in json_load_nested_placeholder_aware(
             placeholder_string
         ) or len(
-            ConcatPlaceholder.split_cel_concat_string(placeholder_string)) > 1
+            ConcatPlaceholder._split_cel_concat_string(placeholder_string)) > 1
 
-    def to_placeholder_struct(self) -> Dict[str, Any]:
+    def _to_placeholder_struct(self) -> Dict[str, Any]:
         return {
             'Concat': [
                 maybe_convert_placeholder_to_placeholder_string(item)
@@ -353,18 +353,18 @@ class ConcatPlaceholder(base_model.BaseModel, Placeholder):
             ]
         }
 
-    def to_placeholder_string(self) -> str:
-        return json.dumps(self.to_placeholder_struct())
+    def _to_placeholder_string(self) -> str:
+        return json.dumps(self._to_placeholder_struct())
 
     @classmethod
-    def from_placeholder_string(cls,
-                                placeholder_string: str) -> 'ConcatPlaceholder':
+    def _from_placeholder_string(
+            cls, placeholder_string: str) -> 'ConcatPlaceholder':
         placeholder_struct = json_load_nested_placeholder_aware(
             placeholder_string)
         if isinstance(placeholder_struct, str):
             items = [
                 maybe_convert_placeholder_string_to_placeholder(item)
-                for item in cls.split_cel_concat_string(placeholder_struct)
+                for item in cls._split_cel_concat_string(placeholder_struct)
             ]
             return cls(items=items)
         elif isinstance(placeholder_struct, dict):
@@ -414,13 +414,13 @@ class IfPresentPlaceholder(base_model.BaseModel, Placeholder):
     _aliases = {'input_name': 'inputName', 'else_': 'else'}
 
     @classmethod
-    def is_match(cls, string: str) -> bool:
+    def _is_match(cls, string: str) -> bool:
         try:
             return 'IfPresent' in json.loads(string)
         except json.decoder.JSONDecodeError:
             return False
 
-    def to_placeholder_struct(self) -> Dict[str, Any]:
+    def _to_placeholder_struct(self) -> Dict[str, Any]:
         then = [
             maybe_convert_placeholder_to_placeholder_string(item)
             for item in self.then
@@ -434,11 +434,11 @@ class IfPresentPlaceholder(base_model.BaseModel, Placeholder):
             struct['IfPresent']['Else'] = otherwise
         return struct
 
-    def to_placeholder_string(self) -> str:
-        return json.dumps(self.to_placeholder_struct())
+    def _to_placeholder_string(self) -> str:
+        return json.dumps(self._to_placeholder_struct())
 
     @classmethod
-    def from_placeholder_string(
+    def _from_placeholder_string(
             cks, placeholder_string: str) -> 'IfPresentPlaceholder':
         struct = json_load_nested_placeholder_aware(placeholder_string)
         struct_body = struct['IfPresent']
@@ -461,7 +461,7 @@ class IfPresentPlaceholder(base_model.BaseModel, Placeholder):
         }
         return IfPresentPlaceholder(**kwargs)
 
-    def transform_else(self) -> None:
+    def _transform_else(self) -> None:
         """Use None instead of empty list for optional."""
         self.else_ = None if self.else_ == [] else self.else_
 
@@ -518,8 +518,8 @@ def maybe_convert_placeholder_string_to_placeholder(
         OutputParameterPlaceholder,
     ]
     for placeholder_struct in from_string_placeholders:
-        if placeholder_struct.is_match(placeholder_string):
-            return placeholder_struct.from_placeholder_string(
+        if placeholder_struct._is_match(placeholder_string):
+            return placeholder_struct._from_placeholder_string(
                 placeholder_string)
     return placeholder_string
 
@@ -536,9 +536,9 @@ def maybe_convert_placeholder_to_placeholder_string(
         str: The placeholder string.
     """
     if isinstance(placeholder, Placeholder):
-        return placeholder.to_placeholder_struct() if hasattr(
+        return placeholder._to_placeholder_struct() if hasattr(
             placeholder,
-            'to_placeholder_struct') else placeholder.to_placeholder_string()
+            '_to_placeholder_struct') else placeholder._to_placeholder_string()
     return placeholder
 
 
@@ -564,17 +564,17 @@ def maybe_convert_v1_yaml_placeholder_to_v2_placeholder_str(
     if first_key == 'inputValue':
         return InputValuePlaceholder(
             input_name=utils.sanitize_input_name(
-                first_value)).to_placeholder_string()
+                first_value))._to_placeholder_string()
 
     elif first_key == 'inputPath':
         return InputPathPlaceholder(
             input_name=utils.sanitize_input_name(
-                first_value)).to_placeholder_string()
+                first_value))._to_placeholder_string()
 
     elif first_key == 'inputUri':
         return InputUriPlaceholder(
             input_name=utils.sanitize_input_name(
-                first_value)).to_placeholder_string()
+                first_value))._to_placeholder_string()
 
     elif first_key == 'outputPath':
         outputs = component_dict['outputs']
@@ -587,11 +587,11 @@ def maybe_convert_v1_yaml_placeholder_to_v2_placeholder_str(
                 if is_parameter:
                     return OutputParameterPlaceholder(
                         output_name=utils.sanitize_input_name(
-                            first_value)).to_placeholder_string()
+                            first_value))._to_placeholder_string()
                 else:
                     return OutputPathPlaceholder(
                         output_name=utils.sanitize_input_name(
-                            first_value)).to_placeholder_string()
+                            first_value))._to_placeholder_string()
         raise ValueError(
             f'{first_value} not found in component outputs. Could not process placeholders. Component spec: {component_dict}.'
         )
@@ -599,7 +599,7 @@ def maybe_convert_v1_yaml_placeholder_to_v2_placeholder_str(
     elif first_key == 'outputUri':
         return OutputUriPlaceholder(
             output_name=utils.sanitize_input_name(
-                first_value)).to_placeholder_string()
+                first_value))._to_placeholder_string()
 
     elif first_key == 'ifPresent':
         structure_kwargs = arg['ifPresent']
@@ -615,16 +615,16 @@ def maybe_convert_v1_yaml_placeholder_to_v2_placeholder_str(
                 e, component_dict=component_dict)
             for e in structure_kwargs['otherwise']
         ]
-        return IfPresentPlaceholder(**structure_kwargs).to_placeholder_string()
+        return IfPresentPlaceholder(**structure_kwargs)._to_placeholder_string()
 
     elif first_key == 'concat':
         return ConcatPlaceholder(items=[
             maybe_convert_v1_yaml_placeholder_to_v2_placeholder_str(
                 e, component_dict=component_dict) for e in arg['concat']
-        ]).to_placeholder_string()
+        ])._to_placeholder_string()
 
     elif first_key == 'executorInput':
-        return ExecutorInputPlaceholder().to_placeholder_string()
+        return ExecutorInputPlaceholder()._to_placeholder_string()
 
     elif 'if' in arg:
         if_ = arg['if']
@@ -640,13 +640,13 @@ def maybe_convert_v1_yaml_placeholder_to_v2_placeholder_str(
             else_=[
                 maybe_convert_v1_yaml_placeholder_to_v2_placeholder_str(
                     val, component_dict=component_dict) for val in else_
-            ]).to_placeholder_string()
+            ])._to_placeholder_string()
 
     elif 'concat' in arg:
 
         return ConcatPlaceholder(items=[
             maybe_convert_v1_yaml_placeholder_to_v2_placeholder_str(
                 val, component_dict=component_dict) for val in arg['concat']
-        ]).to_placeholder_string()
+        ])._to_placeholder_string()
     else:
         raise TypeError(f'Unexpected argument {arg} of type {type(arg)}.')

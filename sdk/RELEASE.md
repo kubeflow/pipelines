@@ -1,18 +1,31 @@
-# Current Version (Still in Development)
+# Current Version (in development)
 
-## Major Features and Improvements
+## Features
 
-## Breaking Changes
-
-### For Pipeline Authors
-
-### For Component Authors
+## Breaking changes
 
 ## Deprecations
 
-## Bug Fixes and Other Changes
+## Bug fixes and other changes
 
-## Documentation Updates
+
+## Documentation updates
+
+# 2.0.0-beta.5
+
+## Features
+* Support `google.`-namespaced artifact types [\#8191](https://github.com/kubeflow/pipelines/pull/8191), [\#8232](https://github.com/kubeflow/pipelines/pull/8232), [\#8233](https://github.com/kubeflow/pipelines/pull/8233), [\#8279](https://github.com/kubeflow/pipelines/pull/8279)
+* Support dynamic importer metadata [\#7660](https://github.com/kubeflow/pipelines/pull/7660)
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+* Migrate Out-Of-Band (OOB) authentication flow [\#8262](https://github.com/kubeflow/pipelines/pull/8262)
+
+## Documentation updates
+* Release KFP SDK v2 [user documentation draft](https://www.kubeflow.org/docs/components/pipelines/v2/)
 
 # 2.0.0-beta.4
 
@@ -25,7 +38,7 @@
 ## Breaking Changes
 
 ### For Pipeline Authors
-* Pipeline compilation is now triggered from `@pipeline` decorator instead of `Compiler.compile()` method. 
+* Pipeline compilation is now triggered from `@pipeline` decorator instead of `Compiler.compile()` method.
 Technically no breaking changes but compilation error could be exposed in a different (and earlier) stage. [\#8179](https://github.com/kubeflow/pipelines/pull/8179)
 
 ### For Component Authors

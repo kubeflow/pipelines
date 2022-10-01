@@ -29,8 +29,9 @@ __all__ = [
     'FeatureSelectionOp',
     'TransformOp',
     'FinalizerOp',
+    'WideAndDeepHyperparameterTuningJobOp',
     'WideAndDeepTrainerOp',
-    'BuiltinAlgorithmHyperparameterTuningJobOp',
+    'TabNetHyperparameterTuningJobOp',
     'TabNetTrainerOp',
     'FeatureTransformEngineOp',
     'GenerateAnalyzeAndTransformDataOp',
@@ -67,9 +68,13 @@ FinalizerOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'finalizer.yaml'))
 WideAndDeepTrainerOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'wide_and_deep_trainer.yaml'))
-BuiltinAlgorithmHyperparameterTuningJobOp = load_component_from_file(
+WideAndDeepHyperparameterTuningJobOp = load_component_from_file(
     os.path.join(
         os.path.dirname(__file__),
-        'builtin_algorithm_hyperparameter_tuning_job.yaml'))
+        'wide_and_deep_hyperparameter_tuning_job.yaml'))
+TabNetHyperparameterTuningJobOp = load_component_from_file(
+    os.path.join(
+        os.path.dirname(__file__),
+        'tabnet_hyperparameter_tuning_job.yaml'))
 TabNetTrainerOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'tabnet_trainer.yaml'))

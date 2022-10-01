@@ -1,4 +1,4 @@
-# Copyright 2020 The Kubeflow Authors
+# Copyright 2020-2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,18 +13,20 @@
 # limitations under the License.
 """Utility function for building Importer Node spec."""
 
-from typing import Any, Mapping, Optional, Type, Union
+from typing import Any, Dict, Mapping, Optional, Type, Union
 
 from kfp.components import importer_component
 from kfp.components import pipeline_channel
 from kfp.components import pipeline_task
 from kfp.components import placeholders
 from kfp.components import structures
+from kfp.components import utils
 from kfp.components.types import artifact_types
 from kfp.components.types import type_utils
 
-INPUT_KEY = 'uri'
+URI_KEY = 'uri'
 OUTPUT_KEY = 'artifact'
+METADATA_KEY = 'metadata'
 
 
 def importer(
@@ -56,18 +58,80 @@ def importer(
           train(dataset=importer1.output)
     """
 
+    component_inputs: Dict[str, structures.InputSpec] = {}
+    call_inputs: Dict[str, Any] = {}
+
+    def traverse_dict_and_create_metadata_inputs(d: Any) -> Any:
+        if isinstance(d, pipeline_channel.PipelineParameterChannel):
+            reversed_call_inputs = {
+                pipeline_param_chan: name
+                for name, pipeline_param_chan in call_inputs.items()
+            }
+
+            # minimizes importer spec interface by not creating new
+            # inputspec/parameters if the same input is used multiple places
+            # in metadata
+            unique_name = reversed_call_inputs.get(
+                d,
+                utils.make_name_unique_by_adding_index(
+                    METADATA_KEY,
+                    list(call_inputs),
+                    '-',
+                ),
+            )
+
+            call_inputs[unique_name] = d
+            component_inputs[unique_name] = structures.InputSpec(
+                type=d.channel_type)
+
+            return placeholders.InputValuePlaceholder(
+                input_name=unique_name)._to_placeholder_string()
+
+        elif isinstance(d, dict):
+            # use this instead of list comprehension to ensure compiles are identical across Python versions
+            res = {}
+            for k, v in d.items():
+                new_k = traverse_dict_and_create_metadata_inputs(k)
+                new_v = traverse_dict_and_create_metadata_inputs(v)
+                res[new_k] = new_v
+            return res
+
+        elif isinstance(d, list):
+            return [traverse_dict_and_create_metadata_inputs(el) for el in d]
+
+        elif isinstance(d, str):
+            # extract pipeline channels from f-strings, if any
+            pipeline_channels = pipeline_channel.extract_pipeline_channels_from_any(
+                d)
+
+            # pass the channel back into the recursive function to create the placeholder, component inputs, and call inputs, then replace the channel with the placeholder
+            for channel in pipeline_channels:
+                input_placeholder = traverse_dict_and_create_metadata_inputs(
+                    channel)
+                d = d.replace(channel.pattern, input_placeholder)
+            return d
+
+        else:
+            return d
+
+    metadata_with_placeholders = traverse_dict_and_create_metadata_inputs(
+        metadata)
+
     component_spec = structures.ComponentSpec(
         name='importer',
         implementation=structures.Implementation(
             importer=structures.ImporterSpec(
                 artifact_uri=placeholders.InputValuePlaceholder(
-                    INPUT_KEY).to_placeholder_string(),
+                    URI_KEY)._to_placeholder_string(),
                 schema_title=type_utils.create_bundled_artifact_type(
                     artifact_class.schema_title, artifact_class.schema_version),
                 schema_version=artifact_class.schema_version,
                 reimport=reimport,
-                metadata=metadata)),
-        inputs={INPUT_KEY: structures.InputSpec(type='String')},
+                metadata=metadata_with_placeholders)),
+        inputs={
+            URI_KEY: structures.InputSpec(type='String'),
+            **component_inputs
+        },
         outputs={
             OUTPUT_KEY:
                 structures.OutputSpec(
@@ -76,7 +140,6 @@ def importer(
                         artifact_class.schema_version))
         },
     )
-
     importer = importer_component.ImporterComponent(
         component_spec=component_spec)
-    return importer(uri=artifact_uri)
+    return importer(uri=artifact_uri, **call_inputs)

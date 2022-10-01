@@ -92,7 +92,10 @@ type WorkflowResource struct {
 	Parameters []Parameter `json:"parameters,omitempty"`
 
 	// Specification of the workflow to start.
-	Spec string `json:"spec,omitempty"`
+	// Use interface{} for backward compatibility
+	// TODO: change it to string and avoid type casting
+	//       after several releases
+	Spec interface{} `json:"spec,omitempty"`
 }
 
 type Parameter struct {
