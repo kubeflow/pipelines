@@ -80,14 +80,14 @@ function ExecutionNode({ id, data }: ExecutionNodeProps) {
 }
 export default ExecutionNode;
 
-function getExecutionIcon(state: Execution.State | undefined) {
+export function getExecutionIcon(state: Execution.State | undefined) {
   if (state === undefined) {
     return <ListAltIcon className='text-mui-grey-500' />;
   }
   return <ListAltIcon className='text-mui-blue-600' />;
 }
 
-function getIcon(state: Execution.State | undefined) {
+export function getIcon(state: Execution.State | undefined) {
   if (state === undefined) {
     return null;
   }

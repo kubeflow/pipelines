@@ -331,13 +331,12 @@ function SubDAGNodeDetail({
 
   return (
     <div>
-      <div>
-        <Button variant='contained' onClick={onSubDagOpenClick}>
-          Open Workflow
-        </Button>
-      </div>
-
       <div className={commonCss.page}>
+        <div className={padding(20, 'blr')}>
+          <Button variant='contained' onClick={onSubDagOpenClick}>
+            Open Workflow
+          </Button>
+        </div>
         <MD2Tabs
           tabs={['Input/Output', 'Task Details']}
           selectedTab={selectedTab}
