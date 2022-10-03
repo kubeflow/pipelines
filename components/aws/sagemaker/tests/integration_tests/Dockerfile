@@ -9,7 +9,7 @@ RUN apt-get update --allow-releaseinfo-change && apt-get install -y --no-install
     sudo
 
 # Install eksctl
-RUN curl --location "https://github.com/weaveworks/eksctl/releases/download/v0.110.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp \
+RUN curl --location "https://github.com/weaveworks/eksctl/releases/download/v0.113.0/eksctl_$(uname -s)_amd64.tar.gz" | tar xz -C /tmp \
  && mv /tmp/eksctl /usr/local/bin
 
 # Install aws-iam-authenticator
