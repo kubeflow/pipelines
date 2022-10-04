@@ -151,10 +151,9 @@ function delete_eks() {
 function install_kfp() {
   echo "[Installing KFP] Applying KFP manifests"
 
-  kubectl apply -k github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=$KFP_VERSION
+  kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/cluster-scoped-resources?ref=$KFP_VERSION"
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
-  kubectl apply -k github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$KFP_VERSION
-
+  kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/dev?ref=$KFP_VERSION"
   echo "[Installing KFP] Port-forwarding Minio"
 
   kubectl wait --for=condition=ready -n "${KFP_NAMESPACE}" pod -l app=minio --timeout=5m
