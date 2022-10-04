@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"reflect"
 	"strconv"
 	"time"
@@ -67,11 +68,23 @@ func WatchPods(ctx context.Context, namespaceToWatch string, clientManager Clien
 			executionOutputMap[MetadataExecutionIDKey] = pod.ObjectMeta.Labels[MetadataExecutionIDKey]
 			executionOutputJSON, _ := json.Marshal(executionOutputMap)
 
-			executionMaxCacheStaleness, exists := pod.ObjectMeta.Annotations[MaxCacheStalenessKey]
-			var maxCacheStalenessInSeconds int64 = -1
+			executionstaleness, exists := pod.ObjectMeta.Annotations[MaxCacheStalenessKey]
+			var cacheStalenessInSeconds int64 = -1
 			if exists {
-				maxCacheStalenessInSeconds = getMaxCacheStaleness(executionMaxCacheStaleness)
+				cacheStalenessInSeconds = stalenessToSeconds(executionstaleness)
 			}
+
+			var maximumCacheStalenessInSeconds int64 = -1
+			maximumCacheStaleness, exists := os.LookupEnv("MAXIMUM_CACHE_STALENESS")
+			if exists {
+				log.Printf("maximumCacheStaleness: %s", maximumCacheStaleness)
+				maximumCacheStalenessInSeconds = stalenessToSeconds(maximumCacheStaleness)
+				log.Printf("maximumCacheStalenessInSeconds: %d", maximumCacheStalenessInSeconds)
+			}
+			if cacheStalenessInSeconds > maximumCacheStalenessInSeconds || cacheStalenessInSeconds < 0 {
+				cacheStalenessInSeconds = maximumCacheStalenessInSeconds
+			}
+			log.Printf("Creating cachedb entry with cacheStalenessInSeconds: %d", cacheStalenessInSeconds)
 
 			executionTemplate, _ := getArgoTemplate(pod)
 
@@ -79,7 +92,7 @@ func WatchPods(ctx context.Context, namespaceToWatch string, clientManager Clien
 				ExecutionCacheKey: executionKey,
 				ExecutionTemplate: executionTemplate,
 				ExecutionOutput:   string(executionOutputJSON),
-				MaxCacheStaleness: maxCacheStalenessInSeconds,
+				MaxCacheStaleness: cacheStalenessInSeconds,
 			}
 
 			cacheEntryCreated, err := clientManager.CacheStore().CreateExecutionCache(&executionToPersist)
@@ -127,9 +140,9 @@ func patchCacheID(ctx context.Context, k8sCore client.KubernetesCoreInterface, p
 }
 
 // Convert RFC3339 Duration(Eg. "P1DT30H4S") to int64 seconds.
-func getMaxCacheStaleness(maxCacheStaleness string) int64 {
+func stalenessToSeconds(staleness string) int64 {
 	var seconds int64 = -1
-	if d, err := duration.Parse(maxCacheStaleness); err == nil {
+	if d, err := duration.Parse(staleness); err == nil {
 		seconds = int64(d / time.Second)
 	}
 	return seconds

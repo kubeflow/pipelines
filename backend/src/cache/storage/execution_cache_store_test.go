@@ -15,6 +15,7 @@
 package storage
 
 import (
+	"log"
 	"testing"
 
 	"github.com/kubeflow/pipelines/backend/src/cache/model"
@@ -94,7 +95,7 @@ func TestGetExecutionCache(t *testing.T) {
 	}
 
 	var executionCache *model.ExecutionCache
-	executionCache, err := executionCacheStore.GetExecutionCache("testKey", -1)
+	executionCache, err := executionCacheStore.GetExecutionCache("testKey", -1, -1)
 	require.Nil(t, err)
 	require.Equal(t, &executionCacheExpected, executionCache)
 }
@@ -106,7 +107,7 @@ func TestGetExecutionCacheWithEmptyCacheEntry(t *testing.T) {
 
 	executionCacheStore.CreateExecutionCache(createExecutionCache("testKey", "testOutput"))
 	var executionCache *model.ExecutionCache
-	executionCache, err := executionCacheStore.GetExecutionCache("wrongKey", -1)
+	executionCache, err := executionCacheStore.GetExecutionCache("wrongKey", -1, -1)
 	require.Nil(t, executionCache)
 	require.Contains(t, err.Error(), `Execution cache not found with cache key: "wrongKey"`)
 }
@@ -129,12 +130,12 @@ func TestGetExecutionCacheWithLatestCacheEntry(t *testing.T) {
 		EndedAtInSec:      2,
 	}
 	var executionCache *model.ExecutionCache
-	executionCache, err := executionCacheStore.GetExecutionCache("testKey", -1)
+	executionCache, err := executionCacheStore.GetExecutionCache("testKey", -1, -1)
 	require.Nil(t, err)
 	require.Equal(t, &executionCacheExpected, executionCache)
 }
 
-func TestGetExecutionCacheWithExpiredMaxCacheStaleness(t *testing.T) {
+func TestGetExecutionCacheWithExpiredDatabaseCacheStaleness(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()
 	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
@@ -147,7 +148,47 @@ func TestGetExecutionCacheWithExpiredMaxCacheStaleness(t *testing.T) {
 	executionCacheStore.CreateExecutionCache(executionCacheToPersist)
 
 	var executionCache *model.ExecutionCache
-	executionCache, err := executionCacheStore.GetExecutionCache("testKey", -1)
+	executionCache, err := executionCacheStore.GetExecutionCache("testKey", -1, -1)
+	require.Contains(t, err.Error(), "Execution cache not found")
+	require.Nil(t, executionCache)
+}
+
+func TestGetExecutionCacheWithExpiredAnnotationCacheStaleness(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
+	executionCacheToPersist := &model.ExecutionCache{
+		ExecutionCacheKey: "testKey",
+		ExecutionTemplate: "testTemplate",
+		ExecutionOutput:   "testOutput",
+		MaxCacheStaleness: -1,
+	}
+	executionCacheStore.CreateExecutionCache(executionCacheToPersist)
+
+	var executionCache *model.ExecutionCache
+	executionCache, err := executionCacheStore.GetExecutionCache("testKey", 0, -1)
+	log.Println(executionCache)
+	log.Println("error: " + err.Error())
+	require.Contains(t, err.Error(), "CacheStaleness=0, Cache is disabled.")
+	require.Nil(t, executionCache)
+}
+
+func TestGetExecutionCacheWithExpiredMaximumCacheStaleness(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
+	executionCacheToPersist := &model.ExecutionCache{
+		ExecutionCacheKey: "testKey",
+		ExecutionTemplate: "testTemplate",
+		ExecutionOutput:   "testOutput",
+		MaxCacheStaleness: -1,
+	}
+	executionCacheStore.CreateExecutionCache(executionCacheToPersist)
+
+	var executionCache *model.ExecutionCache
+	executionCache, err := executionCacheStore.GetExecutionCache("testKey", -1, 0)
+	log.Println(executionCache)
+	log.Println("error: " + err.Error())
 	require.Contains(t, err.Error(), "Execution cache not found")
 	require.Nil(t, executionCache)
 }
@@ -157,13 +198,13 @@ func TestDeleteExecutionCache(t *testing.T) {
 	defer db.Close()
 	executionCacheStore := NewExecutionCacheStore(db, util.NewFakeTimeForEpoch())
 	executionCacheStore.CreateExecutionCache(createExecutionCache("testKey", "testOutput"))
-	executionCache, err := executionCacheStore.GetExecutionCache("testKey", -1)
+	executionCache, err := executionCacheStore.GetExecutionCache("testKey", -1, -1)
 	assert.Nil(t, err)
 	assert.NotNil(t, executionCache)
 
 	err = executionCacheStore.DeleteExecutionCache("1")
 	assert.Nil(t, err)
-	_, err = executionCacheStore.GetExecutionCache("testKey", -1)
+	_, err = executionCacheStore.GetExecutionCache("testKey", -1, -1)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
