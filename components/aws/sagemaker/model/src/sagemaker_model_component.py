@@ -76,13 +76,14 @@ class SageMakerCreateModelComponent(SageMakerComponent):
                 request["PrimaryContainer"]["ModelPackageName"] = inputs.model_package
                 request["PrimaryContainer"].pop("Image")
                 request["PrimaryContainer"].pop("ModelDataUrl")
-            elif inputs.image and inputs.model_artifact_url:
+            elif inputs.image:
                 request["PrimaryContainer"]["Image"] = inputs.image
-                request["PrimaryContainer"]["ModelDataUrl"] = inputs.model_artifact_url
+                if inputs.model_artifact_url:
+                    request["PrimaryContainer"]["ModelDataUrl"] = inputs.model_artifact_url
                 request["PrimaryContainer"].pop("ModelPackageName")
             else:
                 logging.error(
-                    "Please specify an image AND model artifact url, OR a model package name."
+                    "Please specify an image OR a model package name."
                 )
                 raise Exception("Could not make create model request.")
 
