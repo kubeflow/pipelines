@@ -58,6 +58,7 @@ extensions = [
     'sphinx_click',
     'm2r2',
     'sphinx_immaterial',
+    'autodocsumm',
 ]
 autodoc_member_order = 'bysource'
 autodoc_default_options = {
@@ -65,6 +66,7 @@ autodoc_default_options = {
     'imported-members': True,
     'undoc-members': True,
     'show-inheritance': False,
+    'autosummary': True,
 }
 
 html_theme = 'sphinx_immaterial'
