@@ -118,7 +118,11 @@ class SageMakerTransformComponent(SageMakerComponent):
 
         request["TransformOutput"]["S3OutputPath"] = inputs.output_location
         request["TransformOutput"]["Accept"] = inputs.accept
-        request["TransformOutput"]["KmsKeyId"] = inputs.output_encryption_key
+
+        if inputs.output_encryption_key:
+            request["TransformOutput"]["KmsKeyId"] = inputs.output_encryption_key
+        else:
+            request["TransformOutput"].pop("KmsKeyId")
 
         if inputs.assemble_with:
             request["TransformOutput"]["AssembleWith"] = inputs.assemble_with
@@ -127,9 +131,19 @@ class SageMakerTransformComponent(SageMakerComponent):
 
         request["TransformResources"]["InstanceType"] = inputs.instance_type
         request["TransformResources"]["InstanceCount"] = inputs.instance_count
-        request["TransformResources"]["VolumeKmsKeyId"] = inputs.resource_encryption_key
-        request["DataProcessing"]["InputFilter"] = inputs.input_filter
-        request["DataProcessing"]["OutputFilter"] = inputs.output_filter
+
+        if inputs.resource_encryption_key:
+            request["TransformResources"][
+                "VolumeKmsKeyId"
+            ] = inputs.resource_encryption_key
+        else:
+            request["TransformResources"].pop("VolumeKmsKeyId")
+
+        if inputs.input_filter:
+            request["DataProcessing"]["InputFilter"] = inputs.input_filter
+
+        if inputs.output_filter:
+            request["DataProcessing"]["OutputFilter"] = inputs.output_filter
 
         if inputs.join_source:
             request["DataProcessing"]["JoinSource"] = inputs.join_source
