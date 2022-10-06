@@ -935,6 +935,7 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
     file: File | null,
     url: string,
     method: ImportMethod,
+    isPrivatePipeline: boolean,
     description?: string,
   ): Promise<boolean> {
     if (
@@ -949,7 +950,12 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
     try {
       const uploadedPipeline =
         method === ImportMethod.LOCAL
-          ? await Apis.uploadPipeline(name, description || '', file!)
+          ? await Apis.uploadPipeline(
+              name,
+              description || '',
+              file!,
+              isPrivatePipeline ? this.props.namespace : undefined,
+            )
           : await Apis.pipelineServiceApi.createPipeline({ name, url: { pipeline_url: url } });
       this.setStateSafe(
         {
