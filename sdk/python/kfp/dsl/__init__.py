@@ -46,6 +46,13 @@ __all__ = [
     'PipelineTask',
 ]
 
+try:
+    from typing import Annotated
+except ImportError:
+    from typing_extensions import Annotated
+
+from typing import TypeVar
+
 from kfp.components.component_decorator import component
 from kfp.components.container_component_decorator import container_component
 from kfp.components.importer_node import importer
@@ -66,10 +73,12 @@ from kfp.components.types.artifact_types import Markdown
 from kfp.components.types.artifact_types import Metrics
 from kfp.components.types.artifact_types import Model
 from kfp.components.types.artifact_types import SlicedClassificationMetrics
-from kfp.components.types.type_annotations import Input
+from kfp.components.types.type_annotations import InputAnnotation
 from kfp.components.types.type_annotations import InputPath
-from kfp.components.types.type_annotations import Output
+from kfp.components.types.type_annotations import OutputAnnotation
 from kfp.components.types.type_annotations import OutputPath
+
+# hack: constants and custom type generics have to be defined here to be captured by autodoc and autodocsumm used in ./docs/conf.py
 
 PIPELINE_JOB_NAME_PLACEHOLDER = '{{$.pipeline_job_name}}'
 """A placeholder used to obtain a pipeline job name within a task at pipeline runtime.
@@ -139,4 +148,56 @@ PIPELINE_TASK_ID_PLACEHOLDER = '{{$.pipeline_task_uuid}}'
                 msg='Task ID:',
                 value=dsl.PIPELINE_TASK_ID_PLACEHOLDER,
             )
+"""
+T = TypeVar('T')
+Input = Annotated[T, InputAnnotation]
+"""Type generic used to represent an input artifact of type ``T``, where ``T`` is an artifact class.
+
+Use ``Input[Artifact]`` or ``Output[Artifact]`` to indicate whether the enclosed artifact is a component input or output.
+
+Args:
+    T: The type of the input artifact.
+
+Example:
+  ::
+
+    @dsl.component
+    def artifact_producer(model: Output[Artifact]):
+        with open(model.path, 'w') as f:
+            f.write('my model')
+
+    @dsl.component
+    def artifact_consumer(model: Input[Artifact]):
+        print(model)
+
+    @dsl.pipeline(name='my-pipeline')
+    def my_pipeline():
+        producer_task = artifact_producer()
+        artifact_consumer(model=producer_task.output)
+"""
+
+Output = Annotated[T, OutputAnnotation]
+"""A type generic used to represent an output artifact of type ``T``, where ``T`` is an artifact class. The argument typed with this annotation is provided at runtime by the executing backend and does not need to be passed as an input by the pipeline author (see example).
+
+Use ``Input[Artifact]`` or ``Output[Artifact]`` to indicate whether the enclosed artifact is a component input or output.
+
+Args:
+    T: The type of the output artifact.
+
+Example:
+  ::
+
+    @dsl.component
+    def artifact_producer(model: Output[Artifact]):
+        with open(model.path, 'w') as f:
+            f.write('my model')
+
+    @dsl.component
+    def artifact_consumer(model: Input[Artifact]):
+        print(model)
+
+    @dsl.pipeline(name='my-pipeline')
+    def my_pipeline():
+        producer_task = artifact_producer()
+        artifact_consumer(model=producer_task.output)
 """
