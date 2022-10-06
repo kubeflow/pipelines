@@ -88,7 +88,7 @@ html_theme_options = {
     'edit_uri':
         'blob/master/docs',
     'globaltoc_collapse':
-        True,
+        False,
     'features': [
         'navigation.expand',
         # "navigation.tabs",
