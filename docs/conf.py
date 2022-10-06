@@ -59,6 +59,13 @@ extensions = [
     'm2r2',
     'sphinx_immaterial',
 ]
+autodoc_member_order = 'bysource'
+autodoc_default_options = {
+    'members': True,
+    'imported-members': True,
+    'undoc-members': True,
+    'show-inheritance': False,
+}
 
 html_theme = 'sphinx_immaterial'
 html_title = 'KFP SDK API Reference'
