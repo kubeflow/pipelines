@@ -15,9 +15,9 @@ compiled YAML."""
 # limitations under the License.
 
 __all__ = [
-    'load_component_from_text',
     'load_component_from_file',
     'load_component_from_url',
+    'load_component_from_text',
     'PythonComponent',
     'BaseComponent',
     'ContainerComponent',
