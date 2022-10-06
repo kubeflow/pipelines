@@ -112,11 +112,11 @@ def construct_type_for_inputpath_or_outputpath(
         return type_
 
 
-class InputAnnotation():
+class InputAnnotation:
     """Marker type for input artifacts."""
 
 
-class OutputAnnotation():
+class OutputAnnotation:
     """Marker type for output artifacts."""
 
 
@@ -147,6 +147,8 @@ def is_output_artifact(typ) -> bool:
 
 
 def get_io_artifact_class(typ):
+    from kfp.dsl import Input
+    from kfp.dsl import Output
     if not is_artifact_annotation(typ):
         return None
     if typ == Input or typ == Output:
