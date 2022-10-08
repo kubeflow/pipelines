@@ -152,13 +152,12 @@ function install_kfp() {
   echo "[Installing KFP] Applying KFP manifests"
   #Install cert-manager
   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.9.1/cert-manager.yaml
-  sleep 1m
   kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/cert-manager/cluster-scoped-resources?ref=$KFP_VERSION"
   kubectl wait --for condition=established --timeout=60s crd/applications.app.k8s.io
   kubectl apply -k "github.com/kubeflow/pipelines/manifests/kustomize/env/cert-manager/dev?ref=$KFP_VERSION"
   echo "[Installing KFP] Port-forwarding Minio"
 
-  kubectl wait --for=condition=ready -n "${KFP_NAMESPACE}" pod -l app=minio --timeout=3m
+  kubectl wait --for=condition=ready -n "${KFP_NAMESPACE}" pod -l app=minio --timeout=5m
   kubectl port-forward -n kubeflow svc/minio-service $MINIO_LOCAL_PORT:9000 &
   MINIO_PID=$!
 
