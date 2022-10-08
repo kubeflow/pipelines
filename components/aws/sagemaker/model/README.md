@@ -57,7 +57,7 @@ Notes:
       }
    ]
 ```
-* Specify either an `image` and `model_artifact_url`, OR a `model_package` in the `ContainerDefinition`.
+* Specify either an `image`, OR a `model_package` in the `ContainerDefinition`. `model_artifact_url` is optional if model artifact is already contained custom docker image.
 * If you have a single container to define the model, use the parameters `container_host_name`, `environment`, `image`, `model_artifact_url`, `model_package` directly to define the primary container.
 
 ## Outputs
