@@ -207,7 +207,6 @@ function addIterationNodes(rootDagExecution: Execution, flowGraph: PipelineFlowE
 //         Update with artifact state
 //     IF SUBDAG: (Not designed)
 //         similar to TASK, but needs to determine subDAG type.
-// IMPORTANT: All the updates are in-place for PipelineFlowElement. Therefore it is no return value.
 
 // Questions:
 //    How to handle DAG state?
@@ -222,7 +221,6 @@ export function updateFlowElementsState(
   events: Event[],
   artifacts: Artifact[],
 ): PipelineFlowElement[] {
-  // IMPORTANT: PipelineFlowElement update is in-place.
   const executionLayers = getExecutionLayers(layers, executions);
   if (executionLayers.length < layers.length) {
     // This Sub DAG is not executed yet. There is no runtime information to update.
