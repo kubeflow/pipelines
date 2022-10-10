@@ -67,7 +67,8 @@ build:publish-front-end:
     - |
       docker build \
         --tag ${IMAGE_REPOSITORY_TAG} \
-        --build-arg COMMIT_HASH=${COMMIT_HASH} --build-arg DATE="`date -u`" 
+        --build-arg COMMIT_HASH=${COMMIT_HASH} \
+        --build-arg DATE="`date -u`" \
         --file frontend/Dockerfile \
         .
     - docker login --username ${DOCKER_USERNAME} --password ${DOCKER_API_KEY} ${DOCKER_REPO_URL}
