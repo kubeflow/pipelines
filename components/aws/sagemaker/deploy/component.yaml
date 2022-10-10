@@ -64,7 +64,7 @@ outputs:
 - {name: endpoint_name, description: The created endpoint name.}
 implementation:
   container:
-    image: abashyam123/kfp10:2
+    image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:1.1.2
     command: [python3]
     args:
     - deploy/src/sagemaker_deploy_component.py

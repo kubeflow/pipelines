@@ -37,7 +37,7 @@ outputs:
 - {name: model_name, description: The name of the model created by SageMaker.}
 implementation:
   container:
-    image: abashyam123/kfp10:2
+    image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:1.1.2
     command: [python3]
     args:
     - model/src/sagemaker_model_component.py

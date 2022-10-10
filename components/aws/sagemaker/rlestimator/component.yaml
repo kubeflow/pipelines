@@ -76,7 +76,7 @@ outputs:
     the training algorithm.}
 implementation:
   container:
-    image: abashyam123/kfp10:2
+    image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:1.1.2
     command: [python3]
     args:
     - rlestimator/src/sagemaker_rlestimator_component.py
