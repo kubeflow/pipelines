@@ -55,3 +55,20 @@ build:publish-metadata-writer:
         .
     - docker login --username ${DOCKER_USERNAME} --password ${DOCKER_API_KEY} ${DOCKER_REPO_URL}
     - docker push ${IMAGE_REPOSITORY_TAG}
+
+build:publish-front-end:
+  extends: .aip_python_debian_image
+  stage: build
+  variables:
+    ARTIFACT_NAME: 'zillow-kfp-frontend'
+  before_script:
+    - !reference [.generate_docker_image_version, before_script]
+  script:
+    - |
+      docker build \
+        --tag ${IMAGE_REPOSITORY_TAG} \
+        --build-arg COMMIT_HASH=${COMMIT_HASH} --build-arg DATE="`date -u`" 
+        --file frontend/Dockerfile \
+        .
+    - docker login --username ${DOCKER_USERNAME} --password ${DOCKER_API_KEY} ${DOCKER_REPO_URL}
+    - docker push ${IMAGE_REPOSITORY_TAG}

@@ -16,6 +16,8 @@ import * as url from 'url';
 import * as portableFetch from 'portable-fetch';
 import { Configuration } from './configuration';
 
+const request = require('request');
+
 const BASE_PATH = 'http://localhost'.replace(/\/+$/, '');
 
 /**
@@ -1703,6 +1705,20 @@ export class RunServiceApi extends BaseAPI {
       this.basePath,
     );
   }
+
+  /**
+   *
+   * @summary Terminates an active run.
+   * @param {string} namespace The namespace of the pipeline.
+   * @param {string} workflowName The Argo workflow name.
+   * @param {*} [options] Override http request option.
+   * @throws {RequiredError}
+   * @memberof RunServiceApi
+   */
+  public terminateRunDelete(namespace: string, workflowName: string, options?: any) {
+    return request.delete(`api/v1/workflows/${namespace}/${workflowName}`);
+  }
+
 
   /**
    *

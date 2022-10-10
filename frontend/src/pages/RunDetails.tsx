@@ -200,16 +200,21 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     const runIdFromParams = this.props.match.params[RouteParams.runId];
     return {
       actions: buttons
-        .retryRun(
-          () =>
-            this.state.runMetadata
-              ? [this.state.runMetadata!.id!]
-              : runIdFromParams
-              ? [runIdFromParams]
-              : [],
-          true,
-          () => this.retry(),
-        )
+        // BUG(talebz): AIP-6692 WFSDK: Disable Retry button
+        // .retryRun(
+        //   () =>
+        //     this.state.runMetadata
+        //       ? [this.state.runMetadata!.id!]
+        //       : runIdFromParams
+        //       ? [runIdFromParams]
+        //       : [],
+        //   true,
+        //   () => this.retry(),
+        // )
+        // .newRunFromPipelineVersion(
+        //   () => this.state.runMetadata?.id!,
+        //   () => this.state.runMetadata?.ver!,
+        // )
         .cloneRun(
           () =>
             this.state.runMetadata
@@ -219,13 +224,8 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
               : [],
           true,
         )
-        .terminateRun(
-          () =>
-            this.state.runMetadata
-              ? [this.state.runMetadata!.id!]
-              : runIdFromParams
-              ? [runIdFromParams]
-              : [],
+        .terminateRunDelete(
+          () => [[this.state.namespace!, this.state.runMetadata!.name!]],
           true,
           () => this.refresh(),
         )
@@ -868,9 +868,9 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       const actions = buttons.getToolbarActionMap();
       actions[ButtonKeys.TERMINATE_RUN].disabled =
         (runMetadata.status as NodePhase) === NodePhase.TERMINATING || runFinished;
-      actions[ButtonKeys.RETRY].disabled =
-        (runMetadata.status as NodePhase) !== NodePhase.FAILED &&
-        (runMetadata.status as NodePhase) !== NodePhase.ERROR;
+      // actions[ButtonKeys.RETRY].disabled =
+      //   (runMetadata.status as NodePhase) !== NodePhase.FAILED &&
+      //   (runMetadata.status as NodePhase) !== NodePhase.ERROR;
       this.props.updateToolbar({
         actions,
         breadcrumbs,
