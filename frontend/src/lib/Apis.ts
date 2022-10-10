@@ -38,6 +38,7 @@ export interface BuildInfo {
   apiServerCommitHash?: string;
   apiServerTagName?: string;
   apiServerReady?: boolean;
+  apiServerMultiUser?: boolean;
   buildDate?: string;
   frontendCommitHash?: string;
   frontendTagName?: string;
