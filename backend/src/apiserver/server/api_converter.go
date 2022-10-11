@@ -74,13 +74,27 @@ func ToApiPipeline(pipeline *model.Pipeline) *api.Pipeline {
 		}
 	}
 
+	var resourceRefs []*api.ResourceReference
+	if len(pipeline.Namespace) > 0 {
+		resourceRefs = []*api.ResourceReference{
+			{
+				Key: &api.ResourceKey{
+					Type: api.ResourceType_NAMESPACE,
+					Id:   pipeline.Namespace,
+				},
+				Relationship: api.Relationship_OWNER,
+			},
+		}
+	}
+
 	return &api.Pipeline{
-		Id:             pipeline.UUID,
-		CreatedAt:      &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
-		Name:           pipeline.Name,
-		Description:    pipeline.Description,
-		Parameters:     params,
-		DefaultVersion: defaultVersion,
+		Id:                 pipeline.UUID,
+		CreatedAt:          &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
+		Name:               pipeline.Name,
+		Description:        pipeline.Description,
+		Parameters:         params,
+		DefaultVersion:     defaultVersion,
+		ResourceReferences: resourceRefs,
 	}
 }
 
