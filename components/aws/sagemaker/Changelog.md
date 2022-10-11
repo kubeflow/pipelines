@@ -17,6 +17,7 @@ Repository: [Public ECR](https://gallery.ecr.aws/kubeflow-on-aws/aws-sagemaker-k
 
 **Change log for version 1.1.2**
 - Fix: Made inputs.model_artifact_url optional in sagemaker model component.
+- Fix: Made TransformResources.VolumeKmsKeyId optional
 - Fix: Handles Stopped state for all version 1 components and fixes bug in robomaker simulation function.
 - Fix: Updated protobuf to 3.2. 
 
