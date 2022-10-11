@@ -164,6 +164,8 @@ function install_kfp() {
   echo "[Installing KFP] Minio port-forwarded to ${MINIO_LOCAL_PORT}"
 
   echo "[Installing KFP] Waiting for pods to stand up"
+  #TODO: In the future, modify kubectl wait to end when only one pod becomes ready.
+  sleep 3m 
 
   kubectl wait --for=condition=ready -n "${KFP_NAMESPACE}" pod -l app=ml-pipeline --timeout=5m
 
