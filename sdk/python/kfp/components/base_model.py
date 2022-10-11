@@ -166,19 +166,20 @@ class BaseModel:
         """Hook called after object is instantiated from BaseModel.
 
         Transforms data and validates data using user-defined logic by
-        calling all methods prefixed with `transform_`, then all methods
-        prefixed with `validate_`.
+        calling all methods prefixed with `_transform_`, then all
+        methods prefixed with `_validate_`.
         """
         validate_methods = [
-            method for method in dir(self) if
-            method.startswith('transform_') and callable(getattr(self, method))
+            method for method in dir(self)
+            if method.startswith('_transform_') and
+            callable(getattr(self, method))
         ]
         for method in validate_methods:
             getattr(self, method)()
 
         validate_methods = [
-            method for method in dir(self) if method.startswith('validate_') and
-            callable(getattr(self, method))
+            method for method in dir(self) if
+            method.startswith('_validate_') and callable(getattr(self, method))
         ]
         for method in validate_methods:
             getattr(self, method)()

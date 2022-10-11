@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: automl_tabular_tabnet_trainer
+name: tabnet_trainer
 description: |
   Launch a TabNet custom training job using Vertex CustomJob API.
 
@@ -96,10 +96,8 @@ description: |
             Batch size for training.
         eval_frequency_secs (Optional[int]):
             Frequency at which evaluation and checkpointing will take place.
-        replica_count (Optional[int]):
-            The replica count.
-        machine_spec (Optional[Dict[str, Any]]):
-            The machine spec. See https://cloud.google.com/compute/docs/machine-types for options.
+        training_machine_spec (Optional[Dict[str, Any]]):
+            The training machine spec. See https://cloud.google.com/compute/docs/machine-types for options.
         instance_baseline (AutoMLTabularInstanceBaseline):
             The path to a JSON file for baseline values.
         metadata (TabularExampleGenMetadata):
@@ -108,8 +106,6 @@ description: |
             The path to the materialized train split.
         materialized_eval_split (MaterializedSplit):
             The path to the materialized validation split.
-        materialized_test_split (MaterializedSplit):
-            The path to the materialized test split.
         transform_output (TransformOutput):
             The path to transform output.
         training_schema_uri (TrainingSchema):
@@ -157,13 +153,11 @@ inputs:
   - { name: eval_steps, type: Integer, default: 0 }
   - { name: batch_size, type: Integer, default: 100 }
   - { name: eval_frequency_secs, type: Integer, default: 600 }
-  - { name: replica_count, type: Integer, default: 1 }
-  - { name: machine_spec, type: JsonObject, default: '{"machine_type": "c2-standard-16"}' }
+  - { name: training_machine_spec, type: JsonObject, default: '{"machine_type": "c2-standard-16"}' }
   - { name: instance_baseline, type: AutoMLTabularInstanceBaseline }
   - { name: metadata, type: TabularExampleGenMetadata }
   - { name: materialized_train_split, type: MaterializedSplit }
   - { name: materialized_eval_split, type: MaterializedSplit }
-  - { name: materialized_test_split, type: MaterializedSplit, default: "" }
   - { name: transform_output, type: TransformOutput }
   - { name: training_schema_uri, type: TrainingSchema }
   - { name: encryption_spec_key_name, type: String, default: "" }
@@ -183,14 +177,14 @@ implementation:
       --gcp_resources, { outputPath: gcp_resources },
       --payload,
       concat: [
-          '{"display_name": "automl-tabular-tabnet-trainer-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
+          '{"display_name": "tabnet-trainer-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
           { inputValue: encryption_spec_key_name },
           '"}, "job_spec": {"worker_pool_specs": [{"replica_count":"',
-          { inputValue: replica_count },
+          '1',
           '", "machine_spec": ',
-          { inputValue: machine_spec },
+          { inputValue: training_machine_spec },
           ', "container_spec": {"image_uri":"',
-          'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20220727_0325_RC00',
+          'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20221001_0325_RC00',
           '", "args": ["--target_column=',
           { inputValue: target_column },
           '", "--weight_column=',
@@ -198,7 +192,7 @@ implementation:
           '", "--model_type=',
           { inputValue: prediction_type },
           '", "--prediction_docker_uri=',
-          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20220727_0325_RC00',
+          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20221001_0325_RC00',
           '", "--baseline_path=',
           { inputUri: instance_baseline },
           '", "--metadata_path=',
@@ -213,8 +207,6 @@ implementation:
           { inputUri: materialized_train_split },
           '", "--validation_data_path=',
           { inputUri: materialized_eval_split },
-          '", "--test_data_path=',
-          { inputUri: materialized_test_split },
           '", "--max_steps=',
           { inputValue: max_steps },
           '", "--max_train_secs=',
@@ -269,5 +261,5 @@ implementation:
           { inputValue: batch_size },
           '", "--eval_frequency_secs=',
           { inputValue: eval_frequency_secs },
-          '", "--executor_input={{$.json_escape[1]}}"]}}]}}',
+          '", "--generate_feature_importance=true", "--executor_input={{$.json_escape[1]}}"]}}]}}',
       ]]

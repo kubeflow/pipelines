@@ -86,21 +86,24 @@ class CIFAR10DataModule(pl.LightningDataModule):  # pylint: disable=too-many-ins
 
         self.train_dataset = (wds.WebDataset(
             train_url,
-            handler=wds.warn_and_continue).shuffle(100).decode("pil").rename(
+            handler=wds.warn_and_continue,
+            nodesplitter=wds.shardlists.split_by_node).shuffle(100).decode("pil").rename(
                 image="ppm;jpg;jpeg;png",
                 info="cls").map_dict(image=self.train_transform).to_tuple(
                     "image", "info").batched(40))
 
         self.valid_dataset = (wds.WebDataset(
             valid_url,
-            handler=wds.warn_and_continue).shuffle(100).decode("pil").rename(
+            handler=wds.warn_and_continue,
+            nodesplitter=wds.shardlists.split_by_node).shuffle(100).decode("pil").rename(
                 image="ppm",
                 info="cls").map_dict(image=self.valid_transform).to_tuple(
                     "image", "info").batched(20))
 
         self.test_dataset = (wds.WebDataset(
             test_url,
-            handler=wds.warn_and_continue).shuffle(100).decode("pil").rename(
+            handler=wds.warn_and_continue,
+            nodesplitter=wds.shardlists.split_by_node).shuffle(100).decode("pil").rename(
                 image="ppm",
                 info="cls").map_dict(image=self.valid_transform).to_tuple(
                     "image", "info").batched(20))

@@ -1,5 +1,55 @@
-# Current Version 1.0.17.dev (Still in Development)
+# Current Version 1.0.25.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.24
+* Add notification v1 doc
+* Convert all v1 components into individual launchers and remote runners
+* Update AutoML Tables components to have latest SDK features
+* Add support for staging Dataflow options (sdk_location and extra_package)
+
+# Release 1.0.23
+* AutoML: Sync GCPC staging to prod to include recent API changes
+* TensorBoard: Make some input parameters optional to provide better user experience
+
+# Release 1.0.22
+* TensorBoard: Make some input parameters optional to provide better user experience
+
+# Release 1.0.21
+* Fix input parameter in tensorboard experiment creator component
+* Convert bigquery components into individual launchers and remote runners
+* Model Evaluation: Add metadata field for pipeline resource name
+
+# Release 1.0.20
+* Add special case in json_util.py where explanation_spec metadata outputs can have empty values
+* Update the docstring for missing arguments on feature_importance component
+* Create new tensorboard experiment creator component
+* Remove unused input in evaluation classification yaml
+* Update the docstring for exported_model_path in export_model
+
+# Release 1.0.19
+* Propagating labels for explain_forecast_model component
+* Model Evaluation - Add evaluation forecasting default of 0.5 for quantiles
+* Dataproc - Fix missing error payload from logging
+* Added BigQuery input support to evaluation components
+* Model Evaluation - Allow dataset paths list
+* Fix the docstring for ml_advanced_weights component
+* Fix the duplicated arguments in bigquery_ml_global_explain_job
+* Import importer from dsl namespace instead
+* Convert batch_prediction_job_remote_runner into individual launcher
+
+# Release 1.0.18
+* Model Evaluation - Give evaluation preprocessing components unique dataflow job names
+* Add vertex_notification_email component on v1 folder
+
+# Release 1.0.17
+* Model Evaluation - Rearrange json and yaml files in e2e test to eliminate duplicate defining and reading
+* Model Evaluation - Update JSON templates for evaluation
+* Model Evaluation - Split evaluation component into classification, forecasting, and regression evaluation & create artifact types for `google.__Metrics`
+* Model Evaluation - Match predictions input argument name to other Evaluation components
+* Model Evaluation - Update import_model_evaluation component to accept new `google.___Metrics` artifact types
+* Model Evaluation - Update regression and forecasting to contain ground truth input fields
+* Reverse re.findall order of arguments to (pattern, string) in job_remote_runner
+* Model Evaluation - Update evaluation container to v0.5 for data sampler and splitter preprocessing components
 
 # Release 1.0.16
 * Evaluation - Separate feature attribution from evaluation component to its own component

@@ -22,12 +22,13 @@ import warnings
 
 import docstring_parser
 from kfp.components import container_component
+from kfp.components import graph_component
 from kfp.components import placeholders
 from kfp.components import python_component
 from kfp.components import structures
 from kfp.components.container_component_artifact_channel import \
     ContainerComponentArtifactChannel
-from kfp.components.types import artifact_types
+from kfp.components.types import custom_artifact_types
 from kfp.components.types import type_annotations
 from kfp.components.types import type_utils
 
@@ -129,39 +130,6 @@ def _get_function_source_definition(func: Callable) -> str:
     return '\n'.join(func_code_lines)
 
 
-def _annotation_to_type_struct(annotation):
-    if not annotation or annotation == inspect.Parameter.empty:
-        return None
-    if hasattr(annotation, 'to_dict'):
-        annotation = annotation.to_dict()
-    if isinstance(annotation, dict):
-        return annotation
-    if isinstance(annotation, type):
-        type_struct = type_utils.get_canonical_type_name_for_type(annotation)
-        if type_struct:
-            return type_struct
-
-        if issubclass(annotation, artifact_types.Artifact
-                     ) and not annotation.TYPE_NAME.startswith('system.'):
-            # For artifact classes not under the `system` namespace,
-            # use its TYPE_NAME as-is.
-            type_name = annotation.TYPE_NAME
-        else:
-            type_name = str(annotation.__name__)
-
-    elif hasattr(annotation,
-                 '__forward_arg__'):  # Handling typing.ForwardRef('Type_name')
-        type_name = str(annotation.__forward_arg__)
-    else:
-        type_name = str(annotation)
-
-    # It's also possible to get the converter by type name
-    type_struct = type_utils.get_canonical_type_name_for_type(type_name)
-    if type_struct:
-        return type_struct
-    return type_name
-
-
 def _maybe_make_unique(name: str, names: List[str]):
     if name not in names:
         return name
@@ -204,7 +172,7 @@ def extract_component_interface(
             # parameter_type is type_annotations.Artifact or one of its subclasses.
             parameter_type = type_annotations.get_io_artifact_class(
                 parameter_type)
-            if not issubclass(parameter_type, artifact_types.Artifact):
+            if not type_annotations.is_artifact_class(parameter_type):
                 raise ValueError(
                     'Input[T] and Output[T] are only supported when T is a '
                     'subclass of Artifact. Found `{} with type {}`'.format(
@@ -226,7 +194,7 @@ def extract_component_interface(
                     'Path inputs only support default values of None. Default'
                     ' values for outputs are not supported.')
 
-        type_struct = _annotation_to_type_struct(parameter_type)
+        type_struct = type_utils._annotation_to_type_struct(parameter_type)
         if type_struct is None:
             raise TypeError('Missing type annotation for argument: {}'.format(
                 parameter.name))
@@ -236,18 +204,30 @@ def extract_component_interface(
         ]:
             io_name = _maybe_make_unique(io_name, output_names)
             output_names.add(io_name)
-            output_spec = structures.OutputSpec(type=type_struct)
+            if type_annotations.is_artifact_class(parameter_type):
+                schema_version = parameter_type.schema_version
+                output_spec = structures.OutputSpec(
+                    type=type_utils.create_bundled_artifact_type(
+                        type_struct, schema_version))
+            else:
+                output_spec = structures.OutputSpec(type=type_struct)
             outputs[io_name] = output_spec
         else:
             io_name = _maybe_make_unique(io_name, input_names)
             input_names.add(io_name)
-            if parameter.default is not inspect.Parameter.empty:
+            if type_annotations.is_artifact_class(parameter_type):
+                schema_version = parameter_type.schema_version
                 input_spec = structures.InputSpec(
-                    type=type_struct,
-                    default=parameter.default,
-                )
+                    type=type_utils.create_bundled_artifact_type(
+                        type_struct, schema_version))
             else:
-                input_spec = structures.InputSpec(type=type_struct)
+                if parameter.default is not inspect.Parameter.empty:
+                    input_spec = structures.InputSpec(
+                        type=type_struct,
+                        default=parameter.default,
+                    )
+                else:
+                    input_spec = structures.InputSpec(type=type_struct,)
 
             inputs[io_name] = input_spec
 
@@ -262,14 +242,17 @@ def extract_component_interface(
                                         None) or getattr(
                                             return_ann, '_field_types', None)
             for field_name in return_ann._fields:
-                type_struct = None
-                if field_annotations:
-                    type_struct = _annotation_to_type_struct(
-                        field_annotations.get(field_name, None))
-
                 output_name = _maybe_make_unique(field_name, output_names)
                 output_names.add(output_name)
-                output_spec = structures.OutputSpec(type=type_struct)
+                annotation = field_annotations.get(field_name)
+                if type_annotations.is_artifact_class(annotation):
+                    output_spec = structures.OutputSpec(
+                        type=type_utils.create_bundled_artifact_type(
+                            annotation.schema_title, annotation.schema_version))
+                else:
+                    type_struct = type_utils._annotation_to_type_struct(
+                        annotation)
+                    output_spec = structures.OutputSpec(type=type_struct)
                 outputs[output_name] = output_spec
         # Deprecated dict-based way of declaring multiple outputs. Was only used by
         # the @component decorator
@@ -280,7 +263,7 @@ def extract_component_interface(
                 ' 0.1.32. Please use typing.NamedTuple to declare multiple'
                 ' outputs.')
             for output_name, output_type_annotation in return_ann.items():
-                output_type_struct = _annotation_to_type_struct(
+                output_type_struct = type_utils._annotation_to_type_struct(
                     output_type_annotation)
                 output_spec = structures.OutputSpec(type=output_type_struct)
                 outputs[name] = output_spec
@@ -290,9 +273,15 @@ def extract_component_interface(
             # Fixes exotic, but possible collision:
             #   `def func(output_path: OutputPath()) -> str: ...`
             output_names.add(output_name)
-            type_struct = _annotation_to_type_struct(
-                signature.return_annotation)
-            output_spec = structures.OutputSpec(type=type_struct)
+            return_ann = signature.return_annotation
+            if type_annotations.is_artifact_class(signature.return_annotation):
+                output_spec = structures.OutputSpec(
+                    type=type_utils.create_bundled_artifact_type(
+                        return_ann.schema_title, return_ann.schema_version))
+            else:
+                type_struct = type_utils._annotation_to_type_struct(return_ann)
+                output_spec = structures.OutputSpec(type=type_struct)
+
             outputs[output_name] = output_spec
     elif return_ann != inspect.Parameter.empty and return_ann != structures.ContainerSpec:
         raise TypeError(
@@ -304,11 +293,11 @@ def extract_component_interface(
     # attribute (of the legacy func._component_human_name attribute).  The
     # description can be overridden by setting the func.__doc__ attribute (or
     # the legacy func._component_description attribute).
-    component_name = getattr(func, '_component_human_name',
-                             None) or _python_function_name_to_component_name(
-                                 func.__name__)
+    component_name = getattr(
+        func, '_component_human_name',
+        _python_function_name_to_component_name(func.__name__))
     description = getattr(func, '_component_description',
-                          None) or parsed_docstring.short_description
+                          parsed_docstring.short_description)
     if description:
         description = description.strip()
 
@@ -330,7 +319,7 @@ def _get_command_and_args_for_lightweight_component(
         'from kfp import dsl',
         'from kfp.dsl import *',
         'from typing import *',
-    ]
+    ] + custom_artifact_types.get_custom_artifact_type_import_statements(func)
 
     func_source = _get_function_source_definition(func)
     source = textwrap.dedent('''
@@ -372,21 +361,23 @@ def _get_command_and_args_for_containerized_component(
 
     args = [
         '--executor_input',
-        placeholders.ExecutorInputPlaceholder().to_placeholder_string(),
+        placeholders.ExecutorInputPlaceholder()._to_placeholder_string(),
         '--function_to_execute',
         function_name,
     ]
     return command, args
 
 
-def create_component_from_func(func: Callable,
-                               base_image: Optional[str] = None,
-                               target_image: Optional[str] = None,
-                               packages_to_install: List[str] = None,
-                               pip_index_urls: Optional[List[str]] = None,
-                               output_component_file: Optional[str] = None,
-                               install_kfp_package: bool = True,
-                               kfp_package_path: Optional[str] = None):
+def create_component_from_func(
+    func: Callable,
+    base_image: Optional[str] = None,
+    target_image: Optional[str] = None,
+    packages_to_install: List[str] = None,
+    pip_index_urls: Optional[List[str]] = None,
+    output_component_file: Optional[str] = None,
+    install_kfp_package: bool = True,
+    kfp_package_path: Optional[str] = None,
+) -> python_component.PythonComponent:
     """Implementation for the @component decorator.
 
     The decorator is defined under component_decorator.py. See the
@@ -419,7 +410,7 @@ def create_component_from_func(func: Callable,
 
     component_spec = extract_component_interface(func)
     component_spec.implementation = structures.Implementation(
-        container=structures.ContainerSpec(
+        container=structures.ContainerSpecImplementation(
             image=component_image,
             command=packages_to_install_command + command,
             args=args,
@@ -481,6 +472,29 @@ def create_container_component_from_func(
             arg_list.append(placeholders.InputValuePlaceholder(io_name))
 
     container_spec = func(*arg_list)
-    component_spec.implementation = structures.Implementation(container_spec)
-    component_spec.validate_placeholders()
+    container_spec_implementation = structures.ContainerSpecImplementation.from_container_spec(
+        container_spec)
+    component_spec.implementation = structures.Implementation(
+        container_spec_implementation)
+    component_spec._validate_placeholders()
     return container_component.ContainerComponent(component_spec, func)
+
+
+def create_graph_component_from_func(
+        func: Callable) -> graph_component.GraphComponent:
+    """Implementation for the @pipeline decorator.
+
+    The decorator is defined under pipeline_context.py. See the
+    decorator for the canonical documentation for this function.
+    """
+
+    component_spec = extract_component_interface(func)
+    component_name = getattr(
+        func, '_component_human_name',
+        _python_function_name_to_component_name(func.__name__))
+
+    return graph_component.GraphComponent(
+        component_spec=component_spec,
+        pipeline_func=func,
+        name=component_name,
+    )

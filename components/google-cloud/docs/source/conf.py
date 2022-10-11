@@ -18,8 +18,8 @@
 # -- Project information -----------------------------------------------------
 
 project = 'google_cloud_pipeline_components'
-copyright = '2021, Google inc'
-author = 'Google inc'
+copyright = '2022, Google Inc'
+author = 'Google Inc'
 
 # The full version, including alpha/beta/rc tags
 release = '0.0.1'

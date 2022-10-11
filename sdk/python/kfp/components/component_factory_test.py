@@ -44,3 +44,7 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         concat_command = ' '.join(command)
         for package in packages_to_install + pip_index_urls:
             self.assertTrue(package in concat_command)
+
+
+if __name__ == '__main__':
+    unittest.main()

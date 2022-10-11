@@ -119,14 +119,37 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 
 	annotations[ExecutionKey] = executionHashKey
 	labels[CacheIDLabelKey] = ""
-	var maxCacheStalenessInSeconds int64 = -1
-	maxCacheStaleness, exists := annotations[MaxCacheStalenessKey]
+
+	var cacheStalenessInSeconds int64 = -1
+	var userCacheStalenessInSeconds int64 = -1
+	var defaultCacheStalenessInSeconds int64 = -1
+	var maximumCacheStalenessInSeconds int64 = -1
+
+	userCacheStaleness, exists := annotations[MaxCacheStalenessKey]
 	if exists {
-		maxCacheStalenessInSeconds = getMaxCacheStaleness(maxCacheStaleness)
+		userCacheStalenessInSeconds = stalenessToSeconds(userCacheStaleness)
+	}
+	defaultCacheStaleness, exists := os.LookupEnv("DEFAULT_CACHE_STALENESS")
+	if exists {
+		defaultCacheStalenessInSeconds = stalenessToSeconds(defaultCacheStaleness)
+	}
+	maximumCacheStaleness, exists := os.LookupEnv("MAXIMUM_CACHE_STALENESS")
+	if exists {
+		maximumCacheStalenessInSeconds = stalenessToSeconds(maximumCacheStaleness)
 	}
 
+	if userCacheStalenessInSeconds < 0 {
+		cacheStalenessInSeconds = defaultCacheStalenessInSeconds
+	} else {
+		cacheStalenessInSeconds = userCacheStalenessInSeconds
+	}
+	if cacheStalenessInSeconds > maximumCacheStalenessInSeconds {
+		cacheStalenessInSeconds = maximumCacheStalenessInSeconds
+	}
+	log.Printf("cacheStalenessInSeconds: %d", cacheStalenessInSeconds)
+
 	var cachedExecution *model.ExecutionCache
-	cachedExecution, err = clientMgr.CacheStore().GetExecutionCache(executionHashKey, maxCacheStalenessInSeconds)
+	cachedExecution, err = clientMgr.CacheStore().GetExecutionCache(executionHashKey, cacheStalenessInSeconds, maximumCacheStalenessInSeconds)
 	if err != nil {
 		log.Println(err.Error())
 	}

@@ -554,6 +554,71 @@ func TestCreateJob(t *testing.T) {
 	assert.Equal(t, r.ReferenceUUID, defaultFakeExpId)
 }
 
+func TestCreateJob_V2(t *testing.T) {
+	db := NewFakeDbOrFatal()
+	defer db.Close()
+	expStore := NewExperimentStore(db, util.NewFakeTimeForEpoch(), util.NewFakeUUIDGeneratorOrFatal(defaultFakeExpId, nil))
+	expStore.CreateExperiment(&model.Experiment{Name: "exp1"})
+	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
+	job := &model.Job{
+		UUID:        "1",
+		DisplayName: "pp 1",
+		Name:        "pp1",
+		Namespace:   "n1",
+		PipelineSpec: model.PipelineSpec{
+			PipelineId:   "1",
+			PipelineName: "p1",
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   `[{"name":"param1","value":"world1"}]`,
+				PipelineRoot: "gs://my-bucket/path/to/root/run1",
+			},
+		},
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 1,
+		Enabled:        true,
+		ResourceReferences: []*model.ResourceReference{
+			{
+				ResourceUUID: "1", ResourceType: common.Job,
+				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1", ReferenceType: common.Experiment,
+				Relationship: common.Owner,
+			},
+		},
+	}
+
+	job, err := jobStore.CreateJob(job)
+	assert.Nil(t, err)
+	jobExpected := &model.Job{
+		UUID:        "1",
+		DisplayName: "pp 1",
+		Name:        "pp1",
+		Namespace:   "n1",
+		PipelineSpec: model.PipelineSpec{
+			PipelineId:   "1",
+			PipelineName: "p1",
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters:   `[{"name":"param1","value":"world1"}]`,
+				PipelineRoot: "gs://my-bucket/path/to/root/run1",
+			},
+		},
+		Enabled:        true,
+		CreatedAtInSec: 1,
+		UpdatedAtInSec: 1,
+		ResourceReferences: []*model.ResourceReference{
+			{
+				ResourceUUID: "1", ResourceType: common.Job,
+				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1", ReferenceType: common.Experiment,
+				Relationship: common.Owner,
+			},
+		}}
+	assert.Equal(t, jobExpected, job, "Got unexpected jobs")
+
+	// Check resource reference exists
+	resourceReferenceStore := NewResourceReferenceStore(db)
+	r, err := resourceReferenceStore.GetResourceReference("1", common.Job, common.Experiment)
+	assert.Nil(t, err)
+	assert.Equal(t, r.ReferenceUUID, defaultFakeExpId)
+}
+
 func TestCreateJobError(t *testing.T) {
 	db := NewFakeDbOrFatal()
 	defer db.Close()

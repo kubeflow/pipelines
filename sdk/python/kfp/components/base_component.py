@@ -18,6 +18,7 @@ import abc
 from kfp.components import pipeline_task
 from kfp.components import structures
 from kfp.components.types import type_utils
+from kfp.pipeline_spec import pipeline_spec_pb2
 
 
 class BaseComponent(abc.ABC):
@@ -88,6 +89,11 @@ class BaseComponent(abc.ABC):
             component_spec=self.component_spec,
             args=task_inputs,
         )
+
+    @property
+    def pipeline_spec(self) -> pipeline_spec_pb2.PipelineSpec:
+        """Returns the pipeline spec of the component."""
+        return self.component_spec.to_pipeline_spec()
 
     @abc.abstractmethod
     def execute(self, **kwargs):

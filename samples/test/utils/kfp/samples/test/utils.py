@@ -116,7 +116,11 @@ def run_pipeline_func(test_cases: list[TestCase]):
                     'TestCase must have exactly one of pipeline_file or pipeline_func specified, got both.'
                 )
             if case.pipeline_func:
-                pipeline_name = case.pipeline_func._component_human_name
+                # TODO: remove accessing of protected member
+                pipeline_name = getattr(
+                    case.pipeline_func, 'name',
+                    getattr(case.pipeline_func, '_component_human_name',
+                            'pipeline'))
             else:
                 pipeline_name = os.path.basename(case.pipeline_file)
             if not case.run_pipeline:

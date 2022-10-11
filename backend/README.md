@@ -15,6 +15,16 @@ The API server itself can be built using:
 go build -o /tmp/apiserver backend/src/apiserver/*.go
 ```
 
+## Code Style
+
+Use [gofmt](https://pkg.go.dev/cmd/gofmt) package to format your .go source files. There is no need to format the swagger generated go clients, so only run the following command in `./backend/src` and `./backend/test` folder.
+
+```
+go fmt ./...
+```
+
+For more information, see [this blog](https://go.dev/blog/gofmt).
+
 ## Building APIServer image locally
 
 The API server image can be built from the root folder of the repo using: 

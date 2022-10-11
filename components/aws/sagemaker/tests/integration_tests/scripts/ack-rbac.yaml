@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ack-sagemaker-controller-rolebinding
+  namespace: kubeflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ack-sagemaker-controller
+subjects:
+- kind: ServiceAccount
+  name: pipeline-runner
+  namespace: kubeflow
