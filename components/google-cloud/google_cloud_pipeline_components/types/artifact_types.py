@@ -20,33 +20,10 @@ import json
 # The artifact property key for the resource name
 ARTIFACT_PROPERTY_KEY_RESOURCE_NAME = 'resourceName'
 
-class VertexModel(dsl.Artifact):
-  """An artifact representing a Vertex Model."""
-  TYPE_NAME = 'google.VertexModel'
-
-  def __init__(self, name: str, uri: str, model_resource_name: str):
-    """Args:
-
-         name: The artifact name.
-         uri: the Vertex Model resource uri, in a form of
-         https://{service-endpoint}/v1/projects/{project}/locations/{location}/models/{model},
-         where
-         {service-endpoint} is one of the supported service endpoints at
-         https://cloud.google.com/vertex-ai/docs/reference/rest#rest_endpoints
-         model_resource_name: The name of the Model resource, in a form of
-         projects/{project}/locations/{location}/models/{model}. For
-         more details, see
-         https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/get
-    """
-    super().__init__(
-        uri=uri,
-        name=name,
-        metadata={ARTIFACT_PROPERTY_KEY_RESOURCE_NAME: model_resource_name})
-
-
 class VertexEndpoint(dsl.Artifact):
   """An artifact representing a Vertex Endpoint."""
-  TYPE_NAME = 'google.VertexEndpoint'
+  schema_title = 'google.VertexEndpoint'
+  schema_version = '0.0.1'
 
   def __init__(self, name: str, uri: str, endpoint_resource_name: str):
     """Args:
@@ -68,9 +45,35 @@ class VertexEndpoint(dsl.Artifact):
         metadata={ARTIFACT_PROPERTY_KEY_RESOURCE_NAME: endpoint_resource_name})
 
 
+class VertexModel(dsl.Artifact):
+  """An artifact representing a Vertex Model."""
+  schema_title = 'google.VertexModel'
+  schema_version = '0.0.1'
+
+  def __init__(self, name: str, uri: str, model_resource_name: str):
+    """Args:
+
+         name: The artifact name.
+         uri: the Vertex Model resource uri, in a form of
+         https://{service-endpoint}/v1/projects/{project}/locations/{location}/models/{model},
+         where
+         {service-endpoint} is one of the supported service endpoints at
+         https://cloud.google.com/vertex-ai/docs/reference/rest#rest_endpoints
+         model_resource_name: The name of the Model resource, in a form of
+         projects/{project}/locations/{location}/models/{model}. For
+         more details, see
+         https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.models/get
+    """
+    super().__init__(
+        uri=uri,
+        name=name,
+        metadata={ARTIFACT_PROPERTY_KEY_RESOURCE_NAME: model_resource_name})
+
+
 class VertexBatchPredictionJob(dsl.Artifact):
   """An artifact representing a Vertex BatchPredictionJob."""
-  TYPE_NAME = 'google.VertexBatchPredictionJob'
+  schema_title = 'google.VertexBatchPredictionJob'
+  schema_version = '0.0.1'
 
   def __init__(self,
                name: str,
@@ -117,7 +120,8 @@ class VertexBatchPredictionJob(dsl.Artifact):
 
 class VertexDataset(dsl.Artifact):
   """An artifact representing a Vertex Dataset."""
-  TYPE_NAME = 'google.VertexDataset'
+  schema_title = 'google.VertexDataset'
+  schema_version = '0.0.1'
 
   def __init__(self, name: str, uri: str, dataset_resource_name: str):
     """Args:
@@ -141,7 +145,8 @@ class VertexDataset(dsl.Artifact):
 
 class BQMLModel(dsl.Artifact):
   """An artifact representing a BQML Model."""
-  TYPE_NAME = 'google.BQMLModel'
+  schema_title = 'google.BQMLModel'
+  schema_version = '0.0.1'
 
   def __init__(self, name: str, project_id: str, dataset_id: str,
                model_id: str):
@@ -167,7 +172,8 @@ class BQMLModel(dsl.Artifact):
 
 class BQTable(dsl.Artifact):
   """An artifact representing a BQ Table."""
-  TYPE_NAME = 'google.BQTable'
+  schema_title = 'google.BQTable'
+  schema_version = '0.0.1'
 
   def __init__(self, name: str, project_id: str, dataset_id: str,
                table_id: str):
@@ -193,7 +199,8 @@ class BQTable(dsl.Artifact):
 
 class UnmanagedContainerModel(dsl.Artifact):
   """An artifact representing an unmanaged container model."""
-  TYPE_NAME = 'google.UnmanagedContainerModel'
+  schema_title = 'google.UnmanagedContainerModel'
+  schema_version = '0.0.1'
 
   def __init__(self, predict_schemata: Dict, container_spec: Dict):
     """Args:
