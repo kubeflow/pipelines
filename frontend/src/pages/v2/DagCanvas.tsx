@@ -23,7 +23,7 @@ import ReactFlow, {
   OnLoadParams,
   ReactFlowProvider,
 } from 'react-flow-renderer';
-import { FlowElementDataBase, SubDagFlowElementData } from 'src/components/graph/Constants';
+import { FlowElementDataBase } from 'src/components/graph/Constants';
 import SubDagLayer from 'src/components/graph/SubDagLayer';
 import { color } from 'src/Css';
 import { getTaskKeyFromNodeKey, NodeTypeNames, NODE_TYPES } from 'src/lib/v2/StaticFlow';
@@ -55,10 +55,7 @@ export default function DagCanvas({
   elements.forEach(elem => {
     // For each SubDag node, provide a callback function if expand button is clicked.
     if (elem && elem.type === NodeTypeNames.SUB_DAG && elem.data) {
-      elem.data = {
-        label: elem.data.label,
-        expand: subDagExpand,
-      } as SubDagFlowElementData;
+      elem.data.expand = subDagExpand;
     }
   });
 

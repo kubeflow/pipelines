@@ -17,6 +17,7 @@ import { Execution, Artifact } from 'src/third_party/mlmd';
 // Being used as the base interace for Node and Edge in Reactflow.
 export type FlowElementDataBase = {
   label: string;
+  mlmdId?: number;
   [key: string]: any;
 };
 
