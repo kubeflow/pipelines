@@ -286,7 +286,7 @@ export function updateFlowElementsState(
         );
         linkedArtifact = artifactNodeKeyToArtifact.get(subArtifactKey);
       }
-      
+
       (updatedElem.data as ArtifactFlowElementData).state = linkedArtifact?.artifact?.getState();
       (updatedElem.data as ArtifactFlowElementData).mlmdId = linkedArtifact?.artifact?.getId();
     } else if (NodeTypeNames.SUB_DAG === elem.type) {
