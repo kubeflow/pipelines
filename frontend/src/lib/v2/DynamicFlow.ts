@@ -278,7 +278,7 @@ export function updateFlowElementsState(
 
       // Detect whether Artifact is an output of SubDAG, if so, search its source artifact.
       let artifactData = elem.data as ArtifactFlowElementData;
-      if (artifactData.outputArtifactKey && artifactData.producerSubtask) {
+      if (artifactData && artifactData.outputArtifactKey && artifactData.producerSubtask) {
         // SubDAG output artifact has reference to inner subtask and artifact.
         const subArtifactKey = getArtifactNodeKey(
           artifactData.producerSubtask,
@@ -347,7 +347,7 @@ export function getNodeMlmdInfo(
 
     // Detect whether Artifact is an output of SubDAG, if so, search its source artifact.
     let artifactData = elem.data as ArtifactFlowElementData;
-    if (artifactData.outputArtifactKey && artifactData.producerSubtask) {
+    if (artifactData && artifactData.outputArtifactKey && artifactData.producerSubtask) {
       // SubDAG output artifact has reference to inner subtask and artifact.
       const subArtifactKey = getArtifactNodeKey(
         artifactData.producerSubtask,
