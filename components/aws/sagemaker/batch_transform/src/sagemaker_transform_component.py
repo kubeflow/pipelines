@@ -156,6 +156,9 @@ class SageMakerTransformComponent(SageMakerComponent):
         if inputs.join_source:
             request["DataProcessing"]["JoinSource"] = inputs.join_source
 
+        if not request["DataProcessing"]:
+            request.pop("DataProcessing")
+
         self._enable_tag_support(request, inputs)
 
         return request
