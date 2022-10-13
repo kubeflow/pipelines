@@ -67,7 +67,7 @@ outputs:
   - { name: gcp_resources, type: String }
 implementation:
   container:
-    image: gcr.io/ml-pipeline/model-evaluation:v0.6
+    image: gcr.io/ml-pipeline/model-evaluation:v0.7
     command:
       - python
       - /main.py
@@ -100,9 +100,9 @@ implementation:
       - "evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
       - --kms_key_name
       - { inputValue: encryption_spec_key_name }
-      - --gcs_output_directory
+      - --gcs_directory_for_gcs_output_uris
       - { outputPath: gcs_output_directory }
-      - --bigquery_output_directory
+      - --gcs_directory_for_bigquery_output_table_uri
       - { outputPath: bigquery_output_table }
       - --gcp_resources
       - { outputPath: gcp_resources }
