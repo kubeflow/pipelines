@@ -91,7 +91,7 @@ class ComponentBuilder():
             kfp_package_path: Path to a pip-installable location for KFP.
                 This can either be pointing to KFP SDK root directory located in
                 a local clone of the KFP repo, or a git+https location.
-                If left empty, defaults to KFP on PyPi.
+                If left empty, defaults to KFP on PyPI.
         """
         self._context_directory = context_directory
         self._dockerfile = self._context_directory / _DOCKERFILE
