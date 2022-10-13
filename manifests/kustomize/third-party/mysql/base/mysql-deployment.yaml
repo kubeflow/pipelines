@@ -37,8 +37,6 @@ spec:
         env:
         - name: MYSQL_ALLOW_EMPTY_PASSWORD
           value: "true"
-        - name: MYSQL_ROOT_PASSWORD
-          value: ""
         image: gcr.io/ml-pipeline/mysql:8.0.26
         name: mysql
         ports:

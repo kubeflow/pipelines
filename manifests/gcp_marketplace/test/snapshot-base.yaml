@@ -2352,8 +2352,6 @@ spec:
           env:
             - name: MYSQL_ALLOW_EMPTY_PASSWORD
               value: "true"
-            - name: MYSQL_ROOT_PASSWORD
-              value: ""
           ports:
             - containerPort: 3306
               name: mysql
