@@ -149,15 +149,16 @@ class SageMakerTransformComponent(SageMakerComponent):
 
         if inputs.input_filter:
             request["DataProcessing"]["InputFilter"] = inputs.input_filter
+        else:
+            request["DataProcessing"].pop("InputFilter")
 
         if inputs.output_filter:
             request["DataProcessing"]["OutputFilter"] = inputs.output_filter
+        else:
+            request["DataProcessing"].pop("OutputFilter")
 
         if inputs.join_source:
             request["DataProcessing"]["JoinSource"] = inputs.join_source
-
-        if not request["DataProcessing"]:
-            request.pop("DataProcessing")
 
         self._enable_tag_support(request, inputs)
 

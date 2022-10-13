@@ -78,8 +78,6 @@ class TransformComponentTestCase(unittest.TestCase):
                     "InstanceCount": 1
                 },
                 "DataProcessing": {
-                    "InputFilter": "",
-                    "OutputFilter": "",
                     "JoinSource": "None",
                 },
                 "Tags": [],
@@ -145,8 +143,6 @@ class TransformComponentTestCase(unittest.TestCase):
                     "InstanceCount": 1
                 },
                 "DataProcessing": {
-                    "InputFilter": "",
-                    "OutputFilter": "",
                     "JoinSource": "Input",
                 },
                 "Tags": [{"Key": "fake_key", "Value": "fake_value"}],
