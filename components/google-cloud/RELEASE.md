@@ -1,5 +1,11 @@
-# Current Version 1.0.25.dev (Still in Development)
+# Current Version 1.0.26.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.25
+* Bigquery: Update public doc for evaluate model per customer feedback
+* Add Infra Validation remote runner
+* Add notification v1 doc to the v1 page
+* AutoML: Sync GCPC staging to prod to include bug fix for built-in algorithms
 
 # Release 1.0.24
 * Add notification v1 doc
