@@ -172,9 +172,9 @@ class ComponentBuilder():
 
                 python_file = str(python_file)
                 if not component_modules:
-                    logging.error(
+                    logging.info(
                         f'No KFP components found in file {python_file}')
-                    raise sys.exit(1)
+                    continue
 
                 logging.info(
                     f'Found {len(component_modules)} component(s) in file {python_file}:'
