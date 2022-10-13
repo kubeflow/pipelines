@@ -48,6 +48,9 @@ description: |
           The column name of the feature containing ground truth.
           Formatted to be able to find nested columns, delimeted by `.`.
           Prefixed with 'instance.' internally for Vertex Batch Prediction.
+      model (Optional[google.VertexModel]):
+          The Model used for predictions job.
+          Must share the same ancestor Location.
       prediction_score_column (Optional[str]):
           Optional. The column name of the field containing batch prediction scores.
           Formatted to be able to find nested columns, delimeted by `.`.
@@ -103,6 +106,7 @@ inputs:
   - { name: ground_truth_bigquery_source, type: String, default: "" }
   - { name: key_columns, type: JsonArray, default: "{}" }
   - { name: ground_truth_column, type: String }
+  - { name: model, type: google.VertexModel, optional: True }
   - { name: prediction_score_column, type: String, default: "" }
   - { name: forecasting_type, type: String, default: "point" }
   - { name: forecasting_quantiles, type: JsonArray, default: "[0.5]" }
@@ -120,7 +124,7 @@ outputs:
   - { name: gcp_resources, type: String }
 implementation:
   container:
-    image: gcr.io/ml-pipeline/model-evaluation:v0.6
+    image: gcr.io/ml-pipeline/model-evaluation:v0.7
     command:
       - python
       - /main.py
@@ -189,5 +193,7 @@ implementation:
       - { outputUri: evaluation_metrics }
       - --gcp_resources
       - { outputPath: gcp_resources }
+      - --model_name
+      - "{{$.inputs.artifacts['model'].metadata['resourceName']}}"
       - --executor_input
       - "{{$}}"
