@@ -33,7 +33,11 @@ import RunUtils from 'src/lib/RunUtils';
 import { KeyValue } from 'src/lib/StaticGraphParser';
 import { hasFinished, NodePhase } from 'src/lib/StatusUtils';
 import { formatDateString, getRunDurationFromApiRun } from 'src/lib/Utils';
-import { getNodeMlmdInfo, updateFlowElementsState } from 'src/lib/v2/DynamicFlow';
+import {
+  convertSubDagToRuntimeFlowElements,
+  getNodeMlmdInfo,
+  updateFlowElementsState,
+} from 'src/lib/v2/DynamicFlow';
 import { convertFlowElements } from 'src/lib/v2/StaticFlow';
 import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import {
@@ -87,12 +91,6 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const [, forceUpdate] = useState();
   const [runFinished, setRunFinished] = useState(false);
 
-  // TODO(zijianjoy): Update elements and states when layers change.
-  const layerChange = (layers: string[]) => {
-    setSelectedNode(null);
-    setLayers(layers);
-  };
-
   const getNodeName = function(element: FlowElement<FlowElementDataBase> | null): string {
     if (element && element.data && element.data.label) {
       return element.data.label;
@@ -125,8 +123,23 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
     },
   );
 
+  const layerChange = (layers: string[]) => {
+    setSelectedNode(null);
+    setLayers(layers);
+    setFlowElements(
+      convertSubDagToRuntimeFlowElements(pipelineSpec, layers, data ? data.executions : []),
+    ); // render elements in the sub-layer.
+  };
+
+  let dynamicFlowElements = flowElements;
   if (isSuccess && data) {
-    updateFlowElementsState(flowElements, data.executions, data.events, data.artifacts);
+    dynamicFlowElements = updateFlowElementsState(
+      layers,
+      flowElements,
+      data.executions,
+      data.events,
+      data.artifacts,
+    );
   }
 
   const onSelectionChange = (elements: Elements<FlowElementDataBase> | null) => {
@@ -186,7 +199,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
             <DagCanvas
               layers={layers}
               onLayersUpdate={layerChange}
-              elements={flowElements}
+              elements={dynamicFlowElements}
               onSelectionChange={onSelectionChange}
               setFlowElements={elems => setFlowElements(elems)}
             ></DagCanvas>
@@ -200,6 +213,8 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
                 defaultWidth={'50%'}
               >
                 <RuntimeNodeDetailsV2
+                  layers={layers}
+                  onLayerChange={layerChange}
                   element={selectedNode}
                   elementMlmdInfo={selectedNodeMlmdInfo}
                   namespace={namespace}

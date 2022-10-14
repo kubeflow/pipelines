@@ -117,7 +117,7 @@ ptl_dict: dict = parse_input_args(input_str=ptl_args)
 # Enabling Tensorboard Logger, ModelCheckpoint, Earlystopping
 
 lr_logger = LearningRateMonitor()
-tboard = TensorBoardLogger(TENSORBOARD_ROOT)
+tboard = TensorBoardLogger(TENSORBOARD_ROOT, log_graph=True)
 early_stopping = EarlyStopping(
     monitor="val_loss", mode="min", patience=5, verbose=True
 )

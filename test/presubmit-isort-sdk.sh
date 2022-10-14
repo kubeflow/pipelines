@@ -17,5 +17,7 @@ source_root=$(pwd)
 
 python3 -m pip install --upgrade pip
 python3 -m pip install $(grep 'isort==' sdk/python/requirements-dev.txt)
+python3 -m pip install $(grep 'pycln==' sdk/python/requirements-dev.txt)
 
+pycln --check "${source_root}/sdk/python" --exclude "${source_root}/sdk/python/kfp/deprecated" --extend-exclude "${source_root}/sdk/python/tests"
 isort --check --profile google "${source_root}/sdk/python" --skip "${source_root}/sdk/python/kfp/deprecated"

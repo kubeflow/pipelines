@@ -17,11 +17,14 @@ description: |
             The file format for the batch prediction results. `jsonl` is currently the only allowed
             format currently.
             If not set, defaulted to `jsonl`.
-        predictions_gcs_source (system.Artifact):
+        predictions_gcs_source (Optional[system.Artifact]):
           An artifact with its URI pointing toward a GCS directory with prediction or explanation
           files to be used for this evaluation.
           For prediction results, the files should be named "prediction.results-*".
           For explanation results, the files should be named "explanation.results-*".
+        predictions_bigquery_source (Optional[google.BQTable]):
+          BigQuery table with prediction or explanation data to be used for this evaluation.
+          For prediction results, the table column should be named "predicted_*".
         dataflow_service_account (Optional[str]):
             Optional. Service account to run the dataflow job.
             If not set, dataflow will use the default woker service account.
@@ -56,7 +59,8 @@ inputs:
 - {name: location, type: String, default: "us-central1"}
 - {name: root_dir, type: String}
 - {name: predictions_format, type: String, default: 'jsonl'}
-- {name: predictions_gcs_source, type: Artifact}
+- {name: predictions_gcs_source, type: Artifact, optional: True }
+- {name: predictions_bigquery_source, type: google.BQTable, optional: True }
 - {name: dataflow_service_account, type: String, default: ''}
 - {name: dataflow_disk_size, type: Integer, default: 50}
 - {name: dataflow_machine_type, type: String, default: 'n1-standard-4'}
@@ -70,19 +74,29 @@ outputs:
 - {name: gcp_resources, type: String}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/model-evaluation:v0.5
+    image: gcr.io/ml-pipeline/model-evaluation:v0.7
     command:
     - python
-    - /explanation_main.py
+    - /main.py
     args:
+    - --task
+    - "explanation"
     - --setup_file
     - /setup.py
     - --project_id
     - {inputValue: project}
     - --location
     - {inputValue: location}
-    - --batch_prediction_gcs_source
-    - "{{$.inputs.artifacts['predictions_gcs_source'].uri}}"
+    - if:
+        cond: {isPresent: predictions_gcs_source}
+        then:
+        - --batch_prediction_gcs_source
+        - "{{$.inputs.artifacts['predictions_gcs_source'].uri}}"
+    - if:
+        cond: {isPresent: predictions_bigquery_source}
+        then:
+        - --batch_prediction_bigquery_source
+        - "bq://{{$.inputs.artifacts['predictions_bigquery_source'].metadata['projectId']}}.{{$.inputs.artifacts['predictions_bigquery_source'].metadata['datasetId']}}.{{$.inputs.artifacts['predictions_bigquery_source'].metadata['tableId']}}"
     - --batch_prediction_format
     - {inputValue: predictions_format}
     - --root_dir

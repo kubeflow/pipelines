@@ -17,12 +17,14 @@ import { Execution, Artifact } from 'src/third_party/mlmd';
 // Being used as the base interace for Node and Edge in Reactflow.
 export type FlowElementDataBase = {
   label: string;
+  mlmdId?: number;
   [key: string]: any;
 };
 
 export type SubDagFlowElementData = FlowElementDataBase & {
   // Callback action if a SubDag expand button is clicked.
   expand: (nodeKey: string) => void;
+  state?: Execution.State;
 };
 
 export type ExecutionFlowElementData = FlowElementDataBase & {
@@ -31,4 +33,6 @@ export type ExecutionFlowElementData = FlowElementDataBase & {
 
 export type ArtifactFlowElementData = FlowElementDataBase & {
   state?: Artifact.State;
+  producerSubtask?: string;
+  outputArtifactKey?: string;
 };

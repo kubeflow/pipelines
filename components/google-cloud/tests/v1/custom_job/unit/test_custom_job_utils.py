@@ -217,7 +217,7 @@ implementation:
                     'gcr.io/ml-pipeline/google-cloud-pipeline-components:latest',
                 'command': [
                     'python3', '-u', '-m',
-                    'google_cloud_pipeline_components.container.v1.gcp_launcher.launcher'
+                    'google_cloud_pipeline_components.container.v1.custom_job.launcher'
                 ],
                 'args': [
                     '--type', 'CustomJob', '--payload', {

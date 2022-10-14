@@ -1124,7 +1124,7 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 	if run.WorkflowRuntimeManifest == "" {
 		return nil, util.NewInvalidInputError("read artifact from run with v2 IR spec is not supported")
 	}
-	execSpec, err := util.NewExecutionSpec([]byte(run.WorkflowRuntimeManifest))
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
 	if err != nil {
 		// This should never happen.
 		return nil, util.NewInternalServerError(

@@ -5,6 +5,7 @@ import math
 import os
 import pathlib
 from typing import Any, Dict, List, Tuple, Optional
+import warnings
 
 _DEFAULT_NUM_PARALLEL_TRAILS = 35
 _DEFAULT_STAGE_2_NUM_SELECTED_TRAILS = 5
@@ -1199,6 +1200,10 @@ def get_default_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
+  warnings.warn(
+      'This method is deprecated,'
+      ' please use get_automl_tabular_pipeline_and_parameters instead.')
+
   if stage_1_num_parallel_trials <= 0:
     stage_1_num_parallel_trials = _DEFAULT_NUM_PARALLEL_TRAILS
 
@@ -1734,104 +1739,74 @@ def get_distill_skip_evaluation_pipeline_and_parameters(
   """Get the AutoML Tabular training pipeline that distill and skips evaluation.
 
   Args:
-    project:
-      The GCP project that runs the pipeline components.
-    location:
-      The GCP region that runs the pipeline components.
-    root_dir:
-      The root GCS directory for the pipeline components.
-    target_column_name:
-      The target column name.
-    prediction_type:
-      The type of prediction the model is to produce.
+    project: The GCP project that runs the pipeline components.
+    location: The GCP region that runs the pipeline components.
+    root_dir: The root GCS directory for the pipeline components.
+    target_column_name: The target column name.
+    prediction_type: The type of prediction the model is to produce.
       "classification" or "regression".
-    optimization_objective:
-      For binary classification, "maximize-au-roc",
+    optimization_objective: For binary classification, "maximize-au-roc",
       "minimize-log-loss", "maximize-au-prc", "maximize-precision-at-recall", or
       "maximize-recall-at-precision". For multi class classification,
       "minimize-log-loss". For regression, "minimize-rmse", "minimize-mae", or
       "minimize-rmsle".
-    transformations:
-      The transformations to apply.
-    split_spec:
-      The split spec.
-    data_source:
-      The data source.
-    train_budget_milli_node_hours:
-      The train budget of creating this model,
+    transformations: The transformations to apply.
+    split_spec: The split spec.
+    data_source: The data source.
+    train_budget_milli_node_hours: The train budget of creating this model,
       expressed in milli node hours i.e. 1,000 value in this field means 1 node
       hour.
-    stage_1_num_parallel_trials:
-      Number of parallel trails for stage 1.
-    stage_2_num_parallel_trials:
-      Number of parallel trails for stage 2.
-    stage_2_num_selected_trials:
-      Number of selected trials for stage 2.
-    weight_column_name:
-      The weight column name.
-    study_spec_override:
-      The dictionary for overriding study spec. The
+    stage_1_num_parallel_trials: Number of parallel trails for stage 1.
+    stage_2_num_parallel_trials: Number of parallel trails for stage 2.
+    stage_2_num_selected_trials: Number of selected trials for stage 2.
+    weight_column_name: The weight column name.
+    study_spec_override: The dictionary for overriding study spec. The
       dictionary should be of format
       https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/study.proto#L181.
-    optimization_objective_recall_value:
-      Required when optimization_objective is
+    optimization_objective_recall_value: Required when optimization_objective is
       "maximize-precision-at-recall". Must be between 0 and 1, inclusive.
-    optimization_objective_precision_value:
-      Required when optimization_objective
+    optimization_objective_precision_value: Required when optimization_objective
       is "maximize-recall-at-precision". Must be between 0 and 1, inclusive.
-    stage_1_tuner_worker_pool_specs_override:
-      The dictionary for overriding.
+    stage_1_tuner_worker_pool_specs_override: The dictionary for overriding.
       stage 1 tuner worker pool spec. The dictionary should be of format
         https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
-    cv_trainer_worker_pool_specs_override:
-      The dictionary for overriding stage
+    cv_trainer_worker_pool_specs_override: The dictionary for overriding stage
       cv trainer worker pool spec. The dictionary should be of format
         https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
-    export_additional_model_without_custom_ops:
-      Whether to export additional
+    export_additional_model_without_custom_ops: Whether to export additional
       model without custom TensorFlow operators.
-    stats_and_example_gen_dataflow_machine_type:
-      The dataflow machine type for
+    stats_and_example_gen_dataflow_machine_type: The dataflow machine type for
       stats_and_example_gen component.
-    stats_and_example_gen_dataflow_max_num_workers:
-      The max number of Dataflow
+    stats_and_example_gen_dataflow_max_num_workers: The max number of Dataflow
       workers for stats_and_example_gen component.
-    stats_and_example_gen_dataflow_disk_size_gb:
-      Dataflow worker's disk size in
+    stats_and_example_gen_dataflow_disk_size_gb: Dataflow worker's disk size in
       GB for stats_and_example_gen component.
-    transform_dataflow_machine_type:
-      The dataflow machine type for transform
+    transform_dataflow_machine_type: The dataflow machine type for transform
       component.
-    transform_dataflow_max_num_workers:
-      The max number of Dataflow workers for
+    transform_dataflow_max_num_workers: The max number of Dataflow workers for
       transform component.
-    transform_dataflow_disk_size_gb:
-      Dataflow worker's disk size in GB for
+    transform_dataflow_disk_size_gb: Dataflow worker's disk size in GB for
       transform component.
-    dataflow_subnetwork:
-      Dataflow's fully qualified subnetwork name, when empty
+    dataflow_subnetwork: Dataflow's fully qualified subnetwork name, when empty
       the default subnetwork will be used. Example:
         https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
-    dataflow_use_public_ips:
-      Specifies whether Dataflow workers use public IP
+    dataflow_use_public_ips: Specifies whether Dataflow workers use public IP
       addresses.
-    encryption_spec_key_name:
-      The KMS key name.
-    additional_experiments:
-      Use this field to config private preview features.
-    distill_batch_predict_machine_type:
-      The prediction server machine type for
+    encryption_spec_key_name: The KMS key name.
+    additional_experiments: Use this field to config private preview features.
+    distill_batch_predict_machine_type: The prediction server machine type for
       batch predict component in the model distillation.
-    distill_batch_predict_starting_replica_count:
-      The initial number of
+    distill_batch_predict_starting_replica_count: The initial number of
       prediction server for batch predict component in the model distillation.
-    distill_batch_predict_max_replica_count:
-      The max number of prediction server
+    distill_batch_predict_max_replica_count: The max number of prediction server
       for batch predict component in the model distillation.
 
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
+  warnings.warn(
+      'Depreciated. Please use get_automl_tabular_pipeline_and_parameters.')
+
   return get_default_pipeline_and_parameters(
       project=project,
       location=location,
@@ -1891,7 +1866,7 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     use_wide: bool = True,
     embed_categories: bool = True,
     dnn_dropout: float = 0,
-    dnn_optimizer_type: str = 'ftrl',
+    dnn_optimizer_type: str = 'adam',
     dnn_l1_regularization_strength: float = 0,
     dnn_l2_regularization_strength: float = 0,
     dnn_l2_shrinkage_regularization_strength: float = 0,
@@ -1917,8 +1892,7 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     transform_dataflow_machine_type: str = 'n1-standard-16',
     transform_dataflow_max_num_workers: int = 25,
     transform_dataflow_disk_size_gb: int = 40,
-    training_machine_spec: Optional[Dict[str, Any]] = None,
-    training_replica_count: int = 1,
+    worker_pool_specs_override: Optional[Dict[str, Any]] = None,
     run_evaluation: bool = True,
     evaluation_batch_predict_machine_type:
     str = _EVALUATION_BATCH_PREDICT_MACHINE_TYPE,
@@ -2054,11 +2028,10 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
     transform_dataflow_disk_size_gb:
       Dataflow worker's disk size in GB for
       transform component.
-    training_machine_spec:
-      The machine spec for trainer component. See
-      https://cloud.google.com/compute/docs/machine-types for options.
-    training_replica_count:
-      The replica count for the trainer component.
+    worker_pool_specs_override:
+      The dictionary for overriding training and
+        evaluation worker pool specs. The dictionary should be of format
+          https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
     run_evaluation:
       Whether to run evaluation steps during training.
     evaluation_batch_predict_machine_type:
@@ -2094,8 +2067,8 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
-  if not training_machine_spec:
-    training_machine_spec = {'machine_type': 'c2-standard-16'}
+  if not worker_pool_specs_override:
+    worker_pool_specs_override = []
 
   parameter_values = {
       'project':
@@ -2174,10 +2147,8 @@ def get_wide_and_deep_trainer_pipeline_and_parameters(
           transform_dataflow_max_num_workers,
       'transform_dataflow_disk_size_gb':
           transform_dataflow_disk_size_gb,
-      'training_machine_spec':
-          training_machine_spec,
-      'training_replica_count':
-          training_replica_count,
+      'worker_pool_specs_override':
+          worker_pool_specs_override,
       'run_evaluation':
           run_evaluation,
       'evaluation_batch_predict_machine_type':
@@ -2230,7 +2201,8 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     target_column: str,
     prediction_type: str,
     transform_config: str,
-    study_spec_metrics: List[Dict[str, Any]],
+    study_spec_metric_id: str,
+    study_spec_metric_goal: str,
     study_spec_parameters_override: List[Dict[str, Any]],
     max_trial_count: int,
     parallel_trial_count: int,
@@ -2257,8 +2229,7 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     transform_dataflow_machine_type: str = 'n1-standard-16',
     transform_dataflow_max_num_workers: int = 25,
     transform_dataflow_disk_size_gb: int = 40,
-    training_machine_spec: Optional[Dict[str, Any]] = None,
-    training_replica_count: int = 1,
+    worker_pool_specs_override: Optional[Dict[str, Any]] = None,
     run_evaluation: bool = True,
     evaluation_batch_predict_machine_type:
     str = _EVALUATION_BATCH_PREDICT_MACHINE_TYPE,
@@ -2291,11 +2262,13 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     transform_config:
       The path to a GCS file containing the transformations to
       apply.
-    study_spec_metrics:
-      List of dictionaries representing metrics to optimize.
-      The dictionary contains the metric_id, which is reported by the training
-      job, ands the optimization goal of the metric. One of "minimize" or
-      "maximize".
+    study_spec_metric_id:
+      Metric to optimize, possible values: [
+      'loss', 'average_loss', 'rmse', 'mae', 'mql', 'accuracy', 'auc',
+      'precision', 'recall'].
+    study_spec_metric_goal:
+      Optimization goal of the metric, possible values:
+      "MAXIMIZE", "MINIMIZE".
     study_spec_parameters_override:
       List of dictionaries representing parameters
       to optimize. The dictionary key is the parameter_id, which is passed to
@@ -2366,11 +2339,10 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
     transform_dataflow_disk_size_gb:
       Dataflow worker's disk size in GB for
       transform component.
-    training_machine_spec:
-      The machine spec for trainer component. See
-      https://cloud.google.com/compute/docs/machine-types for options.
-    training_replica_count:
-      The replica count for the trainer component.
+    worker_pool_specs_override:
+      The dictionary for overriding training and
+        evaluation worker pool specs. The dictionary should be of format
+          https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
     run_evaluation:
       Whether to run evaluation steps during training.
     evaluation_batch_predict_machine_type:
@@ -2406,14 +2378,294 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
+  warnings.warn(
+      'This method is deprecated. Please use get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters '
+      'or get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters instead.'
+  )
 
-  if not training_machine_spec:
-    training_machine_spec = {'machine_type': 'c2-standard-16'}
-
-  if algorithm not in ['tabnet', 'wide_and_deep']:
+  if algorithm == 'tabnet':
+    return get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
+        project=project,
+        location=location,
+        root_dir=root_dir,
+        target_column=target_column,
+        prediction_type=prediction_type,
+        transform_config=transform_config,
+        study_spec_metric_id=study_spec_metric_id,
+        study_spec_metric_goal=study_spec_metric_goal,
+        study_spec_parameters_override=study_spec_parameters_override,
+        max_trial_count=max_trial_count,
+        parallel_trial_count=parallel_trial_count,
+        enable_profiler=enable_profiler,
+        seed=seed,
+        eval_steps=eval_steps,
+        eval_frequency_secs=eval_frequency_secs,
+        data_source_csv_filenames=data_source_csv_filenames,
+        data_source_bigquery_table_path=data_source_bigquery_table_path,
+        predefined_split_key=predefined_split_key,
+        timestamp_split_key=timestamp_split_key,
+        stratified_split_key=stratified_split_key,
+        training_fraction=training_fraction,
+        validation_fraction=validation_fraction,
+        test_fraction=test_fraction,
+        weight_column=weight_column,
+        max_failed_trial_count=max_failed_trial_count,
+        study_spec_algorithm=study_spec_algorithm,
+        study_spec_measurement_selection_type=study_spec_measurement_selection_type,
+        stats_and_example_gen_dataflow_machine_type=stats_and_example_gen_dataflow_machine_type,
+        stats_and_example_gen_dataflow_max_num_workers=stats_and_example_gen_dataflow_max_num_workers,
+        stats_and_example_gen_dataflow_disk_size_gb=stats_and_example_gen_dataflow_disk_size_gb,
+        transform_dataflow_machine_type=transform_dataflow_machine_type,
+        transform_dataflow_max_num_workers=transform_dataflow_max_num_workers,
+        transform_dataflow_disk_size_gb=transform_dataflow_disk_size_gb,
+        worker_pool_specs_override=worker_pool_specs_override,
+        run_evaluation=run_evaluation,
+        evaluation_batch_predict_machine_type=evaluation_batch_predict_machine_type,
+        evaluation_batch_predict_starting_replica_count=evaluation_batch_predict_starting_replica_count,
+        evaluation_batch_predict_max_replica_count=evaluation_batch_predict_max_replica_count,
+        evaluation_dataflow_machine_type=evaluation_dataflow_machine_type,
+        evaluation_dataflow_disk_size_gb=evaluation_dataflow_disk_size_gb,
+        evaluation_dataflow_max_num_workers=evaluation_dataflow_max_num_workers,
+        dataflow_service_account=dataflow_service_account,
+        dataflow_subnetwork=dataflow_subnetwork,
+        dataflow_use_public_ips=dataflow_use_public_ips,
+        encryption_spec_key_name=encryption_spec_key_name)
+  elif algorithm == 'wide_and_deep':
+    return get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
+        project=project,
+        location=location,
+        root_dir=root_dir,
+        target_column=target_column,
+        prediction_type=prediction_type,
+        transform_config=transform_config,
+        study_spec_metric_id=study_spec_metric_id,
+        study_spec_metric_goal=study_spec_metric_goal,
+        study_spec_parameters_override=study_spec_parameters_override,
+        max_trial_count=max_trial_count,
+        parallel_trial_count=parallel_trial_count,
+        enable_profiler=enable_profiler,
+        seed=seed,
+        eval_steps=eval_steps,
+        eval_frequency_secs=eval_frequency_secs,
+        data_source_csv_filenames=data_source_csv_filenames,
+        data_source_bigquery_table_path=data_source_bigquery_table_path,
+        predefined_split_key=predefined_split_key,
+        timestamp_split_key=timestamp_split_key,
+        stratified_split_key=stratified_split_key,
+        training_fraction=training_fraction,
+        validation_fraction=validation_fraction,
+        test_fraction=test_fraction,
+        weight_column=weight_column,
+        max_failed_trial_count=max_failed_trial_count,
+        study_spec_algorithm=study_spec_algorithm,
+        study_spec_measurement_selection_type=study_spec_measurement_selection_type,
+        stats_and_example_gen_dataflow_machine_type=stats_and_example_gen_dataflow_machine_type,
+        stats_and_example_gen_dataflow_max_num_workers=stats_and_example_gen_dataflow_max_num_workers,
+        stats_and_example_gen_dataflow_disk_size_gb=stats_and_example_gen_dataflow_disk_size_gb,
+        transform_dataflow_machine_type=transform_dataflow_machine_type,
+        transform_dataflow_max_num_workers=transform_dataflow_max_num_workers,
+        transform_dataflow_disk_size_gb=transform_dataflow_disk_size_gb,
+        worker_pool_specs_override=worker_pool_specs_override,
+        run_evaluation=run_evaluation,
+        evaluation_batch_predict_machine_type=evaluation_batch_predict_machine_type,
+        evaluation_batch_predict_starting_replica_count=evaluation_batch_predict_starting_replica_count,
+        evaluation_batch_predict_max_replica_count=evaluation_batch_predict_max_replica_count,
+        evaluation_dataflow_machine_type=evaluation_dataflow_machine_type,
+        evaluation_dataflow_disk_size_gb=evaluation_dataflow_disk_size_gb,
+        evaluation_dataflow_max_num_workers=evaluation_dataflow_max_num_workers,
+        dataflow_service_account=dataflow_service_account,
+        dataflow_subnetwork=dataflow_subnetwork,
+        dataflow_use_public_ips=dataflow_use_public_ips,
+        encryption_spec_key_name=encryption_spec_key_name)
+  else:
     raise ValueError(
         'Invalid algorithm provided. Supported values are "tabnet" and "wide_and_deep".'
     )
+
+
+def get_tabnet_hyperparameter_tuning_job_pipeline_and_parameters(
+    project: str,
+    location: str,
+    root_dir: str,
+    target_column: str,
+    prediction_type: str,
+    transform_config: str,
+    study_spec_metric_id: str,
+    study_spec_metric_goal: str,
+    study_spec_parameters_override: List[Dict[str, Any]],
+    max_trial_count: int,
+    parallel_trial_count: int,
+    enable_profiler: bool = False,
+    seed: int = 1,
+    eval_steps: int = 0,
+    eval_frequency_secs: int = 600,
+    data_source_csv_filenames: Optional[str] = None,
+    data_source_bigquery_table_path: Optional[str] = None,
+    predefined_split_key: Optional[str] = None,
+    timestamp_split_key: Optional[str] = None,
+    stratified_split_key: Optional[str] = None,
+    training_fraction: Optional[float] = None,
+    validation_fraction: Optional[float] = None,
+    test_fraction: Optional[float] = None,
+    weight_column: str = '',
+    max_failed_trial_count: int = 0,
+    study_spec_algorithm: str = 'ALGORITHM_UNSPECIFIED',
+    study_spec_measurement_selection_type: str = 'BEST_MEASUREMENT',
+    stats_and_example_gen_dataflow_machine_type: str = 'n1-standard-16',
+    stats_and_example_gen_dataflow_max_num_workers: int = 25,
+    stats_and_example_gen_dataflow_disk_size_gb: int = 40,
+    transform_dataflow_machine_type: str = 'n1-standard-16',
+    transform_dataflow_max_num_workers: int = 25,
+    transform_dataflow_disk_size_gb: int = 40,
+    worker_pool_specs_override: Optional[Dict[str, Any]] = None,
+    run_evaluation: bool = True,
+    evaluation_batch_predict_machine_type:
+    str = _EVALUATION_BATCH_PREDICT_MACHINE_TYPE,
+    evaluation_batch_predict_starting_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_STARTING_REPLICA_COUNT,
+    evaluation_batch_predict_max_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT,
+    evaluation_dataflow_machine_type: str = _EVALUATION_DATAFLOW_MACHINE_TYPE,
+    evaluation_dataflow_max_num_workers:
+    int = _EVALUATION_DATAFLOW_MAX_NUM_WORKERS,
+    evaluation_dataflow_disk_size_gb: int = _EVALUATION_DATAFLOW_DISK_SIZE_GB,
+    dataflow_service_account: str = '',
+    dataflow_subnetwork: str = '',
+    dataflow_use_public_ips: bool = True,
+    encryption_spec_key_name: str = '') -> Tuple[str, Dict[str, Any]]:
+  """Get the TabNet HyperparameterTuningJob pipeline.
+
+  Args:
+    project:
+      The GCP project that runs the pipeline components.
+    location:
+      The GCP region that runs the pipeline components.
+    root_dir:
+      The root GCS directory for the pipeline components.
+    target_column:
+      The target column name.
+    prediction_type:
+      The type of prediction the model is to produce.
+      "classification" or "regression".
+    transform_config:
+      The path to a GCS file containing the transformations to
+      apply.
+    study_spec_metric_id:
+      Metric to optimize, possible values: [
+      'loss', 'average_loss', 'rmse', 'mae', 'mql', 'accuracy', 'auc',
+      'precision', 'recall'].
+    study_spec_metric_goal:
+      Optimization goal of the metric, possible values:
+      "MAXIMIZE", "MINIMIZE".
+    study_spec_parameters_override:
+      List of dictionaries representing parameters
+      to optimize. The dictionary key is the parameter_id, which is passed to
+      training job as a command line argument, and the dictionary value is the
+      parameter specification of the metric.
+    max_trial_count:
+      The desired total number of trials.
+    parallel_trial_count:
+      The desired number of trials to run in parallel.
+    enable_profiler:
+      Enables profiling and saves a trace during evaluation.
+    seed:
+      Seed to be used for this run.
+    eval_steps:
+      Number of steps to run evaluation for. If not specified or
+      negative, it means run evaluation on the whole validation dataset. If set
+      to 0, it means run evaluation for a fixed number of samples.
+    eval_frequency_secs:
+      Frequency at which evaluation and checkpointing will
+      take place.
+    data_source_csv_filenames:
+      The CSV data source.
+    data_source_bigquery_table_path:
+      The BigQuery data source.
+    predefined_split_key:
+      The predefined_split column name.
+    timestamp_split_key:
+      The timestamp_split column name.
+    stratified_split_key:
+      The stratified_split column name.
+    training_fraction:
+      The training fraction.
+    validation_fraction:
+      The validation fraction.
+    test_fraction:
+      The test fraction.
+    weight_column:
+      The weight column name.
+    max_failed_trial_count:
+      The number of failed trials that need to be seen
+      before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides
+      how many trials must fail before the whole job fails.
+    study_spec_algorithm:
+      The search algorithm specified for the study. One of
+      "ALGORITHM_UNSPECIFIED", "GRID_SEARCH", or "RANDOM_SEARCH".
+    study_spec_measurement_selection_type:
+      Which measurement to use if/when the
+      service automatically selects the final measurement from previously
+      reported intermediate measurements. One of "BEST_MEASUREMENT" or
+      "LAST_MEASUREMENT".
+    stats_and_example_gen_dataflow_machine_type:
+      The dataflow machine type for
+      stats_and_example_gen component.
+    stats_and_example_gen_dataflow_max_num_workers:
+      The max number of Dataflow
+      workers for stats_and_example_gen component.
+    stats_and_example_gen_dataflow_disk_size_gb:
+      Dataflow worker's disk size in
+      GB for stats_and_example_gen component.
+    transform_dataflow_machine_type:
+      The dataflow machine type for transform
+      component.
+    transform_dataflow_max_num_workers:
+      The max number of Dataflow workers for
+      transform component.
+    transform_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
+      transform component.
+    worker_pool_specs_override:
+      The dictionary for overriding training and
+        evaluation worker pool specs. The dictionary should be of format
+          https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+    run_evaluation:
+      Whether to run evaluation steps during training.
+    evaluation_batch_predict_machine_type:
+      The prediction server machine type
+      for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count:
+      The initial number of
+      prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count:
+      The max number of prediction
+      server for batch predict components during evaluation.
+    evaluation_dataflow_machine_type:
+      The dataflow machine type for evaluation
+      components.
+    evaluation_dataflow_max_num_workers:
+      The max number of Dataflow workers for
+      evaluation components.
+    evaluation_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
+      evaluation components.
+    dataflow_service_account:
+      Custom service account to run dataflow jobs.
+    dataflow_subnetwork:
+      Dataflow's fully qualified subnetwork name, when empty
+      the default subnetwork will be used. Example:
+        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+    dataflow_use_public_ips:
+      Specifies whether Dataflow workers use public IP
+      addresses.
+    encryption_spec_key_name:
+      The KMS key name.
+
+  Returns:
+    Tuple of pipeline_definiton_path and parameter_values.
+  """
+  if not worker_pool_specs_override:
+    worker_pool_specs_override = []
 
   parameter_values = {
       'project':
@@ -2428,8 +2680,10 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
           prediction_type,
       'transform_config':
           transform_config,
-      'study_spec_metrics':
-          study_spec_metrics,
+      'study_spec_metric_id':
+          study_spec_metric_id,
+      'study_spec_metric_goal':
+          study_spec_metric_goal,
       'study_spec_parameters_override':
           study_spec_parameters_override,
       'max_trial_count':
@@ -2464,10 +2718,8 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
           transform_dataflow_max_num_workers,
       'transform_dataflow_disk_size_gb':
           transform_dataflow_disk_size_gb,
-      'training_machine_spec':
-          training_machine_spec,
-      'training_replica_count':
-          training_replica_count,
+      'worker_pool_specs_override':
+          worker_pool_specs_override,
       'run_evaluation':
           run_evaluation,
       'evaluation_batch_predict_machine_type':
@@ -2506,16 +2758,293 @@ def get_builtin_algorithm_hyperparameter_tuning_job_pipeline_and_parameters(
       for param, value in data_source_and_split_parameters.items()
       if value is not None
   })
-  if algorithm == 'tabnet':
-    parameter_values['tabnet'] = True
-    pipeline_definition_path = os.path.join(
-        pathlib.Path(__file__).parent.resolve(),
-        'tabnet_hyperparameter_tuning_job_pipeline.json')
-  if algorithm == 'wide_and_deep':
-    parameter_values['wide_and_deep'] = True
-    pipeline_definition_path = os.path.join(
-        pathlib.Path(__file__).parent.resolve(),
-        'wide_and_deep_hyperparameter_tuning_job_pipeline.json')
+
+  pipeline_definition_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(),
+      'tabnet_hyperparameter_tuning_job_pipeline.json')
+
+  return pipeline_definition_path, parameter_values
+
+
+def get_wide_and_deep_hyperparameter_tuning_job_pipeline_and_parameters(
+    project: str,
+    location: str,
+    root_dir: str,
+    target_column: str,
+    prediction_type: str,
+    transform_config: str,
+    study_spec_metric_id: str,
+    study_spec_metric_goal: str,
+    study_spec_parameters_override: List[Dict[str, Any]],
+    max_trial_count: int,
+    parallel_trial_count: int,
+    enable_profiler: bool = False,
+    seed: int = 1,
+    eval_steps: int = 0,
+    eval_frequency_secs: int = 600,
+    data_source_csv_filenames: Optional[str] = None,
+    data_source_bigquery_table_path: Optional[str] = None,
+    predefined_split_key: Optional[str] = None,
+    timestamp_split_key: Optional[str] = None,
+    stratified_split_key: Optional[str] = None,
+    training_fraction: Optional[float] = None,
+    validation_fraction: Optional[float] = None,
+    test_fraction: Optional[float] = None,
+    weight_column: str = '',
+    max_failed_trial_count: int = 0,
+    study_spec_algorithm: str = 'ALGORITHM_UNSPECIFIED',
+    study_spec_measurement_selection_type: str = 'BEST_MEASUREMENT',
+    stats_and_example_gen_dataflow_machine_type: str = 'n1-standard-16',
+    stats_and_example_gen_dataflow_max_num_workers: int = 25,
+    stats_and_example_gen_dataflow_disk_size_gb: int = 40,
+    transform_dataflow_machine_type: str = 'n1-standard-16',
+    transform_dataflow_max_num_workers: int = 25,
+    transform_dataflow_disk_size_gb: int = 40,
+    worker_pool_specs_override: Optional[Dict[str, Any]] = None,
+    run_evaluation: bool = True,
+    evaluation_batch_predict_machine_type:
+    str = _EVALUATION_BATCH_PREDICT_MACHINE_TYPE,
+    evaluation_batch_predict_starting_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_STARTING_REPLICA_COUNT,
+    evaluation_batch_predict_max_replica_count:
+    int = _EVALUATION_BATCH_PREDICT_MAX_REPLICA_COUNT,
+    evaluation_dataflow_machine_type: str = _EVALUATION_DATAFLOW_MACHINE_TYPE,
+    evaluation_dataflow_max_num_workers:
+    int = _EVALUATION_DATAFLOW_MAX_NUM_WORKERS,
+    evaluation_dataflow_disk_size_gb: int = _EVALUATION_DATAFLOW_DISK_SIZE_GB,
+    dataflow_service_account: str = '',
+    dataflow_subnetwork: str = '',
+    dataflow_use_public_ips: bool = True,
+    encryption_spec_key_name: str = '') -> Tuple[str, Dict[str, Any]]:
+  """Get the Wide & Deep algorithm HyperparameterTuningJob pipeline.
+
+  Args:
+    project:
+      The GCP project that runs the pipeline components.
+    location:
+      The GCP region that runs the pipeline components.
+    root_dir:
+      The root GCS directory for the pipeline components.
+    target_column:
+      The target column name.
+    prediction_type:
+      The type of prediction the model is to produce.
+      "classification" or "regression".
+    transform_config:
+      The path to a GCS file containing the transformations to
+      apply.
+    study_spec_metric_id:
+      Metric to optimize, possible values: [
+      'loss', 'average_loss', 'rmse', 'mae', 'mql', 'accuracy', 'auc',
+      'precision', 'recall'].
+    study_spec_metric_goal:
+      Optimization goal of the metric, possible values:
+      "MAXIMIZE", "MINIMIZE".
+    study_spec_parameters_override:
+      List of dictionaries representing parameters
+      to optimize. The dictionary key is the parameter_id, which is passed to
+      training job as a command line argument, and the dictionary value is the
+      parameter specification of the metric.
+    max_trial_count:
+      The desired total number of trials.
+    parallel_trial_count:
+      The desired number of trials to run in parallel.
+    enable_profiler:
+      Enables profiling and saves a trace during evaluation.
+    seed:
+      Seed to be used for this run.
+    eval_steps:
+      Number of steps to run evaluation for. If not specified or
+      negative, it means run evaluation on the whole validation dataset. If set
+      to 0, it means run evaluation for a fixed number of samples.
+    eval_frequency_secs:
+      Frequency at which evaluation and checkpointing will
+      take place.
+    data_source_csv_filenames:
+      The CSV data source.
+    data_source_bigquery_table_path:
+      The BigQuery data source.
+    predefined_split_key:
+      The predefined_split column name.
+    timestamp_split_key:
+      The timestamp_split column name.
+    stratified_split_key:
+      The stratified_split column name.
+    training_fraction:
+      The training fraction.
+    validation_fraction:
+      The validation fraction.
+    test_fraction:
+      The test fraction.
+    weight_column:
+      The weight column name.
+    max_failed_trial_count:
+      The number of failed trials that need to be seen
+      before failing the HyperparameterTuningJob. If set to 0, Vertex AI decides
+      how many trials must fail before the whole job fails.
+    study_spec_algorithm:
+      The search algorithm specified for the study. One of
+      "ALGORITHM_UNSPECIFIED", "GRID_SEARCH", or "RANDOM_SEARCH".
+    study_spec_measurement_selection_type:
+      Which measurement to use if/when the
+      service automatically selects the final measurement from previously
+      reported intermediate measurements. One of "BEST_MEASUREMENT" or
+      "LAST_MEASUREMENT".
+    stats_and_example_gen_dataflow_machine_type:
+      The dataflow machine type for
+      stats_and_example_gen component.
+    stats_and_example_gen_dataflow_max_num_workers:
+      The max number of Dataflow
+      workers for stats_and_example_gen component.
+    stats_and_example_gen_dataflow_disk_size_gb:
+      Dataflow worker's disk size in
+      GB for stats_and_example_gen component.
+    transform_dataflow_machine_type:
+      The dataflow machine type for transform
+      component.
+    transform_dataflow_max_num_workers:
+      The max number of Dataflow workers for
+      transform component.
+    transform_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
+      transform component.
+    worker_pool_specs_override:
+      The dictionary for overriding training and
+        evaluation worker pool specs. The dictionary should be of format
+          https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
+    run_evaluation:
+      Whether to run evaluation steps during training.
+    evaluation_batch_predict_machine_type:
+      The prediction server machine type
+      for batch predict components during evaluation.
+    evaluation_batch_predict_starting_replica_count:
+      The initial number of
+      prediction server for batch predict components during evaluation.
+    evaluation_batch_predict_max_replica_count:
+      The max number of prediction
+      server for batch predict components during evaluation.
+    evaluation_dataflow_machine_type:
+      The dataflow machine type for evaluation
+      components.
+    evaluation_dataflow_max_num_workers:
+      The max number of Dataflow workers for
+      evaluation components.
+    evaluation_dataflow_disk_size_gb:
+      Dataflow worker's disk size in GB for
+      evaluation components.
+    dataflow_service_account:
+      Custom service account to run dataflow jobs.
+    dataflow_subnetwork:
+      Dataflow's fully qualified subnetwork name, when empty
+      the default subnetwork will be used. Example:
+        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+    dataflow_use_public_ips:
+      Specifies whether Dataflow workers use public IP
+      addresses.
+    encryption_spec_key_name:
+      The KMS key name.
+
+  Returns:
+    Tuple of pipeline_definiton_path and parameter_values.
+  """
+  if not worker_pool_specs_override:
+    worker_pool_specs_override = []
+
+  parameter_values = {
+      'project':
+          project,
+      'location':
+          location,
+      'root_dir':
+          root_dir,
+      'target_column':
+          target_column,
+      'prediction_type':
+          prediction_type,
+      'transform_config':
+          transform_config,
+      'study_spec_metric_id':
+          study_spec_metric_id,
+      'study_spec_metric_goal':
+          study_spec_metric_goal,
+      'study_spec_parameters_override':
+          study_spec_parameters_override,
+      'max_trial_count':
+          max_trial_count,
+      'parallel_trial_count':
+          parallel_trial_count,
+      'enable_profiler':
+          enable_profiler,
+      'seed':
+          seed,
+      'eval_steps':
+          eval_steps,
+      'eval_frequency_secs':
+          eval_frequency_secs,
+      'weight_column':
+          weight_column,
+      'max_failed_trial_count':
+          max_failed_trial_count,
+      'study_spec_algorithm':
+          study_spec_algorithm,
+      'study_spec_measurement_selection_type':
+          study_spec_measurement_selection_type,
+      'stats_and_example_gen_dataflow_machine_type':
+          stats_and_example_gen_dataflow_machine_type,
+      'stats_and_example_gen_dataflow_max_num_workers':
+          stats_and_example_gen_dataflow_max_num_workers,
+      'stats_and_example_gen_dataflow_disk_size_gb':
+          stats_and_example_gen_dataflow_disk_size_gb,
+      'transform_dataflow_machine_type':
+          transform_dataflow_machine_type,
+      'transform_dataflow_max_num_workers':
+          transform_dataflow_max_num_workers,
+      'transform_dataflow_disk_size_gb':
+          transform_dataflow_disk_size_gb,
+      'worker_pool_specs_override':
+          worker_pool_specs_override,
+      'run_evaluation':
+          run_evaluation,
+      'evaluation_batch_predict_machine_type':
+          evaluation_batch_predict_machine_type,
+      'evaluation_batch_predict_starting_replica_count':
+          evaluation_batch_predict_starting_replica_count,
+      'evaluation_batch_predict_max_replica_count':
+          evaluation_batch_predict_max_replica_count,
+      'evaluation_dataflow_machine_type':
+          evaluation_dataflow_machine_type,
+      'evaluation_dataflow_max_num_workers':
+          evaluation_dataflow_max_num_workers,
+      'evaluation_dataflow_disk_size_gb':
+          evaluation_dataflow_disk_size_gb,
+      'dataflow_service_account':
+          dataflow_service_account,
+      'dataflow_subnetwork':
+          dataflow_subnetwork,
+      'dataflow_use_public_ips':
+          dataflow_use_public_ips,
+      'encryption_spec_key_name':
+          encryption_spec_key_name,
+  }
+  data_source_and_split_parameters = {
+      'data_source_csv_filenames': data_source_csv_filenames,
+      'data_source_bigquery_table_path': data_source_bigquery_table_path,
+      'predefined_split_key': predefined_split_key,
+      'timestamp_split_key': timestamp_split_key,
+      'stratified_split_key': stratified_split_key,
+      'training_fraction': training_fraction,
+      'validation_fraction': validation_fraction,
+      'test_fraction': test_fraction
+  }
+  parameter_values.update({
+      param: value
+      for param, value in data_source_and_split_parameters.items()
+      if value is not None
+  })
+
+  pipeline_definition_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(),
+      'wide_and_deep_hyperparameter_tuning_job_pipeline.json')
 
   return pipeline_definition_path, parameter_values
 
@@ -2569,8 +3098,7 @@ def get_tabnet_trainer_pipeline_and_parameters(
     transform_dataflow_machine_type: str = 'n1-standard-16',
     transform_dataflow_max_num_workers: int = 25,
     transform_dataflow_disk_size_gb: int = 40,
-    training_machine_spec: Optional[Dict[str, Any]] = None,
-    training_replica_count: int = 1,
+    worker_pool_specs_override: Optional[Dict[str, Any]] = None,
     run_evaluation: bool = True,
     evaluation_batch_predict_machine_type:
     str = _EVALUATION_BATCH_PREDICT_MACHINE_TYPE,
@@ -2717,11 +3245,10 @@ def get_tabnet_trainer_pipeline_and_parameters(
     transform_dataflow_disk_size_gb:
       Dataflow worker's disk size in GB for
       transform component.
-    training_machine_spec:
-      The machine spec for trainer component. See
-      https://cloud.google.com/compute/docs/machine-types for options.
-    training_replica_count:
-      The replica count for the trainer component.
+    worker_pool_specs_override:
+      The dictionary for overriding training and
+        evaluation worker pool specs. The dictionary should be of format
+          https://github.com/googleapis/googleapis/blob/4e836c7c257e3e20b1de14d470993a2b1f4736a8/google/cloud/aiplatform/v1beta1/custom_job.proto#L172.
     run_evaluation:
       Whether to run evaluation steps during training.
     evaluation_batch_predict_machine_type:
@@ -2757,8 +3284,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
-  if not training_machine_spec:
-    training_machine_spec = {'machine_type': 'c2-standard-16'}
+  if not worker_pool_specs_override:
+    worker_pool_specs_override = []
 
   parameter_values = {
       'project':
@@ -2841,10 +3368,8 @@ def get_tabnet_trainer_pipeline_and_parameters(
           transform_dataflow_max_num_workers,
       'transform_dataflow_disk_size_gb':
           transform_dataflow_disk_size_gb,
-      'training_machine_spec':
-          training_machine_spec,
-      'training_replica_count':
-          training_replica_count,
+      'worker_pool_specs_override':
+          worker_pool_specs_override,
       'run_evaluation':
           run_evaluation,
       'evaluation_batch_predict_machine_type':

@@ -24,7 +24,7 @@ __all__ = [
     'ModelEvaluationOp',
     'ModelImportEvaluationOp',
     'EvaluationDataSamplerOp',
-    'EvaluationDataSplitterOp',
+    'TargetFieldDataRemoverOp',
     'ModelEvaluationClassificationOp',
     'ModelEvaluationRegressionOp',
     'ModelEvaluationForecastingOp',
@@ -41,8 +41,8 @@ ModelImportEvaluationOp = load_component_from_file(
 EvaluationDataSamplerOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'evaluation_data_sampler.yaml'))
 
-EvaluationDataSplitterOp = load_component_from_file(
-    os.path.join(os.path.dirname(__file__), 'evaluation_data_splitter.yaml'))
+TargetFieldDataRemoverOp = load_component_from_file(
+    os.path.join(os.path.dirname(__file__), 'target_field_data_remover.yaml'))
 
 ModelEvaluationClassificationOp = load_component_from_file(
     os.path.join(os.path.dirname(__file__), 'classification.yaml'))

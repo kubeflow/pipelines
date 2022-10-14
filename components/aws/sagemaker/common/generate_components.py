@@ -46,7 +46,7 @@ def parse_arguments():
         "--image",
         type=str,
         required=False,
-        default="amazon/aws-sagemaker-kfp-components",
+        default="public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components",
         help="The component container image.",
     )
     parser.add_argument(

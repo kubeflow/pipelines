@@ -1,9 +1,9 @@
-FROM amazonlinux:2
+FROM public.ecr.aws/amazonlinux/amazonlinux:2
 
 ENV PYTHONPATH /app
 
 RUN yum update -y \
- && yum install -y -q \
+    && yum install -y -q \
     python3
 
 # requirements.txt is copied separately to preserve cache

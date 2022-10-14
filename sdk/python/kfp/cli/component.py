@@ -91,7 +91,7 @@ class ComponentBuilder():
             kfp_package_path: Path to a pip-installable location for KFP.
                 This can either be pointing to KFP SDK root directory located in
                 a local clone of the KFP repo, or a git+https location.
-                If left empty, defaults to KFP on PyPi.
+                If left empty, defaults to KFP on PyPI.
         """
         self._context_directory = context_directory
         self._dockerfile = self._context_directory / _DOCKERFILE
@@ -171,10 +171,6 @@ class ComponentBuilder():
                     module_name=module_name, module_directory=module_directory)
 
                 python_file = str(python_file)
-                if not component_modules:
-                    logging.error(
-                        f'No KFP components found in file {python_file}')
-                    raise sys.exit(1)
 
                 logging.info(
                     f'Found {len(component_modules)} component(s) in file {python_file}:'

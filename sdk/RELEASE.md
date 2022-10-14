@@ -1,12 +1,45 @@
-# Current Version (Still in Development)
+# Current Version (in development)
+
+## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+
+## Documentation updates
+
+# 2.0.0-beta.5
+
+## Features
+* Support `google.`-namespaced artifact types [\#8191](https://github.com/kubeflow/pipelines/pull/8191), [\#8232](https://github.com/kubeflow/pipelines/pull/8232), [\#8233](https://github.com/kubeflow/pipelines/pull/8233), [\#8279](https://github.com/kubeflow/pipelines/pull/8279)
+* Support dynamic importer metadata [\#7660](https://github.com/kubeflow/pipelines/pull/7660)
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+* Migrate Out-Of-Band (OOB) authentication flow [\#8262](https://github.com/kubeflow/pipelines/pull/8262)
+
+## Documentation updates
+* Release KFP SDK v2 [user documentation draft](https://www.kubeflow.org/docs/components/pipelines/v2/)
+
+# 2.0.0-beta.4
 
 ## Major Features and Improvements
 * Support parallelism setting in ParallelFor [\#8146](https://github.com/kubeflow/pipelines/pull/8146)
 * Support for Python v3.10 [\#8186](https://github.com/kubeflow/pipelines/pull/8186)
+* Support pipeline as a component [\#8179](https://github.com/kubeflow/pipelines/pull/8179), [\#8204](https://github.com/kubeflow/pipelines/pull/8204), [\#8209](https://github.com/kubeflow/pipelines/pull/8209)
+* Support using pipeline in exit handlers [\#8220](https://github.com/kubeflow/pipelines/pull/8220)
 
 ## Breaking Changes
 
 ### For Pipeline Authors
+* Pipeline compilation is now triggered from `@pipeline` decorator instead of `Compiler.compile()` method.
+Technically no breaking changes but compilation error could be exposed in a different (and earlier) stage. [\#8179](https://github.com/kubeflow/pipelines/pull/8179)
 
 ### For Component Authors
 
@@ -14,7 +47,10 @@
 
 ## Bug Fixes and Other Changes
 
+* Extend upper bound for Kubernetes to <24 in KFP SDK [\#8173](https://github.com/kubeflow/pipelines/pull/8173)
+
 ## Documentation Updates
+
 # 2.0.0-beta.3
 
 ## Major Features and Improvements

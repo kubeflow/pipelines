@@ -15,9 +15,12 @@
 
 from typing import Optional, Tuple
 
+from google.protobuf import json_format
 from kfp import components
 from kfp.components import structures
+from kfp.pipeline_spec import pipeline_spec_pb2
 import requests
+import yaml
 
 
 class YamlComponent(components.BaseComponent):
@@ -25,9 +28,29 @@ class YamlComponent(components.BaseComponent):
 
     **Note:** ``YamlComponent`` is not intended to be used to construct components directly. Use ``kfp.components.load_component_from_*()`` instead.
 
-    Args:
+    Attribute:
         component_spec: Component definition.
+        component_yaml: The yaml string that this component is loaded from.
     """
+
+    def __init__(
+        self,
+        component_spec: structures.ComponentSpec,
+        component_yaml: str,
+    ):
+        super().__init__(component_spec=component_spec)
+        self.component_yaml = component_yaml
+
+    @property
+    def pipeline_spec(self) -> pipeline_spec_pb2.PipelineSpec:
+        """Returns the pipeline spec of the component."""
+        component_dict = yaml.safe_load(self.component_yaml)
+        is_v1 = 'implementation' in set(component_dict.keys())
+        if is_v1:
+            return self.component_spec.to_pipeline_spec()
+        else:
+            return json_format.ParseDict(component_dict,
+                                         pipeline_spec_pb2.PipelineSpec())
 
     def execute(self, *args, **kwargs):
         """Not implemented."""
@@ -44,7 +67,8 @@ def load_component_from_text(text: str) -> YamlComponent:
         Component loaded from YAML.
     """
     return YamlComponent(
-        structures.ComponentSpec.load_from_component_yaml(text))
+        component_spec=structures.ComponentSpec.load_from_component_yaml(text),
+        component_yaml=text)
 
 
 def load_component_from_file(file_path: str) -> YamlComponent:

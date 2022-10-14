@@ -37,6 +37,8 @@ description: |
             https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
         dataflow_use_public_ips (Optional[bool]):
             Specifies whether Dataflow workers use public IP addresses.
+        dataflow_service_account (Optional[str]):
+            Custom service account to run dataflow jobs.
         encryption_spec_key_name (Optional[str]):
             Customer-managed encryption key. If this is set, then all resources will be encrypted with the provided encryption key.
         data_source(Dataset):
@@ -63,6 +65,7 @@ inputs:
 - {name: dataflow_disk_size_gb, type: Integer, default: "40"}
 - {name: dataflow_subnetwork, type: String, default: ""}
 - {name: dataflow_use_public_ips, type: Boolean, default: "true"}
+- {name: dataflow_service_account, type: String, default: ""}
 - {name: encryption_spec_key_name, type: String, default: ""}
 - {name: data_source, type: Dataset}
 - {name: target_column_name, type: String}
@@ -90,7 +93,7 @@ implementation:
         '{"display_name": "tabular-feature-selection-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20220727_0325_RC00',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20221001_0325_RC00',
         '", "args": ["feature_selection",
         "--data_source=',
         {inputUri: data_source},
@@ -117,7 +120,7 @@ implementation:
         '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp", "--dataflow_max_num_workers=',
         {inputValue: dataflow_max_num_workers},
         '", "--dataflow_worker_container_image=',
-        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20220727_0325_RC00',
+        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20221001_0325_RC00',
         '", "--dataflow_machine_type=',
         {inputValue: dataflow_machine_type},
         '", "--dataflow_disk_size_gb=',
@@ -126,6 +129,8 @@ implementation:
         {inputValue: dataflow_subnetwork},
         '", "--dataflow_use_public_ips=',
         {inputValue: dataflow_use_public_ips},
+        '", "--dataflow_service_account=',
+        {inputValue: dataflow_service_account},
         '", "--dataflow_kms_key=',
         {inputValue: encryption_spec_key_name},
         '", "--max_selected_features=',

@@ -17,7 +17,10 @@ These are only compatible with v2 Pipelines.
 """
 
 import re
-from typing import TypeVar, Union
+from typing import Type, TypeVar, Union
+
+from kfp.components.types import type_annotations
+from kfp.components.types import type_utils
 
 try:
     from typing import Annotated
@@ -62,12 +65,10 @@ class OutputPath:
     """
 
     def __init__(self, type=None):
-        self.type = type
+        self.type = construct_type_for_inputpath_or_outputpath(type)
 
     def __eq__(self, other):
-        if isinstance(other, OutputPath):
-            return self.type == other.type
-        return False
+        return isinstance(other, OutputPath) and self.type == other.type
 
 
 class InputPath:
@@ -97,12 +98,25 @@ class InputPath:
     """
 
     def __init__(self, type=None):
-        self.type = type
+        self.type = construct_type_for_inputpath_or_outputpath(type)
 
     def __eq__(self, other):
-        if isinstance(other, InputPath):
-            return self.type == other.type
-        return False
+        return isinstance(other, InputPath) and self.type == other.type
+
+
+def construct_type_for_inputpath_or_outputpath(
+        type_: Union[str, Type, None]) -> Union[str, None]:
+    if type_annotations.is_artifact_class(type_):
+        return type_utils.create_bundled_artifact_type(type_.schema_title,
+                                                       type_.schema_version)
+    elif isinstance(
+            type_,
+            str) and type_.lower() in type_utils._ARTIFACT_CLASSES_MAPPING:
+        # v1 artifact backward compat
+        return type_utils.create_bundled_artifact_type(
+            type_utils._ARTIFACT_CLASSES_MAPPING[type_.lower()].schema_title)
+    else:
+        return type_
 
 
 class InputAnnotation():
@@ -229,6 +243,12 @@ def maybe_strip_optional_from_annotation(annotation: T) -> T:
     return annotation
 
 
+def maybe_strip_optional_from_annotation_string(annotation: str) -> str:
+    if annotation.startswith('Optional[') and annotation.endswith(']'):
+        return annotation.lstrip('Optional[').rstrip(']')
+    return annotation
+
+
 def get_short_type_name(type_name: str) -> str:
     """Extracts the short form type name.
 
@@ -252,3 +272,9 @@ def get_short_type_name(type_name: str) -> str:
         return match.group('type')
     else:
         return type_name
+
+
+def is_artifact_class(artifact_class_or_instance: Type) -> bool:
+    # we do not yet support non-pre-registered custom artifact types with instance_schema attribute
+    return hasattr(artifact_class_or_instance, 'schema_title') and hasattr(
+        artifact_class_or_instance, 'schema_version')

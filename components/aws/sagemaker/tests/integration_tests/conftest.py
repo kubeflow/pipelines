@@ -16,10 +16,14 @@ def pytest_addoption(parser):
         help="AWS region where test will run",
     )
     parser.addoption(
-        "--sagemaker-role-arn", required=True, help="SageMaker execution IAM role ARN",
+        "--sagemaker-role-arn",
+        required=True,
+        help="SageMaker execution IAM role ARN",
     )
     parser.addoption(
-        "--robomaker-role-arn", required=True, help="RoboMaker execution IAM role ARN",
+        "--robomaker-role-arn",
+        required=True,
+        help="RoboMaker execution IAM role ARN",
     )
     parser.addoption(
         "--assume-role-arn",
