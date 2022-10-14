@@ -77,8 +77,10 @@ implementation:
     image: gcr.io/ml-pipeline/model-evaluation:v0.7
     command:
     - python
-    - /explanation_main.py
+    - /main.py
     args:
+    - --task
+    - "explanation"
     - --setup_file
     - /setup.py
     - --project_id
