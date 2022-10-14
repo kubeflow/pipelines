@@ -15,6 +15,8 @@
 import unittest
 
 from kfp.components import component_factory
+from kfp.components.component_decorator import component
+from kfp.components.types.type_annotations import OutputPath
 
 
 class TestGetPackagesToInstallCommand(unittest.TestCase):
@@ -45,6 +47,15 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         for package in packages_to_install + pip_index_urls:
             self.assertTrue(package in concat_command)
 
+    def test_output_named_Output(self):
+
+        with self.assertRaisesRegex(
+            ValueError,
+            r'"Output" is an invalid parameter name.'
+        ):
+            @component
+            def comp(Output: OutputPath(str), text: str):
+                return text
 
 if __name__ == '__main__':
     unittest.main()
