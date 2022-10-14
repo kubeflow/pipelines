@@ -49,13 +49,13 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
 
     def test_output_named_Output(self):
 
-        with self.assertRaisesRegex(
-            ValueError,
-            r'"Output" is an invalid parameter name.'
-        ):
+        with self.assertRaisesRegex(ValueError,
+                                    r'"Output" is an invalid parameter name.'):
+
             @component
             def comp(Output: OutputPath(str), text: str):
                 return text
+
 
 if __name__ == '__main__':
     unittest.main()
