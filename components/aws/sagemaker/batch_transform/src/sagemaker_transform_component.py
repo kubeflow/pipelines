@@ -176,7 +176,7 @@ class SageMakerTransformComponent(SageMakerComponent):
     ):
         logging.info(f"Created Transform Job with name: {self._transform_job_name}")
         logging.info(
-            "Transform job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/jobs/{}".format(
+            "Transform job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/transform-jobs/{}".format(
                 inputs.region, inputs.region, self._transform_job_name,
             )
         )
