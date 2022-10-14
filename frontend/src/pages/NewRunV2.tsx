@@ -154,7 +154,8 @@ function NewRunV2(props: NewRunV2Props) {
       actions: {},
       pageTitle: isRecurringRun
         ? `${titleVerb} a recurring run`
-        : `${titleVerb} a ${titleAdjective} run`,
+        : `${titleVerb} a ${titleAdjective} run v2`,
+        // temporarily add v2 in the title for differenciate the v1 / v2 when developing.
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
