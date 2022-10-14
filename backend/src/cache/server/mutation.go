@@ -143,7 +143,7 @@ func MutatePodIfCached(req *v1beta1.AdmissionRequest, clientMgr ClientManagerInt
 	} else {
 		cacheStalenessInSeconds = userCacheStalenessInSeconds
 	}
-	if cacheStalenessInSeconds > maximumCacheStalenessInSeconds {
+	if maximumCacheStalenessInSeconds >= 0 && cacheStalenessInSeconds > maximumCacheStalenessInSeconds {
 		cacheStalenessInSeconds = maximumCacheStalenessInSeconds
 	}
 	log.Printf("cacheStalenessInSeconds: %d", cacheStalenessInSeconds)
