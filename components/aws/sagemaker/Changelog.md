@@ -15,6 +15,14 @@ Repository: [Public ECR](https://gallery.ecr.aws/kubeflow-on-aws/aws-sagemaker-k
 
 > Pull requests : [#8158](https://github.com/kubeflow/pipelines/pull/8158)
 
+**Change log for version 1.1.2**
+- Fix: Made inputs.model_artifact_url optional in sagemaker model component.
+- Fix: Made TransformResources.VolumeKmsKeyId optional
+- Fix: Handles Stopped state for all version 1 components and fixes bug in robomaker simulation function.
+- Fix: Updated protobuf to 3.2. 
+
+> Pull requests : [#8336](https://github.com/kubeflow/pipelines/pull/8336)
+
 **Change log for version 1.1.1**
 - Print logs for Batch Transform and Processing jobs.
 

@@ -4,3 +4,4 @@ sagemaker==2.1.0
 pathlib2==2.3.5
 pyyaml==5.4
 mypy-extensions==0.4.3
+protobuf==3.20.*

@@ -115,9 +115,6 @@ class CreateModelComponentTestCase(unittest.TestCase):
             bad_spec = SageMakerCreateModelSpec(arguments)
             self.component._create_job_request(bad_spec.inputs, bad_spec.outputs)
         with self.assertRaises(Exception):
-            bad_spec = SageMakerCreateModelSpec(arguments + ["--image", "test-image"])
-            self.component._create_job_request(bad_spec.inputs, bad_spec.outputs)
-        with self.assertRaises(Exception):
             bad_spec = SageMakerCreateModelSpec(
                 arguments + ["--model_artifact_url", "s3://fake-bucket/model_artifact"]
             )
