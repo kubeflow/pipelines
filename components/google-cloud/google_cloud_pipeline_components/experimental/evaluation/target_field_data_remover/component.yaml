@@ -59,7 +59,7 @@ inputs:
   - { name: gcs_source_uris, type: JsonArray, default: "[]" }
   - { name: bigquery_source_uri, type: String, default: "" }
   - { name: instances_format, type: String, default: "jsonl" }
-  - { name: target_field_name, type: String, default: "ground_truth"}
+  - { name: target_field_name, type: String, default: "ground_truth" }
   - { name: dataflow_service_account, type: String, default: "" }
   - { name: dataflow_subnetwork, type: String, default: "" }
   - { name: dataflow_use_public_ips, type: Boolean, default: "true" }
@@ -90,9 +90,9 @@ implementation:
       - --bigquery_source_uri
       - { inputValue: bigquery_source_uri }
       - --instances_format
-      - { inputValue: instances_format}
+      - { inputValue: instances_format }
       - --target_field_name
-      - { inputValue: target_field_name}
+      - { inputValue: target_field_name }
       - --dataflow_service_account
       - { inputValue: dataflow_service_account }
       - --dataflow_subnetwork
@@ -103,9 +103,9 @@ implementation:
       - "evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
       - --kms_key_name
       - { inputValue: encryption_spec_key_name }
-      - --gcs_output_directory
+      - --gcs_directory_for_gcs_output_uris
       - { outputPath: gcs_output_directory }
-      - --bigquery_output_directory
+      - --gcs_directory_for_bigquery_output_table_uri
       - { outputPath: bigquery_output_table }
       - --gcp_resources
       - { outputPath: gcp_resources }
