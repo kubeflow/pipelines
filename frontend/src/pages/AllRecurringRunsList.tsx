@@ -42,7 +42,7 @@ export class AllRecurringRunsList extends Page<{ namespace?: string }, AllRecurr
     const buttons = new Buttons(this.props, this.refresh.bind(this));
     return {
       actions: buttons
-        .newRun()
+        .newRecurringRun('')
         .refresh(this.refresh.bind(this))
         .getToolbarActionMap(),
       breadcrumbs: [],
