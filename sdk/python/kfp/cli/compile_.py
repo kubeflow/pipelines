@@ -70,7 +70,7 @@ def collect_pipeline_or_component_from_module(
         return components[0]
     else:
         raise ValueError(
-            f'Expect one pipeline or component function in module {target_module}, got {len(pipelines)}: {pipelines}. Please specify the pipeline or component function name with --function.'
+            f'Expect one pipeline or component function in module {target_module}, got {len(pipelines)} pipeline(s): {pipelines} and {len(components)} component(s): {components}. Please specify the pipeline or component function name with --function.'
         )
 
 
