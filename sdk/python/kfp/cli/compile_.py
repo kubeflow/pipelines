@@ -18,7 +18,7 @@ import logging
 import os
 import sys
 import types
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Callable, Dict, Optional
 
 import click
 from kfp import compiler
@@ -52,8 +52,7 @@ def is_component_func(func: Callable) -> bool:
 
 
 def collect_pipeline_or_component_from_module(
-    target_module: types.ModuleType
-) -> Union[Callable[..., Any], base_component.BaseComponent]:
+        target_module: types.ModuleType) -> base_component.BaseComponent:
     pipelines = []
     components = []
     module_attrs = dir(target_module)
@@ -66,17 +65,17 @@ def collect_pipeline_or_component_from_module(
 
     if len(pipelines) == 1:
         return pipelines[0]
-    elif len(pipelines) == 0 and len(components) == 1:
+    elif not pipelines and len(components) == 1:
         return components[0]
     else:
         raise ValueError(
-            f'Expect one pipeline or component function in module {target_module}, got {len(pipelines)} pipeline(s): {pipelines} and {len(components)} component(s): {components}. Please specify the pipeline or component function name with --function.'
+            f'Expected one pipeline or one component in module {target_module}. Got {len(pipelines)} pipeline(s): {[p.name for p in pipelines]} and {len(components)} component(s): {[c.name for c in components]}. Please specify which pipeline or component to compile using --function.'
         )
 
 
 def collect_pipeline_or_component_func(
-    python_file: str, function_name: Optional[str]
-) -> Union[Callable[..., Any], base_component.BaseComponent]:
+        python_file: str,
+        function_name: Optional[str]) -> base_component.BaseComponent:
     sys.path.insert(0, os.path.dirname(python_file))
     try:
         filename = os.path.basename(python_file)
