@@ -113,13 +113,12 @@ export default class Buttons {
     useCurrentResource: boolean,
     callback: (selectedIds: string[], success: boolean) => void,
   ): Buttons {
-    // BUG(talebz): AIP-6692 WFSDK: Disable Retry button
     this._map[ButtonKeys.RETRY] = {
-      action: () => window.open('http://analytics.pages.zgtools.net/artificial-intelligence/ai-platform/aip-docs/kubeflow/user_journeys/1_getting_started/index.html'),
-      disabled: true,
-      disabledTitle: 'AIP Deprecated Retry',
+      action: () => this._retryRun(getSelectedIds(), useCurrentResource, callback),
+      disabled: !useCurrentResource,
+      disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to retry',
       id: 'retryBtn',
-      title: 'AIP Deprecated Retry',
+      title: 'Retry',      
       tooltip: 'Retry',
     };
     return this;
@@ -550,7 +549,7 @@ export default class Buttons {
   }
 
   private _dialogActionHandler(
-    selectedIds: any[],
+    selectedIds: string[],
     content: string,
     useCurrentResource: boolean,
     api: (id: string) => Promise<void>,
