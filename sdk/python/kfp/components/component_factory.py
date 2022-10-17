@@ -49,6 +49,7 @@ class ComponentInfo():
     component_spec: structures.ComponentSpec
     output_component_file: Optional[str] = None
     base_image: str = _DEFAULT_BASE_IMAGE
+    packages_to_install: Optional[List[str]] = None
 
 
 # A map from function_name to components.  This is always populated when a
@@ -428,7 +429,8 @@ def create_component_from_func(
         module_path=module_path,
         component_spec=component_spec,
         output_component_file=output_component_file,
-        base_image=base_image)
+        base_image=base_image,
+        packages_to_install=packages_to_install)
 
     if REGISTERED_MODULES is not None:
         REGISTERED_MODULES[component_name] = component_info
