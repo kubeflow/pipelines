@@ -47,6 +47,7 @@ class TestGetPackagesToInstallCommand(unittest.TestCase):
         for package in packages_to_install + pip_index_urls:
             self.assertTrue(package in concat_command)
 
+
 class TestInvalidParameterName(unittest.TestCase):
 
     def test_output_named_Output(self):
