@@ -18,40 +18,70 @@ import logging
 import os
 import sys
 import types
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Callable, Dict, Optional
 
 import click
 from kfp import compiler
-from kfp.components import pipeline_context
-from kfp.components import python_component
+from kfp.components import base_component
+from kfp.components import graph_component
 
 
-def collect_pipeline_from_module(
-    target_module: types.ModuleType
-) -> Union[Callable[..., Any], python_component.PythonComponent]:
+def is_pipeline_func(func: Callable) -> bool:
+    """Checks if a function is a pipeline function.
+
+    Args:
+        func (Callable): The function to check.
+
+    Returns:
+        bool: True if the function is a pipeline function.
+    """
+    return isinstance(func, graph_component.GraphComponent)
+
+
+def is_component_func(func: Callable) -> bool:
+    """Checks if a function is a component function.
+
+    Args:
+        func (Callable): The function to check.
+
+    Returns:
+        bool: True if the function is a component function.
+    """
+    return not is_pipeline_func(func) and isinstance(
+        func, base_component.BaseComponent)
+
+
+def collect_pipeline_or_component_from_module(
+        target_module: types.ModuleType) -> base_component.BaseComponent:
     pipelines = []
+    components = []
     module_attrs = dir(target_module)
     for attr in module_attrs:
         obj = getattr(target_module, attr)
-        if pipeline_context.Pipeline.is_pipeline_func(obj):
+        if is_pipeline_func(obj):
             pipelines.append(obj)
+        elif is_component_func(obj):
+            components.append(obj)
+
     if len(pipelines) == 1:
         return pipelines[0]
+    elif not pipelines and len(components) == 1:
+        return components[0]
     else:
         raise ValueError(
-            f'Expect one pipeline function in module {target_module}, got {len(pipelines)}: {pipelines}. Please specify the pipeline function name with --function.'
+            f'Expected one pipeline or one component in module {target_module}. Got {len(pipelines)} pipeline(s): {[p.name for p in pipelines]} and {len(components)} component(s): {[c.name for c in components]}. Please specify which pipeline or component to compile using --function.'
         )
 
 
-def collect_pipeline_func(
-    python_file: str, function_name: Optional[str]
-) -> Union[Callable[..., Any], python_component.PythonComponent]:
+def collect_pipeline_or_component_func(
+        python_file: str,
+        function_name: Optional[str]) -> base_component.BaseComponent:
     sys.path.insert(0, os.path.dirname(python_file))
     try:
         filename = os.path.basename(python_file)
         module_name = os.path.splitext(filename)[0]
         if function_name is None:
-            return collect_pipeline_from_module(
+            return collect_pipeline_or_component_from_module(
                 target_module=__import__(module_name))
 
         module = __import__(module_name, fromlist=[function_name])
@@ -97,7 +127,7 @@ def parse_parameters(parameters: Optional[str]) -> Dict:
     '--pipeline-parameters',
     type=str,
     default=None,
-    help='The pipeline parameters in JSON dict format.')
+    help='The pipeline or component input parameters in JSON dict format.')
 @click.option(
     '--disable-type-check',
     is_flag=True,
@@ -107,11 +137,11 @@ def compile_(
     py: str,
     output: str,
     function_name: Optional[str] = None,
-    pipeline_parameters: str = None,
+    pipeline_parameters: Optional[str] = None,
     disable_type_check: bool = False,
 ) -> None:
-    """Compiles a pipeline written in a .py file."""
-    pipeline_func = collect_pipeline_func(
+    """Compiles a pipeline or component written in a .py file."""
+    pipeline_func = collect_pipeline_or_component_func(
         python_file=py, function_name=function_name)
     parsed_parameters = parse_parameters(parameters=pipeline_parameters)
     package_path = os.path.join(os.getcwd(), output)
