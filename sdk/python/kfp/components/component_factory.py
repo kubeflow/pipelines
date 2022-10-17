@@ -202,8 +202,9 @@ def extract_component_interface(
         if passing_style in [
                 type_annotations.OutputAnnotation, type_annotations.OutputPath
         ]:
-            if io_name == "Output":
-                raise ValueError('"Output" is an invalid parameter name.')
+            if io_name == single_output_name_const:
+                raise ValueError(
+                    '"{}" is an invalid parameter name.'.format(single_output_name_const))
             io_name = _maybe_make_unique(io_name, output_names)
             output_names.add(io_name)
             if type_annotations.is_artifact_class(parameter_type):
