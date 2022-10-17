@@ -198,15 +198,3 @@ class Pipeline:
         """Gets the next id for a new group."""
         self._group_id += 1
         return str(self._group_id)
-
-    @classmethod
-    def is_pipeline_func(cls, func: Callable) -> bool:
-        """Checks if a function is a pipeline function.
-
-        Args:
-            func (Callable): The function to check.
-
-        Returns:
-            bool: True if the function is a pipeline function.
-        """
-        return isinstance(func, graph_component.GraphComponent)
