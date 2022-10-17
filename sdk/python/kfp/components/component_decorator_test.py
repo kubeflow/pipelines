@@ -150,4 +150,3 @@ class TestComponentDecorator(unittest.TestCase):
         # TODO: ideally should be the canonical type string, rather than the specific annotation as string, but both work
         self.assertEqual(comp.component_spec.outputs['Output'].type,
                          'typing.List[str]')
-                         
