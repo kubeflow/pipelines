@@ -65,7 +65,7 @@ class TestInvalidParameterName(unittest.TestCase):
 
             @component
             def comp(Output: OutputPath(str), text: str) -> str:
-                return text
+                pass
 
 
 if __name__ == '__main__':
