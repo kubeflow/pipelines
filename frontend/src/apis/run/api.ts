@@ -1708,20 +1708,6 @@ export class RunServiceApi extends BaseAPI {
 
   /**
    *
-   * @summary Terminates an active run.
-   * @param {string} namespace The namespace of the pipeline.
-   * @param {string} workflowName The Argo workflow name.
-   * @param {*} [options] Override http request option.
-   * @throws {RequiredError}
-   * @memberof RunServiceApi
-   */
-  public terminateRunDelete(namespace: string, workflowName: string, options?: any) {
-    return request.delete(`api/v1/workflows/${namespace}/${workflowName}`);
-  }
-
-
-  /**
-   *
    * @summary Restores an archived run.
    * @param {string} id The ID of the run to be restored.
    * @param {*} [options] Override http request option.
