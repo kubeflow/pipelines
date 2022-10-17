@@ -244,7 +244,7 @@ class ComponentBuilder():
                 dependencies.add(package)
         self._maybe_write_file(
             filename=_REQUIREMENTS_TXT,
-            contents='\n'.join(dependencies),
+            contents='\n'.join(sorted(dependencies)),
             overwrite=True)
 
     def maybe_generate_dockerignore(self):
