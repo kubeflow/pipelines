@@ -15,8 +15,8 @@ client hosts."""
 # limitations under the License.
 
 __all__ = [
-    'ApiAuth',
     'RegistryClient',
+    'ApiAuth',
 ]
 from kfp.registry.registry_client import ApiAuth
 from kfp.registry.registry_client import RegistryClient
