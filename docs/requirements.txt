@@ -1,3 +1,4 @@
+autodocsumm==0.2.9
 sdk/python
 sphinx==5.0.2
 sphinx-click==4.3.0
