@@ -6,6 +6,6 @@ API Reference
 
    dsl
    compiler
-   client
    components
+   client
    registry

@@ -22,13 +22,6 @@ from typing import Type, TypeVar, Union
 from kfp.components.types import type_annotations
 from kfp.components.types import type_utils
 
-try:
-    from typing import Annotated
-except ImportError:
-    from typing_extensions import Annotated
-
-T = TypeVar('T')
-
 
 class OutputPath:
     """Type annotation used in component definitions for indicating a parameter
@@ -119,65 +112,12 @@ def construct_type_for_inputpath_or_outputpath(
         return type_
 
 
-class InputAnnotation():
+class InputAnnotation:
     """Marker type for input artifacts."""
 
 
-class OutputAnnotation():
+class OutputAnnotation:
     """Marker type for output artifacts."""
-
-
-Input = Annotated[T, InputAnnotation]
-Input.__doc__ = """Type generic used to represent an input artifact of type ``T``, where ``T`` is an artifact class.
-
-Use ``Input[Artifact]`` or ``Output[Artifact]`` to indicate whether the enclosed artifact is a component input or output.
-
-Args:
-    T: The type of the input artifact.
-
-Example:
-  ::
-
-    @dsl.component
-    def artifact_producer(model: Output[Artifact]):
-        with open(model.path, 'w') as f:
-            f.write('my model')
-
-    @dsl.component
-    def artifact_consumer(model: Input[Artifact]):
-        print(model)
-
-    @dsl.pipeline(name='my-pipeline')
-    def my_pipeline():
-        producer_task = artifact_producer()
-        artifact_consumer(model=producer_task.output)
-"""
-
-Output = Annotated[T, OutputAnnotation]
-Output.__doc__ = """A type generic used to represent an output artifact of type ``T``, where ``T`` is an artifact class. The argument typed with this annotation is provided at runtime by the executing backend and does not need to be passed as an input by the pipeline author (see example).
-
-Use ``Input[Artifact]`` or ``Output[Artifact]`` to indicate whether the enclosed artifact is a component input or output.
-
-Args:
-    T: The type of the output artifact.
-
-Example:
-  ::
-
-    @dsl.component
-    def artifact_producer(model: Output[Artifact]):
-        with open(model.path, 'w') as f:
-            f.write('my model')
-
-    @dsl.component
-    def artifact_consumer(model: Input[Artifact]):
-        print(model)
-
-    @dsl.pipeline(name='my-pipeline')
-    def my_pipeline():
-        producer_task = artifact_producer()
-        artifact_consumer(model=producer_task.output)
-"""
 
 
 def is_artifact_annotation(typ) -> bool:
@@ -207,6 +147,8 @@ def is_output_artifact(typ) -> bool:
 
 
 def get_io_artifact_class(typ):
+    from kfp.dsl import Input
+    from kfp.dsl import Output
     if not is_artifact_annotation(typ):
         return None
     if typ == Input or typ == Output:
@@ -220,6 +162,9 @@ def get_io_artifact_annotation(typ):
         return None
 
     return typ.__metadata__[0]
+
+
+T = TypeVar('T')
 
 
 def maybe_strip_optional_from_annotation(annotation: T) -> T:
