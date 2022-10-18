@@ -51,11 +51,10 @@ description: |
             If not set, defaulted to the classes found in the prediction_label_column in the batch prediction jobs predictions file.
         ground_truth_column (str):
             The column name of the feature containing ground truth.
-            Formatted to be able to find nested columns, delimeted by `.`.
-            Prefixed with 'instance.' internally for Vertex Batch Prediction.
+            Formatted to be able to find nested columns, delimeted by ".".
         prediction_score_column (Optional[str]):
             The column name of the field containing batch prediction scores.
-            Formatted to be able to find nested columns, delimeted by `.`.
+            Formatted to be able to find nested columns, delimeted by ".".
             If not set, defaulted to `prediction.scores` for a `classification` problem_type,
             `prediction.value` for a `regression` problem_type.
         prediction_label_column (Optional[str]):
@@ -64,10 +63,10 @@ description: |
             If not set, defaulted to `prediction.classes` for classification.
         prediction_id_column (Optional[str]):
             Optional. The column name of the field containing ids for classes the model is scoring.
-            Formatted to be able to find nested columns, delimeted by `.`.
+            Formatted to be able to find nested columns, delimeted by ".".
         example_weight_column (Optional[str]):
             Optional. The column name of the field containing example weights.
-            Formatted to be able to find nested columns, delimeted by `.`.
+            Formatted to be able to find nested columns, delimeted by ".".
         positive_classes (Optional[Sequence[str]]):
             Optional for a `classification` problem_type.
             The list of class names to create binary classification metrics based on one-vs-rest for
