@@ -200,16 +200,17 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
     const runIdFromParams = this.props.match.params[RouteParams.runId];
     return {
       actions: buttons
-        .retryRun(
-          () =>
-            this.state.runMetadata
-              ? [this.state.runMetadata!.id!]
-              : runIdFromParams
-              ? [runIdFromParams]
-              : [],
-          true,
-          () => this.retry(),
-        )
+        // BUG(talebz): AIP-6692 WFSDK: Disable Retry button
+        // .retryRun(
+        //   () =>
+        //     this.state.runMetadata
+        //       ? [this.state.runMetadata!.id!]
+        //       : runIdFromParams
+        //       ? [runIdFromParams]
+        //       : [],
+        //   true,
+        //   () => this.retry(),
+        // )
         .cloneRun(
           () =>
             this.state.runMetadata
@@ -868,9 +869,10 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       const actions = buttons.getToolbarActionMap();
       actions[ButtonKeys.TERMINATE_RUN].disabled =
         (runMetadata.status as NodePhase) === NodePhase.TERMINATING || runFinished;
-      actions[ButtonKeys.RETRY].disabled =
-        (runMetadata.status as NodePhase) !== NodePhase.FAILED &&
-        (runMetadata.status as NodePhase) !== NodePhase.ERROR;
+      // BUG(talebz): AIP-6692 WFSDK: Disable Retry button
+      // actions[ButtonKeys.RETRY].disabled =
+      //   (runMetadata.status as NodePhase) !== NodePhase.FAILED &&
+      //   (runMetadata.status as NodePhase) !== NodePhase.ERROR;
       this.props.updateToolbar({
         actions,
         breadcrumbs,
