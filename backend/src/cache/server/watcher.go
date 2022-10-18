@@ -81,7 +81,7 @@ func WatchPods(ctx context.Context, namespaceToWatch string, clientManager Clien
 				maximumCacheStalenessInSeconds = stalenessToSeconds(maximumCacheStaleness)
 				log.Printf("maximumCacheStalenessInSeconds: %d", maximumCacheStalenessInSeconds)
 			}
-			if cacheStalenessInSeconds > maximumCacheStalenessInSeconds || cacheStalenessInSeconds < 0 {
+			if maximumCacheStalenessInSeconds >= 0 && cacheStalenessInSeconds > maximumCacheStalenessInSeconds {
 				cacheStalenessInSeconds = maximumCacheStalenessInSeconds
 			}
 			log.Printf("Creating cachedb entry with cacheStalenessInSeconds: %d", cacheStalenessInSeconds)

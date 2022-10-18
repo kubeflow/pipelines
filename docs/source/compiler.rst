@@ -1,8 +1,5 @@
 kfp.compiler
 ==========================
 
+.. glossary::
 .. automodule:: kfp.compiler
-   :members:
-   :undoc-members:
-   :show-inheritance:
-   :noindex:

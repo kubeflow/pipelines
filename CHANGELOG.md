@@ -1,5 +1,36 @@
 # Changelog
 
+## [2.0.0-alpha.6](https://github.com/kubeflow/pipelines/compare/2.0.0-alpha.5...2.0.0-alpha.6) (2022-10-14)
+
+
+### Features
+
+* **components:** Add Infra Validation remote runner ([a06a4e6](https://github.com/kubeflow/pipelines/commit/a06a4e65925da9e21b98ffc5d9c91897a1dfe2a3))
+* **components:** Add model input to vertex ai model evaluation component ([35b13b3](https://github.com/kubeflow/pipelines/commit/35b13b3ca806f5a1ec2e377791631c1d36e10952))
+* **components:** Internal change ([bf21b7b](https://github.com/kubeflow/pipelines/commit/bf21b7bba1524b33d8e65d8a4f849d400c97c4ab))
+* **components:** Model Evaluation, rename EvaluationDataSplitterOp to TargetFieldDataRemoverOp, rename ground_truth_column to target_field, rename class_names to class_labels, and remove key_columns input ([71c8e77](https://github.com/kubeflow/pipelines/commit/71c8e77d8a583c629e6f83dcd629fee8133f6d2a))
+* **components:** Update AutoML Tables components to have latest SDK features ([49fdac6](https://github.com/kubeflow/pipelines/commit/49fdac60fbf22f7a3138d3aff76a0a3ec7d19c8e))
+* **frontend:** Complete Sub-DAG implementation in KFPv2. ([\#8326](https://github.com/kubeflow/pipelines/issues/8326)) ([21cf640](https://github.com/kubeflow/pipelines/commit/21cf6407ebafaddf7ad5cf36cd236dcd9967c52a))
+
+
+### Bug Fixes
+
+* **backend:** Fix user cache setting P0D ignored by cache server. Fixes [\#8366](https://github.com/kubeflow/pipelines/issues/8366) ([\#8368](https://github.com/kubeflow/pipelines/issues/8368)) ([e3bf5ed](https://github.com/kubeflow/pipelines/commit/e3bf5edda05501148831869cfe8eb6b7c7afecc6))
+* **backend:** Upgrade mysql to 8.0.26 ([\#8351](https://github.com/kubeflow/pipelines/issues/8351)) ([65ee01a](https://github.com/kubeflow/pipelines/commit/65ee01a436758e0f7ca4741e517452c02182ec03))
+* **components:** make inputs.model_artifact_url optional in sagemaker model component ([\#8336](https://github.com/kubeflow/pipelines/issues/8336)) ([328edd8](https://github.com/kubeflow/pipelines/commit/328edd8117f05a03fe2a61a358e03bf82b00b6f8))
+* **components:** Sync GCPC staging to prod to include bug fix for built-in algorithms ([d9d5c7d](https://github.com/kubeflow/pipelines/commit/d9d5c7d4721633ebdb7fb1adb3cc3f2d965c547a))
+* **frontend:** Surface output artifact of a SubDAG by reading subtask ([\#8354](https://github.com/kubeflow/pipelines/issues/8354)) ([c2fb286](https://github.com/kubeflow/pipelines/commit/c2fb286daf7e04216555f408008c344e3dd7b28c))
+* **sdk:** Fix "No KFP components found in file" error. Fixes [\#8353](https://github.com/kubeflow/pipelines/issues/8353) ([\#8359](https://github.com/kubeflow/pipelines/issues/8359)) ([83e0f16](https://github.com/kubeflow/pipelines/commit/83e0f16af1cd376b97b7d62b63a7fe8db3b63be8))
+* **sdk:** fix NamedTuple output with Dict/List bug ([\#8316](https://github.com/kubeflow/pipelines/issues/8316)) ([26f1fe4](https://github.com/kubeflow/pipelines/commit/26f1fe4dfa3ec44ee477bc93e47b8763d3873993))
+* **sdk:** Fix PyPi typo in cli/component docstring ([\#8361](https://github.com/kubeflow/pipelines/issues/8361)) ([7641401](https://github.com/kubeflow/pipelines/commit/764140153ffb1a20913e07c8d9f3aa7f621251ee))
+
+
+### Other Pull Requests
+
+* Update HP tuning sample notebook ([42c3408](https://github.com/kubeflow/pipelines/commit/42c3408cf58cbcdf5e1702b1496ab6e3d799d6c9))
+* chore(components/pytorch) - fix url paths ([\#8293](https://github.com/kubeflow/pipelines/issues/8293)) ([72aab0b](https://github.com/kubeflow/pipelines/commit/72aab0b5b82744ea0e3405aee353ee862fdfcf02))
+* feat(backend) add maximum_cache_staleness and default_cache_staleness ([\#8270](https://github.com/kubeflow/pipelines/issues/8270)) ([9f9f035](https://github.com/kubeflow/pipelines/commit/9f9f035fb60be0512097149db9b85135bbab02e7))
+
 ## [2.0.0-alpha.5](https://github.com/kubeflow/pipelines/compare/2.0.0-alpha.4...2.0.0-alpha.5) (2022-09-26)
 
 

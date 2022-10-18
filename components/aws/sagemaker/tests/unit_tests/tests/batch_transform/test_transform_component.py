@@ -71,17 +71,13 @@ class TransformComponentTestCase(unittest.TestCase):
                 },
                 "TransformOutput": {
                     "S3OutputPath": "s3://fake-bucket/output",
-                    "Accept": None,
-                    "KmsKeyId": "",
+                    "Accept": None
                 },
                 "TransformResources": {
                     "InstanceType": "ml.c5.18xlarge",
-                    "InstanceCount": 1,
-                    "VolumeKmsKeyId": "",
+                    "InstanceCount": 1
                 },
                 "DataProcessing": {
-                    "InputFilter": "",
-                    "OutputFilter": "",
                     "JoinSource": "None",
                 },
                 "Tags": [],
@@ -140,17 +136,13 @@ class TransformComponentTestCase(unittest.TestCase):
                 "TransformOutput": {
                     "S3OutputPath": "s3://fake-bucket/output",
                     "Accept": None,
-                    "AssembleWith": "Line",
-                    "KmsKeyId": "",
+                    "AssembleWith": "Line"
                 },
                 "TransformResources": {
                     "InstanceType": "ml.c5.18xlarge",
-                    "InstanceCount": 1,
-                    "VolumeKmsKeyId": "",
+                    "InstanceCount": 1
                 },
                 "DataProcessing": {
-                    "InputFilter": "",
-                    "OutputFilter": "",
                     "JoinSource": "Input",
                 },
                 "Tags": [{"Key": "fake_key", "Value": "fake_value"}],

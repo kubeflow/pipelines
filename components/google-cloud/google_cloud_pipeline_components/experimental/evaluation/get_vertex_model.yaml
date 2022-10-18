@@ -1,5 +1,5 @@
 name: get_vertex_model
-description: Gets a Vertex Model Artifact
+description: TO BE REMOVED. Gets a Vertex Model Artifact.
 inputs:
 - {name: model_resource_name, type: String, description: Vertex Model Resource Name.}
 outputs:

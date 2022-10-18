@@ -33,4 +33,6 @@ export type ExecutionFlowElementData = FlowElementDataBase & {
 
 export type ArtifactFlowElementData = FlowElementDataBase & {
   state?: Artifact.State;
+  producerSubtask?: string;
+  outputArtifactKey?: string;
 };

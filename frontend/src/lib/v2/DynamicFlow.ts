@@ -274,7 +274,19 @@ export function updateFlowElementsState(
         (updatedElem.data as ExecutionFlowElementData).mlmdId = executions[0]?.getId();
       }
     } else if (NodeTypeNames.ARTIFACT === elem.type) {
-      const linkedArtifact = artifactNodeKeyToArtifact.get(elem.id);
+      let linkedArtifact = artifactNodeKeyToArtifact.get(elem.id);
+
+      // Detect whether Artifact is an output of SubDAG, if so, search its source artifact.
+      let artifactData = elem.data as ArtifactFlowElementData;
+      if (artifactData && artifactData.outputArtifactKey && artifactData.producerSubtask) {
+        // SubDAG output artifact has reference to inner subtask and artifact.
+        const subArtifactKey = getArtifactNodeKey(
+          artifactData.producerSubtask,
+          artifactData.outputArtifactKey,
+        );
+        linkedArtifact = artifactNodeKeyToArtifact.get(subArtifactKey);
+      }
+
       (updatedElem.data as ArtifactFlowElementData).state = linkedArtifact?.artifact?.getState();
       (updatedElem.data as ArtifactFlowElementData).mlmdId = linkedArtifact?.artifact?.getId();
     } else if (NodeTypeNames.SUB_DAG === elem.type) {
@@ -331,7 +343,19 @@ export function getNodeMlmdInfo(
       ?.filter(exec => exec.getId() === elem.data?.mlmdId);
     return executions ? { execution: executions[0] } : {};
   } else if (NodeTypeNames.ARTIFACT === elem.type) {
-    const linkedArtifact = artifactNodeKeyToArtifact.get(elem.id);
+    let linkedArtifact = artifactNodeKeyToArtifact.get(elem.id);
+
+    // Detect whether Artifact is an output of SubDAG, if so, search its source artifact.
+    let artifactData = elem.data as ArtifactFlowElementData;
+    if (artifactData && artifactData.outputArtifactKey && artifactData.producerSubtask) {
+      // SubDAG output artifact has reference to inner subtask and artifact.
+      const subArtifactKey = getArtifactNodeKey(
+        artifactData.producerSubtask,
+        artifactData.outputArtifactKey,
+      );
+      linkedArtifact = artifactNodeKeyToArtifact.get(subArtifactKey);
+    }
+
     const executionId = linkedArtifact?.event.getExecutionId();
     const execution = executionId ? executionIdToExectuion.get(executionId) : undefined;
     return { execution, linkedArtifact };

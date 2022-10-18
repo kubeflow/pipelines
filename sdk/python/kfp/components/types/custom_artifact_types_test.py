@@ -28,10 +28,10 @@ from kfp.components.types import artifact_types
 from kfp.components.types import custom_artifact_types
 from kfp.components.types.artifact_types import Artifact
 from kfp.components.types.artifact_types import Dataset
-from kfp.components.types.type_annotations import Input
 from kfp.components.types.type_annotations import InputPath
-from kfp.components.types.type_annotations import Output
 from kfp.components.types.type_annotations import OutputPath
+from kfp.dsl import Input
+from kfp.dsl import Output
 
 Alias = Artifact
 artifact_types_alias = artifact_types

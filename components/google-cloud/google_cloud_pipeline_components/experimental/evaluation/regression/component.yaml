@@ -1,8 +1,8 @@
-name: model_evaluation_classification
+name: model_evaluation_regression
 description: |
-  Compute evaluation metrics on a trained model's batch prediction results.
+  Computes a google.RegressionMetrics Artifact, containing evaluation metrics given a model's prediction results.
   Creates a dataflow job with Apache Beam and TFMA to compute evaluation metrics.
-  Supports mutliclass classification evaluation for tabular, image, video, and text data.
+  Supports regression for tabular data.
 
   Args:
       project (str):
@@ -38,47 +38,21 @@ description: |
           Required for custom tabular.
           The BigQuery table uri representing where the ground truth is located.
           Used to provide ground truth for each prediction instance when they are not part of the batch prediction jobs prediction instance.
-      key_columns(Optional[Sequence[str]]):
-          Required for custom tabular and non tabular data.
-          The list of fields in the ground truth gcs source to format the joining key.
-          Used to merge prediction instances with ground truth data.
-      classification_type (Optional[str]):
-          The type of classification problem, either `multiclass` or `multilabel`.
-          If not set, defaulted to `multiclass`.
-      class_names (Optional[Sequence[str]]):
-          The list of class names for the ground_truth_column, in the same order they appear in
-          the batch predictions jobs predictions output file.
-          For instance, if the ground_truth_column could be either `1` or `0`, and the batch
-          prediction jobs predictions output contains ["1", "0"] for the prediction_label_column,
-          then the class_names input will be ["1", "0"].
-          If not set, defaulted to the classes found in the prediction_label_column in the batch
-          prediction jobs predictions file.
-      ground_truth_column (str):
-          The column name of the feature containing ground truth.
-          Formatted to be able to find nested columns, delimeted by `.`.
-          Prefixed with 'instance.' internally for Vertex Batch Prediction.
+      target_field_name (str):
+          The full name path of the features target field in the predictions file. Prefixed with
+          'instance.' internally for Vertex Batch Prediction.
+          Formatted to be able to find nested columns, delimited by `.`.
+          Alternatively referred to as the ground truth (or ground_truth_column) field.
+      model (Optional[google.VertexModel]):
+          The Model used for predictions job.
+          Must share the same ancestor Location.
       prediction_score_column (Optional[str]):
           Optional. The column name of the field containing batch prediction scores.
-          Formatted to be able to find nested columns, delimeted by `.`.
-          If not set, defaulted to `prediction.scores` for classification.
-      prediction_label_column (Optional[str]):
-          Optional. The column name of the field containing classes the model is scoring.
-          Formatted to be able to find nested columns, delimeted by `.`.
-          If not set, defaulted to `prediction.classes` for classification.
-      prediction_id_column (Optional[str]):
-          Optional. The column name of the field containing ids for classes the model is scoring.
-          Formatted to be able to find nested columns, delimeted by `.`.
+          Formatted to be able to find nested columns, delimited by `.`.
+          If not set, defaulted to `prediction.value` for regression.
       example_weight_column (Optional[str]):
           Optional. The column name of the field containing example weights.
-          Formatted to be able to find nested columns, delimeted by `.`.
-      positive_classes (Optional[Sequence[str]]):
-          Optional. The list of class names to create binary classification metrics based on
-          one-vs-rest for each value of positive_classes provided.
-      dataflow_service_account (Optional[str]):
-          Optional. Service account to run the dataflow job.
-          If not set, dataflow will use the default woker service account.
-
-          For more details, see https://cloud.google.com/dataflow/docs/concepts/security-and-permissions#default_worker_service_account
+          Formatted to be able to find nested columns, delimited by `.`.
       dataflow_disk_size (Optional[int]):
           Optional. The disk size (in GB) of the machine executing the evaluation run.
           If not set, defaulted to `50`.
@@ -100,9 +74,8 @@ description: |
       encryption_spec_key_name (Optional[str]):
           Customer-managed encryption key.
   Returns:
-      evaluation_metrics (google.ClassificationMetrics):
-          google.ClassificationMetrics artifact representing the classification evaluation metrics
-          in GCS.
+      evaluation_metrics (google.RegressionMetrics):
+          google.RegressionMetrics artifact representing the regression evaluation metrics in GCS.
 inputs:
   - { name: project, type: String }
   - { name: location, type: String, default: "us-central1" }
@@ -113,15 +86,10 @@ inputs:
   - { name: ground_truth_format, type: String, default: "jsonl" }
   - { name: ground_truth_gcs_source, type: JsonArray, default: "{}" }
   - { name: ground_truth_bigquery_source, type: String, default: "" }
-  - { name: key_columns, type: JsonArray, default: "{}" }
-  - { name: classification_type, type: String, default: "" }
-  - { name: class_names, type: JsonArray, default: "{}" }
-  - { name: ground_truth_column, type: String }
+  - { name: target_field_name, type: String }
+  - { name: model, type: google.VertexModel, optional: True }
   - { name: prediction_score_column, type: String, default: "" }
-  - { name: prediction_label_column, type: String, default: "" }
-  - { name: prediction_id_column, type: String, default: "" }
   - { name: example_weight_column, type: String, default: "" }
-  - { name: positive_classes, type: JsonArray, default: "{}" }
   - { name: dataflow_service_account, type: String, default: "" }
   - { name: dataflow_disk_size, type: Integer, default: 50 }
   - { name: dataflow_machine_type, type: String, default: "n1-standard-4" }
@@ -131,11 +99,11 @@ inputs:
   - { name: dataflow_use_public_ips, type: Boolean, default: "true" }
   - { name: encryption_spec_key_name, type: String, default: "" }
 outputs:
-  - { name: evaluation_metrics, type: google.ClassificationMetrics }
+  - { name: evaluation_metrics, type: google.RegressionMetrics }
   - { name: gcp_resources, type: String }
 implementation:
   container:
-    image: gcr.io/ml-pipeline/model-evaluation:v0.6
+    image: gcr.io/ml-pipeline/model-evaluation:v0.7
     command:
       - python
       - /main.py
@@ -149,7 +117,7 @@ implementation:
       - --location
       - { inputValue: location }
       - --problem_type
-      - "classification"
+      - "regression"
       - --batch_prediction_format
       - { inputValue: predictions_format }
       - if:
@@ -162,34 +130,23 @@ implementation:
           then:
           - --batch_prediction_bigquery_source
           - "bq://{{$.inputs.artifacts['predictions_bigquery_source'].metadata['projectId']}}.{{$.inputs.artifacts['predictions_bigquery_source'].metadata['datasetId']}}.{{$.inputs.artifacts['predictions_bigquery_source'].metadata['tableId']}}"
+      - if:
+          cond: {isPresent: model}
+          then:
+          - --model_name
+          - "{{$.inputs.artifacts['model'].metadata['resourceName']}}"
       - --ground_truth_format
       - { inputValue: ground_truth_format }
       - --ground_truth_gcs_source
       - { inputValue: ground_truth_gcs_source }
       - --ground_truth_bigquery_source
       - { inputValue: ground_truth_bigquery_source }
-      - --key_prefix_in_prediction_dataset
-      - "instance"
-      - --key_columns
-      - { inputValue: key_columns }
       - --root_dir
       - "{{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
-      - --classification_type
-      - { inputValue: classification_type }
-      - --class_names
-      - { inputValue: class_names }
-      - --ground_truth_column
-      - "instance.{{$.inputs.parameters['ground_truth_column']}}"
+      - --target_field_name
+      - "instance.{{$.inputs.parameters['target_field_name']}}"
       - --prediction_score_column
       - { inputValue: prediction_score_column }
-      - --prediction_label_column
-      - { inputValue: prediction_label_column }
-      - --prediction_id_column
-      - { inputValue: prediction_id_column }
-      - --example_weight_column
-      - { inputValue: example_weight_column }
-      - --positive_classes
-      - { inputValue: positive_classes }
       - --dataflow_job_prefix
       - "evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
       - --dataflow_service_account

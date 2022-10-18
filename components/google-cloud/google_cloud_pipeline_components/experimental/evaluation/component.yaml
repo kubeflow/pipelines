@@ -1,5 +1,6 @@
 name: model_evaluation
 description: |
+    TO BE REMOVED.
     Compute evaluation metrics on a trained model's batch prediction results.
     Creates a dataflow job with Apache Beam and TFMA to compute evaluation metrics.
 

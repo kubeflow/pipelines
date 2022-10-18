@@ -388,7 +388,11 @@ export function buildQuery(queriesMap: { [key: string]: string | number | undefi
 
 export async function decodeCompressedNodes(compressedNodes: string): Promise<object> {
   return new Promise<object>((resolve, reject) => {
-    const compressedBuffer = Buffer.from(compressedNodes, 'base64');
+    const compressedBuffer = Uint8Array.from(
+      atob(compressedNodes)
+        .split('')
+        .map(char => char.charCodeAt(0)),
+    );
     try {
       const result = pako.ungzip(compressedBuffer, { to: 'string' });
       const nodes = JSON.parse(result);
