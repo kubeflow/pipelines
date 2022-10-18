@@ -5,9 +5,9 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
-	apiclient "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client"
-	params "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client/job_service"
-	model "github.com/kubeflow/pipelines/backend/api/go_http_client/job_model"
+	apiclient "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_client"
+	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_client/job_service"
+	model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"golang.org/x/net/context"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -15,13 +15,13 @@ import (
 )
 
 type JobInterface interface {
-	Create(params *params.CreateJobParams) (*model.APIJob, error)
-	Get(params *params.GetJobParams) (*model.APIJob, error)
+	Create(params *params.CreateJobParams) (*model.V1beta1Job, error)
+	Get(params *params.GetJobParams) (*model.V1beta1Job, error)
 	Delete(params *params.DeleteJobParams) error
 	Enable(params *params.EnableJobParams) error
 	Disable(params *params.DisableJobParams) error
-	List(params *params.ListJobsParams) ([]*model.APIJob, int, string, error)
-	ListAll(params *params.ListJobsParams, maxResultSize int) ([]*model.APIJob, error)
+	List(params *params.ListJobsParams) ([]*model.V1beta1Job, int, string, error)
+	ListAll(params *params.ListJobsParams, maxResultSize int) ([]*model.V1beta1Job, error)
 }
 
 type JobClient struct {
@@ -59,7 +59,7 @@ func NewKubeflowInClusterJobClient(namespace string, debug bool) (
 	}, nil
 }
 
-func (c *JobClient) Create(parameters *params.CreateJobParams) (*model.APIJob,
+func (c *JobClient) Create(parameters *params.CreateJobParams) (*model.V1beta1Job,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
@@ -83,7 +83,7 @@ func (c *JobClient) Create(parameters *params.CreateJobParams) (*model.APIJob,
 	return response.Payload, nil
 }
 
-func (c *JobClient) Get(parameters *params.GetJobParams) (*model.APIJob,
+func (c *JobClient) Get(parameters *params.GetJobParams) (*model.V1beta1Job,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
@@ -177,7 +177,7 @@ func (c *JobClient) Disable(parameters *params.DisableJobParams) error {
 }
 
 func (c *JobClient) List(parameters *params.ListJobsParams) (
-	[]*model.APIJob, int, string, error) {
+	[]*model.V1beta1Job, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
@@ -201,17 +201,17 @@ func (c *JobClient) List(parameters *params.ListJobsParams) (
 }
 
 func (c *JobClient) ListAll(parameters *params.ListJobsParams, maxResultSize int) (
-	[]*model.APIJob, error) {
+	[]*model.V1beta1Job, error) {
 	return listAllForJob(c, parameters, maxResultSize)
 }
 
 func listAllForJob(client JobInterface, parameters *params.ListJobsParams,
-	maxResultSize int) ([]*model.APIJob, error) {
+	maxResultSize int) ([]*model.V1beta1Job, error) {
 	if maxResultSize < 0 {
 		maxResultSize = 0
 	}
 
-	allResults := make([]*model.APIJob, 0)
+	allResults := make([]*model.V1beta1Job, 0)
 	firstCall := true
 	for (firstCall || (parameters.PageToken != nil && *parameters.PageToken != "")) &&
 		(len(allResults) < maxResultSize) {

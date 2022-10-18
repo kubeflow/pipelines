@@ -25,7 +25,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 )
 
 // Filter represents a filter that can be applied when querying an arbitrary API

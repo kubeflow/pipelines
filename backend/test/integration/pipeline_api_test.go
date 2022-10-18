@@ -8,11 +8,11 @@ import (
 	"github.com/kubeflow/pipelines/backend/test"
 
 	"github.com/golang/glog"
-	params "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
-	model "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
+	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_client/pipeline_service"
+	model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_model"
 	pipelinetemplate "github.com/kubeflow/pipelines/backend/src/apiserver/template"
 
-	uploadParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	uploadParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
@@ -109,7 +109,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
 	sequentialPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
-		Body: &model.APIPipeline{Name: "sequential", URL: &model.APIURL{
+		Body: &model.V1beta1Pipeline{Name: "sequential", URL: &model.V1beta1URL{
 			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}}})
 	require.Nil(t, err)
 	assert.Equal(t, "sequential", sequentialPipeline.Name)
@@ -124,7 +124,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
-		Body: &model.APIPipeline{URL: &model.APIURL{
+		Body: &model.V1beta1Pipeline{URL: &model.V1beta1URL{
 			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip"}}})
 	require.Nil(t, err)
 	assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipeline.Name)
@@ -228,27 +228,27 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, expected, template)
 }
 
-func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
+func verifyPipeline(t *testing.T, pipeline *model.V1beta1Pipeline) {
 	assert.NotNil(t, *pipeline)
 	assert.NotNil(t, pipeline.CreatedAt)
-	expected := model.APIPipeline{
+	expected := model.V1beta1Pipeline{
 		ID:        pipeline.ID,
 		CreatedAt: pipeline.CreatedAt,
 		Name:      "arguments-parameters.yaml",
-		Parameters: []*model.APIParameter{
+		Parameters: []*model.V1beta1Parameter{
 			{Name: "param1", Value: "hello"}, // Default value in the pipeline template
 			{Name: "param2"},                 // No default value in the pipeline
 		},
-		DefaultVersion: &model.APIPipelineVersion{
+		DefaultVersion: &model.V1beta1PipelineVersion{
 			CreatedAt: pipeline.CreatedAt,
 			ID:        pipeline.ID,
 			Name:      "arguments-parameters.yaml",
-			Parameters: []*model.APIParameter{
+			Parameters: []*model.V1beta1Parameter{
 				{Name: "param1", Value: "hello"},
 				{Name: "param2"}},
-			ResourceReferences: []*model.APIResourceReference{{
-				Key:          &model.APIResourceKey{ID: pipeline.ID, Type: model.APIResourceTypePIPELINE},
-				Relationship: model.APIRelationshipOWNER}}},
+			ResourceReferences: []*model.V1beta1ResourceReference{{
+				Key:          &model.V1beta1ResourceKey{ID: pipeline.ID, Type: model.V1beta1ResourceTypePIPELINE},
+				Relationship: model.V1beta1RelationshipOWNER}}},
 	}
 	assert.Equal(t, expected, *pipeline)
 }
