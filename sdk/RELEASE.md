@@ -25,10 +25,11 @@
 * Fix PyPI typo in cli/component docstring [\#8361](https://github.com/kubeflow/pipelines/pull/8361)
 * Fix "No KFP components found in file" error [\#8359](https://github.com/kubeflow/pipelines/pull/8359)
 * CLI `kfp component build` generates runtime-requirements.txt [\#8372](https://github.com/kubeflow/pipelines/pull/8372)
-* Improve KFP SDK reference documentation [\#8337](https://github.com/kubeflow/pipelines/pull/8337)
 * Throw exception for component parameter named Output [\#8367](https://github.com/kubeflow/pipelines/pull/8367)
 
 ## Documentation updates
+
+* Improve KFP SDK reference documentation [\#8337](https://github.com/kubeflow/pipelines/pull/8337)
 
 # 2.0.0-beta.5
 
