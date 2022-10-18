@@ -118,7 +118,7 @@ export default class Buttons {
       disabled: !useCurrentResource,
       disabledTitle: useCurrentResource ? undefined : 'Select at least one resource to retry',
       id: 'retryBtn',
-      title: 'Retry',      
+      title: 'Retry',
       tooltip: 'Retry',
     };
     return this;

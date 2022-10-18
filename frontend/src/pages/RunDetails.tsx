@@ -211,10 +211,6 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
         //   true,
         //   () => this.retry(),
         // )
-        // .newRunFromPipelineVersion(
-        //   () => this.state.runMetadata?.id!,
-        //   () => this.state.runMetadata?.ver!,
-        // )
         .cloneRun(
           () =>
             this.state.runMetadata
@@ -873,6 +869,7 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
       const actions = buttons.getToolbarActionMap();
       actions[ButtonKeys.TERMINATE_RUN].disabled =
         (runMetadata.status as NodePhase) === NodePhase.TERMINATING || runFinished;
+      // BUG(talebz): AIP-6692 WFSDK: Disable Retry button
       // actions[ButtonKeys.RETRY].disabled =
       //   (runMetadata.status as NodePhase) !== NodePhase.FAILED &&
       //   (runMetadata.status as NodePhase) !== NodePhase.ERROR;

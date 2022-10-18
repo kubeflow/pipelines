@@ -16,8 +16,6 @@ import * as url from 'url';
 import * as portableFetch from 'portable-fetch';
 import { Configuration } from './configuration';
 
-const request = require('request');
-
 const BASE_PATH = 'http://localhost'.replace(/\/+$/, '');
 
 /**
