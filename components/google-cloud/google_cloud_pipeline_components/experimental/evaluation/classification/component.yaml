@@ -50,8 +50,7 @@ description: |
           If not set, defaulted to the classes found in the prediction_label_column in the batch
           prediction jobs predictions file.
       target_field_name (str):
-          The full name path of the features target field in the predictions file. Prefixed with
-          'instance.' internally for Vertex Batch Prediction.
+          The full name path of the features target field in the predictions file.
           Formatted to be able to find nested columns, delimited by `.`.
           Alternatively referred to as the ground truth (or ground_truth_column) field.
       model (Optional[google.VertexModel]):
