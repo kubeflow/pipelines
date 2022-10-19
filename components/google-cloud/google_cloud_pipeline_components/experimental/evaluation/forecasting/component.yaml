@@ -38,8 +38,7 @@ description: |
           The BigQuery table uri representing where the ground truth is located.
           Used to provide ground truth for each prediction instance when they are not part of the batch prediction jobs prediction instance.
       target_field_name (str):
-          The full name path of the features target field in the predictions file. Prefixed with
-          'instance.' internally for Vertex Batch Prediction.
+          The full name path of the features target field in the predictions file.
           Formatted to be able to find nested columns, delimited by `.`.
           Alternatively referred to as the ground truth (or ground_truth_column) field.
       model (Optional[google.VertexModel]):
