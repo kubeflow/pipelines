@@ -69,7 +69,9 @@ def _get_default_pipeline_params(
     run_distillation: bool = False,
     distill_batch_predict_machine_type: Optional[str] = None,
     distill_batch_predict_starting_replica_count: Optional[int] = None,
-    distill_batch_predict_max_replica_count: Optional[int] = None
+    distill_batch_predict_max_replica_count: Optional[int] = None,
+    quantiles: Optional[List[float]] = None,
+    enable_probabilistic_inference: bool = False
 ) -> Dict[str, Any]:
   """Get the AutoML Tabular v1 default training pipeline.
 
@@ -209,6 +211,18 @@ def _get_default_pipeline_params(
     distill_batch_predict_max_replica_count:
       The max number of prediction server
       for batch predict component in the model distillation.
+    quantiles:
+      Quantiles to use for probabilistic inference. Up to 5 quantiles are
+      allowed of values between 0 and 1, exclusive. Represents the quantiles to
+      use for that objective. Quantiles must be unique.
+    enable_probabilistic_inference:
+      If probabilistic inference is enabled, the model will fit a
+      distribution that captures the uncertainty of a prediction. At inference
+      time, the predictive distribution is used to make a point prediction that
+      minimizes the optimization objective. For example, the mean of a
+      predictive distribution is the point prediction that minimizes RMSE loss.
+      If quantiles are specified, then the quantiles of the distribution are
+      also returned.
 
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
@@ -221,6 +235,8 @@ def _get_default_pipeline_params(
     cv_trainer_worker_pool_specs_override = []
   if not additional_experiments:
     additional_experiments = {}
+  if not quantiles:
+    quantiles = []
 
   parameter_values = {}
   parameters = {
@@ -299,7 +315,11 @@ def _get_default_pipeline_params(
       'additional_experiments':
           additional_experiments,
       'max_selected_features':
-            max_selected_features,
+          max_selected_features,
+      'quantiles':
+          quantiles,
+      'enable_probabilistic_inference':
+          enable_probabilistic_inference,
   }
   parameter_values.update({
       param: value for param, value in parameters.items() if value is not None
@@ -399,7 +419,9 @@ def get_automl_tabular_pipeline_and_parameters(
     run_distillation: bool = False,
     distill_batch_predict_machine_type: Optional[str] = None,
     distill_batch_predict_starting_replica_count: Optional[int] = None,
-    distill_batch_predict_max_replica_count: Optional[int] = None
+    distill_batch_predict_max_replica_count: Optional[int] = None,
+    quantiles: Optional[List[float]] = None,
+    enable_probabilistic_inference: bool = False
 ) -> Tuple[str, Dict[str, Any]]:
   """Get the AutoML Tabular v1 default training pipeline.
 
@@ -535,6 +557,18 @@ def get_automl_tabular_pipeline_and_parameters(
     distill_batch_predict_max_replica_count:
       The max number of prediction server
       for batch predict component in the model distillation.
+    quantiles:
+      Quantiles to use for probabilistic inference. Up to 5 quantiles are
+      allowed of values between 0 and 1, exclusive. Represents the quantiles to
+      use for that objective. Quantiles must be unique.
+    enable_probabilistic_inference:
+      If probabilistic inference is enabled, the model will fit a
+      distribution that captures the uncertainty of a prediction. At inference
+      time, the predictive distribution is used to make a point prediction that
+      minimizes the optimization objective. For example, the mean of a
+      predictive distribution is the point prediction that minimizes RMSE loss.
+      If quantiles are specified, then the quantiles of the distribution are
+      also returned.
 
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
@@ -587,7 +621,9 @@ def get_automl_tabular_pipeline_and_parameters(
       run_distillation=run_distillation,
       distill_batch_predict_machine_type=distill_batch_predict_machine_type,
       distill_batch_predict_starting_replica_count=distill_batch_predict_starting_replica_count,
-      distill_batch_predict_max_replica_count=distill_batch_predict_max_replica_count
+      distill_batch_predict_max_replica_count=distill_batch_predict_max_replica_count,
+      quantiles=quantiles,
+      enable_probabilistic_inference=enable_probabilistic_inference,
   )
 
   pipeline_definition_path = os.path.join(
@@ -1374,7 +1410,13 @@ def get_feature_selection_pipeline_and_parameters(
     algorithm: str, prediction_type: str,
     data_source_csv_filenames: Optional[str] = None,
     data_source_bigquery_table_path: Optional[str] = None,
-    max_selected_features: Optional[int] = None):
+    max_selected_features: Optional[int] = None,
+    dataflow_machine_type: str = 'n1-standard-16',
+    dataflow_max_num_workers: int = 25,
+    dataflow_disk_size_gb: int = 40,
+    dataflow_subnetwork: str = '',
+    dataflow_use_public_ips: bool = True,
+    dataflow_service_account: str = ''):
   """Get the feature selection pipeline that generates feature ranking and selected features.
 
   Args:
@@ -1398,6 +1440,24 @@ def get_feature_selection_pipeline_and_parameters(
       The BigQuery table path.
     max_selected_features:
       number of features to be selected.
+    dataflow_machine_type:
+      The dataflow machine type for
+      feature_selection component.
+    dataflow_max_num_workers:
+      The max number of Dataflow
+      workers for feature_selection component.
+    dataflow_disk_size_gb:
+      Dataflow worker's disk size in
+      GB for feature_selection component.
+    dataflow_subnetwork:
+      Dataflow's fully qualified subnetwork name, when empty
+      the default subnetwork will be used. Example:
+        https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+    dataflow_use_public_ips:
+      Specifies whether Dataflow workers use public IP
+      addresses.
+    dataflow_service_account:
+      Custom service account to run dataflow jobs.
 
   Returns:
     Tuple of pipeline_definition_path and parameter_values.
@@ -1414,6 +1474,18 @@ def get_feature_selection_pipeline_and_parameters(
       'data_source_csv_filenames': data_source_csv_filenames,
       'data_source_bigquery_table_path': data_source_bigquery_table_path,
       'max_selected_features': max_selected_features,
+      'dataflow_machine_type':
+          dataflow_machine_type,
+      'dataflow_max_num_workers':
+          dataflow_max_num_workers,
+      'dataflow_disk_size_gb':
+          dataflow_disk_size_gb,
+      'dataflow_service_account':
+          dataflow_service_account,
+      'dataflow_subnetwork':
+          dataflow_subnetwork,
+      'dataflow_use_public_ips':
+          dataflow_use_public_ips,
   }
 
   parameter_values.update({
@@ -3517,3 +3589,50 @@ def get_wide_and_deep_study_spec_parameters_override() -> List[Dict[str, Any]]:
     params = json.loads(param_content)
 
   return params
+
+
+def get_model_comparison_pipeline_and_parameters(
+    project: str,
+    location: str,
+    root_dir: str,
+    problem_type: str,
+    training_jobs: Dict[str, Dict[str, Any]],
+    data_source_csv_filenames: str = '-',
+    data_source_bigquery_table_path: str = '-',
+    experiment: str = '-',
+) -> Tuple[str, Dict[str, Any]]:
+  """Returns a compiled model comparison pipeline and formatted parameters.
+
+  Args:
+    project: The GCP project that runs the pipeline components.
+    location: The GCP region that runs the pipeline components.
+    root_dir: The root GCS directory for the pipeline components
+    problem_type: The type of problem being solved. Can be one of: regression,
+      binary_classification, multiclass_classification, or forecasting
+    training_jobs: A dict mapping name to a dict of training job inputs.
+    data_source_csv_filenames: Comman-separated paths to CSVs stored in GCS to
+      use as the dataset for all training pipelines. This should be None if
+      `data_source_bigquery_table_path` is not None.
+    data_source_bigquery_table_path: Path to BigQuery Table to use as the
+      dataset for all training pipelines. This should be None if
+      `data_source_csv_filenames` is not None.
+    experiment: Vertex Experiment to add training pipeline runs to. A new
+      Experiment will be created if none is provided.
+
+  Returns:
+    Tuple of pipeline_definiton_path and parameter_values.
+  """
+  parameter_values = {
+      'project': project,
+      'location': location,
+      'root_dir': root_dir,
+      'problem_type': problem_type,
+      'training_jobs': training_jobs,
+      'data_source_csv_filenames': data_source_csv_filenames,
+      'data_source_bigquery_table_path': data_source_bigquery_table_path,
+      'experiment': experiment,
+  }
+  pipeline_definition_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(),
+      'model_comparison_pipeline.json')
+  return pipeline_definition_path, parameter_values

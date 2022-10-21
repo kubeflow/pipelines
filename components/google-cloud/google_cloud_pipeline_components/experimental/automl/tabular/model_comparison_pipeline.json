@@ -1,0 +1,419 @@
+{
+  "pipelineSpec": {
+    "components": {
+      "comp-build-jobs-parameters": {
+        "executorLabel": "exec-build-jobs-parameters",
+        "inputDefinitions": {
+          "parameters": {
+            "data_source_bigquery_table_path": {
+              "type": "STRING"
+            },
+            "data_source_csv_filenames": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "training_jobs": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-for-loop-1": {
+        "dag": {
+          "tasks": {
+            "run-pipeline": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-run-pipeline"
+              },
+              "inputs": {
+                "parameters": {
+                  "experiment_name": {
+                    "componentInputParameter": "pipelineparam--get-experiment-name-Output"
+                  },
+                  "location": {
+                    "componentInputParameter": "pipelineparam--location"
+                  },
+                  "model_comparison_job_name": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{{$.pipeline_job_name}}"
+                      }
+                    }
+                  },
+                  "pipeline_root": {
+                    "componentInputParameter": "pipelineparam--root_dir"
+                  },
+                  "project": {
+                    "componentInputParameter": "pipelineparam--project"
+                  },
+                  "training_job": {
+                    "componentInputParameter": "pipelineparam--build-jobs-parameters-Output-loop-item"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "run-pipeline"
+              }
+            }
+          }
+        },
+        "inputDefinitions": {
+          "parameters": {
+            "pipelineparam--build-jobs-parameters-Output": {
+              "type": "STRING"
+            },
+            "pipelineparam--build-jobs-parameters-Output-loop-item": {
+              "type": "STRING"
+            },
+            "pipelineparam--get-experiment-name-Output": {
+              "type": "STRING"
+            },
+            "pipelineparam--location": {
+              "type": "STRING"
+            },
+            "pipelineparam--project": {
+              "type": "STRING"
+            },
+            "pipelineparam--root_dir": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-get-experiment-name": {
+        "executorLabel": "exec-get-experiment-name",
+        "inputDefinitions": {
+          "parameters": {
+            "experiment": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "Output": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-run-pipeline": {
+        "executorLabel": "exec-run-pipeline",
+        "inputDefinitions": {
+          "parameters": {
+            "experiment_name": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "model_comparison_job_name": {
+              "type": "STRING"
+            },
+            "pipeline_root": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "training_job": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-validate-inputs": {
+        "executorLabel": "exec-validate-inputs",
+        "inputDefinitions": {
+          "parameters": {
+            "data_source_bigquery_table_path": {
+              "type": "STRING"
+            },
+            "data_source_csv_filenames": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "problem_type": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "training_jobs": {
+              "type": "STRING"
+            }
+          }
+        }
+      }
+    },
+    "deploymentSpec": {
+      "executors": {
+        "exec-build-jobs-parameters": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "build_jobs_parameters"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef build_jobs_parameters(\n    project: str,\n    location: str,\n    training_jobs: Dict[str, Dict[str, Any]],\n    data_source_csv_filenames: str,\n    data_source_bigquery_table_path: str) -> List[Dict[str, Any]]:\n  \"\"\"Prepares a list of dictionaries with parameters for each pipeline job.\"\"\"\n\n  for job in training_jobs:\n    training_jobs[job]['parameter_values']['project'] = project\n    training_jobs[job]['parameter_values']['location'] = location\n\n    training_jobs[job]['parameter_values'][\n        'data_source_csv_filenames'] = data_source_csv_filenames\n    training_jobs[job]['parameter_values'][\n        'data_source_bigquery_table_path'] = data_source_bigquery_table_path\n\n  return list(training_jobs.values())\n\n"
+            ],
+            "image": "python:3.8-slim"
+          }
+        },
+        "exec-get-experiment-name": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "get_experiment_name"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef get_experiment_name(experiment: str) -> str:\n  \"\"\"Returns a Vertex AI experiment name under which to run the pipelines.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  import datetime\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\n  if experiment and experiment != '-':\n    return experiment\n\n  experiment_datetime = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S-%f')\n  experiment_name = f'model-comparison-{experiment_datetime}'\n\n  return experiment_name\n\n"
+            ],
+            "image": "python:3.8-slim"
+          }
+        },
+        "exec-run-pipeline": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "run_pipeline"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-aiplatform==1.18.0' 'PyYAML==5.4.1' 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef run_pipeline(project: str, location: str, training_job: Dict[str, Any],\n                 experiment_name: str, model_comparison_job_name: str,\n                 pipeline_root: str) -> None:\n  \"\"\"Starts a pipeline job.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\n  import os\n  import datetime\n  import logging\n  from typing import Optional\n  from unittest import mock\n  from urllib import request\n  import uuid\n\n  from google.auth import credentials as auth_credentials\n  from google.cloud import aiplatform\n  from google.cloud.aiplatform.metadata import constants as metadata_constants\n  from google.cloud.aiplatform.metadata import utils as metadata_utils\n  from google.cloud.aiplatform.compat.types import pipeline_state\n  from google.cloud.aiplatform.compat.types import execution\n  import yaml\n  # pylint: enable=g-import-not-at-top,i;mport-outside-toplevel,redefined-outer-name,reimported\n\n  states_map = {\n      pipeline_state.PipelineState.PIPELINE_STATE_CANCELLED:\n          execution.Execution.State.CANCELLED,\n      pipeline_state.PipelineState.PIPELINE_STATE_FAILED:\n          execution.Execution.State.FAILED,\n      pipeline_state.PipelineState.PIPELINE_STATE_PAUSED:\n          execution.Execution.State.RUNNING,\n      pipeline_state.PipelineState.PIPELINE_STATE_RUNNING:\n          execution.Execution.State.RUNNING,\n      pipeline_state.PipelineState.PIPELINE_STATE_SUCCEEDED:\n          execution.Execution.State.COMPLETE\n  }\n\n  aiplatform.init(\n      project=project, location=location, experiment=experiment_name)\n\n  subpipeline_id = uuid.uuid4().hex[-8:]\n  job_id = f'{model_comparison_job_name}-subpipeline-{subpipeline_id}'\n\n  def _fake_load_yaml_from_https_uri(\n      uri: str,\n      _: Optional[auth_credentials.Credentials] = None,\n  ) -> Dict[str, Any]:\n    \"\"\"Loads data from a YAML document referenced by an HTTPS URI.\"\"\"\n    response = request.urlopen(uri)\n    return yaml.safe_load(response.read().decode('utf-8'))\n\n  # TODO(b/251143831): Remove mocking once GCP creds stop being passed to all\n  # HTTPS URIs. The current mock doesn't support Artifact Registry URIs.\n  with mock.patch.object(\n      aiplatform.utils.yaml_utils,\n      '_load_yaml_from_https_uri',\n      wraps=_fake_load_yaml_from_https_uri,\n  ):\n    job = aiplatform.PipelineJob(\n        job_id=job_id,\n        display_name=job_id,\n        pipeline_root=os.path.join(pipeline_root, subpipeline_id),\n        **training_job,\n    )\n\n  experiment_run = aiplatform.ExperimentRun.create(\n      job_id,\n      experiment=experiment_name)\n\n  try:\n    job.submit()\n    job.wait()\n  except RuntimeError as err:\n    # job.wait() raises a RuntimeError if the job fails. We log the failure\n    # and continue with updating the ExperimentRun accordingly.\n    logging.warning('Job with ID %s failed: %s', job_id, err)\n\n  experiment_run.log(pipeline_job=job)\n  experiment_run.log_metrics({\n      'duration':\n          datetime.timedelta(\n              seconds=int(job.gca_resource.end_time.timestamp() -\n                          job.gca_resource.start_time.timestamp())).__str__(),\n  })\n  experiment_run.update_state(\n      state=states_map.get(job.state,\n                           execution.Execution.State.STATE_UNSPECIFIED))\n  job_metrics = aiplatform.Artifact.list(\n      filter=metadata_utils._make_filter_string(  # pylint: disable=protected-access\n          in_context=[job._get_context().resource_name],  # pylint: disable=protected-access\n          schema_title=[\n              metadata_constants.SYSTEM_METRICS,\n              metadata_constants.GOOGLE_CLASSIFICATION_METRICS,\n              metadata_constants.GOOGLE_REGRESSION_METRICS,\n              metadata_constants.GOOGLE_FORECASTING_METRICS,\n          ],\n      ))\n\n  for metric in job_metrics:\n    experiment_run.log_metrics(metric.metadata)\n\n"
+            ],
+            "image": "python:3.8-slim"
+          }
+        },
+        "exec-validate-inputs": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "validate_inputs"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef validate_inputs(\n    project: str,\n    location: str,\n    problem_type: str,\n    training_jobs: Dict[str, Dict[str, Any]],\n    data_source_csv_filenames: Optional[str] = None,\n    data_source_bigquery_table_path: Optional[str] = None,\n) -> None:\n  \"\"\"Checks training pipeline input parameters are valid.\"\"\"\n\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n  import re\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\n  # vars\n  bq_prefix = r'bq\\:\\/\\/'\n  project_pattern = r'([a-z0-9.-]+:)?[a-z][a-z0-9-_]{4,28}[a-z0-9]'\n  location_pattern = r'[a-zA-Z0-9-_]+'\n  dataset_pattern = r'\\.[a-zA-Z0-9_]+'\n  table_pattern = r'\\.[^\\.\\:`]+'\n  gcs_csv_pattern = r'gs:\\/\\/(.+)\\/([^\\/]+)([a-zA-Z0-9_]+)\\.csv'\n\n  supported_problem_types = ['tabular', 'forecasting']\n  supported_prediction_types = [\n      'regression',\n      'classification',\n  ]\n\n  # Validate project id.\n  project_id_pattern = re.compile(project_pattern)\n  if not project_id_pattern.fullmatch(project):\n    raise ValueError(f'Invalid project id: {project}.')\n\n  # Validate location.\n  if not re.compile(location_pattern).fullmatch(location):\n    raise ValueError(f'Invalid location: {location}.')\n\n  # Validate problem type.\n  if problem_type.lower() not in supported_problem_types:\n    raise ValueError(\n        f'Invalid problem type provided: {problem_type}. Must be one of the following: {supported_problem_types}'\n    )\n\n  # Validate training jobs.\n  first_model = True\n  predefined_split_key = None\n  timestamp_split_key = None\n  training_fraction = None\n  validation_fraction = None\n  window_column = None\n  window_stride_length = None\n  window_max_count = None\n  # training_jobs is a mapping of model name and parameter + template.\n  for training_job in list(training_jobs.values()):\n    # Verify that template_path exists and it points to a json file.\n    if 'template_path' not in training_job:\n      raise ValueError(\n          f'Invalid training jobs provided: {training_job}. No template_path present in training jobs.'\n      )\n\n    template_path = training_job['template_path']\n    if not isinstance(template_path, str):\n      raise ValueError(\n          f'Invalid training jobs provided: {training_job}. Expecting template_path to be string, got {type(template_path)}'\n      )\n\n    if not template_path.endswith('.json'):\n      raise ValueError(\n          f'Invalid training jobs provided: {training_job}. Expecting template_path to point to a json file, got {template_path}'\n      )\n\n    # Verify that parameter_values field exists in training job.\n    if 'parameter_values' not in training_job:\n      raise ValueError(\n          f'Invalid training job provided: {training_job}. No parameter_values field provided.'\n      )\n\n    parameter_values = training_job['parameter_values']\n    if not isinstance(parameter_values, dict):\n      raise ValueError(\n          f'Invalid training jobs provided: {training_job}. Expecting parameter_values to be dictionary, got {type(parameter_values)}'\n      )\n\n    # Verify that no data_source is specified in parameter_values.\n    if 'data_source' in parameter_values and parameter_values[\n        'data_source'] is not None:\n      raise ValueError(\n          f'Invalid training jobs provided: {training_job}. No data_source is allowed under parameter_values field.'\n      )\n\n    # Verify that project matches the project value in pipeline.\n    if 'project' in parameter_values:\n      if parameter_values['project'] != project:\n        raise ValueError(\n            f'Invalid training jobs provided: {training_job}. Project value in TrainingJob {training_job[\"project\"]} does not match project value in Model Pipeline {project}.'\n        )\n\n    # Verify that location matches the location value in pipeline.\n    if 'location' in parameter_values:\n      if parameter_values['location'] != location:\n        raise ValueError(\n            f'Invalid training jobs provided: {training_job}. Location value in TrainingJobs {training_job[\"location\"]} does not match location value in Model Pipeline {location}.'\n        )\n\n    # Verify that prediction_types match given problem type.\n    if 'prediction_type' in parameter_values:\n      if problem_type.lower() == 'tabular':\n        if not isinstance(parameter_values['prediction_type'], str):\n          raise ValueError(\n              f'Invalid training jobs provided: {training_jobs}. `prediction_type` value needs to be a string.'\n          )\n\n        if parameter_values['prediction_type'].lower(\n        ) not in supported_prediction_types:\n          raise ValueError(\n              f'Invalid training jobs provided: {training_jobs}. `prediction_type` value needs to be one of the following: {supported_prediction_types}, got {parameter_values[\"prediction_type\"]}'\n          )\n\n    # Verify that split_spec and window config are the same across all models.\n    if 'predefined_split_key' in parameter_values:\n      if first_model:\n        predefined_split_key = parameter_values['predefined_split_key']\n      elif predefined_split_key != parameter_values['predefined_split_key']:\n        raise ValueError(\n            f'Expecting the same predefined_split_key value {predefined_split_key}, got {parameter_values[\"predefined_split_key\"]}'\n        )\n\n    if 'timestamp_split_key' in parameter_values:\n      if first_model:\n        timestamp_split_key = parameter_values['timestamp_split_key']\n      elif timestamp_split_key != parameter_values['timestamp_split_key']:\n        raise ValueError(\n            f'Expecting the same timestamp_split_key value {timestamp_split_key}, got {parameter_values[\"timestamp_split_key\"]}'\n        )\n\n    if 'training_fraction' in parameter_values:\n      if first_model:\n        training_fraction = parameter_values['training_fraction']\n      elif training_fraction != parameter_values['training_fraction']:\n        raise ValueError(\n            f'Expecting the same training_fraction value {training_fraction}, got {parameter_values[\"training_fraction\"]}'\n        )\n\n    if 'validation_fraction' in parameter_values:\n      if first_model:\n        validation_fraction = parameter_values['validation_fraction']\n      elif validation_fraction != parameter_values['validation_fraction']:\n        raise ValueError(\n            f'Expecting the same validation_fraction value {validation_fraction}, got {parameter_values[\"validation_fraction\"]}'\n        )\n\n    if 'window_column' in parameter_values:\n      if first_model:\n        window_column = parameter_values['window_column']\n      elif window_column != parameter_values['window_column']:\n        raise ValueError(\n            f'Expecting the same window_column value {window_column}, got {parameter_values[\"window_column\"]}'\n        )\n\n    if 'window_stride_length' in parameter_values:\n      if first_model:\n        window_stride_length = parameter_values['window_stride_length']\n      elif window_stride_length != parameter_values['window_stride_length']:\n        raise ValueError(\n            f'Expecting the same window_stride_length value {window_stride_length}, got {parameter_values[\"window_stride_length\"]}'\n        )\n\n    if 'window_max_count' in parameter_values:\n      if first_model:\n        window_max_count = parameter_values['window_max_count']\n      elif window_max_count != parameter_values['window_max_count']:\n        raise ValueError(\n            f'Expecting the same window_max_count value {window_max_count}, got {parameter_values[\"window_max_count\"]}'\n        )\n\n    first_model = False\n\n  # Validate data sources.\n  if data_source_bigquery_table_path == '-':\n    data_source_bigquery_table_path = None\n\n  if data_source_csv_filenames and data_source_bigquery_table_path:\n    raise ValueError(\n        'Both CSV data source and BigQuery data source are provided. Only one data source allowed.'\n    )\n\n  # Validate CSV paths from GCS.\n  if data_source_csv_filenames:\n    gcs_path_pattern = re.compile(gcs_csv_pattern)\n    for gcs_csv in data_source_csv_filenames.split(','):\n      if not gcs_path_pattern.fullmatch(gcs_csv.strip()):\n        raise ValueError(\n            f'Invalid GCS CSV file path: {gcs_csv}. Path does not match regex pattern of {gcs_csv_pattern}'\n        )\n\n  # Validate bigquery table path.\n  if data_source_bigquery_table_path:\n    table_uri_pattern = re.compile(bq_prefix + project_pattern +\n                                   dataset_pattern + table_pattern)\n    if not table_uri_pattern.fullmatch(data_source_bigquery_table_path):\n      raise ValueError(\n          f'Invalid BigQuery table URI: {data_source_bigquery_table_path}.')\n\n"
+            ],
+            "image": "python:3.8-slim"
+          }
+        }
+      }
+    },
+    "pipelineInfo": {
+      "name": "model-comparison"
+    },
+    "root": {
+      "dag": {
+        "tasks": {
+          "build-jobs-parameters": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-build-jobs-parameters"
+            },
+            "dependentTasks": [
+              "validate-inputs"
+            ],
+            "inputs": {
+              "parameters": {
+                "data_source_bigquery_table_path": {
+                  "componentInputParameter": "data_source_bigquery_table_path"
+                },
+                "data_source_csv_filenames": {
+                  "componentInputParameter": "data_source_csv_filenames"
+                },
+                "location": {
+                  "componentInputParameter": "location"
+                },
+                "project": {
+                  "componentInputParameter": "project"
+                },
+                "training_jobs": {
+                  "componentInputParameter": "training_jobs"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "build-jobs-parameters"
+            }
+          },
+          "for-loop-1": {
+            "componentRef": {
+              "name": "comp-for-loop-1"
+            },
+            "dependentTasks": [
+              "build-jobs-parameters",
+              "get-experiment-name"
+            ],
+            "inputs": {
+              "parameters": {
+                "pipelineparam--build-jobs-parameters-Output": {
+                  "taskOutputParameter": {
+                    "outputParameterKey": "Output",
+                    "producerTask": "build-jobs-parameters"
+                  }
+                },
+                "pipelineparam--get-experiment-name-Output": {
+                  "taskOutputParameter": {
+                    "outputParameterKey": "Output",
+                    "producerTask": "get-experiment-name"
+                  }
+                },
+                "pipelineparam--location": {
+                  "componentInputParameter": "location"
+                },
+                "pipelineparam--project": {
+                  "componentInputParameter": "project"
+                },
+                "pipelineparam--root_dir": {
+                  "componentInputParameter": "root_dir"
+                }
+              }
+            },
+            "parameterIterator": {
+              "itemInput": "pipelineparam--build-jobs-parameters-Output-loop-item",
+              "items": {
+                "inputParameter": "pipelineparam--build-jobs-parameters-Output"
+              }
+            },
+            "taskInfo": {
+              "name": "for-loop-1"
+            }
+          },
+          "get-experiment-name": {
+            "cachingOptions": {},
+            "componentRef": {
+              "name": "comp-get-experiment-name"
+            },
+            "dependentTasks": [
+              "validate-inputs"
+            ],
+            "inputs": {
+              "parameters": {
+                "experiment": {
+                  "componentInputParameter": "experiment"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "get-experiment-name"
+            }
+          },
+          "validate-inputs": {
+            "cachingOptions": {
+              "enableCache": true
+            },
+            "componentRef": {
+              "name": "comp-validate-inputs"
+            },
+            "inputs": {
+              "parameters": {
+                "data_source_bigquery_table_path": {
+                  "componentInputParameter": "data_source_bigquery_table_path"
+                },
+                "data_source_csv_filenames": {
+                  "componentInputParameter": "data_source_csv_filenames"
+                },
+                "location": {
+                  "componentInputParameter": "location"
+                },
+                "problem_type": {
+                  "componentInputParameter": "problem_type"
+                },
+                "project": {
+                  "componentInputParameter": "project"
+                },
+                "training_jobs": {
+                  "componentInputParameter": "training_jobs"
+                }
+              }
+            },
+            "taskInfo": {
+              "name": "validate-inputs"
+            }
+          }
+        }
+      },
+      "inputDefinitions": {
+        "parameters": {
+          "data_source_bigquery_table_path": {
+            "type": "STRING"
+          },
+          "data_source_csv_filenames": {
+            "type": "STRING"
+          },
+          "experiment": {
+            "type": "STRING"
+          },
+          "location": {
+            "type": "STRING"
+          },
+          "problem_type": {
+            "type": "STRING"
+          },
+          "project": {
+            "type": "STRING"
+          },
+          "root_dir": {
+            "type": "STRING"
+          },
+          "training_jobs": {
+            "type": "STRING"
+          }
+        }
+      }
+    },
+    "schemaVersion": "2.0.0",
+    "sdkVersion": "kfp-1.8.11"
+  },
+  "runtimeConfig": {}
+}

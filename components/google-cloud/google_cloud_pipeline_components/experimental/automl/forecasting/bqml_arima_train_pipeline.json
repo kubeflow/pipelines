@@ -3482,7 +3482,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.create_model.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.21"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-bigquery-delete-dataset-with-prefix": {
@@ -3569,7 +3569,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.21"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-bigquery-query-job-2": {
@@ -3596,7 +3596,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.21"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-bigquery-query-job-3": {
@@ -3623,7 +3623,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.21"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-bigquery-query-job-4": {
@@ -3650,7 +3650,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.21"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-bigquery-query-job-5": {
@@ -3677,7 +3677,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.21"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-bigquery-query-job-6": {
@@ -3704,7 +3704,7 @@
               "-m",
               "google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.21"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-build-preprocessing-query-parameters": {

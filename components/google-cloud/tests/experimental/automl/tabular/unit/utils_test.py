@@ -184,7 +184,9 @@ class UtilsTest(unittest.TestCase):
                     'column_name': 'feature_1'
                 }
             },
-            'validation_fraction': 0.2
+            'validation_fraction': 0.2,
+            'quantiles': [],
+            'enable_probabilistic_inference': False,
         })
 
   def test_get_default_pipeline_and_parameters_with_eval_and_distill(self):
