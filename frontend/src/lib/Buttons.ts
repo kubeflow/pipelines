@@ -282,6 +282,20 @@ export default class Buttons {
     return this;
   }
 
+  public newRecurringRunPrimary(experimentId: string): Buttons {
+    this._map[ButtonKeys.NEW_RECURRING_RUN] = {
+      action: () => this._createNewRun(true, experimentId),
+      icon: AddIcon,
+      id: 'createNewRecurringRunBtn',
+      outlined: true,
+      primary: true,
+      style: { minWidth: 195 },
+      title: 'Create recurring run',
+      tooltip: 'Create a new recurring run',
+    };
+    return this;
+  }
+
   public newRecurringRun(experimentId: string): Buttons {
     this._map[ButtonKeys.NEW_RECURRING_RUN] = {
       action: () => this._createNewRun(true, experimentId),
