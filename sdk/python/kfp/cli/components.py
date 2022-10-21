@@ -369,6 +369,9 @@ def build(components_directory: pathlib.Path = typer.Argument(
               False,
               help="Set this to true to always generate a Dockerfile"
               " as part of the build process"),
+          build_image: bool = typer.Option(
+            True, help="Build the container image."
+          ),
           push_image: bool = typer.Option(
               True, help="Push the built image to its remote repository.")):
     """
@@ -380,11 +383,11 @@ def build(components_directory: pathlib.Path = typer.Argument(
             components_directory))
         raise typer.Exit(1)
 
-    if engine != _Engine.DOCKER:
+    if build_image and (engine != _Engine.DOCKER):
         _error('Currently, only `docker` is supported for --engine.')
         raise typer.Exit(1)
 
-    if engine == _Engine.DOCKER:
+    if build_image and (engine == _Engine.DOCKER):
         if not _DOCKER_IS_PRESENT:
             _error(
                 'The `docker` Python package was not found in the current'
@@ -404,7 +407,9 @@ def build(components_directory: pathlib.Path = typer.Argument(
     builder.maybe_generate_requirements_txt()
     builder.maybe_generate_dockerignore()
     builder.maybe_generate_dockerfile(overwrite_dockerfile=overwrite_dockerfile)
-    builder.build_image(push_image=push_image)
+
+    if build_image:
+        builder.build_image(push_image=push_image)
 
 
 if __name__ == '__main__':
