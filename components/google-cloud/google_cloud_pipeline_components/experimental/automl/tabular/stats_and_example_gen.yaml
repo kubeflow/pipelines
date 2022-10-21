@@ -138,6 +138,8 @@ inputs:
 - {name: training_fraction, type: Float, default: "-1"}
 - {name: validation_fraction, type: Float, default: "-1"}
 - {name: test_fraction, type: Float, default: "-1"}
+- {name: quantiles, type: JsonArray, default: "[]"}
+- {name: enable_probabilistic_inference, type: Boolean, default: "false"}
 
 outputs:
 - {name: dataset_schema, type: DatasetSchema}
@@ -154,7 +156,7 @@ outputs:
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
-    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.gcp_launcher.launcher]
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.custom_job.launcher]
     args: [
       --type, CustomJob,
       --project, {inputValue: project},
@@ -165,7 +167,7 @@ implementation:
         '{"display_name": "tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20221001_0325_RC00',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20221020_1325_RC00',
         '", "args": ["stats_generator",',
         '"--train_spec={\"prediction_type\": \"',
         {inputValue: prediction_type},
@@ -177,6 +179,10 @@ implementation:
         {inputValue: weight_column_name},
         '\", \"transformations\": ',
         {inputValue: transformations},
+        ', \"quantiles\": ',
+        {inputValue: quantiles},
+        ', \"enable_probabilistic_inference\": ',
+        {inputValue: enable_probabilistic_inference},
         '}", "--transformations_override_path=',
         {inputValue: transformations_path},
         '", "--split_spec=',
@@ -227,7 +233,7 @@ implementation:
         '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp", "--dataflow_max_num_workers=',
         {inputValue: dataflow_max_num_workers},
         '", "--dataflow_worker_container_image=',
-        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20221001_0325_RC00',
+        'us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20221020_1325_RC00',
         '", "--dataflow_machine_type=',
         {inputValue: dataflow_machine_type},
         '", "--dataflow_disk_size_gb=',

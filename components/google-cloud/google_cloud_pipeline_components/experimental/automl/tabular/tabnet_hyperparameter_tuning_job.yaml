@@ -135,7 +135,7 @@ outputs:
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
-    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.gcp_launcher.launcher]
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.hyperparameter_tuning_job.launcher]
     args: [
       --type, HyperparameterTuningJob,
       --project, { inputValue: project },
@@ -166,7 +166,7 @@ implementation:
           '", "machine_spec": ',
           { inputValue: training_machine_spec },
           ', "container_spec": {"image_uri":"',
-          'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20221001_0325_RC00',
+          'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/tabnet-training:20221020_1325_RC00',
           '", "args": ["--target_column=',
           { inputValue: target_column },
           '", "--weight_column=',
@@ -174,7 +174,7 @@ implementation:
           '", "--model_type=',
           { inputValue: prediction_type },
           '", "--prediction_docker_uri=',
-          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20221001_0325_RC00',
+          'us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20221020_1325_RC00',
           '", "--prediction_docker_uri_artifact_path=',
           { outputPath: prediction_docker_uri_output },
           '", "--baseline_path=',
