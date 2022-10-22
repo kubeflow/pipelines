@@ -11,15 +11,15 @@ Tools needed:
 
 Set environment variable `API_VERSION` to the version that you want to generate. We use `v1beta1` as example here.
 
+Use `make generate` command to generate clients using a pre-built api-generator image:
 ```bash
 API_VERSION="v1beta1" make generate
 ```
 
-For local developments, use 
+For local developments, you may want to build api-generator image locally. Use 'make generate-from-scratch':
 ```bash
 API_VERSION="v1beta1" make generate-from-scratch
 ```
-This generate clients starting by building api-generator image locally.
 
 Code will be generated in:
 
