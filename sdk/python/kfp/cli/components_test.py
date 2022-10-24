@@ -386,6 +386,20 @@ class Test(unittest.TestCase):
         self._docker_client.api.build.assert_called_once()
         self._docker_client.images.push.assert_not_called()
 
+    def testDockerClientIsNotCalledToBuild(self):
+        component = _make_component(
+            func_name='train', target_image='custom-image')
+        _write_components('components.py', component)
+
+        result = self._runner.invoke(
+            self._app,
+            ['build', str(self._working_dir), '--no-build-image'],
+        )
+        self.assertEqual(result.exit_code, 0)
+
+        self._docker_client.api.build.assert_not_called()
+        self._docker_client.images.push.assert_not_called()
+
     @mock.patch('kfp.__version__', '1.2.3')
     def testDockerfileIsCreatedCorrectly(self):
         component = _make_component(
