@@ -507,7 +507,8 @@ def convert_method_to_component(cls: aiplatform.base.VertexAiResourceNoun,
           output_name=output_metadata_name)
     except TypeError:
       from kfp.components import placeholders
-      output_spec = structures.OutputSpec(type=output_metadata_type)
+      output_spec = structures.OutputSpec(
+          type=(output_metadata_type + '@0.0.1'))
       output_uri_placeholder = placeholders.OutputUriPlaceholder(
           output_name=output_metadata_name)
 
