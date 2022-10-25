@@ -7,37 +7,41 @@ Tools needed:
 * Docker
 * Make
 
-## Auto-generation of Go client and swagger definitions
-
 Set environment variable `API_VERSION` to the version that you want to generate. We use `v1beta1` as example here.
+
+```bash
+export API_VERSION="v1beta1"
+```
+
+## Auto-generation of Go client and swagger definitions
 
 Use `make generate` command to generate clients using a pre-built api-generator image:
 ```bash
-API_VERSION="v1beta1" make generate
+make generate
 ```
 
-For local developments, you may want to build api-generator image locally. Use 'make generate-from-scratch':
+For local developments, you may want to build api-generator image locally, if `Dockerfile` has been changed. Use 'make generate-from-scratch':
 ```bash
-API_VERSION="v1beta1" make generate-from-scratch
+make generate-from-scratch
 ```
 
 Code will be generated in:
 
-* `./v1beta1/go_client`
-* `./v1beta1/go_http_client`
-* `./v1beta1/swagger`
+* `./${API_VERSION}/go_client`
+* `./${API_VERSION}/go_http_client`
+* `./${API_VERSION}/swagger`
 
-Note: `./v1beta1/swagger/pipeline.upload.swagger.json` is manually created, while the rest `./v1beta1/swagger/*.swagger.json` are auto generated.
+Note: `./${API_VERSION}/swagger/pipeline.upload.swagger.json` is manually created, while the rest `./${API_VERSION}/swagger/*.swagger.json` are auto generated.
 
 ## Auto-generation of Python client
 
-Add the API version after the command to generate the corresponding Python client. We use `v1beta1` as an example here:
+This will generate the Python client for the API version specified in the environment variable.
 
 ```bash
-./build_kfp_server_api_python_package.sh v1beta1
+./build_kfp_server_api_python_package.sh
 ```
 
-Code will be generated in `./v1beta1/python_http_client`.
+Code will be generated in `./${API_VERSION}/python_http_client`.
 
 ## Auto-generation of API reference documentation
 
