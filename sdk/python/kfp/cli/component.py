@@ -362,6 +362,12 @@ def component():
     help='Set this to true to always generate a Dockerfile'
     ' as part of the build process')
 @click.option(
+    '--build-image/--no-build-image',
+    type=bool,
+    is_flag=True,
+    default=True,
+    help='Build the container image.')
+@click.option(
     '--push-image/--no-push-image',
     type=bool,
     is_flag=True,
@@ -369,10 +375,10 @@ def component():
     help='Push the built image to its remote repository.')
 def build(components_directory: str, component_filepattern: str, engine: str,
           kfp_package_path: Optional[str], overwrite_dockerfile: bool,
-          push_image: bool):
+          build_image: bool, push_image: bool):
     """Builds containers for KFP v2 Python-based components."""
 
-    if engine != 'docker':
+    if not build_image and engine != 'docker':
         warnings.warn(
             'The --engine option is deprecated and does not need to be passed. Only Docker engine is supported and will be used by default.',
             DeprecationWarning,
@@ -387,12 +393,14 @@ def build(components_directory: str, component_filepattern: str, engine: str,
             f'{components_directory} does not seem to be a valid directory.')
         raise sys.exit(1)
 
-    if not _DOCKER_IS_PRESENT:
+    if not build_image and not _DOCKER_IS_PRESENT:
         logging.error(
             'The `docker` Python package was not found in the current'
             ' environment. Please run `pip install docker` to install it.'
             ' Optionally, you can also  install KFP with all of its'
-            ' optional dependencies by running `pip install kfp[all]`.')
+            ' optional dependencies by running `pip install kfp[all]`.'
+            ' Alternatively, you can skip the container image build using'
+            ' the --no-build-image flag.')
         raise sys.exit(1)
 
     kfp_package_path = pathlib.Path(
@@ -408,4 +416,5 @@ def build(components_directory: str, component_filepattern: str, engine: str,
     builder.generate_requirements_txt()
     builder.maybe_generate_dockerignore()
     builder.maybe_generate_dockerfile(overwrite_dockerfile=overwrite_dockerfile)
-    builder.build_image(push_image=push_image)
+    if build_image:
+        builder.build_image(push_image=push_image)
