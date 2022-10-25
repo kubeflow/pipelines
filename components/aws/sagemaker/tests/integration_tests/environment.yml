@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python=3.7.14
+  - python=3.7.12
   - pip=20.0.*
   - awscli=1.18.141
   - boto3=1.15.0
