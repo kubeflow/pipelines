@@ -1,5 +1,14 @@
-# Current Version 1.0.26.dev (Still in Development)
+# Current Version 1.0.27.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.26
+* Temporary fix for artifact types
+* Sync GCPC staging to prod to include AutoML model comparison and prophet pipelines
+* Update documentation for Eval components
+* Update HP tuning sample notebook
+* Improve folder structure for evaluation components
+* Model Evaluation, rename EvaluationDataSplitterOp to TargetFieldDataRemoverOp, rename ground_truth_column to target_field, rename class_names to class_labels, and remove key_columns input
+* Add model input to vertex ai model evaluation component
 
 # Release 1.0.25
 * Bigquery: Update public doc for evaluate model per customer feedback
