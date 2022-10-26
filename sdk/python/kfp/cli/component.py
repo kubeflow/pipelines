@@ -378,7 +378,7 @@ def build(components_directory: str, component_filepattern: str, engine: str,
           build_image: bool, push_image: bool):
     """Builds containers for KFP v2 Python-based components."""
 
-    if not build_image and engine != 'docker':
+    if build_image and engine != 'docker':
         warnings.warn(
             'The --engine option is deprecated and does not need to be passed. Only Docker engine is supported and will be used by default.',
             DeprecationWarning,
@@ -393,7 +393,7 @@ def build(components_directory: str, component_filepattern: str, engine: str,
             f'{components_directory} does not seem to be a valid directory.')
         raise sys.exit(1)
 
-    if not build_image and not _DOCKER_IS_PRESENT:
+    if build_image and not _DOCKER_IS_PRESENT:
         logging.error(
             'The `docker` Python package was not found in the current'
             ' environment. Please run `pip install docker` to install it.'
