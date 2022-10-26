@@ -46,7 +46,7 @@ pushd "$(dirname "$0")"
 
 CURRENT_DIR="$(pwd)"
 DIR="$CURRENT_DIR/$API_VERSION/python_http_client"
-swagger_file="$CURRENT_DIR/$API_VERSION/swagger/kfp_api_single_file.swagger.json"
+swagger_file="$CURRENT_DIR/$API_VERSION/swagger/kfp_api_${API_VERSION}_single_file.swagger.json"
 
 echo "Removing old content in DIR first."
 rm -rf "$DIR"

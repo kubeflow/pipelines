@@ -1,0 +1,264 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "backend/api/v2beta1/experiment.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/apis/v2beta1/experiments": {
+      "get": {
+        "summary": "Finds all experiments. Supports pagination, and sorting on certain fields.",
+        "operationId": "ListExperiment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beat1ListExperimentsResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page_token",
+            "description": "A page token to request the next page of results. The token is acquried\nfrom the nextPageToken field of the response from the previous\nListExperiment call or can be omitted when fetching the first page.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page_size",
+            "description": "The number of experiments to be listed per page. If there are more\nexperiments than this number, the response message will contain a\nnextPageToken field you can use to fetch the next page.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sort_by",
+            "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\"\nAscending by default.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filter",
+            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "namespace",
+            "description": "Which namespace to filter the experiments on.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ExperimentService"
+        ]
+      },
+      "post": {
+        "summary": "Creates a new experiment.",
+        "operationId": "CreateExperiment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beat1Experiment"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "The experiment to be created.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2beat1Experiment"
+            }
+          }
+        ],
+        "tags": [
+          "ExperimentService"
+        ]
+      }
+    },
+    "/apis/v2beta1/experiments/{id}": {
+      "get": {
+        "summary": "Finds a specific experiment by ID.",
+        "operationId": "GetExperiment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beat1Experiment"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "The ID of the experiment to be retrieved.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ExperimentService"
+        ]
+      },
+      "delete": {
+        "summary": "Deletes an experiment without deleting the experiment's runs and recurring \nruns. To avoid unexpected behaviors, delete an experiment's runs and recurring \nruns before deleting the experiment.",
+        "operationId": "DeleteExperiment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "The ID of the experiment to be deleted.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ExperimentService"
+        ]
+      }
+    },
+    "/apis/v2beta1/experiments/{id}:archive": {
+      "post": {
+        "summary": "Archives an experiment and the experiment's runs and recurring runs.",
+        "operationId": "ArchiveExperiment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "The ID of the experiment to be archived.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ExperimentService"
+        ]
+      }
+    },
+    "/apis/v2beta1/experiments/{id}:unarchive": {
+      "post": {
+        "summary": "Restores an archived experiment. The experiment's archived runs and recurring\nruns will stay archived.",
+        "operationId": "UnarchiveExperiment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "The ID of the experiment to be restored.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ExperimentService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "ExperimentStorageState": {
+      "type": "string",
+      "enum": [
+        "STORAGESTATE_UNSPECIFIED",
+        "STORAGESTATE_AVAILABLE",
+        "STORAGESTATE_ARCHIVED"
+      ],
+      "default": "STORAGESTATE_UNSPECIFIED"
+    },
+    "v2beat1Experiment": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Output. Unique experiment ID. Generated by API server."
+        },
+        "name": {
+          "type": "string",
+          "description": "Required input field. Unique experiment name provided by user."
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional input field. Describes the purpose of the experiment."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Output. The time that the experiment was created."
+        },
+        "namespace": {
+          "type": "string",
+          "description": "Optional input field. Specify the namespace this experiment belongs to."
+        },
+        "storage_state": {
+          "$ref": "#/definitions/ExperimentStorageState",
+          "description": "Output. Specifies whether this experiment is in archived or available state."
+        }
+      }
+    },
+    "v2beat1ListExperimentsResponse": {
+      "type": "object",
+      "properties": {
+        "experiments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v2beat1Experiment"
+          },
+          "description": "A list of experiments returned."
+        },
+        "total_size": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The number of experiments for the given query."
+        },
+        "next_page_token": {
+          "type": "string",
+          "description": "The token to list the next page of experiments."
+        }
+      }
+    }
+  }
+}
