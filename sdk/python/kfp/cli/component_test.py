@@ -386,6 +386,20 @@ class Test(unittest.TestCase):
         self._docker_client.images.push.assert_called_once_with(
             'custom-image', stream=True, decode=True)
 
+    def test_docker_client_is_not_called_to_build_or_push(self):
+        component = _make_component(
+            func_name='train', target_image='custom-image')
+        _write_components('components.py', component)
+
+        result = self.runner.invoke(
+            self.cli,
+            ['build', str(self._working_dir), '--no-build-image'],
+        )
+        self.assertEqual(result.exit_code, 0)
+
+        self._docker_client.api.build.assert_not_called()
+        self._docker_client.images.push.assert_not_called()
+
     def test_docker_client_is_called_to_build_but_skips_pushing(self):
         component = _make_component(
             func_name='train', target_image='custom-image')
