@@ -22,8 +22,9 @@ PREBUILT_REMOTE_IMAGE=gcr.io/ml-pipeline-test/api-generator@sha256:431635b564a87
 
 # Generate clients using a pre-built api-generator image.
 .PHONY: generate
-generate: hack/generator.sh *.proto
+generate: hack/generator.sh $(API_VERSION)/*.proto
 	docker run --interactive --rm \
+		-e API_VERSION=$(API_VERSION) \
 		--user $$(id -u):$$(id -g) \
 		--mount type=bind,source="$$(pwd)/../..",target=/go/src/github.com/kubeflow/pipelines \
 		$(PREBUILT_REMOTE_IMAGE) /go/src/github.com/kubeflow/pipelines/backend/api/hack/generator.sh
@@ -32,8 +33,9 @@ generate: hack/generator.sh *.proto
 # Note, this should only be used for local development purposes. Once any change is made to the Dockerfile,
 # we should push the new image remotely to ensure everyone is using the same tools.
 .PHONY: generate-from-scratch
-generate-from-scratch: .image-built hack/generator.sh *.proto
-	docker run  --interactive --rm \
+generate-from-scratch: .image-built hack/generator.sh $(API_VERSION)/*.proto
+	docker run --interactive --rm \
+		-e API_VERSION=$(API_VERSION) \
 	    --user $$(id -u):$$(id -g) \
 		--mount type=bind,source="$$(pwd)/../..",target=/go/src/github.com/kubeflow/pipelines \
 		$(IMAGE_TAG) /go/src/github.com/kubeflow/pipelines/backend/api/hack/generator.sh

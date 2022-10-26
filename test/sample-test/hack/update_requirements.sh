@@ -19,5 +19,5 @@ set -ex
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 REPO_ROOT="${DIR}/../../.."
 
-cat "${REPO_ROOT}/sdk/python/requirements.in" "${REPO_ROOT}/backend/api/python_http_client/requirements.txt" "${REPO_ROOT}/backend/requirements.in" "${DIR}/../requirements.in" | \
+cat "${REPO_ROOT}/sdk/python/requirements.in" "${REPO_ROOT}/backend/api/v1beta1/python_http_client/requirements.txt" "${REPO_ROOT}/backend/requirements.in" "${DIR}/../requirements.in" | \
     "${REPO_ROOT}/hack/update-requirements.sh" google/cloud-sdk:352.0.0 >"${DIR}/../requirements.txt"

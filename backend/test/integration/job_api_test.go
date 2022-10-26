@@ -18,12 +18,12 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/glog"
-	experimentparams "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
-	jobparams "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client/job_service"
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/job_model"
-	uploadParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	runParams "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service"
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
+	experimentparams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_client/experiment_service"
+	jobparams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_client/job_service"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_model"
+	uploadParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	runParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -50,7 +50,7 @@ type JobApiTestSuite struct {
 	swfClient            client.SwfClientInterface
 }
 
-type JobResourceReferenceSorter []*job_model.APIResourceReference
+type JobResourceReferenceSorter []*job_model.V1beta1ResourceReference
 
 func (r JobResourceReferenceSorter) Len() int           { return len(r) }
 func (r JobResourceReferenceSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
@@ -163,14 +163,14 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new hello world job by specifying pipeline ID ---------- */
-	createJobRequest := &jobparams.CreateJobParams{Body: &job_model.APIJob{
+	createJobRequest := &jobparams.CreateJobParams{Body: &job_model.V1beta1Job{
 		Name:        "hello world",
 		Description: "this is hello world",
-		ResourceReferences: []*job_model.APIResourceReference{
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
-				Relationship: job_model.APIRelationshipOWNER},
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: helloWorldPipelineVersion.ID},
-				Relationship: job_model.APIRelationshipCREATOR},
+		ResourceReferences: []*job_model.V1beta1ResourceReference{
+			{Key: &job_model.V1beta1ResourceKey{Type: job_model.V1beta1ResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
+				Relationship: job_model.V1beta1RelationshipOWNER},
+			{Key: &job_model.V1beta1ResourceKey{Type: job_model.V1beta1ResourceTypePIPELINEVERSION, ID: helloWorldPipelineVersion.ID},
+				Relationship: job_model.V1beta1RelationshipCREATOR},
 		},
 		MaxConcurrency: 10,
 		Enabled:        true,
@@ -197,19 +197,19 @@ func (s *JobApiTestSuite) TestJobApis() {
 	assert.Nil(t, err)
 	argParamsBytes, err = yaml.ToJSON(argParamsBytes)
 	assert.Nil(t, err)
-	createJobRequest = &jobparams.CreateJobParams{Body: &job_model.APIJob{
+	createJobRequest = &jobparams.CreateJobParams{Body: &job_model.V1beta1Job{
 		Name:        "argument parameter",
 		Description: "this is argument parameter",
-		PipelineSpec: &job_model.APIPipelineSpec{
+		PipelineSpec: &job_model.V1beta1PipelineSpec{
 			WorkflowManifest: string(argParamsBytes),
-			Parameters: []*job_model.APIParameter{
+			Parameters: []*job_model.V1beta1Parameter{
 				{Name: "param1", Value: "goodbye"},
 				{Name: "param2", Value: "world"},
 			},
 		},
-		ResourceReferences: []*job_model.APIResourceReference{
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: argParamsExperiment.ID},
-				Relationship: job_model.APIRelationshipOWNER},
+		ResourceReferences: []*job_model.V1beta1ResourceReference{
+			{Key: &job_model.V1beta1ResourceKey{Type: job_model.V1beta1ResourceTypeEXPERIMENT, ID: argParamsExperiment.ID},
+				Relationship: job_model.V1beta1RelationshipOWNER},
 		},
 		MaxConcurrency: 10,
 		Enabled:        true,
@@ -281,7 +281,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 
 	/* ---------- List jobs for hello world experiment. One job should be returned ---------- */
 	jobs, totalSize, _, err = s.jobClient.List(&jobparams.ListJobsParams{
-		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+		ResourceReferenceKeyType: util.StringPointer(string(run_model.V1beta1ResourceTypeEXPERIMENT)),
 		ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs))
@@ -294,7 +294,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	/* ---------- Check run for hello world job ---------- */
 	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
 		runs, totalSize, _, err := s.runClient.List(&runParams.ListRunsParams{
-			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+			ResourceReferenceKeyType: util.StringPointer(string(run_model.V1beta1ResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)})
 		if err != nil {
 			return err
@@ -314,7 +314,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 	/* ---------- Check run for argument parameter job ---------- */
 	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
 		runs, totalSize, _, err := s.runClient.List(&runParams.ListRunsParams{
-			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+			ResourceReferenceKeyType: util.StringPointer(string(run_model.V1beta1ResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(argParamsExperiment.ID)})
 		if err != nil {
 			return err
@@ -423,7 +423,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	/* ---------- Assert number of runs when catchup = true ---------- */
 	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
 		_, runsWhenCatchupTrue, _, err := s.runClient.List(&runParams.ListRunsParams{
-			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+			ResourceReferenceKeyType: util.StringPointer(string(run_model.V1beta1ResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(periodicCatchupTrueExperiment.ID)})
 		if err != nil {
 			return err
@@ -433,7 +433,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 		}
 
 		_, runsWhenCatchupTrue, _, err = s.runClient.List(&runParams.ListRunsParams{
-			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+			ResourceReferenceKeyType: util.StringPointer(string(run_model.V1beta1ResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(cronCatchupTrueExperiment.ID)})
 		if err != nil {
 			return err
@@ -449,7 +449,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	/* ---------- Assert number of runs when catchup = false ---------- */
 	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
 		_, runsWhenCatchupFalse, _, err := s.runClient.List(&runParams.ListRunsParams{
-			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+			ResourceReferenceKeyType: util.StringPointer(string(run_model.V1beta1ResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(periodicCatchupFalseExperiment.ID)})
 		if err != nil {
 			return err
@@ -459,7 +459,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 		}
 
 		_, runsWhenCatchupFalse, _, err = s.runClient.List(&runParams.ListRunsParams{
-			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
+			ResourceReferenceKeyType: util.StringPointer(string(run_model.V1beta1ResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(cronCatchupFalseExperiment.ID)})
 		if err != nil {
 			return err
@@ -473,31 +473,31 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	}
 }
 
-func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob, experimentID string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
+func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.V1beta1Job, experimentID string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
 	// Check workflow manifest is not empty
 	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "whalesay")
 
-	expectedJob := &job_model.APIJob{
+	expectedJob := &job_model.V1beta1Job{
 		ID:             job.ID,
 		Name:           "hello world",
 		Description:    "this is hello world",
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
-		PipelineSpec: &job_model.APIPipelineSpec{
+		PipelineSpec: &job_model.V1beta1PipelineSpec{
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
 		},
-		ResourceReferences: []*job_model.APIResourceReference{
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experimentID},
-				Name: experimentName, Relationship: job_model.APIRelationshipOWNER,
+		ResourceReferences: []*job_model.V1beta1ResourceReference{
+			{Key: &job_model.V1beta1ResourceKey{Type: job_model.V1beta1ResourceTypeEXPERIMENT, ID: experimentID},
+				Name: experimentName, Relationship: job_model.V1beta1RelationshipOWNER,
 			},
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
-				Name: pipelineVersionName, Relationship: job_model.APIRelationshipCREATOR},
+			{Key: &job_model.V1beta1ResourceKey{Type: job_model.V1beta1ResourceTypePIPELINEVERSION, ID: pipelineVersionId},
+				Name: pipelineVersionName, Relationship: job_model.V1beta1RelationshipCREATOR},
 		},
 		MaxConcurrency: 10,
 		Enabled:        true,
 		CreatedAt:      job.CreatedAt,
 		UpdatedAt:      job.UpdatedAt,
 		Status:         job.Status,
-		Trigger:        &job_model.APITrigger{},
+		Trigger:        &job_model.V1beta1Trigger{},
 	}
 
 	// Need to sort resource references before equality check as the order is non-deterministic
@@ -506,24 +506,24 @@ func (s *JobApiTestSuite) checkHelloWorldJob(t *testing.T, job *job_model.APIJob
 	assert.Equal(t, expectedJob, job)
 }
 
-func (s *JobApiTestSuite) checkArgParamsJob(t *testing.T, job *job_model.APIJob, experimentID string, experimentName string) {
+func (s *JobApiTestSuite) checkArgParamsJob(t *testing.T, job *job_model.V1beta1Job, experimentID string, experimentName string) {
 	// Check runtime workflow manifest is not empty
 	assert.Contains(t, job.PipelineSpec.WorkflowManifest, "arguments-parameters-")
-	expectedJob := &job_model.APIJob{
+	expectedJob := &job_model.V1beta1Job{
 		ID:             job.ID,
 		Name:           "argument parameter",
 		Description:    "this is argument parameter",
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
-		PipelineSpec: &job_model.APIPipelineSpec{
+		PipelineSpec: &job_model.V1beta1PipelineSpec{
 			WorkflowManifest: job.PipelineSpec.WorkflowManifest,
-			Parameters: []*job_model.APIParameter{
+			Parameters: []*job_model.V1beta1Parameter{
 				{Name: "param1", Value: "goodbye"},
 				{Name: "param2", Value: "world"},
 			},
 		},
-		ResourceReferences: []*job_model.APIResourceReference{
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experimentID},
-				Name: experimentName, Relationship: job_model.APIRelationshipOWNER,
+		ResourceReferences: []*job_model.V1beta1ResourceReference{
+			{Key: &job_model.V1beta1ResourceKey{Type: job_model.V1beta1ResourceTypeEXPERIMENT, ID: experimentID},
+				Name: experimentName, Relationship: job_model.V1beta1RelationshipOWNER,
 			},
 		},
 		MaxConcurrency: 10,
@@ -531,7 +531,7 @@ func (s *JobApiTestSuite) checkArgParamsJob(t *testing.T, job *job_model.APIJob,
 		CreatedAt:      job.CreatedAt,
 		UpdatedAt:      job.UpdatedAt,
 		Status:         job.Status,
-		Trigger:        &job_model.APITrigger{},
+		Trigger:        &job_model.V1beta1Trigger{},
 	}
 
 	assert.Equal(t, expectedJob, job)
@@ -545,9 +545,9 @@ func (s *JobApiTestSuite) TestJobApis_SwfNotFound() {
 	require.Nil(t, err)
 
 	/* ---------- Create a new hello world job by specifying pipeline ID ---------- */
-	createJobRequest := &jobparams.CreateJobParams{Body: &job_model.APIJob{
+	createJobRequest := &jobparams.CreateJobParams{Body: &job_model.V1beta1Job{
 		Name: "test-swf-not-found",
-		PipelineSpec: &job_model.APIPipelineSpec{
+		PipelineSpec: &job_model.V1beta1PipelineSpec{
 			PipelineID: pipeline.ID,
 		},
 		MaxConcurrency: 10,
@@ -559,9 +559,9 @@ func (s *JobApiTestSuite) TestJobApis_SwfNotFound() {
 		swfNotFoundExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
 		assert.Nil(t, err)
 
-		createJobRequest.Body.ResourceReferences = []*job_model.APIResourceReference{
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: swfNotFoundExperiment.ID},
-				Relationship: job_model.APIRelationshipOWNER,
+		createJobRequest.Body.ResourceReferences = []*job_model.V1beta1ResourceReference{
+			{Key: &job_model.V1beta1ResourceKey{Type: job_model.V1beta1ResourceTypeEXPERIMENT, ID: swfNotFoundExperiment.ID},
+				Relationship: job_model.V1beta1RelationshipOWNER,
 			},
 		}
 	}
@@ -607,7 +607,7 @@ func equal(expected, actual interface{}) bool {
 	return bytes.Equal(exp, act)
 }
 
-func (s *JobApiTestSuite) checkHelloWorldRun(run *run_model.APIRun, experimentID string, experimentName string, jobID string, jobName string) error {
+func (s *JobApiTestSuite) checkHelloWorldRun(run *run_model.V1beta1Run, experimentID string, experimentName string, jobID string, jobName string) error {
 	// Check workflow manifest is not empty
 	if !strings.Contains(run.PipelineSpec.WorkflowManifest, "whalesay") {
 		return fmt.Errorf("expected: %+v got: %+v", "whalesay", run.PipelineSpec.WorkflowManifest)
@@ -618,12 +618,12 @@ func (s *JobApiTestSuite) checkHelloWorldRun(run *run_model.APIRun, experimentID
 	}
 
 	// Check runtime workflow manifest is not empty
-	resourceReferences := []*run_model.APIResourceReference{
-		{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentID},
-			Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
+	resourceReferences := []*run_model.V1beta1ResourceReference{
+		{Key: &run_model.V1beta1ResourceKey{Type: run_model.V1beta1ResourceTypeEXPERIMENT, ID: experimentID},
+			Name: experimentName, Relationship: run_model.V1beta1RelationshipOWNER,
 		},
-		{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeJOB, ID: jobID},
-			Name: jobName, Relationship: run_model.APIRelationshipCREATOR,
+		{Key: &run_model.V1beta1ResourceKey{Type: run_model.V1beta1ResourceTypeJOB, ID: jobID},
+			Name: jobName, Relationship: run_model.V1beta1RelationshipCREATOR,
 		},
 	}
 
@@ -634,17 +634,17 @@ func (s *JobApiTestSuite) checkHelloWorldRun(run *run_model.APIRun, experimentID
 	return nil
 }
 
-func (s *JobApiTestSuite) checkArgParamsRun(run *run_model.APIRun, experimentID string, experimentName string, jobID string, jobName string) error {
+func (s *JobApiTestSuite) checkArgParamsRun(run *run_model.V1beta1Run, experimentID string, experimentName string, jobID string, jobName string) error {
 	if !strings.Contains(run.Name, "argumentparameter") {
 		return fmt.Errorf("expected: %+v got: %+v", "argumentparameter", run.Name)
 	}
 	// Check runtime workflow manifest is not empty
-	resourceReferences := []*run_model.APIResourceReference{
-		{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentID},
-			Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
+	resourceReferences := []*run_model.V1beta1ResourceReference{
+		{Key: &run_model.V1beta1ResourceKey{Type: run_model.V1beta1ResourceTypeEXPERIMENT, ID: experimentID},
+			Name: experimentName, Relationship: run_model.V1beta1RelationshipOWNER,
 		},
-		{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeJOB, ID: jobID},
-			Name: jobName, Relationship: run_model.APIRelationshipCREATOR,
+		{Key: &run_model.V1beta1ResourceKey{Type: run_model.V1beta1ResourceTypeJOB, ID: jobID},
+			Name: jobName, Relationship: run_model.V1beta1RelationshipCREATOR,
 		},
 	}
 	if !reflect.DeepEqual(resourceReferences, run.ResourceReferences) {
@@ -674,20 +674,20 @@ func (s *JobApiTestSuite) cleanUp() {
 	test.DeleteAllRuns(s.runClient, s.resourceNamespace, s.T())
 }
 
-func defaultApiJob(pipelineVersionId, experimentId string) *job_model.APIJob {
-	return &job_model.APIJob{
+func defaultApiJob(pipelineVersionId, experimentId string) *job_model.V1beta1Job {
+	return &job_model.V1beta1Job{
 		Name:        "default-pipeline-name",
 		Description: "This is a default pipeline",
-		ResourceReferences: []*job_model.APIResourceReference{
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experimentId},
-				Relationship: job_model.APIRelationshipOWNER},
-			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
-				Relationship: job_model.APIRelationshipCREATOR},
+		ResourceReferences: []*job_model.V1beta1ResourceReference{
+			{Key: &job_model.V1beta1ResourceKey{Type: job_model.V1beta1ResourceTypeEXPERIMENT, ID: experimentId},
+				Relationship: job_model.V1beta1RelationshipOWNER},
+			{Key: &job_model.V1beta1ResourceKey{Type: job_model.V1beta1ResourceTypePIPELINEVERSION, ID: pipelineVersionId},
+				Relationship: job_model.V1beta1RelationshipCREATOR},
 		},
 		MaxConcurrency: 10,
 		NoCatchup:      false,
-		Trigger: &job_model.APITrigger{
-			PeriodicSchedule: &job_model.APIPeriodicSchedule{
+		Trigger: &job_model.V1beta1Trigger{
+			PeriodicSchedule: &job_model.V1beta1PeriodicSchedule{
 				StartTime:      strfmt.NewDateTime(),
 				EndTime:        strfmt.NewDateTime(),
 				IntervalSecond: 60,
@@ -702,22 +702,22 @@ type jobOptions struct {
 	periodic                        bool
 }
 
-func jobInThePastForTwoMinutes(options jobOptions) *job_model.APIJob {
+func jobInThePastForTwoMinutes(options jobOptions) *job_model.V1beta1Job {
 	startTime := strfmt.DateTime(time.Unix(10*hour, 0))
 	endTime := strfmt.DateTime(time.Unix(10*hour+2*minute, 0))
 
 	job := defaultApiJob(options.pipelineVersionId, options.experimentId)
 	if options.periodic {
-		job.Trigger = &job_model.APITrigger{
-			PeriodicSchedule: &job_model.APIPeriodicSchedule{
+		job.Trigger = &job_model.V1beta1Trigger{
+			PeriodicSchedule: &job_model.V1beta1PeriodicSchedule{
 				StartTime:      startTime,
 				EndTime:        endTime,
 				IntervalSecond: 60, // Runs every 1 minute.
 			},
 		}
 	} else {
-		job.Trigger = &job_model.APITrigger{
-			CronSchedule: &job_model.APICronSchedule{
+		job.Trigger = &job_model.V1beta1Trigger{
+			CronSchedule: &job_model.V1beta1CronSchedule{
 				StartTime: startTime,
 				EndTime:   endTime,
 				Cron:      "0 * * * * ?", // Runs every 1 minute.
