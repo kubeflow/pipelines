@@ -8,23 +8,23 @@ import kfp
 from kfp import components
 from kfp import dsl
 
-sagemaker_hpo_op = components.load_component_from_url(
-    "https://raw.githubusercontent.com/kubeflow/pipelines/f162b248f42f0a9a8999b8e709fb05fa05b40b8d/components/aws/sagemaker/hyperparameter_tuning/component.yaml"
+sagemaker_hpo_op = components.load_component_from_file(
+    "../../../../components/aws/sagemaker/hyperparameter_tuning/component.yaml"
 )
-sagemaker_process_op = components.load_component_from_url(
-    "https://raw.githubusercontent.com/kubeflow/pipelines/f162b248f42f0a9a8999b8e709fb05fa05b40b8d/components/aws/sagemaker/process/component.yaml"
+sagemaker_process_op = components.load_component_from_file(
+    "../../../../components/aws/sagemaker/process/component.yaml"
 )
-sagemaker_TrainingJob_op = components.load_component_from_url(
-    "https://raw.githubusercontent.com/kubeflow/pipelines/58d22d4ba91b42e9c63ce88c5e349eadbe26d33b/components/aws/sagemaker/TrainingJob/component.yaml"
+sagemaker_train_op = components.load_component_from_file(
+    "../../../../components/aws/sagemaker/TrainingJob/component.yaml"
 )
-sagemaker_model_op = components.load_component_from_url(
-    "https://raw.githubusercontent.com/kubeflow/pipelines/f162b248f42f0a9a8999b8e709fb05fa05b40b8d/components/aws/sagemaker/model/component.yaml"
+sagemaker_model_op = components.load_component_from_file(
+    "../../../../components/aws/sagemaker/model/component.yaml"
 )
-sagemaker_deploy_op = components.load_component_from_url(
-    "https://raw.githubusercontent.com/kubeflow/pipelines/f162b248f42f0a9a8999b8e709fb05fa05b40b8d/components/aws/sagemaker/deploy/component.yaml"
+sagemaker_deploy_op = components.load_component_from_file(
+    "../../../../components/aws/sagemaker/deploy/component.yaml"
 )
-sagemaker_batch_transform_op = components.load_component_from_url(
-    "https://raw.githubusercontent.com/kubeflow/pipelines/f162b248f42f0a9a8999b8e709fb05fa05b40b8d/components/aws/sagemaker/batch_transform/component.yaml"
+sagemaker_batch_transform_op = components.load_component_from_file(
+    "../../../../components/aws/sagemaker/batch_transform/component.yaml"
 )
 
 
@@ -138,10 +138,10 @@ def mnist_classification(role_arn="", bucket_name=""):
 
     trainingJobName = "sample-mnist-v2-trainingjob" + str(random.randint(0, 999999))
 
-    training = sagemaker_TrainingJob_op(
+    training = sagemaker_train_op(
         region=region,
         algorithm_specification={
-            "trainingImage": "382416733822.dkr.ecr.us-east-1.amazonaws.com/kmeans:1",
+            "trainingImage": train_image,
             "trainingInputMode": "File",
         },
         hyper_parameters=hpo.outputs["best_hyperparameters"],
