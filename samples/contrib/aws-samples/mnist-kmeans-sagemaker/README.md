@@ -4,7 +4,7 @@ The mnist-classification-pipeline.py sample pipeline shows how to create an end 
 
 ## Prerequisites 
 
-1. Make sure you have set up your EKS cluster as described in this [README.md](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/README.md).
+1. Make sure you have completed all the pre-requisites mentioned in this [README.md](https://github.com/kubeflow/pipelines/blob/master/samples/contrib/aws-samples/README.md).
 
 ### Sample MNIST dataset
 
@@ -17,20 +17,21 @@ The following commands will copy the data extraction pre-processing script to an
 
 2. [Create a bucket](https://docs.aws.amazon.com/AmazonS3/latest/gsg/CreatingABucket.html) in `us-east-1` region. 
 For the purposes of this demonstration, all resources will be created in the us-east-1 region.
+    -  Specify your S3_BUCKET_NAME
+        ```
+        export S3_BUCKET_NAME=
+        ```
+    ```
+    export SAGEMAKER_REGION=us-east-1
+    if [[ $SAGEMAKER_REGION == "us-east-1" ]]; then
+        aws s3api create-bucket --bucket ${S3_BUCKET_NAME} --region ${SAGEMAKER_REGION}
+    else
+        aws s3api create-bucket --bucket ${S3_BUCKET_NAME} --region ${SAGEMAKER_REGION} \
+        --create-bucket-configuration LocationConstraint=${SAGEMAKER_REGION}
+    fi
 
-```
-export SAGEMAKER_REGION=us-east-1
-export S3_BUCKET_NAME=""
-
-if [[ $SAGEMAKER_REGION == "us-east-1" ]]; then
-    aws s3api create-bucket --bucket ${S3_BUCKET_NAME} --region ${SAGEMAKER_REGION}
-else
-    aws s3api create-bucket --bucket ${S3_BUCKET_NAME} --region ${SAGEMAKER_REGION} \
-    --create-bucket-configuration LocationConstraint=${SAGEMAKER_REGION}
-fi
-
-echo ${S3_BUCKET_NAME}
-```
+    echo ${S3_BUCKET_NAME}
+    ```
 3. Upload the `mnist-kmeans-sagemaker/kmeans_preprocessing.py` file to your bucket with the prefix `mnist_kmeans_example/processing_code/kmeans_preprocessing.py`.
     ```
     aws s3 cp kmeans_preprocessing.py s3://${S3_BUCKET_NAME}/mnist_kmeans_example/processing_code/kmeans_preprocessing.py
