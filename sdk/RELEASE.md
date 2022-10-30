@@ -10,6 +10,7 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
+* Allow ephemeral-storage as a runtime resource [\#7574](https://github.com/kubeflow/pipelines/pull/7574)
 
 ## Documentation Updates
 # 1.8.14
