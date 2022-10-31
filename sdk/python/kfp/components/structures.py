@@ -457,18 +457,25 @@ class Implementation(base_model.BaseModel):
 
 
 def check_primitive_placeholder_is_used_for_correct_io_type(
-    placeholder: Union[placeholders.Placeholder, Any],
     inputs_dict: Dict[str, InputSpec],
     outputs_dict: Dict[str, OutputSpec],
+    arg: Union[placeholders.Placeholder, Any],
 ):
-    if placeholder is None:
+    """Validates input/output placeholders refer to an input/output with an appropriate type for the placeholder. This should only apply to components loaded from v1 component YAML, where the YAML is authored directly. For v2 YAML, this is encapsulated in the DSL logic which does not permit writing incorrect placeholders.
+
+    Args:
+        inputs_dict: The existing input names.
+        outputs_dict: The existing output names.
+        arg: The command line element, which may be a placeholder.
+    """
+    if arg is None:
         return None
 
-    elif isinstance(placeholder, (str, int, float, bool)):
-        return str(placeholder)
+    elif isinstance(arg, (str, int, float, bool)):
+        return str(arg)
 
-    elif isinstance(placeholder, placeholders.InputValuePlaceholder):
-        input_name = placeholder.input_name
+    elif isinstance(arg, placeholders.InputValuePlaceholder):
+        input_name = arg.input_name
         if not type_utils.is_parameter_type(inputs_dict[input_name].type):
             raise TypeError(
                 f'Input "{input_name}" with type '
@@ -476,28 +483,29 @@ def check_primitive_placeholder_is_used_for_correct_io_type(
                 'InputValuePlaceholder.')
 
     elif isinstance(
-            placeholder,
+            arg,
         (placeholders.InputUriPlaceholder, placeholders.InputPathPlaceholder)):
-        input_name = placeholder.input_name
+        input_name = arg.input_name
         if type_utils.is_parameter_type(inputs_dict[input_name].type):
             raise TypeError(
                 f'Input "{input_name}" with type '
                 f'"{inputs_dict[input_name].type}" cannot be paired with '
-                f'{placeholder.__class__.__name__}.')
+                f'{arg.__class__.__name__}.')
 
-    elif isinstance(placeholder, placeholders.OutputUriPlaceholder):
-        output_name = placeholder.output_name
+    elif isinstance(arg, placeholders.OutputUriPlaceholder):
+        output_name = arg.output_name
         if type_utils.is_parameter_type(outputs_dict[output_name].type):
             raise TypeError(
                 f'Output "{output_name}" with type '
                 f'"{outputs_dict[output_name].type}" cannot be paired with '
-                f'{placeholder.__class__.__name__}.')
+                f'{arg.__class__.__name__}.')
 
 
 def check_placeholder_references_valid_io_name(
-        valid_inputs: Dict[str, InputSpec], valid_outputs: Dict[str,
-                                                                OutputSpec],
-        placeholder: placeholders.CommandLineElement) -> None:
+    inputs_dict: Dict[str, InputSpec],
+    outputs_dict: Dict[str, OutputSpec],
+    arg: placeholders.CommandLineElement,
+) -> None:
     """Validates input/output placeholders refer to an existing input/output.
 
     Args:
@@ -511,49 +519,46 @@ def check_placeholder_references_valid_io_name(
         TypeError: if any argument is neither a str nor a placeholder
             instance.
     """
-    if isinstance(placeholder, ContainerComponentArtifactChannel):
+    if isinstance(arg, ContainerComponentArtifactChannel):
         raise ValueError(
             'Cannot access artifact by itself in the container definition. Please use .uri or .path instead to access the artifact.'
         )
-    elif isinstance(placeholder, placeholders.PRIMITIVE_INPUT_PLACEHOLDERS):
-        if placeholder.input_name not in valid_inputs:
+    elif isinstance(arg, placeholders.PRIMITIVE_INPUT_PLACEHOLDERS):
+        if arg.input_name not in inputs_dict:
             raise ValueError(
-                f'Argument "{placeholder}" references nonexistant input: "{placeholder.input_name}".'
+                f'Argument "{arg}" references nonexistant input: "{arg.input_name}".'
             )
         check_primitive_placeholder_is_used_for_correct_io_type(
-            placeholder,
-            inputs_dict=valid_inputs,
-            outputs_dict=valid_outputs,
+            inputs_dict=inputs_dict,
+            outputs_dict=outputs_dict,
+            arg=arg,
         )
-    elif isinstance(placeholder, placeholders.PRIMITIVE_OUTPUT_PLACEHOLDERS):
-        if placeholder.output_name not in valid_outputs:
+    elif isinstance(arg, placeholders.PRIMITIVE_OUTPUT_PLACEHOLDERS):
+        if arg.output_name not in outputs_dict:
             raise ValueError(
-                f'Argument "{placeholder}" references nonexistant output: "{placeholder.output_name}".'
+                f'Argument "{arg}" references nonexistant output: "{arg.output_name}".'
             )
         check_primitive_placeholder_is_used_for_correct_io_type(
-            placeholder,
-            inputs_dict=valid_inputs,
-            outputs_dict=valid_outputs,
+            inputs_dict=inputs_dict,
+            outputs_dict=outputs_dict,
+            arg=arg,
         )
-    elif isinstance(placeholder, placeholders.IfPresentPlaceholder):
-        if placeholder.input_name not in valid_inputs:
+    elif isinstance(arg, placeholders.IfPresentPlaceholder):
+        if arg.input_name not in inputs_dict:
             raise ValueError(
-                f'Argument "{placeholder}" references nonexistant input: "{placeholder.input_name}".'
+                f'Argument "{arg}" references nonexistant input: "{arg.input_name}".'
             )
-        for placeholder in itertools.chain(placeholder.then or [],
-                                           placeholder.else_ or []):
-            check_placeholder_references_valid_io_name(valid_inputs,
-                                                       valid_outputs,
-                                                       placeholder)
-    elif isinstance(placeholder, placeholders.ConcatPlaceholder):
-        for placeholder in placeholder.items:
-            check_placeholder_references_valid_io_name(valid_inputs,
-                                                       valid_outputs,
-                                                       placeholder)
-    elif not isinstance(placeholder, placeholders.ExecutorInputPlaceholder
-                       ) and not isinstance(placeholder, str):
-        raise TypeError(
-            f'Unexpected argument "{placeholder}" of type {type(placeholder)}.')
+        for arg in itertools.chain(arg.then or [], arg.else_ or []):
+            check_placeholder_references_valid_io_name(inputs_dict,
+                                                       outputs_dict, arg)
+    elif isinstance(arg, placeholders.ConcatPlaceholder):
+        for arg in arg.items:
+            check_placeholder_references_valid_io_name(inputs_dict,
+                                                       outputs_dict, arg)
+    elif not isinstance(
+            arg, placeholders.ExecutorInputPlaceholder) and not isinstance(
+                arg, str):
+        raise TypeError(f'Unexpected argument "{arg}" of type {type(arg)}.')
 
 
 class ComponentSpec(base_model.BaseModel):
