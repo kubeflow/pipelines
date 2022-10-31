@@ -80,7 +80,7 @@ spec:
                "--db_user=$(DBCONFIG_USER)",
                "--db_password=$(DBCONFIG_PASSWORD)",
                "--namespace_to_watch=$(NAMESPACE_TO_WATCH)",
-               "--listen_port=$(WEBHOOK_PORT)"
+               "--listen_port=$(WEBHOOK_PORT)",
               ]
         imagePullPolicy: Always
         ports:
