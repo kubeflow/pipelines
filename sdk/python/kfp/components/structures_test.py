@@ -21,7 +21,6 @@ import unittest
 from absl.testing import parameterized
 from google.protobuf import json_format
 from kfp import compiler
-from kfp import components
 from kfp import dsl
 from kfp.components import component_factory
 from kfp.components import placeholders
@@ -957,78 +956,6 @@ class TestRetryPolicy(unittest.TestCase):
         self.assertEqual(retry_policy_struct.backoff_duration, '5s')
         self.assertEqual(retry_policy_struct.backoff_factor, 1.0)
         self.assertEqual(retry_policy_struct.backoff_max_duration, '1s')
-
-
-class TestInvalidV1ComponeneYaml(parameterized.TestCase):
-
-    def test_misused_inputvalueplaceholder(self):
-
-        with self.assertRaisesRegex(
-                TypeError,
-                'Input "model" with type "system.Model@0.0.1" cannot be paired with InputValuePlaceholder.'
-        ):
-            downstream_op = components.load_component_from_text("""
-            name: compoent with misused placeholder
-            inputs:
-            - {name: model, type: Model}
-            implementation:
-              container:
-                image: dummy
-                args:
-                  - {inputValue: model}
-            """)
-
-    def test_misused_inputpathplaceholder(self):
-
-        with self.assertRaisesRegex(
-                TypeError,
-                ' type "String" cannot be paired with InputPathPlaceholder.'):
-            component_op = components.load_component_from_text("""
-            name: compoent with misused placeholder
-            inputs:
-            - {name: text, type: String}
-            implementation:
-              container:
-                image: dummy
-                args:
-                - {inputPath: text}
-            """)
-
-            @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
-            def my_pipeline(text: str):
-                component_op(text=text)
-
-    def test_misused_inputuriplaceholder(self):
-
-        with self.assertRaisesRegex(
-                TypeError,
-                ' type "Float" cannot be paired with InputUriPlaceholder.'):
-            component_op = components.load_component_from_text("""
-            name: compoent with misused placeholder
-            inputs:
-            - {name: value, type: Float}
-            implementation:
-              container:
-                image: dummy
-                args:
-                - {inputUri: value}
-            """)
-
-    def test_misused_outputuriplaceholder(self):
-
-        with self.assertRaisesRegex(
-                TypeError,
-                ' type "Integer" cannot be paired with OutputUriPlaceholder.'):
-            component_op = components.load_component_from_text("""
-            name: compoent with misused placeholder
-            outputs:
-            - {name: value, type: Integer}
-            implementation:
-              container:
-                image: dummy
-                args:
-                - {outputUri: value}
-            """)
 
 
 if __name__ == '__main__':

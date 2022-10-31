@@ -456,51 +456,6 @@ class Implementation(base_model.BaseModel):
             return Implementation(graph=pipeline_spec)
 
 
-def check_primitive_placeholder_is_used_for_correct_io_type(
-    inputs_dict: Dict[str, InputSpec],
-    outputs_dict: Dict[str, OutputSpec],
-    arg: Union[placeholders.Placeholder, Any],
-):
-    """Validates input/output placeholders refer to an input/output with an appropriate type for the placeholder. This should only apply to components loaded from v1 component YAML, where the YAML is authored directly. For v2 YAML, this is encapsulated in the DSL logic which does not permit writing incorrect placeholders.
-
-    Args:
-        inputs_dict: The existing input names.
-        outputs_dict: The existing output names.
-        arg: The command line element, which may be a placeholder.
-    """
-    if arg is None:
-        return None
-
-    elif isinstance(arg, (str, int, float, bool)):
-        return str(arg)
-
-    elif isinstance(arg, placeholders.InputValuePlaceholder):
-        input_name = arg.input_name
-        if not type_utils.is_parameter_type(inputs_dict[input_name].type):
-            raise TypeError(
-                f'Input "{input_name}" with type '
-                f'"{inputs_dict[input_name].type}" cannot be paired with '
-                'InputValuePlaceholder.')
-
-    elif isinstance(
-            arg,
-        (placeholders.InputUriPlaceholder, placeholders.InputPathPlaceholder)):
-        input_name = arg.input_name
-        if type_utils.is_parameter_type(inputs_dict[input_name].type):
-            raise TypeError(
-                f'Input "{input_name}" with type '
-                f'"{inputs_dict[input_name].type}" cannot be paired with '
-                f'{arg.__class__.__name__}.')
-
-    elif isinstance(arg, placeholders.OutputUriPlaceholder):
-        output_name = arg.output_name
-        if type_utils.is_parameter_type(outputs_dict[output_name].type):
-            raise TypeError(
-                f'Output "{output_name}" with type '
-                f'"{outputs_dict[output_name].type}" cannot be paired with '
-                f'{arg.__class__.__name__}.')
-
-
 def check_placeholder_references_valid_io_name(
     inputs_dict: Dict[str, InputSpec],
     outputs_dict: Dict[str, OutputSpec],
@@ -528,21 +483,11 @@ def check_placeholder_references_valid_io_name(
             raise ValueError(
                 f'Argument "{arg}" references nonexistant input: "{arg.input_name}".'
             )
-        check_primitive_placeholder_is_used_for_correct_io_type(
-            inputs_dict=inputs_dict,
-            outputs_dict=outputs_dict,
-            arg=arg,
-        )
     elif isinstance(arg, placeholders.PRIMITIVE_OUTPUT_PLACEHOLDERS):
         if arg.output_name not in outputs_dict:
             raise ValueError(
                 f'Argument "{arg}" references nonexistant output: "{arg.output_name}".'
             )
-        check_primitive_placeholder_is_used_for_correct_io_type(
-            inputs_dict=inputs_dict,
-            outputs_dict=outputs_dict,
-            arg=arg,
-        )
     elif isinstance(arg, placeholders.IfPresentPlaceholder):
         if arg.input_name not in inputs_dict:
             raise ValueError(
