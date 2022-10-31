@@ -182,7 +182,6 @@ class TestContainerPlaceholdersTogether(parameterized.TestCase):
         ]),
          """{"Concat": ["a", {"Concat": ["b", {"Concat": ["c", "{{$.inputs.parameters['input2']}}"]}]}]}"""
         ),
-        # TODO(cjmccarthy): what should be allowed?
         (placeholders.ConcatPlaceholder([
             'a',
             placeholders.ConcatPlaceholder([
