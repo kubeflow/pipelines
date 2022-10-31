@@ -137,59 +137,6 @@ class TestCompilePipeline(parameterized.TestCase):
                 with dsl.Condition(flip.output == 'heads'):
                     flip_coin_graph_component()
 
-    def test_compile_pipeline_with_misused_inputvalue_should_raise_error(self):
-
-        upstream_op = components.load_component_from_text("""
-        name: upstream compoent
-        outputs:
-        - {name: model, type: Model}
-        implementation:
-          container:
-            image: dummy
-            args:
-            - {outputPath: model}
-        """)
-        downstream_op = components.load_component_from_text("""
-        name: compoent with misused placeholder
-        inputs:
-        - {name: model, type: Model}
-        implementation:
-          container:
-            image: dummy
-            args:
-            - {inputValue: model}
-        """)
-
-        with self.assertRaisesRegex(
-                TypeError,
-                ' type "system.Model@0.0.1" cannot be paired with InputValuePlaceholder.'
-        ):
-
-            @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
-            def my_pipeline():
-                downstream_op(model=upstream_op().output)
-
-    def test_compile_pipeline_with_misused_inputpath_should_raise_error(self):
-
-        component_op = components.load_component_from_text("""
-        name: compoent with misused placeholder
-        inputs:
-        - {name: text, type: String}
-        implementation:
-          container:
-            image: dummy
-            args:
-            - {inputPath: text}
-        """)
-
-        with self.assertRaisesRegex(
-                TypeError,
-                ' type "String" cannot be paired with InputPathPlaceholder.'):
-
-            @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
-            def my_pipeline(text: str):
-                component_op(text=text)
-
     def test_compile_pipeline_with_missing_task_should_raise_error(self):
 
         with self.assertRaisesRegex(ValueError,
@@ -198,48 +145,6 @@ class TestCompilePipeline(parameterized.TestCase):
             @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
             def my_pipeline(text: str):
                 pass
-
-    def test_compile_pipeline_with_misused_inputuri_should_raise_error(self):
-
-        component_op = components.load_component_from_text("""
-        name: compoent with misused placeholder
-        inputs:
-        - {name: value, type: Float}
-        implementation:
-          container:
-            image: dummy
-            args:
-            - {inputUri: value}
-        """)
-
-        with self.assertRaisesRegex(
-                TypeError,
-                ' type "Float" cannot be paired with InputUriPlaceholder.'):
-
-            @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
-            def my_pipeline(value: float):
-                component_op(value=value)
-
-    def test_compile_pipeline_with_misused_outputuri_should_raise_error(self):
-
-        component_op = components.load_component_from_text("""
-        name: compoent with misused placeholder
-        outputs:
-        - {name: value, type: Integer}
-        implementation:
-          container:
-            image: dummy
-            args:
-            - {outputUri: value}
-        """)
-
-        with self.assertRaisesRegex(
-                TypeError,
-                ' type "Integer" cannot be paired with OutputUriPlaceholder.'):
-
-            @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
-            def my_pipeline():
-                component_op()
 
     def test_compile_pipeline_with_invalid_name_should_raise_error(self):
 

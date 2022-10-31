@@ -86,9 +86,10 @@ class PipelineTaskTest(parameterized.TestCase):
                     image='alpine',
                     command=['sh', '-c', 'echo "$0" >> "$1"'],
                     args=[
-                        placeholders.InputValuePlaceholder(input_name='input1'),
+                        placeholders.InputValuePlaceholder(
+                            input_name='input1').to_string(),
                         placeholders.OutputPathPlaceholder(
-                            output_name='output1'),
+                            output_name='output1').to_string(),
                     ],
                 )),
             inputs={
@@ -121,15 +122,6 @@ class PipelineTaskTest(parameterized.TestCase):
         self.assertEqual(task._task_spec, expected_task_spec)
         self.assertEqual(task.component_spec, expected_component_spec)
         self.assertEqual(task.container_spec, expected_container_spec)
-
-    def test_create_pipeline_task_invalid_missing_required_input(self):
-        with self.assertRaisesRegex(ValueError,
-                                    'No value provided for input: input1.'):
-            task = pipeline_task.PipelineTask(
-                component_spec=structures.ComponentSpec
-                .load_from_component_yaml(V2_YAML),
-                args={},
-            )
 
     def test_create_pipeline_task_invalid_wrong_input(self):
         with self.assertRaisesRegex(
