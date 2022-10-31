@@ -26,7 +26,7 @@ from kfp.components.types import type_utils
 class Placeholder(abc.ABC, base_model.BaseModel):
 
     @abc.abstractmethod
-    def to_string(self) -> str:
+    def _to_string(self) -> str:
         raise NotImplementedError
 
     def __str__(self) -> str:
@@ -42,7 +42,7 @@ class Placeholder(abc.ABC, base_model.BaseModel):
 
 class ExecutorInputPlaceholder(Placeholder):
 
-    def to_string(self) -> str:
+    def _to_string(self) -> str:
         return '{{$}}'
 
 
@@ -51,7 +51,7 @@ class InputValuePlaceholder(Placeholder):
     def __init__(self, input_name: str) -> None:
         self.input_name = input_name
 
-    def to_string(self) -> str:
+    def _to_string(self) -> str:
         return f"{{{{$.inputs.parameters['{self.input_name}']}}}}"
 
 
@@ -60,7 +60,7 @@ class InputPathPlaceholder(Placeholder):
     def __init__(self, input_name: str) -> None:
         self.input_name = input_name
 
-    def to_string(self) -> str:
+    def _to_string(self) -> str:
         return f"{{{{$.inputs.artifacts['{self.input_name}'].path}}}}"
 
 
@@ -69,7 +69,7 @@ class InputUriPlaceholder(Placeholder):
     def __init__(self, input_name: str) -> None:
         self.input_name = input_name
 
-    def to_string(self) -> str:
+    def _to_string(self) -> str:
         return f"{{{{$.inputs.artifacts['{self.input_name}'].uri}}}}"
 
 
@@ -78,7 +78,7 @@ class InputMetadataPlaceholder(Placeholder):
     def __init__(self, input_name: str) -> None:
         self.input_name = input_name
 
-    def to_string(self) -> str:
+    def _to_string(self) -> str:
         return f"{{{{$.inputs.artifacts['{self.input_name}'].metadata}}}}"
 
 
@@ -87,7 +87,7 @@ class OutputParameterPlaceholder(Placeholder):
     def __init__(self, output_name: str) -> None:
         self.output_name = output_name
 
-    def to_string(self) -> str:
+    def _to_string(self) -> str:
         return f"{{{{$.outputs.parameters['{self.output_name}'].output_file}}}}"
 
 
@@ -96,7 +96,7 @@ class OutputPathPlaceholder(Placeholder):
     def __init__(self, output_name: str) -> None:
         self.output_name = output_name
 
-    def to_string(self) -> str:
+    def _to_string(self) -> str:
         return f"{{{{$.outputs.artifacts['{self.output_name}'].path}}}}"
 
 
@@ -105,7 +105,7 @@ class OutputUriPlaceholder(Placeholder):
     def __init__(self, output_name: str) -> None:
         self.output_name = output_name
 
-    def to_string(self) -> str:
+    def _to_string(self) -> str:
         return f"{{{{$.outputs.artifacts['{self.output_name}'].uri}}}}"
 
 
@@ -114,7 +114,7 @@ class OutputMetadataPlaceholder(Placeholder):
     def __init__(self, output_name: str) -> None:
         self.output_name = output_name
 
-    def to_string(self) -> str:
+    def _to_string(self) -> str:
         return f"{{{{$.outputs.artifacts['{self.output_name}'].metadata}}}}"
 
 
@@ -144,7 +144,7 @@ class ConcatPlaceholder(Placeholder):
     def __init__(self, items: List['CommandLineElement']) -> None:
         self.items = items
 
-    def to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> Dict[str, Any]:
         return {
             'Concat': [
                 convert_command_line_element_to_string_or_struct(item)
@@ -152,8 +152,8 @@ class ConcatPlaceholder(Placeholder):
             ]
         }
 
-    def to_string(self) -> str:
-        return json.dumps(self.to_dict())
+    def _to_string(self) -> str:
+        return json.dumps(self._to_dict())
 
 
 class IfPresentPlaceholder(Placeholder):
@@ -198,7 +198,7 @@ class IfPresentPlaceholder(Placeholder):
         self.then = then
         self.else_ = else_
 
-    def to_dict(self) -> Dict[str, Any]:
+    def _to_dict(self) -> Dict[str, Any]:
         struct = {
             'IfPresent': {
                 'InputName':
@@ -221,8 +221,8 @@ class IfPresentPlaceholder(Placeholder):
                     self.else_)
         return struct
 
-    def to_string(self) -> str:
-        return json.dumps(self.to_dict())
+    def _to_string(self) -> str:
+        return json.dumps(self._to_dict())
 
 
 CONTAINER_PLACEHOLDERS = (IfPresentPlaceholder, ConcatPlaceholder)
@@ -241,14 +241,14 @@ CommandLineElement = Union[str, IfPresentPlaceholder, ConcatPlaceholder,
 
 def convert_command_line_element_to_string(
         element: Union[str, Placeholder]) -> str:
-    return element.to_string() if isinstance(element, Placeholder) else element
+    return element._to_string() if isinstance(element, Placeholder) else element
 
 
 def convert_command_line_element_to_string_or_struct(
         element: Union[Placeholder, Any]) -> Any:
     if isinstance(element, Placeholder):
-        return element.to_dict() if isinstance(
-            element, CONTAINER_PLACEHOLDERS) else element.to_string()
+        return element._to_dict() if isinstance(
+            element, CONTAINER_PLACEHOLDERS) else element._to_string()
 
     return element
 

@@ -26,14 +26,14 @@ class TestContainerComponentArtifactChannel(unittest.TestCase):
         out_channel = component_factory.ContainerComponentArtifactChannel(
             'output', 'my_result')
         self.assertEqual(
-            in_channel.uri.to_string(),
-            placeholders.InputUriPlaceholder('my_dataset').to_string())
+            in_channel.uri._to_string(),
+            placeholders.InputUriPlaceholder('my_dataset')._to_string())
         self.assertEqual(
-            out_channel.path.to_string(),
-            placeholders.OutputPathPlaceholder('my_result').to_string())
+            out_channel.path._to_string(),
+            placeholders.OutputPathPlaceholder('my_result')._to_string())
         self.assertEqual(
-            out_channel.metadata.to_string(),
-            placeholders.OutputMetadataPlaceholder('my_result').to_string())
+            out_channel.metadata._to_string(),
+            placeholders.OutputMetadataPlaceholder('my_result')._to_string())
         self.assertRaisesRegex(AttributeError,
                                r'Cannot access artifact attribute "name"',
                                lambda: in_channel.name)

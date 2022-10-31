@@ -87,9 +87,9 @@ class PipelineTaskTest(parameterized.TestCase):
                     command=['sh', '-c', 'echo "$0" >> "$1"'],
                     args=[
                         placeholders.InputValuePlaceholder(
-                            input_name='input1').to_string(),
+                            input_name='input1')._to_string(),
                         placeholders.OutputPathPlaceholder(
-                            output_name='output1').to_string(),
+                            output_name='output1')._to_string(),
                     ],
                 )),
             inputs={

@@ -21,7 +21,7 @@ from kfp.components import placeholders
 class TestExecutorInputPlaceholder(parameterized.TestCase):
 
     def test(self):
-        self.assertEqual(placeholders.ExecutorInputPlaceholder().to_string(),
+        self.assertEqual(placeholders.ExecutorInputPlaceholder()._to_string(),
                          '{{$}}')
 
 
@@ -29,7 +29,7 @@ class TestInputValuePlaceholder(parameterized.TestCase):
 
     def test(self):
         self.assertEqual(
-            placeholders.InputValuePlaceholder('input1').to_string(),
+            placeholders.InputValuePlaceholder('input1')._to_string(),
             "{{$.inputs.parameters['input1']}}")
 
 
@@ -37,7 +37,7 @@ class TestInputPathPlaceholder(parameterized.TestCase):
 
     def test(self):
         self.assertEqual(
-            placeholders.InputPathPlaceholder('input1').to_string(),
+            placeholders.InputPathPlaceholder('input1')._to_string(),
             "{{$.inputs.artifacts['input1'].path}}")
 
 
@@ -45,7 +45,7 @@ class TestInputUriPlaceholder(parameterized.TestCase):
 
     def test(self):
         self.assertEqual(
-            placeholders.InputUriPlaceholder('input1').to_string(),
+            placeholders.InputUriPlaceholder('input1')._to_string(),
             "{{$.inputs.artifacts['input1'].uri}}")
 
 
@@ -53,7 +53,7 @@ class TestInputMetadataPlaceholder(parameterized.TestCase):
 
     def test(self):
         self.assertEqual(
-            placeholders.InputMetadataPlaceholder('input1').to_string(),
+            placeholders.InputMetadataPlaceholder('input1')._to_string(),
             "{{$.inputs.artifacts['input1'].metadata}}")
 
 
@@ -61,7 +61,7 @@ class TestOutputPathPlaceholder(parameterized.TestCase):
 
     def test(self):
         self.assertEqual(
-            placeholders.OutputPathPlaceholder('output1').to_string(),
+            placeholders.OutputPathPlaceholder('output1')._to_string(),
             "{{$.outputs.artifacts['output1'].path}}")
 
 
@@ -69,7 +69,7 @@ class TestOutputParameterPlaceholder(parameterized.TestCase):
 
     def test(self):
         self.assertEqual(
-            placeholders.OutputParameterPlaceholder('output1').to_string(),
+            placeholders.OutputParameterPlaceholder('output1')._to_string(),
             "{{$.outputs.parameters['output1'].output_file}}")
 
 
@@ -77,7 +77,7 @@ class TestOutputUriPlaceholder(parameterized.TestCase):
 
     def test(self):
         self.assertEqual(
-            placeholders.OutputUriPlaceholder('output1').to_string(),
+            placeholders.OutputUriPlaceholder('output1')._to_string(),
             "{{$.outputs.artifacts['output1'].uri}}")
 
 
@@ -85,7 +85,7 @@ class TestOutputMetadataPlaceholder(parameterized.TestCase):
 
     def test(self):
         self.assertEqual(
-            placeholders.OutputMetadataPlaceholder('output1').to_string(),
+            placeholders.OutputMetadataPlaceholder('output1')._to_string(),
             "{{$.outputs.artifacts['output1'].metadata}}")
 
 
@@ -112,7 +112,7 @@ class TestIfPresentPlaceholderStructure(parameterized.TestCase):
     def test_strings_and_lists(
             self, placeholder_obj: placeholders.IfPresentPlaceholder,
             placeholder: str):
-        self.assertEqual(placeholder_obj.to_string(), placeholder)
+        self.assertEqual(placeholder_obj._to_string(), placeholder)
 
     @parameterized.parameters([
         (placeholders.IfPresentPlaceholder(
@@ -137,7 +137,7 @@ class TestIfPresentPlaceholderStructure(parameterized.TestCase):
     def test_with_primitive_placeholders(
             self, placeholder_obj: placeholders.IfPresentPlaceholder,
             placeholder: str):
-        self.assertEqual(placeholder_obj.to_string(), placeholder)
+        self.assertEqual(placeholder_obj._to_string(), placeholder)
 
 
 class TestConcatPlaceholder(parameterized.TestCase):
@@ -148,7 +148,7 @@ class TestConcatPlaceholder(parameterized.TestCase):
     ])
     def test_strings(self, placeholder_obj: placeholders.ConcatPlaceholder,
                      placeholder_string: str):
-        self.assertEqual(placeholder_obj.to_string(), placeholder_string)
+        self.assertEqual(placeholder_obj._to_string(), placeholder_string)
 
     @parameterized.parameters([
         (placeholders.ConcatPlaceholder([
@@ -161,7 +161,7 @@ class TestConcatPlaceholder(parameterized.TestCase):
     def test_primitive_placeholders(
             self, placeholder_obj: placeholders.ConcatPlaceholder,
             placeholder_string: str):
-        self.assertEqual(placeholder_obj.to_string(), placeholder_string)
+        self.assertEqual(placeholder_obj._to_string(), placeholder_string)
 
 
 class TestContainerPlaceholdersTogether(parameterized.TestCase):
@@ -229,7 +229,7 @@ class TestContainerPlaceholdersTogether(parameterized.TestCase):
     ])
     def test(self, placeholder_obj: placeholders.IfPresentPlaceholder,
              placeholder: str):
-        self.assertEqual(placeholder_obj.to_string(), placeholder)
+        self.assertEqual(placeholder_obj._to_string(), placeholder)
 
 
 class TestConvertCommandLineElementToStringOrStruct(parameterized.TestCase):
