@@ -122,6 +122,9 @@ class ConcatPlaceholder(Placeholder):
     """Placeholder for concatenating multiple strings. May contain other
     placeholders.
 
+    Args:
+        items: Elements to concatenate.
+
     Examples:
       ::
 
@@ -139,7 +142,6 @@ class ConcatPlaceholder(Placeholder):
     """
 
     def __init__(self, items: List['CommandLineElement']) -> None:
-        # """Elements to concatenate."""
         self.items = items
 
     def to_dict(self) -> Dict[str, Any]:
@@ -157,6 +159,11 @@ class ConcatPlaceholder(Placeholder):
 class IfPresentPlaceholder(Placeholder):
     """Placeholder for handling cases where an input may or may not be passed.
     May contain other placeholders.
+
+    Args:
+        input_name: Name of the input/output.
+        then: If the input/output specified in name is present, the command-line argument will be replaced at run-time by the value of then.
+        else_: If the input/output specified in name is not present, the command-line argument will be replaced at run-time by the value of else_.
 
     Examples:
       ::
