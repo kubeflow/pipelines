@@ -93,7 +93,7 @@ setuptools.setup(
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    python_requires='>=3.7.0',
+    python_requires='>=3.7.0,<3.12.0',
     include_package_data=True,
     entry_points={
         'console_scripts': [
