@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Contains tests for kfp.components.placeholders."""
+import os
+import tempfile
 from typing import Any
-
+from kfp import compiler
 from absl.testing import parameterized
 from kfp.components import placeholders
 
@@ -89,7 +91,7 @@ class TestOutputMetadataPlaceholder(parameterized.TestCase):
             "{{$.outputs.artifacts['output1'].metadata}}")
 
 
-class TestIfPresentPlaceholderStructure(parameterized.TestCase):
+class TestIfPresentPlaceholder(parameterized.TestCase):
 
     @parameterized.parameters([
         (placeholders.IfPresentPlaceholder(
@@ -138,6 +140,57 @@ class TestIfPresentPlaceholderStructure(parameterized.TestCase):
             self, placeholder_obj: placeholders.IfPresentPlaceholder,
             placeholder: str):
         self.assertEqual(placeholder_obj._to_string(), placeholder)
+
+
+    def test_if_present_with_single_element_simple_can_be_compiled(self):
+
+        @dsl.container_component
+        def container_component(a: str):
+            return dsl.ContainerSpec(
+                image='alpine',
+                command=[
+                    placeholders.IfPresentPlaceholder(
+                        input_name='a', then='b', else_='c')
+                ])
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=container_component, package_path=output_yaml)
+
+    def test_if_present_with_single_element_parameter_reference_can_be_compiled(
+            self):
+
+        @dsl.container_component
+        def container_component(a: str):
+            return dsl.ContainerSpec(
+                image='alpine',
+                command=[
+                    placeholders.IfPresentPlaceholder(
+                        input_name='a', then=a, else_='c')
+                ])
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=container_component, package_path=output_yaml)
+
+    def test_if_present_with_single_element_artifact_reference_can_be_compiled(
+            self):
+
+        @dsl.container_component
+        def container_component(a: dsl.Input[dsl.Artifact]):
+            return dsl.ContainerSpec(
+                image='alpine',
+                command=[
+                    placeholders.IfPresentPlaceholder(
+                        input_name='a', then=a.path, else_='c')
+                ])
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=container_component, package_path=output_yaml)
 
 
 class TestConcatPlaceholder(parameterized.TestCase):

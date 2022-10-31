@@ -493,7 +493,23 @@ def check_placeholder_references_valid_io_name(
             raise ValueError(
                 f'Argument "{arg}" references nonexistant input: "{arg.input_name}".'
             )
-        for arg in itertools.chain(arg.then or [], arg.else_ or []):
+
+        all_normalized_args: List[Union[str, placeholders.Placeholder]] = []
+        if arg.then is None:
+            pass
+        elif isinstance(arg.then, list):
+            all_normalized_args.extend(arg.then)
+        else:
+            all_normalized_args.append(arg.then)
+
+        if arg.else_ is None:
+            pass
+        elif isinstance(arg.else_, list):
+            all_normalized_args.extend(arg.else_)
+        else:
+            all_normalized_args.append(arg.else_)
+
+        for arg in all_normalized_args:
             check_placeholder_references_valid_io_name(inputs_dict,
                                                        outputs_dict, arg)
     elif isinstance(arg, placeholders.ConcatPlaceholder):
