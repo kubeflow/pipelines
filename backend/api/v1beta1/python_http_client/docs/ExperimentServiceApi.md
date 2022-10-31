@@ -1,4 +1,4 @@
-# kfp_server_api_v1beta1.ExperimentServiceApi
+# kfp_server_api.ExperimentServiceApi
 
 All URIs are relative to *http://localhost*
 
@@ -23,12 +23,12 @@ Archives an experiment and the experiment's runs and jobs.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -38,7 +38,7 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -48,9 +48,9 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api_v1beta1.ApiClient(configuration) as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api_v1beta1.ExperimentServiceApi(api_client)
+    api_instance = kfp_server_api.ExperimentServiceApi(api_client)
     id = 'id_example' # str | The ID of the experiment to be archived.
 
     try:
@@ -99,12 +99,12 @@ Creates a new experiment.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -114,7 +114,7 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -124,10 +124,10 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api_v1beta1.ApiClient(configuration) as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api_v1beta1.ExperimentServiceApi(api_client)
-    body = kfp_server_api_v1beta1.V1beta1Experiment() # V1beta1Experiment | The experiment to be created.
+    api_instance = kfp_server_api.ExperimentServiceApi(api_client)
+    body = kfp_server_api.V1beta1Experiment() # V1beta1Experiment | The experiment to be created.
 
     try:
         # Creates a new experiment.
@@ -175,12 +175,12 @@ Deletes an experiment without deleting the experiment's runs and jobs. To avoid 
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -190,7 +190,7 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -200,9 +200,9 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api_v1beta1.ApiClient(configuration) as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api_v1beta1.ExperimentServiceApi(api_client)
+    api_instance = kfp_server_api.ExperimentServiceApi(api_client)
     id = 'id_example' # str | The ID of the experiment to be deleted.
 
     try:
@@ -251,12 +251,12 @@ Finds a specific experiment by ID.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -266,7 +266,7 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -276,9 +276,9 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api_v1beta1.ApiClient(configuration) as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api_v1beta1.ExperimentServiceApi(api_client)
+    api_instance = kfp_server_api.ExperimentServiceApi(api_client)
     id = 'id_example' # str | The ID of the experiment to be retrieved.
 
     try:
@@ -327,12 +327,12 @@ Finds all experiments. Supports pagination, and sorting on certain fields.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -342,7 +342,7 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -352,9 +352,9 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api_v1beta1.ApiClient(configuration) as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api_v1beta1.ExperimentServiceApi(api_client)
+    api_instance = kfp_server_api.ExperimentServiceApi(api_client)
     page_token = 'page_token_example' # str | A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call or can be omitted when fetching the first page. (optional)
 page_size = 56 # int | The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a nextPageToken field you can use to fetch the next page. (optional)
 sort_by = 'sort_by_example' # str | Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\" Ascending by default. (optional)
@@ -413,12 +413,12 @@ Restores an archived experiment. The experiment's archived runs and jobs will st
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -428,7 +428,7 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -438,9 +438,9 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api_v1beta1.ApiClient(configuration) as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api_v1beta1.ExperimentServiceApi(api_client)
+    api_instance = kfp_server_api.ExperimentServiceApi(api_client)
     id = 'id_example' # str | The ID of the experiment to be restored.
 
     try:

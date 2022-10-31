@@ -12,7 +12,7 @@
 
 from setuptools import setup, find_packages  # noqa: H301
 
-NAME = "kfp-server-api-v2beta1"
+NAME = "kfp-server-api"
 VERSION = "2.0.0-alpha.6"
 # To install the library, run the following
 #
