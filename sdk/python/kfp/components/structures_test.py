@@ -21,6 +21,7 @@ import unittest
 from absl.testing import parameterized
 from google.protobuf import json_format
 from kfp import compiler
+from kfp import components
 from kfp import dsl
 from kfp.components import component_factory
 from kfp.components import placeholders
@@ -42,7 +43,7 @@ V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
               - {inputUri: optional_input_1}
         image: alpine
     inputs:
-    - {name: optional_input_1, optional: true, type: String}
+    - {name: optional_input_1, optional: true, type: system.Artifact}
     name: component_if
     """)
 
@@ -65,7 +66,8 @@ COMPONENT_SPEC_IF_PLACEHOLDER = structures.ComponentSpec(
                     ])
             ])),
     inputs={
-        'optional_input_1': structures.InputSpec(type='String', default=None)
+        'optional_input_1':
+            structures.InputSpec(type='system.Artifact@0.0.1', default=None)
     },
 )
 
@@ -192,7 +194,7 @@ class StructuresTest(parameterized.TestCase):
             self):
         with self.assertRaisesRegex(
                 ValueError,
-                r'^Argument \"InputValuePlaceholder[\s\S]*\'input000\'[\s\S]*references non-existing input.'
+                r'^Argument "InputValuePlaceholder" references nonexistant input: "input000".'
         ):
             structures.ComponentSpec(
                 name='component_1',
@@ -215,7 +217,7 @@ class StructuresTest(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 ValueError,
-                r'^Argument \"OutputPathPlaceholder[\s\S]*\'output000\'[\s\S]*references non-existing output.'
+                r'^Argument "OutputPathPlaceholder" references nonexistant output: "output000".'
         ):
             structures.ComponentSpec(
                 name='component_1',
@@ -244,12 +246,9 @@ class StructuresTest(parameterized.TestCase):
                 container=structures.ContainerSpecImplementation(
                     image='alpine',
                     command=[
-                        'sh',
-                        '-c',
-                        'set -ex\necho "$0" > "$1"',
-                        placeholders.InputValuePlaceholder(input_name='input1'),
-                        placeholders.OutputParameterPlaceholder(
-                            output_name='output1'),
+                        'sh', '-c', 'set -ex\necho "$0" > "$1"',
+                        "{{$.inputs.parameters['input1']}}",
+                        "{{$.outputs.parameters['output1'].output_file}}"
                     ],
                 )),
             inputs={'input1': structures.InputSpec(type='String')},
@@ -337,9 +336,8 @@ sdkVersion: kfp-2.0.0-alpha.2
                         'sh',
                         '-c',
                         'set -ex\necho "$0" > "$1"',
-                        placeholders.InputValuePlaceholder(input_name='input1'),
-                        placeholders.OutputParameterPlaceholder(
-                            output_name='output1'),
+                        "{{$.inputs.parameters['input1']}}",
+                        "{{$.outputs.parameters['output1'].output_file}}",
                     ],
                 )),
             inputs={'input1': structures.InputSpec(type='String')},
@@ -415,9 +413,9 @@ sdkVersion: kfp-2.0.0-alpha.2
                             input_name='input_parameter'),
                         placeholders.InputPathPlaceholder(
                             input_name='input_artifact'),
-                        placeholders.OutputParameterPlaceholder(
+                        placeholders.OutputPathPlaceholder(
                             output_name='output_1'),
-                        placeholders.OutputParameterPlaceholder(
+                        placeholders.OutputPathPlaceholder(
                             output_name='output_2'),
                     ],
                     env={},
@@ -731,9 +729,8 @@ sdkVersion: kfp-2.0.0-alpha.2""")
                     image='alpine',
                     command=['sh', '-c', 'echo "$0" >> "$1"'],
                     args=[
-                        placeholders.InputValuePlaceholder(input_name='input1'),
-                        placeholders.OutputPathPlaceholder(
-                            output_name='output1')
+                        "{{$.inputs.parameters['input1']}}",
+                        "{{$.outputs.artifacts['output1'].path}}",
                     ],
                     env=None,
                     resources=None),
@@ -801,8 +798,7 @@ sdkVersion: kfp-2.0.0-alpha.2""")
                     command=['sh', '-c', 'echo "$0" "$1"'],
                     args=[
                         'input: ',
-                        placeholders.InputValuePlaceholder(
-                            input_name='optional_input_1')
+                        "{{$.inputs.parameters['optional_input_1']}}",
                     ],
                     env=None,
                     resources=None),
@@ -871,13 +867,10 @@ sdkVersion: kfp-2.0.0-alpha.2""")
                 container=structures.ContainerSpecImplementation(
                     image='alpine',
                     command=[
-                        'sh', '-c', 'echo "$0"',
-                        placeholders.ConcatPlaceholder(items=[
-                            placeholders.InputValuePlaceholder(
-                                input_name='input1'),
-                            placeholders.InputValuePlaceholder(
-                                input_name='input2')
-                        ])
+                        'sh',
+                        '-c',
+                        'echo "$0"',
+                        "{{$.inputs.parameters['input1']}}+{{$.inputs.parameters['input2']}}",
                     ],
                     args=None,
                     env=None,
@@ -964,6 +957,78 @@ class TestRetryPolicy(unittest.TestCase):
         self.assertEqual(retry_policy_struct.backoff_duration, '5s')
         self.assertEqual(retry_policy_struct.backoff_factor, 1.0)
         self.assertEqual(retry_policy_struct.backoff_max_duration, '1s')
+
+
+class TestInvalidV1ComponeneYaml(parameterized.TestCase):
+
+    def test_misused_inputvalueplaceholder(self):
+
+        with self.assertRaisesRegex(
+                TypeError,
+                'Input "model" with type "system.Model@0.0.1" cannot be paired with InputValuePlaceholder.'
+        ):
+            downstream_op = components.load_component_from_text("""
+            name: compoent with misused placeholder
+            inputs:
+            - {name: model, type: Model}
+            implementation:
+              container:
+                image: dummy
+                args:
+                  - {inputValue: model}
+            """)
+
+    def test_misused_inputpathplaceholder(self):
+
+        with self.assertRaisesRegex(
+                TypeError,
+                ' type "String" cannot be paired with InputPathPlaceholder.'):
+            component_op = components.load_component_from_text("""
+            name: compoent with misused placeholder
+            inputs:
+            - {name: text, type: String}
+            implementation:
+              container:
+                image: dummy
+                args:
+                - {inputPath: text}
+            """)
+
+            @dsl.pipeline(name='test-pipeline', pipeline_root='dummy_root')
+            def my_pipeline(text: str):
+                component_op(text=text)
+
+    def test_misused_inputuriplaceholder(self):
+
+        with self.assertRaisesRegex(
+                TypeError,
+                ' type "Float" cannot be paired with InputUriPlaceholder.'):
+            component_op = components.load_component_from_text("""
+            name: compoent with misused placeholder
+            inputs:
+            - {name: value, type: Float}
+            implementation:
+              container:
+                image: dummy
+                args:
+                - {inputUri: value}
+            """)
+
+    def test_misused_outputuriplaceholder(self):
+
+        with self.assertRaisesRegex(
+                TypeError,
+                ' type "Integer" cannot be paired with OutputUriPlaceholder.'):
+            component_op = components.load_component_from_text("""
+            name: compoent with misused placeholder
+            outputs:
+            - {name: value, type: Integer}
+            implementation:
+              container:
+                image: dummy
+                args:
+                - {outputUri: value}
+            """)
 
 
 if __name__ == '__main__':
