@@ -105,15 +105,8 @@ V1_YAML_NESTED_PLACEHOLDER = textwrap.dedent("""\
             - if:
                 cond:
                     isPresent: input_prefix
-                else:
-                - --arg2
-                - default
-                - concat:
-                    - --arg1
-                    - {inputValue: input_prefix}
-                then:
-                - --arg1
-                - {inputValue: input_prefix}
+                then: {inputValue: input_prefix}
+                else: default
         image: alpine
     inputs:
     - {name: input_prefix, optional: false, type: String}
@@ -129,21 +122,10 @@ COMPONENT_SPEC_NESTED_PLACEHOLDER = structures.ComponentSpec(
                     '--arg1',
                     placeholders.IfPresentPlaceholder(
                         input_name='input_prefix',
-                        then=[
-                            '--arg1',
-                            placeholders.InputValuePlaceholder(
-                                input_name='input_prefix'),
-                        ],
-                        else_=[
-                            '--arg2',
-                            'default',
-                            placeholders.ConcatPlaceholder(items=[
-                                '--arg1',
-                                placeholders.InputValuePlaceholder(
-                                    input_name='input_prefix'),
-                            ]),
-                        ]),
-                ])
+                        then=placeholders.InputValuePlaceholder(
+                            input_name='input_prefix'),
+                        else_='default'),
+                ]),
             ])),
     inputs={'input_prefix': structures.InputSpec(type='String')},
 )

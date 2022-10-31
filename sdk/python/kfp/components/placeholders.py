@@ -142,6 +142,9 @@ class ConcatPlaceholder(Placeholder):
     """
 
     def __init__(self, items: List['CommandLineElement']) -> None:
+        for item in items:
+            if isinstance(item, IfPresentPlaceholder):
+                item._validate_then_and_else_are_only_single_element()
         self.items = items
 
     def _to_dict(self) -> Dict[str, Any]:
@@ -197,6 +200,36 @@ class IfPresentPlaceholder(Placeholder):
         self.input_name = input_name
         self.then = then
         self.else_ = else_
+
+    def _validate_then_and_else_are_only_single_element(self) -> None:
+        """Rercursively validate that then and else contain only a single
+        element.
+
+        This method should only be called by a ConcatPlaceholder, which
+        cannot have an IfPresentPlaceholder with a list in either 'then'
+        or 'else_'.
+        """
+
+        # the illegal state
+        if isinstance(self.then, list) or isinstance(self.else_, list):
+            raise ValueError(
+                f'Cannot use {IfPresentPlaceholder.__name__} within {ConcatPlaceholder.__name__} when `then` and `else_` arguments to {IfPresentPlaceholder.__name__} are lists. Please use a single element for `then` and `else_` only.'
+            )
+
+        # check that there is no illegal state found recursively
+        if isinstance(self.then, ConcatPlaceholder):
+            for item in self.then.items:
+                if isinstance(item, IfPresentPlaceholder):
+                    item._validate_then_and_else_are_only_single_element()
+        elif isinstance(self.then, IfPresentPlaceholder):
+            self.then._validate_then_and_else_are_only_single_element()
+
+        if isinstance(self.else_, ConcatPlaceholder):
+            for item in self.else_.items:
+                if isinstance(item, IfPresentPlaceholder):
+                    item._validate_then_and_else_are_only_single_element()
+        elif isinstance(self.else_, IfPresentPlaceholder):
+            self.else_._validate_then_and_else_are_only_single_element()
 
     def _to_dict(self) -> Dict[str, Any]:
         struct = {
