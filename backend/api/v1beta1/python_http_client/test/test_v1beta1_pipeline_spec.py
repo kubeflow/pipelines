@@ -15,9 +15,9 @@ from __future__ import absolute_import
 import unittest
 import datetime
 
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.models.v1beta1_pipeline_spec import V1beta1PipelineSpec  # noqa: E501
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.models.v1beta1_pipeline_spec import V1beta1PipelineSpec  # noqa: E501
+from kfp_server_api.rest import ApiException
 
 class TestV1beta1PipelineSpec(unittest.TestCase):
     """V1beta1PipelineSpec unit test stubs"""
@@ -33,7 +33,7 @@ class TestV1beta1PipelineSpec(unittest.TestCase):
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api_v1beta1.models.v1beta1_pipeline_spec.V1beta1PipelineSpec()  # noqa: E501
+        # model = kfp_server_api.models.v1beta1_pipeline_spec.V1beta1PipelineSpec()  # noqa: E501
         if include_optional :
             return V1beta1PipelineSpec(
                 pipeline_id = '0', 
@@ -41,11 +41,11 @@ class TestV1beta1PipelineSpec(unittest.TestCase):
                 workflow_manifest = '0', 
                 pipeline_manifest = '0', 
                 parameters = [
-                    kfp_server_api_v1beta1.models.v1beta1_parameter.v1beta1Parameter(
+                    kfp_server_api.models.v1beta1_parameter.v1beta1Parameter(
                         name = '0', 
                         value = '0', )
                     ], 
-                runtime_config = kfp_server_api_v1beta1.models.pipeline_spec_runtime_config.PipelineSpecRuntimeConfig(
+                runtime_config = kfp_server_api.models.pipeline_spec_runtime_config.PipelineSpecRuntimeConfig(
                     parameters = {
                         'key' : None
                         }, 

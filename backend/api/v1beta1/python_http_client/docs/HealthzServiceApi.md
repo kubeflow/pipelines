@@ -1,4 +1,4 @@
-# kfp_server_api_v1beta1.HealthzServiceApi
+# kfp_server_api.HealthzServiceApi
 
 All URIs are relative to *http://localhost*
 
@@ -18,12 +18,12 @@ Get healthz data.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -33,7 +33,7 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -43,9 +43,9 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api_v1beta1.ApiClient(configuration) as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api_v1beta1.HealthzServiceApi(api_client)
+    api_instance = kfp_server_api.HealthzServiceApi(api_client)
     
     try:
         # Get healthz data.

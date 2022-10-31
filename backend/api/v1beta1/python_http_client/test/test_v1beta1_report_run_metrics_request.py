@@ -15,9 +15,9 @@ from __future__ import absolute_import
 import unittest
 import datetime
 
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.models.v1beta1_report_run_metrics_request import V1beta1ReportRunMetricsRequest  # noqa: E501
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.models.v1beta1_report_run_metrics_request import V1beta1ReportRunMetricsRequest  # noqa: E501
+from kfp_server_api.rest import ApiException
 
 class TestV1beta1ReportRunMetricsRequest(unittest.TestCase):
     """V1beta1ReportRunMetricsRequest unit test stubs"""
@@ -33,12 +33,12 @@ class TestV1beta1ReportRunMetricsRequest(unittest.TestCase):
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api_v1beta1.models.v1beta1_report_run_metrics_request.V1beta1ReportRunMetricsRequest()  # noqa: E501
+        # model = kfp_server_api.models.v1beta1_report_run_metrics_request.V1beta1ReportRunMetricsRequest()  # noqa: E501
         if include_optional :
             return V1beta1ReportRunMetricsRequest(
                 run_id = '0', 
                 metrics = [
-                    kfp_server_api_v1beta1.models.v1beta1_run_metric.v1beta1RunMetric(
+                    kfp_server_api.models.v1beta1_run_metric.v1beta1RunMetric(
                         name = '0', 
                         node_id = '0', 
                         number_value = 1.337, 

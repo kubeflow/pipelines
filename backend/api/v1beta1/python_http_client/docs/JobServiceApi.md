@@ -1,4 +1,4 @@
-# kfp_server_api_v1beta1.JobServiceApi
+# kfp_server_api.JobServiceApi
 
 All URIs are relative to *http://localhost*
 
@@ -23,12 +23,12 @@ Creates a new job.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -38,7 +38,7 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -48,10 +48,10 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api_v1beta1.ApiClient(configuration) as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api_v1beta1.JobServiceApi(api_client)
-    body = kfp_server_api_v1beta1.V1beta1Job() # V1beta1Job | The job to be created
+    api_instance = kfp_server_api.JobServiceApi(api_client)
+    body = kfp_server_api.V1beta1Job() # V1beta1Job | The job to be created
 
     try:
         # Creates a new job.
@@ -99,12 +99,12 @@ Deletes a job.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -114,7 +114,7 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -124,9 +124,9 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api_v1beta1.ApiClient(configuration) as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api_v1beta1.JobServiceApi(api_client)
+    api_instance = kfp_server_api.JobServiceApi(api_client)
     id = 'id_example' # str | The ID of the job to be deleted
 
     try:
@@ -175,12 +175,12 @@ Stops a job and all its associated runs. The job is not deleted.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -190,7 +190,7 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -200,9 +200,9 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api_v1beta1.ApiClient(configuration) as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api_v1beta1.JobServiceApi(api_client)
+    api_instance = kfp_server_api.JobServiceApi(api_client)
     id = 'id_example' # str | The ID of the job to be disabled
 
     try:
@@ -251,12 +251,12 @@ Restarts a job that was previously stopped. All runs associated with the job wil
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -266,7 +266,7 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -276,9 +276,9 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api_v1beta1.ApiClient(configuration) as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api_v1beta1.JobServiceApi(api_client)
+    api_instance = kfp_server_api.JobServiceApi(api_client)
     id = 'id_example' # str | The ID of the job to be enabled
 
     try:
@@ -327,12 +327,12 @@ Finds a specific job by ID.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -342,7 +342,7 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -352,9 +352,9 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api_v1beta1.ApiClient(configuration) as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api_v1beta1.JobServiceApi(api_client)
+    api_instance = kfp_server_api.JobServiceApi(api_client)
     id = 'id_example' # str | The ID of the job to be retrieved
 
     try:
@@ -403,12 +403,12 @@ Finds all jobs.
 ```python
 from __future__ import print_function
 import time
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.rest import ApiException
 from pprint import pprint
 # Defining the host is optional and defaults to http://localhost
 # See configuration.py for a list of all supported configuration parameters.
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
@@ -418,7 +418,7 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # satisfies your auth use case.
 
 # Configure API key authorization: Bearer
-configuration = kfp_server_api_v1beta1.Configuration(
+configuration = kfp_server_api.Configuration(
     host = "http://localhost",
     api_key = {
         'authorization': 'YOUR_API_KEY'
@@ -428,9 +428,9 @@ configuration = kfp_server_api_v1beta1.Configuration(
 # configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api_v1beta1.ApiClient(configuration) as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
-    api_instance = kfp_server_api_v1beta1.JobServiceApi(api_client)
+    api_instance = kfp_server_api.JobServiceApi(api_client)
     page_token = 'page_token_example' # str | A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListJobs call or can be omitted when fetching the first page. (optional)
 page_size = 56 # int | The number of jobs to be listed per page. If there are more jobs than this number, the response message will contain a nextPageToken field you can use to fetch the next page. (optional)
 sort_by = 'sort_by_example' # str | Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\". Ascending by default. (optional)

@@ -15,9 +15,9 @@ from __future__ import absolute_import
 import unittest
 import datetime
 
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.models.v1beta1_experiment_storage_state import V1beta1ExperimentStorageState  # noqa: E501
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.models.v1beta1_experiment_storage_state import V1beta1ExperimentStorageState  # noqa: E501
+from kfp_server_api.rest import ApiException
 
 class TestV1beta1ExperimentStorageState(unittest.TestCase):
     """V1beta1ExperimentStorageState unit test stubs"""
@@ -33,7 +33,7 @@ class TestV1beta1ExperimentStorageState(unittest.TestCase):
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api_v1beta1.models.v1beta1_experiment_storage_state.V1beta1ExperimentStorageState()  # noqa: E501
+        # model = kfp_server_api.models.v1beta1_experiment_storage_state.V1beta1ExperimentStorageState()  # noqa: E501
         if include_optional :
             return V1beta1ExperimentStorageState(
             )

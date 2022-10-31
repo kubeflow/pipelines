@@ -15,9 +15,9 @@ from __future__ import absolute_import
 import unittest
 import datetime
 
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.models.v1beta1_report_run_metrics_response import V1beta1ReportRunMetricsResponse  # noqa: E501
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.models.v1beta1_report_run_metrics_response import V1beta1ReportRunMetricsResponse  # noqa: E501
+from kfp_server_api.rest import ApiException
 
 class TestV1beta1ReportRunMetricsResponse(unittest.TestCase):
     """V1beta1ReportRunMetricsResponse unit test stubs"""
@@ -33,11 +33,11 @@ class TestV1beta1ReportRunMetricsResponse(unittest.TestCase):
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api_v1beta1.models.v1beta1_report_run_metrics_response.V1beta1ReportRunMetricsResponse()  # noqa: E501
+        # model = kfp_server_api.models.v1beta1_report_run_metrics_response.V1beta1ReportRunMetricsResponse()  # noqa: E501
         if include_optional :
             return V1beta1ReportRunMetricsResponse(
                 results = [
-                    kfp_server_api_v1beta1.models.report_run_metrics_response_report_run_metric_result.ReportRunMetricsResponseReportRunMetricResult(
+                    kfp_server_api.models.report_run_metrics_response_report_run_metric_result.ReportRunMetricsResponseReportRunMetricResult(
                         metric_name = '0', 
                         metric_node_id = '0', 
                         status = 'UNSPECIFIED', 

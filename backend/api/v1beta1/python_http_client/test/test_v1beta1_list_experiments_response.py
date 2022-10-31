@@ -15,9 +15,9 @@ from __future__ import absolute_import
 import unittest
 import datetime
 
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.models.v1beta1_list_experiments_response import V1beta1ListExperimentsResponse  # noqa: E501
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.models.v1beta1_list_experiments_response import V1beta1ListExperimentsResponse  # noqa: E501
+from kfp_server_api.rest import ApiException
 
 class TestV1beta1ListExperimentsResponse(unittest.TestCase):
     """V1beta1ListExperimentsResponse unit test stubs"""
@@ -33,18 +33,18 @@ class TestV1beta1ListExperimentsResponse(unittest.TestCase):
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api_v1beta1.models.v1beta1_list_experiments_response.V1beta1ListExperimentsResponse()  # noqa: E501
+        # model = kfp_server_api.models.v1beta1_list_experiments_response.V1beta1ListExperimentsResponse()  # noqa: E501
         if include_optional :
             return V1beta1ListExperimentsResponse(
                 experiments = [
-                    kfp_server_api_v1beta1.models.v1beta1_experiment.v1beta1Experiment(
+                    kfp_server_api.models.v1beta1_experiment.v1beta1Experiment(
                         id = '0', 
                         name = '0', 
                         description = '0', 
                         created_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                         resource_references = [
-                            kfp_server_api_v1beta1.models.v1beta1_resource_reference.v1beta1ResourceReference(
-                                key = kfp_server_api_v1beta1.models.v1beta1_resource_key.v1beta1ResourceKey(
+                            kfp_server_api.models.v1beta1_resource_reference.v1beta1ResourceReference(
+                                key = kfp_server_api.models.v1beta1_resource_key.v1beta1ResourceKey(
                                     type = 'UNKNOWN_RESOURCE_TYPE', 
                                     id = '0', ), 
                                 name = '0', 

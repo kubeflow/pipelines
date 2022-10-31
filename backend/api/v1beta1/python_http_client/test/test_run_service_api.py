@@ -14,16 +14,16 @@ from __future__ import absolute_import
 
 import unittest
 
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.api.run_service_api import RunServiceApi  # noqa: E501
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.api.run_service_api import RunServiceApi  # noqa: E501
+from kfp_server_api.rest import ApiException
 
 
 class TestRunServiceApi(unittest.TestCase):
     """RunServiceApi unit test stubs"""
 
     def setUp(self):
-        self.api = kfp_server_api_v1beta1.api.run_service_api.RunServiceApi()  # noqa: E501
+        self.api = kfp_server_api.api.run_service_api.RunServiceApi()  # noqa: E501
 
     def tearDown(self):
         pass

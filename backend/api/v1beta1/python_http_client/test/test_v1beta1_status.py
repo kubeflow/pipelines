@@ -15,9 +15,9 @@ from __future__ import absolute_import
 import unittest
 import datetime
 
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.models.v1beta1_status import V1beta1Status  # noqa: E501
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.models.v1beta1_status import V1beta1Status  # noqa: E501
+from kfp_server_api.rest import ApiException
 
 class TestV1beta1Status(unittest.TestCase):
     """V1beta1Status unit test stubs"""
@@ -33,13 +33,13 @@ class TestV1beta1Status(unittest.TestCase):
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api_v1beta1.models.v1beta1_status.V1beta1Status()  # noqa: E501
+        # model = kfp_server_api.models.v1beta1_status.V1beta1Status()  # noqa: E501
         if include_optional :
             return V1beta1Status(
                 error = '0', 
                 code = 56, 
                 details = [
-                    kfp_server_api_v1beta1.models.protobuf_any.protobufAny(
+                    kfp_server_api.models.protobuf_any.protobufAny(
                         type_url = '0', 
                         value = 'YQ==', )
                     ]

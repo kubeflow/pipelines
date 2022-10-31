@@ -14,16 +14,16 @@ from __future__ import absolute_import
 
 import unittest
 
-import kfp_server_api_v2beta1
-from kfp_server_api_v2beta1.api.experiment_service_api import ExperimentServiceApi  # noqa: E501
-from kfp_server_api_v2beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.api.experiment_service_api import ExperimentServiceApi  # noqa: E501
+from kfp_server_api.rest import ApiException
 
 
 class TestExperimentServiceApi(unittest.TestCase):
     """ExperimentServiceApi unit test stubs"""
 
     def setUp(self):
-        self.api = kfp_server_api_v2beta1.api.experiment_service_api.ExperimentServiceApi()  # noqa: E501
+        self.api = kfp_server_api.api.experiment_service_api.ExperimentServiceApi()  # noqa: E501
 
     def tearDown(self):
         pass
