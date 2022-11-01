@@ -28,7 +28,7 @@ from kfp.components.types import type_utils
 def create_pipeline_task(
     component_spec: structures.ComponentSpec,
     args: Mapping[str, Any],
-) -> 'PipelineTask':  # pytype: disable=name-error
+) -> 'PipelineTask':
     return PipelineTask(component_spec=component_spec, args=args)
 
 
