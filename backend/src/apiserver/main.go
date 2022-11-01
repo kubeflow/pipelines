@@ -38,7 +38,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/serverv2"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/server_v2"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -113,7 +113,7 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	apiv1beta1.RegisterAuthServiceServer(s, server.NewAuthServer(resourceManager))
 
 	// Register v2beta1 api
-	apiv2beta1.RegisterExperimentServiceServer(s, serverv2.NewExperimentServer(resourceManager, &serverv2.ExperimentServerOptions{CollectMetrics: *collectMetricsFlag}))
+	apiv2beta1.RegisterExperimentServiceServer(s, server_v2.NewExperimentServer(resourceManager, &server_v2.ExperimentServerOptions{CollectMetrics: *collectMetricsFlag}))
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)

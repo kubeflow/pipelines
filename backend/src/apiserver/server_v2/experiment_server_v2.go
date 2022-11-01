@@ -1,18 +1,18 @@
-package serverv2
+package server_v2
 
 import (
 	"context"
 
 	"github.com/golang/protobuf/ptypes/empty"
 	api "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
-	// "github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	// "github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
-	// "github.com/kubeflow/pipelines/backend/src/common/util"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	// "github.com/pkg/errors"
 	// "github.com/prometheus/client_golang/prometheus"
 	// "github.com/prometheus/client_golang/prometheus/promauto"
-	// authorizationv1 "k8s.io/api/authorization/v1"
+	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
 // Metric variables. Please prefix the metric names with experiment_server_.
@@ -70,37 +70,36 @@ type ExperimentServer struct {
 func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *api.CreateExperimentRequest) (
 	*api.Experiment, error) {
 	/*
-		if s.options.CollectMetrics {
-			createExperimentRequests.Inc()
-		}
+		TODO: add authorization
+				if s.options.CollectMetrics {
+				createExperimentRequests.Inc()
+			}
 	*/
 
-	/*
-		err := ValidateCreateExperimentRequest(request)
-		if err != nil {
-			return nil, util.Wrap(err, "Validate experiment request failed.")
-		}
+	err := common.ValidateCreateExperimentRequest(request)
+	if err != nil {
+		return nil, util.Wrap(err, "Validate experiment request failed.")
+	}
 
-		resourceAttributes := &authorizationv1.ResourceAttributes{
-			Namespace: common.GetNamespaceFromAPIResourceReferences(request.Experiment.ResourceReferences),
-			Verb:      common.RbacResourceVerbCreate,
-			Name:      request.Experiment.Name,
-		}
-		err = s.canAccessExperiment(ctx, "", resourceAttributes)
-		if err != nil {
-			return nil, util.Wrap(err, "Failed to authorize the request")
-		}
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: common.GetNamespaceFromAPIResourceReferences(request.Experiment.ResourceReferences),
+		Verb:      common.RbacResourceVerbCreate,
+		Name:      request.Experiment.Name,
+	}
+	err = s.canAccessExperiment(ctx, "", resourceAttributes)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
 
-		newExperiment, err := s.resourceManager.CreateExperiment(request.Experiment)
-		if err != nil {
-			return nil, util.Wrap(err, "Create experiment failed.")
-		}
+	newExperiment, err := s.resourceManager.CreateExperiment(request.Experiment)
+	if err != nil {
+		return nil, util.Wrap(err, "Create experiment failed.")
+	}
 
-		if s.options.CollectMetrics {
-			experimentCount.Inc()
-		}
-		return ToApiExperiment(newExperiment), nil
-	*/
+	if s.options.CollectMetrics {
+		experimentCount.Inc()
+	}
+	return common.ToApiExperiment(newExperiment), nil
 
 	return request.Experiment, nil
 }
@@ -176,7 +175,7 @@ func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.List
 			return nil, util.Wrap(err, "List experiments failed.")
 		}
 		return &api.ListExperimentsResponse{
-				Experiments:   ToApiExperiments(experiments),
+				Experiments:   common.ToApiExperiments(experiments),
 				TotalSize:     int32(total_size),
 				NextPageToken: nextPageToken},
 			nil

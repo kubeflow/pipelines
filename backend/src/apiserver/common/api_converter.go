@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package server
+package util
 
 import (
 	"encoding/json"
@@ -26,7 +26,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func ToApiExperiment(experiment *model.Experiment) *api.Experiment {
+func common.ToApiExperiment(experiment *model.Experiment) *api.Experiment {
 	resourceReferences := []*api.ResourceReference(nil)
 	if common.IsMultiUserMode() {
 		resourceReferences = []*api.ResourceReference{
@@ -49,10 +49,10 @@ func ToApiExperiment(experiment *model.Experiment) *api.Experiment {
 	}
 }
 
-func ToApiExperiments(experiments []*model.Experiment) []*api.Experiment {
+func common.ToApiExperiments(experiments []*model.Experiment) []*api.Experiment {
 	apiExperiments := make([]*api.Experiment, 0)
 	for _, experiment := range experiments {
-		apiExperiments = append(apiExperiments, ToApiExperiment(experiment))
+		apiExperiments = append(apiExperiments, common.ToApiExperiment(experiment))
 	}
 	return apiExperiments
 }

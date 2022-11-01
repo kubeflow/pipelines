@@ -71,7 +71,7 @@ func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *api.Cr
 		createExperimentRequests.Inc()
 	}
 
-	err := ValidateCreateExperimentRequest(request)
+	err := common.ValidateCreateExperimentRequest(request)
 	if err != nil {
 		return nil, util.Wrap(err, "Validate experiment request failed.")
 	}
@@ -94,7 +94,7 @@ func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *api.Cr
 	if s.options.CollectMetrics {
 		experimentCount.Inc()
 	}
-	return ToApiExperiment(newExperiment), nil
+	return common.ToApiExperiment(newExperiment), nil
 }
 
 func (s *ExperimentServer) GetExperiment(ctx context.Context, request *api.GetExperimentRequest) (
@@ -112,7 +112,7 @@ func (s *ExperimentServer) GetExperiment(ctx context.Context, request *api.GetEx
 	if err != nil {
 		return nil, util.Wrap(err, "Get experiment failed.")
 	}
-	return ToApiExperiment(experiment), nil
+	return common.ToApiExperiment(experiment), nil
 }
 
 func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.ListExperimentsRequest) (
@@ -164,7 +164,7 @@ func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.List
 		return nil, util.Wrap(err, "List experiments failed.")
 	}
 	return &api.ListExperimentsResponse{
-			Experiments:   ToApiExperiments(experiments),
+			Experiments:   common.ToApiExperiments(experiments),
 			TotalSize:     int32(total_size),
 			NextPageToken: nextPageToken},
 		nil
@@ -189,29 +189,6 @@ func (s *ExperimentServer) DeleteExperiment(ctx context.Context, request *api.De
 		experimentCount.Dec()
 	}
 	return &empty.Empty{}, nil
-}
-
-func ValidateCreateExperimentRequest(request *api.CreateExperimentRequest) error {
-	if request.Experiment == nil || request.Experiment.Name == "" {
-		return util.NewInvalidInputError("Experiment name is empty. Please specify a valid experiment name.")
-	}
-
-	resourceReferences := request.Experiment.GetResourceReferences()
-	if common.IsMultiUserMode() {
-		if len(resourceReferences) != 1 ||
-			resourceReferences[0].Key.Type != api.ResourceType_NAMESPACE ||
-			resourceReferences[0].Relationship != api.Relationship_OWNER {
-			return util.NewInvalidInputError(
-				"Invalid resource references for experiment. Expect one namespace type with owner relationship. Got: %v", resourceReferences)
-		}
-		namespace := common.GetNamespaceFromAPIResourceReferences(request.Experiment.ResourceReferences)
-		if len(namespace) == 0 {
-			return util.NewInvalidInputError("Invalid resource references for experiment. Namespace is empty.")
-		}
-	} else if len(resourceReferences) > 0 {
-		return util.NewInvalidInputError("In single-user mode, CreateExperimentRequest shouldn't contain resource references.")
-	}
-	return nil
 }
 
 // TODO(chensun): consider refactoring the code to get rid of double-query of experiment.

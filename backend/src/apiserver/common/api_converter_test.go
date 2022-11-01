@@ -732,7 +732,7 @@ func TestToApiResourceReferences(t *testing.T) {
 	assert.Equal(t, expectedApiResourceReferences, toApiResourceReferences(resourceReferences))
 }
 
-func TestToApiExperiments(t *testing.T) {
+func Testcommon.ToApiExperiments(t *testing.T) {
 	exp1 := &model.Experiment{
 		UUID:           "exp1",
 		CreatedAtInSec: 1,
@@ -747,7 +747,7 @@ func TestToApiExperiments(t *testing.T) {
 		Description:    "My name is experiment2",
 		StorageState:   "STORAGESTATE_ARCHIVED",
 	}
-	apiExps := ToApiExperiments([]*model.Experiment{exp1, exp2})
+	apiExps := common.ToApiExperiments([]*model.Experiment{exp1, exp2})
 	expectedApiExps := []*api.Experiment{
 		{
 			Id:           "exp1",

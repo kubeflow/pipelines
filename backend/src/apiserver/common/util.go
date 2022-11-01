@@ -16,6 +16,7 @@ package common
 
 import (
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"strings"
 )
 
@@ -63,4 +64,27 @@ func PatchPipelineDefaultParameter(text string) (string, error) {
 		text = strings.Replace(text, key, value, -1)
 	}
 	return text, nil
+}
+
+func ValidateCreateExperimentRequest(request *api.CreateExperimentRequest) error {
+	if request.Experiment == nil || request.Experiment.Name == "" {
+		return util.NewInvalidInputError("Experiment name is empty. Please specify a valid experiment name.")
+	}
+
+	resourceReferences := request.Experiment.GetResourceReferences()
+	if IsMultiUserMode() {
+		if len(resourceReferences) != 1 ||
+			resourceReferences[0].Key.Type != api.ResourceType_NAMESPACE ||
+			resourceReferences[0].Relationship != api.Relationship_OWNER {
+			return util.NewInvalidInputError(
+				"Invalid resource references for experiment. Expect one namespace type with owner relationship. Got: %v", resourceReferences)
+		}
+		namespace := GetNamespaceFromAPIResourceReferences(request.Experiment.ResourceReferences)
+		if len(namespace) == 0 {
+			return util.NewInvalidInputError("Invalid resource references for experiment. Namespace is empty.")
+		}
+	} else if len(resourceReferences) > 0 {
+		return util.NewInvalidInputError("In single-user mode, CreateExperimentRequest shouldn't contain resource references.")
+	}
+	return nil
 }
