@@ -60,7 +60,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 
 service ExperimentService {
   // Creates a new experiment.
-  rpc CreateExperiment(CreateExperimentRequest) returns (Experiment) {
+  rpc CreateExperimentV1(CreateExperimentRequest) returns (Experiment) {
     option (google.api.http) = {
       post: "/apis/v1beta1/experiments"
       body: "experiment"
@@ -68,14 +68,14 @@ service ExperimentService {
   }
 
   // Finds a specific experiment by ID.
-  rpc GetExperiment(GetExperimentRequest) returns (Experiment) {
+  rpc GetExperimentV1(GetExperimentRequest) returns (Experiment) {
     option (google.api.http) = {
       get: "/apis/v1beta1/experiments/{id}"
     };
   }
 
   // Finds all experiments. Supports pagination, and sorting on certain fields.
-  rpc ListExperiment(ListExperimentsRequest) returns (ListExperimentsResponse) {
+  rpc ListExperimentV1(ListExperimentsRequest) returns (ListExperimentsResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/experiments"
     };
@@ -84,14 +84,14 @@ service ExperimentService {
   // Deletes an experiment without deleting the experiment's runs and jobs. To
   // avoid unexpected behaviors, delete an experiment's runs and jobs before
   // deleting the experiment.
-  rpc DeleteExperiment(DeleteExperimentRequest) returns (google.protobuf.Empty) {
+  rpc DeleteExperimentV1(DeleteExperimentRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1beta1/experiments/{id}"
     };
   }
 
   // Archives an experiment and the experiment's runs and jobs.
-  rpc ArchiveExperiment(ArchiveExperimentRequest) returns (google.protobuf.Empty) {
+  rpc ArchiveExperimentV1(ArchiveExperimentRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/experiments/{id}:archive"
     };
@@ -99,7 +99,7 @@ service ExperimentService {
 
   // Restores an archived experiment. The experiment's archived runs and jobs
   // will stay archived.
-  rpc UnarchiveExperiment(UnarchiveExperimentRequest) returns (google.protobuf.Empty) {
+  rpc UnarchiveExperimentV1(UnarchiveExperimentRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/experiments/{id}:unarchive"
     };
