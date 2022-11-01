@@ -42,7 +42,7 @@ V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
               - {inputUri: optional_input_1}
         image: alpine
     inputs:
-    - {name: optional_input_1, optional: true, type: system.Artifact}
+    - {name: optional_input_1, optional: true, type: String}
     name: component_if
     """)
 
@@ -65,8 +65,7 @@ COMPONENT_SPEC_IF_PLACEHOLDER = structures.ComponentSpec(
                     ])
             ])),
     inputs={
-        'optional_input_1':
-            structures.InputSpec(type='system.Artifact@0.0.1', default=None)
+        'optional_input_1': structures.InputSpec(type='String', default=None)
     },
 )
 
