@@ -1,6 +1,6 @@
 # MNIST Classification with KMeans
 
-The mnist-classification-pipeline.py sample pipeline shows how to create an end to end ML workflow to train and deploy a model on SageMaker. We will train a classification model using Kmeans algorithm with MNIST dataset on SageMaker. Additionally, this sample also demonstrates how to use SageMaker components v1 and v2 together in a Kubeflow pipeline workflow. This example was taken from an existing [SageMaker example](https://github.com/awslabs/amazon-sagemaker-examples/blob/master/sagemaker-python-sdk/1P_kmeans_highlevel/kmeans_mnist.ipynb) and modified to work with the Amazon SageMaker Components for Kubeflow Pipelines.
+The `mnist-classification-pipeline.py` sample pipeline shows how to create an end to end ML workflow to train and deploy a model on SageMaker. We will train a classification model using Kmeans algorithm with MNIST dataset on SageMaker. Additionally, this sample also demonstrates how to use SageMaker components v1 and v2 together in a Kubeflow pipeline workflow. This example was taken from an existing [SageMaker example](https://github.com/awslabs/amazon-sagemaker-examples/blob/master/sagemaker-python-sdk/1P_kmeans_highlevel/kmeans_mnist.ipynb) and modified to work with the Amazon SageMaker Components for Kubeflow Pipelines.
 
 ## Prerequisites 
 
@@ -49,10 +49,10 @@ You will also have an model endpoint in service. Refer to [Prediction section](#
 ## Prediction
 
 1. Find your endpoint name either by:
-  - Opening SageMaker [console](https://us-east-1.console.aws.amazon.com/sagemaker/home?region=us-east-1#/endpoints),  or
-  - Clicking the `sagemaker-deploy-model-endpoint_name` under `Output artifacts` of `SageMaker - Deploy Model` component of the pipeline run
+    - Opening SageMaker [console](https://us-east-1.console.aws.amazon.com/sagemaker/home?region=us-east-1#/endpoints),  or
+    - Clicking the `sagemaker-deploy-model-endpoint_name` under `Output artifacts` of `SageMaker - Deploy Model` component of the pipeline run
 
-2. Setup AWS credentials with `sagemaker:InvokeEndpoint` access. [Sample commands](https://sagemaker.readthedocs.io/en/stable/workflows/kubernetes/using_amazon_sagemaker_components.html#configure-permissions-to-run-predictions)
+2. Setup AWS credentials with `sagemaker:InvokeEndpoint` access. [Sample commands](https://sagemaker.readthedocs.io/en/v1.60.2/kubernetes/using_amazon_sagemaker_components.html#configure-permissions-to-run-predictions)
 4. Run the script below to invoke the endpoint
   ```
     python invoke_endpoint.py <ENDPOINT-NAME>
