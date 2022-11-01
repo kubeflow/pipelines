@@ -569,8 +569,8 @@ class ComponentSpec(base_model.BaseModel):
         if component_dict.get('implementation') is None:
             raise ValueError('Implementation field not found')
 
-        if 'container' not in component_dict.get(
-                'implementation'):  # type: ignore
+        if 'implementation' not in component_dict or 'container' not in component_dict[
+                'implementation']:
             raise NotImplementedError('Container implementation not found.')
 
         container = component_dict['implementation']['container']

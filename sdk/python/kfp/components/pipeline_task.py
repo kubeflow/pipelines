@@ -228,6 +228,10 @@ class PipelineTask:
             component_spec: The component definition.
         """
         container_spec = copy.deepcopy(component_spec.implementation.container)
+        if container_spec is None:
+            raise ValueError(
+                '_extract_container_spec_and_convert_placeholders used incorrectly. ComponentSpec.implementation.container is None.'
+            )
         container_spec.command = [
             placeholders.convert_command_line_element_to_string(e)
             for e in container_spec.command or []
