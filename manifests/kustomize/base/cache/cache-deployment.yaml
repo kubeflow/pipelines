@@ -70,7 +70,7 @@ spec:
               fieldRef:
                 fieldPath: metadata.namespace
           # If you update WEBHOOK_PORT, also change the value of the
-          # containerPort "webhook-api" to match.
+          # containerPort "webhook-api" to match.
           - name: WEBHOOK_PORT
             value: "8443"
         args: ["--db_driver=$(DBCONFIG_DRIVER)",
