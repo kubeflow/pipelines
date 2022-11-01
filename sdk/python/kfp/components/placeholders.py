@@ -225,7 +225,7 @@ class IfPresentPlaceholder(Placeholder):
         return json.dumps(self._to_dict())
 
 
-CONTAINER_PLACEHOLDERS = (IfPresentPlaceholder, ConcatPlaceholder)
+_CONTAINER_PLACEHOLDERS = (IfPresentPlaceholder, ConcatPlaceholder)
 PRIMITIVE_INPUT_PLACEHOLDERS = (InputValuePlaceholder, InputPathPlaceholder,
                                 InputUriPlaceholder, InputMetadataPlaceholder)
 PRIMITIVE_OUTPUT_PLACEHOLDERS = (OutputParameterPlaceholder,
@@ -248,7 +248,7 @@ def convert_command_line_element_to_string_or_struct(
         element: Union[Placeholder, Any]) -> Any:
     if isinstance(element, Placeholder):
         return element._to_dict() if isinstance(
-            element, CONTAINER_PLACEHOLDERS) else element._to_string()
+            element, _CONTAINER_PLACEHOLDERS) else element._to_string()
 
     return element
 
