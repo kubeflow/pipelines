@@ -12,16 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package server
+package common
 
 import (
 	"testing"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
-
 	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
@@ -99,8 +96,8 @@ func TestToApiRunDetail_RuntimeParams(t *testing.T) {
 				},
 			},
 			ResourceReferences: []*model.ResourceReference{
-				{ResourceUUID: "run123", ResourceType: common.Run, ReferenceUUID: "job123",
-					ReferenceName: "j123", ReferenceType: common.Job, Relationship: common.Creator},
+				{ResourceUUID: "run123", ResourceType: Run, ReferenceUUID: "job123",
+					ReferenceName: "j123", ReferenceType: Job, Relationship: Creator},
 			},
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow123"},
@@ -171,8 +168,8 @@ func TestToApiRunDetail_V1Params(t *testing.T) {
 				Parameters:           `[{"name":"param2","value":"world"}]`,
 			},
 			ResourceReferences: []*model.ResourceReference{
-				{ResourceUUID: "run123", ResourceType: common.Run, ReferenceUUID: "job123",
-					ReferenceName: "j123", ReferenceType: common.Job, Relationship: common.Creator},
+				{ResourceUUID: "run123", ResourceType: Run, ReferenceUUID: "job123",
+					ReferenceName: "j123", ReferenceType: Job, Relationship: Creator},
 			},
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow123"},
@@ -241,8 +238,8 @@ func TestToApiRuns(t *testing.T) {
 			WorkflowSpecManifest: "manifest",
 		},
 		ResourceReferences: []*model.ResourceReference{
-			{ResourceUUID: "run1", ResourceType: common.Run, ReferenceUUID: "job1",
-				ReferenceName: "j1", ReferenceType: common.Job, Relationship: common.Creator},
+			{ResourceUUID: "run1", ResourceType: Run, ReferenceUUID: "job1",
+				ReferenceName: "j1", ReferenceType: Job, Relationship: Creator},
 		},
 		Metrics: []*model.RunMetric{metric1, metric2},
 	}
@@ -259,8 +256,8 @@ func TestToApiRuns(t *testing.T) {
 			WorkflowSpecManifest: "manifest",
 		},
 		ResourceReferences: []*model.ResourceReference{
-			{ResourceUUID: "run2", ResourceType: common.Run, ReferenceUUID: "job2",
-				ReferenceName: "j2", ReferenceType: common.Job, Relationship: common.Creator},
+			{ResourceUUID: "run2", ResourceType: Run, ReferenceUUID: "job2",
+				ReferenceName: "j2", ReferenceType: Job, Relationship: Creator},
 		},
 		Metrics: []*model.RunMetric{metric2},
 	}
@@ -306,10 +303,10 @@ func TestToApiRuns(t *testing.T) {
 
 func TestToApiTask(t *testing.T) {
 	modelTask := &model.Task{
-		UUID:              resource.DefaultFakeUUID,
+		UUID:              DefaultFakeUUID,
 		Namespace:         "",
 		PipelineName:      "pipeline/my-pipeline",
-		RunUUID:           resource.NonDefaultFakeUUID,
+		RunUUID:           NonDefaultFakeUUID,
 		MLMDExecutionID:   "1",
 		CreatedTimestamp:  1,
 		FinishedTimestamp: 2,
@@ -317,10 +314,10 @@ func TestToApiTask(t *testing.T) {
 	}
 	apiTask := ToApiTask(modelTask)
 	expectedApiTask := &api.Task{
-		Id:              resource.DefaultFakeUUID,
+		Id:              DefaultFakeUUID,
 		Namespace:       "",
 		PipelineName:    "pipeline/my-pipeline",
-		RunId:           resource.NonDefaultFakeUUID,
+		RunId:           NonDefaultFakeUUID,
 		MlmdExecutionID: "1",
 		CreatedAt:       &timestamp.Timestamp{Seconds: 1},
 		FinishedAt:      &timestamp.Timestamp{Seconds: 2},
@@ -399,8 +396,8 @@ func TestCronScheduledJobToApiJob(t *testing.T) {
 		CreatedAtInSec: 1,
 		UpdatedAtInSec: 1,
 		ResourceReferences: []*model.ResourceReference{
-			{ResourceUUID: "job1", ResourceType: common.Job, ReferenceUUID: "experiment1", ReferenceName: "e1",
-				ReferenceType: common.Experiment, Relationship: common.Owner},
+			{ResourceUUID: "job1", ResourceType: Job, ReferenceUUID: "experiment1", ReferenceName: "e1",
+				ReferenceType: Experiment, Relationship: Owner},
 		},
 	}
 	apiJob := ToApiJob(&modelJob)
@@ -714,12 +711,12 @@ func TestToApiRunMetric_UnknownFormat(t *testing.T) {
 
 func TestToApiResourceReferences(t *testing.T) {
 	resourceReferences := []*model.ResourceReference{
-		{ResourceUUID: "run1", ResourceType: common.Run, ReferenceUUID: "experiment1",
-			ReferenceName: "e1", ReferenceType: common.Experiment, Relationship: common.Owner},
-		{ResourceUUID: "run1", ResourceType: common.Run, ReferenceUUID: "job1",
-			ReferenceName: "j1", ReferenceType: common.Job, Relationship: common.Owner},
-		{ResourceUUID: "run1", ResourceType: common.Run, ReferenceUUID: "pipelineversion1",
-			ReferenceName: "k1", ReferenceType: common.PipelineVersion, Relationship: common.Owner},
+		{ResourceUUID: "run1", ResourceType: Run, ReferenceUUID: "experiment1",
+			ReferenceName: "e1", ReferenceType: Experiment, Relationship: Owner},
+		{ResourceUUID: "run1", ResourceType: Run, ReferenceUUID: "job1",
+			ReferenceName: "j1", ReferenceType: Job, Relationship: Owner},
+		{ResourceUUID: "run1", ResourceType: Run, ReferenceUUID: "pipelineversion1",
+			ReferenceName: "k1", ReferenceType: PipelineVersion, Relationship: Owner},
 	}
 	expectedApiResourceReferences := []*api.ResourceReference{
 		{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: "experiment1"},
@@ -732,7 +729,7 @@ func TestToApiResourceReferences(t *testing.T) {
 	assert.Equal(t, expectedApiResourceReferences, toApiResourceReferences(resourceReferences))
 }
 
-func Testcommon.ToApiExperiments(t *testing.T) {
+func TestToApiExperiments(t *testing.T) {
 	exp1 := &model.Experiment{
 		UUID:           "exp1",
 		CreatedAtInSec: 1,
@@ -747,7 +744,7 @@ func Testcommon.ToApiExperiments(t *testing.T) {
 		Description:    "My name is experiment2",
 		StorageState:   "STORAGESTATE_ARCHIVED",
 	}
-	apiExps := common.ToApiExperiments([]*model.Experiment{exp1, exp2})
+	apiExps := ToApiExperiments([]*model.Experiment{exp1, exp2})
 	expectedApiExps := []*api.Experiment{
 		{
 			Id:           "exp1",

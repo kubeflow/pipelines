@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
@@ -291,7 +292,7 @@ func TestValidatePipelineSpecAndResourceReferences_WorkflowManifestAndPipelineID
 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	spec := &api.PipelineSpec{
-		PipelineId:       resource.DefaultFakeUUID,
+		PipelineId:       common.FakeUUID,
 		WorkflowManifest: testWorkflow.ToStringForStore()}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.NotNil(t, err)
@@ -346,7 +347,7 @@ func TestValidatePipelineSpecAndResourceReferences_PipelineIdNotParentOfPipeline
 	manager := resource.NewResourceManager(clients)
 	defer clients.Close()
 	spec := &api.PipelineSpec{
-		PipelineId: resource.NonDefaultFakeUUID}
+		PipelineId: common.NonDefaultFakeUUID}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReferencesOfExperimentAndPipelineVersion)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "pipeline ID should be parent of pipeline version.")
@@ -360,7 +361,7 @@ func TestValidatePipelineSpecAndResourceReferences_ParameterTooLongWithPipelineI
 	for i := 0; i < 10000; i++ {
 		params = append(params, &api.Parameter{Name: "param2", Value: "world"})
 	}
-	spec := &api.PipelineSpec{PipelineId: resource.DefaultFakeUUID, Parameters: params}
+	spec := &api.PipelineSpec{PipelineId: common.FakeUUID, Parameters: params}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReference)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "The input parameter length exceed maximum size")
@@ -384,7 +385,7 @@ func TestValidatePipelineSpecAndResourceReferences_ValidPipelineIdAndPipelineVer
 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	spec := &api.PipelineSpec{
-		PipelineId: resource.DefaultFakeUUID}
+		PipelineId: common.FakeUUID}
 	err := ValidatePipelineSpecAndResourceReferences(manager, spec, validReferencesOfExperimentAndPipelineVersion)
 	assert.Nil(t, err)
 }

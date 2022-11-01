@@ -433,13 +433,13 @@ func TestToModelResourceReferences(t *testing.T) {
 	store, manager, job := initWithJob(t)
 	defer store.Close()
 	refs, err := manager.toModelResourceReferences("r1", common.Run, []*api.ResourceReference{
-		{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: DefaultFakeUUID}, Relationship: api.Relationship_OWNER},
+		{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: common.DefaultFakeUUID}, Relationship: api.Relationship_OWNER},
 		{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: job.UUID}, Relationship: api.Relationship_CREATOR},
 	})
 	assert.Nil(t, err)
 	expectedRefs := []*model.ResourceReference{
 		{ResourceUUID: "r1", ResourceType: common.Run,
-			ReferenceUUID: DefaultFakeUUID, ReferenceName: "e1", ReferenceType: common.Experiment, Relationship: common.Owner},
+			ReferenceUUID: common.DefaultFakeUUID, ReferenceName: "e1", ReferenceType: common.Experiment, Relationship: common.Owner},
 		{ResourceUUID: "r1", ResourceType: common.Run,
 			ReferenceUUID: job.UUID, ReferenceName: "j1", ReferenceType: common.Job, Relationship: common.Creator},
 	}

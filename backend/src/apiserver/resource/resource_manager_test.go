@@ -129,7 +129,7 @@ func initWithExperimentAndPipelineAndRun(t *testing.T) (*FakeClientManager, *Res
 	// Create a new pipeline version with UUID being FakeUUID.
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
 	_, err := manager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "version_for_run",
 		ResourceReferences: []*api.ResourceReference{
@@ -612,7 +612,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	// Create a new pipeline version with UUID being FakeUUID.
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
 	version, err := manager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "version_for_run",
 		ResourceReferences: []*api.ResourceReference{
@@ -655,7 +655,7 @@ func TestCreateRun_ThroughPipelineID(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
-			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
+			util.LabelKeyWorkflowRunId: common.DefaultFakeUUID,
 		},
 	}
 	expectedRunDetail := &model.RunDetail{
@@ -727,7 +727,7 @@ func TestCreateRun_ThroughWorkflowSpecV2(t *testing.T) {
 				{
 					ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 					ResourceType:  common.Run,
-					ReferenceUUID: DefaultFakeUUID,
+					ReferenceUUID: common.DefaultFakeUUID,
 					ReferenceName: "e1",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
@@ -753,7 +753,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
-			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
+			util.LabelKeyWorkflowRunId: common.DefaultFakeUUID,
 		},
 	}
 
@@ -777,7 +777,7 @@ func TestCreateRun_ThroughWorkflowSpec(t *testing.T) {
 				{
 					ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 					ResourceType:  common.Run,
-					ReferenceUUID: DefaultFakeUUID,
+					ReferenceUUID: common.DefaultFakeUUID,
 					ReferenceName: "e1",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
@@ -809,7 +809,7 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = common.DefaultPipelineRunnerServiceAccount
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
-			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
+			util.LabelKeyWorkflowRunId: common.DefaultFakeUUID,
 		},
 	}
 
@@ -833,7 +833,7 @@ func TestCreateRun_ThroughWorkflowSpecWithPatch(t *testing.T) {
 				{
 					ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 					ResourceType:  common.Run,
-					ReferenceUUID: DefaultFakeUUID,
+					ReferenceUUID: common.DefaultFakeUUID,
 					ReferenceName: "e1",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
@@ -857,7 +857,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	defer store.Close()
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
 	version, err := manager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "version_for_run",
 		ResourceReferences: []*api.ResourceReference{
@@ -902,7 +902,7 @@ func TestCreateRun_ThroughPipelineVersion(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
-			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
+			util.LabelKeyWorkflowRunId: common.DefaultFakeUUID,
 		},
 	}
 
@@ -958,7 +958,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	defer store.Close()
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
 	version, err := manager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "version_for_run",
 		ResourceReferences: []*api.ResourceReference{
@@ -1004,7 +1004,7 @@ func TestCreateRun_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	expectedRuntimeWorkflow.Spec.ServiceAccountName = "sa1"
 	expectedRuntimeWorkflow.Spec.PodMetadata = &v1alpha1.Metadata{
 		Labels: map[string]string{
-			util.LabelKeyWorkflowRunId: DefaultFakeUUID,
+			util.LabelKeyWorkflowRunId: common.DefaultFakeUUID,
 		},
 	}
 
@@ -1081,7 +1081,7 @@ func TestCreateRun_NoExperiment(t *testing.T) {
 		ResourceUUID: "123e4567-e89b-12d3-a456-426655440000",
 		ResourceType: common.Run,
 		// Experiment is now set
-		ReferenceUUID: DefaultFakeUUID,
+		ReferenceUUID: common.DefaultFakeUUID,
 		ReferenceName: "Default",
 		ReferenceType: common.Experiment,
 		Relationship:  common.Owner,
@@ -1427,7 +1427,7 @@ func TestUnarchiveRun_Failed_ExperimentArchived(t *testing.T) {
 func TestUnarchiveRun_Failed_ResourceNotFound(t *testing.T) {
 	store, manager, _ := initWithExperiment(t)
 	defer store.Close()
-	err := manager.UnarchiveRun(FakeUUIDOne)
+	err := manager.UnarchiveRun(common.FakeUUIDOne)
 	assert.NotNil(t, err)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 	assert.Contains(t, err.Error(), "Failed to retrieve resource reference")
@@ -1454,7 +1454,7 @@ func TestCreateJob_ThroughWorkflowSpec(t *testing.T) {
 			{
 				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 				ResourceType:  common.Job,
-				ReferenceUUID: DefaultFakeUUID,
+				ReferenceUUID: common.DefaultFakeUUID,
 				ReferenceName: "e1",
 				ReferenceType: common.Experiment,
 				Relationship:  common.Owner,
@@ -1488,7 +1488,7 @@ func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
 			{
 				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 				ResourceType:  common.Job,
-				ReferenceUUID: DefaultFakeUUID,
+				ReferenceUUID: common.DefaultFakeUUID,
 				ReferenceName: "e1",
 				ReferenceType: common.Experiment,
 				Relationship:  common.Owner,
@@ -1526,7 +1526,7 @@ func TestCreateJob_ThroughPipelineID(t *testing.T) {
 	// Create a new pipeline version with UUID being FakeUUID.
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
 	version, err := manager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "version_for_run",
 		ResourceReferences: []*api.ResourceReference{
@@ -1589,7 +1589,7 @@ func TestCreateJob_ThroughPipelineVersion(t *testing.T) {
 	defer store.Close()
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
 	version, err := manager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "version_for_job",
 		ResourceReferences: []*api.ResourceReference{
@@ -1667,7 +1667,7 @@ func TestCreateJob_ThroughPipelineIdAndPipelineVersion(t *testing.T) {
 	defer store.Close()
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
 	version, err := manager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "version_for_job",
 		ResourceReferences: []*api.ResourceReference{
@@ -1852,7 +1852,7 @@ func TestEnableJob(t *testing.T) {
 			{
 				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 				ResourceType:  common.Job,
-				ReferenceUUID: DefaultFakeUUID,
+				ReferenceUUID: common.DefaultFakeUUID,
 				ReferenceName: "e1",
 				ReferenceType: common.Experiment,
 				Relationship:  common.Owner,
@@ -2012,7 +2012,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDEmpty_Success(t *testing.T) {
 			{
 				ResourceUUID:  "123e4567-e89b-12d3-a456-426655440000",
 				ResourceType:  common.Run,
-				ReferenceUUID: DefaultFakeUUID,
+				ReferenceUUID: common.DefaultFakeUUID,
 				ReferenceName: "e1",
 				ReferenceType: common.Experiment,
 				Relationship:  common.Owner,
@@ -2051,7 +2051,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "WORKFLOW_1",
-			ExperimentUUID:   DefaultFakeUUID,
+			ExperimentUUID:   common.DefaultFakeUUID,
 			DisplayName:      "MY_NAME",
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Name:             "MY_NAME",
@@ -2066,7 +2066,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_Success(t *testing.T
 				{
 					ResourceUUID:  "WORKFLOW_1",
 					ResourceType:  common.Run,
-					ReferenceUUID: DefaultFakeUUID,
+					ReferenceUUID: common.DefaultFakeUUID,
 					ReferenceName: "e1",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
@@ -2125,7 +2125,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 	expectedRunDetail := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "WORKFLOW_1",
-			ExperimentUUID:   DefaultFakeUUID,
+			ExperimentUUID:   common.DefaultFakeUUID,
 			DisplayName:      "MY_NAME",
 			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
 			Name:             "MY_NAME",
@@ -2140,7 +2140,7 @@ func TestReportWorkflowResource_ScheduledWorkflowIDNotEmpty_NoExperiment_Success
 				{
 					ResourceUUID:  "WORKFLOW_1",
 					ResourceType:  common.Run,
-					ReferenceUUID: DefaultFakeUUID,
+					ReferenceUUID: common.DefaultFakeUUID,
 					ReferenceName: "Default",
 					ReferenceType: common.Experiment,
 					Relationship:  common.Owner,
@@ -2328,7 +2328,7 @@ func TestReportScheduledWorkflowResource_Success(t *testing.T) {
 			{
 				ResourceUUID:  job.UUID,
 				ResourceType:  common.Job,
-				ReferenceUUID: DefaultFakeUUID,
+				ReferenceUUID: common.DefaultFakeUUID,
 				ReferenceName: "e1",
 				ReferenceType: common.Experiment,
 				Relationship:  common.Owner,
@@ -3322,14 +3322,14 @@ func TestDeletePipelineVersion(t *testing.T) {
 	// Create a version under the above pipeline.
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
 	_, err = manager.CreatePipelineVersion(
 		&api.PipelineVersion{
 			Name: "pipeline_version",
 			ResourceReferences: []*api.ResourceReference{
 				&api.ResourceReference{
 					Key: &api.ResourceKey{
-						Id:   DefaultFakeUUID,
+						Id:   common.DefaultFakeUUID,
 						Type: api.ResourceType_PIPELINE,
 					},
 					Relationship: api.Relationship_OWNER,
@@ -3339,11 +3339,11 @@ func TestDeletePipelineVersion(t *testing.T) {
 		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"), true)
 
 	// Delete the above pipeline_version.
-	err = manager.DeletePipelineVersion(FakeUUIDOne)
+	err = manager.DeletePipelineVersion(common.FakeUUIDOne)
 	assert.Nil(t, err)
 
 	// Verify the version doesn't exist.
-	_, err = manager.GetPipelineVersion(FakeUUIDOne)
+	_, err = manager.GetPipelineVersion(common.FakeUUIDOne)
 	assert.Equal(t, codes.NotFound, err.(*util.UserError).ExternalStatusCode())
 }
 
@@ -3359,14 +3359,14 @@ func TestDeletePipelineVersion_FileError(t *testing.T) {
 	// Create a version under the above pipeline.
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
 	_, err = manager.CreatePipelineVersion(
 		&api.PipelineVersion{
 			Name: "pipeline_version",
 			ResourceReferences: []*api.ResourceReference{
 				&api.ResourceReference{
 					Key: &api.ResourceKey{
-						Id:   DefaultFakeUUID,
+						Id:   common.DefaultFakeUUID,
 						Type: api.ResourceType_PIPELINE,
 					},
 					Relationship: api.Relationship_OWNER,
@@ -3379,11 +3379,11 @@ func TestDeletePipelineVersion_FileError(t *testing.T) {
 	manager.objectStore = &FakeBadObjectStore{}
 
 	// Delete the above pipeline_version.
-	err = manager.DeletePipelineVersion(FakeUUIDOne)
+	err = manager.DeletePipelineVersion(common.FakeUUIDOne)
 	assert.NotNil(t, err)
 
 	// Verify the version in deleting status.
-	version, err := manager.pipelineStore.GetPipelineVersionWithStatus(FakeUUIDOne, model.PipelineVersionDeleting)
+	version, err := manager.pipelineStore.GetPipelineVersionWithStatus(common.FakeUUIDOne, model.PipelineVersionDeleting)
 	assert.Nil(t, err)
 	assert.NotNil(t, version)
 }
@@ -3399,7 +3399,7 @@ func TestCreateDefaultExperiment(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedExperiment := &model.Experiment{
-		UUID:           DefaultFakeUUID,
+		UUID:           common.DefaultFakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "Default",
 		Description:    "All runs created without specifying an experiment will be grouped here.",
@@ -3423,7 +3423,7 @@ func TestCreateDefaultExperiment_MultiUser(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedExperiment := &model.Experiment{
-		UUID:           DefaultFakeUUID,
+		UUID:           common.DefaultFakeUUID,
 		CreatedAtInSec: 1,
 		Name:           "Default",
 		Description:    "All runs created without specifying an experiment will be grouped here.",
@@ -3446,7 +3446,7 @@ func TestCreateTask(t *testing.T) {
 	}
 
 	expectedTask := &model.Task{
-		UUID:              DefaultFakeUUID,
+		UUID:              common.DefaultFakeUUID,
 		Namespace:         "",
 		PipelineName:      "pipeline/my-pipeline",
 		RunUUID:           runDetail.UUID,
@@ -3460,7 +3460,7 @@ func TestCreateTask(t *testing.T) {
 	assert.Equal(t, expectedTask, createdTask, "The CreateTask return has unexpected value.")
 
 	// Verify the T in DB is in status PipelineVersionCreating.
-	storedTask, err := manager.taskStore.GetTask(DefaultFakeUUID)
+	storedTask, err := manager.taskStore.GetTask(common.DefaultFakeUUID)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTask, storedTask, "The StoredTask return has unexpected value.")
 }

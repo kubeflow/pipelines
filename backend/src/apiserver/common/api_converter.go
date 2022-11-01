@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package util
+package common
 
 import (
 	"encoding/json"
@@ -20,15 +20,14 @@ import (
 
 	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func common.ToApiExperiment(experiment *model.Experiment) *api.Experiment {
+func ToApiExperiment(experiment *model.Experiment) *api.Experiment {
 	resourceReferences := []*api.ResourceReference(nil)
-	if common.IsMultiUserMode() {
+	if IsMultiUserMode() {
 		resourceReferences = []*api.ResourceReference{
 			{
 				Key: &api.ResourceKey{
@@ -49,10 +48,10 @@ func common.ToApiExperiment(experiment *model.Experiment) *api.Experiment {
 	}
 }
 
-func common.ToApiExperiments(experiments []*model.Experiment) []*api.Experiment {
+func ToApiExperiments(experiments []*model.Experiment) []*api.Experiment {
 	apiExperiments := make([]*api.Experiment, 0)
 	for _, experiment := range experiments {
-		apiExperiments = append(apiExperiments, common.ToApiExperiment(experiment))
+		apiExperiments = append(apiExperiments, ToApiExperiment(experiment))
 	}
 	return apiExperiments
 }
@@ -345,13 +344,13 @@ func toApiResourceReferences(references []*model.ResourceReference) []*api.Resou
 
 func toApiResourceType(modelType model.ResourceType) api.ResourceType {
 	switch modelType {
-	case common.Experiment:
+	case Experiment:
 		return api.ResourceType_EXPERIMENT
-	case common.Job:
+	case Job:
 		return api.ResourceType_JOB
-	case common.PipelineVersion:
+	case PipelineVersion:
 		return api.ResourceType_PIPELINE_VERSION
-	case common.Namespace:
+	case Namespace:
 		return api.ResourceType_NAMESPACE
 	default:
 		return api.ResourceType_UNKNOWN_RESOURCE_TYPE
@@ -360,9 +359,9 @@ func toApiResourceType(modelType model.ResourceType) api.ResourceType {
 
 func toApiRelationship(r model.Relationship) api.Relationship {
 	switch r {
-	case common.Creator:
+	case Creator:
 		return api.Relationship_CREATOR
-	case common.Owner:
+	case Owner:
 		return api.Relationship_OWNER
 	default:
 		return api.Relationship_UNKNOWN_RELATIONSHIP

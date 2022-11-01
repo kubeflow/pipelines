@@ -31,7 +31,7 @@ func TestCreateExperiment(t *testing.T) {
 	result, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	expectedExperiment := &api.Experiment{
-		Id:           resource.DefaultFakeUUID,
+		Id:           common.DefaultFakeUUID,
 		Name:         "ex1",
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
@@ -135,7 +135,7 @@ func TestCreateExperiment_Multiuser(t *testing.T) {
 	result, err := server.CreateExperiment(ctx, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	expectedExperiment := &api.Experiment{
-		Id:                 resource.DefaultFakeUUID,
+		Id:                 common.DefaultFakeUUID,
 		Name:               "exp1",
 		Description:        "first experiment",
 		CreatedAt:          &timestamp.Timestamp{Seconds: 1},
@@ -593,7 +593,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Nil(t, err)
 	_, err = runServer.CreateRun(nil, &api.CreateRunRequest{Run: run1})
 	assert.Nil(t, err)
-	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(resource.FakeUUIDOne, nil))
+	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
 	manager = resource.NewResourceManager(clients)
 	runServer = NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
 	run2 := &api.Run{
@@ -604,7 +604,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Nil(t, err)
 	_, err = runServer.CreateRun(nil, &api.CreateRunRequest{Run: run2})
 	assert.Nil(t, err)
-	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(resource.DefaultFakeUUID, nil))
+	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(common.DefaultFakeUUID, nil))
 	manager = resource.NewResourceManager(clients)
 	jobServer := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
 	job1 := &api.Job{

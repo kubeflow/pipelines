@@ -121,7 +121,7 @@ func (s *JobServer) CreateJob(ctx context.Context, request *api.CreateJobRequest
 	if s.options.CollectMetrics {
 		jobCount.Inc()
 	}
-	return ToApiJob(newJob), nil
+	return common.ToApiJob(newJob), nil
 }
 
 func (s *JobServer) GetJob(ctx context.Context, request *api.GetJobRequest) (*api.Job, error) {
@@ -138,7 +138,7 @@ func (s *JobServer) GetJob(ctx context.Context, request *api.GetJobRequest) (*ap
 	if err != nil {
 		return nil, err
 	}
-	return ToApiJob(job), nil
+	return common.ToApiJob(job), nil
 }
 
 func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) (*api.ListJobsResponse, error) {
@@ -201,7 +201,7 @@ func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) 
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list jobs.")
 	}
-	return &api.ListJobsResponse{Jobs: ToApiJobs(jobs), TotalSize: int32(total_size), NextPageToken: nextPageToken}, nil
+	return &api.ListJobsResponse{Jobs: common.ToApiJobs(jobs), TotalSize: int32(total_size), NextPageToken: nextPageToken}, nil
 }
 
 func (s *JobServer) EnableJob(ctx context.Context, request *api.EnableJobRequest) (*empty.Empty, error) {

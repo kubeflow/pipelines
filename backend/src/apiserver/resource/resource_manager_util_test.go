@@ -19,6 +19,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
@@ -230,7 +231,7 @@ func TestConvertPipelineIdToDefaultPipelineVersion(t *testing.T) {
 	// Create a new pipeline version with UUID being FakeUUID.
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
 	_, err := manager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "version_for_run",
 		ResourceReferences: []*api.ResourceReference{
@@ -269,7 +270,7 @@ func TestConvertPipelineIdToDefaultPipelineVersion(t *testing.T) {
 				Relationship: api.Relationship_OWNER,
 			},
 			{
-				Key:          &api.ResourceKey{Type: api.ResourceType_PIPELINE_VERSION, Id: FakeUUIDOne},
+				Key:          &api.ResourceKey{Type: api.ResourceType_PIPELINE_VERSION, Id: common.FakeUUIDOne},
 				Relationship: api.Relationship_CREATOR,
 			},
 		},
@@ -288,7 +289,7 @@ func TestConvertPipelineIdToDefaultPipelineVersion_NoOp(t *testing.T) {
 	oldVersionId := pipeline.DefaultVersionId
 	pipelineStore, ok := store.pipelineStore.(*storage.PipelineStore)
 	assert.True(t, ok)
-	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(FakeUUIDOne, nil))
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
 	_, err := manager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "version_for_run",
 		ResourceReferences: []*api.ResourceReference{
@@ -303,7 +304,7 @@ func TestConvertPipelineIdToDefaultPipelineVersion_NoOp(t *testing.T) {
 	}, []byte(testWorkflow.ToStringForStore()), true)
 	assert.Nil(t, err)
 	// FakeUUID is the new default version's id.
-	assert.NotEqual(t, oldVersionId, FakeUUIDOne)
+	assert.NotEqual(t, oldVersionId, common.FakeUUIDOne)
 
 	// Create a run by specifying both the old pipeline version and the pipeline.
 	// As a result, the old version will be used and the pipeline id will be ignored.

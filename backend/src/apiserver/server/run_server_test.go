@@ -639,7 +639,7 @@ func TestValidateCreateRunRequest_InvalidPipelineSpec(t *testing.T) {
 		Name:               "run1",
 		ResourceReferences: validReference,
 		PipelineSpec: &api.PipelineSpec{
-			PipelineId:       resource.DefaultFakeUUID,
+			PipelineId:       common.FakeUUID,
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},

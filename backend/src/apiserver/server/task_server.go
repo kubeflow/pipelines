@@ -24,7 +24,7 @@ func (s *TaskServer) CreateTask(ctx context.Context, request *api.CreateTaskRequ
 		return nil, util.Wrap(err, "Failed to create a new task.")
 	}
 
-	return ToApiTask(task), nil
+	return common.ToApiTask(task), nil
 }
 
 func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) error {
@@ -85,7 +85,7 @@ func (s *TaskServer) ListTasks(ctx context.Context, request *api.ListTasksReques
 		return nil, util.Wrap(err, "List tasks failed.")
 	}
 	return &api.ListTasksResponse{
-			Tasks:         ToApiTasks(tasks),
+			Tasks:         common.ToApiTasks(tasks),
 			TotalSize:     int32(total_size),
 			NextPageToken: nextPageToken},
 		nil

@@ -19,14 +19,9 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/storage"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
-)
-
-const (
-	DefaultFakeUUID    = "123e4567-e89b-12d3-a456-426655440000"
-	FakeUUIDOne        = "123e4567-e89b-12d3-a456-426655440001"
-	NonDefaultFakeUUID = "123e4567-e89b-12d3-a456-426655441000"
 )
 
 type FakeClientManager struct {
@@ -93,7 +88,7 @@ func NewFakeClientManager(time util.TimeInterface, uuid util.UUIDGeneratorInterf
 }
 
 func NewFakeClientManagerOrFatal(time util.TimeInterface) *FakeClientManager {
-	uuid := util.NewFakeUUIDGeneratorOrFatal(DefaultFakeUUID, nil)
+	uuid := util.NewFakeUUIDGeneratorOrFatal(common.DefaultFakeUUID, nil)
 	fakeStore, err := NewFakeClientManager(time, uuid)
 	if err != nil {
 		glog.Fatalf("The fake store doesn't create successfully. Fail fast.")

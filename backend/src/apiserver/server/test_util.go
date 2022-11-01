@@ -75,7 +75,7 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 var validReference = []*api.ResourceReference{
 	{
 		Key: &api.ResourceKey{
-			Type: api.ResourceType_EXPERIMENT, Id: resource.DefaultFakeUUID},
+			Type: api.ResourceType_EXPERIMENT, Id: common.DefaultFakeUUID},
 		Relationship: api.Relationship_OWNER,
 	},
 }
@@ -84,14 +84,14 @@ var validReferencesOfExperimentAndPipelineVersion = []*api.ResourceReference{
 	{
 		Key: &api.ResourceKey{
 			Type: api.ResourceType_EXPERIMENT,
-			Id:   resource.DefaultFakeUUID,
+			Id:   common.DefaultFakeUUID,
 		},
 		Relationship: api.Relationship_OWNER,
 	},
 	{
 		Key: &api.ResourceKey{
 			Type: api.ResourceType_PIPELINE_VERSION,
-			Id:   resource.DefaultFakeUUID,
+			Id:   common.DefaultFakeUUID,
 		},
 		Relationship: api.Relationship_CREATOR,
 	},
@@ -101,7 +101,7 @@ var referencesOfExperimentAndInvalidPipelineVersion = []*api.ResourceReference{
 	{
 		Key: &api.ResourceKey{
 			Type: api.ResourceType_EXPERIMENT,
-			Id:   resource.DefaultFakeUUID,
+			Id:   common.DefaultFakeUUID,
 		},
 		Relationship: api.Relationship_OWNER,
 	},
@@ -179,13 +179,13 @@ func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientMan
 	// Create a pipeline and then a pipeline version.
 	_, err = resourceManager.CreatePipeline("pipeline", "", "", []byte(testWorkflow.ToStringForStore()))
 	assert.Nil(t, err)
-	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(resource.NonDefaultFakeUUID, nil))
+	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(common.NonDefaultFakeUUID, nil))
 	_, err = resourceManager.CreatePipelineVersion(&api.PipelineVersion{
 		Name: "pipeline_version",
 		ResourceReferences: []*api.ResourceReference{
 			&api.ResourceReference{
 				Key: &api.ResourceKey{
-					Id:   resource.DefaultFakeUUID,
+					Id:   common.DefaultFakeUUID,
 					Type: api.ResourceType_PIPELINE,
 				},
 				Relationship: api.Relationship_OWNER,
@@ -217,7 +217,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 		ResourceReferences: []*api.ResourceReference{
 			&api.ResourceReference{
 				Key: &api.ResourceKey{
-					Id:   resource.DefaultFakeUUID,
+					Id:   common.DefaultFakeUUID,
 					Type: api.ResourceType_PIPELINE,
 				},
 				Relationship: api.Relationship_OWNER,
@@ -226,7 +226,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 	},
 		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"), true)
 	assert.Nil(t, err)
-	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(resource.NonDefaultFakeUUID, nil))
+	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(common.NonDefaultFakeUUID, nil))
 	resourceManager = resource.NewResourceManager(clientManager)
 	// Create another pipeline and then pipeline version.
 	_, err = resourceManager.CreatePipeline("anpther-pipeline", "", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
@@ -239,7 +239,7 @@ func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClien
 		ResourceReferences: []*api.ResourceReference{
 			&api.ResourceReference{
 				Key: &api.ResourceKey{
-					Id:   resource.NonDefaultFakeUUID,
+					Id:   common.NonDefaultFakeUUID,
 					Type: api.ResourceType_PIPELINE,
 				},
 				Relationship: api.Relationship_OWNER,

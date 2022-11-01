@@ -140,7 +140,7 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 	if s.options.CollectMetrics {
 		runCount.Inc()
 	}
-	return ToApiRunDetail(run), nil
+	return common.ToApiRunDetail(run), nil
 }
 
 func (s *RunServer) GetRun(ctx context.Context, request *api.GetRunRequest) (*api.RunDetail, error) {
@@ -157,7 +157,7 @@ func (s *RunServer) GetRun(ctx context.Context, request *api.GetRunRequest) (*ap
 	if err != nil {
 		return nil, err
 	}
-	return ToApiRunDetail(run), nil
+	return common.ToApiRunDetail(run), nil
 }
 
 func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) (*api.ListRunsResponse, error) {
@@ -220,7 +220,7 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list runs.")
 	}
-	return &api.ListRunsResponse{Runs: ToApiRuns(runs), TotalSize: int32(total_size), NextPageToken: nextPageToken}, nil
+	return &api.ListRunsResponse{Runs: common.ToApiRuns(runs), TotalSize: int32(total_size), NextPageToken: nextPageToken}, nil
 }
 
 func (s *RunServer) ArchiveRun(ctx context.Context, request *api.ArchiveRunRequest) (*empty.Empty, error) {

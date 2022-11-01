@@ -144,7 +144,7 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *api.Create
 		pipelineCount.Inc()
 	}
 
-	return ToApiPipeline(pipeline), nil
+	return common.ToApiPipeline(pipeline), nil
 }
 
 func (s *PipelineServer) UpdatePipelineDefaultVersion(ctx context.Context, request *api.UpdatePipelineDefaultVersionRequest) (*empty.Empty, error) {
@@ -181,7 +181,7 @@ func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipeli
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the requests.")
 	}
-	return ToApiPipeline(pipeline), nil
+	return common.ToApiPipeline(pipeline), nil
 }
 
 func (s *PipelineServer) GetPipelineByName(ctx context.Context, request *api.GetPipelineByNameRequest) (*api.Pipeline, error) {
@@ -207,7 +207,7 @@ func (s *PipelineServer) GetPipelineByName(ctx context.Context, request *api.Get
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline by name failed.")
 	}
-	return ToApiPipeline(pipeline), nil
+	return common.ToApiPipeline(pipeline), nil
 }
 
 func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPipelinesRequest) (*api.ListPipelinesResponse, error) {
@@ -256,7 +256,7 @@ func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPip
 	if err != nil {
 		return nil, util.Wrap(err, "List pipelines failed.")
 	}
-	apiPipelines := ToApiPipelines(pipelines)
+	apiPipelines := common.ToApiPipelines(pipelines)
 	return &api.ListPipelinesResponse{Pipelines: apiPipelines, TotalSize: int32(total_size), NextPageToken: nextPageToken}, nil
 }
 
@@ -359,7 +359,7 @@ func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *api
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a version.")
 	}
-	return ToApiPipelineVersion(version)
+	return common.ToApiPipelineVersion(version)
 }
 
 func (s *PipelineServer) GetPipelineVersion(ctx context.Context, request *api.GetPipelineVersionRequest) (*api.PipelineVersion, error) {
@@ -377,7 +377,7 @@ func (s *PipelineServer) GetPipelineVersion(ctx context.Context, request *api.Ge
 	if err != nil {
 		return nil, util.Wrap(err, "Get pipeline version failed.")
 	}
-	return ToApiPipelineVersion(version)
+	return common.ToApiPipelineVersion(version)
 }
 
 func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *api.ListPipelineVersionsRequest) (*api.ListPipelineVersionsResponse, error) {
@@ -422,7 +422,7 @@ func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *api.
 	if err != nil {
 		return nil, util.Wrap(err, "List pipeline versions failed.")
 	}
-	apiPipelineVersions, _ := ToApiPipelineVersions(pipelineVersions)
+	apiPipelineVersions, _ := common.ToApiPipelineVersions(pipelineVersions)
 
 	return &api.ListPipelineVersionsResponse{
 		Versions:      apiPipelineVersions,

@@ -82,7 +82,7 @@ func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *api.Cr
 	}
 
 	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Namespace: common.GetNamespaceFromAPIResourceReferences(request.Experiment.ResourceReferences),
+		Namespace: request.Experiment.Namespace,
 		Verb:      common.RbacResourceVerbCreate,
 		Name:      request.Experiment.Name,
 	}
@@ -99,9 +99,8 @@ func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *api.Cr
 	if s.options.CollectMetrics {
 		experimentCount.Inc()
 	}
-	return common.ToApiExperiment(newExperiment), nil
 
-	return request.Experiment, nil
+	return common.ToApiExperiment(newExperiment), nil
 }
 
 func (s *ExperimentServer) GetExperiment(ctx context.Context, request *api.GetExperimentRequest) (
