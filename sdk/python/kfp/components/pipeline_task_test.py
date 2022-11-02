@@ -411,7 +411,55 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
                 compiler.Compiler().compile(
                     pipeline_func=my_pipeline, package_path=package_path)
 
-    def test_outside_of_condition_exception_permitted(self):
+    def test_outside_of_for_loop_blocked(self):
+        with self.assertRaisesRegex(ValueError,
+                                    r'Cannot use \.after\(\) across'):
+
+            @dsl.component
+            def print_op(message: str):
+                print(message)
+
+            @dsl.component
+            def return_list() -> int:
+                return [1, 2, 3]
+
+            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+            def my_pipeline():
+                return_list_task = return_list()
+
+                with dsl.ParallelFor(return_list_task.output) as item:
+                    one = print_op(message='1')
+                    two = print_op(message='2')
+                three = print_op(message='3').after(one)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_outside_of_exit_handler_blocked(self):
+        with self.assertRaisesRegex(ValueError,
+                                    r'Cannot use \.after\(\) across'):
+
+            @dsl.component
+            def print_op(message: str):
+                print(message)
+
+            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+            def my_pipeline():
+                exit_task = print_op(message='exit task.')
+
+                with dsl.ExitHandler(exit_task):
+                    one = print_op(message='1')
+                    two = print_op(message='2')
+                three = print_op(message='3').after(one)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_valid_outside_of_condition_topology_permitted(self):
 
         @dsl.component
         def print_op(message: str):
