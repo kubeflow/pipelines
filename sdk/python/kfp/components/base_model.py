@@ -17,7 +17,7 @@ from collections import abc
 import dataclasses
 import inspect
 import pprint
-from typing import (Any, Dict, ForwardRef, Iterable, Iterator, Mapping,
+from typing import (Any, ForwardRef, Iterable, Iterator, Mapping,
                     MutableMapping, MutableSequence, Optional, OrderedDict,
                     Sequence, Tuple, Type, TypeVar, Union)
 
@@ -56,8 +56,6 @@ class BaseModel:
     and from dict, type enforcement, and user-defined validation logic.
     """
 
-    _aliases: Dict[str, str] = {}  # will be used by subclasses
-
     # this quiets the mypy "Unexpected keyword argument..." errors on subclass construction
     # TODO: find a way to propogate type info to subclasses
     def __init__(self, *args, **kwargs):
@@ -74,16 +72,6 @@ class BaseModel:
         # print(inspect.signature(cls.__init__))
         for field in dataclasses.fields(cls):
             cls._recursively_validate_type_is_supported(field.type)
-
-    @property
-    def types(self) -> Dict[str, type]:
-        """Dictionary mapping field names to types."""
-        return {field.name: field.type for field in dataclasses.fields(self)}
-
-    @property
-    def fields(self) -> Tuple[dataclasses.Field, ...]:
-        """The dataclass fields."""
-        return dataclasses.fields(self)
 
     @classmethod
     def _recursively_validate_type_is_supported(cls, type_: type) -> None:
