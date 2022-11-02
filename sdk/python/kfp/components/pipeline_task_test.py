@@ -352,7 +352,7 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
                 second_exit_task = print_op(message='Second exit task.')
                 with dsl.ExitHandler(second_exit_task):
                     x = print_op(message='Inside second exit handler.')
-                    x.after(first_exit_task)
+                    x.after(first_print_op)
 
             with tempfile.TemporaryDirectory() as tempdir:
                 package_path = os.path.join(tempdir, 'pipeline.yaml')
@@ -410,6 +410,30 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
                 package_path = os.path.join(tempdir, 'pipeline.yaml')
                 compiler.Compiler().compile(
                     pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_outside_of_condition_exception_permitted(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.component
+        def return_1() -> int:
+            return 1
+
+        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+        def my_pipeline():
+            return_1_task = return_1()
+
+            one = print_op(message='1')
+            with dsl.Condition(return_1_task.output == 1):
+                two = print_op(message='2')
+                three = print_op(message='3').after(one)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
 
     def test_inside_of_condition_permitted(self):
 
