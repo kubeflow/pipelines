@@ -474,7 +474,7 @@ class PipelineTask:
 def check_primitive_placeholder_is_used_for_correct_io_type(
     inputs_dict: Dict[str, structures.InputSpec],
     outputs_dict: Dict[str, structures.OutputSpec],
-    arg: Union[placeholders.Placeholder, Any],
+    arg: Union[placeholders.CommandLineElement, Any],
 ):
     """Validates input/output placeholders refer to an input/output with an
     appropriate type for the placeholder. This should only apply to components
@@ -514,7 +514,7 @@ def check_primitive_placeholder_is_used_for_correct_io_type(
                 f'"{outputs_dict[output_name].type}" cannot be paired with '
                 f'{arg.__class__.__name__}.')
     elif isinstance(arg, placeholders.IfPresentPlaceholder):
-        all_normalized_args: List[Union[str, placeholders.Placeholder]] = []
+        all_normalized_args: List[placeholders.CommandLineElement] = []
         if arg.then is None:
             pass
         elif isinstance(arg.then, list):

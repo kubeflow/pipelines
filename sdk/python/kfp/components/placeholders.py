@@ -265,11 +265,7 @@ PRIMITIVE_OUTPUT_PLACEHOLDERS = (OutputParameterPlaceholder,
                                  OutputPathPlaceholder, OutputUriPlaceholder,
                                  OutputMetadataPlaceholder)
 
-CommandLineElement = Union[str, IfPresentPlaceholder, ConcatPlaceholder,
-                           InputValuePlaceholder, InputPathPlaceholder,
-                           InputUriPlaceholder, InputMetadataPlaceholder,
-                           OutputParameterPlaceholder, OutputPathPlaceholder,
-                           OutputUriPlaceholder, OutputMetadataPlaceholder]
+CommandLineElement = Union[str, Placeholder]
 
 
 def convert_command_line_element_to_string(

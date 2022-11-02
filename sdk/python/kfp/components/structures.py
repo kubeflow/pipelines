@@ -494,7 +494,7 @@ def check_placeholder_references_valid_io_name(
                 f'Argument "{arg}" references nonexistant input: "{arg.input_name}".'
             )
 
-        all_normalized_args: List[Union[str, placeholders.Placeholder]] = []
+        all_normalized_args: List[placeholders.CommandLineElement] = []
         if arg.then is None:
             pass
         elif isinstance(arg.then, list):
