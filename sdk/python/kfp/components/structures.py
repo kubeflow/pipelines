@@ -15,6 +15,7 @@
 
 import ast
 import collections
+import dataclasses
 import functools
 import itertools
 import re
@@ -23,7 +24,6 @@ import uuid
 
 from google.protobuf import json_format
 import kfp
-from kfp.components import base_model
 from kfp.components import placeholders
 from kfp.components import utils
 from kfp.components import v1_components
@@ -37,7 +37,8 @@ from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
 
 
-class InputSpec_(base_model.BaseModel):
+@dataclasses.dataclass
+class InputSpec_:
     """Component input definitions. (Inner class).
 
     Attributes:
@@ -50,7 +51,7 @@ class InputSpec_(base_model.BaseModel):
 
 
 # Hack to allow access to __init__ arguments for setting _optional value
-class InputSpec(InputSpec_, base_model.BaseModel):
+class InputSpec(InputSpec_):
     """Component input definitions.
 
     Attributes:
@@ -67,6 +68,9 @@ class InputSpec(InputSpec_, base_model.BaseModel):
             raise ValueError('InputSpec does not accept positional arguments.')
         super().__init__(*args, **kwargs)
         self._optional = 'default' in kwargs
+
+    def __post_init__(self) -> None:
+        self._validate_type()
 
     @classmethod
     def from_ir_component_inputs_dict(
@@ -132,13 +136,17 @@ class InputSpec(InputSpec_, base_model.BaseModel):
             type_utils.validate_bundled_artifact_type(self.type)
 
 
-class OutputSpec(base_model.BaseModel):
+@dataclasses.dataclass
+class OutputSpec:
     """Component output definitions.
 
     Attributes:
         type: The type of the output.
     """
     type: Union[str, dict]
+
+    def __post_init__(self) -> None:
+        self._validate_type()
 
     @classmethod
     def from_ir_component_outputs_dict(
@@ -206,7 +214,8 @@ def spec_type_is_parameter(type_: str) -> bool:
     return in_memory_type in type_utils.IN_MEMORY_SPEC_TYPE_TO_IR_TYPE or in_memory_type == 'PipelineTaskFinalStatus'
 
 
-class ResourceSpec(base_model.BaseModel):
+@dataclasses.dataclass
+class ResourceSpec:
     """The resource requirements of a container execution.
 
     Attributes:
@@ -222,7 +231,8 @@ class ResourceSpec(base_model.BaseModel):
     accelerator_count: Optional[int] = None
 
 
-class ContainerSpec(base_model.BaseModel):
+@dataclasses.dataclass
+class ContainerSpec:
     """Container definition.
 
     This is only used for pipeline authors when constructing a containerized component
@@ -259,7 +269,8 @@ class ContainerSpec(base_model.BaseModel):
     """Arguments to the container entrypoint."""
 
 
-class ContainerSpecImplementation(base_model.BaseModel):
+@dataclasses.dataclass
+class ContainerSpecImplementation:
     """Container implementation definition."""
     image: str
     """Container image."""
@@ -275,6 +286,11 @@ class ContainerSpecImplementation(base_model.BaseModel):
 
     resources: Optional[ResourceSpec] = None
     """Specification on the resource requirements."""
+
+    def __post_init__(self) -> None:
+        self._transform_command()
+        self._transform_args()
+        self._transform_env()
 
     def _transform_command(self) -> None:
         """Use None instead of empty list for command."""
@@ -322,7 +338,8 @@ class ContainerSpecImplementation(base_model.BaseModel):
             resources=None)  # can only be set on tasks
 
 
-class RetryPolicy(base_model.BaseModel):
+@dataclasses.dataclass
+class RetryPolicy:
     """The retry policy of a container execution.
 
     Attributes:
@@ -356,7 +373,8 @@ class RetryPolicy(base_model.BaseModel):
             }, pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy())
 
 
-class TaskSpec(base_model.BaseModel):
+@dataclasses.dataclass
+class TaskSpec:
     """The spec of a pipeline task.
 
     Attributes:
@@ -391,7 +409,8 @@ class TaskSpec(base_model.BaseModel):
     retry_policy: Optional[RetryPolicy] = None
 
 
-class ImporterSpec(base_model.BaseModel):
+@dataclasses.dataclass
+class ImporterSpec:
     """ImporterSpec definition.
 
     Attributes:
@@ -409,7 +428,8 @@ class ImporterSpec(base_model.BaseModel):
     metadata: Optional[Mapping[str, Any]] = None
 
 
-class Implementation(base_model.BaseModel):
+@dataclasses.dataclass
+class Implementation:
     """Implementation definition.
 
     Attributes:
@@ -498,7 +518,8 @@ def check_placeholder_references_valid_io_name(
         raise TypeError(f'Unexpected argument "{arg}" of type {type(arg)}.')
 
 
-class ComponentSpec(base_model.BaseModel):
+@dataclasses.dataclass
+class ComponentSpec:
     """The definition of a component.
 
     Attributes:
@@ -514,6 +535,12 @@ class ComponentSpec(base_model.BaseModel):
     description: Optional[str] = None
     inputs: Optional[Dict[str, InputSpec]] = None
     outputs: Optional[Dict[str, OutputSpec]] = None
+
+    def __post_init__(self) -> None:
+        self._transform_name()
+        self._transform_inputs()
+        self._transform_outputs()
+        self._validate_placeholders()
 
     def _transform_name(self) -> None:
         """Converts the name to a valid name."""
