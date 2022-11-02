@@ -22,6 +22,7 @@ import unittest
 from absl.testing import parameterized
 from kfp import compiler
 from kfp import components
+from kfp.components import placeholders
 from kfp.components import python_component
 from kfp.components import structures
 import yaml
@@ -91,7 +92,23 @@ def load_compiled_file(filename: str) -> Dict[str, Any]:
         return ignore_kfp_version_helper(contents)
 
 
-def strip_some_component_spec_fields(
+def handle_placeholders(
+        component_spec: structures.ComponentSpec) -> structures.ComponentSpec:
+    if component_spec.implementation.container is not None:
+        if component_spec.implementation.container.command is not None:
+            component_spec.implementation.container.command = [
+                placeholders.convert_command_line_element_to_string(c)
+                for c in component_spec.implementation.container.command
+            ]
+        if component_spec.implementation.container.args is not None:
+            component_spec.implementation.container.args = [
+                placeholders.convert_command_line_element_to_string(a)
+                for a in component_spec.implementation.container.args
+            ]
+    return component_spec
+
+
+def handle_expected_diffs(
         component_spec: structures.ComponentSpec) -> structures.ComponentSpec:
     """Strips some component spec fields that should be ignored when comparing
     with golden result."""
@@ -100,7 +117,8 @@ def strip_some_component_spec_fields(
     # ignore SDK version so that golden snapshots don't need to be updated between SDK version bump
     if component_spec.implementation.graph is not None:
         component_spec.implementation.graph.sdk_version = ''
-    return component_spec
+
+    return handle_placeholders(component_spec)
 
 
 class ReadWriteTest(parameterized.TestCase):
@@ -127,8 +145,8 @@ class ReadWriteTest(parameterized.TestCase):
         reloaded_component = self._compile_and_load_component(
             original_component)
         self.assertEqual(
-            strip_some_component_spec_fields(original_component.component_spec),
-            strip_some_component_spec_fields(reloaded_component.component_spec))
+            handle_expected_diffs(original_component.component_spec),
+            handle_expected_diffs(reloaded_component.component_spec))
 
     def _test_serialization_correctness(
         self,
