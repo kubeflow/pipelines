@@ -51,7 +51,7 @@ class DataprocBatchRemoteRunner():
       type: str,
       project: str,
       location: str,
-      gcp_resources: str
+      gcp_resources: str,
   ) -> None:
     """Initializes a DataprocBatchRemoteRunner object."""
     self._type = type
@@ -178,35 +178,42 @@ class DataprocBatchRemoteRunner():
 
       job_resources = json_format.Parse(serialized_gcp_resources,
                                         gcp_resources_pb2.GcpResources())
-      # Resources should only contain one item.
-      if len(job_resources.resources) != 1:
+      # Job resources should contain a DataprocBatch and DataprocLro resource.
+      if len(job_resources.resources) != 2:
         raise ValueError(
-            f'gcp_resources should contain one resource, found {len(job_resources.resources)}'
+            f'gcp_resources should contain 2 resources, found {len(job_resources.resources)}.'
         )
 
-      # Validate the format of the Operation resource uri.
-      job_name_pattern = re.compile(_DATAPROC_OPERATION_URI_TEMPLATE)
-      match = job_name_pattern.match(job_resources.resources[0].resource_uri)
-      try:
-        matched_project = match.group('project')
-        matched_region = match.group('region')
-        matched_operation_id = match.group('operation')
-      except AttributeError as err:
-        raise ValueError('Invalid Resource uri: {}. Expect: {}.'.format(
-            job_resources.resources[0].resource_uri,
-            'https://dataproc.googleapis.com/v1/projects/[projectId]/regions/[region]/operations/[operationId]'
-        )) from err
+      if (['DataprocBatch', 'DataprocLro'] !=
+          sorted([r.resource_type for r in job_resources.resources])):
+        raise ValueError('gcp_resources should contain a'
+                         'DataprocLro resource and a DataprocBatch resource')
 
-      # Get the long-running Operation resource.
-      lro = self._get_resource(job_resources.resources[0].resource_uri)
-      return lro
-    else:
+      for resource in job_resources.resources:
+        if resource.resource_type == 'DataprocLro':
+          # Validate the format of the Operation resource uri.
+          job_name_pattern = re.compile(_DATAPROC_OPERATION_URI_TEMPLATE)
+          match = job_name_pattern.match(resource.resource_uri)
+          try:
+            matched_project = match.group('project')
+            matched_region = match.group('region')
+            matched_operation_id = match.group('operation')
+          except AttributeError as err:
+            raise ValueError('Invalid Resource uri: {}. Expect: {}.'.format(
+                resource.resource_uri,
+                'https://dataproc.googleapis.com/v1/projects/[projectId]/regions/[region]/operations/[operationId]'
+            )) from err
+
+          # Get the long-running Operation resource.
+          lro = self._get_resource(resource.resource_uri)
+          return lro
+
       return None
 
   def wait_for_batch(
       self,
       lro: Dict[str, Any],
-      poll_interval_seconds: int
+      poll_interval_seconds: int,
   ) -> Dict[str, Any]:
     """Waits for a Dataproc batch workload to reach a final state.
 
@@ -241,7 +248,7 @@ class DataprocBatchRemoteRunner():
   def create_batch(
       self,
       batch_id: str,
-      batch_request: Dict[str, Any]
+      batch_request: Dict[str, Any],
   ) -> Dict[str, Any]:
     """Common function for creating a batch workload.
 
@@ -257,18 +264,25 @@ class DataprocBatchRemoteRunner():
     # Create the Batch resource.
     create_batch_url = f'https://dataproc.googleapis.com/v1/projects/{self._project}/locations/{self._location}/batches/?batchId={batch_id}'
     lro = self._post_resource(create_batch_url, json.dumps(batch_request))
-    lro_name = lro['name']
 
-    # Write the Operation resource uri to the gcp_resources output file.
+    try:
+      lro_name = lro['name']
+      batch_name = lro['metadata']['batch']
+    except KeyError as err:
+      raise ValueError('Failed to parse Operation resource.') from err
+
+    # Write the Batch and Operation resources to the gcp_resources output file.
     job_resources = gcp_resources_pb2.GcpResources()
-    job_resource = job_resources.resources.add()
-    job_resource.resource_type = 'DataprocLro'
-    job_resource.resource_uri = f'{_DATAPROC_URI_PREFIX}/{lro_name}'
+    operation_resource = job_resources.resources.add()
+    operation_resource.resource_type = 'DataprocLro'
+    operation_resource.resource_uri = f'{_DATAPROC_URI_PREFIX}/{lro_name}'
+    batch_resource = job_resources.resources.add()
+    batch_resource.resource_type = 'DataprocBatch'
+    batch_resource.resource_uri = f'{_DATAPROC_URI_PREFIX}/{batch_name}'
     with open(self._gcp_resources, 'w') as f:
       f.write(json_format.MessageToJson(job_resources))
 
     return lro
-
 
 def create_batch(
     type: str,
