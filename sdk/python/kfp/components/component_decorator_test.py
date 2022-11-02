@@ -106,7 +106,7 @@ class TestComponentDecorator(unittest.TestCase):
 
         component_spec = structures.ComponentSpec.load_from_component_yaml(
             yaml_text)
-        self.assertEqual(component_spec, comp.component_spec)
+        self.assertEqual(component_spec.name, comp.component_spec.name)
 
     def test_output_named_tuple_with_dict(self):
 

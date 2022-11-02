@@ -313,22 +313,11 @@ class ContainerSpecImplementation(base_model.BaseModel):
         Returns:
             ContainerSpecImplementation: The ContainerSpecImplementation instance.
         """
-        args = container_dict.get('args')
-        if args is not None:
-            args = [
-                placeholders.maybe_convert_placeholder_string_to_placeholder(
-                    arg) for arg in args
-            ]
-        command = container_dict.get('command')
-        if command is not None:
-            command = [
-                placeholders.maybe_convert_placeholder_string_to_placeholder(c)
-                for c in command
-            ]
+
         return ContainerSpecImplementation(
             image=container_dict['image'],
-            command=command,
-            args=args,
+            command=container_dict.get('command'),
+            args=container_dict.get('args'),
             env=None,  # can only be set on tasks
             resources=None)  # can only be set on tasks
 
@@ -467,9 +456,11 @@ class Implementation(base_model.BaseModel):
             return Implementation(graph=pipeline_spec)
 
 
-def _check_valid_placeholder_reference(
-        valid_inputs: List[str], valid_outputs: List[str],
-        placeholder: placeholders.CommandLineElement) -> None:
+def check_placeholder_references_valid_io_name(
+    inputs_dict: Dict[str, InputSpec],
+    outputs_dict: Dict[str, OutputSpec],
+    arg: placeholders.CommandLineElement,
+) -> None:
     """Validates input/output placeholders refer to an existing input/output.
 
     Args:
@@ -478,58 +469,41 @@ def _check_valid_placeholder_reference(
         arg: The placeholder argument for checking.
 
     Raises:
-        ValueError: if any placeholder references a non-existing input or
+        ValueError: if any placeholder references a nonexistant input or
             output.
         TypeError: if any argument is neither a str nor a placeholder
             instance.
     """
-    if isinstance(placeholder, ContainerComponentArtifactChannel):
+    if isinstance(arg, ContainerComponentArtifactChannel):
         raise ValueError(
             'Cannot access artifact by itself in the container definition. Please use .uri or .path instead to access the artifact.'
         )
-    elif isinstance(
-            placeholder,
-        (placeholders.InputValuePlaceholder, placeholders.InputPathPlaceholder,
-         placeholders.InputUriPlaceholder,
-         placeholders.InputMetadataPlaceholder)):
-        if placeholder.input_name not in valid_inputs:
+    elif isinstance(arg, placeholders.PRIMITIVE_INPUT_PLACEHOLDERS):
+        if arg.input_name not in inputs_dict:
             raise ValueError(
-                f'Argument "{placeholder}" references non-existing input.')
-    elif isinstance(
-            placeholder,
-        (placeholders.OutputParameterPlaceholder,
-         placeholders.OutputPathPlaceholder, placeholders.OutputUriPlaceholder,
-         placeholders.OutputMetadataPlaceholder)):
-        if placeholder.output_name not in valid_outputs:
+                f'Argument "{arg}" references nonexistant input: "{arg.input_name}".'
+            )
+    elif isinstance(arg, placeholders.PRIMITIVE_OUTPUT_PLACEHOLDERS):
+        if arg.output_name not in outputs_dict:
             raise ValueError(
-                f'Argument "{placeholder}" references non-existing output.')
-    elif isinstance(placeholder, placeholders.IfPresentPlaceholder):
-        if placeholder.input_name not in valid_inputs:
+                f'Argument "{arg}" references nonexistant output: "{arg.output_name}".'
+            )
+    elif isinstance(arg, placeholders.IfPresentPlaceholder):
+        if arg.input_name not in inputs_dict:
             raise ValueError(
-                f'Argument "{placeholder}" references non-existing input.')
-        for placeholder in itertools.chain(placeholder.then or [],
-                                           placeholder.else_ or []):
-            _check_valid_placeholder_reference(valid_inputs, valid_outputs,
-                                               placeholder)
-    elif isinstance(placeholder, placeholders.ConcatPlaceholder):
-        for placeholder in placeholder.items:
-            _check_valid_placeholder_reference(valid_inputs, valid_outputs,
-                                               placeholder)
-    elif not isinstance(placeholder, placeholders.ExecutorInputPlaceholder
-                       ) and not isinstance(placeholder, str):
-        raise TypeError(
-            f'Unexpected argument "{placeholder}" of type {type(placeholder)}.')
-
-
-ValidCommandArgTypes = (str, placeholders.InputValuePlaceholder,
-                        placeholders.InputPathPlaceholder,
-                        placeholders.InputUriPlaceholder,
-                        placeholders.OutputPathPlaceholder,
-                        placeholders.OutputUriPlaceholder,
-                        placeholders.InputMetadataPlaceholder,
-                        placeholders.OutputMetadataPlaceholder,
-                        placeholders.IfPresentPlaceholder,
-                        placeholders.ConcatPlaceholder)
+                f'Argument "{arg}" references nonexistant input: "{arg.input_name}".'
+            )
+        for arg in itertools.chain(arg.then or [], arg.else_ or []):
+            check_placeholder_references_valid_io_name(inputs_dict,
+                                                       outputs_dict, arg)
+    elif isinstance(arg, placeholders.ConcatPlaceholder):
+        for arg in arg.items:
+            check_placeholder_references_valid_io_name(inputs_dict,
+                                                       outputs_dict, arg)
+    elif not isinstance(
+            arg, placeholders.ExecutorInputPlaceholder) and not isinstance(
+                arg, str):
+        raise TypeError(f'Unexpected argument "{arg}" of type {type(arg)}.')
 
 
 class ComponentSpec(base_model.BaseModel):
@@ -567,14 +541,13 @@ class ComponentSpec(base_model.BaseModel):
         if self.implementation.container is None:
             return
 
-        valid_inputs = [] if self.inputs is None else list(self.inputs.keys())
-        valid_outputs = [] if self.outputs is None else list(
-            self.outputs.keys())
-
+        valid_inputs = {} if self.inputs is None else self.inputs
+        valid_outputs = {} if self.outputs is None else self.outputs
         for arg in itertools.chain(
             (self.implementation.container.command or []),
             (self.implementation.container.args or [])):
-            _check_valid_placeholder_reference(valid_inputs, valid_outputs, arg)
+            check_placeholder_references_valid_io_name(valid_inputs,
+                                                       valid_outputs, arg)
 
     @classmethod
     def from_v1_component_spec(
@@ -596,34 +569,32 @@ class ComponentSpec(base_model.BaseModel):
         if component_dict.get('implementation') is None:
             raise ValueError('Implementation field not found')
 
-        if 'container' not in component_dict.get(
-                'implementation'):  # type: ignore
+        if 'implementation' not in component_dict or 'container' not in component_dict[
+                'implementation']:
             raise NotImplementedError('Container implementation not found.')
 
         container = component_dict['implementation']['container']
-        container['command'] = [
-            placeholders
-            .maybe_convert_v1_yaml_placeholder_to_v2_placeholder_str(
+        command = [
+            placeholders.maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
                 command, component_dict=component_dict)
             for command in container.get('command', [])
         ]
-        container['args'] = [
-            placeholders
-            .maybe_convert_v1_yaml_placeholder_to_v2_placeholder_str(
+        args = [
+            placeholders.maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
                 command, component_dict=component_dict)
             for command in container.get('args', [])
         ]
-        container['env'] = {
-            key: placeholders
-            .maybe_convert_v1_yaml_placeholder_to_v2_placeholder_str(
+        env = {
+            key:
+            placeholders.maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
                 command, component_dict=component_dict)
             for key, command in container.get('env', {}).items()
         }
         container_spec = ContainerSpecImplementation.from_container_dict({
             'image': container['image'],
-            'command': container['command'],
-            'args': container['args'],
-            'env': container['env']
+            'command': command,
+            'args': args,
+            'env': env
         })
 
         inputs = {}
