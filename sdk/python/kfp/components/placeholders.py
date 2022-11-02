@@ -364,18 +364,31 @@ def maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
     elif 'if' in arg:
         if_ = arg['if']
         input_name = utils.sanitize_input_name(if_['cond']['isPresent'])
-        then_ = if_['then']
-        else_ = if_.get('else', [])
-        return IfPresentPlaceholder(
-            input_name=input_name,
-            then=[
+        then = if_['then']
+        else_ = if_.get('else')
+
+        if isinstance(then, list):
+            then = [
                 maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
-                    val, component_dict=component_dict) for val in then_
-            ],
-            else_=[
+                    val, component_dict=component_dict) for val in then
+            ]
+        else:
+            then = maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
+                then, component_dict=component_dict)
+
+        if else_ is None:
+            pass
+        elif isinstance(else_, list):
+            else_ = [
                 maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
                     val, component_dict=component_dict) for val in else_
-            ])
+            ]
+        else:
+            maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
+                else_, component_dict=component_dict)
+
+        return IfPresentPlaceholder(
+            input_name=input_name, then=then, else_=else_)
 
     elif 'concat' in arg:
 
