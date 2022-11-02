@@ -361,7 +361,7 @@ class ModelBase:
         return parse_object_from_struct_based_on_class_init(
             cls, struct, serialized_names=cls._serialized_names)
 
-    def to_dict(self) -> Mapping:
+    def to_dict(self) -> Dict[str, Any]:
         return convert_object_to_struct(
             self, serialized_names=self._serialized_names)
 

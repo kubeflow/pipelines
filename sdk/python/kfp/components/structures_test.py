@@ -192,7 +192,7 @@ class StructuresTest(parameterized.TestCase):
             self):
         with self.assertRaisesRegex(
                 ValueError,
-                r'^Argument \"InputValuePlaceholder[\s\S]*\'input000\'[\s\S]*references non-existing input.'
+                r'^Argument "InputValuePlaceholder" references nonexistant input: "input000".'
         ):
             structures.ComponentSpec(
                 name='component_1',
@@ -215,7 +215,7 @@ class StructuresTest(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 ValueError,
-                r'^Argument \"OutputPathPlaceholder[\s\S]*\'output000\'[\s\S]*references non-existing output.'
+                r'^Argument "OutputPathPlaceholder" references nonexistant output: "output000".'
         ):
             structures.ComponentSpec(
                 name='component_1',
@@ -244,12 +244,9 @@ class StructuresTest(parameterized.TestCase):
                 container=structures.ContainerSpecImplementation(
                     image='alpine',
                     command=[
-                        'sh',
-                        '-c',
-                        'set -ex\necho "$0" > "$1"',
-                        placeholders.InputValuePlaceholder(input_name='input1'),
-                        placeholders.OutputParameterPlaceholder(
-                            output_name='output1'),
+                        'sh', '-c', 'set -ex\necho "$0" > "$1"',
+                        "{{$.inputs.parameters['input1']}}",
+                        "{{$.outputs.parameters['output1'].output_file}}"
                     ],
                 )),
             inputs={'input1': structures.InputSpec(type='String')},
@@ -337,9 +334,8 @@ sdkVersion: kfp-2.0.0-alpha.2
                         'sh',
                         '-c',
                         'set -ex\necho "$0" > "$1"',
-                        placeholders.InputValuePlaceholder(input_name='input1'),
-                        placeholders.OutputParameterPlaceholder(
-                            output_name='output1'),
+                        "{{$.inputs.parameters['input1']}}",
+                        "{{$.outputs.parameters['output1'].output_file}}",
                     ],
                 )),
             inputs={'input1': structures.InputSpec(type='String')},
@@ -415,9 +411,9 @@ sdkVersion: kfp-2.0.0-alpha.2
                             input_name='input_parameter'),
                         placeholders.InputPathPlaceholder(
                             input_name='input_artifact'),
-                        placeholders.OutputParameterPlaceholder(
+                        placeholders.OutputPathPlaceholder(
                             output_name='output_1'),
-                        placeholders.OutputParameterPlaceholder(
+                        placeholders.OutputPathPlaceholder(
                             output_name='output_2'),
                     ],
                     env={},
@@ -731,9 +727,8 @@ sdkVersion: kfp-2.0.0-alpha.2""")
                     image='alpine',
                     command=['sh', '-c', 'echo "$0" >> "$1"'],
                     args=[
-                        placeholders.InputValuePlaceholder(input_name='input1'),
-                        placeholders.OutputPathPlaceholder(
-                            output_name='output1')
+                        "{{$.inputs.parameters['input1']}}",
+                        "{{$.outputs.artifacts['output1'].path}}",
                     ],
                     env=None,
                     resources=None),
@@ -801,8 +796,7 @@ sdkVersion: kfp-2.0.0-alpha.2""")
                     command=['sh', '-c', 'echo "$0" "$1"'],
                     args=[
                         'input: ',
-                        placeholders.InputValuePlaceholder(
-                            input_name='optional_input_1')
+                        "{{$.inputs.parameters['optional_input_1']}}",
                     ],
                     env=None,
                     resources=None),
@@ -871,13 +865,10 @@ sdkVersion: kfp-2.0.0-alpha.2""")
                 container=structures.ContainerSpecImplementation(
                     image='alpine',
                     command=[
-                        'sh', '-c', 'echo "$0"',
-                        placeholders.ConcatPlaceholder(items=[
-                            placeholders.InputValuePlaceholder(
-                                input_name='input1'),
-                            placeholders.InputValuePlaceholder(
-                                input_name='input2')
-                        ])
+                        'sh',
+                        '-c',
+                        'echo "$0"',
+                        "{{$.inputs.parameters['input1']}}+{{$.inputs.parameters['input2']}}",
                     ],
                     args=None,
                     env=None,
