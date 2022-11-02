@@ -355,14 +355,6 @@ class RetryPolicy(base_model.BaseModel):
                 'backoff_max_duration': backoff_max_duration_seconds,
             }, pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy())
 
-    @classmethod
-    def from_proto(
-        cls, retry_policy_proto: pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy
-    ) -> 'RetryPolicy':
-        return cls.from_dict(
-            json_format.MessageToDict(
-                retry_policy_proto, preserving_proto_field_name=True))
-
 
 class TaskSpec(base_model.BaseModel):
     """The spec of a pipeline task.
