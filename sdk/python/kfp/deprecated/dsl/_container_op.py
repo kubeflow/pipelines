@@ -347,20 +347,22 @@ class Container(V1Container):
         """Set ephemeral-storage request (minimum) for this operator.
 
         Args:
-          size: a string which can be a number or a number followed by one of
+          size(Union[str, PipelineParam]): A string which can be a number or a number followed by one of
             "E", "P", "T", "G", "M", "K".
         """
-        self._validate_size_string(size)
+        if not isinstance(size, _pipeline_param.PipelineParam):
+            self._validate_size_string(size)
         return self.add_resource_request('ephemeral-storage', size)
 
     def set_ephemeral_storage_limit(self, size) -> 'Container':
         """Set ephemeral-storage request (maximum) for this operator.
 
         Args:
-          size: a string which can be a number or a number followed by one of
+          size(Union[str, PipelineParam]): A string which can be a number or a number followed by one of
             "E", "P", "T", "G", "M", "K".
         """
-        self._validate_size_string(size)
+        if not isinstance(size, _pipeline_param.PipelineParam):
+            self._validate_size_string(size)
         return self.add_resource_limit('ephemeral-storage', size)
 
     def set_cpu_request(
