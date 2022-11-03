@@ -73,7 +73,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **create_experiment**
-> V2beat1Experiment create_experiment(body)
+> ApiExperiment create_experiment(body)
 
 Creates a new experiment.
 
@@ -96,7 +96,7 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient() as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.ExperimentServiceApi(api_client)
-    body = kfp_server_api.V2beat1Experiment() # V2beat1Experiment | The experiment to be created.
+    body = kfp_server_api.ApiExperiment() # ApiExperiment | The experiment to be created.
 
     try:
         # Creates a new experiment.
@@ -110,11 +110,11 @@ with kfp_server_api.ApiClient() as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **body** | [**V2beat1Experiment**](V2beat1Experiment.md)| The experiment to be created. | 
+ **body** | [**ApiExperiment**](ApiExperiment.md)| The experiment to be created. | 
 
 ### Return type
 
-[**V2beat1Experiment**](V2beat1Experiment.md)
+[**ApiExperiment**](ApiExperiment.md)
 
 ### Authorization
 
@@ -193,7 +193,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **get_experiment**
-> V2beat1Experiment get_experiment(id)
+> ApiExperiment get_experiment(id)
 
 Finds a specific experiment by ID.
 
@@ -234,7 +234,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**V2beat1Experiment**](V2beat1Experiment.md)
+[**ApiExperiment**](ApiExperiment.md)
 
 ### Authorization
 
@@ -253,7 +253,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **list_experiment**
-> V2beat1ListExperimentsResponse list_experiment(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, namespace=namespace)
+> ApiListExperimentsResponse list_experiment(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, namespace=namespace)
 
 Finds all experiments. Supports pagination, and sorting on certain fields.
 
@@ -302,7 +302,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**V2beat1ListExperimentsResponse**](V2beat1ListExperimentsResponse.md)
+[**ApiListExperimentsResponse**](ApiListExperimentsResponse.md)
 
 ### Authorization
 

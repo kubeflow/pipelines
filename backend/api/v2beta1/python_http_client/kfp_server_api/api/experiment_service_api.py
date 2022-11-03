@@ -168,7 +168,7 @@ class ExperimentServiceApi(object):
         >>> result = thread.get()
 
         :param body: The experiment to be created. (required)
-        :type body: V2beat1Experiment
+        :type body: ApiExperiment
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -181,7 +181,7 @@ class ExperimentServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beat1Experiment
+        :rtype: ApiExperiment
         """
         kwargs['_return_http_data_only'] = True
         return self.create_experiment_with_http_info(body, **kwargs)  # noqa: E501
@@ -196,7 +196,7 @@ class ExperimentServiceApi(object):
         >>> result = thread.get()
 
         :param body: The experiment to be created. (required)
-        :type body: V2beat1Experiment
+        :type body: ApiExperiment
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -213,7 +213,7 @@ class ExperimentServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beat1Experiment, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(ApiExperiment, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -276,7 +276,7 @@ class ExperimentServiceApi(object):
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beat1Experiment',  # noqa: E501
+            response_type='ApiExperiment',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -429,7 +429,7 @@ class ExperimentServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beat1Experiment
+        :rtype: ApiExperiment
         """
         kwargs['_return_http_data_only'] = True
         return self.get_experiment_with_http_info(id, **kwargs)  # noqa: E501
@@ -461,7 +461,7 @@ class ExperimentServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beat1Experiment, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(ApiExperiment, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -520,7 +520,7 @@ class ExperimentServiceApi(object):
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beat1Experiment',  # noqa: E501
+            response_type='ApiExperiment',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -559,7 +559,7 @@ class ExperimentServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V2beat1ListExperimentsResponse
+        :rtype: ApiListExperimentsResponse
         """
         kwargs['_return_http_data_only'] = True
         return self.list_experiment_with_http_info(**kwargs)  # noqa: E501
@@ -599,7 +599,7 @@ class ExperimentServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V2beat1ListExperimentsResponse, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(ApiListExperimentsResponse, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -666,7 +666,7 @@ class ExperimentServiceApi(object):
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V2beat1ListExperimentsResponse',  # noqa: E501
+            response_type='ApiListExperimentsResponse',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501

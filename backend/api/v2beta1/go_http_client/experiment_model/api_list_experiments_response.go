@@ -14,12 +14,12 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// V2beat1ListExperimentsResponse v2beat1 list experiments response
-// swagger:model v2beat1ListExperimentsResponse
-type V2beat1ListExperimentsResponse struct {
+// APIListExperimentsResponse api list experiments response
+// swagger:model apiListExperimentsResponse
+type APIListExperimentsResponse struct {
 
 	// A list of experiments returned.
-	Experiments []*V2beat1Experiment `json:"experiments"`
+	Experiments []*APIExperiment `json:"experiments"`
 
 	// The token to list the next page of experiments.
 	NextPageToken string `json:"next_page_token,omitempty"`
@@ -28,8 +28,8 @@ type V2beat1ListExperimentsResponse struct {
 	TotalSize int32 `json:"total_size,omitempty"`
 }
 
-// Validate validates this v2beat1 list experiments response
-func (m *V2beat1ListExperimentsResponse) Validate(formats strfmt.Registry) error {
+// Validate validates this api list experiments response
+func (m *APIListExperimentsResponse) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateExperiments(formats); err != nil {
@@ -42,7 +42,7 @@ func (m *V2beat1ListExperimentsResponse) Validate(formats strfmt.Registry) error
 	return nil
 }
 
-func (m *V2beat1ListExperimentsResponse) validateExperiments(formats strfmt.Registry) error {
+func (m *APIListExperimentsResponse) validateExperiments(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Experiments) { // not required
 		return nil
@@ -68,7 +68,7 @@ func (m *V2beat1ListExperimentsResponse) validateExperiments(formats strfmt.Regi
 }
 
 // MarshalBinary interface implementation
-func (m *V2beat1ListExperimentsResponse) MarshalBinary() ([]byte, error) {
+func (m *APIListExperimentsResponse) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -76,8 +76,8 @@ func (m *V2beat1ListExperimentsResponse) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *V2beat1ListExperimentsResponse) UnmarshalBinary(b []byte) error {
-	var res V2beat1ListExperimentsResponse
+func (m *APIListExperimentsResponse) UnmarshalBinary(b []byte) error {
+	var res APIListExperimentsResponse
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

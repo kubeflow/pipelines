@@ -14,6 +14,6 @@
 from __future__ import absolute_import
 
 # import models into model package
+from kfp_server_api.models.api_experiment import ApiExperiment
+from kfp_server_api.models.api_list_experiments_response import ApiListExperimentsResponse
 from kfp_server_api.models.experiment_storage_state import ExperimentStorageState
-from kfp_server_api.models.v2beat1_experiment import V2beat1Experiment
-from kfp_server_api.models.v2beat1_list_experiments_response import V2beat1ListExperimentsResponse

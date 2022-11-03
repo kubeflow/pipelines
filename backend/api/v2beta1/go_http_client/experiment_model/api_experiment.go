@@ -13,9 +13,9 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// V2beat1Experiment v2beat1 experiment
-// swagger:model v2beat1Experiment
-type V2beat1Experiment struct {
+// APIExperiment api experiment
+// swagger:model apiExperiment
+type APIExperiment struct {
 
 	// Output. The time that the experiment was created.
 	// Format: date-time
@@ -37,8 +37,8 @@ type V2beat1Experiment struct {
 	StorageState ExperimentStorageState `json:"storage_state,omitempty"`
 }
 
-// Validate validates this v2beat1 experiment
-func (m *V2beat1Experiment) Validate(formats strfmt.Registry) error {
+// Validate validates this api experiment
+func (m *APIExperiment) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateCreatedAt(formats); err != nil {
@@ -55,7 +55,7 @@ func (m *V2beat1Experiment) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *V2beat1Experiment) validateCreatedAt(formats strfmt.Registry) error {
+func (m *APIExperiment) validateCreatedAt(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.CreatedAt) { // not required
 		return nil
@@ -68,7 +68,7 @@ func (m *V2beat1Experiment) validateCreatedAt(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *V2beat1Experiment) validateStorageState(formats strfmt.Registry) error {
+func (m *APIExperiment) validateStorageState(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.StorageState) { // not required
 		return nil
@@ -85,7 +85,7 @@ func (m *V2beat1Experiment) validateStorageState(formats strfmt.Registry) error 
 }
 
 // MarshalBinary interface implementation
-func (m *V2beat1Experiment) MarshalBinary() ([]byte, error) {
+func (m *APIExperiment) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -93,8 +93,8 @@ func (m *V2beat1Experiment) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *V2beat1Experiment) UnmarshalBinary(b []byte) error {
-	var res V2beat1Experiment
+func (m *APIExperiment) UnmarshalBinary(b []byte) error {
+	var res APIExperiment
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

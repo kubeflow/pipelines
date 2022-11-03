@@ -92,9 +92,9 @@ Class | Method | HTTP request | Description
 
 ## Documentation For Models
 
+ - [ApiExperiment](docs/ApiExperiment.md)
+ - [ApiListExperimentsResponse](docs/ApiListExperimentsResponse.md)
  - [ExperimentStorageState](docs/ExperimentStorageState.md)
- - [V2beat1Experiment](docs/V2beat1Experiment.md)
- - [V2beat1ListExperimentsResponse](docs/V2beat1ListExperimentsResponse.md)
 
 
 ## Documentation For Authorization

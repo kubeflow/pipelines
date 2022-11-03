@@ -1,9 +1,9 @@
-# V2beat1ListExperimentsResponse
+# ApiListExperimentsResponse
 
 ## Properties
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**experiments** | [**list[V2beat1Experiment]**](V2beat1Experiment.md) | A list of experiments returned. | [optional] 
+**experiments** | [**list[ApiExperiment]**](ApiExperiment.md) | A list of experiments returned. | [optional] 
 **total_size** | **int** | The number of experiments for the given query. | [optional] 
 **next_page_token** | **str** | The token to list the next page of experiments. | [optional] 
 

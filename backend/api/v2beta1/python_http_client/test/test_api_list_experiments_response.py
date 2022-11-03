@@ -16,11 +16,11 @@ import unittest
 import datetime
 
 import kfp_server_api
-from kfp_server_api.models.v2beat1_list_experiments_response import V2beat1ListExperimentsResponse  # noqa: E501
+from kfp_server_api.models.api_list_experiments_response import ApiListExperimentsResponse  # noqa: E501
 from kfp_server_api.rest import ApiException
 
-class TestV2beat1ListExperimentsResponse(unittest.TestCase):
-    """V2beat1ListExperimentsResponse unit test stubs"""
+class TestApiListExperimentsResponse(unittest.TestCase):
+    """ApiListExperimentsResponse unit test stubs"""
 
     def setUp(self):
         pass
@@ -29,15 +29,15 @@ class TestV2beat1ListExperimentsResponse(unittest.TestCase):
         pass
 
     def make_instance(self, include_optional):
-        """Test V2beat1ListExperimentsResponse
+        """Test ApiListExperimentsResponse
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api.models.v2beat1_list_experiments_response.V2beat1ListExperimentsResponse()  # noqa: E501
+        # model = kfp_server_api.models.api_list_experiments_response.ApiListExperimentsResponse()  # noqa: E501
         if include_optional :
-            return V2beat1ListExperimentsResponse(
+            return ApiListExperimentsResponse(
                 experiments = [
-                    kfp_server_api.models.v2beat1_experiment.v2beat1Experiment(
+                    kfp_server_api.models.api_experiment.apiExperiment(
                         id = '0', 
                         name = '0', 
                         description = '0', 
@@ -49,11 +49,11 @@ class TestV2beat1ListExperimentsResponse(unittest.TestCase):
                 next_page_token = '0'
             )
         else :
-            return V2beat1ListExperimentsResponse(
+            return ApiListExperimentsResponse(
         )
 
-    def testV2beat1ListExperimentsResponse(self):
-        """Test V2beat1ListExperimentsResponse"""
+    def testApiListExperimentsResponse(self):
+        """Test ApiListExperimentsResponse"""
         inst_req_only = self.make_instance(include_optional=False)
         inst_req_and_optional = self.make_instance(include_optional=True)
 

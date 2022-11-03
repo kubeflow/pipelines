@@ -23,7 +23,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v2beat1ListExperimentsResponse"
+              "$ref": "#/definitions/apiListExperimentsResponse"
             }
           }
         },
@@ -76,7 +76,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v2beat1Experiment"
+              "$ref": "#/definitions/apiExperiment"
             }
           }
         },
@@ -87,7 +87,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v2beat1Experiment"
+              "$ref": "#/definitions/apiExperiment"
             }
           }
         ],
@@ -104,7 +104,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v2beat1Experiment"
+              "$ref": "#/definitions/apiExperiment"
             }
           }
         },
@@ -209,7 +209,7 @@
       ],
       "default": "STORAGESTATE_UNSPECIFIED"
     },
-    "v2beat1Experiment": {
+    "apiExperiment": {
       "type": "object",
       "properties": {
         "id": {
@@ -239,13 +239,13 @@
         }
       }
     },
-    "v2beat1ListExperimentsResponse": {
+    "apiListExperimentsResponse": {
       "type": "object",
       "properties": {
         "experiments": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/v2beat1Experiment"
+            "$ref": "#/definitions/apiExperiment"
           },
           "description": "A list of experiments returned."
         },

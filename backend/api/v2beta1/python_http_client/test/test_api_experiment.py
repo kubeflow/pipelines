@@ -16,11 +16,11 @@ import unittest
 import datetime
 
 import kfp_server_api
-from kfp_server_api.models.v2beat1_experiment import V2beat1Experiment  # noqa: E501
+from kfp_server_api.models.api_experiment import ApiExperiment  # noqa: E501
 from kfp_server_api.rest import ApiException
 
-class TestV2beat1Experiment(unittest.TestCase):
-    """V2beat1Experiment unit test stubs"""
+class TestApiExperiment(unittest.TestCase):
+    """ApiExperiment unit test stubs"""
 
     def setUp(self):
         pass
@@ -29,13 +29,13 @@ class TestV2beat1Experiment(unittest.TestCase):
         pass
 
     def make_instance(self, include_optional):
-        """Test V2beat1Experiment
+        """Test ApiExperiment
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api.models.v2beat1_experiment.V2beat1Experiment()  # noqa: E501
+        # model = kfp_server_api.models.api_experiment.ApiExperiment()  # noqa: E501
         if include_optional :
-            return V2beat1Experiment(
+            return ApiExperiment(
                 id = '0', 
                 name = '0', 
                 description = '0', 
@@ -44,11 +44,11 @@ class TestV2beat1Experiment(unittest.TestCase):
                 storage_state = 'STORAGESTATE_UNSPECIFIED'
             )
         else :
-            return V2beat1Experiment(
+            return ApiExperiment(
         )
 
-    def testV2beat1Experiment(self):
-        """Test V2beat1Experiment"""
+    def testApiExperiment(self):
+        """Test ApiExperiment"""
         inst_req_only = self.make_instance(include_optional=False)
         inst_req_and_optional = self.make_instance(include_optional=True)
 
