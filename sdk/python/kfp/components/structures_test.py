@@ -192,7 +192,7 @@ class StructuresTest(parameterized.TestCase):
             self):
         with self.assertRaisesRegex(
                 ValueError,
-                r'^Argument \"InputValuePlaceholder[\s\S]*\'input000\'[\s\S]*references non-existing input.'
+                r'^Argument "InputValuePlaceholder" references nonexistant input: "input000".'
         ):
             structures.ComponentSpec(
                 name='component_1',
@@ -215,7 +215,7 @@ class StructuresTest(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 ValueError,
-                r'^Argument \"OutputPathPlaceholder[\s\S]*\'output000\'[\s\S]*references non-existing output.'
+                r'^Argument "OutputPathPlaceholder" references nonexistant output: "output000".'
         ):
             structures.ComponentSpec(
                 name='component_1',
@@ -244,23 +244,25 @@ class StructuresTest(parameterized.TestCase):
                 container=structures.ContainerSpecImplementation(
                     image='alpine',
                     command=[
-                        'sh',
-                        '-c',
-                        'set -ex\necho "$0" > "$1"',
-                        placeholders.InputValuePlaceholder(input_name='input1'),
-                        placeholders.OutputParameterPlaceholder(
-                            output_name='output1'),
+                        'sh', '-c', 'set -ex\necho "$0" > "$1"',
+                        "{{$.inputs.parameters['input1']}}",
+                        "{{$.outputs.parameters['output1'].output_file}}"
                     ],
                 )),
             inputs={'input1': structures.InputSpec(type='String')},
             outputs={'output1': structures.OutputSpec(type='String')},
         )
-        from kfp.components import yaml_component
-        yaml_component = yaml_component.YamlComponent(
-            component_spec=original_component_spec)
+        from kfp.components import base_component
+
+        class TestComponent(base_component.BaseComponent):
+
+            def execute(self, **kwargs):
+                pass
+
+        test_component = TestComponent(component_spec=original_component_spec)
         with tempfile.TemporaryDirectory() as tempdir:
             output_path = os.path.join(tempdir, 'component.yaml')
-            compiler.Compiler().compile(yaml_component, output_path)
+            compiler.Compiler().compile(test_component, output_path)
 
             # test that it can be read back correctly
             with open(output_path, 'r') as f:
@@ -332,9 +334,8 @@ sdkVersion: kfp-2.0.0-alpha.2
                         'sh',
                         '-c',
                         'set -ex\necho "$0" > "$1"',
-                        placeholders.InputValuePlaceholder(input_name='input1'),
-                        placeholders.OutputParameterPlaceholder(
-                            output_name='output1'),
+                        "{{$.inputs.parameters['input1']}}",
+                        "{{$.outputs.parameters['output1'].output_file}}",
                     ],
                 )),
             inputs={'input1': structures.InputSpec(type='String')},
@@ -410,20 +411,22 @@ sdkVersion: kfp-2.0.0-alpha.2
                             input_name='input_parameter'),
                         placeholders.InputPathPlaceholder(
                             input_name='input_artifact'),
-                        placeholders.OutputParameterPlaceholder(
+                        placeholders.OutputPathPlaceholder(
                             output_name='output_1'),
-                        placeholders.OutputParameterPlaceholder(
+                        placeholders.OutputPathPlaceholder(
                             output_name='output_2'),
                     ],
                     env={},
                 )),
             inputs={
-                'input_parameter': structures.InputSpec(type='String'),
-                'input_artifact': structures.InputSpec(type='Artifact')
+                'input_parameter':
+                    structures.InputSpec(type='String'),
+                'input_artifact':
+                    structures.InputSpec(type='system.Artifact@0.0.1')
             },
             outputs={
-                'output_1': structures.OutputSpec(type='Artifact'),
-                'output_2': structures.OutputSpec(type='Artifact'),
+                'output_1': structures.OutputSpec(type='system.Artifact@0.0.1'),
+                'output_2': structures.OutputSpec(type='system.Artifact@0.0.1'),
             })
         self.assertEqual(generated_spec, expected_spec)
 
@@ -552,11 +555,11 @@ class TestInputSpec(unittest.TestCase):
 
     def test_equality(self):
         self.assertEqual(
-            structures.InputSpec(type='str', default=None),
-            structures.InputSpec(type='str', default=None))
+            structures.InputSpec(type='String', default=None),
+            structures.InputSpec(type='String', default=None))
         self.assertNotEqual(
-            structures.InputSpec(type='str', default=None),
-            structures.InputSpec(type='str', default='test'))
+            structures.InputSpec(type='String', default=None),
+            structures.InputSpec(type='String', default='test'))
         self.assertEqual(
             structures.InputSpec(type='List', default=None),
             structures.InputSpec(type='typing.List', default=None))
@@ -568,26 +571,28 @@ class TestInputSpec(unittest.TestCase):
             structures.InputSpec(type='typing.List[typing.Dict[str, str]]'))
 
     def test_optional(self):
-        input_spec = structures.InputSpec(type='str', default='test')
+        input_spec = structures.InputSpec(type='String', default='test')
         self.assertEqual(input_spec.default, 'test')
         self.assertEqual(input_spec._optional, True)
 
-        input_spec = structures.InputSpec(type='str', default=None)
+        input_spec = structures.InputSpec(type='String', default=None)
         self.assertEqual(input_spec.default, None)
         self.assertEqual(input_spec._optional, True)
 
-        input_spec = structures.InputSpec(type='str')
+        input_spec = structures.InputSpec(type='String')
         self.assertEqual(input_spec.default, None)
         self.assertEqual(input_spec._optional, False)
 
-    def test_from_ir_parameter_dict(self):
+    def test_from_ir_component_inputs_dict(self):
         parameter_dict = {'parameterType': 'STRING'}
-        input_spec = structures.InputSpec.from_ir_parameter_dict(parameter_dict)
+        input_spec = structures.InputSpec.from_ir_component_inputs_dict(
+            parameter_dict)
         self.assertEqual(input_spec.type, 'String')
         self.assertEqual(input_spec.default, None)
 
         parameter_dict = {'parameterType': 'NUMBER_INTEGER'}
-        input_spec = structures.InputSpec.from_ir_parameter_dict(parameter_dict)
+        input_spec = structures.InputSpec.from_ir_component_inputs_dict(
+            parameter_dict)
         self.assertEqual(input_spec.type, 'Integer')
         self.assertEqual(input_spec.default, None)
 
@@ -595,20 +600,32 @@ class TestInputSpec(unittest.TestCase):
             'defaultValue': 'default value',
             'parameterType': 'STRING'
         }
-        input_spec = structures.InputSpec.from_ir_parameter_dict(parameter_dict)
+        input_spec = structures.InputSpec.from_ir_component_inputs_dict(
+            parameter_dict)
         self.assertEqual(input_spec.type, 'String')
         self.assertEqual(input_spec.default, 'default value')
 
-        input_spec = structures.InputSpec.from_ir_parameter_dict(parameter_dict)
+        input_spec = structures.InputSpec.from_ir_component_inputs_dict(
+            parameter_dict)
         self.assertEqual(input_spec.type, 'String')
         self.assertEqual(input_spec.default, 'default value')
+
+        artifact_dict = {
+            'artifactType': {
+                'schemaTitle': 'system.Artifact',
+                'schemaVersion': '0.0.1'
+            }
+        }
+        input_spec = structures.InputSpec.from_ir_component_inputs_dict(
+            artifact_dict)
+        self.assertEqual(input_spec.type, 'system.Artifact@0.0.1')
 
 
 class TestOutputSpec(parameterized.TestCase):
 
-    def test_from_ir_parameter_dict(self):
+    def test_from_ir_component_outputs_dict(self):
         parameter_dict = {'parameterType': 'STRING'}
-        output_spec = structures.OutputSpec.from_ir_parameter_dict(
+        output_spec = structures.OutputSpec.from_ir_component_outputs_dict(
             parameter_dict)
         self.assertEqual(output_spec.type, 'String')
 
@@ -618,9 +635,9 @@ class TestOutputSpec(parameterized.TestCase):
                 'schemaVersion': '0.0.1'
             }
         }
-        output_spec = structures.OutputSpec.from_ir_parameter_dict(
+        output_spec = structures.OutputSpec.from_ir_component_outputs_dict(
             artifact_dict)
-        self.assertEqual(output_spec.type, 'Artifact')
+        self.assertEqual(output_spec.type, 'system.Artifact@0.0.1')
 
 
 V1_YAML = textwrap.dedent("""\
@@ -710,9 +727,8 @@ sdkVersion: kfp-2.0.0-alpha.2""")
                     image='alpine',
                     command=['sh', '-c', 'echo "$0" >> "$1"'],
                     args=[
-                        placeholders.InputValuePlaceholder(input_name='input1'),
-                        placeholders.OutputPathPlaceholder(
-                            output_name='output1')
+                        "{{$.inputs.parameters['input1']}}",
+                        "{{$.outputs.artifacts['output1'].path}}",
                     ],
                     env=None,
                     resources=None),
@@ -722,7 +738,9 @@ sdkVersion: kfp-2.0.0-alpha.2""")
             inputs={
                 'input1': structures.InputSpec(type='String', default=None)
             },
-            outputs={'output1': structures.OutputSpec(type='Artifact')})
+            outputs={
+                'output1': structures.OutputSpec(type='system.Artifact@0.0.1')
+            })
         self.assertEqual(loaded_component_spec, component_spec)
 
     def test_if_placeholder(self):
@@ -778,8 +796,7 @@ sdkVersion: kfp-2.0.0-alpha.2""")
                     command=['sh', '-c', 'echo "$0" "$1"'],
                     args=[
                         'input: ',
-                        placeholders.InputValuePlaceholder(
-                            input_name='optional_input_1')
+                        "{{$.inputs.parameters['optional_input_1']}}",
                     ],
                     env=None,
                     resources=None),
@@ -848,13 +865,10 @@ sdkVersion: kfp-2.0.0-alpha.2""")
                 container=structures.ContainerSpecImplementation(
                     image='alpine',
                     command=[
-                        'sh', '-c', 'echo "$0"',
-                        placeholders.ConcatPlaceholder(items=[
-                            placeholders.InputValuePlaceholder(
-                                input_name='input1'),
-                            placeholders.InputValuePlaceholder(
-                                input_name='input2')
-                        ])
+                        'sh',
+                        '-c',
+                        'echo "$0"',
+                        "{{$.inputs.parameters['input1']}}+{{$.inputs.parameters['input2']}}",
                     ],
                     args=None,
                     env=None,

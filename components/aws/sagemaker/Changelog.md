@@ -4,10 +4,24 @@ The version of the AWS SageMaker Components is determined by the docker image ta
 Repository: [Public ECR](https://gallery.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components) or [Dockerhub](https://hub.docker.com/repository/docker/amazon/aws-sagemaker-kfp-components). New releases after v1.1.1 will be using the public ECR repository
 
 ---------------------------------------------
+**Change log for version 2.0.0**
+- Makes SageMaker TrainingJob component version 2 GA. This release only includes the [TrainingJob component](./TrainingJob/). Open sources version 2 component code. 
+- Errors out when component recieves Invalid Parameter error.
+
+> Pull requests : [#8258](https://github.com/kubeflow/pipelines/pull/8258), [#8264](https://github.com/kubeflow/pipelines/pull/8264)
+
 **Change log for version 2.0.0-alpha2**
 - Introducing SageMaker TrainingJob component v2 in Preview. This release only includes the [TrainingJob component](./TrainingJob/).
 
 > Pull requests : [#8158](https://github.com/kubeflow/pipelines/pull/8158)
+
+**Change log for version 1.1.2**
+- Fix: Made inputs.model_artifact_url optional in sagemaker model component.
+- Fix: Made TransformResources.VolumeKmsKeyId optional
+- Fix: Handles Stopped state for all version 1 components and fixes bug in robomaker simulation function.
+- Fix: Updated protobuf to 3.2. 
+
+> Pull requests : [#8336](https://github.com/kubeflow/pipelines/pull/8336)
 
 **Change log for version 1.1.1**
 - Print logs for Batch Transform and Processing jobs.

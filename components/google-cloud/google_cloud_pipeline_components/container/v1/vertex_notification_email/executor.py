@@ -22,3 +22,7 @@ def main():
   """
   raise NotImplementedError('The notification email component is supported '
                             'only on Vertex Pipelines.')
+
+
+if __name__ == '__main__':
+  main()

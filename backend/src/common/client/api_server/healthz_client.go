@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/go-openapi/strfmt"
-	apiclient "github.com/kubeflow/pipelines/backend/api/go_http_client/healthz_client"
-	params "github.com/kubeflow/pipelines/backend/api/go_http_client/healthz_client/healthz_service"
-	model "github.com/kubeflow/pipelines/backend/api/go_http_client/healthz_model"
+	apiclient "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/healthz_client"
+	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/healthz_client/healthz_service"
+	model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/healthz_model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -33,7 +33,7 @@ func NewHealthzClient(clientConfig clientcmd.ClientConfig, debug bool) (*Healthz
 	}, nil
 }
 
-func (c *HealthzClient) GetHealthz() (*model.APIGetHealthzResponse, error) {
+func (c *HealthzClient) GetHealthz() (*model.V1beta1GetHealthzResponse, error) {
 	parameters := params.NewGetHealthzParamsWithTimeout(apiServerDefaultTimeout)
 	response, err := c.apiClient.HealthzService.GetHealthz(parameters, PassThroughAuth)
 	if err != nil {

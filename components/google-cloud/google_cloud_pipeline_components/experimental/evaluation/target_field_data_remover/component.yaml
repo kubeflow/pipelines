@@ -1,0 +1,113 @@
+name: target_field_data_remover
+description: |
+  Removes the target field from the input dataset for supporting unstructured AutoML models
+  and custom models for Vertex Batch Prediction.
+  Creates a Dataflow job with Apache Beam to remove the target field.
+
+  Args:
+      project (str):
+          Required. Project to retrieve dataset from.
+      location (Optional[str]):
+          Location to retrieve dataset from.
+          If not set, defaulted to `us-central1`.
+      root_dir (str):
+          Required. The GCS directory for keeping staging files.
+          A random subdirectory will be created under the directory to keep job info for resuming
+          the job in case of failure.
+      gcs_source_uris ([Sequence[str]):
+          Google Cloud Storage URI(-s) to your instances to run the target field data remover on.
+          They must match `instances_format`.
+          May contain wildcards. For more information on wildcards, see
+          https://cloud.google.com/storage/docs/gsutil/addlhelp/WildcardNames.
+      bigquery_source_uri (Optional[str]):
+          Google BigQuery Table URI to your instances to run
+          data sampler on.
+      instances_format (Optional[str]):
+          The format in which instances are given, must be one of
+          the model's supported input storage formats.
+          If not set, default to "jsonl".
+      target_field_name (str):
+          The name of the features target field in the predictions file.
+          Formatted to be able to find nested columns, delimited by `.`.
+          Alternatively referred to as the ground_truth_column field.
+          If not set, defaulted to `ground_truth`.
+      dataflow_service_account (Optional[str]):
+          Optional. Service account to run the dataflow job.
+          If not set, dataflow will use the default woker service account.
+
+          For more details, see https://cloud.google.com/dataflow/docs/concepts/security-and-permissions#default_worker_service_account
+      dataflow_subnetwork (Optional[str]):
+          Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be
+          used. More details:
+          https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+      dataflow_use_public_ips (Optional[bool]):
+          Specifies whether Dataflow workers use public IP addresses.
+      encryption_spec_key_name (Optional[str]):
+          Customer-managed encryption key for the Dataflow job. If this is set, then all resources
+          created by the Dataflow job will be encrypted with the provided encryption key.
+  Returns:
+      gcs_output_directory (JsonArray):
+          Output storage location with the dataset that has the target field removed.
+      bigquery_output_table (str):
+          The BigQuery Table with the dataset that has the target field removed.
+      gcp_resources (str):
+          Serialized gcp_resources proto tracking the target_field_data_remover.
+inputs:
+  - { name: project, type: String }
+  - { name: location, type: String, default: "us-central1" }
+  - { name: root_dir, type: String }
+  - { name: gcs_source_uris, type: JsonArray, default: "[]" }
+  - { name: bigquery_source_uri, type: String, default: "" }
+  - { name: instances_format, type: String, default: "jsonl" }
+  - { name: target_field_name, type: String, default: "ground_truth" }
+  - { name: dataflow_service_account, type: String, default: "" }
+  - { name: dataflow_subnetwork, type: String, default: "" }
+  - { name: dataflow_use_public_ips, type: Boolean, default: "true" }
+  - { name: encryption_spec_key_name, type: String, default: "" }
+outputs:
+  - { name: gcs_output_directory, type: JsonArray }
+  - { name: bigquery_output_table, type: String }
+  - { name: gcp_resources, type: String }
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/model-evaluation:v0.7
+    command:
+      - python
+      - /main.py
+    args:
+      - --task
+      - "data_splitter"
+      - --display_name
+      - "target-field-data-remover"
+      - --project_id
+      - { inputValue: project }
+      - --location
+      - { inputValue: location }
+      - --root_dir
+      - "{{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
+      - --gcs_source_uris
+      - { inputValue: gcs_source_uris }
+      - --bigquery_source_uri
+      - { inputValue: bigquery_source_uri }
+      - --instances_format
+      - { inputValue: instances_format }
+      - --target_field_name
+      - { inputValue: target_field_name }
+      - --dataflow_service_account
+      - { inputValue: dataflow_service_account }
+      - --dataflow_subnetwork
+      - { inputValue: dataflow_subnetwork }
+      - --dataflow_use_public_ips
+      - { inputValue: dataflow_use_public_ips }
+      - --dataflow_job_prefix
+      - "evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
+      - --kms_key_name
+      - { inputValue: encryption_spec_key_name }
+      - --gcs_directory_for_gcs_output_uris
+      - { outputPath: gcs_output_directory }
+      - --gcs_directory_for_bigquery_output_table_uri
+      - { outputPath: bigquery_output_table }
+      - --gcp_resources
+      - { outputPath: gcp_resources }
+      - --executor_input
+      - "{{$}}"

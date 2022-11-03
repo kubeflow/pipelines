@@ -23,18 +23,16 @@ description: |
             For more details, see https://cloud.google.com/bigquery/docs/locations#specifying_your_location
         model (google.BQMLModel):
             Required. BigQuery ML model for evaluation.
-            For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#predict_model_name
+            For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-evaluate#eval_model_name
         table_name (Optional[str]):
-            BigQuery table id of the input table that contains the evaluation data.
-            For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#predict_table_name
+            BigQuery table id of the input table that contains the evaluation data, as in ML.EVALUATE(MODEL model_name[, {TABLE table_name | (query_statement)}]
+            For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-evaluate#eval_table_name
         query_statement (Optional[str]):
-            Query statement string used to generate the evaluation data.
-            For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#predict_query_statement
+            Query statement string used to generate the evaluation data, as in ML.EVALUATE(MODEL model_name[, {TABLE table_name | (query_statement)}]
+            For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-evaluate#eval_query_statement
         threshold (Optional[float]):
-            A custom threshold for the binary logistic regression model used as the cutoff between
-            two labels. Predictions above the threshold are treated as positive prediction.
-            Predictions below the threshold are negative predictions.
-            For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#threshold
+            A custom threshold for the binary-class classification model to be used for evaluation. The default value is 0.5. The threshold value that is supplied must be of type STRUCT.
+            For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-evaluate#eval_threshold
         query_parameters (Optional[Sequence]):
             jobs.query parameters for standard SQL queries.
             If query_parameters are both specified in here and in job_configuration_query,
@@ -80,7 +78,7 @@ outputs:
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
-    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.gcp_launcher.launcher]
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.bigquery.evaluate_model.launcher]
     args: [
       --type, BigqueryEvaluateModelJob,
       --project, {inputValue: project},

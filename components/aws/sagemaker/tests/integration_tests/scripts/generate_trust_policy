@@ -30,7 +30,10 @@ printf '{
       "Condition": {
         "StringEquals": {
           "oidc.eks.'"${cluster_region}"'.amazonaws.com/id/'"${oidc_id}"':aud": "sts.amazonaws.com",
-          "oidc.eks.'"${cluster_region}"'.amazonaws.com/id/'"${oidc_id}"':sub": "system:serviceaccount:'"${service_namespace}"':'"${service_account}"'"
+          "oidc.eks.'"${cluster_region}"'.amazonaws.com/id/'"${oidc_id}"':sub":[
+            "system:serviceaccount:'"${service_namespace}"':'"${service_account}"'",
+            "system:serviceaccount:ack-system:ack-sagemaker-controller"
+          ] 
         }
       }
     }

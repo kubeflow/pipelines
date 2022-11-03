@@ -153,16 +153,11 @@ func (s *ScheduledWorkflow) getWorkflowParametersAsMap() map[string]string {
 func (s *ScheduledWorkflow) NewWorkflow(
 	nextScheduledEpoch int64, nowEpoch int64) (commonutil.ExecutionSpec, error) {
 
-	const (
-		workflowKind       = "Workflow"
-		workflowApiVersion = "argoproj.io/v1alpha1"
-	)
-
 	// Creating the workflow.
 	execSpec, err := commonutil.ScheduleSpecToExecutionSpec(commonutil.ArgoWorkflow, s.Spec.Workflow)
-	typeMeta := execSpec.ExecutionTypeMeta()
-	typeMeta.APIVersion = workflowApiVersion
-	typeMeta.Kind = workflowKind
+	if err != nil {
+		return nil, err
+	}
 
 	uuid, err := s.uuid.NewRandom()
 	if err != nil {

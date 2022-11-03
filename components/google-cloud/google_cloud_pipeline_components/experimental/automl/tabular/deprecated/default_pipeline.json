@@ -793,18 +793,18 @@
         "dag": {
           "outputs": {
             "artifacts": {
-              "model-evaluation-3-evaluation_metrics": {
+              "feature-attribution-2-feature_attributions": {
                 "artifactSelectors": [
                   {
-                    "outputArtifactKey": "model-evaluation-3-evaluation_metrics",
+                    "outputArtifactKey": "feature-attribution-2-feature_attributions",
                     "producerSubtask": "condition-is-evaluation-5"
                   }
                 ]
               },
-              "model-evaluation-4-evaluation_metrics": {
+              "model-evaluation-2-evaluation_metrics": {
                 "artifactSelectors": [
                   {
-                    "outputArtifactKey": "model-evaluation-4-evaluation_metrics",
+                    "outputArtifactKey": "model-evaluation-2-evaluation_metrics",
                     "producerSubtask": "condition-is-evaluation-5"
                   }
                 ]
@@ -1105,8 +1105,7 @@
                 "name": "comp-condition-is-evaluation-5"
               },
               "dependentTasks": [
-                "automl-tabular-ensemble-2",
-                "model-upload-3"
+                "automl-tabular-ensemble-2"
               ],
               "inputs": {
                 "artifacts": {
@@ -1120,12 +1119,6 @@
                     "taskOutputArtifact": {
                       "outputArtifactKey": "unmanaged_container_model",
                       "producerTask": "automl-tabular-ensemble-2"
-                    }
-                  },
-                  "pipelineparam--model-upload-3-model": {
-                    "taskOutputArtifact": {
-                      "outputArtifactKey": "model",
-                      "producerTask": "model-upload-3"
                     }
                   }
                 },
@@ -1893,13 +1886,13 @@
         },
         "outputDefinitions": {
           "artifacts": {
-            "model-evaluation-3-evaluation_metrics": {
+            "feature-attribution-2-feature_attributions": {
               "artifactType": {
                 "schemaTitle": "system.Metrics",
                 "schemaVersion": "0.0.1"
               }
             },
-            "model-evaluation-4-evaluation_metrics": {
+            "model-evaluation-2-evaluation_metrics": {
               "artifactType": {
                 "schemaTitle": "system.Metrics",
                 "schemaVersion": "0.0.1"
@@ -1912,11 +1905,11 @@
         "dag": {
           "outputs": {
             "artifacts": {
-              "model-evaluation-2-evaluation_metrics": {
+              "feature-attribution-feature_attributions": {
                 "artifactSelectors": [
                   {
-                    "outputArtifactKey": "evaluation_metrics",
-                    "producerSubtask": "model-evaluation-2"
+                    "outputArtifactKey": "feature_attributions",
+                    "producerSubtask": "feature-attribution"
                   }
                 ]
               },
@@ -1931,6 +1924,76 @@
             }
           },
           "tasks": {
+            "feature-attribution": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-feature-attribution"
+              },
+              "dependentTasks": [
+                "model-batch-explanation"
+              ],
+              "inputs": {
+                "artifacts": {
+                  "predictions_gcs_source": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "gcs_output_directory",
+                      "producerTask": "model-batch-explanation"
+                    }
+                  }
+                },
+                "parameters": {
+                  "dataflow_disk_size": {
+                    "componentInputParameter": "pipelineparam--evaluation_dataflow_disk_size_gb"
+                  },
+                  "dataflow_machine_type": {
+                    "componentInputParameter": "pipelineparam--evaluation_dataflow_machine_type"
+                  },
+                  "dataflow_max_workers_num": {
+                    "componentInputParameter": "pipelineparam--evaluation_dataflow_max_num_workers"
+                  },
+                  "dataflow_service_account": {
+                    "componentInputParameter": "pipelineparam--dataflow_service_account"
+                  },
+                  "dataflow_subnetwork": {
+                    "componentInputParameter": "pipelineparam--dataflow_subnetwork"
+                  },
+                  "dataflow_use_public_ips": {
+                    "componentInputParameter": "pipelineparam--dataflow_use_public_ips"
+                  },
+                  "dataflow_workers_num": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "1"
+                      }
+                    }
+                  },
+                  "encryption_spec_key_name": {
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
+                  },
+                  "location": {
+                    "componentInputParameter": "pipelineparam--location"
+                  },
+                  "predictions_format": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "jsonl"
+                      }
+                    }
+                  },
+                  "project": {
+                    "componentInputParameter": "pipelineparam--project"
+                  },
+                  "root_dir": {
+                    "componentInputParameter": "pipelineparam--root_dir"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "feature-attribution"
+              }
+            },
             "model-batch-explanation": {
               "cachingOptions": {
                 "enableCache": true
@@ -2353,159 +2416,6 @@
                 "name": "model-evaluation"
               }
             },
-            "model-evaluation-2": {
-              "cachingOptions": {
-                "enableCache": true
-              },
-              "componentRef": {
-                "name": "comp-model-evaluation-2"
-              },
-              "dependentTasks": [
-                "model-batch-explanation"
-              ],
-              "inputs": {
-                "artifacts": {
-                  "batch_prediction_job": {
-                    "taskOutputArtifact": {
-                      "outputArtifactKey": "batchpredictionjob",
-                      "producerTask": "model-batch-explanation"
-                    }
-                  }
-                },
-                "parameters": {
-                  "class_names": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
-                  },
-                  "classification_type": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "dataflow_disk_size": {
-                    "componentInputParameter": "pipelineparam--evaluation_dataflow_disk_size_gb"
-                  },
-                  "dataflow_machine_type": {
-                    "componentInputParameter": "pipelineparam--evaluation_dataflow_machine_type"
-                  },
-                  "dataflow_max_workers_num": {
-                    "componentInputParameter": "pipelineparam--evaluation_dataflow_max_num_workers"
-                  },
-                  "dataflow_service_account": {
-                    "componentInputParameter": "pipelineparam--dataflow_service_account"
-                  },
-                  "dataflow_subnetwork": {
-                    "componentInputParameter": "pipelineparam--dataflow_subnetwork"
-                  },
-                  "dataflow_use_public_ips": {
-                    "componentInputParameter": "pipelineparam--dataflow_use_public_ips"
-                  },
-                  "dataflow_workers_num": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "intValue": "1"
-                      }
-                    }
-                  },
-                  "encryption_spec_key_name": {
-                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
-                  },
-                  "example_weight_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "generate_feature_attribution": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "intValue": "1"
-                      }
-                    }
-                  },
-                  "ground_truth_column": {
-                    "componentInputParameter": "pipelineparam--target_column_name"
-                  },
-                  "ground_truth_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
-                  },
-                  "ground_truth_gcs_source": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
-                  },
-                  "key_columns": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
-                  },
-                  "location": {
-                    "componentInputParameter": "pipelineparam--location"
-                  },
-                  "positive_classes": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
-                  },
-                  "prediction_id_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "prediction_label_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "prediction_score_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "predictions_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
-                  },
-                  "problem_type": {
-                    "componentInputParameter": "pipelineparam--prediction_type"
-                  },
-                  "project": {
-                    "componentInputParameter": "pipelineparam--project"
-                  },
-                  "root_dir": {
-                    "componentInputParameter": "pipelineparam--root_dir"
-                  }
-                }
-              },
-              "taskInfo": {
-                "name": "model-evaluation-2"
-              }
-            },
             "model-evaluation-import": {
               "cachingOptions": {
                 "enableCache": true
@@ -2514,15 +2424,15 @@
                 "name": "comp-model-evaluation-import"
               },
               "dependentTasks": [
-                "model-evaluation",
-                "model-evaluation-2"
+                "feature-attribution",
+                "model-evaluation"
               ],
               "inputs": {
                 "artifacts": {
-                  "explanation": {
+                  "feature_attributions": {
                     "taskOutputArtifact": {
-                      "outputArtifactKey": "evaluation_metrics",
-                      "producerTask": "model-evaluation-2"
+                      "outputArtifactKey": "feature_attributions",
+                      "producerTask": "feature-attribution"
                     }
                   },
                   "metrics": {
@@ -2543,17 +2453,20 @@
                       }
                     }
                   },
+                  "dataset_paths": {
+                    "componentInputParameter": "pipelineparam--tabular-stats-and-example-gen-test_split_json"
+                  },
                   "dataset_type": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": ""
+                        "stringValue": "tf-record"
                       }
                     }
                   },
                   "display_name": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": ""
+                        "stringValue": "AutoML Tabular"
                       }
                     }
                   },
@@ -2654,7 +2567,7 @@
         },
         "outputDefinitions": {
           "artifacts": {
-            "model-evaluation-2-evaluation_metrics": {
+            "feature-attribution-feature_attributions": {
               "artifactType": {
                 "schemaTitle": "system.Metrics",
                 "schemaVersion": "0.0.1"
@@ -2673,25 +2586,95 @@
         "dag": {
           "outputs": {
             "artifacts": {
-              "model-evaluation-3-evaluation_metrics": {
+              "feature-attribution-2-feature_attributions": {
                 "artifactSelectors": [
                   {
-                    "outputArtifactKey": "evaluation_metrics",
-                    "producerSubtask": "model-evaluation-3"
+                    "outputArtifactKey": "feature_attributions",
+                    "producerSubtask": "feature-attribution-2"
                   }
                 ]
               },
-              "model-evaluation-4-evaluation_metrics": {
+              "model-evaluation-2-evaluation_metrics": {
                 "artifactSelectors": [
                   {
                     "outputArtifactKey": "evaluation_metrics",
-                    "producerSubtask": "model-evaluation-4"
+                    "producerSubtask": "model-evaluation-2"
                   }
                 ]
               }
             }
           },
           "tasks": {
+            "feature-attribution-2": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-feature-attribution-2"
+              },
+              "dependentTasks": [
+                "model-batch-explanation-2"
+              ],
+              "inputs": {
+                "artifacts": {
+                  "predictions_gcs_source": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "gcs_output_directory",
+                      "producerTask": "model-batch-explanation-2"
+                    }
+                  }
+                },
+                "parameters": {
+                  "dataflow_disk_size": {
+                    "componentInputParameter": "pipelineparam--evaluation_dataflow_disk_size_gb"
+                  },
+                  "dataflow_machine_type": {
+                    "componentInputParameter": "pipelineparam--evaluation_dataflow_machine_type"
+                  },
+                  "dataflow_max_workers_num": {
+                    "componentInputParameter": "pipelineparam--evaluation_dataflow_max_num_workers"
+                  },
+                  "dataflow_service_account": {
+                    "componentInputParameter": "pipelineparam--dataflow_service_account"
+                  },
+                  "dataflow_subnetwork": {
+                    "componentInputParameter": "pipelineparam--dataflow_subnetwork"
+                  },
+                  "dataflow_use_public_ips": {
+                    "componentInputParameter": "pipelineparam--dataflow_use_public_ips"
+                  },
+                  "dataflow_workers_num": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "1"
+                      }
+                    }
+                  },
+                  "encryption_spec_key_name": {
+                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
+                  },
+                  "location": {
+                    "componentInputParameter": "pipelineparam--location"
+                  },
+                  "predictions_format": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "jsonl"
+                      }
+                    }
+                  },
+                  "project": {
+                    "componentInputParameter": "pipelineparam--project"
+                  },
+                  "root_dir": {
+                    "componentInputParameter": "pipelineparam--root_dir"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "feature-attribution-2"
+              }
+            },
             "model-batch-explanation-2": {
               "cachingOptions": {
                 "enableCache": true
@@ -2961,12 +2944,12 @@
                 "name": "model-batch-predict-4"
               }
             },
-            "model-evaluation-3": {
+            "model-evaluation-2": {
               "cachingOptions": {
                 "enableCache": true
               },
               "componentRef": {
-                "name": "comp-model-evaluation-3"
+                "name": "comp-model-evaluation-2"
               },
               "dependentTasks": [
                 "model-batch-predict-4"
@@ -3111,220 +3094,7 @@
                 }
               },
               "taskInfo": {
-                "name": "model-evaluation-3"
-              }
-            },
-            "model-evaluation-4": {
-              "cachingOptions": {
-                "enableCache": true
-              },
-              "componentRef": {
-                "name": "comp-model-evaluation-4"
-              },
-              "dependentTasks": [
-                "model-batch-explanation-2"
-              ],
-              "inputs": {
-                "artifacts": {
-                  "batch_prediction_job": {
-                    "taskOutputArtifact": {
-                      "outputArtifactKey": "batchpredictionjob",
-                      "producerTask": "model-batch-explanation-2"
-                    }
-                  }
-                },
-                "parameters": {
-                  "class_names": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
-                  },
-                  "classification_type": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "dataflow_disk_size": {
-                    "componentInputParameter": "pipelineparam--evaluation_dataflow_disk_size_gb"
-                  },
-                  "dataflow_machine_type": {
-                    "componentInputParameter": "pipelineparam--evaluation_dataflow_machine_type"
-                  },
-                  "dataflow_max_workers_num": {
-                    "componentInputParameter": "pipelineparam--evaluation_dataflow_max_num_workers"
-                  },
-                  "dataflow_service_account": {
-                    "componentInputParameter": "pipelineparam--dataflow_service_account"
-                  },
-                  "dataflow_subnetwork": {
-                    "componentInputParameter": "pipelineparam--dataflow_subnetwork"
-                  },
-                  "dataflow_use_public_ips": {
-                    "componentInputParameter": "pipelineparam--dataflow_use_public_ips"
-                  },
-                  "dataflow_workers_num": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "intValue": "1"
-                      }
-                    }
-                  },
-                  "encryption_spec_key_name": {
-                    "componentInputParameter": "pipelineparam--encryption_spec_key_name"
-                  },
-                  "example_weight_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "generate_feature_attribution": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "intValue": "1"
-                      }
-                    }
-                  },
-                  "ground_truth_column": {
-                    "componentInputParameter": "pipelineparam--target_column_name"
-                  },
-                  "ground_truth_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
-                  },
-                  "ground_truth_gcs_source": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
-                  },
-                  "key_columns": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
-                  },
-                  "location": {
-                    "componentInputParameter": "pipelineparam--location"
-                  },
-                  "positive_classes": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "{}"
-                      }
-                    }
-                  },
-                  "prediction_id_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "prediction_label_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "prediction_score_column": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "predictions_format": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "jsonl"
-                      }
-                    }
-                  },
-                  "problem_type": {
-                    "componentInputParameter": "pipelineparam--prediction_type"
-                  },
-                  "project": {
-                    "componentInputParameter": "pipelineparam--project"
-                  },
-                  "root_dir": {
-                    "componentInputParameter": "pipelineparam--root_dir"
-                  }
-                }
-              },
-              "taskInfo": {
-                "name": "model-evaluation-4"
-              }
-            },
-            "model-evaluation-import-2": {
-              "cachingOptions": {
-                "enableCache": true
-              },
-              "componentRef": {
-                "name": "comp-model-evaluation-import-2"
-              },
-              "dependentTasks": [
-                "model-evaluation-3",
-                "model-evaluation-4"
-              ],
-              "inputs": {
-                "artifacts": {
-                  "explanation": {
-                    "taskOutputArtifact": {
-                      "outputArtifactKey": "evaluation_metrics",
-                      "producerTask": "model-evaluation-4"
-                    }
-                  },
-                  "metrics": {
-                    "taskOutputArtifact": {
-                      "outputArtifactKey": "evaluation_metrics",
-                      "producerTask": "model-evaluation-3"
-                    }
-                  },
-                  "model": {
-                    "componentInputArtifact": "pipelineparam--model-upload-3-model"
-                  }
-                },
-                "parameters": {
-                  "dataset_path": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "dataset_type": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "display_name": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": ""
-                      }
-                    }
-                  },
-                  "problem_type": {
-                    "componentInputParameter": "pipelineparam--prediction_type"
-                  }
-                }
-              },
-              "taskInfo": {
-                "name": "model-evaluation-import-2"
+                "name": "model-evaluation-2"
               }
             }
           }
@@ -3340,12 +3110,6 @@
             "pipelineparam--automl-tabular-ensemble-2-unmanaged_container_model": {
               "artifactType": {
                 "schemaTitle": "google.UnmanagedContainerModel",
-                "schemaVersion": "0.0.1"
-              }
-            },
-            "pipelineparam--model-upload-3-model": {
-              "artifactType": {
-                "schemaTitle": "google.VertexModel",
                 "schemaVersion": "0.0.1"
               }
             }
@@ -3415,13 +3179,13 @@
         },
         "outputDefinitions": {
           "artifacts": {
-            "model-evaluation-3-evaluation_metrics": {
+            "feature-attribution-2-feature_attributions": {
               "artifactType": {
                 "schemaTitle": "system.Metrics",
                 "schemaVersion": "0.0.1"
               }
             },
-            "model-evaluation-4-evaluation_metrics": {
+            "model-evaluation-2-evaluation_metrics": {
               "artifactType": {
                 "schemaTitle": "system.Metrics",
                 "schemaVersion": "0.0.1"
@@ -3434,10 +3198,10 @@
         "dag": {
           "outputs": {
             "artifacts": {
-              "model-evaluation-2-evaluation_metrics": {
+              "feature-attribution-feature_attributions": {
                 "artifactSelectors": [
                   {
-                    "outputArtifactKey": "model-evaluation-2-evaluation_metrics",
+                    "outputArtifactKey": "feature-attribution-feature_attributions",
                     "producerSubtask": "condition-is-evaluation-3"
                   }
                 ]
@@ -3690,7 +3454,7 @@
         },
         "outputDefinitions": {
           "artifacts": {
-            "model-evaluation-2-evaluation_metrics": {
+            "feature-attribution-feature_attributions": {
               "artifactType": {
                 "schemaTitle": "system.Metrics",
                 "schemaVersion": "0.0.1"
@@ -3709,26 +3473,26 @@
         "dag": {
           "outputs": {
             "artifacts": {
-              "model-evaluation-2-evaluation_metrics": {
+              "feature-attribution-2-feature_attributions": {
                 "artifactSelectors": [
                   {
-                    "outputArtifactKey": "model-evaluation-2-evaluation_metrics",
-                    "producerSubtask": "condition-no-distill-2"
-                  }
-                ]
-              },
-              "model-evaluation-3-evaluation_metrics": {
-                "artifactSelectors": [
-                  {
-                    "outputArtifactKey": "model-evaluation-3-evaluation_metrics",
+                    "outputArtifactKey": "feature-attribution-2-feature_attributions",
                     "producerSubtask": "condition-is-distill-4"
                   }
                 ]
               },
-              "model-evaluation-4-evaluation_metrics": {
+              "feature-attribution-feature_attributions": {
                 "artifactSelectors": [
                   {
-                    "outputArtifactKey": "model-evaluation-4-evaluation_metrics",
+                    "outputArtifactKey": "feature-attribution-feature_attributions",
+                    "producerSubtask": "condition-no-distill-2"
+                  }
+                ]
+              },
+              "model-evaluation-2-evaluation_metrics": {
+                "artifactSelectors": [
+                  {
+                    "outputArtifactKey": "model-evaluation-2-evaluation_metrics",
                     "producerSubtask": "condition-is-distill-4"
                   }
                 ]
@@ -4543,6 +4307,13 @@
                   "dataflow_use_public_ips": {
                     "componentInputParameter": "pipelineparam--dataflow_use_public_ips"
                   },
+                  "enable_probabilistic_inference": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "false"
+                      }
+                    }
+                  },
                   "encryption_spec_key_name": {
                     "componentInputParameter": "pipelineparam--encryption_spec_key_name"
                   },
@@ -4570,6 +4341,13 @@
                   },
                   "project": {
                     "componentInputParameter": "pipelineparam--project"
+                  },
+                  "quantiles": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "[]"
+                      }
+                    }
                   },
                   "request_type": {
                     "runtimeValue": {
@@ -4799,19 +4577,19 @@
         },
         "outputDefinitions": {
           "artifacts": {
+            "feature-attribution-2-feature_attributions": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "feature-attribution-feature_attributions": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            },
             "model-evaluation-2-evaluation_metrics": {
-              "artifactType": {
-                "schemaTitle": "system.Metrics",
-                "schemaVersion": "0.0.1"
-              }
-            },
-            "model-evaluation-3-evaluation_metrics": {
-              "artifactType": {
-                "schemaTitle": "system.Metrics",
-                "schemaVersion": "0.0.1"
-              }
-            },
-            "model-evaluation-4-evaluation_metrics": {
               "artifactType": {
                 "schemaTitle": "system.Metrics",
                 "schemaVersion": "0.0.1"
@@ -4822,6 +4600,138 @@
                 "schemaTitle": "system.Metrics",
                 "schemaVersion": "0.0.1"
               }
+            }
+          }
+        }
+      },
+      "comp-feature-attribution": {
+        "executorLabel": "exec-feature-attribution",
+        "inputDefinitions": {
+          "artifacts": {
+            "predictions_gcs_source": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "dataflow_disk_size": {
+              "type": "INT"
+            },
+            "dataflow_machine_type": {
+              "type": "STRING"
+            },
+            "dataflow_max_workers_num": {
+              "type": "INT"
+            },
+            "dataflow_service_account": {
+              "type": "STRING"
+            },
+            "dataflow_subnetwork": {
+              "type": "STRING"
+            },
+            "dataflow_use_public_ips": {
+              "type": "STRING"
+            },
+            "dataflow_workers_num": {
+              "type": "INT"
+            },
+            "encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "predictions_format": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "root_dir": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "feature_attributions": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "gcp_resources": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-feature-attribution-2": {
+        "executorLabel": "exec-feature-attribution-2",
+        "inputDefinitions": {
+          "artifacts": {
+            "predictions_gcs_source": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "dataflow_disk_size": {
+              "type": "INT"
+            },
+            "dataflow_machine_type": {
+              "type": "STRING"
+            },
+            "dataflow_max_workers_num": {
+              "type": "INT"
+            },
+            "dataflow_service_account": {
+              "type": "STRING"
+            },
+            "dataflow_subnetwork": {
+              "type": "STRING"
+            },
+            "dataflow_use_public_ips": {
+              "type": "STRING"
+            },
+            "dataflow_workers_num": {
+              "type": "INT"
+            },
+            "encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "predictions_format": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "root_dir": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "feature_attributions": {
+              "artifactType": {
+                "schemaTitle": "system.Metrics",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "gcp_resources": {
+              "type": "STRING"
             }
           }
         }
@@ -5707,221 +5617,11 @@
           }
         }
       },
-      "comp-model-evaluation-3": {
-        "executorLabel": "exec-model-evaluation-3",
-        "inputDefinitions": {
-          "artifacts": {
-            "batch_prediction_job": {
-              "artifactType": {
-                "schemaTitle": "google.VertexBatchPredictionJob",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          },
-          "parameters": {
-            "class_names": {
-              "type": "STRING"
-            },
-            "classification_type": {
-              "type": "STRING"
-            },
-            "dataflow_disk_size": {
-              "type": "INT"
-            },
-            "dataflow_machine_type": {
-              "type": "STRING"
-            },
-            "dataflow_max_workers_num": {
-              "type": "INT"
-            },
-            "dataflow_service_account": {
-              "type": "STRING"
-            },
-            "dataflow_subnetwork": {
-              "type": "STRING"
-            },
-            "dataflow_use_public_ips": {
-              "type": "STRING"
-            },
-            "dataflow_workers_num": {
-              "type": "INT"
-            },
-            "encryption_spec_key_name": {
-              "type": "STRING"
-            },
-            "example_weight_column": {
-              "type": "STRING"
-            },
-            "generate_feature_attribution": {
-              "type": "STRING"
-            },
-            "ground_truth_column": {
-              "type": "STRING"
-            },
-            "ground_truth_format": {
-              "type": "STRING"
-            },
-            "ground_truth_gcs_source": {
-              "type": "STRING"
-            },
-            "key_columns": {
-              "type": "STRING"
-            },
-            "location": {
-              "type": "STRING"
-            },
-            "positive_classes": {
-              "type": "STRING"
-            },
-            "prediction_id_column": {
-              "type": "STRING"
-            },
-            "prediction_label_column": {
-              "type": "STRING"
-            },
-            "prediction_score_column": {
-              "type": "STRING"
-            },
-            "predictions_format": {
-              "type": "STRING"
-            },
-            "problem_type": {
-              "type": "STRING"
-            },
-            "project": {
-              "type": "STRING"
-            },
-            "root_dir": {
-              "type": "STRING"
-            }
-          }
-        },
-        "outputDefinitions": {
-          "artifacts": {
-            "evaluation_metrics": {
-              "artifactType": {
-                "schemaTitle": "system.Metrics",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          },
-          "parameters": {
-            "gcp_resources": {
-              "type": "STRING"
-            }
-          }
-        }
-      },
-      "comp-model-evaluation-4": {
-        "executorLabel": "exec-model-evaluation-4",
-        "inputDefinitions": {
-          "artifacts": {
-            "batch_prediction_job": {
-              "artifactType": {
-                "schemaTitle": "google.VertexBatchPredictionJob",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          },
-          "parameters": {
-            "class_names": {
-              "type": "STRING"
-            },
-            "classification_type": {
-              "type": "STRING"
-            },
-            "dataflow_disk_size": {
-              "type": "INT"
-            },
-            "dataflow_machine_type": {
-              "type": "STRING"
-            },
-            "dataflow_max_workers_num": {
-              "type": "INT"
-            },
-            "dataflow_service_account": {
-              "type": "STRING"
-            },
-            "dataflow_subnetwork": {
-              "type": "STRING"
-            },
-            "dataflow_use_public_ips": {
-              "type": "STRING"
-            },
-            "dataflow_workers_num": {
-              "type": "INT"
-            },
-            "encryption_spec_key_name": {
-              "type": "STRING"
-            },
-            "example_weight_column": {
-              "type": "STRING"
-            },
-            "generate_feature_attribution": {
-              "type": "STRING"
-            },
-            "ground_truth_column": {
-              "type": "STRING"
-            },
-            "ground_truth_format": {
-              "type": "STRING"
-            },
-            "ground_truth_gcs_source": {
-              "type": "STRING"
-            },
-            "key_columns": {
-              "type": "STRING"
-            },
-            "location": {
-              "type": "STRING"
-            },
-            "positive_classes": {
-              "type": "STRING"
-            },
-            "prediction_id_column": {
-              "type": "STRING"
-            },
-            "prediction_label_column": {
-              "type": "STRING"
-            },
-            "prediction_score_column": {
-              "type": "STRING"
-            },
-            "predictions_format": {
-              "type": "STRING"
-            },
-            "problem_type": {
-              "type": "STRING"
-            },
-            "project": {
-              "type": "STRING"
-            },
-            "root_dir": {
-              "type": "STRING"
-            }
-          }
-        },
-        "outputDefinitions": {
-          "artifacts": {
-            "evaluation_metrics": {
-              "artifactType": {
-                "schemaTitle": "system.Metrics",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          },
-          "parameters": {
-            "gcp_resources": {
-              "type": "STRING"
-            }
-          }
-        }
-      },
       "comp-model-evaluation-import": {
         "executorLabel": "exec-model-evaluation-import",
         "inputDefinitions": {
           "artifacts": {
-            "explanation": {
+            "feature_attributions": {
               "artifactType": {
                 "schemaTitle": "system.Metrics",
                 "schemaVersion": "0.0.1"
@@ -5944,50 +5644,7 @@
             "dataset_path": {
               "type": "STRING"
             },
-            "dataset_type": {
-              "type": "STRING"
-            },
-            "display_name": {
-              "type": "STRING"
-            },
-            "problem_type": {
-              "type": "STRING"
-            }
-          }
-        },
-        "outputDefinitions": {
-          "parameters": {
-            "gcp_resources": {
-              "type": "STRING"
-            }
-          }
-        }
-      },
-      "comp-model-evaluation-import-2": {
-        "executorLabel": "exec-model-evaluation-import-2",
-        "inputDefinitions": {
-          "artifacts": {
-            "explanation": {
-              "artifactType": {
-                "schemaTitle": "system.Metrics",
-                "schemaVersion": "0.0.1"
-              }
-            },
-            "metrics": {
-              "artifactType": {
-                "schemaTitle": "system.Metrics",
-                "schemaVersion": "0.0.1"
-              }
-            },
-            "model": {
-              "artifactType": {
-                "schemaTitle": "google.VertexModel",
-                "schemaVersion": "0.0.1"
-              }
-            }
-          },
-          "parameters": {
-            "dataset_path": {
+            "dataset_paths": {
               "type": "STRING"
             },
             "dataset_type": {
@@ -6279,6 +5936,9 @@
             "dataflow_use_public_ips": {
               "type": "STRING"
             },
+            "enable_probabilistic_inference": {
+              "type": "STRING"
+            },
             "encryption_spec_key_name": {
               "type": "STRING"
             },
@@ -6301,6 +5961,9 @@
               "type": "STRING"
             },
             "project": {
+              "type": "STRING"
+            },
+            "quantiles": {
               "type": "STRING"
             },
             "request_type": {
@@ -6469,9 +6132,9 @@
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "google_cloud_pipeline_components.container.v1.custom_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-automl-tabular-ensemble": {
@@ -6492,9 +6155,9 @@
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "google_cloud_pipeline_components.container.v1.custom_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-automl-tabular-ensemble-2": {
@@ -6515,9 +6178,9 @@
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "google_cloud_pipeline_components.container.v1.custom_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-automl-tabular-finalizer": {
@@ -6538,9 +6201,9 @@
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "google_cloud_pipeline_components.container.v1.custom_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-automl-tabular-infra-validator": {
@@ -6587,9 +6250,9 @@
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "google_cloud_pipeline_components.container.v1.custom_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-automl-tabular-stage-1-tuner-2": {
@@ -6610,9 +6273,9 @@
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "google_cloud_pipeline_components.container.v1.custom_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-automl-tabular-transform": {
@@ -6633,9 +6296,9 @@
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "google_cloud_pipeline_components.container.v1.custom_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-automl-tabular-transform-2": {
@@ -6656,9 +6319,9 @@
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "google_cloud_pipeline_components.container.v1.custom_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-bool-identity": {
@@ -6693,6 +6356,100 @@
               "def _bool_identity(value):\n  \"\"\"Returns boolean value.\n\n  Args:\n    value: Boolean value to return\n\n  Returns:\n    Boolean value.\n  \"\"\"\n  return 'true' if value else 'false'\n\ndef _deserialize_bool(s) -> bool:\n    from distutils.util import strtobool\n    return strtobool(s) == 1\n\ndef _serialize_str(str_value: str) -> str:\n    if not isinstance(str_value, str):\n        raise TypeError('Value \"{}\" has type \"{}\" instead of str.'.format(\n            str(str_value), str(type(str_value))))\n    return str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Bool identity', description='Returns boolean value.')\n_parser.add_argument(\"--value\", dest=\"value\", type=_deserialize_bool, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"----output-paths\", dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = _bool_identity(**_parsed_args)\n\n_outputs = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except OSError:\n        pass\n    with open(output_file, 'w') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"
             ],
             "image": "python:3.7-slim"
+          }
+        },
+        "exec-feature-attribution": {
+          "container": {
+            "args": [
+              "--setup_file",
+              "/setup.py",
+              "--project_id",
+              "{{$.inputs.parameters['project']}}",
+              "--location",
+              "{{$.inputs.parameters['location']}}",
+              "--batch_prediction_gcs_source",
+              "{{$.inputs.artifacts['predictions_gcs_source'].uri}}",
+              "--batch_prediction_format",
+              "{{$.inputs.parameters['predictions_format']}}",
+              "--root_dir",
+              "{{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
+              "--dataflow_job_prefix",
+              "evaluation-feautre-attribution-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
+              "--dataflow_service_account",
+              "{{$.inputs.parameters['dataflow_service_account']}}",
+              "--dataflow_disk_size",
+              "{{$.inputs.parameters['dataflow_disk_size']}}",
+              "--dataflow_machine_type",
+              "{{$.inputs.parameters['dataflow_machine_type']}}",
+              "--dataflow_workers_num",
+              "{{$.inputs.parameters['dataflow_workers_num']}}",
+              "--dataflow_max_workers_num",
+              "{{$.inputs.parameters['dataflow_max_workers_num']}}",
+              "--dataflow_subnetwork",
+              "{{$.inputs.parameters['dataflow_subnetwork']}}",
+              "--dataflow_use_public_ips",
+              "{{$.inputs.parameters['dataflow_use_public_ips']}}",
+              "--kms_key_name",
+              "{{$.inputs.parameters['encryption_spec_key_name']}}",
+              "--gcs_output_path",
+              "{{$.outputs.artifacts['feature_attributions'].uri}}",
+              "--gcp_resources",
+              "{{$.outputs.parameters['gcp_resources'].output_file}}",
+              "--executor_input",
+              "{{$}}"
+            ],
+            "command": [
+              "python",
+              "/explanation_main.py"
+            ],
+            "image": "gcr.io/ml-pipeline/model-evaluation:v0.6"
+          }
+        },
+        "exec-feature-attribution-2": {
+          "container": {
+            "args": [
+              "--setup_file",
+              "/setup.py",
+              "--project_id",
+              "{{$.inputs.parameters['project']}}",
+              "--location",
+              "{{$.inputs.parameters['location']}}",
+              "--batch_prediction_gcs_source",
+              "{{$.inputs.artifacts['predictions_gcs_source'].uri}}",
+              "--batch_prediction_format",
+              "{{$.inputs.parameters['predictions_format']}}",
+              "--root_dir",
+              "{{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
+              "--dataflow_job_prefix",
+              "evaluation-feautre-attribution-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
+              "--dataflow_service_account",
+              "{{$.inputs.parameters['dataflow_service_account']}}",
+              "--dataflow_disk_size",
+              "{{$.inputs.parameters['dataflow_disk_size']}}",
+              "--dataflow_machine_type",
+              "{{$.inputs.parameters['dataflow_machine_type']}}",
+              "--dataflow_workers_num",
+              "{{$.inputs.parameters['dataflow_workers_num']}}",
+              "--dataflow_max_workers_num",
+              "{{$.inputs.parameters['dataflow_max_workers_num']}}",
+              "--dataflow_subnetwork",
+              "{{$.inputs.parameters['dataflow_subnetwork']}}",
+              "--dataflow_use_public_ips",
+              "{{$.inputs.parameters['dataflow_use_public_ips']}}",
+              "--kms_key_name",
+              "{{$.inputs.parameters['encryption_spec_key_name']}}",
+              "--gcs_output_path",
+              "{{$.outputs.artifacts['feature_attributions'].uri}}",
+              "--gcp_resources",
+              "{{$.outputs.parameters['gcp_resources'].output_file}}",
+              "--executor_input",
+              "{{$}}"
+            ],
+            "command": [
+              "python",
+              "/explanation_main.py"
+            ],
+            "image": "gcr.io/ml-pipeline/model-evaluation:v0.6"
           }
         },
         "exec-merge-materialized-splits": {
@@ -6784,9 +6541,9 @@
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-model-batch-predict-2": {
@@ -6809,9 +6566,9 @@
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-model-batch-predict-3": {
@@ -6834,9 +6591,9 @@
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-model-batch-predict-4": {
@@ -6859,9 +6616,9 @@
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-model-evaluation": {
@@ -6938,7 +6695,7 @@
               "python",
               "/main.py"
             ],
-            "image": "gcr.io/ml-pipeline/model-evaluation:v0.3"
+            "image": "gcr.io/ml-pipeline/model-evaluation:v0.4"
           }
         },
         "exec-model-evaluation-2": {
@@ -7015,182 +6772,32 @@
               "python",
               "/main.py"
             ],
-            "image": "gcr.io/ml-pipeline/model-evaluation:v0.3"
-          }
-        },
-        "exec-model-evaluation-3": {
-          "container": {
-            "args": [
-              "--setup_file",
-              "/setup.py",
-              "--json_mode",
-              "true",
-              "--project_id",
-              "{{$.inputs.parameters['project']}}",
-              "--location",
-              "{{$.inputs.parameters['location']}}",
-              "--problem_type",
-              "{{$.inputs.parameters['problem_type']}}",
-              "--batch_prediction_format",
-              "{{$.inputs.parameters['predictions_format']}}",
-              "--batch_prediction_gcs_source",
-              "{{$.inputs.artifacts['batch_prediction_job'].metadata['gcsOutputDirectory']}}",
-              "--ground_truth_format",
-              "{{$.inputs.parameters['ground_truth_format']}}",
-              "--ground_truth_gcs_source",
-              "{{$.inputs.parameters['ground_truth_gcs_source']}}",
-              "--key_prefix_in_prediction_dataset",
-              "instance",
-              "--key_columns",
-              "{{$.inputs.parameters['key_columns']}}",
-              "--root_dir",
-              "{{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
-              "--classification_type",
-              "{{$.inputs.parameters['classification_type']}}",
-              "--class_names",
-              "{{$.inputs.parameters['class_names']}}",
-              "--ground_truth_column",
-              "instance.{{$.inputs.parameters['ground_truth_column']}}",
-              "--prediction_score_column",
-              "{{$.inputs.parameters['prediction_score_column']}}",
-              "--prediction_label_column",
-              "{{$.inputs.parameters['prediction_label_column']}}",
-              "--prediction_id_column",
-              "{{$.inputs.parameters['prediction_id_column']}}",
-              "--example_weight_column",
-              "{{$.inputs.parameters['example_weight_column']}}",
-              "--positive_classes",
-              "{{$.inputs.parameters['positive_classes']}}",
-              "--generate_feature_attribution",
-              "{{$.inputs.parameters['generate_feature_attribution']}}",
-              "--dataflow_job_prefix",
-              "evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
-              "--dataflow_service_account",
-              "{{$.inputs.parameters['dataflow_service_account']}}",
-              "--dataflow_disk_size",
-              "{{$.inputs.parameters['dataflow_disk_size']}}",
-              "--dataflow_machine_type",
-              "{{$.inputs.parameters['dataflow_machine_type']}}",
-              "--dataflow_workers_num",
-              "{{$.inputs.parameters['dataflow_workers_num']}}",
-              "--dataflow_max_workers_num",
-              "{{$.inputs.parameters['dataflow_max_workers_num']}}",
-              "--dataflow_subnetwork",
-              "{{$.inputs.parameters['dataflow_subnetwork']}}",
-              "--dataflow_use_public_ips",
-              "{{$.inputs.parameters['dataflow_use_public_ips']}}",
-              "--kms_key_name",
-              "{{$.inputs.parameters['encryption_spec_key_name']}}",
-              "--output_metrics_gcs_path",
-              "{{$.outputs.artifacts['evaluation_metrics'].uri}}",
-              "--gcp_resources",
-              "{{$.outputs.parameters['gcp_resources'].output_file}}",
-              "--executor_input",
-              "{{$}}"
-            ],
-            "command": [
-              "python",
-              "/main.py"
-            ],
-            "image": "gcr.io/ml-pipeline/model-evaluation:v0.3"
-          }
-        },
-        "exec-model-evaluation-4": {
-          "container": {
-            "args": [
-              "--setup_file",
-              "/setup.py",
-              "--json_mode",
-              "true",
-              "--project_id",
-              "{{$.inputs.parameters['project']}}",
-              "--location",
-              "{{$.inputs.parameters['location']}}",
-              "--problem_type",
-              "{{$.inputs.parameters['problem_type']}}",
-              "--batch_prediction_format",
-              "{{$.inputs.parameters['predictions_format']}}",
-              "--batch_prediction_gcs_source",
-              "{{$.inputs.artifacts['batch_prediction_job'].metadata['gcsOutputDirectory']}}",
-              "--ground_truth_format",
-              "{{$.inputs.parameters['ground_truth_format']}}",
-              "--ground_truth_gcs_source",
-              "{{$.inputs.parameters['ground_truth_gcs_source']}}",
-              "--key_prefix_in_prediction_dataset",
-              "instance",
-              "--key_columns",
-              "{{$.inputs.parameters['key_columns']}}",
-              "--root_dir",
-              "{{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
-              "--classification_type",
-              "{{$.inputs.parameters['classification_type']}}",
-              "--class_names",
-              "{{$.inputs.parameters['class_names']}}",
-              "--ground_truth_column",
-              "instance.{{$.inputs.parameters['ground_truth_column']}}",
-              "--prediction_score_column",
-              "{{$.inputs.parameters['prediction_score_column']}}",
-              "--prediction_label_column",
-              "{{$.inputs.parameters['prediction_label_column']}}",
-              "--prediction_id_column",
-              "{{$.inputs.parameters['prediction_id_column']}}",
-              "--example_weight_column",
-              "{{$.inputs.parameters['example_weight_column']}}",
-              "--positive_classes",
-              "{{$.inputs.parameters['positive_classes']}}",
-              "--generate_feature_attribution",
-              "{{$.inputs.parameters['generate_feature_attribution']}}",
-              "--dataflow_job_prefix",
-              "evaluation-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}",
-              "--dataflow_service_account",
-              "{{$.inputs.parameters['dataflow_service_account']}}",
-              "--dataflow_disk_size",
-              "{{$.inputs.parameters['dataflow_disk_size']}}",
-              "--dataflow_machine_type",
-              "{{$.inputs.parameters['dataflow_machine_type']}}",
-              "--dataflow_workers_num",
-              "{{$.inputs.parameters['dataflow_workers_num']}}",
-              "--dataflow_max_workers_num",
-              "{{$.inputs.parameters['dataflow_max_workers_num']}}",
-              "--dataflow_subnetwork",
-              "{{$.inputs.parameters['dataflow_subnetwork']}}",
-              "--dataflow_use_public_ips",
-              "{{$.inputs.parameters['dataflow_use_public_ips']}}",
-              "--kms_key_name",
-              "{{$.inputs.parameters['encryption_spec_key_name']}}",
-              "--output_metrics_gcs_path",
-              "{{$.outputs.artifacts['evaluation_metrics'].uri}}",
-              "--gcp_resources",
-              "{{$.outputs.parameters['gcp_resources'].output_file}}",
-              "--executor_input",
-              "{{$}}"
-            ],
-            "command": [
-              "python",
-              "/main.py"
-            ],
-            "image": "gcr.io/ml-pipeline/model-evaluation:v0.3"
+            "image": "gcr.io/ml-pipeline/model-evaluation:v0.4"
           }
         },
         "exec-model-evaluation-import": {
           "container": {
             "args": [
               "--metrics",
-              "{{$.inputs.artifacts['metrics'].path}}",
+              "{{$.inputs.artifacts['metrics'].uri}}",
               "--metrics_explanation",
               "{{$.inputs.artifacts['metrics'].metadata['explanation_gcs_path']}}",
-              "--explanation",
-              "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}",
+              "--feature_attributions",
+              "{{$.inputs.artifacts['feature_attributions'].uri}}",
               "--problem_type",
               "{{$.inputs.parameters['problem_type']}}",
               "--display_name",
               "{{$.inputs.parameters['display_name']}}",
               "--dataset_path",
               "{{$.inputs.parameters['dataset_path']}}",
+              "--dataset_paths",
+              "{{$.inputs.parameters['dataset_paths']}}",
               "--dataset_type",
               "{{$.inputs.parameters['dataset_type']}}",
               "--pipeline_job_id",
               "{{$.pipeline_job_uuid}}",
+              "--pipeline_job_resource_name",
+              "{{$.pipeline_job_resource_name}}",
               "--model_name",
               "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
               "--gcp_resources",
@@ -7202,40 +6809,7 @@
               "-m",
               "google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
-          }
-        },
-        "exec-model-evaluation-import-2": {
-          "container": {
-            "args": [
-              "--metrics",
-              "{{$.inputs.artifacts['metrics'].path}}",
-              "--metrics_explanation",
-              "{{$.inputs.artifacts['metrics'].metadata['explanation_gcs_path']}}",
-              "--explanation",
-              "{{$.inputs.artifacts['explanation'].metadata['explanation_gcs_path']}}",
-              "--problem_type",
-              "{{$.inputs.parameters['problem_type']}}",
-              "--display_name",
-              "{{$.inputs.parameters['display_name']}}",
-              "--dataset_path",
-              "{{$.inputs.parameters['dataset_path']}}",
-              "--dataset_type",
-              "{{$.inputs.parameters['dataset_type']}}",
-              "--pipeline_job_id",
-              "{{$.pipeline_job_uuid}}",
-              "--model_name",
-              "{{$.inputs.artifacts['model'].metadata['resourceName']}}",
-              "--gcp_resources",
-              "{{$.outputs.parameters['gcp_resources'].output_file}}"
-            ],
-            "command": [
-              "python3",
-              "-u",
-              "-m",
-              "google_cloud_pipeline_components.container.experimental.evaluation.import_model_evaluation"
-            ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-model-upload": {
@@ -7376,15 +6950,15 @@
               "--gcp_resources",
               "{{$.outputs.parameters['gcp_resources'].output_file}}",
               "--payload",
-              "{\"display_name\": \"tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\": {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod\", \"args\": [\"stats_generator\",\"--train_spec={\\\"prediction_type\\\": \\\"{{$.inputs.parameters['prediction_type']}}\\\", \\\"target_column\\\": \\\"{{$.inputs.parameters['target_column_name']}}\\\", \\\"optimization_objective\\\": \\\"{{$.inputs.parameters['optimization_objective']}}\\\", \\\"weight_column_name\\\": \\\"{{$.inputs.parameters['weight_column_name']}}\\\", \\\"transformations\\\": {{$.inputs.parameters['transformations']}}}\", \"--transformations_override_path={{$.inputs.parameters['transformations_path']}}\", \"--split_spec={{$.inputs.parameters['split_spec']}}\", \"--data_source={{$.inputs.parameters['data_source']}}\", \"--data_source_csv_filenames={{$.inputs.parameters['data_source_csv_filenames']}}\", \"--data_source_bigquery_table_path={{$.inputs.parameters['data_source_bigquery_table_path']}}\", \"--predefined_split_key={{$.inputs.parameters['predefined_split_key']}}\", \"--timestamp_split_key={{$.inputs.parameters['timestamp_split_key']}}\", \"--stratified_split_key={{$.inputs.parameters['stratified_split_key']}}\", \"--training_fraction={{$.inputs.parameters['training_fraction']}}\", \"--validation_fraction={{$.inputs.parameters['validation_fraction']}}\", \"--test_fraction={{$.inputs.parameters['test_fraction']}}\", \"--target_column={{$.inputs.parameters['target_column_name']}}\", \"--request_type={{$.inputs.parameters['request_type']}}\", \"--optimization_objective_recall_value={{$.inputs.parameters['optimization_objective_recall_value']}}\", \"--optimization_objective_precision_value={{$.inputs.parameters['optimization_objective_precision_value']}}\", \"--example_gen_gcs_output_prefix={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/example_gen_output\", \"--dataset_stats_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/stats/\", \"--stats_result_path={{$.outputs.artifacts['dataset_stats'].uri}}\", \"--dataset_schema_path={{$.outputs.artifacts['dataset_schema'].uri}}\", \"--job_name=tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"--dataflow_project={{$.inputs.parameters['project']}}\", \"--error_file_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--dataflow_staging_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging\", \"--dataflow_tmp_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\", \"--dataflow_max_num_workers={{$.inputs.parameters['dataflow_max_num_workers']}}\", \"--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod\", \"--dataflow_machine_type={{$.inputs.parameters['dataflow_machine_type']}}\", \"--dataflow_disk_size_gb={{$.inputs.parameters['dataflow_disk_size_gb']}}\", \"--dataflow_kms_key={{$.inputs.parameters['encryption_spec_key_name']}}\", \"--dataflow_subnetwork_fully_qualified={{$.inputs.parameters['dataflow_subnetwork']}}\", \"--dataflow_use_public_ips={{$.inputs.parameters['dataflow_use_public_ips']}}\", \"--dataflow_service_account={{$.inputs.parameters['dataflow_service_account']}}\", \"--is_distill={{$.inputs.parameters['run_distillation']}}\", \"--additional_experiments={{$.inputs.parameters['additional_experiments']}}\", \"--metadata_path={{$.outputs.artifacts['metadata'].uri}}\", \"--train_split={{$.outputs.artifacts['train_split'].uri}}\", \"--eval_split={{$.outputs.artifacts['eval_split'].uri}}\", \"--test_split={{$.outputs.artifacts['test_split'].uri}}\", \"--test_split_for_batch_prediction_component={{$.outputs.parameters['test_split_json'].output_file}}\", \"--downsampled_test_split_for_batch_prediction_component={{$.outputs.parameters['downsampled_test_split_json'].output_file}}\", \"--instance_baseline_path={{$.outputs.artifacts['instance_baseline'].uri}}\", \"--parse_json=true\", \"--generate_additional_downsample_test_split=true\", \"--executor_input={{$.json_escape[1]}}\"]}}]}}"
+              "{\"display_name\": \"tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}, \"job_spec\": {\"worker_pool_specs\": [{\"replica_count\": 1, \"machine_spec\": {\"machine_type\": \"n1-standard-8\"}, \"container_spec\": {\"image_uri\":\"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:prod\", \"args\": [\"stats_generator\",\"--train_spec={\\\"prediction_type\\\": \\\"{{$.inputs.parameters['prediction_type']}}\\\", \\\"target_column\\\": \\\"{{$.inputs.parameters['target_column_name']}}\\\", \\\"optimization_objective\\\": \\\"{{$.inputs.parameters['optimization_objective']}}\\\", \\\"weight_column_name\\\": \\\"{{$.inputs.parameters['weight_column_name']}}\\\", \\\"transformations\\\": {{$.inputs.parameters['transformations']}}, \\\"quantiles\\\": {{$.inputs.parameters['quantiles']}}, \\\"enable_probabilistic_inference\\\": {{$.inputs.parameters['enable_probabilistic_inference']}}}\", \"--transformations_override_path={{$.inputs.parameters['transformations_path']}}\", \"--split_spec={{$.inputs.parameters['split_spec']}}\", \"--data_source={{$.inputs.parameters['data_source']}}\", \"--data_source_csv_filenames={{$.inputs.parameters['data_source_csv_filenames']}}\", \"--data_source_bigquery_table_path={{$.inputs.parameters['data_source_bigquery_table_path']}}\", \"--predefined_split_key={{$.inputs.parameters['predefined_split_key']}}\", \"--timestamp_split_key={{$.inputs.parameters['timestamp_split_key']}}\", \"--stratified_split_key={{$.inputs.parameters['stratified_split_key']}}\", \"--training_fraction={{$.inputs.parameters['training_fraction']}}\", \"--validation_fraction={{$.inputs.parameters['validation_fraction']}}\", \"--test_fraction={{$.inputs.parameters['test_fraction']}}\", \"--target_column={{$.inputs.parameters['target_column_name']}}\", \"--request_type={{$.inputs.parameters['request_type']}}\", \"--optimization_objective_recall_value={{$.inputs.parameters['optimization_objective_recall_value']}}\", \"--optimization_objective_precision_value={{$.inputs.parameters['optimization_objective_precision_value']}}\", \"--example_gen_gcs_output_prefix={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/example_gen_output\", \"--dataset_stats_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/stats/\", \"--stats_result_path={{$.outputs.artifacts['dataset_stats'].uri}}\", \"--dataset_schema_path={{$.outputs.artifacts['dataset_schema'].uri}}\", \"--job_name=tabular-stats-and-example-gen-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}\", \"--dataflow_project={{$.inputs.parameters['project']}}\", \"--error_file_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.pb\", \"--dataflow_staging_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_staging\", \"--dataflow_tmp_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp\", \"--dataflow_max_num_workers={{$.inputs.parameters['dataflow_max_num_workers']}}\", \"--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod\", \"--dataflow_machine_type={{$.inputs.parameters['dataflow_machine_type']}}\", \"--dataflow_disk_size_gb={{$.inputs.parameters['dataflow_disk_size_gb']}}\", \"--dataflow_kms_key={{$.inputs.parameters['encryption_spec_key_name']}}\", \"--dataflow_subnetwork_fully_qualified={{$.inputs.parameters['dataflow_subnetwork']}}\", \"--dataflow_use_public_ips={{$.inputs.parameters['dataflow_use_public_ips']}}\", \"--dataflow_service_account={{$.inputs.parameters['dataflow_service_account']}}\", \"--is_distill={{$.inputs.parameters['run_distillation']}}\", \"--additional_experiments={{$.inputs.parameters['additional_experiments']}}\", \"--metadata_path={{$.outputs.artifacts['metadata'].uri}}\", \"--train_split={{$.outputs.artifacts['train_split'].uri}}\", \"--eval_split={{$.outputs.artifacts['eval_split'].uri}}\", \"--test_split={{$.outputs.artifacts['test_split'].uri}}\", \"--test_split_for_batch_prediction_component={{$.outputs.parameters['test_split_json'].output_file}}\", \"--downsampled_test_split_for_batch_prediction_component={{$.outputs.parameters['downsampled_test_split_json'].output_file}}\", \"--instance_baseline_path={{$.outputs.artifacts['instance_baseline'].uri}}\", \"--parse_json=true\", \"--generate_additional_downsample_test_split=true\", \"--executor_input={{$.json_escape[1]}}\"]}}]}}"
             ],
             "command": [
               "python3",
               "-u",
               "-m",
-              "google_cloud_pipeline_components.container.v1.gcp_launcher.launcher"
+              "google_cloud_pipeline_components.container.v1.custom_job.launcher"
             ],
-            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.10"
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
         "exec-write-bp-result-path": {
@@ -7430,26 +7004,26 @@
       "dag": {
         "outputs": {
           "artifacts": {
+            "feature-attribution-2-feature_attributions": {
+              "artifactSelectors": [
+                {
+                  "outputArtifactKey": "feature-attribution-2-feature_attributions",
+                  "producerSubtask": "exit-handler-1"
+                }
+              ]
+            },
+            "feature-attribution-feature_attributions": {
+              "artifactSelectors": [
+                {
+                  "outputArtifactKey": "feature-attribution-feature_attributions",
+                  "producerSubtask": "exit-handler-1"
+                }
+              ]
+            },
             "model-evaluation-2-evaluation_metrics": {
               "artifactSelectors": [
                 {
                   "outputArtifactKey": "model-evaluation-2-evaluation_metrics",
-                  "producerSubtask": "exit-handler-1"
-                }
-              ]
-            },
-            "model-evaluation-3-evaluation_metrics": {
-              "artifactSelectors": [
-                {
-                  "outputArtifactKey": "model-evaluation-3-evaluation_metrics",
-                  "producerSubtask": "exit-handler-1"
-                }
-              ]
-            },
-            "model-evaluation-4-evaluation_metrics": {
-              "artifactSelectors": [
-                {
-                  "outputArtifactKey": "model-evaluation-4-evaluation_metrics",
                   "producerSubtask": "exit-handler-1"
                 }
               ]
@@ -7813,19 +7387,19 @@
       },
       "outputDefinitions": {
         "artifacts": {
+          "feature-attribution-2-feature_attributions": {
+            "artifactType": {
+              "schemaTitle": "system.Metrics",
+              "schemaVersion": "0.0.1"
+            }
+          },
+          "feature-attribution-feature_attributions": {
+            "artifactType": {
+              "schemaTitle": "system.Metrics",
+              "schemaVersion": "0.0.1"
+            }
+          },
           "model-evaluation-2-evaluation_metrics": {
-            "artifactType": {
-              "schemaTitle": "system.Metrics",
-              "schemaVersion": "0.0.1"
-            }
-          },
-          "model-evaluation-3-evaluation_metrics": {
-            "artifactType": {
-              "schemaTitle": "system.Metrics",
-              "schemaVersion": "0.0.1"
-            }
-          },
-          "model-evaluation-4-evaluation_metrics": {
             "artifactType": {
               "schemaTitle": "system.Metrics",
               "schemaVersion": "0.0.1"

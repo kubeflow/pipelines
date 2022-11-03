@@ -24,11 +24,10 @@ description: |
             default to `US` multi-region.
 
             For more details, see https://cloud.google.com/bigquery/docs/locations#specifying_your_location
-        query (str):
-            Required. SQL query text to execute. Only standard SQL is supported.
+        model (google.BQMLModel):
+            Required. BigQuery ML model for ml advanced weights job.
 
-            If query are both specified in here and in job_configuration_query,
-            the value in here will override the other one.
+            For more details, see https://cloud.google.com/bigquery-ml/docs/reference/standard-sql/bigqueryml-syntax-predict#predict_model_name
         query_parameters (Optional[Sequence]):
             jobs.query parameters for standard SQL queries.
 
@@ -76,7 +75,7 @@ implementation:
         python3,
         -u,
         -m,
-        google_cloud_pipeline_components.container.v1.gcp_launcher.launcher,
+        google_cloud_pipeline_components.container.v1.bigquery.ml_advanced_weights.launcher,
       ]
     args:
       [

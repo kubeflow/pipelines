@@ -85,7 +85,14 @@ parser.add_argument(
 parser.add_argument(
     '--pipeline_job_id', dest='pipeline_job_id', type=str, default=None)
 parser.add_argument(
+    '--pipeline_job_resource_name',
+    dest='pipeline_job_resource_name',
+    type=str,
+    default=None)
+parser.add_argument(
     '--dataset_path', nargs='?', dest='dataset_path', type=str, default=None)
+parser.add_argument(
+    '--dataset_paths', nargs='?', dest='dataset_paths', type=str, default='[]')
 parser.add_argument(
     '--dataset_type', nargs='?', dest='dataset_type', type=str, default=None)
 parser.add_argument(
@@ -168,11 +175,23 @@ def main(argv):
   if parsed_args.display_name:
     model_evaluation['display_name'] = parsed_args.display_name
 
+  try:
+    dataset_paths = json.loads(parsed_args.dataset_paths)
+    if not isinstance(dataset_paths, list) or not all(
+        isinstance(el, str) for el in dataset_paths):
+      dataset_paths = []
+  except ValueError:
+    dataset_paths = []
+
+  if parsed_args.dataset_path:
+    dataset_paths.append(parsed_args.dataset_path)
+
   metadata = {
       key: value for key, value in {
           'pipeline_job_id': parsed_args.pipeline_job_id,
+          'pipeline_job_resource_name': parsed_args.pipeline_job_resource_name,
           'evaluation_dataset_type': parsed_args.dataset_type,
-          'evaluation_dataset_path': parsed_args.dataset_path,
+          'evaluation_dataset_path': dataset_paths or None,
       }.items() if value is not None
   }
   if metadata:

@@ -18,6 +18,16 @@ spec:
       - name: server
         image: gcr.io/ml-pipeline/cache-server:dummy
         env:
+          - name: DEFAULT_CACHE_STALENESS
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key: DEFAULT_CACHE_STALENESS
+          - name: MAXIMUM_CACHE_STALENESS
+            valueFrom:
+              configMapKeyRef:
+                name: pipeline-install-config
+                key:  MAXIMUM_CACHE_STALENESS
           - name: CACHE_IMAGE
             valueFrom:
               configMapKeyRef:

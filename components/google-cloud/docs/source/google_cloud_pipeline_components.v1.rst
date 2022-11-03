@@ -16,4 +16,5 @@ Components
    google_cloud_pipeline_components.v1.endpoint
    google_cloud_pipeline_components.v1.hyperparameter_tuning_job
    google_cloud_pipeline_components.v1.model
+   google_cloud_pipeline_components.v1.vertex_notification_email
    google_cloud_pipeline_components.v1.wait_gcp_resources

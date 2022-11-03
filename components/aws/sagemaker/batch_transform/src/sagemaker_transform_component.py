@@ -62,6 +62,14 @@ class SageMakerTransformComponent(SageMakerComponent):
                 error_message=message,
                 raw_status=status,
             )
+        if status == "Stopped":
+            message = "The job reached Stopped state"
+            return SageMakerJobStatus(
+                is_completed=True,
+                has_error=True,
+                error_message=message,
+                raw_status=status,
+            )
 
         return SageMakerJobStatus(is_completed=False, raw_status=status)
 
@@ -118,7 +126,11 @@ class SageMakerTransformComponent(SageMakerComponent):
 
         request["TransformOutput"]["S3OutputPath"] = inputs.output_location
         request["TransformOutput"]["Accept"] = inputs.accept
-        request["TransformOutput"]["KmsKeyId"] = inputs.output_encryption_key
+
+        if inputs.output_encryption_key:
+            request["TransformOutput"]["KmsKeyId"] = inputs.output_encryption_key
+        else:
+            request["TransformOutput"].pop("KmsKeyId")
 
         if inputs.assemble_with:
             request["TransformOutput"]["AssembleWith"] = inputs.assemble_with
@@ -127,9 +139,23 @@ class SageMakerTransformComponent(SageMakerComponent):
 
         request["TransformResources"]["InstanceType"] = inputs.instance_type
         request["TransformResources"]["InstanceCount"] = inputs.instance_count
-        request["TransformResources"]["VolumeKmsKeyId"] = inputs.resource_encryption_key
-        request["DataProcessing"]["InputFilter"] = inputs.input_filter
-        request["DataProcessing"]["OutputFilter"] = inputs.output_filter
+
+        if inputs.resource_encryption_key:
+            request["TransformResources"][
+                "VolumeKmsKeyId"
+            ] = inputs.resource_encryption_key
+        else:
+            request["TransformResources"].pop("VolumeKmsKeyId")
+
+        if inputs.input_filter:
+            request["DataProcessing"]["InputFilter"] = inputs.input_filter
+        else:
+            request["DataProcessing"].pop("InputFilter")
+
+        if inputs.output_filter:
+            request["DataProcessing"]["OutputFilter"] = inputs.output_filter
+        else:
+            request["DataProcessing"].pop("OutputFilter")
 
         if inputs.join_source:
             request["DataProcessing"]["JoinSource"] = inputs.join_source
@@ -150,7 +176,7 @@ class SageMakerTransformComponent(SageMakerComponent):
     ):
         logging.info(f"Created Transform Job with name: {self._transform_job_name}")
         logging.info(
-            "Transform job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/jobs/{}".format(
+            "Transform job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/transform-jobs/{}".format(
                 inputs.region, inputs.region, self._transform_job_name,
             )
         )

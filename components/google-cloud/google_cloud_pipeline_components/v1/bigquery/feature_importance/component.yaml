@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,6 +34,20 @@ description: |
             A json formatted string describing the rest of the job configuration.
 
             For more details, see https://cloud.google.com/bigquery/docs/reference/rest/v2/Job#JobConfigurationQuery
+        labels (Optional[dict]):
+            The labels associated with this job. You can use these to organize and group your jobs.
+            Label keys and values can be no longer than 63 characters, can only containlowercase
+            letters, numeric characters, underscores and dashes. International characters are
+            allowed. Label values are optional. Label keys must start with a letter and each label
+            in the list must have a different key.
+
+            Example: { "name": "wrench", "mass": "1.3kg", "count": "3" }.
+       encryption_spec_key_name(Optional[List[str]]):
+            Describes the Cloud KMS encryption key that will be used to protect
+            destination BigQuery table. The BigQuery Service Account associated with
+            your project requires access to this encryption key.
+            If encryption_spec_key_name are both specified in here and in job_configuration_query,
+            the value in here will override the other one.
     Returns:
         feature_importance (system.Artifact):
           Describes common metrics applicable to the type of model supplied.
@@ -55,7 +69,7 @@ outputs:
 implementation:
   container:
     image: gcr.io/managed-pipeline-test/google-cloud-pipeline-components:latest
-    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.gcp_launcher.launcher]
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.bigquery.feature_importance.launcher]
     args: [
       --type, BigqueryMLFeatureImportanceJob,
       --project, {inputValue: project},

@@ -16,78 +16,49 @@ import os
 import re
 import sys
 import tempfile
-import types
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Union
 import unittest
 
 from absl.testing import parameterized
 from kfp import compiler
 from kfp import components
-from kfp.compiler._read_write_test_config import CONFIG
-from kfp.components import pipeline_context
+from kfp.components import placeholders
 from kfp.components import python_component
 from kfp.components import structures
 import yaml
 
-PROJECT_ROOT = os.path.abspath(os.path.join(__file__, *([os.path.pardir] * 5)))
+_PROJECT_ROOT = os.path.abspath(os.path.join(__file__, *([os.path.pardir] * 5)))
 
 
-def expand_config(config: dict) -> List[Dict[str, Any]]:
+def create_test_cases() -> List[Dict[str, Any]]:
     parameters: List[Dict[str, Any]] = []
+    config_path = os.path.join(_PROJECT_ROOT, 'sdk', 'python', 'test_data',
+                               'test_data_config.yaml')
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
     for name, test_group in config.items():
-        test_data_dir = os.path.join(PROJECT_ROOT, test_group['test_data_dir'])
-        config = test_group['config']
+        test_data_dir = os.path.join(_PROJECT_ROOT, test_group['test_data_dir'])
+
         parameters.extend({
-            'name': name + '-' + test_case,
-            'test_case': test_case,
+            'name': name + '-' + test_case['module'],
+            'test_case': test_case['module'],
             'test_data_dir': test_data_dir,
-            'read': config['read'],
-            'write': config['write'],
-            'function': None if name == 'pipelines' else test_case,
+            'read': test_group['read'],
+            'write': test_group['write'],
+            'function': test_case['name']
         } for test_case in test_group['test_cases'])
 
     return parameters
 
 
-def collect_pipeline_from_module(
-    target_module: types.ModuleType
-) -> Union[Callable[..., Any], python_component.PythonComponent]:
-    pipelines = []
-    module_attrs = dir(target_module)
-    for attr in module_attrs:
-        obj = getattr(target_module, attr)
-        if pipeline_context.Pipeline.is_pipeline_func(obj):
-            pipelines.append(obj)
-    if len(pipelines) == 1:
-        return pipelines[0]
-    else:
+def import_obj_from_file(python_path: str, obj_name: str) -> Any:
+    sys.path.insert(0, os.path.dirname(python_path))
+    module_name = os.path.splitext(os.path.split(python_path)[1])[0]
+    module = __import__(module_name, fromlist=[obj_name])
+    if not hasattr(module, obj_name):
         raise ValueError(
-            f'Expect one pipeline function in module {target_module}, got {len(pipelines)}: {pipelines}. Please specify the pipeline function name with --function.'
-        )
-
-
-def collect_pipeline_func(
-    python_file: str,
-    function_name: Optional[str] = None
-) -> Union[Callable[..., Any], python_component.PythonComponent]:
-    sys.path.insert(0, os.path.dirname(python_file))
-    try:
-        filename = os.path.basename(python_file)
-        module_name = os.path.splitext(filename)[0]
-        if function_name is None:
-            return collect_pipeline_from_module(
-                target_module=__import__(module_name))
-
-        module = __import__(module_name, fromlist=[function_name])
-        if not hasattr(module, function_name):
-            raise ValueError(
-                f'Pipeline function or component "{function_name}" not found in module {filename}.'
-            )
-
-        return getattr(module, function_name)
-
-    finally:
-        del sys.path[0]
+            f'Object "{obj_name}" not found in module {python_path}.')
+    return getattr(module, obj_name)
 
 
 def ignore_kfp_version_helper(spec: Dict[str, Any]) -> Dict[str, Any]:
@@ -121,12 +92,33 @@ def load_compiled_file(filename: str) -> Dict[str, Any]:
         return ignore_kfp_version_helper(contents)
 
 
-def set_description_in_component_spec_to_none(
+def handle_placeholders(
         component_spec: structures.ComponentSpec) -> structures.ComponentSpec:
-    """Sets the description field of a ComponentSpec to None."""
+    if component_spec.implementation.container is not None:
+        if component_spec.implementation.container.command is not None:
+            component_spec.implementation.container.command = [
+                placeholders.convert_command_line_element_to_string(c)
+                for c in component_spec.implementation.container.command
+            ]
+        if component_spec.implementation.container.args is not None:
+            component_spec.implementation.container.args = [
+                placeholders.convert_command_line_element_to_string(a)
+                for a in component_spec.implementation.container.args
+            ]
+    return component_spec
+
+
+def handle_expected_diffs(
+        component_spec: structures.ComponentSpec) -> structures.ComponentSpec:
+    """Strips some component spec fields that should be ignored when comparing
+    with golden result."""
     # Ignore description when comparing components specs read in from v1 component YAML and from IR YAML, because non lightweight Python components defined in v1 YAML can have a description field, but IR YAML does not preserve this field unless the component is a lightweight Python function-based component
     component_spec.description = None
-    return component_spec
+    # ignore SDK version so that golden snapshots don't need to be updated between SDK version bump
+    if component_spec.implementation.graph is not None:
+        component_spec.implementation.graph.sdk_version = ''
+
+    return handle_placeholders(component_spec)
 
 
 class ReadWriteTest(parameterized.TestCase):
@@ -153,29 +145,28 @@ class ReadWriteTest(parameterized.TestCase):
         reloaded_component = self._compile_and_load_component(
             original_component)
         self.assertEqual(
-            set_description_in_component_spec_to_none(
-                original_component.component_spec),
-            set_description_in_component_spec_to_none(
-                reloaded_component.component_spec))
+            handle_expected_diffs(original_component.component_spec),
+            handle_expected_diffs(reloaded_component.component_spec))
 
-    def _test_serialization_correctness(self,
-                                        python_file: str,
-                                        yaml_file: str,
-                                        function_name: Optional[str] = None):
+    def _test_serialization_correctness(
+        self,
+        python_file: str,
+        yaml_file: str,
+        function_name: str,
+    ):
         """Tests serialization correctness."""
-        pipeline = collect_pipeline_func(
-            python_file, function_name=function_name)
+        pipeline = import_obj_from_file(python_file, function_name)
         compiled_result = self._compile_and_read_yaml(pipeline)
         golden_result = load_compiled_file(yaml_file)
         self.assertEqual(compiled_result, golden_result)
 
-    @parameterized.parameters(expand_config((CONFIG)))
+    @parameterized.parameters(create_test_cases())
     def test(
         self,
         name: str,
         test_case: str,
         test_data_dir: str,
-        function: Optional[str],
+        function: str,
         read: bool,
         write: bool,
     ):

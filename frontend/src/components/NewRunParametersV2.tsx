@@ -157,10 +157,10 @@ function convertNonUserInputParamToString(
 }
 
 function NewRunParametersV2(props: NewRunParametersProps) {
-  const { specParameters, clonedRuntimeConfig, setIsValidInput } = props;
+  const { specParameters, clonedRuntimeConfig, handleParameterChange, setIsValidInput } = props;
   const [customPipelineRootChecked, setCustomPipelineRootChecked] = useState(false);
   const [customPipelineRoot, setCustomPipelineRoot] = useState(props.pipelineRoot);
-  const [errorMessages, setErrorMessages] = useState([]);
+  const [errorMessages, setErrorMessages] = useState<string[]>([]);
 
   const [updatedParameters, setUpdatedParameters] = useState({});
   useEffect(() => {
@@ -181,14 +181,15 @@ function NewRunParametersV2(props: NewRunParametersProps) {
         setIsValidInput(true);
       }
 
-      if (props.handleParameterChange) {
-        props.handleParameterChange(clonedRuntimeConfig.parameters);
+      if (handleParameterChange) {
+        handleParameterChange(clonedRuntimeConfig.parameters);
       }
       return;
     }
     // TODO(jlyaoyuli): If we have parameters from run, put original default value next to the paramKey
     const runtimeParametersWithDefault: RuntimeParameters = {};
     let allParamtersWithDefault = true;
+    let errMsg: string[] = [];
     Object.keys(specParameters).forEach(key => {
       if (specParameters[key].defaultValue) {
         // TODO(zijianjoy): Make sure to consider all types of parameters.
@@ -200,15 +201,15 @@ function NewRunParametersV2(props: NewRunParametersProps) {
         );
       } else {
         allParamtersWithDefault = false;
-        errorMessages[key] = 'Missing parameter.';
+        errMsg[key] = 'Missing parameter.';
       }
     });
     setUpdatedParameters(runtimeParametersWithDefault);
-    setErrorMessages(errorMessages);
+    setErrorMessages(errMsg);
     if (setIsValidInput) {
       setIsValidInput(allParamtersWithDefault);
     }
-  }, [clonedRuntimeConfig, specParameters]);
+  }, [clonedRuntimeConfig, specParameters, handleParameterChange, setIsValidInput]);
 
   return (
     <div>
@@ -283,8 +284,8 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                         specParameters[k1].parameterType,
                       );
                     });
-                    if (props.handleParameterChange) {
-                      props.handleParameterChange(parametersInRealType);
+                    if (handleParameterChange) {
+                      handleParameterChange(parametersInRealType);
                     }
 
                     errorMessages[k] = generateInputValidationErrMsg(
@@ -297,8 +298,8 @@ function NewRunParametersV2(props: NewRunParametersProps) {
                       allInputsValid = allInputsValid && errorMessage === null;
                     });
 
-                    if (props.setIsValidInput) {
-                      props.setIsValidInput(allInputsValid);
+                    if (setIsValidInput) {
+                      setIsValidInput(allInputsValid);
                     }
                   }}
                   param={param}

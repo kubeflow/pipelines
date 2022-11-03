@@ -17,14 +17,10 @@ These are only compatible with v2 Pipelines.
 """
 
 import re
-from typing import TypeVar, Union
+from typing import Type, TypeVar, Union
 
-try:
-    from typing import Annotated
-except ImportError:
-    from typing_extensions import Annotated
-
-T = TypeVar('T')
+from kfp.components.types import type_annotations
+from kfp.components.types import type_utils
 
 
 class OutputPath:
@@ -62,12 +58,10 @@ class OutputPath:
     """
 
     def __init__(self, type=None):
-        self.type = type
+        self.type = construct_type_for_inputpath_or_outputpath(type)
 
     def __eq__(self, other):
-        if isinstance(other, OutputPath):
-            return self.type == other.type
-        return False
+        return isinstance(other, OutputPath) and self.type == other.type
 
 
 class InputPath:
@@ -97,73 +91,33 @@ class InputPath:
     """
 
     def __init__(self, type=None):
-        self.type = type
+        self.type = construct_type_for_inputpath_or_outputpath(type)
 
     def __eq__(self, other):
-        if isinstance(other, InputPath):
-            return self.type == other.type
-        return False
+        return isinstance(other, InputPath) and self.type == other.type
 
 
-class InputAnnotation():
+def construct_type_for_inputpath_or_outputpath(
+        type_: Union[str, Type, None]) -> Union[str, None]:
+    if type_annotations.is_artifact_class(type_):
+        return type_utils.create_bundled_artifact_type(type_.schema_title,
+                                                       type_.schema_version)
+    elif isinstance(
+            type_,
+            str) and type_.lower() in type_utils._ARTIFACT_CLASSES_MAPPING:
+        # v1 artifact backward compat
+        return type_utils.create_bundled_artifact_type(
+            type_utils._ARTIFACT_CLASSES_MAPPING[type_.lower()].schema_title)
+    else:
+        return type_
+
+
+class InputAnnotation:
     """Marker type for input artifacts."""
 
 
-class OutputAnnotation():
+class OutputAnnotation:
     """Marker type for output artifacts."""
-
-
-Input = Annotated[T, InputAnnotation]
-Input.__doc__ = """Type generic used to represent an input artifact of type ``T``, where ``T`` is an artifact class.
-
-Use ``Input[Artifact]`` or ``Output[Artifact]`` to indicate whether the enclosed artifact is a component input or output.
-
-Args:
-    T: The type of the input artifact.
-
-Example:
-  ::
-
-    @dsl.component
-    def artifact_producer(model: Output[Artifact]):
-        with open(model.path, 'w') as f:
-            f.write('my model')
-
-    @dsl.component
-    def artifact_consumer(model: Input[Artifact]):
-        print(model)
-
-    @dsl.pipeline(name='my-pipeline')
-    def my_pipeline():
-        producer_task = artifact_producer()
-        artifact_consumer(model=producer_task.output)
-"""
-
-Output = Annotated[T, OutputAnnotation]
-Output.__doc__ = """A type generic used to represent an output artifact of type ``T``, where ``T`` is an artifact class. The argument typed with this annotation is provided at runtime by the executing backend and does not need to be passed as an input by the pipeline author (see example).
-
-Use ``Input[Artifact]`` or ``Output[Artifact]`` to indicate whether the enclosed artifact is a component input or output.
-
-Args:
-    T: The type of the output artifact.
-
-Example:
-  ::
-
-    @dsl.component
-    def artifact_producer(model: Output[Artifact]):
-        with open(model.path, 'w') as f:
-            f.write('my model')
-
-    @dsl.component
-    def artifact_consumer(model: Input[Artifact]):
-        print(model)
-
-    @dsl.pipeline(name='my-pipeline')
-    def my_pipeline():
-        producer_task = artifact_producer()
-        artifact_consumer(model=producer_task.output)
-"""
 
 
 def is_artifact_annotation(typ) -> bool:
@@ -193,6 +147,8 @@ def is_output_artifact(typ) -> bool:
 
 
 def get_io_artifact_class(typ):
+    from kfp.dsl import Input
+    from kfp.dsl import Output
     if not is_artifact_annotation(typ):
         return None
     if typ == Input or typ == Output:
@@ -206,6 +162,9 @@ def get_io_artifact_annotation(typ):
         return None
 
     return typ.__metadata__[0]
+
+
+T = TypeVar('T')
 
 
 def maybe_strip_optional_from_annotation(annotation: T) -> T:
@@ -226,6 +185,12 @@ def maybe_strip_optional_from_annotation(annotation: T) -> T:
     if getattr(annotation, '__origin__',
                None) is Union and annotation.__args__[1] is type(None):
         return annotation.__args__[0]
+    return annotation
+
+
+def maybe_strip_optional_from_annotation_string(annotation: str) -> str:
+    if annotation.startswith('Optional[') and annotation.endswith(']'):
+        return annotation.lstrip('Optional[').rstrip(']')
     return annotation
 
 
@@ -252,3 +217,9 @@ def get_short_type_name(type_name: str) -> str:
         return match.group('type')
     else:
         return type_name
+
+
+def is_artifact_class(artifact_class_or_instance: Type) -> bool:
+    # we do not yet support non-pre-registered custom artifact types with instance_schema attribute
+    return hasattr(artifact_class_or_instance, 'schema_title') and hasattr(
+        artifact_class_or_instance, 'schema_version')

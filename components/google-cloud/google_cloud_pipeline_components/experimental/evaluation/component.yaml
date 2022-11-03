@@ -1,5 +1,6 @@
 name: model_evaluation
 description: |
+    TO BE REMOVED.
     Compute evaluation metrics on a trained model's batch prediction results.
     Creates a dataflow job with Apache Beam and TFMA to compute evaluation metrics.
 
@@ -51,7 +52,6 @@ description: |
         ground_truth_column (str):
             The column name of the feature containing ground truth.
             Formatted to be able to find nested columns, delimeted by `.`.
-            Prefixed with 'instance.' internally for Vertex Batch Prediction.
         prediction_score_column (Optional[str]):
             The column name of the field containing batch prediction scores.
             Formatted to be able to find nested columns, delimeted by `.`.

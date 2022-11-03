@@ -1,5 +1,60 @@
-# Current Version 1.0.18.dev (Still in Development)
+# Current Version 1.0.27.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.26
+* Temporary fix for artifact types
+* Sync GCPC staging to prod to include AutoML model comparison and prophet pipelines
+* Update documentation for Eval components
+* Update HP tuning sample notebook
+* Improve folder structure for evaluation components
+* Model Evaluation, rename EvaluationDataSplitterOp to TargetFieldDataRemoverOp, rename ground_truth_column to target_field, rename class_names to class_labels, and remove key_columns input
+* Add model input to vertex ai model evaluation component
+
+# Release 1.0.25
+* Bigquery: Update public doc for evaluate model per customer feedback
+* Add Infra Validation remote runner
+* Add notification v1 doc to the v1 page
+* AutoML: Sync GCPC staging to prod to include bug fix for built-in algorithms
+
+# Release 1.0.24
+* Add notification v1 doc
+* Convert all v1 components into individual launchers and remote runners
+* Update AutoML Tables components to have latest SDK features
+* Add support for staging Dataflow options (sdk_location and extra_package)
+
+# Release 1.0.23
+* AutoML: Sync GCPC staging to prod to include recent API changes
+* TensorBoard: Make some input parameters optional to provide better user experience
+
+# Release 1.0.22
+* TensorBoard: Make some input parameters optional to provide better user experience
+
+# Release 1.0.21
+* Fix input parameter in tensorboard experiment creator component
+* Convert bigquery components into individual launchers and remote runners
+* Model Evaluation: Add metadata field for pipeline resource name
+
+# Release 1.0.20
+* Add special case in json_util.py where explanation_spec metadata outputs can have empty values
+* Update the docstring for missing arguments on feature_importance component
+* Create new tensorboard experiment creator component
+* Remove unused input in evaluation classification yaml
+* Update the docstring for exported_model_path in export_model
+
+# Release 1.0.19
+* Propagating labels for explain_forecast_model component
+* Model Evaluation - Add evaluation forecasting default of 0.5 for quantiles
+* Dataproc - Fix missing error payload from logging
+* Added BigQuery input support to evaluation components
+* Model Evaluation - Allow dataset paths list
+* Fix the docstring for ml_advanced_weights component
+* Fix the duplicated arguments in bigquery_ml_global_explain_job
+* Import importer from dsl namespace instead
+* Convert batch_prediction_job_remote_runner into individual launcher
+
+# Release 1.0.18
+* Model Evaluation - Give evaluation preprocessing components unique dataflow job names
+* Add vertex_notification_email component on v1 folder
 
 # Release 1.0.17
 * Model Evaluation - Rearrange json and yaml files in e2e test to eliminate duplicate defining and reading

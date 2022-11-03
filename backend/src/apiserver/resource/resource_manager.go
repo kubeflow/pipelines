@@ -23,7 +23,7 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
@@ -1124,7 +1124,7 @@ func (r *ResourceManager) ReadArtifact(runID string, nodeID string, artifactName
 	if run.WorkflowRuntimeManifest == "" {
 		return nil, util.NewInvalidInputError("read artifact from run with v2 IR spec is not supported")
 	}
-	execSpec, err := util.NewExecutionSpec([]byte(run.WorkflowRuntimeManifest))
+	execSpec, err := util.NewExecutionSpecJSON(util.ArgoWorkflow, []byte(run.WorkflowRuntimeManifest))
 	if err != nil {
 		// This should never happen.
 		return nil, util.NewInternalServerError(

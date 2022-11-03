@@ -23,7 +23,6 @@ import uuid
 
 from google.protobuf import json_format
 import kfp
-from kfp.compiler import compiler
 from kfp.components import base_model
 from kfp.components import placeholders
 from kfp.components import utils
@@ -31,6 +30,8 @@ from kfp.components import v1_components
 from kfp.components import v1_structures
 from kfp.components.container_component_artifact_channel import \
     ContainerComponentArtifactChannel
+from kfp.components.types import artifact_types
+from kfp.components.types import type_annotations
 from kfp.components.types import type_utils
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
@@ -45,7 +46,7 @@ class InputSpec_(base_model.BaseModel):
         description: Optional: the user description of the input.
     """
     type: Union[str, dict]
-    default: Union[Any, None] = None
+    default: Optional[Any] = None
 
 
 # Hack to allow access to __init__ arguments for setting _optional value
@@ -68,26 +69,37 @@ class InputSpec(InputSpec_, base_model.BaseModel):
         self._optional = 'default' in kwargs
 
     @classmethod
-    def from_ir_parameter_dict(
-            cls, ir_parameter_dict: Dict[str, Any]) -> 'InputSpec':
+    def from_ir_component_inputs_dict(
+            cls, ir_component_inputs_dict: Dict[str, Any]) -> 'InputSpec':
         """Creates an InputSpec from a ComponentInputsSpec message in dict
         format (pipeline_spec.components.<component-
         key>.inputDefinitions.parameters.<input-key>).
 
         Args:
-            ir_parameter_dict (Dict[str, Any]): The ComponentInputsSpec message in dict format.
+            ir_component_inputs_dict (Dict[str, Any]): The ComponentInputsSpec
+                message in dict format.
 
         Returns:
             InputSpec: The InputSpec object.
         """
-        type_ = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE.get(
-            ir_parameter_dict['parameterType'])
-        if type_ is None:
-            raise ValueError(
-                f'Unknown type {ir_parameter_dict["parameterType"]} found in IR.'
+        if 'parameterType' in ir_component_inputs_dict:
+            type_string = ir_component_inputs_dict['parameterType']
+            type_ = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE.get(type_string)
+            if type_ is None:
+                raise ValueError(f'Unknown type {type_string} found in IR.')
+            default_value = ir_component_inputs_dict.get('defaultValue')
+            return InputSpec(
+                type=type_,
+                default=default_value,
             )
-        default = ir_parameter_dict.get('defaultValue')
-        return InputSpec(type=type_, default=default)
+
+        else:
+            type_ = ir_component_inputs_dict['artifactType']['schemaTitle']
+            schema_version = ir_component_inputs_dict['artifactType'][
+                'schemaVersion']
+            return InputSpec(
+                type=type_utils.create_bundled_artifact_type(
+                    type_, schema_version))
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for InputSpec. Robust to different type
@@ -109,6 +121,16 @@ class InputSpec(InputSpec_, base_model.BaseModel):
         else:
             return False
 
+    def _validate_type(self) -> None:
+        """Type should either be a parameter or a valid bundled artifact type
+        by the time it gets to InputSpec.
+
+        This allows us to perform fewer checks downstream.
+        """
+        # TODO: add transformation logic so that we don't have to transform inputs at every place they are used, including v1 back compat support
+        if not spec_type_is_parameter(self.type):
+            type_utils.validate_bundled_artifact_type(self.type)
+
 
 class OutputSpec(base_model.BaseModel):
     """Component output definitions.
@@ -119,27 +141,32 @@ class OutputSpec(base_model.BaseModel):
     type: Union[str, dict]
 
     @classmethod
-    def from_ir_parameter_dict(
-            cls, ir_parameter_dict: Dict[str, Any]) -> 'OutputSpec':
+    def from_ir_component_outputs_dict(
+            cls, ir_component_outputs_dict: Dict[str, Any]) -> 'OutputSpec':
         """Creates an OutputSpec from a ComponentOutputsSpec message in dict
         format (pipeline_spec.components.<component-
         key>.outputDefinitions.parameters|artifacts.<output-key>).
 
         Args:
-            ir_parameter_dict (Dict[str, Any]): The ComponentOutputsSpec in dict format.
+            ir_component_outputs_dict (Dict[str, Any]): The ComponentOutputsSpec
+                in dict format.
 
         Returns:
             OutputSpec: The OutputSpec object.
         """
-        type_string = ir_parameter_dict[
-            'parameterType'] if 'parameterType' in ir_parameter_dict else ir_parameter_dict[
-                'artifactType']['schemaTitle']
-        type_ = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE.get(type_string)
-        if type_ is None:
-            raise ValueError(
-                f'Unknown type {ir_parameter_dict["parameterType"]} found in IR.'
-            )
-        return OutputSpec(type=type_)
+        if 'parameterType' in ir_component_outputs_dict:
+            type_string = ir_component_outputs_dict['parameterType']
+            type_ = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE.get(type_string)
+            if type_ is None:
+                raise ValueError(f'Unknown type {type_string} found in IR.')
+            return OutputSpec(type=type_,)
+        else:
+            type_ = ir_component_outputs_dict['artifactType']['schemaTitle']
+            schema_version = ir_component_outputs_dict['artifactType'][
+                'schemaVersion']
+            return OutputSpec(
+                type=type_utils.create_bundled_artifact_type(
+                    type_, schema_version))
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for OutputSpec. Robust to different type
@@ -160,6 +187,23 @@ class OutputSpec(base_model.BaseModel):
                     other.type)
         else:
             return False
+
+    def _validate_type(self):
+        """Type should either be a parameter or a valid bundled artifact type
+        by the time it gets to OutputSpec.
+
+        This allows us to perform fewer checks downstream.
+        """
+        # TODO: add transformation logic so that we don't have to transform outputs at every place they are used, including v1 back compat support
+        if not spec_type_is_parameter(self.type):
+            type_utils.validate_bundled_artifact_type(self.type)
+
+
+def spec_type_is_parameter(type_: str) -> bool:
+    in_memory_type = type_annotations.maybe_strip_optional_from_annotation_string(
+        type_utils.get_canonical_name_for_outer_generic(type_))
+
+    return in_memory_type in type_utils.IN_MEMORY_SPEC_TYPE_TO_IR_TYPE or in_memory_type == 'PipelineTaskFinalStatus'
 
 
 class ResourceSpec(base_model.BaseModel):
@@ -232,15 +276,15 @@ class ContainerSpecImplementation(base_model.BaseModel):
     resources: Optional[ResourceSpec] = None
     """Specification on the resource requirements."""
 
-    def transform_command(self) -> None:
+    def _transform_command(self) -> None:
         """Use None instead of empty list for command."""
         self.command = None if self.command == [] else self.command
 
-    def transform_args(self) -> None:
+    def _transform_args(self) -> None:
         """Use None instead of empty list for args."""
         self.args = None if self.args == [] else self.args
 
-    def transform_env(self) -> None:
+    def _transform_env(self) -> None:
         """Use None instead of empty dict for env."""
         self.env = None if self.env == {} else self.env
 
@@ -269,22 +313,11 @@ class ContainerSpecImplementation(base_model.BaseModel):
         Returns:
             ContainerSpecImplementation: The ContainerSpecImplementation instance.
         """
-        args = container_dict.get('args')
-        if args is not None:
-            args = [
-                placeholders.maybe_convert_placeholder_string_to_placeholder(
-                    arg) for arg in args
-            ]
-        command = container_dict.get('command')
-        if command is not None:
-            command = [
-                placeholders.maybe_convert_placeholder_string_to_placeholder(c)
-                for c in command
-            ]
+
         return ContainerSpecImplementation(
             image=container_dict['image'],
-            command=command,
-            args=args,
+            command=container_dict.get('command'),
+            args=container_dict.get('args'),
             env=None,  # can only be set on tasks
             resources=None)  # can only be set on tasks
 
@@ -366,29 +399,20 @@ class TaskSpec(base_model.BaseModel):
     retry_policy: Optional[RetryPolicy] = None
 
 
-class DagSpec(base_model.BaseModel):
-    """DAG(graph) implementation definition.
-
-    Attributes:
-        tasks: The tasks inside the DAG.
-        outputs: Defines how the outputs of the dag are linked to the sub tasks.
-    """
-    tasks: Mapping[str, TaskSpec]
-    outputs: Mapping[str, Any]
-
-
 class ImporterSpec(base_model.BaseModel):
     """ImporterSpec definition.
 
     Attributes:
         artifact_uri: The URI of the artifact.
-        type_schema: The type of the artifact.
+        schema_title: The schema_title of the artifact.
+        schema_version: The schema_version of the artifact.
         reimport: Whether or not import an artifact regardless it has been
          imported before.
         metadata (optional): the properties of the artifact.
     """
     artifact_uri: str
-    type_schema: str
+    schema_title: str
+    schema_version: str
     reimport: bool
     metadata: Optional[Mapping[str, Any]] = None
 
@@ -402,32 +426,41 @@ class Implementation(base_model.BaseModel):
         importer: importer implementation details.
     """
     container: Optional[ContainerSpecImplementation] = None
-    graph: Optional[DagSpec] = None
     importer: Optional[ImporterSpec] = None
+    # Use type forward reference to skip the type validation in BaseModel.
+    graph: Optional['pipeline_spec_pb2.PipelineSpec'] = None
 
     @classmethod
-    def from_deployment_spec_dict(cls, deployment_spec_dict: Dict[str, Any],
-                                  component_name: str) -> 'Implementation':
-        """Creates an Implmentation object from a deployment spec message in
-        dict format (pipeline_spec.deploymentSpec).
+    def from_pipeline_spec_dict(cls, pipeline_spec_dict: Dict[str, Any],
+                                component_name: str) -> 'Implementation':
+        """Creates an Implementation object from a PipelineSpec message in dict
+        format.
 
         Args:
-            deployment_spec_dict (Dict[str, Any]): PipelineDeploymentConfig message in dict format.
+            pipeline_spec_dict (Dict[str, Any]): PipelineSpec message in dict format.
             component_name (str): The name of the component.
 
         Returns:
             Implementation: An implementation object.
         """
-        executor_key = utils._EXECUTOR_LABEL_PREFIX + component_name
-        container = deployment_spec_dict['executors'][executor_key]['container']
-        container_spec = ContainerSpecImplementation.from_container_dict(
-            container)
-        return Implementation(container=container_spec)
+        executor_key = utils.sanitize_executor_label(component_name)
+        executor = pipeline_spec_dict['deploymentSpec']['executors'].get(
+            executor_key)
+        if executor is not None:
+            container_spec = ContainerSpecImplementation.from_container_dict(
+                executor['container']) if executor else None
+            return Implementation(container=container_spec)
+        else:
+            pipeline_spec = json_format.ParseDict(
+                pipeline_spec_dict, pipeline_spec_pb2.PipelineSpec())
+            return Implementation(graph=pipeline_spec)
 
 
-def _check_valid_placeholder_reference(
-        valid_inputs: List[str], valid_outputs: List[str],
-        placeholder: placeholders.CommandLineElement) -> None:
+def check_placeholder_references_valid_io_name(
+    inputs_dict: Dict[str, InputSpec],
+    outputs_dict: Dict[str, OutputSpec],
+    arg: placeholders.CommandLineElement,
+) -> None:
     """Validates input/output placeholders refer to an existing input/output.
 
     Args:
@@ -436,58 +469,41 @@ def _check_valid_placeholder_reference(
         arg: The placeholder argument for checking.
 
     Raises:
-        ValueError: if any placeholder references a non-existing input or
+        ValueError: if any placeholder references a nonexistant input or
             output.
         TypeError: if any argument is neither a str nor a placeholder
             instance.
     """
-    if isinstance(placeholder, ContainerComponentArtifactChannel):
+    if isinstance(arg, ContainerComponentArtifactChannel):
         raise ValueError(
             'Cannot access artifact by itself in the container definition. Please use .uri or .path instead to access the artifact.'
         )
-    elif isinstance(
-            placeholder,
-        (placeholders.InputValuePlaceholder, placeholders.InputPathPlaceholder,
-         placeholders.InputUriPlaceholder,
-         placeholders.InputMetadataPlaceholder)):
-        if placeholder.input_name not in valid_inputs:
+    elif isinstance(arg, placeholders.PRIMITIVE_INPUT_PLACEHOLDERS):
+        if arg.input_name not in inputs_dict:
             raise ValueError(
-                f'Argument "{placeholder}" references non-existing input.')
-    elif isinstance(
-            placeholder,
-        (placeholders.OutputParameterPlaceholder,
-         placeholders.OutputPathPlaceholder, placeholders.OutputUriPlaceholder,
-         placeholders.OutputMetadataPlaceholder)):
-        if placeholder.output_name not in valid_outputs:
+                f'Argument "{arg}" references nonexistant input: "{arg.input_name}".'
+            )
+    elif isinstance(arg, placeholders.PRIMITIVE_OUTPUT_PLACEHOLDERS):
+        if arg.output_name not in outputs_dict:
             raise ValueError(
-                f'Argument "{placeholder}" references non-existing output.')
-    elif isinstance(placeholder, placeholders.IfPresentPlaceholder):
-        if placeholder.input_name not in valid_inputs:
+                f'Argument "{arg}" references nonexistant output: "{arg.output_name}".'
+            )
+    elif isinstance(arg, placeholders.IfPresentPlaceholder):
+        if arg.input_name not in inputs_dict:
             raise ValueError(
-                f'Argument "{placeholder}" references non-existing input.')
-        for placeholder in itertools.chain(placeholder.then or [],
-                                           placeholder.else_ or []):
-            _check_valid_placeholder_reference(valid_inputs, valid_outputs,
-                                               placeholder)
-    elif isinstance(placeholder, placeholders.ConcatPlaceholder):
-        for placeholder in placeholder.items:
-            _check_valid_placeholder_reference(valid_inputs, valid_outputs,
-                                               placeholder)
-    elif not isinstance(placeholder, placeholders.ExecutorInputPlaceholder
-                       ) and not isinstance(placeholder, str):
-        raise TypeError(
-            f'Unexpected argument "{placeholder}" of type {type(placeholder)}.')
-
-
-ValidCommandArgTypes = (str, placeholders.InputValuePlaceholder,
-                        placeholders.InputPathPlaceholder,
-                        placeholders.InputUriPlaceholder,
-                        placeholders.OutputPathPlaceholder,
-                        placeholders.OutputUriPlaceholder,
-                        placeholders.InputMetadataPlaceholder,
-                        placeholders.OutputMetadataPlaceholder,
-                        placeholders.IfPresentPlaceholder,
-                        placeholders.ConcatPlaceholder)
+                f'Argument "{arg}" references nonexistant input: "{arg.input_name}".'
+            )
+        for arg in itertools.chain(arg.then or [], arg.else_ or []):
+            check_placeholder_references_valid_io_name(inputs_dict,
+                                                       outputs_dict, arg)
+    elif isinstance(arg, placeholders.ConcatPlaceholder):
+        for arg in arg.items:
+            check_placeholder_references_valid_io_name(inputs_dict,
+                                                       outputs_dict, arg)
+    elif not isinstance(
+            arg, placeholders.ExecutorInputPlaceholder) and not isinstance(
+                arg, str):
+        raise TypeError(f'Unexpected argument "{arg}" of type {type(arg)}.')
 
 
 class ComponentSpec(base_model.BaseModel):
@@ -507,34 +523,31 @@ class ComponentSpec(base_model.BaseModel):
     inputs: Optional[Dict[str, InputSpec]] = None
     outputs: Optional[Dict[str, OutputSpec]] = None
 
-    def transform_name(self) -> None:
+    def _transform_name(self) -> None:
         """Converts the name to a valid name."""
         self.name = utils.maybe_rename_for_k8s(self.name)
 
-    def transform_inputs(self) -> None:
+    def _transform_inputs(self) -> None:
         """Use None instead of empty list for inputs."""
         self.inputs = None if self.inputs == {} else self.inputs
 
-    def transform_outputs(self) -> None:
+    def _transform_outputs(self) -> None:
         """Use None instead of empty list for outputs."""
         self.outputs = None if self.outputs == {} else self.outputs
 
-    def validate_placeholders(self):
+    def _validate_placeholders(self):
         """Validates that input/output placeholders refer to an existing
         input/output."""
-        implementation = self.implementation
-        if getattr(implementation, 'container', None) is None:
+        if self.implementation.container is None:
             return
 
-        containerSpecImplementation: ContainerSpecImplementation = implementation.container
-
-        valid_inputs = [] if self.inputs is None else list(self.inputs.keys())
-        valid_outputs = [] if self.outputs is None else list(
-            self.outputs.keys())
-
-        for arg in itertools.chain((containerSpecImplementation.command or []),
-                                   (containerSpecImplementation.args or [])):
-            _check_valid_placeholder_reference(valid_inputs, valid_outputs, arg)
+        valid_inputs = {} if self.inputs is None else self.inputs
+        valid_outputs = {} if self.outputs is None else self.outputs
+        for arg in itertools.chain(
+            (self.implementation.container.command or []),
+            (self.implementation.container.args or [])):
+            check_placeholder_references_valid_io_name(valid_inputs,
+                                                       valid_outputs, arg)
 
     @classmethod
     def from_v1_component_spec(
@@ -556,83 +569,163 @@ class ComponentSpec(base_model.BaseModel):
         if component_dict.get('implementation') is None:
             raise ValueError('Implementation field not found')
 
-        if 'container' not in component_dict.get(
-                'implementation'):  # type: ignore
+        if 'implementation' not in component_dict or 'container' not in component_dict[
+                'implementation']:
             raise NotImplementedError('Container implementation not found.')
 
         container = component_dict['implementation']['container']
-        container['command'] = [
-            placeholders
-            .maybe_convert_v1_yaml_placeholder_to_v2_placeholder_str(
+        command = [
+            placeholders.maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
                 command, component_dict=component_dict)
             for command in container.get('command', [])
         ]
-        container['args'] = [
-            placeholders
-            .maybe_convert_v1_yaml_placeholder_to_v2_placeholder_str(
+        args = [
+            placeholders.maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
                 command, component_dict=component_dict)
             for command in container.get('args', [])
         ]
-        container['env'] = {
-            key: placeholders
-            .maybe_convert_v1_yaml_placeholder_to_v2_placeholder_str(
+        env = {
+            key:
+            placeholders.maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
                 command, component_dict=component_dict)
             for key, command in container.get('env', {}).items()
         }
         container_spec = ContainerSpecImplementation.from_container_dict({
             'image': container['image'],
-            'command': container['command'],
-            'args': container['args'],
-            'env': container['env']
+            'command': command,
+            'args': args,
+            'env': env
         })
+
+        inputs = {}
+        for spec in component_dict.get('inputs', []):
+            type_ = spec.get('type')
+
+            if isinstance(type_, str) and type_ == 'PipelineTaskFinalStatus':
+                inputs[utils.sanitize_input_name(
+                    spec['name'])] = InputSpec(type=type_)
+                continue
+
+            elif isinstance(type_, str) and type_.lower(
+            ) in type_utils._PARAMETER_TYPES_MAPPING:
+                default = spec.get('default')
+                type_enum = type_utils._PARAMETER_TYPES_MAPPING[type_.lower()]
+                ir_parameter_type_name = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
+                    type_enum)
+                in_memory_parameter_type_name = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE[
+                    ir_parameter_type_name]
+                inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
+                    type=in_memory_parameter_type_name,
+                    default=default,
+                )
+                continue
+
+            elif isinstance(type_, str) and re.match(
+                    type_utils._GOOGLE_TYPES_PATTERN, type_):
+                schema_title = type_
+                schema_version = type_utils._GOOGLE_TYPES_VERSION
+
+            elif isinstance(type_, str) and type_.lower(
+            ) in type_utils._ARTIFACT_CLASSES_MAPPING:
+                artifact_class = type_utils._ARTIFACT_CLASSES_MAPPING[
+                    type_.lower()]
+                schema_title = artifact_class.schema_title
+                schema_version = artifact_class.schema_version
+
+            elif type_ is None or isinstance(type_, dict) or type_.lower(
+            ) not in type_utils._ARTIFACT_CLASSES_MAPPING:
+                schema_title = artifact_types.Artifact.schema_title
+                schema_version = artifact_types.Artifact.schema_version
+
+            else:
+                raise ValueError(f'Unknown input: {type_}')
+
+            if spec.get('optional', False):
+                # handles a v1 edge-case where a user marks an artifact input as optional with no default value. some of these v1 component YAMLs exist.
+                inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
+                    type=type_utils.create_bundled_artifact_type(
+                        schema_title, schema_version),
+                    default=None,
+                )
+            else:
+                inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
+                    type=type_utils.create_bundled_artifact_type(
+                        schema_title, schema_version))
+
+        outputs = {}
+        for spec in component_dict.get('outputs', []):
+            type_ = spec.get('type')
+
+            if isinstance(type_, str) and type_.lower(
+            ) in type_utils._PARAMETER_TYPES_MAPPING:
+                type_enum = type_utils._PARAMETER_TYPES_MAPPING[type_.lower()]
+                ir_parameter_type_name = pipeline_spec_pb2.ParameterType.ParameterTypeEnum.Name(
+                    type_enum)
+                in_memory_parameter_type_name = type_utils.IR_TYPE_TO_IN_MEMORY_SPEC_TYPE[
+                    ir_parameter_type_name]
+                outputs[utils.sanitize_input_name(spec['name'])] = OutputSpec(
+                    type=in_memory_parameter_type_name)
+                continue
+
+            elif isinstance(type_, str) and re.match(
+                    type_utils._GOOGLE_TYPES_PATTERN, type_):
+                schema_title = type_
+                schema_version = type_utils._GOOGLE_TYPES_VERSION
+
+            elif isinstance(type_, str) and type_.lower(
+            ) in type_utils._ARTIFACT_CLASSES_MAPPING:
+                artifact_class = type_utils._ARTIFACT_CLASSES_MAPPING[
+                    type_.lower()]
+                schema_title = artifact_class.schema_title
+                schema_version = artifact_class.schema_version
+
+            elif type_ is None or isinstance(type_, dict) or type_.lower(
+            ) not in type_utils._ARTIFACT_CLASSES_MAPPING:
+                schema_title = artifact_types.Artifact.schema_title
+                schema_version = artifact_types.Artifact.schema_version
+
+            else:
+                raise ValueError(f'Unknown output: {type_}')
+
+            outputs[utils.sanitize_input_name(spec['name'])] = OutputSpec(
+                type=type_utils.create_bundled_artifact_type(
+                    schema_title, schema_version))
 
         return ComponentSpec(
             name=component_dict.get('name', 'name'),
             description=component_dict.get('description'),
             implementation=Implementation(container=container_spec),
-            inputs={
-                utils.sanitize_input_name(spec['name']): InputSpec(
-                    type=spec.get('type', 'Artifact'),
-                    default=spec.get('default', None))
-                for spec in component_dict.get('inputs', [])
-            },
-            outputs={
-                utils.sanitize_input_name(spec['name']):
-                OutputSpec(type=spec.get('type', 'Artifact'))
-                for spec in component_dict.get('outputs', [])
-            })
+            inputs=inputs,
+            outputs=outputs,
+        )
 
     @classmethod
     def from_pipeline_spec_dict(
             cls, pipeline_spec_dict: Dict[str, Any]) -> 'ComponentSpec':
         raw_name = pipeline_spec_dict['pipelineInfo']['name']
 
-        implementation = Implementation.from_deployment_spec_dict(
-            pipeline_spec_dict['deploymentSpec'], raw_name)
-
-        def inputs_dict_from_components_dict(
-                components_dict: Dict[str, Any],
-                component_name: str) -> Dict[str, InputSpec]:
-            component_key = utils._COMPONENT_NAME_PREFIX + component_name
-            parameters = components_dict[component_key].get(
-                'inputDefinitions', {}).get('parameters', {})
+        def inputs_dict_from_component_spec_dict(
+                component_spec_dict: Dict[str, Any]) -> Dict[str, InputSpec]:
+            parameters = component_spec_dict.get('inputDefinitions',
+                                                 {}).get('parameters', {})
+            artifacts = component_spec_dict.get('inputDefinitions',
+                                                {}).get('artifacts', {})
+            all_inputs = {**parameters, **artifacts}
             return {
-                name: InputSpec.from_ir_parameter_dict(parameter_dict)
-                for name, parameter_dict in parameters.items()
+                name: InputSpec.from_ir_component_inputs_dict(input_dict)
+                for name, input_dict in all_inputs.items()
             }
 
-        def outputs_dict_from_components_dict(
-                components_dict: Dict[str, Any],
-                component_name: str) -> Dict[str, OutputSpec]:
-            component_key = utils._COMPONENT_NAME_PREFIX + component_name
-            parameters = components_dict[component_key].get(
-                'outputDefinitions', {}).get('parameters', {})
-            artifacts = components_dict[component_key].get(
-                'outputDefinitions', {}).get('artifacts', {})
+        def outputs_dict_from_component_spec_dict(
+                components_spec_dict: Dict[str, Any]) -> Dict[str, OutputSpec]:
+            parameters = component_spec_dict.get('outputDefinitions',
+                                                 {}).get('parameters', {})
+            artifacts = components_spec_dict.get('outputDefinitions',
+                                                 {}).get('artifacts', {})
             all_outputs = {**parameters, **artifacts}
             return {
-                name: OutputSpec.from_ir_parameter_dict(parameter_dict)
-                for name, parameter_dict in all_outputs.items()
+                name: OutputSpec.from_ir_component_outputs_dict(output_dict)
+                for name, output_dict in all_outputs.items()
             }
 
         def extract_description_from_command(
@@ -648,13 +741,20 @@ class ComponentSpec(base_model.BaseModel):
                                 return docstring
             return None
 
-        inputs = inputs_dict_from_components_dict(
-            pipeline_spec_dict['components'], raw_name)
-        outputs = outputs_dict_from_components_dict(
-            pipeline_spec_dict['components'], raw_name)
+        component_key = utils.sanitize_component_name(raw_name)
+        component_spec_dict = pipeline_spec_dict['components'].get(
+            component_key, pipeline_spec_dict['root'])
+
+        inputs = inputs_dict_from_component_spec_dict(component_spec_dict)
+        outputs = outputs_dict_from_component_spec_dict(component_spec_dict)
+
+        implementation = Implementation.from_pipeline_spec_dict(
+            pipeline_spec_dict, raw_name)
 
         description = extract_description_from_command(
-            implementation.container.command or [])
+            implementation.container.command or
+            []) if implementation.container else None
+
         return ComponentSpec(
             name=raw_name,
             implementation=implementation,
@@ -702,9 +802,10 @@ class ComponentSpec(base_model.BaseModel):
         Args:
             output_file: File path to store the component yaml.
         """
+        from kfp.compiler import pipeline_spec_builder as builder
 
         pipeline_spec = self.to_pipeline_spec()
-        compiler.write_pipeline_spec_to_file(pipeline_spec, output_file)
+        builder.write_pipeline_spec_to_file(pipeline_spec, output_file)
 
     def to_pipeline_spec(self) -> pipeline_spec_pb2.PipelineSpec:
         """Creates a pipeline instance and constructs the pipeline spec for a
@@ -717,19 +818,18 @@ class ComponentSpec(base_model.BaseModel):
             A PipelineSpec proto representing the compiled component.
         """
         # import here to aviod circular module dependency
+        from kfp.compiler import compiler_utils
         from kfp.compiler import pipeline_spec_builder as builder
         from kfp.components import pipeline_channel
         from kfp.components import pipeline_task
         from kfp.components import tasks_group
-        from kfp.components.types import type_utils
 
         args_dict = {}
         pipeline_inputs = self.inputs or {}
 
         for arg_name, input_spec in pipeline_inputs.items():
-            arg_type = input_spec.type
             args_dict[arg_name] = pipeline_channel.create_pipeline_channel(
-                name=arg_name, channel_type=arg_type)
+                name=arg_name, channel_type=input_spec.type)
 
         task = pipeline_task.PipelineTask(self, args_dict)
 
@@ -753,7 +853,7 @@ class ComponentSpec(base_model.BaseModel):
         pipeline_args = args_list_with_defaults
         task_group = group
 
-        builder.validate_pipeline_name(pipeline_name)
+        utils.validate_pipeline_name(pipeline_name)
 
         pipeline_spec = pipeline_spec_pb2.PipelineSpec()
         pipeline_spec.pipeline_info.name = pipeline_name
@@ -769,7 +869,7 @@ class ComponentSpec(base_model.BaseModel):
         deployment_config = pipeline_spec_pb2.PipelineDeploymentConfig()
         root_group = task_group
 
-        task_name_to_parent_groups, group_name_to_parent_groups = builder.get_parent_groups(
+        task_name_to_parent_groups, group_name_to_parent_groups = compiler_utils.get_parent_groups(
             root_group)
 
         def get_inputs(task_group: tasks_group.TasksGroup,

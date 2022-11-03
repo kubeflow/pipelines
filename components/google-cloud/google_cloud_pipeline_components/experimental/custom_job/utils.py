@@ -283,7 +283,7 @@ def create_custom_training_job_op_from_component(
               image=_DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE,
               command=[
                   'python3', '-u', '-m',
-                  'google_cloud_pipeline_components.container.v1.gcp_launcher.launcher'
+                  'google_cloud_pipeline_components.container.v1.custom_job.launcher'
               ],
               args=[
                   '--type',

@@ -16,7 +16,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes/timestamp"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/v2/cacheutils"
 
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
