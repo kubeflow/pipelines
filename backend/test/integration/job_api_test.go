@@ -159,7 +159,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 
 	/* ---------- Create a new hello world experiment ---------- */
 	experiment := test.GetExperiment("hello world experiment", "", s.resourceNamespace)
-	helloWorldExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
+	helloWorldExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentV1Params{Body: experiment})
 	assert.Nil(t, err)
 
 	/* ---------- Create a new hello world job by specifying pipeline ID ---------- */
@@ -186,7 +186,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 
 	/* ---------- Create a new argument parameter experiment ---------- */
 	experiment = test.GetExperiment("argument parameter experiment", "", s.resourceNamespace)
-	argParamsExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
+	argParamsExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentV1Params{Body: experiment})
 	assert.Nil(t, err)
 
 	/* ---------- Create a new argument parameter job by uploading workflow manifest ---------- */
@@ -351,7 +351,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 
 	/* ---------- Create a periodic job with start and end date in the past and catchup = true ---------- */
 	experiment := test.GetExperiment("periodic catchup true", "", s.resourceNamespace)
-	periodicCatchupTrueExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
+	periodicCatchupTrueExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentV1Params{Body: experiment})
 	assert.Nil(t, err)
 
 	job := jobInThePastForTwoMinutes(jobOptions{
@@ -368,7 +368,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 
 	/* -------- Create another periodic job with start and end date in the past but catchup = false ------ */
 	experiment = test.GetExperiment("periodic catchup false", "", s.resourceNamespace)
-	periodicCatchupFalseExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
+	periodicCatchupFalseExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentV1Params{Body: experiment})
 	assert.Nil(t, err)
 
 	job = jobInThePastForTwoMinutes(jobOptions{
@@ -385,7 +385,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 
 	/* ---------- Create a cron job with start and end date in the past and catchup = true ---------- */
 	experiment = test.GetExperiment("cron catchup true", "", s.resourceNamespace)
-	cronCatchupTrueExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
+	cronCatchupTrueExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentV1Params{Body: experiment})
 	assert.Nil(t, err)
 
 	job = jobInThePastForTwoMinutes(jobOptions{
@@ -402,7 +402,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 
 	/* -------- Create another cron job with start and end date in the past but catchup = false ------ */
 	experiment = test.GetExperiment("cron catchup false", "", s.resourceNamespace)
-	cronCatchupFalseExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
+	cronCatchupFalseExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentV1Params{Body: experiment})
 	assert.Nil(t, err)
 
 	job = jobInThePastForTwoMinutes(jobOptions{
@@ -556,7 +556,7 @@ func (s *JobApiTestSuite) TestJobApis_SwfNotFound() {
 	// In multi-user mode, jobs must be associated with an experiment.
 	if *isKubeflowMode {
 		experiment := test.GetExperiment("test-swf-not-found experiment", "", s.resourceNamespace)
-		swfNotFoundExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
+		swfNotFoundExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentV1Params{Body: experiment})
 		assert.Nil(t, err)
 
 		createJobRequest.Body.ResourceReferences = []*job_model.V1beta1ResourceReference{

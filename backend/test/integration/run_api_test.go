@@ -128,7 +128,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 
 	/* ---------- Create a new hello world experiment ---------- */
 	experiment := test.GetExperiment("hello world experiment", "", s.resourceNamespace)
-	helloWorldExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentParams{Body: experiment})
+	helloWorldExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentV1Params{Body: experiment})
 	assert.Nil(t, err)
 
 	/* ---------- Create a new hello world run by specifying pipeline version ID ---------- */
@@ -152,7 +152,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 	s.checkHelloWorldRunDetail(t, helloWorldRunDetail, helloWorldExperiment.ID, helloWorldExperiment.Name, helloWorldPipelineVersion.ID, helloWorldPipelineVersion.Name)
 
 	/* ---------- Create a new argument parameter experiment ---------- */
-	createExperimentRequest := &experimentparams.CreateExperimentParams{
+	createExperimentRequest := &experimentparams.CreateExperimentV1Params{
 		Body: test.GetExperiment("argument parameter experiment", "", s.resourceNamespace)}
 	argParamsExperiment, err := s.experimentClient.Create(createExperimentRequest)
 	assert.Nil(t, err)

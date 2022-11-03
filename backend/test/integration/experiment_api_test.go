@@ -126,7 +126,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 	/* ---------- Create a new experiment ---------- */
 	experiment := test.GetExperiment("training", "my first experiment", s.resourceNamespace)
-	trainingExperiment, err := s.experimentClient.Create(&params.CreateExperimentParams{
+	trainingExperiment, err := s.experimentClient.Create(&params.CreateExperimentV1Params{
 		Body: experiment,
 	})
 	assert.Nil(t, err)
@@ -137,7 +137,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	assert.Equal(t, expectedTrainingExperiment, trainingExperiment)
 
 	/* ---------- Create an experiment with same name. Should fail due to name uniqueness ---------- */
-	_, err = s.experimentClient.Create(&params.CreateExperimentParams{Body: experiment})
+	_, err = s.experimentClient.Create(&params.CreateExperimentV1Params{Body: experiment})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Please specify a new name")
 
@@ -145,12 +145,12 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	// 1 second interval. This ensures they can be sorted by create time in expected order.
 	time.Sleep(1 * time.Second)
 	experiment = test.GetExperiment("prediction", "my second experiment", s.resourceNamespace)
-	_, err = s.experimentClient.Create(&params.CreateExperimentParams{
+	_, err = s.experimentClient.Create(&params.CreateExperimentV1Params{
 		Body: experiment,
 	})
 	time.Sleep(1 * time.Second)
 	experiment = test.GetExperiment("moonshot", "my second experiment", s.resourceNamespace)
-	_, err = s.experimentClient.Create(&params.CreateExperimentParams{
+	_, err = s.experimentClient.Create(&params.CreateExperimentV1Params{
 		Body: experiment,
 	})
 	assert.Nil(t, err)
@@ -170,7 +170,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- Verify list experiments sorted by names ---------- */
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentParams{
+		&params.ListExperimentV1Params{
 			PageSize: util.Int32Pointer(2),
 			SortBy:   util.StringPointer("name")},
 		s.resourceNamespace)
@@ -183,7 +183,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentParams{
+		&params.ListExperimentV1Params{
 			PageToken: util.StringPointer(nextPageToken),
 			PageSize:  util.Int32Pointer(2),
 			SortBy:    util.StringPointer("name")},
@@ -197,7 +197,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- Verify list experiments sorted by creation time ---------- */
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentParams{
+		&params.ListExperimentV1Params{
 			PageSize: util.Int32Pointer(2),
 			SortBy:   util.StringPointer("created_at")},
 		s.resourceNamespace)
@@ -210,7 +210,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentParams{
+		&params.ListExperimentV1Params{
 			PageToken: util.StringPointer(nextPageToken),
 			PageSize:  util.Int32Pointer(2),
 			SortBy:    util.StringPointer("created_at")},
@@ -224,7 +224,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- List experiments sort by unsupported field. Should fail. ---------- */
 	_, _, _, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentParams{
+		&params.ListExperimentV1Params{
 			PageSize: util.Int32Pointer(2),
 			SortBy:   util.StringPointer("unknownfield")},
 		s.resourceNamespace)
@@ -233,7 +233,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- List experiments sorted by names descend order ---------- */
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentParams{
+		&params.ListExperimentV1Params{
 			PageSize: util.Int32Pointer(2),
 			SortBy:   util.StringPointer("name desc")},
 		s.resourceNamespace)
@@ -246,7 +246,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentParams{
+		&params.ListExperimentV1Params{
 			PageToken: util.StringPointer(nextPageToken),
 			PageSize:  util.Int32Pointer(2),
 			SortBy:    util.StringPointer("name desc")},
@@ -258,7 +258,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- Verify get experiment works ---------- */
-	experiment, err = s.experimentClient.Get(&params.GetExperimentParams{ID: trainingExperiment.ID})
+	experiment, err = s.experimentClient.Get(&params.GetExperimentV1Params{ID: trainingExperiment.ID})
 	assert.Nil(t, err)
 	assert.Equal(t, expectedTrainingExperiment, experiment)
 
@@ -305,10 +305,10 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	assert.Nil(t, err)
 
 	/* ---------- Archive an experiment -----------------*/
-	err = s.experimentClient.Archive(&params.ArchiveExperimentParams{ID: trainingExperiment.ID})
+	err = s.experimentClient.Archive(&params.ArchiveExperimentV1Params{ID: trainingExperiment.ID})
 
 	/* ---------- Verify experiment and its runs ------- */
-	experiment, err = s.experimentClient.Get(&params.GetExperimentParams{ID: trainingExperiment.ID})
+	experiment, err = s.experimentClient.Get(&params.GetExperimentV1Params{ID: trainingExperiment.ID})
 	assert.Nil(t, err)
 	assert.Equal(t, experiment_model.V1beta1ExperimentStorageState("STORAGESTATE_ARCHIVED"), experiment.StorageState)
 	retrievedRun1, _, err := s.runClient.Get(&runParams.GetRunParams{RunID: run1.Run.ID})
@@ -325,10 +325,10 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	assert.Equal(t, false, retrievedJob2.Enabled)
 
 	/* ---------- Unarchive an experiment -----------------*/
-	err = s.experimentClient.Unarchive(&params.UnarchiveExperimentParams{ID: trainingExperiment.ID})
+	err = s.experimentClient.Unarchive(&params.UnarchiveExperimentV1Params{ID: trainingExperiment.ID})
 
 	/* ---------- Verify experiment and its runs and jobs --------- */
-	experiment, err = s.experimentClient.Get(&params.GetExperimentParams{ID: trainingExperiment.ID})
+	experiment, err = s.experimentClient.Get(&params.GetExperimentV1Params{ID: trainingExperiment.ID})
 	assert.Nil(t, err)
 	assert.Equal(t, experiment_model.V1beta1ExperimentStorageState("STORAGESTATE_AVAILABLE"), experiment.StorageState)
 	retrievedRun1, _, err = s.runClient.Get(&runParams.GetRunParams{RunID: run1.Run.ID})

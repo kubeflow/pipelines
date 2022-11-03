@@ -170,7 +170,7 @@ func (s *UpgradeTests) PrepareExperiments() {
 
 	/* ---------- Create a new experiment ---------- */
 	experiment := test.GetExperiment("training", "my first experiment", s.resourceNamespace)
-	_, err := s.experimentClient.Create(&experimentParams.CreateExperimentParams{
+	_, err := s.experimentClient.Create(&experimentParams.CreateExperimentV1Params{
 		Body: experiment,
 	})
 	require.Nil(t, err)
@@ -179,14 +179,14 @@ func (s *UpgradeTests) PrepareExperiments() {
 	// This ensures they can be sorted by create time in expected order.
 	time.Sleep(1 * time.Second)
 	experiment = test.GetExperiment("prediction", "my second experiment", s.resourceNamespace)
-	_, err = s.experimentClient.Create(&experimentParams.CreateExperimentParams{
+	_, err = s.experimentClient.Create(&experimentParams.CreateExperimentV1Params{
 		Body: experiment,
 	})
 	require.Nil(t, err)
 
 	time.Sleep(1 * time.Second)
 	experiment = test.GetExperiment("moonshot", "my third experiment", s.resourceNamespace)
-	_, err = s.experimentClient.Create(&experimentParams.CreateExperimentParams{
+	_, err = s.experimentClient.Create(&experimentParams.CreateExperimentV1Params{
 		Body: experiment,
 	})
 	require.Nil(t, err)
@@ -198,7 +198,7 @@ func (s *UpgradeTests) VerifyExperiments() {
 	/* ---------- Verify list experiments sorted by creation time ---------- */
 	experiments, _, _, err := test.ListExperiment(
 		s.experimentClient,
-		&experimentParams.ListExperimentParams{SortBy: util.StringPointer("created_at")},
+		&experimentParams.ListExperimentV1Params{SortBy: util.StringPointer("created_at")},
 		s.resourceNamespace)
 	require.Nil(t, err)
 	// after upgrade, default experiment may be inserted, but the oldest 3
@@ -443,7 +443,7 @@ func (s *UpgradeTests) createHelloWorldExperiment() *experiment_model.V1beta1Exp
 	t := s.T()
 
 	experiment := test.GetExperiment("hello world experiment", "", s.resourceNamespace)
-	helloWorldExperiment, err := s.experimentClient.Create(&experimentParams.CreateExperimentParams{Body: experiment})
+	helloWorldExperiment, err := s.experimentClient.Create(&experimentParams.CreateExperimentV1Params{Body: experiment})
 	require.Nil(t, err)
 
 	return helloWorldExperiment
@@ -454,7 +454,7 @@ func (s *UpgradeTests) getHelloWorldExperiment(createIfNotExist bool) *experimen
 
 	experiments, _, _, err := test.ListExperiment(
 		s.experimentClient,
-		&experimentParams.ListExperimentParams{
+		&experimentParams.ListExperimentV1Params{
 			PageSize: util.Int32Pointer(1000),
 		},
 		s.resourceNamespace)

@@ -65,7 +65,7 @@ type ExperimentServer struct {
 	options         *ExperimentServerOptions
 }
 
-func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *api.CreateExperimentRequest) (
+func (s *ExperimentServer) CreateExperimentV1(ctx context.Context, request *api.CreateExperimentRequest) (
 	*api.Experiment, error) {
 	if s.options.CollectMetrics {
 		createExperimentRequests.Inc()
@@ -97,7 +97,7 @@ func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *api.Cr
 	return ToApiExperiment(newExperiment), nil
 }
 
-func (s *ExperimentServer) GetExperiment(ctx context.Context, request *api.GetExperimentRequest) (
+func (s *ExperimentServer) GetExperimentV1(ctx context.Context, request *api.GetExperimentRequest) (
 	*api.Experiment, error) {
 	if s.options.CollectMetrics {
 		getExperimentRequests.Inc()
@@ -115,7 +115,7 @@ func (s *ExperimentServer) GetExperiment(ctx context.Context, request *api.GetEx
 	return ToApiExperiment(experiment), nil
 }
 
-func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.ListExperimentsRequest) (
+func (s *ExperimentServer) ListExperimentV1(ctx context.Context, request *api.ListExperimentsRequest) (
 	*api.ListExperimentsResponse, error) {
 	if s.options.CollectMetrics {
 		listExperimentRequests.Inc()
@@ -170,7 +170,7 @@ func (s *ExperimentServer) ListExperiment(ctx context.Context, request *api.List
 		nil
 }
 
-func (s *ExperimentServer) DeleteExperiment(ctx context.Context, request *api.DeleteExperimentRequest) (*empty.Empty, error) {
+func (s *ExperimentServer) DeleteExperimentV1(ctx context.Context, request *api.DeleteExperimentRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		deleteExperimentRequests.Inc()
 	}
@@ -251,7 +251,7 @@ func (s *ExperimentServer) canAccessExperiment(ctx context.Context, experimentID
 	return nil
 }
 
-func (s *ExperimentServer) ArchiveExperiment(ctx context.Context, request *api.ArchiveExperimentRequest) (*empty.Empty, error) {
+func (s *ExperimentServer) ArchiveExperimentV1(ctx context.Context, request *api.ArchiveExperimentRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		archiveExperimentRequests.Inc()
 	}
@@ -267,7 +267,7 @@ func (s *ExperimentServer) ArchiveExperiment(ctx context.Context, request *api.A
 	return &empty.Empty{}, nil
 }
 
-func (s *ExperimentServer) UnarchiveExperiment(ctx context.Context, request *api.UnarchiveExperimentRequest) (*empty.Empty, error) {
+func (s *ExperimentServer) UnarchiveExperimentV1(ctx context.Context, request *api.UnarchiveExperimentRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		unarchiveExperimentRequests.Inc()
 	}

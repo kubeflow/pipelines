@@ -83,7 +83,7 @@ func DeleteAllExperiments(client *api_server.ExperimentClient, namespace string,
 	experiments, _, _, err := ListAllExperiment(client, namespace)
 	assert.Nil(t, err)
 	for _, e := range experiments {
-		assert.Nil(t, client.Delete(&experimentparams.DeleteExperimentParams{ID: e.ID}))
+		assert.Nil(t, client.Delete(&experimentparams.DeleteExperimentV1Params{ID: e.ID}))
 	}
 }
 
@@ -122,10 +122,10 @@ func ListPipelines(client *api_server.PipelineClient) (
 }
 
 func ListAllExperiment(client *api_server.ExperimentClient, namespace string) ([]*experiment_model.V1beta1Experiment, int, string, error) {
-	return ListExperiment(client, &experimentparams.ListExperimentParams{}, namespace)
+	return ListExperiment(client, &experimentparams.ListExperimentV1Params{}, namespace)
 }
 
-func ListExperiment(client *api_server.ExperimentClient, parameters *experimentparams.ListExperimentParams, namespace string) ([]*experiment_model.V1beta1Experiment, int, string, error) {
+func ListExperiment(client *api_server.ExperimentClient, parameters *experimentparams.ListExperimentV1Params, namespace string) ([]*experiment_model.V1beta1Experiment, int, string, error) {
 	if namespace != "" {
 		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
 		parameters.SetResourceReferenceKeyID(&namespace)

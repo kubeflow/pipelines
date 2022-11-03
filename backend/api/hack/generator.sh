@@ -32,7 +32,7 @@ rm -f -f backend/api/${API_VERSION}/go_client/*
 # Create directories if they don't exist
 mkdir -p backend/api/${API_VERSION}/go_http_client
 mkdir -p backend/api/${API_VERSION}/go_client
-mkdir -p ./backend/api/${API_VERSION}/swagger
+mkdir -p backend/api/${API_VERSION}/swagger
 
 # Generate *.pb.go (grpc api client) from *.proto.
 ${PROTOCCOMPILER} -I. -Ibackend/api/${API_VERSION} \

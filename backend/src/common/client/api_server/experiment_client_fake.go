@@ -28,7 +28,7 @@ func NewExperimentClientFake() *ExperimentClientFake {
 	return &ExperimentClientFake{}
 }
 
-func (c *ExperimentClientFake) Create(params *experimentparams.CreateExperimentParams) (
+func (c *ExperimentClientFake) Create(params *experimentparams.CreateExperimentV1Params) (
 	*experimentmodel.V1beta1Experiment, error) {
 	switch params.Body.Name {
 	case ExperimentForClientErrorTest:
@@ -38,7 +38,7 @@ func (c *ExperimentClientFake) Create(params *experimentparams.CreateExperimentP
 	}
 }
 
-func (c *ExperimentClientFake) Get(params *experimentparams.GetExperimentParams) (
+func (c *ExperimentClientFake) Get(params *experimentparams.GetExperimentV1Params) (
 	*experimentmodel.V1beta1Experiment, error) {
 	switch params.ID {
 	case ExperimentForClientErrorTest:
@@ -48,7 +48,7 @@ func (c *ExperimentClientFake) Get(params *experimentparams.GetExperimentParams)
 	}
 }
 
-func (c *ExperimentClientFake) List(params *experimentparams.ListExperimentParams) (
+func (c *ExperimentClientFake) List(params *experimentparams.ListExperimentV1Params) (
 	[]*experimentmodel.V1beta1Experiment, int, string, error) {
 	const (
 		FirstToken  = ""
@@ -76,15 +76,15 @@ func (c *ExperimentClientFake) List(params *experimentparams.ListExperimentParam
 	}
 }
 
-func (c *ExperimentClientFake) ListAll(params *experimentparams.ListExperimentParams,
+func (c *ExperimentClientFake) ListAll(params *experimentparams.ListExperimentV1Params,
 	maxResultSize int) ([]*experimentmodel.V1beta1Experiment, error) {
 	return listAllForExperiment(c, params, maxResultSize)
 }
 
-func (c *ExperimentClientFake) Archive(params *experimentparams.ArchiveExperimentParams) error {
+func (c *ExperimentClientFake) Archive(params *experimentparams.ArchiveExperimentV1Params) error {
 	return nil
 }
 
-func (c *ExperimentClientFake) Unarchive(params *experimentparams.UnarchiveExperimentParams) error {
+func (c *ExperimentClientFake) Unarchive(params *experimentparams.UnarchiveExperimentV1Params) error {
 	return nil
 }

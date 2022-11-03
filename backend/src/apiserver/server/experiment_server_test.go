@@ -28,7 +28,7 @@ func TestCreateExperiment(t *testing.T) {
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &api.Experiment{Name: "ex1", Description: "first experiment"}
 
-	result, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
+	result, err := server.CreateExperimentV1(nil, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	expectedExperiment := &api.Experiment{
 		Id:           resource.DefaultFakeUUID,
@@ -46,7 +46,7 @@ func TestCreateExperiment_Failed(t *testing.T) {
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &api.Experiment{Name: "ex1", Description: "first experiment"}
 	clientManager.DB().Close()
-	_, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
+	_, err := server.CreateExperimentV1(nil, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Create experiment failed.")
 }
@@ -67,7 +67,7 @@ func TestCreateExperiment_SingleUser_NamespaceNotAllowed(t *testing.T) {
 		ResourceReferences: resourceReferences,
 	}
 
-	_, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
+	_, err := server.CreateExperimentV1(nil, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "In single-user mode, CreateExperimentRequest shouldn't contain resource references.")
 }
@@ -94,7 +94,7 @@ func TestCreateExperiment_Unauthorized(t *testing.T) {
 			},
 		}}
 
-	_, err := server.CreateExperiment(ctx, &api.CreateExperimentRequest{Experiment: experiment})
+	_, err := server.CreateExperimentV1(ctx, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.NotNil(t, err)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: "ns1",
@@ -132,7 +132,7 @@ func TestCreateExperiment_Multiuser(t *testing.T) {
 		ResourceReferences: resourceReferences,
 	}
 
-	result, err := server.CreateExperiment(ctx, &api.CreateExperimentRequest{Experiment: experiment})
+	result, err := server.CreateExperimentV1(ctx, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	expectedExperiment := &api.Experiment{
 		Id:                 resource.DefaultFakeUUID,
@@ -151,9 +151,9 @@ func TestGetExperiment(t *testing.T) {
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &api.Experiment{Name: "ex1", Description: "first experiment"}
 
-	createResult, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
+	createResult, err := server.CreateExperimentV1(nil, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
-	result, err := server.GetExperiment(nil, &api.GetExperimentRequest{Id: createResult.Id})
+	result, err := server.GetExperimentV1(nil, &api.GetExperimentRequest{Id: createResult.Id})
 	assert.Nil(t, err)
 	expectedExperiment := &api.Experiment{
 		Id:           createResult.Id,
@@ -171,10 +171,10 @@ func TestGetExperiment_Failed(t *testing.T) {
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &api.Experiment{Name: "ex1", Description: "first experiment"}
 
-	createResult, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
+	createResult, err := server.CreateExperimentV1(nil, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	clientManager.DB().Close()
-	_, err = server.GetExperiment(nil, &api.GetExperimentRequest{Id: createResult.Id})
+	_, err = server.GetExperimentV1(nil, &api.GetExperimentRequest{Id: createResult.Id})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Get experiment failed.")
 }
@@ -192,7 +192,7 @@ func TestGetExperiment_Unauthorized(t *testing.T) {
 
 	server := ExperimentServer{manager, &ExperimentServerOptions{CollectMetrics: false}}
 
-	_, err := server.GetExperiment(ctx, &api.GetExperimentRequest{Id: experiment.UUID})
+	_, err := server.GetExperimentV1(ctx, &api.GetExperimentRequest{Id: experiment.UUID})
 	assert.NotNil(t, err)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: "ns1",
@@ -230,9 +230,9 @@ func TestGetExperiment_Multiuser(t *testing.T) {
 		ResourceReferences: resourceReferences,
 	}
 
-	createResult, err := server.CreateExperiment(ctx, &api.CreateExperimentRequest{Experiment: experiment})
+	createResult, err := server.CreateExperimentV1(ctx, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
-	result, err := server.GetExperiment(ctx, &api.GetExperimentRequest{Id: createResult.Id})
+	result, err := server.GetExperimentV1(ctx, &api.GetExperimentRequest{Id: createResult.Id})
 	assert.Nil(t, err)
 	expectedExperiment := &api.Experiment{
 		Id:                 createResult.Id,
@@ -251,9 +251,9 @@ func TestListExperiment(t *testing.T) {
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &api.Experiment{Name: "ex1", Description: "first experiment"}
 
-	createResult, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
+	createResult, err := server.CreateExperimentV1(nil, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
-	result, err := server.ListExperiment(nil, &api.ListExperimentsRequest{})
+	result, err := server.ListExperimentV1(nil, &api.ListExperimentsRequest{})
 	expectedExperiment := []*api.Experiment{{
 		Id:           createResult.Id,
 		Name:         "ex1",
@@ -271,10 +271,10 @@ func TestListExperiment_Failed(t *testing.T) {
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &api.Experiment{Name: "ex1", Description: "first experiment"}
 
-	_, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
+	_, err := server.CreateExperimentV1(nil, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 	clientManager.DB().Close()
-	_, err = server.ListExperiment(nil, &api.ListExperimentsRequest{})
+	_, err = server.ListExperimentV1(nil, &api.ListExperimentsRequest{})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "List experiments failed.")
 }
@@ -285,9 +285,9 @@ func TestListExperiment_SingleUser_NamespaceNotAllowed(t *testing.T) {
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
 	experiment := &api.Experiment{Name: "ex1", Description: "first experiment"}
 
-	_, err := server.CreateExperiment(nil, &api.CreateExperimentRequest{Experiment: experiment})
+	_, err := server.CreateExperimentV1(nil, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
-	_, err = server.ListExperiment(nil, &api.ListExperimentsRequest{
+	_, err = server.ListExperimentV1(nil, &api.ListExperimentsRequest{
 		ResourceReferenceKey: &api.ResourceKey{
 			Type: api.ResourceType_NAMESPACE,
 			Id:   "ns1",
@@ -310,7 +310,7 @@ func TestListExperiment_Unauthorized(t *testing.T) {
 
 	server := ExperimentServer{manager, &ExperimentServerOptions{CollectMetrics: false}}
 
-	_, err := server.ListExperiment(ctx, &api.ListExperimentsRequest{
+	_, err := server.ListExperimentV1(ctx, &api.ListExperimentsRequest{
 		ResourceReferenceKey: &api.ResourceKey{
 			Type: api.ResourceType_NAMESPACE,
 			Id:   "ns1",
@@ -353,7 +353,7 @@ func TestListExperiment_Multiuser(t *testing.T) {
 		ResourceReferences: resourceReferences,
 	}
 
-	createResult, err := server.CreateExperiment(ctx, &api.CreateExperimentRequest{Experiment: experiment})
+	createResult, err := server.CreateExperimentV1(ctx, &api.CreateExperimentRequest{Experiment: experiment})
 	assert.Nil(t, err)
 
 	tests := []struct {
@@ -428,7 +428,7 @@ func TestListExperiment_Multiuser(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		response, err := server.ListExperiment(ctx, tc.request)
+		response, err := server.ListExperimentV1(ctx, tc.request)
 		if tc.wantError {
 			if err == nil {
 				t.Errorf("TestListExperiment_Multiuser(%v) expect error but got nil", tc.name)
@@ -625,9 +625,9 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 
 	// Archive the experiment and thus all runs under it.
 	experimentServer := NewExperimentServer(manager, &ExperimentServerOptions{CollectMetrics: false})
-	_, err = experimentServer.ArchiveExperiment(nil, &api.ArchiveExperimentRequest{Id: experiment.UUID})
+	_, err = experimentServer.ArchiveExperimentV1(nil, &api.ArchiveExperimentRequest{Id: experiment.UUID})
 	assert.Nil(t, err)
-	result, err := experimentServer.GetExperiment(nil, &api.GetExperimentRequest{Id: experiment.UUID})
+	result, err := experimentServer.GetExperimentV1(nil, &api.GetExperimentRequest{Id: experiment.UUID})
 	assert.Nil(t, err)
 	assert.Equal(t, api.Experiment_STORAGESTATE_ARCHIVED, result.StorageState)
 	runs, err := runServer.ListRuns(nil, &api.ListRunsRequest{ResourceReferenceKey: &api.ResourceKey{Id: experiment.UUID, Type: api.ResourceType_EXPERIMENT}})
@@ -641,9 +641,9 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Equal(t, false, jobs.Jobs[0].Enabled)
 
 	// Unarchive the experiment and thus all runs under it.
-	_, err = experimentServer.UnarchiveExperiment(nil, &api.UnarchiveExperimentRequest{Id: experiment.UUID})
+	_, err = experimentServer.UnarchiveExperimentV1(nil, &api.UnarchiveExperimentRequest{Id: experiment.UUID})
 	assert.Nil(t, err)
-	result, err = experimentServer.GetExperiment(nil, &api.GetExperimentRequest{Id: experiment.UUID})
+	result, err = experimentServer.GetExperimentV1(nil, &api.GetExperimentRequest{Id: experiment.UUID})
 	assert.Nil(t, err)
 	assert.Equal(t, api.Experiment_STORAGESTATE_AVAILABLE, result.StorageState)
 	runs, err = runServer.ListRuns(nil, &api.ListRunsRequest{ResourceReferenceKey: &api.ResourceKey{Id: experiment.UUID, Type: api.ResourceType_EXPERIMENT}})
@@ -668,7 +668,7 @@ func TestListExperiment_Unauthenticated(t *testing.T) {
 	defer clients.Close()
 
 	server := ExperimentServer{manager, &ExperimentServerOptions{CollectMetrics: false}}
-	_, err := server.ListExperiment(ctx, &api.ListExperimentsRequest{
+	_, err := server.ListExperimentV1(ctx, &api.ListExperimentsRequest{
 		ResourceReferenceKey: &api.ResourceKey{
 			Type: api.ResourceType_NAMESPACE,
 			Id:   "ns1",

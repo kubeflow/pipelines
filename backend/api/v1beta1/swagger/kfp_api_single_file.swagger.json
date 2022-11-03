@@ -28,7 +28,7 @@
     "/apis/v1beta1/experiments": {
       "get": {
         "summary": "Finds all experiments. Supports pagination, and sorting on certain fields.",
-        "operationId": "ListExperiment",
+        "operationId": "ListExperimentV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -103,7 +103,7 @@
       },
       "post": {
         "summary": "Creates a new experiment.",
-        "operationId": "CreateExperiment",
+        "operationId": "CreateExperimentV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -137,7 +137,7 @@
     "/apis/v1beta1/experiments/{id}": {
       "get": {
         "summary": "Finds a specific experiment by ID.",
-        "operationId": "GetExperiment",
+        "operationId": "GetExperimentV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -167,7 +167,7 @@
       },
       "delete": {
         "summary": "Deletes an experiment without deleting the experiment's runs and jobs. To\navoid unexpected behaviors, delete an experiment's runs and jobs before\ndeleting the experiment.",
-        "operationId": "DeleteExperiment",
+        "operationId": "DeleteExperimentV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -199,7 +199,7 @@
     "/apis/v1beta1/experiments/{id}:archive": {
       "post": {
         "summary": "Archives an experiment and the experiment's runs and jobs.",
-        "operationId": "ArchiveExperiment",
+        "operationId": "ArchiveExperimentV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -231,7 +231,7 @@
     "/apis/v1beta1/experiments/{id}:unarchive": {
       "post": {
         "summary": "Restores an archived experiment. The experiment's archived runs and jobs\nwill stay archived.",
-        "operationId": "UnarchiveExperiment",
+        "operationId": "UnarchiveExperimentV1",
         "responses": {
           "200": {
             "description": "A successful response.",
