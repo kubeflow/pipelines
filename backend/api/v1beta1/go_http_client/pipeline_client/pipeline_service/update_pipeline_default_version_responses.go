@@ -85,7 +85,7 @@ UpdatePipelineDefaultVersionDefault update pipeline default version default
 type UpdatePipelineDefaultVersionDefault struct {
 	_statusCode int
 
-	Payload *pipeline_model.V1beta1Status
+	Payload *pipeline_model.APIStatus
 }
 
 // Code gets the status code for the update pipeline default version default response
@@ -99,7 +99,7 @@ func (o *UpdatePipelineDefaultVersionDefault) Error() string {
 
 func (o *UpdatePipelineDefaultVersionDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.V1beta1Status)
+	o.Payload = new(pipeline_model.APIStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

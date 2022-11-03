@@ -28,7 +28,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
     value: {
       schema: {
         json_schema: {
-          ref: ".v1beta1.Status";
+          ref: ".api.Status";
         }
       }
     }

@@ -85,7 +85,7 @@ UnarchiveExperimentDefault unarchive experiment default
 type UnarchiveExperimentDefault struct {
 	_statusCode int
 
-	Payload *experiment_model.V1beta1Status
+	Payload *experiment_model.APIStatus
 }
 
 // Code gets the status code for the unarchive experiment default response
@@ -99,7 +99,7 @@ func (o *UnarchiveExperimentDefault) Error() string {
 
 func (o *UnarchiveExperimentDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(experiment_model.V1beta1Status)
+	o.Payload = new(experiment_model.APIStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
