@@ -74,7 +74,7 @@ jq -s 'reduce .[] as $item ({}; . * $item) | .info.title = "Kubeflow Pipelines A
     backend/api/${API_VERSION}/swagger/pipeline.swagger.json \
     backend/api/${API_VERSION}/swagger/pipeline.upload.swagger.json \
     backend/api/${API_VERSION}/swagger/healthz.swagger.json \
-    > "backend/api/${API_VERSION}/swagger/kfp_api_${API_VERSION}_single_file.swagger.json"
+    > "backend/api/${API_VERSION}/swagger/kfp_api_single_file.swagger.json"
 # Generate go_http_client from swagger json.
 swagger generate client \
     -f backend/api/${API_VERSION}/swagger/job.swagger.json \
