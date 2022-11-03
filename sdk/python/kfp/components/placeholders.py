@@ -18,12 +18,11 @@ import abc
 import json
 from typing import Any, Dict, List, Optional, Union
 
-from kfp.components import base_model
 from kfp.components import utils
 from kfp.components.types import type_utils
 
 
-class Placeholder(abc.ABC, base_model.BaseModel):
+class Placeholder(abc.ABC):
 
     @abc.abstractmethod
     def _to_string(self) -> str:
