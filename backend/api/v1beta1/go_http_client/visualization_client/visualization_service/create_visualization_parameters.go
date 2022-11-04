@@ -64,7 +64,7 @@ for the create visualization operation typically these are written to a http.Req
 type CreateVisualizationParams struct {
 
 	/*Body*/
-	Body *visualization_model.V1beta1Visualization
+	Body *visualization_model.APIVisualization
 	/*Namespace*/
 	Namespace string
 
@@ -107,13 +107,13 @@ func (o *CreateVisualizationParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithBody adds the body to the create visualization params
-func (o *CreateVisualizationParams) WithBody(body *visualization_model.V1beta1Visualization) *CreateVisualizationParams {
+func (o *CreateVisualizationParams) WithBody(body *visualization_model.APIVisualization) *CreateVisualizationParams {
 	o.SetBody(body)
 	return o
 }
 
 // SetBody adds the body to the create visualization params
-func (o *CreateVisualizationParams) SetBody(body *visualization_model.V1beta1Visualization) {
+func (o *CreateVisualizationParams) SetBody(body *visualization_model.APIVisualization) {
 	o.Body = body
 }
 

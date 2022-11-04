@@ -54,7 +54,7 @@ func NewCreateJobOK() *CreateJobOK {
 A successful response.
 */
 type CreateJobOK struct {
-	Payload *job_model.V1beta1Job
+	Payload *job_model.APIJob
 }
 
 func (o *CreateJobOK) Error() string {
@@ -63,7 +63,7 @@ func (o *CreateJobOK) Error() string {
 
 func (o *CreateJobOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(job_model.V1beta1Job)
+	o.Payload = new(job_model.APIJob)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -87,7 +87,7 @@ CreateJobDefault create job default
 type CreateJobDefault struct {
 	_statusCode int
 
-	Payload *job_model.V1beta1Status
+	Payload *job_model.APIStatus
 }
 
 // Code gets the status code for the create job default response
@@ -101,7 +101,7 @@ func (o *CreateJobDefault) Error() string {
 
 func (o *CreateJobDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(job_model.V1beta1Status)
+	o.Payload = new(job_model.APIStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

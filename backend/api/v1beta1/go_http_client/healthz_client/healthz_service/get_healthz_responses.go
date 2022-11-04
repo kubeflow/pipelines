@@ -54,7 +54,7 @@ func NewGetHealthzOK() *GetHealthzOK {
 A successful response.
 */
 type GetHealthzOK struct {
-	Payload *healthz_model.V1beta1GetHealthzResponse
+	Payload *healthz_model.APIGetHealthzResponse
 }
 
 func (o *GetHealthzOK) Error() string {
@@ -63,7 +63,7 @@ func (o *GetHealthzOK) Error() string {
 
 func (o *GetHealthzOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(healthz_model.V1beta1GetHealthzResponse)
+	o.Payload = new(healthz_model.APIGetHealthzResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -87,7 +87,7 @@ GetHealthzDefault get healthz default
 type GetHealthzDefault struct {
 	_statusCode int
 
-	Payload *healthz_model.V1beta1Status
+	Payload *healthz_model.APIStatus
 }
 
 // Code gets the status code for the get healthz default response
@@ -101,7 +101,7 @@ func (o *GetHealthzDefault) Error() string {
 
 func (o *GetHealthzDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(healthz_model.V1beta1Status)
+	o.Payload = new(healthz_model.APIStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

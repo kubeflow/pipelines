@@ -33,13 +33,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1ListExperimentsResponse"
+              "$ref": "#/definitions/apiListExperimentsResponse"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -108,13 +108,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1Experiment"
+              "$ref": "#/definitions/apiExperiment"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -125,7 +125,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1beta1Experiment"
+              "$ref": "#/definitions/apiExperiment"
             }
           }
         ],
@@ -142,13 +142,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1Experiment"
+              "$ref": "#/definitions/apiExperiment"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -178,7 +178,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -210,7 +210,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -242,7 +242,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -268,13 +268,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1ListRunsResponse"
+              "$ref": "#/definitions/apiListRunsResponse"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -343,13 +343,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1RunDetail"
+              "$ref": "#/definitions/apiRunDetail"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -359,7 +359,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1beta1Run"
+              "$ref": "#/definitions/apiRun"
             }
           }
         ],
@@ -382,7 +382,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -414,7 +414,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -446,7 +446,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -472,13 +472,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1RunDetail"
+              "$ref": "#/definitions/apiRunDetail"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -504,13 +504,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1ReadArtifactResponse"
+              "$ref": "#/definitions/apiReadArtifactResponse"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -556,7 +556,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -588,7 +588,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -614,13 +614,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1ReportRunMetricsResponse"
+              "$ref": "#/definitions/apiReportRunMetricsResponse"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -637,7 +637,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1beta1ReportRunMetricsRequest"
+              "$ref": "#/definitions/apiReportRunMetricsRequest"
             }
           }
         ],
@@ -654,13 +654,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1ListJobsResponse"
+              "$ref": "#/definitions/apiListJobsResponse"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -729,13 +729,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1Job"
+              "$ref": "#/definitions/apiJob"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -746,7 +746,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1beta1Job"
+              "$ref": "#/definitions/apiJob"
             }
           }
         ],
@@ -763,13 +763,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1Job"
+              "$ref": "#/definitions/apiJob"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -799,7 +799,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -831,7 +831,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -863,7 +863,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -889,13 +889,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1Pipeline"
+              "$ref": "#/definitions/apiPipeline"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -928,13 +928,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1ListPipelineVersionsResponse"
+              "$ref": "#/definitions/apiListPipelineVersionsResponse"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -1003,13 +1003,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1PipelineVersion"
+              "$ref": "#/definitions/apiPipelineVersion"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -1020,7 +1020,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1beta1PipelineVersion"
+              "$ref": "#/definitions/apiPipelineVersion"
             }
           }
         ],
@@ -1037,13 +1037,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1PipelineVersion"
+              "$ref": "#/definitions/apiPipelineVersion"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -1073,7 +1073,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -1099,13 +1099,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1GetTemplateResponse"
+              "$ref": "#/definitions/apiGetTemplateResponse"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -1131,13 +1131,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1ListPipelinesResponse"
+              "$ref": "#/definitions/apiListPipelinesResponse"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -1206,13 +1206,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1Pipeline"
+              "$ref": "#/definitions/apiPipeline"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -1222,7 +1222,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1beta1Pipeline"
+              "$ref": "#/definitions/apiPipeline"
             }
           }
         ],
@@ -1239,13 +1239,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1Pipeline"
+              "$ref": "#/definitions/apiPipeline"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -1275,7 +1275,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -1301,13 +1301,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1GetTemplateResponse"
+              "$ref": "#/definitions/apiGetTemplateResponse"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -1339,7 +1339,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -1476,13 +1476,13 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1GetHealthzResponse"
+              "$ref": "#/definitions/apiGetHealthzResponse"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -1493,22 +1493,7 @@
     }
   },
   "definitions": {
-    "protobufAny": {
-      "type": "object",
-      "properties": {
-        "type_url": {
-          "type": "string",
-          "description": "A URL/resource name that uniquely identifies the type of the serialized\nprotocol buffer message. This string must contain at least\none \"/\" character. The last segment of the URL's path must represent\nthe fully qualified name of the type (as in\n`path/google.protobuf.Duration`). The name should be in a canonical form\n(e.g., leading \".\" is not accepted).\n\nIn practice, teams usually precompile into the binary all types that they\nexpect it to use in the context of Any. However, for URLs which use the\nscheme `http`, `https`, or no scheme, one can optionally set up a type\nserver that maps type URLs to message definitions as follows:\n\n* If no scheme is provided, `https` is assumed.\n* An HTTP GET on the URL must yield a [google.protobuf.Type][]\n  value in binary format, or produce an error.\n* Applications are allowed to cache lookup results based on the\n  URL, or have them precompiled into a binary to avoid any\n  lookup. Therefore, binary compatibility needs to be preserved\n  on changes to types. (Use versioned type names to manage\n  breaking changes.)\n\nNote: this functionality is not currently available in the official\nprotobuf release, and it is not used for type URLs beginning with\ntype.googleapis.com.\n\nSchemes other than `http`, `https` (or the empty scheme) might be\nused with implementation specific semantics."
-        },
-        "value": {
-          "type": "string",
-          "format": "byte",
-          "description": "Must be a valid serialized protocol buffer of the above specified type."
-        }
-      },
-      "description": "`Any` contains an arbitrary serialized protocol buffer message along with a\nURL that describes the type of the serialized message.\n\nProtobuf library provides support to pack/unpack Any values in the form\nof utility functions or additional generated methods of the Any type.\n\nExample 1: Pack and unpack a message in C++.\n\n    Foo foo = ...;\n    Any any;\n    any.PackFrom(foo);\n    ...\n    if (any.UnpackTo(&foo)) {\n      ...\n    }\n\nExample 2: Pack and unpack a message in Java.\n\n    Foo foo = ...;\n    Any any = Any.pack(foo);\n    ...\n    if (any.is(Foo.class)) {\n      foo = any.unpack(Foo.class);\n    }\n\n Example 3: Pack and unpack a message in Python.\n\n    foo = Foo(...)\n    any = Any()\n    any.Pack(foo)\n    ...\n    if any.Is(Foo.DESCRIPTOR):\n      any.Unpack(foo)\n      ...\n\n Example 4: Pack and unpack a message in Go\n\n     foo := &pb.Foo{...}\n     any, err := anypb.New(foo)\n     if err != nil {\n       ...\n     }\n     ...\n     foo := &pb.Foo{}\n     if err := any.UnmarshalTo(foo); err != nil {\n       ...\n     }\n\nThe pack methods provided by protobuf library will by default use\n'type.googleapis.com/full.type.name' as the type URL and the unpack\nmethods only use the fully qualified type name after the last '/'\nin the type URL, for example \"foo.bar.com/x/y.z\" will yield type\nname \"y.z\".\n\n\nJSON\n====\nThe JSON representation of an `Any` value uses the regular\nrepresentation of the deserialized, embedded message, with an\nadditional field `@type` which contains the type URL. Example:\n\n    package google.profile;\n    message Person {\n      string first_name = 1;\n      string last_name = 2;\n    }\n\n    {\n      \"@type\": \"type.googleapis.com/google.profile.Person\",\n      \"firstName\": <string>,\n      \"lastName\": <string>\n    }\n\nIf the embedded message type is well-known and has a custom JSON\nrepresentation, that representation will be embedded adding a field\n`value` which holds the custom JSON in addition to the `@type`\nfield. Example (for message [google.protobuf.Duration][]):\n\n    {\n      \"@type\": \"type.googleapis.com/google.protobuf.Duration\",\n      \"value\": \"1.212s\"\n    }"
-    },
-    "v1beta1Experiment": {
+    "apiExperiment": {
       "type": "object",
       "properties": {
         "id": {
@@ -1531,17 +1516,17 @@
         "resource_references": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/v1beta1ResourceReference"
+            "$ref": "#/definitions/apiResourceReference"
           },
           "description": "Optional input field. Specify which resource this run belongs to.\nFor Experiment, the only valid resource reference is a single Namespace."
         },
         "storage_state": {
-          "$ref": "#/definitions/v1beta1ExperimentStorageState",
+          "$ref": "#/definitions/apiExperimentStorageState",
           "description": "Output. Specifies whether this experiment is in archived or available state."
         }
       }
     },
-    "v1beta1ExperimentStorageState": {
+    "apiExperimentStorageState": {
       "type": "string",
       "enum": [
         "STORAGESTATE_UNSPECIFIED",
@@ -1550,13 +1535,13 @@
       ],
       "default": "STORAGESTATE_UNSPECIFIED"
     },
-    "v1beta1ListExperimentsResponse": {
+    "apiListExperimentsResponse": {
       "type": "object",
       "properties": {
         "experiments": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/v1beta1Experiment"
+            "$ref": "#/definitions/apiExperiment"
           },
           "description": "A list of experiments returned."
         },
@@ -1568,6 +1553,763 @@
         "next_page_token": {
           "type": "string",
           "description": "The token to list the next page of experiments."
+        }
+      }
+    },
+    "apiRelationship": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN_RELATIONSHIP",
+        "OWNER",
+        "CREATOR"
+      ],
+      "default": "UNKNOWN_RELATIONSHIP"
+    },
+    "apiResourceKey": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/apiResourceType",
+          "description": "The type of the resource that referred to."
+        },
+        "id": {
+          "type": "string",
+          "description": "The ID of the resource that referred to."
+        }
+      }
+    },
+    "apiResourceReference": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "$ref": "#/definitions/apiResourceKey"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the resource that referred to."
+        },
+        "relationship": {
+          "$ref": "#/definitions/apiRelationship",
+          "description": "Required field. The relationship from referred resource to the object."
+        }
+      }
+    },
+    "apiResourceType": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN_RESOURCE_TYPE",
+        "EXPERIMENT",
+        "JOB",
+        "PIPELINE",
+        "PIPELINE_VERSION",
+        "NAMESPACE"
+      ],
+      "default": "UNKNOWN_RESOURCE_TYPE"
+    },
+    "apiStatus": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string",
+          "description": "A URL/resource name that uniquely identifies the type of the serialized\nprotocol buffer message. This string must contain at least\none \"/\" character. The last segment of the URL's path must represent\nthe fully qualified name of the type (as in\n`path/google.protobuf.Duration`). The name should be in a canonical form\n(e.g., leading \".\" is not accepted).\n\nIn practice, teams usually precompile into the binary all types that they\nexpect it to use in the context of Any. However, for URLs which use the\nscheme `http`, `https`, or no scheme, one can optionally set up a type\nserver that maps type URLs to message definitions as follows:\n\n* If no scheme is provided, `https` is assumed.\n* An HTTP GET on the URL must yield a [google.protobuf.Type][]\n  value in binary format, or produce an error.\n* Applications are allowed to cache lookup results based on the\n  URL, or have them precompiled into a binary to avoid any\n  lookup. Therefore, binary compatibility needs to be preserved\n  on changes to types. (Use versioned type names to manage\n  breaking changes.)\n\nNote: this functionality is not currently available in the official\nprotobuf release, and it is not used for type URLs beginning with\ntype.googleapis.com.\n\nSchemes other than `http`, `https` (or the empty scheme) might be\nused with implementation specific semantics."
+        },
+        "value": {
+          "type": "string",
+          "format": "byte",
+          "description": "Must be a valid serialized protocol buffer of the above specified type."
+        }
+      },
+      "description": "`Any` contains an arbitrary serialized protocol buffer message along with a\nURL that describes the type of the serialized message.\n\nProtobuf library provides support to pack/unpack Any values in the form\nof utility functions or additional generated methods of the Any type.\n\nExample 1: Pack and unpack a message in C++.\n\n    Foo foo = ...;\n    Any any;\n    any.PackFrom(foo);\n    ...\n    if (any.UnpackTo(&foo)) {\n      ...\n    }\n\nExample 2: Pack and unpack a message in Java.\n\n    Foo foo = ...;\n    Any any = Any.pack(foo);\n    ...\n    if (any.is(Foo.class)) {\n      foo = any.unpack(Foo.class);\n    }\n\n Example 3: Pack and unpack a message in Python.\n\n    foo = Foo(...)\n    any = Any()\n    any.Pack(foo)\n    ...\n    if any.Is(Foo.DESCRIPTOR):\n      any.Unpack(foo)\n      ...\n\n Example 4: Pack and unpack a message in Go\n\n     foo := &pb.Foo{...}\n     any, err := anypb.New(foo)\n     if err != nil {\n       ...\n     }\n     ...\n     foo := &pb.Foo{}\n     if err := any.UnmarshalTo(foo); err != nil {\n       ...\n     }\n\nThe pack methods provided by protobuf library will by default use\n'type.googleapis.com/full.type.name' as the type URL and the unpack\nmethods only use the fully qualified type name after the last '/'\nin the type URL, for example \"foo.bar.com/x/y.z\" will yield type\nname \"y.z\".\n\n\nJSON\n====\nThe JSON representation of an `Any` value uses the regular\nrepresentation of the deserialized, embedded message, with an\nadditional field `@type` which contains the type URL. Example:\n\n    package google.profile;\n    message Person {\n      string first_name = 1;\n      string last_name = 2;\n    }\n\n    {\n      \"@type\": \"type.googleapis.com/google.profile.Person\",\n      \"firstName\": <string>,\n      \"lastName\": <string>\n    }\n\nIf the embedded message type is well-known and has a custom JSON\nrepresentation, that representation will be embedded adding a field\n`value` which holds the custom JSON in addition to the `@type`\nfield. Example (for message [google.protobuf.Duration][]):\n\n    {\n      \"@type\": \"type.googleapis.com/google.protobuf.Duration\",\n      \"value\": \"1.212s\"\n    }"
+    },
+    "PipelineSpecRuntimeConfig": {
+      "type": "object",
+      "properties": {
+        "parameters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "description": "The runtime parameters of the PipelineSpec. The parameters will be\nused to replace the placeholders\nat runtime."
+        },
+        "pipeline_root": {
+          "type": "string",
+          "title": "A path in a object store bucket which will be treated as the root\noutput directory of the pipeline. It is used by the system to\ngenerate the paths of output artifacts. Ref:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)"
+        }
+      },
+      "description": "The runtime config of a PipelineSpec."
+    },
+    "ReportRunMetricsResponseReportRunMetricResult": {
+      "type": "object",
+      "properties": {
+        "metric_name": {
+          "type": "string",
+          "description": "Output. The name of the metric."
+        },
+        "metric_node_id": {
+          "type": "string",
+          "description": "Output. The ID of the node which reports the metric."
+        },
+        "status": {
+          "$ref": "#/definitions/ReportRunMetricsResponseReportRunMetricResultStatus",
+          "description": "Output. The status of the metric reporting."
+        },
+        "message": {
+          "type": "string",
+          "description": "Output. The detailed message of the error of the reporting."
+        }
+      }
+    },
+    "ReportRunMetricsResponseReportRunMetricResultStatus": {
+      "type": "string",
+      "enum": [
+        "UNSPECIFIED",
+        "OK",
+        "INVALID_ARGUMENT",
+        "DUPLICATE_REPORTING",
+        "INTERNAL_ERROR"
+      ],
+      "default": "UNSPECIFIED",
+      "description": " - UNSPECIFIED: Default value if not present.\n - OK: Indicates successful reporting.\n - INVALID_ARGUMENT: Indicates that the payload of the metric is invalid.\n - DUPLICATE_REPORTING: Indicates that the metric has been reported before.\n - INTERNAL_ERROR: Indicates that something went wrong in the server."
+    },
+    "RunMetricFormat": {
+      "type": "string",
+      "enum": [
+        "UNSPECIFIED",
+        "RAW",
+        "PERCENTAGE"
+      ],
+      "default": "UNSPECIFIED",
+      "description": " - UNSPECIFIED: Default value if not present.\n - RAW: Display value as its raw format.\n - PERCENTAGE: Display value in percentage format."
+    },
+    "apiListRunsResponse": {
+      "type": "object",
+      "properties": {
+        "runs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiRun"
+          }
+        },
+        "total_size": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The total number of runs for the given query."
+        },
+        "next_page_token": {
+          "type": "string",
+          "description": "The token to list the next page of runs."
+        }
+      }
+    },
+    "apiParameter": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "apiPipelineRuntime": {
+      "type": "object",
+      "properties": {
+        "pipeline_manifest": {
+          "type": "string",
+          "description": "Output. The runtime JSON manifest of the pipeline, including the status\nof pipeline steps and fields need for UI visualization etc."
+        },
+        "workflow_manifest": {
+          "type": "string",
+          "description": "Output. The runtime JSON manifest of the argo workflow.\nThis is deprecated after pipeline_runtime_manifest is in use."
+        }
+      }
+    },
+    "apiPipelineSpec": {
+      "type": "object",
+      "properties": {
+        "pipeline_id": {
+          "type": "string",
+          "description": "Optional input field. The ID of the pipeline user uploaded before."
+        },
+        "pipeline_name": {
+          "type": "string",
+          "description": "Optional output field. The name of the pipeline.\nNot empty if the pipeline id is not empty."
+        },
+        "workflow_manifest": {
+          "type": "string",
+          "description": "Optional input field. The marshalled raw argo JSON workflow.\nThis will be deprecated when pipeline_manifest is in use."
+        },
+        "pipeline_manifest": {
+          "type": "string",
+          "description": "Optional input field. The raw pipeline JSON spec."
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiParameter"
+          },
+          "title": "The parameter user provide to inject to the pipeline JSON.\nIf a default value of a parameter exist in the JSON,\nthe value user provided here will replace. V1 only"
+        },
+        "runtime_config": {
+          "$ref": "#/definitions/PipelineSpecRuntimeConfig",
+          "title": "Runtime config of the pipeline. V2 only"
+        }
+      }
+    },
+    "apiReadArtifactResponse": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "string",
+          "format": "byte",
+          "description": "The bytes of the artifact content."
+        }
+      }
+    },
+    "apiReportRunMetricsRequest": {
+      "type": "object",
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "description": "Required. The parent run ID of the metric."
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiRunMetric"
+          },
+          "description": "List of metrics to report."
+        }
+      }
+    },
+    "apiReportRunMetricsResponse": {
+      "type": "object",
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ReportRunMetricsResponseReportRunMetricResult"
+          }
+        }
+      }
+    },
+    "apiRun": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Output. Unique run ID. Generated by API server."
+        },
+        "name": {
+          "type": "string",
+          "description": "Required input field. Name provided by user,\nor auto generated if run is created by scheduled job. Not unique."
+        },
+        "storage_state": {
+          "$ref": "#/definitions/apiRunStorageState",
+          "description": "Output. Specify whether this run is in archived or available mode."
+        },
+        "description": {
+          "type": "string",
+          "title": "Optional input field. Describing the purpose of the run"
+        },
+        "pipeline_spec": {
+          "$ref": "#/definitions/apiPipelineSpec",
+          "description": "Required input field.\nDescribing what the pipeline manifest and parameters to use for the run."
+        },
+        "resource_references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiResourceReference"
+          },
+          "description": "Optional input field. Specify which resource this run belongs to.\nWhen creating a run from a particular pipeline version, the pipeline\nversion can be specified here."
+        },
+        "service_account": {
+          "type": "string",
+          "description": "Optional input field. Specify which Kubernetes service account this run uses."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Output. The time that the run created."
+        },
+        "scheduled_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Output. When this run is scheduled to run. This could be different from\ncreated_at. For example, if a run is from a backfilling job that was\nsupposed to run 2 month ago, the scheduled_at is 2 month ago,\nv.s. created_at is the current time."
+        },
+        "finished_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Output. The time this run is finished."
+        },
+        "status": {
+          "type": "string",
+          "title": "Output. The status of the run.\nOne of [Pending, Running, Succeeded, Skipped, Failed, Error]"
+        },
+        "error": {
+          "type": "string",
+          "description": "In case any error happens retrieving a run field, only run ID\nand the error message is returned. Client has the flexibility of choosing\nhow to handle error. This is especially useful during listing call."
+        },
+        "metrics": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiRunMetric"
+          },
+          "description": "Output. The metrics of the run. The metrics are reported by ReportMetrics\nAPI."
+        }
+      }
+    },
+    "apiRunDetail": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "$ref": "#/definitions/apiRun"
+        },
+        "pipeline_runtime": {
+          "$ref": "#/definitions/apiPipelineRuntime"
+        }
+      }
+    },
+    "apiRunMetric": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Required. The user defined name of the metric. It must between 1 and 63\ncharacters long and must conform to the following regular expression:\n`[a-z]([-a-z0-9]*[a-z0-9])?`."
+        },
+        "node_id": {
+          "type": "string",
+          "description": "Required. The runtime node ID which reports the metric. The node ID can be\nfound in the RunDetail.workflow.Status. Metric with same (node_id, name)\nare considerd as duplicate. Only the first reporting will be recorded. Max\nlength is 128."
+        },
+        "number_value": {
+          "type": "number",
+          "format": "double",
+          "description": "The number value of the metric."
+        },
+        "format": {
+          "$ref": "#/definitions/RunMetricFormat",
+          "description": "The display format of metric."
+        }
+      }
+    },
+    "apiRunStorageState": {
+      "type": "string",
+      "enum": [
+        "STORAGESTATE_AVAILABLE",
+        "STORAGESTATE_ARCHIVED"
+      ],
+      "default": "STORAGESTATE_AVAILABLE"
+    },
+    "protobufNullValue": {
+      "type": "string",
+      "enum": [
+        "NULL_VALUE"
+      ],
+      "default": "NULL_VALUE",
+      "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
+    },
+    "JobMode": {
+      "type": "string",
+      "enum": [
+        "UNKNOWN_MODE",
+        "ENABLED",
+        "DISABLED"
+      ],
+      "default": "UNKNOWN_MODE",
+      "description": "Required input.\n\n - DISABLED: The job won't schedule any run if disabled."
+    },
+    "apiCronSchedule": {
+      "type": "object",
+      "properties": {
+        "start_time": {
+          "type": "string",
+          "format": "date-time",
+          "title": "The start time of the cron job"
+        },
+        "end_time": {
+          "type": "string",
+          "format": "date-time",
+          "title": "The end time of the cron job"
+        },
+        "cron": {
+          "type": "string",
+          "title": "The cron string. For details how to compose a cron, visit\nttps://en.wikipedia.org/wiki/Cron"
+        }
+      },
+      "title": "CronSchedule allow scheduling the job with unix-like cron"
+    },
+    "apiJob": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Output. Unique run ID. Generated by API server."
+        },
+        "name": {
+          "type": "string",
+          "description": "Required input field. Job name provided by user. Not unique."
+        },
+        "description": {
+          "type": "string",
+          "title": "Optional input field. Describing the purpose of the job"
+        },
+        "pipeline_spec": {
+          "$ref": "#/definitions/apiPipelineSpec",
+          "description": "Required input field.\nDescribing what the pipeline manifest and parameters to use\nfor the scheduled job."
+        },
+        "resource_references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiResourceReference"
+          },
+          "description": "Optional input field. Specify which resource this job belongs to."
+        },
+        "service_account": {
+          "type": "string",
+          "description": "Optional input field. Specify which Kubernetes service account this job uses."
+        },
+        "max_concurrency": {
+          "type": "string",
+          "format": "int64",
+          "title": "Required input field.\nSpecify how many runs can be executed concurrently. Rage [1-10]"
+        },
+        "trigger": {
+          "$ref": "#/definitions/apiTrigger",
+          "description": "Required input field.\nSpecify how a run is triggered. Support cron mode or periodic mode."
+        },
+        "mode": {
+          "$ref": "#/definitions/JobMode"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Output. The time this job is created."
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Output. The last time this job is updated."
+        },
+        "status": {
+          "type": "string",
+          "title": "Output. The status of the job.\nOne of [Enable, Disable, Error]"
+        },
+        "error": {
+          "type": "string",
+          "description": "In case any error happens retrieving a job field, only job ID\nand the error message is returned. Client has the flexibility of choosing\nhow to handle error. This is especially useful during listing call."
+        },
+        "enabled": {
+          "type": "boolean",
+          "format": "boolean",
+          "description": "Input. Whether the job is enabled or not."
+        },
+        "no_catchup": {
+          "type": "boolean",
+          "format": "boolean",
+          "description": "Optional input field. Whether the job should catch up if behind schedule.\nIf true, the job will only schedule the latest interval if behind schedule.\nIf false, the job will catch up on each past interval."
+        }
+      }
+    },
+    "apiListJobsResponse": {
+      "type": "object",
+      "properties": {
+        "jobs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiJob"
+          },
+          "description": "A list of jobs returned."
+        },
+        "total_size": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The total number of jobs for the given query."
+        },
+        "next_page_token": {
+          "type": "string",
+          "description": "The token to list the next page of jobs."
+        }
+      }
+    },
+    "apiPeriodicSchedule": {
+      "type": "object",
+      "properties": {
+        "start_time": {
+          "type": "string",
+          "format": "date-time",
+          "title": "The start time of the periodic job"
+        },
+        "end_time": {
+          "type": "string",
+          "format": "date-time",
+          "title": "The end time of the periodic job"
+        },
+        "interval_second": {
+          "type": "string",
+          "format": "int64",
+          "title": "The time interval between the starting time of consecutive jobs"
+        }
+      },
+      "title": "PeriodicSchedule allow scheduling the job periodically with certain interval"
+    },
+    "apiTrigger": {
+      "type": "object",
+      "properties": {
+        "cron_schedule": {
+          "$ref": "#/definitions/apiCronSchedule"
+        },
+        "periodic_schedule": {
+          "$ref": "#/definitions/apiPeriodicSchedule"
+        }
+      },
+      "description": "Trigger defines what starts a pipeline run."
+    },
+    "apiGetTemplateResponse": {
+      "type": "object",
+      "properties": {
+        "template": {
+          "type": "string",
+          "description": "The template of the pipeline specified in a GetTemplate request, or of a\npipeline version specified in a GetPipelinesVersionTemplate request."
+        }
+      }
+    },
+    "apiListPipelineVersionsResponse": {
+      "type": "object",
+      "properties": {
+        "versions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiPipelineVersion"
+          }
+        },
+        "next_page_token": {
+          "type": "string",
+          "description": "The token to list the next page of pipeline versions."
+        },
+        "total_size": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The total number of pipeline versions for the given query."
+        }
+      }
+    },
+    "apiListPipelinesResponse": {
+      "type": "object",
+      "properties": {
+        "pipelines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiPipeline"
+          }
+        },
+        "total_size": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The total number of pipelines for the given query."
+        },
+        "next_page_token": {
+          "type": "string",
+          "description": "The token to list the next page of pipelines."
+        }
+      }
+    },
+    "apiPipeline": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Output. Unique pipeline ID. Generated by API server."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Output. The time this pipeline is created."
+        },
+        "name": {
+          "type": "string",
+          "description": "Optional input field. Pipeline name provided by user. If not specified,\nfile name is used as pipeline name."
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional input field. Describing the purpose of the job."
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiParameter"
+          },
+          "description": "Output. The input parameters for this pipeline.\nTODO(jingzhang36): replace this parameters field with the parameters field\ninside PipelineVersion when all usage of the former has been changed to use\nthe latter."
+        },
+        "url": {
+          "$ref": "#/definitions/apiUrl",
+          "description": "The URL to the source of the pipeline. This is required when creating the\npipeine through CreatePipeline API.\nTODO(jingzhang36): replace this url field with the code_source_urls field\ninside PipelineVersion when all usage of the former has been changed to use\nthe latter."
+        },
+        "error": {
+          "type": "string",
+          "description": "In case any error happens retrieving a pipeline field, only pipeline ID\nand the error message is returned. Client has the flexibility of choosing\nhow to handle error. This is especially useful during listing call."
+        },
+        "default_version": {
+          "$ref": "#/definitions/apiPipelineVersion",
+          "title": "Output only. The default version of the pipeline. As of now, the latest\nversion is used as default. (In the future, if desired by customers, we\ncan allow them to set default version.)",
+          "readOnly": true
+        },
+        "resource_references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiResourceReference"
+          },
+          "description": "Input field. Specify which resource this pipeline belongs to.\nFor Pipeline, the only valid resource reference is a single Namespace."
+        }
+      }
+    },
+    "apiPipelineVersion": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Output. Unique version ID. Generated by API server."
+        },
+        "name": {
+          "type": "string",
+          "description": "Optional input field. Version name provided by user."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Output. The time this pipeline version is created."
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiParameter"
+          },
+          "description": "Output. The input parameters for this pipeline."
+        },
+        "code_source_url": {
+          "type": "string",
+          "description": "Input. Optional. Pipeline version code source."
+        },
+        "package_url": {
+          "$ref": "#/definitions/apiUrl",
+          "description": "Input. Required. Pipeline version package url.\nWhe calling CreatePipelineVersion API method, need to provide one package\nfile location."
+        },
+        "resource_references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/apiResourceReference"
+          },
+          "description": "Input field. Specify which resource this pipeline version belongs to.\nFor Experiment, the only valid resource reference is a single Namespace."
+        },
+        "description": {
+          "type": "string",
+          "description": "Input. Optional. Description for the pipeline version."
+        }
+      }
+    },
+    "apiUrl": {
+      "type": "object",
+      "properties": {
+        "pipeline_url": {
+          "type": "string",
+          "description": "URL of the pipeline definition or the pipeline version definition."
+        }
+      }
+    },
+    "v1beta1Parameter": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
+    "v1beta1Pipeline": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1beta1Parameter"
+          }
+        },
+        "error": {
+          "type": "string",
+          "description": "In case any error happens retrieving a pipeline field, only pipeline ID\nand the error message is returned. Client has the flexibility of choosing\nhow to handle error. This is especially useful during listing call."
+        }
+      }
+    },
+    "v1beta1PipelineVersion": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Output. Unique version ID. Generated by API server."
+        },
+        "name": {
+          "type": "string",
+          "description": "Optional input field. Version name provided by user."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Output. The time this pipeline version is created."
+        },
+        "parameters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1beta1Parameter"
+          },
+          "description": "Output. The input parameters for this pipeline."
+        },
+        "code_source_url": {
+          "type": "string",
+          "description": "Input. Optional. Pipeline version code source."
+        },
+        "package_url": {
+          "$ref": "#/definitions/v1beta1Url",
+          "description": "Input. Required. Pipeline version package url.\nWhe calling CreatePipelineVersion API method, need to provide one package\nfile location."
+        },
+        "resource_references": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1beta1ResourceReference"
+          },
+          "description": "Input. Required. E.g., specify which pipeline this pipeline version belongs\nto."
         }
       }
     },
@@ -1639,602 +2381,15 @@
         }
       }
     },
-    "PipelineSpecRuntimeConfig": {
-      "type": "object",
-      "properties": {
-        "parameters": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "object"
-          },
-          "description": "The runtime parameters of the PipelineSpec. The parameters will be\nused to replace the placeholders\nat runtime."
-        },
-        "pipeline_root": {
-          "type": "string",
-          "title": "A path in a object store bucket which will be treated as the root\noutput directory of the pipeline. It is used by the system to\ngenerate the paths of output artifacts. Ref:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)"
-        }
-      },
-      "description": "The runtime config of a PipelineSpec."
-    },
-    "ReportRunMetricsResponseReportRunMetricResult": {
-      "type": "object",
-      "properties": {
-        "metric_name": {
-          "type": "string",
-          "description": "Output. The name of the metric."
-        },
-        "metric_node_id": {
-          "type": "string",
-          "description": "Output. The ID of the node which reports the metric."
-        },
-        "status": {
-          "$ref": "#/definitions/ReportRunMetricsResponseReportRunMetricResultStatus",
-          "description": "Output. The status of the metric reporting."
-        },
-        "message": {
-          "type": "string",
-          "description": "Output. The detailed message of the error of the reporting."
-        }
-      }
-    },
-    "ReportRunMetricsResponseReportRunMetricResultStatus": {
-      "type": "string",
-      "enum": [
-        "UNSPECIFIED",
-        "OK",
-        "INVALID_ARGUMENT",
-        "DUPLICATE_REPORTING",
-        "INTERNAL_ERROR"
-      ],
-      "default": "UNSPECIFIED",
-      "description": " - UNSPECIFIED: Default value if not present.\n - OK: Indicates successful reporting.\n - INVALID_ARGUMENT: Indicates that the payload of the metric is invalid.\n - DUPLICATE_REPORTING: Indicates that the metric has been reported before.\n - INTERNAL_ERROR: Indicates that something went wrong in the server."
-    },
-    "RunMetricFormat": {
-      "type": "string",
-      "enum": [
-        "UNSPECIFIED",
-        "RAW",
-        "PERCENTAGE"
-      ],
-      "default": "UNSPECIFIED",
-      "description": " - UNSPECIFIED: Default value if not present.\n - RAW: Display value as its raw format.\n - PERCENTAGE: Display value in percentage format."
-    },
-    "protobufNullValue": {
-      "type": "string",
-      "enum": [
-        "NULL_VALUE"
-      ],
-      "default": "NULL_VALUE",
-      "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
-    },
-    "v1beta1ListRunsResponse": {
-      "type": "object",
-      "properties": {
-        "runs": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v1beta1Run"
-          }
-        },
-        "total_size": {
-          "type": "integer",
-          "format": "int32",
-          "description": "The total number of runs for the given query."
-        },
-        "next_page_token": {
-          "type": "string",
-          "description": "The token to list the next page of runs."
-        }
-      }
-    },
-    "v1beta1Parameter": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "value": {
-          "type": "string"
-        }
-      }
-    },
-    "v1beta1PipelineRuntime": {
-      "type": "object",
-      "properties": {
-        "pipeline_manifest": {
-          "type": "string",
-          "description": "Output. The runtime JSON manifest of the pipeline, including the status\nof pipeline steps and fields need for UI visualization etc."
-        },
-        "workflow_manifest": {
-          "type": "string",
-          "description": "Output. The runtime JSON manifest of the argo workflow.\nThis is deprecated after pipeline_runtime_manifest is in use."
-        }
-      }
-    },
-    "v1beta1PipelineSpec": {
-      "type": "object",
-      "properties": {
-        "pipeline_id": {
-          "type": "string",
-          "description": "Optional input field. The ID of the pipeline user uploaded before."
-        },
-        "pipeline_name": {
-          "type": "string",
-          "description": "Optional output field. The name of the pipeline.\nNot empty if the pipeline id is not empty."
-        },
-        "workflow_manifest": {
-          "type": "string",
-          "description": "Optional input field. The marshalled raw argo JSON workflow.\nThis will be deprecated when pipeline_manifest is in use."
-        },
-        "pipeline_manifest": {
-          "type": "string",
-          "description": "Optional input field. The raw pipeline JSON spec."
-        },
-        "parameters": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v1beta1Parameter"
-          },
-          "title": "The parameter user provide to inject to the pipeline JSON.\nIf a default value of a parameter exist in the JSON,\nthe value user provided here will replace. V1 only"
-        },
-        "runtime_config": {
-          "$ref": "#/definitions/PipelineSpecRuntimeConfig",
-          "title": "Runtime config of the pipeline. V2 only"
-        }
-      }
-    },
-    "v1beta1ReadArtifactResponse": {
-      "type": "object",
-      "properties": {
-        "data": {
-          "type": "string",
-          "format": "byte",
-          "description": "The bytes of the artifact content."
-        }
-      }
-    },
-    "v1beta1ReportRunMetricsRequest": {
-      "type": "object",
-      "properties": {
-        "run_id": {
-          "type": "string",
-          "description": "Required. The parent run ID of the metric."
-        },
-        "metrics": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v1beta1RunMetric"
-          },
-          "description": "List of metrics to report."
-        }
-      }
-    },
-    "v1beta1ReportRunMetricsResponse": {
-      "type": "object",
-      "properties": {
-        "results": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/ReportRunMetricsResponseReportRunMetricResult"
-          }
-        }
-      }
-    },
-    "v1beta1Run": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Output. Unique run ID. Generated by API server."
-        },
-        "name": {
-          "type": "string",
-          "description": "Required input field. Name provided by user,\nor auto generated if run is created by scheduled job. Not unique."
-        },
-        "storage_state": {
-          "$ref": "#/definitions/v1beta1RunStorageState",
-          "description": "Output. Specify whether this run is in archived or available mode."
-        },
-        "description": {
-          "type": "string",
-          "title": "Optional input field. Describing the purpose of the run"
-        },
-        "pipeline_spec": {
-          "$ref": "#/definitions/v1beta1PipelineSpec",
-          "description": "Required input field.\nDescribing what the pipeline manifest and parameters to use for the run."
-        },
-        "resource_references": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v1beta1ResourceReference"
-          },
-          "description": "Optional input field. Specify which resource this run belongs to.\nWhen creating a run from a particular pipeline version, the pipeline\nversion can be specified here."
-        },
-        "service_account": {
-          "type": "string",
-          "description": "Optional input field. Specify which Kubernetes service account this run uses."
-        },
-        "created_at": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Output. The time that the run created."
-        },
-        "scheduled_at": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Output. When this run is scheduled to run. This could be different from\ncreated_at. For example, if a run is from a backfilling job that was\nsupposed to run 2 month ago, the scheduled_at is 2 month ago,\nv.s. created_at is the current time."
-        },
-        "finished_at": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Output. The time this run is finished."
-        },
-        "status": {
-          "type": "string",
-          "title": "Output. The status of the run.\nOne of [Pending, Running, Succeeded, Skipped, Failed, Error]"
-        },
-        "error": {
-          "type": "string",
-          "description": "In case any error happens retrieving a run field, only run ID\nand the error message is returned. Client has the flexibility of choosing\nhow to handle error. This is especially useful during listing call."
-        },
-        "metrics": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v1beta1RunMetric"
-          },
-          "description": "Output. The metrics of the run. The metrics are reported by ReportMetrics\nAPI."
-        }
-      }
-    },
-    "v1beta1RunDetail": {
-      "type": "object",
-      "properties": {
-        "run": {
-          "$ref": "#/definitions/v1beta1Run"
-        },
-        "pipeline_runtime": {
-          "$ref": "#/definitions/v1beta1PipelineRuntime"
-        }
-      }
-    },
-    "v1beta1RunMetric": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Required. The user defined name of the metric. It must between 1 and 63\ncharacters long and must conform to the following regular expression:\n`[a-z]([-a-z0-9]*[a-z0-9])?`."
-        },
-        "node_id": {
-          "type": "string",
-          "description": "Required. The runtime node ID which reports the metric. The node ID can be\nfound in the RunDetail.workflow.Status. Metric with same (node_id, name)\nare considerd as duplicate. Only the first reporting will be recorded. Max\nlength is 128."
-        },
-        "number_value": {
-          "type": "number",
-          "format": "double",
-          "description": "The number value of the metric."
-        },
-        "format": {
-          "$ref": "#/definitions/RunMetricFormat",
-          "description": "The display format of metric."
-        }
-      }
-    },
-    "v1beta1RunStorageState": {
-      "type": "string",
-      "enum": [
-        "STORAGESTATE_AVAILABLE",
-        "STORAGESTATE_ARCHIVED"
-      ],
-      "default": "STORAGESTATE_AVAILABLE"
-    },
-    "JobMode": {
-      "type": "string",
-      "enum": [
-        "UNKNOWN_MODE",
-        "ENABLED",
-        "DISABLED"
-      ],
-      "default": "UNKNOWN_MODE",
-      "description": "Required input.\n\n - DISABLED: The job won't schedule any run if disabled."
-    },
-    "v1beta1CronSchedule": {
-      "type": "object",
-      "properties": {
-        "start_time": {
-          "type": "string",
-          "format": "date-time",
-          "title": "The start time of the cron job"
-        },
-        "end_time": {
-          "type": "string",
-          "format": "date-time",
-          "title": "The end time of the cron job"
-        },
-        "cron": {
-          "type": "string",
-          "title": "The cron string. For details how to compose a cron, visit\nttps://en.wikipedia.org/wiki/Cron"
-        }
-      },
-      "title": "CronSchedule allow scheduling the job with unix-like cron"
-    },
-    "v1beta1Job": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Output. Unique run ID. Generated by API server."
-        },
-        "name": {
-          "type": "string",
-          "description": "Required input field. Job name provided by user. Not unique."
-        },
-        "description": {
-          "type": "string",
-          "title": "Optional input field. Describing the purpose of the job"
-        },
-        "pipeline_spec": {
-          "$ref": "#/definitions/v1beta1PipelineSpec",
-          "description": "Required input field.\nDescribing what the pipeline manifest and parameters to use\nfor the scheduled job."
-        },
-        "resource_references": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v1beta1ResourceReference"
-          },
-          "description": "Optional input field. Specify which resource this job belongs to."
-        },
-        "service_account": {
-          "type": "string",
-          "description": "Optional input field. Specify which Kubernetes service account this job uses."
-        },
-        "max_concurrency": {
-          "type": "string",
-          "format": "int64",
-          "title": "Required input field.\nSpecify how many runs can be executed concurrently. Rage [1-10]"
-        },
-        "trigger": {
-          "$ref": "#/definitions/v1beta1Trigger",
-          "description": "Required input field.\nSpecify how a run is triggered. Support cron mode or periodic mode."
-        },
-        "mode": {
-          "$ref": "#/definitions/JobMode"
-        },
-        "created_at": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Output. The time this job is created."
-        },
-        "updated_at": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Output. The last time this job is updated."
-        },
-        "status": {
-          "type": "string",
-          "title": "Output. The status of the job.\nOne of [Enable, Disable, Error]"
-        },
-        "error": {
-          "type": "string",
-          "description": "In case any error happens retrieving a job field, only job ID\nand the error message is returned. Client has the flexibility of choosing\nhow to handle error. This is especially useful during listing call."
-        },
-        "enabled": {
-          "type": "boolean",
-          "format": "boolean",
-          "description": "Input. Whether the job is enabled or not."
-        },
-        "no_catchup": {
-          "type": "boolean",
-          "format": "boolean",
-          "description": "Optional input field. Whether the job should catch up if behind schedule.\nIf true, the job will only schedule the latest interval if behind schedule.\nIf false, the job will catch up on each past interval."
-        }
-      }
-    },
-    "v1beta1ListJobsResponse": {
-      "type": "object",
-      "properties": {
-        "jobs": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v1beta1Job"
-          },
-          "description": "A list of jobs returned."
-        },
-        "total_size": {
-          "type": "integer",
-          "format": "int32",
-          "description": "The total number of jobs for the given query."
-        },
-        "next_page_token": {
-          "type": "string",
-          "description": "The token to list the next page of jobs."
-        }
-      }
-    },
-    "v1beta1PeriodicSchedule": {
-      "type": "object",
-      "properties": {
-        "start_time": {
-          "type": "string",
-          "format": "date-time",
-          "title": "The start time of the periodic job"
-        },
-        "end_time": {
-          "type": "string",
-          "format": "date-time",
-          "title": "The end time of the periodic job"
-        },
-        "interval_second": {
-          "type": "string",
-          "format": "int64",
-          "title": "The time interval between the starting time of consecutive jobs"
-        }
-      },
-      "title": "PeriodicSchedule allow scheduling the job periodically with certain interval"
-    },
-    "v1beta1Trigger": {
-      "type": "object",
-      "properties": {
-        "cron_schedule": {
-          "$ref": "#/definitions/v1beta1CronSchedule"
-        },
-        "periodic_schedule": {
-          "$ref": "#/definitions/v1beta1PeriodicSchedule"
-        }
-      },
-      "description": "Trigger defines what starts a pipeline run."
-    },
-    "v1beta1GetTemplateResponse": {
-      "type": "object",
-      "properties": {
-        "template": {
-          "type": "string",
-          "description": "The template of the pipeline specified in a GetTemplate request, or of a\npipeline version specified in a GetPipelinesVersionTemplate request."
-        }
-      }
-    },
-    "v1beta1ListPipelineVersionsResponse": {
-      "type": "object",
-      "properties": {
-        "versions": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v1beta1PipelineVersion"
-          }
-        },
-        "next_page_token": {
-          "type": "string",
-          "description": "The token to list the next page of pipeline versions."
-        },
-        "total_size": {
-          "type": "integer",
-          "format": "int32",
-          "description": "The total number of pipeline versions for the given query."
-        }
-      }
-    },
-    "v1beta1ListPipelinesResponse": {
-      "type": "object",
-      "properties": {
-        "pipelines": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v1beta1Pipeline"
-          }
-        },
-        "total_size": {
-          "type": "integer",
-          "format": "int32",
-          "description": "The total number of pipelines for the given query."
-        },
-        "next_page_token": {
-          "type": "string",
-          "description": "The token to list the next page of pipelines."
-        }
-      }
-    },
-    "v1beta1Pipeline": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Output. Unique pipeline ID. Generated by API server."
-        },
-        "created_at": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Output. The time this pipeline is created."
-        },
-        "name": {
-          "type": "string",
-          "description": "Optional input field. Pipeline name provided by user. If not specified,\nfile name is used as pipeline name."
-        },
-        "description": {
-          "type": "string",
-          "description": "Optional input field. Describing the purpose of the job."
-        },
-        "parameters": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v1beta1Parameter"
-          },
-          "description": "Output. The input parameters for this pipeline.\nTODO(jingzhang36): replace this parameters field with the parameters field\ninside PipelineVersion when all usage of the former has been changed to use\nthe latter."
-        },
-        "url": {
-          "$ref": "#/definitions/v1beta1Url",
-          "description": "The URL to the source of the pipeline. This is required when creating the\npipeine through CreatePipeline API.\nTODO(jingzhang36): replace this url field with the code_source_urls field\ninside PipelineVersion when all usage of the former has been changed to use\nthe latter."
-        },
-        "error": {
-          "type": "string",
-          "description": "In case any error happens retrieving a pipeline field, only pipeline ID\nand the error message is returned. Client has the flexibility of choosing\nhow to handle error. This is especially useful during listing call."
-        },
-        "default_version": {
-          "$ref": "#/definitions/v1beta1PipelineVersion",
-          "title": "Output only. The default version of the pipeline. As of now, the latest\nversion is used as default. (In the future, if desired by customers, we\ncan allow them to set default version.)",
-          "readOnly": true
-        },
-        "resource_references": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v1beta1ResourceReference"
-          },
-          "description": "Input field. Specify which resource this pipeline belongs to.\nFor Pipeline, the only valid resource reference is a single Namespace."
-        }
-      }
-    },
-    "v1beta1PipelineVersion": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Output. Unique version ID. Generated by API server."
-        },
-        "name": {
-          "type": "string",
-          "description": "Optional input field. Version name provided by user."
-        },
-        "created_at": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Output. The time this pipeline version is created."
-        },
-        "parameters": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v1beta1Parameter"
-          },
-          "description": "Output. The input parameters for this pipeline."
-        },
-        "code_source_url": {
-          "type": "string",
-          "description": "Input. Optional. Pipeline version code source."
-        },
-        "package_url": {
-          "$ref": "#/definitions/v1beta1Url",
-          "description": "Input. Required. Pipeline version package url.\nWhe calling CreatePipelineVersion API method, need to provide one package\nfile location."
-        },
-        "resource_references": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v1beta1ResourceReference"
-          },
-          "description": "Input. Required. E.g., specify which pipeline this pipeline version belongs\nto."
-        },
-        "description": {
-          "type": "string",
-          "description": "Input. Optional. Description for the pipeline version."
-        }
-      }
-    },
     "v1beta1Url": {
       "type": "object",
       "properties": {
         "pipeline_url": {
-          "type": "string",
-          "description": "URL of the pipeline definition or the pipeline version definition."
+          "type": "string"
         }
       }
     },
-    "v1beta1GetHealthzResponse": {
+    "apiGetHealthzResponse": {
       "type": "object",
       "properties": {
         "multi_user": {

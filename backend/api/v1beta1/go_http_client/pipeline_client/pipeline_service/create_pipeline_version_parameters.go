@@ -68,7 +68,7 @@ type CreatePipelineVersionParams struct {
 	version belongs to.
 
 	*/
-	Body *pipeline_model.V1beta1PipelineVersion
+	Body *pipeline_model.APIPipelineVersion
 
 	timeout    time.Duration
 	Context    context.Context
@@ -109,13 +109,13 @@ func (o *CreatePipelineVersionParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithBody adds the body to the create pipeline version params
-func (o *CreatePipelineVersionParams) WithBody(body *pipeline_model.V1beta1PipelineVersion) *CreatePipelineVersionParams {
+func (o *CreatePipelineVersionParams) WithBody(body *pipeline_model.APIPipelineVersion) *CreatePipelineVersionParams {
 	o.SetBody(body)
 	return o
 }
 
 // SetBody adds the body to the create pipeline version params
-func (o *CreatePipelineVersionParams) SetBody(body *pipeline_model.V1beta1PipelineVersion) {
+func (o *CreatePipelineVersionParams) SetBody(body *pipeline_model.APIPipelineVersion) {
 	o.Body = body
 }
 
