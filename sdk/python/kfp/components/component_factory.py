@@ -229,7 +229,7 @@ def extract_component_interface(
                     input_spec = structures.InputSpec(
                         type=type_struct,
                         default=parameter.default,
-                    )
+                        _optional=True)
                 else:
                     input_spec = structures.InputSpec(type=type_struct,)
 

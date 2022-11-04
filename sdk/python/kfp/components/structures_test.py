@@ -539,7 +539,7 @@ class TestInputSpec(unittest.TestCase):
             structures.InputSpec(type='String', default=None))
         self.assertNotEqual(
             structures.InputSpec(type='String', default=None),
-            structures.InputSpec(type='String', default='test'))
+            structures.InputSpec(type='String', default='test', _optional=True))
         self.assertEqual(
             structures.InputSpec(type='List', default=None),
             structures.InputSpec(type='typing.List', default=None))
@@ -551,11 +551,8 @@ class TestInputSpec(unittest.TestCase):
             structures.InputSpec(type='typing.List[typing.Dict[str, str]]'))
 
     def test_optional(self):
-        input_spec = structures.InputSpec(type='String', default='test')
-        self.assertEqual(input_spec.default, 'test')
-        self.assertEqual(input_spec._optional, True)
-
-        input_spec = structures.InputSpec(type='String', default=None)
+        input_spec = structures.InputSpec(
+            type='String', default=None, _optional=True)
         self.assertEqual(input_spec.default, None)
         self.assertEqual(input_spec._optional, True)
 
