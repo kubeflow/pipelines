@@ -122,10 +122,10 @@ func ListPipelines(client *api_server.PipelineClient) (
 }
 
 func ListAllExperiment(client *api_server.ExperimentClient, namespace string) ([]*experiment_model.APIExperiment, int, string, error) {
-	return ListExperiment(client, &experimentparams.ListExperimentV1Params{}, namespace)
+	return ListExperiment(client, &experimentparams.ListExperimentsV1Params{}, namespace)
 }
 
-func ListExperiment(client *api_server.ExperimentClient, parameters *experimentparams.ListExperimentV1Params, namespace string) ([]*experiment_model.APIExperiment, int, string, error) {
+func ListExperiment(client *api_server.ExperimentClient, parameters *experimentparams.ListExperimentsV1Params, namespace string) ([]*experiment_model.APIExperiment, int, string, error) {
 	if namespace != "" {
 		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
 		parameters.SetResourceReferenceKeyID(&namespace)

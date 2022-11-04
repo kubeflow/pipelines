@@ -528,13 +528,13 @@ class ExperimentServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def list_experiment_v1(self, **kwargs):  # noqa: E501
+    def list_experiments_v1(self, **kwargs):  # noqa: E501
         """Finds all experiments. Supports pagination, and sorting on certain fields.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.list_experiment_v1(async_req=True)
+        >>> thread = api.list_experiments_v1(async_req=True)
         >>> result = thread.get()
 
         :param page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call or can be omitted when fetching the first page.
@@ -564,15 +564,15 @@ class ExperimentServiceApi(object):
         :rtype: ApiListExperimentsResponse
         """
         kwargs['_return_http_data_only'] = True
-        return self.list_experiment_v1_with_http_info(**kwargs)  # noqa: E501
+        return self.list_experiments_v1_with_http_info(**kwargs)  # noqa: E501
 
-    def list_experiment_v1_with_http_info(self, **kwargs):  # noqa: E501
+    def list_experiments_v1_with_http_info(self, **kwargs):  # noqa: E501
         """Finds all experiments. Supports pagination, and sorting on certain fields.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.list_experiment_v1_with_http_info(async_req=True)
+        >>> thread = api.list_experiments_v1_with_http_info(async_req=True)
         >>> result = thread.get()
 
         :param page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call or can be omitted when fetching the first page.
@@ -629,7 +629,7 @@ class ExperimentServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method list_experiment_v1" % key
+                    " to method list_experiments_v1" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']

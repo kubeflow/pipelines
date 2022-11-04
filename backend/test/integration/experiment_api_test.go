@@ -170,7 +170,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- Verify list experiments sorted by names ---------- */
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentV1Params{
+		&params.ListExperimentsV1Params{
 			PageSize: util.Int32Pointer(2),
 			SortBy:   util.StringPointer("name")},
 		s.resourceNamespace)
@@ -183,7 +183,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentV1Params{
+		&params.ListExperimentsV1Params{
 			PageToken: util.StringPointer(nextPageToken),
 			PageSize:  util.Int32Pointer(2),
 			SortBy:    util.StringPointer("name")},
@@ -197,7 +197,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- Verify list experiments sorted by creation time ---------- */
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentV1Params{
+		&params.ListExperimentsV1Params{
 			PageSize: util.Int32Pointer(2),
 			SortBy:   util.StringPointer("created_at")},
 		s.resourceNamespace)
@@ -210,7 +210,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentV1Params{
+		&params.ListExperimentsV1Params{
 			PageToken: util.StringPointer(nextPageToken),
 			PageSize:  util.Int32Pointer(2),
 			SortBy:    util.StringPointer("created_at")},
@@ -224,7 +224,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- List experiments sort by unsupported field. Should fail. ---------- */
 	_, _, _, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentV1Params{
+		&params.ListExperimentsV1Params{
 			PageSize: util.Int32Pointer(2),
 			SortBy:   util.StringPointer("unknownfield")},
 		s.resourceNamespace)
@@ -233,7 +233,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- List experiments sorted by names descend order ---------- */
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentV1Params{
+		&params.ListExperimentsV1Params{
 			PageSize: util.Int32Pointer(2),
 			SortBy:   util.StringPointer("name desc")},
 		s.resourceNamespace)
@@ -246,7 +246,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 
 	experiments, totalSize, nextPageToken, err = test.ListExperiment(
 		s.experimentClient,
-		&params.ListExperimentV1Params{
+		&params.ListExperimentsV1Params{
 			PageToken: util.StringPointer(nextPageToken),
 			PageSize:  util.Int32Pointer(2),
 			SortBy:    util.StringPointer("name desc")},

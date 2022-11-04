@@ -100,7 +100,7 @@ Class | Method | HTTP request | Description
 *ExperimentServiceApi* | [**create_experiment_v1**](docs/ExperimentServiceApi.md#create_experiment_v1) | **POST** /apis/v1beta1/experiments | Creates a new experiment.
 *ExperimentServiceApi* | [**delete_experiment_v1**](docs/ExperimentServiceApi.md#delete_experiment_v1) | **DELETE** /apis/v1beta1/experiments/{id} | Deletes an experiment without deleting the experiment&#39;s runs and jobs. To avoid unexpected behaviors, delete an experiment&#39;s runs and jobs before deleting the experiment.
 *ExperimentServiceApi* | [**get_experiment_v1**](docs/ExperimentServiceApi.md#get_experiment_v1) | **GET** /apis/v1beta1/experiments/{id} | Finds a specific experiment by ID.
-*ExperimentServiceApi* | [**list_experiment_v1**](docs/ExperimentServiceApi.md#list_experiment_v1) | **GET** /apis/v1beta1/experiments | Finds all experiments. Supports pagination, and sorting on certain fields.
+*ExperimentServiceApi* | [**list_experiments_v1**](docs/ExperimentServiceApi.md#list_experiments_v1) | **GET** /apis/v1beta1/experiments | Finds all experiments. Supports pagination, and sorting on certain fields.
 *ExperimentServiceApi* | [**unarchive_experiment_v1**](docs/ExperimentServiceApi.md#unarchive_experiment_v1) | **POST** /apis/v1beta1/experiments/{id}:unarchive | Restores an archived experiment. The experiment&#39;s archived runs and jobs will stay archived.
 *HealthzServiceApi* | [**get_healthz**](docs/HealthzServiceApi.md#get_healthz) | **GET** /apis/v1beta1/healthz | Get healthz data.
 *JobServiceApi* | [**create_job**](docs/JobServiceApi.md#create_job) | **POST** /apis/v1beta1/jobs | Creates a new job.

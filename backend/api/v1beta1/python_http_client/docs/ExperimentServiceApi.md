@@ -8,7 +8,7 @@ Method | HTTP request | Description
 [**create_experiment_v1**](ExperimentServiceApi.md#create_experiment_v1) | **POST** /apis/v1beta1/experiments | Creates a new experiment.
 [**delete_experiment_v1**](ExperimentServiceApi.md#delete_experiment_v1) | **DELETE** /apis/v1beta1/experiments/{id} | Deletes an experiment without deleting the experiment&#39;s runs and jobs. To avoid unexpected behaviors, delete an experiment&#39;s runs and jobs before deleting the experiment.
 [**get_experiment_v1**](ExperimentServiceApi.md#get_experiment_v1) | **GET** /apis/v1beta1/experiments/{id} | Finds a specific experiment by ID.
-[**list_experiment_v1**](ExperimentServiceApi.md#list_experiment_v1) | **GET** /apis/v1beta1/experiments | Finds all experiments. Supports pagination, and sorting on certain fields.
+[**list_experiments_v1**](ExperimentServiceApi.md#list_experiments_v1) | **GET** /apis/v1beta1/experiments | Finds all experiments. Supports pagination, and sorting on certain fields.
 [**unarchive_experiment_v1**](ExperimentServiceApi.md#unarchive_experiment_v1) | **POST** /apis/v1beta1/experiments/{id}:unarchive | Restores an archived experiment. The experiment&#39;s archived runs and jobs will stay archived.
 
 
@@ -316,8 +316,8 @@ Name | Type | Description  | Notes
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **list_experiment_v1**
-> ApiListExperimentsResponse list_experiment_v1(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id)
+# **list_experiments_v1**
+> ApiListExperimentsResponse list_experiments_v1(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id)
 
 Finds all experiments. Supports pagination, and sorting on certain fields.
 
@@ -364,10 +364,10 @@ resource_reference_key_id = 'resource_reference_key_id_example' # str | The ID o
 
     try:
         # Finds all experiments. Supports pagination, and sorting on certain fields.
-        api_response = api_instance.list_experiment_v1(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id)
+        api_response = api_instance.list_experiments_v1(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, resource_reference_key_type=resource_reference_key_type, resource_reference_key_id=resource_reference_key_id)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling ExperimentServiceApi->list_experiment_v1: %s\n" % e)
+        print("Exception when calling ExperimentServiceApi->list_experiments_v1: %s\n" % e)
 ```
 
 ### Parameters

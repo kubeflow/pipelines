@@ -17,8 +17,8 @@ import (
 type ExperimentInterface interface {
 	Create(params *params.CreateExperimentV1Params) (*model.APIExperiment, error)
 	Get(params *params.GetExperimentV1Params) (*model.APIExperiment, error)
-	List(params *params.ListExperimentV1Params) ([]*model.APIExperiment, int, string, error)
-	ListAll(params *params.ListExperimentV1Params, maxResultSize int) ([]*model.APIExperiment, error)
+	List(params *params.ListExperimentsV1Params) ([]*model.APIExperiment, int, string, error)
+	ListAll(params *params.ListExperimentsV1Params, maxResultSize int) ([]*model.APIExperiment, error)
 	Archive(params *params.ArchiveExperimentV1Params) error
 	Unarchive(params *params.UnarchiveExperimentV1Params) error
 }
@@ -107,7 +107,7 @@ func (c *ExperimentClient) Get(parameters *params.GetExperimentV1Params) (*model
 	return response.Payload, nil
 }
 
-func (c *ExperimentClient) List(parameters *params.ListExperimentV1Params) (
+func (c *ExperimentClient) List(parameters *params.ListExperimentsV1Params) (
 	[]*model.APIExperiment, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
@@ -115,9 +115,9 @@ func (c *ExperimentClient) List(parameters *params.ListExperimentV1Params) (
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.ExperimentService.ListExperimentV1(parameters, c.authInfoWriter)
+	response, err := c.apiClient.ExperimentService.ListExperimentsV1(parameters, c.authInfoWriter)
 	if err != nil {
-		if defaultError, ok := err.(*params.ListExperimentV1Default); ok {
+		if defaultError, ok := err.(*params.ListExperimentsV1Default); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = CreateErrorCouldNotRecoverAPIStatus(err)
@@ -154,12 +154,12 @@ func (c *ExperimentClient) Delete(parameters *params.DeleteExperimentV1Params) e
 	return nil
 }
 
-func (c *ExperimentClient) ListAll(parameters *params.ListExperimentV1Params, maxResultSize int) (
+func (c *ExperimentClient) ListAll(parameters *params.ListExperimentsV1Params, maxResultSize int) (
 	[]*model.APIExperiment, error) {
 	return listAllForExperiment(c, parameters, maxResultSize)
 }
 
-func listAllForExperiment(client ExperimentInterface, parameters *params.ListExperimentV1Params,
+func listAllForExperiment(client ExperimentInterface, parameters *params.ListExperimentsV1Params,
 	maxResultSize int) ([]*model.APIExperiment, error) {
 	if maxResultSize < 0 {
 		maxResultSize = 0

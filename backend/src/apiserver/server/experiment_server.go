@@ -28,9 +28,9 @@ var (
 		Help: "The total number of GetExperiment requests",
 	})
 
-	listExperimentRequests = promauto.NewCounter(prometheus.CounterOpts{
+	listExperimentsV1Requests = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "experiment_server_list_requests",
-		Help: "The total number of ListExperiments requests",
+		Help: "The total number of ListExperimentsV1 requests",
 	})
 
 	deleteExperimentRequests = promauto.NewCounter(prometheus.CounterOpts{
@@ -115,10 +115,10 @@ func (s *ExperimentServer) GetExperimentV1(ctx context.Context, request *api.Get
 	return ToApiExperiment(experiment), nil
 }
 
-func (s *ExperimentServer) ListExperimentV1(ctx context.Context, request *api.ListExperimentsRequest) (
+func (s *ExperimentServer) ListExperimentsV1(ctx context.Context, request *api.ListExperimentsRequest) (
 	*api.ListExperimentsResponse, error) {
 	if s.options.CollectMetrics {
-		listExperimentRequests.Inc()
+		listExperimentsV1Requests.Inc()
 	}
 
 	opts, err := validatedListOptions(&model.Experiment{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
@@ -135,7 +135,7 @@ func (s *ExperimentServer) ListExperimentV1(ctx context.Context, request *api.Li
 	refKey := filterContext.ReferenceKey
 	if common.IsMultiUserMode() {
 		if refKey == nil || refKey.Type != common.Namespace {
-			return nil, util.NewInvalidInputError("Invalid resource references for experiment. ListExperiment requires filtering by namespace.")
+			return nil, util.NewInvalidInputError("Invalid resource references for experiment. ListExperimentsV1 requires filtering by namespace.")
 		}
 		namespace := refKey.ID
 		if len(namespace) == 0 {
@@ -151,7 +151,7 @@ func (s *ExperimentServer) ListExperimentV1(ctx context.Context, request *api.Li
 		}
 	} else {
 		if refKey != nil && refKey.Type == common.Namespace && len(refKey.ID) > 0 {
-			return nil, util.NewInvalidInputError("In single-user mode, ListExperiment cannot filter by namespace.")
+			return nil, util.NewInvalidInputError("In single-user mode, ListExperimentsV1 cannot filter by namespace.")
 		}
 		// In single user mode, apply filter with empty namespace for backward compatibile.
 		filterContext = &common.FilterContext{

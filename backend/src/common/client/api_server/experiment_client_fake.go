@@ -48,7 +48,7 @@ func (c *ExperimentClientFake) Get(params *experimentparams.GetExperimentV1Param
 	}
 }
 
-func (c *ExperimentClientFake) List(params *experimentparams.ListExperimentV1Params) (
+func (c *ExperimentClientFake) List(params *experimentparams.ListExperimentsV1Params) (
 	[]*experimentmodel.APIExperiment, int, string, error) {
 	const (
 		FirstToken  = ""
@@ -76,7 +76,7 @@ func (c *ExperimentClientFake) List(params *experimentparams.ListExperimentV1Par
 	}
 }
 
-func (c *ExperimentClientFake) ListAll(params *experimentparams.ListExperimentV1Params,
+func (c *ExperimentClientFake) ListAll(params *experimentparams.ListExperimentsV1Params,
 	maxResultSize int) ([]*experimentmodel.APIExperiment, error) {
 	return listAllForExperiment(c, params, maxResultSize)
 }

@@ -198,7 +198,7 @@ func (s *UpgradeTests) VerifyExperiments() {
 	/* ---------- Verify list experiments sorted by creation time ---------- */
 	experiments, _, _, err := test.ListExperiment(
 		s.experimentClient,
-		&experimentParams.ListExperimentV1Params{SortBy: util.StringPointer("created_at")},
+		&experimentParams.ListExperimentsV1Params{SortBy: util.StringPointer("created_at")},
 		s.resourceNamespace)
 	require.Nil(t, err)
 	// after upgrade, default experiment may be inserted, but the oldest 3
@@ -454,7 +454,7 @@ func (s *UpgradeTests) getHelloWorldExperiment(createIfNotExist bool) *experimen
 
 	experiments, _, _, err := test.ListExperiment(
 		s.experimentClient,
-		&experimentParams.ListExperimentV1Params{
+		&experimentParams.ListExperimentsV1Params{
 			PageSize: util.Int32Pointer(1000),
 		},
 		s.resourceNamespace)
