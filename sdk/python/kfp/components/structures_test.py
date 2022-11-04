@@ -19,13 +19,11 @@ import textwrap
 import unittest
 
 from absl.testing import parameterized
-from google.protobuf import json_format
 from kfp import compiler
 from kfp import dsl
 from kfp.components import component_factory
 from kfp.components import placeholders
 from kfp.components import structures
-from kfp.pipeline_spec import pipeline_spec_pb2
 
 V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
     implementation:
@@ -105,15 +103,8 @@ V1_YAML_NESTED_PLACEHOLDER = textwrap.dedent("""\
             - if:
                 cond:
                     isPresent: input_prefix
-                else:
-                - --arg2
-                - default
-                - concat:
-                    - --arg1
-                    - {inputValue: input_prefix}
-                then:
-                - --arg1
-                - {inputValue: input_prefix}
+                then: {inputValue: input_prefix}
+                else: default
         image: alpine
     inputs:
     - {name: input_prefix, optional: false, type: String}
@@ -129,21 +120,10 @@ COMPONENT_SPEC_NESTED_PLACEHOLDER = structures.ComponentSpec(
                     '--arg1',
                     placeholders.IfPresentPlaceholder(
                         input_name='input_prefix',
-                        then=[
-                            '--arg1',
-                            placeholders.InputValuePlaceholder(
-                                input_name='input_prefix'),
-                        ],
-                        else_=[
-                            '--arg2',
-                            'default',
-                            placeholders.ConcatPlaceholder(items=[
-                                '--arg1',
-                                placeholders.InputValuePlaceholder(
-                                    input_name='input_prefix'),
-                            ]),
-                        ]),
-                ])
+                        then=placeholders.InputValuePlaceholder(
+                            input_name='input_prefix'),
+                        else_='default'),
+                ]),
             ])),
     inputs={'input_prefix': structures.InputSpec(type='String')},
 )
@@ -938,23 +918,6 @@ class TestRetryPolicy(unittest.TestCase):
         self.assertEqual(retry_policy_proto.backoff_factor, 1.5)
         # tests cap
         self.assertEqual(retry_policy_proto.backoff_max_duration.seconds, 3600)
-
-    def test_from_proto(self):
-        retry_policy_proto = json_format.ParseDict(
-            {
-                'max_retry_count': 3,
-                'backoff_duration': '5s',
-                'backoff_factor': 1.0,
-                'backoff_max_duration': '1s'
-            }, pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy())
-        retry_policy_struct = structures.RetryPolicy.from_proto(
-            retry_policy_proto)
-        print(retry_policy_struct)
-
-        self.assertEqual(retry_policy_struct.max_retry_count, 3)
-        self.assertEqual(retry_policy_struct.backoff_duration, '5s')
-        self.assertEqual(retry_policy_struct.backoff_factor, 1.0)
-        self.assertEqual(retry_policy_struct.backoff_max_duration, '1s')
 
 
 if __name__ == '__main__':

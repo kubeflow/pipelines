@@ -18,12 +18,11 @@ import abc
 import json
 from typing import Any, Dict, List, Optional, Union
 
-from kfp.components import base_model
 from kfp.components import utils
 from kfp.components.types import type_utils
 
 
-class Placeholder(abc.ABC, base_model.BaseModel):
+class Placeholder(abc.ABC):
 
     @abc.abstractmethod
     def _to_string(self) -> str:
@@ -142,6 +141,9 @@ class ConcatPlaceholder(Placeholder):
     """
 
     def __init__(self, items: List['CommandLineElement']) -> None:
+        for item in items:
+            if isinstance(item, IfPresentPlaceholder):
+                item._validate_then_and_else_are_only_single_element()
         self.items = items
 
     def _to_dict(self) -> Dict[str, Any]:
@@ -198,6 +200,36 @@ class IfPresentPlaceholder(Placeholder):
         self.then = then
         self.else_ = else_
 
+    def _validate_then_and_else_are_only_single_element(self) -> None:
+        """Rercursively validate that then and else contain only a single
+        element.
+
+        This method should only be called by a ConcatPlaceholder, which
+        cannot have an IfPresentPlaceholder with a list in either 'then'
+        or 'else_'.
+        """
+
+        # the illegal state
+        if isinstance(self.then, list) or isinstance(self.else_, list):
+            raise ValueError(
+                f'Cannot use {IfPresentPlaceholder.__name__} within {ConcatPlaceholder.__name__} when `then` and `else_` arguments to {IfPresentPlaceholder.__name__} are lists. Please use a single element for `then` and `else_` only.'
+            )
+
+        # check that there is no illegal state found recursively
+        if isinstance(self.then, ConcatPlaceholder):
+            for item in self.then.items:
+                if isinstance(item, IfPresentPlaceholder):
+                    item._validate_then_and_else_are_only_single_element()
+        elif isinstance(self.then, IfPresentPlaceholder):
+            self.then._validate_then_and_else_are_only_single_element()
+
+        if isinstance(self.else_, ConcatPlaceholder):
+            for item in self.else_.items:
+                if isinstance(item, IfPresentPlaceholder):
+                    item._validate_then_and_else_are_only_single_element()
+        elif isinstance(self.else_, IfPresentPlaceholder):
+            self.else_._validate_then_and_else_are_only_single_element()
+
     def _to_dict(self) -> Dict[str, Any]:
         struct = {
             'IfPresent': {
@@ -232,11 +264,7 @@ PRIMITIVE_OUTPUT_PLACEHOLDERS = (OutputParameterPlaceholder,
                                  OutputPathPlaceholder, OutputUriPlaceholder,
                                  OutputMetadataPlaceholder)
 
-CommandLineElement = Union[str, IfPresentPlaceholder, ConcatPlaceholder,
-                           InputValuePlaceholder, InputPathPlaceholder,
-                           InputUriPlaceholder, InputMetadataPlaceholder,
-                           OutputParameterPlaceholder, OutputPathPlaceholder,
-                           OutputUriPlaceholder, OutputMetadataPlaceholder]
+CommandLineElement = Union[str, Placeholder]
 
 
 def convert_command_line_element_to_string(
@@ -331,18 +359,31 @@ def maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
     elif 'if' in arg:
         if_ = arg['if']
         input_name = utils.sanitize_input_name(if_['cond']['isPresent'])
-        then_ = if_['then']
-        else_ = if_.get('else', [])
-        return IfPresentPlaceholder(
-            input_name=input_name,
-            then=[
+        then = if_['then']
+        else_ = if_.get('else')
+
+        if isinstance(then, list):
+            then = [
                 maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
-                    val, component_dict=component_dict) for val in then_
-            ],
-            else_=[
+                    val, component_dict=component_dict) for val in then
+            ]
+        else:
+            then = maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
+                then, component_dict=component_dict)
+
+        if else_ is None:
+            pass
+        elif isinstance(else_, list):
+            else_ = [
                 maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
                     val, component_dict=component_dict) for val in else_
-            ])
+            ]
+        else:
+            maybe_convert_v1_yaml_placeholder_to_v2_placeholder(
+                else_, component_dict=component_dict)
+
+        return IfPresentPlaceholder(
+            input_name=input_name, then=then, else_=else_)
 
     elif 'concat' in arg:
 
