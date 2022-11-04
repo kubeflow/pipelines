@@ -141,23 +141,23 @@ func (a *Client) GetExperimentV1(params *GetExperimentV1Params, authInfo runtime
 }
 
 /*
-ListExperimentV1 finds all experiments supports pagination and sorting on certain fields
+ListExperimentsV1 finds all experiments supports pagination and sorting on certain fields
 */
-func (a *Client) ListExperimentV1(params *ListExperimentV1Params, authInfo runtime.ClientAuthInfoWriter) (*ListExperimentV1OK, error) {
+func (a *Client) ListExperimentsV1(params *ListExperimentsV1Params, authInfo runtime.ClientAuthInfoWriter) (*ListExperimentsV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewListExperimentV1Params()
+		params = NewListExperimentsV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ListExperimentV1",
+		ID:                 "ListExperimentsV1",
 		Method:             "GET",
 		PathPattern:        "/apis/v1beta1/experiments",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &ListExperimentV1Reader{formats: a.formats},
+		Reader:             &ListExperimentsV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -165,7 +165,7 @@ func (a *Client) ListExperimentV1(params *ListExperimentV1Params, authInfo runti
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ListExperimentV1OK), nil
+	return result.(*ListExperimentsV1OK), nil
 
 }
 

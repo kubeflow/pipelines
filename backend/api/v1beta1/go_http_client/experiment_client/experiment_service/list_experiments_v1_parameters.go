@@ -18,61 +18,61 @@ import (
 	strfmt "github.com/go-openapi/strfmt"
 )
 
-// NewListExperimentV1Params creates a new ListExperimentV1Params object
+// NewListExperimentsV1Params creates a new ListExperimentsV1Params object
 // with the default values initialized.
-func NewListExperimentV1Params() *ListExperimentV1Params {
+func NewListExperimentsV1Params() *ListExperimentsV1Params {
 	var (
 		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
 	)
-	return &ListExperimentV1Params{
+	return &ListExperimentsV1Params{
 		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
 
 		timeout: cr.DefaultTimeout,
 	}
 }
 
-// NewListExperimentV1ParamsWithTimeout creates a new ListExperimentV1Params object
+// NewListExperimentsV1ParamsWithTimeout creates a new ListExperimentsV1Params object
 // with the default values initialized, and the ability to set a timeout on a request
-func NewListExperimentV1ParamsWithTimeout(timeout time.Duration) *ListExperimentV1Params {
+func NewListExperimentsV1ParamsWithTimeout(timeout time.Duration) *ListExperimentsV1Params {
 	var (
 		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
 	)
-	return &ListExperimentV1Params{
+	return &ListExperimentsV1Params{
 		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
 
 		timeout: timeout,
 	}
 }
 
-// NewListExperimentV1ParamsWithContext creates a new ListExperimentV1Params object
+// NewListExperimentsV1ParamsWithContext creates a new ListExperimentsV1Params object
 // with the default values initialized, and the ability to set a context for a request
-func NewListExperimentV1ParamsWithContext(ctx context.Context) *ListExperimentV1Params {
+func NewListExperimentsV1ParamsWithContext(ctx context.Context) *ListExperimentsV1Params {
 	var (
 		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
 	)
-	return &ListExperimentV1Params{
+	return &ListExperimentsV1Params{
 		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
 
 		Context: ctx,
 	}
 }
 
-// NewListExperimentV1ParamsWithHTTPClient creates a new ListExperimentV1Params object
+// NewListExperimentsV1ParamsWithHTTPClient creates a new ListExperimentsV1Params object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
-func NewListExperimentV1ParamsWithHTTPClient(client *http.Client) *ListExperimentV1Params {
+func NewListExperimentsV1ParamsWithHTTPClient(client *http.Client) *ListExperimentsV1Params {
 	var (
 		resourceReferenceKeyTypeDefault = string("UNKNOWN_RESOURCE_TYPE")
 	)
-	return &ListExperimentV1Params{
+	return &ListExperimentsV1Params{
 		ResourceReferenceKeyType: &resourceReferenceKeyTypeDefault,
 		HTTPClient:               client,
 	}
 }
 
-/*ListExperimentV1Params contains all the parameters to send to the API endpoint
-for the list experiment v1 operation typically these are written to a http.Request
+/*ListExperimentsV1Params contains all the parameters to send to the API endpoint
+for the list experiments v1 operation typically these are written to a http.Request
 */
-type ListExperimentV1Params struct {
+type ListExperimentsV1Params struct {
 
 	/*Filter
 	  A url-encoded, JSON-serialized Filter protocol buffer (see
@@ -116,107 +116,107 @@ type ListExperimentV1Params struct {
 	HTTPClient *http.Client
 }
 
-// WithTimeout adds the timeout to the list experiment v1 params
-func (o *ListExperimentV1Params) WithTimeout(timeout time.Duration) *ListExperimentV1Params {
+// WithTimeout adds the timeout to the list experiments v1 params
+func (o *ListExperimentsV1Params) WithTimeout(timeout time.Duration) *ListExperimentsV1Params {
 	o.SetTimeout(timeout)
 	return o
 }
 
-// SetTimeout adds the timeout to the list experiment v1 params
-func (o *ListExperimentV1Params) SetTimeout(timeout time.Duration) {
+// SetTimeout adds the timeout to the list experiments v1 params
+func (o *ListExperimentsV1Params) SetTimeout(timeout time.Duration) {
 	o.timeout = timeout
 }
 
-// WithContext adds the context to the list experiment v1 params
-func (o *ListExperimentV1Params) WithContext(ctx context.Context) *ListExperimentV1Params {
+// WithContext adds the context to the list experiments v1 params
+func (o *ListExperimentsV1Params) WithContext(ctx context.Context) *ListExperimentsV1Params {
 	o.SetContext(ctx)
 	return o
 }
 
-// SetContext adds the context to the list experiment v1 params
-func (o *ListExperimentV1Params) SetContext(ctx context.Context) {
+// SetContext adds the context to the list experiments v1 params
+func (o *ListExperimentsV1Params) SetContext(ctx context.Context) {
 	o.Context = ctx
 }
 
-// WithHTTPClient adds the HTTPClient to the list experiment v1 params
-func (o *ListExperimentV1Params) WithHTTPClient(client *http.Client) *ListExperimentV1Params {
+// WithHTTPClient adds the HTTPClient to the list experiments v1 params
+func (o *ListExperimentsV1Params) WithHTTPClient(client *http.Client) *ListExperimentsV1Params {
 	o.SetHTTPClient(client)
 	return o
 }
 
-// SetHTTPClient adds the HTTPClient to the list experiment v1 params
-func (o *ListExperimentV1Params) SetHTTPClient(client *http.Client) {
+// SetHTTPClient adds the HTTPClient to the list experiments v1 params
+func (o *ListExperimentsV1Params) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithFilter adds the filter to the list experiment v1 params
-func (o *ListExperimentV1Params) WithFilter(filter *string) *ListExperimentV1Params {
+// WithFilter adds the filter to the list experiments v1 params
+func (o *ListExperimentsV1Params) WithFilter(filter *string) *ListExperimentsV1Params {
 	o.SetFilter(filter)
 	return o
 }
 
-// SetFilter adds the filter to the list experiment v1 params
-func (o *ListExperimentV1Params) SetFilter(filter *string) {
+// SetFilter adds the filter to the list experiments v1 params
+func (o *ListExperimentsV1Params) SetFilter(filter *string) {
 	o.Filter = filter
 }
 
-// WithPageSize adds the pageSize to the list experiment v1 params
-func (o *ListExperimentV1Params) WithPageSize(pageSize *int32) *ListExperimentV1Params {
+// WithPageSize adds the pageSize to the list experiments v1 params
+func (o *ListExperimentsV1Params) WithPageSize(pageSize *int32) *ListExperimentsV1Params {
 	o.SetPageSize(pageSize)
 	return o
 }
 
-// SetPageSize adds the pageSize to the list experiment v1 params
-func (o *ListExperimentV1Params) SetPageSize(pageSize *int32) {
+// SetPageSize adds the pageSize to the list experiments v1 params
+func (o *ListExperimentsV1Params) SetPageSize(pageSize *int32) {
 	o.PageSize = pageSize
 }
 
-// WithPageToken adds the pageToken to the list experiment v1 params
-func (o *ListExperimentV1Params) WithPageToken(pageToken *string) *ListExperimentV1Params {
+// WithPageToken adds the pageToken to the list experiments v1 params
+func (o *ListExperimentsV1Params) WithPageToken(pageToken *string) *ListExperimentsV1Params {
 	o.SetPageToken(pageToken)
 	return o
 }
 
-// SetPageToken adds the pageToken to the list experiment v1 params
-func (o *ListExperimentV1Params) SetPageToken(pageToken *string) {
+// SetPageToken adds the pageToken to the list experiments v1 params
+func (o *ListExperimentsV1Params) SetPageToken(pageToken *string) {
 	o.PageToken = pageToken
 }
 
-// WithResourceReferenceKeyID adds the resourceReferenceKeyID to the list experiment v1 params
-func (o *ListExperimentV1Params) WithResourceReferenceKeyID(resourceReferenceKeyID *string) *ListExperimentV1Params {
+// WithResourceReferenceKeyID adds the resourceReferenceKeyID to the list experiments v1 params
+func (o *ListExperimentsV1Params) WithResourceReferenceKeyID(resourceReferenceKeyID *string) *ListExperimentsV1Params {
 	o.SetResourceReferenceKeyID(resourceReferenceKeyID)
 	return o
 }
 
-// SetResourceReferenceKeyID adds the resourceReferenceKeyId to the list experiment v1 params
-func (o *ListExperimentV1Params) SetResourceReferenceKeyID(resourceReferenceKeyID *string) {
+// SetResourceReferenceKeyID adds the resourceReferenceKeyId to the list experiments v1 params
+func (o *ListExperimentsV1Params) SetResourceReferenceKeyID(resourceReferenceKeyID *string) {
 	o.ResourceReferenceKeyID = resourceReferenceKeyID
 }
 
-// WithResourceReferenceKeyType adds the resourceReferenceKeyType to the list experiment v1 params
-func (o *ListExperimentV1Params) WithResourceReferenceKeyType(resourceReferenceKeyType *string) *ListExperimentV1Params {
+// WithResourceReferenceKeyType adds the resourceReferenceKeyType to the list experiments v1 params
+func (o *ListExperimentsV1Params) WithResourceReferenceKeyType(resourceReferenceKeyType *string) *ListExperimentsV1Params {
 	o.SetResourceReferenceKeyType(resourceReferenceKeyType)
 	return o
 }
 
-// SetResourceReferenceKeyType adds the resourceReferenceKeyType to the list experiment v1 params
-func (o *ListExperimentV1Params) SetResourceReferenceKeyType(resourceReferenceKeyType *string) {
+// SetResourceReferenceKeyType adds the resourceReferenceKeyType to the list experiments v1 params
+func (o *ListExperimentsV1Params) SetResourceReferenceKeyType(resourceReferenceKeyType *string) {
 	o.ResourceReferenceKeyType = resourceReferenceKeyType
 }
 
-// WithSortBy adds the sortBy to the list experiment v1 params
-func (o *ListExperimentV1Params) WithSortBy(sortBy *string) *ListExperimentV1Params {
+// WithSortBy adds the sortBy to the list experiments v1 params
+func (o *ListExperimentsV1Params) WithSortBy(sortBy *string) *ListExperimentsV1Params {
 	o.SetSortBy(sortBy)
 	return o
 }
 
-// SetSortBy adds the sortBy to the list experiment v1 params
-func (o *ListExperimentV1Params) SetSortBy(sortBy *string) {
+// SetSortBy adds the sortBy to the list experiments v1 params
+func (o *ListExperimentsV1Params) SetSortBy(sortBy *string) {
 	o.SortBy = sortBy
 }
 
 // WriteToRequest writes these params to a swagger request
-func (o *ListExperimentV1Params) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
+func (o *ListExperimentsV1Params) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
 	if err := r.SetTimeout(o.timeout); err != nil {
 		return err

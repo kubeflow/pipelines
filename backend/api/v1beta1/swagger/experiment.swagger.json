@@ -18,7 +18,7 @@
     "/apis/v1beta1/experiments": {
       "get": {
         "summary": "Finds all experiments. Supports pagination, and sorting on certain fields.",
-        "operationId": "ListExperimentV1",
+        "operationId": "ListExperimentsV1",
         "responses": {
           "200": {
             "description": "A successful response.",
