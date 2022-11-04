@@ -13,8 +13,8 @@ const (
 	JobForClientErrorTest = "JOB_CLIENT_ERROR"
 )
 
-func getDefaultJob(id string, name string) *jobmodel.V1beta1Job {
-	return &jobmodel.V1beta1Job{
+func getDefaultJob(id string, name string) *jobmodel.APIJob {
+	return &jobmodel.APIJob{
 		CreatedAt:   strfmt.NewDateTime(),
 		Description: "JOB_DESCRIPTION",
 		ID:          id,
@@ -29,7 +29,7 @@ func NewJobClientFake() *JobClientFake {
 }
 
 func (c *JobClientFake) Create(params *jobparams.CreateJobParams) (
-	*jobmodel.V1beta1Job, error) {
+	*jobmodel.APIJob, error) {
 	switch params.Body.Name {
 	case JobForClientErrorTest:
 		return nil, fmt.Errorf(ClientErrorString)
@@ -39,7 +39,7 @@ func (c *JobClientFake) Create(params *jobparams.CreateJobParams) (
 }
 
 func (c *JobClientFake) Get(params *jobparams.GetJobParams) (
-	*jobmodel.V1beta1Job, error) {
+	*jobmodel.APIJob, error) {
 	switch params.ID {
 	case JobForClientErrorTest:
 		return nil, fmt.Errorf(ClientErrorString)
@@ -76,7 +76,7 @@ func (c *JobClientFake) Disable(params *jobparams.DisableJobParams) error {
 }
 
 func (c *JobClientFake) List(params *jobparams.ListJobsParams) (
-	[]*jobmodel.V1beta1Job, int, string, error) {
+	[]*jobmodel.APIJob, int, string, error) {
 	const (
 		FirstToken  = ""
 		SecondToken = "SECOND_TOKEN"
@@ -90,12 +90,12 @@ func (c *JobClientFake) List(params *jobparams.ListJobsParams) (
 
 	switch token {
 	case FirstToken:
-		return []*jobmodel.V1beta1Job{
+		return []*jobmodel.APIJob{
 			getDefaultJob("100", "MY_FIRST_JOB"),
 			getDefaultJob("101", "MY_SECOND_JOB"),
 		}, 2, SecondToken, nil
 	case SecondToken:
-		return []*jobmodel.V1beta1Job{
+		return []*jobmodel.APIJob{
 			getDefaultJob("102", "MY_THIRD_JOB"),
 		}, 1, FinalToken, nil
 	default:
@@ -104,6 +104,6 @@ func (c *JobClientFake) List(params *jobparams.ListJobsParams) (
 }
 
 func (c *JobClientFake) ListAll(params *jobparams.ListJobsParams,
-	maxResultSize int) ([]*jobmodel.V1beta1Job, error) {
+	maxResultSize int) ([]*jobmodel.APIJob, error) {
 	return listAllForJob(c, params, maxResultSize)
 }

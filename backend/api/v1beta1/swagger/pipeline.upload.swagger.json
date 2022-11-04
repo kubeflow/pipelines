@@ -22,13 +22,13 @@
             "200": {
               "description": "",
               "schema": {
-                "$ref": "#/definitions/v1beta1Pipeline"
+                "$ref": "#/definitions/apiPipeline"
               }
             },
             "default": {
               "description": "",
               "schema": {
-                "$ref": "#/definitions/v1beta1Status"
+                "$ref": "#/definitions/apiStatus"
               }
             }
           },
@@ -71,13 +71,13 @@
             "200": {
               "description": "",
               "schema": {
-                "$ref": "#/definitions/v1beta1PipelineVersion"
+                "$ref": "#/definitions/apiPipelineVersion"
               }
             },
             "default": {
               "description": "",
               "schema": {
-                "$ref": "#/definitions/v1beta1Status"
+                "$ref": "#/definitions/apiStatus"
               }
             }
           },
@@ -145,7 +145,7 @@
           "parameters": {
             "type": "array",
             "items": {
-              "$ref": "#/definitions/v1beta1Parameter"
+              "$ref": "#/definitions/apiParameter"
             }
           },
           "error": {
@@ -173,7 +173,7 @@
           "parameters": {
             "type": "array",
             "items": {
-              "$ref": "#/definitions/v1beta1Parameter"
+              "$ref": "#/definitions/apiParameter"
             },
             "description": "Output. The input parameters for this pipeline."
           },
@@ -182,13 +182,13 @@
             "description": "Input. Optional. Pipeline version code source."
           },
           "package_url": {
-            "$ref": "#/definitions/v1beta1Url",
+            "$ref": "#/definitions/apiUrl",
             "description": "Input. Required. Pipeline version package url.\nWhe calling CreatePipelineVersion API method, need to provide one package\nfile location."
           },
           "resource_references": {
             "type": "array",
             "items": {
-              "$ref": "#/definitions/v1beta1ResourceReference"
+              "$ref": "#/definitions/apiResourceReference"
             },
             "description": "Input. Required. E.g., specify which pipeline this pipeline version belongs\nto."
           }
@@ -207,7 +207,7 @@
         "type": "object",
         "properties": {
           "type": {
-            "$ref": "#/definitions/v1beta1ResourceType",
+            "$ref": "#/definitions/apiResourceType",
             "description": "The type of the resource that referred to."
           },
           "id": {
@@ -220,14 +220,14 @@
         "type": "object",
         "properties": {
           "key": {
-            "$ref": "#/definitions/v1beta1ResourceKey"
+            "$ref": "#/definitions/apiResourceKey"
           },
           "name": {
             "type": "string",
             "description": "The name of the resource that referred to."
           },
           "relationship": {
-            "$ref": "#/definitions/v1beta1Relationship",
+            "$ref": "#/definitions/apiRelationship",
             "description": "Required field. The relationship from referred resource to the object."
           }
         }
