@@ -22,7 +22,7 @@ type APIPeriodicSchedule struct {
 	EndTime strfmt.DateTime `json:"end_time,omitempty"`
 
 	// The time interval between the starting time of consecutive jobs
-	IntervalSecond int64 `json:"interval_second,omitempty,string"`
+	IntervalSecond string `json:"interval_second,omitempty"`
 
 	// The start time of the periodic job
 	// Format: date-time

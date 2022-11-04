@@ -115,7 +115,7 @@
       }
     },
     "definitions": {
-      "v1beta1Parameter": {
+      "apiParameter": {
         "type": "object",
         "properties": {
           "name": {
@@ -126,7 +126,7 @@
           }
         }
       },
-      "v1beta1Pipeline": {
+      "apiPipeline": {
         "type": "object",
         "properties": {
           "id": {
@@ -154,7 +154,7 @@
           }
         }
       },
-      "v1beta1PipelineVersion": {
+      "apiPipelineVersion": {
         "type": "object",
         "properties": {
           "id": {
@@ -194,7 +194,7 @@
           }
         }
       },
-      "v1beta1Relationship": {
+      "apiRelationship": {
         "type": "string",
         "enum": [
           "UNKNOWN_RELATIONSHIP",
@@ -203,7 +203,7 @@
         ],
         "default": "UNKNOWN_RELATIONSHIP"
       },
-      "v1beta1ResourceKey": {
+      "apiResourceKey": {
         "type": "object",
         "properties": {
           "type": {
@@ -216,7 +216,7 @@
           }
         }
       },
-      "v1beta1ResourceReference": {
+      "apiResourceReference": {
         "type": "object",
         "properties": {
           "key": {
@@ -232,7 +232,7 @@
           }
         }
       },
-      "v1beta1ResourceType": {
+      "apiResourceType": {
         "type": "string",
         "enum": [
           "UNKNOWN_RESOURCE_TYPE",
@@ -244,7 +244,7 @@
         ],
         "default": "UNKNOWN_RESOURCE_TYPE"
       },
-      "v1beta1Status": {
+      "apiStatus": {
         "type": "object",
         "properties": {
           "error": {
@@ -262,7 +262,7 @@
           }
         }
       },
-      "v1beta1Url": {
+      "apiUrl": {
         "type": "object",
         "properties": {
           "pipeline_url": {
