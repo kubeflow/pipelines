@@ -15,13 +15,13 @@ import (
 )
 
 type JobInterface interface {
-	Create(params *params.CreateJobParams) (*model.V1beta1Job, error)
-	Get(params *params.GetJobParams) (*model.V1beta1Job, error)
+	Create(params *params.CreateJobParams) (*model.ApiJob, error)
+	Get(params *params.GetJobParams) (*model.ApiJob, error)
 	Delete(params *params.DeleteJobParams) error
 	Enable(params *params.EnableJobParams) error
 	Disable(params *params.DisableJobParams) error
-	List(params *params.ListJobsParams) ([]*model.V1beta1Job, int, string, error)
-	ListAll(params *params.ListJobsParams, maxResultSize int) ([]*model.V1beta1Job, error)
+	List(params *params.ListJobsParams) ([]*model.ApiJob, int, string, error)
+	ListAll(params *params.ListJobsParams, maxResultSize int) ([]*model.ApiJob, error)
 }
 
 type JobClient struct {
@@ -59,7 +59,7 @@ func NewKubeflowInClusterJobClient(namespace string, debug bool) (
 	}, nil
 }
 
-func (c *JobClient) Create(parameters *params.CreateJobParams) (*model.V1beta1Job,
+func (c *JobClient) Create(parameters *params.CreateJobParams) (*model.ApiJob,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
@@ -67,7 +67,7 @@ func (c *JobClient) Create(parameters *params.CreateJobParams) (*model.V1beta1Jo
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.JobService.CreateJob(parameters, c.authInfoWriter)
+	response, err := c.ApiClient.JobService.CreateJob(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.CreateJobDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -83,7 +83,7 @@ func (c *JobClient) Create(parameters *params.CreateJobParams) (*model.V1beta1Jo
 	return response.Payload, nil
 }
 
-func (c *JobClient) Get(parameters *params.GetJobParams) (*model.V1beta1Job,
+func (c *JobClient) Get(parameters *params.GetJobParams) (*model.ApiJob,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
@@ -91,7 +91,7 @@ func (c *JobClient) Get(parameters *params.GetJobParams) (*model.V1beta1Job,
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.JobService.GetJob(parameters, c.authInfoWriter)
+	response, err := c.ApiClient.JobService.GetJob(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.GetJobDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -114,7 +114,7 @@ func (c *JobClient) Delete(parameters *params.DeleteJobParams) error {
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.JobService.DeleteJob(parameters, c.authInfoWriter)
+	_, err := c.ApiClient.JobService.DeleteJob(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.DeleteJobDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -137,7 +137,7 @@ func (c *JobClient) Enable(parameters *params.EnableJobParams) error {
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.JobService.EnableJob(parameters, c.authInfoWriter)
+	_, err := c.ApiClient.JobService.EnableJob(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.EnableJobDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -160,7 +160,7 @@ func (c *JobClient) Disable(parameters *params.DisableJobParams) error {
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.JobService.DisableJob(parameters, c.authInfoWriter)
+	_, err := c.ApiClient.JobService.DisableJob(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.DisableJobDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -177,14 +177,14 @@ func (c *JobClient) Disable(parameters *params.DisableJobParams) error {
 }
 
 func (c *JobClient) List(parameters *params.ListJobsParams) (
-	[]*model.V1beta1Job, int, string, error) {
+	[]*model.ApiJob, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.JobService.ListJobs(parameters, c.authInfoWriter)
+	response, err := c.ApiClient.JobService.ListJobs(parameters, c.authInfoWriter)
 	if err != nil {
 		if defaultError, ok := err.(*params.ListJobsDefault); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
@@ -201,17 +201,17 @@ func (c *JobClient) List(parameters *params.ListJobsParams) (
 }
 
 func (c *JobClient) ListAll(parameters *params.ListJobsParams, maxResultSize int) (
-	[]*model.V1beta1Job, error) {
+	[]*model.ApiJob, error) {
 	return listAllForJob(c, parameters, maxResultSize)
 }
 
 func listAllForJob(client JobInterface, parameters *params.ListJobsParams,
-	maxResultSize int) ([]*model.V1beta1Job, error) {
+	maxResultSize int) ([]*model.ApiJob, error) {
 	if maxResultSize < 0 {
 		maxResultSize = 0
 	}
 
-	allResults := make([]*model.V1beta1Job, 0)
+	allResults := make([]*model.ApiJob, 0)
 	firstCall := true
 	for (firstCall || (parameters.PageToken != nil && *parameters.PageToken != "")) &&
 		(len(allResults) < maxResultSize) {

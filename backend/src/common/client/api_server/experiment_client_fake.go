@@ -13,8 +13,8 @@ const (
 	ExperimentForClientErrorTest = "EXPERIMENT_CLIENT_ERROR"
 )
 
-func getDefaultExperiment(id string, name string) *experimentmodel.V1beta1Experiment {
-	return &experimentmodel.V1beta1Experiment{
+func getDefaultExperiment(id string, name string) *experimentmodel.ApiExperiment {
+	return &experimentmodel.ApiExperiment{
 		CreatedAt:   strfmt.NewDateTime(),
 		Description: "EXPERIMENT_DESCRIPTION",
 		ID:          id,
@@ -29,7 +29,7 @@ func NewExperimentClientFake() *ExperimentClientFake {
 }
 
 func (c *ExperimentClientFake) Create(params *experimentparams.CreateExperimentParams) (
-	*experimentmodel.V1beta1Experiment, error) {
+	*experimentmodel.ApiExperiment, error) {
 	switch params.Body.Name {
 	case ExperimentForClientErrorTest:
 		return nil, fmt.Errorf(ClientErrorString)
@@ -39,7 +39,7 @@ func (c *ExperimentClientFake) Create(params *experimentparams.CreateExperimentP
 }
 
 func (c *ExperimentClientFake) Get(params *experimentparams.GetExperimentParams) (
-	*experimentmodel.V1beta1Experiment, error) {
+	*experimentmodel.ApiExperiment, error) {
 	switch params.ID {
 	case ExperimentForClientErrorTest:
 		return nil, fmt.Errorf(ClientErrorString)
@@ -49,7 +49,7 @@ func (c *ExperimentClientFake) Get(params *experimentparams.GetExperimentParams)
 }
 
 func (c *ExperimentClientFake) List(params *experimentparams.ListExperimentParams) (
-	[]*experimentmodel.V1beta1Experiment, int, string, error) {
+	[]*experimentmodel.ApiExperiment, int, string, error) {
 	const (
 		FirstToken  = ""
 		SecondToken = "SECOND_TOKEN"
@@ -63,12 +63,12 @@ func (c *ExperimentClientFake) List(params *experimentparams.ListExperimentParam
 
 	switch token {
 	case FirstToken:
-		return []*experimentmodel.V1beta1Experiment{
+		return []*experimentmodel.ApiExperiment{
 			getDefaultExperiment("100", "MY_FIRST_EXPERIMENT"),
 			getDefaultExperiment("101", "MY_SECOND_EXPERIMENT"),
 		}, 2, SecondToken, nil
 	case SecondToken:
-		return []*experimentmodel.V1beta1Experiment{
+		return []*experimentmodel.ApiExperiment{
 			getDefaultExperiment("102", "MY_THIRD_EXPERIMENT"),
 		}, 1, FinalToken, nil
 	default:
@@ -77,7 +77,7 @@ func (c *ExperimentClientFake) List(params *experimentparams.ListExperimentParam
 }
 
 func (c *ExperimentClientFake) ListAll(params *experimentparams.ListExperimentParams,
-	maxResultSize int) ([]*experimentmodel.V1beta1Experiment, error) {
+	maxResultSize int) ([]*experimentmodel.ApiExperiment, error) {
 	return listAllForExperiment(c, params, maxResultSize)
 }
 
