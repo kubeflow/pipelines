@@ -78,7 +78,7 @@ implementation:
       concat: [
           '{',
             '"configuration": {',
-              '"extract": ', {inputValue: job_configuration_extract},
+              '"query": ', {inputValue: job_configuration_extract},
               ', "labels": ', {inputValue: labels},
             '}',
           '}'
