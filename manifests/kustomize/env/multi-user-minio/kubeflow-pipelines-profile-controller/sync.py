@@ -167,7 +167,7 @@ def server_factory(frontend_image, frontend_tag,
                             "arn:aws:s3:::%s"  % shared_bucket_name # the root is needed to list the bucket
                         ],
                         "Condition":{"StringLike":{"s3:prefix": [
-                            "", "shared/*", "artifacts/*",
+                            "shared/*", "artifacts/*",
                             "private-artifacts/${aws:username}/*", "private/${aws:username}/*"
                         ]}}
                     },
