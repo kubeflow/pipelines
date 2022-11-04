@@ -227,7 +227,7 @@ class ApiPipelineVersion(object):
     def resource_references(self):
         """Gets the resource_references of this ApiPipelineVersion.  # noqa: E501
 
-        Input field. Specify which resource this pipeline version belongs to. For Experiment, the only valid resource reference is a single Namespace.  # noqa: E501
+        Input. Required. E.g., specify which pipeline this pipeline version belongs to.  # noqa: E501
 
         :return: The resource_references of this ApiPipelineVersion.  # noqa: E501
         :rtype: list[ApiResourceReference]
@@ -238,7 +238,7 @@ class ApiPipelineVersion(object):
     def resource_references(self, resource_references):
         """Sets the resource_references of this ApiPipelineVersion.
 
-        Input field. Specify which resource this pipeline version belongs to. For Experiment, the only valid resource reference is a single Namespace.  # noqa: E501
+        Input. Required. E.g., specify which pipeline this pipeline version belongs to.  # noqa: E501
 
         :param resource_references: The resource_references of this ApiPipelineVersion.  # noqa: E501
         :type resource_references: list[ApiResourceReference]
