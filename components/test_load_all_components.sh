@@ -35,6 +35,9 @@ SKIP_COMPONENT_FILES = [
   "./contrib/XGBoost/Cross_validation_for_regression/from_CSV/component.yaml",
   "./contrib/XGBoost/Train_regression_and_calculate_metrics/from_CSV/component.yaml",
   "./contrib/XGBoost/Train_and_cross-validate_regression/from_CSV/component.yaml",
+  # TODO: This component uses invalid placeholders. Updated when migrating GCPC to v2.
+  "./google-cloud/google_cloud_pipeline_components/aiplatform/batch_predict_job/component.yaml",
+  "./google-cloud/google_cloud_pipeline_components/v1/batch_predict_job/component.yaml"
 ]
 
 for component_file in sys.stdin:

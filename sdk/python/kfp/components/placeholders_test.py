@@ -12,9 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Contains tests for kfp.components.placeholders."""
+import os
+import tempfile
 from typing import Any
 
 from absl.testing import parameterized
+from kfp import compiler
+from kfp import dsl
 from kfp.components import placeholders
 
 
@@ -89,7 +93,7 @@ class TestOutputMetadataPlaceholder(parameterized.TestCase):
             "{{$.outputs.artifacts['output1'].metadata}}")
 
 
-class TestIfPresentPlaceholderStructure(parameterized.TestCase):
+class TestIfPresentPlaceholder(parameterized.TestCase):
 
     @parameterized.parameters([
         (placeholders.IfPresentPlaceholder(
@@ -139,6 +143,56 @@ class TestIfPresentPlaceholderStructure(parameterized.TestCase):
             placeholder: str):
         self.assertEqual(placeholder_obj._to_string(), placeholder)
 
+    def test_if_present_with_single_element_simple_can_be_compiled(self):
+
+        @dsl.container_component
+        def container_component(a: str):
+            return dsl.ContainerSpec(
+                image='alpine',
+                command=[
+                    placeholders.IfPresentPlaceholder(
+                        input_name='a', then='b', else_='c')
+                ])
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=container_component, package_path=output_yaml)
+
+    def test_if_present_with_single_element_parameter_reference_can_be_compiled(
+            self):
+
+        @dsl.container_component
+        def container_component(a: str):
+            return dsl.ContainerSpec(
+                image='alpine',
+                command=[
+                    placeholders.IfPresentPlaceholder(
+                        input_name='a', then=a, else_='c')
+                ])
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=container_component, package_path=output_yaml)
+
+    def test_if_present_with_single_element_artifact_reference_can_be_compiled(
+            self):
+
+        @dsl.container_component
+        def container_component(a: dsl.Input[dsl.Artifact]):
+            return dsl.ContainerSpec(
+                image='alpine',
+                command=[
+                    placeholders.IfPresentPlaceholder(
+                        input_name='a', then=a.path, else_='c')
+                ])
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            output_yaml = os.path.join(tempdir, 'component.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=container_component, package_path=output_yaml)
+
 
 class TestConcatPlaceholder(parameterized.TestCase):
 
@@ -187,16 +241,6 @@ class TestContainerPlaceholdersTogether(parameterized.TestCase):
             placeholders.ConcatPlaceholder([
                 'b',
                 placeholders.IfPresentPlaceholder(
-                    input_name='output1', then=['then'], else_=['something'])
-            ])
-        ]),
-         '{"Concat": ["a", {"Concat": ["b", {"IfPresent": {"InputName": "output1", "Then": ["then"], "Else": ["something"]}}]}]}'
-        ),
-        (placeholders.ConcatPlaceholder([
-            'a',
-            placeholders.ConcatPlaceholder([
-                'b',
-                placeholders.IfPresentPlaceholder(
                     input_name='output1', then='then', else_='something')
             ])
         ]),
@@ -227,9 +271,110 @@ class TestContainerPlaceholdersTogether(parameterized.TestCase):
          """{"Concat": ["a", {"IfPresent": {"InputName": "output1", "Then": {"Concat": ["--", "flag"]}, "Else": "{{$.inputs.artifacts['input2'].path}}"}}, "c"]}"""
         ),
     ])
-    def test(self, placeholder_obj: placeholders.IfPresentPlaceholder,
-             placeholder: str):
+    def test_valid(self, placeholder_obj: placeholders.IfPresentPlaceholder,
+                   placeholder: str):
         self.assertEqual(placeholder_obj._to_string(), placeholder)
+
+    def test_only_single_element_ifpresent_inside_concat_outer(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                f'Please use a single element for `then` and `else_` only\.'):
+            placeholders.ConcatPlaceholder([
+                'b',
+                placeholders.IfPresentPlaceholder(
+                    input_name='output1', then=['then'], else_=['something'])
+            ])
+
+    def test_only_single_element_ifpresent_inside_concat_recursive(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                f'Please use a single element for `then` and `else_` only\.'):
+            placeholders.ConcatPlaceholder([
+                'a',
+                placeholders.ConcatPlaceholder([
+                    'b',
+                    placeholders.IfPresentPlaceholder(
+                        input_name='output1',
+                        then=['then'],
+                        else_=['something'])
+                ])
+            ])
+
+        with self.assertRaisesRegex(
+                ValueError,
+                f'Please use a single element for `then` and `else_` only\.'):
+            placeholders.ConcatPlaceholder([
+                'a',
+                placeholders.ConcatPlaceholder([
+                    'b',
+                    placeholders.IfPresentPlaceholder(
+                        input_name='output1',
+                        then=placeholders.ConcatPlaceholder([
+                            placeholders.IfPresentPlaceholder(
+                                input_name='a', then=['b'])
+                        ]),
+                        else_='something')
+                ])
+            ])
+
+    def test_only_single_element_in_nested_ifpresent_inside_concat(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                f'Please use a single element for `then` and `else_` only\.'):
+            dsl.ConcatPlaceholder([
+                'my-prefix-',
+                dsl.IfPresentPlaceholder(
+                    input_name='input1',
+                    then=[
+                        dsl.IfPresentPlaceholder(
+                            input_name='input1',
+                            then=dsl.ConcatPlaceholder(['infix-', 'value']))
+                    ])
+            ])
+
+    def test_recursive_nested_placeholder_validation_does_not_exit_when_first_valid_then_is_found(
+            self):
+        with self.assertRaisesRegex(
+                ValueError,
+                f'Please use a single element for `then` and `else_` only\.'):
+            dsl.ConcatPlaceholder([
+                'my-prefix-',
+                dsl.IfPresentPlaceholder(
+                    input_name='input1',
+                    then=dsl.IfPresentPlaceholder(
+                        input_name='input1',
+                        then=[dsl.ConcatPlaceholder(['infix-', 'value'])]))
+            ])
+
+    def test_only_single_element_in_nested_ifpresent_inside_concat_with_outer_ifpresent(
+            self):
+        with self.assertRaisesRegex(
+                ValueError,
+                f'Please use a single element for `then` and `else_` only\.'):
+            dsl.IfPresentPlaceholder(
+                input_name='input_1',
+                then=dsl.ConcatPlaceholder([
+                    'my-prefix-',
+                    dsl.IfPresentPlaceholder(
+                        input_name='input1',
+                        then=dsl.IfPresentPlaceholder(
+                            input_name='input1',
+                            then=[dsl.ConcatPlaceholder(['infix-', 'value'])]))
+                ]))
+
+    def test_valid_then_but_invalid_else(self):
+        with self.assertRaisesRegex(
+                ValueError,
+                f'Please use a single element for `then` and `else_` only\.'):
+            dsl.ConcatPlaceholder([
+                'my-prefix-',
+                dsl.IfPresentPlaceholder(
+                    input_name='input1',
+                    then=dsl.IfPresentPlaceholder(
+                        input_name='input1',
+                        then='single-element',
+                        else_=['one', 'two']))
+            ])
 
 
 class TestConvertCommandLineElementToStringOrStruct(parameterized.TestCase):
