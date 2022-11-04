@@ -62,9 +62,9 @@ func (s *VisualizationApiTest) TestVisualizationAPI() {
 	t := s.T()
 
 	/* ---------- Generate custom visualization --------- */
-	visualization := &visualization_model.V1beta1Visualization{
+	visualization := &visualization_model.APIVisualization{
 		Arguments: `{"code": ["print(2)"]}`,
-		Type:      visualization_model.V1beta1VisualizationTypeCUSTOM,
+		Type:      visualization_model.APIVisualizationTypeCUSTOM,
 	}
 	customVisualization, err := s.visualizationClient.Create(&params.CreateVisualizationParams{
 		Body: visualization,

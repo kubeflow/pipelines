@@ -132,15 +132,15 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	/* ---------- Import pipeline version YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
 	sequentialPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.CreatePipelineVersionParams{
-		Body: &pipeline_model.V1beta1PipelineVersion{
+		Body: &pipeline_model.APIPipelineVersion{
 			Name: "sequential",
-			PackageURL: &pipeline_model.V1beta1URL{
+			PackageURL: &pipeline_model.APIURL{
 				PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml",
 			},
-			ResourceReferences: []*pipeline_model.V1beta1ResourceReference{
+			ResourceReferences: []*pipeline_model.APIResourceReference{
 				{
-					Key:          &pipeline_model.V1beta1ResourceKey{Type: pipeline_model.V1beta1ResourceTypePIPELINE, ID: pipelineId},
-					Relationship: pipeline_model.V1beta1RelationshipOWNER,
+					Key:          &pipeline_model.APIResourceKey{Type: pipeline_model.APIResourceTypePIPELINE, ID: pipelineId},
+					Relationship: pipeline_model.APIRelationshipOWNER,
 				},
 			},
 		}})
@@ -160,15 +160,15 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
 	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.CreatePipelineVersionParams{
-		Body: &pipeline_model.V1beta1PipelineVersion{
+		Body: &pipeline_model.APIPipelineVersion{
 			Name: "arguments",
-			PackageURL: &pipeline_model.V1beta1URL{
+			PackageURL: &pipeline_model.APIURL{
 				PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip",
 			},
-			ResourceReferences: []*pipeline_model.V1beta1ResourceReference{
+			ResourceReferences: []*pipeline_model.APIResourceReference{
 				{
-					Key:          &pipeline_model.V1beta1ResourceKey{Type: pipeline_model.V1beta1ResourceTypePIPELINE, ID: pipelineId},
-					Relationship: pipeline_model.V1beta1RelationshipOWNER,
+					Key:          &pipeline_model.APIResourceKey{Type: pipeline_model.APIResourceTypePIPELINE, ID: pipelineId},
+					Relationship: pipeline_model.APIRelationshipOWNER,
 				},
 			},
 		}})
@@ -190,7 +190,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 
 		if p.Name == "arguments" {
 			assert.Equal(t, p.Parameters,
-				[]*pipeline_model.V1beta1Parameter{
+				[]*pipeline_model.APIParameter{
 					{Name: "param1", Value: "hello"}, // Default value in the pipeline template
 					{Name: "param2"},                 // No default value in the pipeline
 				})
@@ -305,7 +305,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	assert.Equal(t, pipelineVersion.Name, "arguments")
 	assert.NotNil(t, pipelineVersion.CreatedAt)
 	assert.Equal(t, pipelineVersion.Parameters,
-		[]*pipeline_model.V1beta1Parameter{
+		[]*pipeline_model.APIParameter{
 			{Name: "param1", Value: "hello"},
 			{Name: "param2"},
 		})

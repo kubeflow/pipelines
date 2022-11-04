@@ -109,7 +109,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
 	sequentialPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
-		Body: &model.V1beta1Pipeline{Name: "sequential", URL: &model.V1beta1URL{
+		Body: &model.APIPipeline{Name: "sequential", URL: &model.APIURL{
 			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}}})
 	require.Nil(t, err)
 	assert.Equal(t, "sequential", sequentialPipeline.Name)
@@ -124,7 +124,7 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
 	argumentUrlPipeline, err := s.pipelineClient.Create(&params.CreatePipelineParams{
-		Body: &model.V1beta1Pipeline{URL: &model.V1beta1URL{
+		Body: &model.APIPipeline{URL: &model.APIURL{
 			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip"}}})
 	require.Nil(t, err)
 	assert.Equal(t, "arguments.pipeline.zip", argumentUrlPipeline.Name)
@@ -228,27 +228,27 @@ func (s *PipelineApiTest) TestPipelineAPI() {
 	assert.Equal(t, expected, template)
 }
 
-func verifyPipeline(t *testing.T, pipeline *model.V1beta1Pipeline) {
+func verifyPipeline(t *testing.T, pipeline *model.APIPipeline) {
 	assert.NotNil(t, *pipeline)
 	assert.NotNil(t, pipeline.CreatedAt)
-	expected := model.V1beta1Pipeline{
+	expected := model.APIPipeline{
 		ID:        pipeline.ID,
 		CreatedAt: pipeline.CreatedAt,
 		Name:      "arguments-parameters.yaml",
-		Parameters: []*model.V1beta1Parameter{
+		Parameters: []*model.APIParameter{
 			{Name: "param1", Value: "hello"}, // Default value in the pipeline template
 			{Name: "param2"},                 // No default value in the pipeline
 		},
-		DefaultVersion: &model.V1beta1PipelineVersion{
+		DefaultVersion: &model.APIPipelineVersion{
 			CreatedAt: pipeline.CreatedAt,
 			ID:        pipeline.ID,
 			Name:      "arguments-parameters.yaml",
-			Parameters: []*model.V1beta1Parameter{
+			Parameters: []*model.APIParameter{
 				{Name: "param1", Value: "hello"},
 				{Name: "param2"}},
-			ResourceReferences: []*model.V1beta1ResourceReference{{
-				Key:          &model.V1beta1ResourceKey{ID: pipeline.ID, Type: model.V1beta1ResourceTypePIPELINE},
-				Relationship: model.V1beta1RelationshipOWNER}}},
+			ResourceReferences: []*model.APIResourceReference{{
+				Key:          &model.APIResourceKey{ID: pipeline.ID, Type: model.APIResourceTypePIPELINE},
+				Relationship: model.APIRelationshipOWNER}}},
 	}
 	assert.Equal(t, expected, *pipeline)
 }

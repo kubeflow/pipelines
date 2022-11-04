@@ -31,7 +31,7 @@ type RunApiTestSuite struct {
 	runClient            *api_server.RunClient
 }
 
-type RunResourceReferenceSorter []*run_model.V1beta1ResourceReference
+type RunResourceReferenceSorter []*run_model.APIResourceReference
 
 func (r RunResourceReferenceSorter) Len() int           { return len(r) }
 func (r RunResourceReferenceSorter) Less(i, j int) bool { return r[i].Name < r[j].Name }
@@ -132,14 +132,14 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new hello world run by specifying pipeline version ID ---------- */
-	createRunRequest := &runparams.CreateRunParams{Body: &run_model.V1beta1Run{
+	createRunRequest := &runparams.CreateRunParams{Body: &run_model.APIRun{
 		Name:        "hello world",
 		Description: "this is hello world",
-		ResourceReferences: []*run_model.V1beta1ResourceReference{
-			{Key: &run_model.V1beta1ResourceKey{Type: run_model.V1beta1ResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
-				Name: helloWorldExperiment.Name, Relationship: run_model.V1beta1RelationshipOWNER},
-			{Key: &run_model.V1beta1ResourceKey{Type: run_model.V1beta1ResourceTypePIPELINEVERSION, ID: helloWorldPipelineVersion.ID},
-				Relationship: run_model.V1beta1RelationshipCREATOR},
+		ResourceReferences: []*run_model.APIResourceReference{
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
+				Name: helloWorldExperiment.Name, Relationship: run_model.APIRelationshipOWNER},
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: helloWorldPipelineVersion.ID},
+				Relationship: run_model.APIRelationshipCREATOR},
 		},
 	}}
 	helloWorldRunDetail, _, err := s.runClient.Create(createRunRequest)
@@ -162,19 +162,19 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 	argParamsBytes, err = yaml.ToJSON(argParamsBytes)
 	assert.Nil(t, err)
-	createRunRequest = &runparams.CreateRunParams{Body: &run_model.V1beta1Run{
+	createRunRequest = &runparams.CreateRunParams{Body: &run_model.APIRun{
 		Name:        "argument parameter",
 		Description: "this is argument parameter",
-		PipelineSpec: &run_model.V1beta1PipelineSpec{
+		PipelineSpec: &run_model.APIPipelineSpec{
 			WorkflowManifest: string(argParamsBytes),
-			Parameters: []*run_model.V1beta1Parameter{
+			Parameters: []*run_model.APIParameter{
 				{Name: "param1", Value: "goodbye"},
 				{Name: "param2", Value: "world"},
 			},
 		},
-		ResourceReferences: []*run_model.V1beta1ResourceReference{
-			{Key: &run_model.V1beta1ResourceKey{Type: run_model.V1beta1ResourceTypeEXPERIMENT, ID: argParamsExperiment.ID},
-				Relationship: run_model.V1beta1RelationshipOWNER},
+		ResourceReferences: []*run_model.APIResourceReference{
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: argParamsExperiment.ID},
+				Relationship: run_model.APIRelationshipOWNER},
 		},
 	}}
 	argParamsRunDetail, _, err := s.runClient.Create(createRunRequest)
@@ -243,7 +243,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 
 	/* ---------- List runs for hello world experiment. One run should be returned ---------- */
 	runs, totalSize, _, err = s.runClient.List(&runparams.ListRunsParams{
-		ResourceReferenceKeyType: util.StringPointer(string(run_model.V1beta1ResourceTypeEXPERIMENT)),
+		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 		ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
@@ -258,7 +258,7 @@ func (s *RunApiTestSuite) TestRunApis() {
 
 	/* ---------- List runs for hello world experiment. The same run should still be returned, but should be archived ---------- */
 	runs, totalSize, _, err = s.runClient.List(&runparams.ListRunsParams{
-		ResourceReferenceKeyType: util.StringPointer(string(run_model.V1beta1ResourceTypeEXPERIMENT)),
+		ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 		ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(runs))
@@ -279,14 +279,14 @@ func (s *RunApiTestSuite) TestRunApis() {
 	assert.Nil(t, err)
 
 	/* ---------- Create a new long-running run by specifying pipeline ID ---------- */
-	createLongRunningRunRequest := &runparams.CreateRunParams{Body: &run_model.V1beta1Run{
+	createLongRunningRunRequest := &runparams.CreateRunParams{Body: &run_model.APIRun{
 		Name:        "long running",
 		Description: "this pipeline will run long enough for us to manually terminate it before it finishes",
-		ResourceReferences: []*run_model.V1beta1ResourceReference{
-			{Key: &run_model.V1beta1ResourceKey{Type: run_model.V1beta1ResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
-				Relationship: run_model.V1beta1RelationshipOWNER},
-			{Key: &run_model.V1beta1ResourceKey{Type: run_model.V1beta1ResourceTypePIPELINEVERSION, ID: longRunningPipelineVersion.ID},
-				Relationship: run_model.V1beta1RelationshipCREATOR},
+		ResourceReferences: []*run_model.APIResourceReference{
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: helloWorldExperiment.ID},
+				Relationship: run_model.APIRelationshipOWNER},
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: longRunningPipelineVersion.ID},
+				Relationship: run_model.APIRelationshipCREATOR},
 		},
 	}}
 	longRunningRunDetail, _, err := s.runClient.Create(createLongRunningRunRequest)
@@ -304,27 +304,27 @@ func (s *RunApiTestSuite) TestRunApis() {
 	s.checkTerminatedRunDetail(t, longRunningRunDetail, helloWorldExperiment.ID, helloWorldExperiment.Name, longRunningPipelineVersion.ID, longRunningPipelineVersion.Name)
 }
 
-func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_model.V1beta1RunDetail, experimentId string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
+func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
 	// Check workflow manifest is not empty
 	assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "wait-awhile")
 	// Check runtime workflow manifest is not empty
 	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "wait-awhile")
 
-	expectedRun := &run_model.V1beta1Run{
+	expectedRun := &run_model.APIRun{
 		ID:             runDetail.Run.ID,
 		Name:           "long running",
 		Description:    "this pipeline will run long enough for us to manually terminate it before it finishes",
 		Status:         "Terminating",
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
-		PipelineSpec: &run_model.V1beta1PipelineSpec{
+		PipelineSpec: &run_model.APIPipelineSpec{
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
 		},
-		ResourceReferences: []*run_model.V1beta1ResourceReference{
-			{Key: &run_model.V1beta1ResourceKey{Type: run_model.V1beta1ResourceTypeEXPERIMENT, ID: experimentId},
-				Name: experimentName, Relationship: run_model.V1beta1RelationshipOWNER,
+		ResourceReferences: []*run_model.APIResourceReference{
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
+				Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
 			},
-			{Key: &run_model.V1beta1ResourceKey{Type: run_model.V1beta1ResourceTypePIPELINEVERSION, ID: pipelineVersionId},
-				Name: pipelineVersionName, Relationship: run_model.V1beta1RelationshipCREATOR},
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
+				Name: pipelineVersionName, Relationship: run_model.APIRelationshipCREATOR},
 		},
 		CreatedAt:   runDetail.Run.CreatedAt,
 		ScheduledAt: runDetail.Run.ScheduledAt,
@@ -337,27 +337,27 @@ func (s *RunApiTestSuite) checkTerminatedRunDetail(t *testing.T, runDetail *run_
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
-func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.V1beta1RunDetail, experimentId string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
+func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string, pipelineVersionId string, pipelineVersionName string) {
 	// Check workflow manifest is not empty
 	assert.Contains(t, runDetail.Run.PipelineSpec.WorkflowManifest, "whalesay")
 	// Check runtime workflow manifest is not empty
 	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "whalesay")
 
-	expectedRun := &run_model.V1beta1Run{
+	expectedRun := &run_model.APIRun{
 		ID:             runDetail.Run.ID,
 		Name:           "hello world",
 		Description:    "this is hello world",
 		Status:         runDetail.Run.Status,
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
-		PipelineSpec: &run_model.V1beta1PipelineSpec{
+		PipelineSpec: &run_model.APIPipelineSpec{
 			WorkflowManifest: runDetail.Run.PipelineSpec.WorkflowManifest,
 		},
-		ResourceReferences: []*run_model.V1beta1ResourceReference{
-			{Key: &run_model.V1beta1ResourceKey{Type: run_model.V1beta1ResourceTypeEXPERIMENT, ID: experimentId},
-				Name: experimentName, Relationship: run_model.V1beta1RelationshipOWNER,
+		ResourceReferences: []*run_model.APIResourceReference{
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
+				Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
 			},
-			{Key: &run_model.V1beta1ResourceKey{Type: run_model.V1beta1ResourceTypePIPELINEVERSION, ID: pipelineVersionId},
-				Name: pipelineVersionName, Relationship: run_model.V1beta1RelationshipCREATOR,
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersionId},
+				Name: pipelineVersionName, Relationship: run_model.APIRelationshipCREATOR,
 			},
 		},
 		CreatedAt:   runDetail.Run.CreatedAt,
@@ -371,29 +371,29 @@ func (s *RunApiTestSuite) checkHelloWorldRunDetail(t *testing.T, runDetail *run_
 	assert.Equal(t, expectedRun, runDetail.Run)
 }
 
-func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_model.V1beta1RunDetail, experimentId string, experimentName string) {
+func (s *RunApiTestSuite) checkArgParamsRunDetail(t *testing.T, runDetail *run_model.APIRunDetail, experimentId string, experimentName string) {
 	argParamsBytes, err := ioutil.ReadFile("../resources/arguments-parameters.yaml")
 	assert.Nil(t, err)
 	argParamsBytes, err = yaml.ToJSON(argParamsBytes)
 	assert.Nil(t, err)
 	// Check runtime workflow manifest is not empty
 	assert.Contains(t, runDetail.PipelineRuntime.WorkflowManifest, "arguments-parameters-")
-	expectedRun := &run_model.V1beta1Run{
+	expectedRun := &run_model.APIRun{
 		ID:             runDetail.Run.ID,
 		Name:           "argument parameter",
 		Description:    "this is argument parameter",
 		Status:         runDetail.Run.Status,
 		ServiceAccount: test.GetDefaultPipelineRunnerServiceAccount(*isKubeflowMode),
-		PipelineSpec: &run_model.V1beta1PipelineSpec{
+		PipelineSpec: &run_model.APIPipelineSpec{
 			WorkflowManifest: string(argParamsBytes),
-			Parameters: []*run_model.V1beta1Parameter{
+			Parameters: []*run_model.APIParameter{
 				{Name: "param1", Value: "goodbye"},
 				{Name: "param2", Value: "world"},
 			},
 		},
-		ResourceReferences: []*run_model.V1beta1ResourceReference{
-			{Key: &run_model.V1beta1ResourceKey{Type: run_model.V1beta1ResourceTypeEXPERIMENT, ID: experimentId},
-				Name: experimentName, Relationship: run_model.V1beta1RelationshipOWNER,
+		ResourceReferences: []*run_model.APIResourceReference{
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experimentId},
+				Name: experimentName, Relationship: run_model.APIRelationshipOWNER,
 			},
 		},
 		CreatedAt:   runDetail.Run.CreatedAt,

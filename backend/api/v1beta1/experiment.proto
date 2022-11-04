@@ -75,7 +75,7 @@ service ExperimentService {
   }
 
   // Finds all experiments. Supports pagination, and sorting on certain fields.
-  rpc ListExperimentV1(ListExperimentsRequest) returns (ListExperimentsResponse) {
+  rpc ListExperimentsV1(ListExperimentsRequest) returns (ListExperimentsResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/experiments"
     };

@@ -272,14 +272,14 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 			Pipelineid: util.StringPointer(pipeline.ID),
 		})
 	assert.Nil(t, err)
-	createRunRequest := &runParams.CreateRunParams{Body: &run_model.V1beta1Run{
+	createRunRequest := &runParams.CreateRunParams{Body: &run_model.APIRun{
 		Name:        "hello world",
 		Description: "this is hello world",
-		ResourceReferences: []*run_model.V1beta1ResourceReference{
-			{Key: &run_model.V1beta1ResourceKey{Type: run_model.V1beta1ResourceTypeEXPERIMENT, ID: experiment.ID},
-				Name: experiment.Name, Relationship: run_model.V1beta1RelationshipOWNER},
-			{Key: &run_model.V1beta1ResourceKey{Type: run_model.V1beta1ResourceTypePIPELINEVERSION, ID: pipelineVersion.ID},
-				Relationship: run_model.V1beta1RelationshipCREATOR},
+		ResourceReferences: []*run_model.APIResourceReference{
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
+				Name: experiment.Name, Relationship: run_model.APIRelationshipOWNER},
+			{Key: &run_model.APIResourceKey{Type: run_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersion.ID},
+				Relationship: run_model.APIRelationshipCREATOR},
 		},
 	}}
 	run1, _, err := s.runClient.Create(createRunRequest)
@@ -287,14 +287,14 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	run2, _, err := s.runClient.Create(createRunRequest)
 	assert.Nil(t, err)
 	/* ---------- Create a new hello world job by specifying pipeline ID ---------- */
-	createJobRequest := &jobParams.CreateJobParams{Body: &job_model.V1beta1Job{
+	createJobRequest := &jobParams.CreateJobParams{Body: &job_model.APIJob{
 		Name:        "hello world",
 		Description: "this is hello world",
-		ResourceReferences: []*job_model.V1beta1ResourceReference{
-			{Key: &job_model.V1beta1ResourceKey{Type: job_model.V1beta1ResourceTypeEXPERIMENT, ID: experiment.ID},
-				Relationship: job_model.V1beta1RelationshipOWNER},
-			{Key: &job_model.V1beta1ResourceKey{Type: job_model.V1beta1ResourceTypePIPELINEVERSION, ID: pipelineVersion.ID},
-				Relationship: job_model.V1beta1RelationshipCREATOR},
+		ResourceReferences: []*job_model.APIResourceReference{
+			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypeEXPERIMENT, ID: experiment.ID},
+				Relationship: job_model.APIRelationshipOWNER},
+			{Key: &job_model.APIResourceKey{Type: job_model.APIResourceTypePIPELINEVERSION, ID: pipelineVersion.ID},
+				Relationship: job_model.APIRelationshipCREATOR},
 		},
 		MaxConcurrency: 10,
 		Enabled:        true,
@@ -310,13 +310,13 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- Verify experiment and its runs ------- */
 	experiment, err = s.experimentClient.Get(&params.GetExperimentV1Params{ID: trainingExperiment.ID})
 	assert.Nil(t, err)
-	assert.Equal(t, experiment_model.V1beta1ExperimentStorageState("STORAGESTATE_ARCHIVED"), experiment.StorageState)
+	assert.Equal(t, experiment_model.APIExperimentStorageState("STORAGESTATE_ARCHIVED"), experiment.StorageState)
 	retrievedRun1, _, err := s.runClient.Get(&runParams.GetRunParams{RunID: run1.Run.ID})
 	assert.Nil(t, err)
-	assert.Equal(t, run_model.V1beta1RunStorageState("STORAGESTATE_ARCHIVED"), retrievedRun1.Run.StorageState)
+	assert.Equal(t, run_model.APIRunStorageState("STORAGESTATE_ARCHIVED"), retrievedRun1.Run.StorageState)
 	retrievedRun2, _, err := s.runClient.Get(&runParams.GetRunParams{RunID: run2.Run.ID})
 	assert.Nil(t, err)
-	assert.Equal(t, run_model.V1beta1RunStorageState("STORAGESTATE_ARCHIVED"), retrievedRun2.Run.StorageState)
+	assert.Equal(t, run_model.APIRunStorageState("STORAGESTATE_ARCHIVED"), retrievedRun2.Run.StorageState)
 	retrievedJob1, err := s.jobClient.Get(&jobParams.GetJobParams{ID: job1.ID})
 	assert.Nil(t, err)
 	assert.Equal(t, false, retrievedJob1.Enabled)
@@ -330,13 +330,13 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	/* ---------- Verify experiment and its runs and jobs --------- */
 	experiment, err = s.experimentClient.Get(&params.GetExperimentV1Params{ID: trainingExperiment.ID})
 	assert.Nil(t, err)
-	assert.Equal(t, experiment_model.V1beta1ExperimentStorageState("STORAGESTATE_AVAILABLE"), experiment.StorageState)
+	assert.Equal(t, experiment_model.APIExperimentStorageState("STORAGESTATE_AVAILABLE"), experiment.StorageState)
 	retrievedRun1, _, err = s.runClient.Get(&runParams.GetRunParams{RunID: run1.Run.ID})
 	assert.Nil(t, err)
-	assert.Equal(t, run_model.V1beta1RunStorageState("STORAGESTATE_ARCHIVED"), retrievedRun1.Run.StorageState)
+	assert.Equal(t, run_model.APIRunStorageState("STORAGESTATE_ARCHIVED"), retrievedRun1.Run.StorageState)
 	retrievedRun2, _, err = s.runClient.Get(&runParams.GetRunParams{RunID: run2.Run.ID})
 	assert.Nil(t, err)
-	assert.Equal(t, run_model.V1beta1RunStorageState("STORAGESTATE_ARCHIVED"), retrievedRun2.Run.StorageState)
+	assert.Equal(t, run_model.APIRunStorageState("STORAGESTATE_ARCHIVED"), retrievedRun2.Run.StorageState)
 	retrievedJob1, err = s.jobClient.Get(&jobParams.GetJobParams{ID: job1.ID})
 	assert.Nil(t, err)
 	assert.Equal(t, false, retrievedJob1.Enabled)
