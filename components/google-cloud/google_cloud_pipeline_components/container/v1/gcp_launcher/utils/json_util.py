@@ -68,6 +68,20 @@ def recursive_remove_empty(j):
     temp_explanation_spec_metadata_outputs = j['explanation_spec']['metadata'][
         'outputs']
 
+  if ('job_spec' in j) and ('scheduling' in j['job_spec'] and
+                            'restart_job_on_worker_restart'
+                            in j['job_spec']['scheduling']):
+    if j['job_spec']['scheduling']['restart_job_on_worker_restart'] == '0':
+      j['job_spec']['scheduling']['restart_job_on_worker_restart'] = 'false'
+    if j['job_spec']['scheduling']['restart_job_on_worker_restart'] == '1':
+      j['job_spec']['scheduling']['restart_job_on_worker_restart'] = 'true'
+
+  if ('job_spec' in j) and ('enable_web_access' in j['job_spec']):
+    if j['job_spec']['enable_web_access'] == '0':
+      j['job_spec']['enable_web_access'] = 'false'
+    if j['job_spec']['enable_web_access'] == '1':
+      j['job_spec']['enable_web_access'] = 'true'
+
   needs_update = True
   while needs_update:
     new_j = __remove_empty(j)
