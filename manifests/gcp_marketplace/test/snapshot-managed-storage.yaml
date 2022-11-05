@@ -1890,7 +1890,9 @@ spec:
   ports:
     - port: 3306
   selector:
+
     app: cloudsqlproxy
+
     app.kubernetes.io/name: my-release
 ---
 # Source: kubeflow-pipelines/templates/pipeline.yaml
@@ -2067,6 +2069,7 @@ spec:
       - name: server
         image: gcr.io/ml-pipeline/google/pipelines/cacheserver:dummy
         env:
+
           - name: DBCONFIG_USER
             valueFrom:
               secretKeyRef:
@@ -2077,6 +2080,7 @@ spec:
               secretKeyRef:
                 name: mysql-credential
                 key: password
+
           - name: CACHE_IMAGE
             valueFrom:
               configMapKeyRef:
@@ -2157,6 +2161,7 @@ spec:
         imagePullPolicy: 'Always'
         env:
         # TODO: merge all into mysql-credential
+
         - name: DBCONFIG_USER
           valueFrom:
             secretKeyRef:
@@ -2167,6 +2172,7 @@ spec:
             secretKeyRef:
               name: mysql-credential
               key: password
+
         - name: MYSQL_DATABASE
           valueFrom:
             configMapKeyRef:
@@ -2644,10 +2650,12 @@ spec:
     spec:
       containers:
         - env:
+
             - name: HAS_DEFAULT_BUCKET
               value: "true"
             - name: BUCKET_NAME
               value: "mybucket"
+
             - name: PROJECT_ID
               valueFrom:
                 configMapKeyRef:
@@ -2661,6 +2669,7 @@ spec:
               value: 'pipeline-runner'
             - name: OBJECTSTORECONFIG_SECURE
               value: "false"
+
             - name: OBJECTSTORECONFIG_BUCKETNAME
               value: "mybucket"
             - name: DBCONFIG_DBNAME
@@ -2675,6 +2684,7 @@ spec:
                 secretKeyRef:
                   name: mysql-credential
                   key: password
+
           image: gcr.io/ml-pipeline/google/pipelines/apiserver:dummy
           imagePullPolicy: IfNotPresent
           name: ml-pipeline-api-server
