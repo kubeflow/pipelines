@@ -8,6 +8,7 @@ repos:
       - id: check-json
       - id: end-of-file-fixer
       - id: trailing-whitespace
+        exclude: ^manifests/gcp_marketplace/test/*
       - id: debug-statements
       - id: check-merge-conflict
       - id: name-tests-test
