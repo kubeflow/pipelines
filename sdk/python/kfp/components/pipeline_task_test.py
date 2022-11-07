@@ -397,7 +397,7 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
             def return_1() -> int:
                 return 1
 
-            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+            @dsl.pipeline()
             def my_pipeline():
                 return_1_task = return_1()
 
@@ -423,7 +423,7 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
             def return_list() -> int:
                 return [1, 2, 3]
 
-            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+            @dsl.pipeline()
             def my_pipeline():
                 return_list_task = return_list()
 
@@ -445,7 +445,7 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
             def print_op(message: str):
                 print(message)
 
-            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+            @dsl.pipeline()
             def my_pipeline():
                 exit_task = print_op(message='exit task.')
 
@@ -469,7 +469,7 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
         def return_1() -> int:
             return 1
 
-        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+        @dsl.pipeline()
         def my_pipeline():
             return_1_task = return_1()
 
@@ -493,7 +493,7 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
         def return_1() -> int:
             return 1
 
-        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+        @dsl.pipeline()
         def my_pipeline():
             return_1_task = return_1()
 

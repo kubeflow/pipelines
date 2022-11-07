@@ -563,15 +563,6 @@ class PipelineTask:
                 task1 = my_component(text='1st task')
                 task2 = my_component(text='2nd task').after(task1)
         """
-        from kfp.components.tasks_group import TasksGroupType
-
         for task in tasks:
-            if task.parent_task_group is not self.parent_task_group and task.parent_task_group.group_type in [
-                    TasksGroupType.CONDITION, TasksGroupType.FOR_LOOP,
-                    TasksGroupType.EXIT_HANDLER
-            ]:
-                raise ValueError(
-                    f'Cannot use .after() across inner pipelines or DSL control flow features. Tried to set {self.name} after {task.name}, but these tasks do not belong to the same pipeline or are not enclosed in the same control flow content manager.'
-                )
             self._task_spec.dependent_tasks.append(task.name)
         return self
