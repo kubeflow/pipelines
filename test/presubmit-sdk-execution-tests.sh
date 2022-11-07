@@ -16,6 +16,8 @@
 source_root=$(pwd)
 
 python3 -m pip install --upgrade pip
+# Install KFP server API from commit.
+cp -r ./backend/api/v1beta1/python_http_client /python_http_client
 python3 -m pip install $source_root/sdk/python
 python3 -m pip install -r $source_root/test/sdk-execution-tests/requirements.txt
 
