@@ -16,14 +16,13 @@
 source_root=$(pwd)
 
 python3 -m pip install --upgrade pip
+python3 -m pip install $source_root/sdk/python
 python3 -m pip install -r $source_root/test/sdk-execution-tests/requirements.txt
 
 # Install KFP server API from commit.
-cp -r ./backend/api/v1beta1/python_http_client /python_http_client
-# Install python client, including DSL compiler.
-cp -r ./sdk/python /sdk/python
-python3 -m pip install /python_http_client  /sdk/python
-python3 -m pip install $source_root/sdk/python
+cp -r $source_root/backend/api/v1beta1/python_http_client /python_http_client
+python3 -m pip install /python_http_client
+
 
 export KFP_ENDPOINT="https://$(curl https://raw.githubusercontent.com/kubeflow/testing/master/test-infra/kfp/endpoint)"
 export TIMEOUT_SECONDS=2700
