@@ -544,7 +544,7 @@ class Client(object):
           A response object including a list of experiments and next page token.
         """
         namespace = namespace or self.get_user_namespace()
-        response = self._experiment_api.list_experiment(
+        response = self._experiment_api.list_experiments(
             page_token=page_token,
             page_size=page_size,
             sort_by=sort_by,
@@ -589,13 +589,13 @@ class Client(object):
             }]
         })
         if namespace:
-            result = self._experiment_api.list_experiment(
+            result = self._experiment_api.list_experiments(
                 filter=experiment_filter,
                 resource_reference_key_type=kfp_server_api.models
                 .api_resource_type.ApiResourceType.NAMESPACE,
                 resource_reference_key_id=namespace)
         else:
-            result = self._experiment_api.list_experiment(
+            result = self._experiment_api.list_experiments(
                 filter=experiment_filter)
         if not result.experiments:
             raise ValueError(
