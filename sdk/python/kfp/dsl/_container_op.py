@@ -343,7 +343,8 @@ class Container(V1Container):
                     memory)
         return self.add_resource_limit('memory', memory)
 
-    def set_ephemeral_storage_request(self, size) -> 'Container':
+    def set_ephemeral_storage_request(self, size: Union[str,
+                                                        _pipeline_param.PipelineParam]) -> 'Container':
         """Set ephemeral-storage request (minimum) for this operator.
 
         Args:
@@ -354,7 +355,8 @@ class Container(V1Container):
             self._validate_size_string(size)
         return self.add_resource_request('ephemeral-storage', size)
 
-    def set_ephemeral_storage_limit(self, size) -> 'Container':
+    def set_ephemeral_storage_limit(self, size: Union[str,
+                                                        _pipeline_param.PipelineParam]) -> 'Container':
         """Set ephemeral-storage request (maximum) for this operator.
 
         Args:
