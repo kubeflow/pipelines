@@ -545,7 +545,7 @@ class Client:
             ``ApiListExperimentsResponse`` object.
         """
         namespace = namespace or self.get_user_namespace()
-        response = self._experiment_api.list_experiments(
+        response = self._experiment_api.list_experiments_v1(
             page_token=page_token,
             page_size=page_size,
             sort_by=sort_by,
@@ -585,13 +585,13 @@ class Client:
             }]
         })
         if namespace:
-            result = self._experiment_api.list_experiments(
+            result = self._experiment_api.list_experiments_v1(
                 filter=experiment_filter,
                 resource_reference_key_type=kfp_server_api.ApiResourceType
                 .NAMESPACE,
                 resource_reference_key_id=namespace)
         else:
-            result = self._experiment_api.list_experiments(
+            result = self._experiment_api.list_experiments_v1(
                 filter=experiment_filter)
         if not result.experiments:
             raise ValueError(
