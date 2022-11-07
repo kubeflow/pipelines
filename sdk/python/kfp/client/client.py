@@ -474,7 +474,7 @@ class Client:
                 name=name,
                 description=description,
                 resource_references=resource_references)
-            experiment = self._experiment_api.create_experiment(body=experiment)
+            experiment = self._experiment_api.create_experiment_v1(body=experiment)
 
         link = f'{self._get_url_prefix()}/#/experiments/details/{experiment.id}'
         if self._is_ipython():
@@ -576,7 +576,7 @@ class Client:
             raise ValueError(
                 'Either experiment_id or experiment_name is required')
         if experiment_id is not None:
-            return self._experiment_api.get_experiment(id=experiment_id)
+            return self._experiment_api.get_experiment_v1(id=experiment_id)
         experiment_filter = json.dumps({
             'predicates': [{
                 'op': _FILTER_OPERATIONS['EQUALS'],
@@ -610,7 +610,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._experiment_api.archive_experiment(id=experiment_id)
+        return self._experiment_api.archive_experiment_v1(id=experiment_id)
 
     def unarchive_experiment(self, experiment_id: str) -> dict:
         """Unarchives an experiment.
@@ -621,7 +621,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._experiment_api.unarchive_experiment(id=experiment_id)
+        return self._experiment_api.unarchive_experiment_v1(id=experiment_id)
 
     def delete_experiment(self, experiment_id: str) -> dict:
         """Delete experiment.
@@ -632,7 +632,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._experiment_api.delete_experiment(id=experiment_id)
+        return self._experiment_api.delete_experiment_v1(id=experiment_id)
 
     def _extract_pipeline_yaml(self, package_file: str) -> dict:
 

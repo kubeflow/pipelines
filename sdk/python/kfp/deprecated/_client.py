@@ -471,7 +471,7 @@ class Client(object):
                 name=name,
                 description=description,
                 resource_references=resource_references)
-            experiment = self._experiment_api.create_experiment(body=experiment)
+            experiment = self._experiment_api.create_experiment_v1(body=experiment)
 
         if self._is_ipython():
             import IPython
@@ -580,7 +580,7 @@ class Client(object):
             raise ValueError(
                 'Either experiment_id or experiment_name is required')
         if experiment_id is not None:
-            return self._experiment_api.get_experiment(id=experiment_id)
+            return self._experiment_api.get_experiment_v1(id=experiment_id)
         experiment_filter = json.dumps({
             "predicates": [{
                 "op": _FILTER_OPERATIONS["EQUALS"],
@@ -615,7 +615,7 @@ class Client(object):
         Raises:
           kfp_server_api.ApiException: If experiment is not found.
         """
-        self._experiment_api.archive_experiment(experiment_id)
+        self._experiment_api.archive_experiment_v1(experiment_id)
 
     def delete_experiment(self, experiment_id):
         """Delete experiment.
@@ -629,7 +629,7 @@ class Client(object):
         Raises:
           kfp_server_api.ApiException: If experiment is not found.
         """
-        return self._experiment_api.delete_experiment(id=experiment_id)
+        return self._experiment_api.delete_experiment_v1(id=experiment_id)
 
     def _extract_pipeline_yaml(self, package_file):
 
