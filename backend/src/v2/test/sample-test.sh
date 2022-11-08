@@ -15,6 +15,7 @@
 # limitations under the License.
 
 set -ex
+source_root=$(pwd)
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" > /dev/null && pwd)"
 cd "${DIR}"
