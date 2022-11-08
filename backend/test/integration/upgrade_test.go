@@ -234,7 +234,7 @@ func (s *UpgradeTests) PreparePipelines() {
 
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
-	sequentialPipeline, err := s.pipelineClient.Create(&pipelineParams.CreatePipelineParams{
+	sequentialPipeline, err := s.pipelineClient.Create(&pipelineParams.CreatePipelineV1Params{
 		Body: &pipeline_model.APIPipeline{Name: "sequential", URL: &pipeline_model.APIURL{
 			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}}})
 	require.Nil(t, err)
@@ -249,7 +249,7 @@ func (s *UpgradeTests) PreparePipelines() {
 
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
-	argumentUrlPipeline, err := s.pipelineClient.Create(&pipelineParams.CreatePipelineParams{
+	argumentUrlPipeline, err := s.pipelineClient.Create(&pipelineParams.CreatePipelineV1Params{
 		Body: &pipeline_model.APIPipeline{URL: &pipeline_model.APIURL{
 			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip"}}})
 	require.Nil(t, err)

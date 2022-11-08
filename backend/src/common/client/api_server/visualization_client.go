@@ -61,9 +61,9 @@ func (c *VisualizationClient) Create(parameters *params.CreateVisualizationV1Par
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.VisualizationService.CreateVisualization(parameters, PassThroughAuth)
+	response, err := c.apiClient.VisualizationService.CreateVisualizationV1(parameters, PassThroughAuth)
 	if err != nil {
-		if defaultError, ok := err.(*params.CreateVisualizationDefault); ok {
+		if defaultError, ok := err.(*params.CreateVisualizationV1Default); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = CreateErrorCouldNotRecoverAPIStatus(err)

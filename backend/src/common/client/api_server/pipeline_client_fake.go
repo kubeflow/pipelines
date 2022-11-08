@@ -62,7 +62,7 @@ func NewPipelineClientFake() *PipelineClientFake {
 	return &PipelineClientFake{}
 }
 
-func (c *PipelineClientFake) Create(params *pipelineparams.CreatePipelineParams) (
+func (c *PipelineClientFake) Create(params *pipelineparams.CreatePipelineV1Params) (
 	*pipelinemodel.APIPipeline, error) {
 	switch params.Body.URL.PipelineURL {
 	case PipelineInvalidURL:
@@ -135,7 +135,7 @@ func (c *PipelineClientFake) ListAll(params *pipelineparams.ListPipelinesV1Param
 	return listAllForPipeline(c, params, maxResultSize)
 }
 
-func (c *PipelineClientFake) UpdateDefaultVersion(params *params.UpdatePipelineV1DefaultVersionV1Params) error {
+func (c *PipelineClientFake) UpdateDefaultVersion(params *params.UpdatePipelineDefaultVersionV1Params) error {
 	switch params.PipelineID {
 	case PipelineForClientErrorTest:
 		return fmt.Errorf(ClientErrorString)

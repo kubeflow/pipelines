@@ -183,7 +183,7 @@ func (c *RunClient) Delete(parameters *params.DeleteRunV1Params) error {
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.RunService.DeleteRun(parameters, c.authInfoWriter)
+	_, err := c.apiClient.RunService.DeleteRunV1(parameters, c.authInfoWriter)
 
 	if err != nil {
 		if defaultError, ok := err.(*params.ListRunsV1Default); ok {
@@ -208,7 +208,7 @@ func (c *RunClient) List(parameters *params.ListRunsV1Params) (
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.RunService.ListRuns(parameters, c.authInfoWriter)
+	response, err := c.apiClient.RunService.ListRunsV1(parameters, c.authInfoWriter)
 
 	if err != nil {
 		if defaultError, ok := err.(*params.ListRunsV1Default); ok {
@@ -261,7 +261,7 @@ func (c *RunClient) Terminate(parameters *params.TerminateRunV1Params) error {
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.RunService.TerminateRun(parameters, c.authInfoWriter)
+	_, err := c.apiClient.RunService.TerminateRunV1(parameters, c.authInfoWriter)
 	if err != nil {
 		return util.NewUserError(err,
 			fmt.Sprintf("Failed to terminate run. Params: %+v", parameters),
