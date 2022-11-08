@@ -539,7 +539,7 @@ class TestInputSpec(unittest.TestCase):
             structures.InputSpec(type='String', default=None))
         self.assertNotEqual(
             structures.InputSpec(type='String', default=None),
-            structures.InputSpec(type='String', default='test', _optional=True))
+            structures.InputSpec(type='String', default='test', optional=True))
         self.assertEqual(
             structures.InputSpec(type='List', default=None),
             structures.InputSpec(type='typing.List', default=None))
@@ -552,13 +552,13 @@ class TestInputSpec(unittest.TestCase):
 
     def test_optional(self):
         input_spec = structures.InputSpec(
-            type='String', default=None, _optional=True)
+            type='String', default=None, optional=True)
         self.assertEqual(input_spec.default, None)
-        self.assertEqual(input_spec._optional, True)
+        self.assertEqual(input_spec.optional, True)
 
         input_spec = structures.InputSpec(type='String')
         self.assertEqual(input_spec.default, None)
-        self.assertEqual(input_spec._optional, False)
+        self.assertEqual(input_spec.optional, False)
 
     def test_from_ir_component_inputs_dict(self):
         parameter_dict = {'parameterType': 'STRING'}

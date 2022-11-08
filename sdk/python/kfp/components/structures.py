@@ -43,11 +43,11 @@ class InputSpec:
     Attributes:
         type: The type of the input.
         default (optional): the default value for the input.
-        _optional: Wether the input is optional. An input is optional when it has an explicit default value.
+        optional: Wether the input is optional. An input is optional when it has an explicit default value.
     """
     type: Union[str, dict]
     default: Optional[Any] = None
-    _optional: Optional[bool] = False
+    optional: Optional[bool] = False
 
     def __post_init__(self) -> None:
         self._validate_type()
@@ -76,7 +76,7 @@ class InputSpec:
             # TODO: write the IR is_optional field to IR when compiling. currently we don't do this, so just set optional to True if default_value is not None.
             optional = default_value is not None
             return InputSpec(
-                type=type_, default=default_value, _optional=optional)
+                type=type_, default=default_value, optional=optional)
 
         else:
             type_ = ir_component_inputs_dict['artifactType']['schemaTitle']
@@ -120,7 +120,7 @@ class InputSpec:
         """Validates that the optional and default properties are in consistent
         states."""
         # Because None can be the default value, None cannot be used to to indicate no default. This is why we need the optional field. This check prevents users of InputSpec from setting these two values to an inconsistent state, forcing users of InputSpec to be explicit about optionality.
-        if self._optional is False and self.default is not None:
+        if self.optional is False and self.default is not None:
             raise ValueError('')
 
 
@@ -642,7 +642,7 @@ class ComponentSpec:
                 inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
                     type=in_memory_parameter_type_name,
                     default=default,
-                    _optional=optional,
+                    optional=optional,
                 )
                 continue
 
@@ -672,7 +672,7 @@ class ComponentSpec:
                     type=type_utils.create_bundled_artifact_type(
                         schema_title, schema_version),
                     default=default,
-                    _optional=optional,
+                    optional=optional,
                 )
             else:
                 inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
