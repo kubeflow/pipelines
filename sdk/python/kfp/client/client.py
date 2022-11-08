@@ -415,7 +415,7 @@ class Client:
                 )
 
             try:
-                response = self._healthz_api.get_healthz_v1()
+                response = self._healthz_api.get_healthz()
                 return response
             # ApiException, including network errors, is the only type that may
             # recover after retry.
