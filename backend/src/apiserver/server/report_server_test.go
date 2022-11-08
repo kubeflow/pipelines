@@ -47,7 +47,7 @@ func TestReportWorkflow(t *testing.T) {
 				},
 			},
 		}})
-	_, err := reportServer.ReportWorkflow(nil, &api.ReportWorkflowRequest{
+	_, err := reportServer.ReportWorkflowV1(nil, &api.ReportWorkflowRequest{
 		Workflow: workflow.ToStringForStore(),
 	})
 	assert.Nil(t, err)
@@ -72,7 +72,7 @@ func TestReportWorkflow_ValidationFailed(t *testing.T) {
 		},
 	})
 
-	_, err := reportServer.ReportWorkflow(nil, &api.ReportWorkflowRequest{
+	_, err := reportServer.ReportWorkflowV1(nil, &api.ReportWorkflowRequest{
 		Workflow: workflow.ToStringForStore(),
 	})
 	assert.NotNil(t, err)

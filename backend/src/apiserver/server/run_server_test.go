@@ -49,7 +49,7 @@ func TestCreateRun_V1Params(t *testing.T) {
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
-	runDetail, err := server.CreateRun(nil, &api.CreateRunRequest{Run: run})
+	runDetail, err := server.CreateRunV1(nil, &api.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
@@ -125,7 +125,7 @@ func TestCreateRun_RuntimeParams(t *testing.T) {
 			},
 		},
 	}
-	runDetail, err := server.CreateRun(nil, &api.CreateRunRequest{Run: run})
+	runDetail, err := server.CreateRunV1(nil, &api.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
 	expectedRunDetail := api.RunDetail{
@@ -172,7 +172,7 @@ func TestCreateRunPatch(t *testing.T) {
 				{Name: "param2", Value: "test-project-id"}},
 		},
 	}
-	runDetail, err := server.CreateRun(nil, &api.CreateRunRequest{Run: run})
+	runDetail, err := server.CreateRunV1(nil, &api.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflowPatch.DeepCopy()
@@ -242,7 +242,7 @@ func TestCreateRun_Unauthorized(t *testing.T) {
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
-	_, err := server.CreateRun(ctx, &api.CreateRunRequest{Run: run})
+	_, err := server.CreateRunV1(ctx, &api.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: "ns1",
@@ -279,7 +279,7 @@ func TestCreateRun_Multiuser(t *testing.T) {
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
-	runDetail, err := server.CreateRun(ctx, &api.CreateRunRequest{Run: run})
+	runDetail, err := server.CreateRunV1(ctx, &api.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
@@ -337,7 +337,7 @@ func TestListRun(t *testing.T) {
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
-	_, err := server.CreateRun(nil, &api.CreateRunRequest{Run: run})
+	_, err := server.CreateRunV1(nil, &api.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
 	expectedRun := &api.Run{
@@ -360,7 +360,7 @@ func TestListRun(t *testing.T) {
 			},
 		},
 	}
-	listRunsResponse, err := server.ListRuns(nil, &api.ListRunsRequest{})
+	listRunsResponse, err := server.ListRunsV1(nil, &api.ListRunsRequest{})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(listRunsResponse.Runs))
 	assert.Equal(t, expectedRun, listRunsResponse.Runs[0])
@@ -378,7 +378,7 @@ func TestListRuns_Unauthorized(t *testing.T) {
 	defer clients.Close()
 
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
-	_, err := server.ListRuns(ctx, &api.ListRunsRequest{
+	_, err := server.ListRunsV1(ctx, &api.ListRunsRequest{
 		ResourceReferenceKey: &api.ResourceKey{
 			Type: api.ResourceType_NAMESPACE,
 			Id:   "ns1",
@@ -419,7 +419,7 @@ func TestListRuns_Multiuser(t *testing.T) {
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
-	_, err := server.CreateRun(ctx, &api.CreateRunRequest{Run: run})
+	_, err := server.CreateRunV1(ctx, &api.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 
 	expectedRuns := []*api.Run{{
@@ -509,7 +509,7 @@ func TestListRuns_Multiuser(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		response, err := server.ListRuns(ctx, tc.request)
+		response, err := server.ListRunsV1(ctx, tc.request)
 
 		if tc.wantError {
 			if err == nil {
@@ -682,7 +682,7 @@ func TestReportRunMetrics_RunNotFound(t *testing.T) {
 	defer clientManager.Close()
 	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
 
-	_, err := runServer.ReportRunMetrics(context.Background(), &api.ReportRunMetricsRequest{
+	_, err := runServer.ReportRunMetricsV1(context.Background(), &api.ReportRunMetricsRequest{
 		RunId: "1",
 	})
 	AssertUserError(t, err, codes.NotFound)
@@ -698,7 +698,7 @@ func TestReportRunMetrics_Succeed(t *testing.T) {
 	defer clientManager.Close()
 	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
 
-	response, err := runServer.ReportRunMetrics(ctx, &api.ReportRunMetricsRequest{
+	response, err := runServer.ReportRunMetricsV1(ctx, &api.ReportRunMetricsRequest{
 		RunId:   runDetails.UUID,
 		Metrics: []*api.RunMetric{metric},
 	})
@@ -714,7 +714,7 @@ func TestReportRunMetrics_Succeed(t *testing.T) {
 	}
 	assert.Equal(t, expectedResponse, response)
 
-	run, err := runServer.GetRun(ctx, &api.GetRunRequest{
+	run, err := runServer.GetRunV1(ctx, &api.GetRunRequest{
 		RunId: runDetails.UUID,
 	})
 	assert.Nil(t, err)
@@ -734,7 +734,7 @@ func TestReportRunMetrics_Unauthorized(t *testing.T) {
 	resourceManager = resource.NewResourceManager(clientManager)
 	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
 
-	_, err := runServer.ReportRunMetrics(ctx, &api.ReportRunMetricsRequest{
+	_, err := runServer.ReportRunMetricsV1(ctx, &api.ReportRunMetricsRequest{
 		RunId:   runDetails.UUID,
 		Metrics: []*api.RunMetric{metric},
 	})
@@ -772,7 +772,7 @@ func TestReportRunMetrics_PartialFailures(t *testing.T) {
 	invalidNodeIDMetric := &api.RunMetric{
 		Name: "metric-1",
 	}
-	response, err := runServer.ReportRunMetrics(context.Background(), &api.ReportRunMetricsRequest{
+	response, err := runServer.ReportRunMetricsV1(context.Background(), &api.ReportRunMetricsRequest{
 		RunId:   runDetail.UUID,
 		Metrics: []*api.RunMetric{validMetric, invalidNameMetric, invalidNodeIDMetric},
 	})
@@ -983,7 +983,7 @@ func TestReadArtifacts_Succeed(t *testing.T) {
 		NodeId:       "node-1",
 		ArtifactName: "artifact-1",
 	}
-	response, err := runServer.ReadArtifact(ctx, artifact)
+	response, err := runServer.ReadArtifactV1(ctx, artifact)
 	assert.Nil(t, err)
 
 	expectedResponse := &api.ReadArtifactResponse{
@@ -1011,7 +1011,7 @@ func TestReadArtifacts_Unauthorized(t *testing.T) {
 		NodeId:       "node-1",
 		ArtifactName: "artifact-1",
 	}
-	_, err := runServer.ReadArtifact(ctx, artifact)
+	_, err := runServer.ReadArtifactV1(ctx, artifact)
 	assert.NotNil(t, err)
 
 	resourceAttributes := &authorizationv1.ResourceAttributes{
@@ -1038,7 +1038,7 @@ func TestReadArtifacts_Run_NotFound(t *testing.T) {
 		NodeId:       "node-1",
 		ArtifactName: "artifact-1",
 	}
-	_, err := runServer.ReadArtifact(context.Background(), artifact)
+	_, err := runServer.ReadArtifactV1(context.Background(), artifact)
 	assert.NotNil(t, err)
 	err = err.(*util.UserError)
 
@@ -1077,7 +1077,7 @@ func TestReadArtifacts_Resource_NotFound(t *testing.T) {
 		NodeId:       "node-1",
 		ArtifactName: "artifact-1",
 	}
-	_, err = runServer.ReadArtifact(context.Background(), artifactRequest)
+	_, err = runServer.ReadArtifactV1(context.Background(), artifactRequest)
 	assert.NotNil(t, err)
 	assert.True(t, util.IsUserErrorCodeMatch(err, codes.NotFound))
 }

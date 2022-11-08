@@ -18,7 +18,7 @@
     "/apis/v1alpha1/tasks": {
       "get": {
         "summary": "Finds all tasks. Supports pagination, and sorting on certain fields.",
-        "operationId": "ListTasks",
+        "operationId": "ListTasksV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -87,7 +87,7 @@
       },
       "post": {
         "summary": "Creates a new task.",
-        "operationId": "CreateTask",
+        "operationId": "CreateTaskV1",
         "responses": {
           "200": {
             "description": "A successful response.",

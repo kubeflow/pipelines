@@ -29,7 +29,7 @@ type ReportServer struct {
 	resourceManager *resource.ResourceManager
 }
 
-func (s *ReportServer) ReportWorkflow(ctx context.Context,
+func (s *ReportServer) ReportWorkflowV1(ctx context.Context,
 	request *api.ReportWorkflowRequest) (*empty.Empty, error) {
 	execSpec, err := ValidateReportWorkflowRequest(request)
 	if err != nil {
@@ -42,7 +42,7 @@ func (s *ReportServer) ReportWorkflow(ctx context.Context,
 	return &empty.Empty{}, nil
 }
 
-func (s *ReportServer) ReportScheduledWorkflow(ctx context.Context,
+func (s *ReportServer) ReportScheduledWorkflowV1(ctx context.Context,
 	request *api.ReportScheduledWorkflowRequest) (*empty.Empty, error) {
 	scheduledWorkflow, err := ValidateReportScheduledWorkflowRequest(request)
 	if err != nil {
