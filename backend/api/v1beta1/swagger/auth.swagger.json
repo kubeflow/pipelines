@@ -17,7 +17,7 @@
   "paths": {
     "/apis/v1beta1/auth": {
       "get": {
-        "operationId": "Authorize",
+        "operationId": "AuthorizeV1",
         "responses": {
           "200": {
             "description": "A successful response.",

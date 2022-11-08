@@ -18,7 +18,7 @@
     "/apis/v1beta1/namespaces/{namespace}/pipelines/{name}": {
       "get": {
         "summary": "Finds a pipeline by Name (and namespace)",
-        "operationId": "GetPipelineByName",
+        "operationId": "GetPipelineByNameV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -57,7 +57,7 @@
     "/apis/v1beta1/pipeline_versions": {
       "get": {
         "summary": "Lists all pipeline versions of a given pipeline.",
-        "operationId": "ListPipelineVersions",
+        "operationId": "ListPipelineVersionsV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -132,7 +132,7 @@
       },
       "post": {
         "summary": "Adds a pipeline version to the specified pipeline.",
-        "operationId": "CreatePipelineVersion",
+        "operationId": "CreatePipelineVersionV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -166,7 +166,7 @@
     "/apis/v1beta1/pipeline_versions/{version_id}": {
       "get": {
         "summary": "Gets a pipeline version by pipeline version ID.",
-        "operationId": "GetPipelineVersion",
+        "operationId": "GetPipelineVersionV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -196,7 +196,7 @@
       },
       "delete": {
         "summary": "Deletes a pipeline version by pipeline version ID. If the deleted pipeline\nversion is the default pipeline version, the pipeline's default version\nchanges to the pipeline's most recent pipeline version. If there are no\nremaining pipeline versions, the pipeline will have no default version.\nExamines the run_service_api.ipynb notebook to learn more about creating a\nrun using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).",
-        "operationId": "DeletePipelineVersion",
+        "operationId": "DeletePipelineVersionV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -260,7 +260,7 @@
     "/apis/v1beta1/pipelines": {
       "get": {
         "summary": "Finds all pipelines.",
-        "operationId": "ListPipelines",
+        "operationId": "ListPipelinesV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -368,7 +368,7 @@
     "/apis/v1beta1/pipelines/{id}": {
       "get": {
         "summary": "Finds a specific pipeline by ID.",
-        "operationId": "GetPipeline",
+        "operationId": "GetPipelineV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -398,7 +398,7 @@
       },
       "delete": {
         "summary": "Deletes a pipeline and its pipeline versions.",
-        "operationId": "DeletePipeline",
+        "operationId": "DeletePipelineV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -462,7 +462,7 @@
     "/apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id}": {
       "post": {
         "summary": "Update the default pipeline version of a specific pipeline.",
-        "operationId": "UpdatePipelineDefaultVersion",
+        "operationId": "UpdatePipelineDefaultVersionV1",
         "responses": {
           "200": {
             "description": "A successful response.",

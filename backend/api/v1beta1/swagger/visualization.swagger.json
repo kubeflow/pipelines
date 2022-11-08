@@ -17,7 +17,7 @@
   "paths": {
     "/apis/v1beta1/visualizations/{namespace}": {
       "post": {
-        "operationId": "CreateVisualization",
+        "operationId": "CreateVisualizationV1",
         "responses": {
           "200": {
             "description": "A successful response.",

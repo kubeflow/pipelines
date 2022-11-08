@@ -263,7 +263,7 @@
     "/apis/v1beta1/runs": {
       "get": {
         "summary": "Finds all runs.",
-        "operationId": "ListRuns",
+        "operationId": "ListRunsV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -338,7 +338,7 @@
       },
       "post": {
         "summary": "Creates a new run.",
-        "operationId": "CreateRun",
+        "operationId": "CreateRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -371,7 +371,7 @@
     "/apis/v1beta1/runs/{id}": {
       "delete": {
         "summary": "Deletes a run.",
-        "operationId": "DeleteRun",
+        "operationId": "DeleteRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -403,7 +403,7 @@
     "/apis/v1beta1/runs/{id}:archive": {
       "post": {
         "summary": "Archives a run.",
-        "operationId": "ArchiveRun",
+        "operationId": "ArchiveRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -435,7 +435,7 @@
     "/apis/v1beta1/runs/{id}:unarchive": {
       "post": {
         "summary": "Restores an archived run.",
-        "operationId": "UnarchiveRun",
+        "operationId": "UnarchiveRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -467,7 +467,7 @@
     "/apis/v1beta1/runs/{run_id}": {
       "get": {
         "summary": "Finds a specific run by ID.",
-        "operationId": "GetRun",
+        "operationId": "GetRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -499,7 +499,7 @@
     "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read": {
       "get": {
         "summary": "Finds a run's artifact data.",
-        "operationId": "ReadArtifact",
+        "operationId": "ReadArtifactV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -545,7 +545,7 @@
     "/apis/v1beta1/runs/{run_id}/retry": {
       "post": {
         "summary": "Re-initiates a failed or terminated run.",
-        "operationId": "RetryRun",
+        "operationId": "RetryRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -577,7 +577,7 @@
     "/apis/v1beta1/runs/{run_id}/terminate": {
       "post": {
         "summary": "Terminates an active run.",
-        "operationId": "TerminateRun",
+        "operationId": "TerminateRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -609,7 +609,7 @@
     "/apis/v1beta1/runs/{run_id}:reportMetrics": {
       "post": {
         "summary": "ReportRunMetrics reports metrics of a run. Each metric is reported in its\nown transaction, so this API accepts partial failures. Metric can be\nuniquely identified by (run_id, node_id, name). Duplicate reporting will be\nignored by the API. First reporting wins.",
-        "operationId": "ReportRunMetrics",
+        "operationId": "ReportRunMetricsV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -884,7 +884,7 @@
     "/apis/v1beta1/namespaces/{namespace}/pipelines/{name}": {
       "get": {
         "summary": "Finds a pipeline by Name (and namespace)",
-        "operationId": "GetPipelineByName",
+        "operationId": "GetPipelineByNameV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -923,7 +923,7 @@
     "/apis/v1beta1/pipeline_versions": {
       "get": {
         "summary": "Lists all pipeline versions of a given pipeline.",
-        "operationId": "ListPipelineVersions",
+        "operationId": "ListPipelineVersionsV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -998,7 +998,7 @@
       },
       "post": {
         "summary": "Adds a pipeline version to the specified pipeline.",
-        "operationId": "CreatePipelineVersion",
+        "operationId": "CreatePipelineVersionV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -1032,7 +1032,7 @@
     "/apis/v1beta1/pipeline_versions/{version_id}": {
       "get": {
         "summary": "Gets a pipeline version by pipeline version ID.",
-        "operationId": "GetPipelineVersion",
+        "operationId": "GetPipelineVersionV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -1062,7 +1062,7 @@
       },
       "delete": {
         "summary": "Deletes a pipeline version by pipeline version ID. If the deleted pipeline\nversion is the default pipeline version, the pipeline's default version\nchanges to the pipeline's most recent pipeline version. If there are no\nremaining pipeline versions, the pipeline will have no default version.\nExamines the run_service_api.ipynb notebook to learn more about creating a\nrun using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).",
-        "operationId": "DeletePipelineVersion",
+        "operationId": "DeletePipelineVersionV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -1126,7 +1126,7 @@
     "/apis/v1beta1/pipelines": {
       "get": {
         "summary": "Finds all pipelines.",
-        "operationId": "ListPipelines",
+        "operationId": "ListPipelinesV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -1234,7 +1234,7 @@
     "/apis/v1beta1/pipelines/{id}": {
       "get": {
         "summary": "Finds a specific pipeline by ID.",
-        "operationId": "GetPipeline",
+        "operationId": "GetPipelineV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -1264,7 +1264,7 @@
       },
       "delete": {
         "summary": "Deletes a pipeline and its pipeline versions.",
-        "operationId": "DeletePipeline",
+        "operationId": "DeletePipelineV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -1328,7 +1328,7 @@
     "/apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id}": {
       "post": {
         "summary": "Update the default pipeline version of a specific pipeline.",
-        "operationId": "UpdatePipelineDefaultVersion",
+        "operationId": "UpdatePipelineDefaultVersionV1",
         "responses": {
           "200": {
             "description": "A successful response.",
