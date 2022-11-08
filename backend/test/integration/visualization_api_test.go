@@ -66,7 +66,7 @@ func (s *VisualizationApiTest) TestVisualizationAPI() {
 		Arguments: `{"code": ["print(2)"]}`,
 		Type:      visualization_model.APIVisualizationTypeCUSTOM,
 	}
-	customVisualization, err := s.visualizationClient.Create(&params.CreateVisualizationParams{
+	customVisualization, err := s.visualizationClient.Create(&params.CreateVisualizationV1Params{
 		Body: visualization,
 	})
 	assert.Nil(t, err)

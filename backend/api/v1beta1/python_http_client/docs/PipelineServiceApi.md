@@ -4,7 +4,7 @@ All URIs are relative to *http://localhost*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------
-[**create_pipeline**](PipelineServiceApi.md#create_pipeline) | **POST** /apis/v1beta1/pipelines | Creates a pipeline.
+[**create_pipeline_v1**](PipelineServiceApi.md#create_pipeline_v1) | **POST** /apis/v1beta1/pipelines | Creates a pipeline.
 [**create_pipeline_version_v1**](PipelineServiceApi.md#create_pipeline_version_v1) | **POST** /apis/v1beta1/pipeline_versions | Adds a pipeline version to the specified pipeline.
 [**delete_pipeline_v1**](PipelineServiceApi.md#delete_pipeline_v1) | **DELETE** /apis/v1beta1/pipelines/{id} | Deletes a pipeline and its pipeline versions.
 [**delete_pipeline_version_v1**](PipelineServiceApi.md#delete_pipeline_version_v1) | **DELETE** /apis/v1beta1/pipeline_versions/{version_id} | Deletes a pipeline version by pipeline version ID. If the deleted pipeline version is the default pipeline version, the pipeline&#39;s default version changes to the pipeline&#39;s most recent pipeline version. If there are no remaining pipeline versions, the pipeline will have no default version. Examines the run_service_api.ipynb notebook to learn more about creating a run using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).
@@ -18,8 +18,8 @@ Method | HTTP request | Description
 [**update_pipeline_default_version_v1**](PipelineServiceApi.md#update_pipeline_default_version_v1) | **POST** /apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id} | Update the default pipeline version of a specific pipeline.
 
 
-# **create_pipeline**
-> ApiPipeline create_pipeline(body)
+# **create_pipeline_v1**
+> ApiPipeline create_pipeline_v1(body)
 
 Creates a pipeline.
 
@@ -61,10 +61,10 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
     try:
         # Creates a pipeline.
-        api_response = api_instance.create_pipeline(body)
+        api_response = api_instance.create_pipeline_v1(body)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling PipelineServiceApi->create_pipeline: %s\n" % e)
+        print("Exception when calling PipelineServiceApi->create_pipeline_v1: %s\n" % e)
 ```
 
 ### Parameters

@@ -79,7 +79,7 @@ func (c *RunClientFake) Archive(params *runparams.ArchiveRunV1Params) error {
 	return nil
 }
 
-func (c *RunClientFake) Unarchive(params *runparams.UnArchiveRunV1Params) error {
+func (c *RunClientFake) Unarchive(params *runparams.UnarchiveRunV1Params) error {
 	return nil
 }
 

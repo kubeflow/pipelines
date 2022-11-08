@@ -61,7 +61,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 
 service PipelineService {
   // Creates a pipeline.
-  rpc CreatePipeline(CreatePipelineRequest) returns (Pipeline) {
+  rpc CreatePipelineV1(CreatePipelineRequest) returns (Pipeline) {
     option (google.api.http) = {
       post: "/apis/v1beta1/pipelines"
       body: "pipeline"

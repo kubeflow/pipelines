@@ -1201,7 +1201,7 @@
       },
       "post": {
         "summary": "Creates a pipeline.",
-        "operationId": "CreatePipeline",
+        "operationId": "CreatePipelineV1",
         "responses": {
           "200": {
             "description": "A successful response.",

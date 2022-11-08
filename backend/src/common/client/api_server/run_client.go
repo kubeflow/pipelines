@@ -21,7 +21,7 @@ type RunInterface interface {
 	Get(params *params.GetRunV1Params) (*model.APIRunDetail, *workflowapi.Workflow, error)
 	List(params *params.ListRunsV1Params) ([]*model.APIRun, int, string, error)
 	ListAll(params *params.ListRunsV1Params, maxResultSize int) ([]*model.APIRun, error)
-	Unarchive(params *params.UnArchiveRunV1Params) error
+	Unarchive(params *params.UnarchiveRunV1Params) error
 	Terminate(params *params.TerminateRunV1Params) error
 }
 
@@ -68,9 +68,9 @@ func (c *RunClient) Create(parameters *params.CreateRunV1Params) (*model.APIRunD
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.RunService.CreateRun(parameters, c.authInfoWriter)
+	response, err := c.apiClient.RunService.CreateRunV1(parameters, c.authInfoWriter)
 	if err != nil {
-		if defaultError, ok := err.(*params.GetRunDefault); ok {
+		if defaultError, ok := err.(*params.GetRunV1Default); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = CreateErrorCouldNotRecoverAPIStatus(err)
@@ -102,9 +102,9 @@ func (c *RunClient) Get(parameters *params.GetRunV1Params) (*model.APIRunDetail,
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.RunService.GetRun(parameters, c.authInfoWriter)
+	response, err := c.apiClient.RunService.GetRunV1(parameters, c.authInfoWriter)
 	if err != nil {
-		if defaultError, ok := err.(*params.GetRunDefault); ok {
+		if defaultError, ok := err.(*params.GetRunV1Default); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = CreateErrorCouldNotRecoverAPIStatus(err)
@@ -135,10 +135,10 @@ func (c *RunClient) Archive(parameters *params.ArchiveRunV1Params) error {
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.RunService.ArchiveRun(parameters, c.authInfoWriter)
+	_, err := c.apiClient.RunService.ArchiveRunV1(parameters, c.authInfoWriter)
 
 	if err != nil {
-		if defaultError, ok := err.(*params.ListRunsDefault); ok {
+		if defaultError, ok := err.(*params.ListRunsV1Default); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = CreateErrorCouldNotRecoverAPIStatus(err)
@@ -152,17 +152,17 @@ func (c *RunClient) Archive(parameters *params.ArchiveRunV1Params) error {
 	return nil
 }
 
-func (c *RunClient) Unarchive(parameters *params.UnArchiveRunV1Params) error {
+func (c *RunClient) Unarchive(parameters *params.UnarchiveRunV1Params) error {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
 
 	// Make service call
 	parameters.Context = ctx
-	_, err := c.apiClient.RunService.UnarchiveRun(parameters, c.authInfoWriter)
+	_, err := c.apiClient.RunService.UnarchiveRunV1(parameters, c.authInfoWriter)
 
 	if err != nil {
-		if defaultError, ok := err.(*params.ListRunsDefault); ok {
+		if defaultError, ok := err.(*params.ListRunsV1Default); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = CreateErrorCouldNotRecoverAPIStatus(err)
@@ -186,7 +186,7 @@ func (c *RunClient) Delete(parameters *params.DeleteRunV1Params) error {
 	_, err := c.apiClient.RunService.DeleteRun(parameters, c.authInfoWriter)
 
 	if err != nil {
-		if defaultError, ok := err.(*params.ListRunsDefault); ok {
+		if defaultError, ok := err.(*params.ListRunsV1Default); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = CreateErrorCouldNotRecoverAPIStatus(err)
@@ -211,7 +211,7 @@ func (c *RunClient) List(parameters *params.ListRunsV1Params) (
 	response, err := c.apiClient.RunService.ListRuns(parameters, c.authInfoWriter)
 
 	if err != nil {
-		if defaultError, ok := err.(*params.ListRunsDefault); ok {
+		if defaultError, ok := err.(*params.ListRunsV1Default); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = CreateErrorCouldNotRecoverAPIStatus(err)

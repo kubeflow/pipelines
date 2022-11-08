@@ -28,8 +28,8 @@ class TestPipelineServiceApi(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_create_pipeline(self):
-        """Test case for create_pipeline
+    def test_create_pipeline_v1(self):
+        """Test case for create_pipeline_v1
 
         Creates a pipeline.  # noqa: E501
         """

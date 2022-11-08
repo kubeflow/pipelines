@@ -86,7 +86,7 @@ func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (
 	response, err := c.apiClient.PipelineUploadService.UploadPipeline(parameters, c.authInfoWriter)
 
 	if err != nil {
-		if defaultError, ok := err.(*params.UploadPipelineDefault); ok {
+		if defaultError, ok := err.(*params.UploadPipelineV1Default); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = CreateErrorCouldNotRecoverAPIStatus(err)
@@ -121,7 +121,7 @@ func (c *PipelineUploadClient) UploadPipelineVersion(filePath string, parameters
 	response, err := c.apiClient.PipelineUploadService.UploadPipelineVersion(parameters, c.authInfoWriter)
 
 	if err != nil {
-		if defaultError, ok := err.(*params.UploadPipelineVersionDefault); ok {
+		if defaultError, ok := err.(*params.UploadPipelineVersionV1Default); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = CreateErrorCouldNotRecoverAPIStatus(err)

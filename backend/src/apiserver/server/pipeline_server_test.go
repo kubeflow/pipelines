@@ -288,7 +288,7 @@ func TestGetPipelineByName_OK(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	pipeline, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
+	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
 			Url:  &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
 			Name: "argument-parameters",
@@ -318,7 +318,7 @@ func TestGetPipelineByName_Shared_OK(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	pipeline, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
+	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
 			Url:  &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
 			Name: "argument-parameters"}},
@@ -357,7 +357,7 @@ func TestGetPipelineByName_NotFound_WrongNameSpace(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	pipeline, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
+	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
 			Url:         &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
 			Name:        "argument-parameters",
@@ -391,7 +391,7 @@ func TestCreatePipelineVersionDontUpdateDefault(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager)
 
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	pipeline, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
+	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
 			Url:         &api.Url{PipelineUrl: httpServer.URL + "/arguments_tarball/arguments.tar.gz"},
 			Name:        "argument-parameters",

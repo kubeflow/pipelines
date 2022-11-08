@@ -111,7 +111,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	/* ---------- Update pipeline default version ---------- */
 	time.Sleep(1 * time.Second)
 	sortBy := "created_at"
-	versions, _, _, err := s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsParams{ResourceKeyID: &pipelineId, SortBy: &sortBy})
+	versions, _, _, err := s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsV1Params{ResourceKeyID: &pipelineId, SortBy: &sortBy})
 	require.Nil(t, err)
 
 	err = s.pipelineClient.UpdateDefaultVersion(&params.UpdatePipelineDefaultVersionV1Params{PipelineID: pipelineId,
@@ -131,7 +131,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 
 	/* ---------- Import pipeline version YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
-	sequentialPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.CreatePipelineVersionParams{
+	sequentialPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.CreatePipelineVersionV1Params{
 		Body: &pipeline_model.APIPipelineVersion{
 			Name: "sequential",
 			PackageURL: &pipeline_model.APIURL{
@@ -159,7 +159,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
-	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.CreatePipelineVersionParams{
+	argumentUrlPipelineVersion, err := s.pipelineClient.CreatePipelineVersion(&params.CreatePipelineVersionV1Params{
 		Body: &pipeline_model.APIPipelineVersion{
 			Name: "arguments",
 			PackageURL: &pipeline_model.APIURL{
@@ -176,7 +176,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	assert.Equal(t, "arguments", argumentUrlPipelineVersion.Name)
 
 	/* ---------- Verify list pipeline version works ---------- */
-	pipelineVersions, totalSize, _, err := s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsParams{
+	pipelineVersions, totalSize, _, err := s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsV1Params{
 		ResourceKeyID:   util.StringPointer(pipelineId),
 		ResourceKeyType: util.StringPointer("PIPELINE"),
 	})
@@ -199,7 +199,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 
 	/* ---------- Verify list pipeline sorted by names ---------- */
 	listFirstPagePipelineVersions, totalSize, nextPageToken, err := s.pipelineClient.ListPipelineVersions(
-		&params.ListPipelineVersionsParams{
+		&params.ListPipelineVersionsV1Params{
 			PageSize:        util.Int32Pointer(3),
 			SortBy:          util.StringPointer("name"),
 			ResourceKeyID:   util.StringPointer(pipelineId),
@@ -214,7 +214,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	assert.NotEmpty(t, nextPageToken)
 
 	listSecondPagePipelineVersions, totalSize, nextPageToken, err := s.pipelineClient.ListPipelineVersions(
-		&params.ListPipelineVersionsParams{
+		&params.ListPipelineVersionsV1Params{
 			PageToken:       util.StringPointer(nextPageToken),
 			PageSize:        util.Int32Pointer(3),
 			SortBy:          util.StringPointer("name"),
@@ -230,7 +230,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 
 	/* ---------- Verify list pipeline version sorted by creation time ---------- */
 	listFirstPagePipelineVersions, totalSize, nextPageToken, err = s.pipelineClient.ListPipelineVersions(
-		&params.ListPipelineVersionsParams{
+		&params.ListPipelineVersionsV1Params{
 			PageSize:        util.Int32Pointer(3),
 			SortBy:          util.StringPointer("created_at"),
 			ResourceKeyID:   util.StringPointer(pipelineId),
@@ -245,7 +245,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	assert.NotEmpty(t, nextPageToken)
 
 	listSecondPagePipelineVersions, totalSize, nextPageToken, err = s.pipelineClient.ListPipelineVersions(
-		&params.ListPipelineVersionsParams{
+		&params.ListPipelineVersionsV1Params{
 			PageToken:       util.StringPointer(nextPageToken),
 			PageSize:        util.Int32Pointer(3),
 			SortBy:          util.StringPointer("created_at"),
@@ -260,7 +260,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- List pipeline versions sort by unsupported description field. Should fail. ---------- */
-	_, _, _, err = s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsParams{
+	_, _, _, err = s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsV1Params{
 		PageSize:        util.Int32Pointer(2),
 		SortBy:          util.StringPointer("unknownfield"),
 		ResourceKeyID:   util.StringPointer(pipelineId),
@@ -270,7 +270,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 
 	/* ---------- List pipeline versions sorted by names descend order ---------- */
 	listFirstPagePipelineVersions, totalSize, nextPageToken, err = s.pipelineClient.ListPipelineVersions(
-		&params.ListPipelineVersionsParams{
+		&params.ListPipelineVersionsV1Params{
 			PageSize:        util.Int32Pointer(3),
 			SortBy:          util.StringPointer("name desc"),
 			ResourceKeyID:   util.StringPointer(pipelineId),
@@ -285,7 +285,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	assert.NotEmpty(t, nextPageToken)
 
 	listSecondPagePipelineVersions, totalSize, nextPageToken, err = s.pipelineClient.ListPipelineVersions(
-		&params.ListPipelineVersionsParams{
+		&params.ListPipelineVersionsV1Params{
 			PageToken:       util.StringPointer(nextPageToken),
 			PageSize:        util.Int32Pointer(3),
 			SortBy:          util.StringPointer("name desc"),
@@ -300,7 +300,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	assert.Empty(t, nextPageToken)
 
 	/* ---------- Verify get pipeline version works ---------- */
-	pipelineVersion, err := s.pipelineClient.GetPipelineVersion(&params.GetPipelineVersionParams{VersionID: argumentUrlPipelineVersion.ID})
+	pipelineVersion, err := s.pipelineClient.GetPipelineVersion(&params.GetPipelineVersionV1Params{VersionID: argumentUrlPipelineVersion.ID})
 	require.Nil(t, err)
 	assert.Equal(t, pipelineVersion.Name, "arguments")
 	assert.NotNil(t, pipelineVersion.CreatedAt)
