@@ -62,7 +62,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
 
 service RunService {
   // Creates a new run.
-  rpc CreateRun(CreateRunRequest) returns (RunDetail) {
+  rpc CreateRunV1(CreateRunRequest) returns (RunDetail) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs"
       body: "run"
@@ -70,35 +70,35 @@ service RunService {
   }
 
   // Finds a specific run by ID.
-  rpc GetRun(GetRunRequest) returns (RunDetail) {
+  rpc GetRunV1(GetRunRequest) returns (RunDetail) {
     option (google.api.http) = {
       get: "/apis/v1beta1/runs/{run_id}"
     };
   }
 
   // Finds all runs.
-  rpc ListRuns(ListRunsRequest) returns (ListRunsResponse) {
+  rpc ListRunsV1(ListRunsRequest) returns (ListRunsResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/runs"
     };
   }
 
   // Archives a run.
-  rpc ArchiveRun(ArchiveRunRequest) returns (google.protobuf.Empty) {
+  rpc ArchiveRunV1(ArchiveRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs/{id}:archive"
     };
   }
 
   // Restores an archived run.
-  rpc UnarchiveRun(UnarchiveRunRequest) returns (google.protobuf.Empty) {
+  rpc UnarchiveRunV1(UnarchiveRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs/{id}:unarchive"
     };
   }
 
   // Deletes a run.
-  rpc DeleteRun(DeleteRunRequest) returns (google.protobuf.Empty) {
+  rpc DeleteRunV1(DeleteRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       delete: "/apis/v1beta1/runs/{id}"
     };
@@ -108,7 +108,7 @@ service RunService {
   // own transaction, so this API accepts partial failures. Metric can be
   // uniquely identified by (run_id, node_id, name). Duplicate reporting will be
   // ignored by the API. First reporting wins.
-  rpc ReportRunMetrics(ReportRunMetricsRequest)
+  rpc ReportRunMetricsV1(ReportRunMetricsRequest)
       returns (ReportRunMetricsResponse) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs/{run_id}:reportMetrics"
@@ -117,21 +117,21 @@ service RunService {
   }
 
   // Finds a run's artifact data.
-  rpc ReadArtifact(ReadArtifactRequest) returns (ReadArtifactResponse) {
+  rpc ReadArtifactV1(ReadArtifactRequest) returns (ReadArtifactResponse) {
     option (google.api.http) = {
       get: "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read"
     };
   }
 
   // Terminates an active run.
-  rpc TerminateRun(TerminateRunRequest) returns (google.protobuf.Empty) {
+  rpc TerminateRunV1(TerminateRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs/{run_id}/terminate"
     };
   }
 
   // Re-initiates a failed or terminated run.
-  rpc RetryRun(RetryRunRequest) returns (google.protobuf.Empty) {
+  rpc RetryRunV1(RetryRunRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/runs/{run_id}/retry"
     };
