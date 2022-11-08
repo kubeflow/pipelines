@@ -110,29 +110,29 @@ Class | Method | HTTP request | Description
 *JobServiceApi* | [**get_job**](docs/JobServiceApi.md#get_job) | **GET** /apis/v1beta1/jobs/{id} | Finds a specific job by ID.
 *JobServiceApi* | [**list_jobs**](docs/JobServiceApi.md#list_jobs) | **GET** /apis/v1beta1/jobs | Finds all jobs.
 *PipelineServiceApi* | [**create_pipeline**](docs/PipelineServiceApi.md#create_pipeline) | **POST** /apis/v1beta1/pipelines | Creates a pipeline.
-*PipelineServiceApi* | [**create_pipeline_version**](docs/PipelineServiceApi.md#create_pipeline_version) | **POST** /apis/v1beta1/pipeline_versions | Adds a pipeline version to the specified pipeline.
-*PipelineServiceApi* | [**delete_pipeline**](docs/PipelineServiceApi.md#delete_pipeline) | **DELETE** /apis/v1beta1/pipelines/{id} | Deletes a pipeline and its pipeline versions.
-*PipelineServiceApi* | [**delete_pipeline_version**](docs/PipelineServiceApi.md#delete_pipeline_version) | **DELETE** /apis/v1beta1/pipeline_versions/{version_id} | Deletes a pipeline version by pipeline version ID. If the deleted pipeline version is the default pipeline version, the pipeline&#39;s default version changes to the pipeline&#39;s most recent pipeline version. If there are no remaining pipeline versions, the pipeline will have no default version. Examines the run_service_api.ipynb notebook to learn more about creating a run using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).
-*PipelineServiceApi* | [**get_pipeline**](docs/PipelineServiceApi.md#get_pipeline) | **GET** /apis/v1beta1/pipelines/{id} | Finds a specific pipeline by ID.
-*PipelineServiceApi* | [**get_pipeline_by_name**](docs/PipelineServiceApi.md#get_pipeline_by_name) | **GET** /apis/v1beta1/namespaces/{namespace}/pipelines/{name} | Finds a pipeline by Name (and namespace)
-*PipelineServiceApi* | [**get_pipeline_version**](docs/PipelineServiceApi.md#get_pipeline_version) | **GET** /apis/v1beta1/pipeline_versions/{version_id} | Gets a pipeline version by pipeline version ID.
+*PipelineServiceApi* | [**create_pipeline_version_v1**](docs/PipelineServiceApi.md#create_pipeline_version_v1) | **POST** /apis/v1beta1/pipeline_versions | Adds a pipeline version to the specified pipeline.
+*PipelineServiceApi* | [**delete_pipeline_v1**](docs/PipelineServiceApi.md#delete_pipeline_v1) | **DELETE** /apis/v1beta1/pipelines/{id} | Deletes a pipeline and its pipeline versions.
+*PipelineServiceApi* | [**delete_pipeline_version_v1**](docs/PipelineServiceApi.md#delete_pipeline_version_v1) | **DELETE** /apis/v1beta1/pipeline_versions/{version_id} | Deletes a pipeline version by pipeline version ID. If the deleted pipeline version is the default pipeline version, the pipeline&#39;s default version changes to the pipeline&#39;s most recent pipeline version. If there are no remaining pipeline versions, the pipeline will have no default version. Examines the run_service_api.ipynb notebook to learn more about creating a run using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).
+*PipelineServiceApi* | [**get_pipeline_by_name_v1**](docs/PipelineServiceApi.md#get_pipeline_by_name_v1) | **GET** /apis/v1beta1/namespaces/{namespace}/pipelines/{name} | Finds a pipeline by Name (and namespace)
+*PipelineServiceApi* | [**get_pipeline_v1**](docs/PipelineServiceApi.md#get_pipeline_v1) | **GET** /apis/v1beta1/pipelines/{id} | Finds a specific pipeline by ID.
 *PipelineServiceApi* | [**get_pipeline_version_template**](docs/PipelineServiceApi.md#get_pipeline_version_template) | **GET** /apis/v1beta1/pipeline_versions/{version_id}/templates | Returns a YAML template that contains the specified pipeline version&#39;s description, parameters and metadata.
+*PipelineServiceApi* | [**get_pipeline_version_v1**](docs/PipelineServiceApi.md#get_pipeline_version_v1) | **GET** /apis/v1beta1/pipeline_versions/{version_id} | Gets a pipeline version by pipeline version ID.
 *PipelineServiceApi* | [**get_template**](docs/PipelineServiceApi.md#get_template) | **GET** /apis/v1beta1/pipelines/{id}/templates | Returns a single YAML template that contains the description, parameters, and metadata associated with the pipeline provided.
-*PipelineServiceApi* | [**list_pipeline_versions**](docs/PipelineServiceApi.md#list_pipeline_versions) | **GET** /apis/v1beta1/pipeline_versions | Lists all pipeline versions of a given pipeline.
-*PipelineServiceApi* | [**list_pipelines**](docs/PipelineServiceApi.md#list_pipelines) | **GET** /apis/v1beta1/pipelines | Finds all pipelines.
-*PipelineServiceApi* | [**update_pipeline_default_version**](docs/PipelineServiceApi.md#update_pipeline_default_version) | **POST** /apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id} | Update the default pipeline version of a specific pipeline.
+*PipelineServiceApi* | [**list_pipeline_versions_v1**](docs/PipelineServiceApi.md#list_pipeline_versions_v1) | **GET** /apis/v1beta1/pipeline_versions | Lists all pipeline versions of a given pipeline.
+*PipelineServiceApi* | [**list_pipelines_v1**](docs/PipelineServiceApi.md#list_pipelines_v1) | **GET** /apis/v1beta1/pipelines | Finds all pipelines.
+*PipelineServiceApi* | [**update_pipeline_default_version_v1**](docs/PipelineServiceApi.md#update_pipeline_default_version_v1) | **POST** /apis/v1beta1/pipelines/{pipeline_id}/default_version/{version_id} | Update the default pipeline version of a specific pipeline.
 *PipelineUploadServiceApi* | [**upload_pipeline**](docs/PipelineUploadServiceApi.md#upload_pipeline) | **POST** /apis/v1beta1/pipelines/upload | 
 *PipelineUploadServiceApi* | [**upload_pipeline_version**](docs/PipelineUploadServiceApi.md#upload_pipeline_version) | **POST** /apis/v1beta1/pipelines/upload_version | 
-*RunServiceApi* | [**archive_run**](docs/RunServiceApi.md#archive_run) | **POST** /apis/v1beta1/runs/{id}:archive | Archives a run.
-*RunServiceApi* | [**create_run**](docs/RunServiceApi.md#create_run) | **POST** /apis/v1beta1/runs | Creates a new run.
-*RunServiceApi* | [**delete_run**](docs/RunServiceApi.md#delete_run) | **DELETE** /apis/v1beta1/runs/{id} | Deletes a run.
-*RunServiceApi* | [**get_run**](docs/RunServiceApi.md#get_run) | **GET** /apis/v1beta1/runs/{run_id} | Finds a specific run by ID.
-*RunServiceApi* | [**list_runs**](docs/RunServiceApi.md#list_runs) | **GET** /apis/v1beta1/runs | Finds all runs.
-*RunServiceApi* | [**read_artifact**](docs/RunServiceApi.md#read_artifact) | **GET** /apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read | Finds a run&#39;s artifact data.
-*RunServiceApi* | [**report_run_metrics**](docs/RunServiceApi.md#report_run_metrics) | **POST** /apis/v1beta1/runs/{run_id}:reportMetrics | ReportRunMetrics reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (run_id, node_id, name). Duplicate reporting will be ignored by the API. First reporting wins.
-*RunServiceApi* | [**retry_run**](docs/RunServiceApi.md#retry_run) | **POST** /apis/v1beta1/runs/{run_id}/retry | Re-initiates a failed or terminated run.
-*RunServiceApi* | [**terminate_run**](docs/RunServiceApi.md#terminate_run) | **POST** /apis/v1beta1/runs/{run_id}/terminate | Terminates an active run.
-*RunServiceApi* | [**unarchive_run**](docs/RunServiceApi.md#unarchive_run) | **POST** /apis/v1beta1/runs/{id}:unarchive | Restores an archived run.
+*RunServiceApi* | [**archive_run_v1**](docs/RunServiceApi.md#archive_run_v1) | **POST** /apis/v1beta1/runs/{id}:archive | Archives a run.
+*RunServiceApi* | [**create_run_v1**](docs/RunServiceApi.md#create_run_v1) | **POST** /apis/v1beta1/runs | Creates a new run.
+*RunServiceApi* | [**delete_run_v1**](docs/RunServiceApi.md#delete_run_v1) | **DELETE** /apis/v1beta1/runs/{id} | Deletes a run.
+*RunServiceApi* | [**get_run_v1**](docs/RunServiceApi.md#get_run_v1) | **GET** /apis/v1beta1/runs/{run_id} | Finds a specific run by ID.
+*RunServiceApi* | [**list_runs_v1**](docs/RunServiceApi.md#list_runs_v1) | **GET** /apis/v1beta1/runs | Finds all runs.
+*RunServiceApi* | [**read_artifact_v1**](docs/RunServiceApi.md#read_artifact_v1) | **GET** /apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read | Finds a run&#39;s artifact data.
+*RunServiceApi* | [**report_run_metrics_v1**](docs/RunServiceApi.md#report_run_metrics_v1) | **POST** /apis/v1beta1/runs/{run_id}:reportMetrics | ReportRunMetrics reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (run_id, node_id, name). Duplicate reporting will be ignored by the API. First reporting wins.
+*RunServiceApi* | [**retry_run_v1**](docs/RunServiceApi.md#retry_run_v1) | **POST** /apis/v1beta1/runs/{run_id}/retry | Re-initiates a failed or terminated run.
+*RunServiceApi* | [**terminate_run_v1**](docs/RunServiceApi.md#terminate_run_v1) | **POST** /apis/v1beta1/runs/{run_id}/terminate | Terminates an active run.
+*RunServiceApi* | [**unarchive_run_v1**](docs/RunServiceApi.md#unarchive_run_v1) | **POST** /apis/v1beta1/runs/{id}:unarchive | Restores an archived run.
 
 
 ## Documentation For Models
