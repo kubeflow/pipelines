@@ -32,7 +32,11 @@ class AnnotationsTest(parameterized.TestCase):
 
     def test_is_artifact_annotation(self):
         self.assertTrue(type_annotations.is_artifact_annotation(Input[Model]))
+        self.assertTrue(
+            type_annotations.is_artifact_annotation(Input[List[Model]]))
         self.assertTrue(type_annotations.is_artifact_annotation(Output[Model]))
+        self.assertTrue(
+            type_annotations.is_artifact_annotation(Output[List[Model]]))
         self.assertTrue(
             type_annotations.is_artifact_annotation(Output['MyArtifact']))
 
@@ -51,14 +55,22 @@ class AnnotationsTest(parameterized.TestCase):
 
     def test_is_output_artifact(self):
         self.assertTrue(type_annotations.is_output_artifact(Output[Model]))
+        self.assertTrue(
+            type_annotations.is_output_artifact(Output[List[Model]]))
         self.assertTrue(type_annotations.is_output_artifact(Output))
 
         self.assertFalse(type_annotations.is_output_artifact(Input[Model]))
+        self.assertFalse(
+            type_annotations.is_output_artifact(Input[List[Model]]))
         self.assertFalse(type_annotations.is_output_artifact(Input))
 
     def test_get_io_artifact_class(self):
         self.assertEqual(
             type_annotations.get_io_artifact_class(Output[Model]), Model)
+        self.assertEqual(
+            type_annotations.get_io_artifact_class(Output[List[Model]]), Model)
+        self.assertEqual(
+            type_annotations.get_io_artifact_class(Input[List[Model]]), Model)
 
         self.assertEqual(type_annotations.get_io_artifact_class(Input), None)
         self.assertEqual(type_annotations.get_io_artifact_class(Output), None)
@@ -70,7 +82,13 @@ class AnnotationsTest(parameterized.TestCase):
             type_annotations.get_io_artifact_annotation(Output[Model]),
             OutputAnnotation)
         self.assertEqual(
+            type_annotations.get_io_artifact_annotation(Output[List[Model]]),
+            OutputAnnotation)
+        self.assertEqual(
             type_annotations.get_io_artifact_annotation(Input[Model]),
+            InputAnnotation)
+        self.assertEqual(
+            type_annotations.get_io_artifact_annotation(Input[List[Model]]),
             InputAnnotation)
         self.assertEqual(
             type_annotations.get_io_artifact_annotation(Input), InputAnnotation)
