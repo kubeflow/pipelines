@@ -267,7 +267,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
             self.assertTrue(os.path.exists(target_json_file))
             with open(target_json_file) as f:
-                pipeline_spec = yaml.load(f)
+                pipeline_spec = yaml.safe_load(f)
             self.assertEqual('gs://path', pipeline_spec['defaultPipelineRoot'])
 
     def test_passing_string_parameter_to_artifact_should_error(self):
@@ -755,7 +755,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
                 pipeline_func=pipeline_hello_world, package_path=temp_filepath)
 
             with open(temp_filepath, 'r') as f:
-                yaml.load(f)
+                yaml.safe_load(f)
 
     def test_import_modules(self):
         from kfp.v2 import compiler
@@ -779,7 +779,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
                 pipeline_func=pipeline_hello_world, package_path=temp_filepath)
 
             with open(temp_filepath, 'r') as f:
-                yaml.load(f)
+                yaml.safe_load(f)
 
     def test_import_object(self):
         from kfp.v2.compiler import Compiler
@@ -804,7 +804,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
                 pipeline_func=pipeline_hello_world, package_path=temp_filepath)
 
             with open(temp_filepath, 'r') as f:
-                yaml.load(f)
+                yaml.safe_load(f)
 
 
 class TestWriteToFileTypes(parameterized.TestCase):
