@@ -24,7 +24,6 @@ source "${DIR}/scripts/ci-env.sh"
 # Install required packages from commit
 python3 -m pip install --upgrade pip
 python3 -m pip install $source_root/sdk/python
-python3 -m pip install -r $source_root/test/sdk-execution-tests/requirements.txt
 
 # Install KFP server API from commit.
 cp -r $source_root/backend/api/v1beta1/python_http_client /python_http_client
