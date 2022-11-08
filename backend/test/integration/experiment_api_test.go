@@ -272,7 +272,7 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 			Pipelineid: util.StringPointer(pipeline.ID),
 		})
 	assert.Nil(t, err)
-	createRunRequest := &runParams.CreateRunParams{Body: &run_model.APIRun{
+	createRunRequest := &runParams.CreateRunV1Params{Body: &run_model.APIRun{
 		Name:        "hello world",
 		Description: "this is hello world",
 		ResourceReferences: []*run_model.APIResourceReference{
@@ -311,10 +311,10 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	experiment, err = s.experimentClient.Get(&params.GetExperimentV1Params{ID: trainingExperiment.ID})
 	assert.Nil(t, err)
 	assert.Equal(t, experiment_model.APIExperimentStorageState("STORAGESTATE_ARCHIVED"), experiment.StorageState)
-	retrievedRun1, _, err := s.runClient.Get(&runParams.GetRunParams{RunID: run1.Run.ID})
+	retrievedRun1, _, err := s.runClient.Get(&runParams.GetRunV1Params{RunID: run1.Run.ID})
 	assert.Nil(t, err)
 	assert.Equal(t, run_model.APIRunStorageState("STORAGESTATE_ARCHIVED"), retrievedRun1.Run.StorageState)
-	retrievedRun2, _, err := s.runClient.Get(&runParams.GetRunParams{RunID: run2.Run.ID})
+	retrievedRun2, _, err := s.runClient.Get(&runParams.GetRunV1Params{RunID: run2.Run.ID})
 	assert.Nil(t, err)
 	assert.Equal(t, run_model.APIRunStorageState("STORAGESTATE_ARCHIVED"), retrievedRun2.Run.StorageState)
 	retrievedJob1, err := s.jobClient.Get(&jobParams.GetJobParams{ID: job1.ID})
@@ -331,10 +331,10 @@ func (s *ExperimentApiTest) TestExperimentAPI() {
 	experiment, err = s.experimentClient.Get(&params.GetExperimentV1Params{ID: trainingExperiment.ID})
 	assert.Nil(t, err)
 	assert.Equal(t, experiment_model.APIExperimentStorageState("STORAGESTATE_AVAILABLE"), experiment.StorageState)
-	retrievedRun1, _, err = s.runClient.Get(&runParams.GetRunParams{RunID: run1.Run.ID})
+	retrievedRun1, _, err = s.runClient.Get(&runParams.GetRunV1Params{RunID: run1.Run.ID})
 	assert.Nil(t, err)
 	assert.Equal(t, run_model.APIRunStorageState("STORAGESTATE_ARCHIVED"), retrievedRun1.Run.StorageState)
-	retrievedRun2, _, err = s.runClient.Get(&runParams.GetRunParams{RunID: run2.Run.ID})
+	retrievedRun2, _, err = s.runClient.Get(&runParams.GetRunV1Params{RunID: run2.Run.ID})
 	assert.Nil(t, err)
 	assert.Equal(t, run_model.APIRunStorageState("STORAGESTATE_ARCHIVED"), retrievedRun2.Run.StorageState)
 	retrievedJob1, err = s.jobClient.Get(&jobParams.GetJobParams{ID: job1.ID})

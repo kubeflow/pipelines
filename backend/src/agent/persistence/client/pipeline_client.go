@@ -79,7 +79,7 @@ func (p *PipelineClient) ReportWorkflow(workflow util.ExecutionSpec) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	_, err := p.reportServiceClient.ReportWorkflow(ctx, &api.ReportWorkflowRequest{
+	_, err := p.reportServiceClient.ReportWorkflowV1(ctx, &api.ReportWorkflowRequest{
 		Workflow: workflow.ToStringForStore(),
 	})
 
@@ -112,7 +112,7 @@ func (p *PipelineClient) ReportScheduledWorkflow(swf *util.ScheduledWorkflow) er
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
-	_, err := p.reportServiceClient.ReportScheduledWorkflow(ctx,
+	_, err := p.reportServiceClient.ReportScheduledWorkflowV1(ctx,
 		&api.ReportScheduledWorkflowRequest{
 			ScheduledWorkflow: swf.ToStringForStore(),
 		})
@@ -151,7 +151,7 @@ func (p *PipelineClient) ReadArtifact(request *api.ReadArtifactRequest, user str
 	ctx, cancel := context.WithTimeout(pctx, time.Minute)
 	defer cancel()
 
-	response, err := p.runServiceClient.ReadArtifact(ctx, request)
+	response, err := p.runServiceClient.ReadArtifactV1(ctx, request)
 	if err != nil {
 		// TODO(hongyes): check NotFound error code before skip the error.
 		return nil, nil
@@ -170,7 +170,7 @@ func (p *PipelineClient) ReportRunMetrics(request *api.ReportRunMetricsRequest, 
 	ctx, cancel := context.WithTimeout(pctx, time.Minute)
 	defer cancel()
 
-	response, err := p.runServiceClient.ReportRunMetrics(ctx, request)
+	response, err := p.runServiceClient.ReportRunMetricsV1(ctx, request)
 	if err != nil {
 		// This call should always succeed unless the run doesn't exist or server is broken. In
 		// either cases, the job should retry at a later time.

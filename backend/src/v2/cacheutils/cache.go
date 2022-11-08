@@ -163,7 +163,7 @@ func (c *Client) GetExecutionCache(fingerPrint, pipelineName, namespace string) 
 		return "", fmt.Errorf("failed to convert filter into JSON: %w", err)
 	}
 	listTasksReuqest := &api.ListTasksRequest{Filter: string(taskFilterJson), SortBy: "created_at desc", PageSize: 1}
-	listTasksResponse, err := c.svc.ListTasks(context.Background(), listTasksReuqest)
+	listTasksResponse, err := c.svc.ListTasksV1(context.Background(), listTasksReuqest)
 	if err != nil {
 		return "", fmt.Errorf("failed to list tasks: %w", err)
 	}
@@ -179,7 +179,7 @@ func (c *Client) CreateExecutionCache(ctx context.Context, task *api.Task) error
 	req := &api.CreateTaskRequest{
 		Task: task,
 	}
-	_, err := c.svc.CreateTask(ctx, req)
+	_, err := c.svc.CreateTaskV1(ctx, req)
 	if err != nil {
 		return fmt.Errorf("failed to create task: %w", err)
 	}

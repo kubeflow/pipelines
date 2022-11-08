@@ -263,7 +263,7 @@ func (s *UpgradeTests) VerifyPipelines() {
 
 	/* ---------- Verify list pipeline sorted by creation time ---------- */
 	pipelines, _, _, err := s.pipelineClient.List(
-		&pipelineParams.ListPipelinesParams{SortBy: util.StringPointer("created_at")})
+		&pipelineParams.ListPipelinesV1Params{SortBy: util.StringPointer("created_at")})
 	require.Nil(t, err)
 	// During upgrade, default pipelines may be installed, so we only verify the
 	// 4 oldest pipelines here.
@@ -298,7 +298,7 @@ func (s *UpgradeTests) PrepareRuns() {
 	require.Equal(t, hello2, helloWorldExperiment)
 
 	/* ---------- Create a new hello world run by specifying pipeline ID ---------- */
-	createRunRequest := &runParams.CreateRunParams{Body: &run_model.APIRun{
+	createRunRequest := &runParams.CreateRunV1Params{Body: &run_model.APIRun{
 		Name:        "hello world",
 		Description: "this is hello world",
 		PipelineSpec: &run_model.APIPipelineSpec{
@@ -319,14 +319,14 @@ func (s *UpgradeTests) VerifyRuns() {
 	/* ---------- List the runs, sorted by creation time ---------- */
 	runs, _, _, err := test.ListRuns(
 		s.runClient,
-		&runParams.ListRunsParams{SortBy: util.StringPointer("created_at")},
+		&runParams.ListRunsV1Params{SortBy: util.StringPointer("created_at")},
 		s.resourceNamespace)
 	require.Nil(t, err)
 	require.True(t, len(runs) >= 1)
 	require.Equal(t, "hello world", runs[0].Name)
 
 	/* ---------- Get hello world run ---------- */
-	helloWorldRunDetail, _, err := s.runClient.Get(&runParams.GetRunParams{RunID: runs[0].ID})
+	helloWorldRunDetail, _, err := s.runClient.Get(&runParams.GetRunV1Params{RunID: runs[0].ID})
 	require.Nil(t, err)
 	checkHelloWorldRunDetail(t, helloWorldRunDetail)
 }
@@ -476,7 +476,7 @@ func (s *UpgradeTests) getHelloWorldExperiment(createIfNotExist bool) *experimen
 func (s *UpgradeTests) getHelloWorldPipeline(createIfNotExist bool) *pipeline_model.APIPipeline {
 	t := s.T()
 
-	pipelines, err := s.pipelineClient.ListAll(&pipelineParams.ListPipelinesParams{}, 1000)
+	pipelines, err := s.pipelineClient.ListAll(&pipelineParams.ListPipelinesV1Params{}, 1000)
 	require.Nil(t, err)
 	var helloWorldPipeline *pipeline_model.APIPipeline
 	for _, pipeline := range pipelines {
@@ -499,7 +499,7 @@ func (s *UpgradeTests) createHelloWorldPipeline() *pipeline_model.APIPipeline {
 	uploadedPipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", uploadParams.NewUploadPipelineParams())
 	require.Nil(t, err)
 
-	helloWorldPipeline, err := s.pipelineClient.Get(&pipelineParams.GetPipelineParams{ID: uploadedPipeline.ID})
+	helloWorldPipeline, err := s.pipelineClient.Get(&pipelineParams.GetPipelineV1Params{ID: uploadedPipeline.ID})
 	require.Nil(t, err)
 
 	return helloWorldPipeline

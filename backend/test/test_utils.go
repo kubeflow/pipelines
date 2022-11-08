@@ -75,7 +75,7 @@ func DeleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
 	pipelines, _, _, err := ListPipelines(client)
 	assert.Nil(t, err)
 	for _, p := range pipelines {
-		assert.Nil(t, client.Delete(&pipelineparams.DeletePipelineParams{ID: p.ID}))
+		assert.Nil(t, client.Delete(&pipelineparams.DeletePipelineV1Params{ID: p.ID}))
 	}
 }
 
@@ -91,7 +91,7 @@ func DeleteAllRuns(client *api_server.RunClient, namespace string, t *testing.T)
 	runs, _, _, err := ListAllRuns(client, namespace)
 	assert.Nil(t, err)
 	for _, r := range runs {
-		assert.Nil(t, client.Delete(&runparams.DeleteRunParams{ID: r.ID}))
+		assert.Nil(t, client.Delete(&runparams.DeleteRunV1Params{ID: r.ID}))
 	}
 }
 
@@ -116,7 +116,7 @@ func GetExperimentIDFromAPIResourceReferences(resourceRefs []*run_model.APIResou
 
 func ListPipelines(client *api_server.PipelineClient) (
 	[]*pipeline_model.APIPipeline, int, string, error) {
-	parameters := &pipelineparams.ListPipelinesParams{}
+	parameters := &pipelineparams.ListPipelinesV1Params{}
 
 	return client.List(parameters)
 }
@@ -135,11 +135,11 @@ func ListExperiment(client *api_server.ExperimentClient, parameters *experimentp
 }
 
 func ListAllRuns(client *api_server.RunClient, namespace string) ([]*run_model.APIRun, int, string, error) {
-	parameters := &runparams.ListRunsParams{}
+	parameters := &runparams.ListRunsV1Params{}
 	return ListRuns(client, parameters, namespace)
 }
 
-func ListRuns(client *api_server.RunClient, parameters *runparams.ListRunsParams, namespace string) ([]*run_model.APIRun, int, string, error) {
+func ListRuns(client *api_server.RunClient, parameters *runparams.ListRunsV1Params, namespace string) ([]*run_model.APIRun, int, string, error) {
 	if namespace != "" {
 		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
 		parameters.SetResourceReferenceKeyID(&namespace)

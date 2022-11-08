@@ -94,7 +94,7 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	assert.Equal(t, "test_pipeline", pipeline.Name)
 
 	/* ---------- Get pipeline id ---------- */
-	pipelines, totalSize, _, err := s.pipelineClient.List(&params.ListPipelinesParams{})
+	pipelines, totalSize, _, err := s.pipelineClient.List(&params.ListPipelinesV1Params{})
 	require.Nil(t, err)
 	assert.Equal(t, 1, len(pipelines))
 	assert.Equal(t, 1, totalSize)
@@ -114,12 +114,12 @@ func (s *PipelineVersionApiTest) TestArgoSpec() {
 	versions, _, _, err := s.pipelineClient.ListPipelineVersions(&params.ListPipelineVersionsParams{ResourceKeyID: &pipelineId, SortBy: &sortBy})
 	require.Nil(t, err)
 
-	err = s.pipelineClient.UpdateDefaultVersion(&params.UpdatePipelineDefaultVersionParams{PipelineID: pipelineId,
+	err = s.pipelineClient.UpdateDefaultVersion(&params.UpdatePipelineDefaultVersionV1Params{PipelineID: pipelineId,
 		VersionID: versions[0].ID})
 	require.Nil(t, err)
 
 	time.Sleep(1 * time.Second)
-	pipelineSelected, err := s.pipelineClient.Get(&params.GetPipelineParams{ID: pipelineId})
+	pipelineSelected, err := s.pipelineClient.Get(&params.GetPipelineV1Params{ID: pipelineId})
 	require.Nil(t, err)
 	assert.Equal(t, pipelineSelected.DefaultVersion.ID, versions[0].ID)
 

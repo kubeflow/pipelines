@@ -293,7 +293,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 
 	/* ---------- Check run for hello world job ---------- */
 	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
-		runs, totalSize, _, err := s.runClient.List(&runParams.ListRunsParams{
+		runs, totalSize, _, err := s.runClient.List(&runParams.ListRunsV1Params{
 			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(helloWorldExperiment.ID)})
 		if err != nil {
@@ -313,7 +313,7 @@ func (s *JobApiTestSuite) TestJobApis() {
 
 	/* ---------- Check run for argument parameter job ---------- */
 	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
-		runs, totalSize, _, err := s.runClient.List(&runParams.ListRunsParams{
+		runs, totalSize, _, err := s.runClient.List(&runParams.ListRunsV1Params{
 			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(argParamsExperiment.ID)})
 		if err != nil {
@@ -422,7 +422,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 
 	/* ---------- Assert number of runs when catchup = true ---------- */
 	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
-		_, runsWhenCatchupTrue, _, err := s.runClient.List(&runParams.ListRunsParams{
+		_, runsWhenCatchupTrue, _, err := s.runClient.List(&runParams.ListRunsV1Params{
 			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(periodicCatchupTrueExperiment.ID)})
 		if err != nil {
@@ -432,7 +432,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 			return fmt.Errorf("expected runsWhenCatchupTrue to be 1, got: %v", runsWhenCatchupTrue)
 		}
 
-		_, runsWhenCatchupTrue, _, err = s.runClient.List(&runParams.ListRunsParams{
+		_, runsWhenCatchupTrue, _, err = s.runClient.List(&runParams.ListRunsV1Params{
 			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(cronCatchupTrueExperiment.ID)})
 		if err != nil {
@@ -448,7 +448,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 
 	/* ---------- Assert number of runs when catchup = false ---------- */
 	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
-		_, runsWhenCatchupFalse, _, err := s.runClient.List(&runParams.ListRunsParams{
+		_, runsWhenCatchupFalse, _, err := s.runClient.List(&runParams.ListRunsV1Params{
 			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(periodicCatchupFalseExperiment.ID)})
 		if err != nil {
@@ -458,7 +458,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 			return fmt.Errorf("expected runsWhenCatchupFalse to be 1, got: %v", runsWhenCatchupFalse)
 		}
 
-		_, runsWhenCatchupFalse, _, err = s.runClient.List(&runParams.ListRunsParams{
+		_, runsWhenCatchupFalse, _, err = s.runClient.List(&runParams.ListRunsV1Params{
 			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(cronCatchupFalseExperiment.ID)})
 		if err != nil {

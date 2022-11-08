@@ -17,13 +17,13 @@ import (
 
 type PipelineInterface interface {
 	Create(params *params.CreatePipelineParams) (*model.APIPipeline, error)
-	Get(params *params.GetPipelineParams) (*model.APIPipeline, error)
-	Delete(params *params.DeletePipelineParams) error
+	Get(params *params.GetPipelineV1Params) (*model.APIPipeline, error)
+	Delete(params *params.DeletePipelineV1Params) error
 	GetTemplate(params *params.GetTemplateParams) (template.Template, error)
-	List(params *params.ListPipelinesParams) ([]*model.APIPipeline, int, string, error)
-	ListAll(params *params.ListPipelinesParams, maxResultSize int) (
+	List(params *params.ListPipelinesV1Params) ([]*model.APIPipeline, int, string, error)
+	ListAll(params *params.ListPipelinesV1Params, maxResultSize int) (
 		[]*model.APIPipeline, error)
-	UpdateDefaultVersion(params *params.UpdatePipelineDefaultVersionParams) error
+	UpdateDefaultVersion(params *params.UpdatePipelineDefaultVersionV1Params) error
 }
 
 type PipelineClient struct {
@@ -31,7 +31,7 @@ type PipelineClient struct {
 	authInfoWriter runtime.ClientAuthInfoWriter
 }
 
-func (c *PipelineClient) UpdateDefaultVersion(parameters *params.UpdatePipelineDefaultVersionParams) error {
+func (c *PipelineClient) UpdateDefaultVersion(parameters *params.UpdatePipelineDefaultVersionV1Params) error {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
@@ -106,7 +106,7 @@ func (c *PipelineClient) Create(parameters *params.CreatePipelineParams) (*model
 	return response.Payload, nil
 }
 
-func (c *PipelineClient) Get(parameters *params.GetPipelineParams) (*model.APIPipeline,
+func (c *PipelineClient) Get(parameters *params.GetPipelineV1Params) (*model.APIPipeline,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
@@ -130,7 +130,7 @@ func (c *PipelineClient) Get(parameters *params.GetPipelineParams) (*model.APIPi
 	return response.Payload, nil
 }
 
-func (c *PipelineClient) Delete(parameters *params.DeletePipelineParams) error {
+func (c *PipelineClient) Delete(parameters *params.DeletePipelineV1Params) error {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
@@ -177,7 +177,7 @@ func (c *PipelineClient) GetTemplate(parameters *params.GetTemplateParams) (temp
 	return template.New([]byte(response.Payload.Template))
 }
 
-func (c *PipelineClient) List(parameters *params.ListPipelinesParams) (
+func (c *PipelineClient) List(parameters *params.ListPipelinesV1Params) (
 	[]*model.APIPipeline, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
@@ -201,12 +201,12 @@ func (c *PipelineClient) List(parameters *params.ListPipelinesParams) (
 	return response.Payload.Pipelines, int(response.Payload.TotalSize), response.Payload.NextPageToken, nil
 }
 
-func (c *PipelineClient) ListAll(parameters *params.ListPipelinesParams, maxResultSize int) (
+func (c *PipelineClient) ListAll(parameters *params.ListPipelinesV1Params, maxResultSize int) (
 	[]*model.APIPipeline, error) {
 	return listAllForPipeline(c, parameters, maxResultSize)
 }
 
-func listAllForPipeline(client PipelineInterface, parameters *params.ListPipelinesParams,
+func listAllForPipeline(client PipelineInterface, parameters *params.ListPipelinesV1Params,
 	maxResultSize int) ([]*model.APIPipeline, error) {
 	if maxResultSize < 0 {
 		maxResultSize = 0
