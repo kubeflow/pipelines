@@ -154,7 +154,12 @@ def get_io_artifact_class(typ):
     if typ == Input or typ == Output:
         return None
 
-    return typ.__args__[0]
+    # extract inner type from list of artifacts
+    inner = typ.__args__[0]
+    if hasattr(inner, '__origin__') and inner.__origin__ == list:
+        return inner.__args__[0]
+
+    return inner
 
 
 def get_io_artifact_annotation(typ):
