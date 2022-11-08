@@ -163,21 +163,21 @@ def extract_component_interface(
             parameter.annotation)
         passing_style = None
         io_name = parameter.name
-
         if type_annotations.is_artifact_annotation(parameter_type):
             # passing_style is either type_annotations.InputAnnotation or
             # type_annotations.OutputAnnotation.
             passing_style = type_annotations.get_io_artifact_annotation(
                 parameter_type)
 
-            # parameter_type is type_annotations.Artifact or one of its subclasses.
+            # parameter_type is the actual artifact class, such as dsl.Artifact.
+            is_artifact_list = parameter_type.__origin__ == list
             parameter_type = type_annotations.get_io_artifact_class(
                 parameter_type)
+
             if not type_annotations.is_artifact_class(parameter_type):
                 raise ValueError(
-                    'Input[T] and Output[T] are only supported when T is a '
-                    'subclass of Artifact. Found `{} with type {}`'.format(
-                        io_name, parameter_type))
+                    'Input[T] and Output[T] are only supported when T is an artifact or list of artifacts. Found `{} with type {}`'
+                    .format(io_name, parameter_type))
 
             if parameter.default is not inspect.Parameter.empty:
                 raise ValueError(
@@ -212,7 +212,8 @@ def extract_component_interface(
                 schema_version = parameter_type.schema_version
                 output_spec = structures.OutputSpec(
                     type=type_utils.create_bundled_artifact_type(
-                        type_struct, schema_version))
+                        type_struct, schema_version),
+                    is_artifact_list=is_artifact_list)
             else:
                 output_spec = structures.OutputSpec(type=type_struct)
             outputs[io_name] = output_spec
@@ -223,7 +224,9 @@ def extract_component_interface(
                 schema_version = parameter_type.schema_version
                 input_spec = structures.InputSpec(
                     type=type_utils.create_bundled_artifact_type(
-                        type_struct, schema_version))
+                        type_struct, schema_version),
+                    is_artifact_list=is_artifact_list,
+                )
             else:
                 if parameter.default is not inspect.Parameter.empty:
                     input_spec = structures.InputSpec(
@@ -249,7 +252,18 @@ def extract_component_interface(
                 output_name = _maybe_make_unique(field_name, output_names)
                 output_names.add(output_name)
                 annotation = field_annotations.get(field_name)
-                if type_annotations.is_artifact_class(annotation):
+                is_artifact_list = hasattr(
+                    annotation, '__origin__'
+                ) and annotation.__origin__ == list and type_annotations.is_artifact_class(
+                    annotation.__args__[0])
+                if is_artifact_list:
+                    artifact_cls = annotation.__args__[0]
+                    output_spec = structures.OutputSpec(
+                        type=type_utils.create_bundled_artifact_type(
+                            artifact_cls.schema_title,
+                            artifact_cls.schema_version),
+                        is_artifact_list=True)
+                elif type_annotations.is_artifact_class(annotation):
                     output_spec = structures.OutputSpec(
                         type=type_utils.create_bundled_artifact_type(
                             annotation.schema_title, annotation.schema_version))
@@ -278,7 +292,17 @@ def extract_component_interface(
             #   `def func(output_path: OutputPath()) -> str: ...`
             output_names.add(output_name)
             return_ann = signature.return_annotation
-            if type_annotations.is_artifact_class(signature.return_annotation):
+            is_artifact_list = hasattr(
+                return_ann, '__origin__'
+            ) and return_ann.__origin__ == list and type_annotations.is_artifact_class(
+                return_ann.__args__[0])
+            if is_artifact_list:
+                artifact_cls = return_ann.__args__[0]
+                output_spec = structures.OutputSpec(
+                    type=type_utils.create_bundled_artifact_type(
+                        artifact_cls.schema_title, artifact_cls.schema_version),
+                    is_artifact_list=True)
+            elif type_annotations.is_artifact_class(return_ann):
                 output_spec = structures.OutputSpec(
                     type=type_utils.create_bundled_artifact_type(
                         return_ann.schema_title, return_ann.schema_version))
