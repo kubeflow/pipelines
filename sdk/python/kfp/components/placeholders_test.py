@@ -396,3 +396,17 @@ class TestConvertCommandLineElementToStringOrStruct(parameterized.TestCase):
         self.assertEqual(
             placeholders.convert_command_line_element_to_string_or_struct(
                 placeholder), expected)
+
+
+class OtherPlaceholderTests(parameterized.TestCase):
+
+    def test_primitive_placeholder_can_be_used_in_fstring(self):
+
+        @dsl.container_component
+        def echo_bool(boolean: bool = True):
+            return dsl.ContainerSpec(
+                image='alpine', command=['sh', '-c', f'echo {boolean}'])
+
+        self.assertEqual(
+            echo_bool.component_spec.implementation.container.command,
+            ['sh', '-c', "echo {{$.inputs.parameters['boolean']}}"])
