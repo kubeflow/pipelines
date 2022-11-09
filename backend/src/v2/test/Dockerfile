@@ -21,5 +21,10 @@ COPY samples/test/utils samples/test/utils
 # relative path in requirements.txt are relative to workdir, so we need to
 # cd to that folder first
 RUN cd backend/src/v2/test && pip3 install --no-cache-dir -r requirements.txt
+
+# Install KFP server API from commit.
+cp -r $source_root/backend/api/v1beta1/python_http_client /python_http_client
+python3 -m pip install /python_http_client
+
 # copy all other code
 COPY . .
