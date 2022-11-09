@@ -1219,7 +1219,7 @@ class PythonOpTestCase(unittest.TestCase):
         from typing import Sequence
 
         def my_func(args: Sequence[int]):
-            print(args)
+            args
 
         task_factory = comp.create_component_from_func(my_func)
         with self.assertRaisesRegex(
@@ -1233,7 +1233,7 @@ class PythonOpTestCase(unittest.TestCase):
         from typing import List
 
         def my_func(args: List[int]):
-            print(args)
+            args
 
         task_factory = comp.create_component_from_func(my_func)
         self.helper_test_component_using_local_call(
