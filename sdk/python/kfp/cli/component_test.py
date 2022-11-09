@@ -13,8 +13,10 @@
 # limitations under the License.
 """Tests for `components` command group in KFP CLI."""
 import contextlib
+import functools
 import os
 import pathlib
+import subprocess
 import textwrap
 from typing import List, Optional, Union
 import unittest
@@ -491,13 +493,18 @@ class Test(unittest.TestCase):
         current_dir = os.path.dirname(os.path.abspath(__file__))
         package_dir = os.path.dirname(os.path.dirname(current_dir))
 
-        result = self.runner.invoke(
-            self.cli,
-            [
-                'build',
-                str(self._working_dir), f'--kfp-package-path={package_dir}'
-            ],
-        )
+        # suppresses large stdout from subprocess that builds kfp package
+        with mock.patch.object(
+                subprocess,
+                'run',
+                new=functools.partial(subprocess.run, capture_output=True)):
+            result = self.runner.invoke(
+                self.cli,
+                [
+                    'build',
+                    str(self._working_dir), f'--kfp-package-path={package_dir}'
+                ],
+            )
         self.assertEqual(result.exit_code, 0)
         self._docker_client.api.build.assert_called_once()
         self.assert_file_exists('Dockerfile')

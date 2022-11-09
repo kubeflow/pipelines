@@ -39,7 +39,6 @@ def my_pipeline(message: str = 'Hello World!'):
 
     with dsl.ExitHandler(first_exit_task):
         first_exit_print_task = print_op(message=message)
-        print(first_exit_print_task.outputs)
         fail_op(message='Task failed.')
 
     second_exit_task = print_op(message='Second exit handler has worked!')
