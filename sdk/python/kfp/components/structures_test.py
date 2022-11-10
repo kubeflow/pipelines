@@ -597,6 +597,11 @@ class TestInputSpec(unittest.TestCase):
             artifact_dict)
         self.assertEqual(input_spec.type, 'system.Artifact@0.0.1')
 
+    def test_assert_optional_must_be_true_when_default_is_not_none(self):
+        with self.assertRaisesRegex(ValueError,
+                                    r'must be True if `default` is not None'):
+            input_spec = structures.InputSpec(type='String', default='text')
+
 
 class TestOutputSpec(parameterized.TestCase):
 

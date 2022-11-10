@@ -121,7 +121,9 @@ class InputSpec:
         states."""
         # Because None can be the default value, None cannot be used to to indicate no default. This is why we need the optional field. This check prevents users of InputSpec from setting these two values to an inconsistent state, forcing users of InputSpec to be explicit about optionality.
         if self.optional is False and self.default is not None:
-            raise ValueError('')
+            raise ValueError(
+                f'`optional` argument to {self.__class__.__name__} must be True if `default` is not None.'
+            )
 
 
 @dataclasses.dataclass
