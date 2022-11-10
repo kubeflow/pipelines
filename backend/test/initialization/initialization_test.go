@@ -40,7 +40,7 @@ func (s *InitializationTest) TestInitialization() {
 	t := s.T()
 
 	/* ---------- Verify that only the default experiment exists ---------- */
-	experiments, totalSize, _, err := s.experimentClient.List(&params.ListExperimentParams{})
+	experiments, totalSize, _, err := s.experimentClient.List(&params.ListExperimentsV1Params{})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, totalSize)
 	assert.True(t, len(experiments) == 1)

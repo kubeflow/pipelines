@@ -17,8 +17,8 @@ func NewVisualizationClientFake() *VisualizationClientFake {
 	return &VisualizationClientFake{}
 }
 
-func (c *VisualizationClientFake) Create(params *params.CreateVisualizationParams) (
-	*model.V1beta1Visualization, error) {
+func (c *VisualizationClientFake) Create(params *params.CreateVisualizationV1Params) (
+	*model.APIVisualization, error) {
 	var arguments VisualizationArguments
 	err := json.Unmarshal([]byte(params.Body.Arguments), &arguments)
 	if err != nil {

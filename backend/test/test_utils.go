@@ -75,7 +75,7 @@ func DeleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
 	pipelines, _, _, err := ListPipelines(client)
 	assert.Nil(t, err)
 	for _, p := range pipelines {
-		assert.Nil(t, client.Delete(&pipelineparams.DeletePipelineParams{ID: p.ID}))
+		assert.Nil(t, client.Delete(&pipelineparams.DeletePipelineV1Params{ID: p.ID}))
 	}
 }
 
@@ -83,7 +83,7 @@ func DeleteAllExperiments(client *api_server.ExperimentClient, namespace string,
 	experiments, _, _, err := ListAllExperiment(client, namespace)
 	assert.Nil(t, err)
 	for _, e := range experiments {
-		assert.Nil(t, client.Delete(&experimentparams.DeleteExperimentParams{ID: e.ID}))
+		assert.Nil(t, client.Delete(&experimentparams.DeleteExperimentV1Params{ID: e.ID}))
 	}
 }
 
@@ -91,7 +91,7 @@ func DeleteAllRuns(client *api_server.RunClient, namespace string, t *testing.T)
 	runs, _, _, err := ListAllRuns(client, namespace)
 	assert.Nil(t, err)
 	for _, r := range runs {
-		assert.Nil(t, client.Delete(&runparams.DeleteRunParams{ID: r.ID}))
+		assert.Nil(t, client.Delete(&runparams.DeleteRunV1Params{ID: r.ID}))
 	}
 }
 
@@ -103,10 +103,10 @@ func DeleteAllJobs(client *api_server.JobClient, namespace string, t *testing.T)
 	}
 }
 
-func GetExperimentIDFromAPIResourceReferences(resourceRefs []*run_model.V1beta1ResourceReference) string {
+func GetExperimentIDFromAPIResourceReferences(resourceRefs []*run_model.APIResourceReference) string {
 	experimentID := ""
 	for _, resourceRef := range resourceRefs {
-		if resourceRef.Key.Type == run_model.V1beta1ResourceTypeEXPERIMENT {
+		if resourceRef.Key.Type == run_model.APIResourceTypeEXPERIMENT {
 			experimentID = resourceRef.Key.ID
 			break
 		}
@@ -115,17 +115,17 @@ func GetExperimentIDFromAPIResourceReferences(resourceRefs []*run_model.V1beta1R
 }
 
 func ListPipelines(client *api_server.PipelineClient) (
-	[]*pipeline_model.V1beta1Pipeline, int, string, error) {
-	parameters := &pipelineparams.ListPipelinesParams{}
+	[]*pipeline_model.APIPipeline, int, string, error) {
+	parameters := &pipelineparams.ListPipelinesV1Params{}
 
 	return client.List(parameters)
 }
 
-func ListAllExperiment(client *api_server.ExperimentClient, namespace string) ([]*experiment_model.V1beta1Experiment, int, string, error) {
-	return ListExperiment(client, &experimentparams.ListExperimentParams{}, namespace)
+func ListAllExperiment(client *api_server.ExperimentClient, namespace string) ([]*experiment_model.APIExperiment, int, string, error) {
+	return ListExperiment(client, &experimentparams.ListExperimentsV1Params{}, namespace)
 }
 
-func ListExperiment(client *api_server.ExperimentClient, parameters *experimentparams.ListExperimentParams, namespace string) ([]*experiment_model.V1beta1Experiment, int, string, error) {
+func ListExperiment(client *api_server.ExperimentClient, parameters *experimentparams.ListExperimentsV1Params, namespace string) ([]*experiment_model.APIExperiment, int, string, error) {
 	if namespace != "" {
 		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
 		parameters.SetResourceReferenceKeyID(&namespace)
@@ -134,12 +134,12 @@ func ListExperiment(client *api_server.ExperimentClient, parameters *experimentp
 	return client.List(parameters)
 }
 
-func ListAllRuns(client *api_server.RunClient, namespace string) ([]*run_model.V1beta1Run, int, string, error) {
-	parameters := &runparams.ListRunsParams{}
+func ListAllRuns(client *api_server.RunClient, namespace string) ([]*run_model.APIRun, int, string, error) {
+	parameters := &runparams.ListRunsV1Params{}
 	return ListRuns(client, parameters, namespace)
 }
 
-func ListRuns(client *api_server.RunClient, parameters *runparams.ListRunsParams, namespace string) ([]*run_model.V1beta1Run, int, string, error) {
+func ListRuns(client *api_server.RunClient, parameters *runparams.ListRunsV1Params, namespace string) ([]*run_model.APIRun, int, string, error) {
 	if namespace != "" {
 		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
 		parameters.SetResourceReferenceKeyID(&namespace)
@@ -148,11 +148,11 @@ func ListRuns(client *api_server.RunClient, parameters *runparams.ListRunsParams
 	return client.List(parameters)
 }
 
-func ListAllJobs(client *api_server.JobClient, namespace string) ([]*job_model.V1beta1Job, int, string, error) {
+func ListAllJobs(client *api_server.JobClient, namespace string) ([]*job_model.APIJob, int, string, error) {
 	return ListJobs(client, &jobparams.ListJobsParams{}, namespace)
 }
 
-func ListJobs(client *api_server.JobClient, parameters *jobparams.ListJobsParams, namespace string) ([]*job_model.V1beta1Job, int, string, error) {
+func ListJobs(client *api_server.JobClient, parameters *jobparams.ListJobsParams, namespace string) ([]*job_model.APIJob, int, string, error) {
 	if namespace != "" {
 		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
 		parameters.SetResourceReferenceKeyID(&namespace)
@@ -161,19 +161,19 @@ func ListJobs(client *api_server.JobClient, parameters *jobparams.ListJobsParams
 	return client.List(parameters)
 }
 
-func GetExperiment(name string, description string, namespace string) *experiment_model.V1beta1Experiment {
-	experiment := &experiment_model.V1beta1Experiment{
+func GetExperiment(name string, description string, namespace string) *experiment_model.APIExperiment {
+	experiment := &experiment_model.APIExperiment{
 		Name:        name,
 		Description: description}
 
 	if namespace != "" {
-		experiment.ResourceReferences = []*experiment_model.V1beta1ResourceReference{
+		experiment.ResourceReferences = []*experiment_model.APIResourceReference{
 			{
-				Key: &experiment_model.V1beta1ResourceKey{
-					Type: experiment_model.V1beta1ResourceTypeNAMESPACE,
+				Key: &experiment_model.APIResourceKey{
+					Type: experiment_model.APIResourceTypeNAMESPACE,
 					ID:   namespace,
 				},
-				Relationship: experiment_model.V1beta1RelationshipOWNER,
+				Relationship: experiment_model.APIRelationshipOWNER,
 			},
 		}
 	}

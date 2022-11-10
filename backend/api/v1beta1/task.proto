@@ -15,7 +15,7 @@
 syntax = "proto3";
 
 option go_package = "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client";
-package v1beta1;
+package api;
 
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
@@ -52,7 +52,7 @@ message Task {
 
 service TaskService {
   // Creates a new task.
-  rpc CreateTask(CreateTaskRequest) returns (Task) {
+  rpc CreateTaskV1(CreateTaskRequest) returns (Task) {
     option (google.api.http) = {
       post: "/apis/v1alpha1/tasks"
       body: "task"
@@ -60,7 +60,7 @@ service TaskService {
   }
 
   // Finds all tasks. Supports pagination, and sorting on certain fields.
-  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse) {
+  rpc ListTasksV1(ListTasksRequest) returns (ListTasksResponse) {
     option (google.api.http) = {
       get: "/apis/v1alpha1/tasks"
     };

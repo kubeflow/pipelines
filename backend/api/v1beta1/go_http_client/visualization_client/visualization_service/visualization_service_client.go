@@ -25,23 +25,23 @@ type Client struct {
 }
 
 /*
-CreateVisualization create visualization API
+CreateVisualizationV1 create visualization v1 API
 */
-func (a *Client) CreateVisualization(params *CreateVisualizationParams, authInfo runtime.ClientAuthInfoWriter) (*CreateVisualizationOK, error) {
+func (a *Client) CreateVisualizationV1(params *CreateVisualizationV1Params, authInfo runtime.ClientAuthInfoWriter) (*CreateVisualizationV1OK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewCreateVisualizationParams()
+		params = NewCreateVisualizationV1Params()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "CreateVisualization",
+		ID:                 "CreateVisualizationV1",
 		Method:             "POST",
 		PathPattern:        "/apis/v1beta1/visualizations/{namespace}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &CreateVisualizationReader{formats: a.formats},
+		Reader:             &CreateVisualizationV1Reader{formats: a.formats},
 		AuthInfo:           authInfo,
 		Context:            params.Context,
 		Client:             params.HTTPClient,
@@ -49,7 +49,7 @@ func (a *Client) CreateVisualization(params *CreateVisualizationParams, authInfo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*CreateVisualizationOK), nil
+	return result.(*CreateVisualizationV1OK), nil
 
 }
 
