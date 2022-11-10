@@ -15,20 +15,20 @@
 syntax = "proto3";
 
 option go_package = "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client";
-package v1beta1;
+package api;
 
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
 
 service ReportService {
-  rpc ReportWorkflow(ReportWorkflowRequest) returns (google.protobuf.Empty) {
+  rpc ReportWorkflowV1(ReportWorkflowRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/workflows"
       body: "workflow"
     };
   }
 
-  rpc ReportScheduledWorkflow(ReportScheduledWorkflowRequest) returns (google.protobuf.Empty) {
+  rpc ReportScheduledWorkflowV1(ReportScheduledWorkflowRequest) returns (google.protobuf.Empty) {
     option (google.api.http) = {
       post: "/apis/v1beta1/scheduledworkflows"
       body: "scheduled_workflow"

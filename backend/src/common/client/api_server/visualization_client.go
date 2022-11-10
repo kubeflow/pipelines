@@ -15,7 +15,7 @@ import (
 )
 
 type VisualizationInterface interface {
-	Create(params *params.CreateVisualizationParams) (*model.V1beta1Visualization, error)
+	Create(params *params.CreateVisualizationV1Params) (*model.APIVisualization, error)
 }
 
 type VisualizationClient struct {
@@ -53,7 +53,7 @@ func NewKubeflowInClusterVisualizationClient(namespace string, debug bool) (
 	}, nil
 }
 
-func (c *VisualizationClient) Create(parameters *params.CreateVisualizationParams) (*model.V1beta1Visualization,
+func (c *VisualizationClient) Create(parameters *params.CreateVisualizationV1Params) (*model.APIVisualization,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
@@ -61,9 +61,9 @@ func (c *VisualizationClient) Create(parameters *params.CreateVisualizationParam
 
 	// Make service call
 	parameters.Context = ctx
-	response, err := c.apiClient.VisualizationService.CreateVisualization(parameters, PassThroughAuth)
+	response, err := c.apiClient.VisualizationService.CreateVisualizationV1(parameters, PassThroughAuth)
 	if err != nil {
-		if defaultError, ok := err.(*params.CreateVisualizationDefault); ok {
+		if defaultError, ok := err.(*params.CreateVisualizationV1Default); ok {
 			err = CreateErrorFromAPIStatus(defaultError.Payload.Error, defaultError.Payload.Code)
 		} else {
 			err = CreateErrorCouldNotRecoverAPIStatus(err)

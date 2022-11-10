@@ -28,7 +28,7 @@ type VisualizationServer struct {
 	serviceURL      string
 }
 
-func (s *VisualizationServer) CreateVisualization(ctx context.Context, request *go_client.CreateVisualizationRequest) (*go_client.Visualization, error) {
+func (s *VisualizationServer) CreateVisualizationV1(ctx context.Context, request *go_client.CreateVisualizationRequest) (*go_client.Visualization, error) {
 	if err := s.validateCreateVisualizationRequest(request); err != nil {
 		return nil, err
 	}

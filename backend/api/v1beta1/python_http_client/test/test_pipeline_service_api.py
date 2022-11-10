@@ -14,66 +14,59 @@ from __future__ import absolute_import
 
 import unittest
 
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.api.pipeline_service_api import PipelineServiceApi  # noqa: E501
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.api.pipeline_service_api import PipelineServiceApi  # noqa: E501
+from kfp_server_api.rest import ApiException
 
 
 class TestPipelineServiceApi(unittest.TestCase):
     """PipelineServiceApi unit test stubs"""
 
     def setUp(self):
-        self.api = kfp_server_api_v1beta1.api.pipeline_service_api.PipelineServiceApi()  # noqa: E501
+        self.api = kfp_server_api.api.pipeline_service_api.PipelineServiceApi()  # noqa: E501
 
     def tearDown(self):
         pass
 
-    def test_create_pipeline(self):
-        """Test case for create_pipeline
+    def test_create_pipeline_v1(self):
+        """Test case for create_pipeline_v1
 
         Creates a pipeline.  # noqa: E501
         """
         pass
 
-    def test_create_pipeline_version(self):
-        """Test case for create_pipeline_version
+    def test_create_pipeline_version_v1(self):
+        """Test case for create_pipeline_version_v1
 
         Adds a pipeline version to the specified pipeline.  # noqa: E501
         """
         pass
 
-    def test_delete_pipeline(self):
-        """Test case for delete_pipeline
+    def test_delete_pipeline_v1(self):
+        """Test case for delete_pipeline_v1
 
         Deletes a pipeline and its pipeline versions.  # noqa: E501
         """
         pass
 
-    def test_delete_pipeline_version(self):
-        """Test case for delete_pipeline_version
+    def test_delete_pipeline_version_v1(self):
+        """Test case for delete_pipeline_version_v1
 
         Deletes a pipeline version by pipeline version ID. If the deleted pipeline version is the default pipeline version, the pipeline's default version changes to the pipeline's most recent pipeline version. If there are no remaining pipeline versions, the pipeline will have no default version. Examines the run_service_api.ipynb notebook to learn more about creating a run using a pipeline version (https://github.com/kubeflow/pipelines/blob/master/tools/benchmarks/run_service_api.ipynb).  # noqa: E501
         """
         pass
 
-    def test_get_pipeline(self):
-        """Test case for get_pipeline
-
-        Finds a specific pipeline by ID.  # noqa: E501
-        """
-        pass
-
-    def test_get_pipeline_by_name(self):
-        """Test case for get_pipeline_by_name
+    def test_get_pipeline_by_name_v1(self):
+        """Test case for get_pipeline_by_name_v1
 
         Finds a pipeline by Name (and namespace)  # noqa: E501
         """
         pass
 
-    def test_get_pipeline_version(self):
-        """Test case for get_pipeline_version
+    def test_get_pipeline_v1(self):
+        """Test case for get_pipeline_v1
 
-        Gets a pipeline version by pipeline version ID.  # noqa: E501
+        Finds a specific pipeline by ID.  # noqa: E501
         """
         pass
 
@@ -84,6 +77,13 @@ class TestPipelineServiceApi(unittest.TestCase):
         """
         pass
 
+    def test_get_pipeline_version_v1(self):
+        """Test case for get_pipeline_version_v1
+
+        Gets a pipeline version by pipeline version ID.  # noqa: E501
+        """
+        pass
+
     def test_get_template(self):
         """Test case for get_template
 
@@ -91,22 +91,22 @@ class TestPipelineServiceApi(unittest.TestCase):
         """
         pass
 
-    def test_list_pipeline_versions(self):
-        """Test case for list_pipeline_versions
+    def test_list_pipeline_versions_v1(self):
+        """Test case for list_pipeline_versions_v1
 
         Lists all pipeline versions of a given pipeline.  # noqa: E501
         """
         pass
 
-    def test_list_pipelines(self):
-        """Test case for list_pipelines
+    def test_list_pipelines_v1(self):
+        """Test case for list_pipelines_v1
 
         Finds all pipelines.  # noqa: E501
         """
         pass
 
-    def test_update_pipeline_default_version(self):
-        """Test case for update_pipeline_default_version
+    def test_update_pipeline_default_version_v1(self):
+        """Test case for update_pipeline_default_version_v1
 
         Update the default pipeline version of a specific pipeline.  # noqa: E501
         """

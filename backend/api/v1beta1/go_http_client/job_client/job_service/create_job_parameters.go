@@ -67,7 +67,7 @@ type CreateJobParams struct {
 	  The job to be created
 
 	*/
-	Body *job_model.V1beta1Job
+	Body *job_model.APIJob
 
 	timeout    time.Duration
 	Context    context.Context
@@ -108,13 +108,13 @@ func (o *CreateJobParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithBody adds the body to the create job params
-func (o *CreateJobParams) WithBody(body *job_model.V1beta1Job) *CreateJobParams {
+func (o *CreateJobParams) WithBody(body *job_model.APIJob) *CreateJobParams {
 	o.SetBody(body)
 	return o
 }
 
 // SetBody adds the body to the create job params
-func (o *CreateJobParams) SetBody(body *job_model.V1beta1Job) {
+func (o *CreateJobParams) SetBody(body *job_model.APIJob) {
 	o.Body = body
 }
 

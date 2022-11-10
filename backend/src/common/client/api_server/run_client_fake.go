@@ -14,14 +14,14 @@ const (
 	RunForClientErrorTest = "RUN_CLIENT_ERROR"
 )
 
-func getDefaultRun(id string, name string) *runmodel.V1beta1RunDetail {
-	return &runmodel.V1beta1RunDetail{
-		PipelineRuntime: &runmodel.V1beta1PipelineRuntime{WorkflowManifest: getDefaultWorkflowAsString()},
-		Run: &runmodel.V1beta1Run{
+func getDefaultRun(id string, name string) *runmodel.APIRunDetail {
+	return &runmodel.APIRunDetail{
+		PipelineRuntime: &runmodel.APIPipelineRuntime{WorkflowManifest: getDefaultWorkflowAsString()},
+		Run: &runmodel.APIRun{
 			CreatedAt: strfmt.NewDateTime(),
 			ID:        id,
 			Name:      name,
-			Metrics:   []*runmodel.V1beta1RunMetric{},
+			Metrics:   []*runmodel.APIRunMetric{},
 		},
 	}
 }
@@ -32,7 +32,7 @@ func NewRunClientFake() *RunClientFake {
 	return &RunClientFake{}
 }
 
-func (c *RunClientFake) Get(params *runparams.GetRunParams) (*runmodel.V1beta1RunDetail,
+func (c *RunClientFake) Get(params *runparams.GetRunV1Params) (*runmodel.APIRunDetail,
 	*workflowapi.Workflow, error) {
 	switch params.RunID {
 	case RunForClientErrorTest:
@@ -42,8 +42,8 @@ func (c *RunClientFake) Get(params *runparams.GetRunParams) (*runmodel.V1beta1Ru
 	}
 }
 
-func (c *RunClientFake) List(params *runparams.ListRunsParams) (
-	[]*runmodel.V1beta1Run, int, string, error) {
+func (c *RunClientFake) List(params *runparams.ListRunsV1Params) (
+	[]*runmodel.APIRun, int, string, error) {
 	const (
 		FirstToken  = ""
 		SecondToken = "SECOND_TOKEN"
@@ -57,12 +57,12 @@ func (c *RunClientFake) List(params *runparams.ListRunsParams) (
 
 	switch token {
 	case FirstToken:
-		return []*runmodel.V1beta1Run{
+		return []*runmodel.APIRun{
 			getDefaultRun("100", "MY_FIRST_RUN").Run,
 			getDefaultRun("101", "MY_SECOND_RUN").Run,
 		}, 2, SecondToken, nil
 	case SecondToken:
-		return []*runmodel.V1beta1Run{
+		return []*runmodel.APIRun{
 			getDefaultRun("102", "MY_THIRD_RUN").Run,
 		}, 1, FinalToken, nil
 	default:
@@ -70,20 +70,20 @@ func (c *RunClientFake) List(params *runparams.ListRunsParams) (
 	}
 }
 
-func (c *RunClientFake) ListAll(params *runparams.ListRunsParams, maxResultSize int) (
-	[]*runmodel.V1beta1Run, error) {
+func (c *RunClientFake) ListAll(params *runparams.ListRunsV1Params, maxResultSize int) (
+	[]*runmodel.APIRun, error) {
 	return listAllForRun(c, params, maxResultSize)
 }
 
-func (c *RunClientFake) Archive(params *runparams.ArchiveRunParams) error {
+func (c *RunClientFake) Archive(params *runparams.ArchiveRunV1Params) error {
 	return nil
 }
 
-func (c *RunClientFake) Unarchive(params *runparams.UnarchiveRunParams) error {
+func (c *RunClientFake) Unarchive(params *runparams.UnarchiveRunV1Params) error {
 	return nil
 }
 
-func (c *RunClientFake) Terminate(params *runparams.TerminateRunParams) error {
+func (c *RunClientFake) Terminate(params *runparams.TerminateRunV1Params) error {
 	switch params.RunID {
 	case RunForClientErrorTest:
 		return fmt.Errorf(ClientErrorString)

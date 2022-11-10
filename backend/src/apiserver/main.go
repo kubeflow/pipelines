@@ -150,7 +150,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 
 	// log streaming is provided via HTTP.
 	runLogServer := server.NewRunLogServer(resourceManager)
-	topMux.HandleFunc("/apis/v1alpha1/runs/{run_id}/nodes/{node_id}/log", runLogServer.ReadRunLog)
+	topMux.HandleFunc("/apis/v1alpha1/runs/{run_id}/nodes/{node_id}/log", runLogServer.ReadRunLogV1)
 
 	topMux.PathPrefix("/apis/").Handler(runtimeMux)
 

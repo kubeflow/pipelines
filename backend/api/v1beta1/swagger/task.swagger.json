@@ -18,12 +18,12 @@
     "/apis/v1alpha1/tasks": {
       "get": {
         "summary": "Finds all tasks. Supports pagination, and sorting on certain fields.",
-        "operationId": "ListTasks",
+        "operationId": "ListTasksV1",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1ListTasksResponse"
+              "$ref": "#/definitions/apiListTasksResponse"
             }
           }
         },
@@ -75,7 +75,7 @@
           },
           {
             "name": "filter",
-            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).",
+            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).",
             "in": "query",
             "required": false,
             "type": "string"
@@ -87,12 +87,12 @@
       },
       "post": {
         "summary": "Creates a new task.",
-        "operationId": "CreateTask",
+        "operationId": "CreateTaskV1",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1Task"
+              "$ref": "#/definitions/apiTask"
             }
           }
         },
@@ -102,7 +102,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1beta1Task"
+              "$ref": "#/definitions/apiTask"
             }
           }
         ],
@@ -113,13 +113,13 @@
     }
   },
   "definitions": {
-    "v1beta1ListTasksResponse": {
+    "apiListTasksResponse": {
       "type": "object",
       "properties": {
         "tasks": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/v1beta1Task"
+            "$ref": "#/definitions/apiTask"
           },
           "description": "A list of tasks returned."
         },
@@ -134,11 +134,11 @@
         }
       }
     },
-    "v1beta1ResourceKey": {
+    "apiResourceKey": {
       "type": "object",
       "properties": {
         "type": {
-          "$ref": "#/definitions/v1beta1ResourceType",
+          "$ref": "#/definitions/apiResourceType",
           "description": "The type of the resource that referred to."
         },
         "id": {
@@ -147,7 +147,7 @@
         }
       }
     },
-    "v1beta1ResourceType": {
+    "apiResourceType": {
       "type": "string",
       "enum": [
         "UNKNOWN_RESOURCE_TYPE",
@@ -159,7 +159,7 @@
       ],
       "default": "UNKNOWN_RESOURCE_TYPE"
     },
-    "v1beta1Task": {
+    "apiTask": {
       "type": "object",
       "properties": {
         "id": {

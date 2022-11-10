@@ -25,7 +25,7 @@ type AuthServer struct {
 	resourceManager *resource.ResourceManager
 }
 
-func (s *AuthServer) Authorize(ctx context.Context, request *api.AuthorizeRequest) (
+func (s *AuthServer) AuthorizeV1(ctx context.Context, request *api.AuthorizeRequest) (
 	*empty.Empty, error) {
 	err := ValidateAuthorizeRequest(request)
 	if err != nil {

@@ -279,7 +279,7 @@ func TestCreateVisualization_Unauthorized(t *testing.T) {
 		Visualization: visualization,
 		Namespace:     "ns1",
 	}
-	_, err := server.CreateVisualization(ctx, request)
+	_, err := server.CreateVisualizationV1(ctx, request)
 	assert.NotNil(t, err)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: "ns1",
@@ -319,7 +319,7 @@ func TestCreateVisualization_Unauthenticated(t *testing.T) {
 		Visualization: visualization,
 		Namespace:     "ns1",
 	}
-	_, err := server.CreateVisualization(ctx, request)
+	_, err := server.CreateVisualizationV1(ctx, request)
 	assert.NotNil(t, err)
 	assert.EqualError(
 		t,
