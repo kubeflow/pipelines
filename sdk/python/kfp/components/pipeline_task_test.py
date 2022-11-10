@@ -308,8 +308,10 @@ class PipelineTaskTest(parameterized.TestCase):
 class TestCannotUseAfterCrossDAG(unittest.TestCase):
 
     def test_inner_task_prevented(self):
-        with self.assertRaisesRegex(ValueError,
-                                    r'Cannot use \.after\(\) across'):
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r'Task print-op-4 cannot dependent on any task inside a Exithandler that is not a common ancestor of both tasks'
+        ):
 
             @dsl.component
             def print_op(message: str):
@@ -334,8 +336,10 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
                     pipeline_func=my_pipeline, package_path=package_path)
 
     def test_exit_handler_task_prevented(self):
-        with self.assertRaisesRegex(ValueError,
-                                    r'Cannot use \.after\(\) across'):
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r'Task print-op-4 cannot dependent on any task inside a Exithandler that is not a common ancestor of both tasks'
+        ):
 
             @dsl.component
             def print_op(message: str):
@@ -352,7 +356,7 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
                 second_exit_task = print_op(message='Second exit task.')
                 with dsl.ExitHandler(second_exit_task):
                     x = print_op(message='Inside second exit handler.')
-                    x.after(first_exit_task)
+                    x.after(first_print_op)
 
             with tempfile.TemporaryDirectory() as tempdir:
                 package_path = os.path.join(tempdir, 'pipeline.yaml')
@@ -386,8 +390,10 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
                 pipeline_func=my_pipeline, package_path=package_path)
 
     def test_outside_of_condition_blocked(self):
-        with self.assertRaisesRegex(ValueError,
-                                    r'Cannot use \.after\(\) across'):
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r'Task print-op-3 cannot dependent on any task inside a Condition that is not a common ancestor of both tasks'
+        ):
 
             @dsl.component
             def print_op(message: str):
