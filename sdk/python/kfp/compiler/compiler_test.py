@@ -437,7 +437,8 @@ class TestCompilePipeline(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 RuntimeError,
-                'Task dummy-op cannot dependent on any task inside the group:'):
+                'Task dummy-op cannot dependent on any task inside a ParralelFor'
+        ):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -479,7 +480,8 @@ class TestCompilePipeline(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 RuntimeError,
-                'Task dummy-op cannot dependent on any task inside the group:'):
+                'Task dummy-op cannot dependent on any task inside a Condition that is not a common ancestor of both tasks'
+        ):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -521,7 +523,8 @@ class TestCompilePipeline(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 RuntimeError,
-                'Task dummy-op cannot dependent on any task inside the group:'):
+                'Task dummy-op cannot dependent on any task inside a Exithandler that is not a common ancestor of both tasks'
+        ):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -1382,8 +1385,8 @@ class ValidLegalTopologies(unittest.TestCase):
                 pipeline_func=my_pipeline, package_path=package_path)
 
     def test_upstream_inside_deeper_condition_blocked(self):
-        with self.assertRaisesRegex(ValueError,
-                                    r'Cannot use \.after\(\) across'):
+
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
 
             @dsl.component
             def print_op(message: str):
@@ -1440,7 +1443,7 @@ class ValidLegalTopologies(unittest.TestCase):
 
         @dsl.component
         def return_1() -> int:
-            return 1
+            return
 
         @dsl.pipeline()
         def my_pipeline():
@@ -1458,8 +1461,8 @@ class ValidLegalTopologies(unittest.TestCase):
 
     def test_downstream_and_upstream_in_different_condition_on_same_level_blocked(
             self):
-        with self.assertRaisesRegex(ValueError,
-                                    r'Cannot use \.after\(\) across'):
+
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
 
             @dsl.component
             def print_op(message: str):
@@ -1498,10 +1501,11 @@ class ValidLegalTopologies(unittest.TestCase):
         @dsl.pipeline()
         def my_pipeline():
             return_1_task = return_1()
+            return_1_task2 = return_1()
 
             with dsl.Condition(return_1_task.output == 1):
                 one = print_op(message='1')
-                with dsl.Condition(return_1_task.output == 1):
+                with dsl.Condition(return_1_task2.output == 1):
                     two = print_op(message='2')
                     three = print_op(message='3').after(one)
 
@@ -1511,8 +1515,8 @@ class ValidLegalTopologies(unittest.TestCase):
                 pipeline_func=my_pipeline, package_path=package_path)
 
     def test_upstream_inside_deeper_nested_condition_blocked(self):
-        with self.assertRaisesRegex(ValueError,
-                                    r'Cannot use \.after\(\) across'):
+
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
 
             @dsl.component
             def print_op(message: str):
@@ -1561,8 +1565,8 @@ class ValidLegalTopologies(unittest.TestCase):
                 pipeline_func=my_pipeline, package_path=package_path)
 
     def test_downstream_not_in_same_for_loop_with_upstream_blocked(self):
-        with self.assertRaisesRegex(ValueError,
-                                    r'Cannot use \.after\(\) across'):
+
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
 
             @dsl.component
             def print_op(message: str):
@@ -1587,8 +1591,8 @@ class ValidLegalTopologies(unittest.TestCase):
 
     def test_downstream_not_in_same_for_loop_with_upstream_seperate_blocked(
             self):
-        with self.assertRaisesRegex(ValueError,
-                                    r'Cannot use \.after\(\) across'):
+
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
 
             @dsl.component
             def print_op(message: str):
@@ -1614,8 +1618,8 @@ class ValidLegalTopologies(unittest.TestCase):
                     pipeline_func=my_pipeline, package_path=package_path)
 
     def test_downstream_not_in_same_for_loop_with_upstream_nested_blocked(self):
-        with self.assertRaisesRegex(ValueError,
-                                    r'Cannot use \.after\(\) across'):
+
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
 
             @dsl.component
             def print_op(message: str):
