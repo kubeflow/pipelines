@@ -564,5 +564,9 @@ class PipelineTask:
                 task2 = my_component(text='2nd task').after(task1)
         """
         for task in tasks:
+            if task.parent_task_group is not self.parent_task_group:
+                raise ValueError(
+                    f'Cannot use .after() across inner pipelines or DSL control flow features. Tried to set {self.name} after {task.name}, but these tasks do not belong to the same pipeline or are not enclosed in the same control flow content manager.'
+                )
             self._task_spec.dependent_tasks.append(task.name)
         return self
