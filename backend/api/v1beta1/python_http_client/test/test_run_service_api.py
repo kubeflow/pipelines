@@ -14,85 +14,85 @@ from __future__ import absolute_import
 
 import unittest
 
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.api.run_service_api import RunServiceApi  # noqa: E501
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.api.run_service_api import RunServiceApi  # noqa: E501
+from kfp_server_api.rest import ApiException
 
 
 class TestRunServiceApi(unittest.TestCase):
     """RunServiceApi unit test stubs"""
 
     def setUp(self):
-        self.api = kfp_server_api_v1beta1.api.run_service_api.RunServiceApi()  # noqa: E501
+        self.api = kfp_server_api.api.run_service_api.RunServiceApi()  # noqa: E501
 
     def tearDown(self):
         pass
 
-    def test_archive_run(self):
-        """Test case for archive_run
+    def test_archive_run_v1(self):
+        """Test case for archive_run_v1
 
         Archives a run.  # noqa: E501
         """
         pass
 
-    def test_create_run(self):
-        """Test case for create_run
+    def test_create_run_v1(self):
+        """Test case for create_run_v1
 
         Creates a new run.  # noqa: E501
         """
         pass
 
-    def test_delete_run(self):
-        """Test case for delete_run
+    def test_delete_run_v1(self):
+        """Test case for delete_run_v1
 
         Deletes a run.  # noqa: E501
         """
         pass
 
-    def test_get_run(self):
-        """Test case for get_run
+    def test_get_run_v1(self):
+        """Test case for get_run_v1
 
         Finds a specific run by ID.  # noqa: E501
         """
         pass
 
-    def test_list_runs(self):
-        """Test case for list_runs
+    def test_list_runs_v1(self):
+        """Test case for list_runs_v1
 
         Finds all runs.  # noqa: E501
         """
         pass
 
-    def test_read_artifact(self):
-        """Test case for read_artifact
+    def test_read_artifact_v1(self):
+        """Test case for read_artifact_v1
 
         Finds a run's artifact data.  # noqa: E501
         """
         pass
 
-    def test_report_run_metrics(self):
-        """Test case for report_run_metrics
+    def test_report_run_metrics_v1(self):
+        """Test case for report_run_metrics_v1
 
         ReportRunMetrics reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (run_id, node_id, name). Duplicate reporting will be ignored by the API. First reporting wins.  # noqa: E501
         """
         pass
 
-    def test_retry_run(self):
-        """Test case for retry_run
+    def test_retry_run_v1(self):
+        """Test case for retry_run_v1
 
         Re-initiates a failed or terminated run.  # noqa: E501
         """
         pass
 
-    def test_terminate_run(self):
-        """Test case for terminate_run
+    def test_terminate_run_v1(self):
+        """Test case for terminate_run_v1
 
         Terminates an active run.  # noqa: E501
         """
         pass
 
-    def test_unarchive_run(self):
-        """Test case for unarchive_run
+    def test_unarchive_run_v1(self):
+        """Test case for unarchive_run_v1
 
         Restores an archived run.  # noqa: E501
         """

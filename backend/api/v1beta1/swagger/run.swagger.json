@@ -18,18 +18,18 @@
     "/apis/v1beta1/runs": {
       "get": {
         "summary": "Finds all runs.",
-        "operationId": "ListRuns",
+        "operationId": "ListRunsV1",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1ListRunsResponse"
+              "$ref": "#/definitions/apiListRunsResponse"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -81,7 +81,7 @@
           },
           {
             "name": "filter",
-            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).",
+            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v1beta1/filter.proto)).",
             "in": "query",
             "required": false,
             "type": "string"
@@ -93,18 +93,18 @@
       },
       "post": {
         "summary": "Creates a new run.",
-        "operationId": "CreateRun",
+        "operationId": "CreateRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1RunDetail"
+              "$ref": "#/definitions/apiRunDetail"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -114,7 +114,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1beta1Run"
+              "$ref": "#/definitions/apiRun"
             }
           }
         ],
@@ -126,7 +126,7 @@
     "/apis/v1beta1/runs/{id}": {
       "delete": {
         "summary": "Deletes a run.",
-        "operationId": "DeleteRun",
+        "operationId": "DeleteRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -137,7 +137,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -158,7 +158,7 @@
     "/apis/v1beta1/runs/{id}:archive": {
       "post": {
         "summary": "Archives a run.",
-        "operationId": "ArchiveRun",
+        "operationId": "ArchiveRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -169,7 +169,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -190,7 +190,7 @@
     "/apis/v1beta1/runs/{id}:unarchive": {
       "post": {
         "summary": "Restores an archived run.",
-        "operationId": "UnarchiveRun",
+        "operationId": "UnarchiveRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -201,7 +201,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -222,18 +222,18 @@
     "/apis/v1beta1/runs/{run_id}": {
       "get": {
         "summary": "Finds a specific run by ID.",
-        "operationId": "GetRun",
+        "operationId": "GetRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1RunDetail"
+              "$ref": "#/definitions/apiRunDetail"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -254,18 +254,18 @@
     "/apis/v1beta1/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read": {
       "get": {
         "summary": "Finds a run's artifact data.",
-        "operationId": "ReadArtifact",
+        "operationId": "ReadArtifactV1",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1ReadArtifactResponse"
+              "$ref": "#/definitions/apiReadArtifactResponse"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -300,7 +300,7 @@
     "/apis/v1beta1/runs/{run_id}/retry": {
       "post": {
         "summary": "Re-initiates a failed or terminated run.",
-        "operationId": "RetryRun",
+        "operationId": "RetryRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -311,7 +311,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -332,7 +332,7 @@
     "/apis/v1beta1/runs/{run_id}/terminate": {
       "post": {
         "summary": "Terminates an active run.",
-        "operationId": "TerminateRun",
+        "operationId": "TerminateRunV1",
         "responses": {
           "200": {
             "description": "A successful response.",
@@ -343,7 +343,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -364,18 +364,18 @@
     "/apis/v1beta1/runs/{run_id}:reportMetrics": {
       "post": {
         "summary": "ReportRunMetrics reports metrics of a run. Each metric is reported in its\nown transaction, so this API accepts partial failures. Metric can be\nuniquely identified by (run_id, node_id, name). Duplicate reporting will be\nignored by the API. First reporting wins.",
-        "operationId": "ReportRunMetrics",
+        "operationId": "ReportRunMetricsV1",
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1ReportRunMetricsResponse"
+              "$ref": "#/definitions/apiReportRunMetricsResponse"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/apiStatus"
             }
           }
         },
@@ -392,7 +392,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1beta1ReportRunMetricsRequest"
+              "$ref": "#/definitions/apiReportRunMetricsRequest"
             }
           }
         ],
@@ -463,36 +463,13 @@
       "default": "UNSPECIFIED",
       "description": " - UNSPECIFIED: Default value if not present.\n - RAW: Display value as its raw format.\n - PERCENTAGE: Display value in percentage format."
     },
-    "protobufAny": {
-      "type": "object",
-      "properties": {
-        "type_url": {
-          "type": "string",
-          "description": "A URL/resource name that uniquely identifies the type of the serialized\nprotocol buffer message. This string must contain at least\none \"/\" character. The last segment of the URL's path must represent\nthe fully qualified name of the type (as in\n`path/google.protobuf.Duration`). The name should be in a canonical form\n(e.g., leading \".\" is not accepted).\n\nIn practice, teams usually precompile into the binary all types that they\nexpect it to use in the context of Any. However, for URLs which use the\nscheme `http`, `https`, or no scheme, one can optionally set up a type\nserver that maps type URLs to message definitions as follows:\n\n* If no scheme is provided, `https` is assumed.\n* An HTTP GET on the URL must yield a [google.protobuf.Type][]\n  value in binary format, or produce an error.\n* Applications are allowed to cache lookup results based on the\n  URL, or have them precompiled into a binary to avoid any\n  lookup. Therefore, binary compatibility needs to be preserved\n  on changes to types. (Use versioned type names to manage\n  breaking changes.)\n\nNote: this functionality is not currently available in the official\nprotobuf release, and it is not used for type URLs beginning with\ntype.googleapis.com.\n\nSchemes other than `http`, `https` (or the empty scheme) might be\nused with implementation specific semantics."
-        },
-        "value": {
-          "type": "string",
-          "format": "byte",
-          "description": "Must be a valid serialized protocol buffer of the above specified type."
-        }
-      },
-      "description": "`Any` contains an arbitrary serialized protocol buffer message along with a\nURL that describes the type of the serialized message.\n\nProtobuf library provides support to pack/unpack Any values in the form\nof utility functions or additional generated methods of the Any type.\n\nExample 1: Pack and unpack a message in C++.\n\n    Foo foo = ...;\n    Any any;\n    any.PackFrom(foo);\n    ...\n    if (any.UnpackTo(\u0026foo)) {\n      ...\n    }\n\nExample 2: Pack and unpack a message in Java.\n\n    Foo foo = ...;\n    Any any = Any.pack(foo);\n    ...\n    if (any.is(Foo.class)) {\n      foo = any.unpack(Foo.class);\n    }\n\n Example 3: Pack and unpack a message in Python.\n\n    foo = Foo(...)\n    any = Any()\n    any.Pack(foo)\n    ...\n    if any.Is(Foo.DESCRIPTOR):\n      any.Unpack(foo)\n      ...\n\n Example 4: Pack and unpack a message in Go\n\n     foo := \u0026pb.Foo{...}\n     any, err := anypb.New(foo)\n     if err != nil {\n       ...\n     }\n     ...\n     foo := \u0026pb.Foo{}\n     if err := any.UnmarshalTo(foo); err != nil {\n       ...\n     }\n\nThe pack methods provided by protobuf library will by default use\n'type.googleapis.com/full.type.name' as the type URL and the unpack\nmethods only use the fully qualified type name after the last '/'\nin the type URL, for example \"foo.bar.com/x/y.z\" will yield type\nname \"y.z\".\n\n\nJSON\n====\nThe JSON representation of an `Any` value uses the regular\nrepresentation of the deserialized, embedded message, with an\nadditional field `@type` which contains the type URL. Example:\n\n    package google.profile;\n    message Person {\n      string first_name = 1;\n      string last_name = 2;\n    }\n\n    {\n      \"@type\": \"type.googleapis.com/google.profile.Person\",\n      \"firstName\": \u003cstring\u003e,\n      \"lastName\": \u003cstring\u003e\n    }\n\nIf the embedded message type is well-known and has a custom JSON\nrepresentation, that representation will be embedded adding a field\n`value` which holds the custom JSON in addition to the `@type`\nfield. Example (for message [google.protobuf.Duration][]):\n\n    {\n      \"@type\": \"type.googleapis.com/google.protobuf.Duration\",\n      \"value\": \"1.212s\"\n    }"
-    },
-    "protobufNullValue": {
-      "type": "string",
-      "enum": [
-        "NULL_VALUE"
-      ],
-      "default": "NULL_VALUE",
-      "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
-    },
-    "v1beta1ListRunsResponse": {
+    "apiListRunsResponse": {
       "type": "object",
       "properties": {
         "runs": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/v1beta1Run"
+            "$ref": "#/definitions/apiRun"
           }
         },
         "total_size": {
@@ -506,7 +483,7 @@
         }
       }
     },
-    "v1beta1Parameter": {
+    "apiParameter": {
       "type": "object",
       "properties": {
         "name": {
@@ -517,7 +494,7 @@
         }
       }
     },
-    "v1beta1PipelineRuntime": {
+    "apiPipelineRuntime": {
       "type": "object",
       "properties": {
         "pipeline_manifest": {
@@ -530,7 +507,7 @@
         }
       }
     },
-    "v1beta1PipelineSpec": {
+    "apiPipelineSpec": {
       "type": "object",
       "properties": {
         "pipeline_id": {
@@ -552,7 +529,7 @@
         "parameters": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/v1beta1Parameter"
+            "$ref": "#/definitions/apiParameter"
           },
           "title": "The parameter user provide to inject to the pipeline JSON.\nIf a default value of a parameter exist in the JSON,\nthe value user provided here will replace. V1 only"
         },
@@ -562,7 +539,7 @@
         }
       }
     },
-    "v1beta1ReadArtifactResponse": {
+    "apiReadArtifactResponse": {
       "type": "object",
       "properties": {
         "data": {
@@ -572,7 +549,7 @@
         }
       }
     },
-    "v1beta1Relationship": {
+    "apiRelationship": {
       "type": "string",
       "enum": [
         "UNKNOWN_RELATIONSHIP",
@@ -581,7 +558,7 @@
       ],
       "default": "UNKNOWN_RELATIONSHIP"
     },
-    "v1beta1ReportRunMetricsRequest": {
+    "apiReportRunMetricsRequest": {
       "type": "object",
       "properties": {
         "run_id": {
@@ -591,13 +568,13 @@
         "metrics": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/v1beta1RunMetric"
+            "$ref": "#/definitions/apiRunMetric"
           },
           "description": "List of metrics to report."
         }
       }
     },
-    "v1beta1ReportRunMetricsResponse": {
+    "apiReportRunMetricsResponse": {
       "type": "object",
       "properties": {
         "results": {
@@ -608,11 +585,11 @@
         }
       }
     },
-    "v1beta1ResourceKey": {
+    "apiResourceKey": {
       "type": "object",
       "properties": {
         "type": {
-          "$ref": "#/definitions/v1beta1ResourceType",
+          "$ref": "#/definitions/apiResourceType",
           "description": "The type of the resource that referred to."
         },
         "id": {
@@ -621,23 +598,23 @@
         }
       }
     },
-    "v1beta1ResourceReference": {
+    "apiResourceReference": {
       "type": "object",
       "properties": {
         "key": {
-          "$ref": "#/definitions/v1beta1ResourceKey"
+          "$ref": "#/definitions/apiResourceKey"
         },
         "name": {
           "type": "string",
           "description": "The name of the resource that referred to."
         },
         "relationship": {
-          "$ref": "#/definitions/v1beta1Relationship",
+          "$ref": "#/definitions/apiRelationship",
           "description": "Required field. The relationship from referred resource to the object."
         }
       }
     },
-    "v1beta1ResourceType": {
+    "apiResourceType": {
       "type": "string",
       "enum": [
         "UNKNOWN_RESOURCE_TYPE",
@@ -649,7 +626,7 @@
       ],
       "default": "UNKNOWN_RESOURCE_TYPE"
     },
-    "v1beta1Run": {
+    "apiRun": {
       "type": "object",
       "properties": {
         "id": {
@@ -661,7 +638,7 @@
           "description": "Required input field. Name provided by user,\nor auto generated if run is created by scheduled job. Not unique."
         },
         "storage_state": {
-          "$ref": "#/definitions/v1beta1RunStorageState",
+          "$ref": "#/definitions/apiRunStorageState",
           "description": "Output. Specify whether this run is in archived or available mode."
         },
         "description": {
@@ -669,13 +646,13 @@
           "title": "Optional input field. Describing the purpose of the run"
         },
         "pipeline_spec": {
-          "$ref": "#/definitions/v1beta1PipelineSpec",
+          "$ref": "#/definitions/apiPipelineSpec",
           "description": "Required input field.\nDescribing what the pipeline manifest and parameters to use for the run."
         },
         "resource_references": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/v1beta1ResourceReference"
+            "$ref": "#/definitions/apiResourceReference"
           },
           "description": "Optional input field. Specify which resource this run belongs to.\nWhen creating a run from a particular pipeline version, the pipeline\nversion can be specified here."
         },
@@ -709,24 +686,24 @@
         "metrics": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/v1beta1RunMetric"
+            "$ref": "#/definitions/apiRunMetric"
           },
           "description": "Output. The metrics of the run. The metrics are reported by ReportMetrics\nAPI."
         }
       }
     },
-    "v1beta1RunDetail": {
+    "apiRunDetail": {
       "type": "object",
       "properties": {
         "run": {
-          "$ref": "#/definitions/v1beta1Run"
+          "$ref": "#/definitions/apiRun"
         },
         "pipeline_runtime": {
-          "$ref": "#/definitions/v1beta1PipelineRuntime"
+          "$ref": "#/definitions/apiPipelineRuntime"
         }
       }
     },
-    "v1beta1RunMetric": {
+    "apiRunMetric": {
       "type": "object",
       "properties": {
         "name": {
@@ -748,7 +725,7 @@
         }
       }
     },
-    "v1beta1RunStorageState": {
+    "apiRunStorageState": {
       "type": "string",
       "enum": [
         "STORAGESTATE_AVAILABLE",
@@ -756,7 +733,7 @@
       ],
       "default": "STORAGESTATE_AVAILABLE"
     },
-    "v1beta1Status": {
+    "apiStatus": {
       "type": "object",
       "properties": {
         "error": {
@@ -773,6 +750,29 @@
           }
         }
       }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string",
+          "description": "A URL/resource name that uniquely identifies the type of the serialized\nprotocol buffer message. This string must contain at least\none \"/\" character. The last segment of the URL's path must represent\nthe fully qualified name of the type (as in\n`path/google.protobuf.Duration`). The name should be in a canonical form\n(e.g., leading \".\" is not accepted).\n\nIn practice, teams usually precompile into the binary all types that they\nexpect it to use in the context of Any. However, for URLs which use the\nscheme `http`, `https`, or no scheme, one can optionally set up a type\nserver that maps type URLs to message definitions as follows:\n\n* If no scheme is provided, `https` is assumed.\n* An HTTP GET on the URL must yield a [google.protobuf.Type][]\n  value in binary format, or produce an error.\n* Applications are allowed to cache lookup results based on the\n  URL, or have them precompiled into a binary to avoid any\n  lookup. Therefore, binary compatibility needs to be preserved\n  on changes to types. (Use versioned type names to manage\n  breaking changes.)\n\nNote: this functionality is not currently available in the official\nprotobuf release, and it is not used for type URLs beginning with\ntype.googleapis.com.\n\nSchemes other than `http`, `https` (or the empty scheme) might be\nused with implementation specific semantics."
+        },
+        "value": {
+          "type": "string",
+          "format": "byte",
+          "description": "Must be a valid serialized protocol buffer of the above specified type."
+        }
+      },
+      "description": "`Any` contains an arbitrary serialized protocol buffer message along with a\nURL that describes the type of the serialized message.\n\nProtobuf library provides support to pack/unpack Any values in the form\nof utility functions or additional generated methods of the Any type.\n\nExample 1: Pack and unpack a message in C++.\n\n    Foo foo = ...;\n    Any any;\n    any.PackFrom(foo);\n    ...\n    if (any.UnpackTo(\u0026foo)) {\n      ...\n    }\n\nExample 2: Pack and unpack a message in Java.\n\n    Foo foo = ...;\n    Any any = Any.pack(foo);\n    ...\n    if (any.is(Foo.class)) {\n      foo = any.unpack(Foo.class);\n    }\n\n Example 3: Pack and unpack a message in Python.\n\n    foo = Foo(...)\n    any = Any()\n    any.Pack(foo)\n    ...\n    if any.Is(Foo.DESCRIPTOR):\n      any.Unpack(foo)\n      ...\n\n Example 4: Pack and unpack a message in Go\n\n     foo := \u0026pb.Foo{...}\n     any, err := anypb.New(foo)\n     if err != nil {\n       ...\n     }\n     ...\n     foo := \u0026pb.Foo{}\n     if err := any.UnmarshalTo(foo); err != nil {\n       ...\n     }\n\nThe pack methods provided by protobuf library will by default use\n'type.googleapis.com/full.type.name' as the type URL and the unpack\nmethods only use the fully qualified type name after the last '/'\nin the type URL, for example \"foo.bar.com/x/y.z\" will yield type\nname \"y.z\".\n\n\nJSON\n====\nThe JSON representation of an `Any` value uses the regular\nrepresentation of the deserialized, embedded message, with an\nadditional field `@type` which contains the type URL. Example:\n\n    package google.profile;\n    message Person {\n      string first_name = 1;\n      string last_name = 2;\n    }\n\n    {\n      \"@type\": \"type.googleapis.com/google.profile.Person\",\n      \"firstName\": \u003cstring\u003e,\n      \"lastName\": \u003cstring\u003e\n    }\n\nIf the embedded message type is well-known and has a custom JSON\nrepresentation, that representation will be embedded adding a field\n`value` which holds the custom JSON in addition to the `@type`\nfield. Example (for message [google.protobuf.Duration][]):\n\n    {\n      \"@type\": \"type.googleapis.com/google.protobuf.Duration\",\n      \"value\": \"1.212s\"\n    }"
+    },
+    "protobufNullValue": {
+      "type": "string",
+      "enum": [
+        "NULL_VALUE"
+      ],
+      "default": "NULL_VALUE",
+      "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
     }
   },
   "securityDefinitions": {

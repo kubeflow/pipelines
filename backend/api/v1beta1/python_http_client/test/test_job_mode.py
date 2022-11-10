@@ -15,9 +15,9 @@ from __future__ import absolute_import
 import unittest
 import datetime
 
-import kfp_server_api_v1beta1
-from kfp_server_api_v1beta1.models.job_mode import JobMode  # noqa: E501
-from kfp_server_api_v1beta1.rest import ApiException
+import kfp_server_api
+from kfp_server_api.models.job_mode import JobMode  # noqa: E501
+from kfp_server_api.rest import ApiException
 
 class TestJobMode(unittest.TestCase):
     """JobMode unit test stubs"""
@@ -33,7 +33,7 @@ class TestJobMode(unittest.TestCase):
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api_v1beta1.models.job_mode.JobMode()  # noqa: E501
+        # model = kfp_server_api.models.job_mode.JobMode()  # noqa: E501
         if include_optional :
             return JobMode(
             )

@@ -28,7 +28,7 @@ var _ status.Status
 var _ = runtime.String
 var _ = utilities.NewDoubleArray
 
-func request_VisualizationService_CreateVisualization_0(ctx context.Context, marshaler runtime.Marshaler, client VisualizationServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+func request_VisualizationService_CreateVisualizationV1_0(ctx context.Context, marshaler runtime.Marshaler, client VisualizationServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq CreateVisualizationRequest
 	var metadata runtime.ServerMetadata
 
@@ -58,7 +58,7 @@ func request_VisualizationService_CreateVisualization_0(ctx context.Context, mar
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "namespace", err)
 	}
 
-	msg, err := client.CreateVisualization(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	msg, err := client.CreateVisualizationV1(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
 	return msg, metadata, err
 
 }
@@ -101,7 +101,7 @@ func RegisterVisualizationServiceHandler(ctx context.Context, mux *runtime.Serve
 // "VisualizationServiceClient" to call the correct interceptors.
 func RegisterVisualizationServiceHandlerClient(ctx context.Context, mux *runtime.ServeMux, client VisualizationServiceClient) error {
 
-	mux.Handle("POST", pattern_VisualizationService_CreateVisualization_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_VisualizationService_CreateVisualizationV1_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
@@ -110,14 +110,14 @@ func RegisterVisualizationServiceHandlerClient(ctx context.Context, mux *runtime
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_VisualizationService_CreateVisualization_0(rctx, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_VisualizationService_CreateVisualizationV1_0(rctx, inboundMarshaler, client, req, pathParams)
 		ctx = runtime.NewServerMetadataContext(ctx, md)
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_VisualizationService_CreateVisualization_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_VisualizationService_CreateVisualizationV1_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -125,9 +125,9 @@ func RegisterVisualizationServiceHandlerClient(ctx context.Context, mux *runtime
 }
 
 var (
-	pattern_VisualizationService_CreateVisualization_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v1beta1", "visualizations", "namespace"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_VisualizationService_CreateVisualizationV1_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v1beta1", "visualizations", "namespace"}, "", runtime.AssumeColonVerbOpt(true)))
 )
 
 var (
-	forward_VisualizationService_CreateVisualization_0 = runtime.ForwardResponseMessage
+	forward_VisualizationService_CreateVisualizationV1_0 = runtime.ForwardResponseMessage
 )

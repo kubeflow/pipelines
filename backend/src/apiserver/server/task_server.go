@@ -13,7 +13,7 @@ type TaskServer struct {
 	resourceManager *resource.ResourceManager
 }
 
-func (s *TaskServer) CreateTask(ctx context.Context, request *api.CreateTaskRequest) (*api.Task, error) {
+func (s *TaskServer) CreateTaskV1(ctx context.Context, request *api.CreateTaskRequest) (*api.Task, error) {
 	err := s.validateCreateTaskRequest(request)
 	if err != nil {
 		return nil, util.Wrap(err, "Validate create task request failed.")
@@ -66,7 +66,7 @@ func (s *TaskServer) validateCreateTaskRequest(request *api.CreateTaskRequest) e
 	return nil
 }
 
-func (s *TaskServer) ListTasks(ctx context.Context, request *api.ListTasksRequest) (
+func (s *TaskServer) ListTasksV1(ctx context.Context, request *api.ListTasksRequest) (
 	*api.ListTasksResponse, error) {
 
 	opts, err := validatedListOptions(&model.Task{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
