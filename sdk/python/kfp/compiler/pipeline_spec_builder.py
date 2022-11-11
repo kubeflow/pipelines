@@ -360,9 +360,11 @@ def build_component_spec_for_task(
                 input_name].parameter_type = type_utils.get_parameter_type(
                     input_spec.type)
             if input_spec.default is not None:
-                component_spec.input_definitions.parameters[
-                    input_name].default_value.CopyFrom(
-                        to_protobuf_value(input_spec.default))
+                _fill_in_component_input_default_value(
+                    component_spec=component_spec,
+                    input_name=input_name,
+                    default_value=input_spec.default,
+                )
 
         else:
             component_spec.input_definitions.artifacts[
@@ -404,9 +406,11 @@ def _build_component_spec_from_component_spec_structure(
                 input_name].parameter_type = type_utils.get_parameter_type(
                     input_spec.type)
             if input_spec.default is not None:
-                component_spec.input_definitions.parameters[
-                    input_name].default_value.CopyFrom(
-                        to_protobuf_value(input_spec.default))
+                _fill_in_component_input_default_value(
+                    component_spec=component_spec,
+                    input_name=input_name,
+                    default_value=input_spec.default,
+                )
 
         else:
             component_spec.input_definitions.artifacts[
@@ -1061,9 +1065,8 @@ def modify_pipeline_spec_with_override(
     # that match the pipeline inputs definition.
     for input_name, input_value in (pipeline_parameters or {}).items():
         if input_name in pipeline_spec.root.input_definitions.parameters:
-            pipeline_spec.root.input_definitions.parameters[
-                input_name].default_value.CopyFrom(
-                    to_protobuf_value(input_value))
+            _fill_in_component_input_default_value(pipeline_spec.root,
+                                                   input_name, input_value)
         elif input_name in pipeline_spec.root.input_definitions.artifacts:
             raise NotImplementedError(
                 'Default value for artifact input is not supported.')
