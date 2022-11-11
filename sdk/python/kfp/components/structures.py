@@ -47,7 +47,7 @@ class InputSpec:
     """
     type: Union[str, dict]
     default: Optional[Any] = None
-    optional: Optional[bool] = False
+    optional: bool = False
 
     def __post_init__(self) -> None:
         self._validate_type()
