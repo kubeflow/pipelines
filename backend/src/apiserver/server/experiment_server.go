@@ -4,7 +4,8 @@ import (
 	"context"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -65,13 +66,13 @@ type ExperimentServer struct {
 	options         *ExperimentServerOptions
 }
 
-func (s *ExperimentServer) CreateExperimentV1(ctx context.Context, request *api.CreateExperimentRequest) (
-	*api.Experiment, error) {
+func (s *ExperimentServer) CreateExperimentV1(ctx context.Context, request *apiv1beta1.CreateExperimentRequest) (
+	*apiv1beta1.Experiment, error) {
 	if s.options.CollectMetrics {
 		createExperimentRequests.Inc()
 	}
 
-	err := ValidateCreateExperimentRequest(request)
+	err := ValidateCreateExperimentRequestV1(request)
 	if err != nil {
 		return nil, util.Wrap(err, "Validate experiment request failed.")
 	}
@@ -97,8 +98,40 @@ func (s *ExperimentServer) CreateExperimentV1(ctx context.Context, request *api.
 	return ToApiExperiment(newExperiment), nil
 }
 
-func (s *ExperimentServer) GetExperimentV1(ctx context.Context, request *api.GetExperimentRequest) (
-	*api.Experiment, error) {
+func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *apiv2beta1.CreateExperimentRequest) (
+	*apiv2beta1.Experiment, error) {
+	if s.options.CollectMetrics {
+		createExperimentRequests.Inc()
+	}
+
+	err := ValidateCreateExperimentRequest(request)
+	if err != nil {
+		return nil, util.Wrap(err, "Validate experiment request failed.")
+	}
+
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: request.Experiment.Namespace,
+		Verb:      common.RbacResourceVerbCreate,
+		Name:      request.Experiment.DisplayName,
+	}
+	err = s.canAccessExperiment(ctx, "", resourceAttributes)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+
+	newExperiment, err := s.resourceManager.CreateExperiment(request.Experiment)
+	if err != nil {
+		return nil, util.Wrap(err, "Create experiment failed.")
+	}
+
+	if s.options.CollectMetrics {
+		experimentCount.Inc()
+	}
+	return ToApiExperiment(newExperiment), nil
+}
+
+func (s *ExperimentServer) GetExperimentV1(ctx context.Context, request *apiv1beta1.GetExperimentRequest) (
+	*apiv1beta1.Experiment, error) {
 	if s.options.CollectMetrics {
 		getExperimentRequests.Inc()
 	}
@@ -115,8 +148,8 @@ func (s *ExperimentServer) GetExperimentV1(ctx context.Context, request *api.Get
 	return ToApiExperiment(experiment), nil
 }
 
-func (s *ExperimentServer) ListExperimentsV1(ctx context.Context, request *api.ListExperimentsRequest) (
-	*api.ListExperimentsResponse, error) {
+func (s *ExperimentServer) ListExperimentsV1(ctx context.Context, request *apiv1beta1.ListExperimentsRequest) (
+	*apiv1beta1.ListExperimentsResponse, error) {
 	if s.options.CollectMetrics {
 		listExperimentsV1Requests.Inc()
 	}
@@ -163,14 +196,14 @@ func (s *ExperimentServer) ListExperimentsV1(ctx context.Context, request *api.L
 	if err != nil {
 		return nil, util.Wrap(err, "List experiments failed.")
 	}
-	return &api.ListExperimentsResponse{
+	return &apiv1beta1.ListExperimentsResponse{
 			Experiments:   ToApiExperiments(experiments),
 			TotalSize:     int32(total_size),
 			NextPageToken: nextPageToken},
 		nil
 }
 
-func (s *ExperimentServer) DeleteExperimentV1(ctx context.Context, request *api.DeleteExperimentRequest) (*empty.Empty, error) {
+func (s *ExperimentServer) DeleteExperimentV1(ctx context.Context, request *apiv1beta1.DeleteExperimentRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		deleteExperimentRequests.Inc()
 	}
@@ -191,7 +224,7 @@ func (s *ExperimentServer) DeleteExperimentV1(ctx context.Context, request *api.
 	return &empty.Empty{}, nil
 }
 
-func ValidateCreateExperimentRequest(request *api.CreateExperimentRequest) error {
+func ValidateCreateExperimentRequestV1(request *apiv1beta1.CreateExperimentRequest) error {
 	if request.Experiment == nil || request.Experiment.Name == "" {
 		return util.NewInvalidInputError("Experiment name is empty. Please specify a valid experiment name.")
 	}
@@ -199,8 +232,8 @@ func ValidateCreateExperimentRequest(request *api.CreateExperimentRequest) error
 	resourceReferences := request.Experiment.GetResourceReferences()
 	if common.IsMultiUserMode() {
 		if len(resourceReferences) != 1 ||
-			resourceReferences[0].Key.Type != api.ResourceType_NAMESPACE ||
-			resourceReferences[0].Relationship != api.Relationship_OWNER {
+			resourceReferences[0].Key.Type != apiv1beta1.ResourceType_NAMESPACE ||
+			resourceReferences[0].Relationship != apiv1beta1.Relationship_OWNER {
 			return util.NewInvalidInputError(
 				"Invalid resource references for experiment. Expect one namespace type with owner relationship. Got: %v", resourceReferences)
 		}
@@ -210,6 +243,21 @@ func ValidateCreateExperimentRequest(request *api.CreateExperimentRequest) error
 		}
 	} else if len(resourceReferences) > 0 {
 		return util.NewInvalidInputError("In single-user mode, CreateExperimentRequest shouldn't contain resource references.")
+	}
+	return nil
+}
+
+func ValidateCreateExperimentRequest(request *apiv2beta1.CreateExperimentRequest) error {
+	if request.Experiment == nil {
+		return util.NewInvalidInputError("Experiment is empty.")
+	}
+	if request.Experiment.DisplayName == "" {
+		return util.NewInvalidInputError("Experiment display name is empty. Please specify a valid experiment name.")
+	}
+	if common.IsMultiUserMode() && request.Experiment.Namespace == "" {
+		return util.NewInvalidInputError("Experiment namespace is empty. Please specify a valid namespace.")
+	} else if !common.IsMultiUserMode() && request.Experiment.Namespace != "" {
+		return util.NewInvalidInputError("In single-user mode, CreateExperimentRequest shouldn't contain namespace.")
 	}
 	return nil
 }
@@ -251,7 +299,7 @@ func (s *ExperimentServer) canAccessExperiment(ctx context.Context, experimentID
 	return nil
 }
 
-func (s *ExperimentServer) ArchiveExperimentV1(ctx context.Context, request *api.ArchiveExperimentRequest) (*empty.Empty, error) {
+func (s *ExperimentServer) ArchiveExperimentV1(ctx context.Context, request *apiv1beta1.ArchiveExperimentRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		archiveExperimentRequests.Inc()
 	}
@@ -267,7 +315,7 @@ func (s *ExperimentServer) ArchiveExperimentV1(ctx context.Context, request *api
 	return &empty.Empty{}, nil
 }
 
-func (s *ExperimentServer) UnarchiveExperimentV1(ctx context.Context, request *api.UnarchiveExperimentRequest) (*empty.Empty, error) {
+func (s *ExperimentServer) UnarchiveExperimentV1(ctx context.Context, request *apiv1beta1.UnarchiveExperimentRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		unarchiveExperimentRequests.Inc()
 	}
