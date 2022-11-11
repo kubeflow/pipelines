@@ -7,7 +7,7 @@ components:
           defaultValue: csv
           parameterType: STRING
         limit:
-          defaultValue: '1000'
+          defaultValue: 1000.0
           parameterType: NUMBER_INTEGER
         select:
           defaultValue: trip_id,taxi_id,trip_start_timestamp,trip_end_timestamp,trip_seconds,trip_miles,pickup_census_tract,dropoff_census_tract,pickup_community_area,dropoff_community_area,fare,tips,tolls,extras,trip_total,payment_type,company,pickup_centroid_latitude,pickup_centroid_longitude,pickup_centroid_location,dropoff_centroid_latitude,dropoff_centroid_longitude,dropoff_centroid_location
@@ -132,19 +132,19 @@ components:
           defaultValue: gbtree
           parameterType: STRING
         label_column:
-          defaultValue: '0'
+          defaultValue: 0.0
           parameterType: NUMBER_INTEGER
         learning_rate:
-          defaultValue: '0.3'
+          defaultValue: 0.3
           parameterType: NUMBER_DOUBLE
         max_depth:
-          defaultValue: '6'
+          defaultValue: 6.0
           parameterType: NUMBER_INTEGER
         min_split_loss:
-          defaultValue: '0'
+          defaultValue: 0.0
           parameterType: NUMBER_DOUBLE
         num_iterations:
-          defaultValue: '10'
+          defaultValue: 10.0
           parameterType: NUMBER_INTEGER
         objective:
           defaultValue: reg:squarederror
@@ -174,16 +174,16 @@ components:
         label_column_name:
           parameterType: STRING
         learning_rate:
-          defaultValue: '0.3'
+          defaultValue: 0.3
           parameterType: NUMBER_DOUBLE
         max_depth:
-          defaultValue: '6'
+          defaultValue: 6.0
           parameterType: NUMBER_INTEGER
         min_split_loss:
-          defaultValue: '0'
+          defaultValue: 0.0
           parameterType: NUMBER_DOUBLE
         num_iterations:
-          defaultValue: '10'
+          defaultValue: 10.0
           parameterType: NUMBER_INTEGER
         objective:
           defaultValue: reg:squarederror
@@ -885,4 +885,4 @@ root:
         taskInfo:
           name: xgboost-train-2
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.4
+sdkVersion: kfp-2.0.0-beta.6
