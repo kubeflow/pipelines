@@ -78,8 +78,9 @@ class JobRemoteRunner():
                     )
 
                 job_name_group = re.findall(
+                    f'{self.job_uri_prefix}(.*)',
                     job_resources.resources[0].resource_uri,
-                    f'{self.job_uri_prefix}(.*)')
+                )
 
                 if not job_name_group or not job_name_group[0]:
                     raise ValueError(
