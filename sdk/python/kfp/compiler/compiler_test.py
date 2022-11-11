@@ -435,10 +435,7 @@ class TestCompilePipeline(parameterized.TestCase):
         def dummy_op(msg: str = ''):
             pass
 
-        with self.assertRaisesRegex(
-                RuntimeError,
-                'Task dummy-op cannot dependent on any task inside a ParralelFor'
-        ):
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -478,10 +475,7 @@ class TestCompilePipeline(parameterized.TestCase):
         def dummy_op(msg: str = ''):
             pass
 
-        with self.assertRaisesRegex(
-                RuntimeError,
-                'Task dummy-op cannot dependent on any task inside a Condition that is not a common ancestor of both tasks'
-        ):
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -521,10 +515,7 @@ class TestCompilePipeline(parameterized.TestCase):
         def dummy_op(msg: str = ''):
             pass
 
-        with self.assertRaisesRegex(
-                RuntimeError,
-                'Task dummy-op cannot dependent on any task inside a Exithandler that is not a common ancestor of both tasks'
-        ):
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -1643,6 +1634,30 @@ class ValidLegalTopologies(unittest.TestCase):
                 package_path = os.path.join(tempdir, 'pipeline.yaml')
                 compiler.Compiler().compile(
                     pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_in_condition_nested_in_a_for_loop(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.component
+        def return_1() -> int:
+            return 1
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+
+            with dsl.ParallelFor([1, 2, 3]):
+                one = print_op(message='1')
+                with dsl.Condition(return_1_task.output == 1):
+                    two = print_op(message='2').after(one)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
 
 
 if __name__ == '__main__':

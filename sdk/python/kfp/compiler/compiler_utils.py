@@ -430,25 +430,39 @@ def get_dependencies(
             # ParralelFor Check
             for parent in task_name_to_parent_groups[upstream_task.name]:
                 parent = group_name_to_group.get(parent, None)
-                if isinstance(
-                        parent,
-                        tasks_group.ParallelFor) and task not in parent.tasks:
-                    raise RuntimeError(
-                        f'Task {task.name} cannot dependent on any task inside a ParralelFor'
-                    )
+                if isinstance(parent, tasks_group.ParallelFor):
+                    exception = True
+                    if parent.name in task_name_to_parent_groups[task.name]:
+                        exception = False
+                        idx = task_name_to_parent_groups[task.name].index(
+                            parent.name)
+                        cnt = 0
+                        for ancestors in task_name_to_parent_groups[
+                                task.name][idx:]:
+                            ancestors = group_name_to_group.get(ancestors, None)
+                            if isinstance(ancestors, tasks_group.ParallelFor):
+                                cnt += 1
+                                if cnt > 1:
+                                    exception = True
+                                    break
+
+                    if exception:
+                        raise RuntimeError(
+                            f'Tasks cannot depend on upstream tasks inside a ParallelFor. Task {task.name} depends on upstream task {upstream_task.name}.'
+                        )
 
             # Condition check
             dependent_group = group_name_to_group.get(upstream_groups[0], None)
             if isinstance(dependent_group, tasks_group.Condition):
                 raise RuntimeError(
-                    f'Task {task.name} cannot dependent on any task inside a Condition that is not a common ancestor of both tasks'
+                    f'Tasks cannot depend on upstream tasks inside a Condition that is not a common ancestor of both tasks. Task {task.name} depends on upstream task {upstream_task.name}.'
                 )
 
             # ExitHandler check
             dependent_group = group_name_to_group.get(upstream_groups[0], None)
             if isinstance(dependent_group, tasks_group.ExitHandler):
                 raise RuntimeError(
-                    f'Task {task.name} cannot dependent on any task inside a Exithandler that is not a common ancestor of both tasks'
+                    f'Tasks cannot depend on upstream tasks inside a Exithandler that is not a common ancestor of both tasks. Task {task.name} depends on upstream task {upstream_task.name}.'
                 )
 
             dependencies[downstream_groups[0]].add(upstream_groups[0])
