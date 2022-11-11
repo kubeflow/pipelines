@@ -15,7 +15,7 @@
 syntax = "proto3";
 
 option go_package = "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client";
-package api;
+package v1beta1;
 
 message Parameter {
   string name = 1;

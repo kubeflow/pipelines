@@ -54,7 +54,7 @@ func NewCreateExperimentV1OK() *CreateExperimentV1OK {
 A successful response.
 */
 type CreateExperimentV1OK struct {
-	Payload *experiment_model.APIExperiment
+	Payload *experiment_model.V1beta1Experiment
 }
 
 func (o *CreateExperimentV1OK) Error() string {
@@ -63,7 +63,7 @@ func (o *CreateExperimentV1OK) Error() string {
 
 func (o *CreateExperimentV1OK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(experiment_model.APIExperiment)
+	o.Payload = new(experiment_model.V1beta1Experiment)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -87,7 +87,7 @@ CreateExperimentV1Default create experiment v1 default
 type CreateExperimentV1Default struct {
 	_statusCode int
 
-	Payload *experiment_model.APIStatus
+	Payload *experiment_model.V1beta1Status
 }
 
 // Code gets the status code for the create experiment v1 default response
@@ -101,7 +101,7 @@ func (o *CreateExperimentV1Default) Error() string {
 
 func (o *CreateExperimentV1Default) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(experiment_model.APIStatus)
+	o.Payload = new(experiment_model.V1beta1Status)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

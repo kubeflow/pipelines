@@ -85,7 +85,7 @@ ArchiveExperimentV1Default archive experiment v1 default
 type ArchiveExperimentV1Default struct {
 	_statusCode int
 
-	Payload *experiment_model.APIStatus
+	Payload *experiment_model.V1beta1Status
 }
 
 // Code gets the status code for the archive experiment v1 default response
@@ -99,7 +99,7 @@ func (o *ArchiveExperimentV1Default) Error() string {
 
 func (o *ArchiveExperimentV1Default) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(experiment_model.APIStatus)
+	o.Payload = new(experiment_model.V1beta1Status)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

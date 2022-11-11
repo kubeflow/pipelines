@@ -85,7 +85,7 @@ DisableJobDefault disable job default
 type DisableJobDefault struct {
 	_statusCode int
 
-	Payload *job_model.APIStatus
+	Payload *job_model.V1beta1Status
 }
 
 // Code gets the status code for the disable job default response
@@ -99,7 +99,7 @@ func (o *DisableJobDefault) Error() string {
 
 func (o *DisableJobDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(job_model.APIStatus)
+	o.Payload = new(job_model.V1beta1Status)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

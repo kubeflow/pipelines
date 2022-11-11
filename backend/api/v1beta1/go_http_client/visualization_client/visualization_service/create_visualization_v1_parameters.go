@@ -64,7 +64,7 @@ for the create visualization v1 operation typically these are written to a http.
 type CreateVisualizationV1Params struct {
 
 	/*Body*/
-	Body *visualization_model.APIVisualization
+	Body *visualization_model.V1beta1Visualization
 	/*Namespace*/
 	Namespace string
 
@@ -107,13 +107,13 @@ func (o *CreateVisualizationV1Params) SetHTTPClient(client *http.Client) {
 }
 
 // WithBody adds the body to the create visualization v1 params
-func (o *CreateVisualizationV1Params) WithBody(body *visualization_model.APIVisualization) *CreateVisualizationV1Params {
+func (o *CreateVisualizationV1Params) WithBody(body *visualization_model.V1beta1Visualization) *CreateVisualizationV1Params {
 	o.SetBody(body)
 	return o
 }
 
 // SetBody adds the body to the create visualization v1 params
-func (o *CreateVisualizationV1Params) SetBody(body *visualization_model.APIVisualization) {
+func (o *CreateVisualizationV1Params) SetBody(body *visualization_model.V1beta1Visualization) {
 	o.Body = body
 }
 

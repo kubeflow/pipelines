@@ -15,9 +15,9 @@
 syntax = "proto3";
 
 option go_package = "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client";
-package api;
+package v1beta1;
 
-import "backend/api/v1beta1/parameter.proto";
+import "backend/api/v1beta1/api/parameter.proto";
 import "google/protobuf/struct.proto";
 
 message PipelineSpec {

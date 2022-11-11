@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "backend/api/v1beta1/task.proto",
+    "title": "backend/api/v1beta1/api/task.proto",
     "version": "version not set"
   },
   "schemes": [
@@ -23,7 +23,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiListTasksResponse"
+              "$ref": "#/definitions/v1beta1ListTasksResponse"
             }
           }
         },
@@ -92,7 +92,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/apiTask"
+              "$ref": "#/definitions/v1beta1Task"
             }
           }
         },
@@ -102,7 +102,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/apiTask"
+              "$ref": "#/definitions/v1beta1Task"
             }
           }
         ],
@@ -113,13 +113,13 @@
     }
   },
   "definitions": {
-    "apiListTasksResponse": {
+    "v1beta1ListTasksResponse": {
       "type": "object",
       "properties": {
         "tasks": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/apiTask"
+            "$ref": "#/definitions/v1beta1Task"
           },
           "description": "A list of tasks returned."
         },
@@ -134,11 +134,11 @@
         }
       }
     },
-    "apiResourceKey": {
+    "v1beta1ResourceKey": {
       "type": "object",
       "properties": {
         "type": {
-          "$ref": "#/definitions/apiResourceType",
+          "$ref": "#/definitions/v1beta1ResourceType",
           "description": "The type of the resource that referred to."
         },
         "id": {
@@ -147,7 +147,7 @@
         }
       }
     },
-    "apiResourceType": {
+    "v1beta1ResourceType": {
       "type": "string",
       "enum": [
         "UNKNOWN_RESOURCE_TYPE",
@@ -159,7 +159,7 @@
       ],
       "default": "UNKNOWN_RESOURCE_TYPE"
     },
-    "apiTask": {
+    "v1beta1Task": {
       "type": "object",
       "properties": {
         "id": {

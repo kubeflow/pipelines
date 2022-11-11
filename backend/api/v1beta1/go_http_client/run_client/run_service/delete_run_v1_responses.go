@@ -85,7 +85,7 @@ DeleteRunV1Default delete run v1 default
 type DeleteRunV1Default struct {
 	_statusCode int
 
-	Payload *run_model.APIStatus
+	Payload *run_model.V1beta1Status
 }
 
 // Code gets the status code for the delete run v1 default response
@@ -99,7 +99,7 @@ func (o *DeleteRunV1Default) Error() string {
 
 func (o *DeleteRunV1Default) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(run_model.APIStatus)
+	o.Payload = new(run_model.V1beta1Status)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

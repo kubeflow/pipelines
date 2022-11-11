@@ -54,7 +54,7 @@ func NewGetRunV1OK() *GetRunV1OK {
 A successful response.
 */
 type GetRunV1OK struct {
-	Payload *run_model.APIRunDetail
+	Payload *run_model.V1beta1RunDetail
 }
 
 func (o *GetRunV1OK) Error() string {
@@ -63,7 +63,7 @@ func (o *GetRunV1OK) Error() string {
 
 func (o *GetRunV1OK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(run_model.APIRunDetail)
+	o.Payload = new(run_model.V1beta1RunDetail)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -87,7 +87,7 @@ GetRunV1Default get run v1 default
 type GetRunV1Default struct {
 	_statusCode int
 
-	Payload *run_model.APIStatus
+	Payload *run_model.V1beta1Status
 }
 
 // Code gets the status code for the get run v1 default response
@@ -101,7 +101,7 @@ func (o *GetRunV1Default) Error() string {
 
 func (o *GetRunV1Default) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(run_model.APIStatus)
+	o.Payload = new(run_model.V1beta1Status)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

@@ -54,7 +54,7 @@ func NewGetTemplateOK() *GetTemplateOK {
 A successful response.
 */
 type GetTemplateOK struct {
-	Payload *pipeline_model.APIGetTemplateResponse
+	Payload *pipeline_model.V1beta1GetTemplateResponse
 }
 
 func (o *GetTemplateOK) Error() string {
@@ -63,7 +63,7 @@ func (o *GetTemplateOK) Error() string {
 
 func (o *GetTemplateOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.APIGetTemplateResponse)
+	o.Payload = new(pipeline_model.V1beta1GetTemplateResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -87,7 +87,7 @@ GetTemplateDefault get template default
 type GetTemplateDefault struct {
 	_statusCode int
 
-	Payload *pipeline_model.APIStatus
+	Payload *pipeline_model.V1beta1Status
 }
 
 // Code gets the status code for the get template default response
@@ -101,7 +101,7 @@ func (o *GetTemplateDefault) Error() string {
 
 func (o *GetTemplateDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.APIStatus)
+	o.Payload = new(pipeline_model.V1beta1Status)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

@@ -64,7 +64,7 @@ for the create run v1 operation typically these are written to a http.Request
 type CreateRunV1Params struct {
 
 	/*Body*/
-	Body *run_model.APIRun
+	Body *run_model.V1beta1Run
 
 	timeout    time.Duration
 	Context    context.Context
@@ -105,13 +105,13 @@ func (o *CreateRunV1Params) SetHTTPClient(client *http.Client) {
 }
 
 // WithBody adds the body to the create run v1 params
-func (o *CreateRunV1Params) WithBody(body *run_model.APIRun) *CreateRunV1Params {
+func (o *CreateRunV1Params) WithBody(body *run_model.V1beta1Run) *CreateRunV1Params {
 	o.SetBody(body)
 	return o
 }
 
 // SetBody adds the body to the create run v1 params
-func (o *CreateRunV1Params) SetBody(body *run_model.APIRun) {
+func (o *CreateRunV1Params) SetBody(body *run_model.V1beta1Run) {
 	o.Body = body
 }
 

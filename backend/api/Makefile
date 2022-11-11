@@ -22,7 +22,7 @@ PREBUILT_REMOTE_IMAGE=gcr.io/ml-pipeline-test/api-generator@sha256:431635b564a87
 
 # Generate clients using a pre-built api-generator image.
 .PHONY: generate
-generate: hack/generator.sh $(API_VERSION)/*.proto
+generate: hack/generator.sh $(API_VERSION)/api/*.proto
 	docker run --interactive --rm \
 		-e API_VERSION=$(API_VERSION) \
 		--user $$(id -u):$$(id -g) \
