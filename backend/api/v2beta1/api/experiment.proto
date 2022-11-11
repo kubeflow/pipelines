@@ -15,9 +15,9 @@
 syntax = "proto3";
 
 option go_package = "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client";
-package api;
+package v2beta1;
 
-import "backend/api/v2beta1/error.proto";
+import "backend/api/v2beta1/api/error.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/timestamp.proto";

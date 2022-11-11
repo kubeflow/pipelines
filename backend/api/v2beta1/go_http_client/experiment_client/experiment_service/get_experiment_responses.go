@@ -47,7 +47,7 @@ func NewGetExperimentOK() *GetExperimentOK {
 A successful response.
 */
 type GetExperimentOK struct {
-	Payload *experiment_model.APIExperiment
+	Payload *experiment_model.V2beta1Experiment
 }
 
 func (o *GetExperimentOK) Error() string {
@@ -56,7 +56,7 @@ func (o *GetExperimentOK) Error() string {
 
 func (o *GetExperimentOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(experiment_model.APIExperiment)
+	o.Payload = new(experiment_model.V2beta1Experiment)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
