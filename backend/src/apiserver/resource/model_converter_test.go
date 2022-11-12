@@ -52,7 +52,7 @@ func TestToModelExperiment(t *testing.T) {
 	}{
 		{
 			"API V1beta1: No resource references",
-			&apiV1beta1.Experiment{
+			apiV1beta1.Experiment{
 				Name:        "exp1",
 				Description: "This is an experiment",
 			},
@@ -66,7 +66,7 @@ func TestToModelExperiment(t *testing.T) {
 		},
 		{
 			"API V1beta1: Valid resource references",
-			&apiV1beta1.Experiment{
+			apiV1beta1.Experiment{
 				Name:        "exp1",
 				Description: "This is an experiment",
 				ResourceReferences: []*apiV1beta1.ResourceReference{
@@ -89,7 +89,7 @@ func TestToModelExperiment(t *testing.T) {
 		},
 		{
 			"API V1beta1: Invalid resource references",
-			&apiV1beta1.Experiment{
+			apiV1beta1.Experiment{
 				Name:        "exp1",
 				Description: "This is an experiment",
 				ResourceReferences: []*apiV1beta1.ResourceReference{
@@ -108,7 +108,7 @@ func TestToModelExperiment(t *testing.T) {
 		},
 		{
 			"API V2beta1: Happy pass",
-			&apiV2beta1.Experiment{
+			apiV2beta1.Experiment{
 				DisplayName: "exp2",
 				Description: "API V2beta1 test experiment",
 				Namespace:   "ns2",

@@ -95,7 +95,7 @@ func (s *ExperimentServer) CreateExperimentV1(ctx context.Context, request *apiv
 	if s.options.CollectMetrics {
 		experimentCount.Inc()
 	}
-	return ToApiExperiment(newExperiment), nil
+	return ToApiExperimentV1(newExperiment), nil
 }
 
 func (s *ExperimentServer) CreateExperiment(ctx context.Context, request *apiv2beta1.CreateExperimentRequest) (
@@ -145,7 +145,7 @@ func (s *ExperimentServer) GetExperimentV1(ctx context.Context, request *apiv1be
 	if err != nil {
 		return nil, util.Wrap(err, "Get experiment failed.")
 	}
-	return ToApiExperiment(experiment), nil
+	return ToApiExperimentV1(experiment), nil
 }
 
 func (s *ExperimentServer) ListExperimentsV1(ctx context.Context, request *apiv1beta1.ListExperimentsRequest) (
@@ -197,7 +197,7 @@ func (s *ExperimentServer) ListExperimentsV1(ctx context.Context, request *apiv1
 		return nil, util.Wrap(err, "List experiments failed.")
 	}
 	return &apiv1beta1.ListExperimentsResponse{
-			Experiments:   ToApiExperiments(experiments),
+			Experiments:   ToApiExperimentsV1(experiments),
 			TotalSize:     int32(total_size),
 			NextPageToken: nextPageToken},
 		nil

@@ -20,7 +20,8 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiV1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -43,23 +44,23 @@ func TestToApiPipeline(t *testing.T) {
 		},
 	}
 	apiPipeline := ToApiPipeline(modelPipeline)
-	expectedApiPipeline := &api.Pipeline{
+	expectedApiPipeline := &apiV1beta1.Pipeline{
 		Id:         "pipeline1",
 		CreatedAt:  &timestamp.Timestamp{Seconds: 1},
-		Parameters: []*api.Parameter{},
-		DefaultVersion: &api.PipelineVersion{
+		Parameters: []*apiV1beta1.Parameter{},
+		DefaultVersion: &apiV1beta1.PipelineVersion{
 			Id:            "pipelineversion1",
 			CreatedAt:     &timestamp.Timestamp{Seconds: 1},
-			Parameters:    []*api.Parameter{},
+			Parameters:    []*apiV1beta1.Parameter{},
 			Description:   "desc1",
 			CodeSourceUrl: "http://repo/22222",
-			ResourceReferences: []*api.ResourceReference{
-				&api.ResourceReference{
-					Key: &api.ResourceKey{
+			ResourceReferences: []*apiV1beta1.ResourceReference{
+				&apiV1beta1.ResourceReference{
+					Key: &apiV1beta1.ResourceKey{
 						Id:   "pipeline1",
-						Type: api.ResourceType_PIPELINE,
+						Type: apiV1beta1.ResourceType_PIPELINE,
 					},
-					Relationship: api.Relationship_OWNER,
+					Relationship: apiV1beta1.Relationship_OWNER,
 				},
 			},
 		},
@@ -84,7 +85,7 @@ func TestToApiRunDetail_RuntimeParams(t *testing.T) {
 		Run: model.Run{
 			UUID:             "run123",
 			Name:             "name123",
-			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			StorageState:     apiV1beta1.Run_STORAGESTATE_AVAILABLE.String(),
 			DisplayName:      "displayName123",
 			Namespace:        "ns123",
 			CreatedAtInSec:   1,
@@ -122,28 +123,28 @@ func TestToApiRunDetail_RuntimeParams(t *testing.T) {
 		"param6": structpb.NewStructValue(v2RuntimeStructParams),
 	}
 
-	expectedApiRun := &api.RunDetail{
-		Run: &api.Run{
+	expectedApiRun := &apiV1beta1.RunDetail{
+		Run: &apiV1beta1.Run{
 			Id:           "run123",
 			Name:         "displayName123",
-			StorageState: api.Run_STORAGESTATE_AVAILABLE,
+			StorageState: apiV1beta1.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 			ScheduledAt:  &timestamp.Timestamp{Seconds: 1},
 			FinishedAt:   &timestamp.Timestamp{Seconds: 1},
 			Status:       "running",
-			PipelineSpec: &api.PipelineSpec{
+			PipelineSpec: &apiV1beta1.PipelineSpec{
 				WorkflowManifest: "manifest",
-				RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+				RuntimeConfig: &apiV1beta1.PipelineSpec_RuntimeConfig{
 					Parameters:   v2RuntimeParams,
 					PipelineRoot: "model-pipeline-root",
 				},
 			},
-			ResourceReferences: []*api.ResourceReference{
-				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job123"},
-					Name: "j123", Relationship: api.Relationship_CREATOR},
+			ResourceReferences: []*apiV1beta1.ResourceReference{
+				{Key: &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_JOB, Id: "job123"},
+					Name: "j123", Relationship: apiV1beta1.Relationship_CREATOR},
 			},
 		},
-		PipelineRuntime: &api.PipelineRuntime{
+		PipelineRuntime: &apiV1beta1.PipelineRuntime{
 			WorkflowManifest: "workflow123",
 		},
 	}
@@ -159,7 +160,7 @@ func TestToApiRunDetail_V1Params(t *testing.T) {
 		Run: model.Run{
 			UUID:             "run123",
 			Name:             "name123",
-			StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+			StorageState:     apiV1beta1.Run_STORAGESTATE_AVAILABLE.String(),
 			DisplayName:      "displayName123",
 			Namespace:        "ns123",
 			CreatedAtInSec:   1,
@@ -178,25 +179,25 @@ func TestToApiRunDetail_V1Params(t *testing.T) {
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow123"},
 	}
 	apiRun := ToApiRunDetail(modelRun)
-	expectedApiRun := &api.RunDetail{
-		Run: &api.Run{
+	expectedApiRun := &apiV1beta1.RunDetail{
+		Run: &apiV1beta1.Run{
 			Id:           "run123",
 			Name:         "displayName123",
-			StorageState: api.Run_STORAGESTATE_AVAILABLE,
+			StorageState: apiV1beta1.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 			ScheduledAt:  &timestamp.Timestamp{Seconds: 1},
 			FinishedAt:   &timestamp.Timestamp{Seconds: 1},
 			Status:       "running",
-			PipelineSpec: &api.PipelineSpec{
+			PipelineSpec: &apiV1beta1.PipelineSpec{
 				WorkflowManifest: "manifest",
-				Parameters:       []*api.Parameter{{Name: "param2", Value: "world"}},
+				Parameters:       []*apiV1beta1.Parameter{{Name: "param2", Value: "world"}},
 			},
-			ResourceReferences: []*api.ResourceReference{
-				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job123"},
-					Name: "j123", Relationship: api.Relationship_CREATOR},
+			ResourceReferences: []*apiV1beta1.ResourceReference{
+				{Key: &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_JOB, Id: "job123"},
+					Name: "j123", Relationship: apiV1beta1.Relationship_CREATOR},
 			},
 		},
-		PipelineRuntime: &api.PipelineRuntime{
+		PipelineRuntime: &apiV1beta1.PipelineRuntime{
 			WorkflowManifest: "workflow123",
 		},
 	}
@@ -216,22 +217,22 @@ func TestToApiRuns(t *testing.T) {
 		NumberValue: 0.99,
 		Format:      "PERCENTAGE",
 	}
-	apiMetric1 := &api.RunMetric{
+	apiMetric1 := &apiV1beta1.RunMetric{
 		Name:   metric1.Name,
 		NodeId: metric1.NodeID,
-		Value:  &api.RunMetric_NumberValue{NumberValue: metric1.NumberValue},
-		Format: api.RunMetric_RAW,
+		Value:  &apiV1beta1.RunMetric_NumberValue{NumberValue: metric1.NumberValue},
+		Format: apiV1beta1.RunMetric_RAW,
 	}
-	apiMetric2 := &api.RunMetric{
+	apiMetric2 := &apiV1beta1.RunMetric{
 		Name:   metric2.Name,
 		NodeId: metric2.NodeID,
-		Value:  &api.RunMetric_NumberValue{NumberValue: metric2.NumberValue},
-		Format: api.RunMetric_PERCENTAGE,
+		Value:  &apiV1beta1.RunMetric_NumberValue{NumberValue: metric2.NumberValue},
+		Format: apiV1beta1.RunMetric_PERCENTAGE,
 	}
 	modelRun1 := model.Run{
 		UUID:             "run1",
 		Name:             "name1",
-		StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+		StorageState:     apiV1beta1.Run_STORAGESTATE_AVAILABLE.String(),
 		DisplayName:      "displayName1",
 		Namespace:        "ns1",
 		CreatedAtInSec:   1,
@@ -249,7 +250,7 @@ func TestToApiRuns(t *testing.T) {
 	modelRun2 := model.Run{
 		UUID:             "run2",
 		Name:             "name2",
-		StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+		StorageState:     apiV1beta1.Run_STORAGESTATE_AVAILABLE.String(),
 		DisplayName:      "displayName2",
 		Namespace:        "ns2",
 		CreatedAtInSec:   2,
@@ -265,40 +266,40 @@ func TestToApiRuns(t *testing.T) {
 		Metrics: []*model.RunMetric{metric2},
 	}
 	apiRuns := ToApiRuns([]*model.Run{&modelRun1, &modelRun2})
-	expectedApiRun := []*api.Run{
+	expectedApiRun := []*apiV1beta1.Run{
 		{
 			Id:           "run1",
 			Name:         "displayName1",
-			StorageState: api.Run_STORAGESTATE_AVAILABLE,
+			StorageState: apiV1beta1.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 			ScheduledAt:  &timestamp.Timestamp{Seconds: 1},
 			FinishedAt:   &timestamp.Timestamp{},
 			Status:       "running",
-			PipelineSpec: &api.PipelineSpec{
+			PipelineSpec: &apiV1beta1.PipelineSpec{
 				WorkflowManifest: "manifest",
 			},
-			ResourceReferences: []*api.ResourceReference{
-				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job1"},
-					Name: "j1", Relationship: api.Relationship_CREATOR},
+			ResourceReferences: []*apiV1beta1.ResourceReference{
+				{Key: &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_JOB, Id: "job1"},
+					Name: "j1", Relationship: apiV1beta1.Relationship_CREATOR},
 			},
-			Metrics: []*api.RunMetric{apiMetric1, apiMetric2},
+			Metrics: []*apiV1beta1.RunMetric{apiMetric1, apiMetric2},
 		},
 		{
 			Id:           "run2",
 			Name:         "displayName2",
-			StorageState: api.Run_STORAGESTATE_AVAILABLE,
+			StorageState: apiV1beta1.Run_STORAGESTATE_AVAILABLE,
 			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
 			ScheduledAt:  &timestamp.Timestamp{Seconds: 2},
 			FinishedAt:   &timestamp.Timestamp{},
 			Status:       "done",
-			ResourceReferences: []*api.ResourceReference{
-				{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job2"},
-					Name: "j2", Relationship: api.Relationship_CREATOR},
+			ResourceReferences: []*apiV1beta1.ResourceReference{
+				{Key: &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_JOB, Id: "job2"},
+					Name: "j2", Relationship: apiV1beta1.Relationship_CREATOR},
 			},
-			PipelineSpec: &api.PipelineSpec{
+			PipelineSpec: &apiV1beta1.PipelineSpec{
 				WorkflowManifest: "manifest",
 			},
-			Metrics: []*api.RunMetric{apiMetric2},
+			Metrics: []*apiV1beta1.RunMetric{apiMetric2},
 		},
 	}
 	assert.Equal(t, expectedApiRun, apiRuns)
@@ -316,7 +317,7 @@ func TestToApiTask(t *testing.T) {
 		Fingerprint:       "123",
 	}
 	apiTask := ToApiTask(modelTask)
-	expectedApiTask := &api.Task{
+	expectedApiTask := &apiV1beta1.Task{
 		Id:              resource.DefaultFakeUUID,
 		Namespace:       "",
 		PipelineName:    "pipeline/my-pipeline",
@@ -353,7 +354,7 @@ func TestToApiTasks(t *testing.T) {
 	}
 
 	apiTasks := ToApiTasks([]*model.Task{&modelTask1, &modelTask2})
-	expectedApiTasks := []*api.Task{
+	expectedApiTasks := []*apiV1beta1.Task{
 		{
 			Id:              "123e4567-e89b-12d3-a456-426655440000",
 			Namespace:       "ns1",
@@ -404,26 +405,26 @@ func TestCronScheduledJobToApiJob(t *testing.T) {
 		},
 	}
 	apiJob := ToApiJob(&modelJob)
-	expectedJob := &api.Job{
+	expectedJob := &apiV1beta1.Job{
 		Id:             "job1",
 		Name:           "name 1",
 		Enabled:        true,
 		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
 		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
 		MaxConcurrency: 1,
-		Trigger: &api.Trigger{
-			Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
+		Trigger: &apiV1beta1.Trigger{
+			Trigger: &apiV1beta1.Trigger_CronSchedule{CronSchedule: &apiV1beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 1},
 				Cron:      "1 * *",
 			}}},
-		PipelineSpec: &api.PipelineSpec{
-			Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
+		PipelineSpec: &apiV1beta1.PipelineSpec{
+			Parameters:   []*apiV1beta1.Parameter{{Name: "param2", Value: "world"}},
 			PipelineId:   "1",
 			PipelineName: "p1",
 		},
-		ResourceReferences: []*api.ResourceReference{
-			{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: "experiment1"},
-				Name: "e1", Relationship: api.Relationship_OWNER},
+		ResourceReferences: []*apiV1beta1.ResourceReference{
+			{Key: &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_EXPERIMENT, Id: "experiment1"},
+				Name: "e1", Relationship: apiV1beta1.Relationship_OWNER},
 		},
 	}
 	assert.Equal(t, expectedJob, apiJob)
@@ -451,20 +452,20 @@ func TestPeriodicScheduledJobToApiJob(t *testing.T) {
 		UpdatedAtInSec: 1,
 	}
 	apiJob := ToApiJob(&modelJob)
-	expectedJob := &api.Job{
+	expectedJob := &apiV1beta1.Job{
 		Id:             "job1",
 		Name:           "name 1",
 		Enabled:        true,
 		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
 		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
 		MaxConcurrency: 1,
-		Trigger: &api.Trigger{
-			Trigger: &api.Trigger_PeriodicSchedule{PeriodicSchedule: &api.PeriodicSchedule{
+		Trigger: &apiV1beta1.Trigger{
+			Trigger: &apiV1beta1.Trigger_PeriodicSchedule{PeriodicSchedule: &apiV1beta1.PeriodicSchedule{
 				StartTime:      &timestamp.Timestamp{Seconds: 1},
 				IntervalSecond: 3,
 			}}},
-		PipelineSpec: &api.PipelineSpec{
-			Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
+		PipelineSpec: &apiV1beta1.PipelineSpec{
+			Parameters:   []*apiV1beta1.Parameter{{Name: "param2", Value: "world"}},
 			PipelineId:   "1",
 			PipelineName: "p1",
 		},
@@ -488,16 +489,16 @@ func TestNonScheduledJobToApiJob(t *testing.T) {
 		UpdatedAtInSec: 1,
 	}
 	apiJob := ToApiJob(&modelJob)
-	expectedJob := &api.Job{
+	expectedJob := &apiV1beta1.Job{
 		Id:             "job1",
 		Name:           "name1",
 		Enabled:        true,
 		CreatedAt:      &timestamp.Timestamp{Seconds: 1},
 		UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
 		MaxConcurrency: 1,
-		Trigger:        &api.Trigger{},
-		PipelineSpec: &api.PipelineSpec{
-			Parameters:   []*api.Parameter{{Name: "param2", Value: "world"}},
+		Trigger:        &apiV1beta1.Trigger{},
+		PipelineSpec: &apiV1beta1.PipelineSpec{
+			Parameters:   []*apiV1beta1.Parameter{{Name: "param2", Value: "world"}},
 			PipelineId:   "1",
 			PipelineName: "p1",
 		},
@@ -551,7 +552,7 @@ func TestToApiJob_V2(t *testing.T) {
 		CreatedAtInSec: 2,
 		UpdatedAtInSec: 2,
 	}
-	expectedJob := &api.Job{
+	expectedJob := &apiV1beta1.Job{
 		Id:             "job1",
 		Name:           "name 1",
 		Enabled:        true,
@@ -559,15 +560,15 @@ func TestToApiJob_V2(t *testing.T) {
 		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
 		MaxConcurrency: 2,
 		NoCatchup:      true,
-		Trigger: &api.Trigger{
-			Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
+		Trigger: &apiV1beta1.Trigger{
+			Trigger: &apiV1beta1.Trigger_CronSchedule{CronSchedule: &apiV1beta1.CronSchedule{
 				StartTime: &timestamp.Timestamp{Seconds: 2},
 				Cron:      "2 * *",
 			}}},
-		PipelineSpec: &api.PipelineSpec{
+		PipelineSpec: &apiV1beta1.PipelineSpec{
 			PipelineId:   "1",
 			PipelineName: "p1",
-			RuntimeConfig: &api.PipelineSpec_RuntimeConfig{
+			RuntimeConfig: &apiV1beta1.PipelineSpec_RuntimeConfig{
 				Parameters: map[string]*structpb.Value{
 					"param1": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
 				},
@@ -626,7 +627,7 @@ func TestToApiJobs(t *testing.T) {
 		UpdatedAtInSec: 2,
 	}
 	apiJobs := ToApiJobs([]*model.Job{&modelJob1, &modeljob2})
-	expectedJobs := []*api.Job{
+	expectedJobs := []*apiV1beta1.Job{
 		{
 			Id:             "job1",
 			Name:           "name 1",
@@ -634,13 +635,13 @@ func TestToApiJobs(t *testing.T) {
 			CreatedAt:      &timestamp.Timestamp{Seconds: 1},
 			UpdatedAt:      &timestamp.Timestamp{Seconds: 1},
 			MaxConcurrency: 1,
-			Trigger: &api.Trigger{
-				Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
+			Trigger: &apiV1beta1.Trigger{
+				Trigger: &apiV1beta1.Trigger_CronSchedule{CronSchedule: &apiV1beta1.CronSchedule{
 					StartTime: &timestamp.Timestamp{Seconds: 1},
 					Cron:      "1 * *",
 				}}},
-			PipelineSpec: &api.PipelineSpec{
-				Parameters:   []*api.Parameter{{Name: "param1", Value: "world"}},
+			PipelineSpec: &apiV1beta1.PipelineSpec{
+				Parameters:   []*apiV1beta1.Parameter{{Name: "param1", Value: "world"}},
 				PipelineId:   "1",
 				PipelineName: "p1",
 			},
@@ -653,13 +654,13 @@ func TestToApiJobs(t *testing.T) {
 			UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
 			MaxConcurrency: 2,
 			NoCatchup:      true,
-			Trigger: &api.Trigger{
-				Trigger: &api.Trigger_CronSchedule{CronSchedule: &api.CronSchedule{
+			Trigger: &apiV1beta1.Trigger{
+				Trigger: &apiV1beta1.Trigger_CronSchedule{CronSchedule: &apiV1beta1.CronSchedule{
 					StartTime: &timestamp.Timestamp{Seconds: 2},
 					Cron:      "2 * *",
 				}}},
-			PipelineSpec: &api.PipelineSpec{
-				Parameters:   []*api.Parameter{{Name: "param1", Value: "world"}},
+			PipelineSpec: &apiV1beta1.PipelineSpec{
+				Parameters:   []*apiV1beta1.Parameter{{Name: "param1", Value: "world"}},
 				PipelineId:   "2",
 				PipelineName: "p2",
 			},
@@ -678,13 +679,13 @@ func TestToApiRunMetric(t *testing.T) {
 
 	actualAPIRunMetric := ToApiRunMetric(modelRunMetric)
 
-	expectedAPIRunMetric := &api.RunMetric{
+	expectedAPIRunMetric := &apiV1beta1.RunMetric{
 		Name:   "metric-1",
 		NodeId: "node-1",
-		Value: &api.RunMetric_NumberValue{
+		Value: &apiV1beta1.RunMetric_NumberValue{
 			NumberValue: 0.88,
 		},
-		Format: api.RunMetric_RAW,
+		Format: apiV1beta1.RunMetric_RAW,
 	}
 	assert.Equal(t, expectedAPIRunMetric, actualAPIRunMetric)
 }
@@ -700,14 +701,14 @@ func TestToApiRunMetric_UnknownFormat(t *testing.T) {
 
 	actualAPIRunMetric := ToApiRunMetric(modelRunMetric)
 
-	expectedAPIRunMetric := &api.RunMetric{
+	expectedAPIRunMetric := &apiV1beta1.RunMetric{
 		Name:   "metric-1",
 		NodeId: "node-1",
-		Value: &api.RunMetric_NumberValue{
+		Value: &apiV1beta1.RunMetric_NumberValue{
 			NumberValue: 0.88,
 		},
 		// Expect return UNSPECIFIED for unknown format
-		Format: api.RunMetric_UNSPECIFIED,
+		Format: apiV1beta1.RunMetric_UNSPECIFIED,
 	}
 	assert.Equal(t, expectedAPIRunMetric, actualAPIRunMetric)
 }
@@ -721,15 +722,50 @@ func TestToApiResourceReferences(t *testing.T) {
 		{ResourceUUID: "run1", ResourceType: common.Run, ReferenceUUID: "pipelineversion1",
 			ReferenceName: "k1", ReferenceType: common.PipelineVersion, Relationship: common.Owner},
 	}
-	expectedApiResourceReferences := []*api.ResourceReference{
-		{Key: &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: "experiment1"},
-			Name: "e1", Relationship: api.Relationship_OWNER},
-		{Key: &api.ResourceKey{Type: api.ResourceType_JOB, Id: "job1"},
-			Name: "j1", Relationship: api.Relationship_OWNER},
-		{Key: &api.ResourceKey{Type: api.ResourceType_PIPELINE_VERSION, Id: "pipelineversion1"},
-			Name: "k1", Relationship: api.Relationship_OWNER},
+	expectedApiResourceReferences := []*apiV1beta1.ResourceReference{
+		{Key: &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_EXPERIMENT, Id: "experiment1"},
+			Name: "e1", Relationship: apiV1beta1.Relationship_OWNER},
+		{Key: &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_JOB, Id: "job1"},
+			Name: "j1", Relationship: apiV1beta1.Relationship_OWNER},
+		{Key: &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_PIPELINE_VERSION, Id: "pipelineversion1"},
+			Name: "k1", Relationship: apiV1beta1.Relationship_OWNER},
 	}
 	assert.Equal(t, expectedApiResourceReferences, toApiResourceReferences(resourceReferences))
+}
+
+func TestToApiExperimentsV1(t *testing.T) {
+	exp1 := &model.Experiment{
+		UUID:           "exp1",
+		CreatedAtInSec: 1,
+		Name:           "experiment1",
+		Description:    "My name is experiment1",
+		StorageState:   "STORAGESTATE_AVAILABLE",
+	}
+	exp2 := &model.Experiment{
+		UUID:           "exp2",
+		CreatedAtInSec: 2,
+		Name:           "experiment2",
+		Description:    "My name is experiment2",
+		StorageState:   "STORAGESTATE_ARCHIVED",
+	}
+	apiExps := ToApiExperimentsV1([]*model.Experiment{exp1, exp2})
+	expectedApiExps := []*apiV1beta1.Experiment{
+		{
+			Id:           "exp1",
+			Name:         "experiment1",
+			Description:  "My name is experiment1",
+			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+			StorageState: apiV1beta1.Experiment_StorageState(apiV1beta1.Experiment_StorageState_value["STORAGESTATE_AVAILABLE"]),
+		},
+		{
+			Id:           "exp2",
+			Name:         "experiment2",
+			Description:  "My name is experiment2",
+			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
+			StorageState: apiV1beta1.Experiment_StorageState(apiV1beta1.Experiment_StorageState_value["STORAGESTATE_ARCHIVED"]),
+		},
+	}
+	assert.Equal(t, expectedApiExps, apiExps)
 }
 
 func TestToApiExperiments(t *testing.T) {
@@ -748,27 +784,27 @@ func TestToApiExperiments(t *testing.T) {
 		StorageState:   "STORAGESTATE_ARCHIVED",
 	}
 	apiExps := ToApiExperiments([]*model.Experiment{exp1, exp2})
-	expectedApiExps := []*api.Experiment{
+	expectedApiExps := []*apiV2beta1.Experiment{
 		{
-			Id:           "exp1",
-			Name:         "experiment1",
+			ExperimentId: "exp1",
+			DisplayName:  "experiment1",
 			Description:  "My name is experiment1",
 			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-			StorageState: api.Experiment_StorageState(api.Experiment_StorageState_value["STORAGESTATE_AVAILABLE"]),
+			StorageState: apiV2beta1.Experiment_StorageState(apiV2beta1.Experiment_StorageState_value["STORAGESTATE_AVAILABLE"]),
 		},
 		{
-			Id:           "exp2",
-			Name:         "experiment2",
+			ExperimentId: "exp2",
+			DisplayName:  "experiment2",
 			Description:  "My name is experiment2",
 			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
-			StorageState: api.Experiment_StorageState(api.Experiment_StorageState_value["STORAGESTATE_ARCHIVED"]),
+			StorageState: apiV2beta1.Experiment_StorageState(apiV2beta1.Experiment_StorageState_value["STORAGESTATE_ARCHIVED"]),
 		},
 	}
 	assert.Equal(t, expectedApiExps, apiExps)
 }
 
 func TestToApiParameters(t *testing.T) {
-	expectedApiParameters := []*api.Parameter{{Name: "param2", Value: "world"}}
+	expectedApiParameters := []*apiV1beta1.Parameter{{Name: "param2", Value: "world"}}
 	modelParameters := `[{"name":"param2","value":"world"}]`
 	actualApiParameters, err := toApiParameters(modelParameters)
 	assert.Nil(t, err)
@@ -790,7 +826,7 @@ func TestToApiRuntimeConfig(t *testing.T) {
 		"param5": structpb.NewNumberValue(12),
 		"param6": structpb.NewStructValue(v2RuntimeStructParams),
 	}
-	expectedRuntimeConfig := &api.PipelineSpec_RuntimeConfig{
+	expectedRuntimeConfig := &apiV1beta1.PipelineSpec_RuntimeConfig{
 		Parameters:   runtimeParameters,
 		PipelineRoot: "model-pipeline-root",
 	}
