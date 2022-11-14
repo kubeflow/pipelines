@@ -33,8 +33,8 @@ func (r *ResourceManager) ToModelExperiment(inputExperiment interface{}) (*model
 	name := ""
 	description := ""
 	switch inputExperiment.(type) {
-	case apiV1beta1.Experiment:
-		v1Experiment := inputExperiment.(apiV1beta1.Experiment)
+	case *apiV1beta1.Experiment:
+		v1Experiment := inputExperiment.(*apiV1beta1.Experiment)
 		name = v1Experiment.GetName()
 		description = v1Experiment.GetDescription()
 		resourceReferences := v1Experiment.GetResourceReferences()
@@ -46,8 +46,8 @@ func (r *ResourceManager) ToModelExperiment(inputExperiment interface{}) (*model
 			}
 			namespace = resourceReferences[0].Key.Id
 		}
-	case apiV2beta1.Experiment:
-		v2Experiment := inputExperiment.(apiV2beta1.Experiment)
+	case *apiV2beta1.Experiment:
+		v2Experiment := inputExperiment.(*apiV2beta1.Experiment)
 		name = v2Experiment.GetDisplayName()
 		namespace = v2Experiment.GetNamespace()
 		description = v2Experiment.GetDescription()

@@ -18,9 +18,9 @@ import (
 
 type RunInterface interface {
 	Archive(params *params.ArchiveRunV1Params) error
-	Get(params *params.GetRunV1Params) (*model.APIRunDetail, *workflowapi.Workflow, error)
-	List(params *params.ListRunsV1Params) ([]*model.APIRun, int, string, error)
-	ListAll(params *params.ListRunsV1Params, maxResultSize int) ([]*model.APIRun, error)
+	Get(params *params.GetRunV1Params) (*model.V1beta1RunDetail, *workflowapi.Workflow, error)
+	List(params *params.ListRunsV1Params) ([]*model.V1beta1Run, int, string, error)
+	ListAll(params *params.ListRunsV1Params, maxResultSize int) ([]*model.V1beta1Run, error)
 	Unarchive(params *params.UnarchiveRunV1Params) error
 	Terminate(params *params.TerminateRunV1Params) error
 }
@@ -60,7 +60,7 @@ func NewKubeflowInClusterRunClient(namespace string, debug bool) (
 	}, nil
 }
 
-func (c *RunClient) Create(parameters *params.CreateRunV1Params) (*model.APIRunDetail,
+func (c *RunClient) Create(parameters *params.CreateRunV1Params) (*model.V1beta1RunDetail,
 	*workflowapi.Workflow, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
@@ -94,7 +94,7 @@ func (c *RunClient) Create(parameters *params.CreateRunV1Params) (*model.APIRunD
 	return response.Payload, &workflow, nil
 }
 
-func (c *RunClient) Get(parameters *params.GetRunV1Params) (*model.APIRunDetail,
+func (c *RunClient) Get(parameters *params.GetRunV1Params) (*model.V1beta1RunDetail,
 	*workflowapi.Workflow, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
@@ -201,7 +201,7 @@ func (c *RunClient) Delete(parameters *params.DeleteRunV1Params) error {
 }
 
 func (c *RunClient) List(parameters *params.ListRunsV1Params) (
-	[]*model.APIRun, int, string, error) {
+	[]*model.V1beta1Run, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
@@ -226,17 +226,17 @@ func (c *RunClient) List(parameters *params.ListRunsV1Params) (
 }
 
 func (c *RunClient) ListAll(parameters *params.ListRunsV1Params, maxResultSize int) (
-	[]*model.APIRun, error) {
+	[]*model.V1beta1Run, error) {
 	return listAllForRun(c, parameters, maxResultSize)
 }
 
 func listAllForRun(client RunInterface, parameters *params.ListRunsV1Params, maxResultSize int) (
-	[]*model.APIRun, error) {
+	[]*model.V1beta1Run, error) {
 	if maxResultSize < 0 {
 		maxResultSize = 0
 	}
 
-	allResults := make([]*model.APIRun, 0)
+	allResults := make([]*model.V1beta1Run, 0)
 	firstCall := true
 	for (firstCall || (parameters.PageToken != nil && *parameters.PageToken != "")) &&
 		(len(allResults) < maxResultSize) {

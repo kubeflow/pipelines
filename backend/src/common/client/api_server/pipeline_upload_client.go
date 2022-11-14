@@ -24,7 +24,7 @@ const (
 )
 
 type PipelineUploadInterface interface {
-	UploadFile(filePath string, parameters *params.UploadPipelineParams) (*model.APIPipeline, error)
+	UploadFile(filePath string, parameters *params.UploadPipelineParams) (*model.V1beta1Pipeline, error)
 }
 
 type PipelineUploadClient struct {
@@ -63,7 +63,7 @@ func NewKubeflowInClusterPipelineUploadClient(namespace string, debug bool) (
 }
 
 func (c *PipelineUploadClient) UploadFile(filePath string, parameters *params.UploadPipelineParams) (
-	*model.APIPipeline, error) {
+	*model.V1beta1Pipeline, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, util.NewUserErrorWithSingleMessage(err,
@@ -75,7 +75,7 @@ func (c *PipelineUploadClient) UploadFile(filePath string, parameters *params.Up
 	return c.Upload(parameters)
 }
 
-func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (*model.APIPipeline,
+func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (*model.V1beta1Pipeline,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
@@ -101,7 +101,7 @@ func (c *PipelineUploadClient) Upload(parameters *params.UploadPipelineParams) (
 }
 
 // UploadPipelineVersion uploads pipeline version from local file.
-func (c *PipelineUploadClient) UploadPipelineVersion(filePath string, parameters *params.UploadPipelineVersionParams) (*model.APIPipelineVersion,
+func (c *PipelineUploadClient) UploadPipelineVersion(filePath string, parameters *params.UploadPipelineVersionParams) (*model.V1beta1PipelineVersion,
 	error) {
 	// Get file
 	file, err := os.Open(filePath)
