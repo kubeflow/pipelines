@@ -16,17 +16,17 @@ import (
 	experiment_model "github.com/kubeflow/pipelines/backend/api/v2beta1/go_http_client/experiment_model"
 )
 
-// ListExperimentReader is a Reader for the ListExperiment structure.
-type ListExperimentReader struct {
+// ListExperimentsReader is a Reader for the ListExperiments structure.
+type ListExperimentsReader struct {
 	formats strfmt.Registry
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *ListExperimentReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *ListExperimentsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 
 	case 200:
-		result := NewListExperimentOK()
+		result := NewListExperimentsOK()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
 			return nil, err
 		}
@@ -37,24 +37,24 @@ func (o *ListExperimentReader) ReadResponse(response runtime.ClientResponse, con
 	}
 }
 
-// NewListExperimentOK creates a ListExperimentOK with default headers values
-func NewListExperimentOK() *ListExperimentOK {
-	return &ListExperimentOK{}
+// NewListExperimentsOK creates a ListExperimentsOK with default headers values
+func NewListExperimentsOK() *ListExperimentsOK {
+	return &ListExperimentsOK{}
 }
 
-/*ListExperimentOK handles this case with default header values.
+/*ListExperimentsOK handles this case with default header values.
 
 A successful response.
 */
-type ListExperimentOK struct {
+type ListExperimentsOK struct {
 	Payload *experiment_model.V2beta1ListExperimentsResponse
 }
 
-func (o *ListExperimentOK) Error() string {
-	return fmt.Sprintf("[GET /apis/v2beta1/experiments][%d] listExperimentOK  %+v", 200, o.Payload)
+func (o *ListExperimentsOK) Error() string {
+	return fmt.Sprintf("[GET /apis/v2beta1/experiments][%d] listExperimentsOK  %+v", 200, o.Payload)
 }
 
-func (o *ListExperimentOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+func (o *ListExperimentsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(experiment_model.V2beta1ListExperimentsResponse)
 

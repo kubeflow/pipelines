@@ -8,7 +8,7 @@ Method | HTTP request | Description
 [**create_experiment**](ExperimentServiceApi.md#create_experiment) | **POST** /apis/v2beta1/experiments | Creates a new experiment.
 [**delete_experiment**](ExperimentServiceApi.md#delete_experiment) | **DELETE** /apis/v2beta1/experiments/{experiment_id} | Deletes an experiment without deleting the experiment&#39;s runs and recurring  runs. To avoid unexpected behaviors, delete an experiment&#39;s runs and recurring  runs before deleting the experiment.
 [**get_experiment**](ExperimentServiceApi.md#get_experiment) | **GET** /apis/v2beta1/experiments/{experiment_id} | Finds a specific experiment by ID.
-[**list_experiment**](ExperimentServiceApi.md#list_experiment) | **GET** /apis/v2beta1/experiments | Finds all experiments. Supports pagination, and sorting on certain fields.
+[**list_experiments**](ExperimentServiceApi.md#list_experiments) | **GET** /apis/v2beta1/experiments | Finds all experiments. Supports pagination, and sorting on certain fields.
 [**unarchive_experiment**](ExperimentServiceApi.md#unarchive_experiment) | **POST** /apis/v2beta1/experiments/{experiment_id}:unarchive | Restores an archived experiment. The experiment&#39;s archived runs and recurring runs will stay archived.
 
 
@@ -73,7 +73,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **create_experiment**
-> ApiExperiment create_experiment(body)
+> V2beta1Experiment create_experiment(body)
 
 Creates a new experiment.
 
@@ -96,7 +96,7 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient() as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.ExperimentServiceApi(api_client)
-    body = kfp_server_api.ApiExperiment() # ApiExperiment | The experiment to be created.
+    body = kfp_server_api.V2beta1Experiment() # V2beta1Experiment | The experiment to be created.
 
     try:
         # Creates a new experiment.
@@ -110,11 +110,11 @@ with kfp_server_api.ApiClient() as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **body** | [**ApiExperiment**](ApiExperiment.md)| The experiment to be created. | 
+ **body** | [**V2beta1Experiment**](V2beta1Experiment.md)| The experiment to be created. | 
 
 ### Return type
 
-[**ApiExperiment**](ApiExperiment.md)
+[**V2beta1Experiment**](V2beta1Experiment.md)
 
 ### Authorization
 
@@ -193,7 +193,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **get_experiment**
-> ApiExperiment get_experiment(experiment_id)
+> V2beta1Experiment get_experiment(experiment_id)
 
 Finds a specific experiment by ID.
 
@@ -234,7 +234,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**ApiExperiment**](ApiExperiment.md)
+[**V2beta1Experiment**](V2beta1Experiment.md)
 
 ### Authorization
 
@@ -252,8 +252,8 @@ No authorization required
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
-# **list_experiment**
-> ApiListExperimentsResponse list_experiment(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, namespace=namespace)
+# **list_experiments**
+> V2beta1ListExperimentsResponse list_experiments(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, namespace=namespace)
 
 Finds all experiments. Supports pagination, and sorting on certain fields.
 
@@ -276,7 +276,7 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient() as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.ExperimentServiceApi(api_client)
-    page_token = 'page_token_example' # str | A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call or can be omitted when fetching the first page. (optional)
+    page_token = 'page_token_example' # str | A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiments call or can be omitted when fetching the first page. (optional)
 page_size = 56 # int | The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a nextPageToken field you can use to fetch the next page. (optional)
 sort_by = 'sort_by_example' # str | Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\" Ascending by default. (optional)
 filter = 'filter_example' # str | A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)). (optional)
@@ -284,17 +284,17 @@ namespace = 'namespace_example' # str | Which namespace to filter the experiment
 
     try:
         # Finds all experiments. Supports pagination, and sorting on certain fields.
-        api_response = api_instance.list_experiment(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, namespace=namespace)
+        api_response = api_instance.list_experiments(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, namespace=namespace)
         pprint(api_response)
     except ApiException as e:
-        print("Exception when calling ExperimentServiceApi->list_experiment: %s\n" % e)
+        print("Exception when calling ExperimentServiceApi->list_experiments: %s\n" % e)
 ```
 
 ### Parameters
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **page_token** | **str**| A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call or can be omitted when fetching the first page. | [optional] 
+ **page_token** | **str**| A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiments call or can be omitted when fetching the first page. | [optional] 
  **page_size** | **int**| The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a nextPageToken field you can use to fetch the next page. | [optional] 
  **sort_by** | **str**| Can be format of \&quot;field_name\&quot;, \&quot;field_name asc\&quot; or \&quot;field_name desc\&quot; Ascending by default. | [optional] 
  **filter** | **str**| A url-encoded, JSON-serialized Filter protocol buffer (see [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)). | [optional] 
@@ -302,7 +302,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**ApiListExperimentsResponse**](ApiListExperimentsResponse.md)
+[**V2beta1ListExperimentsResponse**](V2beta1ListExperimentsResponse.md)
 
 ### Authorization
 

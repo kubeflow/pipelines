@@ -23,7 +23,7 @@ import (
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
-func TestCreateExperiment(t *testing.T) {
+func TestCreateExperimentV1(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
@@ -41,7 +41,24 @@ func TestCreateExperiment(t *testing.T) {
 	assert.Equal(t, expectedExperiment, result)
 }
 
-func TestCreateExperiment_Failed(t *testing.T) {
+func TestCreateExperiment(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
+	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
+
+	result, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	assert.Nil(t, err)
+	expectedExperiment := &apiV2beta1.Experiment{
+		ExperimentId: resource.DefaultFakeUUID,
+		DisplayName:  "ex1",
+		Description:  "first experiment",
+		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+	}
+	assert.Equal(t, expectedExperiment, result)
+}
+
+func TestCreateExperimentV1_Failed(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
@@ -52,7 +69,7 @@ func TestCreateExperiment_Failed(t *testing.T) {
 	assert.Contains(t, err.Error(), "Create experiment failed.")
 }
 
-func TestCreateExperiment_SingleUser_NamespaceNotAllowed(t *testing.T) {
+func TestCreateExperimentV1_SingleUser_NamespaceNotAllowed(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}

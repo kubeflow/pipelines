@@ -137,30 +137,30 @@ func (a *Client) GetExperiment(params *GetExperimentParams) (*GetExperimentOK, e
 }
 
 /*
-ListExperiment finds all experiments supports pagination and sorting on certain fields
+ListExperiments finds all experiments supports pagination and sorting on certain fields
 */
-func (a *Client) ListExperiment(params *ListExperimentParams) (*ListExperimentOK, error) {
+func (a *Client) ListExperiments(params *ListExperimentsParams) (*ListExperimentsOK, error) {
 	// TODO: Validate the params before sending
 	if params == nil {
-		params = NewListExperimentParams()
+		params = NewListExperimentsParams()
 	}
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ListExperiment",
+		ID:                 "ListExperiments",
 		Method:             "GET",
 		PathPattern:        "/apis/v2beta1/experiments",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &ListExperimentReader{formats: a.formats},
+		Reader:             &ListExperimentsReader{formats: a.formats},
 		Context:            params.Context,
 		Client:             params.HTTPClient,
 	})
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ListExperimentOK), nil
+	return result.(*ListExperimentsOK), nil
 
 }
 

@@ -86,15 +86,15 @@ Class | Method | HTTP request | Description
 *ExperimentServiceApi* | [**create_experiment**](docs/ExperimentServiceApi.md#create_experiment) | **POST** /apis/v2beta1/experiments | Creates a new experiment.
 *ExperimentServiceApi* | [**delete_experiment**](docs/ExperimentServiceApi.md#delete_experiment) | **DELETE** /apis/v2beta1/experiments/{experiment_id} | Deletes an experiment without deleting the experiment&#39;s runs and recurring  runs. To avoid unexpected behaviors, delete an experiment&#39;s runs and recurring  runs before deleting the experiment.
 *ExperimentServiceApi* | [**get_experiment**](docs/ExperimentServiceApi.md#get_experiment) | **GET** /apis/v2beta1/experiments/{experiment_id} | Finds a specific experiment by ID.
-*ExperimentServiceApi* | [**list_experiment**](docs/ExperimentServiceApi.md#list_experiment) | **GET** /apis/v2beta1/experiments | Finds all experiments. Supports pagination, and sorting on certain fields.
+*ExperimentServiceApi* | [**list_experiments**](docs/ExperimentServiceApi.md#list_experiments) | **GET** /apis/v2beta1/experiments | Finds all experiments. Supports pagination, and sorting on certain fields.
 *ExperimentServiceApi* | [**unarchive_experiment**](docs/ExperimentServiceApi.md#unarchive_experiment) | **POST** /apis/v2beta1/experiments/{experiment_id}:unarchive | Restores an archived experiment. The experiment&#39;s archived runs and recurring runs will stay archived.
 
 
 ## Documentation For Models
 
- - [ApiExperiment](docs/ApiExperiment.md)
- - [ApiListExperimentsResponse](docs/ApiListExperimentsResponse.md)
  - [ExperimentStorageState](docs/ExperimentStorageState.md)
+ - [V2beta1Experiment](docs/V2beta1Experiment.md)
+ - [V2beta1ListExperimentsResponse](docs/V2beta1ListExperimentsResponse.md)
 
 
 ## Documentation For Authorization

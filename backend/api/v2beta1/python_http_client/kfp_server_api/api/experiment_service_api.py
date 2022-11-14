@@ -168,7 +168,7 @@ class ExperimentServiceApi(object):
         >>> result = thread.get()
 
         :param body: The experiment to be created. (required)
-        :type body: ApiExperiment
+        :type body: V2beta1Experiment
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -181,7 +181,7 @@ class ExperimentServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: ApiExperiment
+        :rtype: V2beta1Experiment
         """
         kwargs['_return_http_data_only'] = True
         return self.create_experiment_with_http_info(body, **kwargs)  # noqa: E501
@@ -196,7 +196,7 @@ class ExperimentServiceApi(object):
         >>> result = thread.get()
 
         :param body: The experiment to be created. (required)
-        :type body: ApiExperiment
+        :type body: V2beta1Experiment
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -213,7 +213,7 @@ class ExperimentServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(ApiExperiment, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2beta1Experiment, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -276,7 +276,7 @@ class ExperimentServiceApi(object):
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='ApiExperiment',  # noqa: E501
+            response_type='V2beta1Experiment',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -429,7 +429,7 @@ class ExperimentServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: ApiExperiment
+        :rtype: V2beta1Experiment
         """
         kwargs['_return_http_data_only'] = True
         return self.get_experiment_with_http_info(experiment_id, **kwargs)  # noqa: E501
@@ -461,7 +461,7 @@ class ExperimentServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(ApiExperiment, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2beta1Experiment, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -520,7 +520,7 @@ class ExperimentServiceApi(object):
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='ApiExperiment',  # noqa: E501
+            response_type='V2beta1Experiment',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -528,16 +528,16 @@ class ExperimentServiceApi(object):
             _request_timeout=local_var_params.get('_request_timeout'),
             collection_formats=collection_formats)
 
-    def list_experiment(self, **kwargs):  # noqa: E501
+    def list_experiments(self, **kwargs):  # noqa: E501
         """Finds all experiments. Supports pagination, and sorting on certain fields.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.list_experiment(async_req=True)
+        >>> thread = api.list_experiments(async_req=True)
         >>> result = thread.get()
 
-        :param page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call or can be omitted when fetching the first page.
+        :param page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiments call or can be omitted when fetching the first page.
         :type page_token: str
         :param page_size: The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
         :type page_size: int
@@ -559,21 +559,21 @@ class ExperimentServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: ApiListExperimentsResponse
+        :rtype: V2beta1ListExperimentsResponse
         """
         kwargs['_return_http_data_only'] = True
-        return self.list_experiment_with_http_info(**kwargs)  # noqa: E501
+        return self.list_experiments_with_http_info(**kwargs)  # noqa: E501
 
-    def list_experiment_with_http_info(self, **kwargs):  # noqa: E501
+    def list_experiments_with_http_info(self, **kwargs):  # noqa: E501
         """Finds all experiments. Supports pagination, and sorting on certain fields.  # noqa: E501
 
         This method makes a synchronous HTTP request by default. To make an
         asynchronous HTTP request, please pass async_req=True
 
-        >>> thread = api.list_experiment_with_http_info(async_req=True)
+        >>> thread = api.list_experiments_with_http_info(async_req=True)
         >>> result = thread.get()
 
-        :param page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiment call or can be omitted when fetching the first page.
+        :param page_token: A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiments call or can be omitted when fetching the first page.
         :type page_token: str
         :param page_size: The number of experiments to be listed per page. If there are more experiments than this number, the response message will contain a nextPageToken field you can use to fetch the next page.
         :type page_size: int
@@ -599,7 +599,7 @@ class ExperimentServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(ApiListExperimentsResponse, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2beta1ListExperimentsResponse, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -624,7 +624,7 @@ class ExperimentServiceApi(object):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method list_experiment" % key
+                    " to method list_experiments" % key
                 )
             local_var_params[key] = val
         del local_var_params['kwargs']
@@ -666,7 +666,7 @@ class ExperimentServiceApi(object):
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='ApiListExperimentsResponse',  # noqa: E501
+            response_type='V2beta1ListExperimentsResponse',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501

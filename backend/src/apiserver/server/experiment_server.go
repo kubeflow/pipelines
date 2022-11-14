@@ -148,6 +148,12 @@ func (s *ExperimentServer) GetExperimentV1(ctx context.Context, request *apiv1be
 	return ToApiExperimentV1(experiment), nil
 }
 
+// Need to add content
+func (s *ExperimentServer) GetExperiment(ctx context.Context, request *apiv2beta1.GetExperimentRequest) (
+	*apiv2beta1.Experiment, error) {
+	return nil, util.NewInvalidInputError("Get Experiment v2 success!")
+}
+
 func (s *ExperimentServer) ListExperimentsV1(ctx context.Context, request *apiv1beta1.ListExperimentsRequest) (
 	*apiv1beta1.ListExperimentsResponse, error) {
 	if s.options.CollectMetrics {
@@ -203,6 +209,12 @@ func (s *ExperimentServer) ListExperimentsV1(ctx context.Context, request *apiv1
 		nil
 }
 
+// Need to add content
+func (s *ExperimentServer) ListExperiments(ctx context.Context, request *apiv2beta1.ListExperimentsRequest) (
+	*apiv2beta1.ListExperimentsResponse, error) {
+	return nil, util.NewInvalidInputError("List Experiments success!")
+}
+
 func (s *ExperimentServer) DeleteExperimentV1(ctx context.Context, request *apiv1beta1.DeleteExperimentRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		deleteExperimentRequests.Inc()
@@ -221,6 +233,11 @@ func (s *ExperimentServer) DeleteExperimentV1(ctx context.Context, request *apiv
 	if s.options.CollectMetrics {
 		experimentCount.Dec()
 	}
+	return &empty.Empty{}, nil
+}
+
+// Need to add content
+func (s *ExperimentServer) DeleteExperiment(ctx context.Context, request *apiv2beta1.DeleteExperimentRequest) (*empty.Empty, error) {
 	return &empty.Empty{}, nil
 }
 
@@ -329,6 +346,14 @@ func (s *ExperimentServer) UnarchiveExperimentV1(ctx context.Context, request *a
 		return nil, err
 	}
 	return &empty.Empty{}, nil
+}
+
+func (s *ExperimentServer) ArchiveExperiment(ctx context.Context, request *apiv2beta1.ArchiveExperimentRequest) (*empty.Empty, error) {
+	return nil, util.NewInvalidInputError("Archive exp v2 success!")
+}
+
+func (s *ExperimentServer) UnarchiveExperiment(ctx context.Context, request *apiv2beta1.UnarchiveExperimentRequest) (*empty.Empty, error) {
+	return nil, util.NewInvalidInputError("Unarchive exp v2 success!")
 }
 
 func NewExperimentServer(resourceManager *resource.ResourceManager, options *ExperimentServerOptions) *ExperimentServer {

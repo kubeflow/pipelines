@@ -18,49 +18,49 @@ import (
 	strfmt "github.com/go-openapi/strfmt"
 )
 
-// NewListExperimentParams creates a new ListExperimentParams object
+// NewListExperimentsParams creates a new ListExperimentsParams object
 // with the default values initialized.
-func NewListExperimentParams() *ListExperimentParams {
+func NewListExperimentsParams() *ListExperimentsParams {
 	var ()
-	return &ListExperimentParams{
+	return &ListExperimentsParams{
 
 		timeout: cr.DefaultTimeout,
 	}
 }
 
-// NewListExperimentParamsWithTimeout creates a new ListExperimentParams object
+// NewListExperimentsParamsWithTimeout creates a new ListExperimentsParams object
 // with the default values initialized, and the ability to set a timeout on a request
-func NewListExperimentParamsWithTimeout(timeout time.Duration) *ListExperimentParams {
+func NewListExperimentsParamsWithTimeout(timeout time.Duration) *ListExperimentsParams {
 	var ()
-	return &ListExperimentParams{
+	return &ListExperimentsParams{
 
 		timeout: timeout,
 	}
 }
 
-// NewListExperimentParamsWithContext creates a new ListExperimentParams object
+// NewListExperimentsParamsWithContext creates a new ListExperimentsParams object
 // with the default values initialized, and the ability to set a context for a request
-func NewListExperimentParamsWithContext(ctx context.Context) *ListExperimentParams {
+func NewListExperimentsParamsWithContext(ctx context.Context) *ListExperimentsParams {
 	var ()
-	return &ListExperimentParams{
+	return &ListExperimentsParams{
 
 		Context: ctx,
 	}
 }
 
-// NewListExperimentParamsWithHTTPClient creates a new ListExperimentParams object
+// NewListExperimentsParamsWithHTTPClient creates a new ListExperimentsParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
-func NewListExperimentParamsWithHTTPClient(client *http.Client) *ListExperimentParams {
+func NewListExperimentsParamsWithHTTPClient(client *http.Client) *ListExperimentsParams {
 	var ()
-	return &ListExperimentParams{
+	return &ListExperimentsParams{
 		HTTPClient: client,
 	}
 }
 
-/*ListExperimentParams contains all the parameters to send to the API endpoint
-for the list experiment operation typically these are written to a http.Request
+/*ListExperimentsParams contains all the parameters to send to the API endpoint
+for the list experiments operation typically these are written to a http.Request
 */
-type ListExperimentParams struct {
+type ListExperimentsParams struct {
 
 	/*Filter
 	  A url-encoded, JSON-serialized Filter protocol buffer (see
@@ -83,7 +83,7 @@ type ListExperimentParams struct {
 	/*PageToken
 	  A page token to request the next page of results. The token is acquried
 	from the nextPageToken field of the response from the previous
-	ListExperiment call or can be omitted when fetching the first page.
+	ListExperiments call or can be omitted when fetching the first page.
 
 	*/
 	PageToken *string
@@ -99,96 +99,96 @@ type ListExperimentParams struct {
 	HTTPClient *http.Client
 }
 
-// WithTimeout adds the timeout to the list experiment params
-func (o *ListExperimentParams) WithTimeout(timeout time.Duration) *ListExperimentParams {
+// WithTimeout adds the timeout to the list experiments params
+func (o *ListExperimentsParams) WithTimeout(timeout time.Duration) *ListExperimentsParams {
 	o.SetTimeout(timeout)
 	return o
 }
 
-// SetTimeout adds the timeout to the list experiment params
-func (o *ListExperimentParams) SetTimeout(timeout time.Duration) {
+// SetTimeout adds the timeout to the list experiments params
+func (o *ListExperimentsParams) SetTimeout(timeout time.Duration) {
 	o.timeout = timeout
 }
 
-// WithContext adds the context to the list experiment params
-func (o *ListExperimentParams) WithContext(ctx context.Context) *ListExperimentParams {
+// WithContext adds the context to the list experiments params
+func (o *ListExperimentsParams) WithContext(ctx context.Context) *ListExperimentsParams {
 	o.SetContext(ctx)
 	return o
 }
 
-// SetContext adds the context to the list experiment params
-func (o *ListExperimentParams) SetContext(ctx context.Context) {
+// SetContext adds the context to the list experiments params
+func (o *ListExperimentsParams) SetContext(ctx context.Context) {
 	o.Context = ctx
 }
 
-// WithHTTPClient adds the HTTPClient to the list experiment params
-func (o *ListExperimentParams) WithHTTPClient(client *http.Client) *ListExperimentParams {
+// WithHTTPClient adds the HTTPClient to the list experiments params
+func (o *ListExperimentsParams) WithHTTPClient(client *http.Client) *ListExperimentsParams {
 	o.SetHTTPClient(client)
 	return o
 }
 
-// SetHTTPClient adds the HTTPClient to the list experiment params
-func (o *ListExperimentParams) SetHTTPClient(client *http.Client) {
+// SetHTTPClient adds the HTTPClient to the list experiments params
+func (o *ListExperimentsParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithFilter adds the filter to the list experiment params
-func (o *ListExperimentParams) WithFilter(filter *string) *ListExperimentParams {
+// WithFilter adds the filter to the list experiments params
+func (o *ListExperimentsParams) WithFilter(filter *string) *ListExperimentsParams {
 	o.SetFilter(filter)
 	return o
 }
 
-// SetFilter adds the filter to the list experiment params
-func (o *ListExperimentParams) SetFilter(filter *string) {
+// SetFilter adds the filter to the list experiments params
+func (o *ListExperimentsParams) SetFilter(filter *string) {
 	o.Filter = filter
 }
 
-// WithNamespace adds the namespace to the list experiment params
-func (o *ListExperimentParams) WithNamespace(namespace *string) *ListExperimentParams {
+// WithNamespace adds the namespace to the list experiments params
+func (o *ListExperimentsParams) WithNamespace(namespace *string) *ListExperimentsParams {
 	o.SetNamespace(namespace)
 	return o
 }
 
-// SetNamespace adds the namespace to the list experiment params
-func (o *ListExperimentParams) SetNamespace(namespace *string) {
+// SetNamespace adds the namespace to the list experiments params
+func (o *ListExperimentsParams) SetNamespace(namespace *string) {
 	o.Namespace = namespace
 }
 
-// WithPageSize adds the pageSize to the list experiment params
-func (o *ListExperimentParams) WithPageSize(pageSize *int32) *ListExperimentParams {
+// WithPageSize adds the pageSize to the list experiments params
+func (o *ListExperimentsParams) WithPageSize(pageSize *int32) *ListExperimentsParams {
 	o.SetPageSize(pageSize)
 	return o
 }
 
-// SetPageSize adds the pageSize to the list experiment params
-func (o *ListExperimentParams) SetPageSize(pageSize *int32) {
+// SetPageSize adds the pageSize to the list experiments params
+func (o *ListExperimentsParams) SetPageSize(pageSize *int32) {
 	o.PageSize = pageSize
 }
 
-// WithPageToken adds the pageToken to the list experiment params
-func (o *ListExperimentParams) WithPageToken(pageToken *string) *ListExperimentParams {
+// WithPageToken adds the pageToken to the list experiments params
+func (o *ListExperimentsParams) WithPageToken(pageToken *string) *ListExperimentsParams {
 	o.SetPageToken(pageToken)
 	return o
 }
 
-// SetPageToken adds the pageToken to the list experiment params
-func (o *ListExperimentParams) SetPageToken(pageToken *string) {
+// SetPageToken adds the pageToken to the list experiments params
+func (o *ListExperimentsParams) SetPageToken(pageToken *string) {
 	o.PageToken = pageToken
 }
 
-// WithSortBy adds the sortBy to the list experiment params
-func (o *ListExperimentParams) WithSortBy(sortBy *string) *ListExperimentParams {
+// WithSortBy adds the sortBy to the list experiments params
+func (o *ListExperimentsParams) WithSortBy(sortBy *string) *ListExperimentsParams {
 	o.SetSortBy(sortBy)
 	return o
 }
 
-// SetSortBy adds the sortBy to the list experiment params
-func (o *ListExperimentParams) SetSortBy(sortBy *string) {
+// SetSortBy adds the sortBy to the list experiments params
+func (o *ListExperimentsParams) SetSortBy(sortBy *string) {
 	o.SortBy = sortBy
 }
 
 // WriteToRequest writes these params to a swagger request
-func (o *ListExperimentParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
+func (o *ListExperimentsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
 	if err := r.SetTimeout(o.timeout); err != nil {
 		return err

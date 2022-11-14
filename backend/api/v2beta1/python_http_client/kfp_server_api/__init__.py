@@ -28,7 +28,7 @@ from kfp_server_api.exceptions import ApiValueError
 from kfp_server_api.exceptions import ApiKeyError
 from kfp_server_api.exceptions import ApiException
 # import models into sdk package
-from kfp_server_api.models.api_experiment import ApiExperiment
-from kfp_server_api.models.api_list_experiments_response import ApiListExperimentsResponse
 from kfp_server_api.models.experiment_storage_state import ExperimentStorageState
+from kfp_server_api.models.v2beta1_experiment import V2beta1Experiment
+from kfp_server_api.models.v2beta1_list_experiments_response import V2beta1ListExperimentsResponse
 

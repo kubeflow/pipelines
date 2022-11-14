@@ -56,8 +56,8 @@ class TestExperimentServiceApi(unittest.TestCase):
         """
         pass
 
-    def test_list_experiment(self):
-        """Test case for list_experiment
+    def test_list_experiments(self):
+        """Test case for list_experiments
 
         Finds all experiments. Supports pagination, and sorting on certain fields.  # noqa: E501
         """

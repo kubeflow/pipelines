@@ -1,4 +1,4 @@
-# ApiExperiment
+# V2beta1Experiment
 
 ## Properties
 Name | Type | Description | Notes

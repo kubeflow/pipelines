@@ -40,7 +40,7 @@ service ExperimentService {
   }
 
   // Finds all experiments. Supports pagination, and sorting on certain fields.
-  rpc ListExperiment(ListExperimentsRequest) returns (ListExperimentsResponse) {
+  rpc ListExperiments(ListExperimentsRequest) returns (ListExperimentsResponse) {
     option (google.api.http) = {
       get: "/apis/v2beta1/experiments"
     };
@@ -110,7 +110,7 @@ message GetExperimentRequest {
 message ListExperimentsRequest {
   // A page token to request the next page of results. The token is acquried
   // from the nextPageToken field of the response from the previous
-  // ListExperiment call or can be omitted when fetching the first page.
+  // ListExperiments call or can be omitted when fetching the first page.
   string page_token = 1;
 
   // The number of experiments to be listed per page. If there are more
