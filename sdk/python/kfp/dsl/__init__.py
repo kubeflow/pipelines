@@ -149,7 +149,7 @@ PIPELINE_TASK_ID_PLACEHOLDER = '{{$.pipeline_task_uuid}}'
                 value=dsl.PIPELINE_TASK_ID_PLACEHOLDER,
             )
 """
-PIPELINE_JOB_CREATE_TIME_UTC = '{{$.pipeline_job_create_time_utc}}'
+PIPELINE_JOB_CREATE_TIME_UTC_PLACEHOLDER = '{{$.pipeline_job_create_time_utc}}'
 """A placeholder used to obtain the time that a pipeline job was created.
 
     Example:
@@ -162,7 +162,7 @@ PIPELINE_JOB_CREATE_TIME_UTC = '{{$.pipeline_job_create_time_utc}}'
                 value=dsl.PIPELINE_JOB_CREATE_TIME_UTC,
             )
 """
-PIPELINE_JOB_SCHEDULE_TIME_UTC = '{{$.pipeline_job_schedule_time_utc}}'
+PIPELINE_JOB_SCHEDULE_TIME_UTC_PLACEHOLDER = '{{$.pipeline_job_schedule_time_utc}}'
 """A placeholder used to obtain the time for which a pipeline job is scheduled.
 
     Example:
