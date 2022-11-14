@@ -86,7 +86,7 @@ PIPELINE_JOB_NAME_PLACEHOLDER = '{{$.pipeline_job_name}}'
     Example:
       ::
 
-        @dsl.pipeline(name='my-pipeline')
+        @dsl.pipeline
         def my_pipeline():
             print_op(
                 msg='Job name:',
@@ -100,7 +100,7 @@ PIPELINE_JOB_RESOURCE_NAME_PLACEHOLDER = '{{$.pipeline_job_resource_name}}'
     Example:
       ::
 
-        @dsl.pipeline(name='my-pipeline')
+        @dsl.pipeline
         def my_pipeline():
             print_op(
                 msg='Job resource name:',
@@ -114,7 +114,7 @@ PIPELINE_JOB_ID_PLACEHOLDER = '{{$.pipeline_job_uuid}}'
     Example:
       ::
 
-        @dsl.pipeline(name='my-pipeline')
+        @dsl.pipeline
         def my_pipeline():
             print_op(
                 msg='Job ID:',
@@ -128,7 +128,7 @@ PIPELINE_TASK_NAME_PLACEHOLDER = '{{$.pipeline_task_name}}'
     Example:
       ::
 
-        @dsl.pipeline(name='my-pipeline')
+        @dsl.pipeline
         def my_pipeline():
             print_op(
                 msg='Task name:',
@@ -142,7 +142,7 @@ PIPELINE_TASK_ID_PLACEHOLDER = '{{$.pipeline_task_uuid}}'
     Example:
       ::
 
-        @dsl.pipeline(name='my-pipeline')
+        @dsl.pipeline
         def my_pipeline():
             print_op(
                 msg='Task ID:',
@@ -155,7 +155,7 @@ PIPELINE_JOB_CREATE_TIME_UTC = '{{$.pipeline_job_create_time_utc}}'
     Example:
       ::
 
-        @dsl.pipeline(name='my-pipeline')
+        @dsl.pipeline
         def my_pipeline():
             print_op(
                 msg='Job created at:',
@@ -168,7 +168,7 @@ PIPELINE_JOB_SCHEDULE_TIME_UTC = '{{$.pipeline_job_schedule_time_utc}}'
     Example:
       ::
 
-        @dsl.pipeline(name='my-pipeline')
+        @dsl.pipeline
         def my_pipeline():
             print_op(
                 msg='Job scheduled at:',
@@ -197,7 +197,7 @@ Example:
     def artifact_consumer(model: Input[Artifact]):
         print(model)
 
-    @dsl.pipeline(name='my-pipeline')
+    @dsl.pipeline
     def my_pipeline():
         producer_task = artifact_producer()
         artifact_consumer(model=producer_task.output)
@@ -223,7 +223,7 @@ Example:
     def artifact_consumer(model: Input[Artifact]):
         print(model)
 
-    @dsl.pipeline(name='my-pipeline')
+    @dsl.pipeline
     def my_pipeline():
         producer_task = artifact_producer()
         artifact_consumer(model=producer_task.output)
