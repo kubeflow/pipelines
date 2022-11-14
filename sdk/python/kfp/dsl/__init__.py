@@ -149,6 +149,33 @@ PIPELINE_TASK_ID_PLACEHOLDER = '{{$.pipeline_task_uuid}}'
                 value=dsl.PIPELINE_TASK_ID_PLACEHOLDER,
             )
 """
+PIPELINE_JOB_CREATE_TIME_UTC = '{{$.pipeline_job_create_time_utc}}'
+"""A placeholder used to obtain the time that a pipeline job was created.
+
+    Example:
+      ::
+
+        @dsl.pipeline(name='my-pipeline')
+        def my_pipeline():
+            print_op(
+                msg='Job created at:',
+                value=dsl.PIPELINE_JOB_CREATE_TIME_UTC,
+            )
+"""
+PIPELINE_JOB_SCHEDULE_TIME_UTC = '{{$.pipeline_job_schedule_time_utc}}'
+"""A placeholder used to obtain the time for which a pipeline job is scheduled.
+
+    Example:
+      ::
+
+        @dsl.pipeline(name='my-pipeline')
+        def my_pipeline():
+            print_op(
+                msg='Job scheduled at:',
+                value=dsl.PIPELINE_JOB_SCHEDULE_TIME_UTC,
+            )
+"""
+
 T = TypeVar('T')
 Input = Annotated[T, InputAnnotation]
 """Type generic used to represent an input artifact of type ``T``, where ``T`` is an artifact class.
