@@ -17,12 +17,12 @@ const (
 )
 
 func getDefaultUploadedPipeline() *model.V1beta1Pipeline {
-	return &model.APIPipeline{
+	return &model.V1beta1Pipeline{
 		ID:          "500",
 		CreatedAt:   strfmt.NewDateTime(),
 		Name:        "PIPELINE_NAME",
 		Description: "PIPELINE_DESCRIPTION",
-		Parameters: []*model.V1beta1Parameter{&model.APIParameter{
+		Parameters: []*model.V1beta1Parameter{&model.V1beta1Parameter{
 			Name:  "PARAM_NAME",
 			Value: "PARAM_VALUE",
 		}},
