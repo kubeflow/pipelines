@@ -539,7 +539,7 @@ class TestInputSpec(unittest.TestCase):
             structures.InputSpec(type='String', default=None))
         self.assertNotEqual(
             structures.InputSpec(type='String', default=None),
-            structures.InputSpec(type='String', default='test'))
+            structures.InputSpec(type='String', default='test', optional=True))
         self.assertEqual(
             structures.InputSpec(type='List', default=None),
             structures.InputSpec(type='typing.List', default=None))
@@ -551,17 +551,14 @@ class TestInputSpec(unittest.TestCase):
             structures.InputSpec(type='typing.List[typing.Dict[str, str]]'))
 
     def test_optional(self):
-        input_spec = structures.InputSpec(type='String', default='test')
-        self.assertEqual(input_spec.default, 'test')
-        self.assertEqual(input_spec._optional, True)
-
-        input_spec = structures.InputSpec(type='String', default=None)
+        input_spec = structures.InputSpec(
+            type='String', default=None, optional=True)
         self.assertEqual(input_spec.default, None)
-        self.assertEqual(input_spec._optional, True)
+        self.assertEqual(input_spec.optional, True)
 
         input_spec = structures.InputSpec(type='String')
         self.assertEqual(input_spec.default, None)
-        self.assertEqual(input_spec._optional, False)
+        self.assertEqual(input_spec.optional, False)
 
     def test_from_ir_component_inputs_dict(self):
         parameter_dict = {'parameterType': 'STRING'}
@@ -599,6 +596,11 @@ class TestInputSpec(unittest.TestCase):
         input_spec = structures.InputSpec.from_ir_component_inputs_dict(
             artifact_dict)
         self.assertEqual(input_spec.type, 'system.Artifact@0.0.1')
+
+    def test_assert_optional_must_be_true_when_default_is_not_none(self):
+        with self.assertRaisesRegex(ValueError,
+                                    r'must be True if `default` is not None'):
+            input_spec = structures.InputSpec(type='String', default='text')
 
 
 class TestOutputSpec(parameterized.TestCase):

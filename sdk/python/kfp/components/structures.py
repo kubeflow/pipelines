@@ -16,7 +16,6 @@
 import ast
 import collections
 import dataclasses
-import functools
 import itertools
 import re
 from typing import Any, Dict, List, Mapping, Optional, Union
@@ -38,39 +37,21 @@ import yaml
 
 
 @dataclasses.dataclass
-class InputSpec_:
-    """Component input definitions. (Inner class).
-
-    Attributes:
-        type: The type of the input.
-        default (optional): the default value for the input.
-        description: Optional: the user description of the input.
-    """
-    type: Union[str, dict]
-    default: Optional[Any] = None
-
-
-# Hack to allow access to __init__ arguments for setting _optional value
-class InputSpec(InputSpec_):
+class InputSpec:
     """Component input definitions.
 
     Attributes:
         type: The type of the input.
         default (optional): the default value for the input.
-        _optional: Wether the input is optional. An input is optional when it has an explicit default value.
+        optional: Wether the input is optional. An input is optional when it has an explicit default value.
     """
-
-    @functools.wraps(InputSpec_.__init__)
-    def __init__(self, *args, **kwargs) -> None:
-        """InputSpec constructor, which can access the arguments passed to the
-        constructor for setting ._optional value."""
-        if args:
-            raise ValueError('InputSpec does not accept positional arguments.')
-        super().__init__(*args, **kwargs)
-        self._optional = 'default' in kwargs
+    type: Union[str, dict]
+    default: Optional[Any] = None
+    optional: bool = False
 
     def __post_init__(self) -> None:
         self._validate_type()
+        self._validate_usage_of_optional()
 
     @classmethod
     def from_ir_component_inputs_dict(
@@ -92,10 +73,10 @@ class InputSpec(InputSpec_):
             if type_ is None:
                 raise ValueError(f'Unknown type {type_string} found in IR.')
             default_value = ir_component_inputs_dict.get('defaultValue')
+            # TODO: write the IR is_optional field to IR when compiling. currently we don't do this, so just set optional to True if default_value is not None.
+            optional = default_value is not None
             return InputSpec(
-                type=type_,
-                default=default_value,
-            )
+                type=type_, default=default_value, optional=optional)
 
         else:
             type_ = ir_component_inputs_dict['artifactType']['schemaTitle']
@@ -134,6 +115,15 @@ class InputSpec(InputSpec_):
         # TODO: add transformation logic so that we don't have to transform inputs at every place they are used, including v1 back compat support
         if not spec_type_is_parameter(self.type):
             type_utils.validate_bundled_artifact_type(self.type)
+
+    def _validate_usage_of_optional(self) -> None:
+        """Validates that the optional and default properties are in consistent
+        states."""
+        # Because None can be the default value, None cannot be used to to indicate no default. This is why we need the optional field. This check prevents users of InputSpec from setting these two values to an inconsistent state, forcing users of InputSpec to be explicit about optionality.
+        if self.optional is False and self.default is not None:
+            raise ValueError(
+                f'`optional` argument to {self.__class__.__name__} must be True if `default` is not None.'
+            )
 
 
 @dataclasses.dataclass
@@ -635,6 +625,8 @@ class ComponentSpec:
         inputs = {}
         for spec in component_dict.get('inputs', []):
             type_ = spec.get('type')
+            optional = spec.get('optional', False) or 'default' in spec
+            default = spec.get('default')
 
             if isinstance(type_, str) and type_ == 'PipelineTaskFinalStatus':
                 inputs[utils.sanitize_input_name(
@@ -652,6 +644,7 @@ class ComponentSpec:
                 inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
                     type=in_memory_parameter_type_name,
                     default=default,
+                    optional=optional,
                 )
                 continue
 
@@ -675,12 +668,13 @@ class ComponentSpec:
             else:
                 raise ValueError(f'Unknown input: {type_}')
 
-            if spec.get('optional', False):
+            if optional:
                 # handles a v1 edge-case where a user marks an artifact input as optional with no default value. some of these v1 component YAMLs exist.
                 inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
                     type=type_utils.create_bundled_artifact_type(
                         schema_title, schema_version),
-                    default=None,
+                    default=default,
+                    optional=optional,
                 )
             else:
                 inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
