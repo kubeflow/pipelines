@@ -305,6 +305,20 @@ func TestGetExperimentV1_Failed(t *testing.T) {
 	assert.Contains(t, err.Error(), "Get experiment failed.")
 }
 
+func TestGetExperiment_Failed(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
+	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
+
+	createResult, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	assert.Nil(t, err)
+	clientManager.DB().Close()
+	_, err = server.GetExperiment(nil, &apiV2beta1.GetExperimentRequest{ExperimentId: createResult.ExperimentId})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Get experiment failed.")
+}
+
 func TestGetExperimentV1_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
@@ -319,6 +333,36 @@ func TestGetExperimentV1_Unauthorized(t *testing.T) {
 	server := ExperimentServer{manager, &ExperimentServerOptions{CollectMetrics: false}}
 
 	_, err := server.GetExperimentV1(ctx, &apiV1beta1.GetExperimentRequest{Id: experiment.UUID})
+	assert.NotNil(t, err)
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbGet,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeExperiments,
+		Name:      "exp1",
+	}
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes))).Error(),
+	)
+}
+
+func TestGetExperiment_Unauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clients, manager, experiment := initWithExperiment_SubjectAccessReview_Unauthorized(t)
+	defer clients.Close()
+
+	server := ExperimentServer{manager, &ExperimentServerOptions{CollectMetrics: false}}
+
+	_, err := server.GetExperiment(ctx, &apiV2beta1.GetExperimentRequest{ExperimentId: experiment.UUID})
 	assert.NotNil(t, err)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: "ns1",
@@ -367,6 +411,37 @@ func TestGetExperimentV1_Multiuser(t *testing.T) {
 		CreatedAt:          &timestamp.Timestamp{Seconds: 1},
 		ResourceReferences: resourceReferences,
 		StorageState:       apiV1beta1.Experiment_STORAGESTATE_AVAILABLE,
+	}
+	assert.Equal(t, expectedExperiment, result)
+}
+
+func TestGetExperiment_Multiuser(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
+	experiment := &apiV2beta1.Experiment{
+		DisplayName: "exp1",
+		Description: "first experiment",
+		Namespace:   "ns1",
+	}
+
+	createResult, err := server.CreateExperiment(ctx, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	assert.Nil(t, err)
+	result, err := server.GetExperiment(ctx, &apiV2beta1.GetExperimentRequest{ExperimentId: createResult.ExperimentId})
+	assert.Nil(t, err)
+	expectedExperiment := &apiV2beta1.Experiment{
+		ExperimentId: createResult.ExperimentId,
+		DisplayName:  "exp1",
+		Description:  "first experiment",
+		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+		Namespace:    "ns1",
+		// TODO(lingqinggan): fix storage state
+		// StorageState: apiV2beta1.Experiment_AVAILABLE,
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
