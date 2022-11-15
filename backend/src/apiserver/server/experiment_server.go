@@ -178,7 +178,7 @@ func (s *ExperimentServer) ListExperimentsV1(ctx context.Context, request *apiv1
 		return nil, util.Wrap(err, "Failed to create list options")
 	}
 
-	filterContext, err := ValidateFilter(request.ResourceReferenceKey)
+	filterContext, err := ValidateFilterV1(request.ResourceReferenceKey)
 	if err != nil {
 		return nil, util.Wrap(err, "Validating filter failed.")
 	}
@@ -221,17 +221,56 @@ func (s *ExperimentServer) ListExperimentsV1(ctx context.Context, request *apiv1
 		nil
 }
 
-// Need to add content
 func (s *ExperimentServer) ListExperiments(ctx context.Context, request *apiv2beta1.ListExperimentsRequest) (
 	*apiv2beta1.ListExperimentsResponse, error) {
-	return nil, util.NewInvalidInputError("List Experiments success!")
+	if s.options.CollectMetrics {
+		listExperimentsV1Requests.Inc()
+	}
+
+	opts, err := validatedListOptions(&model.Experiment{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
+
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create list options")
+	}
+
+	filterContext := &common.FilterContext{}
+	if common.IsMultiUserMode() {
+		if request.Namespace == "" {
+			return nil, util.NewInvalidInputError("Invalid ListExperiments request. No namespace provided in multi-user mode.")
+		}
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace: request.Namespace,
+			Verb:      common.RbacResourceVerbList,
+		}
+		err = s.canAccessExperiment(ctx, "", resourceAttributes)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to authorize this namespace with API.")
+		}
+	} else {
+		if request.Namespace != "" {
+			return nil, util.NewInvalidInputError("Invalid ListExperiments request. Namespace should not be provided in single-user mode.")
+		}
+		// In single user mode, apply filter with empty namespace for backward compatibile.
+		filterContext = &common.FilterContext{
+			ReferenceKey: &common.ReferenceKey{Type: common.Namespace, ID: ""},
+		}
+	}
+
+	experiments, total_size, nextPageToken, err := s.resourceManager.ListExperiments(filterContext, opts)
+	if err != nil {
+		return nil, util.Wrap(err, "List experiments failed.")
+	}
+	return &apiv2beta1.ListExperimentsResponse{
+			Experiments:   ToApiExperiments(experiments),
+			TotalSize:     int32(total_size),
+			NextPageToken: nextPageToken},
+		nil
 }
 
 func (s *ExperimentServer) DeleteExperimentV1(ctx context.Context, request *apiv1beta1.DeleteExperimentRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		deleteExperimentRequests.Inc()
 	}
-
 	err := s.canAccessExperiment(ctx, request.Id, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to authorize the request")

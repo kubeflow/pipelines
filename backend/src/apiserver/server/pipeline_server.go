@@ -215,7 +215,7 @@ func (s *PipelineServer) ListPipelinesV1(ctx context.Context, request *api.ListP
 		listPipelineRequests.Inc()
 	}
 
-	filterContext, err := ValidateFilter(request.ResourceReferenceKey)
+	filterContext, err := ValidateFilterV1(request.ResourceReferenceKey)
 	if err != nil {
 		return nil, util.Wrap(err, "Validating filter failed.")
 	}

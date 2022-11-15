@@ -33,7 +33,7 @@ const (
 	maxPageSize     = 200
 )
 
-func ValidateFilter(referenceKey *api.ResourceKey) (*common.FilterContext, error) {
+func ValidateFilterV1(referenceKey *api.ResourceKey) (*common.FilterContext, error) {
 	filterContext := &common.FilterContext{}
 	if referenceKey != nil {
 		refType, err := common.ToModelResourceType(referenceKey.Type)
@@ -44,6 +44,23 @@ func ValidateFilter(referenceKey *api.ResourceKey) (*common.FilterContext, error
 	}
 	return filterContext, nil
 }
+
+/*
+func ValidateExperimentFilter(filterString string, namespace string) (*common.FilterContext, error) {
+	filterContext := &common.FilterContext{}
+	if filterString != nil {
+		filter := filter.Filter{}
+		filter.UnmarshalJSON(filterString)
+		refType, err := common.ToModelResourceType(referenceKey.Type)
+		if err != nil {
+			return nil, util.Wrap(err, "Unrecognized resource reference type.")
+		}
+		filterContext.ReferenceKey = &common.ReferenceKey{Type: refType, ID: referenceKey.Id}
+	}
+
+	return filterContext, nil
+}
+*/
 
 func ValidatePagination(pageToken string, pageSize int, keyFieldName string, queryString string,
 	modelFieldByApiFieldMapping map[string]string) (*common.PaginationContext, error) {

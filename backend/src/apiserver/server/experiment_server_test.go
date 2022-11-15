@@ -466,6 +466,27 @@ func TestListExperimentsV1(t *testing.T) {
 	assert.Equal(t, expectedExperiment, result.Experiments)
 }
 
+func TestListExperiments(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
+	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
+
+	createResult, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	assert.Nil(t, err)
+	result, err := server.ListExperiments(nil, &apiV2beta1.ListExperimentsRequest{})
+	expectedExperiment := []*apiV2beta1.Experiment{{
+		ExperimentId: createResult.ExperimentId,
+		DisplayName:  "ex1",
+		Description:  "first experiment",
+		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+		// TODO(lingqinggan): fix storage state
+		// StorageState: apiV2beta1.Experiment_AVAILABLE,
+	}}
+	assert.Nil(t, err)
+	assert.Equal(t, expectedExperiment, result.Experiments)
+}
+
 func TestListExperimentsV1_Failed(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)

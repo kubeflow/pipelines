@@ -170,7 +170,7 @@ func (s *RunServer) ListRunsV1(ctx context.Context, request *api.ListRunsRequest
 		return nil, util.Wrap(err, "Failed to create list options")
 	}
 
-	filterContext, err := ValidateFilter(request.ResourceReferenceKey)
+	filterContext, err := ValidateFilterV1(request.ResourceReferenceKey)
 	if err != nil {
 		return nil, util.Wrap(err, "Validating filter failed.")
 	}
