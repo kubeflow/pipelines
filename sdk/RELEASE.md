@@ -12,6 +12,22 @@
 ## Bug Fixes and Other Changes
 
 ## Documentation Updates
+# 1.8.15
+## Major Features and Improvements
+* Add ability to skip building image when using `kfp component build` [#8383](https://github.com/kubeflow/pipelines/pull/8383)
+
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+* Fix bug when writing to same file using gcsfuse and distributed training strategy in lightweight/containerized Python components [#8454](https://github.com/kubeflow/pipelines/pull/8454)
+
+## Documentation Updates
 # 1.8.14
 ## Major Features and Improvements
 * Support parallelism setting in ParallelFor [/#8112](https://github.com/kubeflow/pipelines/pull/8112)
