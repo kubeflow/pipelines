@@ -54,6 +54,8 @@ func TestCreateExperiment(t *testing.T) {
 		DisplayName:  "ex1",
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+		// TODO(lingqinggan): StorageState API and backend separation
+		// StorageState: apiV2beta1.Experiment_AVAILABLE,
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -65,6 +67,17 @@ func TestCreateExperimentV1_Failed(t *testing.T) {
 	experiment := &apiV1beta1.Experiment{Name: "ex1", Description: "first experiment"}
 	clientManager.DB().Close()
 	_, err := server.CreateExperimentV1(nil, &apiV1beta1.CreateExperimentRequest{Experiment: experiment})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Create experiment failed.")
+}
+
+func TestCreateExperiment_Failed(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
+	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
+	clientManager.DB().Close()
+	_, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Create experiment failed.")
 }
@@ -90,7 +103,17 @@ func TestCreateExperimentV1_SingleUser_NamespaceNotAllowed(t *testing.T) {
 	assert.Contains(t, err.Error(), "In single-user mode, CreateExperimentRequest shouldn't contain resource references.")
 }
 
-func TestCreateExperiment_Unauthorized(t *testing.T) {
+func TestCreateExperiment_SingleUser_NamespaceNotAllowed(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
+	experiment := &apiV2beta1.Experiment{DisplayName: "exp1", Description: "first experiment", Namespace: "ns1"}
+	_, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "In single-user mode, CreateExperimentRequest shouldn't contain namespace.")
+}
+
+func TestCreateExperimentV1_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
@@ -129,7 +152,42 @@ func TestCreateExperiment_Unauthorized(t *testing.T) {
 	)
 }
 
-func TestCreateExperiment_Multiuser(t *testing.T) {
+func TestCreateExperiment_Unauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clients, resourceManager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
+	defer clients.Close()
+
+	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
+	experiment := &apiV2beta1.Experiment{
+		DisplayName: "exp1",
+		Description: "first experiment",
+		Namespace:   "ns1",
+	}
+
+	_, err := server.CreateExperiment(ctx, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	assert.NotNil(t, err)
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbCreate,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeExperiments,
+		Name:      experiment.DisplayName,
+	}
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzRequestError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes))).Error(),
+	)
+}
+
+func TestCreateExperimentV1_Multiuser(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
@@ -163,7 +221,36 @@ func TestCreateExperiment_Multiuser(t *testing.T) {
 	assert.Equal(t, expectedExperiment, result)
 }
 
-func TestGetExperiment(t *testing.T) {
+func TestCreateExperiment_Multiuser(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
+	experiment := &apiV2beta1.Experiment{
+		DisplayName: "exp1",
+		Description: "first experiment",
+		Namespace:   "ns1",
+	}
+
+	result, err := server.CreateExperiment(ctx, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	assert.Nil(t, err)
+	expectedExperiment := &apiV2beta1.Experiment{
+		ExperimentId: resource.DefaultFakeUUID,
+		DisplayName:  "exp1",
+		Description:  "first experiment",
+		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+		Namespace:    "ns1",
+		// TODO(lingqinggan): StorageState API and backend separation
+		// StorageState: apiV2beta1.Experiment_AVAILABLE,
+	}
+	assert.Equal(t, expectedExperiment, result)
+}
+
+func TestGetExperimentV1(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
@@ -182,6 +269,28 @@ func TestGetExperiment(t *testing.T) {
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
+
+/*
+func TestGetExperiment(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
+	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
+
+	createResult, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	assert.Nil(t, err)
+	result, err := server.GetExperiment(nil, &apiV2beta1.GetExperimentRequest{ExperimentId: createResult.ExperimentId})
+	assert.Nil(t, err)
+	expectedExperiment := &apiV2beta1.Experiment{
+		ExperimentId: createResult.ExperimentId,
+		DisplayName:  "ex1",
+		Description:  "first experiment",
+		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+		StorageState: apiV2beta1.Experiment_AVAILABLE,
+	}
+	assert.Equal(t, expectedExperiment, result)
+}
+*/
 
 func TestGetExperiment_Failed(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
