@@ -148,10 +148,22 @@ func (s *ExperimentServer) GetExperimentV1(ctx context.Context, request *apiv1be
 	return ToApiExperimentV1(experiment), nil
 }
 
-// Need to add content
 func (s *ExperimentServer) GetExperiment(ctx context.Context, request *apiv2beta1.GetExperimentRequest) (
 	*apiv2beta1.Experiment, error) {
-	return nil, util.NewInvalidInputError("Get Experiment v2 success!")
+	if s.options.CollectMetrics {
+		getExperimentRequests.Inc()
+	}
+
+	err := s.canAccessExperiment(ctx, request.ExperimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+
+	experiment, err := s.resourceManager.GetExperiment(request.ExperimentId)
+	if err != nil {
+		return nil, util.Wrap(err, "Get experiment failed.")
+	}
+	return ToApiExperiment(experiment), nil
 }
 
 func (s *ExperimentServer) ListExperimentsV1(ctx context.Context, request *apiv1beta1.ListExperimentsRequest) (
