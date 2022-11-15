@@ -1604,6 +1604,7 @@ def create_pipeline_spec(
 
 
 def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+                                pipeline_description: str,
                                 package_path: str) -> None:
     """Writes PipelineSpec into a YAML or JSON (deprecated) file.
 
@@ -1612,6 +1613,8 @@ def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
         package_path (str): The path to which to write the PipelineSpec.
     """
     json_dict = json_format.MessageToDict(pipeline_spec)
+    yaml_comments = extract_comments_from_pipeline_spec(json_dict,
+                                                        pipeline_description)
 
     if package_path.endswith('.json'):
         warnings.warn(
@@ -1628,6 +1631,82 @@ def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
         with open(package_path, 'w') as yaml_file:
             yaml.dump(json_dict, yaml_file, sort_keys=True)
 
+        with open(package_path, 'r+') as f:
+            old = f.read()
+            f.seek(0)
+            f.write(yaml_comments + old)
+
     else:
         raise ValueError(
             f'The output path {package_path} should end with ".yaml".')
+
+
+def extract_comments_from_pipeline_spec(pipeline_spec: dict[str, Any],
+                                        pipeline_description: str) -> str:
+    map_parameter_types = {
+        'NUMBER_INTEGER': 'int',
+        'NUMBER_DOUBLE': 'float',
+        'STRING': 'str',
+        'BOOLEAN': 'bool',
+        'LIST': 'list',
+        'STRUCT': 'dict'
+    }
+
+    def add_inputs():
+        if 'inputDefinitions' in pipeline_spec['root']:
+            inputs = pipeline_spec['root']['inputDefinitions']
+            string = '# Inputs: \n'
+
+            if 'parameters' in inputs:
+                for parameter in inputs['parameters']:
+                    string += '#    ' + parameter + ': ' + map_parameter_types[
+                        inputs['parameters'][parameter]['parameterType']]
+                    if 'defaultValue' in inputs['parameters'][parameter]:
+                        string += ' [Default: ' + str(
+                            inputs['parameters'][parameter]
+                            ['defaultValue']) + ']'
+
+                    string += '\n'
+
+            if 'artifacts' in inputs:
+                for artifact in inputs['artifacts']:
+                    string += '#    ' + artifact + ': ' + inputs['artifacts'][
+                        artifact]['artifactType']['schemaTitle'] + '\n'
+
+            return string
+        else:
+            return ''
+
+    def add_outputs():
+        if 'outputDefinitions' in pipeline_spec['root']:
+            outputs = pipeline_spec['root']['outputDefinitions']
+            string = '# Outputs: \n'
+
+            if 'parameters' in outputs:
+                for parameter in outputs['parameters']:
+                    string += '#    ' + parameter + ': ' + map_parameter_types[
+                        outputs['parameters'][parameter]['parameterType']]
+                    if 'defaultValue' in outputs['parameters'][parameter]:
+                        string += ' [Default: ' + str(
+                            outputs['parameters'][parameter]
+                            ['defaultValue']) + ']'
+
+                    string += '\n'
+
+            if 'artifacts' in outputs:
+                for artifact in outputs['artifacts']:
+                    string += '#    ' + artifact + ': ' + outputs['artifacts'][
+                        artifact]['artifactType']['schemaTitle'] + '\n'
+
+            return string
+        else:
+            return ''
+
+    comment = '# PIPELINE DEFINITION\n'
+    comment += '# Name: ' + pipeline_spec['pipelineInfo']['name'] + '\n'
+    if pipeline_description:
+        comment += '# Description: ' + pipeline_description + '\n'
+    comment += add_inputs()
+    comment += add_outputs()
+
+    return comment
