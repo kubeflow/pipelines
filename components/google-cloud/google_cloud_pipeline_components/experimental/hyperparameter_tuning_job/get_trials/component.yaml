@@ -1,0 +1,97 @@
+name: Get trials
+description: Retrieves the best trial from the trials.
+inputs:
+- {name: gcp_resources, type: String, description: Proto tracking the hyperparameter
+    tuning job.}
+outputs:
+- {name: Output, type: JsonArray}
+implementation:
+  container:
+    image: python:3.10
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'google-cloud-aiplatform==1.18.3' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
+      -m pip install --quiet --no-warn-script-location 'google-cloud-aiplatform==1.18.3'
+      --user) && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def get_trials(gcp_resources):
+        """Retrieves the best trial from the trials.
+
+        Args:
+            gcp_resources (str): Proto tracking the hyperparameter tuning job.
+
+        Returns:
+            List of strings representing the intermediate JSON representation of the
+            trials from the hyperparameter tuning job.
+        """
+        import json
+        from google.cloud import aiplatform
+        from google.cloud.aiplatform_v1.types import study
+
+        api_endpoint_suffix = '-aiplatform.googleapis.com'
+        gcp_resources_obj = json.loads(gcp_resources)
+        gcp_resources_split = gcp_resources_obj["resources"][0]["resourceUri"].partition(
+            'projects')
+        resource_name = gcp_resources_split[1] + gcp_resources_split[2]
+        prefix_str = gcp_resources_split[0]
+        prefix_str = prefix_str[:prefix_str.find(api_endpoint_suffix)]
+        api_endpoint = prefix_str[(prefix_str.rfind('//') + 2):] + api_endpoint_suffix
+
+        client_options = {'api_endpoint': api_endpoint}
+        job_client = aiplatform.gapic.JobServiceClient(client_options=client_options)
+        response = job_client.get_hyperparameter_tuning_job(name=resource_name)
+
+        return [study.Trial.to_json(trial) for trial in response.trials]
+
+      def _serialize_json(obj) -> str:
+          if isinstance(obj, str):
+              return obj
+          import json
+
+          def default_serializer(obj):
+              if hasattr(obj, 'to_struct'):
+                  return obj.to_struct()
+              else:
+                  raise TypeError(
+                      "Object of type '%s' is not JSON serializable and does not have .to_struct() method."
+                      % obj.__class__.__name__)
+
+          return json.dumps(obj, default=default_serializer, sort_keys=True)
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Get trials', description='Retrieves the best trial from the trials.')
+      _parser.add_argument("--gcp-resources", dest="gcp_resources", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+      _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = get_trials(**_parsed_args)
+
+      _outputs = [_outputs]
+
+      _output_serializers = [
+          _serialize_json,
+
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - --gcp-resources
+    - {inputValue: gcp_resources}
+    - '----output-paths'
+    - {outputPath: Output}

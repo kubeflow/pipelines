@@ -1,0 +1,120 @@
+name: Is metric beyond threshold
+description: Determines if the metric of the best trial beyond the threshold given.
+inputs:
+- name: trial
+  type: String
+  description: |-
+    Required. The intermediate JSON representation of a
+    hyperparameter tuning job trial.
+- name: study_spec_metrics
+  type: JsonArray
+  description: |-
+    Required. List serialized from dictionary
+    representing the metrics to optimize.
+    The dictionary key is the metric_id, which is reported by your training
+    job, and the dictionary value is the optimization goal of the metric
+    ('minimize' or 'maximize'). example:
+    metrics = hyperparameter_tuning_job.serialize_metrics(
+        {'loss': 'minimize', 'accuracy': 'maximize'})
+- {name: threshold, type: Float, description: Required. Threshold to compare metric
+    against.}
+outputs:
+- {name: Output, type: String}
+implementation:
+  container:
+    image: python:3.10
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'google-cloud-aiplatform==1.18.3' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
+      -m pip install --quiet --no-warn-script-location 'google-cloud-aiplatform==1.18.3'
+      --user) && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def is_metric_beyond_threshold(trial, study_spec_metrics,
+                                    threshold):
+        """Determines if the metric of the best trial beyond the threshold given.
+
+        Args:
+            trial (str): Required. The intermediate JSON representation of a
+              hyperparameter tuning job trial.
+            study_spec_metrics (list): Required. List serialized from dictionary
+              representing the metrics to optimize.
+              The dictionary key is the metric_id, which is reported by your training
+              job, and the dictionary value is the optimization goal of the metric
+              ('minimize' or 'maximize'). example:
+              metrics = hyperparameter_tuning_job.serialize_metrics(
+                  {'loss': 'minimize', 'accuracy': 'maximize'})
+            threshold (float): Required. Threshold to compare metric against.
+
+        Returns:
+            "true" if metric is beyond the threshold, otherwise "false"
+
+        Raises:
+            RuntimeError: If there are multiple metrics.
+        """
+        from google.cloud.aiplatform_v1.types import study
+
+        if len(study_spec_metrics) > 1:
+          raise RuntimeError('Unable to determine best parameters for multi-objective'
+                             ' hyperparameter tuning.')
+        trial_proto = study.Trial.from_json(trial)
+        val = trial_proto.final_measurement.metrics[0].value
+        goal = study_spec_metrics[0]['goal']
+
+        is_beyond_threshold = False
+        if goal == study.StudySpec.MetricSpec.GoalType.MAXIMIZE:
+          is_beyond_threshold = val > threshold
+        elif goal == study.StudySpec.MetricSpec.GoalType.MINIMIZE:
+          is_beyond_threshold = val < threshold
+
+        return 'true' if is_beyond_threshold else 'false'
+
+      def _serialize_str(str_value: str) -> str:
+          if not isinstance(str_value, str):
+              raise TypeError('Value "{}" has type "{}" instead of str.'.format(
+                  str(str_value), str(type(str_value))))
+          return str_value
+
+      import json
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Is metric beyond threshold', description='Determines if the metric of the best trial beyond the threshold given.')
+      _parser.add_argument("--trial", dest="trial", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--study-spec-metrics", dest="study_spec_metrics", type=json.loads, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--threshold", dest="threshold", type=float, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+      _parsed_args = vars(_parser.parse_args())
+      _output_files = _parsed_args.pop("_output_paths", [])
+
+      _outputs = is_metric_beyond_threshold(**_parsed_args)
+
+      _outputs = [_outputs]
+
+      _output_serializers = [
+          _serialize_str,
+
+      ]
+
+      import os
+      for idx, output_file in enumerate(_output_files):
+          try:
+              os.makedirs(os.path.dirname(output_file))
+          except OSError:
+              pass
+          with open(output_file, 'w') as f:
+              f.write(_output_serializers[idx](_outputs[idx]))
+    args:
+    - --trial
+    - {inputValue: trial}
+    - --study-spec-metrics
+    - {inputValue: study_spec_metrics}
+    - --threshold
+    - {inputValue: threshold}
+    - '----output-paths'
+    - {outputPath: Output}
