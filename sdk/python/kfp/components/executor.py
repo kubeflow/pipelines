@@ -25,10 +25,7 @@ class Executor():
     """Executor executes v2-based Python function components."""
 
     def __init__(self, executor_input: Dict, function_to_execute: Callable):
-        if hasattr(function_to_execute, 'python_func'):
-            self._func = function_to_execute.python_func
-        else:
-            self._func = function_to_execute
+        self._func = function_to_execute
 
         self._input = executor_input
         self._input_artifacts: Dict[str, artifact_types.Artifact] = {}
