@@ -1202,7 +1202,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         }
     }
     mock_get_requests.side_effect = [mock_get_model_resp, mock_polled_bq_job]
-    self._payload = '{"configuration": {"extract": {}, "labels": {}}}'
+    self._payload = '{"configuration": {"query": {}, "labels": {}}}'
     self._executor_input = '{"outputs":{"artifacts":{"model_destination_path":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
     export_model_remote_runner.bigquery_export_model_job(
@@ -1211,13 +1211,13 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         self._gcp_resources, self._executor_input)
 
     mock_post_requests.assert_called_once_with(
-        data='{"configuration": {"extract": {"sourceModel": {"projectId": "testproject", "datasetId": "testdataset", "modelId": "testmodel"}, "destinationUris": ["gs://testproject/testmodelpah"]}, "labels": {}}, "jobReference": {"location": "US"}}',
+        url='https://www.googleapis.com/bigquery/v2/projects/test_project/jobs',
+        data='{"configuration": {"query": {"query": "EXPORT MODEL `testproject.testdataset.testmodel` OPTIONS(URI=\\"gs://testproject/testmodelpah\\",add_serving_default_signature=True)", "useLegacySql": false}, "labels": {}}, "jobReference": {"location": "US"}}',
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
             'User-Agent': 'google-cloud-pipeline-components'
-        },
-        url='https://www.googleapis.com/bigquery/v2/projects/test_project/jobs')
+        })
 
     with open(self._gcp_resources) as f:
       serialized_gcp_resources = f.read()
@@ -1242,9 +1242,10 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
   @mock.patch.object(requests, 'post', autospec=True)
   @mock.patch.object(requests, 'get', autospec=True)
   @mock.patch.object(time, 'sleep', autospec=True)
-  def test_export_model_job_succeeded_XGBoost(self, mock_time_sleep,
-                                              mock_get_requests,
-                                              mock_post_requests, _, mock_auth):
+  def test_export_model_job_with_add_serving_default(self, mock_time_sleep,
+                                                     mock_get_requests,
+                                                     mock_post_requests, _,
+                                                     mock_auth):
     creds = mock.Mock()
     creds.token = 'fake_token'
     mock_auth.return_value = [creds, 'project']
@@ -1270,7 +1271,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         }
     }
     mock_get_requests.side_effect = [mock_get_model_resp, mock_polled_bq_job]
-    self._payload = '{"configuration": {"extract": {}, "labels": {}}}'
+    self._payload = '{"configuration": {"query": {}, "labels": {}}}'
     self._executor_input = '{"outputs":{"artifacts":{"model_destination_path":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
     export_model_remote_runner.bigquery_export_model_job(
@@ -1279,13 +1280,13 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         self._gcp_resources, self._executor_input)
 
     mock_post_requests.assert_called_once_with(
-        data='{"configuration": {"extract": {"sourceModel": {"projectId": "testproject", "datasetId": "testdataset", "modelId": "testmodel"}, "destinationFormat": "ML_XGBOOST_BOOSTER", "destinationUris": ["gs://testproject/testmodelpah"]}, "labels": {}}, "jobReference": {"location": "US"}}',
+        url='https://www.googleapis.com/bigquery/v2/projects/test_project/jobs',
+        data='{"configuration": {"query": {"query": "EXPORT MODEL `testproject.testdataset.testmodel` OPTIONS(URI=\\"gs://testproject/testmodelpah\\",add_serving_default_signature=True)", "useLegacySql": false}, "labels": {}}, "jobReference": {"location": "US"}}',
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
             'User-Agent': 'google-cloud-pipeline-components'
-        },
-        url='https://www.googleapis.com/bigquery/v2/projects/test_project/jobs')
+        })
 
     with open(self._gcp_resources) as f:
       serialized_gcp_resources = f.read()
@@ -1335,7 +1336,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         }
     }
     mock_get_requests.return_value = mock_polled_bq_job
-    self._payload = '{"configuration": {"extract": {}, "labels": {}}}'
+    self._payload = '{"configuration": {"query": {}, "labels": {}}}'
     self._executor_input = '{"outputs":{"artifacts":{"model_destination_path":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
     export_model_remote_runner.bigquery_export_model_job(
@@ -1477,7 +1478,7 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         }
     }
     mock_get_requests.side_effect = [mock_get_model_resp, mock_polled_bq_job]
-    self._payload = '{"configuration": {"extract": {}, "labels": {}}}'
+    self._payload = '{"configuration": {"query": {}, "labels": {}}}'
     self._executor_input = '{"outputs":{"artifacts":{"model_destination_path":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQMLModel"}}]}},"outputFile":"' + self._output_file_path + '"}}'
 
     export_model_remote_runner.bigquery_export_model_job(
