@@ -522,13 +522,16 @@ export default class Buttons {
   ): void {
     this._dialogActionHandler(
       ids,
-      'Do you want to terminate this run? This action cannot be undone. This will terminate any' +
-        ' running pods, but they will not be deleted.',
+      'Do you want to terminate this run? This action cannot be undone. KNOWN ISSUE(AIP-6621): This will NOT end or terminate any' +
+        ' running pods. Please KNOWN ISSUE for instructions to terminate running pods or for more details.',
       useCurrentResource,
       id => Apis.runServiceApi.terminateRun(id),
       callback,
       'Terminate',
       'run',
+      'KNOWN ISSUE(AIP-6621)',
+      'https://analytics.pages.zgtools.net/artificial-intelligence/ai-platform/aip-docs/kubeflow/internal/runbooks/components/batch.html#kfp-ui-terminate-button-fails-to-terminate-running-pipeline'
+
     );
   }
 
@@ -556,6 +559,8 @@ export default class Buttons {
     callback: (selectedIds: string[], success: boolean) => void,
     actionName: string,
     resourceName: string,
+    known_issue_text: string = '',
+    known_issue_link: string = ''
   ): void {
     const dialogClosedHandler = (confirmed: boolean) =>
       this._dialogClosed(
@@ -568,8 +573,7 @@ export default class Buttons {
         callback,
       );
 
-    this._props.updateDialog({
-      buttons: [
+    let buttons = [
         {
           onClick: async () => await dialogClosedHandler(false),
           text: 'Cancel',
@@ -578,7 +582,21 @@ export default class Buttons {
           onClick: async () => await dialogClosedHandler(true),
           text: actionName,
         },
-      ],
+    ]
+    
+    if (known_issue_link != "")
+    {
+      buttons.push(
+        {
+          onClick: async () => new Promise(() => window.open(known_issue_link)),
+          text: known_issue_text,
+        }
+      )
+
+    }
+
+    this._props.updateDialog({
+      buttons: buttons,
       content,
       onClose: async () => await dialogClosedHandler(false),
       title: `${actionName} ${useCurrentResource ? 'this' : selectedIds.length} ${resourceName}${
