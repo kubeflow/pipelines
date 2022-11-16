@@ -38,14 +38,22 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
 
   def setUp(self):
     super(BatchPredictionJobRemoteRunnerUtilsTests, self).setUp()
-    self._payload = (
-        '{"batchPredictionJob": {"displayName": '
-        '"BatchPredictionComponentName", "model": '
-        '"projects/test/locations/test/models/test-model","inputConfig":'
-        ' {"instancesFormat": "CSV","gcsSource": {"uris": '
-        '["test_gcs_source"]}}, "outputConfig": {"predictionsFormat": '
-        '"CSV", "gcsDestination": {"outputUriPrefix": '
-        '"test_gcs_destination"}}}}')
+    self._payload = json.dumps({
+        'displayName': 'BatchPredictionComponentName',
+        'model': 'projects/test/locations/test/models/test-model',
+        'inputConfig': {
+            'instancesFormat': 'CSV',
+            'gcsSource': {
+                'uris': ['test_gcs_source']
+            }
+        },
+        'outputConfig': {
+            'predictionsFormat': 'CSV',
+            'gcsDestination': {
+                'outputUriPrefix': 'test_gcs_destination'
+            }
+        }
+    })
     self._job_type = 'BatchPredictionJob'
     self._project = 'test_project'
     self._location = 'test_region'
