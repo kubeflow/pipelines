@@ -251,13 +251,13 @@ class Executor():
                     'Unknown return type: {}. Must be one of `str`, `int`, `float`, a'
                     ' subclass of `Artifact`, or a NamedTuple collection of these types.'
                     .format(self._return_annotation))
-
         import os
-        os.makedirs(
-            os.path.dirname(self._input['outputs']['outputFile']),
-            exist_ok=True)
-        with open(self._input['outputs']['outputFile'], 'w') as f:
-            f.write(json.dumps(self._executor_output))
+        executor_output_path = self._input['outputs']['outputFile']
+        # This check is to reduce the likelihood that two or more workers (in a distributed training/compute strategy) attempt to write to the same executor output file at the same time using gcsfuse. Do not remove until fixed by gcsfuse.
+        if not os.path.exists(executor_output_path):
+            os.makedirs(os.path.dirname(executor_output_path), exist_ok=True)
+            with open(executor_output_path, 'w') as f:
+                f.write(json.dumps(self._executor_output))
 
     def execute(self):
         annotations = inspect.getfullargspec(self._func).annotations
