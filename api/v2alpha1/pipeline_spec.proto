@@ -176,6 +176,10 @@ message ComponentInputsSpec {
   // Definition of an artifact input.
   message ArtifactSpec {
     ArtifactTypeSchema artifact_type = 1;
+    
+    // Indicates whether input is a single artifact or list of artifacts to
+    // enable KFP SDK compiler type checking for components loaded from IR
+    bool is_list_of_artifacts = 2;
   }
   // Definition of a parameter input.
   message ParameterSpec {
@@ -218,6 +222,10 @@ message ComponentOutputsSpec {
         [deprecated = true];
     // Properties of the Artifact.
     google.protobuf.Struct metadata = 4;
+    
+    // Indicates whether output is a single artifact or list of artifacts to
+    // enable KFP SDK compiler type checking for components loaded from IR
+    bool is_list_of_artifacts = 5;
   }
   // Definition of a parameter output.
   message ParameterSpec {
