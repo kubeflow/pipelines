@@ -19,8 +19,7 @@ from kfp.v2 import dsl
 
 @dsl.component(
     packages_to_install=[
-        'google-cloud-aiplatform', 'google-cloud-pipeline-components',
-        'protobuf'
+        'google-cloud-aiplatform',
     ],
     base_image='python:3.7')
 def GetTrialsOp(gcp_resources: str) -> list:
@@ -33,14 +32,13 @@ def GetTrialsOp(gcp_resources: str) -> list:
       List of strings representing the intermediate JSON representation of the
       trials from the hyperparameter tuning job.
   """
+  import json
   from google.cloud import aiplatform
-  from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
-  from google.protobuf.json_format import Parse
   from google.cloud.aiplatform_v1.types import study
 
   api_endpoint_suffix = '-aiplatform.googleapis.com'
-  gcp_resources_proto = Parse(gcp_resources, GcpResources())
-  gcp_resources_split = gcp_resources_proto.resources[0].resource_uri.partition(
+  gcp_resources_obj = json.loads(gcp_resources)
+  gcp_resources_split = gcp_resources_obj["resources"][0]["resourceUri"].partition(
       'projects')
   resource_name = gcp_resources_split[1] + gcp_resources_split[2]
   prefix_str = gcp_resources_split[0]
