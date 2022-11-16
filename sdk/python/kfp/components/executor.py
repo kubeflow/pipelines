@@ -33,20 +33,20 @@ class Executor():
 
         for name, artifacts in self._input.get('inputs',
                                                {}).get('artifacts', {}).items():
-            artifacts_list = artifacts.get('artifacts')
-            if artifacts_list:
+            list_of_artifact_proto_structs = artifacts.get('artifacts')
+            if list_of_artifact_proto_structs:
                 self._input_artifacts[name] = self.make_artifact(
-                    artifacts_list[0],
+                    list_of_artifact_proto_structs[0],
                     name,
                     self._func,
                 )
 
         for name, artifacts in self._input.get('outputs',
                                                {}).get('artifacts', {}).items():
-            artifacts_list = artifacts.get('artifacts')
-            if artifacts_list:
+            list_of_artifact_proto_structs = artifacts.get('artifacts')
+            if list_of_artifact_proto_structs:
                 output_artifact = self.make_artifact(
-                    artifacts_list[0],
+                    list_of_artifact_proto_structs[0],
                     name,
                     self._func,
                 )
