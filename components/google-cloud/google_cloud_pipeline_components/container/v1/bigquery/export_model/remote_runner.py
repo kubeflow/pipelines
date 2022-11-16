@@ -67,7 +67,7 @@ def bigquery_export_model_job(
 
 
   Args:
-      type: BigQuery model prediction job type.
+      type: BigQuery export model job type.
       project: Project to run BigQuery model export job.
       location: Location of the job to export the BigQuery model. If not set,
         default to `US` multi-region. For more details, see
@@ -105,24 +105,14 @@ def bigquery_export_model_job(
 
     job_request_json = json.loads(payload, strict=False)
 
-    job_request_json['configuration']['extract'][
-        'sourceModel'] = model_reference
-
-    if model['modelType'].startswith('BOOSTED_TREE'):
-      # Default format is ML_TF_SAVED_MODEL.
-      job_request_json['configuration']['extract'][
-          'destinationFormat'] = 'ML_XGBOOST_BOOSTER'
-
-    job_request_json['configuration']['extract']['destinationUris'] = [
-        model_destination_path
-    ]
-
+    job_request_json['configuration']['query'][
+        'query'] = f'EXPORT MODEL {bigquery_util.back_quoted_if_needed(model_name)} OPTIONS(URI="{model_destination_path}",add_serving_default_signature={True})'
+    job_request_json['configuration']['query']['useLegacySql'] = False
     job_uri = bigquery_util.create_job(project, location, job_request_json,
                                        creds, gcp_resources)
 
   # Poll bigquery job status until finished.
   job = bigquery_util.poll_job(job_uri, creds)
 
-  # write destination_table output parameter
   with open(exported_model_path, 'w') as f:
-    f.write(job['configuration']['extract']['destinationUris'][0])
+    f.write(model_destination_path)
