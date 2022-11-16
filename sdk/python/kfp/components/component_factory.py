@@ -17,7 +17,7 @@ import itertools
 import pathlib
 import re
 import textwrap
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, Type, Union
 import warnings
 
 import docstring_parser
@@ -28,6 +28,7 @@ from kfp.components import python_component
 from kfp.components import structures
 from kfp.components.container_component_artifact_channel import \
     ContainerComponentArtifactChannel
+from kfp.components.types import artifact_types
 from kfp.components.types import custom_artifact_types
 from kfp.components.types import type_annotations
 from kfp.components.types import type_utils
@@ -143,6 +144,17 @@ def _maybe_make_unique(name: str, names: List[str]):
     raise RuntimeError('Too many arguments with the name {}'.format(name))
 
 
+def is_list_of_artifacts(
+    type_var: Union[Type[List[artifact_types.Artifact]],
+                    Type[artifact_types.Artifact]]
+) -> bool:
+    # the type annotation for this function's `type_var` parameter may not actually be a subclass of the KFP SDK's Artifact class for custom artifact types
+    return hasattr(
+        type_var, '__origin__'
+    ) and type_var.__origin__ == list and type_annotations.is_artifact_class(
+        type_var.__args__[0])
+
+
 def extract_component_interface(
         func: Callable,
         containerized: bool = False) -> structures.ComponentSpec:
@@ -170,14 +182,16 @@ def extract_component_interface(
             passing_style = type_annotations.get_io_artifact_annotation(
                 parameter_type)
 
-            # parameter_type is type_annotations.Artifact or one of its subclasses.
+            # parameter_type is a type like typing_extensions.Annotated[kfp.components.types.artifact_types.Artifact, <class 'kfp.components.types.type_annotations.OutputAnnotation'>] OR typing_extensions.Annotated[typing.List[kfp.components.types.artifact_types.Artifact], <class 'kfp.components.types.type_annotations.OutputAnnotation'>]
+
+            is_artifact_list = is_list_of_artifacts(parameter_type.__origin__)
+
             parameter_type = type_annotations.get_io_artifact_class(
                 parameter_type)
             if not type_annotations.is_artifact_class(parameter_type):
                 raise ValueError(
-                    'Input[T] and Output[T] are only supported when T is a '
-                    'subclass of Artifact. Found `{} with type {}`'.format(
-                        io_name, parameter_type))
+                    'Input[T] and Output[T] are only supported when T is an artifact or list of artifacts. Found `{} with type {}`'
+                    .format(io_name, parameter_type))
 
             if parameter.default is not inspect.Parameter.empty:
                 raise ValueError(
@@ -212,7 +226,8 @@ def extract_component_interface(
                 schema_version = parameter_type.schema_version
                 output_spec = structures.OutputSpec(
                     type=type_utils.create_bundled_artifact_type(
-                        type_struct, schema_version))
+                        type_struct, schema_version),
+                    is_artifact_list=is_artifact_list)
             else:
                 output_spec = structures.OutputSpec(type=type_struct)
             outputs[io_name] = output_spec
@@ -223,7 +238,9 @@ def extract_component_interface(
                 schema_version = parameter_type.schema_version
                 input_spec = structures.InputSpec(
                     type=type_utils.create_bundled_artifact_type(
-                        type_struct, schema_version))
+                        type_struct, schema_version),
+                    is_artifact_list=is_artifact_list,
+                )
             else:
                 if parameter.default is not inspect.Parameter.empty:
                     input_spec = structures.InputSpec(
@@ -248,14 +265,18 @@ def extract_component_interface(
             for field_name in return_ann._fields:
                 output_name = _maybe_make_unique(field_name, output_names)
                 output_names.add(output_name)
-                annotation = field_annotations.get(field_name)
-                if type_annotations.is_artifact_class(annotation):
+                type_var = field_annotations.get(field_name)
+                if is_list_of_artifacts(type_var):
+                    raise ValueError(
+                        f'Cannot use output lists of artifacts in NamedTuple return annotations. Got output list of artifacts annotation for NamedTuple field `{field_name}`.'
+                    )
+                elif type_annotations.is_artifact_class(type_var):
                     output_spec = structures.OutputSpec(
                         type=type_utils.create_bundled_artifact_type(
-                            annotation.schema_title, annotation.schema_version))
+                            type_var.schema_title, type_var.schema_version))
                 else:
                     type_struct = type_utils._annotation_to_type_struct(
-                        annotation)
+                        type_var)
                     output_spec = structures.OutputSpec(type=type_struct)
                 outputs[output_name] = output_spec
         # Deprecated dict-based way of declaring multiple outputs. Was only used by
@@ -278,10 +299,17 @@ def extract_component_interface(
             #   `def func(output_path: OutputPath()) -> str: ...`
             output_names.add(output_name)
             return_ann = signature.return_annotation
-            if type_annotations.is_artifact_class(signature.return_annotation):
+            if is_list_of_artifacts(return_ann):
+                artifact_cls = return_ann.__args__[0]
                 output_spec = structures.OutputSpec(
                     type=type_utils.create_bundled_artifact_type(
-                        return_ann.schema_title, return_ann.schema_version))
+                        artifact_cls.schema_title, artifact_cls.schema_version),
+                    is_artifact_list=True)
+            elif type_annotations.is_artifact_class(return_ann):
+                output_spec = structures.OutputSpec(
+                    type=type_utils.create_bundled_artifact_type(
+                        return_ann.schema_title, return_ann.schema_version),
+                    is_artifact_list=False)
             else:
                 type_struct = type_utils._annotation_to_type_struct(return_ann)
                 output_spec = structures.OutputSpec(type=type_struct)
