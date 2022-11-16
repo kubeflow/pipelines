@@ -17,8 +17,9 @@ These are only compatible with v2 Pipelines.
 """
 
 import re
-from typing import Type, TypeVar, Union
+from typing import List, Type, TypeVar, Union
 
+from kfp.components.types import artifact_types
 from kfp.components.types import type_annotations
 from kfp.components.types import type_utils
 
@@ -228,3 +229,14 @@ def is_artifact_class(artifact_class_or_instance: Type) -> bool:
     # we do not yet support non-pre-registered custom artifact types with instance_schema attribute
     return hasattr(artifact_class_or_instance, 'schema_title') and hasattr(
         artifact_class_or_instance, 'schema_version')
+
+
+def is_list_of_artifacts(
+    type_var: Union[Type[List[artifact_types.Artifact]],
+                    Type[artifact_types.Artifact]]
+) -> bool:
+    # the type annotation for this function's `type_var` parameter may not actually be a subclass of the KFP SDK's Artifact class for custom artifact types
+    return hasattr(
+        type_var, '__origin__'
+    ) and type_var.__origin__ == list and type_annotations.is_artifact_class(
+        type_var.__args__[0])
