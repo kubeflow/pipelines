@@ -1,4 +1,4 @@
-# Current Version 1.0.27.dev (Still in Development)
+# Release 1.0.27
 * Add DataprocBatch resource to gcp_resources output parameter
 * Support serving default in bq export model job op
 
