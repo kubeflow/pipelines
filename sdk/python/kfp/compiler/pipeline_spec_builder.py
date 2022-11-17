@@ -1641,7 +1641,7 @@ def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
             f'The output path {package_path} should end with ".yaml".')
 
 
-def extract_comments_from_pipeline_spec(pipeline_spec: dict[str, Any],
+def extract_comments_from_pipeline_spec(pipeline_spec: dict,
                                         pipeline_description: str) -> str:
     map_parameter_types = {
         'NUMBER_INTEGER': 'int',

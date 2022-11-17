@@ -1638,7 +1638,7 @@ class TestYamlComments(unittest.TestCase):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path=pipeline_spec_path)
 
-            pattern_sample = '# PIPELINE DEFINITION\n# Name: my-pipeline\n# Description: This is a definition of this pipeline\n# Inputs: \n#    sample_input1: bool [Default: True]\n#    sample_input2: str [Default: string]\n# Outputs: \n#    Output: str'
+            pattern_sample = '# PIPELINE DEFINITION\n# Name: my-pipeline\n# Description: This is a definition of this pipeline.\n# Inputs: \n#    sample_input1: bool [Default: True]\n#    sample_input2: str [Default: string]\n# Outputs: \n#    Output: str'
 
             # test name is in comments
             with open(pipeline_spec_path, 'r+') as f:
