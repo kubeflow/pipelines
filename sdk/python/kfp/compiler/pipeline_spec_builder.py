@@ -1670,8 +1670,12 @@ def extract_comments_from_pipeline_spec(pipeline_spec: dict[str, Any],
 
             if 'artifacts' in inputs:
                 for artifact in inputs['artifacts']:
-                    string += '#    ' + artifact + ': ' + inputs['artifacts'][
-                        artifact]['artifactType']['schemaTitle'] + '\n'
+                    if 'schemaTitle' in inputs['artifacts'][artifact][
+                            'artifactType']:
+                        string += '#    ' + artifact + ': ' + inputs[
+                            'artifacts'][artifact]['artifactType'][
+                                'schemaTitle'] + '\n'
+                    #TODO: Add exception tp raise if schematitle doesnt exist
 
             return string
         else:
@@ -1695,12 +1699,20 @@ def extract_comments_from_pipeline_spec(pipeline_spec: dict[str, Any],
 
             if 'artifacts' in outputs:
                 for artifact in outputs['artifacts']:
-                    string += '#    ' + artifact + ': ' + outputs['artifacts'][
-                        artifact]['artifactType']['schemaTitle'] + '\n'
+                    if 'schemaTitle' in outputs['artifacts'][artifact][
+                            'artifactType']:
+                        string += '#    ' + artifact + ': ' + outputs[
+                            'artifacts'][artifact]['artifactType'][
+                                'schemaTitle'] + '\n'
+
+                    #TODO: Add exception tp raise if schematitle doesnt exist
 
             return string
         else:
             return ''
+
+    if 'root' not in pipeline_spec:
+        return ''
 
     comment = '# PIPELINE DEFINITION\n'
     comment += '# Name: ' + pipeline_spec['pipelineInfo']['name'] + '\n'

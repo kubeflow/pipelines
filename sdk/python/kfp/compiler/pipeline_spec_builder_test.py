@@ -271,7 +271,7 @@ class TestWriteIrToFile(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             temp_filepath = os.path.join(tempdir, 'output.yaml')
             pipeline_spec_builder.write_pipeline_spec_to_file(
-                self.pipeline_spec, temp_filepath)
+                self.pipeline_spec, None, temp_filepath)
             actual = pipeline_spec_from_file(temp_filepath)
         self.assertEqual(actual, self.pipeline_spec)
 
@@ -279,7 +279,7 @@ class TestWriteIrToFile(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             temp_filepath = os.path.join(tempdir, 'output.yml')
             pipeline_spec_builder.write_pipeline_spec_to_file(
-                self.pipeline_spec, temp_filepath)
+                self.pipeline_spec, None, temp_filepath)
             actual = pipeline_spec_from_file(temp_filepath)
         self.assertEqual(actual, self.pipeline_spec)
 
@@ -288,7 +288,7 @@ class TestWriteIrToFile(unittest.TestCase):
                 DeprecationWarning, r'Compiling to JSON is deprecated'):
             temp_filepath = os.path.join(tempdir, 'output.json')
             pipeline_spec_builder.write_pipeline_spec_to_file(
-                self.pipeline_spec, temp_filepath)
+                self.pipeline_spec, None, temp_filepath)
             actual = pipeline_spec_from_file(temp_filepath)
         self.assertEqual(actual, self.pipeline_spec)
 
@@ -297,7 +297,7 @@ class TestWriteIrToFile(unittest.TestCase):
                 ValueError, r'should end with "\.yaml"\.'):
             temp_filepath = os.path.join(tempdir, 'output.txt')
             pipeline_spec_builder.write_pipeline_spec_to_file(
-                self.pipeline_spec, temp_filepath)
+                self.pipeline_spec, None, temp_filepath)
 
 
 if __name__ == '__main__':

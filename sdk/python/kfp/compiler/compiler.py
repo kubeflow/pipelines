@@ -78,7 +78,13 @@ class Compiler:
                 pipeline_parameters=pipeline_parameters,
             )
 
+            if hasattr(pipeline_func, 'description'):
+                description = pipeline_func.description or None
+
+            else:
+                description = None
+
             builder.write_pipeline_spec_to_file(
                 pipeline_spec=pipeline_spec,
-                pipeline_description=pipeline_func.description,
+                pipeline_description=description,
                 package_path=package_path)
