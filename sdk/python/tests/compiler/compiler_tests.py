@@ -549,11 +549,16 @@ class TestCompiler(parameterized.TestCase):
         self.assertEqual(template['retryStrategy']['backoff']['maxDuration'],
                          backoff_max_duration)
 
-    def test_py_runtime_memory_request(self):
-        """Test memory request."""
+    def test_py_runtime_memory_cpu_storage_request(self):
+        """Test memory, cpu and ephemeral storage request."""
 
-        def my_pipeline(memory: str, cpu: str):
-            some_op().set_cpu_request(memory)
+        def my_pipeline(memory: str, cpu: str, storage: str):
+            (
+                some_op()
+                .set_cpu_request(cpu)
+                .set_memory_request(memory)
+                .set_ephemeral_storage_request(storage)
+            )
 
         workflow = kfp.compiler.Compiler()._create_workflow(my_pipeline)
         name_to_template = {
@@ -566,7 +571,7 @@ class TestCompiler(parameterized.TestCase):
 
         self.assertEqual(
             template['podSpecPatch'],
-            '{"containers": [{"name": "main", "resources": {"requests": {"cpu": "{{inputs.parameters.memory}}"}}}]}'
+            '{"containers": [{"name": "main", "resources": {"requests": {"cpu": "{{inputs.parameters.cpu}}", "memory": "{{inputs.parameters.memory}}", "ephemeral-storage": "{{inputs.parameters.storage}}"}}}]}'
         )
 
     def test_py_runtime_gpu_request(self):
