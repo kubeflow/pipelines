@@ -327,7 +327,7 @@ func ValidateCreateExperimentRequest(request *apiv2beta1.CreateExperimentRequest
 		return util.NewInvalidInputError("Experiment display name is empty. Please specify a valid experiment name.")
 	}
 	if common.IsMultiUserMode() && request.Experiment.Namespace == "" {
-		return util.NewInvalidInputError("Experiment namespace is empty. Please specify a valid namespace.")
+		return util.NewInvalidInputError("In multi-user mode, experiment namespace is empty. Please specify a valid namespace.")
 	} else if !common.IsMultiUserMode() && request.Experiment.Namespace != "" {
 		return util.NewInvalidInputError("In single-user mode, CreateExperimentRequest shouldn't contain namespace.")
 	}

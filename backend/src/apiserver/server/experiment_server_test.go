@@ -968,6 +968,51 @@ func TestValidateCreateExperimentRequestV1_Multiuser(t *testing.T) {
 	}
 }
 
+func TestValidateCreateExperimentRequest_Multiuser(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	tests := []struct {
+		name         string
+		experiment   *apiV2beta1.Experiment
+		wantError    bool
+		errorMessage string
+	}{
+		{
+			"Valid",
+			&apiV2beta1.Experiment{
+				DisplayName: "exp1",
+				Description: "first experiment",
+				Namespace:   "ns1",
+			},
+			false,
+			"",
+		},
+		{
+			"Missing namespace",
+			&apiV2beta1.Experiment{
+				DisplayName: "exp1",
+				Description: "first experiment",
+			},
+			true,
+			"In multi-user mode, experiment namespace is empty. Please specify a valid namespace.",
+		},
+	}
+
+	for _, tc := range tests {
+		err := ValidateCreateExperimentRequest(&apiV2beta1.CreateExperimentRequest{Experiment: tc.experiment})
+		if !tc.wantError && err != nil {
+			t.Errorf("TestValidateCreateExperimentRequest(%v) expect no error but got %v", tc.name, err)
+		}
+		if tc.wantError {
+			if err == nil {
+				t.Errorf("TestValidateCreateExperimentRequest(%v) expect error but got nil", tc.name)
+			} else if !strings.Contains(err.Error(), tc.errorMessage) {
+				t.Errorf("TestValidateCreateExperimentRequest(%v) expect error containing: %v, but got: %v", tc.name, tc.errorMessage, err)
+			}
+		}
+	}
+}
+
 func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	// Create experiment and runs/jobs under it.
 	clients, manager, experiment := initWithExperimentAndPipelineVersion(t)
