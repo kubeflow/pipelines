@@ -23,7 +23,7 @@ import {
   Position,
 } from 'react-flow-renderer';
 import ArtifactNode from 'src/components/graph/ArtifactNode';
-import { FlowElementDataBase } from 'src/components/graph/Constants';
+import { ArtifactFlowElementData, FlowElementDataBase } from 'src/components/graph/Constants';
 import ExecutionNode from 'src/components/graph/ExecutionNode';
 import SubDagNode from 'src/components/graph/SubDagNode';
 import { ComponentSpec, PipelineSpec, PipelineTaskSpec } from 'src/generated/pipeline_spec';
@@ -207,6 +207,7 @@ function addArtifactNodes(
     if (!outputDefinitions) {
       continue;
     }
+    const dagOutputArtifacts = componentSpec.dag?.outputs?.artifacts || {};
     const artifacts = outputDefinitions.artifacts;
     for (let artifactKey in artifacts) {
       const node: Node<FlowElementDataBase> = {
@@ -215,6 +216,17 @@ function addArtifactNodes(
         position: { x: 300, y: 200 },
         type: NodeTypeNames.ARTIFACT,
       };
+      if (artifactKey in dagOutputArtifacts) {
+        // SubDAG output artifact has reference to the inner task and artifact.
+        const artifactSelectors = dagOutputArtifacts[artifactKey].artifactSelectors;
+        if (artifactSelectors.length === 1) {
+          const subtaskArtifact = artifactSelectors[0];
+          (node.data as ArtifactFlowElementData).producerSubtask = subtaskArtifact.producerSubtask;
+          (node.data as ArtifactFlowElementData).outputArtifactKey =
+            subtaskArtifact.outputArtifactKey;
+          node.data!.label = subtaskArtifact.outputArtifactKey || node.data!.label;
+        }
+      }
       flowGraph.push(node);
     }
   }

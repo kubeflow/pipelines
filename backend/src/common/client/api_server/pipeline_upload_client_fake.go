@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/go-openapi/strfmt"
-	params "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	model "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_model"
+	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_model"
 )
 
 const (

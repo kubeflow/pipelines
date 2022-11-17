@@ -5,9 +5,9 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
-	apiclient "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client"
-	params "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client/job_service"
-	model "github.com/kubeflow/pipelines/backend/api/go_http_client/job_model"
+	apiclient "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_client"
+	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_client/job_service"
+	model "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"golang.org/x/net/context"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"

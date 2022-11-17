@@ -40,6 +40,8 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
     self._batch_id = 'test-batch-id'
     self._creds_token = 'fake-token'
     self._operation_id = 'fake-operation-id'
+    self._operation_name = f'projects/{self._project}/regions/{self._location}/operations/{self._operation_id}'
+    self._operation_uri = f'{self._dataproc_uri_prefix}/{self._operation_name}'
     self._batch_name = f'projects/{self._project}/locations/{self._location}/batches/{self._batch_id}'
     self._batch_uri = f'{self._dataproc_uri_prefix}/{self._batch_name}'
     self._gcp_resources = os.path.join(
@@ -87,14 +89,21 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
   def _validate_gcp_resources_succeeded(self):
     with open(self._gcp_resources) as f:
       serialized_gcp_resources = f.read()
-      # Instantiate GCPResources Proto
-      operations = json_format.Parse(serialized_gcp_resources,
-                                          gcp_resources_pb2.GcpResources())
-      self.assertLen(operations.resources, 1)
-      self.assertEqual(
-          operations.resources[0].resource_uri,
-          f'{self._dataproc_uri_prefix}/projects/{self._project}/regions/{self._location}/operations/{self._operation_id}'
-      )
+      job_resources = json_format.Parse(serialized_gcp_resources,
+                                        gcp_resources_pb2.GcpResources())
+
+      # Validate number of resources.
+      self.assertLen(job_resources.resources, 2)
+
+      # Validate that gcp_resources contains valid DataprocLro and DataprocBatch resources.
+      test_job_resources = gcp_resources_pb2.GcpResources()
+      operation_resource = test_job_resources.resources.add()
+      operation_resource.resource_type = 'DataprocLro'
+      operation_resource.resource_uri = self._operation_uri
+      batch_resource = test_job_resources.resources.add()
+      batch_resource.resource_type = 'DataprocBatch'
+      batch_resource.resource_uri = self._batch_uri
+      self.assertEqual(job_resources, test_job_resources)
 
   @mock.patch.object(google.auth, 'default', autospec=True)
   @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
@@ -105,7 +114,18 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
                                                                      mock_auth_default):
     with open(self._gcp_resources, 'w') as f:
       f.write(
-          f'{{"resources": [{{"resourceType": "DataprocLro", "resourceUri": "{self._dataproc_uri_prefix}/projects/{self._project}/regions/{self._location}/operations/{self._operation_id}"}}]}}'
+          json.dumps({
+              'resources': [
+                  {
+                      'resource_type': 'DataprocLro',
+                      'resource_uri': self._operation_uri
+                  },
+                  {
+                      'resource_type': 'DataprocBatch',
+                      'resource_uri': self._batch_uri
+                  }
+              ]
+          })
       )
 
     mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
@@ -114,10 +134,10 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
 
     mock_polled_lro = mock.Mock(spec=requests.models.Response)
     mock_polled_lro.json.return_value = {
-        'name': f'projects/{self._project}/regions/{self._location}/operations/{self._operation_id}',
+        'name': self._operation_name,
         'done': True,
         'response': {
-            'name': f'projects/{self._project}/locations/{self._location}/batches/{self._batch_id}',
+            'name': self._batch_name,
             'state': 'SUCCEEDED'
         }
     }
@@ -134,7 +154,7 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
 
     mock_get_requests.assert_called_once_with(
         self=mock.ANY,
-        url=f'{self._dataproc_uri_prefix}/projects/{self._project}/regions/{self._location}/operations/{self._operation_id}',
+        url=self._operation_uri,
         headers={'Authorization': f'Bearer {self._creds_token}'}
     )
 
@@ -146,7 +166,18 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
                                                                   mock_auth_default):
     with open(self._gcp_resources, 'w') as f:
       f.write(
-          f'{{"resources": [{{"resourceType": "DataprocLro", "resourceUri": "{self._dataproc_uri_prefix}/projects/{self._project}/regions/{self._location}/operations/{self._operation_id}"}}]}}'
+          json.dumps({
+              'resources': [
+                  {
+                      'resourceType': 'DataprocLro',
+                      'resourceUri': self._operation_uri
+                  },
+                  {
+                      'resourceType': 'DataprocBatch',
+                      'resourceUri': self._batch_uri
+                  }
+              ]
+          })
       )
 
     mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
@@ -155,7 +186,7 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
 
     mock_polled_lro = mock.Mock(spec=requests.models.Response)
     mock_polled_lro.json.return_value = {
-        'name': f'projects/{self._project}/regions/{self._location}/operations/{self._operation_id}',
+        'name': self._operation_name,
         'done': True,
         'error': {
             'code': 10
@@ -175,7 +206,7 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
 
     mock_get_requests.assert_called_once_with(
         self=mock.ANY,
-        url=f'{self._dataproc_uri_prefix}/projects/{self._project}/regions/{self._location}/operations/{self._operation_id}',
+        url=self._operation_uri,
         headers={'Authorization': f'Bearer {self._creds_token}'}
     )
 
@@ -188,7 +219,18 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
                                                                      mock_auth_default):
     with open(self._gcp_resources, 'w') as f:
       f.write(
-          f'{{"resources": [{{"resourceType": "DataprocLro", "resourceUri": "{self._dataproc_uri_prefix}/projects/{self._project}/regions/{self._location}/operations/{self._operation_id}"}}]}}'
+          json.dumps({
+              'resources': [
+                  {
+                      'resourceType': 'DataprocLro',
+                      'resourceUri': self._operation_uri
+                  },
+                  {
+                      'resourceType': 'DataprocBatch',
+                      'resourceUri': self._batch_uri
+                  }
+              ]
+          })
       )
 
     mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
@@ -223,7 +265,7 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
 
     mock_get_requests.assert_called_once_with(
         self=mock.ANY,
-        url=f'{self._dataproc_uri_prefix}/projects/{self._project}/regions/{self._location}/operations/{self._operation_id}',
+        url=self._operation_uri,
         headers={'Authorization': f'Bearer {self._creds_token}'}
     )
 
@@ -231,7 +273,18 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
   def test_dataproc_batch_remote_runner_operation_exists_wrong_format(self, mock_auth_default):
     with open(self._gcp_resources, 'w') as f:
       f.write(
-          f'{{"resources": [{{"resourceType": "DataprocLro", "resourceUri": "{self._dataproc_uri_prefix}/v1/projects/test-project/regions/test-location/operations"}}]}}'
+          json.dumps({
+              'resources': [
+                  {
+                      'resourceType': 'DataprocLro',
+                      'resourceUri': f'{self._dataproc_uri_prefix}/v1/projects/test-project/regions/test-location/operations'
+                  },
+                  {
+                      'resourceType': 'DataprocBatch',
+                      'resourceUri': self._batch_uri
+                  }
+              ]
+          })
       )
 
     mock_creds = mock.Mock(spec=google.auth.credentials.Credentials)
@@ -249,13 +302,13 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
       )
 
   @mock.patch.object(google.auth, 'default', autospec=True)
-  def test_dataproc_batch_remote_runner_exception_with_more_than_one_resource_in_gcp_resources(self, mock_auth_default):
+  def test_dataproc_batch_remote_runner_exception_with_multiple_operation_resources_in_gcp_resources(self, mock_auth_default):
     with open(self._gcp_resources, 'w') as f:
       f.write(
           (
               f'{{"resources": ['
-              f'{{"resourceType": "DataprocLro", "resourceUri": "{self._dataproc_uri_prefix}/projects/{self._project}/regions/{self._location}/operations/{self._operation_id}"}},'
-              f'{{"resourceType": "DataprocLro", "resourceUri": "{self._dataproc_uri_prefix}/projects/{self._project}/regions/{self._location}/operations/{self._operation_id}"}}'
+              f'{{"resourceType": "DataprocLro", "resourceUri": "{self._operation_uri}"}},'
+              f'{{"resourceType": "DataprocLro", "resourceUri": "{self._operation_uri}"}}'
               f']}}'
           )
       )
@@ -291,19 +344,19 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
 
     mock_operation = mock.Mock(spec=requests.models.Response)
     mock_operation.json.return_value = {
-        'name': f'projects/{self._project}/regions/{self._location}/operations/{self._operation_id}',
+        'name': self._operation_name,
         'metadata': {
-            'batch': f'projects/{self._project}/locations/{self._location}/batches/{self._batch_id}'
+            'batch': self._batch_name
         }
     }
     mock_post_requests.return_value = mock_operation
 
     mock_polled_lro = mock.Mock(spec=requests.models.Response)
     mock_polled_lro.json.return_value = {
-        'name': f'projects/{self._project}/regions/{self._location}/operations/{self._operation_id}',
+        'name': self._operation_name,
         'done': True,
         'response': {
-            'name': f'projects/{self._project}/locations/{self._location}/batches/{self._batch_id}',
+            'name': self._batch_name,
             'state': 'SUCCEEDED'
         }
     }
@@ -326,7 +379,7 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
     )
     mock_get_requests.assert_called_once_with(
         self=mock.ANY,
-        url=f'{self._dataproc_uri_prefix}/projects/{self._project}/regions/{self._location}/operations/{self._operation_id}',
+        url=self._operation_uri,
         headers={'Authorization': f'Bearer {self._creds_token}'}
     )
     mock_time_sleep.assert_called_once()
@@ -350,19 +403,19 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
 
     mock_operation = mock.Mock(spec=requests.models.Response)
     mock_operation.json.return_value = {
-        'name': f'projects/{self._project}/regions/{self._location}/operations/{self._operation_id}',
+        'name': self._operation_name,
         'metadata': {
-            'batch': f'projects/{self._project}/locations/{self._location}/batches/{self._batch_id}'
+            'batch': self._batch_name
         }
     }
     mock_post_requests.return_value = mock_operation
 
     mock_polled_lro = mock.Mock(spec=requests.models.Response)
     mock_polled_lro.json.return_value = {
-        'name': f'projects/{self._project}/regions/{self._location}/operations/{self._operation_id}',
+        'name': self._operation_name,
         'done': True,
         'response': {
-            'name': f'projects/{self._project}/locations/{self._location}/batches/{self._batch_id}',
+            'name': self._batch_name,
             'state': 'SUCCEEDED'
         }
     }
@@ -384,7 +437,7 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
     )
     mock_get_requests.assert_called_once_with(
         self=mock.ANY,
-        url=f'{self._dataproc_uri_prefix}/projects/{self._project}/regions/{self._location}/operations/{self._operation_id}',
+        url=self._operation_uri,
         headers={'Authorization': f'Bearer {self._creds_token}'}
     )
     self.assertEqual(len(re.findall('.*batchId=dataprocsparkbatch-[0-9]{14}-[a-f0-9]{8}',
@@ -409,16 +462,16 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
 
     mock_operation = mock.Mock(spec=requests.models.Response)
     mock_operation.json.return_value = {
-        'name': f'projects/{self._project}/regions/{self._location}/operations/{self._operation_id}',
+        'name': self._operation_name,
         'metadata': {
-            'batch': f'projects/{self._project}/locations/{self._location}/batches/{self._batch_id}'
+            'batch': self._batch_name
         }
     }
     mock_post_requests.return_value = mock_operation
 
     mock_polled_lro = mock.Mock(spec=requests.models.Response)
     mock_polled_lro.json.return_value = {
-        'name': f'projects/{self._project}/regions/{self._location}/operations/{self._operation_id}',
+        'name': self._operation_name,
         'done': True,
         'error': {
             'code': 10
@@ -444,7 +497,7 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
     )
     mock_get_requests.assert_called_once_with(
         self=mock.ANY,
-        url=f'{self._dataproc_uri_prefix}/projects/{self._project}/regions/{self._location}/operations/{self._operation_id}',
+        url=self._operation_uri,
         headers={'Authorization': f'Bearer {self._creds_token}'}
     )
     mock_time_sleep.assert_called_once()

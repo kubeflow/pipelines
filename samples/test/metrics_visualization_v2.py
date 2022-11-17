@@ -14,14 +14,8 @@
 import os
 
 from kfp import dsl
-from kfp.dsl import (
-    component,
-    Output,
-    ClassificationMetrics,
-    Metrics,
-    HTML,
-    Markdown
-)
+from kfp.dsl import (component, Output, ClassificationMetrics, Metrics, HTML,
+                     Markdown)
 
 # In tests, we install a KFP package from the PR under test. Users should not
 # normally need to specify `kfp_package_path` in their component definitions.
@@ -29,7 +23,7 @@ _KFP_PACKAGE_PATH = os.getenv('KFP_PACKAGE_PATH')
 
 
 @component(
-    packages_to_install=['sklearn'],
+    packages_to_install=['scikit-learn'],
     base_image='python:3.9',
     kfp_package_path=_KFP_PACKAGE_PATH,
 )
@@ -58,19 +52,22 @@ def digit_classification(metrics: Output[Metrics]):
     #Model instance
     model = LogisticRegression()
     scoring = 'accuracy'
-    results = model_selection.cross_val_score(model, X, y, cv=kfold, scoring=scoring)
+    results = model_selection.cross_val_score(
+        model, X, y, cv=kfold, scoring=scoring)
 
     #split data
-    X_train, X_test, y_train, y_test = model_selection.train_test_split(X, y, test_size=test_size, random_state=seed)
+    X_train, X_test, y_train, y_test = model_selection.train_test_split(
+        X, y, test_size=test_size, random_state=seed)
     #fit model
     model.fit(X_train, y_train)
 
     #accuracy on test set
     result = model.score(X_test, y_test)
-    metrics.log_metric('accuracy', (result*100.0))
+    metrics.log_metric('accuracy', (result * 100.0))
+
 
 @component(
-    packages_to_install=['sklearn'],
+    packages_to_install=['scikit-learn'],
     base_image='python:3.9',
     kfp_package_path=_KFP_PACKAGE_PATH,
 )
@@ -87,52 +84,60 @@ def wine_classification(metrics: Output[ClassificationMetrics]):
     X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=42)
     rfc = RandomForestClassifier(n_estimators=10, random_state=42)
     rfc.fit(X_train, y_train)
-    y_scores = cross_val_predict(rfc, X_train, y_train, cv=3, method='predict_proba')
+    y_scores = cross_val_predict(
+        rfc, X_train, y_train, cv=3, method='predict_proba')
     y_predict = cross_val_predict(rfc, X_train, y_train, cv=3, method='predict')
-    fpr, tpr, thresholds = roc_curve(y_true=y_train, y_score=y_scores[:,1], pos_label=True)
+    fpr, tpr, thresholds = roc_curve(
+        y_true=y_train, y_score=y_scores[:, 1], pos_label=True)
     metrics.log_roc_curve(fpr, tpr, thresholds)
 
+
 @component(
-    packages_to_install=['sklearn'],
+    packages_to_install=['scikit-learn'],
     base_image='python:3.9',
     kfp_package_path=_KFP_PACKAGE_PATH,
 )
-def iris_sgdclassifier(test_samples_fraction: float, metrics: Output[ClassificationMetrics]):
+def iris_sgdclassifier(test_samples_fraction: float,
+                       metrics: Output[ClassificationMetrics]):
     from sklearn import datasets, model_selection
     from sklearn.linear_model import SGDClassifier
     from sklearn.metrics import confusion_matrix
 
     iris_dataset = datasets.load_iris()
     train_x, test_x, train_y, test_y = model_selection.train_test_split(
-        iris_dataset['data'], iris_dataset['target'], test_size=test_samples_fraction)
-
+        iris_dataset['data'],
+        iris_dataset['target'],
+        test_size=test_samples_fraction)
 
     classifier = SGDClassifier()
     classifier.fit(train_x, train_y)
-    predictions = model_selection.cross_val_predict(classifier, train_x, train_y, cv=3)
+    predictions = model_selection.cross_val_predict(
+        classifier, train_x, train_y, cv=3)
     metrics.log_confusion_matrix(
         ['Setosa', 'Versicolour', 'Virginica'],
-        confusion_matrix(train_y, predictions).tolist() # .tolist() to convert np array to list.
+        confusion_matrix(
+            train_y,
+            predictions).tolist()  # .tolist() to convert np array to list.
     )
 
+
 @component(
-    kfp_package_path=_KFP_PACKAGE_PATH,
-)
+    kfp_package_path=_KFP_PACKAGE_PATH,)
 def html_visualization(html_artifact: Output[HTML]):
     html_content = '<!DOCTYPE html><html><body><h1>Hello world</h1></body></html>'
     with open(html_artifact.path, 'w') as f:
         f.write(html_content)
 
+
 @component(
-    kfp_package_path=_KFP_PACKAGE_PATH,
-)
+    kfp_package_path=_KFP_PACKAGE_PATH,)
 def markdown_visualization(markdown_artifact: Output[Markdown]):
     markdown_content = '## Hello world \n\n Markdown content'
     with open(markdown_artifact.path, 'w') as f:
         f.write(markdown_content)
 
-@dsl.pipeline(
-    name='metrics-visualization-pipeline')
+
+@dsl.pipeline(name='metrics-visualization-pipeline')
 def metrics_visualization_pipeline():
     wine_classification_op = wine_classification()
     iris_sgdclassifier_op = iris_sgdclassifier(test_samples_fraction=0.3)

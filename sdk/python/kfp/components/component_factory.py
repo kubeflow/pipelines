@@ -49,6 +49,7 @@ class ComponentInfo():
     component_spec: structures.ComponentSpec
     output_component_file: Optional[str] = None
     base_image: str = _DEFAULT_BASE_IMAGE
+    packages_to_install: Optional[List[str]] = None
 
 
 # A map from function_name to components.  This is always populated when a
@@ -202,6 +203,9 @@ def extract_component_interface(
         if passing_style in [
                 type_annotations.OutputAnnotation, type_annotations.OutputPath
         ]:
+            if io_name == single_output_name_const:
+                raise ValueError('"{}" is an invalid parameter name.'.format(
+                    single_output_name_const))
             io_name = _maybe_make_unique(io_name, output_names)
             output_names.add(io_name)
             if type_annotations.is_artifact_class(parameter_type):
@@ -225,7 +229,7 @@ def extract_component_interface(
                     input_spec = structures.InputSpec(
                         type=type_struct,
                         default=parameter.default,
-                    )
+                        optional=True)
                 else:
                     input_spec = structures.InputSpec(type=type_struct,)
 
@@ -361,7 +365,7 @@ def _get_command_and_args_for_containerized_component(
 
     args = [
         '--executor_input',
-        placeholders.ExecutorInputPlaceholder()._to_placeholder_string(),
+        placeholders.ExecutorInputPlaceholder()._to_string(),
         '--function_to_execute',
         function_name,
     ]
@@ -428,7 +432,8 @@ def create_component_from_func(
         module_path=module_path,
         component_spec=component_spec,
         output_component_file=output_component_file,
-        base_image=base_image)
+        base_image=base_image,
+        packages_to_install=packages_to_install)
 
     if REGISTERED_MODULES is not None:
         REGISTERED_MODULES[component_name] = component_info

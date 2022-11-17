@@ -257,7 +257,7 @@ def build_task_spec_for_task(
                                 existing_input_name, additional_input_name))
 
                 additional_input_placeholder = placeholders.InputValuePlaceholder(
-                    additional_input_name)._to_placeholder_string()
+                    additional_input_name)._to_string()
                 input_value = input_value.replace(channel.pattern,
                                                   additional_input_placeholder)
 
@@ -360,9 +360,11 @@ def build_component_spec_for_task(
                 input_name].parameter_type = type_utils.get_parameter_type(
                     input_spec.type)
             if input_spec.default is not None:
-                component_spec.input_definitions.parameters[
-                    input_name].default_value.CopyFrom(
-                        to_protobuf_value(input_spec.default))
+                _fill_in_component_input_default_value(
+                    component_spec=component_spec,
+                    input_name=input_name,
+                    default_value=input_spec.default,
+                )
 
         else:
             component_spec.input_definitions.artifacts[
@@ -404,9 +406,11 @@ def _build_component_spec_from_component_spec_structure(
                 input_name].parameter_type = type_utils.get_parameter_type(
                     input_spec.type)
             if input_spec.default is not None:
-                component_spec.input_definitions.parameters[
-                    input_name].default_value.CopyFrom(
-                        to_protobuf_value(input_spec.default))
+                _fill_in_component_input_default_value(
+                    component_spec=component_spec,
+                    input_name=input_name,
+                    default_value=input_spec.default,
+                )
 
         else:
             component_spec.input_definitions.artifacts[
@@ -573,11 +577,15 @@ def _fill_in_component_input_default_value(
     parameter_type = component_spec.input_definitions.parameters[
         input_name].parameter_type
     if pipeline_spec_pb2.ParameterType.NUMBER_INTEGER == parameter_type:
+        # cast to int to support v1 component YAML where NUMBER_INTEGER defaults are included as strings
+        # for example, input Limit: https://raw.githubusercontent.com/kubeflow/pipelines/60a2612541ec08c6a85c237d2ec7525b12543a43/components/datasets/Chicago_Taxi_Trips/component.yaml
         component_spec.input_definitions.parameters[
-            input_name].default_value.number_value = default_value
+            input_name].default_value.number_value = int(default_value)
+        # cast to int to support v1 component YAML where NUMBER_DOUBLE defaults are included as strings
+        # for example, input learning_rate: https://raw.githubusercontent.com/kubeflow/pipelines/567c04c51ff00a1ee525b3458425b17adbe3df61/components/XGBoost/Train/component.yaml
     elif pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE == parameter_type:
         component_spec.input_definitions.parameters[
-            input_name].default_value.number_value = default_value
+            input_name].default_value.number_value = float(default_value)
     elif pipeline_spec_pb2.ParameterType.STRING == parameter_type:
         component_spec.input_definitions.parameters[
             input_name].default_value.string_value = default_value
@@ -1061,9 +1069,8 @@ def modify_pipeline_spec_with_override(
     # that match the pipeline inputs definition.
     for input_name, input_value in (pipeline_parameters or {}).items():
         if input_name in pipeline_spec.root.input_definitions.parameters:
-            pipeline_spec.root.input_definitions.parameters[
-                input_name].default_value.CopyFrom(
-                    to_protobuf_value(input_value))
+            _fill_in_component_input_default_value(pipeline_spec.root,
+                                                   input_name, input_value)
         elif input_name in pipeline_spec.root.input_definitions.artifacts:
             raise NotImplementedError(
                 'Default value for artifact input is not supported.')

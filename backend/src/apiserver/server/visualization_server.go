@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/api/go_client"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -28,7 +28,7 @@ type VisualizationServer struct {
 	serviceURL      string
 }
 
-func (s *VisualizationServer) CreateVisualization(ctx context.Context, request *go_client.CreateVisualizationRequest) (*go_client.Visualization, error) {
+func (s *VisualizationServer) CreateVisualizationV1(ctx context.Context, request *go_client.CreateVisualizationRequest) (*go_client.Visualization, error) {
 	if err := s.validateCreateVisualizationRequest(request); err != nil {
 		return nil, err
 	}

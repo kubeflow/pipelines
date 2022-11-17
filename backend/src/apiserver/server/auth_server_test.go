@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
@@ -30,7 +30,7 @@ func TestAuthorizeRequest_SingleUserMode(t *testing.T) {
 		Verb:      api.AuthorizeRequest_GET,
 	}
 
-	_, err := authServer.Authorize(ctx, request)
+	_, err := authServer.AuthorizeV1(ctx, request)
 	// Authz is completely skipped without checking anything.
 	assert.Nil(t, err)
 }
@@ -52,7 +52,7 @@ func TestAuthorizeRequest_InvalidRequest(t *testing.T) {
 		Verb:      api.AuthorizeRequest_UNASSIGNED_VERB,
 	}
 
-	_, err := authServer.Authorize(ctx, request)
+	_, err := authServer.AuthorizeV1(ctx, request)
 	assert.Error(t, err)
 	assert.EqualError(t, err, "Authorize request is not valid: Invalid input error: Namespace is empty. Please specify a valid namespace.")
 }
@@ -74,7 +74,7 @@ func TestAuthorizeRequest_Authorized(t *testing.T) {
 		Verb:      api.AuthorizeRequest_GET,
 	}
 
-	_, err := authServer.Authorize(ctx, request)
+	_, err := authServer.AuthorizeV1(ctx, request)
 	assert.Nil(t, err)
 }
 
@@ -96,7 +96,7 @@ func TestAuthorizeRequest_Unauthorized(t *testing.T) {
 		Verb:      api.AuthorizeRequest_GET,
 	}
 
-	_, err := authServer.Authorize(ctx, request)
+	_, err := authServer.AuthorizeV1(ctx, request)
 	assert.Error(t, err)
 
 	resourceAttributes := &authorizationv1.ResourceAttributes{
@@ -128,7 +128,7 @@ func TestAuthorizeRequest_EmptyUserIdPrefix(t *testing.T) {
 		Verb:      api.AuthorizeRequest_GET,
 	}
 
-	_, err := authServer.Authorize(ctx, request)
+	_, err := authServer.AuthorizeV1(ctx, request)
 	assert.Nil(t, err)
 }
 
@@ -149,7 +149,7 @@ func TestAuthorizeRequest_Unauthenticated(t *testing.T) {
 		Verb:      api.AuthorizeRequest_GET,
 	}
 
-	_, err := authServer.Authorize(ctx, request)
+	_, err := authServer.AuthorizeV1(ctx, request)
 	assert.NotNil(t, err)
 	assert.EqualError(
 		t,

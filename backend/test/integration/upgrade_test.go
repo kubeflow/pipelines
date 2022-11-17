@@ -11,15 +11,15 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	experimentParams "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
-	jobparams "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client/job_service"
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/job_model"
-	pipelineParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
-	uploadParams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_upload_client/pipeline_upload_service"
-	runParams "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service"
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
+	experimentParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_client/experiment_service"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_model"
+	jobparams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_client/job_service"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_model"
+	pipelineParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_client/pipeline_service"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_model"
+	uploadParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_upload_client/pipeline_upload_service"
+	runParams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/run_model"
 	pipelinetemplate "github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -170,7 +170,7 @@ func (s *UpgradeTests) PrepareExperiments() {
 
 	/* ---------- Create a new experiment ---------- */
 	experiment := test.GetExperiment("training", "my first experiment", s.resourceNamespace)
-	_, err := s.experimentClient.Create(&experimentParams.CreateExperimentParams{
+	_, err := s.experimentClient.Create(&experimentParams.CreateExperimentV1Params{
 		Body: experiment,
 	})
 	require.Nil(t, err)
@@ -179,14 +179,14 @@ func (s *UpgradeTests) PrepareExperiments() {
 	// This ensures they can be sorted by create time in expected order.
 	time.Sleep(1 * time.Second)
 	experiment = test.GetExperiment("prediction", "my second experiment", s.resourceNamespace)
-	_, err = s.experimentClient.Create(&experimentParams.CreateExperimentParams{
+	_, err = s.experimentClient.Create(&experimentParams.CreateExperimentV1Params{
 		Body: experiment,
 	})
 	require.Nil(t, err)
 
 	time.Sleep(1 * time.Second)
 	experiment = test.GetExperiment("moonshot", "my third experiment", s.resourceNamespace)
-	_, err = s.experimentClient.Create(&experimentParams.CreateExperimentParams{
+	_, err = s.experimentClient.Create(&experimentParams.CreateExperimentV1Params{
 		Body: experiment,
 	})
 	require.Nil(t, err)
@@ -198,7 +198,7 @@ func (s *UpgradeTests) VerifyExperiments() {
 	/* ---------- Verify list experiments sorted by creation time ---------- */
 	experiments, _, _, err := test.ListExperiment(
 		s.experimentClient,
-		&experimentParams.ListExperimentParams{SortBy: util.StringPointer("created_at")},
+		&experimentParams.ListExperimentsV1Params{SortBy: util.StringPointer("created_at")},
 		s.resourceNamespace)
 	require.Nil(t, err)
 	// after upgrade, default experiment may be inserted, but the oldest 3
@@ -234,7 +234,7 @@ func (s *UpgradeTests) PreparePipelines() {
 
 	/* ---------- Import pipeline YAML by URL ---------- */
 	time.Sleep(1 * time.Second)
-	sequentialPipeline, err := s.pipelineClient.Create(&pipelineParams.CreatePipelineParams{
+	sequentialPipeline, err := s.pipelineClient.Create(&pipelineParams.CreatePipelineV1Params{
 		Body: &pipeline_model.APIPipeline{Name: "sequential", URL: &pipeline_model.APIURL{
 			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/sequential.yaml"}}})
 	require.Nil(t, err)
@@ -249,7 +249,7 @@ func (s *UpgradeTests) PreparePipelines() {
 
 	/* ---------- Import pipeline tarball by URL ---------- */
 	time.Sleep(1 * time.Second)
-	argumentUrlPipeline, err := s.pipelineClient.Create(&pipelineParams.CreatePipelineParams{
+	argumentUrlPipeline, err := s.pipelineClient.Create(&pipelineParams.CreatePipelineV1Params{
 		Body: &pipeline_model.APIPipeline{URL: &pipeline_model.APIURL{
 			PipelineURL: "https://storage.googleapis.com/ml-pipeline-dataset/arguments.pipeline.zip"}}})
 	require.Nil(t, err)
@@ -263,7 +263,7 @@ func (s *UpgradeTests) VerifyPipelines() {
 
 	/* ---------- Verify list pipeline sorted by creation time ---------- */
 	pipelines, _, _, err := s.pipelineClient.List(
-		&pipelineParams.ListPipelinesParams{SortBy: util.StringPointer("created_at")})
+		&pipelineParams.ListPipelinesV1Params{SortBy: util.StringPointer("created_at")})
 	require.Nil(t, err)
 	// During upgrade, default pipelines may be installed, so we only verify the
 	// 4 oldest pipelines here.
@@ -298,7 +298,7 @@ func (s *UpgradeTests) PrepareRuns() {
 	require.Equal(t, hello2, helloWorldExperiment)
 
 	/* ---------- Create a new hello world run by specifying pipeline ID ---------- */
-	createRunRequest := &runParams.CreateRunParams{Body: &run_model.APIRun{
+	createRunRequest := &runParams.CreateRunV1Params{Body: &run_model.APIRun{
 		Name:        "hello world",
 		Description: "this is hello world",
 		PipelineSpec: &run_model.APIPipelineSpec{
@@ -319,14 +319,14 @@ func (s *UpgradeTests) VerifyRuns() {
 	/* ---------- List the runs, sorted by creation time ---------- */
 	runs, _, _, err := test.ListRuns(
 		s.runClient,
-		&runParams.ListRunsParams{SortBy: util.StringPointer("created_at")},
+		&runParams.ListRunsV1Params{SortBy: util.StringPointer("created_at")},
 		s.resourceNamespace)
 	require.Nil(t, err)
 	require.True(t, len(runs) >= 1)
 	require.Equal(t, "hello world", runs[0].Name)
 
 	/* ---------- Get hello world run ---------- */
-	helloWorldRunDetail, _, err := s.runClient.Get(&runParams.GetRunParams{RunID: runs[0].ID})
+	helloWorldRunDetail, _, err := s.runClient.Get(&runParams.GetRunV1Params{RunID: runs[0].ID})
 	require.Nil(t, err)
 	checkHelloWorldRunDetail(t, helloWorldRunDetail)
 }
@@ -443,7 +443,7 @@ func (s *UpgradeTests) createHelloWorldExperiment() *experiment_model.APIExperim
 	t := s.T()
 
 	experiment := test.GetExperiment("hello world experiment", "", s.resourceNamespace)
-	helloWorldExperiment, err := s.experimentClient.Create(&experimentParams.CreateExperimentParams{Body: experiment})
+	helloWorldExperiment, err := s.experimentClient.Create(&experimentParams.CreateExperimentV1Params{Body: experiment})
 	require.Nil(t, err)
 
 	return helloWorldExperiment
@@ -454,7 +454,7 @@ func (s *UpgradeTests) getHelloWorldExperiment(createIfNotExist bool) *experimen
 
 	experiments, _, _, err := test.ListExperiment(
 		s.experimentClient,
-		&experimentParams.ListExperimentParams{
+		&experimentParams.ListExperimentsV1Params{
 			PageSize: util.Int32Pointer(1000),
 		},
 		s.resourceNamespace)
@@ -476,7 +476,7 @@ func (s *UpgradeTests) getHelloWorldExperiment(createIfNotExist bool) *experimen
 func (s *UpgradeTests) getHelloWorldPipeline(createIfNotExist bool) *pipeline_model.APIPipeline {
 	t := s.T()
 
-	pipelines, err := s.pipelineClient.ListAll(&pipelineParams.ListPipelinesParams{}, 1000)
+	pipelines, err := s.pipelineClient.ListAll(&pipelineParams.ListPipelinesV1Params{}, 1000)
 	require.Nil(t, err)
 	var helloWorldPipeline *pipeline_model.APIPipeline
 	for _, pipeline := range pipelines {
@@ -499,7 +499,7 @@ func (s *UpgradeTests) createHelloWorldPipeline() *pipeline_model.APIPipeline {
 	uploadedPipeline, err := s.pipelineUploadClient.UploadFile("../resources/hello-world.yaml", uploadParams.NewUploadPipelineParams())
 	require.Nil(t, err)
 
-	helloWorldPipeline, err := s.pipelineClient.Get(&pipelineParams.GetPipelineParams{ID: uploadedPipeline.ID})
+	helloWorldPipeline, err := s.pipelineClient.Get(&pipelineParams.GetPipelineV1Params{ID: uploadedPipeline.ID})
 	require.Nil(t, err)
 
 	return helloWorldPipeline

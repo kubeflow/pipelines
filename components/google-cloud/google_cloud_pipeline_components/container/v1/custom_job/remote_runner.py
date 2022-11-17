@@ -17,7 +17,6 @@ from google.api_core import retry
 from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
 
-
 _CUSTOM_JOB_RETRY_DEADLINE_SECONDS = 10.0 * 60.0
 
 

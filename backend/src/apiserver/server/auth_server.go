@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -25,7 +25,7 @@ type AuthServer struct {
 	resourceManager *resource.ResourceManager
 }
 
-func (s *AuthServer) Authorize(ctx context.Context, request *api.AuthorizeRequest) (
+func (s *AuthServer) AuthorizeV1(ctx context.Context, request *api.AuthorizeRequest) (
 	*empty.Empty, error) {
 	err := ValidateAuthorizeRequest(request)
 	if err != nil {

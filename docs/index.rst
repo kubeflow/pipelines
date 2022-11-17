@@ -3,11 +3,8 @@ Kubeflow Pipelines SDK API Reference
 
 .. mdinclude:: ../sdk/python/README.md
 
-.. maxdepth and titlesonly settings ensure TOC items don't expand recursively, bloating the TOC (only applies if :hidden: is removed)
 .. toctree::
    :caption: Contents
-   :maxdepth: 1
-   :titlesonly:
    :hidden:
 
    Home <self>

@@ -24,15 +24,15 @@ import (
 	"net/http"
 
 	"github.com/cenkalti/backoff"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
-	experimentparams "github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_client/experiment_service"
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/experiment_model"
-	jobparams "github.com/kubeflow/pipelines/backend/api/go_http_client/job_client/job_service"
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/job_model"
-	pipelineparams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
-	runparams "github.com/kubeflow/pipelines/backend/api/go_http_client/run_client/run_service"
-	"github.com/kubeflow/pipelines/backend/api/go_http_client/run_model"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	experimentparams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_client/experiment_service"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/experiment_model"
+	jobparams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_client/job_service"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/job_model"
+	pipelineparams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_client/pipeline_service"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_model"
+	runparams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/run_client/run_service"
+	"github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/run_model"
 	"github.com/kubeflow/pipelines/backend/src/common/client/api_server"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
@@ -75,7 +75,7 @@ func DeleteAllPipelines(client *api_server.PipelineClient, t *testing.T) {
 	pipelines, _, _, err := ListPipelines(client)
 	assert.Nil(t, err)
 	for _, p := range pipelines {
-		assert.Nil(t, client.Delete(&pipelineparams.DeletePipelineParams{ID: p.ID}))
+		assert.Nil(t, client.Delete(&pipelineparams.DeletePipelineV1Params{ID: p.ID}))
 	}
 }
 
@@ -83,7 +83,7 @@ func DeleteAllExperiments(client *api_server.ExperimentClient, namespace string,
 	experiments, _, _, err := ListAllExperiment(client, namespace)
 	assert.Nil(t, err)
 	for _, e := range experiments {
-		assert.Nil(t, client.Delete(&experimentparams.DeleteExperimentParams{ID: e.ID}))
+		assert.Nil(t, client.Delete(&experimentparams.DeleteExperimentV1Params{ID: e.ID}))
 	}
 }
 
@@ -91,7 +91,7 @@ func DeleteAllRuns(client *api_server.RunClient, namespace string, t *testing.T)
 	runs, _, _, err := ListAllRuns(client, namespace)
 	assert.Nil(t, err)
 	for _, r := range runs {
-		assert.Nil(t, client.Delete(&runparams.DeleteRunParams{ID: r.ID}))
+		assert.Nil(t, client.Delete(&runparams.DeleteRunV1Params{ID: r.ID}))
 	}
 }
 
@@ -116,16 +116,16 @@ func GetExperimentIDFromAPIResourceReferences(resourceRefs []*run_model.APIResou
 
 func ListPipelines(client *api_server.PipelineClient) (
 	[]*pipeline_model.APIPipeline, int, string, error) {
-	parameters := &pipelineparams.ListPipelinesParams{}
+	parameters := &pipelineparams.ListPipelinesV1Params{}
 
 	return client.List(parameters)
 }
 
 func ListAllExperiment(client *api_server.ExperimentClient, namespace string) ([]*experiment_model.APIExperiment, int, string, error) {
-	return ListExperiment(client, &experimentparams.ListExperimentParams{}, namespace)
+	return ListExperiment(client, &experimentparams.ListExperimentsV1Params{}, namespace)
 }
 
-func ListExperiment(client *api_server.ExperimentClient, parameters *experimentparams.ListExperimentParams, namespace string) ([]*experiment_model.APIExperiment, int, string, error) {
+func ListExperiment(client *api_server.ExperimentClient, parameters *experimentparams.ListExperimentsV1Params, namespace string) ([]*experiment_model.APIExperiment, int, string, error) {
 	if namespace != "" {
 		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
 		parameters.SetResourceReferenceKeyID(&namespace)
@@ -135,11 +135,11 @@ func ListExperiment(client *api_server.ExperimentClient, parameters *experimentp
 }
 
 func ListAllRuns(client *api_server.RunClient, namespace string) ([]*run_model.APIRun, int, string, error) {
-	parameters := &runparams.ListRunsParams{}
+	parameters := &runparams.ListRunsV1Params{}
 	return ListRuns(client, parameters, namespace)
 }
 
-func ListRuns(client *api_server.RunClient, parameters *runparams.ListRunsParams, namespace string) ([]*run_model.APIRun, int, string, error) {
+func ListRuns(client *api_server.RunClient, parameters *runparams.ListRunsV1Params, namespace string) ([]*run_model.APIRun, int, string, error) {
 	if namespace != "" {
 		parameters.SetResourceReferenceKeyType(util.StringPointer(api.ResourceType_name[int32(api.ResourceType_NAMESPACE)]))
 		parameters.SetResourceReferenceKeyID(&namespace)

@@ -8,9 +8,9 @@ import (
 
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/go-openapi/strfmt"
-	params "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
-	pipelineparams "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_client/pipeline_service"
-	pipelinemodel "github.com/kubeflow/pipelines/backend/api/go_http_client/pipeline_model"
+	params "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_client/pipeline_service"
+	pipelineparams "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_client/pipeline_service"
+	pipelinemodel "github.com/kubeflow/pipelines/backend/api/v1beta1/go_http_client/pipeline_model"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -62,7 +62,7 @@ func NewPipelineClientFake() *PipelineClientFake {
 	return &PipelineClientFake{}
 }
 
-func (c *PipelineClientFake) Create(params *pipelineparams.CreatePipelineParams) (
+func (c *PipelineClientFake) Create(params *pipelineparams.CreatePipelineV1Params) (
 	*pipelinemodel.APIPipeline, error) {
 	switch params.Body.URL.PipelineURL {
 	case PipelineInvalidURL:
@@ -72,7 +72,7 @@ func (c *PipelineClientFake) Create(params *pipelineparams.CreatePipelineParams)
 	}
 }
 
-func (c *PipelineClientFake) Get(params *pipelineparams.GetPipelineParams) (
+func (c *PipelineClientFake) Get(params *pipelineparams.GetPipelineV1Params) (
 	*pipelinemodel.APIPipeline, error) {
 	switch params.ID {
 	case PipelineForClientErrorTest:
@@ -82,7 +82,7 @@ func (c *PipelineClientFake) Get(params *pipelineparams.GetPipelineParams) (
 	}
 }
 
-func (c *PipelineClientFake) Delete(params *pipelineparams.DeletePipelineParams) error {
+func (c *PipelineClientFake) Delete(params *pipelineparams.DeletePipelineV1Params) error {
 	switch params.ID {
 	case PipelineForClientErrorTest:
 		return fmt.Errorf(ClientErrorString)
@@ -101,7 +101,7 @@ func (c *PipelineClientFake) GetTemplate(params *pipelineparams.GetTemplateParam
 	}
 }
 
-func (c *PipelineClientFake) List(params *pipelineparams.ListPipelinesParams) (
+func (c *PipelineClientFake) List(params *pipelineparams.ListPipelinesV1Params) (
 	[]*pipelinemodel.APIPipeline, int, string, error) {
 
 	const (
@@ -130,12 +130,12 @@ func (c *PipelineClientFake) List(params *pipelineparams.ListPipelinesParams) (
 	}
 }
 
-func (c *PipelineClientFake) ListAll(params *pipelineparams.ListPipelinesParams,
+func (c *PipelineClientFake) ListAll(params *pipelineparams.ListPipelinesV1Params,
 	maxResultSize int) ([]*pipelinemodel.APIPipeline, error) {
 	return listAllForPipeline(c, params, maxResultSize)
 }
 
-func (c *PipelineClientFake) UpdateDefaultVersion(params *params.UpdatePipelineDefaultVersionParams) error {
+func (c *PipelineClientFake) UpdateDefaultVersion(params *params.UpdatePipelineDefaultVersionV1Params) error {
 	switch params.PipelineID {
 	case PipelineForClientErrorTest:
 		return fmt.Errorf(ClientErrorString)
