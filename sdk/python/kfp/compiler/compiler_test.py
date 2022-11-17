@@ -1350,5 +1350,449 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
                         print_op(message='Inside second exit handler.')
 
 
+class TestBoolInputParameterWithDefaultSerializesCorrectly(unittest.TestCase):
+    # test with default = True, may have false test successes due to protocol buffer boolean default of False
+    def test_python_component(self):
+
+        @dsl.component
+        def comp(boolean: bool = True) -> bool:
+            return boolean
+
+        # test inner component interface
+        self.assertEqual(
+            comp.pipeline_spec.components['comp-comp'].input_definitions
+            .parameters['boolean'].default_value.bool_value, True)
+
+        # test outer pipeline "wrapper" interface
+        self.assertEqual(
+            comp.pipeline_spec.root.input_definitions.parameters['boolean']
+            .default_value.bool_value, True)
+
+    def test_python_component_with_overrides(self):
+
+        @dsl.component
+        def comp(boolean: bool = False) -> bool:
+            return boolean
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                comp, pipeline_spec_path, pipeline_parameters={'boolean': True})
+            pipeline_spec = pipeline_spec_from_file(pipeline_spec_path)
+
+        # test outer pipeline "wrapper" interface
+        self.assertEqual(
+            pipeline_spec.root.input_definitions.parameters['boolean']
+            .default_value.bool_value, True)
+
+    def test_container_component(self):
+
+        @dsl.container_component
+        def comp(boolean: bool = True):
+            return dsl.ContainerSpec(image='alpine', command=['echo', boolean])
+
+        # test inner component interface
+        self.assertEqual(
+            comp.pipeline_spec.components['comp-comp'].input_definitions
+            .parameters['boolean'].default_value.bool_value, True)
+
+        # test pipeline "wrapper" interface
+        self.assertEqual(
+            comp.pipeline_spec.root.input_definitions.parameters['boolean']
+            .default_value.bool_value, True)
+
+    def test_container_component_with_overrides(self):
+
+        @dsl.container_component
+        def comp(boolean: bool = True):
+            return dsl.ContainerSpec(image='alpine', command=['echo', boolean])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                comp, pipeline_spec_path, pipeline_parameters={'boolean': True})
+            pipeline_spec = pipeline_spec_from_file(pipeline_spec_path)
+
+        # test outer pipeline "wrapper" interface
+        self.assertEqual(
+            pipeline_spec.root.input_definitions.parameters['boolean']
+            .default_value.bool_value, True)
+
+    def test_pipeline_no_input(self):
+
+        @dsl.component
+        def comp(boolean: bool = True) -> bool:
+            return boolean
+
+        @dsl.pipeline
+        def pipeline_no_input():
+            comp()
+
+        # test inner component interface
+        self.assertEqual(
+            pipeline_no_input.pipeline_spec.components['comp-comp']
+            .input_definitions.parameters['boolean'].default_value.bool_value,
+            True)
+
+    def test_pipeline_with_input(self):
+
+        @dsl.component
+        def comp(boolean: bool = True) -> bool:
+            return boolean
+
+        @dsl.pipeline
+        def pipeline_with_input(boolean: bool = True):
+            comp(boolean=boolean)
+
+        # test inner component interface
+        self.assertEqual(
+            pipeline_with_input.pipeline_spec.components['comp-comp']
+            .input_definitions.parameters['boolean'].default_value.bool_value,
+            True)
+
+        # test pipeline interface
+        self.assertEqual(
+            pipeline_with_input.pipeline_spec.root.input_definitions
+            .parameters['boolean'].default_value.bool_value, True)
+
+    def test_pipeline_with_with_overrides(self):
+
+        @dsl.component
+        def comp(boolean: bool = True) -> bool:
+            return boolean
+
+        @dsl.pipeline
+        def pipeline_with_input(boolean: bool = False):
+            comp(boolean=boolean)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_with_input,
+                pipeline_spec_path,
+                pipeline_parameters={'boolean': True})
+            pipeline_spec = pipeline_spec_from_file(pipeline_spec_path)
+
+        # test inner component interface
+        self.assertEqual(
+            pipeline_spec.components['comp-comp'].input_definitions
+            .parameters['boolean'].default_value.bool_value, True)
+
+        # test pipeline interface
+        self.assertEqual(
+            pipeline_spec.root.input_definitions.parameters['boolean']
+            .default_value.bool_value, True)
+
+
+class ValidLegalTopologies(unittest.TestCase):
+
+    def test_inside_of_root_group_permitted(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.component
+        def return_1() -> int:
+            return 1
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+
+            one = print_op(message='1')
+            two = print_op(message='2')
+            three = print_op(message='3').after(one)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_upstream_inside_deeper_condition_blocked(self):
+
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
+
+            @dsl.component
+            def print_op(message: str):
+                print(message)
+
+            @dsl.component
+            def return_1() -> int:
+                return 1
+
+            @dsl.pipeline()
+            def my_pipeline():
+                return_1_task = return_1()
+
+                one = print_op(message='1')
+                with dsl.Condition(return_1_task.output == 1):
+                    two = print_op(message='2')
+
+                three = print_op(message='3').after(two)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_upstream_in_the_same_condition_permitted(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.component
+        def return_1() -> int:
+            return 1
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+
+            with dsl.Condition(return_1_task.output == 1):
+                one = print_op(message='1')
+                two = print_op(message='2')
+                three = print_op(message='3').after(one)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_inside_deeper_condition_permitted(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.component
+        def return_1() -> int:
+            return
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+
+            one = print_op(message='1')
+            with dsl.Condition(return_1_task.output == 1):
+                two = print_op(message='2')
+                three = print_op(message='3').after(one)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_and_upstream_in_different_condition_on_same_level_blocked(
+            self):
+
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
+
+            @dsl.component
+            def print_op(message: str):
+                print(message)
+
+            @dsl.component
+            def return_1() -> int:
+                return 1
+
+            @dsl.pipeline()
+            def my_pipeline():
+                return_1_task = return_1()
+
+                one = print_op(message='1')
+                with dsl.Condition(return_1_task.output == 1):
+                    two = print_op(message='2')
+
+                with dsl.Condition(return_1_task.output == 1):
+                    three = print_op(message='3').after(two)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_inside_deeper_nested_condition_permitted(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.component
+        def return_1() -> int:
+            return 1
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+            return_1_task2 = return_1()
+
+            with dsl.Condition(return_1_task.output == 1):
+                one = print_op(message='1')
+                with dsl.Condition(return_1_task2.output == 1):
+                    two = print_op(message='2')
+                    three = print_op(message='3').after(one)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_upstream_inside_deeper_nested_condition_blocked(self):
+
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
+
+            @dsl.component
+            def print_op(message: str):
+                print(message)
+
+            @dsl.component
+            def return_1() -> int:
+                return 1
+
+            @dsl.pipeline()
+            def my_pipeline():
+                return_1_task = return_1()
+
+                with dsl.Condition(return_1_task.output == 1):
+                    one = print_op(message='1')
+                    with dsl.Condition(return_1_task.output == 1):
+                        two = print_op(message='2')
+                    three = print_op(message='3').after(two)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_upstream_in_same_for_loop_with_downstream_permitted(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.component
+        def args_generator_op() -> List[Dict[str, str]]:
+            return [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]
+
+        @dsl.pipeline()
+        def my_pipeline():
+            args_generator = args_generator_op()
+
+            with dsl.ParallelFor(args_generator.output):
+                one = print_op(message='1')
+                two = print_op(message='3').after(one)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_not_in_same_for_loop_with_upstream_blocked(self):
+
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
+
+            @dsl.component
+            def print_op(message: str):
+                print(message)
+
+            @dsl.component
+            def args_generator_op() -> List[Dict[str, str]]:
+                return [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]
+
+            @dsl.pipeline()
+            def my_pipeline():
+                args_generator = args_generator_op()
+
+                with dsl.ParallelFor(args_generator.output):
+                    one = print_op(message='1')
+                two = print_op(message='3').after(one)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_not_in_same_for_loop_with_upstream_seperate_blocked(
+            self):
+
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
+
+            @dsl.component
+            def print_op(message: str):
+                print(message)
+
+            @dsl.component
+            def args_generator_op() -> List[Dict[str, str]]:
+                return [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]
+
+            @dsl.pipeline()
+            def my_pipeline():
+                args_generator = args_generator_op()
+
+                with dsl.ParallelFor(args_generator.output):
+                    one = print_op(message='1')
+
+                with dsl.ParallelFor(args_generator.output):
+                    two = print_op(message='3').after(one)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_not_in_same_for_loop_with_upstream_nested_blocked(self):
+
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
+
+            @dsl.component
+            def print_op(message: str):
+                print(message)
+
+            @dsl.component
+            def args_generator_op() -> List[Dict[str, str]]:
+                return [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]
+
+            @dsl.pipeline()
+            def my_pipeline():
+                args_generator = args_generator_op()
+
+                with dsl.ParallelFor(args_generator.output):
+                    one = print_op(message='1')
+
+                    with dsl.ParallelFor(args_generator.output):
+                        two = print_op(message='3').after(one)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_in_condition_nested_in_a_for_loop(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.component
+        def return_1() -> int:
+            return 1
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+
+            with dsl.ParallelFor([1, 2, 3]):
+                one = print_op(message='1')
+                with dsl.Condition(return_1_task.output == 1):
+                    two = print_op(message='2').after(one)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+
 if __name__ == '__main__':
     unittest.main()
