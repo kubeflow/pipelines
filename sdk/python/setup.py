@@ -30,12 +30,12 @@ REQUIRES = [
     'google-api-core>=1.31.5,<3.0.0dev,!=2.0.*,!=2.1.*,!=2.2.*,!=2.3.0',
     # `Blob.from_string` was introduced in google-cloud-storage 1.20.0
     # https://github.com/googleapis/python-storage/blob/master/CHANGELOG.md#1200
-    'google-cloud-storage>=1.20.0,<2',
+    'google-cloud-storage>=1.20.0,<3',
     'kubernetes>=8.0.0,<19',
     # google-api-python-client v2 doesn't work for private dicovery by default:
     # https://github.com/googleapis/google-api-python-client/issues/1225#issuecomment-791058235
     'google-api-python-client>=1.7.8,<2',
-    'google-auth>=1.6.1,<2',
+    'google-auth>=1.6.1,<3',
     'requests-toolbelt>=0.8.0,<1',
     'cloudpickle>=2.0.0,<3',
     # Update the upper version whenever a new major version of the
