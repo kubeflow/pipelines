@@ -12,6 +12,21 @@
 ## Bug Fixes and Other Changes
 
 ## Documentation Updates
+# 1.8.16
+## Major Features and Improvements
+
+## Breaking Changes
+
+### For Pipeline Authors
+
+### For Component Authors
+
+## Deprecations
+
+## Bug Fixes and Other Changes
+* Relax required google-auth version [#8470](https://github.com/kubeflow/pipelines/pull/8470)
+
+## Documentation Updates
 # 1.8.15
 ## Major Features and Improvements
 * Add ability to skip building image when using `kfp component build` [#8383](https://github.com/kubeflow/pipelines/pull/8383)
