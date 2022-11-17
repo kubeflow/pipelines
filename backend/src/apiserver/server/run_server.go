@@ -397,7 +397,7 @@ func (s *RunServer) canAccessRun(ctx context.Context, runId string, resourceAttr
 
 	err := isAuthorized(s.resourceManager, ctx, resourceAttributes)
 	if err != nil {
-		return util.Wrap(err, "Failed to authorize with API resource references")
+		return util.Wrap(err, "Failed to authorize with API")
 	}
 	return nil
 }

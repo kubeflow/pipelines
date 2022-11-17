@@ -319,7 +319,7 @@ func (s *JobServer) canAccessJob(ctx context.Context, jobID string, resourceAttr
 
 	err := isAuthorized(s.resourceManager, ctx, resourceAttributes)
 	if err != nil {
-		return util.Wrap(err, "Failed to authorize with API resource references")
+		return util.Wrap(err, "Failed to authorize with API")
 	}
 	return nil
 }

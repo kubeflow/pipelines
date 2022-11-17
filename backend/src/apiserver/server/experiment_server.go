@@ -198,7 +198,7 @@ func (s *ExperimentServer) ListExperimentsV1(ctx context.Context, request *apiv1
 		}
 		err = s.canAccessExperiment(ctx, "", resourceAttributes)
 		if err != nil {
-			return nil, util.Wrap(err, "Failed to authorize with API resource references")
+			return nil, util.Wrap(err, "Failed to authorize with API")
 		}
 	} else {
 		if refKey != nil && refKey.Type == common.Namespace && len(refKey.ID) > 0 {
@@ -244,13 +244,17 @@ func (s *ExperimentServer) ListExperiments(ctx context.Context, request *apiv2be
 		}
 		err = s.canAccessExperiment(ctx, "", resourceAttributes)
 		if err != nil {
-			return nil, util.Wrap(err, "Failed to authorize this namespace with API.")
+			return nil, util.Wrap(err, "Failed to authorize with API")
+		}
+		// In multi-user mode, apply filter with the namespace provided.
+		filterContext = &common.FilterContext{
+			ReferenceKey: &common.ReferenceKey{Type: common.Namespace, ID: request.Namespace},
 		}
 	} else {
 		if request.Namespace != "" {
 			return nil, util.NewInvalidInputError("Invalid ListExperiments request. Namespace should not be provided in single-user mode.")
 		}
-		// In single user mode, apply filter with empty namespace for backward compatibile.
+		// In single user mode, apply filter with empty namespace for backward compatibility.
 		filterContext = &common.FilterContext{
 			ReferenceKey: &common.ReferenceKey{Type: common.Namespace, ID: ""},
 		}
@@ -362,7 +366,7 @@ func (s *ExperimentServer) canAccessExperiment(ctx context.Context, experimentID
 
 	err := isAuthorized(s.resourceManager, ctx, resourceAttributes)
 	if err != nil {
-		return util.Wrap(err, "Failed to authorize with API resource references")
+		return util.Wrap(err, "Failed to authorize with API")
 	}
 	return nil
 }

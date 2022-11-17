@@ -133,7 +133,7 @@ func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *api.Crea
 	}
 	err = isAuthorized(s.resourceManager, ctx, resourceAttributes)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize with API resource references")
+		return nil, util.Wrap(err, "Failed to authorize with API")
 	}
 
 	pipeline, err := s.resourceManager.CreatePipeline(pipelineName, request.Pipeline.Description, namespace, pipelineFile)
@@ -199,7 +199,7 @@ func (s *PipelineServer) GetPipelineByNameV1(ctx context.Context, request *api.G
 			Verb:      common.RbacResourceVerbGet,
 		}
 		if err := s.haveAccess(ctx, resourceAttributes); err != nil {
-			return nil, util.Wrap(err, "Failed to authorize with API resource references")
+			return nil, util.Wrap(err, "Failed to authorize with API")
 		}
 	}
 
@@ -242,7 +242,7 @@ func (s *PipelineServer) ListPipelinesV1(ctx context.Context, request *api.ListP
 			Verb:      common.RbacResourceVerbList,
 		}
 		if err = s.CanAccessPipeline(ctx, "", resourceAttributes); err != nil {
-			return nil, util.Wrap(err, "Failed to authorize with API resource references")
+			return nil, util.Wrap(err, "Failed to authorize with API")
 		}
 	}
 
@@ -352,7 +352,7 @@ func (s *PipelineServer) CreatePipelineVersionV1(ctx context.Context, request *a
 		Verb: common.RbacResourceVerbList,
 	}
 	if err = s.CanAccessPipeline(ctx, "", resourceAttributes); err != nil {
-		return nil, util.Wrap(err, "Failed to authorize with API resource references")
+		return nil, util.Wrap(err, "Failed to authorize with API")
 	}
 
 	version, err := s.resourceManager.CreatePipelineVersion(request.Version, pipelineFile, common.IsPipelineVersionUpdatedByDefault())
@@ -413,7 +413,7 @@ func (s *PipelineServer) ListPipelineVersionsV1(ctx context.Context, request *ap
 		}
 		err = s.CanAccessPipelineVersion(ctx, "", resourceAttributes)
 		if err != nil {
-			return nil, util.Wrap(err, "Failed to authorize with API resource references")
+			return nil, util.Wrap(err, "Failed to authorize with API")
 		}
 	}
 
@@ -443,7 +443,7 @@ func (s *PipelineServer) DeletePipelineVersionV1(ctx context.Context, request *a
 	}
 	err = s.CanAccessPipeline(ctx, pipelineVersion.PipelineId, resourceAttributes)
 	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize with API resource references")
+		return nil, util.Wrap(err, "Failed to authorize with API")
 	}
 	err = s.resourceManager.DeletePipelineVersion(request.VersionId)
 	if err != nil {
@@ -518,7 +518,7 @@ func (s *PipelineServer) haveAccess(ctx context.Context, resourceAttributes *aut
 	resourceAttributes.Resource = common.RbacResourceTypePipelines
 	err := isAuthorized(s.resourceManager, ctx, resourceAttributes)
 	if err != nil {
-		return util.Wrap(err, "Failed to authorize with API resource references")
+		return util.Wrap(err, "Failed to authorize with API")
 	}
 	return nil
 }

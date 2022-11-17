@@ -501,6 +501,20 @@ func TestListExperimentsV1_Failed(t *testing.T) {
 	assert.Contains(t, err.Error(), "List experiments failed.")
 }
 
+func TestListExperiments_Failed(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
+	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
+
+	_, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	assert.Nil(t, err)
+	clientManager.DB().Close()
+	_, err = server.ListExperiments(nil, &apiV2beta1.ListExperimentsRequest{})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "List experiments failed.")
+}
+
 func TestListExperimentsV1_SingleUser_NamespaceNotAllowed(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
@@ -517,6 +531,19 @@ func TestListExperimentsV1_SingleUser_NamespaceNotAllowed(t *testing.T) {
 	})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "In single-user mode, ListExperimentsV1 cannot filter by namespace.")
+}
+
+func TestListExperiments_SingleUser_NamespaceNotAllowed(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
+	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
+
+	_, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	assert.Nil(t, err)
+	_, err = server.ListExperiments(nil, &apiV2beta1.ListExperimentsRequest{Namespace: "ns1"})
+	assert.NotNil(t, err)
+	assert.Contains(t, err.Error(), "Invalid ListExperiments request. Namespace should not be provided in single-user mode.")
 }
 
 func TestListExperimentsV1_Unauthorized(t *testing.T) {
@@ -538,6 +565,34 @@ func TestListExperimentsV1_Unauthorized(t *testing.T) {
 			Id:   "ns1",
 		},
 	})
+	assert.NotNil(t, err)
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: "ns1",
+		Verb:      common.RbacResourceVerbList,
+		Group:     common.RbacPipelinesGroup,
+		Version:   common.RbacPipelinesVersion,
+		Resource:  common.RbacResourceTypeExperiments,
+	}
+	assert.EqualError(
+		t,
+		err,
+		wrapFailedAuthzApiResourcesError(wrapFailedAuthzApiResourcesError(getPermissionDeniedError(userIdentity, resourceAttributes))).Error(),
+	)
+}
+
+func TestListExperiments_Unauthorized(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	userIdentity := "user@google.com"
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + userIdentity})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clients, manager, _ := initWithExperiment_SubjectAccessReview_Unauthorized(t)
+	defer clients.Close()
+
+	server := ExperimentServer{manager, &ExperimentServerOptions{CollectMetrics: false}}
+	_, err := server.ListExperiments(ctx, &apiV2beta1.ListExperimentsRequest{Namespace: "ns1"})
 	assert.NotNil(t, err)
 	resourceAttributes := &authorizationv1.ResourceAttributes{
 		Namespace: "ns1",
@@ -662,6 +717,81 @@ func TestListExperimentsV1_Multiuser(t *testing.T) {
 				t.Errorf("TestListExperimentsV1_Multiuser(%v) expect no error but got %v", tc.name, err)
 			} else if !cmp.Equal(tc.expectedExperiments, response.Experiments, cmpopts.EquateEmpty(), protocmp.Transform(), cmpopts.IgnoreFields(apiV1beta1.Experiment{}, "CreatedAt")) {
 				t.Errorf("TestListExperimentsV1_Multiuser(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedExperiments, response.Experiments)
+			}
+		}
+	}
+}
+
+func TestListExperiments_Multiuser(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
+	experiment := &apiV2beta1.Experiment{
+		DisplayName: "exp1",
+		Description: "first experiment",
+		Namespace:   "ns1",
+	}
+
+	createResult, err := server.CreateExperiment(ctx, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	assert.Nil(t, err)
+
+	tests := []struct {
+		name                string
+		request             *apiV2beta1.ListExperimentsRequest
+		wantError           bool
+		errorMessage        string
+		expectedExperiments []*apiV2beta1.Experiment
+	}{
+		{
+			"Valid",
+			&apiV2beta1.ListExperimentsRequest{Namespace: "ns1"},
+			false,
+			"",
+			[]*apiV2beta1.Experiment{{
+				ExperimentId: createResult.ExperimentId,
+				DisplayName:  "exp1",
+				Description:  "first experiment",
+				CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+				Namespace:    "ns1",
+				// TODO(lingqinggan): fix storage state
+				// StorageState: apiV2beta1.Experiment_AVAILABLE,
+			}},
+		},
+		{
+			"Valid but empty result",
+			&apiV2beta1.ListExperimentsRequest{Namespace: "ns2"},
+			false,
+			"",
+			[]*apiV2beta1.Experiment{},
+		},
+		{
+			"Missing namespace",
+			&apiV2beta1.ListExperimentsRequest{},
+			true,
+			"Invalid ListExperiments request. No namespace provided in multi-user mode.",
+			nil,
+		},
+	}
+
+	for _, tc := range tests {
+		response, err := server.ListExperiments(ctx, tc.request)
+		if tc.wantError {
+			if err == nil {
+				t.Errorf("TestListExperiments_Multiuser(%v) expect error but got nil", tc.name)
+			} else if !strings.Contains(err.Error(), tc.errorMessage) {
+				t.Errorf("TestListExperiments_Multiusert(%v) expect error containing: %v, but got: %v", tc.name, tc.errorMessage, err)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("TestListExperiments_Multiuser(%v) expect no error but got %v", tc.name, err)
+			} else if !cmp.Equal(tc.expectedExperiments, response.Experiments, cmpopts.EquateEmpty(), protocmp.Transform(), cmpopts.IgnoreFields(apiV2beta1.Experiment{}, "CreatedAt")) {
+				t.Errorf("TestListExperiments_Multiuser(%v) expect (%+v) but got (%+v)", tc.name, tc.expectedExperiments, response.Experiments)
 			}
 		}
 	}
