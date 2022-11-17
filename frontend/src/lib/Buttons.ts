@@ -523,7 +523,7 @@ export default class Buttons {
     this._dialogActionHandler(
       ids,
       'Do you want to terminate this run? This action cannot be undone. KNOWN ISSUE(AIP-6621): This will NOT end or terminate any' +
-        ' running pods. Please KNOWN ISSUE for instructions to terminate running pods or for more details.',
+        ' running pods. Please click on KNOWN ISSUE for instructions to terminate running pods or for more details.',
       useCurrentResource,
       id => Apis.runServiceApi.terminateRun(id),
       callback,
@@ -584,7 +584,7 @@ export default class Buttons {
         },
     ]
     
-    if (known_issue_link != "")
+    if (known_issue_link !== "")
     {
       buttons.push(
         {
