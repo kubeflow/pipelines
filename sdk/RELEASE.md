@@ -24,7 +24,7 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
-* Relax required google-auth version from `>=1.6.1,<2` to `>=1.6.1,<3` [#8470](https://github.com/kubeflow/pipelines/pull/8470)
+* Relax required google-auth version from `>=1.6.1,<2` to `>=1.6.1,<3` [#8470](https://github.com/kubeflow/pipelines/pull/8470), [#8473](https://github.com/kubeflow/pipelines/pull/8473)
 
 ## Documentation Updates
 # 1.8.15
