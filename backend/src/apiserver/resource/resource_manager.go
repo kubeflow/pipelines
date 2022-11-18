@@ -443,7 +443,7 @@ func (r *ResourceManager) UnarchiveRun(runId string) error {
 		return errors.Wrap(err, "Failed to retrieve experiment")
 	}
 
-	if experiment.StorageState == apiV1beta1.Experiment_STORAGESTATE_ARCHIVED.String() {
+	if experiment.StorageState == "ARCHIVED" {
 		return util.NewFailedPreconditionError(errors.New("Unarchive the experiment first to allow the run to be restored"),
 			fmt.Sprintf("Unarchive experiment with name `%s` first to allow run `%s` to be restored", experimentRef.ReferenceName, runId))
 	}

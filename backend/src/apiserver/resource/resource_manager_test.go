@@ -3404,7 +3404,7 @@ func TestCreateDefaultExperiment(t *testing.T) {
 		Name:           "Default",
 		Description:    "All runs created without specifying an experiment will be grouped here.",
 		Namespace:      "",
-		StorageState:   "STORAGESTATE_AVAILABLE",
+		StorageState:   "AVAILABLE",
 	}
 	assert.Equal(t, expectedExperiment, experiment)
 }
@@ -3428,7 +3428,7 @@ func TestCreateDefaultExperiment_MultiUser(t *testing.T) {
 		Name:           "Default",
 		Description:    "All runs created without specifying an experiment will be grouped here.",
 		Namespace:      "",
-		StorageState:   "STORAGESTATE_AVAILABLE",
+		StorageState:   "AVAILABLE",
 	}
 	assert.Equal(t, expectedExperiment, experiment)
 }
