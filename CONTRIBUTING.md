@@ -3,6 +3,62 @@
 We'd love to accept your patches and contributions to this project. There are
 just a few small guidelines you need to follow.
 
+## Contribution Guidelines
+
+To propose a new feature or a change that alters some existing user experience
+or creates a new user experience, follow these steps:
+
+### Step 1: Establish Context
+
+Search on KFP GitHub issues list to see if the same or similar proposal has been
+made in the past.  The historical context can help you draft a better
+proposal. Sometimes you will find a very similar proposal was already presented,
+discussed thoroughly, and that it is either awaiting contribution (in active
+development) or was rejected (often due to timing or conflicting scope with
+other plans). To avoid confusion and conflicts, where possible, please
+contribute to existing issues before creating new ones.
+
+### Step 2: Create Feature Request
+
+Create a new issue using the “Feature Request” template if no existing issue is
+found. Fill in answers to the template questions. To avoid delays, provide as
+much information as needed for initial review. Keep in mind that new features
+should comply with backward-compatibility and platform-portability requirements.
+
+### Step 3: Initial Team Triage
+
+Wait for a member from the Kubeflow Pipelines team (under
+orgs/kubeflow/teams/pipelines/ in
+[org.yaml](https://raw.githubusercontent.com/kubeflow/internal-acls/master/github-orgs/kubeflow/org.yaml))
+to comment on the issue. The team aims for triaging new issues on a weekly
+basis, but cannot at this time provide a guarantee on when your issue will be
+reviewed. The team will work with you to determine if your change is trivial and
+can proceed or whether it is nontrivial and needs a more detailed design
+document and review.
+
+### Step 4: Design Review
+
+If the team agreed with the overall proposal, you would be asked to write a
+design documentation, explaining why you want to make a change, what changes are
+you proposing, and how do you plan to implement it. The design review process
+would be required by default unless the team agreed that the change is too
+trivial. It is recommended that you use this Google doc template
+[[link](https://docs.google.com/document/d/1VrfuMo8ZeMmV75a-rUq9SO-E6KotBodAf-P0WZeFDZA/edit?usp=sharing&resourcekey=0-BklOgu8ivhdLCplZuPDZZg)]
+for your design, and share it with kubeflow-discuss@googlegroups.com for
+commenting. After sharing the design documentation, you could optionally join a
+session of the bi-weekly Kubeflow Pipelines community meetings
+[[agenda](http://bit.ly/kfp-meeting-notes)] to present or further discuss your
+proposal. A proposal may still get rejected at this stage if it comes with
+unresolved drawbacks or if it does not align with the long term plans for the
+project.
+
+### Step 5: Implementation
+
+After you get formal approval from a Kubeflow Pipelines team member, you can
+implement your design and send a pull request. Make sure existing tests are all
+passing and new tests are added when applicable. Remember to link to the feature
+request issue to help reviewers catch up on the context.
+
 ## Project Structure
 
 Kubeflow Pipelines consists of multiple components. Before you begin, learn how to [build the Kubeflow Pipelines component container images](./developer_guide.md##build-image). To get started, see the development guides:
