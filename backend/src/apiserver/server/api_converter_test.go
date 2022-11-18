@@ -790,14 +790,14 @@ func TestToApiExperiments(t *testing.T) {
 			DisplayName:  "experiment1",
 			Description:  "My name is experiment1",
 			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-			StorageState: apiV2beta1.Experiment_StorageState(apiV2beta1.Experiment_StorageState_value["STORAGESTATE_AVAILABLE"]),
+			StorageState: apiV2beta1.Experiment_StorageState(apiV2beta1.Experiment_StorageState_value["AVAILABLE"]),
 		},
 		{
 			ExperimentId: "exp2",
 			DisplayName:  "experiment2",
 			Description:  "My name is experiment2",
 			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
-			StorageState: apiV2beta1.Experiment_StorageState(apiV2beta1.Experiment_StorageState_value["STORAGESTATE_ARCHIVED"]),
+			StorageState: apiV2beta1.Experiment_StorageState(apiV2beta1.Experiment_StorageState_value["ARCHIVED"]),
 		},
 	}
 	assert.Equal(t, expectedApiExps, apiExps)

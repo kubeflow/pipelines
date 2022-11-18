@@ -54,8 +54,7 @@ func TestCreateExperiment(t *testing.T) {
 		DisplayName:  "ex1",
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-		// TODO(lingqinggan): StorageState API and backend separation
-		// StorageState: apiV2beta1.Experiment_AVAILABLE,
+		StorageState: apiV2beta1.Experiment_AVAILABLE,
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -244,8 +243,7 @@ func TestCreateExperiment_Multiuser(t *testing.T) {
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 		Namespace:    "ns1",
-		// TODO(lingqinggan): StorageState API and backend separation
-		// StorageState: apiV2beta1.Experiment_AVAILABLE,
+		StorageState: apiV2beta1.Experiment_AVAILABLE,
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -285,8 +283,7 @@ func TestGetExperiment(t *testing.T) {
 		DisplayName:  "ex1",
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-		// TODO(lingqinggan): fix storage state error
-		// StorageState: apiV2beta1.Experiment_AVAILABLE,
+		StorageState: apiV2beta1.Experiment_AVAILABLE,
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -440,8 +437,7 @@ func TestGetExperiment_Multiuser(t *testing.T) {
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 		Namespace:    "ns1",
-		// TODO(lingqinggan): fix storage state
-		// StorageState: apiV2beta1.Experiment_AVAILABLE,
+		StorageState: apiV2beta1.Experiment_AVAILABLE,
 	}
 	assert.Equal(t, expectedExperiment, result)
 }
@@ -480,8 +476,7 @@ func TestListExperiments(t *testing.T) {
 		DisplayName:  "ex1",
 		Description:  "first experiment",
 		CreatedAt:    &timestamp.Timestamp{Seconds: 1},
-		// TODO(lingqinggan): fix storage state
-		// StorageState: apiV2beta1.Experiment_AVAILABLE,
+		StorageState: apiV2beta1.Experiment_AVAILABLE,
 	}}
 	assert.Nil(t, err)
 	assert.Equal(t, expectedExperiment, result.Experiments)
@@ -759,8 +754,7 @@ func TestListExperiments_Multiuser(t *testing.T) {
 				Description:  "first experiment",
 				CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 				Namespace:    "ns1",
-				// TODO(lingqinggan): fix storage state
-				// StorageState: apiV2beta1.Experiment_AVAILABLE,
+				StorageState: apiV2beta1.Experiment_AVAILABLE,
 			}},
 		},
 		{
@@ -1137,10 +1131,9 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	experimentServer := NewExperimentServer(manager, &ExperimentServerOptions{CollectMetrics: false})
 	_, err = experimentServer.ArchiveExperiment(nil, &apiV2beta1.ArchiveExperimentRequest{ExperimentId: experiment.UUID})
 	assert.Nil(t, err)
-	// result, err := experimentServer.GetExperiment(nil, &apiV2beta1.GetExperimentRequest{ExperimentId: experiment.UUID})
-	_, err = experimentServer.GetExperiment(nil, &apiV2beta1.GetExperimentRequest{ExperimentId: experiment.UUID})
+	result, err := experimentServer.GetExperiment(nil, &apiV2beta1.GetExperimentRequest{ExperimentId: experiment.UUID})
 	assert.Nil(t, err)
-	// assert.Equal(t, apiV2beta1.Experiment_ARCHIVED, result.StorageState)
+	assert.Equal(t, apiV2beta1.Experiment_ARCHIVED, result.StorageState)
 	runs, err := runServer.ListRunsV1(nil, &apiV1beta1.ListRunsRequest{ResourceReferenceKey: &apiV1beta1.ResourceKey{Id: experiment.UUID, Type: apiV1beta1.ResourceType_EXPERIMENT}})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(runs.Runs))
@@ -1154,15 +1147,14 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	// Unarchive the experiment and thus all runs under it.
 	_, err = experimentServer.UnarchiveExperiment(nil, &apiV2beta1.UnarchiveExperimentRequest{ExperimentId: experiment.UUID})
 	assert.Nil(t, err)
-	_, err = experimentServer.GetExperiment(nil, &apiV2beta1.GetExperimentRequest{ExperimentId: experiment.UUID})
+	result, err = experimentServer.GetExperiment(nil, &apiV2beta1.GetExperimentRequest{ExperimentId: experiment.UUID})
 	assert.Nil(t, err)
-	// TODO(lingqinggan): fix storage state
-	// assert.Equal(t, apiV1beta1.Experiment_STORAGESTATE_AVAILABLE, result.StorageState)
+	assert.Equal(t, apiV2beta1.Experiment_AVAILABLE, result.StorageState)
 	runs, err = runServer.ListRunsV1(nil, &apiV1beta1.ListRunsRequest{ResourceReferenceKey: &apiV1beta1.ResourceKey{Id: experiment.UUID, Type: apiV1beta1.ResourceType_EXPERIMENT}})
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(runs.Runs))
-	// assert.Equal(t, apiV1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[0].StorageState)
-	// assert.Equal(t, apiV1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[1].StorageState)
+	assert.Equal(t, apiV1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[0].StorageState)
+	assert.Equal(t, apiV1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[1].StorageState)
 	jobs, err = jobServer.ListJobs(nil, &apiV1beta1.ListJobsRequest{ResourceReferenceKey: &apiV1beta1.ResourceKey{Id: experiment.UUID, Type: apiV1beta1.ResourceType_EXPERIMENT}})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs.Jobs))
