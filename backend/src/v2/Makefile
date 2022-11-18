@@ -17,7 +17,7 @@ SHELL = /bin/bash
 
 # create an .env file to override dev vars locally
 -include .env
-DEV_IMAGE_PREFIX?=gcr.io/dummy/dev/kfp-
+DEV_IMAGE_PREFIX?=$(error Please set DEV_IMAGE_PREFIX flag)
 REPO_ROOT=../../..
 GOOS_VALUE?=linux
 GOARCH_VALUE?=amd64
