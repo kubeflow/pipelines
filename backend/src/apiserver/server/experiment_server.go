@@ -291,8 +291,23 @@ func (s *ExperimentServer) DeleteExperimentV1(ctx context.Context, request *apiv
 	return &empty.Empty{}, nil
 }
 
-// Need to add content
 func (s *ExperimentServer) DeleteExperiment(ctx context.Context, request *apiv2beta1.DeleteExperimentRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		deleteExperimentRequests.Inc()
+	}
+	err := s.canAccessExperiment(ctx, request.ExperimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+
+	err = s.resourceManager.DeleteExperiment(request.ExperimentId)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.options.CollectMetrics {
+		experimentCount.Dec()
+	}
 	return &empty.Empty{}, nil
 }
 

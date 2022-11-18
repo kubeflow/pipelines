@@ -1090,6 +1090,97 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Equal(t, false, jobs.Jobs[0].Enabled)
 }
 
+// TODO(lingqinggan): add testdelete
+// single user: successful, exp does not exist,
+// multi user: successful, not authorized,
+
+// TestDeleteExperiments_SingleUser tests (1) deleting an existing experiment, and
+// deleting an experiment that does not exist in single user mode, for V2 api.
+func TestDeleteExperiments_SingleUser(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
+	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment"}
+	resultExperiment, err := server.CreateExperiment(nil, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	assert.Nil(t, err)
+
+	_, err = server.DeleteExperiment(nil, &apiV2beta1.DeleteExperimentRequest{ExperimentId: "ex2"})
+	assert.NotNil(t, err)
+
+	_, err = server.DeleteExperiment(nil, &apiV2beta1.DeleteExperimentRequest{ExperimentId: resultExperiment.ExperimentId})
+	assert.Nil(t, err)
+}
+
+// TestDeleteExperimentsV1_SingleUser tests (1) deleting an existing experiment, and
+// deleting an experiment that does not exist in single user mode, for V1 api.
+func TestDeleteExperimentsV1_SingleUser(t *testing.T) {
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
+	experiment := &apiV1beta1.Experiment{Name: "ex1", Description: "first experiment"}
+	resultExperiment, err := server.CreateExperimentV1(nil, &apiV1beta1.CreateExperimentRequest{Experiment: experiment})
+	assert.Nil(t, err)
+
+	_, err = server.DeleteExperimentV1(nil, &apiV1beta1.DeleteExperimentRequest{Id: "ex2"})
+	assert.NotNil(t, err)
+
+	_, err = server.DeleteExperimentV1(nil, &apiV1beta1.DeleteExperimentRequest{Id: resultExperiment.Id})
+	assert.Nil(t, err)
+}
+
+// TestDeleteExperiments_MultiUser tests (1) deleting an existing experiment, and
+// deleting an experiment that does not exist in ,multi user mode, for V2 api.
+func TestDeleteExperiments_MultiUser(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
+	experiment := &apiV2beta1.Experiment{DisplayName: "ex1", Description: "first experiment", Namespace: "ns1"}
+	resultExperiment, err := server.CreateExperiment(ctx, &apiV2beta1.CreateExperimentRequest{Experiment: experiment})
+	assert.Nil(t, err)
+
+	_, err = server.DeleteExperiment(ctx, &apiV2beta1.DeleteExperimentRequest{ExperimentId: "ex2"})
+	assert.NotNil(t, err)
+
+	_, err = server.DeleteExperiment(ctx, &apiV2beta1.DeleteExperimentRequest{ExperimentId: resultExperiment.ExperimentId})
+	assert.Nil(t, err)
+}
+
+// TestDeleteExperimentsV1_MultiUser tests (1) deleting an existing experiment, and
+// deleting an experiment that does not exist in multi user mode, for V1 api.
+func TestDeleteExperimentsV1_MultiUser(t *testing.T) {
+	viper.Set(common.MultiUserMode, "true")
+	defer viper.Set(common.MultiUserMode, "false")
+	md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
+	ctx := metadata.NewIncomingContext(context.Background(), md)
+
+	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
+	resourceManager := resource.NewResourceManager(clientManager)
+	server := ExperimentServer{resourceManager: resourceManager, options: &ExperimentServerOptions{CollectMetrics: false}}
+	resourceReferences := []*apiV1beta1.ResourceReference{
+		{
+			Key:          &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+			Relationship: apiV1beta1.Relationship_OWNER,
+		},
+	}
+	experiment := &apiV1beta1.Experiment{
+		Name:               "ex1",
+		Description:        "first experiment",
+		ResourceReferences: resourceReferences}
+	resultExperiment, err := server.CreateExperimentV1(ctx, &apiV1beta1.CreateExperimentRequest{Experiment: experiment})
+	assert.Nil(t, err)
+
+	_, err = server.DeleteExperimentV1(ctx, &apiV1beta1.DeleteExperimentRequest{Id: "ex2"})
+	assert.NotNil(t, err)
+
+	_, err = server.DeleteExperimentV1(ctx, &apiV1beta1.DeleteExperimentRequest{Id: resultExperiment.Id})
+	assert.Nil(t, err)
+}
+
 func TestListExperimentsV1_Unauthenticated(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
