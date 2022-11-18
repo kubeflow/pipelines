@@ -286,7 +286,8 @@ class PipelineTask:
         return self
 
     def set_gpu_limit(self, gpu: str) -> 'PipelineTask':
-        """Sets GPU limit (maximum) for the task.
+        """Sets GPU limit (maximum) for the task. Only applies if accelerator
+        type is also set via .add_node_selector_constraint().
 
         Args:
             gpu: The maximum GPU reuqests allowed. This string should be a positive integer number of GPUs.
