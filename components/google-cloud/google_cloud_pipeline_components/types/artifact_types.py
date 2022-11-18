@@ -22,7 +22,8 @@ ARTIFACT_PROPERTY_KEY_RESOURCE_NAME = 'resourceName'
 
 
 def google_artifact(type_name):
-  "Decorator for Google Artifact types for handling KFP v1/v2 artifact types"
+  """Decorator for Google Artifact types for handling KFP v1/v2 artifact types.
+  """
   def add_type_name(cls):
     if hasattr(dsl.Artifact, 'schema_title'):
       cls.schema_title = type_name
@@ -31,6 +32,7 @@ def google_artifact(type_name):
       cls.TYPE_NAME = type_name
     return cls
   return add_type_name
+
 
 @google_artifact('google.VertexModel')
 class VertexModel(dsl.Artifact):
