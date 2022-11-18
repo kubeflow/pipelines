@@ -40,13 +40,21 @@ func ToApiExperimentV1(experiment *model.Experiment) *apiV1beta1.Experiment {
 			},
 		}
 	}
+	storageState := apiV1beta1.Experiment_StorageState(apiV1beta1.Experiment_StorageState_value["STORAGESTATE_UNSPECIFIED"])
+	switch experiment.StorageState {
+	case "AVAILABLE":
+		storageState = apiV1beta1.Experiment_StorageState(apiV1beta1.Experiment_StorageState_value["STORAGESTATE_AVAILABLE"])
+	case "ARCHIVED":
+		storageState = apiV1beta1.Experiment_StorageState(apiV1beta1.Experiment_StorageState_value["STORAGESTATE_ARCHIVED"])
+	}
+
 	return &apiV1beta1.Experiment{
 		Id:                 experiment.UUID,
 		Name:               experiment.Name,
 		Description:        experiment.Description,
 		CreatedAt:          &timestamp.Timestamp{Seconds: experiment.CreatedAtInSec},
 		ResourceReferences: resourceReferences,
-		StorageState:       apiV1beta1.Experiment_StorageState(apiV1beta1.Experiment_StorageState_value[experiment.StorageState]),
+		StorageState:       storageState,
 	}
 }
 
@@ -59,13 +67,21 @@ func ToApiExperimentsV1(experiments []*model.Experiment) []*apiV1beta1.Experimen
 }
 
 func ToApiExperiment(experiment *model.Experiment) *apiV2beta1.Experiment {
+	storageState := apiV2beta1.Experiment_StorageState(apiV1beta1.Experiment_StorageState_value["STORAGESTATE_UNSPECIFIED"])
+	switch experiment.StorageState {
+	case "AVAILABLE":
+		storageState = apiV2beta1.Experiment_StorageState(apiV1beta1.Experiment_StorageState_value["AVAILABLE"])
+	case "ARCHIVED":
+		storageState = apiV2beta1.Experiment_StorageState(apiV1beta1.Experiment_StorageState_value["ARCHIVED"])
+	}
+
 	return &apiV2beta1.Experiment{
 		ExperimentId: experiment.UUID,
 		DisplayName:  experiment.Name,
 		Description:  experiment.Description,
 		CreatedAt:    &timestamp.Timestamp{Seconds: experiment.CreatedAtInSec},
 		Namespace:    experiment.Namespace,
-		StorageState: apiV2beta1.Experiment_StorageState(apiV2beta1.Experiment_StorageState_value[experiment.StorageState]),
+		StorageState: storageState,
 	}
 }
 

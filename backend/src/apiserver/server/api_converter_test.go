@@ -739,14 +739,14 @@ func TestToApiExperimentsV1(t *testing.T) {
 		CreatedAtInSec: 1,
 		Name:           "experiment1",
 		Description:    "My name is experiment1",
-		StorageState:   "STORAGESTATE_AVAILABLE",
+		StorageState:   "AVAILABLE",
 	}
 	exp2 := &model.Experiment{
 		UUID:           "exp2",
 		CreatedAtInSec: 2,
 		Name:           "experiment2",
 		Description:    "My name is experiment2",
-		StorageState:   "STORAGESTATE_ARCHIVED",
+		StorageState:   "ARCHIVED",
 	}
 	apiExps := ToApiExperimentsV1([]*model.Experiment{exp1, exp2})
 	expectedApiExps := []*apiV1beta1.Experiment{
@@ -774,14 +774,14 @@ func TestToApiExperiments(t *testing.T) {
 		CreatedAtInSec: 1,
 		Name:           "experiment1",
 		Description:    "My name is experiment1",
-		StorageState:   "STORAGESTATE_AVAILABLE",
+		StorageState:   "AVAILABLE",
 	}
 	exp2 := &model.Experiment{
 		UUID:           "exp2",
 		CreatedAtInSec: 2,
 		Name:           "experiment2",
 		Description:    "My name is experiment2",
-		StorageState:   "STORAGESTATE_ARCHIVED",
+		StorageState:   "ARCHIVED",
 	}
 	apiExps := ToApiExperiments([]*model.Experiment{exp1, exp2})
 	expectedApiExps := []*apiV2beta1.Experiment{
