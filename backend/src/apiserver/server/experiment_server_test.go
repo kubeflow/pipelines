@@ -1013,7 +1013,7 @@ func TestValidateCreateExperimentRequest_Multiuser(t *testing.T) {
 	}
 }
 
-func TestArchiveAndUnarchiveExperiment(t *testing.T) {
+func TestArchiveAndUnarchiveExperimentV1(t *testing.T) {
 	// Create experiment and runs/jobs under it.
 	clients, manager, experiment := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
@@ -1090,9 +1090,84 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Equal(t, false, jobs.Jobs[0].Enabled)
 }
 
-// TODO(lingqinggan): add testdelete
-// single user: successful, exp does not exist,
-// multi user: successful, not authorized,
+func TestArchiveAndUnarchiveExperiment(t *testing.T) {
+	// Create experiment and runs/jobs under it.
+	clients, manager, experiment := initWithExperimentAndPipelineVersion(t)
+	defer clients.Close()
+	runServer := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+	run1 := &apiV1beta1.Run{
+		Name:               "run1",
+		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
+	}
+	err := runServer.validateCreateRunRequest(&apiV1beta1.CreateRunRequest{Run: run1})
+	assert.Nil(t, err)
+	_, err = runServer.CreateRunV1(nil, &apiV1beta1.CreateRunRequest{Run: run1})
+	assert.Nil(t, err)
+	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(resource.FakeUUIDOne, nil))
+	manager = resource.NewResourceManager(clients)
+	runServer = NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+	run2 := &apiV1beta1.Run{
+		Name:               "run2",
+		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
+	}
+	err = runServer.validateCreateRunRequest(&apiV1beta1.CreateRunRequest{Run: run2})
+	assert.Nil(t, err)
+	_, err = runServer.CreateRunV1(nil, &apiV1beta1.CreateRunRequest{Run: run2})
+	assert.Nil(t, err)
+	clients.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(resource.DefaultFakeUUID, nil))
+	manager = resource.NewResourceManager(clients)
+	jobServer := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	job1 := &apiV1beta1.Job{
+		Name:           "name1",
+		Enabled:        true,
+		MaxConcurrency: 1,
+		Trigger: &apiV1beta1.Trigger{
+			Trigger: &apiV1beta1.Trigger_CronSchedule{CronSchedule: &apiV1beta1.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}}},
+		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
+	}
+	err = jobServer.validateCreateJobRequest(&apiV1beta1.CreateJobRequest{Job: job1})
+	assert.Nil(t, err)
+	_, err = jobServer.CreateJob(nil, &apiV1beta1.CreateJobRequest{Job: job1})
+	assert.Nil(t, err)
+
+	// Archive the experiment and thus all runs under it.
+	experimentServer := NewExperimentServer(manager, &ExperimentServerOptions{CollectMetrics: false})
+	_, err = experimentServer.ArchiveExperiment(nil, &apiV2beta1.ArchiveExperimentRequest{ExperimentId: experiment.UUID})
+	assert.Nil(t, err)
+	// result, err := experimentServer.GetExperiment(nil, &apiV2beta1.GetExperimentRequest{ExperimentId: experiment.UUID})
+	_, err = experimentServer.GetExperiment(nil, &apiV2beta1.GetExperimentRequest{ExperimentId: experiment.UUID})
+	assert.Nil(t, err)
+	// assert.Equal(t, apiV2beta1.Experiment_ARCHIVED, result.StorageState)
+	runs, err := runServer.ListRunsV1(nil, &apiV1beta1.ListRunsRequest{ResourceReferenceKey: &apiV1beta1.ResourceKey{Id: experiment.UUID, Type: apiV1beta1.ResourceType_EXPERIMENT}})
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(runs.Runs))
+	assert.Equal(t, apiV1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[0].StorageState)
+	assert.Equal(t, apiV1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[1].StorageState)
+	jobs, err := jobServer.ListJobs(nil, &apiV1beta1.ListJobsRequest{ResourceReferenceKey: &apiV1beta1.ResourceKey{Id: experiment.UUID, Type: apiV1beta1.ResourceType_EXPERIMENT}})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(jobs.Jobs))
+	assert.Equal(t, false, jobs.Jobs[0].Enabled)
+
+	// Unarchive the experiment and thus all runs under it.
+	_, err = experimentServer.UnarchiveExperiment(nil, &apiV2beta1.UnarchiveExperimentRequest{ExperimentId: experiment.UUID})
+	assert.Nil(t, err)
+	_, err = experimentServer.GetExperiment(nil, &apiV2beta1.GetExperimentRequest{ExperimentId: experiment.UUID})
+	assert.Nil(t, err)
+	// TODO(lingqinggan): fix storage state
+	// assert.Equal(t, apiV1beta1.Experiment_STORAGESTATE_AVAILABLE, result.StorageState)
+	runs, err = runServer.ListRunsV1(nil, &apiV1beta1.ListRunsRequest{ResourceReferenceKey: &apiV1beta1.ResourceKey{Id: experiment.UUID, Type: apiV1beta1.ResourceType_EXPERIMENT}})
+	assert.Nil(t, err)
+	assert.Equal(t, 2, len(runs.Runs))
+	// assert.Equal(t, apiV1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[0].StorageState)
+	// assert.Equal(t, apiV1beta1.Run_STORAGESTATE_ARCHIVED, runs.Runs[1].StorageState)
+	jobs, err = jobServer.ListJobs(nil, &apiV1beta1.ListJobsRequest{ResourceReferenceKey: &apiV1beta1.ResourceKey{Id: experiment.UUID, Type: apiV1beta1.ResourceType_EXPERIMENT}})
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(jobs.Jobs))
+	assert.Equal(t, false, jobs.Jobs[0].Enabled)
+}
 
 // TestDeleteExperiments_SingleUser tests (1) deleting an existing experiment, and
 // deleting an experiment that does not exist in single user mode, for V2 api.

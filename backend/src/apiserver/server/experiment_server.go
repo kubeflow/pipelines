@@ -402,6 +402,22 @@ func (s *ExperimentServer) ArchiveExperimentV1(ctx context.Context, request *api
 	return &empty.Empty{}, nil
 }
 
+func (s *ExperimentServer) ArchiveExperiment(ctx context.Context, request *apiv2beta1.ArchiveExperimentRequest) (*empty.Empty, error) {
+	if s.options.CollectMetrics {
+		archiveExperimentRequests.Inc()
+	}
+
+	err := s.canAccessExperiment(ctx, request.ExperimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbArchive})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+	err = s.resourceManager.ArchiveExperiment(ctx, request.ExperimentId)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
+}
+
 func (s *ExperimentServer) UnarchiveExperimentV1(ctx context.Context, request *apiv1beta1.UnarchiveExperimentRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		unarchiveExperimentRequests.Inc()
@@ -418,12 +434,20 @@ func (s *ExperimentServer) UnarchiveExperimentV1(ctx context.Context, request *a
 	return &empty.Empty{}, nil
 }
 
-func (s *ExperimentServer) ArchiveExperiment(ctx context.Context, request *apiv2beta1.ArchiveExperimentRequest) (*empty.Empty, error) {
-	return nil, util.NewInvalidInputError("Archive exp v2 success!")
-}
-
 func (s *ExperimentServer) UnarchiveExperiment(ctx context.Context, request *apiv2beta1.UnarchiveExperimentRequest) (*empty.Empty, error) {
-	return nil, util.NewInvalidInputError("Unarchive exp v2 success!")
+	if s.options.CollectMetrics {
+		unarchiveExperimentRequests.Inc()
+	}
+
+	err := s.canAccessExperiment(ctx, request.ExperimentId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUnarchive})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+	err = s.resourceManager.UnarchiveExperiment(request.ExperimentId)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
 }
 
 func NewExperimentServer(resourceManager *resource.ResourceManager, options *ExperimentServerOptions) *ExperimentServer {
