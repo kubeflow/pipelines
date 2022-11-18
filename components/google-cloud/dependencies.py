@@ -25,8 +25,8 @@ def make_required_install_packages():
         # To resolve RTD errors with error: protobuf<4.0.0dev,>=3.19.0 is required by {'google-cloud-aiplatform'}
         "protobuf<4.0.0dev,>=3.19.0",
         "grpcio-status<=1.47.0",
-        "google-cloud-storage>=1.20.0,<3",
-        "kfp>=1.8.9",
+        "google-cloud-storage>=1.20.0,<2",
+        "kfp>=1.8.9,<2.0.0",
         "google-cloud-notebooks>=0.4.0",
         "google-cloud-aiplatform==1.14.0,<2",
     ]
