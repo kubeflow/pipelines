@@ -59,6 +59,33 @@ func NewWorkflowFromBytes(bytes []byte) (*Workflow, error) {
 	return NewWorkflow(&workflow), nil
 }
 
+func NewWorkflowFromBytesJSON(bytes []byte) (*Workflow, error) {
+	var workflow workflowapi.Workflow
+	err := json.Unmarshal(bytes, &workflow)
+	if err != nil {
+		return nil, NewInvalidInputErrorWithDetails(err, "Failed to unmarshal the inputs")
+	}
+	return NewWorkflow(&workflow), nil
+}
+
+func NewWorkflowFromScheduleWorkflowSpecBytesJSON(bytes []byte) (*Workflow, error) {
+	var workflow workflowapi.Workflow
+	err := json.Unmarshal(bytes, &workflow)
+	if err != nil {
+		return nil, NewInvalidInputErrorWithDetails(err, "Failed to unmarshal the inputs into workflow")
+	}
+	if workflow.Spec.Entrypoint == "" {
+		// fall back to unmarshal into  workflow.spec for previously created recurring run.
+		err := json.Unmarshal(bytes, &workflow.Spec)
+		if err != nil {
+			return nil, NewInvalidInputErrorWithDetails(err, "Failed to unmarshal the inputs into workflow.spec")
+		}
+		workflow.APIVersion = "argoproj.io/v1alpha1"
+		workflow.Kind = "Workflow"
+	}
+	return NewWorkflow(&workflow), nil
+}
+
 func NewWorkflowFromInterface(obj interface{}) (*Workflow, error) {
 	workflow, ok := obj.(*workflowapi.Workflow)
 	if ok {
