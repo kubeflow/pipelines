@@ -33,6 +33,35 @@ def create_pipeline_task(
     return PipelineTask(component_spec=component_spec, args=args)
 
 
+def validate_tuple(argument_value: tuple, input_name: str):
+    # cannot have constants
+    constants = [
+        val for val in argument_value
+        if not isinstance(val, pipeline_channel.PipelineChannel)
+    ]
+    if constants:
+        raise ValueError(
+            f'Condition branch aggregation input arguments passed via tuple must all be task outputs. Constants are not permitted. Got constant values {constants} in tuple argument to {input_name}.'
+        )
+
+    # cannot have pipeline parameter
+    pipeline_parameters = [
+        val.name for val in argument_value if val.task_name is None
+    ]
+    if pipeline_parameters:
+        raise ValueError(
+            f'Condition branch aggregation input arguments passed via tuple must all be task outputs. Pipeline parameters are not permitted. Got pipeline parameters {pipeline_parameters} in tuple argument to {input_name}.'
+        )
+
+    # must all be the same type
+    argument_type = argument_value[0].channel_type
+    all_types = [val.channel_type for val in argument_value]
+    if any(t != argument_type for t in all_types):
+        raise ValueError(
+            f'Condition branch aggregation input arguments passed via tuple must all be the same type. Got types {tuple(all_types)} as tuple argument to {input_name}.'
+        )
+
+
 class PipelineTask:
     """Represents a pipeline task (instantiated component).
 
@@ -101,6 +130,8 @@ class PipelineTask:
                 argument_type = 'Dict'
             elif isinstance(argument_value, list):
                 argument_type = 'List'
+            elif isinstance(argument_value, tuple):
+                validate_tuple(argument_value, input_name)
             else:
                 raise ValueError(
                     'Input argument supports only the following types: '
@@ -159,14 +190,19 @@ class PipelineTask:
         }
 
         self._inputs = args
+        self._channel_inputs = []
+        for _, value in args.items():
+            if isinstance(value, pipeline_channel.PipelineChannel):
+                self._channel_inputs.append(value)
 
-        self._channel_inputs = [
-            value for _, value in args.items()
-            if isinstance(value, pipeline_channel.PipelineChannel)
-        ] + pipeline_channel.extract_pipeline_channels_from_any([
-            value for _, value in args.items()
-            if not isinstance(value, pipeline_channel.PipelineChannel)
-        ])
+        not_pipeline_channels = []
+        for _, value in args.items():
+            if not isinstance(value, pipeline_channel.PipelineChannel):
+                not_pipeline_channels.append(value)
+
+        self._channel_inputs.extend(
+            pipeline_channel.extract_pipeline_channels_from_any(
+                not_pipeline_channels))
 
     @property
     def name(self) -> str:
