@@ -816,6 +816,15 @@ class ComponentSpec:
             Component spec in the form of V2 ComponentSpec.
         """
 
+        def extract_description(component_yaml: str) -> str:
+            heading = '# Description: '
+            if heading in component_yaml:
+                description = component_yaml.splitlines()[2]
+
+                return description[len(heading):]
+            else:
+                return None
+
         json_component = yaml.safe_load(component_yaml)
         is_v1 = 'implementation' in set(json_component.keys())
         if is_v1:
@@ -823,7 +832,12 @@ class ComponentSpec:
                 component_yaml)
             return cls.from_v1_component_spec(v1_component)
         else:
-            return ComponentSpec.from_pipeline_spec_dict(json_component)
+            component_spec = ComponentSpec.from_pipeline_spec_dict(
+                json_component)
+            if not component_spec.description:
+                component_spec.description = extract_description(
+                    component_yaml=component_yaml)
+            return component_spec
 
     def save_to_component_yaml(self, output_file: str) -> None:
         """Saves ComponentSpec into IR YAML file.

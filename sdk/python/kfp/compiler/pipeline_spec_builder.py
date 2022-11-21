@@ -1629,12 +1629,8 @@ def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
 
     elif package_path.endswith(('.yaml', '.yml')):
         with open(package_path, 'w') as yaml_file:
+            yaml_file.write(yaml_comments)
             yaml.dump(json_dict, yaml_file, sort_keys=True)
-
-        with open(package_path, 'r+') as f:
-            old = f.read()
-            f.seek(0)
-            f.write(yaml_comments + old)
 
     else:
         raise ValueError(
@@ -1644,81 +1640,69 @@ def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
 def extract_comments_from_pipeline_spec(pipeline_spec: dict,
                                         pipeline_description: str) -> str:
     map_parameter_types = {
-        'NUMBER_INTEGER': 'int',
-        'NUMBER_DOUBLE': 'float',
-        'STRING': 'str',
-        'BOOLEAN': 'bool',
-        'LIST': 'list',
-        'STRUCT': 'dict'
+        'NUMBER_INTEGER': int.__name__,
+        'NUMBER_DOUBLE': float.__name__,
+        'STRING': str.__name__,
+        'BOOLEAN': bool.__name__,
+        'LIST': list.__name__,
+        'STRUCT': dict.__name__
     }
 
-    def add_inputs():
-        if 'inputDefinitions' in pipeline_spec['root']:
-            inputs = pipeline_spec['root']['inputDefinitions']
-            string = '# Inputs: \n'
+    map_headings = {
+        'inputDefinitions': '# Inputs:',
+        'outputDefinitions': '# Outputs:'
+    }
 
-            if 'parameters' in inputs:
-                for parameter in inputs['parameters']:
-                    string += '#    ' + parameter + ': ' + map_parameter_types[
-                        inputs['parameters'][parameter]['parameterType']]
-                    if 'defaultValue' in inputs['parameters'][parameter]:
-                        string += ' [Default: ' + str(
-                            inputs['parameters'][parameter]
-                            ['defaultValue']) + ']'
+    def collect_pipeline_signatures(root_dict: dict,
+                                    signature_type: str) -> str:
+        comment_strings = []
+        if signature_type in root_dict:
+            signature = root_dict[signature_type]
+            comment_strings.append(map_headings[signature_type])
 
-                    string += '\n'
+            # Collect data
+            array_of_signatures = []
+            for parameter in signature.get('parameters', {}):
+                data = {}
+                data['name'] = parameter
+                data['parameterType'] = map_parameter_types[
+                    signature['parameters'][parameter]['parameterType']]
+                if 'defaultValue' in signature['parameters'][parameter]:
+                    data['defaultValue'] = signature['parameters'][parameter][
+                        'defaultValue']
+                array_of_signatures.append(data)
 
-            if 'artifacts' in inputs:
-                for artifact in inputs['artifacts']:
-                    if 'schemaTitle' in inputs['artifacts'][artifact][
-                            'artifactType']:
-                        string += '#    ' + artifact + ': ' + inputs[
-                            'artifacts'][artifact]['artifactType'][
-                                'schemaTitle'] + '\n'
-                    #TODO: Add exception tp raise if schematitle doesnt exist
+            for artifact in signature.get('artifacts', {}):
+                data = {}
+                data['name'] = artifact
+                data['parameterType'] = signature['artifacts'][artifact][
+                    'artifactType']['schemaTitle']
+                array_of_signatures.append(data)
 
-            return string
-        else:
-            return ''
+            # Present data
+            for signature in array_of_signatures:
+                string = '#    ' + signature['name'] + ': ' + signature[
+                    'parameterType']
+                if 'defaultValue' in signature:
+                    string += ' [Default: ' + str(
+                        signature['defaultValue']) + ']'
+                comment_strings.append(string)
 
-    def add_outputs():
-        if 'outputDefinitions' in pipeline_spec['root']:
-            outputs = pipeline_spec['root']['outputDefinitions']
-            string = '# Outputs: \n'
-
-            if 'parameters' in outputs:
-                for parameter in outputs['parameters']:
-                    string += '#    ' + parameter + ': ' + map_parameter_types[
-                        outputs['parameters'][parameter]['parameterType']]
-                    if 'defaultValue' in outputs['parameters'][parameter]:
-                        string += ' [Default: ' + str(
-                            outputs['parameters'][parameter]
-                            ['defaultValue']) + ']'
-
-                    string += '\n'
-
-            if 'artifacts' in outputs:
-                for artifact in outputs['artifacts']:
-                    if 'schemaTitle' in outputs['artifacts'][artifact][
-                            'artifactType']:
-                        string += '#    ' + artifact + ': ' + outputs[
-                            'artifacts'][artifact]['artifactType'][
-                                'schemaTitle'] + '\n'
-
-                    #TODO: Add exception tp raise if schematitle doesnt exist
-
-            return string
-        else:
-            return ''
+        return comment_strings
 
     if 'root' not in pipeline_spec:
         return ''
 
-    comment = '# PIPELINE DEFINITION\n'
-    comment += '# Name: ' + pipeline_spec['pipelineInfo']['name'] + '\n'
+    comment_sections = []
+    comment_sections.append('# PIPELINE DEFINITION')
+    comment_sections.append('# Name: ' + pipeline_spec['pipelineInfo']['name'])
     if pipeline_description:
-        comment += '# Description: ' + pipeline_description + '\n'
-    comment += add_inputs()
-    comment += add_outputs()
+        comment_sections.append('# Description: ' + pipeline_description)
+    comment_sections.extend(
+        collect_pipeline_signatures(pipeline_spec['root'], 'inputDefinitions'))
+    comment_sections.extend(
+        collect_pipeline_signatures(pipeline_spec['root'], 'outputDefinitions'))
+
+    comment = '\n'.join(comment_sections) + '\n'
 
     return comment

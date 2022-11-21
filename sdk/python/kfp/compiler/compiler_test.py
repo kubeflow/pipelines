@@ -18,6 +18,7 @@ import os
 import re
 import subprocess
 import tempfile
+import textwrap
 from typing import Any, Dict, List, NamedTuple, Optional
 import unittest
 
@@ -29,6 +30,11 @@ from kfp import dsl
 from kfp.cli import cli
 from kfp.compiler import compiler
 from kfp.components.types import type_utils
+from kfp.dsl import ContainerSpec
+from kfp.dsl import Input
+from kfp.dsl import Model
+from kfp.dsl import Output
+from kfp.dsl import OutputPath
 from kfp.dsl import PipelineTaskFinalStatus
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
@@ -1509,25 +1515,21 @@ class TestYamlComments(unittest.TestCase):
             pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path=pipeline_spec_path)
-
-            inputs_string = '# Inputs: \n#    sample_input1: bool [Default: True]\n#    sample_input2: str [Default: string]'
-            outputs_string = '# Outputs: \n#    Output: str'
-            name_string = '# Name: my-pipeline'
-
-            # test name is in comments
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
-                self.assertTrue(name_string in yaml_content)
 
-            # test inputs are in comments
-            with open(pipeline_spec_path, 'r+') as f:
-                yaml_content = f.read()
-                self.assertTrue(inputs_string in yaml_content)
+        inputs_string = '# Inputs:\n#    sample_input1: bool [Default: True]\n#    sample_input2: str [Default: string]'
+        outputs_string = '# Outputs:\n#    Output: str'
+        name_string = '# Name: my-pipeline'
 
-            # test outputs are in comments
-            with open(pipeline_spec_path, 'r+') as f:
-                yaml_content = f.read()
-                self.assertTrue(outputs_string in yaml_content)
+        # test name is in comments
+        self.assertTrue(name_string in yaml_content)
+
+        # test inputs are in comments
+        self.assertTrue(inputs_string in yaml_content)
+
+        # test outputs are in comments
+        self.assertTrue(outputs_string in yaml_content)
 
     def test_comments_include_definition(self):
 
@@ -1547,13 +1549,13 @@ class TestYamlComments(unittest.TestCase):
             compiler.Compiler().compile(
                 pipeline_func=pipeline_with_no_definition,
                 package_path=pipeline_spec_path)
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
 
             definition_string = '# Description: This is a definition of this pipeline'
 
-            # test definition not in comments
-            with open(pipeline_spec_path, 'r+') as f:
-                yaml_content = f.read()
-                self.assertFalse(definition_string in yaml_content)
+        # test definition not in comments
+        self.assertFalse(definition_string in yaml_content)
 
         @dsl.pipeline()
         def pipeline_with_definition(sample_input1: bool = True,
@@ -1569,12 +1571,13 @@ class TestYamlComments(unittest.TestCase):
                 pipeline_func=pipeline_with_definition,
                 package_path=pipeline_spec_path)
 
-            definition_string = '# Description: This is a definition of this pipeline'
-
-            # test definition in comments
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
-                self.assertTrue(definition_string in yaml_content)
+
+            definition_string = '# Description: This is a definition of this pipeline'
+
+        # test definition in comments
+        self.assertTrue(definition_string in yaml_content)
 
     def test_comments_on_pipeline_with_no_inputs_or_outputs(self):
 
@@ -1594,12 +1597,13 @@ class TestYamlComments(unittest.TestCase):
                 pipeline_func=pipeline_with_no_inputs,
                 package_path=pipeline_spec_path)
 
-            inputs_string = '# Inputs: \n'
-
-            # test inputs header not in comments
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
-                self.assertFalse(inputs_string in yaml_content)
+
+        inputs_string = '# Inputs:\n'
+
+        # test inputs header not in comments
+        self.assertFalse(inputs_string in yaml_content)
 
         @dsl.pipeline()
         def pipeline_with_no_outputs(sample_input1: bool = True,
@@ -1612,12 +1616,13 @@ class TestYamlComments(unittest.TestCase):
                 pipeline_func=pipeline_with_no_outputs,
                 package_path=pipeline_spec_path)
 
-            outputs_string = '# Outputs: \n'
-
-            # test outputs header not in comments
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
-                self.assertFalse(outputs_string in yaml_content)
+
+        outputs_string = '# Outputs:\n'
+
+        # test outputs header not in comments
+        self.assertFalse(outputs_string in yaml_content)
 
     def test_comments_follow_pattern(self):
 
@@ -1638,12 +1643,126 @@ class TestYamlComments(unittest.TestCase):
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path=pipeline_spec_path)
 
-            pattern_sample = '# PIPELINE DEFINITION\n# Name: my-pipeline\n# Description: This is a definition of this pipeline.\n# Inputs: \n#    sample_input1: bool [Default: True]\n#    sample_input2: str [Default: string]\n# Outputs: \n#    Output: str'
-
-            # test name is in comments
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
-                self.assertTrue(pattern_sample in yaml_content)
+
+        pattern_sample = textwrap.dedent("""\
+                # PIPELINE DEFINITION
+                # Name: my-pipeline
+                # Description: This is a definition of this pipeline.
+                # Inputs:
+                #    sample_input1: bool [Default: True]
+                #    sample_input2: str [Default: string]
+                # Outputs:
+                #    Output: str
+                """)
+
+        # test comment follows pattern
+        self.assertTrue(pattern_sample in yaml_content)
+
+    def test_verbose_comment_characteristics(self):
+
+        @dsl.component
+        def output_model(metrics: Output[Model]):
+            """Dummy component that outputs metrics with a random accuracy."""
+            import random
+            result = random.randint(0, 100)
+            metrics.log_metric('accuracy', result)
+
+        @dsl.pipeline(name='Test pipeline')
+        def my_pipeline(sample_input1: bool,
+                        sample_input2: str,
+                        sample_input3: Input[Model],
+                        sample_input4: float = 3.14,
+                        sample_input5: list = [1, 2, 3],
+                        sample_input6: dict = {
+                            'one': 1,
+                            'two': 2,
+                            'three': 3
+                        },
+                        sample_input7: int = 5) -> Model:
+            """This is a definition of this pipeline."""
+
+            task = output_model()
+            return task.output
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        predicted_comment = textwrap.dedent("""\
+                # PIPELINE DEFINITION
+                # Name: test-pipeline
+                # Description: This is a definition of this pipeline.
+                # Inputs:
+                #    sample_input1: bool
+                #    sample_input2: str
+                #    sample_input4: float [Default: 3.14]
+                #    sample_input5: list [Default: [1.0, 2.0, 3.0]]
+                #    sample_input6: dict [Default: {'one': 1.0, 'two': 2.0, 'three': 3.0}]
+                #    sample_input7: int [Default: 5.0]
+                #    sample_input3: system.Model
+                # Outputs:
+                #    Output: system.Model
+                """)
+
+        # test predicted comment matches actual comment
+        self.assertTrue(predicted_comment in yaml_content)
+
+    def test_comments_on_compiled_components(self):
+
+        @dsl.component
+        def my_component(string: str, model: bool) -> str:
+            return string
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_component, package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        predicted_comment = textwrap.dedent("""\
+                # PIPELINE DEFINITION
+                # Name: my-component
+                # Inputs:
+                #    string: str
+                #    model: bool
+                """)
+
+        # test comments work on compiled components
+        self.assertTrue(predicted_comment in yaml_content)
+
+        @dsl.container_component
+        def my_container_component(text: str, output_path: OutputPath(str)):
+            return ContainerSpec(
+                image='python:3.7',
+                command=['my_program', text],
+                args=['--output_path', output_path])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_container_component,
+                package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        predicted_comment = textwrap.dedent("""\
+                # PIPELINE DEFINITION
+                # Name: my-container-component
+                # Inputs:
+                #    text: str
+                """)
+
+        # test comments work on compiled container components
+        self.assertTrue(predicted_comment in yaml_content)
 
 
 if __name__ == '__main__':
