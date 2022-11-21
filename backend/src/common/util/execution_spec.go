@@ -189,7 +189,7 @@ func NewExecutionSpecJSON(execType ExecutionType, bytes []byte) (ExecutionSpec, 
 	}
 	switch execType {
 	case ArgoWorkflow:
-		return NewWorkflowFromBytesJSON(bytes)
+		return NewWorkflowFromBytes(bytes)
 	case TektonPipelineRun:
 		return nil, NewInvalidInputError("Not implemented yet")
 	default:
@@ -243,7 +243,7 @@ func ScheduleSpecToExecutionSpec(
 	switch execType {
 	case ArgoWorkflow:
 		if executionSpecStr, ok := wfr.Spec.(string); ok {
-			return NewWorkflowFromScheduleWorkflowSpecBytesJSON([]byte(executionSpecStr))
+			return NewWorkflowFromBytes([]byte(executionSpecStr))
 		}
 		// fall back to Argo WorkflowSpec, need to marshal back to json string then unmarshal to
 		// argo WorkflowSpec because wfr.Spec is a map at this moment

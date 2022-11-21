@@ -59,26 +59,6 @@ func NewWorkflowFromBytes(bytes []byte) (*Workflow, error) {
 	return NewWorkflow(&workflow), nil
 }
 
-func NewWorkflowFromBytesJSON(bytes []byte) (*Workflow, error) {
-	var workflow workflowapi.Workflow
-	err := json.Unmarshal(bytes, &workflow)
-	if err != nil {
-		return nil, NewInvalidInputErrorWithDetails(err, "Failed to unmarshal the inputs")
-	}
-	return NewWorkflow(&workflow), nil
-}
-
-func NewWorkflowFromScheduleWorkflowSpecBytesJSON(bytes []byte) (*Workflow, error) {
-	var workflow workflowapi.Workflow
-	err := json.Unmarshal(bytes, &workflow.Spec)
-	if err != nil {
-		return nil, NewInvalidInputErrorWithDetails(err, "Failed to unmarshal the inputs")
-	}
-	workflow.APIVersion = "argoproj.io/v1alpha1"
-	workflow.Kind = "Workflow"
-	return NewWorkflow(&workflow), nil
-}
-
 func NewWorkflowFromInterface(obj interface{}) (*Workflow, error) {
 	workflow, ok := obj.(*workflowapi.Workflow)
 	if ok {
@@ -719,13 +699,14 @@ func (w *Workflow) CanRetry() error {
 	return nil
 }
 
+// TODO: merge with ToStringForStore()
 func (w *Workflow) ToStringForSchedule() string {
-	spec, err := json.Marshal(w.Workflow.Spec)
+	workflow, err := json.Marshal(w.Workflow)
 	if err != nil {
-		glog.Errorf("Could not marshal the Spec of workflow: %v", w.Workflow)
+		glog.Errorf("Could not marshal the workflow: %v", w.Workflow)
 		return ""
 	}
-	return string(spec)
+	return string(workflow)
 }
 
 // Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
