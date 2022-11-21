@@ -43,5 +43,7 @@ This list will be expanded to support more types in the future.
 * BigQueryJob
 * CustomJob
 * DataflowJob
+* DataprocBatch
+* DataprocLro
 * HyperparameterTuningJob
 * VertexLro
