@@ -274,3 +274,55 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
         })
+
+  @mock.patch.object(google.auth, 'default', autospec=True)
+  @mock.patch.object(google.auth.transport.requests, 'Request', autospec=True)
+  @mock.patch.object(requests, 'post', autospec=True)
+  def test_model_upload_with_parent_model_remote_runner_succeeded(self, mock_post_requests, _,
+                                                mock_auth):
+    creds = mock.Mock()
+    creds.token = 'fake_token'
+    mock_auth.return_value = [creds, 'project']
+    upload_model_lro = mock.Mock()
+    upload_model_lro.json.return_value = {
+        'name': self._lro_name,
+        'done': True,
+        'response': {
+            'model': self._model_name,
+            'model_version_id': '2'
+        }
+    }
+    mock_post_requests.return_value = upload_model_lro
+
+    upload_model_remote_runner.upload_model(self._type, self._project,
+                                            self._location, self._payload,
+                                            self._gcp_resources_path,
+                                            self._executor_input,
+                                            self._model_name)
+    mock_post_requests.assert_called_once_with(
+        url=f'{self._uri_prefix}projects/test_project/locations/test_region/models:upload',
+        data='{"model": {"display_name": "model1"}, "parent_model": "%s"}' %
+        (self._model_name),
+        headers={
+            'Content-type': 'application/json',
+            'Authorization': 'Bearer fake_token',
+            'User-Agent': 'google-cloud-pipeline-components'
+        })
+
+    with open(self._output_file_path) as f:
+      executor_output = json.load(f, strict=False)
+      self.assertEqual(
+          executor_output,
+          json.loads(
+              '{"artifacts": {"model": {"artifacts": [{"metadata": {"resourceName": "projects/test_project/locations/test_region/models/123@2"}, "name": "foobar", "type": {"schemaTitle": "google.VertexModel"}, "uri": "https://test_region-aiplatform.googleapis.com/v1/projects/test_project/locations/test_region/models/123@2"}]}}}'
+          ))
+
+    with open(self._gcp_resources_path) as f:
+      serialized_gcp_resources = f.read()
+      # Instantiate GCPResources Proto
+      lro_resources = json_format.Parse(serialized_gcp_resources,
+                                        GcpResources())
+
+      self.assertEqual(len(lro_resources.resources), 1)
+      self.assertEqual(lro_resources.resources[0].resource_uri,
+                       self._uri_prefix + self._lro_name)

@@ -31,6 +31,11 @@ def _parse_args(args):
       # executor_input is only needed for components that emit output artifacts.
       required=True,
       default=argparse.SUPPRESS)
+  parser.add_argument(
+      '--parent_model_name',
+      dest='parent_model_name',
+      type=str,
+      default=None)
   parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)
 
