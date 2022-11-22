@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import json
+from typing import Optional
 
 from google_cloud_pipeline_components.container.v1.gcp_launcher import lro_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
@@ -49,6 +50,7 @@ def upload_model(
     payload,
     gcp_resources,
     executor_input,
+    parent_model_name: Optional[str] = None,
 ):
   """Upload model and poll the LongRunningOperator till it reaches a final state."""
   api_endpoint = location + '-aiplatform.googleapis.com'
@@ -62,6 +64,8 @@ def upload_model(
               append_unmanaged_model_artifact_into_payload(
                   executor_input, model_spec))
   }
+  if parent_model_name:
+    upload_model_request['parent_model'] = parent_model_name.rsplit('@', 1)[0]
 
   # Add explanation_spec details back into the request if metadata is non-empty, as sklearn/xgboost input features can be empty.
   if (('explanation_spec' in model_spec) and
@@ -76,6 +80,8 @@ def upload_model(
         upload_model_url, json.dumps(upload_model_request), gcp_resources)
     upload_model_lro = remote_runner.poll_lro(lro=upload_model_lro)
     model_resource_name = upload_model_lro['response']['model']
+    if 'model_version_id' in upload_model_lro['response']:
+      model_resource_name += f'@{upload_model_lro["response"]["model_version_id"]}'
 
     vertex_model = VertexModel('model', vertex_uri_prefix + model_resource_name,
                                model_resource_name)
