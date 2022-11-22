@@ -16,7 +16,7 @@ import abc
 import dataclasses
 import json
 import re
-from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 from kfp.components import pipeline_channel
 from kfp.components.types import type_utils
@@ -366,15 +366,44 @@ def extract_pipeline_channels_from_any(
 
 
 class OneOf:
+    """Used for conditional branch aggregation. Specifically, `outputs` can be
+    outputs from two or more tasks in different Condition groups. The
+    conditions (and by extension the outputs) must be mutually exclusive and
+    collectively exhaustive at pipeline runtime. This is enforced at pipeline
+    runtime.
+
+    Args:
+        outputs: A variable number of mutually exclusive and collectively exhaustive outputs.
+
+    Examples:
+      ::
+
+        @dsl.pipeline
+        def producer(x: int) -> str:
+            with dsl.Condition(x == 1):
+                t1 = return_str()
+            with dsl.Condition(x == 2):
+                t2 = return_str()
+            return dsl.OneOf(t1.output, t2.output)
+
+        @dsl.pipeline
+        def my_pipeline(x: int):
+            p = producer(x=x)
+            consumer(string=p.output)
+    """
+
     # TODO: test topological constraints
+    # TODO: require >=2 elements in outputs
+
     def __init__(self, *outputs) -> None:
         self.outputs = outputs
         self._validate_tuple(outputs)
 
-    def __iter__(self) -> Iterable:
+    def __iter__(self) -> Iterable[pipeline_channel.PipelineChannel]:
         return iter(self.outputs)
 
-    def _validate_tuple(self, outputs: Tuple[Any]) -> None:
+    def _validate_tuple(
+            self, outputs: Tuple[pipeline_channel.PipelineChannel]) -> None:
         # cannot have constants
         constants = [
             val for val in outputs
