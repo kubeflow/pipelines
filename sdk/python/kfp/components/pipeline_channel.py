@@ -16,8 +16,9 @@ import abc
 import dataclasses
 import json
 import re
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
+from kfp.components import pipeline_channel
 from kfp.components.types import type_utils
 
 
@@ -362,3 +363,41 @@ def extract_pipeline_channels_from_any(
     # TODO(chensun): extract PipelineChannel from v2 container spec?
 
     return []
+
+
+class OneOf:
+    # TODO: test topological constraints
+    def __init__(self, *outputs) -> None:
+        self.outputs = outputs
+        self._validate_tuple(outputs)
+
+    def __iter__(self) -> Iterable:
+        return iter(self.outputs)
+
+    def _validate_tuple(self, outputs: Tuple[Any]) -> None:
+        # cannot have constants
+        constants = [
+            val for val in outputs
+            if not isinstance(val, pipeline_channel.PipelineChannel)
+        ]
+        if constants:
+            raise ValueError(
+                f'Condition branch aggregation input arguments passed via tuple must all be task outputs. Constants are not permitted. Got constant values {constants} in dsl.OneOf.'
+            )
+
+        # cannot have pipeline parameter
+        pipeline_parameters = [
+            val.name for val in outputs if val.task_name is None
+        ]
+        if pipeline_parameters:
+            raise ValueError(
+                f'Condition branch aggregation input arguments passed via tuple must all be task outputs. Pipeline parameters are not permitted. Got pipeline parameters {pipeline_parameters} in dsl.OneOf.'
+            )
+
+        # must all be the same type
+        argument_type = outputs[0].channel_type
+        all_types = [val.channel_type for val in outputs]
+        if any(t != argument_type for t in all_types):
+            raise ValueError(
+                f'Condition branch aggregation input arguments passed via tuple must all be the same type. Got types {tuple(all_types)} in dsl.OneOf.'
+            )
