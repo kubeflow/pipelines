@@ -58,7 +58,16 @@ extensions = [
     'sphinx_click',
     'm2r2',
     'sphinx_immaterial',
+    'autodocsumm',
 ]
+autodoc_member_order = 'bysource'
+autodoc_default_options = {
+    'members': True,
+    'imported-members': True,
+    'undoc-members': True,
+    'show-inheritance': False,
+    'autosummary': True,
+}
 
 html_theme = 'sphinx_immaterial'
 html_title = 'KFP SDK API Reference'
@@ -79,7 +88,7 @@ html_theme_options = {
     'edit_uri':
         'blob/master/docs',
     'globaltoc_collapse':
-        True,
+        False,
     'features': [
         'navigation.expand',
         # "navigation.tabs",

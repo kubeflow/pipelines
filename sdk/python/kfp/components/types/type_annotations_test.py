@@ -20,12 +20,12 @@ from absl.testing import parameterized
 from kfp.components.types import artifact_types
 from kfp.components.types import type_annotations
 from kfp.components.types.artifact_types import Model
-from kfp.components.types.type_annotations import Input
 from kfp.components.types.type_annotations import InputAnnotation
 from kfp.components.types.type_annotations import InputPath
-from kfp.components.types.type_annotations import Output
 from kfp.components.types.type_annotations import OutputAnnotation
 from kfp.components.types.type_annotations import OutputPath
+from kfp.dsl import Input
+from kfp.dsl import Output
 
 
 class AnnotationsTest(parameterized.TestCase):

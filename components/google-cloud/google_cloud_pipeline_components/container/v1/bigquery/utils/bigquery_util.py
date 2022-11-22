@@ -116,8 +116,8 @@ def create_job(project, location, job_request_json, creds,
       headers=headers).json()
   if 'selfLink' not in job:
     raise RuntimeError(
-        'BigQquery Job failed. Cannot retrieve the job name. Response: {}.'
-        .format(job))
+        f'BigQquery Job failed. Cannot retrieve the job name. Request:{job_request_json}; Response: {job}.'
+    )
 
   # Write the bigquey job uri to gcp resource.
   job_uri = job['selfLink']
@@ -204,8 +204,8 @@ def poll_job(job_uri, creds) -> dict:
       }
       job = requests.get(job_uri, headers=headers).json()
       if 'status' in job and 'errorResult' in job['status']:
-        raise RuntimeError('The BigQuery job failed. Error: {}'.format(
-            job['status']))
+        raise RuntimeError(
+            f'The BigQuery job {job_uri} failed. Error: {job["status"]}')
 
   logging.info('BigQuery Job completed successfully. Job: %s.', job)
   return job

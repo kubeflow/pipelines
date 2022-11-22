@@ -33,7 +33,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
@@ -150,7 +150,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 
 	// log streaming is provided via HTTP.
 	runLogServer := server.NewRunLogServer(resourceManager)
-	topMux.HandleFunc("/apis/v1alpha1/runs/{run_id}/nodes/{node_id}/log", runLogServer.ReadRunLog)
+	topMux.HandleFunc("/apis/v1alpha1/runs/{run_id}/nodes/{node_id}/log", runLogServer.ReadRunLogV1)
 
 	topMux.PathPrefix("/apis/").Handler(runtimeMux)
 

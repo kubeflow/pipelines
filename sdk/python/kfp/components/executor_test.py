@@ -27,10 +27,10 @@ from kfp.components.types.artifact_types import Artifact
 from kfp.components.types.artifact_types import Dataset
 from kfp.components.types.artifact_types import Metrics
 from kfp.components.types.artifact_types import Model
-from kfp.components.types.type_annotations import Input
 from kfp.components.types.type_annotations import InputPath
-from kfp.components.types.type_annotations import Output
 from kfp.components.types.type_annotations import OutputPath
+from kfp.dsl import Input
+from kfp.dsl import Output
 
 
 class ExecutorTest(unittest.TestCase):

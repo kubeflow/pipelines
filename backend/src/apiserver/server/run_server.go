@@ -18,7 +18,7 @@ import (
 	"context"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -99,7 +99,7 @@ type RunServer struct {
 	options         *RunServerOptions
 }
 
-func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest) (*api.RunDetail, error) {
+func (s *RunServer) CreateRunV1(ctx context.Context, request *api.CreateRunRequest) (*api.RunDetail, error) {
 	if s.options.CollectMetrics {
 		createRunRequests.Inc()
 	}
@@ -143,7 +143,7 @@ func (s *RunServer) CreateRun(ctx context.Context, request *api.CreateRunRequest
 	return ToApiRunDetail(run), nil
 }
 
-func (s *RunServer) GetRun(ctx context.Context, request *api.GetRunRequest) (*api.RunDetail, error) {
+func (s *RunServer) GetRunV1(ctx context.Context, request *api.GetRunRequest) (*api.RunDetail, error) {
 	if s.options.CollectMetrics {
 		getRunRequests.Inc()
 	}
@@ -160,7 +160,7 @@ func (s *RunServer) GetRun(ctx context.Context, request *api.GetRunRequest) (*ap
 	return ToApiRunDetail(run), nil
 }
 
-func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) (*api.ListRunsResponse, error) {
+func (s *RunServer) ListRunsV1(ctx context.Context, request *api.ListRunsRequest) (*api.ListRunsResponse, error) {
 	if s.options.CollectMetrics {
 		listRunRequests.Inc()
 	}
@@ -223,7 +223,7 @@ func (s *RunServer) ListRuns(ctx context.Context, request *api.ListRunsRequest) 
 	return &api.ListRunsResponse{Runs: ToApiRuns(runs), TotalSize: int32(total_size), NextPageToken: nextPageToken}, nil
 }
 
-func (s *RunServer) ArchiveRun(ctx context.Context, request *api.ArchiveRunRequest) (*empty.Empty, error) {
+func (s *RunServer) ArchiveRunV1(ctx context.Context, request *api.ArchiveRunRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		archiveRunRequests.Inc()
 	}
@@ -239,7 +239,7 @@ func (s *RunServer) ArchiveRun(ctx context.Context, request *api.ArchiveRunReque
 	return &empty.Empty{}, nil
 }
 
-func (s *RunServer) UnarchiveRun(ctx context.Context, request *api.UnarchiveRunRequest) (*empty.Empty, error) {
+func (s *RunServer) UnarchiveRunV1(ctx context.Context, request *api.UnarchiveRunRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		unarchiveRunRequests.Inc()
 	}
@@ -255,7 +255,7 @@ func (s *RunServer) UnarchiveRun(ctx context.Context, request *api.UnarchiveRunR
 	return &empty.Empty{}, nil
 }
 
-func (s *RunServer) DeleteRun(ctx context.Context, request *api.DeleteRunRequest) (*empty.Empty, error) {
+func (s *RunServer) DeleteRunV1(ctx context.Context, request *api.DeleteRunRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		deleteRunRequests.Inc()
 	}
@@ -275,7 +275,7 @@ func (s *RunServer) DeleteRun(ctx context.Context, request *api.DeleteRunRequest
 	return &empty.Empty{}, nil
 }
 
-func (s *RunServer) ReportRunMetrics(ctx context.Context, request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error) {
+func (s *RunServer) ReportRunMetricsV1(ctx context.Context, request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error) {
 	if s.options.CollectMetrics {
 		reportRunMetricsRequests.Inc()
 	}
@@ -305,7 +305,7 @@ func (s *RunServer) ReportRunMetrics(ctx context.Context, request *api.ReportRun
 	return response, nil
 }
 
-func (s *RunServer) ReadArtifact(ctx context.Context, request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error) {
+func (s *RunServer) ReadArtifactV1(ctx context.Context, request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error) {
 	if s.options.CollectMetrics {
 		readArtifactRequests.Inc()
 	}
@@ -333,7 +333,7 @@ func (s *RunServer) validateCreateRunRequest(request *api.CreateRunRequest) erro
 	return ValidatePipelineSpecAndResourceReferences(s.resourceManager, run.PipelineSpec, run.ResourceReferences)
 }
 
-func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunRequest) (*empty.Empty, error) {
+func (s *RunServer) TerminateRunV1(ctx context.Context, request *api.TerminateRunRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		terminateRunRequests.Inc()
 	}
@@ -349,7 +349,7 @@ func (s *RunServer) TerminateRun(ctx context.Context, request *api.TerminateRunR
 	return &empty.Empty{}, nil
 }
 
-func (s *RunServer) RetryRun(ctx context.Context, request *api.RetryRunRequest) (*empty.Empty, error) {
+func (s *RunServer) RetryRunV1(ctx context.Context, request *api.RetryRunRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		retryRunRequests.Inc()
 	}

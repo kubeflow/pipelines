@@ -1,0 +1,127 @@
+name: feature_attribution
+description: |
+    Compute feature attribution on a trained model's batch explanation results.
+    Creates a dataflow job with Apache Beam and TFMA to compute feature attributions.
+
+    Args:
+        project (str):
+            Project to run evaluation container.
+        location (Optional[str]):
+            Location for running the evaluation.
+            If not set, defaulted to `us-central1`.
+        root_dir (str):
+            The GCS directory for keeping staging files.
+            A random subdirectory will be created under the directory to keep job info for resuming
+            the job in case of failure.
+        predictions_format (Optional[str]):
+            The file format for the batch prediction results. `jsonl` is currently the only allowed
+            format currently.
+            If not set, defaulted to `jsonl`.
+        predictions_gcs_source (Optional[system.Artifact]):
+          An artifact with its URI pointing toward a GCS directory with prediction or explanation
+          files to be used for this evaluation.
+          For prediction results, the files should be named "prediction.results-*".
+          For explanation results, the files should be named "explanation.results-*".
+        predictions_bigquery_source (Optional[google.BQTable]):
+          BigQuery table with prediction or explanation data to be used for this evaluation.
+          For prediction results, the table column should be named "predicted_*".
+        dataflow_service_account (Optional[str]):
+            Optional. Service account to run the dataflow job.
+            If not set, dataflow will use the default woker service account.
+
+            For more details, see https://cloud.google.com/dataflow/docs/concepts/security-and-permissions#default_worker_service_account
+        dataflow_disk_size (Optional[int]):
+            Optional. The disk size (in GB) of the machine executing the evaluation run.
+            If not set, defaulted to `50`.
+        dataflow_machine_type (Optional[str]):
+            Optional. The machine type executing the evaluation run.
+            If not set, defaulted to `n1-standard-4`.
+        dataflow_workers_num (Optional[int]):
+            Optional. The number of workers executing the evaluation run.
+            If not set, defaulted to `10`.
+        dataflow_max_workers_num (Optional[int]):
+            Optional. The max number of workers executing the evaluation run.
+            If not set, defaulted to `25`.
+        dataflow_subnetwork (Optional[str]):
+            Dataflow's fully qualified subnetwork name, when empty the default subnetwork will be
+            used. More details:
+            https://cloud.google.com/dataflow/docs/guides/specifying-networks#example_network_and_subnetwork_specifications
+        dataflow_use_public_ips (Optional[bool]):
+            Specifies whether Dataflow workers use public IP addresses.
+        encryption_spec_key_name (Optional[str]):
+            Customer-managed encryption key.
+    Returns:
+        evaluation_metrics (system.Metrics):
+            System metrics artifact representing the evaluation metrics in GCS.
+            WIP to update to a google.VertexMetrics type with additional functionality.
+inputs:
+- {name: project, type: String}
+- {name: location, type: String, default: "us-central1"}
+- {name: root_dir, type: String}
+- {name: predictions_format, type: String, default: 'jsonl'}
+- {name: predictions_gcs_source, type: Artifact, optional: True }
+- {name: predictions_bigquery_source, type: google.BQTable, optional: True }
+- {name: dataflow_service_account, type: String, default: ''}
+- {name: dataflow_disk_size, type: Integer, default: 50}
+- {name: dataflow_machine_type, type: String, default: 'n1-standard-4'}
+- {name: dataflow_workers_num, type: Integer, default: 1}
+- {name: dataflow_max_workers_num, type: Integer, default: 5}
+- {name: dataflow_subnetwork, type: String, default: ""}
+- {name: dataflow_use_public_ips, type: Boolean, default: "true"}
+- {name: encryption_spec_key_name, type: String, default: ""}
+outputs:
+- {name: feature_attributions, type: Metrics}
+- {name: gcp_resources, type: String}
+implementation:
+  container:
+    image: gcr.io/ml-pipeline/model-evaluation:v0.7
+    command:
+    - python
+    - /main.py
+    args:
+    - --task
+    - "explanation"
+    - --setup_file
+    - /setup.py
+    - --project_id
+    - {inputValue: project}
+    - --location
+    - {inputValue: location}
+    - if:
+        cond: {isPresent: predictions_gcs_source}
+        then:
+        - --batch_prediction_gcs_source
+        - "{{$.inputs.artifacts['predictions_gcs_source'].uri}}"
+    - if:
+        cond: {isPresent: predictions_bigquery_source}
+        then:
+        - --batch_prediction_bigquery_source
+        - "bq://{{$.inputs.artifacts['predictions_bigquery_source'].metadata['projectId']}}.{{$.inputs.artifacts['predictions_bigquery_source'].metadata['datasetId']}}.{{$.inputs.artifacts['predictions_bigquery_source'].metadata['tableId']}}"
+    - --batch_prediction_format
+    - {inputValue: predictions_format}
+    - --root_dir
+    - "{{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
+    - --dataflow_job_prefix
+    - 'evaluation-feautre-attribution-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}'
+    - --dataflow_service_account
+    - {inputValue: dataflow_service_account}
+    - --dataflow_disk_size
+    - {inputValue: dataflow_disk_size}
+    - --dataflow_machine_type
+    - {inputValue: dataflow_machine_type}
+    - --dataflow_workers_num
+    - {inputValue: dataflow_workers_num}
+    - --dataflow_max_workers_num
+    - {inputValue: dataflow_max_workers_num}
+    - --dataflow_subnetwork
+    - {inputValue: dataflow_subnetwork}
+    - --dataflow_use_public_ips
+    - {inputValue: dataflow_use_public_ips}
+    - --kms_key_name
+    - {inputValue: encryption_spec_key_name}
+    - --gcs_output_path
+    - {outputUri: feature_attributions}
+    - --gcp_resources
+    - {outputPath: gcp_resources}
+    - --executor_input
+    - "{{$}}"

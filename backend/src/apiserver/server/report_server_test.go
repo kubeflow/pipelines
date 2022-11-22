@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
@@ -47,7 +47,7 @@ func TestReportWorkflow(t *testing.T) {
 				},
 			},
 		}})
-	_, err := reportServer.ReportWorkflow(nil, &api.ReportWorkflowRequest{
+	_, err := reportServer.ReportWorkflowV1(nil, &api.ReportWorkflowRequest{
 		Workflow: workflow.ToStringForStore(),
 	})
 	assert.Nil(t, err)
@@ -72,7 +72,7 @@ func TestReportWorkflow_ValidationFailed(t *testing.T) {
 		},
 	})
 
-	_, err := reportServer.ReportWorkflow(nil, &api.ReportWorkflowRequest{
+	_, err := reportServer.ReportWorkflowV1(nil, &api.ReportWorkflowRequest{
 		Workflow: workflow.ToStringForStore(),
 	})
 	assert.NotNil(t, err)

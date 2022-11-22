@@ -19,7 +19,7 @@ import (
 	"encoding/json"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -29,7 +29,7 @@ type ReportServer struct {
 	resourceManager *resource.ResourceManager
 }
 
-func (s *ReportServer) ReportWorkflow(ctx context.Context,
+func (s *ReportServer) ReportWorkflowV1(ctx context.Context,
 	request *api.ReportWorkflowRequest) (*empty.Empty, error) {
 	execSpec, err := ValidateReportWorkflowRequest(request)
 	if err != nil {
@@ -42,7 +42,7 @@ func (s *ReportServer) ReportWorkflow(ctx context.Context,
 	return &empty.Empty{}, nil
 }
 
-func (s *ReportServer) ReportScheduledWorkflow(ctx context.Context,
+func (s *ReportServer) ReportScheduledWorkflowV1(ctx context.Context,
 	request *api.ReportScheduledWorkflowRequest) (*empty.Empty, error) {
 	scheduledWorkflow, err := ValidateReportScheduledWorkflowRequest(request)
 	if err != nil {

@@ -85,17 +85,17 @@ describe('AllRecurringRunsList', () => {
           toolbarProps={
             Object {
               "actions": Object {
-                "newRun": Object {
+                "newRecurringRun": Object {
                   "action": [Function],
                   "icon": [Function],
-                  "id": "createNewRunBtn",
+                  "id": "createNewRecurringRunBtn",
                   "outlined": true,
                   "primary": true,
                   "style": Object {
-                    "minWidth": 130,
+                    "minWidth": 195,
                   },
-                  "title": "Create run",
-                  "tooltip": "Create a new run",
+                  "title": "Create recurring run",
+                  "tooltip": "Create a new recurring run",
                 },
                 "refresh": Object {
                   "action": [Function],
@@ -142,7 +142,9 @@ describe('AllRecurringRunsList', () => {
   it('navigates to new run page when new run is clicked', () => {
     shallowMountComponent();
 
-    _toolbarProps.actions[ButtonKeys.NEW_RUN].action();
-    expect(historyPushSpy).toHaveBeenLastCalledWith(RoutePage.NEW_RUN + '?experimentId=');
+    _toolbarProps.actions[ButtonKeys.NEW_RECURRING_RUN].action();
+    expect(historyPushSpy).toHaveBeenLastCalledWith(
+      RoutePage.NEW_RUN + '?experimentId=&recurring=1',
+    );
   });
 });

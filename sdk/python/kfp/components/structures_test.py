@@ -19,13 +19,11 @@ import textwrap
 import unittest
 
 from absl.testing import parameterized
-from google.protobuf import json_format
 from kfp import compiler
 from kfp import dsl
 from kfp.components import component_factory
 from kfp.components import placeholders
 from kfp.components import structures
-from kfp.pipeline_spec import pipeline_spec_pb2
 
 V1_YAML_IF_PLACEHOLDER = textwrap.dedent("""\
     implementation:
@@ -105,15 +103,8 @@ V1_YAML_NESTED_PLACEHOLDER = textwrap.dedent("""\
             - if:
                 cond:
                     isPresent: input_prefix
-                else:
-                - --arg2
-                - default
-                - concat:
-                    - --arg1
-                    - {inputValue: input_prefix}
-                then:
-                - --arg1
-                - {inputValue: input_prefix}
+                then: {inputValue: input_prefix}
+                else: default
         image: alpine
     inputs:
     - {name: input_prefix, optional: false, type: String}
@@ -129,21 +120,10 @@ COMPONENT_SPEC_NESTED_PLACEHOLDER = structures.ComponentSpec(
                     '--arg1',
                     placeholders.IfPresentPlaceholder(
                         input_name='input_prefix',
-                        then=[
-                            '--arg1',
-                            placeholders.InputValuePlaceholder(
-                                input_name='input_prefix'),
-                        ],
-                        else_=[
-                            '--arg2',
-                            'default',
-                            placeholders.ConcatPlaceholder(items=[
-                                '--arg1',
-                                placeholders.InputValuePlaceholder(
-                                    input_name='input_prefix'),
-                            ]),
-                        ]),
-                ])
+                        then=placeholders.InputValuePlaceholder(
+                            input_name='input_prefix'),
+                        else_='default'),
+                ]),
             ])),
     inputs={'input_prefix': structures.InputSpec(type='String')},
 )
@@ -192,7 +172,7 @@ class StructuresTest(parameterized.TestCase):
             self):
         with self.assertRaisesRegex(
                 ValueError,
-                r'^Argument \"InputValuePlaceholder[\s\S]*\'input000\'[\s\S]*references non-existing input.'
+                r'^Argument "InputValuePlaceholder" references nonexistant input: "input000".'
         ):
             structures.ComponentSpec(
                 name='component_1',
@@ -215,7 +195,7 @@ class StructuresTest(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 ValueError,
-                r'^Argument \"OutputPathPlaceholder[\s\S]*\'output000\'[\s\S]*references non-existing output.'
+                r'^Argument "OutputPathPlaceholder" references nonexistant output: "output000".'
         ):
             structures.ComponentSpec(
                 name='component_1',
@@ -244,12 +224,9 @@ class StructuresTest(parameterized.TestCase):
                 container=structures.ContainerSpecImplementation(
                     image='alpine',
                     command=[
-                        'sh',
-                        '-c',
-                        'set -ex\necho "$0" > "$1"',
-                        placeholders.InputValuePlaceholder(input_name='input1'),
-                        placeholders.OutputParameterPlaceholder(
-                            output_name='output1'),
+                        'sh', '-c', 'set -ex\necho "$0" > "$1"',
+                        "{{$.inputs.parameters['input1']}}",
+                        "{{$.outputs.parameters['output1'].output_file}}"
                     ],
                 )),
             inputs={'input1': structures.InputSpec(type='String')},
@@ -337,9 +314,8 @@ sdkVersion: kfp-2.0.0-alpha.2
                         'sh',
                         '-c',
                         'set -ex\necho "$0" > "$1"',
-                        placeholders.InputValuePlaceholder(input_name='input1'),
-                        placeholders.OutputParameterPlaceholder(
-                            output_name='output1'),
+                        "{{$.inputs.parameters['input1']}}",
+                        "{{$.outputs.parameters['output1'].output_file}}",
                     ],
                 )),
             inputs={'input1': structures.InputSpec(type='String')},
@@ -415,9 +391,9 @@ sdkVersion: kfp-2.0.0-alpha.2
                             input_name='input_parameter'),
                         placeholders.InputPathPlaceholder(
                             input_name='input_artifact'),
-                        placeholders.OutputParameterPlaceholder(
+                        placeholders.OutputPathPlaceholder(
                             output_name='output_1'),
-                        placeholders.OutputParameterPlaceholder(
+                        placeholders.OutputPathPlaceholder(
                             output_name='output_2'),
                     ],
                     env={},
@@ -563,7 +539,7 @@ class TestInputSpec(unittest.TestCase):
             structures.InputSpec(type='String', default=None))
         self.assertNotEqual(
             structures.InputSpec(type='String', default=None),
-            structures.InputSpec(type='String', default='test'))
+            structures.InputSpec(type='String', default='test', optional=True))
         self.assertEqual(
             structures.InputSpec(type='List', default=None),
             structures.InputSpec(type='typing.List', default=None))
@@ -575,17 +551,14 @@ class TestInputSpec(unittest.TestCase):
             structures.InputSpec(type='typing.List[typing.Dict[str, str]]'))
 
     def test_optional(self):
-        input_spec = structures.InputSpec(type='String', default='test')
-        self.assertEqual(input_spec.default, 'test')
-        self.assertEqual(input_spec._optional, True)
-
-        input_spec = structures.InputSpec(type='String', default=None)
+        input_spec = structures.InputSpec(
+            type='String', default=None, optional=True)
         self.assertEqual(input_spec.default, None)
-        self.assertEqual(input_spec._optional, True)
+        self.assertEqual(input_spec.optional, True)
 
         input_spec = structures.InputSpec(type='String')
         self.assertEqual(input_spec.default, None)
-        self.assertEqual(input_spec._optional, False)
+        self.assertEqual(input_spec.optional, False)
 
     def test_from_ir_component_inputs_dict(self):
         parameter_dict = {'parameterType': 'STRING'}
@@ -623,6 +596,11 @@ class TestInputSpec(unittest.TestCase):
         input_spec = structures.InputSpec.from_ir_component_inputs_dict(
             artifact_dict)
         self.assertEqual(input_spec.type, 'system.Artifact@0.0.1')
+
+    def test_assert_optional_must_be_true_when_default_is_not_none(self):
+        with self.assertRaisesRegex(ValueError,
+                                    r'must be True if `default` is not None'):
+            input_spec = structures.InputSpec(type='String', default='text')
 
 
 class TestOutputSpec(parameterized.TestCase):
@@ -731,9 +709,8 @@ sdkVersion: kfp-2.0.0-alpha.2""")
                     image='alpine',
                     command=['sh', '-c', 'echo "$0" >> "$1"'],
                     args=[
-                        placeholders.InputValuePlaceholder(input_name='input1'),
-                        placeholders.OutputPathPlaceholder(
-                            output_name='output1')
+                        "{{$.inputs.parameters['input1']}}",
+                        "{{$.outputs.artifacts['output1'].path}}",
                     ],
                     env=None,
                     resources=None),
@@ -801,8 +778,7 @@ sdkVersion: kfp-2.0.0-alpha.2""")
                     command=['sh', '-c', 'echo "$0" "$1"'],
                     args=[
                         'input: ',
-                        placeholders.InputValuePlaceholder(
-                            input_name='optional_input_1')
+                        "{{$.inputs.parameters['optional_input_1']}}",
                     ],
                     env=None,
                     resources=None),
@@ -871,13 +847,10 @@ sdkVersion: kfp-2.0.0-alpha.2""")
                 container=structures.ContainerSpecImplementation(
                     image='alpine',
                     command=[
-                        'sh', '-c', 'echo "$0"',
-                        placeholders.ConcatPlaceholder(items=[
-                            placeholders.InputValuePlaceholder(
-                                input_name='input1'),
-                            placeholders.InputValuePlaceholder(
-                                input_name='input2')
-                        ])
+                        'sh',
+                        '-c',
+                        'echo "$0"',
+                        "{{$.inputs.parameters['input1']}}+{{$.inputs.parameters['input2']}}",
                     ],
                     args=None,
                     env=None,
@@ -947,23 +920,6 @@ class TestRetryPolicy(unittest.TestCase):
         self.assertEqual(retry_policy_proto.backoff_factor, 1.5)
         # tests cap
         self.assertEqual(retry_policy_proto.backoff_max_duration.seconds, 3600)
-
-    def test_from_proto(self):
-        retry_policy_proto = json_format.ParseDict(
-            {
-                'max_retry_count': 3,
-                'backoff_duration': '5s',
-                'backoff_factor': 1.0,
-                'backoff_max_duration': '1s'
-            }, pipeline_spec_pb2.PipelineTaskSpec.RetryPolicy())
-        retry_policy_struct = structures.RetryPolicy.from_proto(
-            retry_policy_proto)
-        print(retry_policy_struct)
-
-        self.assertEqual(retry_policy_struct.max_retry_count, 3)
-        self.assertEqual(retry_policy_struct.backoff_duration, '5s')
-        self.assertEqual(retry_policy_struct.backoff_factor, 1.0)
-        self.assertEqual(retry_policy_struct.backoff_max_duration, '1s')
 
 
 if __name__ == '__main__':

@@ -19,7 +19,7 @@ import (
 	"fmt"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -74,13 +74,27 @@ func ToApiPipeline(pipeline *model.Pipeline) *api.Pipeline {
 		}
 	}
 
+	var resourceRefs []*api.ResourceReference
+	if len(pipeline.Namespace) > 0 {
+		resourceRefs = []*api.ResourceReference{
+			{
+				Key: &api.ResourceKey{
+					Type: api.ResourceType_NAMESPACE,
+					Id:   pipeline.Namespace,
+				},
+				Relationship: api.Relationship_OWNER,
+			},
+		}
+	}
+
 	return &api.Pipeline{
-		Id:             pipeline.UUID,
-		CreatedAt:      &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
-		Name:           pipeline.Name,
-		Description:    pipeline.Description,
-		Parameters:     params,
-		DefaultVersion: defaultVersion,
+		Id:                 pipeline.UUID,
+		CreatedAt:          &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
+		Name:               pipeline.Name,
+		Description:        pipeline.Description,
+		Parameters:         params,
+		DefaultVersion:     defaultVersion,
+		ResourceReferences: resourceRefs,
 	}
 }
 

@@ -9,7 +9,7 @@ import (
 	"os"
 	"testing"
 
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -18,7 +18,7 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-func TestCreatePipeline_YAML(t *testing.T) {
+func TestCreatePipelineV1_YAML(t *testing.T) {
 	httpServer := getMockServer(t)
 	// Close the server when test finishes
 	defer httpServer.Close()
@@ -27,7 +27,7 @@ func TestCreatePipeline_YAML(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager)
 
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	pipeline, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
+	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
 			Url:         &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
 			Name:        "argument-parameters",
@@ -47,7 +47,7 @@ func TestCreatePipeline_YAML(t *testing.T) {
 	assert.Equal(t, "pipeline description", newPipeline.Description)
 }
 
-func TestCreatePipeline_Tarball(t *testing.T) {
+func TestCreatePipelineV1_Tarball(t *testing.T) {
 	httpServer := getMockServer(t)
 	// Close the server when test finishes
 	defer httpServer.Close()
@@ -56,7 +56,7 @@ func TestCreatePipeline_Tarball(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager)
 
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	pipeline, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
+	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
 			Url:         &api.Url{PipelineUrl: httpServer.URL + "/arguments_tarball/arguments.tar.gz"},
 			Name:        "argument-parameters",
@@ -76,7 +76,7 @@ func TestCreatePipeline_Tarball(t *testing.T) {
 	assert.Equal(t, "pipeline description", newPipeline.Description)
 }
 
-func TestCreatePipeline_InvalidYAML(t *testing.T) {
+func TestCreatePipelineV1_InvalidYAML(t *testing.T) {
 	httpServer := getMockServer(t)
 	// Close the server when test finishes
 	defer httpServer.Close()
@@ -85,7 +85,7 @@ func TestCreatePipeline_InvalidYAML(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager)
 
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	_, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
+	_, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
 			Url:  &api.Url{PipelineUrl: httpServer.URL + "/invalid-workflow.yaml"},
 			Name: "argument-parameters",
@@ -95,7 +95,7 @@ func TestCreatePipeline_InvalidYAML(t *testing.T) {
 	assert.Equal(t, codes.InvalidArgument, err.(*util.UserError).ExternalStatusCode())
 }
 
-func TestCreatePipeline_InvalidURL(t *testing.T) {
+func TestCreatePipelineV1_InvalidURL(t *testing.T) {
 	httpServer := getBadMockServer()
 	// Close the server when test finishes
 	defer httpServer.Close()
@@ -104,7 +104,7 @@ func TestCreatePipeline_InvalidURL(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager)
 
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	_, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
+	_, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
 			Url:  &api.Url{PipelineUrl: httpServer.URL + "/invalid-workflow.yaml"},
 			Name: "argument-parameters",
@@ -112,7 +112,7 @@ func TestCreatePipeline_InvalidURL(t *testing.T) {
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
-func TestCreatePipelineVersion_YAML(t *testing.T) {
+func TestCreatePipelineVersionV1_YAML(t *testing.T) {
 	httpServer := getMockServer(t)
 	// Close the server when test finishes
 	defer httpServer.Close()
@@ -123,7 +123,7 @@ func TestCreatePipelineVersion_YAML(t *testing.T) {
 
 	pipelineServer := PipelineServer{
 		resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	pipelineVersion, err := pipelineServer.CreatePipelineVersion(
+	pipelineVersion, err := pipelineServer.CreatePipelineVersionV1(
 		context.Background(), &api.CreatePipelineVersionRequest{
 			Version: &api.PipelineVersion{
 				PackageUrl: &api.Url{
@@ -161,7 +161,7 @@ func TestCreatePipelineVersion_InvalidYAML(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager)
 
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	_, err := pipelineServer.CreatePipelineVersion(
+	_, err := pipelineServer.CreatePipelineVersionV1(
 		context.Background(), &api.CreatePipelineVersionRequest{
 			Version: &api.PipelineVersion{
 				PackageUrl: &api.Url{
@@ -189,7 +189,7 @@ func TestCreatePipelineVersion_Tarball(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager)
 
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	pipelineVersion, err := pipelineServer.CreatePipelineVersion(
+	pipelineVersion, err := pipelineServer.CreatePipelineVersionV1(
 		context.Background(), &api.CreatePipelineVersionRequest{
 			Version: &api.PipelineVersion{
 				PackageUrl: &api.Url{
@@ -227,7 +227,7 @@ func TestCreatePipelineVersion_InvalidURL(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager)
 
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	_, err := pipelineServer.CreatePipelineVersion(context.Background(), &api.CreatePipelineVersionRequest{
+	_, err := pipelineServer.CreatePipelineVersionV1(context.Background(), &api.CreatePipelineVersionRequest{
 		Version: &api.PipelineVersion{
 			PackageUrl: &api.Url{
 				PipelineUrl: httpServer.URL + "/invalid-workflow.yaml"},
@@ -254,7 +254,7 @@ func TestListPipelineVersion_NoResourceKey(t *testing.T) {
 
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
 
-	_, err := pipelineServer.ListPipelineVersions(context.Background(), &api.ListPipelineVersionsRequest{
+	_, err := pipelineServer.ListPipelineVersionsV1(context.Background(), &api.ListPipelineVersionsRequest{
 		ResourceKey: nil,
 		PageSize:    20,
 	})
@@ -269,7 +269,7 @@ func TestListPipelinesPublic(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager)
 
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	_, err := pipelineServer.ListPipelines(context.Background(),
+	_, err := pipelineServer.ListPipelinesV1(context.Background(),
 		&api.ListPipelinesRequest{
 			PageSize: 20,
 			ResourceReferenceKey: &api.ResourceKey{
@@ -288,7 +288,7 @@ func TestGetPipelineByName_OK(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	pipeline, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
+	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
 			Url:  &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
 			Name: "argument-parameters",
@@ -301,7 +301,7 @@ func TestGetPipelineByName_OK(t *testing.T) {
 		}})
 	assert.Nil(t, err)
 	assert.NotNil(t, pipeline)
-	newPipeline, err := pipelineServer.GetPipelineByName(context.Background(),
+	newPipeline, err := pipelineServer.GetPipelineByNameV1(context.Background(),
 		&api.GetPipelineByNameRequest{
 			Name:      pipeline.Name,
 			Namespace: "ns1",
@@ -318,7 +318,7 @@ func TestGetPipelineByName_Shared_OK(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	pipeline, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
+	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
 			Url:  &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
 			Name: "argument-parameters"}},
@@ -326,7 +326,7 @@ func TestGetPipelineByName_Shared_OK(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, pipeline)
-	newPipeline, err := pipelineServer.GetPipelineByName(context.Background(),
+	newPipeline, err := pipelineServer.GetPipelineByNameV1(context.Background(),
 		&api.GetPipelineByNameRequest{
 			Name:      pipeline.Name,
 			Namespace: "-",
@@ -343,7 +343,7 @@ func TestGetPipelineByName_NotFound(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	_, err := pipelineServer.GetPipelineByName(context.Background(),
+	_, err := pipelineServer.GetPipelineByNameV1(context.Background(),
 		&api.GetPipelineByNameRequest{
 			Name: "foo",
 		})
@@ -357,7 +357,7 @@ func TestGetPipelineByName_NotFound_WrongNameSpace(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	resourceManager := resource.NewResourceManager(clientManager)
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	pipeline, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
+	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
 			Url:         &api.Url{PipelineUrl: httpServer.URL + "/arguments-parameters.yaml"},
 			Name:        "argument-parameters",
@@ -372,7 +372,7 @@ func TestGetPipelineByName_NotFound_WrongNameSpace(t *testing.T) {
 
 	assert.Nil(t, err)
 	assert.NotNil(t, pipeline)
-	newPipeline, err := pipelineServer.GetPipelineByName(context.Background(),
+	newPipeline, err := pipelineServer.GetPipelineByNameV1(context.Background(),
 		&api.GetPipelineByNameRequest{
 			Name:      pipeline.Name,
 			Namespace: "wrong_namespace",
@@ -391,7 +391,7 @@ func TestCreatePipelineVersionDontUpdateDefault(t *testing.T) {
 	resourceManager := resource.NewResourceManager(clientManager)
 
 	pipelineServer := PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	pipeline, err := pipelineServer.CreatePipeline(context.Background(), &api.CreatePipelineRequest{
+	pipeline, err := pipelineServer.CreatePipelineV1(context.Background(), &api.CreatePipelineRequest{
 		Pipeline: &api.Pipeline{
 			Url:         &api.Url{PipelineUrl: httpServer.URL + "/arguments_tarball/arguments.tar.gz"},
 			Name:        "argument-parameters",
@@ -405,7 +405,7 @@ func TestCreatePipelineVersionDontUpdateDefault(t *testing.T) {
 	resourceManager = resource.NewResourceManager(clientManager)
 
 	pipelineServer = PipelineServer{resourceManager: resourceManager, httpClient: httpServer.Client(), options: &PipelineServerOptions{CollectMetrics: false}}
-	pipelineVersion, err := pipelineServer.CreatePipelineVersion(
+	pipelineVersion, err := pipelineServer.CreatePipelineVersionV1(
 		context.Background(), &api.CreatePipelineVersionRequest{
 			Version: &api.PipelineVersion{
 				PackageUrl: &api.Url{
@@ -421,7 +421,7 @@ func TestCreatePipelineVersionDontUpdateDefault(t *testing.T) {
 					}}}})
 	assert.Nil(t, err)
 
-	pipelines, err := pipelineServer.GetPipeline(context.Background(), &api.GetPipelineRequest{Id: pipeline.Id})
+	pipelines, err := pipelineServer.GetPipelineV1(context.Background(), &api.GetPipelineRequest{Id: pipeline.Id})
 	assert.Nil(t, nil)
 	assert.NotNil(t, pipelineVersion.Id)
 	assert.NotEqual(t, pipelines.DefaultVersion.Id, pipelineVersion.Id)

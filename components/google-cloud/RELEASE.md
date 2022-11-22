@@ -1,5 +1,24 @@
-# Current Version 1.0.25.dev (Still in Development)
+# Current Version 1.0.28.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.27
+* Add DataprocBatch resource to gcp_resources output parameter
+* Support serving default in bq export model job op
+
+# Release 1.0.26
+* Temporary fix for artifact types
+* Sync GCPC staging to prod to include AutoML model comparison and prophet pipelines
+* Update documentation for Eval components
+* Update HP tuning sample notebook
+* Improve folder structure for evaluation components
+* Model Evaluation, rename EvaluationDataSplitterOp to TargetFieldDataRemoverOp, rename ground_truth_column to target_field, rename class_names to class_labels, and remove key_columns input
+* Add model input to vertex ai model evaluation component
+
+# Release 1.0.25
+* Bigquery: Update public doc for evaluate model per customer feedback
+* Add Infra Validation remote runner
+* Add notification v1 doc to the v1 page
+* AutoML: Sync GCPC staging to prod to include bug fix for built-in algorithms
 
 # Release 1.0.24
 * Add notification v1 doc

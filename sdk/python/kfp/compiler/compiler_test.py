@@ -267,7 +267,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
             self.assertTrue(os.path.exists(target_json_file))
             with open(target_json_file) as f:
-                pipeline_spec = yaml.load(f)
+                pipeline_spec = yaml.safe_load(f)
             self.assertEqual('gs://path', pipeline_spec['defaultPipelineRoot'])
 
     def test_passing_string_parameter_to_artifact_should_error(self):
@@ -755,7 +755,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
                 pipeline_func=pipeline_hello_world, package_path=temp_filepath)
 
             with open(temp_filepath, 'r') as f:
-                yaml.load(f)
+                yaml.safe_load(f)
 
     def test_import_modules(self):
         from kfp.v2 import compiler
@@ -779,7 +779,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
                 pipeline_func=pipeline_hello_world, package_path=temp_filepath)
 
             with open(temp_filepath, 'r') as f:
-                yaml.load(f)
+                yaml.safe_load(f)
 
     def test_import_object(self):
         from kfp.v2.compiler import Compiler
@@ -804,7 +804,7 @@ class V2NamespaceAliasTest(unittest.TestCase):
                 pipeline_func=pipeline_hello_world, package_path=temp_filepath)
 
             with open(temp_filepath, 'r') as f:
-                yaml.load(f)
+                yaml.safe_load(f)
 
 
 class TestWriteToFileTypes(parameterized.TestCase):
@@ -1354,6 +1354,140 @@ class TestMultipleExitHandlerCompilation(unittest.TestCase):
                     second_exit_task = print_op(message='Second exit task.')
                     with dsl.ExitHandler(second_exit_task):
                         print_op(message='Inside second exit handler.')
+
+
+class TestBoolInputParameterWithDefaultSerializesCorrectly(unittest.TestCase):
+    # test with default = True, may have false test successes due to protocol buffer boolean default of False
+    def test_python_component(self):
+
+        @dsl.component
+        def comp(boolean: bool = True) -> bool:
+            return boolean
+
+        # test inner component interface
+        self.assertEqual(
+            comp.pipeline_spec.components['comp-comp'].input_definitions
+            .parameters['boolean'].default_value.bool_value, True)
+
+        # test outer pipeline "wrapper" interface
+        self.assertEqual(
+            comp.pipeline_spec.root.input_definitions.parameters['boolean']
+            .default_value.bool_value, True)
+
+    def test_python_component_with_overrides(self):
+
+        @dsl.component
+        def comp(boolean: bool = False) -> bool:
+            return boolean
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                comp, pipeline_spec_path, pipeline_parameters={'boolean': True})
+            pipeline_spec = pipeline_spec_from_file(pipeline_spec_path)
+
+        # test outer pipeline "wrapper" interface
+        self.assertEqual(
+            pipeline_spec.root.input_definitions.parameters['boolean']
+            .default_value.bool_value, True)
+
+    def test_container_component(self):
+
+        @dsl.container_component
+        def comp(boolean: bool = True):
+            return dsl.ContainerSpec(image='alpine', command=['echo', boolean])
+
+        # test inner component interface
+        self.assertEqual(
+            comp.pipeline_spec.components['comp-comp'].input_definitions
+            .parameters['boolean'].default_value.bool_value, True)
+
+        # test pipeline "wrapper" interface
+        self.assertEqual(
+            comp.pipeline_spec.root.input_definitions.parameters['boolean']
+            .default_value.bool_value, True)
+
+    def test_container_component_with_overrides(self):
+
+        @dsl.container_component
+        def comp(boolean: bool = True):
+            return dsl.ContainerSpec(image='alpine', command=['echo', boolean])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                comp, pipeline_spec_path, pipeline_parameters={'boolean': True})
+            pipeline_spec = pipeline_spec_from_file(pipeline_spec_path)
+
+        # test outer pipeline "wrapper" interface
+        self.assertEqual(
+            pipeline_spec.root.input_definitions.parameters['boolean']
+            .default_value.bool_value, True)
+
+    def test_pipeline_no_input(self):
+
+        @dsl.component
+        def comp(boolean: bool = True) -> bool:
+            return boolean
+
+        @dsl.pipeline
+        def pipeline_no_input():
+            comp()
+
+        # test inner component interface
+        self.assertEqual(
+            pipeline_no_input.pipeline_spec.components['comp-comp']
+            .input_definitions.parameters['boolean'].default_value.bool_value,
+            True)
+
+    def test_pipeline_with_input(self):
+
+        @dsl.component
+        def comp(boolean: bool = True) -> bool:
+            return boolean
+
+        @dsl.pipeline
+        def pipeline_with_input(boolean: bool = True):
+            comp(boolean=boolean)
+
+        # test inner component interface
+        self.assertEqual(
+            pipeline_with_input.pipeline_spec.components['comp-comp']
+            .input_definitions.parameters['boolean'].default_value.bool_value,
+            True)
+
+        # test pipeline interface
+        self.assertEqual(
+            pipeline_with_input.pipeline_spec.root.input_definitions
+            .parameters['boolean'].default_value.bool_value, True)
+
+    def test_pipeline_with_with_overrides(self):
+
+        @dsl.component
+        def comp(boolean: bool = True) -> bool:
+            return boolean
+
+        @dsl.pipeline
+        def pipeline_with_input(boolean: bool = False):
+            comp(boolean=boolean)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_with_input,
+                pipeline_spec_path,
+                pipeline_parameters={'boolean': True})
+            pipeline_spec = pipeline_spec_from_file(pipeline_spec_path)
+
+        # test inner component interface
+        self.assertEqual(
+            pipeline_spec.components['comp-comp'].input_definitions
+            .parameters['boolean'].default_value.bool_value, True)
+
+        # test pipeline interface
+        self.assertEqual(
+            pipeline_spec.root.input_definitions.parameters['boolean']
+            .default_value.bool_value, True)
 
 
 if __name__ == '__main__':

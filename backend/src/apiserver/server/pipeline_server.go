@@ -21,7 +21,7 @@ import (
 	"path"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -98,7 +98,7 @@ type PipelineServer struct {
 	options         *PipelineServerOptions
 }
 
-func (s *PipelineServer) CreatePipeline(ctx context.Context, request *api.CreatePipelineRequest) (*api.Pipeline, error) {
+func (s *PipelineServer) CreatePipelineV1(ctx context.Context, request *api.CreatePipelineRequest) (*api.Pipeline, error) {
 	if s.options.CollectMetrics {
 		createPipelineRequests.Inc()
 	}
@@ -147,7 +147,7 @@ func (s *PipelineServer) CreatePipeline(ctx context.Context, request *api.Create
 	return ToApiPipeline(pipeline), nil
 }
 
-func (s *PipelineServer) UpdatePipelineDefaultVersion(ctx context.Context, request *api.UpdatePipelineDefaultVersionRequest) (*empty.Empty, error) {
+func (s *PipelineServer) UpdatePipelineDefaultVersionV1(ctx context.Context, request *api.UpdatePipelineDefaultVersionRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		updatePipelineDefaultVersionRequests.Inc()
 	}
@@ -165,7 +165,7 @@ func (s *PipelineServer) UpdatePipelineDefaultVersion(ctx context.Context, reque
 	return &empty.Empty{}, nil
 }
 
-func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipelineRequest) (*api.Pipeline, error) {
+func (s *PipelineServer) GetPipelineV1(ctx context.Context, request *api.GetPipelineRequest) (*api.Pipeline, error) {
 	if s.options.CollectMetrics {
 		getPipelineRequests.Inc()
 	}
@@ -184,7 +184,7 @@ func (s *PipelineServer) GetPipeline(ctx context.Context, request *api.GetPipeli
 	return ToApiPipeline(pipeline), nil
 }
 
-func (s *PipelineServer) GetPipelineByName(ctx context.Context, request *api.GetPipelineByNameRequest) (*api.Pipeline, error) {
+func (s *PipelineServer) GetPipelineByNameV1(ctx context.Context, request *api.GetPipelineByNameRequest) (*api.Pipeline, error) {
 	if s.options.CollectMetrics {
 		getPipelineRequests.Inc()
 	}
@@ -210,7 +210,7 @@ func (s *PipelineServer) GetPipelineByName(ctx context.Context, request *api.Get
 	return ToApiPipeline(pipeline), nil
 }
 
-func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPipelinesRequest) (*api.ListPipelinesResponse, error) {
+func (s *PipelineServer) ListPipelinesV1(ctx context.Context, request *api.ListPipelinesRequest) (*api.ListPipelinesResponse, error) {
 	if s.options.CollectMetrics {
 		listPipelineRequests.Inc()
 	}
@@ -260,7 +260,7 @@ func (s *PipelineServer) ListPipelines(ctx context.Context, request *api.ListPip
 	return &api.ListPipelinesResponse{Pipelines: apiPipelines, TotalSize: int32(total_size), NextPageToken: nextPageToken}, nil
 }
 
-func (s *PipelineServer) DeletePipeline(ctx context.Context, request *api.DeletePipelineRequest) (*empty.Empty, error) {
+func (s *PipelineServer) DeletePipelineV1(ctx context.Context, request *api.DeletePipelineRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		deletePipelineRequests.Inc()
 	}
@@ -314,7 +314,7 @@ func NewPipelineServer(resourceManager *resource.ResourceManager, options *Pipel
 	return &PipelineServer{resourceManager: resourceManager, httpClient: http.DefaultClient, options: options}
 }
 
-func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *api.CreatePipelineVersionRequest) (*api.PipelineVersion, error) {
+func (s *PipelineServer) CreatePipelineVersionV1(ctx context.Context, request *api.CreatePipelineVersionRequest) (*api.PipelineVersion, error) {
 	if s.options.CollectMetrics {
 		createPipelineVersionRequests.Inc()
 	}
@@ -362,7 +362,7 @@ func (s *PipelineServer) CreatePipelineVersion(ctx context.Context, request *api
 	return ToApiPipelineVersion(version)
 }
 
-func (s *PipelineServer) GetPipelineVersion(ctx context.Context, request *api.GetPipelineVersionRequest) (*api.PipelineVersion, error) {
+func (s *PipelineServer) GetPipelineVersionV1(ctx context.Context, request *api.GetPipelineVersionRequest) (*api.PipelineVersion, error) {
 	if s.options.CollectMetrics {
 		getPipelineVersionRequests.Inc()
 	}
@@ -380,7 +380,7 @@ func (s *PipelineServer) GetPipelineVersion(ctx context.Context, request *api.Ge
 	return ToApiPipelineVersion(version)
 }
 
-func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *api.ListPipelineVersionsRequest) (*api.ListPipelineVersionsResponse, error) {
+func (s *PipelineServer) ListPipelineVersionsV1(ctx context.Context, request *api.ListPipelineVersionsRequest) (*api.ListPipelineVersionsResponse, error) {
 	if s.options.CollectMetrics {
 		listPipelineVersionRequests.Inc()
 	}
@@ -430,7 +430,7 @@ func (s *PipelineServer) ListPipelineVersions(ctx context.Context, request *api.
 		TotalSize:     int32(totalSize)}, nil
 }
 
-func (s *PipelineServer) DeletePipelineVersion(ctx context.Context, request *api.DeletePipelineVersionRequest) (*empty.Empty, error) {
+func (s *PipelineServer) DeletePipelineVersionV1(ctx context.Context, request *api.DeletePipelineVersionRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		deletePipelineVersionRequests.Inc()
 	}

@@ -31,7 +31,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/jsonpb"
-	api "github.com/kubeflow/pipelines/backend/api/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	exec "github.com/kubeflow/pipelines/backend/src/common"
 	swfregister "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
@@ -70,12 +70,19 @@ func NewWorkflowFromBytesJSON(bytes []byte) (*Workflow, error) {
 
 func NewWorkflowFromScheduleWorkflowSpecBytesJSON(bytes []byte) (*Workflow, error) {
 	var workflow workflowapi.Workflow
-	err := json.Unmarshal(bytes, &workflow.Spec)
+	err := json.Unmarshal(bytes, &workflow)
 	if err != nil {
-		return nil, NewInvalidInputErrorWithDetails(err, "Failed to unmarshal the inputs")
+		return nil, NewInvalidInputErrorWithDetails(err, "Failed to unmarshal the inputs into workflow")
 	}
-	workflow.APIVersion = "argoproj.io/v1alpha1"
-	workflow.Kind = "Workflow"
+	if workflow.Spec.Entrypoint == "" {
+		// fall back to unmarshal into  workflow.spec for previously created recurring run.
+		err := json.Unmarshal(bytes, &workflow.Spec)
+		if err != nil {
+			return nil, NewInvalidInputErrorWithDetails(err, "Failed to unmarshal the inputs into workflow.spec")
+		}
+		workflow.APIVersion = "argoproj.io/v1alpha1"
+		workflow.Kind = "Workflow"
+	}
 	return NewWorkflow(&workflow), nil
 }
 
@@ -719,13 +726,14 @@ func (w *Workflow) CanRetry() error {
 	return nil
 }
 
+// TODO: merge with ToStringForStore()
 func (w *Workflow) ToStringForSchedule() string {
-	spec, err := json.Marshal(w.Workflow.Spec)
+	workflow, err := json.Marshal(w.Workflow)
 	if err != nil {
-		glog.Errorf("Could not marshal the Spec of workflow: %v", w.Workflow)
+		glog.Errorf("Could not marshal the workflow: %v", w.Workflow)
 		return ""
 	}
-	return string(spec)
+	return string(workflow)
 }
 
 // Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
