@@ -393,7 +393,6 @@ class OneOf:
     """
 
     # TODO: test topological constraints
-    # TODO: require >=2 elements in outputs
 
     def __init__(self, *outputs) -> None:
         self.outputs = outputs
@@ -411,7 +410,7 @@ class OneOf:
         ]
         if constants:
             raise ValueError(
-                f'Condition branch aggregation input arguments passed via tuple must all be task outputs. Constants are not permitted. Got constant values {constants} in dsl.OneOf.'
+                f'Condition branch aggregation input arguments passed via {self.__class__.__name__} must all be task outputs. Constants are not permitted. Got constant values {constants}.'
             )
 
         # cannot have pipeline parameter
@@ -420,7 +419,7 @@ class OneOf:
         ]
         if pipeline_parameters:
             raise ValueError(
-                f'Condition branch aggregation input arguments passed via tuple must all be task outputs. Pipeline parameters are not permitted. Got pipeline parameters {pipeline_parameters} in dsl.OneOf.'
+                f'Condition branch aggregation input arguments passed via {self.__class__.__name__} must all be task outputs. Pipeline parameters are not permitted. Got pipeline parameters {pipeline_parameters}.'
             )
 
         # must all be the same type
@@ -428,5 +427,11 @@ class OneOf:
         all_types = [val.channel_type for val in outputs]
         if any(t != argument_type for t in all_types):
             raise ValueError(
-                f'Condition branch aggregation input arguments passed via tuple must all be the same type. Got types {tuple(all_types)} in dsl.OneOf.'
+                f'Condition branch aggregation input arguments passed via {self.__class__.__name__} must all be the same type. Got types {tuple(all_types)}.'
+            )
+
+        # should only be used when at least two pipeline channels
+        if len(outputs) < 2:
+            raise ValueError(
+                f'{self.__class__.__name__} expected two or more Condition output branches to aggregate. Got {len(self.outputs)}.'
             )

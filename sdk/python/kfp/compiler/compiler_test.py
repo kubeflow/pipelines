@@ -1508,7 +1508,7 @@ class TestConditionBranchAggregation(unittest.TestCase):
 
         with self.assertRaisesRegex(
                 ValueError,
-                r'Condition branch aggregation input arguments passed via tuple must all be the same type\.'
+                r'Condition branch aggregation input arguments passed via OneOf must all be the same type\.'
         ):
 
             @dsl.pipeline
@@ -1531,7 +1531,7 @@ class TestConditionBranchAggregation(unittest.TestCase):
 
         with self.assertRaisesRegex(
                 ValueError,
-                r'Condition branch aggregation input arguments passed via tuple must all be task outputs\. Constants are not permitted\.'
+                r'Condition branch aggregation input arguments passed via OneOf must all be task outputs\. Constants are not permitted\.'
         ):
 
             @dsl.pipeline
@@ -1553,7 +1553,7 @@ class TestConditionBranchAggregation(unittest.TestCase):
 
         with self.assertRaisesRegex(
                 ValueError,
-                r'Condition branch aggregation input arguments passed via tuple must all be task outputs\. Pipeline parameters are not permitted\.'
+                r'Condition branch aggregation input arguments passed via OneOf must all be task outputs\. Pipeline parameters are not permitted\.'
         ):
 
             @dsl.pipeline
@@ -1562,6 +1562,28 @@ class TestConditionBranchAggregation(unittest.TestCase):
                     t = return_str()
 
                 return dsl.OneOf(t.output, other_str)
+
+    def test_oneof_has_at_least_two_outputs(self):
+
+        @dsl.component
+        def return_str() -> str:
+            return ''
+
+        @dsl.component
+        def consumer(string: str):
+            pass
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'OneOf expected two or more Condition output branches to aggregate\.'
+        ):
+
+            @dsl.pipeline
+            def producer(x: str):
+                with dsl.Condition(x == 'text'):
+                    t = return_str()
+
+                return dsl.OneOf(t.output)
 
     def test_simple(self):
 
