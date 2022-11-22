@@ -1490,5 +1490,110 @@ class TestBoolInputParameterWithDefaultSerializesCorrectly(unittest.TestCase):
             .default_value.bool_value, True)
 
 
+class TestConditionBranchAggregation(unittest.TestCase):
+
+    def test_must_be_same_type(self):
+
+        @dsl.component
+        def return_str() -> str:
+            return ''
+
+        @dsl.component
+        def return_int() -> int:
+            return 0
+
+        @dsl.component
+        def consumer(string: str):
+            pass
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Condition branch aggregation input arguments passed via tuple must all be the same type\.'
+        ):
+
+            @dsl.pipeline
+            def producer(x: int):
+                with dsl.Condition(x == 1):
+                    t1 = return_str()
+                with dsl.Condition(x == 2):
+                    t2 = return_int()
+                return dsl.OneOf(t1.output, t2.output)
+
+    def test_branches_must_all_be_component_outputs_reject_constant(self):
+
+        @dsl.component
+        def return_str() -> str:
+            return ''
+
+        @dsl.component
+        def consumer(string: str):
+            pass
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Condition branch aggregation input arguments passed via tuple must all be task outputs\. Constants are not permitted\.'
+        ):
+
+            @dsl.pipeline
+            def producer(x: str):
+                with dsl.Condition(x == 'text'):
+                    t = return_str()
+                return dsl.OneOf(t.output, 'constant')
+
+    def test_branches_must_all_be_component_outputs_reject_pipeline_parameter(
+            self):
+
+        @dsl.component
+        def return_str() -> str:
+            return ''
+
+        @dsl.component
+        def consumer(string: str):
+            pass
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Condition branch aggregation input arguments passed via tuple must all be task outputs\. Pipeline parameters are not permitted\.'
+        ):
+
+            @dsl.pipeline
+            def producer(x: str, other_str: str):
+                with dsl.Condition(x == 'text'):
+                    t = return_str()
+
+                return dsl.OneOf(t.output, other_str)
+
+    def test_simple(self):
+
+        @dsl.component
+        def return_str() -> str:
+            return ''
+
+        @dsl.component
+        def consumer(string: str):
+            pass
+
+        @dsl.pipeline
+        def producer(x: int) -> str:
+            with dsl.Condition(x == 1):
+                t1 = return_str()
+            with dsl.Condition(x == 2):
+                t2 = return_str()
+            return dsl.OneOf(t1.output, t2.output)
+
+        @dsl.pipeline
+        def my_pipeline(x: int):
+            t = producer(x=x)
+            consumer(string=t.output)
+
+        # print(my_pipeline.pipeline_spec.components.keys())
+        parameter_outputs = my_pipeline.pipeline_spec.components[
+            'comp-producer'].output_definitions.parameters
+        self.assertEqual(len(parameter_outputs.keys()), 1)
+        self.assertEqual(list(parameter_outputs.keys())[0], 'Output')
+        self.assertEqual(parameter_outputs['Output'].parameter_type,
+                         3)  # String
+
+
 if __name__ == '__main__':
     unittest.main()
