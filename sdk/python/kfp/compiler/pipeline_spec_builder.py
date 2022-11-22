@@ -1654,7 +1654,7 @@ def extract_comments_from_pipeline_spec(pipeline_spec: dict,
     }
 
     def collect_pipeline_signatures(root_dict: dict,
-                                    signature_type: str) -> str:
+                                    signature_type: str) -> List[str]:
         comment_strings = []
         if signature_type in root_dict:
             signature = root_dict[signature_type]
@@ -1670,6 +1670,8 @@ def extract_comments_from_pipeline_spec(pipeline_spec: dict,
                 if 'defaultValue' in signature['parameters'][parameter]:
                     data['defaultValue'] = signature['parameters'][parameter][
                         'defaultValue']
+                    if isinstance(data['defaultValue'], str):
+                        data['defaultValue'] = '"' + data['defaultValue'] + '"'
                 array_of_signatures.append(data)
 
             for artifact in signature.get('artifacts', {}):

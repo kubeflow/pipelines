@@ -42,8 +42,6 @@ class GraphComponent(base_component.BaseComponent):
         self.pipeline_func = pipeline_func
         self.name = name
 
-        self.description = component_spec.description
-
         args_list = []
         signature = inspect.signature(pipeline_func)
 

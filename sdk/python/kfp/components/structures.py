@@ -816,7 +816,7 @@ class ComponentSpec:
             Component spec in the form of V2 ComponentSpec.
         """
 
-        def extract_description(component_yaml: str) -> str:
+        def extract_description(component_yaml: str) -> Union[str, None]:
             heading = '# Description: '
             if heading in component_yaml:
                 description = component_yaml.splitlines()[2]

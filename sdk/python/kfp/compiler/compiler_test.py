@@ -1518,18 +1518,27 @@ class TestYamlComments(unittest.TestCase):
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
-        inputs_string = '# Inputs:\n#    sample_input1: bool [Default: True]\n#    sample_input2: str [Default: string]'
-        outputs_string = '# Outputs:\n#    Output: str'
+        inputs_string = textwrap.dedent("""\
+                # Inputs:
+                #    sample_input1: bool [Default: True]
+                #    sample_input2: str [Default: "string"]
+                """)
+
+        outputs_string = textwrap.dedent("""\
+                # Outputs:
+                #    Output: str
+                """)
+
         name_string = '# Name: my-pipeline'
 
         # test name is in comments
-        self.assertTrue(name_string in yaml_content)
+        self.assertIn(name_string, yaml_content)
 
         # test inputs are in comments
-        self.assertTrue(inputs_string in yaml_content)
+        self.assertIn(inputs_string, yaml_content)
 
         # test outputs are in comments
-        self.assertTrue(outputs_string in yaml_content)
+        self.assertIn(outputs_string, yaml_content)
 
     def test_comments_include_definition(self):
 
@@ -1555,7 +1564,7 @@ class TestYamlComments(unittest.TestCase):
             definition_string = '# Description: This is a definition of this pipeline'
 
         # test definition not in comments
-        self.assertFalse(definition_string in yaml_content)
+        self.assertNotIn(definition_string, yaml_content)
 
         @dsl.pipeline()
         def pipeline_with_definition(sample_input1: bool = True,
@@ -1577,7 +1586,7 @@ class TestYamlComments(unittest.TestCase):
             definition_string = '# Description: This is a definition of this pipeline'
 
         # test definition in comments
-        self.assertTrue(definition_string in yaml_content)
+        self.assertIn(definition_string, yaml_content)
 
     def test_comments_on_pipeline_with_no_inputs_or_outputs(self):
 
@@ -1603,7 +1612,7 @@ class TestYamlComments(unittest.TestCase):
         inputs_string = '# Inputs:\n'
 
         # test inputs header not in comments
-        self.assertFalse(inputs_string in yaml_content)
+        self.assertNotIn(inputs_string, yaml_content)
 
         @dsl.pipeline()
         def pipeline_with_no_outputs(sample_input1: bool = True,
@@ -1622,7 +1631,7 @@ class TestYamlComments(unittest.TestCase):
         outputs_string = '# Outputs:\n'
 
         # test outputs header not in comments
-        self.assertFalse(outputs_string in yaml_content)
+        self.assertNotIn(outputs_string, yaml_content)
 
     def test_comments_follow_pattern(self):
 
@@ -1652,13 +1661,13 @@ class TestYamlComments(unittest.TestCase):
                 # Description: This is a definition of this pipeline.
                 # Inputs:
                 #    sample_input1: bool [Default: True]
-                #    sample_input2: str [Default: string]
+                #    sample_input2: str [Default: "string"]
                 # Outputs:
                 #    Output: str
                 """)
 
         # test comment follows pattern
-        self.assertTrue(pattern_sample in yaml_content)
+        self.assertIn(pattern_sample, yaml_content)
 
     def test_verbose_comment_characteristics(self):
 
@@ -1711,7 +1720,7 @@ class TestYamlComments(unittest.TestCase):
                 """)
 
         # test predicted comment matches actual comment
-        self.assertTrue(predicted_comment in yaml_content)
+        self.assertIn(predicted_comment, yaml_content)
 
     def test_comments_on_compiled_components(self):
 
@@ -1736,7 +1745,7 @@ class TestYamlComments(unittest.TestCase):
                 """)
 
         # test comments work on compiled components
-        self.assertTrue(predicted_comment in yaml_content)
+        self.assertIn(predicted_comment, yaml_content)
 
         @dsl.container_component
         def my_container_component(text: str, output_path: OutputPath(str)):
@@ -1762,7 +1771,7 @@ class TestYamlComments(unittest.TestCase):
                 """)
 
         # test comments work on compiled container components
-        self.assertTrue(predicted_comment in yaml_content)
+        self.assertIn(predicted_comment, yaml_content)
 
 
 if __name__ == '__main__':
