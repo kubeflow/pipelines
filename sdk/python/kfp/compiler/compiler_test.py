@@ -1710,11 +1710,11 @@ class TestYamlComments(unittest.TestCase):
                 # Inputs:
                 #    sample_input1: bool
                 #    sample_input2: str
+                #    sample_input3: system.Model
                 #    sample_input4: float [Default: 3.14]
                 #    sample_input5: list [Default: [1.0, 2.0, 3.0]]
                 #    sample_input6: dict [Default: {'one': 1.0, 'two': 2.0, 'three': 3.0}]
                 #    sample_input7: int [Default: 5.0]
-                #    sample_input3: system.Model
                 # Outputs:
                 #    Output: system.Model
                 """)
@@ -1740,8 +1740,8 @@ class TestYamlComments(unittest.TestCase):
                 # PIPELINE DEFINITION
                 # Name: my-component
                 # Inputs:
-                #    string: str
                 #    model: bool
+                #    string: str
                 """)
 
         # test comments work on compiled components

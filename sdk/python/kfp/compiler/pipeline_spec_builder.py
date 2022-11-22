@@ -1681,6 +1681,11 @@ def extract_comments_from_pipeline_spec(pipeline_spec: dict,
                     'artifactType']['schemaTitle']
                 array_of_signatures.append(data)
 
+            # print("pre sorted: ", array_of_signatures , "\n\n")
+            array_of_signatures = sorted(
+                array_of_signatures, key=lambda d: d['name'])
+            # print("pre sorted: ", array_of_signatures, "\n\n")
+
             # Present data
             for signature in array_of_signatures:
                 string = '#    ' + signature['name'] + ': ' + signature[
