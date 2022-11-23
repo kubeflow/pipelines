@@ -1773,6 +1773,54 @@ class TestYamlComments(unittest.TestCase):
         # test comments work on compiled container components
         self.assertIn(predicted_comment, yaml_content)
 
+    def test_comments_indempotency(self):
+
+        @dsl.component
+        def identity(string: str, model: bool) -> str:
+            return string
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: bool = True,
+                        sample_input2: str = 'string') -> str:
+            """My description."""
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        predicted_comment = textwrap.dedent("""\
+                # PIPELINE DEFINITION
+                # Name: my-pipeline
+                # Description: My description
+                # Inputs:
+                #    sample_input1: bool [Default: True]
+                #    sample_input2: str [Default: "string"]
+                # Outputs:
+                #    Output: str
+                """)
+
+        # test initial comments
+        self.assertIn(predicted_comment, yaml_content)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
+            comp = components.load_component_from_file(pipeline_spec_path)
+            compiler.Compiler().compile(
+                pipeline_func=comp, package_path=pipeline_spec_path)
+            with open(pipeline_spec_path, 'r+') as f:
+                reloaded_yaml_content = f.read()
+
+        # test reloaded comments
+        self.assertIn(predicted_comment, reloaded_yaml_content)
+
 
 if __name__ == '__main__':
     unittest.main()
