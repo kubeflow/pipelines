@@ -24,19 +24,11 @@ pushd $source_root/sdk/python
 python3 -m pip install -e .
 popd # Changing the current directory to the repo root for correct coverall paths
 
-# Test against TFX
-# Compile and setup bazel for compiling the protos
-# Instruction from https://docs.bazel.build/versions/master/install-ubuntu.html
-curl -sSL https://github.com/bazelbuild/bazel/releases/download/3.7.2/bazel-3.7.2-installer-linux-x86_64.sh -o bazel_installer.sh
-chmod +x bazel_installer.sh
-./bazel_installer.sh
+# Install TFX 
+python3 -m pip install tfx==1.11.0
 
-# Install TFX from head
 cd $source_root
-git clone --depth 1 https://github.com/tensorflow/tfx.git
-cd $source_root/tfx
-python3 -m pip install .[test] --upgrade \
-  --extra-index-url https://pypi-nightly.tensorflow.org/simple
+git clone --branch r1.11.0 --depth 1 https://github.com/tensorflow/tfx.git
 
 # KFP-related tests
 python3 $source_root/tfx/tfx/orchestration/kubeflow/kubeflow_dag_runner_test.py
