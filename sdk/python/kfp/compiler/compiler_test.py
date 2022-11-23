@@ -1616,6 +1616,43 @@ class TestConditionBranchAggregation(unittest.TestCase):
         self.assertEqual(parameter_outputs['Output'].parameter_type,
                          3)  # String
 
+    def test_can_return_multuple_values_from_wrapper_pipeline(self):
+
+        @dsl.component
+        def return_str() -> str:
+            return ''
+
+        @dsl.component
+        def consumer(string: str):
+            pass
+
+        Outputs = NamedTuple('Outputs', [('agg', str), ('other', str)])
+
+        @dsl.pipeline
+        def producer(x: int) -> Outputs:
+            t0 = return_str()
+            with dsl.Condition(x == 1):
+                t1 = return_str()
+            with dsl.Condition(x == 2):
+                t2 = return_str()
+            Outputs = NamedTuple('Outputs', [('agg', str), ('other', str)])
+            return Outputs(agg=dsl.OneOf(t1.output, t2.output), other=t0.output)
+
+        @dsl.pipeline
+        def my_pipeline(x: int):
+            t = producer(x=x)
+            consumer(string=t.outputs['agg'])
+            consumer(string=t.outputs['other'])
+
+        # print(my_pipeline.pipeline_spec.components.keys())
+        parameter_outputs = my_pipeline.pipeline_spec.components[
+            'comp-producer'].output_definitions.parameters
+        self.assertEqual(len(parameter_outputs.keys()), 2)
+        self.assertIn('agg', list(parameter_outputs.keys()))
+        self.assertIn('other', list(parameter_outputs.keys()))
+        self.assertEqual(parameter_outputs['agg'].parameter_type, 3)  # String
+        self.assertEqual(parameter_outputs['other'].parameter_type, 3)  # String
+
 
 if __name__ == '__main__':
     unittest.main()
