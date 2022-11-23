@@ -461,27 +461,12 @@ def _connect_dag_outputs(
             output_name].value_from_parameter.producer_subtask = output_channel.task_name
         component_spec.dag.outputs.parameters[
             output_name].value_from_parameter.output_parameter_key = output_channel.name
-
-
-def _connect_dag_outputs_for_oneof(
-    component_spec: pipeline_spec_pb2.ComponentSpec,
-    output_name: str,
-    output_channel: pipeline_channel.OneOf,
-) -> None:
-    """Connects dag dsl.OneOf output to a subtask output.
-
-    Args:
-        component_spec: The component spec to modify its dag outputs.
-        output_name: The name of the dag output.
-        output_channel: The dsl.OneOf dag output.
-    """
-    if output_name not in component_spec.output_definitions.parameters:
-        raise ValueError(f'Pipeline output not defined: {output_name}.')
-    for channel in output_channel:
-        parameter_selector_spec = component_spec.dag.outputs.parameters[
-            output_name].value_from_oneof.parameter_selectors.add()
-        parameter_selector_spec.producer_subtask = channel.task_name
-        parameter_selector_spec.producer_subtask = channel.name
+    elif isinstance(output_channel, pipeline_channel.OneOf):
+        if output_name not in component_spec.output_definitions.parameters:
+            raise ValueError(f'Pipeline output not defined: {output_name}.')
+        for oneof_output_channel in output_channel.outputs:
+            _connect_dag_outputs(component_spec, output_name,
+                                 oneof_output_channel)
 
 
 def _build_dag_outputs(
@@ -490,25 +475,18 @@ def _build_dag_outputs(
 ) -> None:
     """Builds DAG output spec."""
     if dag_outputs is not None:
-        if isinstance(dag_outputs, pipeline_channel.OneOf):
-            _connect_dag_outputs_for_oneof(
-                component_spec=component_spec,
-                output_name=_SINGLE_OUTPUT_NAME,
-                output_channel=dag_outputs,
-            )
-        elif isinstance(dag_outputs, pipeline_channel.PipelineChannel):
-            _connect_dag_outputs(
-                component_spec=component_spec,
-                output_name=_SINGLE_OUTPUT_NAME,
-                output_channel=dag_outputs,
-            )
-        elif isinstance(dag_outputs, tuple) and hasattr(dag_outputs, '_asdict'):
+        if isinstance(dag_outputs, tuple) and hasattr(dag_outputs, '_asdict'):
             for output_name, output_channel in dag_outputs._asdict().items():
                 _connect_dag_outputs(
                     component_spec=component_spec,
                     output_name=output_name,
                     output_channel=output_channel,
                 )
+        _connect_dag_outputs(
+            component_spec=component_spec,
+            output_name=_SINGLE_OUTPUT_NAME,
+            output_channel=dag_outputs,
+        )
     # Valid dag outputs covers all outputs in component definition.
     for output_name in component_spec.output_definitions.artifacts:
         if output_name not in component_spec.dag.outputs.artifacts:
@@ -1573,9 +1551,11 @@ def create_pipeline_spec(
     pipeline_spec.sdk_version = f'kfp-{kfp.__version__}'
     # Schema version 2.1.0 is required for kfp-pipeline-spec>0.1.13
     pipeline_spec.schema_version = '2.1.0'
-
     pipeline_spec.root.CopyFrom(
         _build_component_spec_from_component_spec_structure(component_spec))
+    print('HERE')
+    print(pipeline_spec.root.output_definitions)
+    print(pipeline_outputs)
 
     _build_dag_outputs(
         component_spec=pipeline_spec.root, dag_outputs=pipeline_outputs)
