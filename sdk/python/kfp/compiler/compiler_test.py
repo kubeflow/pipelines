@@ -1508,11 +1508,11 @@ class TestConditionBranchAggregation(unittest.TestCase):
 
         with self.assertRaisesRegex(
                 ValueError,
-                r'Condition branch aggregation input arguments passed via OneOf must all be the same type\.'
+                r"Task outputs in OneOf must all be the same type\. Got types \('String', 'Integer'\)\."
         ):
 
             @dsl.pipeline
-            def producer(x: int):
+            def producer(x: int) -> str:
                 with dsl.Condition(x == 1):
                     t1 = return_str()
                 with dsl.Condition(x == 2):
@@ -1531,11 +1531,11 @@ class TestConditionBranchAggregation(unittest.TestCase):
 
         with self.assertRaisesRegex(
                 ValueError,
-                r'Condition branch aggregation input arguments passed via OneOf must all be task outputs\. Constants are not permitted\.'
+                r"Task outputs in OneOf must all be task outputs\. Constants are not permitted. Got constant values \['constant'\]\."
         ):
 
             @dsl.pipeline
-            def producer(x: str):
+            def producer(x: str) -> str:
                 with dsl.Condition(x == 'text'):
                     t = return_str()
                 return dsl.OneOf(t.output, 'constant')
@@ -1553,11 +1553,11 @@ class TestConditionBranchAggregation(unittest.TestCase):
 
         with self.assertRaisesRegex(
                 ValueError,
-                r'Condition branch aggregation input arguments passed via OneOf must all be task outputs\. Pipeline parameters are not permitted\.'
+                r"Task outputs in OneOf must all be task outputs\. Pipeline parameters are not permitted. Got pipeline parameters \['other_str'\]\."
         ):
 
             @dsl.pipeline
-            def producer(x: str, other_str: str):
+            def producer(x: str, other_str: str) -> str:
                 with dsl.Condition(x == 'text'):
                     t = return_str()
 
@@ -1575,15 +1575,37 @@ class TestConditionBranchAggregation(unittest.TestCase):
 
         with self.assertRaisesRegex(
                 ValueError,
-                r'OneOf expected two or more Condition output branches to aggregate\.'
-        ):
+                r'Expected two or more task outputs in OneOf\. Got 1\.'):
 
             @dsl.pipeline
-            def producer(x: str):
+            def producer(x: str) -> str:
                 with dsl.Condition(x == 'text'):
                     t = return_str()
 
                 return dsl.OneOf(t.output)
+
+    def test_all_inputs_to_oneof_have_condition_parent(self):
+
+        @dsl.component
+        def return_str() -> str:
+            return ''
+
+        @dsl.component
+        def consumer(string: str):
+            pass
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Task outputs in a OneOf must be constructed within a Condition group'
+        ):
+
+            @dsl.pipeline
+            def producer(x: str) -> str:
+                t1 = return_str()
+                with dsl.Condition(x == 'text'):
+                    t2 = return_str()
+
+                return dsl.OneOf(t1.output, t2.output)
 
     def test_simple(self):
 
@@ -1652,6 +1674,129 @@ class TestConditionBranchAggregation(unittest.TestCase):
         self.assertIn('other', list(parameter_outputs.keys()))
         self.assertEqual(parameter_outputs['agg'].parameter_type, 3)  # String
         self.assertEqual(parameter_outputs['other'].parameter_type, 3)  # String
+
+    def test_three_branches(self):
+
+        @dsl.component
+        def return_str() -> str:
+            return ''
+
+        @dsl.component
+        def consumer(string: str):
+            pass
+
+        @dsl.pipeline
+        def producer(x: int) -> str:
+            with dsl.Condition(x == 1):
+                t1 = return_str()
+            with dsl.Condition(x == 2):
+                t2 = return_str()
+            with dsl.Condition(x == 3):
+                t3 = return_str()
+            return dsl.OneOf(t1.output, t2.output, t3.output)
+
+        @dsl.pipeline
+        def my_pipeline(x: int):
+            t = producer(x=x)
+            consumer(string=t.output)
+
+        # print(my_pipeline.pipeline_spec.components.keys())
+        parameter_outputs = my_pipeline.pipeline_spec.components[
+            'comp-producer'].output_definitions.parameters
+        self.assertEqual(len(parameter_outputs.keys()), 1)
+        self.assertEqual(list(parameter_outputs.keys())[0], 'Output')
+        self.assertEqual(parameter_outputs['Output'].parameter_type,
+                         3)  # String
+
+    def test_triple_nested_condition(self):
+
+        @dsl.component
+        def return_str() -> str:
+            return ''
+
+        @dsl.component
+        def consumer(string: str):
+            pass
+
+        @dsl.pipeline
+        def producer(x: int) -> str:
+            with dsl.Condition(x == 1):
+                t1 = return_str()
+            with dsl.Condition(x == 2):
+                t2 = return_str()
+            with dsl.Condition(x == 3):
+                with dsl.Condition(x == 3):
+                    t3 = return_str()
+            return dsl.OneOf(t1.output, t2.output, t3.output)
+
+        @dsl.pipeline
+        def my_pipeline(x: int):
+            t = producer(x=x)
+            consumer(string=t.output)
+
+        # print(my_pipeline.pipeline_spec.components.keys())
+        parameter_outputs = my_pipeline.pipeline_spec.components[
+            'comp-producer'].output_definitions.parameters
+        self.assertEqual(len(parameter_outputs.keys()), 1)
+        self.assertEqual(list(parameter_outputs.keys())[0], 'Output')
+        self.assertEqual(parameter_outputs['Output'].parameter_type,
+                         3)  # String
+
+    def test_not_mutually_exclusive_unverified(self):
+
+        @dsl.component
+        def return_str() -> str:
+            return ''
+
+        @dsl.component
+        def consumer(string: str):
+            pass
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Task outputs in OneOf must be mutually exclusive. Outputs from tasks'
+        ):
+
+            @dsl.pipeline
+            def producer(x: int) -> str:
+                with dsl.Condition(x == 1):
+                    t1 = return_str()
+                with dsl.Condition(x == 2):
+                    t2 = return_str()
+                with dsl.Condition(x == 3):
+                    t3 = return_str()
+                    with dsl.Condition(x == 3):
+                        t4 = return_str(
+                        )  # this is an illegal topology -- t3 will always have a result if t4 does. We do not validate.
+                return dsl.OneOf(t1.output, t2.output, t3.output, t4.output)
+
+    def test_parallel_for_in_condition_still_blocked(self):
+
+        @dsl.component
+        def return_str() -> str:
+            return ''
+
+        @dsl.component
+        def consumer(string: str):
+            pass
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Task outputs in OneOf cannot be defined within a ParallelFor\. Got output from task'
+        ):
+
+            @dsl.pipeline
+            def producer(x: int) -> str:
+                with dsl.Condition(x == 1):
+                    t1 = return_str()
+                with dsl.Condition(x == 2):
+                    t2 = return_str()
+                with dsl.Condition(x == 3):
+                    t3 = return_str()
+                    with dsl.ParallelFor([1, 2, 3]):
+                        t4 = return_str(
+                        )  # this is an illegal topology -- t3 will always have a result if t4 does. We do not validate.
+                return dsl.OneOf(t1.output, t2.output, t3.output, t4.output)
 
 
 if __name__ == '__main__':

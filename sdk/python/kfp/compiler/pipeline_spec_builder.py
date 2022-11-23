@@ -462,6 +462,8 @@ def _connect_dag_outputs(
         component_spec.dag.outputs.parameters[
             output_name].value_from_parameter.output_parameter_key = output_channel.name
     elif isinstance(output_channel, pipeline_channel.OneOf):
+        # must call here instead of at OneOf.__init__, since we need access to the pipeline graph to do this validation, which isn't constructed until the pipeline function is called within the pipeline_context.Pipeline context manager
+        output_channel._validate_topology()
         if output_name not in component_spec.output_definitions.parameters:
             raise ValueError(f'Pipeline output not defined: {output_name}.')
         for oneof_output_channel in output_channel.outputs:
@@ -1553,9 +1555,6 @@ def create_pipeline_spec(
     pipeline_spec.schema_version = '2.1.0'
     pipeline_spec.root.CopyFrom(
         _build_component_spec_from_component_spec_structure(component_spec))
-    print('HERE')
-    print(pipeline_spec.root.output_definitions)
-    print(pipeline_outputs)
 
     _build_dag_outputs(
         component_spec=pipeline_spec.root, dag_outputs=pipeline_outputs)

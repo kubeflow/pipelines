@@ -13,6 +13,7 @@
 # limitations under the License.
 """Definition of PipelineChannel."""
 import abc
+import collections
 import dataclasses
 import json
 import re
@@ -392,11 +393,12 @@ class OneOf:
             consumer(string=p.output)
     """
 
-    # TODO: test topological constraints
-
     def __init__(self, *outputs) -> None:
+        from kfp.components import pipeline_context
+
         self.outputs = outputs
         self._validate_tuple(outputs)
+        self._pipeline = pipeline_context.Pipeline.get_default_pipeline()
 
     def __iter__(self) -> Iterable[pipeline_channel.PipelineChannel]:
         return iter(self.outputs)
@@ -410,7 +412,7 @@ class OneOf:
         ]
         if constants:
             raise ValueError(
-                f'Condition branch aggregation input arguments passed via {self.__class__.__name__} must all be task outputs. Constants are not permitted. Got constant values {constants}.'
+                f'Task outputs in {self.__class__.__name__} must all be task outputs. Constants are not permitted. Got constant values {constants}.'
             )
 
         # cannot have pipeline parameter
@@ -419,7 +421,7 @@ class OneOf:
         ]
         if pipeline_parameters:
             raise ValueError(
-                f'Condition branch aggregation input arguments passed via {self.__class__.__name__} must all be task outputs. Pipeline parameters are not permitted. Got pipeline parameters {pipeline_parameters}.'
+                f'Task outputs in {self.__class__.__name__} must all be task outputs. Pipeline parameters are not permitted. Got pipeline parameters {pipeline_parameters}.'
             )
 
         # must all be the same type
@@ -427,11 +429,94 @@ class OneOf:
         all_types = [val.channel_type for val in outputs]
         if any(t != argument_type for t in all_types):
             raise ValueError(
-                f'Condition branch aggregation input arguments passed via {self.__class__.__name__} must all be the same type. Got types {tuple(all_types)}.'
+                f'Task outputs in {self.__class__.__name__} must all be the same type. Got types {tuple(all_types)}.'
             )
 
         # should only be used when at least two pipeline channels
         if len(outputs) < 2:
             raise ValueError(
-                f'{self.__class__.__name__} expected two or more Condition output branches to aggregate. Got {len(self.outputs)}.'
+                f'Expected two or more task outputs in {self.__class__.__name__}. Got {len(self.outputs)}.'
             )
+
+    @property
+    def _branch_tasks(self) -> List[str]:
+        return [t.task_name for t in self.outputs]
+
+    def _validate_no_shared_condition_parents(
+        self,
+        task_name_to_parent_groups_no_self: Dict[str, List[str]],
+        group_name_to_group: Dict[str, 'tasks_group.TasksGroup'],
+    ) -> None:
+        # avoid circular imports
+        from kfp.components import tasks_group
+        parent_condition_to_task = collections.defaultdict(list)
+        for task_name, parents in task_name_to_parent_groups_no_self.items():
+            for parent in parents:
+                if group_name_to_group[
+                        parent].group_type == tasks_group.TasksGroupType.CONDITION:
+                    parent_condition_to_task[parent].append(task_name)
+        for condition_name, inner_tasks in parent_condition_to_task.items():
+            if len(inner_tasks) > 1:
+                raise ValueError(
+                    f'Task outputs in {self.__class__.__name__} must be mutually exclusive. Outputs from tasks {inner_tasks} defined withined within the same {tasks_group.Condition.__name__} group `{condition_name}` cannot be mutually exclusive.'
+                )
+
+    def _validate_no_parallel_for_parents(
+        self,
+        task_name_to_parent_groups_no_self: Dict[str, List[str]],
+        group_name_to_group: Dict[str, 'tasks_group.TasksGroup'],
+    ) -> None:
+        # avoid circular imports
+        from kfp.components import tasks_group
+        for task_name, parents in task_name_to_parent_groups_no_self.items():
+            for parent in parents:
+                if group_name_to_group[
+                        parent].group_type == tasks_group.TasksGroupType.FOR_LOOP:
+                    raise ValueError(
+                        f'Task outputs in {self.__class__.__name__} cannot be defined within a {tasks_group.ParallelFor.__name__}. Got output from task `{task_name}` defined within the {tasks_group.Condition.__name__} group `{parent}`.'
+                    )
+
+    def _validate_topology(self) -> None:
+        # similar logic to compiler_utils.get_dependencies, but specific to the constraints of OneOf
+
+        # avoid circular imports
+        from kfp.compiler import compiler_utils
+
+        root_group = self._pipeline.groups[0]
+        task_name_to_parent_groups, _ = compiler_utils.get_parent_groups(
+            root_group)
+
+        all_groups = compiler_utils.get_all_groups(root_group)
+        group_name_to_group = {group.name: group for group in all_groups}
+        oneof_task_names_to_parents_no_self: Dict[str, List[str]] = {}
+
+        for task_name, parents in task_name_to_parent_groups.items():
+            parents.remove(task_name)
+            if task_name in self._branch_tasks:
+                oneof_task_names_to_parents_no_self[task_name] = parents
+
+        self._validate_no_parallel_for_parents(
+            oneof_task_names_to_parents_no_self, group_name_to_group)
+        self._validate_no_shared_condition_parents(
+            oneof_task_names_to_parents_no_self, group_name_to_group)
+        self._validate_all_tasks_have_condition_parents(
+            oneof_task_names_to_parents_no_self, group_name_to_group)
+
+    def _validate_all_tasks_have_condition_parents(
+        self,
+        task_name_to_parent_groups_no_self: Dict[str, List[str]],
+        group_name_to_group: Dict[str, 'tasks_group.TasksGroup'],
+    ) -> None:
+        # avoid circular imports
+        from kfp.components import tasks_group
+
+        for task_name, parents in task_name_to_parent_groups_no_self.items():
+            if not [
+                    group_name_to_group[parent]
+                    for parent in parents if group_name_to_group[parent]
+                    .group_type == tasks_group.TasksGroupType.CONDITION
+                    for parent in parents
+            ]:
+                raise ValueError(
+                    f'Task outputs in a {self.__class__.__name__} must be constructed within a {tasks_group.Condition.__name__} group. Got task {task_name} with no parent {tasks_group.Condition.__name__}.'
+                )
