@@ -31,20 +31,30 @@ from kfp.dsl import Output
 class AnnotationsTest(parameterized.TestCase):
 
     def test_is_artifact_annotation(self):
-        self.assertTrue(type_annotations.is_artifact_annotation(Input[Model]))
         self.assertTrue(
-            type_annotations.is_artifact_annotation(Input[List[Model]]))
-        self.assertTrue(type_annotations.is_artifact_annotation(Output[Model]))
+            type_annotations.is_Input_Output_artifact_annotation(Input[Model]))
         self.assertTrue(
-            type_annotations.is_artifact_annotation(Output[List[Model]]))
+            type_annotations.is_Input_Output_artifact_annotation(
+                Input[List[Model]]))
         self.assertTrue(
-            type_annotations.is_artifact_annotation(Output['MyArtifact']))
+            type_annotations.is_Input_Output_artifact_annotation(Output[Model]))
+        self.assertTrue(
+            type_annotations.is_Input_Output_artifact_annotation(
+                Output[List[Model]]))
+        self.assertTrue(
+            type_annotations.is_Input_Output_artifact_annotation(
+                Output['MyArtifact']))
 
-        self.assertFalse(type_annotations.is_artifact_annotation(Model))
-        self.assertFalse(type_annotations.is_artifact_annotation(int))
-        self.assertFalse(type_annotations.is_artifact_annotation('Dataset'))
-        self.assertFalse(type_annotations.is_artifact_annotation(List[str]))
-        self.assertFalse(type_annotations.is_artifact_annotation(Optional[str]))
+        self.assertFalse(
+            type_annotations.is_Input_Output_artifact_annotation(Model))
+        self.assertFalse(
+            type_annotations.is_Input_Output_artifact_annotation(int))
+        self.assertFalse(
+            type_annotations.is_Input_Output_artifact_annotation('Dataset'))
+        self.assertFalse(
+            type_annotations.is_Input_Output_artifact_annotation(List[str]))
+        self.assertFalse(
+            type_annotations.is_Input_Output_artifact_annotation(Optional[str]))
 
     def test_is_input_artifact(self):
         self.assertTrue(type_annotations.is_input_artifact(Input[Model]))

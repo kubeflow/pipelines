@@ -121,7 +121,7 @@ class OutputAnnotation:
     """Marker type for output artifacts."""
 
 
-def is_artifact_annotation(typ) -> bool:
+def is_Input_Output_artifact_annotation(typ) -> bool:
     if not hasattr(typ, '__metadata__'):
         return False
 
@@ -133,7 +133,7 @@ def is_artifact_annotation(typ) -> bool:
 
 def is_input_artifact(typ) -> bool:
     """Returns True if typ is of type Input[T]."""
-    if not is_artifact_annotation(typ):
+    if not is_Input_Output_artifact_annotation(typ):
         return False
 
     return typ.__metadata__[0] == InputAnnotation
@@ -141,7 +141,7 @@ def is_input_artifact(typ) -> bool:
 
 def is_output_artifact(typ) -> bool:
     """Returns True if typ is of type Output[T]."""
-    if not is_artifact_annotation(typ):
+    if not is_Input_Output_artifact_annotation(typ):
         return False
 
     return typ.__metadata__[0] == OutputAnnotation
@@ -150,7 +150,7 @@ def is_output_artifact(typ) -> bool:
 def get_io_artifact_class(typ):
     from kfp.dsl import Input
     from kfp.dsl import Output
-    if not is_artifact_annotation(typ):
+    if not is_Input_Output_artifact_annotation(typ):
         return None
     if typ == Input or typ == Output:
         return None
@@ -164,7 +164,7 @@ def get_io_artifact_class(typ):
 
 
 def get_io_artifact_annotation(typ):
-    if not is_artifact_annotation(typ):
+    if not is_Input_Output_artifact_annotation(typ):
         return None
 
     return typ.__metadata__[0]

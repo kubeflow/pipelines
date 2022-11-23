@@ -164,7 +164,7 @@ def extract_component_interface(
         passing_style = None
         io_name = parameter.name
 
-        if type_annotations.is_artifact_annotation(parameter_type):
+        if type_annotations.is_Input_Output_artifact_annotation(parameter_type):
             # passing_style is either type_annotations.InputAnnotation or
             # type_annotations.OutputAnnotation.
             passing_style = type_annotations.get_io_artifact_annotation(
