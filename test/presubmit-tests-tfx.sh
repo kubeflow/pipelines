@@ -16,7 +16,7 @@
 source_root=$(pwd)
 
 # TODO(#5051) Unpin pip version once we figure out how to make the new dependency resolver in pip 20.3+ work in our case.
-# python3 -m pip install --upgrade pip==20.2.3
+python3 -m pip install --upgrade pip==20.2.3
 # Using Argo to lint all compiled workflows
 "${source_root}/test/install-argo-cli.sh"
 
