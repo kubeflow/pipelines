@@ -180,7 +180,6 @@ def get_inputs_for_all_groups(
         # task's inputs and all channels used in conditions for that task are
         # considered.
         task_condition_inputs = list(condition_channels[task.name])
-
         for channel in task.channel_inputs + task_condition_inputs:
 
             # If the value is already provided (immediate value), then no
@@ -236,7 +235,7 @@ def get_inputs_for_all_groups(
             if isinstance(channel_to_add, pipeline_channel.PipelineChannel):
                 channels_to_add.append(channel_to_add)
 
-            if channel.task_name:
+            if not isinstance(channel, tuple) and channel.task_name:
                 # The PipelineChannel is produced by a task.
 
                 upstream_task = pipeline.tasks[channel.task_name]
@@ -247,7 +246,6 @@ def get_inputs_for_all_groups(
                         task1=upstream_task,
                         task2=task,
                     ))
-
                 for i, group_name in enumerate(downstream_groups):
                     if i == 0:
                         # If it is the first uncommon downstream group, then
@@ -273,6 +271,10 @@ def get_inputs_for_all_groups(
                             channels_to_add.pop()
                             if not channels_to_add:
                                 break
+
+            # dsl.Condition branch aggregation
+            elif isinstance(channel, tuple):
+                ...
 
             else:
                 # The PipelineChannel is not produced by a task. It's either
@@ -402,12 +404,16 @@ def get_dependencies(
             group.
     """
     dependencies = collections.defaultdict(set)
+    # TODO: task inputs
     for task in pipeline.tasks.values():
         upstream_task_names = set()
         task_condition_inputs = list(condition_channels[task.name])
         for channel in task.channel_inputs + task_condition_inputs:
-            if channel.task_name:
+            if not isinstance(channel, tuple) and channel.task_name:
                 upstream_task_names.add(channel.task_name)
+            elif isinstance(channel, tuple):
+                pass
+
         upstream_task_names |= set(task.dependent_tasks)
 
         for upstream_task_name in upstream_task_names:
@@ -429,12 +435,12 @@ def get_dependencies(
 
             # a task cannot depend on a task created in a for loop group since individual PipelineTask variables are reassigned after each loop iteration
             dependent_group = group_name_to_group.get(upstream_groups[0], None)
-            if isinstance(dependent_group,
-                          (tasks_group.ParallelFor, tasks_group.Condition,
-                           tasks_group.ExitHandler)):
-                raise RuntimeError(
-                    f'Task {task.name} cannot dependent on any task inside'
-                    f' the group: {upstream_groups[0]}.')
+            # if isinstance(dependent_group,
+            #               (tasks_group.ParallelFor, tasks_group.Condition,
+            #                tasks_group.ExitHandler)):
+            #     raise RuntimeError(
+            #         f'Task {task.name} cannot dependent on any task inside'
+            #         f' the group: {upstream_groups[0]}.')
 
             dependencies[downstream_groups[0]].add(upstream_groups[0])
 

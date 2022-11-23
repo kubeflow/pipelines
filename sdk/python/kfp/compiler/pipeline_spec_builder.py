@@ -1519,6 +1519,44 @@ def _merge_component_spec(
             old_name_to_new_name[old_component_name]].CopyFrom(component_spec)
 
 
+def update_all_groups_for_conditional_branch_aggregation(
+    all_groups: List[tasks_group.TasksGroup],
+    task_name_to_parent_groups,
+    group_name_to_parent_groups,
+    group_name_to_group,
+) -> List[tasks_group.TasksGroup]:
+    print(all_groups[0])
+    print()
+    print('-' * 15)
+    print(all_groups)
+    for group in all_groups:
+        for task in group.tasks:
+            for channel_input in task.channel_inputs:
+                if isinstance(channel_input, tuple):
+                    print(channel_input[0].task_name)
+                    print(channel_input[1].task_name)
+                    wrapper_task_group = tasks_group.TasksGroup(
+                        group_type=tasks_group.TasksGroupType.PIPELINE,
+                        name='condition-branch-aggregation')
+                    # add tasks
+                    # add any groups
+                    # put task group under parent
+
+        print(group.name)
+        print([t.name for t in group.tasks])
+        print({t.name: t.channel_inputs for t in group.tasks})
+        print()
+    # condition_parents =
+    print('task_name_to_parent_groups')
+    print()
+    print('group_name_to_parent_groupso')
+    print(group_name_to_parent_groups)
+
+    # import sys
+    # sys.exit(0)
+    return all_groups
+
+
 def create_pipeline_spec(
     pipeline: pipeline_context.Pipeline,
     component_spec: structures.ComponentSpec,
@@ -1557,8 +1595,12 @@ def create_pipeline_spec(
 
     all_groups = compiler_utils.get_all_groups(root_group)
     group_name_to_group = {group.name: group for group in all_groups}
+
     task_name_to_parent_groups, group_name_to_parent_groups = (
         compiler_utils.get_parent_groups(root_group))
+    all_groups = update_all_groups_for_conditional_branch_aggregation(
+        all_groups, task_name_to_parent_groups, group_name_to_parent_groups,
+        group_name_to_group)
     condition_channels = compiler_utils.get_condition_channels_for_tasks(
         root_group)
     name_to_for_loop_group = {

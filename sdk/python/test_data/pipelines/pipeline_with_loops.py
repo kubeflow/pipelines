@@ -35,7 +35,8 @@ def print_struct(struct: Dict):
 
 
 @dsl.pipeline(name='pipeline-with-loops')
-def my_pipeline(loop_parameter: List[str]):
+def my_pipeline(loop_parameter: List[str] = ['a', 'b']):
+    """TESTTTT."""
 
     # Loop argument is from a pipeline input
     with dsl.ParallelFor(loop_parameter) as item:
@@ -45,18 +46,35 @@ def my_pipeline(loop_parameter: List[str]):
     args_generator = args_generator_op()
     with dsl.ParallelFor(args_generator.output) as item:
         print_struct(struct=item)
-        print_text(msg=item.A_a)
-        print_text(msg=item.B_b)
+        # print_text(msg=item.A_a)
+        # print_text(msg=item.B_b)
 
-    # Loop argument is a static value known at compile time
-    loop_args = [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]
-    with dsl.ParallelFor(loop_args) as item:
-        print_struct(struct=item)
-        print_text(msg=item.A_a)
-        print_text(msg=item.B_b)
+    # # Loop argument is a static value known at compile time
+    # loop_args = [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]
+    # with dsl.ParallelFor(loop_args) as item:
+    #     print_struct(struct=item)
+    #     print_text(msg=item.A_a)
+    #     print_text(msg=item.B_b)
 
 
 if __name__ == '__main__':
-    compiler.Compiler().compile(
-        pipeline_func=my_pipeline,
-        package_path=__file__.replace('.py', '.yaml'))
+    import datetime
+    import warnings
+    import webbrowser
+
+    from google.cloud import aiplatform
+    from kfp import compiler
+
+    warnings.filterwarnings('ignore')
+    ir_file = __file__.replace('.py', '.yaml')
+    compiler.Compiler().compile(pipeline_func=my_pipeline, package_path=ir_file)
+    pipeline_name = __file__.split('/')[-1].replace('_', '-').replace('.py', '')
+    display_name = datetime.datetime.now().strftime('%m-%d-%Y-%H-%M-%S')
+    job_id = f'{pipeline_name}-{display_name}'
+    aiplatform.PipelineJob(
+        template_path=ir_file,
+        pipeline_root='gs://cjmccarthy-kfp-default-bucket',
+        display_name=pipeline_name,
+        job_id=job_id).submit()
+    url = f'https://console.cloud.google.com/vertex-ai/locations/us-central1/pipelines/runs/{pipeline_name}-{display_name}?project=271009669852'
+    webbrowser.open_new_tab(url)

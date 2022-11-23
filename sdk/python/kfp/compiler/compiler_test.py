@@ -1566,5 +1566,26 @@ class TestConditionBranchAggregation(unittest.TestCase):
                 consumer(string=(t.output, other_str))
 
 
+#     def test_simple(self):
+
+#         @dsl.component
+#         def return_str() -> str:
+#             return ''
+
+#         @dsl.component
+#         def consumer(string: str):
+#             pass
+
+#         @dsl.pipeline
+#         def my_pipeline(x: int):
+#             with dsl.Condition(x == 1):
+#                 t1 = return_str()
+#             with dsl.Condition(x == 2):
+#                 t2 = return_str()
+
+#             consumer(string=t1.output)
+
+# # TODO: check parent is condition and other constraints
+
 if __name__ == '__main__':
     unittest.main()

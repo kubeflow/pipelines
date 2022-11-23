@@ -1,0 +1,142 @@
+components:
+  comp-contains:
+    executorLabel: exec-contains
+    inputDefinitions:
+      parameters:
+        items:
+          parameterType: LIST
+        string:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: BOOLEAN
+  comp-for-loop-2:
+    dag:
+      tasks:
+        identity:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-identity
+          inputs:
+            parameters:
+              string:
+                componentInputParameter: pipelinechannel--loop-item-param-1
+          taskInfo:
+            name: identity
+      # 2) wire up the output from the task in the loop
+      outputs:
+        parameters:
+          pipelinechannel--loop-output-1:
+            valueFromParameter:
+              producerSubtask: identity
+              outputParameterKey: Output
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: STRING
+    # 1) create a loop outputDefinitions entry for each aggregation that is done
+    outputDefinitions:
+      parameters:
+        pipelinechannel--loop-output-1:
+          parameterType: LIST
+  comp-identity:
+    executorLabel: exec-identity
+    inputDefinitions:
+      parameters:
+        string:
+          parameterType: STRING
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-contains:
+      container:
+        args:
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - contains
+        command:
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.4'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
+
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef contains(string: str, items: List[str]) -> bool:\n    print(items)\n    print(type(items))\n    return\
+            \ string in items\n\n"
+        image: python:3.7
+    exec-identity:
+      container:
+        args:
+          - --executor_input
+          - "{{$}}"
+          - --function_to_execute
+          - identity
+        command:
+          - sh
+          - -c
+          - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+            \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+            \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.4'\
+            \ && \"$0\" \"$@\"\n"
+          - sh
+          - -ec
+          - 'program_path=$(mktemp -d)
+
+            printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+            python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+            '
+          - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+            \ *\n\ndef identity(string: str) -> str:\n    print(string)\n    return\
+            \ string\n\n"
+        image: python:3.7
+pipelineInfo:
+  name: my-pipeline
+root:
+  dag:
+    tasks:
+      contains:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-contains
+        # 3) set the inputs.parameters for downstream consumers of the aggregator
+        inputs:
+          parameters:
+            items:
+              taskOutputParameter:
+                producerTask: for-loop-2
+                outputParameterKey: pipelinechannel--loop-output-1
+            string:
+              runtimeValue:
+                constant: a
+        taskInfo:
+          name: contains
+      for-loop-2:
+        componentRef:
+          name: comp-for-loop-2
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-1
+          items:
+            raw: '["a", "b"]'
+        taskInfo:
+          name: for-loop-2
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.4

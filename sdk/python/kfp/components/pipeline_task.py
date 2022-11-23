@@ -132,6 +132,7 @@ class PipelineTask:
                 argument_type = 'List'
             elif isinstance(argument_value, tuple):
                 validate_tuple(argument_value, input_name)
+                argument_type = argument_value[0].channel_type
             else:
                 raise ValueError(
                     'Input argument supports only the following types: '
@@ -192,12 +193,13 @@ class PipelineTask:
         self._inputs = args
         self._channel_inputs = []
         for _, value in args.items():
-            if isinstance(value, pipeline_channel.PipelineChannel):
+            # validate_tuple ensures tuples will only ever contain PipelineChannels
+            if isinstance(value, (pipeline_channel.PipelineChannel, tuple)):
                 self._channel_inputs.append(value)
 
         not_pipeline_channels = []
         for _, value in args.items():
-            if not isinstance(value, pipeline_channel.PipelineChannel):
+            if not isinstance(value, (pipeline_channel.PipelineChannel, tuple)):
                 not_pipeline_channels.append(value)
 
         self._channel_inputs.extend(
