@@ -1670,6 +1670,17 @@ def extract_comments_from_pipeline_spec(pipeline_spec: dict,
                 if 'defaultValue' in signature['parameters'][parameter]:
                     data['defaultValue'] = signature['parameters'][parameter][
                         'defaultValue']
+                    if isinstance(data['defaultValue'], list) and not (
+                            isinstance(data['defaultValue'][0], dict) or
+                        (isinstance(data['defaultValue'][0], list))):
+                        data['defaultValue'] = sorted(data['defaultValue'])
+                    if isinstance(data['defaultValue'], dict) and not (
+                            isinstance(
+                                list(data['defaultValue'].keys())[0], dict) or
+                            isinstance(
+                                list(data['defaultValue'].keys())[0], list)):
+                        data['defaultValue'] = dict(
+                            sorted(data['defaultValue'].items()))
                     if isinstance(data['defaultValue'], str):
                         data['defaultValue'] = '"' + data['defaultValue'] + '"'
                 array_of_signatures.append(data)
@@ -1681,10 +1692,8 @@ def extract_comments_from_pipeline_spec(pipeline_spec: dict,
                     'artifactType']['schemaTitle']
                 array_of_signatures.append(data)
 
-            # print("pre sorted: ", array_of_signatures , "\n\n")
             array_of_signatures = sorted(
-                array_of_signatures, key=lambda d: d['name'])
-            # print("pre sorted: ", array_of_signatures, "\n\n")
+                array_of_signatures, key=lambda d: d.get('name'))
 
             # Present data
             for signature in array_of_signatures:
