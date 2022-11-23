@@ -1797,7 +1797,7 @@ class TestYamlComments(unittest.TestCase):
         predicted_comment = textwrap.dedent("""\
                 # PIPELINE DEFINITION
                 # Name: my-pipeline
-                # Description: My description
+                # Description: My description.
                 # Inputs:
                 #    sample_input1: bool [Default: True]
                 #    sample_input2: str [Default: "string"]
