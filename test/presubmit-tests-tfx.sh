@@ -25,7 +25,7 @@ python3 -m pip install -e .
 popd # Changing the current directory to the repo root for correct coverall paths
 
 # Install TFX 
-python3 -m pip install tfx==1.11.0
+python3 -m pip install tfx[kfp]==1.11.0
 
 cd $source_root
 git clone --branch r1.11.0 --depth 1 https://github.com/tensorflow/tfx.git
