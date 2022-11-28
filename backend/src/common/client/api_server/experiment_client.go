@@ -15,10 +15,10 @@ import (
 )
 
 type ExperimentInterface interface {
-	Create(params *params.CreateExperimentV1Params) (*model.V1beta1Experiment, error)
-	Get(params *params.GetExperimentV1Params) (*model.V1beta1Experiment, error)
-	List(params *params.ListExperimentsV1Params) ([]*model.V1beta1Experiment, int, string, error)
-	ListAll(params *params.ListExperimentsV1Params, maxResultSize int) ([]*model.V1beta1Experiment, error)
+	Create(params *params.CreateExperimentV1Params) (*model.APIExperiment, error)
+	Get(params *params.GetExperimentV1Params) (*model.APIExperiment, error)
+	List(params *params.ListExperimentsV1Params) ([]*model.APIExperiment, int, string, error)
+	ListAll(params *params.ListExperimentsV1Params, maxResultSize int) ([]*model.APIExperiment, error)
 	Archive(params *params.ArchiveExperimentV1Params) error
 	Unarchive(params *params.UnarchiveExperimentV1Params) error
 }
@@ -59,7 +59,7 @@ func NewKubeflowInClusterExperimentClient(namespace string, debug bool) (
 	}, nil
 }
 
-func (c *ExperimentClient) Create(parameters *params.CreateExperimentV1Params) (*model.V1beta1Experiment,
+func (c *ExperimentClient) Create(parameters *params.CreateExperimentV1Params) (*model.APIExperiment,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
@@ -83,7 +83,7 @@ func (c *ExperimentClient) Create(parameters *params.CreateExperimentV1Params) (
 	return response.Payload, nil
 }
 
-func (c *ExperimentClient) Get(parameters *params.GetExperimentV1Params) (*model.V1beta1Experiment,
+func (c *ExperimentClient) Get(parameters *params.GetExperimentV1Params) (*model.APIExperiment,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
@@ -108,7 +108,7 @@ func (c *ExperimentClient) Get(parameters *params.GetExperimentV1Params) (*model
 }
 
 func (c *ExperimentClient) List(parameters *params.ListExperimentsV1Params) (
-	[]*model.V1beta1Experiment, int, string, error) {
+	[]*model.APIExperiment, int, string, error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)
 	defer cancel()
@@ -155,17 +155,17 @@ func (c *ExperimentClient) Delete(parameters *params.DeleteExperimentV1Params) e
 }
 
 func (c *ExperimentClient) ListAll(parameters *params.ListExperimentsV1Params, maxResultSize int) (
-	[]*model.V1beta1Experiment, error) {
+	[]*model.APIExperiment, error) {
 	return listAllForExperiment(c, parameters, maxResultSize)
 }
 
 func listAllForExperiment(client ExperimentInterface, parameters *params.ListExperimentsV1Params,
-	maxResultSize int) ([]*model.V1beta1Experiment, error) {
+	maxResultSize int) ([]*model.APIExperiment, error) {
 	if maxResultSize < 0 {
 		maxResultSize = 0
 	}
 
-	allResults := make([]*model.V1beta1Experiment, 0)
+	allResults := make([]*model.APIExperiment, 0)
 	firstCall := true
 	for (firstCall || (parameters.PageToken != nil && *parameters.PageToken != "")) &&
 		(len(allResults) < maxResultSize) {

@@ -39,7 +39,7 @@ type APIJob struct {
 
 	// Required input field.
 	// Specify how many runs can be executed concurrently. Rage [1-10]
-	MaxConcurrency string `json:"max_concurrency,omitempty"`
+	MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`
 
 	// mode
 	Mode JobMode `json:"mode,omitempty"`

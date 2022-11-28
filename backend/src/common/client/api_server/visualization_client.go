@@ -15,7 +15,7 @@ import (
 )
 
 type VisualizationInterface interface {
-	Create(params *params.CreateVisualizationV1Params) (*model.V1beta1Visualization, error)
+	Create(params *params.CreateVisualizationV1Params) (*model.APIVisualization, error)
 }
 
 type VisualizationClient struct {
@@ -53,7 +53,7 @@ func NewKubeflowInClusterVisualizationClient(namespace string, debug bool) (
 	}, nil
 }
 
-func (c *VisualizationClient) Create(parameters *params.CreateVisualizationV1Params) (*model.V1beta1Visualization,
+func (c *VisualizationClient) Create(parameters *params.CreateVisualizationV1Params) (*model.APIVisualization,
 	error) {
 	// Create context with timeout
 	ctx, cancel := context.WithTimeout(context.Background(), apiServerDefaultTimeout)

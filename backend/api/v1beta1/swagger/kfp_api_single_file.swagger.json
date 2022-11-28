@@ -1377,13 +1377,13 @@
           "200": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Pipeline"
+              "$ref": "#/definitions/Pipeline"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/Status"
             }
           }
         },
@@ -1426,13 +1426,13 @@
           "200": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1PipelineVersion"
+              "$ref": "#/definitions/PipelineVersion"
             }
           },
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v1beta1Status"
+              "$ref": "#/definitions/Status"
             }
           }
         },
@@ -2234,7 +2234,7 @@
         }
       }
     },
-    "v1beta1Parameter": {
+    "Parameter": {
       "type": "object",
       "properties": {
         "name": {
@@ -2245,7 +2245,7 @@
         }
       }
     },
-    "v1beta1Pipeline": {
+    "Pipeline": {
       "type": "object",
       "properties": {
         "id": {
@@ -2264,7 +2264,7 @@
         "parameters": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/v1beta1Parameter"
+            "$ref": "#/definitions/Parameter"
           }
         },
         "error": {
@@ -2273,7 +2273,7 @@
         }
       }
     },
-    "v1beta1PipelineVersion": {
+    "PipelineVersion": {
       "type": "object",
       "properties": {
         "id": {
@@ -2292,7 +2292,7 @@
         "parameters": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/v1beta1Parameter"
+            "$ref": "#/definitions/Parameter"
           },
           "description": "Output. The input parameters for this pipeline."
         },
@@ -2301,19 +2301,19 @@
           "description": "Input. Optional. Pipeline version code source."
         },
         "package_url": {
-          "$ref": "#/definitions/v1beta1Url",
+          "$ref": "#/definitions/Url",
           "description": "Input. Required. Pipeline version package url.\nWhe calling CreatePipelineVersion API method, need to provide one package\nfile location."
         },
         "resource_references": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/v1beta1ResourceReference"
+            "$ref": "#/definitions/ResourceReference"
           },
           "description": "Input. Required. E.g., specify which pipeline this pipeline version belongs\nto."
         }
       }
     },
-    "v1beta1Relationship": {
+    "Relationship": {
       "type": "string",
       "enum": [
         "UNKNOWN_RELATIONSHIP",
@@ -2322,11 +2322,11 @@
       ],
       "default": "UNKNOWN_RELATIONSHIP"
     },
-    "v1beta1ResourceKey": {
+    "ResourceKey": {
       "type": "object",
       "properties": {
         "type": {
-          "$ref": "#/definitions/v1beta1ResourceType",
+          "$ref": "#/definitions/ResourceType",
           "description": "The type of the resource that referred to."
         },
         "id": {
@@ -2335,23 +2335,23 @@
         }
       }
     },
-    "v1beta1ResourceReference": {
+    "ResourceReference": {
       "type": "object",
       "properties": {
         "key": {
-          "$ref": "#/definitions/v1beta1ResourceKey"
+          "$ref": "#/definitions/ResourceKey"
         },
         "name": {
           "type": "string",
           "description": "The name of the resource that referred to."
         },
         "relationship": {
-          "$ref": "#/definitions/v1beta1Relationship",
+          "$ref": "#/definitions/Relationship",
           "description": "Required field. The relationship from referred resource to the object."
         }
       }
     },
-    "v1beta1ResourceType": {
+    "ResourceType": {
       "type": "string",
       "enum": [
         "UNKNOWN_RESOURCE_TYPE",
@@ -2363,7 +2363,7 @@
       ],
       "default": "UNKNOWN_RESOURCE_TYPE"
     },
-    "v1beta1Status": {
+    "Status": {
       "type": "object",
       "properties": {
         "error": {
@@ -2381,7 +2381,7 @@
         }
       }
     },
-    "v1beta1Url": {
+    "Url": {
       "type": "object",
       "properties": {
         "pipeline_url": {

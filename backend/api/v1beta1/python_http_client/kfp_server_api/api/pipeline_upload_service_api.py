@@ -63,7 +63,7 @@ class PipelineUploadServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V1beta1Pipeline
+        :rtype: Pipeline
         """
         kwargs['_return_http_data_only'] = True
         return self.upload_pipeline_with_http_info(uploadfile, **kwargs)  # noqa: E501
@@ -99,7 +99,7 @@ class PipelineUploadServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V1beta1Pipeline, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(Pipeline, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -168,7 +168,7 @@ class PipelineUploadServiceApi(object):
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V1beta1Pipeline',  # noqa: E501
+            response_type='Pipeline',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -205,7 +205,7 @@ class PipelineUploadServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: V1beta1PipelineVersion
+        :rtype: PipelineVersion
         """
         kwargs['_return_http_data_only'] = True
         return self.upload_pipeline_version_with_http_info(uploadfile, **kwargs)  # noqa: E501
@@ -243,7 +243,7 @@ class PipelineUploadServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(V1beta1PipelineVersion, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(PipelineVersion, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -315,7 +315,7 @@ class PipelineUploadServiceApi(object):
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='V1beta1PipelineVersion',  # noqa: E501
+            response_type='PipelineVersion',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
