@@ -138,7 +138,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	registerHttpHandlerFromEndpoint(apiV1beta1.RegisterVisualizationServiceHandlerFromEndpoint, "Visualization", ctx, runtimeMux)
 	registerHttpHandlerFromEndpoint(apiV1beta1.RegisterAuthServiceHandlerFromEndpoint, "AuthService", ctx, runtimeMux)
 
-	// Create gRPC HTTP MUX and register services for v1beta1 api.
+	// Create gRPC HTTP MUX and register services for v2beta1 api.
 	registerHttpHandlerFromEndpoint(apiV2beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService", ctx, runtimeMux)
 
 	// Create a top level mux to include both pipeline upload server and gRPC servers.
