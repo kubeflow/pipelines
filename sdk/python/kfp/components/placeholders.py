@@ -29,9 +29,12 @@ class Placeholder(abc.ABC):
         raise NotImplementedError
 
     def __str__(self) -> str:
-        """Used for creating readable error messages when a placeholder doesn't
-        refer to an existing input or output."""
-        return self.__class__.__name__
+        """Enables use of placeholders in f-strings.
+
+        To be overridden by container placeholders ConcatPlaceholder and
+        IfPresentPlaceholder, which cannot be used in an f-string.
+        """
+        return self._to_string()
 
     def __eq__(self, other: Any) -> bool:
         """Used for comparing placeholders in tests."""
@@ -157,6 +160,10 @@ class ConcatPlaceholder(Placeholder):
     def _to_string(self) -> str:
         return json.dumps(self._to_dict())
 
+    def __str__(self) -> str:
+        raise ValueError(
+            f'Cannot use {self.__class__.__name__} in an f-string.')
+
 
 class IfPresentPlaceholder(Placeholder):
     """Placeholder for handling cases where an input may or may not be passed.
@@ -255,6 +262,10 @@ class IfPresentPlaceholder(Placeholder):
 
     def _to_string(self) -> str:
         return json.dumps(self._to_dict())
+
+    def __str__(self) -> str:
+        raise ValueError(
+            f'Cannot use {self.__class__.__name__} in an f-string.')
 
 
 _CONTAINER_PLACEHOLDERS = (IfPresentPlaceholder, ConcatPlaceholder)
