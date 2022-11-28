@@ -1713,6 +1713,8 @@ def extract_comments_from_pipeline_spec(pipeline_spec: dict,
     comment_sections.append('# PIPELINE DEFINITION')
     comment_sections.append('# Name: ' + pipeline_spec['pipelineInfo']['name'])
     if pipeline_description:
+        pipeline_description = '\n#              '.join(
+            pipeline_description.splitlines())
         comment_sections.append('# Description: ' + pipeline_description)
     comment_sections.extend(
         collect_pipeline_signatures(pipeline_spec['root'], 'inputDefinitions'))

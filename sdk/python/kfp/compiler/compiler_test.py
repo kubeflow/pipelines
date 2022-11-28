@@ -1821,6 +1821,41 @@ class TestYamlComments(unittest.TestCase):
         # test reloaded comments
         self.assertIn(predicted_comment, reloaded_yaml_content)
 
+    def test_comment_with_multiline_docstring(self):
+
+        @dsl.component
+        def identity(string: str, model: bool) -> str:
+            return string
+
+        @dsl.pipeline()
+        def pipeline_with_multiline_definition(
+                sample_input1: bool = True,
+                sample_input2: str = 'string') -> str:
+            """docstring short description.
+
+            docstring long description. docstring long description.
+            """
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_with_multiline_definition,
+                package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+            definition_string = textwrap.dedent("""\
+                # Description: docstring short description.
+                #              docstring long description. docstring long description.
+                """)
+
+        # test multi line definition in comments
+        self.assertIn(definition_string, yaml_content)
+
 
 if __name__ == '__main__':
     unittest.main()

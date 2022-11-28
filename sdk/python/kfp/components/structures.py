@@ -821,6 +821,13 @@ class ComponentSpec:
             if heading in component_yaml:
                 description = component_yaml.splitlines()[2]
 
+                #multi line
+                comments = component_yaml.splitlines()
+                index = 3
+                while comments[index][:14] == '#             ':
+                    description += '\n' + comments[index][15:]
+                    index += 1
+
                 return description[len(heading):]
             else:
                 return None
