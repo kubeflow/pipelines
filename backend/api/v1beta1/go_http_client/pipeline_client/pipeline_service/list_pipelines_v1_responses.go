@@ -54,7 +54,7 @@ func NewListPipelinesV1OK() *ListPipelinesV1OK {
 A successful response.
 */
 type ListPipelinesV1OK struct {
-	Payload *pipeline_model.V1beta1ListPipelinesResponse
+	Payload *pipeline_model.APIListPipelinesResponse
 }
 
 func (o *ListPipelinesV1OK) Error() string {
@@ -63,7 +63,7 @@ func (o *ListPipelinesV1OK) Error() string {
 
 func (o *ListPipelinesV1OK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.V1beta1ListPipelinesResponse)
+	o.Payload = new(pipeline_model.APIListPipelinesResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -87,7 +87,7 @@ ListPipelinesV1Default list pipelines v1 default
 type ListPipelinesV1Default struct {
 	_statusCode int
 
-	Payload *pipeline_model.V1beta1Status
+	Payload *pipeline_model.APIStatus
 }
 
 // Code gets the status code for the list pipelines v1 default response
@@ -101,7 +101,7 @@ func (o *ListPipelinesV1Default) Error() string {
 
 func (o *ListPipelinesV1Default) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.V1beta1Status)
+	o.Payload = new(pipeline_model.APIStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

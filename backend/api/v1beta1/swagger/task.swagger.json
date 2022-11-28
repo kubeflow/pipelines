@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "backend/api/v1beta1/api/task.proto",
+    "title": "backend/api/v1beta1/task.proto",
     "version": "version not set"
   },
   "schemes": [
@@ -23,7 +23,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1ListTasksResponse"
+              "$ref": "#/definitions/apiListTasksResponse"
             }
           }
         },
@@ -92,7 +92,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v1beta1Task"
+              "$ref": "#/definitions/apiTask"
             }
           }
         },
@@ -102,7 +102,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1beta1Task"
+              "$ref": "#/definitions/apiTask"
             }
           }
         ],
@@ -113,13 +113,13 @@
     }
   },
   "definitions": {
-    "v1beta1ListTasksResponse": {
+    "apiListTasksResponse": {
       "type": "object",
       "properties": {
         "tasks": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/v1beta1Task"
+            "$ref": "#/definitions/apiTask"
           },
           "description": "A list of tasks returned."
         },
@@ -134,11 +134,11 @@
         }
       }
     },
-    "v1beta1ResourceKey": {
+    "apiResourceKey": {
       "type": "object",
       "properties": {
         "type": {
-          "$ref": "#/definitions/v1beta1ResourceType",
+          "$ref": "#/definitions/apiResourceType",
           "description": "The type of the resource that referred to."
         },
         "id": {
@@ -147,7 +147,7 @@
         }
       }
     },
-    "v1beta1ResourceType": {
+    "apiResourceType": {
       "type": "string",
       "enum": [
         "UNKNOWN_RESOURCE_TYPE",
@@ -159,7 +159,7 @@
       ],
       "default": "UNKNOWN_RESOURCE_TYPE"
     },
-    "v1beta1Task": {
+    "apiTask": {
       "type": "object",
       "properties": {
         "id": {

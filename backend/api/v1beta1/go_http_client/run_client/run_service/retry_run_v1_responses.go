@@ -85,7 +85,7 @@ RetryRunV1Default retry run v1 default
 type RetryRunV1Default struct {
 	_statusCode int
 
-	Payload *run_model.V1beta1Status
+	Payload *run_model.APIStatus
 }
 
 // Code gets the status code for the retry run v1 default response
@@ -99,7 +99,7 @@ func (o *RetryRunV1Default) Error() string {
 
 func (o *RetryRunV1Default) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(run_model.V1beta1Status)
+	o.Payload = new(run_model.APIStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

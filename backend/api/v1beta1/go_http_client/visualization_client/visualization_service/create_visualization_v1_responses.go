@@ -54,7 +54,7 @@ func NewCreateVisualizationV1OK() *CreateVisualizationV1OK {
 A successful response.
 */
 type CreateVisualizationV1OK struct {
-	Payload *visualization_model.V1beta1Visualization
+	Payload *visualization_model.APIVisualization
 }
 
 func (o *CreateVisualizationV1OK) Error() string {
@@ -63,7 +63,7 @@ func (o *CreateVisualizationV1OK) Error() string {
 
 func (o *CreateVisualizationV1OK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(visualization_model.V1beta1Visualization)
+	o.Payload = new(visualization_model.APIVisualization)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -87,7 +87,7 @@ CreateVisualizationV1Default create visualization v1 default
 type CreateVisualizationV1Default struct {
 	_statusCode int
 
-	Payload *visualization_model.V1beta1Status
+	Payload *visualization_model.APIStatus
 }
 
 // Code gets the status code for the create visualization v1 default response
@@ -101,7 +101,7 @@ func (o *CreateVisualizationV1Default) Error() string {
 
 func (o *CreateVisualizationV1Default) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(visualization_model.V1beta1Status)
+	o.Payload = new(visualization_model.APIStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

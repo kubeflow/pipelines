@@ -64,7 +64,7 @@ for the report run metrics v1 operation typically these are written to a http.Re
 type ReportRunMetricsV1Params struct {
 
 	/*Body*/
-	Body *run_model.V1beta1ReportRunMetricsRequest
+	Body *run_model.APIReportRunMetricsRequest
 	/*RunID
 	  Required. The parent run ID of the metric.
 
@@ -110,13 +110,13 @@ func (o *ReportRunMetricsV1Params) SetHTTPClient(client *http.Client) {
 }
 
 // WithBody adds the body to the report run metrics v1 params
-func (o *ReportRunMetricsV1Params) WithBody(body *run_model.V1beta1ReportRunMetricsRequest) *ReportRunMetricsV1Params {
+func (o *ReportRunMetricsV1Params) WithBody(body *run_model.APIReportRunMetricsRequest) *ReportRunMetricsV1Params {
 	o.SetBody(body)
 	return o
 }
 
 // SetBody adds the body to the report run metrics v1 params
-func (o *ReportRunMetricsV1Params) SetBody(body *run_model.V1beta1ReportRunMetricsRequest) {
+func (o *ReportRunMetricsV1Params) SetBody(body *run_model.APIReportRunMetricsRequest) {
 	o.Body = body
 }
 

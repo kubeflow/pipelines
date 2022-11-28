@@ -54,7 +54,7 @@ func NewGetPipelineVersionV1OK() *GetPipelineVersionV1OK {
 A successful response.
 */
 type GetPipelineVersionV1OK struct {
-	Payload *pipeline_model.V1beta1PipelineVersion
+	Payload *pipeline_model.APIPipelineVersion
 }
 
 func (o *GetPipelineVersionV1OK) Error() string {
@@ -63,7 +63,7 @@ func (o *GetPipelineVersionV1OK) Error() string {
 
 func (o *GetPipelineVersionV1OK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.V1beta1PipelineVersion)
+	o.Payload = new(pipeline_model.APIPipelineVersion)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -87,7 +87,7 @@ GetPipelineVersionV1Default get pipeline version v1 default
 type GetPipelineVersionV1Default struct {
 	_statusCode int
 
-	Payload *pipeline_model.V1beta1Status
+	Payload *pipeline_model.APIStatus
 }
 
 // Code gets the status code for the get pipeline version v1 default response
@@ -101,7 +101,7 @@ func (o *GetPipelineVersionV1Default) Error() string {
 
 func (o *GetPipelineVersionV1Default) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.V1beta1Status)
+	o.Payload = new(pipeline_model.APIStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

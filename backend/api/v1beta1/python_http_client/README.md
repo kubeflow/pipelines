@@ -175,6 +175,15 @@ Class | Method | HTTP request | Description
  - [ReportRunMetricsResponseReportRunMetricResult](docs/ReportRunMetricsResponseReportRunMetricResult.md)
  - [ReportRunMetricsResponseReportRunMetricResultStatus](docs/ReportRunMetricsResponseReportRunMetricResultStatus.md)
  - [RunMetricFormat](docs/RunMetricFormat.md)
+ - [V1beta1Parameter](docs/V1beta1Parameter.md)
+ - [V1beta1Pipeline](docs/V1beta1Pipeline.md)
+ - [V1beta1PipelineVersion](docs/V1beta1PipelineVersion.md)
+ - [V1beta1Relationship](docs/V1beta1Relationship.md)
+ - [V1beta1ResourceKey](docs/V1beta1ResourceKey.md)
+ - [V1beta1ResourceReference](docs/V1beta1ResourceReference.md)
+ - [V1beta1ResourceType](docs/V1beta1ResourceType.md)
+ - [V1beta1Status](docs/V1beta1Status.md)
+ - [V1beta1Url](docs/V1beta1Url.md)
 
 
 ## Documentation For Authorization

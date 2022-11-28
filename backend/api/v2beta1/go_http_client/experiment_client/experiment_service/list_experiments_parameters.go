@@ -64,7 +64,7 @@ type ListExperimentsParams struct {
 
 	/*Filter
 	  A url-encoded, JSON-serialized Filter protocol buffer (see
-	[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+	[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/v2beta1/api/filter.proto)).
 
 	*/
 	Filter *string

@@ -64,7 +64,7 @@ for the create pipeline v1 operation typically these are written to a http.Reque
 type CreatePipelineV1Params struct {
 
 	/*Body*/
-	Body *pipeline_model.V1beta1Pipeline
+	Body *pipeline_model.APIPipeline
 
 	timeout    time.Duration
 	Context    context.Context
@@ -105,13 +105,13 @@ func (o *CreatePipelineV1Params) SetHTTPClient(client *http.Client) {
 }
 
 // WithBody adds the body to the create pipeline v1 params
-func (o *CreatePipelineV1Params) WithBody(body *pipeline_model.V1beta1Pipeline) *CreatePipelineV1Params {
+func (o *CreatePipelineV1Params) WithBody(body *pipeline_model.APIPipeline) *CreatePipelineV1Params {
 	o.SetBody(body)
 	return o
 }
 
 // SetBody adds the body to the create pipeline v1 params
-func (o *CreatePipelineV1Params) SetBody(body *pipeline_model.V1beta1Pipeline) {
+func (o *CreatePipelineV1Params) SetBody(body *pipeline_model.APIPipeline) {
 	o.Body = body
 }
 

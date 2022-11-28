@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "backend/api/v2beta1/api/filter.proto",
+    "title": "backend/api/v2beta1/filter.proto",
     "version": "version not set"
   },
   "schemes": [

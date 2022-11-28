@@ -9,7 +9,7 @@ Method | HTTP request | Description
 
 
 # **upload_pipeline**
-> ApiPipeline upload_pipeline(uploadfile, name=name, description=description)
+> V1beta1Pipeline upload_pipeline(uploadfile, name=name, description=description)
 
 
 
@@ -68,7 +68,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**ApiPipeline**](ApiPipeline.md)
+[**V1beta1Pipeline**](V1beta1Pipeline.md)
 
 ### Authorization
 
@@ -88,7 +88,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **upload_pipeline_version**
-> ApiPipelineVersion upload_pipeline_version(uploadfile, name=name, pipelineid=pipelineid, description=description)
+> V1beta1PipelineVersion upload_pipeline_version(uploadfile, name=name, pipelineid=pipelineid, description=description)
 
 
 
@@ -149,7 +149,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**ApiPipelineVersion**](ApiPipelineVersion.md)
+[**V1beta1PipelineVersion**](V1beta1PipelineVersion.md)
 
 ### Authorization
 
