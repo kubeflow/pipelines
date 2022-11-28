@@ -20,6 +20,8 @@ from absl.testing import parameterized
 from kfp import compiler
 from kfp import dsl
 from kfp.components import placeholders
+from kfp.dsl import Artifact
+from kfp.dsl import Output
 
 
 class TestExecutorInputPlaceholder(parameterized.TestCase):
@@ -396,3 +398,74 @@ class TestConvertCommandLineElementToStringOrStruct(parameterized.TestCase):
         self.assertEqual(
             placeholders.convert_command_line_element_to_string_or_struct(
                 placeholder), expected)
+
+
+class OtherPlaceholderTests(parameterized.TestCase):
+
+    def test_primitive_placeholder_can_be_used_in_fstring1(self):
+
+        @dsl.container_component
+        def echo_bool(boolean: bool = True):
+            return dsl.ContainerSpec(
+                image='alpine', command=['sh', '-c', f'echo {boolean}'])
+
+        self.assertEqual(
+            echo_bool.component_spec.implementation.container.command,
+            ['sh', '-c', "echo {{$.inputs.parameters['boolean']}}"])
+
+    def test_primitive_placeholder_can_be_used_in_fstring2(self):
+
+        @dsl.container_component
+        def container_with_placeholder_in_fstring(
+            output_artifact: Output[Artifact],
+            text1: str,
+        ):
+            return dsl.ContainerSpec(
+                image='python:3.7',
+                command=[
+                    'my_program',
+                    f'prefix-{text1}',
+                    f'{output_artifact.uri}/0',
+                ])
+
+        self.assertEqual(
+            container_with_placeholder_in_fstring.component_spec.implementation
+            .container.command, [
+                'my_program',
+                "prefix-{{$.inputs.parameters['text1']}}",
+                "{{$.outputs.artifacts['output_artifact'].uri}}/0",
+            ])
+
+    def test_cannot_use_concat_placeholder_in_f_string(self):
+
+        with self.assertRaisesRegex(
+                ValueError, 'Cannot use ConcatPlaceholder in an f-string.'):
+
+            @dsl.container_component
+            def container_with_placeholder_in_fstring(
+                text1: str,
+                text2: str,
+            ):
+                return dsl.ContainerSpec(
+                    image='python:3.7',
+                    command=[
+                        'my_program',
+                        f'another-prefix-{dsl.ConcatPlaceholder([text1, text2])}',
+                    ])
+
+    def test_cannot_use_ifpresent_placeholder_in_f_string(self):
+
+        with self.assertRaisesRegex(
+                ValueError, 'Cannot use IfPresentPlaceholder in an f-string.'):
+
+            @dsl.container_component
+            def container_with_placeholder_in_fstring(
+                text1: str,
+                text2: str,
+            ):
+                return dsl.ContainerSpec(
+                    image='python:3.7',
+                    command=[
+                        'echo',
+                        f"another-prefix-{dsl.IfPresentPlaceholder(input_name='text1', then=['val'])}",
+                    ])

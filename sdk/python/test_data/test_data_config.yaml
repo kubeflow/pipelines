@@ -198,6 +198,9 @@ components:
     - module: container_with_if_placeholder
       name: container_with_if_placeholder
       execute: false
+    - module: container_with_placeholder_in_fstring
+      name: container_with_placeholder_in_fstring
+      execute: false
 v1_components:
   test_data_dir: sdk/python/test_data/v1_component_yaml
   read: true
