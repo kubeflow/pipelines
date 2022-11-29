@@ -14,6 +14,7 @@
 """Utility methods for compiler implementation that is IR-agnostic."""
 
 import collections
+from copy import deepcopy
 from typing import Dict, List, Mapping, Set, Tuple, Union
 
 from kfp.components import for_loop
@@ -427,43 +428,42 @@ def get_dependencies(
                 task2=task,
             )
 
-            # ParralelFor Check
-            for parent in task_name_to_parent_groups[upstream_task.name]:
-                parent = group_name_to_group.get(parent, None)
-                if isinstance(parent, tasks_group.ParallelFor):
-                    exception = True
-                    if parent.name in task_name_to_parent_groups[task.name]:
-                        exception = False
-                        idx = task_name_to_parent_groups[task.name].index(
-                            parent.name)
-                        cnt = 0
-                        for ancestors in task_name_to_parent_groups[
-                                task.name][idx:]:
-                            ancestors = group_name_to_group.get(ancestors, None)
-                            if isinstance(ancestors, tasks_group.ParallelFor):
-                                cnt += 1
-                                if cnt > 1:
-                                    exception = True
-                                    break
+            # uncommon upstream ancestor check
+            uncommon_upstream_groups = deepcopy(upstream_groups)
+            uncommon_upstream_groups.remove(
+                upstream_task.name
+            )  # because a task's `upstream_groups` contains the task's name
+            if uncommon_upstream_groups:
+                dependent_group = group_name_to_group.get(
+                    upstream_groups[0], None)
+                if isinstance(dependent_group, tasks_group.ExitHandler):
+                    task_group_type = 'an ' + tasks_group.ExitHandler.__name__
 
-                    if exception:
-                        raise RuntimeError(
-                            f'Tasks cannot depend on upstream tasks inside a ParallelFor. Task {task.name} depends on upstream task {upstream_task.name}.'
-                        )
+                elif isinstance(dependent_group, tasks_group.Condition):
+                    task_group_type = 'a ' + tasks_group.Condition.__name__
 
-            # Condition check
-            dependent_group = group_name_to_group.get(upstream_groups[0], None)
-            if isinstance(dependent_group, tasks_group.Condition):
+                else:
+                    task_group_type = 'a ' + tasks_group.ParallelFor.__name__
+
                 raise RuntimeError(
-                    f'Tasks cannot depend on upstream tasks inside a Condition that is not a common ancestor of both tasks. Task {task.name} depends on upstream task {upstream_task.name}.'
+                    f'Tasks cannot depend on upstream tasks inside {task_group_type} that is not a common ancestor of both tasks. Task {task.name} depends on upstream task {upstream_task.name}.'
                 )
 
-            # ExitHandler check
-            dependent_group = group_name_to_group.get(upstream_groups[0], None)
-            if isinstance(dependent_group, tasks_group.ExitHandler):
-                raise RuntimeError(
-                    f'Tasks cannot depend on upstream tasks inside a Exithandler that is not a common ancestor of both tasks. Task {task.name} depends on upstream task {upstream_task.name}.'
-                )
+            # ParralelFor Nested Check
+            # if there is a parrallelFor group type in the upstream parents tasks and there also exists a parallelFor in the uncommon_ancestors of downstream: this means a nested for loop exists in the DAG
+            upstream_parent_tasks = task_name_to_parent_groups[
+                upstream_task.name]
+            for group in downstream_groups:
+                if isinstance(
+                        group_name_to_group.get(group, None),
+                        tasks_group.ParallelFor):
+                    for parent_task in upstream_parent_tasks:
+                        if isinstance(
+                                group_name_to_group.get(parent_task, None),
+                                tasks_group.ParallelFor):
+                            raise RuntimeError(
+                                f'Downstream task cannot depend on an upstream task while in a nested {tasks_group.ParallelFor.__name__} group. Task {task.name} depends on upstream task {upstream_task.name}, while {group} is nested in {parent_task}'
+                            )
 
             dependencies[downstream_groups[0]].add(upstream_groups[0])
 

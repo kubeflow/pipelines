@@ -435,7 +435,8 @@ class TestCompilePipeline(parameterized.TestCase):
         def dummy_op(msg: str = ''):
             pass
 
-        with self.assertRaisesRegex(RuntimeError, r'Task'):
+        with self.assertRaisesRegex(
+                RuntimeError, r'Tasks cannot depend on upstream tasks inside'):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -475,7 +476,8 @@ class TestCompilePipeline(parameterized.TestCase):
         def dummy_op(msg: str = ''):
             pass
 
-        with self.assertRaisesRegex(RuntimeError, r'Task'):
+        with self.assertRaisesRegex(
+                RuntimeError, r'Tasks cannot depend on upstream tasks inside'):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -515,7 +517,8 @@ class TestCompilePipeline(parameterized.TestCase):
         def dummy_op(msg: str = ''):
             pass
 
-        with self.assertRaisesRegex(RuntimeError, r'Task'):
+        with self.assertRaisesRegex(
+                RuntimeError, r'Tasks cannot depend on upstream tasks inside'):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -1484,17 +1487,25 @@ class TestBoolInputParameterWithDefaultSerializesCorrectly(unittest.TestCase):
             .default_value.bool_value, True)
 
 
+# helper component defintions for the ValidLegalTopologies tests
+@dsl.component
+def print_op(message: str):
+    print(message)
+
+
+@dsl.component
+def return_1() -> int:
+    return 1
+
+
+@dsl.component
+def args_generator_op() -> List[Dict[str, str]]:
+    return [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]
+
+
 class ValidLegalTopologies(unittest.TestCase):
 
     def test_inside_of_root_group_permitted(self):
-
-        @dsl.component
-        def print_op(message: str):
-            print(message)
-
-        @dsl.component
-        def return_1() -> int:
-            return 1
 
         @dsl.pipeline()
         def my_pipeline():
@@ -1502,7 +1513,7 @@ class ValidLegalTopologies(unittest.TestCase):
 
             one = print_op(message='1')
             two = print_op(message='2')
-            three = print_op(message='3').after(one)
+            three = print_op(message=str(return_1_task.output))
 
         with tempfile.TemporaryDirectory() as tempdir:
             package_path = os.path.join(tempdir, 'pipeline.yaml')
@@ -1511,15 +1522,8 @@ class ValidLegalTopologies(unittest.TestCase):
 
     def test_upstream_inside_deeper_condition_blocked(self):
 
-        with self.assertRaisesRegex(RuntimeError, r'Task'):
-
-            @dsl.component
-            def print_op(message: str):
-                print(message)
-
-            @dsl.component
-            def return_1() -> int:
-                return 1
+        with self.assertRaisesRegex(
+                RuntimeError, r'Tasks cannot depend on upstream tasks inside'):
 
             @dsl.pipeline()
             def my_pipeline():
@@ -1538,22 +1542,14 @@ class ValidLegalTopologies(unittest.TestCase):
 
     def test_upstream_in_the_same_condition_permitted(self):
 
-        @dsl.component
-        def print_op(message: str):
-            print(message)
-
-        @dsl.component
-        def return_1() -> int:
-            return 1
-
         @dsl.pipeline()
         def my_pipeline():
             return_1_task = return_1()
 
             with dsl.Condition(return_1_task.output == 1):
-                one = print_op(message='1')
+                one = return_1()
                 two = print_op(message='2')
-                three = print_op(message='3').after(one)
+                three = print_op(message=str(one.output))
 
         with tempfile.TemporaryDirectory() as tempdir:
             package_path = os.path.join(tempdir, 'pipeline.yaml')
@@ -1561,14 +1557,6 @@ class ValidLegalTopologies(unittest.TestCase):
                 pipeline_func=my_pipeline, package_path=package_path)
 
     def test_downstream_inside_deeper_condition_permitted(self):
-
-        @dsl.component
-        def print_op(message: str):
-            print(message)
-
-        @dsl.component
-        def return_1() -> int:
-            return
 
         @dsl.pipeline()
         def my_pipeline():
@@ -1587,15 +1575,8 @@ class ValidLegalTopologies(unittest.TestCase):
     def test_downstream_and_upstream_in_different_condition_on_same_level_blocked(
             self):
 
-        with self.assertRaisesRegex(RuntimeError, r'Task'):
-
-            @dsl.component
-            def print_op(message: str):
-                print(message)
-
-            @dsl.component
-            def return_1() -> int:
-                return 1
+        with self.assertRaisesRegex(
+                RuntimeError, r'Tasks cannot depend on upstream tasks inside'):
 
             @dsl.pipeline()
             def my_pipeline():
@@ -1615,24 +1596,16 @@ class ValidLegalTopologies(unittest.TestCase):
 
     def test_downstream_inside_deeper_nested_condition_permitted(self):
 
-        @dsl.component
-        def print_op(message: str):
-            print(message)
-
-        @dsl.component
-        def return_1() -> int:
-            return 1
-
         @dsl.pipeline()
         def my_pipeline():
             return_1_task = return_1()
             return_1_task2 = return_1()
 
             with dsl.Condition(return_1_task.output == 1):
-                one = print_op(message='1')
+                one = return_1()
                 with dsl.Condition(return_1_task2.output == 1):
                     two = print_op(message='2')
-                    three = print_op(message='3').after(one)
+                    three = print_op(message=str(one.output))
 
         with tempfile.TemporaryDirectory() as tempdir:
             package_path = os.path.join(tempdir, 'pipeline.yaml')
@@ -1641,15 +1614,8 @@ class ValidLegalTopologies(unittest.TestCase):
 
     def test_upstream_inside_deeper_nested_condition_blocked(self):
 
-        with self.assertRaisesRegex(RuntimeError, r'Task'):
-
-            @dsl.component
-            def print_op(message: str):
-                print(message)
-
-            @dsl.component
-            def return_1() -> int:
-                return 1
+        with self.assertRaisesRegex(
+                RuntimeError, r'Tasks cannot depend on upstream tasks inside'):
 
             @dsl.pipeline()
             def my_pipeline():
@@ -1668,14 +1634,6 @@ class ValidLegalTopologies(unittest.TestCase):
 
     def test_upstream_in_same_for_loop_with_downstream_permitted(self):
 
-        @dsl.component
-        def print_op(message: str):
-            print(message)
-
-        @dsl.component
-        def args_generator_op() -> List[Dict[str, str]]:
-            return [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]
-
         @dsl.pipeline()
         def my_pipeline():
             args_generator = args_generator_op()
@@ -1691,15 +1649,8 @@ class ValidLegalTopologies(unittest.TestCase):
 
     def test_downstream_not_in_same_for_loop_with_upstream_blocked(self):
 
-        with self.assertRaisesRegex(RuntimeError, r'Task'):
-
-            @dsl.component
-            def print_op(message: str):
-                print(message)
-
-            @dsl.component
-            def args_generator_op() -> List[Dict[str, str]]:
-                return [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]
+        with self.assertRaisesRegex(
+                RuntimeError, r'Tasks cannot depend on upstream tasks inside'):
 
             @dsl.pipeline()
             def my_pipeline():
@@ -1717,15 +1668,8 @@ class ValidLegalTopologies(unittest.TestCase):
     def test_downstream_not_in_same_for_loop_with_upstream_seperate_blocked(
             self):
 
-        with self.assertRaisesRegex(RuntimeError, r'Task'):
-
-            @dsl.component
-            def print_op(message: str):
-                print(message)
-
-            @dsl.component
-            def args_generator_op() -> List[Dict[str, str]]:
-                return [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]
+        with self.assertRaisesRegex(
+                RuntimeError, r'Tasks cannot depend on upstream tasks inside'):
 
             @dsl.pipeline()
             def my_pipeline():
@@ -1744,15 +1688,10 @@ class ValidLegalTopologies(unittest.TestCase):
 
     def test_downstream_not_in_same_for_loop_with_upstream_nested_blocked(self):
 
-        with self.assertRaisesRegex(RuntimeError, r'Task'):
-
-            @dsl.component
-            def print_op(message: str):
-                print(message)
-
-            @dsl.component
-            def args_generator_op() -> List[Dict[str, str]]:
-                return [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r'Downstream task cannot depend on an upstream task while in a nested'
+        ):
 
             @dsl.pipeline()
             def my_pipeline():
@@ -1771,14 +1710,6 @@ class ValidLegalTopologies(unittest.TestCase):
 
     def test_downstream_in_condition_nested_in_a_for_loop(self):
 
-        @dsl.component
-        def print_op(message: str):
-            print(message)
-
-        @dsl.component
-        def return_1() -> int:
-            return 1
-
         @dsl.pipeline()
         def my_pipeline():
             return_1_task = return_1()
@@ -1786,6 +1717,22 @@ class ValidLegalTopologies(unittest.TestCase):
             with dsl.ParallelFor([1, 2, 3]):
                 one = print_op(message='1')
                 with dsl.Condition(return_1_task.output == 1):
+                    two = print_op(message='2').after(one)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_in_a_for_loop_nested_in_a_condition(self):
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+
+            with dsl.Condition(return_1_task.output == 1):
+                one = print_op(message='1')
+                with dsl.ParallelFor([1, 2, 3]):
                     two = print_op(message='2').after(one)
 
         with tempfile.TemporaryDirectory() as tempdir:
