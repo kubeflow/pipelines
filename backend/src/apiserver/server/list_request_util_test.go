@@ -47,16 +47,16 @@ func getFakeModelToken() string {
 	return base64.StdEncoding.EncodeToString(expectedJson)
 }
 
-func TestValidateFilter(t *testing.T) {
+func TestValidateFilterV1(t *testing.T) {
 	referenceKey := &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: "123"}
-	ctx, err := ValidateFilter(referenceKey)
+	ctx, err := ValidateFilterV1(referenceKey)
 	assert.Nil(t, err)
 	assert.Equal(t, &common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: "123"}}, ctx)
 }
 
-func TestValidateFilter_ToModelResourceTypeFailed(t *testing.T) {
+func TestValidateFilterV1_ToModelResourceTypeFailed(t *testing.T) {
 	referenceKey := &api.ResourceKey{Type: api.ResourceType_UNKNOWN_RESOURCE_TYPE, Id: "123"}
-	_, err := ValidateFilter(referenceKey)
+	_, err := ValidateFilterV1(referenceKey)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Unrecognized resource reference type")
 }

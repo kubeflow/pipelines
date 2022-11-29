@@ -170,7 +170,7 @@ func (s *RunServer) ListRunsV1(ctx context.Context, request *api.ListRunsRequest
 		return nil, util.Wrap(err, "Failed to create list options")
 	}
 
-	filterContext, err := ValidateFilter(request.ResourceReferenceKey)
+	filterContext, err := ValidateFilterV1(request.ResourceReferenceKey)
 	if err != nil {
 		return nil, util.Wrap(err, "Validating filter failed.")
 	}
@@ -397,7 +397,7 @@ func (s *RunServer) canAccessRun(ctx context.Context, runId string, resourceAttr
 
 	err := isAuthorized(s.resourceManager, ctx, resourceAttributes)
 	if err != nil {
-		return util.Wrap(err, "Failed to authorize with API resource references")
+		return util.Wrap(err, "Failed to authorize with API")
 	}
 	return nil
 }

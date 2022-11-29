@@ -75,6 +75,7 @@ jq -s 'reduce .[] as $item ({}; . * $item) | .info.title = "Kubeflow Pipelines A
     backend/api/${API_VERSION}/swagger/pipeline.upload.swagger.json \
     backend/api/${API_VERSION}/swagger/healthz.swagger.json \
     > "backend/api/${API_VERSION}/swagger/kfp_api_single_file.swagger.json"
+
 # Generate go_http_client from swagger json.
 swagger generate client \
     -f backend/api/${API_VERSION}/swagger/job.swagger.json \
@@ -125,11 +126,15 @@ swagger generate client \
     -c healthz_client \
     -m healthz_model \
     -t backend/api/${API_VERSION}/go_http_client
-# Hack to fix an issue with go-swagger
-# See https://github.com/go-swagger/go-swagger/issues/1381 for details.
-sed -i -- 's/MaxConcurrency int64 `json:"max_concurrency,omitempty"`/MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`/g' backend/api/${API_VERSION}/go_http_client/job_model/api_job.go
-sed -i -- 's/IntervalSecond int64 `json:"interval_second,omitempty"`/IntervalSecond int64 `json:"interval_second,omitempty,string"`/g' backend/api/${API_VERSION}/go_http_client/job_model/api_periodic_schedule.go
-sed -i -- 's/MaxConcurrency string `json:"max_concurrency,omitempty"`/MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`/g' backend/api/${API_VERSION}/go_http_client/job_model/api_job.go
-sed -i -- 's/IntervalSecond string `json:"interval_second,omitempty"`/IntervalSecond int64 `json:"interval_second,omitempty,string"`/g' backend/api/${API_VERSION}/go_http_client/job_model/api_periodic_schedule.go
+
+if [ $API_VERSION = "v1beta1" ]
+then 
+    # Hack to fix an issue with go-swagger
+    # See https://github.com/go-swagger/go-swagger/issues/1381 for details.
+    sed -i -- 's/MaxConcurrency int64 `json:"max_concurrency,omitempty"`/MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`/g' backend/api/${API_VERSION}/go_http_client/job_model/api_job.go
+    sed -i -- 's/IntervalSecond int64 `json:"interval_second,omitempty"`/IntervalSecond int64 `json:"interval_second,omitempty,string"`/g' backend/api/${API_VERSION}/go_http_client/job_model/api_periodic_schedule.go
+    sed -i -- 's/MaxConcurrency string `json:"max_concurrency,omitempty"`/MaxConcurrency int64 `json:"max_concurrency,omitempty,string"`/g' backend/api/${API_VERSION}/go_http_client/job_model/api_job.go
+    sed -i -- 's/IntervalSecond string `json:"interval_second,omitempty"`/IntervalSecond int64 `json:"interval_second,omitempty,string"`/g' backend/api/${API_VERSION}/go_http_client/job_model/api_periodic_schedule.go
+fi
 # Execute the //go:generate directives in the generated code.
 cd backend/api && go generate ./...
