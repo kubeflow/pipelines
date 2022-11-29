@@ -8,6 +8,7 @@ type Experiment struct {
 	Namespace      string `gorm:"column:Namespace; not null; unique_index:idx_name_namespace"`
 	StorageState   string `gorm:"column:StorageState; not null;"`
 }
+// Note: Experiment.StorageState can have values: "STORAGESTATE_UNSPECIFIED", "AVAILABLE" or "ARCHIVED"
 
 func (e Experiment) GetValueOfPrimaryKey() string {
 	return e.UUID

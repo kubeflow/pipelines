@@ -306,7 +306,7 @@ func getPermissionDeniedError(userIdentity string, resourceAttributes *authoriza
 }
 
 func wrapFailedAuthzApiResourcesError(err error) error {
-	return util.Wrap(err, "Failed to authorize with API resource references")
+	return util.Wrap(err, "Failed to authorize with API")
 }
 
 func wrapFailedAuthzRequestError(err error) error {

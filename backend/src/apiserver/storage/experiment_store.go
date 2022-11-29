@@ -162,7 +162,7 @@ func (s *ExperimentStore) scanRows(rows *sql.Rows) ([]*model.Experiment, error) 
 		}
 		// Since storage state is a field added after initial KFP release, it is possible that existing experiments don't have this field and we use AVAILABLE in that case.
 		if experiment.StorageState == "" {
-			experiment.StorageState = api.Experiment_STORAGESTATE_AVAILABLE.String()
+			experiment.StorageState = "AVAILABLE"
 		}
 		experiments = append(experiments, experiment)
 	}
@@ -181,9 +181,9 @@ func (s *ExperimentStore) CreateExperiment(experiment *model.Experiment) (*model
 
 	if newExperiment.StorageState == "" {
 		// Default to available if not set.
-		newExperiment.StorageState = api.Experiment_STORAGESTATE_AVAILABLE.String()
-	} else if newExperiment.StorageState != api.Experiment_STORAGESTATE_AVAILABLE.String() &&
-		newExperiment.StorageState != api.Experiment_STORAGESTATE_ARCHIVED.String() {
+		newExperiment.StorageState = "AVAILABLE"
+	} else if newExperiment.StorageState != "AVAILABLE" &&
+		newExperiment.StorageState != "ARCHIVED" {
 		return nil, util.NewInvalidInputError("Invalid value for StorageState field: %q.", newExperiment.StorageState)
 	}
 
@@ -254,7 +254,7 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 	sql, args, err := sq.
 		Update("experiments").
 		SetMap(sq.Eq{
-			"StorageState": api.Experiment_STORAGESTATE_ARCHIVED.String(),
+			"StorageState": "ARCHIVED",
 		}).
 		Where(sq.Eq{"UUID": expId}).
 		ToSql()
@@ -374,7 +374,7 @@ func (s *ExperimentStore) UnarchiveExperiment(expId string) error {
 	sql, args, err := sq.
 		Update("experiments").
 		SetMap(sq.Eq{
-			"StorageState": api.Experiment_STORAGESTATE_AVAILABLE.String(),
+			"StorageState": "AVAILABLE",
 		}).
 		Where(sq.Eq{"UUID": expId}).
 		ToSql()
