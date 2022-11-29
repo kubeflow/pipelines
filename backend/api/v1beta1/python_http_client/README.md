@@ -169,21 +169,12 @@ Class | Method | HTTP request | Description
  - [ApiTrigger](docs/ApiTrigger.md)
  - [ApiUrl](docs/ApiUrl.md)
  - [JobMode](docs/JobMode.md)
- - [Parameter](docs/Parameter.md)
- - [Pipeline](docs/Pipeline.md)
  - [PipelineSpecRuntimeConfig](docs/PipelineSpecRuntimeConfig.md)
- - [PipelineVersion](docs/PipelineVersion.md)
  - [ProtobufAny](docs/ProtobufAny.md)
  - [ProtobufNullValue](docs/ProtobufNullValue.md)
- - [Relationship](docs/Relationship.md)
  - [ReportRunMetricsResponseReportRunMetricResult](docs/ReportRunMetricsResponseReportRunMetricResult.md)
  - [ReportRunMetricsResponseReportRunMetricResultStatus](docs/ReportRunMetricsResponseReportRunMetricResultStatus.md)
- - [ResourceKey](docs/ResourceKey.md)
- - [ResourceReference](docs/ResourceReference.md)
- - [ResourceType](docs/ResourceType.md)
  - [RunMetricFormat](docs/RunMetricFormat.md)
- - [Status](docs/Status.md)
- - [Url](docs/Url.md)
 
 
 ## Documentation For Authorization

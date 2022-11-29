@@ -22,13 +22,13 @@
             "200": {
               "description": "",
               "schema": {
-                "$ref": "#/definitions/Pipeline"
+                "$ref": "#/definitions/apiPipeline"
               }
             },
             "default": {
               "description": "",
               "schema": {
-                "$ref": "#/definitions/Status"
+                "$ref": "#/definitions/apiStatus"
               }
             }
           },
@@ -71,13 +71,13 @@
             "200": {
               "description": "",
               "schema": {
-                "$ref": "#/definitions/PipelineVersion"
+                "$ref": "#/definitions/apiPipelineVersion"
               }
             },
             "default": {
               "description": "",
               "schema": {
-                "$ref": "#/definitions/Status"
+                "$ref": "#/definitions/apiStatus"
               }
             }
           },
@@ -115,7 +115,7 @@
       }
     },
     "definitions": {
-      "Parameter": {
+      "apiParameter": {
         "type": "object",
         "properties": {
           "name": {
@@ -126,7 +126,7 @@
           }
         }
       },
-      "Pipeline": {
+      "apiPipeline": {
         "type": "object",
         "properties": {
           "id": {
@@ -145,7 +145,7 @@
           "parameters": {
             "type": "array",
             "items": {
-              "$ref": "#/definitions/Parameter"
+              "$ref": "#/definitions/apiParameter"
             }
           },
           "error": {
@@ -154,7 +154,7 @@
           }
         }
       },
-      "PipelineVersion": {
+      "apiPipelineVersion": {
         "type": "object",
         "properties": {
           "id": {
@@ -173,7 +173,7 @@
           "parameters": {
             "type": "array",
             "items": {
-              "$ref": "#/definitions/Parameter"
+              "$ref": "#/definitions/apiParameter"
             },
             "description": "Output. The input parameters for this pipeline."
           },
@@ -182,19 +182,19 @@
             "description": "Input. Optional. Pipeline version code source."
           },
           "package_url": {
-            "$ref": "#/definitions/Url",
+            "$ref": "#/definitions/apiUrl",
             "description": "Input. Required. Pipeline version package url.\nWhe calling CreatePipelineVersion API method, need to provide one package\nfile location."
           },
           "resource_references": {
             "type": "array",
             "items": {
-              "$ref": "#/definitions/ResourceReference"
+              "$ref": "#/definitions/apiResourceReference"
             },
             "description": "Input. Required. E.g., specify which pipeline this pipeline version belongs\nto."
           }
         }
       },
-      "Relationship": {
+      "apiRelationship": {
         "type": "string",
         "enum": [
           "UNKNOWN_RELATIONSHIP",
@@ -203,11 +203,11 @@
         ],
         "default": "UNKNOWN_RELATIONSHIP"
       },
-      "ResourceKey": {
+      "apiResourceKey": {
         "type": "object",
         "properties": {
           "type": {
-            "$ref": "#/definitions/ResourceType",
+            "$ref": "#/definitions/apiResourceType",
             "description": "The type of the resource that referred to."
           },
           "id": {
@@ -216,23 +216,23 @@
           }
         }
       },
-      "ResourceReference": {
+      "apiResourceReference": {
         "type": "object",
         "properties": {
           "key": {
-            "$ref": "#/definitions/ResourceKey"
+            "$ref": "#/definitions/apiResourceKey"
           },
           "name": {
             "type": "string",
             "description": "The name of the resource that referred to."
           },
           "relationship": {
-            "$ref": "#/definitions/Relationship",
+            "$ref": "#/definitions/apiRelationship",
             "description": "Required field. The relationship from referred resource to the object."
           }
         }
       },
-      "ResourceType": {
+      "apiResourceType": {
         "type": "string",
         "enum": [
           "UNKNOWN_RESOURCE_TYPE",
@@ -244,7 +244,7 @@
         ],
         "default": "UNKNOWN_RESOURCE_TYPE"
       },
-      "Status": {
+      "apiStatus": {
         "type": "object",
         "properties": {
           "error": {
@@ -262,7 +262,7 @@
           }
         }
       },
-      "Url": {
+      "apiUrl": {
         "type": "object",
         "properties": {
           "pipeline_url": {

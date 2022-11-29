@@ -16,13 +16,13 @@ const (
 	InvalidFakeRequest = "Invalid fake request, don't know how to handle '%s' in the fake client."
 )
 
-func getDefaultUploadedPipeline() *model.Pipeline {
-	return &model.Pipeline{
+func getDefaultUploadedPipeline() *model.APIPipeline {
+	return &model.APIPipeline{
 		ID:          "500",
 		CreatedAt:   strfmt.NewDateTime(),
 		Name:        "PIPELINE_NAME",
 		Description: "PIPELINE_DESCRIPTION",
-		Parameters: []*model.Parameter{&model.Parameter{
+		Parameters: []*model.APIParameter{&model.APIParameter{
 			Name:  "PARAM_NAME",
 			Value: "PARAM_VALUE",
 		}},
@@ -36,7 +36,7 @@ func NewPipelineUploadClientFake() *PipelineUploadClientFake {
 }
 
 func (c *PipelineUploadClientFake) UploadFile(filePath string,
-	parameters *params.UploadPipelineParams) (*model.Pipeline, error) {
+	parameters *params.UploadPipelineParams) (*model.APIPipeline, error) {
 	switch filePath {
 	case FileForClientErrorTest:
 		return nil, fmt.Errorf(ClientErrorString)

@@ -15,9 +15,9 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// Pipeline pipeline
-// swagger:model Pipeline
-type Pipeline struct {
+// APIPipeline api pipeline
+// swagger:model apiPipeline
+type APIPipeline struct {
 
 	// created at
 	// Format: date-time
@@ -38,11 +38,11 @@ type Pipeline struct {
 	Name string `json:"name,omitempty"`
 
 	// parameters
-	Parameters []*Parameter `json:"parameters"`
+	Parameters []*APIParameter `json:"parameters"`
 }
 
-// Validate validates this pipeline
-func (m *Pipeline) Validate(formats strfmt.Registry) error {
+// Validate validates this api pipeline
+func (m *APIPipeline) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateCreatedAt(formats); err != nil {
@@ -59,7 +59,7 @@ func (m *Pipeline) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Pipeline) validateCreatedAt(formats strfmt.Registry) error {
+func (m *APIPipeline) validateCreatedAt(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.CreatedAt) { // not required
 		return nil
@@ -72,7 +72,7 @@ func (m *Pipeline) validateCreatedAt(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *Pipeline) validateParameters(formats strfmt.Registry) error {
+func (m *APIPipeline) validateParameters(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Parameters) { // not required
 		return nil
@@ -98,7 +98,7 @@ func (m *Pipeline) validateParameters(formats strfmt.Registry) error {
 }
 
 // MarshalBinary interface implementation
-func (m *Pipeline) MarshalBinary() ([]byte, error) {
+func (m *APIPipeline) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -106,8 +106,8 @@ func (m *Pipeline) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *Pipeline) UnmarshalBinary(b []byte) error {
-	var res Pipeline
+func (m *APIPipeline) UnmarshalBinary(b []byte) error {
+	var res APIPipeline
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}
