@@ -73,7 +73,7 @@ class ComponentsCompileTest(unittest.TestCase):
           instances_format="instance_format",
           gcs_source_uris=[self._gcs_source],
           bigquery_source_input_uri="bigquery_source_input_uri",
-          model_parameters={"foo": "bar"},
+          model_parameters={"foo": "bar22"},
           predictions_format="predictions_format",
           gcs_destination_output_uri_prefix=self._gcs_destination_prefix,
           bigquery_destination_output_uri="bigquery_destination_output_uri",
