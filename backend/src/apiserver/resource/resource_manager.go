@@ -23,7 +23,8 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiV1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	// apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
@@ -133,8 +134,8 @@ func (r *ResourceManager) GetTime() util.TimeInterface {
 	return r.time
 }
 
-func (r *ResourceManager) CreateExperiment(apiExperiment *api.Experiment) (*model.Experiment, error) {
-	experiment, err := r.ToModelExperiment(apiExperiment)
+func (r *ResourceManager) CreateExperiment(inputExperiment interface{}) (*model.Experiment, error) {
+	experiment, err := r.ToModelExperiment(inputExperiment)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert experiment model")
 	}
@@ -333,7 +334,7 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 	return template, nil
 }
 
-func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *api.Run) (*model.RunDetail, error) {
+func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *apiV1beta1.Run) (*model.RunDetail, error) {
 	// Get manifest from either of the two places:
 	// (1) raw manifest in pipeline_spec
 	// (2) pipeline version in resource_references
@@ -442,7 +443,7 @@ func (r *ResourceManager) UnarchiveRun(runId string) error {
 		return errors.Wrap(err, "Failed to retrieve experiment")
 	}
 
-	if experiment.StorageState == api.Experiment_STORAGESTATE_ARCHIVED.String() {
+	if experiment.StorageState == "ARCHIVED" {
 		return util.NewFailedPreconditionError(errors.New("Unarchive the experiment first to allow the run to be restored"),
 			fmt.Sprintf("Unarchive experiment with name `%s` first to allow run `%s` to be restored", experimentRef.ReferenceName, runId))
 	}
@@ -471,7 +472,7 @@ func (r *ResourceManager) DeleteRun(ctx context.Context, runID string) error {
 	return nil
 }
 
-func (r *ResourceManager) CreateTask(ctx context.Context, apiTask *api.Task) (*model.Task, error) {
+func (r *ResourceManager) CreateTask(ctx context.Context, apiTask *apiV1beta1.Task) (*model.Task, error) {
 	uuid, err := r.uuid.NewRandom()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to generate task ID.")
@@ -687,7 +688,7 @@ func (r *ResourceManager) GetJob(id string) (*model.Job, error) {
 	return r.jobStore.GetJob(id)
 }
 
-func (r *ResourceManager) CreateJob(ctx context.Context, apiJob *api.Job) (*model.Job, error) {
+func (r *ResourceManager) CreateJob(ctx context.Context, apiJob *apiV1beta1.Job) (*model.Job, error) {
 	// Get workflow from either of the two places:
 	// (1) raw pipeline manifest in pipeline_spec
 	// (2) pipeline version in resource_references
@@ -880,7 +881,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 				ExperimentUUID:   experimentRef.ReferenceUUID,
 				DisplayName:      execSpec.ExecutionName(),
 				Name:             execSpec.ExecutionName(),
-				StorageState:     api.Run_STORAGESTATE_AVAILABLE.String(),
+				StorageState:     apiV1beta1.Run_STORAGESTATE_AVAILABLE.String(),
 				Namespace:        execSpec.ExecutionNamespace(),
 				CreatedAtInSec:   objMeta.CreationTimestamp.Unix(),
 				ScheduledAtInSec: scheduledTimeInSec,
@@ -994,17 +995,17 @@ func (r *ResourceManager) checkRunExist(runID string) (*model.RunDetail, error) 
 	return runDetail, nil
 }
 
-func (r *ResourceManager) getWorkflowSpecBytesFromPipelineSpec(spec *api.PipelineSpec) ([]byte, error) {
+func (r *ResourceManager) getWorkflowSpecBytesFromPipelineSpec(spec *apiV1beta1.PipelineSpec) ([]byte, error) {
 	if spec.GetWorkflowManifest() != "" {
 		return []byte(spec.GetWorkflowManifest()), nil
 	}
 	return nil, util.NewInvalidInputError("Please provide a valid pipeline spec")
 }
 
-func (r *ResourceManager) getManifestBytesFromPipelineVersion(references []*api.ResourceReference) ([]byte, error) {
+func (r *ResourceManager) getManifestBytesFromPipelineVersion(references []*apiV1beta1.ResourceReference) ([]byte, error) {
 	var pipelineVersionId = ""
 	for _, reference := range references {
-		if reference.Key.Type == api.ResourceType_PIPELINE_VERSION && reference.Relationship == api.Relationship_CREATOR {
+		if reference.Key.Type == apiV1beta1.ResourceType_PIPELINE_VERSION && reference.Relationship == apiV1beta1.Relationship_CREATOR {
 			pipelineVersionId = reference.Key.Id
 		}
 	}
@@ -1019,7 +1020,7 @@ func (r *ResourceManager) getManifestBytesFromPipelineVersion(references []*api.
 	return manifestBytes, nil
 }
 
-func getManifestBytes(pipelineSpec *api.PipelineSpec, resourceReferences *[]*api.ResourceReference, r *ResourceManager) ([]byte, error) {
+func getManifestBytes(pipelineSpec *apiV1beta1.PipelineSpec, resourceReferences *[]*apiV1beta1.ResourceReference, r *ResourceManager) ([]byte, error) {
 	var manifestBytes []byte
 	if pipelineSpec.GetWorkflowManifest() != "" {
 		manifestBytes = []byte(pipelineSpec.GetWorkflowManifest())
@@ -1052,7 +1053,7 @@ func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 	}
 
 	// Create default experiment
-	defaultExperiment := &api.Experiment{
+	defaultExperiment := &apiV1beta1.Experiment{
 		Name:        "Default",
 		Description: "All runs created without specifying an experiment will be grouped here.",
 	}
@@ -1073,10 +1074,10 @@ func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 
 // getDefaultExperimentIfNoExperiment If the provided run does not include a reference to a containing
 // experiment, then we fetch the default experiment's ID and create a reference to that.
-func (r *ResourceManager) getDefaultExperimentIfNoExperiment(references []*api.ResourceReference) (*api.ResourceReference, error) {
+func (r *ResourceManager) getDefaultExperimentIfNoExperiment(references []*apiV1beta1.ResourceReference) (*apiV1beta1.ResourceReference, error) {
 	// First check if there is already a referenced experiment
 	for _, ref := range references {
-		if ref.Key.Type == api.ResourceType_EXPERIMENT && ref.Relationship == api.Relationship_OWNER {
+		if ref.Key.Type == apiV1beta1.ResourceType_EXPERIMENT && ref.Relationship == apiV1beta1.Relationship_OWNER {
 			return nil, nil
 		}
 	}
@@ -1086,7 +1087,7 @@ func (r *ResourceManager) getDefaultExperimentIfNoExperiment(references []*api.R
 	return r.getDefaultExperimentResourceReference(references)
 }
 
-func (r *ResourceManager) getDefaultExperimentResourceReference(references []*api.ResourceReference) (*api.ResourceReference, error) {
+func (r *ResourceManager) getDefaultExperimentResourceReference(references []*apiV1beta1.ResourceReference) (*apiV1beta1.ResourceReference, error) {
 	// Create reference to the default experiment
 	defaultExperimentId, err := r.GetDefaultExperimentId()
 	if err != nil {
@@ -1099,18 +1100,18 @@ func (r *ResourceManager) getDefaultExperimentResourceReference(references []*ap
 			return nil, util.NewInternalServerError(err, "Failed to create new default experiment")
 		}
 	}
-	defaultExperimentRef := &api.ResourceReference{
-		Key: &api.ResourceKey{
+	defaultExperimentRef := &apiV1beta1.ResourceReference{
+		Key: &apiV1beta1.ResourceKey{
 			Id:   defaultExperimentId,
-			Type: api.ResourceType_EXPERIMENT,
+			Type: apiV1beta1.ResourceType_EXPERIMENT,
 		},
-		Relationship: api.Relationship_OWNER,
+		Relationship: apiV1beta1.Relationship_OWNER,
 	}
 
 	return defaultExperimentRef, nil
 }
 
-func (r *ResourceManager) ReportMetric(metric *api.RunMetric, runUUID string) error {
+func (r *ResourceManager) ReportMetric(metric *apiV1beta1.RunMetric, runUUID string) error {
 	return r.runStore.ReportMetric(r.ToModelRunMetric(metric, runUUID))
 }
 
@@ -1154,11 +1155,11 @@ func (r *ResourceManager) MarkSampleLoaded() error {
 	return r.dBStatusStore.MarkSampleLoaded()
 }
 
-func (r *ResourceManager) CreatePipelineVersion(apiVersion *api.PipelineVersion, pipelineFile []byte, updateDefaultVersion bool) (*model.PipelineVersion, error) {
+func (r *ResourceManager) CreatePipelineVersion(apiVersion *apiV1beta1.PipelineVersion, pipelineFile []byte, updateDefaultVersion bool) (*model.PipelineVersion, error) {
 	// Extract pipeline id
 	var pipelineId = ""
 	for _, resourceReference := range apiVersion.ResourceReferences {
-		if resourceReference.Key.Type == api.ResourceType_PIPELINE && resourceReference.Relationship == api.Relationship_OWNER {
+		if resourceReference.Key.Type == apiV1beta1.ResourceType_PIPELINE && resourceReference.Relationship == apiV1beta1.Relationship_OWNER {
 			pipelineId = resourceReference.Key.Id
 		}
 	}
@@ -1349,7 +1350,7 @@ func (r *ResourceManager) GetNamespaceFromPipelineVersion(versionId string) (str
 	return r.GetNamespaceFromPipelineID(pipelineVersion.PipelineId)
 }
 
-func (r *ResourceManager) getNamespaceFromExperiment(references []*api.ResourceReference) (string, error) {
+func (r *ResourceManager) getNamespaceFromExperiment(references []*apiV1beta1.ResourceReference) (string, error) {
 	experimentID := common.GetExperimentIDFromAPIResourceReferences(references)
 	experiment, err := r.GetExperiment(experimentID)
 	if err != nil {

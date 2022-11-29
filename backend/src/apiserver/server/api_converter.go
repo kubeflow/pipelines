@@ -19,48 +19,84 @@ import (
 	"fmt"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiV1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func ToApiExperiment(experiment *model.Experiment) *api.Experiment {
-	resourceReferences := []*api.ResourceReference(nil)
+func ToApiExperimentV1(experiment *model.Experiment) *apiV1beta1.Experiment {
+	resourceReferences := []*apiV1beta1.ResourceReference(nil)
 	if common.IsMultiUserMode() {
-		resourceReferences = []*api.ResourceReference{
+		resourceReferences = []*apiV1beta1.ResourceReference{
 			{
-				Key: &api.ResourceKey{
-					Type: api.ResourceType_NAMESPACE,
+				Key: &apiV1beta1.ResourceKey{
+					Type: apiV1beta1.ResourceType_NAMESPACE,
 					Id:   experiment.Namespace,
 				},
-				Relationship: api.Relationship_OWNER,
+				Relationship: apiV1beta1.Relationship_OWNER,
 			},
 		}
 	}
-	return &api.Experiment{
+	storageState := apiV1beta1.Experiment_StorageState(apiV1beta1.Experiment_StorageState_value["STORAGESTATE_UNSPECIFIED"])
+	switch experiment.StorageState {
+	case "AVAILABLE":
+		storageState = apiV1beta1.Experiment_StorageState(apiV1beta1.Experiment_StorageState_value["STORAGESTATE_AVAILABLE"])
+	case "ARCHIVED":
+		storageState = apiV1beta1.Experiment_StorageState(apiV1beta1.Experiment_StorageState_value["STORAGESTATE_ARCHIVED"])
+	}
+
+	return &apiV1beta1.Experiment{
 		Id:                 experiment.UUID,
 		Name:               experiment.Name,
 		Description:        experiment.Description,
 		CreatedAt:          &timestamp.Timestamp{Seconds: experiment.CreatedAtInSec},
 		ResourceReferences: resourceReferences,
-		StorageState:       api.Experiment_StorageState(api.Experiment_StorageState_value[experiment.StorageState]),
+		StorageState:       storageState,
 	}
 }
 
-func ToApiExperiments(experiments []*model.Experiment) []*api.Experiment {
-	apiExperiments := make([]*api.Experiment, 0)
+func ToApiExperimentsV1(experiments []*model.Experiment) []*apiV1beta1.Experiment {
+	apiExperiments := make([]*apiV1beta1.Experiment, 0)
+	for _, experiment := range experiments {
+		apiExperiments = append(apiExperiments, ToApiExperimentV1(experiment))
+	}
+	return apiExperiments
+}
+
+func ToApiExperiment(experiment *model.Experiment) *apiV2beta1.Experiment {
+	storageState := apiV2beta1.Experiment_StorageState(apiV2beta1.Experiment_StorageState_value["STORAGESTATE_UNSPECIFIED"])
+	switch experiment.StorageState {
+	case "AVAILABLE":
+		storageState = apiV2beta1.Experiment_StorageState(apiV2beta1.Experiment_StorageState_value["AVAILABLE"])
+	case "ARCHIVED":
+		storageState = apiV2beta1.Experiment_StorageState(apiV2beta1.Experiment_StorageState_value["ARCHIVED"])
+	}
+
+	return &apiV2beta1.Experiment{
+		ExperimentId: experiment.UUID,
+		DisplayName:  experiment.Name,
+		Description:  experiment.Description,
+		CreatedAt:    &timestamp.Timestamp{Seconds: experiment.CreatedAtInSec},
+		Namespace:    experiment.Namespace,
+		StorageState: storageState,
+	}
+}
+
+func ToApiExperiments(experiments []*model.Experiment) []*apiV2beta1.Experiment {
+	apiExperiments := make([]*apiV2beta1.Experiment, 0)
 	for _, experiment := range experiments {
 		apiExperiments = append(apiExperiments, ToApiExperiment(experiment))
 	}
 	return apiExperiments
 }
 
-func ToApiPipeline(pipeline *model.Pipeline) *api.Pipeline {
+func ToApiPipeline(pipeline *model.Pipeline) *apiV1beta1.Pipeline {
 	params, err := toApiParameters(pipeline.Parameters)
 	if err != nil {
-		return &api.Pipeline{
+		return &apiV1beta1.Pipeline{
 			Id:    pipeline.UUID,
 			Error: err.Error(),
 		}
@@ -68,26 +104,26 @@ func ToApiPipeline(pipeline *model.Pipeline) *api.Pipeline {
 
 	defaultVersion, err := ToApiPipelineVersion(pipeline.DefaultVersion)
 	if err != nil {
-		return &api.Pipeline{
+		return &apiV1beta1.Pipeline{
 			Id:    pipeline.UUID,
 			Error: err.Error(),
 		}
 	}
 
-	var resourceRefs []*api.ResourceReference
+	var resourceRefs []*apiV1beta1.ResourceReference
 	if len(pipeline.Namespace) > 0 {
-		resourceRefs = []*api.ResourceReference{
+		resourceRefs = []*apiV1beta1.ResourceReference{
 			{
-				Key: &api.ResourceKey{
-					Type: api.ResourceType_NAMESPACE,
+				Key: &apiV1beta1.ResourceKey{
+					Type: apiV1beta1.ResourceType_NAMESPACE,
 					Id:   pipeline.Namespace,
 				},
-				Relationship: api.Relationship_OWNER,
+				Relationship: apiV1beta1.Relationship_OWNER,
 			},
 		}
 	}
 
-	return &api.Pipeline{
+	return &apiV1beta1.Pipeline{
 		Id:                 pipeline.UUID,
 		CreatedAt:          &timestamp.Timestamp{Seconds: pipeline.CreatedAtInSec},
 		Name:               pipeline.Name,
@@ -98,7 +134,7 @@ func ToApiPipeline(pipeline *model.Pipeline) *api.Pipeline {
 	}
 }
 
-func ToApiPipelineVersion(version *model.PipelineVersion) (*api.PipelineVersion, error) {
+func ToApiPipelineVersion(version *model.PipelineVersion) (*apiV1beta1.PipelineVersion, error) {
 	if version == nil {
 		return nil, nil
 	}
@@ -107,27 +143,27 @@ func ToApiPipelineVersion(version *model.PipelineVersion) (*api.PipelineVersion,
 		return nil, err
 	}
 
-	return &api.PipelineVersion{
+	return &apiV1beta1.PipelineVersion{
 		Id:            version.UUID,
 		Name:          version.Name,
 		CreatedAt:     &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
 		Parameters:    params,
 		Description:   version.Description,
 		CodeSourceUrl: version.CodeSourceUrl,
-		ResourceReferences: []*api.ResourceReference{
+		ResourceReferences: []*apiV1beta1.ResourceReference{
 			{
-				Key: &api.ResourceKey{
+				Key: &apiV1beta1.ResourceKey{
 					Id:   version.PipelineId,
-					Type: api.ResourceType_PIPELINE,
+					Type: apiV1beta1.ResourceType_PIPELINE,
 				},
-				Relationship: api.Relationship_OWNER,
+				Relationship: apiV1beta1.Relationship_OWNER,
 			},
 		},
 	}, nil
 }
 
-func ToApiPipelineVersions(versions []*model.PipelineVersion) ([]*api.PipelineVersion, error) {
-	apiVersions := make([]*api.PipelineVersion, 0)
+func ToApiPipelineVersions(versions []*model.PipelineVersion) ([]*apiV1beta1.PipelineVersion, error) {
+	apiVersions := make([]*apiV1beta1.PipelineVersion, 0)
 	for _, version := range versions {
 		v, _ := ToApiPipelineVersion(version)
 		apiVersions = append(apiVersions, v)
@@ -135,15 +171,15 @@ func ToApiPipelineVersions(versions []*model.PipelineVersion) ([]*api.PipelineVe
 	return apiVersions, nil
 }
 
-func ToApiPipelines(pipelines []*model.Pipeline) []*api.Pipeline {
-	apiPipelines := make([]*api.Pipeline, 0)
+func ToApiPipelines(pipelines []*model.Pipeline) []*apiV1beta1.Pipeline {
+	apiPipelines := make([]*apiV1beta1.Pipeline, 0)
 	for _, pipeline := range pipelines {
 		apiPipelines = append(apiPipelines, ToApiPipeline(pipeline))
 	}
 	return apiPipelines
 }
 
-func toApiParameters(paramsString string) ([]*api.Parameter, error) {
+func toApiParameters(paramsString string) ([]*apiV1beta1.Parameter, error) {
 	if paramsString == "" {
 		return nil, nil
 	}
@@ -151,13 +187,13 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Parameter with wrong format is stored")
 	}
-	apiParams := make([]*api.Parameter, 0)
+	apiParams := make([]*apiV1beta1.Parameter, 0)
 	for _, param := range params {
 		var value string
 		if param.Value != nil {
 			value = *param.Value
 		}
-		apiParam := api.Parameter{
+		apiParam := apiV1beta1.Parameter{
 			Name:  param.Name,
 			Value: value,
 		}
@@ -166,7 +202,7 @@ func toApiParameters(paramsString string) ([]*api.Parameter, error) {
 	return apiParams, nil
 }
 
-func toApiRuntimeConfig(modelRuntime model.RuntimeConfig) (*api.PipelineSpec_RuntimeConfig, error) {
+func toApiRuntimeConfig(modelRuntime model.RuntimeConfig) (*apiV1beta1.PipelineSpec_RuntimeConfig, error) {
 	if modelRuntime.Parameters == "" && modelRuntime.PipelineRoot == "" {
 		return nil, nil
 	}
@@ -177,18 +213,18 @@ func toApiRuntimeConfig(modelRuntime model.RuntimeConfig) (*api.PipelineSpec_Run
 			return nil, util.NewInternalServerError(err, fmt.Sprintf("Cannot unmarshal RuntimeConfig Parameter to map[string]*structpb.Value, string value: %+v", modelRuntime.Parameters))
 		}
 	}
-	apiRuntimeConfig := &api.PipelineSpec_RuntimeConfig{
+	apiRuntimeConfig := &apiV1beta1.PipelineSpec_RuntimeConfig{
 		Parameters:   runtimeParams,
 		PipelineRoot: modelRuntime.PipelineRoot,
 	}
 	return apiRuntimeConfig, nil
 }
 
-func toApiRun(run *model.Run) *api.Run {
+func toApiRun(run *model.Run) *apiV1beta1.Run {
 	// v1 parameters
 	params, err := toApiParameters(run.Parameters)
 	if err != nil {
-		return &api.Run{
+		return &apiV1beta1.Run{
 			Id:    run.UUID,
 			Error: err.Error(),
 		}
@@ -196,29 +232,29 @@ func toApiRun(run *model.Run) *api.Run {
 	// v2 RuntimeConfig
 	runtimeConfig, err := toApiRuntimeConfig(run.PipelineSpec.RuntimeConfig)
 	if err != nil {
-		return &api.Run{
+		return &apiV1beta1.Run{
 			Id:    run.UUID,
 			Error: err.Error(),
 		}
 	}
-	var metrics []*api.RunMetric
+	var metrics []*apiV1beta1.RunMetric
 	if run.Metrics != nil {
 		for _, metric := range run.Metrics {
 			metrics = append(metrics, ToApiRunMetric(metric))
 		}
 	}
-	return &api.Run{
+	return &apiV1beta1.Run{
 		CreatedAt:      &timestamp.Timestamp{Seconds: run.CreatedAtInSec},
 		Id:             run.UUID,
 		Metrics:        metrics,
 		Name:           run.DisplayName,
 		ServiceAccount: run.ServiceAccount,
-		StorageState:   api.Run_StorageState(api.Run_StorageState_value[run.StorageState]),
+		StorageState:   apiV1beta1.Run_StorageState(apiV1beta1.Run_StorageState_value[run.StorageState]),
 		Description:    run.Description,
 		ScheduledAt:    &timestamp.Timestamp{Seconds: run.ScheduledAtInSec},
 		FinishedAt:     &timestamp.Timestamp{Seconds: run.FinishedAtInSec},
 		Status:         run.Conditions,
-		PipelineSpec: &api.PipelineSpec{
+		PipelineSpec: &apiV1beta1.PipelineSpec{
 			PipelineId:       run.PipelineId,
 			PipelineName:     run.PipelineName,
 			WorkflowManifest: run.WorkflowSpecManifest,
@@ -230,26 +266,26 @@ func toApiRun(run *model.Run) *api.Run {
 	}
 }
 
-func ToApiRuns(runs []*model.Run) []*api.Run {
-	apiRuns := make([]*api.Run, 0)
+func ToApiRuns(runs []*model.Run) []*apiV1beta1.Run {
+	apiRuns := make([]*apiV1beta1.Run, 0)
 	for _, run := range runs {
 		apiRuns = append(apiRuns, toApiRun(run))
 	}
 	return apiRuns
 }
 
-func ToApiRunDetail(run *model.RunDetail) *api.RunDetail {
-	return &api.RunDetail{
+func ToApiRunDetail(run *model.RunDetail) *apiV1beta1.RunDetail {
+	return &apiV1beta1.RunDetail{
 		Run: toApiRun(&run.Run),
-		PipelineRuntime: &api.PipelineRuntime{
+		PipelineRuntime: &apiV1beta1.PipelineRuntime{
 			WorkflowManifest: run.WorkflowRuntimeManifest,
 			PipelineManifest: run.PipelineRuntimeManifest,
 		},
 	}
 }
 
-func ToApiTask(task *model.Task) *api.Task {
-	return &api.Task{
+func ToApiTask(task *model.Task) *apiV1beta1.Task {
+	return &apiV1beta1.Task{
 		Id:              task.UUID,
 		Namespace:       task.Namespace,
 		PipelineName:    task.PipelineName,
@@ -261,18 +297,18 @@ func ToApiTask(task *model.Task) *api.Task {
 	}
 }
 
-func ToApiTasks(tasks []*model.Task) []*api.Task {
-	apiTasks := make([]*api.Task, 0)
+func ToApiTasks(tasks []*model.Task) []*apiV1beta1.Task {
+	apiTasks := make([]*apiV1beta1.Task, 0)
 	for _, task := range tasks {
 		apiTasks = append(apiTasks, ToApiTask(task))
 	}
 	return apiTasks
 }
-func ToApiJob(job *model.Job) *api.Job {
+func ToApiJob(job *model.Job) *apiV1beta1.Job {
 	// v1 parameters
 	params, err := toApiParameters(job.Parameters)
 	if err != nil {
-		return &api.Job{
+		return &apiV1beta1.Job{
 			Id:    job.UUID,
 			Error: err.Error(),
 		}
@@ -280,12 +316,12 @@ func ToApiJob(job *model.Job) *api.Job {
 	// v2 RuntimeConfig
 	runtimeConfig, err := toApiRuntimeConfig(job.PipelineSpec.RuntimeConfig)
 	if err != nil {
-		return &api.Job{
+		return &apiV1beta1.Job{
 			Id:    job.UUID,
 			Error: err.Error(),
 		}
 	}
-	return &api.Job{
+	return &apiV1beta1.Job{
 		Id:             job.UUID,
 		Name:           job.DisplayName,
 		ServiceAccount: job.ServiceAccount,
@@ -297,7 +333,7 @@ func ToApiJob(job *model.Job) *api.Job {
 		MaxConcurrency: job.MaxConcurrency,
 		NoCatchup:      job.NoCatchup,
 		Trigger:        toApiTrigger(job.Trigger),
-		PipelineSpec: &api.PipelineSpec{
+		PipelineSpec: &apiV1beta1.PipelineSpec{
 			PipelineId:       job.PipelineId,
 			PipelineName:     job.PipelineName,
 			WorkflowManifest: job.WorkflowSpecManifest,
@@ -309,30 +345,30 @@ func ToApiJob(job *model.Job) *api.Job {
 	}
 }
 
-func ToApiJobs(jobs []*model.Job) []*api.Job {
-	apiJobs := make([]*api.Job, 0)
+func ToApiJobs(jobs []*model.Job) []*apiV1beta1.Job {
+	apiJobs := make([]*apiV1beta1.Job, 0)
 	for _, job := range jobs {
 		apiJobs = append(apiJobs, ToApiJob(job))
 	}
 	return apiJobs
 }
 
-func ToApiRunMetric(metric *model.RunMetric) *api.RunMetric {
-	return &api.RunMetric{
+func ToApiRunMetric(metric *model.RunMetric) *apiV1beta1.RunMetric {
+	return &apiV1beta1.RunMetric{
 		Name:   metric.Name,
 		NodeId: metric.NodeID,
-		Value: &api.RunMetric_NumberValue{
+		Value: &apiV1beta1.RunMetric_NumberValue{
 			NumberValue: metric.NumberValue,
 		},
-		Format: api.RunMetric_Format(api.RunMetric_Format_value[metric.Format]),
+		Format: apiV1beta1.RunMetric_Format(apiV1beta1.RunMetric_Format_value[metric.Format]),
 	}
 }
 
-func toApiResourceReferences(references []*model.ResourceReference) []*api.ResourceReference {
-	var apiReferences []*api.ResourceReference
+func toApiResourceReferences(references []*model.ResourceReference) []*apiV1beta1.ResourceReference {
+	var apiReferences []*apiV1beta1.ResourceReference
 	for _, ref := range references {
-		apiReferences = append(apiReferences, &api.ResourceReference{
-			Key: &api.ResourceKey{
+		apiReferences = append(apiReferences, &apiV1beta1.ResourceReference{
+			Key: &apiV1beta1.ResourceKey{
 				Type: toApiResourceType(ref.ReferenceType),
 				Id:   ref.ReferenceUUID,
 			},
@@ -343,35 +379,35 @@ func toApiResourceReferences(references []*model.ResourceReference) []*api.Resou
 	return apiReferences
 }
 
-func toApiResourceType(modelType model.ResourceType) api.ResourceType {
+func toApiResourceType(modelType model.ResourceType) apiV1beta1.ResourceType {
 	switch modelType {
 	case common.Experiment:
-		return api.ResourceType_EXPERIMENT
+		return apiV1beta1.ResourceType_EXPERIMENT
 	case common.Job:
-		return api.ResourceType_JOB
+		return apiV1beta1.ResourceType_JOB
 	case common.PipelineVersion:
-		return api.ResourceType_PIPELINE_VERSION
+		return apiV1beta1.ResourceType_PIPELINE_VERSION
 	case common.Namespace:
-		return api.ResourceType_NAMESPACE
+		return apiV1beta1.ResourceType_NAMESPACE
 	default:
-		return api.ResourceType_UNKNOWN_RESOURCE_TYPE
+		return apiV1beta1.ResourceType_UNKNOWN_RESOURCE_TYPE
 	}
 }
 
-func toApiRelationship(r model.Relationship) api.Relationship {
+func toApiRelationship(r model.Relationship) apiV1beta1.Relationship {
 	switch r {
 	case common.Creator:
-		return api.Relationship_CREATOR
+		return apiV1beta1.Relationship_CREATOR
 	case common.Owner:
-		return api.Relationship_OWNER
+		return apiV1beta1.Relationship_OWNER
 	default:
-		return api.Relationship_UNKNOWN_RELATIONSHIP
+		return apiV1beta1.Relationship_UNKNOWN_RELATIONSHIP
 	}
 }
 
-func toApiTrigger(trigger model.Trigger) *api.Trigger {
+func toApiTrigger(trigger model.Trigger) *apiV1beta1.Trigger {
 	if trigger.Cron != nil && *trigger.Cron != "" {
-		var cronSchedule api.CronSchedule
+		var cronSchedule apiV1beta1.CronSchedule
 		cronSchedule.Cron = *trigger.Cron
 		if trigger.CronScheduleStartTimeInSec != nil {
 			cronSchedule.StartTime = &timestamp.Timestamp{
@@ -381,11 +417,11 @@ func toApiTrigger(trigger model.Trigger) *api.Trigger {
 			cronSchedule.EndTime = &timestamp.Timestamp{
 				Seconds: *trigger.CronScheduleEndTimeInSec}
 		}
-		return &api.Trigger{Trigger: &api.Trigger_CronSchedule{CronSchedule: &cronSchedule}}
+		return &apiV1beta1.Trigger{Trigger: &apiV1beta1.Trigger_CronSchedule{CronSchedule: &cronSchedule}}
 	}
 
 	if trigger.IntervalSecond != nil && *trigger.IntervalSecond != 0 {
-		var periodicSchedule api.PeriodicSchedule
+		var periodicSchedule apiV1beta1.PeriodicSchedule
 		periodicSchedule.IntervalSecond = *trigger.IntervalSecond
 		if trigger.PeriodicScheduleStartTimeInSec != nil {
 			periodicSchedule.StartTime = &timestamp.Timestamp{
@@ -395,7 +431,7 @@ func toApiTrigger(trigger model.Trigger) *api.Trigger {
 			periodicSchedule.EndTime = &timestamp.Timestamp{
 				Seconds: *trigger.PeriodicScheduleEndTimeInSec}
 		}
-		return &api.Trigger{Trigger: &api.Trigger_PeriodicSchedule{PeriodicSchedule: &periodicSchedule}}
+		return &apiV1beta1.Trigger{Trigger: &apiV1beta1.Trigger_PeriodicSchedule{PeriodicSchedule: &periodicSchedule}}
 	}
-	return &api.Trigger{}
+	return &apiV1beta1.Trigger{}
 }
