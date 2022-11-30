@@ -1713,7 +1713,7 @@ class TestYamlComments(unittest.TestCase):
                 #    sample_input3: system.Model
                 #    sample_input4: float [Default: 3.14]
                 #    sample_input5: list [Default: [1.0, 2.0, 3.0]]
-                #    sample_input6: dict [Default: {'one': 1.0, 'three': 3.0, 'two': 2.0}]
+                #    sample_input6: dict [Default: {'one': 1.0, 'two': 2.0, 'three': 3.0}]
                 #    sample_input7: int [Default: 5.0]
                 # Outputs:
                 #    Output: system.Model
