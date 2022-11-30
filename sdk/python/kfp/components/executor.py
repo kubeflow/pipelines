@@ -38,6 +38,7 @@ class Executor():
             list_of_artifact_proto_structs = artifacts.get('artifacts')
             if list_of_artifact_proto_structs:
                 annotation = self._func.__annotations__[name]
+                # InputPath has no attribute __origin__ and also should be handled as a single artifact
                 if not isinstance(annotation, type_annotations.InputPath
                                  ) and type_annotations.is_list_of_artifacts(
                                      annotation.__origin__):
