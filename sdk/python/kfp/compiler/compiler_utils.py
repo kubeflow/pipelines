@@ -435,7 +435,7 @@ def get_dependencies(
             )  # because a task's `upstream_groups` contains the task's name
             if uncommon_upstream_groups:
                 dependent_group = group_name_to_group.get(
-                    upstream_groups[0], None)
+                    uncommon_upstream_groups[0], None)
                 if isinstance(dependent_group, tasks_group.ExitHandler):
                     task_group_type = 'an ' + tasks_group.ExitHandler.__name__
 
@@ -446,7 +446,7 @@ def get_dependencies(
                     task_group_type = 'a ' + tasks_group.ParallelFor.__name__
 
                 raise RuntimeError(
-                    f'Tasks cannot depend on upstream tasks inside {task_group_type} that is not a common ancestor of both tasks. Task {task.name} depends on upstream task {upstream_task.name}.'
+                    f'Tasks cannot depend on an upstream task inside {task_group_type} that is not a common ancestor of both tasks. Task {task.name} depends on upstream task {upstream_task.name}.'
                 )
 
             # ParralelFor Nested Check
@@ -462,7 +462,7 @@ def get_dependencies(
                                 group_name_to_group.get(parent_task, None),
                                 tasks_group.ParallelFor):
                             raise RuntimeError(
-                                f'Downstream task cannot depend on an upstream task while in a nested {tasks_group.ParallelFor.__name__} group. Task {task.name} depends on upstream task {upstream_task.name}, while {group} is nested in {parent_task}'
+                                f'Downstream tasks in a nested {tasks_group.ParallelFor.__name__} group cannot depend on an upstream task in a shallower {tasks_group.ParallelFor.__name__} group. Task {task.name} depends on upstream task {upstream_task.name}, while {group} is nested in {parent_task}.'
                             )
 
             dependencies[downstream_groups[0]].add(upstream_groups[0])
