@@ -33,6 +33,10 @@ def create_pipeline_task(
     return PipelineTask(component_spec=component_spec, args=args)
 
 
+_register_task_handler = lambda task: utils.maybe_rename_for_k8s(
+    task.component_spec.name)
+
+
 class PipelineTask:
     """Represents a pipeline task (instantiated component).
 
@@ -57,12 +61,11 @@ class PipelineTask:
             # task is an instance of PipelineTask
             task = identity(message='my string')
     """
+    _register_task_handler = _register_task_handler
 
     # Fallback behavior for compiling a component. This should be overriden by
     # pipeline `register_task_and_generate_id` if compiling a pipeline (more
     # than one component).
-    _register_task_handler = lambda task: utils.maybe_rename_for_k8s(
-        task.component_spec.name)
 
     def __init__(
         self,
