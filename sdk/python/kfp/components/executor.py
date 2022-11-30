@@ -302,7 +302,7 @@ class Executor():
                 if value is not None:
                     func_kwargs[k] = value
 
-            elif type_annotations.is_artifact_annotation(v):
+            elif type_annotations.is_Input_Output_artifact_annotation(v):
                 if type_annotations.is_input_artifact(v):
                     func_kwargs[k] = self._get_input_artifact(k)
                 if type_annotations.is_output_artifact(v):
