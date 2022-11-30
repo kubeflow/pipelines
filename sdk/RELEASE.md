@@ -10,6 +10,19 @@
 
 
 ## Documentation updates
+# 2.0.0-beta.8
+
+## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+* Fix client methods [\#8507](https://github.com/kubeflow/pipelines/pull/8507)
+
+
+## Documentation updates
 # 2.0.0-beta.7
 
 ## Features
