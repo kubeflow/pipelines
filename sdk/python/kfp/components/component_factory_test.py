@@ -151,7 +151,7 @@ class TestOutputListsOfArtifactsTemporarilyBlocked(unittest.TestCase):
 
     def test_python_component(self):
         with self.assertRaisesRegex(
-                ValueError,
+                NotImplementedError,
                 r'Output lists of artifacts are not yet supported\.'):
 
             @dsl.component
@@ -160,7 +160,7 @@ class TestOutputListsOfArtifactsTemporarilyBlocked(unittest.TestCase):
 
     def test_container_component(self):
         with self.assertRaisesRegex(
-                ValueError,
+                NotImplementedError,
                 r'Output lists of artifacts are not yet supported\.'):
 
             @dsl.container_component
@@ -169,7 +169,7 @@ class TestOutputListsOfArtifactsTemporarilyBlocked(unittest.TestCase):
 
     def test_pipeline(self):
         with self.assertRaisesRegex(
-                ValueError,
+                NotImplementedError,
                 r'Output lists of artifacts are not yet supported\.'):
 
             @dsl.pipeline

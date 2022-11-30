@@ -206,7 +206,8 @@ class OutputSpec:
 
     def _prevent_using_output_lists_of_artifacts(self):
         if self.is_artifact_list:
-            raise ValueError('Output lists of artifacts are not yet supported.')
+            raise NotImplementedError(
+                'Output lists of artifacts are not yet supported.')
 
 
 def spec_type_is_parameter(type_: str) -> bool:

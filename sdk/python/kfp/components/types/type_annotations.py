@@ -236,7 +236,6 @@ def is_list_of_artifacts(
                     Type[artifact_types.Artifact]]
 ) -> bool:
     # the type annotation for this function's `type_var` parameter may not actually be a subclass of the KFP SDK's Artifact class for custom artifact types
-    return hasattr(
-        type_var, '__origin__'
-    ) and type_var.__origin__ == list and type_annotations.is_artifact_class(
-        type_var.__args__[0])
+    return getattr(type_var, '__origin__',
+                   None) == list and type_annotations.is_artifact_class(
+                       type_var.__args__[0])
