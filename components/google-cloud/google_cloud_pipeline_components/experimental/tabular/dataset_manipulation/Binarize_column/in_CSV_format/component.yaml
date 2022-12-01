@@ -1,0 +1,111 @@
+name: Binarize column using Pandas on CSV data
+inputs:
+- {name: table, type: CSV}
+- {name: column_name, type: String}
+- {name: predicate, type: String, default: '> 0', optional: true}
+- {name: new_column_name, type: String, optional: true}
+- name: keep_original_column
+  type: Boolean
+  default: "False"
+  optional: true
+outputs:
+- {name: transformed_table, type: CSV}
+implementation:
+  container:
+    image: python:3.9
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'pandas==1.4.3' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet
+      --no-warn-script-location 'pandas==1.4.3' --user) && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def binarize_column_using_Pandas_on_CSV_data(
+          table_path,
+          transformed_table_path,
+          column_name,
+          predicate = "> 0",
+          new_column_name = None,
+          keep_original_column = False,
+      ):
+          import pandas
+
+          df = pandas.read_csv(table_path).convert_dtypes()
+          original_series = df[column_name]
+
+          # Dynamically executing the predicate code
+          # Variable namespace for code execution
+          namespace = dict(x=original_series)
+          # I though that there should be no space before `predicate` so that "dot" predicate methods like ".between(min, max)" work.
+          # However Python allows spaces before dot: `df .isna()`.
+          # So having a space is not a problem
+          transform_code = f"""new_series_boolean = x {predicate}"""
+          # Note: exec() takes no keyword arguments
+          # exec(__source=transform_code, __globals=namespace)
+          exec(transform_code, namespace)
+          new_series_boolean = namespace["new_series_boolean"]
+
+          # There are multiple ways to convert boolean column to integer.
+          # .apply(int) might be faster. https://stackoverflow.com/a/49804868/1497385
+          # TODO: Do a proper benchmark.
+          new_series = new_series_boolean.apply(int)
+          # new_series = new_series_boolean.astype(int)
+          # new_series = new_series_boolean.replace({False: 0, True: 1})
+
+          if new_column_name:
+              df.insert(loc=0, column=new_column_name, value=new_series)
+              if not keep_original_column:
+                  df = df.drop(columns=[column_name])
+          else:
+              df[column_name] = new_series
+
+          df.to_csv(transformed_table_path, index=False)
+
+      def _deserialize_bool(s) -> bool:
+          from distutils.util import strtobool
+          return strtobool(s) == 1
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Binarize column using Pandas on CSV data', description='')
+      _parser.add_argument("--table", dest="table_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--column-name", dest="column_name", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--predicate", dest="predicate", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--new-column-name", dest="new_column_name", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--keep-original-column", dest="keep_original_column", type=_deserialize_bool, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--transformed-table", dest="transformed_table_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = binarize_column_using_Pandas_on_CSV_data(**_parsed_args)
+    args:
+    - --table
+    - {inputPath: table}
+    - --column-name
+    - {inputValue: column_name}
+    - if:
+        cond: {isPresent: predicate}
+        then:
+        - --predicate
+        - {inputValue: predicate}
+    - if:
+        cond: {isPresent: new_column_name}
+        then:
+        - --new-column-name
+        - {inputValue: new_column_name}
+    - if:
+        cond: {isPresent: keep_original_column}
+        then:
+        - --keep-original-column
+        - {inputValue: keep_original_column}
+    - --transformed-table
+    - {outputPath: transformed_table}

@@ -1,0 +1,37 @@
+name: Create PyTorch Model Archive with base handler
+inputs:
+- {name: Model, type: PyTorchScriptModule}
+- {name: Model name, type: String, default: model}
+- {name: Model version, type: String, default: "1.0"}
+outputs:
+- {name: Model archive, type: PyTorchModelArchive}
+implementation:
+  container:
+    image: pytorch/torchserve:0.6.0-cpu
+    command:
+    - bash
+    - -exc
+    - |
+      model_path=$0
+      model_name=$1
+      model_version=$2
+      output_model_archive_path=$3
+
+      mkdir -p "$(dirname "$output_model_archive_path")"
+
+      # TODO: Use the built-in base_handler once my fix is merged: https://github.com/pytorch/serve/pull/1682
+      echo '
+      from ts.torch_handler import base_handler
+      class BaseHandler(base_handler.BaseHandler):
+          pass
+      ' > base_handler.py  # torch-model-archiver needs the handler to have .py extension
+      torch-model-archiver --model-name "$model_name" --version "$model_version" --serialized-file "$model_path" --handler base_handler.py
+
+      # torch-model-archiver does not allow specifying the output path, but always writes to "${model_name}.<format>"
+      expected_model_archive_path="${model_name}.mar"
+      mv "$expected_model_archive_path" "$output_model_archive_path"
+
+    - {inputPath: Model}
+    - {inputValue: Model name}
+    - {inputValue: Model version}
+    - {outputPath: Model archive}

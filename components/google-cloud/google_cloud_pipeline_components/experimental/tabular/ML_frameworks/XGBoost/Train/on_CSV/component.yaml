@@ -1,0 +1,227 @@
+name: Train XGBoost model on CSV
+description: Trains an XGBoost model.
+inputs:
+- {name: training_data, type: CSV, description: Training data in CSV format.}
+- {name: label_column_name, type: String, description: Name of the column containing
+    the label data.}
+- {name: starting_model, type: XGBoostModel, description: Existing trained model to
+    start from (in the binary XGBoost format)., optional: true}
+- {name: num_iterations, type: Integer, description: Number of boosting iterations.,
+  default: '10', optional: true}
+- name: objective
+  type: String
+  description: |-
+    The learning task and the corresponding learning objective.
+    See https://xgboost.readthedocs.io/en/latest/parameter.html#learning-task-parameters
+    The most common values are:
+    "reg:squarederror" - Regression with squared loss (default).
+    "reg:logistic" - Logistic regression.
+    "binary:logistic" - Logistic regression for binary classification, output probability.
+    "binary:logitraw" - Logistic regression for binary classification, output score before logistic transformation
+    "rank:pairwise" - Use LambdaMART to perform pairwise ranking where the pairwise loss is minimized
+    "rank:ndcg" - Use LambdaMART to perform list-wise ranking where Normalized Discounted Cumulative Gain (NDCG) is maximized
+  default: reg:squarederror
+  optional: true
+- {name: booster, type: String, description: 'The booster to use. Can be `gbtree`,
+    `gblinear` or `dart`; `gbtree` and `dart` use tree based models while `gblinear`
+    uses linear functions.', default: gbtree, optional: true}
+- {name: learning_rate, type: Float, description: 'Step size shrinkage used in update
+    to prevents overfitting. Range: [0,1].', default: '0.3', optional: true}
+- name: min_split_loss
+  type: Float
+  description: |-
+    Minimum loss reduction required to make a further partition on a leaf node of the tree.
+    The larger `min_split_loss` is, the more conservative the algorithm will be. Range: [0,Inf].
+  default: '0'
+  optional: true
+- name: max_depth
+  type: Integer
+  description: |-
+    Maximum depth of a tree. Increasing this value will make the model more complex and more likely to overfit.
+    0 indicates no limit on depth. Range: [0,Inf].
+  default: '6'
+  optional: true
+- {name: booster_params, type: JsonObject, description: 'Parameters for the booster.
+    See https://xgboost.readthedocs.io/en/latest/parameter.html', optional: true}
+outputs:
+- {name: model, type: XGBoostModel, description: Trained model in the binary XGBoost
+    format.}
+- {name: model_config, type: XGBoostModelConfig, description: The internal parameter
+    configuration of Booster as a JSON string.}
+implementation:
+  container:
+    image: python:3.10
+    command:
+    - sh
+    - -c
+    - (PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet --no-warn-script-location
+      'xgboost==1.6.1' 'pandas==1.4.3' || PIP_DISABLE_PIP_VERSION_CHECK=1 python3
+      -m pip install --quiet --no-warn-script-location 'xgboost==1.6.1' 'pandas==1.4.3'
+      --user) && "$0" "$@"
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+      def train_XGBoost_model_on_CSV(
+          training_data_path,
+          model_path,
+          model_config_path,
+          label_column_name,
+          starting_model_path = None,
+          num_iterations = 10,
+          # Booster parameters
+          objective = "reg:squarederror",
+          booster = "gbtree",
+          learning_rate = 0.3,
+          min_split_loss = 0,
+          max_depth = 6,
+          booster_params = None,
+      ):
+          """Trains an XGBoost model.
+          Args:
+              training_data_path: Training data in CSV format.
+              model_path: Trained model in the binary XGBoost format.
+              model_config_path: The internal parameter configuration of Booster as a JSON string.
+              starting_model_path: Existing trained model to start from (in the binary XGBoost format).
+              label_column_name: Name of the column containing the label data.
+              num_iterations: Number of boosting iterations.
+              booster_params: Parameters for the booster. See https://xgboost.readthedocs.io/en/latest/parameter.html
+              objective: The learning task and the corresponding learning objective.
+                  See https://xgboost.readthedocs.io/en/latest/parameter.html#learning-task-parameters
+                  The most common values are:
+                  "reg:squarederror" - Regression with squared loss (default).
+                  "reg:logistic" - Logistic regression.
+                  "binary:logistic" - Logistic regression for binary classification, output probability.
+                  "binary:logitraw" - Logistic regression for binary classification, output score before logistic transformation
+                  "rank:pairwise" - Use LambdaMART to perform pairwise ranking where the pairwise loss is minimized
+                  "rank:ndcg" - Use LambdaMART to perform list-wise ranking where Normalized Discounted Cumulative Gain (NDCG) is maximized
+              booster: The booster to use. Can be `gbtree`, `gblinear` or `dart`; `gbtree` and `dart` use tree based models while `gblinear` uses linear functions.
+              learning_rate: Step size shrinkage used in update to prevents overfitting. Range: [0,1].
+              min_split_loss: Minimum loss reduction required to make a further partition on a leaf node of the tree.
+                  The larger `min_split_loss` is, the more conservative the algorithm will be. Range: [0,Inf].
+              max_depth: Maximum depth of a tree. Increasing this value will make the model more complex and more likely to overfit.
+                  0 indicates no limit on depth. Range: [0,Inf].
+          Annotations:
+              author: Alexey Volkov <alexey.volkov@ark-kun.com>
+          """
+          import pandas
+          import xgboost
+          df = pandas.read_csv(
+              training_data_path,
+          ).convert_dtypes()
+          print("Training data information:")
+          df.info(verbose=True)
+          # Converting column types that XGBoost does not support
+          for column_name, dtype in df.dtypes.items():
+              if dtype in ["string", "object"]:
+                  print(f"Treating the {dtype.name} column '{column_name}' as categorical.")
+                  df[column_name] = df[column_name].astype("category")
+                  print(f"Inferred {len(df[column_name].cat.categories)} categories for the '{column_name}' column.")
+              # Working around the XGBoost issue with nullable floats: https://github.com/dmlc/xgboost/issues/8213
+              if pandas.api.types.is_float_dtype(dtype):
+                  # Converting from "Float64" to "float64"
+                  df[column_name] = df[column_name].astype(dtype.name.lower())
+          print()
+          print("Final training data information:")
+          df.info(verbose=True)
+          training_data = xgboost.DMatrix(
+              data=df.drop(columns=[label_column_name]),
+              label=df[[label_column_name]],
+              enable_categorical=True,
+          )
+          booster_params = booster_params or {}
+          booster_params.setdefault("objective", objective)
+          booster_params.setdefault("booster", booster)
+          booster_params.setdefault("learning_rate", learning_rate)
+          booster_params.setdefault("min_split_loss", min_split_loss)
+          booster_params.setdefault("max_depth", max_depth)
+          starting_model = None
+          if starting_model_path:
+              starting_model = xgboost.Booster(model_file=starting_model_path)
+          print()
+          print("Training the model:")
+          model = xgboost.train(
+              params=booster_params,
+              dtrain=training_data,
+              num_boost_round=num_iterations,
+              xgb_model=starting_model,
+              evals=[(training_data, "training_data")],
+          )
+          # Saving the model in binary format
+          model.save_model(model_path)
+          model_config_str = model.save_config()
+          with open(model_config_path, "w") as model_config_file:
+              model_config_file.write(model_config_str)
+      import json
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Train XGBoost model on CSV', description='Trains an XGBoost model.')
+      _parser.add_argument("--training-data", dest="training_data_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--label-column-name", dest="label_column_name", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--starting-model", dest="starting_model_path", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--num-iterations", dest="num_iterations", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--objective", dest="objective", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--booster", dest="booster", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--learning-rate", dest="learning_rate", type=float, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--min-split-loss", dest="min_split_loss", type=float, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--max-depth", dest="max_depth", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--booster-params", dest="booster_params", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--model", dest="model_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--model-config", dest="model_config_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+      _outputs = train_XGBoost_model_on_CSV(**_parsed_args)
+    args:
+    - --training-data
+    - {inputPath: training_data}
+    - --label-column-name
+    - {inputValue: label_column_name}
+    - if:
+        cond: {isPresent: starting_model}
+        then:
+        - --starting-model
+        - {inputPath: starting_model}
+    - if:
+        cond: {isPresent: num_iterations}
+        then:
+        - --num-iterations
+        - {inputValue: num_iterations}
+    - if:
+        cond: {isPresent: objective}
+        then:
+        - --objective
+        - {inputValue: objective}
+    - if:
+        cond: {isPresent: booster}
+        then:
+        - --booster
+        - {inputValue: booster}
+    - if:
+        cond: {isPresent: learning_rate}
+        then:
+        - --learning-rate
+        - {inputValue: learning_rate}
+    - if:
+        cond: {isPresent: min_split_loss}
+        then:
+        - --min-split-loss
+        - {inputValue: min_split_loss}
+    - if:
+        cond: {isPresent: max_depth}
+        then:
+        - --max-depth
+        - {inputValue: max_depth}
+    - if:
+        cond: {isPresent: booster_params}
+        then:
+        - --booster-params
+        - {inputValue: booster_params}
+    - --model
+    - {outputPath: model}
+    - --model-config
+    - {outputPath: model_config}

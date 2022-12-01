@@ -1,0 +1,100 @@
+name: Create fully connected tensorflow network
+description: Creates fully-connected network in Tensorflow SavedModel format
+inputs:
+- {name: input_size, type: Integer}
+- {name: hidden_layer_sizes, type: JsonArray, default: '[]', optional: true}
+- {name: output_size, type: Integer, default: '1', optional: true}
+- {name: activation_name, type: String, default: relu, optional: true}
+- {name: output_activation_name, type: String, optional: true}
+- {name: random_seed, type: Integer, default: '0', optional: true}
+outputs:
+- {name: model, type: TensorflowSavedModel}
+implementation:
+  container:
+    image: tensorflow/tensorflow:2.7.0
+    command:
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+
+      def create_fully_connected_tensorflow_network(
+          input_size,
+          model_path,
+          hidden_layer_sizes = [],
+          output_size = 1,
+          activation_name = "relu",
+          output_activation_name = None,
+          random_seed = 0,
+      ):
+          """Creates fully-connected network in Tensorflow SavedModel format"""
+          import tensorflow as tf
+          tf.random.set_seed(seed=random_seed)
+
+          model = tf.keras.models.Sequential()
+          model.add(tf.keras.Input(shape=(input_size,)))
+          for layer_size in hidden_layer_sizes:
+              model.add(tf.keras.layers.Dense(units=layer_size, activation=activation_name))
+          # The last layer is left without activation
+          model.add(tf.keras.layers.Dense(units=output_size, activation=output_activation_name))
+
+          print(model.summary())
+
+          # Using tf.keras.models.save_model instead of tf.saved_model.save to prevent downstream error:
+          #tf.saved_model.save(model, model_path)
+          # ValueError: Unable to create a Keras model from this SavedModel.
+          # This SavedModel was created with `tf.saved_model.save`, and lacks the Keras metadata.
+          # Please save your Keras model by calling `model.save`or `tf.keras.models.save_model`.
+          # See https://github.com/keras-team/keras/issues/16451
+          tf.keras.models.save_model(model, model_path)
+
+      import json
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Create fully connected tensorflow network', description='Creates fully-connected network in Tensorflow SavedModel format')
+      _parser.add_argument("--input-size", dest="input_size", type=int, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--hidden-layer-sizes", dest="hidden_layer_sizes", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--output-size", dest="output_size", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--activation-name", dest="activation_name", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--output-activation-name", dest="output_activation_name", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--random-seed", dest="random_seed", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--model", dest="model_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = create_fully_connected_tensorflow_network(**_parsed_args)
+    args:
+    - --input-size
+    - {inputValue: input_size}
+    - if:
+        cond: {isPresent: hidden_layer_sizes}
+        then:
+        - --hidden-layer-sizes
+        - {inputValue: hidden_layer_sizes}
+    - if:
+        cond: {isPresent: output_size}
+        then:
+        - --output-size
+        - {inputValue: output_size}
+    - if:
+        cond: {isPresent: activation_name}
+        then:
+        - --activation-name
+        - {inputValue: activation_name}
+    - if:
+        cond: {isPresent: output_activation_name}
+        then:
+        - --output-activation-name
+        - {inputValue: output_activation_name}
+    - if:
+        cond: {isPresent: random_seed}
+        then:
+        - --random-seed
+        - {inputValue: random_seed}
+    - --model
+    - {outputPath: model}

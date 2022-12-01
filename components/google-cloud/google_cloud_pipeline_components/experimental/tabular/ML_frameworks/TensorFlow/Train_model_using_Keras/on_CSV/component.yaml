@@ -1,0 +1,159 @@
+name: Train model using Keras on CSV
+inputs:
+- {name: training_data, type: CSV}
+- {name: model, type: TensorflowSavedModel}
+- {name: label_column_name, type: String}
+- {name: loss_function_name, type: String, default: mean_squared_error, optional: true}
+- {name: number_of_epochs, type: Integer, default: '1', optional: true}
+- {name: learning_rate, type: Float, default: '0.1', optional: true}
+- {name: optimizer_name, type: String, default: Adadelta, optional: true}
+- {name: optimizer_parameters, type: JsonObject, optional: true}
+- {name: batch_size, type: Integer, default: '32', optional: true}
+- {name: metric_names, type: JsonArray, optional: true}
+- {name: random_seed, type: Integer, default: '0', optional: true}
+outputs:
+- {name: trained_model, type: TensorflowSavedModel}
+implementation:
+  container:
+    image: tensorflow/tensorflow:2.8.0
+    command:
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def _make_parent_dirs_and_return_path(file_path: str):
+          import os
+          os.makedirs(os.path.dirname(file_path), exist_ok=True)
+          return file_path
+      def train_model_using_Keras_on_CSV(
+          training_data_path,
+          model_path,
+          trained_model_path,
+          label_column_name,
+          loss_function_name = "mean_squared_error",
+          number_of_epochs = 1,
+          learning_rate = 0.1,
+          optimizer_name = "Adadelta",
+          optimizer_parameters = None,
+          batch_size = 32,
+          metric_names = None,
+          random_seed = 0,
+      ):
+          import tensorflow as tf
+          tf.random.set_seed(seed=random_seed)
+          # Loading model using Keras. Model loaded using TensorFlow does not have .fit.
+          #model = tf.saved_model.load(export_dir=model_path)
+          keras_model = tf.keras.models.load_model(filepath=model_path)
+          optimizer_parameters = optimizer_parameters or {}
+          optimizer_parameters["learning_rate"] = learning_rate
+          optimizer_config = {
+              "class_name": optimizer_name,
+              "config": optimizer_parameters,
+          }
+          optimizer = tf.keras.optimizers.get(optimizer_config)
+          loss = tf.keras.losses.get(loss_function_name)
+          training_dataset = tf.data.experimental.make_csv_dataset(
+              file_pattern=training_data_path,
+              batch_size=batch_size,
+              label_name=label_column_name,
+              header=True,
+              # Need to specify num_epochs=1 otherwise the training becomes infinite
+              num_epochs=1,
+              shuffle=True,
+              shuffle_seed=random_seed,
+              ignore_errors=True,
+          )
+          def stack_feature_batches(features_batch, labels_batch):
+              # Need to stack individual feature columns to create a single feature tensor
+              # Need to cast all column tensor types to float to prevent error:
+              # TypeError: Tensors in list passed to 'values' of 'Pack' Op have types [int32, float32, float32, int32, int32] that don't all match.
+              list_of_feature_batches = list(tf.cast(x=feature_batch, dtype=tf.float32) for feature_batch in features_batch.values())
+              return tf.stack(list_of_feature_batches, axis=-1), labels_batch
+          training_dataset = training_dataset.map(stack_feature_batches)
+          # Need to compile the model to prevent error:
+          # ValueError: No gradients provided for any variable: [..., ...].
+          keras_model.compile(
+              optimizer=optimizer,
+              loss=loss,
+              metrics=metric_names,
+          )
+          keras_model.fit(
+              training_dataset,
+              epochs=number_of_epochs,
+          )
+          # Using tf.keras.models.save_model instead of tf.saved_model.save to prevent downstream error:
+          #tf.saved_model.save(keras_model, trained_model_path)
+          # ValueError: Unable to create a Keras model from this SavedModel.
+          # This SavedModel was created with `tf.saved_model.save`, and lacks the Keras metadata.
+          # Please save your Keras model by calling `model.save`or `tf.keras.models.save_model`.
+          # See https://github.com/keras-team/keras/issues/16451
+          tf.keras.models.save_model(keras_model, trained_model_path)
+      import json
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Train model using Keras on CSV', description='')
+      _parser.add_argument("--training-data", dest="training_data_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--model", dest="model_path", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--label-column-name", dest="label_column_name", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--loss-function-name", dest="loss_function_name", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--number-of-epochs", dest="number_of_epochs", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--learning-rate", dest="learning_rate", type=float, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--optimizer-name", dest="optimizer_name", type=str, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--optimizer-parameters", dest="optimizer_parameters", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--batch-size", dest="batch_size", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--metric-names", dest="metric_names", type=json.loads, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--random-seed", dest="random_seed", type=int, required=False, default=argparse.SUPPRESS)
+      _parser.add_argument("--trained-model", dest="trained_model_path", type=_make_parent_dirs_and_return_path, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+      _outputs = train_model_using_Keras_on_CSV(**_parsed_args)
+    args:
+    - --training-data
+    - {inputPath: training_data}
+    - --model
+    - {inputPath: model}
+    - --label-column-name
+    - {inputValue: label_column_name}
+    - if:
+        cond: {isPresent: loss_function_name}
+        then:
+        - --loss-function-name
+        - {inputValue: loss_function_name}
+    - if:
+        cond: {isPresent: number_of_epochs}
+        then:
+        - --number-of-epochs
+        - {inputValue: number_of_epochs}
+    - if:
+        cond: {isPresent: learning_rate}
+        then:
+        - --learning-rate
+        - {inputValue: learning_rate}
+    - if:
+        cond: {isPresent: optimizer_name}
+        then:
+        - --optimizer-name
+        - {inputValue: optimizer_name}
+    - if:
+        cond: {isPresent: optimizer_parameters}
+        then:
+        - --optimizer-parameters
+        - {inputValue: optimizer_parameters}
+    - if:
+        cond: {isPresent: batch_size}
+        then:
+        - --batch-size
+        - {inputValue: batch_size}
+    - if:
+        cond: {isPresent: metric_names}
+        then:
+        - --metric-names
+        - {inputValue: metric_names}
+    - if:
+        cond: {isPresent: random_seed}
+        then:
+        - --random-seed
+        - {inputValue: random_seed}
+    - --trained-model
+    - {outputPath: trained_model}
