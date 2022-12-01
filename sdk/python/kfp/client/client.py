@@ -398,8 +398,13 @@ class Client:
         with open(Client._LOCAL_KFP_CONTEXT, 'w') as f:
             json.dump(self._context_setting, f)
 
-    def get_kfp_healthz(self) -> kfp_server_api.ApiGetHealthzResponse:
+    def get_kfp_healthz(
+            self,
+            sleep_duration: int = 5) -> kfp_server_api.ApiGetHealthzResponse:
         """Gets healthz info for KFP deployment.
+
+        Args:
+            sleep_duration: Time in seconds between retries.
 
         Returns:
             JSON response from the healtz endpoint.
@@ -422,8 +427,9 @@ class Client:
             except kfp_server_api.ApiException:
                 # logging.exception also logs detailed info about the ApiException
                 logging.exception(
-                    f'Failed to get healthz info attempt {count} of 5.')
-                time.sleep(5)
+                    f'Failed to get healthz info attempt {count} of {sleep_duration}.'
+                )
+                time.sleep(sleep_duration)
 
     def get_user_namespace(self) -> str:
         """Gets user namespace in context config.
@@ -463,7 +469,7 @@ class Client:
             logging.info(f'Creating experiment {name}.')
 
             resource_references = []
-            if namespace:
+            if namespace is not None:
                 key = kfp_server_api.ApiResourceKey(
                     id=namespace, type=kfp_server_api.ApiResourceType.NAMESPACE)
                 reference = kfp_server_api.ApiResourceReference(
@@ -584,7 +590,7 @@ class Client:
                 'stringValue': experiment_name,
             }]
         })
-        if namespace:
+        if namespace is not None:
             result = self._experiment_api.list_experiment(
                 filter=experiment_filter,
                 resource_reference_key_type=kfp_server_api.ApiResourceType
@@ -1213,7 +1219,7 @@ class Client:
                 .EXPERIMENT,
                 resource_reference_key_id=experiment_id,
                 filter=filter)
-        elif namespace:
+        elif namespace is not None:
             response = self._run_api.list_runs(
                 page_token=page_token,
                 page_size=page_size,
@@ -1299,13 +1305,17 @@ class Client:
         """
         return self._run_api.get_run(run_id=run_id)
 
-    def wait_for_run_completion(self, run_id: str,
-                                timeout: int) -> kfp_server_api.ApiRun:
+    def wait_for_run_completion(
+            self,
+            run_id: str,
+            timeout: int,
+            sleep_duration: int = 5) -> kfp_server_api.ApiRun:
         """Waits for a run to complete.
 
         Args:
             run_id: ID of the run.
             timeout: Timeout after which the client should stop waiting for run completion (seconds).
+            sleep_duration: Time in seconds between retries.
 
         Returns:
             ``ApiRun`` object.
@@ -1335,7 +1345,7 @@ class Client:
             logging.info('Waiting for the job to complete...')
             if elapsed_time > timeout:
                 raise TimeoutError('Run timeout')
-            time.sleep(5)
+            time.sleep(sleep_duration)
         return get_run_response
 
     def _get_workflow_json(self, run_id: str) -> dict:
