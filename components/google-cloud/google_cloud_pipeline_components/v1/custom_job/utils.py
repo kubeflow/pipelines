@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubeflow Authors
+# Copyright 2022 The Kubeflow Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,23 +13,20 @@
 # limitations under the License.
 """Module for supporting Google Vertex AI Custom Training Job Op."""
 
-# Prior to release of kfp V2, we have to use a mix of kfp v1 and v2.
-# TODO(chavoshi): switch to using V2 only once it is ready.
 import copy
 import json
 import os
-import tempfile
 from typing import Callable, Dict, Optional, Sequence
-from google_cloud_pipeline_components.aiplatform import utils
+
 from kfp import components
 from kfp.dsl import dsl_utils
 from kfp.v2.components.types import type_utils
 import yaml
 
-_DEFAULT_CUSTOM_JOB_CONTAINER_IMAGE = utils.DEFAULT_CONTAINER_IMAGE
+_EXECUTOR_PLACEHOLDER = '{{{{$}}}}'
 # Executor replacement is used as executor content needs to be jsonified before
 # injection into the payload, since payload is already a Json serialized string.
-_EXECUTOR_PLACE_HOLDER_REPLACEMENT = '{{$.json_escape[1]}}'
+_EXECUTOR_PLACEHOLDER_REPLACEMENT = '{{$.json_escape[1]}}'
 
 
 # This method is aliased to "create_custom_training_job_from_component" for
@@ -92,14 +89,13 @@ def create_custom_training_job_op_from_component(
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#acceleratortype.
     accelerator_count (Optional[int]): The number of accelerators to attach to
       the machine. Defaults to 1 if accelerator_type is set.
-    boot_disk_type (Optional[str]):
-      Type of the boot disk (default is "pd-ssd"). Valid values: "pd-ssd"
-        (Persistent Disk Solid State Drive) or "pd-standard" (Persistent Disk
-        Hard Disk Drive). boot_disk_type is set as a static value and cannot be
-        changed as a pipeline parameter.
+    boot_disk_type (Optional[str]): Type of the boot disk (default is "pd-ssd").
+      Valid values: "pd-ssd" (Persistent Disk Solid State Drive) or
+      "pd-standard" (Persistent Disk Hard Disk Drive). boot_disk_type is set as
+      a static value and cannot be changed as a pipeline parameter.
     boot_disk_size_gb (Optional[int]): Size in GB of the boot disk (default is
-      100GB). boot_disk_size_gb is set as a static value and cannot be
-        changed as a pipeline parameter.
+      100GB). boot_disk_size_gb is set as a static value and cannot be changed
+      as a pipeline parameter.
     timeout (Optional[str]): The maximum job running time. The default is 7
       days. A duration in seconds with up to nine fractional digits, terminated
       by 's', for example: "3.5s".
@@ -109,11 +105,11 @@ def create_custom_training_job_op_from_component(
       joining a job.
     service_account (Optional[str]): Sets the default service account for
       workload run-as account. The service account running the pipeline
-        (https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account)
-          submitting jobs must have act-as permission on this run-as account. If
-          unspecified, the Vertex AI Custom Code Service
-        Agent(https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents)
-          for the CustomJob's project.
+      (https://cloud.google.com/vertex-ai/docs/pipelines/configure-project#service-account)
+      submitting jobs must have act-as permission on this run-as account. If
+      unspecified, the Vertex AI Custom Code Service
+      Agent(https://cloud.google.com/vertex-ai/docs/general/access-control#service-agents)
+      for the CustomJob's project.
     network (Optional[str]): The full name of the Compute Engine network to
       which the job should be peered. For example,
       projects/12345/global/networks/myVPC. Format is of the form
@@ -128,9 +124,9 @@ def create_custom_training_job_op_from_component(
       which this CustomJob will upload Tensorboard logs.
     enable_web_access (Optional[bool]): Whether you want Vertex AI to enable
       [interactive shell
-        access](https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell)
-          to training containers. If set to `true`, you can access interactive
-          shells at the URIs given by [CustomJob.web_access_uris][].
+      access](https://cloud.google.com/vertex-ai/docs/training/monitor-debug-interactive-shell)
+      to training containers. If set to `true`, you can access interactive
+      shells at the URIs given by [CustomJob.web_access_uris][].
     reserved_ip_ranges (Optional[Sequence[str]]): A list of names for the
       reserved ip ranges under the VPC network that can be used for this job. If
       set, we will deploy the job within the provided ip ranges. Otherwise, the
@@ -142,17 +138,15 @@ def create_custom_training_job_op_from_component(
         For more details about mounting NFS for CustomJob, see
       https://cloud.devsite.corp.google.com/vertex-ai/docs/training/train-nfs-share
     base_output_directory (Optional[str]): The Cloud Storage location to store
-      the output of this CustomJob or
-      HyperparameterTuningJob. see below for more details:
+      the output of this CustomJob or HyperparameterTuningJob. see below for
+      more details:
       https://cloud.google.com/vertex-ai/docs/reference/rest/v1/GcsDestination
     labels (Optional[Dict[str, str]]): The labels with user-defined metadata to
-      organize CustomJobs.
-      See https://goo.gl/xmQnxf for more information.
+      organize CustomJobs. See https://goo.gl/xmQnxf for more information.
 
   Returns:
     A Custom Job component operator corresponding to the input component
     operator.
-
   """
   worker_pool_specs = {}
   input_specs = []
@@ -187,8 +181,8 @@ def create_custom_training_job_op_from_component(
     dsl_utils.resolve_cmd_lines(container_command_copy, _is_output_parameter)
     # Replace executor place holder with the json escaped placeholder.
     for idx, val in enumerate(container_command_copy):
-      if val == '{{{{$}}}}':
-        container_command_copy[idx] = _EXECUTOR_PLACE_HOLDER_REPLACEMENT
+      if val == _EXECUTOR_PLACEHOLDER:
+        container_command_copy[idx] = _EXECUTOR_PLACEHOLDER_REPLACEMENT
     worker_pool_spec['container_spec']['command'] = container_command_copy
 
   if component_spec.component_spec.implementation.container.env:
@@ -202,8 +196,8 @@ def create_custom_training_job_op_from_component(
     dsl_utils.resolve_cmd_lines(container_args_copy, _is_output_parameter)
     # Replace executor place holder with the json escaped placeholder.
     for idx, val in enumerate(container_args_copy):
-      if val == '{{{{$}}}}':
-        container_args_copy[idx] = _EXECUTOR_PLACE_HOLDER_REPLACEMENT
+      if val == _EXECUTOR_PLACEHOLDER:
+        container_args_copy[idx] = _EXECUTOR_PLACEHOLDER_REPLACEMENT
     worker_pool_spec['container_spec']['args'] = container_args_copy
   if accelerator_type:
     worker_pool_spec['machine_spec']['accelerator_type'] = accelerator_type
@@ -304,8 +298,5 @@ def create_custom_training_job_op_from_component(
     component_description += custom_training_job_json['description']
     custom_training_job_json['description'] = component_description
 
-  component_path = tempfile.mktemp()
-  with open(component_path, 'w') as out_file:
-    yaml.dump(custom_training_job_json, out_file)
-
-  return components.load_component_from_file(component_path)
+  return components.load_component_from_text(
+      yaml.safe_dump(custom_training_job_json))
