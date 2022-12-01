@@ -73,7 +73,8 @@ type Argo struct {
 	wf *util.Workflow
 }
 
-func (t *Argo) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
+func (t *Argo) ScheduledWorkflow(inputInterface interface{}) (*scheduledworkflow.ScheduledWorkflow, error) {
+	apiJob := inputInterface.(*api.Job)
 	workflow := util.NewWorkflow(t.wf.Workflow.DeepCopy())
 
 	parameters := toParametersMap(apiJob.GetPipelineSpec().GetParameters())
@@ -100,9 +101,9 @@ func (t *Argo) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledW
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
 			Enabled:        apiJob.Enabled,
 			MaxConcurrency: &apiJob.MaxConcurrency,
-			Trigger:        *toCRDTrigger(apiJob.Trigger),
+			Trigger:        *toCRDTriggerV1(apiJob.Trigger),
 			Workflow: &scheduledworkflow.WorkflowResource{
-				Parameters: toCRDParameter(apiJob.GetPipelineSpec().GetParameters()),
+				Parameters: toCRDParametersV1(apiJob.GetPipelineSpec().GetParameters()),
 				Spec:       workflow.ToStringForSchedule(),
 			},
 			NoCatchup: util.BoolPointer(apiJob.NoCatchup),

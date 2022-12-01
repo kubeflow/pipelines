@@ -16,7 +16,7 @@ package template
 
 import (
 	"github.com/golang/protobuf/ptypes/timestamp"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"testing"
@@ -223,14 +223,14 @@ func TestToSwfCRDResourceGeneratedName_EmptyName(t *testing.T) {
 	assert.Equal(t, name, "job-")
 }
 
-func TestToCrdParameter(t *testing.T) {
+func TestToCrdParametersV1(t *testing.T) {
 	assert.Equal(t,
-		toCRDParameter([]*api.Parameter{{Name: "param2", Value: "world"}, {Name: "param1", Value: "hello"}}),
+		toCRDParametersV1([]*apiv1beta1.Parameter{{Name: "param2", Value: "world"}, {Name: "param1", Value: "hello"}}),
 		[]scheduledworkflow.Parameter{{Name: "param2", Value: "world"}, {Name: "param1", Value: "hello"}})
 }
 
-func TestToCrdCronSchedule(t *testing.T) {
-	actualCronSchedule := toCRDCronSchedule(&api.CronSchedule{
+func TestToCrdCronScheduleV1(t *testing.T) {
+	actualCronSchedule := toCRDCronScheduleV1(&apiv1beta1.CronSchedule{
 		Cron:      "123",
 		StartTime: &timestamp.Timestamp{Seconds: 123},
 		EndTime:   &timestamp.Timestamp{Seconds: 456},
@@ -244,16 +244,16 @@ func TestToCrdCronSchedule(t *testing.T) {
 	})
 }
 
-func TestToCrdCronSchedule_NilCron(t *testing.T) {
-	actualCronSchedule := toCRDCronSchedule(&api.CronSchedule{
+func TestToCrdCronScheduleV1_NilCron(t *testing.T) {
+	actualCronSchedule := toCRDCronScheduleV1(&apiv1beta1.CronSchedule{
 		StartTime: &timestamp.Timestamp{Seconds: 123},
 		EndTime:   &timestamp.Timestamp{Seconds: 456},
 	})
 	assert.Nil(t, actualCronSchedule)
 }
 
-func TestToCrdCronSchedule_NilStartTime(t *testing.T) {
-	actualCronSchedule := toCRDCronSchedule(&api.CronSchedule{
+func TestToCrdCronScheduleV1_NilStartTime(t *testing.T) {
+	actualCronSchedule := toCRDCronScheduleV1(&apiv1beta1.CronSchedule{
 		Cron:    "123",
 		EndTime: &timestamp.Timestamp{Seconds: 456},
 	})
@@ -264,8 +264,8 @@ func TestToCrdCronSchedule_NilStartTime(t *testing.T) {
 	})
 }
 
-func TestToCrdCronSchedule_NilEndTime(t *testing.T) {
-	actualCronSchedule := toCRDCronSchedule(&api.CronSchedule{
+func TestToCrdCronScheduleV1_NilEndTime(t *testing.T) {
+	actualCronSchedule := toCRDCronScheduleV1(&apiv1beta1.CronSchedule{
 		Cron:      "123",
 		StartTime: &timestamp.Timestamp{Seconds: 123},
 	})
@@ -276,8 +276,8 @@ func TestToCrdCronSchedule_NilEndTime(t *testing.T) {
 	})
 }
 
-func TestToCrdPeriodicSchedule(t *testing.T) {
-	actualPeriodicSchedule := toCRDPeriodicSchedule(&api.PeriodicSchedule{
+func TestToCrdPeriodicScheduleV1(t *testing.T) {
+	actualPeriodicSchedule := toCRDPeriodicScheduleV1(&apiv1beta1.PeriodicSchedule{
 		IntervalSecond: 123,
 		StartTime:      &timestamp.Timestamp{Seconds: 1},
 		EndTime:        &timestamp.Timestamp{Seconds: 2},
@@ -291,16 +291,16 @@ func TestToCrdPeriodicSchedule(t *testing.T) {
 	})
 }
 
-func TestToCrdPeriodicSchedule_NilInterval(t *testing.T) {
-	actualPeriodicSchedule := toCRDPeriodicSchedule(&api.PeriodicSchedule{
+func TestToCrdPeriodicScheduleV1_NilInterval(t *testing.T) {
+	actualPeriodicSchedule := toCRDPeriodicScheduleV1(&apiv1beta1.PeriodicSchedule{
 		StartTime: &timestamp.Timestamp{Seconds: 1},
 		EndTime:   &timestamp.Timestamp{Seconds: 2},
 	})
 	assert.Nil(t, actualPeriodicSchedule)
 }
 
-func TestToCrdPeriodicSchedule_NilStartTime(t *testing.T) {
-	actualPeriodicSchedule := toCRDPeriodicSchedule(&api.PeriodicSchedule{
+func TestToCrdPeriodicScheduleV1_NilStartTime(t *testing.T) {
+	actualPeriodicSchedule := toCRDPeriodicScheduleV1(&apiv1beta1.PeriodicSchedule{
 		IntervalSecond: 123,
 		EndTime:        &timestamp.Timestamp{Seconds: 2},
 	})
@@ -311,8 +311,8 @@ func TestToCrdPeriodicSchedule_NilStartTime(t *testing.T) {
 	})
 }
 
-func TestToCrdPeriodicSchedule_NilEndTime(t *testing.T) {
-	actualPeriodicSchedule := toCRDPeriodicSchedule(&api.PeriodicSchedule{
+func TestToCrdPeriodicScheduleV1_NilEndTime(t *testing.T) {
+	actualPeriodicSchedule := toCRDPeriodicScheduleV1(&apiv1beta1.PeriodicSchedule{
 		IntervalSecond: 123,
 		StartTime:      &timestamp.Timestamp{Seconds: 1},
 	})
@@ -322,3 +322,56 @@ func TestToCrdPeriodicSchedule_NilEndTime(t *testing.T) {
 		StartTime:      &startTime,
 	})
 }
+
+/*
+func TestScheduledWorkflow(t *testing.T) {
+	template := New
+
+	tt := []struct {
+		name                string
+		apiJob interface{}
+		expectedScheduledWorkflow *scheduledworkflow.ScheduledWorkflow
+	}{{
+		name: "v1ScheduledWorkflow"
+		apiJob: &apiV1beta1.Job{
+			Name:           "name1",
+			Enabled:        true,
+			MaxConcurrency: 1,
+			NoCatchup:      true,
+			Trigger: &apiV1beta1.Trigger{
+				Trigger: &apiV1beta1.Trigger_CronSchedule{CronSchedule: &apiV1beta1.CronSchedule{
+					StartTime: &timestamp.Timestamp{Seconds: 1},
+					Cron:      "1 * * * *",
+				}}},
+			ResourceReferences: []*apiV1beta1.ResourceReference{
+				{Key: &apiV1beta1.ResourceKey{Type: apiV1beta1.ResourceType_EXPERIMENT, Id: experiment.UUID}, Relationship: apiV1beta1.Relationship_OWNER},
+			},
+			PipelineSpec: &apiV1beta1.PipelineSpec{PipelineId: pipeline.UUID, Parameters: []*apiV1beta1.Parameter{{Name: "param2", Value: "world"}}},
+		},
+		expectedScheduledWorkflow: util.NewScheduledWorkflow(&scheduledworkflow.ScheduledWorkflow{
+			ObjectMeta: v1.ObjectMeta{GenerateName: "name1"},
+			Spec: scheduledworkflow.ScheduledWorkflowSpec{
+				Enabled:        true,
+				MaxConcurrency: &apiJob.MaxConcurrency,
+				Trigger: &scheduledworkflow.Trigger{
+					CronSchedule: scheduledworkflow.CronSchedule{
+						Cron: "1 * * * *",
+						StartTime: &timestamp.Timestamp{Seconds: 1},
+					}
+				},
+				Workflow: &scheduledworkflow.WorkflowResource{
+					Parameters: []scheduledworkflow.Parameter{{Name: "param2", Value: "world"}},
+					// Spec:       executionSpec.ToStringForSchedule(),
+				},
+				NoCatchup: true,
+			},
+		}),
+	}}
+	for _, test := range tt {
+		actualScheduledWorkflow := ScheduledWorkflow([]byte(test.template))
+		if format != test.templateType {
+			t.Errorf("InferSpecFormat(%s)=%q, expect %q", test.template, format, test.templateType)
+		}
+	}
+}
+*/
