@@ -300,13 +300,12 @@ def extract_component_interface(
     component_name = getattr(
         func, '_component_human_name',
         _python_function_name_to_component_name(func.__name__))
-    short_description = getattr(func, '_component_description',
-                                parsed_docstring.short_description)
 
-    long_description = getattr(func, '_component_description',
-                               parsed_docstring.long_description)
+    short_description = parsed_docstring.short_description
+    long_description = parsed_docstring.long_description
+    docstring_description = short_description + '\n' + long_description if long_description else short_description
 
-    description = short_description + '\n' + long_description if long_description else short_description
+    description = getattr(func, '_component_description', docstring_description)
 
     if description:
         description = description.strip()

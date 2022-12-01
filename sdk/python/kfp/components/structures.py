@@ -818,14 +818,18 @@ class ComponentSpec:
 
         def extract_description(component_yaml: str) -> Union[str, None]:
             heading = '# Description: '
+            multi_line_description_prefix = '#             '
+            index_of_heading = 2
             if heading in component_yaml:
-                description = component_yaml.splitlines()[2]
+                description = component_yaml.splitlines()[index_of_heading]
 
-                #multi line
+                # Multi line
                 comments = component_yaml.splitlines()
-                index = 3
-                while comments[index][:14] == '#             ':
-                    description += '\n' + comments[index][15:]
+                index = index_of_heading + 1
+                while comments[index][:len(multi_line_description_prefix
+                                          )] == multi_line_description_prefix:
+                    description += '\n' + comments[index][
+                        len(multi_line_description_prefix) + 1:]
                     index += 1
 
                 return description[len(heading):]

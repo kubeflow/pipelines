@@ -1682,7 +1682,7 @@ def extract_comments_from_pipeline_spec(pipeline_spec: dict,
                         data['defaultValue'] = dict(
                             sorted(data['defaultValue'].items()))
                     if isinstance(data['defaultValue'], str):
-                        data['defaultValue'] = '"' + data['defaultValue'] + '"'
+                        data['defaultValue'] = "'" + data['defaultValue'] + "'"
                 array_of_signatures.append(data)
 
             for artifact in signature.get('artifacts', {}):
@@ -1709,11 +1709,12 @@ def extract_comments_from_pipeline_spec(pipeline_spec: dict,
     if 'root' not in pipeline_spec:
         return ''
 
+    multi_line_description_prefix = '#              '
     comment_sections = []
     comment_sections.append('# PIPELINE DEFINITION')
     comment_sections.append('# Name: ' + pipeline_spec['pipelineInfo']['name'])
     if pipeline_description:
-        pipeline_description = '\n#              '.join(
+        pipeline_description = f'\n{multi_line_description_prefix}'.join(
             pipeline_description.splitlines())
         comment_sections.append('# Description: ' + pipeline_description)
     comment_sections.extend(

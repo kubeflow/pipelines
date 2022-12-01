@@ -1521,7 +1521,7 @@ class TestYamlComments(unittest.TestCase):
         inputs_string = textwrap.dedent("""\
                 # Inputs:
                 #    sample_input1: bool [Default: True]
-                #    sample_input2: str [Default: "string"]
+                #    sample_input2: str [Default: 'string']
                 """)
 
         outputs_string = textwrap.dedent("""\
@@ -1531,13 +1531,10 @@ class TestYamlComments(unittest.TestCase):
 
         name_string = '# Name: my-pipeline'
 
-        # test name is in comments
         self.assertIn(name_string, yaml_content)
 
-        # test inputs are in comments
         self.assertIn(inputs_string, yaml_content)
 
-        # test outputs are in comments
         self.assertIn(outputs_string, yaml_content)
 
     def test_comments_include_definition(self):
@@ -1561,10 +1558,9 @@ class TestYamlComments(unittest.TestCase):
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
-            definition_string = '# Description: This is a definition of this pipeline'
+            description_string = '# Description:'
 
-        # test definition not in comments
-        self.assertNotIn(definition_string, yaml_content)
+        self.assertNotIn(description_string, yaml_content)
 
         @dsl.pipeline()
         def pipeline_with_definition(sample_input1: bool = True,
@@ -1583,10 +1579,9 @@ class TestYamlComments(unittest.TestCase):
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
-            definition_string = '# Description: This is a definition of this pipeline'
+            description_string = '# Description:'
 
-        # test definition in comments
-        self.assertIn(definition_string, yaml_content)
+        self.assertIn(description_string, yaml_content)
 
     def test_comments_on_pipeline_with_no_inputs_or_outputs(self):
 
@@ -1609,9 +1604,8 @@ class TestYamlComments(unittest.TestCase):
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
-        inputs_string = '# Inputs:\n'
+        inputs_string = '# Inputs:'
 
-        # test inputs header not in comments
         self.assertNotIn(inputs_string, yaml_content)
 
         @dsl.pipeline()
@@ -1628,9 +1622,8 @@ class TestYamlComments(unittest.TestCase):
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
-        outputs_string = '# Outputs:\n'
+        outputs_string = '# Outputs:'
 
-        # test outputs header not in comments
         self.assertNotIn(outputs_string, yaml_content)
 
     def test_comments_follow_pattern(self):
@@ -1661,12 +1654,11 @@ class TestYamlComments(unittest.TestCase):
                 # Description: This is a definition of this pipeline.
                 # Inputs:
                 #    sample_input1: bool [Default: True]
-                #    sample_input2: str [Default: "string"]
+                #    sample_input2: str [Default: 'string']
                 # Outputs:
                 #    Output: str
                 """)
 
-        # test comment follows pattern
         self.assertIn(pattern_sample, yaml_content)
 
     def test_verbose_comment_characteristics(self):
@@ -1719,13 +1711,13 @@ class TestYamlComments(unittest.TestCase):
                 #    Output: system.Model
                 """)
 
-        # test predicted comment matches actual comment
         self.assertIn(predicted_comment, yaml_content)
 
     def test_comments_on_compiled_components(self):
 
         @dsl.component
         def my_component(string: str, model: bool) -> str:
+            """component description."""
             return string
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -1739,16 +1731,17 @@ class TestYamlComments(unittest.TestCase):
         predicted_comment = textwrap.dedent("""\
                 # PIPELINE DEFINITION
                 # Name: my-component
+                # Description: component description.
                 # Inputs:
                 #    model: bool
                 #    string: str
                 """)
 
-        # test comments work on compiled components
         self.assertIn(predicted_comment, yaml_content)
 
         @dsl.container_component
         def my_container_component(text: str, output_path: OutputPath(str)):
+            """component description."""
             return ContainerSpec(
                 image='python:3.7',
                 command=['my_program', text],
@@ -1766,14 +1759,14 @@ class TestYamlComments(unittest.TestCase):
         predicted_comment = textwrap.dedent("""\
                 # PIPELINE DEFINITION
                 # Name: my-container-component
+                # Description: component description.
                 # Inputs:
                 #    text: str
                 """)
 
-        # test comments work on compiled container components
         self.assertIn(predicted_comment, yaml_content)
 
-    def test_comments_indempotency(self):
+    def test_comments_idempotency(self):
 
         @dsl.component
         def identity(string: str, model: bool) -> str:
@@ -1793,6 +1786,11 @@ class TestYamlComments(unittest.TestCase):
                 pipeline_func=my_pipeline, package_path=pipeline_spec_path)
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
+            comp = components.load_component_from_file(pipeline_spec_path)
+            compiler.Compiler().compile(
+                pipeline_func=comp, package_path=pipeline_spec_path)
+            with open(pipeline_spec_path, 'r+') as f:
+                reloaded_yaml_content = f.read()
 
         predicted_comment = textwrap.dedent("""\
                 # PIPELINE DEFINITION
@@ -1800,23 +1798,13 @@ class TestYamlComments(unittest.TestCase):
                 # Description: My description.
                 # Inputs:
                 #    sample_input1: bool [Default: True]
-                #    sample_input2: str [Default: "string"]
+                #    sample_input2: str [Default: 'string']
                 # Outputs:
                 #    Output: str
                 """)
 
         # test initial comments
         self.assertIn(predicted_comment, yaml_content)
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
-            comp = components.load_component_from_file(pipeline_spec_path)
-            compiler.Compiler().compile(
-                pipeline_func=comp, package_path=pipeline_spec_path)
-            with open(pipeline_spec_path, 'r+') as f:
-                reloaded_yaml_content = f.read()
 
         # test reloaded comments
         self.assertIn(predicted_comment, reloaded_yaml_content)
@@ -1848,13 +1836,92 @@ class TestYamlComments(unittest.TestCase):
             with open(pipeline_spec_path, 'r+') as f:
                 yaml_content = f.read()
 
-            definition_string = textwrap.dedent("""\
+        description_string = textwrap.dedent("""\
+            # Description: docstring short description.
+            #              docstring long description. docstring long description.
+            """)
+
+        self.assertIn(description_string, yaml_content)
+
+        @dsl.pipeline()
+        def pipeline_with_multiline_definition(
+                sample_input1: bool = True,
+                sample_input2: str = 'string') -> str:
+            """
+            docstring long description.
+
+            docstring long description.
+            docstring long description.
+            """
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_with_multiline_definition,
+                package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        description_string = textwrap.dedent("""\
+            # Description: docstring long description.
+            #              docstring long description.
+            #              docstring long description.
+            """)
+
+        self.assertIn(description_string, yaml_content)
+
+    def test_idempotency_on_comment_with_multiline_docstring(self):
+
+        @dsl.component
+        def identity(string: str, model: bool) -> str:
+            return string
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: bool = True,
+                        sample_input2: str = 'string') -> str:
+            """docstring short description.
+
+            docstring long description.
+            docstring long description.
+            """
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+            comp = components.load_component_from_file(pipeline_spec_path)
+            compiler.Compiler().compile(
+                pipeline_func=comp, package_path=pipeline_spec_path)
+            with open(pipeline_spec_path, 'r+') as f:
+                reloaded_yaml_content = f.read()
+
+        predicted_comment = textwrap.dedent("""\
+                # PIPELINE DEFINITION
+                # Name: my-pipeline
                 # Description: docstring short description.
-                #              docstring long description. docstring long description.
+                #              docstring long description.
+                #              docstring long description.
+                # Inputs:
+                #    sample_input1: bool [Default: True]
+                #    sample_input2: str [Default: 'string']
+                # Outputs:
+                #    Output: str
                 """)
 
-        # test multi line definition in comments
-        self.assertIn(definition_string, yaml_content)
+        # test initial comments
+        self.assertIn(predicted_comment, yaml_content)
+
+        # test reloaded comments
+        self.assertIn(predicted_comment, reloaded_yaml_content)
 
 
 if __name__ == '__main__':
