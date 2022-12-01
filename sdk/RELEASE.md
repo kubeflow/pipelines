@@ -7,6 +7,7 @@
 ## Deprecations
 
 ## Bug fixes and other changes
+* Unblock valid topologies [\#8416](https://github.com/kubeflow/pipelines/pull/8416)
 
 
 ## Documentation updates
