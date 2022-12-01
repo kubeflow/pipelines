@@ -111,6 +111,8 @@ class BlockPipelineTaskRegistration:
     google_cloud_pipeline_components compatible with KFP SDK v2.
     """
 
+    # TODO: this handles the special case of a compiled component (when compiled inside a pipeline), which should not have any concept of a default pipeline. Perhaps there is a way to unify component/pipeline compilation concepts to remove this workaround?
+
     def __enter__(self):
         self.task_handler, pipeline_task.PipelineTask._register_task_handler = pipeline_task.PipelineTask._register_task_handler, pipeline_task._register_task_handler
 
