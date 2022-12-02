@@ -16,17 +16,19 @@
 import json
 import re
 
+from google.api_core import retry
+from google.cloud.aiplatform import explain
 from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
-from google.api_core import retry
-from google.cloud.aiplatform import explain
 from google_cloud_pipeline_components.types.artifact_types import BQTable
 from google_cloud_pipeline_components.types.artifact_types import VertexBatchPredictionJob
 from kfp.v2 import dsl
 
 UNMANAGED_CONTAINER_MODEL_ARTIFACT_NAME = 'unmanaged_container_model'
+LABELS_PAYLOAD_KEY = 'labels'
 _BATCH_PREDICTION_RETRY_DEADLINE_SECONDS = 10.0 * 60.0
 _BQ_DATASET_TEMPLATE = r'(bq://(?P<project>.*)\.(?P<dataset>.*))'
 
@@ -76,6 +78,11 @@ def insert_artifact_into_payload(executor_input, payload):
         'artifact_uri'] = artifact[0].get('uri')
   return json.dumps(job_spec)
 
+def insert_system_labels_into_payload(payload):
+  job_spec = json.loads(payload)
+  job_spec[LABELS_PAYLOAD_KEY] = gcp_labels_util.attach_system_labels(
+      job_spec[LABELS_PAYLOAD_KEY] if LABELS_PAYLOAD_KEY in job_spec else {})
+  return json.dumps(job_spec)
 
 def create_batch_prediction_job(
     type,
@@ -113,7 +120,8 @@ def create_batch_prediction_job(
     if job_name is None:
       job_name = remote_runner.create_job(
           create_batch_prediction_job_with_client,
-          insert_artifact_into_payload(executor_input, payload))
+          insert_system_labels_into_payload(
+              insert_artifact_into_payload(executor_input, payload)))
 
     # Poll batch prediction job status until "JobState.JOB_STATE_SUCCEEDED"
     get_job_response = remote_runner.poll_job(

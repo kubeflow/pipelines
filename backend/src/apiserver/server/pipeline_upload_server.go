@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"google.golang.org/grpc/metadata"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/jsonpb"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
@@ -99,7 +100,11 @@ func (s *PipelineUploadServer) UploadPipeline(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	err = s.canUploadVersionedPipeline(r, pipelineNamespace)
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: pipelineNamespace,
+		Verb: common.RbacResourceVerbCreate,
+	}
+	err = s.canUploadVersionedPipeline(r, "", resourceAttributes)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Authorization to namespace failed."))
 		return
@@ -178,7 +183,11 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 		return
 	}
 
-	err = s.canUploadVersionedPipeline(r, namespace)
+	resourceAttributes := &authorizationv1.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      common.RbacResourceVerbCreate,
+	}
+	err = s.canUploadVersionedPipeline(r, pipelineId, resourceAttributes)
 	if err != nil {
 		s.writeErrorToResponse(w, http.StatusBadRequest, util.Wrap(err, "Authorization to namespace failed."))
 		return
@@ -221,19 +230,36 @@ func (s *PipelineUploadServer) UploadPipelineVersion(w http.ResponseWriter, r *h
 	}
 }
 
-func (s *PipelineUploadServer) canUploadVersionedPipeline(r *http.Request, namespace string) error {
-	if namespace == "" {
+func (s *PipelineUploadServer) canUploadVersionedPipeline(r *http.Request, pipelineId string, resourceAttributes *authorizationv1.ResourceAttributes) error {
+	if !common.IsMultiUserMode() {
+		// Skip authorization if not multi-user mode.
 		return nil
 	}
-	userIdentityHeader := r.Header.Get(common.GetKubeflowUserIDHeader())
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Namespace: namespace,
-		Verb:      common.RbacResourceVerbCreate,
-		Group:     common.RbacPipelinesGroup,
-		Version:   common.RbacPipelinesVersion,
-		Resource:  common.RbacResourceTypePipelines,
+	if len(pipelineId) > 0 {
+		namespace, err := s.resourceManager.GetNamespaceFromPipelineID(pipelineId)
+		if err != nil {
+			return util.Wrap(err, "Failed to authorize with the Pipeline ID.")
+		}
+		if len(resourceAttributes.Namespace) == 0 {
+		    resourceAttributes.Namespace = namespace
+		}
 	}
-	err := s.resourceManager.IsRequestAuthorized(context.TODO(), userIdentityHeader, resourceAttributes)
+	if resourceAttributes.Namespace == "" {
+		return nil
+	}
+
+	resourceAttributes.Group = common.RbacPipelinesGroup
+	resourceAttributes.Version = common.RbacPipelinesVersion
+	resourceAttributes.Resource = common.RbacResourceTypePipelines
+
+	ctx := context.Background()
+	md := metadata.MD{}
+	for key, values := range r.Header {
+		md.Set(key, values...)
+	}
+	ctx = metadata.NewIncomingContext(ctx, md)
+
+	err := isAuthorized(s.resourceManager, ctx, resourceAttributes)
 	if err != nil {
 		return util.Wrap(err, "Authorization Failure.")
 	}

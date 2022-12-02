@@ -14,6 +14,9 @@ description: |
             characters long and can be consist of any UTF-8 characters.
         description (Optional[str]):
             The description of the model.
+        parent_model (Optional[google.VertexModel]):
+            An artifact of a model which to upload a new version to.
+            Only specify this field when uploading a new version.
         unmanaged_container_model (Optional[google.UnmanagedContainerModel]):
             Optional. The unmanaged container model to be uploaded.
 
@@ -72,6 +75,7 @@ inputs:
 - {name: location, type: String, default: "us-central1"}
 - {name: display_name, type: String}
 - {name: description, type: String, optional: true, default: ''}
+- {name: parent_model, type: google.VertexModel, optional: true}
 - {name: unmanaged_container_model, type: google.UnmanagedContainerModel, optional: true}
 - {name: explanation_metadata, type: JsonObject, optional: true, default: '{}'}
 - {name: explanation_parameters, type: JsonObject, optional: true, default: '{}'}
@@ -103,4 +107,8 @@ implementation:
       --location, {inputValue: location},
       --gcp_resources, {outputPath: gcp_resources},
       --executor_input, "{{$}}",
+      {if: {
+          cond: {isPresent: parent_model},
+          then: [concat: ["--parent_model_name ", "{{$.inputs.artifacts['parent_model'].metadata['resourceName']}}",]]
+      }}
     ]

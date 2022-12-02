@@ -7,9 +7,41 @@
 ## Deprecations
 
 ## Bug fixes and other changes
+* Unblock valid topologies [\#8416](https://github.com/kubeflow/pipelines/pull/8416)
 
 
 ## Documentation updates
+# 2.0.0-beta.8
+
+## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+* Fix client methods [\#8507](https://github.com/kubeflow/pipelines/pull/8507)
+
+
+## Documentation updates
+# 2.0.0-beta.7
+
+## Features
+* Add ability to skip building image when using `kfp component build` [\#8387](https://github.com/kubeflow/pipelines/pull/8387)
+* Support single element `then` and `else_` arguments to `IfPresentPlaceholder` [\#8414](https://github.com/kubeflow/pipelines/pull/8414)
+* Enable use of input and output placeholders in f-strings [\#8494](https://github.com/kubeflow/pipelines/pull/8494)
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+* Block illegal `IfPresentPlaceholder` and `ConcatPlaceholder` authoring [\#8414](https://github.com/kubeflow/pipelines/pull/8414)
+* Fix boolean default value compilation bug [\#8444](https://github.com/kubeflow/pipelines/pull/8444)
+* Fix bug when writing to same file using gcsfuse and distributed training strategy in lightweight/containerized Python components [\#8455](https://github.com/kubeflow/pipelines/pull/8455)
+
+
+## Documentation updates
+* Clarify `PipelineTask.set_gpu_limit` reference docs [\#8477](https://github.com/kubeflow/pipelines/pull/8477)
 
 # 2.0.0-beta.6
 

@@ -398,11 +398,16 @@ class Client:
         with open(Client._LOCAL_KFP_CONTEXT, 'w') as f:
             json.dump(self._context_setting, f)
 
-    def get_kfp_healthz(self) -> kfp_server_api.ApiGetHealthzResponse:
+    def get_kfp_healthz(
+            self,
+            sleep_duration: int = 5) -> kfp_server_api.ApiGetHealthzResponse:
         """Gets healthz info for KFP deployment.
 
+        Args:
+            sleep_duration: Time in seconds between retries.
+
         Returns:
-            JSON response from the healtz endpoint.
+            JSON response from the healthz endpoint.
         """
         count = 0
         response = None
@@ -422,8 +427,9 @@ class Client:
             except kfp_server_api.ApiException:
                 # logging.exception also logs detailed info about the ApiException
                 logging.exception(
-                    f'Failed to get healthz info attempt {count} of 5.')
-                time.sleep(5)
+                    f'Failed to get healthz info attempt {count} of {max_attempts}.'
+                )
+                time.sleep(sleep_duration)
 
     def get_user_namespace(self) -> str:
         """Gets user namespace in context config.
@@ -463,7 +469,7 @@ class Client:
             logging.info(f'Creating experiment {name}.')
 
             resource_references = []
-            if namespace:
+            if namespace is not None:
                 key = kfp_server_api.ApiResourceKey(
                     id=namespace, type=kfp_server_api.ApiResourceType.NAMESPACE)
                 reference = kfp_server_api.ApiResourceReference(
@@ -474,8 +480,7 @@ class Client:
                 name=name,
                 description=description,
                 resource_references=resource_references)
-            experiment = self._experiment_api.create_experiment_v1(
-                body=experiment)
+            experiment = self._experiment_api.create_experiment(body=experiment)
 
         link = f'{self._get_url_prefix()}/#/experiments/details/{experiment.id}'
         if self._is_ipython():
@@ -503,7 +508,7 @@ class Client:
                 'stringValue': name,
             }]
         })
-        result = self._pipelines_api.list_pipelines_v1(filter=pipeline_filter)
+        result = self._pipelines_api.list_pipelines(filter=pipeline_filter)
         if result.pipelines is None:
             return None
         if len(result.pipelines) == 1:
@@ -546,7 +551,7 @@ class Client:
             ``ApiListExperimentsResponse`` object.
         """
         namespace = namespace or self.get_user_namespace()
-        response = self._experiment_api.list_experiments_v1(
+        response = self._experiment_api.list_experiment(
             page_token=page_token,
             page_size=page_size,
             sort_by=sort_by,
@@ -577,7 +582,7 @@ class Client:
             raise ValueError(
                 'Either experiment_id or experiment_name is required')
         if experiment_id is not None:
-            return self._experiment_api.get_experiment_v1(id=experiment_id)
+            return self._experiment_api.get_experiment(id=experiment_id)
         experiment_filter = json.dumps({
             'predicates': [{
                 'op': _FILTER_OPERATIONS['EQUALS'],
@@ -585,14 +590,14 @@ class Client:
                 'stringValue': experiment_name,
             }]
         })
-        if namespace:
-            result = self._experiment_api.list_experiments_v1(
+        if namespace is not None:
+            result = self._experiment_api.list_experiment(
                 filter=experiment_filter,
                 resource_reference_key_type=kfp_server_api.ApiResourceType
                 .NAMESPACE,
                 resource_reference_key_id=namespace)
         else:
-            result = self._experiment_api.list_experiments_v1(
+            result = self._experiment_api.list_experiment(
                 filter=experiment_filter)
         if not result.experiments:
             raise ValueError(
@@ -611,7 +616,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._experiment_api.archive_experiment_v1(id=experiment_id)
+        return self._experiment_api.archive_experiment(id=experiment_id)
 
     def unarchive_experiment(self, experiment_id: str) -> dict:
         """Unarchives an experiment.
@@ -622,7 +627,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._experiment_api.unarchive_experiment_v1(id=experiment_id)
+        return self._experiment_api.unarchive_experiment(id=experiment_id)
 
     def delete_experiment(self, experiment_id: str) -> dict:
         """Delete experiment.
@@ -633,7 +638,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._experiment_api.delete_experiment_v1(id=experiment_id)
+        return self._experiment_api.delete_experiment(id=experiment_id)
 
     def _extract_pipeline_yaml(self, package_file: str) -> dict:
 
@@ -718,7 +723,7 @@ class Client:
         Returns:
             ``ApiListPipelinesResponse`` object.
         """
-        return self._pipelines_api.list_pipelines_v1(
+        return self._pipelines_api.list_pipelines(
             page_token=page_token,
             page_size=page_size,
             sort_by=sort_by,
@@ -782,7 +787,7 @@ class Client:
             name=job_name,
             service_account=service_account)
 
-        response = self._run_api.create_run_v1(body=run_body)
+        response = self._run_api.create_run(body=run_body)
 
         link = f'{self._get_url_prefix()}/#/runs/details/{response.run.id}'
         if self._is_ipython():
@@ -803,7 +808,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._run_api.archive_run_v1(id=run_id)
+        return self._run_api.archive_run(id=run_id)
 
     def unarchive_run(self, run_id: str) -> dict:
         """Restores an archived run.
@@ -814,7 +819,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._run_api.unarchive_run_v1(id=run_id)
+        return self._run_api.unarchive_run(id=run_id)
 
     def delete_run(self, run_id: str) -> dict:
         """Deletes a run.
@@ -825,7 +830,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._run_api.delete_run_v1(id=run_id)
+        return self._run_api.delete_run(id=run_id)
 
     def terminate_run(self, run_id: str) -> dict:
         """Terminates a run.
@@ -836,7 +841,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._run_api.terminate_run_v1(run_id=run_id)
+        return self._run_api.terminate_run(run_id=run_id)
 
     def create_recurring_run(
         self,
@@ -1206,7 +1211,7 @@ class Client:
         """
         namespace = namespace or self.get_user_namespace()
         if experiment_id is not None:
-            response = self._run_api.list_runs_v1(
+            response = self._run_api.list_runs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
@@ -1214,8 +1219,8 @@ class Client:
                 .EXPERIMENT,
                 resource_reference_key_id=experiment_id,
                 filter=filter)
-        elif namespace:
-            response = self._run_api.list_runs_v1(
+        elif namespace is not None:
+            response = self._run_api.list_runs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
@@ -1224,7 +1229,7 @@ class Client:
                 resource_reference_key_id=namespace,
                 filter=filter)
         else:
-            response = self._run_api.list_runs_v1(
+            response = self._run_api.list_runs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
@@ -1298,15 +1303,19 @@ class Client:
         Returns:
             ``ApiRun`` object.
         """
-        return self._run_api.get_run_v1(run_id=run_id)
+        return self._run_api.get_run(run_id=run_id)
 
-    def wait_for_run_completion(self, run_id: str,
-                                timeout: int) -> kfp_server_api.ApiRun:
+    def wait_for_run_completion(
+            self,
+            run_id: str,
+            timeout: int,
+            sleep_duration: int = 5) -> kfp_server_api.ApiRun:
         """Waits for a run to complete.
 
         Args:
             run_id: ID of the run.
             timeout: Timeout after which the client should stop waiting for run completion (seconds).
+            sleep_duration: Time in seconds between retries.
 
         Returns:
             ``ApiRun`` object.
@@ -1319,7 +1328,7 @@ class Client:
         while (status is None or status.lower()
                not in ['succeeded', 'failed', 'skipped', 'error']):
             try:
-                get_run_response = self._run_api.get_run_v1(run_id=run_id)
+                get_run_response = self._run_api.get_run(run_id=run_id)
                 is_valid_token = True
             except kfp_server_api.ApiException as api_ex:
                 # if the token is valid but receiving 401 Unauthorized error
@@ -1336,7 +1345,7 @@ class Client:
             logging.info('Waiting for the job to complete...')
             if elapsed_time > timeout:
                 raise TimeoutError('Run timeout')
-            time.sleep(5)
+            time.sleep(sleep_duration)
         return get_run_response
 
     def _get_workflow_json(self, run_id: str) -> dict:
@@ -1348,7 +1357,7 @@ class Client:
         Returns:
             Workflow JSON.
         """
-        get_run_response = self._run_api.get_run_v1(run_id=run_id)
+        get_run_response = self._run_api.get_run(run_id=run_id)
         workflow = get_run_response.pipeline_runtime.workflow_manifest
         workflow_json = json.loads(workflow)
         return workflow_json
@@ -1445,7 +1454,7 @@ class Client:
         Returns:
             ``ApiPipeline`` object.
         """
-        return self._pipelines_api.get_pipeline_v1(id=pipeline_id)
+        return self._pipelines_api.get_pipeline(id=pipeline_id)
 
     def delete_pipeline(self, pipeline_id: str) -> dict:
         """Deletes a pipeline.
@@ -1456,7 +1465,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._pipelines_api.delete_pipeline_v1(id=pipeline_id)
+        return self._pipelines_api.delete_pipeline(id=pipeline_id)
 
     def list_pipeline_versions(
         self,
@@ -1490,7 +1499,7 @@ class Client:
             ``ApiListPipelineVersionsResponse`` object.
         """
 
-        return self._pipelines_api.list_pipeline_versions_v1(
+        return self._pipelines_api.list_pipeline_versions(
             page_token=page_token,
             page_size=page_size,
             sort_by=sort_by,
@@ -1508,8 +1517,7 @@ class Client:
         Returns:
             ``ApiPipelineVersion`` object.
         """
-        return self._pipelines_api.get_pipeline_version_v1(
-            version_id=version_id)
+        return self._pipelines_api.get_pipeline_version(version_id=version_id)
 
     def delete_pipeline_version(self, version_id: str) -> dict:
         """Deletes a pipeline version.
@@ -1520,7 +1528,7 @@ class Client:
         Returns:
             Empty dictionary.
         """
-        return self._pipelines_api.delete_pipeline_version_v1(
+        return self._pipelines_api.delete_pipeline_version(
             version_id=version_id)
 
 

@@ -94,9 +94,28 @@ class BaseComponent(abc.ABC):
     @property
     def pipeline_spec(self) -> pipeline_spec_pb2.PipelineSpec:
         """Returns the pipeline spec of the component."""
-        return self.component_spec.to_pipeline_spec()
+        with BlockPipelineTaskRegistration():
+            return self.component_spec.to_pipeline_spec()
 
     @abc.abstractmethod
     def execute(self, **kwargs):
         """Executes the component locally if implemented by the inheriting
         subclass."""
+
+
+class BlockPipelineTaskRegistration:
+    """Temporarily stop registering tasks to the default pipeline.
+
+    Handles special, uncommon functions that decorate and mutate a
+    component, possibly by using the component's .pipeline_spec
+    attribute. This is exhibited in the version of
+    google_cloud_pipeline_components compatible with KFP SDK v2.
+    """
+
+    # TODO: this handles the special case of a compiled component (when compiled inside a pipeline), which should not have any concept of a default pipeline. Perhaps there is a way to unify component/pipeline compilation concepts to remove this workaround?
+
+    def __enter__(self):
+        self.task_handler, pipeline_task.PipelineTask._register_task_handler = pipeline_task.PipelineTask._register_task_handler, pipeline_task._register_task_handler
+
+    def __exit__(self, *args):
+        pipeline_task.PipelineTask._register_task_handler = self.task_handler

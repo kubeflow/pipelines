@@ -18,6 +18,7 @@ import json
 from typing import Optional, Dict, Tuple, Union, List, ForwardRef
 import unittest
 from google.cloud import aiplatform
+from google.cloud import aiplatform_v1beta1
 from google_cloud_pipeline_components.aiplatform import utils
 
 INIT_KEY = 'init'
@@ -111,10 +112,10 @@ class UtilsTests(unittest.TestCase):
         self.assertTrue(results)
 
     def test_get_serializer_with_serializable_type(self):
-        annotation = Dict
+        annotation = aiplatform_v1beta1.types.explanation.ExplanationParameters
 
         results = utils.get_serializer(annotation)
-        self.assertEqual(results, json.dumps)
+        self.assertEqual(results, annotation.to_json)
 
     def test_get_serializer_with_not_serializable_type(self):
         annotation = Tuple
@@ -123,10 +124,10 @@ class UtilsTests(unittest.TestCase):
         self.assertEqual(results, None)
 
     def test_get_deserializer_with_serializable_type(self):
-        annotation = Dict
+        annotation = aiplatform_v1beta1.types.explanation.ExplanationParameters
 
         results = utils.get_deserializer(annotation)
-        self.assertEqual(results, json.loads)
+        self.assertEqual(results, annotation.from_json)
 
     def test_get_deserializer_with_not_serializable_type(self):
         annotation = Tuple

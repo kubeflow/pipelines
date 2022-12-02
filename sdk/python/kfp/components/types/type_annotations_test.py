@@ -30,35 +30,63 @@ from kfp.dsl import Output
 
 class AnnotationsTest(parameterized.TestCase):
 
-    def test_is_artifact_annotation(self):
-        self.assertTrue(type_annotations.is_artifact_annotation(Input[Model]))
-        self.assertTrue(type_annotations.is_artifact_annotation(Output[Model]))
+    @parameterized.parameters([
+        Input[Model],
+        Output[Model],
+        Output[List[Model]],
+        Output['MyArtifact'],
+    ])
+    def test_is_artifact_annotation(self, annotation):
         self.assertTrue(
-            type_annotations.is_artifact_annotation(Output['MyArtifact']))
+            type_annotations.is_Input_Output_artifact_annotation(annotation))
 
-        self.assertFalse(type_annotations.is_artifact_annotation(Model))
-        self.assertFalse(type_annotations.is_artifact_annotation(int))
-        self.assertFalse(type_annotations.is_artifact_annotation('Dataset'))
-        self.assertFalse(type_annotations.is_artifact_annotation(List[str]))
-        self.assertFalse(type_annotations.is_artifact_annotation(Optional[str]))
+    @parameterized.parameters([
+        Model,
+        int,
+        'Dataset',
+        List[str],
+        Optional[str],
+    ])
+    def test_is_not_artifact_annotation(self, annotation):
+        self.assertFalse(
+            type_annotations.is_Input_Output_artifact_annotation(annotation))
 
-    def test_is_input_artifact(self):
-        self.assertTrue(type_annotations.is_input_artifact(Input[Model]))
-        self.assertTrue(type_annotations.is_input_artifact(Input))
+    @parameterized.parameters([
+        Input[Model],
+        Input,
+    ])
+    def test_is_input_artifact(self, annotation):
+        self.assertTrue(type_annotations.is_input_artifact(annotation))
 
-        self.assertFalse(type_annotations.is_input_artifact(Output[Model]))
-        self.assertFalse(type_annotations.is_input_artifact(Output))
+    @parameterized.parameters([
+        Output[Model],
+        Output,
+    ])
+    def test_is_not_input_artifact(self, annotation):
+        self.assertFalse(type_annotations.is_input_artifact(annotation))
 
-    def test_is_output_artifact(self):
-        self.assertTrue(type_annotations.is_output_artifact(Output[Model]))
-        self.assertTrue(type_annotations.is_output_artifact(Output))
+    @parameterized.parameters([
+        Output[Model],
+        Output[List[Model]],
+    ])
+    def test_is_output_artifact(self, annotation):
+        self.assertTrue(type_annotations.is_output_artifact(annotation))
 
-        self.assertFalse(type_annotations.is_output_artifact(Input[Model]))
-        self.assertFalse(type_annotations.is_output_artifact(Input))
+    @parameterized.parameters([
+        Input[Model],
+        Input[List[Model]],
+        Input,
+    ])
+    def test_is_not_output_artifact(self, annotation):
+        self.assertFalse(type_annotations.is_output_artifact(annotation))
 
     def test_get_io_artifact_class(self):
         self.assertEqual(
             type_annotations.get_io_artifact_class(Output[Model]), Model)
+        self.assertEqual(
+            type_annotations.get_io_artifact_class(Output[List[Model]]), Model)
+        self.assertEqual(
+            type_annotations.get_io_artifact_class(Input[List[Model]]), Model)
 
         self.assertEqual(type_annotations.get_io_artifact_class(Input), None)
         self.assertEqual(type_annotations.get_io_artifact_class(Output), None)
@@ -70,7 +98,13 @@ class AnnotationsTest(parameterized.TestCase):
             type_annotations.get_io_artifact_annotation(Output[Model]),
             OutputAnnotation)
         self.assertEqual(
+            type_annotations.get_io_artifact_annotation(Output[List[Model]]),
+            OutputAnnotation)
+        self.assertEqual(
             type_annotations.get_io_artifact_annotation(Input[Model]),
+            InputAnnotation)
+        self.assertEqual(
+            type_annotations.get_io_artifact_annotation(Input[List[Model]]),
             InputAnnotation)
         self.assertEqual(
             type_annotations.get_io_artifact_annotation(Input), InputAnnotation)

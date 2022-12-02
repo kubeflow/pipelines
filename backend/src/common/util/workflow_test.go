@@ -225,6 +225,17 @@ func TestToStringForStore(t *testing.T) {
 		workflow.ToStringForStore())
 }
 
+func TestToStringForSchedule(t *testing.T) {
+	workflow := NewWorkflow(&workflowapi.Workflow{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "WORKFLOW_NAME",
+		},
+	})
+	assert.Equal(t,
+		"{\"metadata\":{\"name\":\"WORKFLOW_NAME\",\"creationTimestamp\":null},\"spec\":{\"arguments\":{}},\"status\":{\"startedAt\":null,\"finishedAt\":null}}",
+		workflow.ToStringForSchedule())
+}
+
 func TestWorkflow_OverrideName(t *testing.T) {
 	workflow := NewWorkflow(&workflowapi.Workflow{
 		ObjectMeta: metav1.ObjectMeta{

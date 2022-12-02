@@ -33,6 +33,10 @@ def create_pipeline_task(
     return PipelineTask(component_spec=component_spec, args=args)
 
 
+_register_task_handler = lambda task: utils.maybe_rename_for_k8s(
+    task.component_spec.name)
+
+
 class PipelineTask:
     """Represents a pipeline task (instantiated component).
 
@@ -57,12 +61,11 @@ class PipelineTask:
             # task is an instance of PipelineTask
             task = identity(message='my string')
     """
+    _register_task_handler = _register_task_handler
 
     # Fallback behavior for compiling a component. This should be overriden by
     # pipeline `register_task_and_generate_id` if compiling a pipeline (more
     # than one component).
-    _register_task_handler = lambda task: utils.maybe_rename_for_k8s(
-        task.component_spec.name)
 
     def __init__(
         self,
@@ -286,7 +289,8 @@ class PipelineTask:
         return self
 
     def set_gpu_limit(self, gpu: str) -> 'PipelineTask':
-        """Sets GPU limit (maximum) for the task.
+        """Sets GPU limit (maximum) for the task. Only applies if accelerator
+        type is also set via .add_node_selector_constraint().
 
         Args:
             gpu: The maximum GPU reuqests allowed. This string should be a positive integer number of GPUs.
@@ -462,10 +466,6 @@ class PipelineTask:
                 task2 = my_component(text='2nd task').after(task1)
         """
         for task in tasks:
-            if task.parent_task_group is not self.parent_task_group:
-                raise ValueError(
-                    f'Cannot use .after() across inner pipelines or DSL control flow features. Tried to set {self.name} after {task.name}, but these tasks do not belong to the same pipeline or are not enclosed in the same control flow content manager.'
-                )
             self._task_spec.dependent_tasks.append(task.name)
         return self
 

@@ -25,6 +25,7 @@ from google.cloud.aiplatform.explain import ExplanationMetadata
 from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
 from google_cloud_pipeline_components.container.v1.batch_prediction_job import remote_runner as batch_prediction_job_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 import requests
@@ -33,19 +34,30 @@ from google.protobuf import json_format
 import unittest
 from unittest import mock
 
+_SYSTEM_LABELS = {'key1': 'value1', 'key2': 'value2'}
+
 
 class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
+  """Unit Tests for Batch Prediction Job Remote Runner."""
 
   def setUp(self):
     super(BatchPredictionJobRemoteRunnerUtilsTests, self).setUp()
-    self._payload = (
-        '{"batchPredictionJob": {"displayName": '
-        '"BatchPredictionComponentName", "model": '
-        '"projects/test/locations/test/models/test-model","inputConfig":'
-        ' {"instancesFormat": "CSV","gcsSource": {"uris": '
-        '["test_gcs_source"]}}, "outputConfig": {"predictionsFormat": '
-        '"CSV", "gcsDestination": {"outputUriPrefix": '
-        '"test_gcs_destination"}}}}')
+    self._payload = json.dumps({
+        'displayName': 'BatchPredictionComponentName',
+        'model': 'projects/test/locations/test/models/test-model',
+        'inputConfig': {
+            'instancesFormat': 'CSV',
+            'gcsSource': {
+                'uris': ['test_gcs_source']
+            }
+        },
+        'outputConfig': {
+            'predictionsFormat': 'CSV',
+            'gcsDestination': {
+                'outputUriPrefix': 'test_gcs_destination'
+            }
+        }
+    })
     self._job_type = 'BatchPredictionJob'
     self._project = 'test_project'
     self._location = 'test_region'
@@ -55,6 +67,8 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._batch_prediction_job_uri_prefix = f'https://{self._location}-aiplatform.googleapis.com/v1/'
     self._output_file_path = os.path.join(
         os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'localpath/foo')
+    os.environ[gcp_labels_util.SYSTEM_LABEL_ENV_VAR] = json.dumps(
+        _SYSTEM_LABELS)
     self._executor_input = '{"outputs":{"artifacts":{\
       "batchpredictionjob":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.VertexBatchPredictionJob"},"uri":"gs://abc"}]},\
       "bigquery_output_table":{"artifacts":[{"metadata":{},"name":"bq_table","type":{"schemaTitle":"google.BQTable"},"uri":"gs://abc"}]},\
@@ -97,6 +111,7 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     expected_parent = f'projects/{self._project}/locations/{self._location}'
     expected_job_spec = json.loads(self._payload, strict=False)
+    expected_job_spec['labels'] = _SYSTEM_LABELS
 
     job_client.create_batch_prediction_job.assert_called_once_with(
         parent=expected_parent, batch_prediction_job=expected_job_spec)
@@ -151,8 +166,8 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
                                                       self._location,
                                                       self._gcp_resources)
     mock_path_exists.return_value = True
-    self.assertEqual(
-        remote_runner.check_if_job_exists(), self._batch_prediction_job_name)
+    self.assertEqual(remote_runner.check_if_job_exists(),
+                     self._batch_prediction_job_name)
 
   @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
   @mock.patch.object(os.path, 'exists', autospec=True)
@@ -187,6 +202,7 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
 
     expected_parent = f'projects/{self._project}/locations/{self._location}'
     expected_job_spec = json.loads(self._payload, strict=False)
+    expected_job_spec['labels'] = _SYSTEM_LABELS
 
     job_client.create_batch_prediction_job.assert_called_once_with(
         parent=expected_parent, batch_prediction_job=expected_job_spec)
@@ -208,11 +224,10 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
       executor_output = json.load(f, strict=False)
       self.assertEqual(
           executor_output,
-          json.loads(
-              '{"artifacts": {\
+          json.loads('{"artifacts": {\
                 "batchpredictionjob": {"artifacts": [{"metadata": {"resourceName": "job1", "bigqueryOutputTable": "", "bigqueryOutputDataset": "", "gcsOutputDirectory": "gs://foo_gcs_output_directory"}, "name": "foobar", "type": {"schemaTitle": "google.VertexBatchPredictionJob"}, "uri": "https://test_region-aiplatform.googleapis.com/v1/job1"}]},\
                 "gcs_output_directory": {"artifacts": [{"metadata": {}, "name": "gcs_output", "type": {"schemaTitle": "system.Artifact"}, "uri": "gs://foo_gcs_output_directory"}]}}}'
-          ))
+                    ))
 
   @mock.patch.object(aiplatform.gapic, 'JobServiceClient', autospec=True)
   @mock.patch.object(os.path, 'exists', autospec=True)
@@ -367,3 +382,24 @@ class BatchPredictionJobRemoteRunnerUtilsTests(unittest.TestCase):
         })
     self.assertEqual(expected_metadata,
                      job_spec['explanation_spec']['metadata'])
+
+  def test_batch_prediction_job_remote_runner_insert_system_labels_into_payload(
+      self):
+    payload = json.dumps({
+        'displayName': 'BatchPredictionComponentName',
+        'labels': {
+            'key1': 'value3'
+        }
+    })
+    payload_with_label = json.loads(
+        batch_prediction_job_remote_runner.insert_system_labels_into_payload(
+            payload),
+        strict=False)
+    expected_payload_with_label = {
+        'displayName': 'BatchPredictionComponentName',
+        'labels': {
+            'key1': 'value3',
+            'key2': 'value2',
+        }
+    }
+    self.assertEqual(payload_with_label, expected_payload_with_label)

@@ -33,7 +33,8 @@ import (
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiV1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
@@ -93,20 +94,23 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 		glog.Fatalf("Failed to start RPC server: %v", err)
 	}
 	s := grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor), grpc.MaxRecvMsgSize(math.MaxInt32))
-	api.RegisterPipelineServiceServer(s, server.NewPipelineServer(resourceManager, &server.PipelineServerOptions{CollectMetrics: *collectMetricsFlag}))
-	api.RegisterExperimentServiceServer(s, server.NewExperimentServer(resourceManager, &server.ExperimentServerOptions{CollectMetrics: *collectMetricsFlag}))
-	api.RegisterRunServiceServer(s, server.NewRunServer(resourceManager, &server.RunServerOptions{CollectMetrics: *collectMetricsFlag}))
-	api.RegisterTaskServiceServer(s, server.NewTaskServer(resourceManager))
-	api.RegisterJobServiceServer(s, server.NewJobServer(resourceManager, &server.JobServerOptions{CollectMetrics: *collectMetricsFlag}))
-	api.RegisterReportServiceServer(s, server.NewReportServer(resourceManager))
-	api.RegisterVisualizationServiceServer(
+	sharedExperimentServer := server.NewExperimentServer(resourceManager, &server.ExperimentServerOptions{CollectMetrics: *collectMetricsFlag})
+	apiV1beta1.RegisterPipelineServiceServer(s, server.NewPipelineServer(resourceManager, &server.PipelineServerOptions{CollectMetrics: *collectMetricsFlag}))
+	apiV1beta1.RegisterExperimentServiceServer(s, sharedExperimentServer)
+	apiV1beta1.RegisterRunServiceServer(s, server.NewRunServer(resourceManager, &server.RunServerOptions{CollectMetrics: *collectMetricsFlag}))
+	apiV1beta1.RegisterTaskServiceServer(s, server.NewTaskServer(resourceManager))
+	apiV1beta1.RegisterJobServiceServer(s, server.NewJobServer(resourceManager, &server.JobServerOptions{CollectMetrics: *collectMetricsFlag}))
+	apiV1beta1.RegisterReportServiceServer(s, server.NewReportServer(resourceManager))
+	apiV1beta1.RegisterVisualizationServiceServer(
 		s,
 		server.NewVisualizationServer(
 			resourceManager,
 			common.GetStringConfig(visualizationServiceHost),
 			common.GetStringConfig(visualizationServicePort),
 		))
-	api.RegisterAuthServiceServer(s, server.NewAuthServer(resourceManager))
+	apiV1beta1.RegisterAuthServiceServer(s, server.NewAuthServer(resourceManager))
+
+	apiV2beta1.RegisterExperimentServiceServer(s, sharedExperimentServer)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
@@ -123,16 +127,19 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// Create gRPC HTTP MUX and register services.
+	// Create gRPC HTTP MUX and register services for v1beta1 api.
 	runtimeMux := runtime.NewServeMux(runtime.WithIncomingHeaderMatcher(grpcCustomMatcher))
-	registerHttpHandlerFromEndpoint(api.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService", ctx, runtimeMux)
-	registerHttpHandlerFromEndpoint(api.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService", ctx, runtimeMux)
-	registerHttpHandlerFromEndpoint(api.RegisterJobServiceHandlerFromEndpoint, "JobService", ctx, runtimeMux)
-	registerHttpHandlerFromEndpoint(api.RegisterRunServiceHandlerFromEndpoint, "RunService", ctx, runtimeMux)
-	registerHttpHandlerFromEndpoint(api.RegisterTaskServiceHandlerFromEndpoint, "TaskService", ctx, runtimeMux)
-	registerHttpHandlerFromEndpoint(api.RegisterReportServiceHandlerFromEndpoint, "ReportService", ctx, runtimeMux)
-	registerHttpHandlerFromEndpoint(api.RegisterVisualizationServiceHandlerFromEndpoint, "Visualization", ctx, runtimeMux)
-	registerHttpHandlerFromEndpoint(api.RegisterAuthServiceHandlerFromEndpoint, "AuthService", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiV1beta1.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiV1beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiV1beta1.RegisterJobServiceHandlerFromEndpoint, "JobService", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiV1beta1.RegisterRunServiceHandlerFromEndpoint, "RunService", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiV1beta1.RegisterTaskServiceHandlerFromEndpoint, "TaskService", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiV1beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiV1beta1.RegisterVisualizationServiceHandlerFromEndpoint, "Visualization", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiV1beta1.RegisterAuthServiceHandlerFromEndpoint, "AuthService", ctx, runtimeMux)
+
+	// Create gRPC HTTP MUX and register services for v2beta1 api.
+	registerHttpHandlerFromEndpoint(apiV2beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService", ctx, runtimeMux)
 
 	// Create a top level mux to include both pipeline upload server and gRPC servers.
 	topMux := mux.NewRouter()

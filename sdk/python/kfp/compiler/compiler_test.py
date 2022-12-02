@@ -1496,430 +1496,6 @@ class TestBoolInputParameterWithDefaultSerializesCorrectly(unittest.TestCase):
             .default_value.bool_value, True)
 
 
-class TestYamlComments(unittest.TestCase):
-
-    def test_comments_include_inputs_and_outputs_and_pipeline_name(self):
-
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
-
-        @dsl.pipeline()
-        def my_pipeline(sample_input1: bool = True,
-                        sample_input2: str = 'string') -> str:
-            op1 = identity(string=sample_input2, model=sample_input1)
-            result = op1.output
-            return result
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
-            with open(pipeline_spec_path, 'r+') as f:
-                yaml_content = f.read()
-
-        inputs_string = textwrap.dedent("""\
-                # Inputs:
-                #    sample_input1: bool [Default: True]
-                #    sample_input2: str [Default: 'string']
-                """)
-
-        outputs_string = textwrap.dedent("""\
-                # Outputs:
-                #    Output: str
-                """)
-
-        name_string = '# Name: my-pipeline'
-
-        self.assertIn(name_string, yaml_content)
-
-        self.assertIn(inputs_string, yaml_content)
-
-        self.assertIn(outputs_string, yaml_content)
-
-    def test_comments_include_definition(self):
-
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
-
-        @dsl.pipeline()
-        def pipeline_with_no_definition(sample_input1: bool = True,
-                                        sample_input2: str = 'string') -> str:
-            op1 = identity(string=sample_input2, model=sample_input1)
-            result = op1.output
-            return result
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=pipeline_with_no_definition,
-                package_path=pipeline_spec_path)
-            with open(pipeline_spec_path, 'r+') as f:
-                yaml_content = f.read()
-
-            description_string = '# Description:'
-
-        self.assertNotIn(description_string, yaml_content)
-
-        @dsl.pipeline()
-        def pipeline_with_definition(sample_input1: bool = True,
-                                     sample_input2: str = 'string') -> str:
-            """This is a definition of this pipeline."""
-            op1 = identity(string=sample_input2, model=sample_input1)
-            result = op1.output
-            return result
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=pipeline_with_definition,
-                package_path=pipeline_spec_path)
-
-            with open(pipeline_spec_path, 'r+') as f:
-                yaml_content = f.read()
-
-            description_string = '# Description:'
-
-        self.assertIn(description_string, yaml_content)
-
-    def test_comments_on_pipeline_with_no_inputs_or_outputs(self):
-
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
-
-        @dsl.pipeline()
-        def pipeline_with_no_inputs() -> str:
-            op1 = identity(string='string', model=True)
-            result = op1.output
-            return result
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=pipeline_with_no_inputs,
-                package_path=pipeline_spec_path)
-
-            with open(pipeline_spec_path, 'r+') as f:
-                yaml_content = f.read()
-
-        inputs_string = '# Inputs:'
-
-        self.assertNotIn(inputs_string, yaml_content)
-
-        @dsl.pipeline()
-        def pipeline_with_no_outputs(sample_input1: bool = True,
-                                     sample_input2: str = 'string'):
-            identity(string=sample_input2, model=sample_input1)
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=pipeline_with_no_outputs,
-                package_path=pipeline_spec_path)
-
-            with open(pipeline_spec_path, 'r+') as f:
-                yaml_content = f.read()
-
-        outputs_string = '# Outputs:'
-
-        self.assertNotIn(outputs_string, yaml_content)
-
-    def test_comments_follow_pattern(self):
-
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
-
-        @dsl.pipeline()
-        def my_pipeline(sample_input1: bool = True,
-                        sample_input2: str = 'string') -> str:
-            """This is a definition of this pipeline."""
-            op1 = identity(string=sample_input2, model=sample_input1)
-            result = op1.output
-            return result
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
-
-            with open(pipeline_spec_path, 'r+') as f:
-                yaml_content = f.read()
-
-        pattern_sample = textwrap.dedent("""\
-                # PIPELINE DEFINITION
-                # Name: my-pipeline
-                # Description: This is a definition of this pipeline.
-                # Inputs:
-                #    sample_input1: bool [Default: True]
-                #    sample_input2: str [Default: 'string']
-                # Outputs:
-                #    Output: str
-                """)
-
-        self.assertIn(pattern_sample, yaml_content)
-
-    def test_verbose_comment_characteristics(self):
-
-        @dsl.component
-        def output_model(metrics: Output[Model]):
-            """Dummy component that outputs metrics with a random accuracy."""
-            import random
-            result = random.randint(0, 100)
-            metrics.log_metric('accuracy', result)
-
-        @dsl.pipeline(name='Test pipeline')
-        def my_pipeline(sample_input1: bool,
-                        sample_input2: str,
-                        sample_input3: Input[Model],
-                        sample_input4: float = 3.14,
-                        sample_input5: list = [1],
-                        sample_input6: dict = {'one': 1},
-                        sample_input7: int = 5) -> Model:
-            """This is a definition of this pipeline."""
-
-            task = output_model()
-            return task.output
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
-
-            with open(pipeline_spec_path, 'r+') as f:
-                yaml_content = f.read()
-
-        predicted_comment = textwrap.dedent("""\
-                # PIPELINE DEFINITION
-                # Name: test-pipeline
-                # Description: This is a definition of this pipeline.
-                # Inputs:
-                #    sample_input1: bool
-                #    sample_input2: str
-                #    sample_input3: system.Model
-                #    sample_input4: float [Default: 3.14]
-                #    sample_input5: list [Default: [1.0]]
-                #    sample_input6: dict [Default: {'one': 1.0}]
-                #    sample_input7: int [Default: 5.0]
-                # Outputs:
-                #    Output: system.Model
-                """)
-
-        self.assertIn(predicted_comment, yaml_content)
-
-    def test_comments_on_compiled_components(self):
-
-        @dsl.component
-        def my_component(string: str, model: bool) -> str:
-            """component description."""
-            return string
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_component, package_path=pipeline_spec_path)
-
-            with open(pipeline_spec_path, 'r+') as f:
-                yaml_content = f.read()
-
-        predicted_comment = textwrap.dedent("""\
-                # PIPELINE DEFINITION
-                # Name: my-component
-                # Description: component description.
-                # Inputs:
-                #    model: bool
-                #    string: str
-                """)
-
-        self.assertIn(predicted_comment, yaml_content)
-
-        @dsl.container_component
-        def my_container_component(text: str, output_path: OutputPath(str)):
-            """component description."""
-            return ContainerSpec(
-                image='python:3.7',
-                command=['my_program', text],
-                args=['--output_path', output_path])
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_container_component,
-                package_path=pipeline_spec_path)
-
-            with open(pipeline_spec_path, 'r+') as f:
-                yaml_content = f.read()
-
-        predicted_comment = textwrap.dedent("""\
-                # PIPELINE DEFINITION
-                # Name: my-container-component
-                # Description: component description.
-                # Inputs:
-                #    text: str
-                """)
-
-        self.assertIn(predicted_comment, yaml_content)
-
-    def test_comments_idempotency(self):
-
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
-
-        @dsl.pipeline()
-        def my_pipeline(sample_input1: bool = True,
-                        sample_input2: str = 'string') -> str:
-            """My description."""
-            op1 = identity(string=sample_input2, model=sample_input1)
-            result = op1.output
-            return result
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
-            with open(pipeline_spec_path, 'r+') as f:
-                yaml_content = f.read()
-            comp = components.load_component_from_file(pipeline_spec_path)
-            compiler.Compiler().compile(
-                pipeline_func=comp, package_path=pipeline_spec_path)
-            with open(pipeline_spec_path, 'r+') as f:
-                reloaded_yaml_content = f.read()
-
-        predicted_comment = textwrap.dedent("""\
-                # PIPELINE DEFINITION
-                # Name: my-pipeline
-                # Description: My description.
-                # Inputs:
-                #    sample_input1: bool [Default: True]
-                #    sample_input2: str [Default: 'string']
-                # Outputs:
-                #    Output: str
-                """)
-
-        # test initial comments
-        self.assertIn(predicted_comment, yaml_content)
-
-        # test reloaded comments
-        self.assertIn(predicted_comment, reloaded_yaml_content)
-
-    def test_comment_with_multiline_docstring(self):
-
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
-
-        @dsl.pipeline()
-        def pipeline_with_multiline_definition(
-                sample_input1: bool = True,
-                sample_input2: str = 'string') -> str:
-            """docstring short description.
-
-            docstring long description. docstring long description.
-            """
-            op1 = identity(string=sample_input2, model=sample_input1)
-            result = op1.output
-            return result
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=pipeline_with_multiline_definition,
-                package_path=pipeline_spec_path)
-
-            with open(pipeline_spec_path, 'r+') as f:
-                yaml_content = f.read()
-
-        description_string = textwrap.dedent("""\
-            # Description: docstring short description.
-            #              docstring long description. docstring long description.
-            """)
-
-        self.assertIn(description_string, yaml_content)
-
-        @dsl.pipeline()
-        def pipeline_with_multiline_definition(
-                sample_input1: bool = True,
-                sample_input2: str = 'string') -> str:
-            """
-            docstring long description.
-
-            docstring long description.
-            docstring long description.
-            """
-            op1 = identity(string=sample_input2, model=sample_input1)
-            result = op1.output
-            return result
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=pipeline_with_multiline_definition,
-                package_path=pipeline_spec_path)
-
-            with open(pipeline_spec_path, 'r+') as f:
-                yaml_content = f.read()
-
-        description_string = textwrap.dedent("""\
-            # Description: docstring long description.
-            #              docstring long description.
-            #              docstring long description.
-            """)
-
-        self.assertIn(description_string, yaml_content)
-
-    def test_idempotency_on_comment_with_multiline_docstring(self):
-
-        @dsl.component
-        def identity(string: str, model: bool) -> str:
-            return string
-
-        @dsl.pipeline()
-        def my_pipeline(sample_input1: bool = True,
-                        sample_input2: str = 'string') -> str:
-            """docstring short description.
-
-            docstring long description.
-            docstring long description.
-            """
-            op1 = identity(string=sample_input2, model=sample_input1)
-            result = op1.output
-            return result
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
-            with open(pipeline_spec_path, 'r+') as f:
-                yaml_content = f.read()
-            comp = components.load_component_from_file(pipeline_spec_path)
-            compiler.Compiler().compile(
-                pipeline_func=comp, package_path=pipeline_spec_path)
-            with open(pipeline_spec_path, 'r+') as f:
-                reloaded_yaml_content = f.read()
-
-        predicted_comment = textwrap.dedent("""\
-                # PIPELINE DEFINITION
-                # Name: my-pipeline
-                # Description: docstring short description.
-                #              docstring long description.
-                #              docstring long description.
-                # Inputs:
-                #    sample_input1: bool [Default: True]
-                #    sample_input2: str [Default: 'string']
-                # Outputs:
-                #    Output: str
-                """)
-
-        # test initial comments
-        self.assertIn(predicted_comment, yaml_content)
-
-        # test reloaded comments
-        self.assertIn(predicted_comment, reloaded_yaml_content)
-
-
 # helper component defintions for the ValidLegalTopologies tests
 @dsl.component
 def print_op(message: str):
@@ -2321,6 +1897,427 @@ class TestCannotUseAfterCrossDAG(unittest.TestCase):
             package_path = os.path.join(tempdir, 'pipeline.yaml')
             compiler.Compiler().compile(
                 pipeline_func=my_pipeline, package_path=package_path)
+
+
+class TestYamlComments(unittest.TestCase):
+
+    def test_comments_include_inputs_and_outputs_and_pipeline_name(self):
+
+        @dsl.component
+        def identity(string: str, model: bool) -> str:
+            return string
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: bool = True,
+                        sample_input2: str = 'string') -> str:
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        inputs_string = textwrap.dedent("""\
+                # Inputs:
+                #    sample_input1: bool [Default: True]
+                #    sample_input2: str [Default: 'string']
+                """)
+
+        outputs_string = textwrap.dedent("""\
+                # Outputs:
+                #    Output: str
+                """)
+
+        name_string = '# Name: my-pipeline'
+
+        self.assertIn(name_string, yaml_content)
+
+        self.assertIn(inputs_string, yaml_content)
+
+        self.assertIn(outputs_string, yaml_content)
+
+    def test_comments_include_definition(self):
+
+        @dsl.component
+        def identity(string: str, model: bool) -> str:
+            return string
+
+        @dsl.pipeline()
+        def pipeline_with_no_definition(sample_input1: bool = True,
+                                        sample_input2: str = 'string') -> str:
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_with_no_definition,
+                package_path=pipeline_spec_path)
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+            description_string = '# Description:'
+
+        self.assertNotIn(description_string, yaml_content)
+
+        @dsl.pipeline()
+        def pipeline_with_definition(sample_input1: bool = True,
+                                     sample_input2: str = 'string') -> str:
+            """This is a definition of this pipeline."""
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_with_definition,
+                package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+            description_string = '# Description:'
+
+        self.assertIn(description_string, yaml_content)
+
+    def test_comments_on_pipeline_with_no_inputs_or_outputs(self):
+
+        @dsl.component
+        def identity(string: str, model: bool) -> str:
+            return string
+
+        @dsl.pipeline()
+        def pipeline_with_no_inputs() -> str:
+            op1 = identity(string='string', model=True)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_with_no_inputs,
+                package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        inputs_string = '# Inputs:'
+
+        self.assertNotIn(inputs_string, yaml_content)
+
+        @dsl.pipeline()
+        def pipeline_with_no_outputs(sample_input1: bool = True,
+                                     sample_input2: str = 'string'):
+            identity(string=sample_input2, model=sample_input1)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_with_no_outputs,
+                package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        outputs_string = '# Outputs:'
+
+        self.assertNotIn(outputs_string, yaml_content)
+
+    def test_comments_follow_pattern(self):
+
+        @dsl.component
+        def identity(string: str, model: bool) -> str:
+            return string
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: bool = True,
+                        sample_input2: str = 'string') -> str:
+            """This is a definition of this pipeline."""
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        pattern_sample = textwrap.dedent("""\
+                # PIPELINE DEFINITION
+                # Name: my-pipeline
+                # Description: This is a definition of this pipeline.
+                # Inputs:
+                #    sample_input1: bool [Default: True]
+                #    sample_input2: str [Default: 'string']
+                # Outputs:
+                #    Output: str
+                """)
+
+        self.assertIn(pattern_sample, yaml_content)
+
+    def test_verbose_comment_characteristics(self):
+
+        @dsl.component
+        def output_model(metrics: Output[Model]):
+            """Dummy component that outputs metrics with a random accuracy."""
+            import random
+            result = random.randint(0, 100)
+            metrics.log_metric('accuracy', result)
+
+        @dsl.pipeline(name='Test pipeline')
+        def my_pipeline(sample_input1: bool,
+                        sample_input2: str,
+                        sample_input3: Input[Model],
+                        sample_input4: float = 3.14,
+                        sample_input5: list = [1],
+                        sample_input6: dict = {'one': 1},
+                        sample_input7: int = 5) -> Model:
+            """This is a definition of this pipeline."""
+
+            task = output_model()
+            return task.output
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        predicted_comment = textwrap.dedent("""\
+                # PIPELINE DEFINITION
+                # Name: test-pipeline
+                # Description: This is a definition of this pipeline.
+                # Inputs:
+                #    sample_input1: bool
+                #    sample_input2: str
+                #    sample_input3: system.Model
+                #    sample_input4: float [Default: 3.14]
+                #    sample_input5: list [Default: [1.0]]
+                #    sample_input6: dict [Default: {'one': 1.0}]
+                #    sample_input7: int [Default: 5.0]
+                # Outputs:
+                #    Output: system.Model
+                """)
+
+        self.assertIn(predicted_comment, yaml_content)
+
+    def test_comments_on_compiled_components(self):
+
+        @dsl.component
+        def my_component(string: str, model: bool) -> str:
+            """component description."""
+            return string
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_component, package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        predicted_comment = textwrap.dedent("""\
+                # PIPELINE DEFINITION
+                # Name: my-component
+                # Description: component description.
+                # Inputs:
+                #    model: bool
+                #    string: str
+                """)
+
+        self.assertIn(predicted_comment, yaml_content)
+
+        @dsl.container_component
+        def my_container_component(text: str, output_path: OutputPath(str)):
+            """component description."""
+            return ContainerSpec(
+                image='python:3.7',
+                command=['my_program', text],
+                args=['--output_path', output_path])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_container_component,
+                package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        predicted_comment = textwrap.dedent("""\
+                # PIPELINE DEFINITION
+                # Name: my-container-component
+                # Description: component description.
+                # Inputs:
+                #    text: str
+                """)
+
+        self.assertIn(predicted_comment, yaml_content)
+
+    def test_comments_idempotency(self):
+
+        @dsl.component
+        def identity(string: str, model: bool) -> str:
+            return string
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: bool = True,
+                        sample_input2: str = 'string') -> str:
+            """My description."""
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+            comp = components.load_component_from_file(pipeline_spec_path)
+            compiler.Compiler().compile(
+                pipeline_func=comp, package_path=pipeline_spec_path)
+            with open(pipeline_spec_path, 'r+') as f:
+                reloaded_yaml_content = f.read()
+
+        predicted_comment = textwrap.dedent("""\
+                # PIPELINE DEFINITION
+                # Name: my-pipeline
+                # Description: My description.
+                # Inputs:
+                #    sample_input1: bool [Default: True]
+                #    sample_input2: str [Default: 'string']
+                # Outputs:
+                #    Output: str
+                """)
+
+        # test initial comments
+        self.assertIn(predicted_comment, yaml_content)
+
+        # test reloaded comments
+        self.assertIn(predicted_comment, reloaded_yaml_content)
+
+    def test_comment_with_multiline_docstring(self):
+
+        @dsl.component
+        def identity(string: str, model: bool) -> str:
+            return string
+
+        @dsl.pipeline()
+        def pipeline_with_multiline_definition(
+                sample_input1: bool = True,
+                sample_input2: str = 'string') -> str:
+            """docstring short description.
+            docstring long description. docstring long description.
+            """
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_with_multiline_definition,
+                package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        description_string = textwrap.dedent("""\
+            # Description: docstring short description.
+            #              docstring long description. docstring long description.
+            """)
+
+        self.assertIn(description_string, yaml_content)
+
+        @dsl.pipeline()
+        def pipeline_with_multiline_definition(
+                sample_input1: bool = True,
+                sample_input2: str = 'string') -> str:
+            """
+            docstring long description.
+            docstring long description.
+            docstring long description.
+            """
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_with_multiline_definition,
+                package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        description_string = textwrap.dedent("""\
+            # Description: docstring long description.
+            #              docstring long description.
+            #              docstring long description.
+            """)
+
+        self.assertIn(description_string, yaml_content)
+
+    def test_idempotency_on_comment_with_multiline_docstring(self):
+
+        @dsl.component
+        def identity(string: str, model: bool) -> str:
+            return string
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: bool = True,
+                        sample_input2: str = 'string') -> str:
+            """docstring short description.
+            docstring long description.
+            docstring long description.
+            """
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+            comp = components.load_component_from_file(pipeline_spec_path)
+            compiler.Compiler().compile(
+                pipeline_func=comp, package_path=pipeline_spec_path)
+            with open(pipeline_spec_path, 'r+') as f:
+                reloaded_yaml_content = f.read()
+
+        predicted_comment = textwrap.dedent("""\
+                # PIPELINE DEFINITION
+                # Name: my-pipeline
+                # Description: docstring short description.
+                #              docstring long description.
+                #              docstring long description.
+                # Inputs:
+                #    sample_input1: bool [Default: True]
+                #    sample_input2: str [Default: 'string']
+                # Outputs:
+                #    Output: str
+                """)
+
+        # test initial comments
+        self.assertIn(predicted_comment, yaml_content)
+
+        # test reloaded comments
+        self.assertIn(predicted_comment, reloaded_yaml_content)
 
 
 if __name__ == '__main__':

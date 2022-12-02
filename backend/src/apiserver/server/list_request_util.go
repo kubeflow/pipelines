@@ -33,7 +33,7 @@ const (
 	maxPageSize     = 200
 )
 
-func ValidateFilter(referenceKey *api.ResourceKey) (*common.FilterContext, error) {
+func ValidateFilterV1(referenceKey *api.ResourceKey) (*common.FilterContext, error) {
 	filterContext := &common.FilterContext{}
 	if referenceKey != nil {
 		refType, err := common.ToModelResourceType(referenceKey.Type)

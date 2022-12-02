@@ -24,6 +24,7 @@ import google.auth
 import google.auth.transport.requests
 from google_cloud_pipeline_components.container.utils import execution_context
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 from google_cloud_pipeline_components.proto import gcp_resources_pb2
 from google_cloud_pipeline_components.types.artifact_types import BQTable
@@ -33,10 +34,21 @@ from google.protobuf import json_format
 
 ARTIFACT_PROPERTY_KEY_SCHEMA = 'schema'
 ARTIFACT_PROPERTY_KEY_ROWS = 'rows'
+JOB_CONFIGURATION_KEY = 'configuration'
+LABELS_PAYLOAD_KEY = 'labels'
 
 _POLLING_INTERVAL_IN_SECONDS = 20
 _BQ_JOB_NAME_TEMPLATE = r'(https://www.googleapis.com/bigquery/v2/projects/(?P<project>.*)/jobs/(?P<job>.*)\?location=(?P<location>.*))'
 
+
+def insert_system_labels_into_payload(job_request_json):
+  if JOB_CONFIGURATION_KEY not in job_request_json:
+    job_request_json[JOB_CONFIGURATION_KEY] = {}
+  job_request_json[JOB_CONFIGURATION_KEY][
+      LABELS_PAYLOAD_KEY] = gcp_labels_util.attach_system_labels(
+          job_request_json[JOB_CONFIGURATION_KEY][LABELS_PAYLOAD_KEY]
+          if LABELS_PAYLOAD_KEY in job_request_json else {})
+  return job_request_json
 
 def back_quoted_if_needed(resource_name) -> str:
   """Enclose resource name with ` if it's not yet."""
@@ -104,6 +116,8 @@ def create_job(project, location, job_request_json, creds,
       job_request_json['jobReference'] = {}
     job_request_json['jobReference']['location'] = location
 
+  job_request_json = insert_system_labels_into_payload(job_request_json)
+
   creds.refresh(google.auth.transport.requests.Request())
   headers = {
       'Content-type': 'application/json',
@@ -116,8 +130,8 @@ def create_job(project, location, job_request_json, creds,
       headers=headers).json()
   if 'selfLink' not in job:
     raise RuntimeError(
-        'BigQquery Job failed. Cannot retrieve the job name. Response: {}.'
-        .format(job))
+        f'BigQquery Job failed. Cannot retrieve the job name. Request:{job_request_json}; Response: {job}.'
+    )
 
   # Write the bigquey job uri to gcp resource.
   job_uri = job['selfLink']
@@ -152,7 +166,8 @@ def create_query_job(project, location, payload,
   Returns:
       The URI of the BigQuery Job.
   """
-  job_request_json = json.loads(payload, strict=False)
+  job_request_json = insert_system_labels_into_payload(
+      json.loads(payload, strict=False))
   job_configuration_query_override_json = json_util.recursive_remove_empty(
       json.loads(job_configuration_query_override, strict=False))
 
@@ -204,8 +219,8 @@ def poll_job(job_uri, creds) -> dict:
       }
       job = requests.get(job_uri, headers=headers).json()
       if 'status' in job and 'errorResult' in job['status']:
-        raise RuntimeError('The BigQuery job failed. Error: {}'.format(
-            job['status']))
+        raise RuntimeError(
+            f'The BigQuery job {job_uri} failed. Error: {job["status"]}')
 
   logging.info('BigQuery Job completed successfully. Job: %s.', job)
   return job

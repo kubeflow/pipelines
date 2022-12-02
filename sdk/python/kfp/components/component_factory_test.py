@@ -12,9 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List
 import unittest
 
+from kfp import dsl
 from kfp.components import component_factory
+from kfp.components import structures
 from kfp.components.component_decorator import component
 from kfp.components.types.type_annotations import OutputPath
 
@@ -67,6 +70,111 @@ class TestInvalidParameterName(unittest.TestCase):
             @component
             def comp(Output: OutputPath(str), text: str) -> str:
                 pass
+
+
+from kfp.components.types.artifact_types import Artifact
+from kfp.components.types.artifact_types import Model
+from kfp.dsl import Input
+from kfp.dsl import Output
+
+
+class TestExtractComponentInterfaceListofArtifacts(unittest.TestCase):
+
+    def test_python_component_input(self):
+
+        def comp(i: Input[List[Model]]):
+            ...
+
+        component_spec = component_factory.extract_component_interface(comp)
+        self.assertEqual(component_spec.name, 'comp')
+        self.assertEqual(component_spec.description, None)
+        self.assertEqual(
+            component_spec.inputs, {
+                'i':
+                    structures.InputSpec(
+                        type='system.Model@0.0.1',
+                        default=None,
+                        is_artifact_list=True)
+            })
+
+    def test_custom_container_component_input(self):
+
+        def comp(i: Input[List[Artifact]]):
+            ...
+
+        component_spec = component_factory.extract_component_interface(
+            comp, containerized=True)
+        self.assertEqual(component_spec.name, 'comp')
+        self.assertEqual(component_spec.description, None)
+        self.assertEqual(
+            component_spec.inputs, {
+                'i':
+                    structures.InputSpec(
+                        type='system.Artifact@0.0.1',
+                        default=None,
+                        is_artifact_list=True)
+            })
+
+    def test_pipeline_input(self):
+
+        def comp(i: Input[List[Model]]):
+            ...
+
+        component_spec = component_factory.extract_component_interface(comp)
+        self.assertEqual(component_spec.name, 'comp')
+        self.assertEqual(component_spec.description, None)
+        self.assertEqual(
+            component_spec.inputs, {
+                'i':
+                    structures.InputSpec(
+                        type='system.Model@0.0.1',
+                        default=None,
+                        is_artifact_list=True)
+            })
+
+    def test_pipeline_with_named_tuple_fn(self):
+        from typing import NamedTuple
+
+        def comp(
+            i: Input[List[Model]]
+        ) -> NamedTuple('outputs', [('output_list', List[Artifact])]):
+            ...
+
+        with self.assertRaisesRegex(
+                ValueError,
+                r'Cannot use output lists of artifacts in NamedTuple return annotations. Got output list of artifacts annotation for NamedTuple field `output_list`\.'
+        ):
+            component_factory.extract_component_interface(comp)
+
+
+class TestOutputListsOfArtifactsTemporarilyBlocked(unittest.TestCase):
+
+    def test_python_component(self):
+        with self.assertRaisesRegex(
+                NotImplementedError,
+                r'Output lists of artifacts are not yet supported\.'):
+
+            @dsl.component
+            def comp(output_list: Output[List[Artifact]]):
+                ...
+
+    def test_container_component(self):
+        with self.assertRaisesRegex(
+                NotImplementedError,
+                r'Output lists of artifacts are not yet supported\.'):
+
+            @dsl.container_component
+            def comp(output_list: Output[List[Artifact]]):
+                return dsl.ContainerSpec(image='alpine')
+
+    def test_pipeline(self):
+        with self.assertRaisesRegex(
+                NotImplementedError,
+                r'Output lists of artifacts are not yet supported\.'):
+
+            @dsl.pipeline
+            def comp() -> List[Artifact]:
+                ...
 
 
 if __name__ == '__main__':

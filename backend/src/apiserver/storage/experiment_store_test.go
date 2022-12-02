@@ -50,14 +50,14 @@ func TestListExperiments_Pagination(t *testing.T) {
 		CreatedAtInSec: 1,
 		Name:           "experiment1",
 		Description:    "My name is experiment1",
-		StorageState:   "STORAGESTATE_AVAILABLE",
+		StorageState:   "AVAILABLE",
 	}
 	expectedExperiment4 := &model.Experiment{
 		UUID:           fakeIDFour,
 		CreatedAtInSec: 4,
 		Name:           "experiment2",
 		Description:    "My name is experiment2",
-		StorageState:   "STORAGESTATE_AVAILABLE",
+		StorageState:   "AVAILABLE",
 	}
 	experimentsExpected := []*model.Experiment{expectedExperiment1, expectedExperiment4}
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "name", nil)
@@ -75,14 +75,14 @@ func TestListExperiments_Pagination(t *testing.T) {
 		CreatedAtInSec: 2,
 		Name:           "experiment3",
 		Description:    "My name is experiment3",
-		StorageState:   "STORAGESTATE_AVAILABLE",
+		StorageState:   "AVAILABLE",
 	}
 	expectedExperiment3 := &model.Experiment{
 		UUID:           fakeIDThree,
 		CreatedAtInSec: 3,
 		Name:           "experiment4",
 		Description:    "My name is experiment4",
-		StorageState:   "STORAGESTATE_AVAILABLE",
+		StorageState:   "AVAILABLE",
 	}
 	experimentsExpected2 := []*model.Experiment{expectedExperiment2, expectedExperiment3}
 
@@ -113,14 +113,14 @@ func TestListExperiments_Pagination_Descend(t *testing.T) {
 		CreatedAtInSec: 2,
 		Name:           "experiment3",
 		Description:    "My name is experiment3",
-		StorageState:   "STORAGESTATE_AVAILABLE",
+		StorageState:   "AVAILABLE",
 	}
 	expectedExperiment3 := &model.Experiment{
 		UUID:           fakeIDThree,
 		CreatedAtInSec: 3,
 		Name:           "experiment4",
 		Description:    "My name is experiment4",
-		StorageState:   "STORAGESTATE_AVAILABLE",
+		StorageState:   "AVAILABLE",
 	}
 	experimentsExpected := []*model.Experiment{expectedExperiment3, expectedExperiment2}
 
@@ -138,14 +138,14 @@ func TestListExperiments_Pagination_Descend(t *testing.T) {
 		CreatedAtInSec: 1,
 		Name:           "experiment1",
 		Description:    "My name is experiment1",
-		StorageState:   "STORAGESTATE_AVAILABLE",
+		StorageState:   "AVAILABLE",
 	}
 	expectedExperiment4 := &model.Experiment{
 		UUID:           fakeIDFour,
 		CreatedAtInSec: 4,
 		Name:           "experiment2",
 		Description:    "My name is experiment2",
-		StorageState:   "STORAGESTATE_AVAILABLE",
+		StorageState:   "AVAILABLE",
 	}
 	experimentsExpected2 := []*model.Experiment{expectedExperiment4, expectedExperiment1}
 
@@ -169,7 +169,7 @@ func TestListExperiments_Pagination_LessThanPageSize(t *testing.T) {
 		CreatedAtInSec: 1,
 		Name:           "experiment1",
 		Description:    "My name is experiment1",
-		StorageState:   "STORAGESTATE_AVAILABLE",
+		StorageState:   "AVAILABLE",
 	}
 	experimentsExpected := []*model.Experiment{expectedExperiment1}
 
@@ -205,7 +205,7 @@ func TestGetExperiment(t *testing.T) {
 		CreatedAtInSec: 1,
 		Name:           "experiment1",
 		Description:    "My name is experiment1",
-		StorageState:   "STORAGESTATE_AVAILABLE",
+		StorageState:   "AVAILABLE",
 	}
 
 	experiment, err := experimentStore.GetExperiment(fakeID)
@@ -242,7 +242,7 @@ func TestCreateExperiment(t *testing.T) {
 		CreatedAtInSec: 1,
 		Name:           "experiment1",
 		Description:    "My name is experiment1",
-		StorageState:   "STORAGESTATE_AVAILABLE",
+		StorageState:   "AVAILABLE",
 	}
 
 	experiment := createExperiment("experiment1")
@@ -261,7 +261,7 @@ func TestCreateExperiment_DifferentNamespaces(t *testing.T) {
 		Name:           "experiment1",
 		Description:    "My name is experiment1",
 		Namespace:      "namespace1",
-		StorageState:   "STORAGESTATE_AVAILABLE",
+		StorageState:   "AVAILABLE",
 	}
 
 	experiment := createExperimentInNamespace("experiment1", "namespace1")
@@ -277,7 +277,7 @@ func TestCreateExperiment_DifferentNamespaces(t *testing.T) {
 		Name:           "experiment1",
 		Description:    "My name is experiment1",
 		Namespace:      "namespace2",
-		StorageState:   "STORAGESTATE_AVAILABLE",
+		StorageState:   "AVAILABLE",
 	}
 
 	experiment, err = experimentStore.CreateExperiment(experiment)
@@ -390,14 +390,14 @@ func TestListExperiments_Filtering(t *testing.T) {
 			CreatedAtInSec: 2,
 			Name:           "experiment2",
 			Description:    "My name is experiment2",
-			StorageState:   "STORAGESTATE_AVAILABLE",
+			StorageState:   "AVAILABLE",
 		},
 		&model.Experiment{
 			UUID:           fakeIDThree,
 			CreatedAtInSec: 3,
 			Name:           "experiment3",
 			Description:    "My name is experiment3",
-			StorageState:   "STORAGESTATE_AVAILABLE",
+			StorageState:   "AVAILABLE",
 		},
 	}
 
@@ -418,7 +418,7 @@ func TestListExperiments_Filtering(t *testing.T) {
 			CreatedAtInSec: 4,
 			Name:           "experiment4",
 			Description:    "My name is experiment4",
-			StorageState:   "STORAGESTATE_AVAILABLE",
+			StorageState:   "AVAILABLE",
 		},
 	}
 
@@ -556,7 +556,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Nil(t, err)
 	exp, err := experimentStore.GetExperiment(fakeID)
 	assert.Nil(t, err)
-	assert.Equal(t, api.Experiment_STORAGESTATE_ARCHIVED.String(), exp.StorageState)
+	assert.Equal(t, "ARCHIVED", exp.StorageState)
 	opts, err := list.NewOptions(&model.Run{}, 10, "id", nil)
 	runs, total_run_size, _, err := runStore.ListRuns(&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: fakeID}}, opts)
 	assert.Nil(t, err)
@@ -574,7 +574,7 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	assert.Nil(t, err)
 	exp, err = experimentStore.GetExperiment(fakeID)
 	assert.Nil(t, err)
-	assert.Equal(t, api.Experiment_STORAGESTATE_AVAILABLE.String(), exp.StorageState)
+	assert.Equal(t, "AVAILABLE", exp.StorageState)
 	runs, total_run_size, _, err = runStore.ListRuns(&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: fakeID}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, total_run_size, 2)

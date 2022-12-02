@@ -49,7 +49,7 @@ def get_param_to_custom_artifact_class(func: Callable) -> Dict[str, type]:
     signature = inspect.signature(func)
     for name, param in signature.parameters.items():
         annotation = param.annotation
-        if type_annotations.is_artifact_annotation(annotation):
+        if type_annotations.is_Input_Output_artifact_annotation(annotation):
             artifact_class = type_annotations.get_io_artifact_class(annotation)
             if artifact_class not in kfp_artifact_classes:
                 param_to_artifact_cls[name] = artifact_class

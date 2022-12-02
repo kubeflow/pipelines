@@ -1,5 +1,14 @@
-# Current Version 1.0.27.dev (Still in Development)
+# Current Version 1.0.29.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.28
+* Support uploading for model versions for ModelUploadOp
+* Add text classification data processing component and training component
+* Propagates vertex system labels to the downstream resources for batch prediction job
+
+# Release 1.0.27
+* Add DataprocBatch resource to gcp_resources output parameter
+* Support serving default in bq export model job op
 
 # Release 1.0.26
 * Temporary fix for artifact types
