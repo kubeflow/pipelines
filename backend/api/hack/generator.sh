@@ -71,12 +71,14 @@ jq -s 'reduce .[] as $item ({}; . * $item) | .info.title = "Kubeflow Pipelines A
     backend/api/${API_VERSION}/swagger/experiment.swagger.json \
     backend/api/${API_VERSION}/swagger/recurring_run.swagger.json \
     > "backend/api/${API_VERSION}/swagger/kfp_api_single_file.swagger.json"
+    # TODO(lingqinggan): add the commented lines back after adding the corresponding APIs
     # backend/api/${API_VERSION}/swagger/run.swagger.json \
     # backend/api/${API_VERSION}/swagger/pipeline.swagger.json \
     # backend/api/${API_VERSION}/swagger/pipeline.upload.swagger.json \
     # backend/api/${API_VERSION}/swagger/healthz.swagger.json \
 
 # Generate go_http_client from swagger json.
+ # TODO(lingqinggan): add the commented lines back after adding the corresponding APIs
 swagger generate client \
     -f backend/api/${API_VERSION}/swagger/recurring_run.swagger.json \
     -A recurring_run \
