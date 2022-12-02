@@ -42,9 +42,9 @@ func ToApiExperimentV1(experiment *model.Experiment) *apiV1beta1.Experiment {
 	}
 	storageState := apiV1beta1.Experiment_StorageState(apiV1beta1.Experiment_StorageState_value["STORAGESTATE_UNSPECIFIED"])
 	switch experiment.StorageState {
-	case "AVAILABLE":
+	case "AVAILABLE", "STORAGESTATE_AVAILABLE":
 		storageState = apiV1beta1.Experiment_StorageState(apiV1beta1.Experiment_StorageState_value["STORAGESTATE_AVAILABLE"])
-	case "ARCHIVED":
+	case "ARCHIVED", "STORAGESTATE_ARCHIVED":
 		storageState = apiV1beta1.Experiment_StorageState(apiV1beta1.Experiment_StorageState_value["STORAGESTATE_ARCHIVED"])
 	}
 
@@ -69,9 +69,9 @@ func ToApiExperimentsV1(experiments []*model.Experiment) []*apiV1beta1.Experimen
 func ToApiExperiment(experiment *model.Experiment) *apiV2beta1.Experiment {
 	storageState := apiV2beta1.Experiment_StorageState(apiV2beta1.Experiment_StorageState_value["STORAGESTATE_UNSPECIFIED"])
 	switch experiment.StorageState {
-	case "AVAILABLE":
+	case "AVAILABLE", "STORAGESTATE_AVAILABLE":
 		storageState = apiV2beta1.Experiment_StorageState(apiV2beta1.Experiment_StorageState_value["AVAILABLE"])
-	case "ARCHIVED":
+	case "ARCHIVED", "STORAGESTATE_ARCHIVED":
 		storageState = apiV2beta1.Experiment_StorageState(apiV2beta1.Experiment_StorageState_value["ARCHIVED"])
 	}
 
