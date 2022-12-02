@@ -181,9 +181,6 @@ def get_serializer(annotation: Any) -> Optional[Callable]:
   if proto_plus_class:
     return proto_plus_class.to_json
 
-  if is_serializable_to_json(annotation):
-    return json.dumps
-
 
 def get_deserializer(annotation: Any) -> Optional[Callable[..., str]]:
   """Get deserializer for objects to pass them as strings.
@@ -199,9 +196,6 @@ def get_deserializer(annotation: Any) -> Optional[Callable[..., str]]:
   proto_plus_class = get_proto_plus_class(annotation)
   if proto_plus_class:
     return proto_plus_class.from_json
-
-  if is_serializable_to_json(annotation):
-    return json.loads
 
 
 def map_resource_to_metadata_type(
