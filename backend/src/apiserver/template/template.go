@@ -303,7 +303,7 @@ func toCRDParameters(apiParams map[string]*structpb.Value) []scheduledworkflow.P
 	for name, value := range apiParams {
 		swParam := scheduledworkflow.Parameter{
 			Name:  name,
-			Value: value.String(),
+			Value: value.GetStringValue(),
 		}
 		swParams = append(swParams, swParam)
 	}
