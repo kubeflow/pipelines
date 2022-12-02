@@ -437,7 +437,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 RuntimeError,
-                'Task dummy-op cannot dependent on any task inside the group:'):
+                r'Tasks cannot depend on an upstream task inside'):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -479,7 +479,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 RuntimeError,
-                'Task dummy-op cannot dependent on any task inside the group:'):
+                r'Tasks cannot depend on an upstream task inside'):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -521,7 +521,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 RuntimeError,
-                'Task dummy-op cannot dependent on any task inside the group:'):
+                r'Tasks cannot depend on an upstream task inside'):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -1488,6 +1488,409 @@ class TestBoolInputParameterWithDefaultSerializesCorrectly(unittest.TestCase):
         self.assertEqual(
             pipeline_spec.root.input_definitions.parameters['boolean']
             .default_value.bool_value, True)
+
+
+# helper component defintions for the ValidLegalTopologies tests
+@dsl.component
+def print_op(message: str):
+    print(message)
+
+
+@dsl.component
+def return_1() -> int:
+    return 1
+
+
+@dsl.component
+def args_generator_op() -> List[Dict[str, str]]:
+    return [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]
+
+
+class TestValidLegalTopologies(unittest.TestCase):
+
+    def test_inside_of_root_group_permitted(self):
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+
+            one = print_op(message='1')
+            two = print_op(message='2')
+            three = print_op(message=str(return_1_task.output))
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_upstream_inside_deeper_condition_blocked(self):
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r'Tasks cannot depend on an upstream task inside'):
+
+            @dsl.pipeline()
+            def my_pipeline():
+                return_1_task = return_1()
+
+                one = print_op(message='1')
+                with dsl.Condition(return_1_task.output == 1):
+                    two = print_op(message='2')
+
+                three = print_op(message='3').after(two)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_upstream_in_the_same_condition_permitted(self):
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+
+            with dsl.Condition(return_1_task.output == 1):
+                one = return_1()
+                two = print_op(message='2')
+                three = print_op(message=str(one.output))
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_inside_deeper_condition_permitted(self):
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+
+            one = print_op(message='1')
+            with dsl.Condition(return_1_task.output == 1):
+                two = print_op(message='2')
+                three = print_op(message='3').after(one)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_and_upstream_in_different_condition_on_same_level_blocked(
+            self):
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r'Tasks cannot depend on an upstream task inside'):
+
+            @dsl.pipeline()
+            def my_pipeline():
+                return_1_task = return_1()
+
+                one = print_op(message='1')
+                with dsl.Condition(return_1_task.output == 1):
+                    two = print_op(message='2')
+
+                with dsl.Condition(return_1_task.output == 1):
+                    three = print_op(message='3').after(two)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_inside_deeper_nested_condition_permitted(self):
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+            return_1_task2 = return_1()
+
+            with dsl.Condition(return_1_task.output == 1):
+                one = return_1()
+                with dsl.Condition(return_1_task2.output == 1):
+                    two = print_op(message='2')
+                    three = print_op(message=str(one.output))
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_upstream_inside_deeper_nested_condition_blocked(self):
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r'Tasks cannot depend on an upstream task inside'):
+
+            @dsl.pipeline()
+            def my_pipeline():
+                return_1_task = return_1()
+
+                with dsl.Condition(return_1_task.output == 1):
+                    one = print_op(message='1')
+                    with dsl.Condition(return_1_task.output == 1):
+                        two = print_op(message='2')
+                    three = print_op(message='3').after(two)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_upstream_in_same_for_loop_with_downstream_permitted(self):
+
+        @dsl.pipeline()
+        def my_pipeline():
+            args_generator = args_generator_op()
+
+            with dsl.ParallelFor(args_generator.output):
+                one = print_op(message='1')
+                two = print_op(message='3').after(one)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_not_in_same_for_loop_with_upstream_blocked(self):
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r'Tasks cannot depend on an upstream task inside'):
+
+            @dsl.pipeline()
+            def my_pipeline():
+                args_generator = args_generator_op()
+
+                with dsl.ParallelFor(args_generator.output):
+                    one = print_op(message='1')
+                two = print_op(message='3').after(one)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_not_in_same_for_loop_with_upstream_seperate_blocked(
+            self):
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r'Tasks cannot depend on an upstream task inside'):
+
+            @dsl.pipeline()
+            def my_pipeline():
+                args_generator = args_generator_op()
+
+                with dsl.ParallelFor(args_generator.output):
+                    one = print_op(message='1')
+
+                with dsl.ParallelFor(args_generator.output):
+                    two = print_op(message='3').after(one)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_not_in_same_for_loop_with_upstream_nested_blocked(self):
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r'Downstream tasks in a nested ParallelFor group cannot depend on an upstream task in a shallower ParallelFor group.'
+        ):
+
+            @dsl.pipeline()
+            def my_pipeline():
+                args_generator = args_generator_op()
+
+                with dsl.ParallelFor(args_generator.output):
+                    one = print_op(message='1')
+
+                    with dsl.ParallelFor(args_generator.output):
+                        two = print_op(message='3').after(one)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_in_condition_nested_in_a_for_loop(self):
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+
+            with dsl.ParallelFor([1, 2, 3]):
+                one = print_op(message='1')
+                with dsl.Condition(return_1_task.output == 1):
+                    two = print_op(message='2').after(one)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_in_a_for_loop_nested_in_a_condition(self):
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+
+            with dsl.Condition(return_1_task.output == 1):
+                one = print_op(message='1')
+                with dsl.ParallelFor([1, 2, 3]):
+                    two = print_op(message='2').after(one)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_in_a_nested_for_loop_not_related_to_upstream(self):
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+
+            with dsl.ParallelFor([1, 2, 3]):
+                one = print_op(message='1')
+                with dsl.ParallelFor([1, 2, 3]):
+                    two = print_op(message='2').after(return_1_task)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+
+class TestCannotUseAfterCrossDAG(unittest.TestCase):
+
+    def test_inner_task_prevented(self):
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
+
+            @dsl.component
+            def print_op(message: str):
+                print(message)
+
+            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+            def my_pipeline():
+                first_exit_task = print_op(message='First exit task.')
+
+                with dsl.ExitHandler(first_exit_task):
+                    first_print_op = print_op(
+                        message='Inside first exit handler.')
+
+                second_exit_task = print_op(message='Second exit task.')
+                with dsl.ExitHandler(second_exit_task):
+                    print_op(message='Inside second exit handler.').after(
+                        first_print_op)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_exit_handler_task_prevented(self):
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
+
+            @dsl.component
+            def print_op(message: str):
+                print(message)
+
+            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+            def my_pipeline():
+                first_exit_task = print_op(message='First exit task.')
+
+                with dsl.ExitHandler(first_exit_task):
+                    first_print_op = print_op(
+                        message='Inside first exit handler.')
+
+                second_exit_task = print_op(message='Second exit task.')
+                with dsl.ExitHandler(second_exit_task):
+                    x = print_op(message='Inside second exit handler.')
+                    x.after(first_print_op)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_within_same_exit_handler_permitted(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+        def my_pipeline():
+            first_exit_task = print_op(message='First exit task.')
+
+            with dsl.ExitHandler(first_exit_task):
+                first_print_op = print_op(
+                    message='First task inside first exit handler.')
+                second_print_op = print_op(
+                    message='Second task inside first exit handler.').after(
+                        first_print_op)
+
+            second_exit_task = print_op(message='Second exit task.')
+            with dsl.ExitHandler(second_exit_task):
+                print_op(message='Inside second exit handler.')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_outside_of_condition_blocked(self):
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
+
+            @dsl.component
+            def print_op(message: str):
+                print(message)
+
+            @dsl.component
+            def return_1() -> int:
+                return 1
+
+            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+            def my_pipeline():
+                return_1_task = return_1()
+
+                with dsl.Condition(return_1_task.output == 1):
+                    one = print_op(message='1')
+                    two = print_op(message='2')
+                three = print_op(message='3').after(one)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_inside_of_condition_permitted(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.component
+        def return_1() -> int:
+            return 1
+
+        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+        def my_pipeline():
+            return_1_task = return_1()
+
+            with dsl.Condition(return_1_task.output == '1'):
+                one = print_op(message='1')
+                two = print_op(message='2').after(one)
+            three = print_op(message='3')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
 
 
 if __name__ == '__main__':
