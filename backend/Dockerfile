@@ -22,9 +22,9 @@ RUN GO111MODULE=on go build -o /bin/apiserver backend/src/apiserver/*.go
 RUN ./hack/install-go-licenses.sh
 # First, make sure there's no forbidden license.
 RUN go-licenses check ./backend/src/apiserver
-# RUN go-licenses csv ./backend/src/apiserver > /tmp/licenses.csv && \
-#   diff /tmp/licenses.csv backend/third_party_licenses/apiserver.csv && \
-#   go-licenses save ./backend/src/apiserver --save_path /tmp/NOTICES
+RUN go-licenses csv ./backend/src/apiserver > /tmp/licenses.csv && \
+  diff /tmp/licenses.csv backend/third_party_licenses/apiserver.csv && \
+  go-licenses save ./backend/src/apiserver --save_path /tmp/NOTICES
 
 # 2. Compile preloaded pipeline samples
 FROM python:3.7 as compiler
@@ -69,8 +69,8 @@ COPY backend/src/apiserver/config/ /config
 COPY --from=builder /bin/apiserver /bin/apiserver
 
 # Copy licenses and notices.
-# COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
-# COPY --from=builder /tmp/NOTICES /third_party/NOTICES
+COPY --from=builder /tmp/licenses.csv /third_party/licenses.csv
+COPY --from=builder /tmp/NOTICES /third_party/NOTICES
 COPY --from=compiler /samples/ /samples/
 RUN chmod +x /bin/apiserver
 
