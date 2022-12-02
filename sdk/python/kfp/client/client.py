@@ -407,7 +407,7 @@ class Client:
             sleep_duration: Time in seconds between retries.
 
         Returns:
-            JSON response from the healtz endpoint.
+            JSON response from the healthz endpoint.
         """
         count = 0
         response = None
@@ -427,7 +427,7 @@ class Client:
             except kfp_server_api.ApiException:
                 # logging.exception also logs detailed info about the ApiException
                 logging.exception(
-                    f'Failed to get healthz info attempt {count} of {sleep_duration}.'
+                    f'Failed to get healthz info attempt {count} of {max_attempts}.'
                 )
                 time.sleep(sleep_duration)
 
