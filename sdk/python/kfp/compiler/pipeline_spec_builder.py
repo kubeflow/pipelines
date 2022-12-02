@@ -1662,23 +1662,27 @@ def extract_comments_from_pipeline_spec(pipeline_spec: dict,
 
             # Collect data
             array_of_signatures = []
-            for parameter in signature.get('parameters', {}):
+            for parameter_name, parameter_body in signature.get(
+                    'parameters', {}).items():
                 data = {}
-                data['name'] = parameter
+                data['name'] = parameter_name
                 data['parameterType'] = map_parameter_types[
-                    signature['parameters'][parameter]['parameterType']]
-                if 'defaultValue' in signature['parameters'][parameter]:
-                    data['defaultValue'] = signature['parameters'][parameter][
-                        'defaultValue']
+                    parameter_body['parameterType']]
+                if 'defaultValue' in signature['parameters'][parameter_name]:
+                    data['defaultValue'] = signature['parameters'][
+                        parameter_name]['defaultValue']
                     if isinstance(data['defaultValue'], str):
                         data['defaultValue'] = "'" + data['defaultValue'] + "'"
                 array_of_signatures.append(data)
 
-            for artifact in signature.get('artifacts', {}):
-                data = {}
-                data['name'] = artifact
-                data['parameterType'] = signature['artifacts'][artifact][
-                    'artifactType']['schemaTitle']
+            for artifact_name, artifact_body in signature.get('artifacts',
+                                                              {}).items():
+                data = {
+                    'name':
+                        artifact_name,
+                    'parameterType':
+                        artifact_body['artifactType']['schemaTitle']
+                }
                 array_of_signatures.append(data)
 
             array_of_signatures = sorted(
