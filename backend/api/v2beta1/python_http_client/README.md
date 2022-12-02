@@ -88,13 +88,28 @@ Class | Method | HTTP request | Description
 *ExperimentServiceApi* | [**get_experiment**](docs/ExperimentServiceApi.md#get_experiment) | **GET** /apis/v2beta1/experiments/{experiment_id} | Finds a specific experiment by ID.
 *ExperimentServiceApi* | [**list_experiments**](docs/ExperimentServiceApi.md#list_experiments) | **GET** /apis/v2beta1/experiments | Finds all experiments. Supports pagination, and sorting on certain fields.
 *ExperimentServiceApi* | [**unarchive_experiment**](docs/ExperimentServiceApi.md#unarchive_experiment) | **POST** /apis/v2beta1/experiments/{experiment_id}:unarchive | Restores an archived experiment. The experiment&#39;s archived runs and recurring runs will stay archived.
+*RecurringRunServiceApi* | [**create_recurring_run**](docs/RecurringRunServiceApi.md#create_recurring_run) | **POST** /apis/v2beta1/recurringruns | Creates a new recurring run in an experiment, given the experiment ID.
+*RecurringRunServiceApi* | [**delete_recurring_run**](docs/RecurringRunServiceApi.md#delete_recurring_run) | **DELETE** /apis/v2beta1/recurringruns/{rec_run_id} | Deletes a recurring run.
+*RecurringRunServiceApi* | [**disable_recurring_run**](docs/RecurringRunServiceApi.md#disable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{rec_run_id}:disable | Stops a recurring run and all its associated runs. The recurring run is not deleted.
+*RecurringRunServiceApi* | [**enable_recurring_run**](docs/RecurringRunServiceApi.md#enable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{rec_run_id}:enable | Restarts a recurring run that was previously stopped. All runs associated with the  recurring run will continue.
+*RecurringRunServiceApi* | [**get_recurring_run**](docs/RecurringRunServiceApi.md#get_recurring_run) | **GET** /apis/v2beta1/recurringruns/{rec_run_id} | Finds a specific recurring run by ID.
+*RecurringRunServiceApi* | [**list_recurring_runs**](docs/RecurringRunServiceApi.md#list_recurring_runs) | **GET** /apis/v2beta1/recurringruns | Finds all recurring runs given experiment and namespace.  If experiment ID is not specified, find all recurring runs across all experiments.
 
 
 ## Documentation For Models
 
  - [ExperimentStorageState](docs/ExperimentStorageState.md)
+ - [ProtobufNullValue](docs/ProtobufNullValue.md)
+ - [RecurringRunMode](docs/RecurringRunMode.md)
+ - [V2beta1CronSchedule](docs/V2beta1CronSchedule.md)
  - [V2beta1Experiment](docs/V2beta1Experiment.md)
  - [V2beta1ListExperimentsResponse](docs/V2beta1ListExperimentsResponse.md)
+ - [V2beta1ListRecurringRunsResponse](docs/V2beta1ListRecurringRunsResponse.md)
+ - [V2beta1PeriodicSchedule](docs/V2beta1PeriodicSchedule.md)
+ - [V2beta1RecurringRun](docs/V2beta1RecurringRun.md)
+ - [V2beta1RecurringRunStatus](docs/V2beta1RecurringRunStatus.md)
+ - [V2beta1RuntimeConfig](docs/V2beta1RuntimeConfig.md)
+ - [V2beta1Trigger](docs/V2beta1Trigger.md)
 
 
 ## Documentation For Authorization
