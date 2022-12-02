@@ -738,30 +738,58 @@ func TestToApiExperimentsV1(t *testing.T) {
 		UUID:           "exp1",
 		CreatedAtInSec: 1,
 		Name:           "experiment1",
-		Description:    "My name is experiment1",
+		Description:    "experiment1 was created using V2 API.",
 		StorageState:   "AVAILABLE",
 	}
 	exp2 := &model.Experiment{
 		UUID:           "exp2",
 		CreatedAtInSec: 2,
 		Name:           "experiment2",
-		Description:    "My name is experiment2",
+		Description:    "experiment2 was created using V2 API.",
 		StorageState:   "ARCHIVED",
 	}
-	apiExps := ToApiExperimentsV1([]*model.Experiment{exp1, exp2})
+	exp3 := &model.Experiment{
+		UUID:           "exp3",
+		CreatedAtInSec: 3,
+		Name:           "experiment3",
+		Description:    "experiment3 was created using V1 API.",
+		StorageState:   "STORAGESTATE_AVAILABLE",
+	}
+	exp4 := &model.Experiment{
+		UUID:           "exp4",
+		CreatedAtInSec: 4,
+		Name:           "experiment4",
+		Description:    "experiment4 was created using V1 API.",
+		StorageState:   "STORAGESTATE_ARCHIVED",
+	}
+	apiExps := ToApiExperimentsV1([]*model.Experiment{exp1, exp2, exp3, exp4})
 	expectedApiExps := []*apiV1beta1.Experiment{
 		{
 			Id:           "exp1",
 			Name:         "experiment1",
-			Description:  "My name is experiment1",
+			Description:  "experiment1 was created using V2 API.",
 			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
 			StorageState: apiV1beta1.Experiment_StorageState(apiV1beta1.Experiment_StorageState_value["STORAGESTATE_AVAILABLE"]),
 		},
 		{
 			Id:           "exp2",
 			Name:         "experiment2",
-			Description:  "My name is experiment2",
+			Description:  "experiment2 was created using V2 API.",
 			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
+			StorageState: apiV1beta1.Experiment_StorageState(apiV1beta1.Experiment_StorageState_value["STORAGESTATE_ARCHIVED"]),
+		},
+		{
+			Id:           "exp3",
+			Name:         "experiment3",
+			Description:  "experiment3 was created using V1 API.",
+			CreatedAt:    &timestamp.Timestamp{Seconds: 3},
+			StorageState: apiV1beta1.Experiment_StorageState(apiV1beta1.Experiment_StorageState_value["STORAGESTATE_AVAILABLE"]),
+		},
+		{
+			Id:           "exp4",
+			Name:         "experiment4",
+			Description:  "experiment4 was created using V1 API.",
+			CreatedAt:    &timestamp.Timestamp{Seconds: 4},
 			StorageState: apiV1beta1.Experiment_StorageState(apiV1beta1.Experiment_StorageState_value["STORAGESTATE_ARCHIVED"]),
 		},
 	}
@@ -783,7 +811,21 @@ func TestToApiExperiments(t *testing.T) {
 		Description:    "My name is experiment2",
 		StorageState:   "ARCHIVED",
 	}
-	apiExps := ToApiExperiments([]*model.Experiment{exp1, exp2})
+	exp3 := &model.Experiment{
+		UUID:           "exp3",
+		CreatedAtInSec: 1,
+		Name:           "experiment3",
+		Description:    "experiment3 was created using V1 API.",
+		StorageState:   "STORAGESTATE_AVAILABLE",
+	}
+	exp4 := &model.Experiment{
+		UUID:           "exp4",
+		CreatedAtInSec: 2,
+		Name:           "experiment4",
+		Description:    "experiment4 was created using V1 API.",
+		StorageState:   "STORAGESTATE_ARCHIVED",
+	}
+	apiExps := ToApiExperiments([]*model.Experiment{exp1, exp2, exp3, exp4})
 	expectedApiExps := []*apiV2beta1.Experiment{
 		{
 			ExperimentId: "exp1",
@@ -796,6 +838,20 @@ func TestToApiExperiments(t *testing.T) {
 			ExperimentId: "exp2",
 			DisplayName:  "experiment2",
 			Description:  "My name is experiment2",
+			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
+			StorageState: apiV2beta1.Experiment_StorageState(apiV2beta1.Experiment_StorageState_value["ARCHIVED"]),
+		},
+		{
+			ExperimentId: "exp3",
+			DisplayName:  "experiment3",
+			Description:  "experiment3 was created using V1 API.",
+			CreatedAt:    &timestamp.Timestamp{Seconds: 1},
+			StorageState: apiV2beta1.Experiment_StorageState(apiV2beta1.Experiment_StorageState_value["AVAILABLE"]),
+		},
+		{
+			ExperimentId: "exp4",
+			DisplayName:  "experiment4",
+			Description:  "experiment4 was created using V1 API.",
 			CreatedAt:    &timestamp.Timestamp{Seconds: 2},
 			StorageState: apiV2beta1.Experiment_StorageState(apiV2beta1.Experiment_StorageState_value["ARCHIVED"]),
 		},
