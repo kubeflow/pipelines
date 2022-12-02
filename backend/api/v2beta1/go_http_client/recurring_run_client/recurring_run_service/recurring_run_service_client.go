@@ -64,7 +64,7 @@ func (a *Client) DeleteRecurringRun(params *DeleteRecurringRunParams) (*DeleteRe
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "DeleteRecurringRun",
 		Method:             "DELETE",
-		PathPattern:        "/apis/v2beta1/recurringruns/{rec_run_id}",
+		PathPattern:        "/apis/v2beta1/recurringruns/{recurring_run_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -92,7 +92,7 @@ func (a *Client) DisableRecurringRun(params *DisableRecurringRunParams) (*Disabl
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "DisableRecurringRun",
 		Method:             "POST",
-		PathPattern:        "/apis/v2beta1/recurringruns/{rec_run_id}:disable",
+		PathPattern:        "/apis/v2beta1/recurringruns/{recurring_run_id}:disable",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -120,7 +120,7 @@ func (a *Client) EnableRecurringRun(params *EnableRecurringRunParams) (*EnableRe
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "EnableRecurringRun",
 		Method:             "POST",
-		PathPattern:        "/apis/v2beta1/recurringruns/{rec_run_id}:enable",
+		PathPattern:        "/apis/v2beta1/recurringruns/{recurring_run_id}:enable",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -148,7 +148,7 @@ func (a *Client) GetRecurringRun(params *GetRecurringRunParams) (*GetRecurringRu
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "GetRecurringRun",
 		Method:             "GET",
-		PathPattern:        "/apis/v2beta1/recurringruns/{rec_run_id}",
+		PathPattern:        "/apis/v2beta1/recurringruns/{recurring_run_id}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},

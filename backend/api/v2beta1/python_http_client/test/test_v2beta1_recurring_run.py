@@ -36,7 +36,7 @@ class TestV2beta1RecurringRun(unittest.TestCase):
         # model = kfp_server_api.models.v2beta1_recurring_run.V2beta1RecurringRun()  # noqa: E501
         if include_optional :
             return V2beta1RecurringRun(
-                rec_run_id = '0', 
+                recurring_run_id = '0', 
                 display_name = '0', 
                 description = '0', 
                 pipeline_id = '0', 

@@ -49,7 +49,7 @@ type DeleteRecurringRunOK struct {
 }
 
 func (o *DeleteRecurringRunOK) Error() string {
-	return fmt.Sprintf("[DELETE /apis/v2beta1/recurringruns/{rec_run_id}][%d] deleteRecurringRunOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[DELETE /apis/v2beta1/recurringruns/{recurring_run_id}][%d] deleteRecurringRunOK  %+v", 200, o.Payload)
 }
 
 func (o *DeleteRecurringRunOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

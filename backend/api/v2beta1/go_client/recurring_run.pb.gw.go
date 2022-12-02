@@ -56,15 +56,15 @@ func request_RecurringRunService_GetRecurringRun_0(ctx context.Context, marshale
 		_   = err
 	)
 
-	val, ok = pathParams["rec_run_id"]
+	val, ok = pathParams["recurring_run_id"]
 	if !ok {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "rec_run_id")
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "recurring_run_id")
 	}
 
 	protoReq.RecRunId, err = runtime.String(val)
 
 	if err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "rec_run_id", err)
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "recurring_run_id", err)
 	}
 
 	msg, err := client.GetRecurringRun(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
@@ -103,15 +103,15 @@ func request_RecurringRunService_EnableRecurringRun_0(ctx context.Context, marsh
 		_   = err
 	)
 
-	val, ok = pathParams["rec_run_id"]
+	val, ok = pathParams["recurring_run_id"]
 	if !ok {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "rec_run_id")
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "recurring_run_id")
 	}
 
 	protoReq.RecRunId, err = runtime.String(val)
 
 	if err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "rec_run_id", err)
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "recurring_run_id", err)
 	}
 
 	msg, err := client.EnableRecurringRun(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
@@ -130,15 +130,15 @@ func request_RecurringRunService_DisableRecurringRun_0(ctx context.Context, mars
 		_   = err
 	)
 
-	val, ok = pathParams["rec_run_id"]
+	val, ok = pathParams["recurring_run_id"]
 	if !ok {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "rec_run_id")
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "recurring_run_id")
 	}
 
 	protoReq.RecRunId, err = runtime.String(val)
 
 	if err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "rec_run_id", err)
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "recurring_run_id", err)
 	}
 
 	msg, err := client.DisableRecurringRun(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
@@ -157,15 +157,15 @@ func request_RecurringRunService_DeleteRecurringRun_0(ctx context.Context, marsh
 		_   = err
 	)
 
-	val, ok = pathParams["rec_run_id"]
+	val, ok = pathParams["recurring_run_id"]
 	if !ok {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "rec_run_id")
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "recurring_run_id")
 	}
 
 	protoReq.RecRunId, err = runtime.String(val)
 
 	if err != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "rec_run_id", err)
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "recurring_run_id", err)
 	}
 
 	msg, err := client.DeleteRecurringRun(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
@@ -337,15 +337,15 @@ func RegisterRecurringRunServiceHandlerClient(ctx context.Context, mux *runtime.
 var (
 	pattern_RecurringRunService_CreateRecurringRun_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v2beta1", "recurringruns"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_RecurringRunService_GetRecurringRun_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v2beta1", "recurringruns", "rec_run_id"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_RecurringRunService_GetRecurringRun_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v2beta1", "recurringruns", "recurring_run_id"}, "", runtime.AssumeColonVerbOpt(true)))
 
 	pattern_RecurringRunService_ListRecurringRuns_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2}, []string{"apis", "v2beta1", "recurringruns"}, "", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_RecurringRunService_EnableRecurringRun_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v2beta1", "recurringruns", "rec_run_id"}, "enable", runtime.AssumeColonVerbOpt(true)))
+	pattern_RecurringRunService_EnableRecurringRun_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v2beta1", "recurringruns", "recurring_run_id"}, "enable", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_RecurringRunService_DisableRecurringRun_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v2beta1", "recurringruns", "rec_run_id"}, "disable", runtime.AssumeColonVerbOpt(true)))
+	pattern_RecurringRunService_DisableRecurringRun_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v2beta1", "recurringruns", "recurring_run_id"}, "disable", runtime.AssumeColonVerbOpt(true)))
 
-	pattern_RecurringRunService_DeleteRecurringRun_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v2beta1", "recurringruns", "rec_run_id"}, "", runtime.AssumeColonVerbOpt(true)))
+	pattern_RecurringRunService_DeleteRecurringRun_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 1, 0, 4, 1, 5, 3}, []string{"apis", "v2beta1", "recurringruns", "recurring_run_id"}, "", runtime.AssumeColonVerbOpt(true)))
 )
 
 var (

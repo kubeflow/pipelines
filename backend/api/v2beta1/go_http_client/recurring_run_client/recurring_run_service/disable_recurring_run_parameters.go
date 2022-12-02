@@ -124,8 +124,8 @@ func (o *DisableRecurringRunParams) WriteToRequest(r runtime.ClientRequest, reg 
 	}
 	var res []error
 
-	// path param rec_run_id
-	if err := r.SetPathParam("rec_run_id", o.RecRunID); err != nil {
+	// path param recurring_run_id
+	if err := r.SetPathParam("recurring_run_id", o.RecRunID); err != nil {
 		return err
 	}
 

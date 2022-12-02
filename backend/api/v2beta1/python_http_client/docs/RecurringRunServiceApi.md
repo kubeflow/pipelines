@@ -5,10 +5,10 @@ All URIs are relative to *http://localhost*
 Method | HTTP request | Description
 ------------- | ------------- | -------------
 [**create_recurring_run**](RecurringRunServiceApi.md#create_recurring_run) | **POST** /apis/v2beta1/recurringruns | Creates a new recurring run in an experiment, given the experiment ID.
-[**delete_recurring_run**](RecurringRunServiceApi.md#delete_recurring_run) | **DELETE** /apis/v2beta1/recurringruns/{rec_run_id} | Deletes a recurring run.
-[**disable_recurring_run**](RecurringRunServiceApi.md#disable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{rec_run_id}:disable | Stops a recurring run and all its associated runs. The recurring run is not deleted.
-[**enable_recurring_run**](RecurringRunServiceApi.md#enable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{rec_run_id}:enable | Restarts a recurring run that was previously stopped. All runs associated with the  recurring run will continue.
-[**get_recurring_run**](RecurringRunServiceApi.md#get_recurring_run) | **GET** /apis/v2beta1/recurringruns/{rec_run_id} | Finds a specific recurring run by ID.
+[**delete_recurring_run**](RecurringRunServiceApi.md#delete_recurring_run) | **DELETE** /apis/v2beta1/recurringruns/{recurring_run_id} | Deletes a recurring run.
+[**disable_recurring_run**](RecurringRunServiceApi.md#disable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{recurring_run_id}:disable | Stops a recurring run and all its associated runs. The recurring run is not deleted.
+[**enable_recurring_run**](RecurringRunServiceApi.md#enable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{recurring_run_id}:enable | Restarts a recurring run that was previously stopped. All runs associated with the  recurring run will continue.
+[**get_recurring_run**](RecurringRunServiceApi.md#get_recurring_run) | **GET** /apis/v2beta1/recurringruns/{recurring_run_id} | Finds a specific recurring run by ID.
 [**list_recurring_runs**](RecurringRunServiceApi.md#list_recurring_runs) | **GET** /apis/v2beta1/recurringruns | Finds all recurring runs given experiment and namespace.  If experiment ID is not specified, find all recurring runs across all experiments.
 
 
@@ -73,7 +73,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **delete_recurring_run**
-> object delete_recurring_run(rec_run_id)
+> object delete_recurring_run(recurring_run_id)
 
 Deletes a recurring run.
 
@@ -96,11 +96,11 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient() as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RecurringRunServiceApi(api_client)
-    rec_run_id = 'rec_run_id_example' # str | The ID of the recurring run to be deleted.
+    recurring_run_id = 'recurring_run_id_example' # str | The ID of the recurring run to be deleted.
 
     try:
         # Deletes a recurring run.
-        api_response = api_instance.delete_recurring_run(rec_run_id)
+        api_response = api_instance.delete_recurring_run(recurring_run_id)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling RecurringRunServiceApi->delete_recurring_run: %s\n" % e)
@@ -110,7 +110,7 @@ with kfp_server_api.ApiClient() as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **rec_run_id** | **str**| The ID of the recurring run to be deleted. | 
+ **recurring_run_id** | **str**| The ID of the recurring run to be deleted. | 
 
 ### Return type
 
@@ -133,7 +133,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **disable_recurring_run**
-> object disable_recurring_run(rec_run_id)
+> object disable_recurring_run(recurring_run_id)
 
 Stops a recurring run and all its associated runs. The recurring run is not deleted.
 
@@ -156,11 +156,11 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient() as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RecurringRunServiceApi(api_client)
-    rec_run_id = 'rec_run_id_example' # str | The ID of the recurring runs to be disabled.
+    recurring_run_id = 'recurring_run_id_example' # str | The ID of the recurring runs to be disabled.
 
     try:
         # Stops a recurring run and all its associated runs. The recurring run is not deleted.
-        api_response = api_instance.disable_recurring_run(rec_run_id)
+        api_response = api_instance.disable_recurring_run(recurring_run_id)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling RecurringRunServiceApi->disable_recurring_run: %s\n" % e)
@@ -170,7 +170,7 @@ with kfp_server_api.ApiClient() as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **rec_run_id** | **str**| The ID of the recurring runs to be disabled. | 
+ **recurring_run_id** | **str**| The ID of the recurring runs to be disabled. | 
 
 ### Return type
 
@@ -193,7 +193,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **enable_recurring_run**
-> object enable_recurring_run(rec_run_id)
+> object enable_recurring_run(recurring_run_id)
 
 Restarts a recurring run that was previously stopped. All runs associated with the  recurring run will continue.
 
@@ -216,11 +216,11 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient() as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RecurringRunServiceApi(api_client)
-    rec_run_id = 'rec_run_id_example' # str | The ID of the recurring runs to be enabled.
+    recurring_run_id = 'recurring_run_id_example' # str | The ID of the recurring runs to be enabled.
 
     try:
         # Restarts a recurring run that was previously stopped. All runs associated with the  recurring run will continue.
-        api_response = api_instance.enable_recurring_run(rec_run_id)
+        api_response = api_instance.enable_recurring_run(recurring_run_id)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling RecurringRunServiceApi->enable_recurring_run: %s\n" % e)
@@ -230,7 +230,7 @@ with kfp_server_api.ApiClient() as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **rec_run_id** | **str**| The ID of the recurring runs to be enabled. | 
+ **recurring_run_id** | **str**| The ID of the recurring runs to be enabled. | 
 
 ### Return type
 
@@ -253,7 +253,7 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **get_recurring_run**
-> V2beta1RecurringRun get_recurring_run(rec_run_id)
+> V2beta1RecurringRun get_recurring_run(recurring_run_id)
 
 Finds a specific recurring run by ID.
 
@@ -276,11 +276,11 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient() as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RecurringRunServiceApi(api_client)
-    rec_run_id = 'rec_run_id_example' # str | The ID of the recurring run to be retrieved.
+    recurring_run_id = 'recurring_run_id_example' # str | The ID of the recurring run to be retrieved.
 
     try:
         # Finds a specific recurring run by ID.
-        api_response = api_instance.get_recurring_run(rec_run_id)
+        api_response = api_instance.get_recurring_run(recurring_run_id)
         pprint(api_response)
     except ApiException as e:
         print("Exception when calling RecurringRunServiceApi->get_recurring_run: %s\n" % e)
@@ -290,7 +290,7 @@ with kfp_server_api.ApiClient() as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **rec_run_id** | **str**| The ID of the recurring run to be retrieved. | 
+ **recurring_run_id** | **str**| The ID of the recurring run to be retrieved. | 
 
 ### Return type
 

@@ -51,7 +51,7 @@ type GetRecurringRunOK struct {
 }
 
 func (o *GetRecurringRunOK) Error() string {
-	return fmt.Sprintf("[GET /apis/v2beta1/recurringruns/{rec_run_id}][%d] getRecurringRunOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /apis/v2beta1/recurringruns/{recurring_run_id}][%d] getRecurringRunOK  %+v", 200, o.Payload)
 }
 
 func (o *GetRecurringRunOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {

@@ -38,7 +38,7 @@ class TestV2beta1ListRecurringRunsResponse(unittest.TestCase):
             return V2beta1ListRecurringRunsResponse(
                 recurring_runs = [
                     kfp_server_api.models.v2beta1_recurring_run.v2beta1RecurringRun(
-                        rec_run_id = '0', 
+                        recurring_run_id = '0', 
                         display_name = '0', 
                         description = '0', 
                         pipeline_id = '0', 

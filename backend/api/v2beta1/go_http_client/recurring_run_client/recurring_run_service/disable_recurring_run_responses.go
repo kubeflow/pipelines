@@ -49,7 +49,7 @@ type DisableRecurringRunOK struct {
 }
 
 func (o *DisableRecurringRunOK) Error() string {
-	return fmt.Sprintf("[POST /apis/v2beta1/recurringruns/{rec_run_id}:disable][%d] disableRecurringRunOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[POST /apis/v2beta1/recurringruns/{recurring_run_id}:disable][%d] disableRecurringRunOK  %+v", 200, o.Payload)
 }
 
 func (o *DisableRecurringRunOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
