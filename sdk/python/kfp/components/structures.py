@@ -829,6 +829,26 @@ class ComponentSpec:
             Component spec in the form of V2 ComponentSpec.
         """
 
+        def extract_description(component_yaml: str) -> Union[str, None]:
+            heading = '# Description: '
+            multi_line_description_prefix = '#             '
+            index_of_heading = 2
+            if heading in component_yaml:
+                description = component_yaml.splitlines()[index_of_heading]
+
+                # Multi line
+                comments = component_yaml.splitlines()
+                index = index_of_heading + 1
+                while comments[index][:len(multi_line_description_prefix
+                                          )] == multi_line_description_prefix:
+                    description += '\n' + comments[index][
+                        len(multi_line_description_prefix) + 1:]
+                    index += 1
+
+                return description[len(heading):]
+            else:
+                return None
+
         json_component = yaml.safe_load(component_yaml)
         is_v1 = 'implementation' in set(json_component.keys())
         if is_v1:
@@ -836,7 +856,12 @@ class ComponentSpec:
                 component_yaml)
             return cls.from_v1_component_spec(v1_component)
         else:
-            return ComponentSpec.from_pipeline_spec_dict(json_component)
+            component_spec = ComponentSpec.from_pipeline_spec_dict(
+                json_component)
+            if not component_spec.description:
+                component_spec.description = extract_description(
+                    component_yaml=component_yaml)
+            return component_spec
 
     def save_to_component_yaml(self, output_file: str) -> None:
         """Saves ComponentSpec into IR YAML file.
@@ -847,7 +872,7 @@ class ComponentSpec:
         from kfp.compiler import pipeline_spec_builder as builder
 
         pipeline_spec = self.to_pipeline_spec()
-        builder.write_pipeline_spec_to_file(pipeline_spec, output_file)
+        builder.write_pipeline_spec_to_file(pipeline_spec, None, output_file)
 
     def to_pipeline_spec(self) -> pipeline_spec_pb2.PipelineSpec:
         """Creates a pipeline instance and constructs the pipeline spec for a

@@ -1,6 +1,7 @@
 # Current Version (in development)
 
 ## Features
+* Add comments to IR YAML file [\#8467](https://github.com/kubeflow/pipelines/pull/8467)
 
 ## Breaking changes
 
