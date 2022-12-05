@@ -43,3 +43,4 @@ repos:
         name: docformatter
         language: python
         entry: docformatter -i -r
+        exclude: sdk/python/kfp/compiler/compiler_test.py

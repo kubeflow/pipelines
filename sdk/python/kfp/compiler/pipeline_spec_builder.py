@@ -1604,6 +1604,7 @@ def create_pipeline_spec(
 
 
 def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+                                pipeline_description: str,
                                 package_path: str) -> None:
     """Writes PipelineSpec into a YAML or JSON (deprecated) file.
 
@@ -1612,6 +1613,8 @@ def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
         package_path (str): The path to which to write the PipelineSpec.
     """
     json_dict = json_format.MessageToDict(pipeline_spec)
+    yaml_comments = extract_comments_from_pipeline_spec(json_dict,
+                                                        pipeline_description)
 
     if package_path.endswith('.json'):
         warnings.warn(
@@ -1626,8 +1629,89 @@ def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
 
     elif package_path.endswith(('.yaml', '.yml')):
         with open(package_path, 'w') as yaml_file:
+            yaml_file.write(yaml_comments)
             yaml.dump(json_dict, yaml_file, sort_keys=True)
 
     else:
         raise ValueError(
             f'The output path {package_path} should end with ".yaml".')
+
+
+def extract_comments_from_pipeline_spec(pipeline_spec: dict,
+                                        pipeline_description: str) -> str:
+    map_parameter_types = {
+        'NUMBER_INTEGER': int.__name__,
+        'NUMBER_DOUBLE': float.__name__,
+        'STRING': str.__name__,
+        'BOOLEAN': bool.__name__,
+        'LIST': list.__name__,
+        'STRUCT': dict.__name__
+    }
+
+    map_headings = {
+        'inputDefinitions': '# Inputs:',
+        'outputDefinitions': '# Outputs:'
+    }
+
+    def collect_pipeline_signatures(root_dict: dict,
+                                    signature_type: str) -> List[str]:
+        comment_strings = []
+        if signature_type in root_dict:
+            signature = root_dict[signature_type]
+            comment_strings.append(map_headings[signature_type])
+
+            # Collect data
+            array_of_signatures = []
+            for parameter_name, parameter_body in signature.get(
+                    'parameters', {}).items():
+                data = {}
+                data['name'] = parameter_name
+                data['parameterType'] = map_parameter_types[
+                    parameter_body['parameterType']]
+                if 'defaultValue' in signature['parameters'][parameter_name]:
+                    data['defaultValue'] = signature['parameters'][
+                        parameter_name]['defaultValue']
+                    if isinstance(data['defaultValue'], str):
+                        data['defaultValue'] = "'" + data['defaultValue'] + "'"
+                array_of_signatures.append(data)
+
+            for artifact_name, artifact_body in signature.get('artifacts',
+                                                              {}).items():
+                data = {
+                    'name':
+                        artifact_name,
+                    'parameterType':
+                        artifact_body['artifactType']['schemaTitle']
+                }
+                array_of_signatures.append(data)
+
+            array_of_signatures = sorted(
+                array_of_signatures, key=lambda d: d.get('name'))
+
+            # Present data
+            for signature in array_of_signatures:
+                string = '#    ' + signature['name'] + ': ' + signature[
+                    'parameterType']
+                if 'defaultValue' in signature:
+                    string += ' [Default: ' + str(
+                        signature['defaultValue']) + ']'
+                comment_strings.append(string)
+
+        return comment_strings
+
+    multi_line_description_prefix = '#              '
+    comment_sections = []
+    comment_sections.append('# PIPELINE DEFINITION')
+    comment_sections.append('# Name: ' + pipeline_spec['pipelineInfo']['name'])
+    if pipeline_description:
+        pipeline_description = f'\n{multi_line_description_prefix}'.join(
+            pipeline_description.splitlines())
+        comment_sections.append('# Description: ' + pipeline_description)
+    comment_sections.extend(
+        collect_pipeline_signatures(pipeline_spec['root'], 'inputDefinitions'))
+    comment_sections.extend(
+        collect_pipeline_signatures(pipeline_spec['root'], 'outputDefinitions'))
+
+    comment = '\n'.join(comment_sections) + '\n'
+
+    return comment
