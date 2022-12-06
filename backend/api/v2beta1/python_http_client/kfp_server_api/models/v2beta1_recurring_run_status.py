@@ -28,11 +28,11 @@ class V2beta1RecurringRunStatus(object):
     """
     allowed enum values
     """
-    UNSPECIFIED = "STATUS_UNSPECIFIED"
-    ENABLED = "STATUS_ENABLED"
-    DISABLED = "STATUS_DISABLED"
+    STATUS_UNSPECIFIED = "STATUS_UNSPECIFIED"
+    ENABLED = "ENABLED"
+    DISABLED = "DISABLED"
 
-    allowable_values = [UNSPECIFIED, ENABLED, DISABLED]  # noqa: E501
+    allowable_values = [STATUS_UNSPECIFIED, ENABLED, DISABLED]  # noqa: E501
 
     """
     Attributes:

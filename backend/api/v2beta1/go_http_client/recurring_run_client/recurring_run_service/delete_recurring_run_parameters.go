@@ -61,11 +61,11 @@ for the delete recurring run operation typically these are written to a http.Req
 */
 type DeleteRecurringRunParams struct {
 
-	/*RecRunID
+	/*RecurringRunID
 	  The ID of the recurring run to be deleted.
 
 	*/
-	RecRunID string
+	RecurringRunID string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -105,15 +105,15 @@ func (o *DeleteRecurringRunParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithRecRunID adds the recRunID to the delete recurring run params
-func (o *DeleteRecurringRunParams) WithRecRunID(recRunID string) *DeleteRecurringRunParams {
-	o.SetRecRunID(recRunID)
+// WithRecurringRunID adds the recurringRunID to the delete recurring run params
+func (o *DeleteRecurringRunParams) WithRecurringRunID(recurringRunID string) *DeleteRecurringRunParams {
+	o.SetRecurringRunID(recurringRunID)
 	return o
 }
 
-// SetRecRunID adds the recRunId to the delete recurring run params
-func (o *DeleteRecurringRunParams) SetRecRunID(recRunID string) {
-	o.RecRunID = recRunID
+// SetRecurringRunID adds the recurringRunId to the delete recurring run params
+func (o *DeleteRecurringRunParams) SetRecurringRunID(recurringRunID string) {
+	o.RecurringRunID = recurringRunID
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -125,7 +125,7 @@ func (o *DeleteRecurringRunParams) WriteToRequest(r runtime.ClientRequest, reg s
 	var res []error
 
 	// path param recurring_run_id
-	if err := r.SetPathParam("recurring_run_id", o.RecRunID); err != nil {
+	if err := r.SetPathParam("recurring_run_id", o.RecurringRunID); err != nil {
 		return err
 	}
 

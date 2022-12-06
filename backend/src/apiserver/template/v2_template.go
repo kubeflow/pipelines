@@ -35,6 +35,37 @@ type V2Spec struct {
 	spec *pipelinespec.PipelineSpec
 }
 
+/*
+func (t *V2Spec) NewScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
+	spec := &structpb.Struct{}
+	if err := protojson.Unmarshal([]byte(modelJob.PipelineSpec.PipelineSpecManifest), spec); err != nil {
+		return nil, util.Wrap(err, "Failed to parse pipeline spec manifest.")
+	}
+	job := &pipelinespec.PipelineJob{PipelineSpec: spec}
+	jobRuntimeConfig :=
+	job.RuntimeConfig = jobRuntimeConfig
+		obj, err := argocompiler.Compile(job, nil)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to compile job")
+		}
+
+	scheduledWorkflow = &scheduledworkflow.ScheduledWorkflow{
+		ObjectMeta: metav1.ObjectMeta{GenerateName: swfGeneratedName},
+		Spec: scheduledworkflow.ScheduledWorkflowSpec{
+			Enabled:        modeToPipelineJobEnabled(apiRecurringRun.GetMode()),
+			MaxConcurrency: &apiRecurringRun.MaxConcurrency,
+			Trigger:        *toCRDTrigger(apiRecurringRun.GetTrigger()),
+			Workflow: &scheduledworkflow.WorkflowResource{
+				Parameters: toCRDParameters(apiRecurringRun.GetRuntimeConfig().GetParameters()),
+				Spec:       executionSpec.ToStringForSchedule(),
+			},
+			NoCatchup: util.BoolPointer(apiRecurringRun.GetNoCatchup()),
+		},
+	}
+	return nil, nil
+}
+*/
+
 func (t *V2Spec) ScheduledWorkflow(inputInterface interface{}) (*scheduledworkflow.ScheduledWorkflow, error) {
 	bytes, err := protojson.Marshal(t.spec)
 	if err != nil {

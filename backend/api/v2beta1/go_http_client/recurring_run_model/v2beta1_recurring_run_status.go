@@ -23,11 +23,11 @@ const (
 	// V2beta1RecurringRunStatusSTATUSUNSPECIFIED captures enum value "STATUS_UNSPECIFIED"
 	V2beta1RecurringRunStatusSTATUSUNSPECIFIED V2beta1RecurringRunStatus = "STATUS_UNSPECIFIED"
 
-	// V2beta1RecurringRunStatusSTATUSENABLED captures enum value "STATUS_ENABLED"
-	V2beta1RecurringRunStatusSTATUSENABLED V2beta1RecurringRunStatus = "STATUS_ENABLED"
+	// V2beta1RecurringRunStatusENABLED captures enum value "ENABLED"
+	V2beta1RecurringRunStatusENABLED V2beta1RecurringRunStatus = "ENABLED"
 
-	// V2beta1RecurringRunStatusSTATUSDISABLED captures enum value "STATUS_DISABLED"
-	V2beta1RecurringRunStatusSTATUSDISABLED V2beta1RecurringRunStatus = "STATUS_DISABLED"
+	// V2beta1RecurringRunStatusDISABLED captures enum value "DISABLED"
+	V2beta1RecurringRunStatusDISABLED V2beta1RecurringRunStatus = "DISABLED"
 )
 
 // for schema
@@ -35,7 +35,7 @@ var v2beta1RecurringRunStatusEnum []interface{}
 
 func init() {
 	var res []V2beta1RecurringRunStatus
-	if err := json.Unmarshal([]byte(`["STATUS_UNSPECIFIED","STATUS_ENABLED","STATUS_DISABLED"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["STATUS_UNSPECIFIED","ENABLED","DISABLED"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

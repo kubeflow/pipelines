@@ -61,11 +61,11 @@ for the get recurring run operation typically these are written to a http.Reques
 */
 type GetRecurringRunParams struct {
 
-	/*RecRunID
+	/*RecurringRunID
 	  The ID of the recurring run to be retrieved.
 
 	*/
-	RecRunID string
+	RecurringRunID string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -105,15 +105,15 @@ func (o *GetRecurringRunParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithRecRunID adds the recRunID to the get recurring run params
-func (o *GetRecurringRunParams) WithRecRunID(recRunID string) *GetRecurringRunParams {
-	o.SetRecRunID(recRunID)
+// WithRecurringRunID adds the recurringRunID to the get recurring run params
+func (o *GetRecurringRunParams) WithRecurringRunID(recurringRunID string) *GetRecurringRunParams {
+	o.SetRecurringRunID(recurringRunID)
 	return o
 }
 
-// SetRecRunID adds the recRunId to the get recurring run params
-func (o *GetRecurringRunParams) SetRecRunID(recRunID string) {
-	o.RecRunID = recRunID
+// SetRecurringRunID adds the recurringRunId to the get recurring run params
+func (o *GetRecurringRunParams) SetRecurringRunID(recurringRunID string) {
+	o.RecurringRunID = recurringRunID
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -125,7 +125,7 @@ func (o *GetRecurringRunParams) WriteToRequest(r runtime.ClientRequest, reg strf
 	var res []error
 
 	// path param recurring_run_id
-	if err := r.SetPathParam("recurring_run_id", o.RecRunID); err != nil {
+	if err := r.SetPathParam("recurring_run_id", o.RecurringRunID); err != nil {
 		return err
 	}
 

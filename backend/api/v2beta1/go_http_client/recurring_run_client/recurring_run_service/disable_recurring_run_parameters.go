@@ -61,11 +61,11 @@ for the disable recurring run operation typically these are written to a http.Re
 */
 type DisableRecurringRunParams struct {
 
-	/*RecRunID
+	/*RecurringRunID
 	  The ID of the recurring runs to be disabled.
 
 	*/
-	RecRunID string
+	RecurringRunID string
 
 	timeout    time.Duration
 	Context    context.Context
@@ -105,15 +105,15 @@ func (o *DisableRecurringRunParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
-// WithRecRunID adds the recRunID to the disable recurring run params
-func (o *DisableRecurringRunParams) WithRecRunID(recRunID string) *DisableRecurringRunParams {
-	o.SetRecRunID(recRunID)
+// WithRecurringRunID adds the recurringRunID to the disable recurring run params
+func (o *DisableRecurringRunParams) WithRecurringRunID(recurringRunID string) *DisableRecurringRunParams {
+	o.SetRecurringRunID(recurringRunID)
 	return o
 }
 
-// SetRecRunID adds the recRunId to the disable recurring run params
-func (o *DisableRecurringRunParams) SetRecRunID(recRunID string) {
-	o.RecRunID = recRunID
+// SetRecurringRunID adds the recurringRunId to the disable recurring run params
+func (o *DisableRecurringRunParams) SetRecurringRunID(recurringRunID string) {
+	o.RecurringRunID = recurringRunID
 }
 
 // WriteToRequest writes these params to a swagger request
@@ -125,7 +125,7 @@ func (o *DisableRecurringRunParams) WriteToRequest(r runtime.ClientRequest, reg 
 	var res []error
 
 	// path param recurring_run_id
-	if err := r.SetPathParam("recurring_run_id", o.RecRunID); err != nil {
+	if err := r.SetPathParam("recurring_run_id", o.RecurringRunID); err != nil {
 		return err
 	}
 

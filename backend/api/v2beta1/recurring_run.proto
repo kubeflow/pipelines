@@ -199,11 +199,13 @@ message RecurringRun {
   Trigger trigger = 9;
 
   // Required input.
+  // User setting to enable or disable the recurring run. 
+  // Only used for creation of recurring runs. Later updates use enable/disable API.
   enum Mode {
     MODE_UNSPECIFIED = 0;
-    MODE_ENABLED = 1;
+    ENABLE = 1;
     // The recurring run won't schedule any run if disabled.
-    MODE_DISABLED = 2;
+    DISABLE = 2;
   }
   Mode mode = 10;
 
@@ -216,8 +218,8 @@ message RecurringRun {
   // Output. The status of the recurring run.
   enum Status {
     STATUS_UNSPECIFIED = 0;
-    STATUS_ENABLED = 1;
-    STATUS_DISABLED = 3;
+    ENABLED = 1;
+    DISABLED = 3;
 }
   Status status = 13;
 

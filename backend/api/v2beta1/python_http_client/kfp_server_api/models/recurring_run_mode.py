@@ -28,11 +28,11 @@ class RecurringRunMode(object):
     """
     allowed enum values
     """
-    UNSPECIFIED = "MODE_UNSPECIFIED"
-    ENABLED = "MODE_ENABLED"
-    DISABLED = "MODE_DISABLED"
+    MODE_UNSPECIFIED = "MODE_UNSPECIFIED"
+    ENABLE = "ENABLE"
+    DISABLE = "DISABLE"
 
-    allowable_values = [UNSPECIFIED, ENABLED, DISABLED]  # noqa: E501
+    allowable_values = [MODE_UNSPECIFIED, ENABLE, DISABLE]  # noqa: E501
 
     """
     Attributes:

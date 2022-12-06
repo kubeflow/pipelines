@@ -15,8 +15,10 @@ import (
 )
 
 // RecurringRunMode Required input.
+// User setting to enable or disable the recurring run.
+// Only used for creation of recurring runs. Later updates use enable/disable API.
 //
-//  - MODE_DISABLED: The recurring run won't schedule any run if disabled.
+//  - DISABLE: The recurring run won't schedule any run if disabled.
 // swagger:model RecurringRunMode
 type RecurringRunMode string
 
@@ -25,11 +27,11 @@ const (
 	// RecurringRunModeMODEUNSPECIFIED captures enum value "MODE_UNSPECIFIED"
 	RecurringRunModeMODEUNSPECIFIED RecurringRunMode = "MODE_UNSPECIFIED"
 
-	// RecurringRunModeMODEENABLED captures enum value "MODE_ENABLED"
-	RecurringRunModeMODEENABLED RecurringRunMode = "MODE_ENABLED"
+	// RecurringRunModeENABLE captures enum value "ENABLE"
+	RecurringRunModeENABLE RecurringRunMode = "ENABLE"
 
-	// RecurringRunModeMODEDISABLED captures enum value "MODE_DISABLED"
-	RecurringRunModeMODEDISABLED RecurringRunMode = "MODE_DISABLED"
+	// RecurringRunModeDISABLE captures enum value "DISABLE"
+	RecurringRunModeDISABLE RecurringRunMode = "DISABLE"
 )
 
 // for schema
@@ -37,7 +39,7 @@ var recurringRunModeEnum []interface{}
 
 func init() {
 	var res []RecurringRunMode
-	if err := json.Unmarshal([]byte(`["MODE_UNSPECIFIED","MODE_ENABLED","MODE_DISABLED"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["MODE_UNSPECIFIED","ENABLE","DISABLE"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

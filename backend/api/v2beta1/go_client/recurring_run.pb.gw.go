@@ -61,7 +61,7 @@ func request_RecurringRunService_GetRecurringRun_0(ctx context.Context, marshale
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "recurring_run_id")
 	}
 
-	protoReq.RecRunId, err = runtime.String(val)
+	protoReq.RecurringRunId, err = runtime.String(val)
 
 	if err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "recurring_run_id", err)
@@ -108,7 +108,7 @@ func request_RecurringRunService_EnableRecurringRun_0(ctx context.Context, marsh
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "recurring_run_id")
 	}
 
-	protoReq.RecRunId, err = runtime.String(val)
+	protoReq.RecurringRunId, err = runtime.String(val)
 
 	if err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "recurring_run_id", err)
@@ -135,7 +135,7 @@ func request_RecurringRunService_DisableRecurringRun_0(ctx context.Context, mars
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "recurring_run_id")
 	}
 
-	protoReq.RecRunId, err = runtime.String(val)
+	protoReq.RecurringRunId, err = runtime.String(val)
 
 	if err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "recurring_run_id", err)
@@ -162,7 +162,7 @@ func request_RecurringRunService_DeleteRecurringRun_0(ctx context.Context, marsh
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "missing parameter %s", "recurring_run_id")
 	}
 
-	protoReq.RecRunId, err = runtime.String(val)
+	protoReq.RecurringRunId, err = runtime.String(val)
 
 	if err != nil {
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "type mismatch, parameter: %s, error: %v", "recurring_run_id", err)

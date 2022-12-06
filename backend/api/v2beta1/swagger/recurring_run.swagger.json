@@ -211,11 +211,11 @@
       "type": "string",
       "enum": [
         "MODE_UNSPECIFIED",
-        "MODE_ENABLED",
-        "MODE_DISABLED"
+        "ENABLE",
+        "DISABLE"
       ],
       "default": "MODE_UNSPECIFIED",
-      "description": "Required input.\n\n - MODE_DISABLED: The recurring run won't schedule any run if disabled."
+      "description": "Required input.\nUser setting to enable or disable the recurring run. \nOnly used for creation of recurring runs. Later updates use enable/disable API.\n\n - DISABLE: The recurring run won't schedule any run if disabled."
     },
     "protobufNullValue": {
       "type": "string",
@@ -366,8 +366,8 @@
       "type": "string",
       "enum": [
         "STATUS_UNSPECIFIED",
-        "STATUS_ENABLED",
-        "STATUS_DISABLED"
+        "ENABLED",
+        "DISABLED"
       ],
       "default": "STATUS_UNSPECIFIED",
       "description": "Output. The status of the recurring run."
