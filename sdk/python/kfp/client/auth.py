@@ -308,12 +308,11 @@ def get_auth_response_ssh(host: str, port: int, auth_url: str) -> str:
         A URL containing authorization code.
     """
     print(auth_url)
-    authorization_response = input(
+    return input(
         'Carefully follow these steps: (1) open the URL above in your'
         ' browser, (2) authenticate and copy a url of the response page'
         f' that starts with http://{host}:{port}..., and (3) paste it'
         ' below:\n')
-    return authorization_response
 
 
 def get_auth_response_local(host: str, port: int,

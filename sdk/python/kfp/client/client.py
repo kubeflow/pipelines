@@ -420,10 +420,7 @@ class Client:
                 )
 
             try:
-                response = self._healthz_api.get_healthz()
-                return response
-            # ApiException, including network errors, is the only type that may
-            # recover after retry.
+                return self._healthz_api.get_healthz()
             except kfp_server_api.ApiException:
                 # logging.exception also logs detailed info about the ApiException
                 logging.exception(
@@ -551,7 +548,7 @@ class Client:
             ``ApiListExperimentsResponse`` object.
         """
         namespace = namespace or self.get_user_namespace()
-        response = self._experiment_api.list_experiment(
+        return self._experiment_api.list_experiment(
             page_token=page_token,
             page_size=page_size,
             sort_by=sort_by,
@@ -559,7 +556,6 @@ class Client:
             .NAMESPACE,
             resource_reference_key_id=namespace,
             filter=filter)
-        return response
 
     def get_experiment(self,
                        experiment_id=None,
@@ -1359,8 +1355,7 @@ class Client:
         """
         get_run_response = self._run_api.get_run(run_id=run_id)
         workflow = get_run_response.pipeline_runtime.workflow_manifest
-        workflow_json = json.loads(workflow)
-        return workflow_json
+        return json.loads(workflow)
 
     def upload_pipeline(
         self,
