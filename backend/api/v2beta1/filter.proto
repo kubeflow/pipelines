@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,64 +15,16 @@
 syntax = "proto3";
 
 option go_package = "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client";
-package v2beta1;
+package kubeflow.pipelines.backend;
 
-import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 
-// Predicate captures individual conditions that must be true for a resource
-// being filtered.
-message Predicate {
-  // Op is the operation to apply.
-  enum Op {
-    UNKNOWN = 0;
-
-    // Operators on scalar values. Only applies to one of |int_value|,
-    // |long_value|, |string_value| or |timestamp_value|.
-    EQUALS = 1;
-    NOT_EQUALS = 2;
-    GREATER_THAN = 3;
-    GREATER_THAN_EQUALS = 5;
-    LESS_THAN = 6;
-    LESS_THAN_EQUALS = 7;
-
-    // Checks if the value is a member of a given array, which should be one of
-    // |int_values|, |long_values| or |string_values|.
-    IN = 8;
-
-    // Checks if the value contains |string_value| as a substring match. Only
-    // applies to |string_value|.
-    IS_SUBSTRING = 9;
-  }
-  Op op = 1;
-
-  string key = 2;
-  oneof value {
-    int32 int_value = 3;
-    int64 long_value = 4;
-    string string_value = 5;
-
-    // Timestamp values will be converted to Unix time (seconds since the epoch)
-    // prior to being used in a filtering operation.
-    google.protobuf.Timestamp timestamp_value = 6;
-
-    // Array values below are only meant to be used by the IN operator.
-    IntValues int_values = 7;
-    LongValues long_values = 8;
-    StringValues string_values = 9;
-  }
-}
-
-message IntValues {
-  repeated int32 values = 1;
-}
-
-message StringValues {
-  repeated string values = 2;
-}
-
-message LongValues {
-  repeated int64 values = 3;
+// This dummy service is required so that grpc-gateway will generate Swagger
+// definitions for the Filter message. Otherwise, it does not get generated
+// since Filter itself is not used in any of the RPC calls - only a serialized
+// encoded version of it is used.
+service DummyFilterService {
+  rpc GetFilter(Filter) returns (Filter) {}
 }
 
 // Filter is used to filter resources returned from a ListXXX request.
@@ -120,10 +72,83 @@ message Filter {
   repeated Predicate predicates = 1;
 }
 
-// This dummy service is required so that grpc-gateway will generate Swagger
-// definitions for the Filter message. Otherwise, it does not get generated
-// since Filter itself is not used in any of the RPC calls - only a serialized
-// encoded version of it is used.
-service DummyFilterService {
-  rpc GetFilter(Filter) returns (Filter) {}
+// Predicate captures individual conditions that must be true for a resource
+// being filtered.
+message Predicate {
+  // Operation is the operation to apply.
+  enum Operation {
+    // Default operation. This operation is not used.
+    OPERATION_UNSPECIFIED = 0;
+
+    // Operation on scalar values. Only applies to one of |int_value|,
+    // |long_value|, |string_value| or |timestamp_value|.
+    EQUALS = 1;
+
+    // Negated EQUALS.
+    NOT_EQUALS = 2;
+
+    // Greater than operation.
+    GREATER_THAN = 3;
+
+    // Greater than or equals operation.
+    GREATER_THAN_EQUALS = 5;
+
+    // Less than operation.
+    LESS_THAN = 6;
+
+    // Less than or equals operation
+    LESS_THAN_EQUALS = 7;
+
+    // Checks if the value is a member of a given array, which should be one of
+    // |int_values|, |long_values| or |string_values|.
+    IN = 8;
+
+    // Checks if the value contains |string_value| as a substring match. Only
+    // applies to |string_value|.
+    IS_SUBSTRING = 9;
+  }
+  Operation operation = 1;
+
+  // Key for the operation (first argument).
+  string key = 2;
+
+  // List of integers.
+  message IntValues {
+    repeated int32 values = 1;
+  }
+  
+  // List of strings.
+  message StringValues {
+    repeated string values = 2;
+  }
+  
+  // List of long integers.
+  message LongValues {
+    repeated int64 values = 3;
+  }
+  
+  // Value for the operation (second argument).
+  oneof value {
+    // Integer.
+    int32 int_value = 3;
+
+    // Long integer.
+    int64 long_value = 4;
+
+    // String.
+    string string_value = 5;
+
+    // Timestamp values will be converted to Unix time (seconds since the epoch)
+    // prior to being used in a filtering operation.
+    google.protobuf.Timestamp timestamp_value = 6;
+
+    // Array values below are only meant to be used by the IN operator.
+    IntValues int_values = 7;
+
+    // List of long integers.
+    LongValues long_values = 8;
+
+    // List of strings.
+    StringValues string_values = 9;
+  }
 }

@@ -1,4 +1,4 @@
-// Copyright 2022 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,17 +15,27 @@
 syntax = "proto3";
 
 option go_package = "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client";
-package v2beta1;
+package kubeflow.pipelines.backend;
 
 import "google/protobuf/any.proto";
 
+// Error message.
 message Error {
+  // Error message.
   string error_message = 1;
+
+  // Error details.
   string error_details = 2;
 }
 
+// Status message representing result of a request. 
 message Status {
+  // Error message.
   string error = 1;
+
+  // Status code.
   int32 code = 2;
+
+  // Any details about the status.
   repeated google.protobuf.Any details = 3;
 }
