@@ -23,7 +23,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v2beta1ListExperimentsResponse"
+              "$ref": "#/definitions/backendListExperimentsResponse"
             }
           }
         },
@@ -76,7 +76,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v2beta1Experiment"
+              "$ref": "#/definitions/backendExperiment"
             }
           }
         },
@@ -87,7 +87,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v2beta1Experiment"
+              "$ref": "#/definitions/backendExperiment"
             }
           }
         ],
@@ -104,7 +104,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/v2beta1Experiment"
+              "$ref": "#/definitions/backendExperiment"
             }
           }
         },
@@ -200,16 +200,7 @@
     }
   },
   "definitions": {
-    "ExperimentStorageState": {
-      "type": "string",
-      "enum": [
-        "STORAGESTATE_UNSPECIFIED",
-        "AVAILABLE",
-        "ARCHIVED"
-      ],
-      "default": "STORAGESTATE_UNSPECIFIED"
-    },
-    "v2beta1Experiment": {
+    "backendExperiment": {
       "type": "object",
       "properties": {
         "experiment_id": {
@@ -234,18 +225,28 @@
           "description": "Optional input field. Specify the namespace this experiment belongs to."
         },
         "storage_state": {
-          "$ref": "#/definitions/ExperimentStorageState",
+          "$ref": "#/definitions/backendExperimentStorageState",
           "description": "Output. Specifies whether this experiment is in archived or available state."
         }
       }
     },
-    "v2beta1ListExperimentsResponse": {
+    "backendExperimentStorageState": {
+      "type": "string",
+      "enum": [
+        "STORAGESTATE_UNSPECIFIED",
+        "AVAILABLE",
+        "ARCHIVED"
+      ],
+      "default": "STORAGESTATE_UNSPECIFIED",
+      "description": "Describes whether an entity is available or archived.\n\n - STORAGESTATE_UNSPECIFIED: Default state. This state in not used\n - AVAILABLE: Entity is available.\n - ARCHIVED: Entity is archived."
+    },
+    "backendListExperimentsResponse": {
       "type": "object",
       "properties": {
         "experiments": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/v2beta1Experiment"
+            "$ref": "#/definitions/backendExperiment"
           },
           "description": "A list of experiments returned."
         },

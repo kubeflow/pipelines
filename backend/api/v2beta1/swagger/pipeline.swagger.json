@@ -1,0 +1,572 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "backend/api/v2beta1/pipeline.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/apis/v2beta1/pipelines": {
+      "get": {
+        "summary": "Finds all pipelines within a namespace.",
+        "operationId": "ListPipelines",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/backendListPipelinesResponse"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/backendStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "namespace",
+            "description": "Optional input. Namespace for the pipelines.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page_token",
+            "description": "A page token to request the results page.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page_size",
+            "description": "The number of pipelines to be listed per page. If there are more pipelines\nthan this number, the response message will contain a valid value in the\nnextPageToken field.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sort_by",
+            "description": "Sorting order in form of \"field_name\", \"field_name asc\" or \"field_name desc\".\nAscending by default.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filter",
+            "description": "A url-encoded, JSON-serialized filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PipelineService"
+        ]
+      },
+      "post": {
+        "summary": "Creates a pipeline.",
+        "operationId": "CreatePipeline",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/backendPipeline"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/backendStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Required input. Pipeline that needs to be created.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/backendPipeline"
+            }
+          }
+        ],
+        "tags": [
+          "PipelineService"
+        ]
+      }
+    },
+    "/apis/v2beta1/pipelines/names/{name}": {
+      "get": {
+        "summary": "Finds a specific pipeline by name and namespace.",
+        "operationId": "GetPipelineByName",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/backendPipeline"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/backendStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "description": "Required input. Name of the pipeline to be retrieved.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "namespace",
+            "description": "Optional input. Namespace of the pipeline. \nIt could be empty if default namespaces needs to be used or if  multi-user \nsupport is turned off.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PipelineService"
+        ]
+      }
+    },
+    "/apis/v2beta1/pipelines/{pipeline_id}": {
+      "get": {
+        "summary": "Finds a specific pipeline by ID.",
+        "operationId": "GetPipeline",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/backendPipeline"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/backendStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pipeline_id",
+            "description": "Required input. The ID of the pipeline to be retrieved.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PipelineService"
+        ]
+      },
+      "delete": {
+        "summary": "Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.",
+        "operationId": "DeletePipeline",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/backendStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pipeline_id",
+            "description": "Required input. ID of the pipeline to be deleted.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PipelineService"
+        ]
+      }
+    },
+    "/apis/v2beta1/pipelines/{pipeline_id}/versions": {
+      "get": {
+        "summary": "Lists all pipeline versions of a given pipeline ID.",
+        "operationId": "ListPipelineVersions",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/backendListPipelineVersionsResponse"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/backendStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pipeline_id",
+            "description": "Required input. ID of the parent pipeline.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "page_token",
+            "description": "A page token to request the results page.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page_size",
+            "description": "The number of pipeline versions to be listed per page. If there are more pipeline\nversions than this number, the response message will contain a valid value in the\nnextPageToken field.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sort_by",
+            "description": "Sorting order in form of \"field_name\", \"field_name asc\" or \"field_name desc\".\nAscending by default.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filter",
+            "description": "A url-encoded, JSON-serialized filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PipelineService"
+        ]
+      },
+      "post": {
+        "summary": "Adds a pipeline version to the specified pipeline ID.",
+        "operationId": "CreatePipelineVersion",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/backendPipelineVersion"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/backendStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pipeline_id",
+            "description": "Required input. ID of the parent pipeline.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PipelineService"
+        ]
+      }
+    },
+    "/apis/v2beta1/pipelines/{pipeline_id}/versions/{pipeline_version_id}": {
+      "get": {
+        "summary": "Gets a pipeline version by pipeline version ID and pipeline ID.",
+        "operationId": "GetPipelineVersion",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/backendPipelineVersion"
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/backendStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pipeline_id",
+            "description": "Required input. ID of the parent pipeline.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "pipeline_version_id",
+            "description": "Required input. ID of the pipeline version to be retrieved.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PipelineService"
+        ]
+      },
+      "delete": {
+        "summary": "Deletes a specific pipeline version by pipeline version ID and pipeline ID.",
+        "operationId": "DeletePipelineVersion",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/backendStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "pipeline_id",
+            "description": "Required input. ID of the parent pipeline.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "pipeline_version_id",
+            "description": "Required input. The ID of the pipeline version to be deleted.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "PipelineService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "backendError": {
+      "type": "object",
+      "properties": {
+        "error_message": {
+          "type": "string",
+          "description": "Error message."
+        },
+        "error_details": {
+          "type": "string",
+          "description": "Error details."
+        }
+      },
+      "description": "Error message."
+    },
+    "backendListPipelineVersionsResponse": {
+      "type": "object",
+      "properties": {
+        "pipeline_versions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/backendPipelineVersion"
+          },
+          "description": "Returned pipeline versions."
+        },
+        "next_page_token": {
+          "type": "string",
+          "description": "The token to list the next page of pipeline versions."
+        },
+        "total_size": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The total number of pipeline versions for the given query."
+        }
+      }
+    },
+    "backendListPipelinesResponse": {
+      "type": "object",
+      "properties": {
+        "pipelines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/backendPipeline"
+          },
+          "description": "Returned pipelines."
+        },
+        "total_size": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The total number of pipelines for the given query."
+        },
+        "next_page_token": {
+          "type": "string",
+          "description": "The token to list the next page of pipelines.\nThis token can be used on the next ListPipelinesRequest."
+        }
+      }
+    },
+    "backendPipeline": {
+      "type": "object",
+      "properties": {
+        "pipeline_id": {
+          "type": "string",
+          "description": "Output. Unique pipeline ID. Generated by API server."
+        },
+        "display_name": {
+          "type": "string",
+          "description": "Required input field. Pipeline name provided by user. If not specified,\nfile name is used as pipeline name."
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional input field. A short description of the pipeline."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Output. Creation time of the pipeline."
+        },
+        "namespace": {
+          "type": "string",
+          "description": "Input. A namespace this pipeline belongs to.\nCauses error if user is not authorized to access the specified namespace.\nIf not specified in CreatePipeline, default namespace is used."
+        },
+        "error": {
+          "$ref": "#/definitions/backendError",
+          "description": "In case any error happens retrieving a pipeline field, only pipeline ID,\nand the error message is returned. Client has the flexibility of choosing\nhow to handle the error. This is especially useful during listing call."
+        }
+      }
+    },
+    "backendPipelineVersion": {
+      "type": "object",
+      "properties": {
+        "pipeline_id": {
+          "type": "string",
+          "description": "Required input field. Unique ID of the parent pipeline."
+        },
+        "pipeline_version_id": {
+          "type": "string",
+          "description": "Output. Unique pipeline version ID. Generated by API server."
+        },
+        "display_name": {
+          "type": "string",
+          "description": "Required input field. Pipeline version name provided by user."
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional input field. Short description of the pipeline version."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Output. Creation time of the pipeline version."
+        },
+        "package_url": {
+          "$ref": "#/definitions/backendUrl",
+          "description": "Required input field. Pipeline version package url.\nWhen calling CreatePipelineVersion, one needs to provide \none package file location."
+        },
+        "pipeline_spec": {
+          "type": "object",
+          "description": "Required input field. Specifies the pipeline spec for the pipeline version."
+        },
+        "error": {
+          "$ref": "#/definitions/backendError",
+          "description": "In case any error happens retrieving a pipeline version field, only\npipeline ID, pipeline version ID, and the error message are returned. \nClient has the flexibility of choosing how to handle the error. \nThis is especially useful during List() calls."
+        }
+      }
+    },
+    "backendStatus": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "description": "Error message."
+        },
+        "code": {
+          "type": "integer",
+          "format": "int32",
+          "description": "Status code."
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          },
+          "description": "Any details about the status."
+        }
+      },
+      "description": "Status message representing result of a request."
+    },
+    "backendUrl": {
+      "type": "object",
+      "properties": {
+        "pipeline_url": {
+          "type": "string",
+          "description": "URL of the pipeline version definition."
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "type_url": {
+          "type": "string",
+          "description": "A URL/resource name that uniquely identifies the type of the serialized\nprotocol buffer message. This string must contain at least\none \"/\" character. The last segment of the URL's path must represent\nthe fully qualified name of the type (as in\n`path/google.protobuf.Duration`). The name should be in a canonical form\n(e.g., leading \".\" is not accepted).\n\nIn practice, teams usually precompile into the binary all types that they\nexpect it to use in the context of Any. However, for URLs which use the\nscheme `http`, `https`, or no scheme, one can optionally set up a type\nserver that maps type URLs to message definitions as follows:\n\n* If no scheme is provided, `https` is assumed.\n* An HTTP GET on the URL must yield a [google.protobuf.Type][]\n  value in binary format, or produce an error.\n* Applications are allowed to cache lookup results based on the\n  URL, or have them precompiled into a binary to avoid any\n  lookup. Therefore, binary compatibility needs to be preserved\n  on changes to types. (Use versioned type names to manage\n  breaking changes.)\n\nNote: this functionality is not currently available in the official\nprotobuf release, and it is not used for type URLs beginning with\ntype.googleapis.com.\n\nSchemes other than `http`, `https` (or the empty scheme) might be\nused with implementation specific semantics."
+        },
+        "value": {
+          "type": "string",
+          "format": "byte",
+          "description": "Must be a valid serialized protocol buffer of the above specified type."
+        }
+      },
+      "description": "`Any` contains an arbitrary serialized protocol buffer message along with a\nURL that describes the type of the serialized message.\n\nProtobuf library provides support to pack/unpack Any values in the form\nof utility functions or additional generated methods of the Any type.\n\nExample 1: Pack and unpack a message in C++.\n\n    Foo foo = ...;\n    Any any;\n    any.PackFrom(foo);\n    ...\n    if (any.UnpackTo(\u0026foo)) {\n      ...\n    }\n\nExample 2: Pack and unpack a message in Java.\n\n    Foo foo = ...;\n    Any any = Any.pack(foo);\n    ...\n    if (any.is(Foo.class)) {\n      foo = any.unpack(Foo.class);\n    }\n\n Example 3: Pack and unpack a message in Python.\n\n    foo = Foo(...)\n    any = Any()\n    any.Pack(foo)\n    ...\n    if any.Is(Foo.DESCRIPTOR):\n      any.Unpack(foo)\n      ...\n\n Example 4: Pack and unpack a message in Go\n\n     foo := \u0026pb.Foo{...}\n     any, err := anypb.New(foo)\n     if err != nil {\n       ...\n     }\n     ...\n     foo := \u0026pb.Foo{}\n     if err := any.UnmarshalTo(foo); err != nil {\n       ...\n     }\n\nThe pack methods provided by protobuf library will by default use\n'type.googleapis.com/full.type.name' as the type URL and the unpack\nmethods only use the fully qualified type name after the last '/'\nin the type URL, for example \"foo.bar.com/x/y.z\" will yield type\nname \"y.z\".\n\n\nJSON\n====\nThe JSON representation of an `Any` value uses the regular\nrepresentation of the deserialized, embedded message, with an\nadditional field `@type` which contains the type URL. Example:\n\n    package google.profile;\n    message Person {\n      string first_name = 1;\n      string last_name = 2;\n    }\n\n    {\n      \"@type\": \"type.googleapis.com/google.profile.Person\",\n      \"firstName\": \u003cstring\u003e,\n      \"lastName\": \u003cstring\u003e\n    }\n\nIf the embedded message type is well-known and has a custom JSON\nrepresentation, that representation will be embedded adding a field\n`value` which holds the custom JSON in addition to the `@type`\nfield. Example (for message [google.protobuf.Duration][]):\n\n    {\n      \"@type\": \"type.googleapis.com/google.protobuf.Duration\",\n      \"value\": \"1.212s\"\n    }"
+    },
+    "protobufNullValue": {
+      "type": "string",
+      "enum": [
+        "NULL_VALUE"
+      ],
+      "default": "NULL_VALUE",
+      "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
+    }
+  },
+  "securityDefinitions": {
+    "Bearer": {
+      "type": "apiKey",
+      "name": "authorization",
+      "in": "header"
+    }
+  },
+  "security": [
+    {
+      "Bearer": []
+    }
+  ]
+}

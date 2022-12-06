@@ -13,9 +13,9 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// V2beta1Experiment v2beta1 experiment
-// swagger:model v2beta1Experiment
-type V2beta1Experiment struct {
+// BackendExperiment backend experiment
+// swagger:model backendExperiment
+type BackendExperiment struct {
 
 	// Output. The time that the experiment was created.
 	// Format: date-time
@@ -34,11 +34,11 @@ type V2beta1Experiment struct {
 	Namespace string `json:"namespace,omitempty"`
 
 	// Output. Specifies whether this experiment is in archived or available state.
-	StorageState ExperimentStorageState `json:"storage_state,omitempty"`
+	StorageState BackendExperimentStorageState `json:"storage_state,omitempty"`
 }
 
-// Validate validates this v2beta1 experiment
-func (m *V2beta1Experiment) Validate(formats strfmt.Registry) error {
+// Validate validates this backend experiment
+func (m *BackendExperiment) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateCreatedAt(formats); err != nil {
@@ -55,7 +55,7 @@ func (m *V2beta1Experiment) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *V2beta1Experiment) validateCreatedAt(formats strfmt.Registry) error {
+func (m *BackendExperiment) validateCreatedAt(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.CreatedAt) { // not required
 		return nil
@@ -68,7 +68,7 @@ func (m *V2beta1Experiment) validateCreatedAt(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *V2beta1Experiment) validateStorageState(formats strfmt.Registry) error {
+func (m *BackendExperiment) validateStorageState(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.StorageState) { // not required
 		return nil
@@ -85,7 +85,7 @@ func (m *V2beta1Experiment) validateStorageState(formats strfmt.Registry) error 
 }
 
 // MarshalBinary interface implementation
-func (m *V2beta1Experiment) MarshalBinary() ([]byte, error) {
+func (m *BackendExperiment) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -93,8 +93,8 @@ func (m *V2beta1Experiment) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *V2beta1Experiment) UnmarshalBinary(b []byte) error {
-	var res V2beta1Experiment
+func (m *BackendExperiment) UnmarshalBinary(b []byte) error {
+	var res BackendExperiment
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

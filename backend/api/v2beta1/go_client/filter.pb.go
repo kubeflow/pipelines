@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ package go_client
 
 import (
 	context "context"
-	_ "google.golang.org/genproto/googleapis/api/annotations"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -40,31 +39,37 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Op is the operation to apply.
-type Predicate_Op int32
+// Operation is the operation to apply.
+type Predicate_Operation int32
 
 const (
-	Predicate_UNKNOWN Predicate_Op = 0
-	// Operators on scalar values. Only applies to one of |int_value|,
+	// Default operation. This operation is not used.
+	Predicate_OPERATION_UNSPECIFIED Predicate_Operation = 0
+	// Operation on scalar values. Only applies to one of |int_value|,
 	// |long_value|, |string_value| or |timestamp_value|.
-	Predicate_EQUALS              Predicate_Op = 1
-	Predicate_NOT_EQUALS          Predicate_Op = 2
-	Predicate_GREATER_THAN        Predicate_Op = 3
-	Predicate_GREATER_THAN_EQUALS Predicate_Op = 5
-	Predicate_LESS_THAN           Predicate_Op = 6
-	Predicate_LESS_THAN_EQUALS    Predicate_Op = 7
+	Predicate_EQUALS Predicate_Operation = 1
+	// Negated EQUALS.
+	Predicate_NOT_EQUALS Predicate_Operation = 2
+	// Greater than operation.
+	Predicate_GREATER_THAN Predicate_Operation = 3
+	// Greater than or equals operation.
+	Predicate_GREATER_THAN_EQUALS Predicate_Operation = 5
+	// Less than operation.
+	Predicate_LESS_THAN Predicate_Operation = 6
+	// Less than or equals operation
+	Predicate_LESS_THAN_EQUALS Predicate_Operation = 7
 	// Checks if the value is a member of a given array, which should be one of
 	// |int_values|, |long_values| or |string_values|.
-	Predicate_IN Predicate_Op = 8
+	Predicate_IN Predicate_Operation = 8
 	// Checks if the value contains |string_value| as a substring match. Only
 	// applies to |string_value|.
-	Predicate_IS_SUBSTRING Predicate_Op = 9
+	Predicate_IS_SUBSTRING Predicate_Operation = 9
 )
 
-// Enum value maps for Predicate_Op.
+// Enum value maps for Predicate_Operation.
 var (
-	Predicate_Op_name = map[int32]string{
-		0: "UNKNOWN",
+	Predicate_Operation_name = map[int32]string{
+		0: "OPERATION_UNSPECIFIED",
 		1: "EQUALS",
 		2: "NOT_EQUALS",
 		3: "GREATER_THAN",
@@ -74,356 +79,44 @@ var (
 		8: "IN",
 		9: "IS_SUBSTRING",
 	}
-	Predicate_Op_value = map[string]int32{
-		"UNKNOWN":             0,
-		"EQUALS":              1,
-		"NOT_EQUALS":          2,
-		"GREATER_THAN":        3,
-		"GREATER_THAN_EQUALS": 5,
-		"LESS_THAN":           6,
-		"LESS_THAN_EQUALS":    7,
-		"IN":                  8,
-		"IS_SUBSTRING":        9,
+	Predicate_Operation_value = map[string]int32{
+		"OPERATION_UNSPECIFIED": 0,
+		"EQUALS":                1,
+		"NOT_EQUALS":            2,
+		"GREATER_THAN":          3,
+		"GREATER_THAN_EQUALS":   5,
+		"LESS_THAN":             6,
+		"LESS_THAN_EQUALS":      7,
+		"IN":                    8,
+		"IS_SUBSTRING":          9,
 	}
 )
 
-func (x Predicate_Op) Enum() *Predicate_Op {
-	p := new(Predicate_Op)
+func (x Predicate_Operation) Enum() *Predicate_Operation {
+	p := new(Predicate_Operation)
 	*p = x
 	return p
 }
 
-func (x Predicate_Op) String() string {
+func (x Predicate_Operation) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (Predicate_Op) Descriptor() protoreflect.EnumDescriptor {
+func (Predicate_Operation) Descriptor() protoreflect.EnumDescriptor {
 	return file_backend_api_v2beta1_filter_proto_enumTypes[0].Descriptor()
 }
 
-func (Predicate_Op) Type() protoreflect.EnumType {
+func (Predicate_Operation) Type() protoreflect.EnumType {
 	return &file_backend_api_v2beta1_filter_proto_enumTypes[0]
 }
 
-func (x Predicate_Op) Number() protoreflect.EnumNumber {
+func (x Predicate_Operation) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use Predicate_Op.Descriptor instead.
-func (Predicate_Op) EnumDescriptor() ([]byte, []int) {
-	return file_backend_api_v2beta1_filter_proto_rawDescGZIP(), []int{0, 0}
-}
-
-// Predicate captures individual conditions that must be true for a resource
-// being filtered.
-type Predicate struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Op  Predicate_Op `protobuf:"varint,1,opt,name=op,proto3,enum=v2beta1.Predicate_Op" json:"op,omitempty"`
-	Key string       `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
-	// Types that are assignable to Value:
-	//	*Predicate_IntValue
-	//	*Predicate_LongValue
-	//	*Predicate_StringValue
-	//	*Predicate_TimestampValue
-	//	*Predicate_IntValues
-	//	*Predicate_LongValues
-	//	*Predicate_StringValues
-	Value isPredicate_Value `protobuf_oneof:"value"`
-}
-
-func (x *Predicate) Reset() {
-	*x = Predicate{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_backend_api_v2beta1_filter_proto_msgTypes[0]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *Predicate) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Predicate) ProtoMessage() {}
-
-func (x *Predicate) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_filter_proto_msgTypes[0]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Predicate.ProtoReflect.Descriptor instead.
-func (*Predicate) Descriptor() ([]byte, []int) {
-	return file_backend_api_v2beta1_filter_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *Predicate) GetOp() Predicate_Op {
-	if x != nil {
-		return x.Op
-	}
-	return Predicate_UNKNOWN
-}
-
-func (x *Predicate) GetKey() string {
-	if x != nil {
-		return x.Key
-	}
-	return ""
-}
-
-func (m *Predicate) GetValue() isPredicate_Value {
-	if m != nil {
-		return m.Value
-	}
-	return nil
-}
-
-func (x *Predicate) GetIntValue() int32 {
-	if x, ok := x.GetValue().(*Predicate_IntValue); ok {
-		return x.IntValue
-	}
-	return 0
-}
-
-func (x *Predicate) GetLongValue() int64 {
-	if x, ok := x.GetValue().(*Predicate_LongValue); ok {
-		return x.LongValue
-	}
-	return 0
-}
-
-func (x *Predicate) GetStringValue() string {
-	if x, ok := x.GetValue().(*Predicate_StringValue); ok {
-		return x.StringValue
-	}
-	return ""
-}
-
-func (x *Predicate) GetTimestampValue() *timestamppb.Timestamp {
-	if x, ok := x.GetValue().(*Predicate_TimestampValue); ok {
-		return x.TimestampValue
-	}
-	return nil
-}
-
-func (x *Predicate) GetIntValues() *IntValues {
-	if x, ok := x.GetValue().(*Predicate_IntValues); ok {
-		return x.IntValues
-	}
-	return nil
-}
-
-func (x *Predicate) GetLongValues() *LongValues {
-	if x, ok := x.GetValue().(*Predicate_LongValues); ok {
-		return x.LongValues
-	}
-	return nil
-}
-
-func (x *Predicate) GetStringValues() *StringValues {
-	if x, ok := x.GetValue().(*Predicate_StringValues); ok {
-		return x.StringValues
-	}
-	return nil
-}
-
-type isPredicate_Value interface {
-	isPredicate_Value()
-}
-
-type Predicate_IntValue struct {
-	IntValue int32 `protobuf:"varint,3,opt,name=int_value,json=intValue,proto3,oneof"`
-}
-
-type Predicate_LongValue struct {
-	LongValue int64 `protobuf:"varint,4,opt,name=long_value,json=longValue,proto3,oneof"`
-}
-
-type Predicate_StringValue struct {
-	StringValue string `protobuf:"bytes,5,opt,name=string_value,json=stringValue,proto3,oneof"`
-}
-
-type Predicate_TimestampValue struct {
-	// Timestamp values will be converted to Unix time (seconds since the epoch)
-	// prior to being used in a filtering operation.
-	TimestampValue *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=timestamp_value,json=timestampValue,proto3,oneof"`
-}
-
-type Predicate_IntValues struct {
-	// Array values below are only meant to be used by the IN operator.
-	IntValues *IntValues `protobuf:"bytes,7,opt,name=int_values,json=intValues,proto3,oneof"`
-}
-
-type Predicate_LongValues struct {
-	LongValues *LongValues `protobuf:"bytes,8,opt,name=long_values,json=longValues,proto3,oneof"`
-}
-
-type Predicate_StringValues struct {
-	StringValues *StringValues `protobuf:"bytes,9,opt,name=string_values,json=stringValues,proto3,oneof"`
-}
-
-func (*Predicate_IntValue) isPredicate_Value() {}
-
-func (*Predicate_LongValue) isPredicate_Value() {}
-
-func (*Predicate_StringValue) isPredicate_Value() {}
-
-func (*Predicate_TimestampValue) isPredicate_Value() {}
-
-func (*Predicate_IntValues) isPredicate_Value() {}
-
-func (*Predicate_LongValues) isPredicate_Value() {}
-
-func (*Predicate_StringValues) isPredicate_Value() {}
-
-type IntValues struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Values []int32 `protobuf:"varint,1,rep,packed,name=values,proto3" json:"values,omitempty"`
-}
-
-func (x *IntValues) Reset() {
-	*x = IntValues{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_backend_api_v2beta1_filter_proto_msgTypes[1]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *IntValues) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*IntValues) ProtoMessage() {}
-
-func (x *IntValues) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_filter_proto_msgTypes[1]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use IntValues.ProtoReflect.Descriptor instead.
-func (*IntValues) Descriptor() ([]byte, []int) {
-	return file_backend_api_v2beta1_filter_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *IntValues) GetValues() []int32 {
-	if x != nil {
-		return x.Values
-	}
-	return nil
-}
-
-type StringValues struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Values []string `protobuf:"bytes,2,rep,name=values,proto3" json:"values,omitempty"`
-}
-
-func (x *StringValues) Reset() {
-	*x = StringValues{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_backend_api_v2beta1_filter_proto_msgTypes[2]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *StringValues) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StringValues) ProtoMessage() {}
-
-func (x *StringValues) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_filter_proto_msgTypes[2]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use StringValues.ProtoReflect.Descriptor instead.
-func (*StringValues) Descriptor() ([]byte, []int) {
-	return file_backend_api_v2beta1_filter_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *StringValues) GetValues() []string {
-	if x != nil {
-		return x.Values
-	}
-	return nil
-}
-
-type LongValues struct {
-	state         protoimpl.MessageState
-	sizeCache     protoimpl.SizeCache
-	unknownFields protoimpl.UnknownFields
-
-	Values []int64 `protobuf:"varint,3,rep,packed,name=values,proto3" json:"values,omitempty"`
-}
-
-func (x *LongValues) Reset() {
-	*x = LongValues{}
-	if protoimpl.UnsafeEnabled {
-		mi := &file_backend_api_v2beta1_filter_proto_msgTypes[3]
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		ms.StoreMessageInfo(mi)
-	}
-}
-
-func (x *LongValues) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LongValues) ProtoMessage() {}
-
-func (x *LongValues) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_filter_proto_msgTypes[3]
-	if protoimpl.UnsafeEnabled && x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LongValues.ProtoReflect.Descriptor instead.
-func (*LongValues) Descriptor() ([]byte, []int) {
-	return file_backend_api_v2beta1_filter_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *LongValues) GetValues() []int64 {
-	if x != nil {
-		return x.Values
-	}
-	return nil
+// Deprecated: Use Predicate_Operation.Descriptor instead.
+func (Predicate_Operation) EnumDescriptor() ([]byte, []int) {
+	return file_backend_api_v2beta1_filter_proto_rawDescGZIP(), []int{1, 0}
 }
 
 // Filter is used to filter resources returned from a ListXXX request.
@@ -478,7 +171,7 @@ type Filter struct {
 func (x *Filter) Reset() {
 	*x = Filter{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_backend_api_v2beta1_filter_proto_msgTypes[4]
+		mi := &file_backend_api_v2beta1_filter_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
@@ -491,7 +184,7 @@ func (x *Filter) String() string {
 func (*Filter) ProtoMessage() {}
 
 func (x *Filter) ProtoReflect() protoreflect.Message {
-	mi := &file_backend_api_v2beta1_filter_proto_msgTypes[4]
+	mi := &file_backend_api_v2beta1_filter_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -504,7 +197,7 @@ func (x *Filter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Filter.ProtoReflect.Descriptor instead.
 func (*Filter) Descriptor() ([]byte, []int) {
-	return file_backend_api_v2beta1_filter_proto_rawDescGZIP(), []int{4}
+	return file_backend_api_v2beta1_filter_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Filter) GetPredicates() []*Predicate {
@@ -514,72 +207,407 @@ func (x *Filter) GetPredicates() []*Predicate {
 	return nil
 }
 
+// Predicate captures individual conditions that must be true for a resource
+// being filtered.
+type Predicate struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Operation Predicate_Operation `protobuf:"varint,1,opt,name=operation,proto3,enum=kubeflow.pipelines.backend.Predicate_Operation" json:"operation,omitempty"`
+	// Key for the operation (first argument).
+	Key string `protobuf:"bytes,2,opt,name=key,proto3" json:"key,omitempty"`
+	// Value for the operation (second argument).
+	//
+	// Types that are assignable to Value:
+	//	*Predicate_IntValue
+	//	*Predicate_LongValue
+	//	*Predicate_StringValue
+	//	*Predicate_TimestampValue
+	//	*Predicate_IntValues_
+	//	*Predicate_LongValues_
+	//	*Predicate_StringValues_
+	Value isPredicate_Value `protobuf_oneof:"value"`
+}
+
+func (x *Predicate) Reset() {
+	*x = Predicate{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_backend_api_v2beta1_filter_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Predicate) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Predicate) ProtoMessage() {}
+
+func (x *Predicate) ProtoReflect() protoreflect.Message {
+	mi := &file_backend_api_v2beta1_filter_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Predicate.ProtoReflect.Descriptor instead.
+func (*Predicate) Descriptor() ([]byte, []int) {
+	return file_backend_api_v2beta1_filter_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *Predicate) GetOperation() Predicate_Operation {
+	if x != nil {
+		return x.Operation
+	}
+	return Predicate_OPERATION_UNSPECIFIED
+}
+
+func (x *Predicate) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (m *Predicate) GetValue() isPredicate_Value {
+	if m != nil {
+		return m.Value
+	}
+	return nil
+}
+
+func (x *Predicate) GetIntValue() int32 {
+	if x, ok := x.GetValue().(*Predicate_IntValue); ok {
+		return x.IntValue
+	}
+	return 0
+}
+
+func (x *Predicate) GetLongValue() int64 {
+	if x, ok := x.GetValue().(*Predicate_LongValue); ok {
+		return x.LongValue
+	}
+	return 0
+}
+
+func (x *Predicate) GetStringValue() string {
+	if x, ok := x.GetValue().(*Predicate_StringValue); ok {
+		return x.StringValue
+	}
+	return ""
+}
+
+func (x *Predicate) GetTimestampValue() *timestamppb.Timestamp {
+	if x, ok := x.GetValue().(*Predicate_TimestampValue); ok {
+		return x.TimestampValue
+	}
+	return nil
+}
+
+func (x *Predicate) GetIntValues() *Predicate_IntValues {
+	if x, ok := x.GetValue().(*Predicate_IntValues_); ok {
+		return x.IntValues
+	}
+	return nil
+}
+
+func (x *Predicate) GetLongValues() *Predicate_LongValues {
+	if x, ok := x.GetValue().(*Predicate_LongValues_); ok {
+		return x.LongValues
+	}
+	return nil
+}
+
+func (x *Predicate) GetStringValues() *Predicate_StringValues {
+	if x, ok := x.GetValue().(*Predicate_StringValues_); ok {
+		return x.StringValues
+	}
+	return nil
+}
+
+type isPredicate_Value interface {
+	isPredicate_Value()
+}
+
+type Predicate_IntValue struct {
+	// Integer.
+	IntValue int32 `protobuf:"varint,3,opt,name=int_value,json=intValue,proto3,oneof"`
+}
+
+type Predicate_LongValue struct {
+	// Long integer.
+	LongValue int64 `protobuf:"varint,4,opt,name=long_value,json=longValue,proto3,oneof"`
+}
+
+type Predicate_StringValue struct {
+	// String.
+	StringValue string `protobuf:"bytes,5,opt,name=string_value,json=stringValue,proto3,oneof"`
+}
+
+type Predicate_TimestampValue struct {
+	// Timestamp values will be converted to Unix time (seconds since the epoch)
+	// prior to being used in a filtering operation.
+	TimestampValue *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=timestamp_value,json=timestampValue,proto3,oneof"`
+}
+
+type Predicate_IntValues_ struct {
+	// Array values below are only meant to be used by the IN operator.
+	IntValues *Predicate_IntValues `protobuf:"bytes,7,opt,name=int_values,json=intValues,proto3,oneof"`
+}
+
+type Predicate_LongValues_ struct {
+	// List of long integers.
+	LongValues *Predicate_LongValues `protobuf:"bytes,8,opt,name=long_values,json=longValues,proto3,oneof"`
+}
+
+type Predicate_StringValues_ struct {
+	// List of strings.
+	StringValues *Predicate_StringValues `protobuf:"bytes,9,opt,name=string_values,json=stringValues,proto3,oneof"`
+}
+
+func (*Predicate_IntValue) isPredicate_Value() {}
+
+func (*Predicate_LongValue) isPredicate_Value() {}
+
+func (*Predicate_StringValue) isPredicate_Value() {}
+
+func (*Predicate_TimestampValue) isPredicate_Value() {}
+
+func (*Predicate_IntValues_) isPredicate_Value() {}
+
+func (*Predicate_LongValues_) isPredicate_Value() {}
+
+func (*Predicate_StringValues_) isPredicate_Value() {}
+
+// List of integers.
+type Predicate_IntValues struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Values []int32 `protobuf:"varint,1,rep,packed,name=values,proto3" json:"values,omitempty"`
+}
+
+func (x *Predicate_IntValues) Reset() {
+	*x = Predicate_IntValues{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_backend_api_v2beta1_filter_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Predicate_IntValues) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Predicate_IntValues) ProtoMessage() {}
+
+func (x *Predicate_IntValues) ProtoReflect() protoreflect.Message {
+	mi := &file_backend_api_v2beta1_filter_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Predicate_IntValues.ProtoReflect.Descriptor instead.
+func (*Predicate_IntValues) Descriptor() ([]byte, []int) {
+	return file_backend_api_v2beta1_filter_proto_rawDescGZIP(), []int{1, 0}
+}
+
+func (x *Predicate_IntValues) GetValues() []int32 {
+	if x != nil {
+		return x.Values
+	}
+	return nil
+}
+
+// List of strings.
+type Predicate_StringValues struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Values []string `protobuf:"bytes,2,rep,name=values,proto3" json:"values,omitempty"`
+}
+
+func (x *Predicate_StringValues) Reset() {
+	*x = Predicate_StringValues{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_backend_api_v2beta1_filter_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Predicate_StringValues) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Predicate_StringValues) ProtoMessage() {}
+
+func (x *Predicate_StringValues) ProtoReflect() protoreflect.Message {
+	mi := &file_backend_api_v2beta1_filter_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Predicate_StringValues.ProtoReflect.Descriptor instead.
+func (*Predicate_StringValues) Descriptor() ([]byte, []int) {
+	return file_backend_api_v2beta1_filter_proto_rawDescGZIP(), []int{1, 1}
+}
+
+func (x *Predicate_StringValues) GetValues() []string {
+	if x != nil {
+		return x.Values
+	}
+	return nil
+}
+
+// List of long integers.
+type Predicate_LongValues struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Values []int64 `protobuf:"varint,3,rep,packed,name=values,proto3" json:"values,omitempty"`
+}
+
+func (x *Predicate_LongValues) Reset() {
+	*x = Predicate_LongValues{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_backend_api_v2beta1_filter_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Predicate_LongValues) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Predicate_LongValues) ProtoMessage() {}
+
+func (x *Predicate_LongValues) ProtoReflect() protoreflect.Message {
+	mi := &file_backend_api_v2beta1_filter_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Predicate_LongValues.ProtoReflect.Descriptor instead.
+func (*Predicate_LongValues) Descriptor() ([]byte, []int) {
+	return file_backend_api_v2beta1_filter_proto_rawDescGZIP(), []int{1, 2}
+}
+
+func (x *Predicate_LongValues) GetValues() []int64 {
+	if x != nil {
+		return x.Values
+	}
+	return nil
+}
+
 var File_backend_api_v2beta1_filter_proto protoreflect.FileDescriptor
 
 var file_backend_api_v2beta1_filter_proto_rawDesc = []byte{
 	0x0a, 0x20, 0x62, 0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x76, 0x32,
 	0x62, 0x65, 0x74, 0x61, 0x31, 0x2f, 0x66, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x2e, 0x70, 0x72, 0x6f,
-	0x74, 0x6f, 0x12, 0x07, 0x76, 0x32, 0x62, 0x65, 0x74, 0x61, 0x31, 0x1a, 0x1c, 0x67, 0x6f, 0x6f,
-	0x67, 0x6c, 0x65, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x61, 0x6e, 0x6e, 0x6f, 0x74, 0x61, 0x74, 0x69,
-	0x6f, 0x6e, 0x73, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x1a, 0x1f, 0x67, 0x6f, 0x6f, 0x67, 0x6c,
-	0x65, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2f, 0x74, 0x69, 0x6d, 0x65, 0x73,
-	0x74, 0x61, 0x6d, 0x70, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0xbe, 0x04, 0x0a, 0x09, 0x50,
-	0x72, 0x65, 0x64, 0x69, 0x63, 0x61, 0x74, 0x65, 0x12, 0x25, 0x0a, 0x02, 0x6f, 0x70, 0x18, 0x01,
-	0x20, 0x01, 0x28, 0x0e, 0x32, 0x15, 0x2e, 0x76, 0x32, 0x62, 0x65, 0x74, 0x61, 0x31, 0x2e, 0x50,
-	0x72, 0x65, 0x64, 0x69, 0x63, 0x61, 0x74, 0x65, 0x2e, 0x4f, 0x70, 0x52, 0x02, 0x6f, 0x70, 0x12,
-	0x10, 0x0a, 0x03, 0x6b, 0x65, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65,
-	0x79, 0x12, 0x1d, 0x0a, 0x09, 0x69, 0x6e, 0x74, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x03,
-	0x20, 0x01, 0x28, 0x05, 0x48, 0x00, 0x52, 0x08, 0x69, 0x6e, 0x74, 0x56, 0x61, 0x6c, 0x75, 0x65,
-	0x12, 0x1f, 0x0a, 0x0a, 0x6c, 0x6f, 0x6e, 0x67, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x04,
-	0x20, 0x01, 0x28, 0x03, 0x48, 0x00, 0x52, 0x09, 0x6c, 0x6f, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75,
-	0x65, 0x12, 0x23, 0x0a, 0x0c, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x5f, 0x76, 0x61, 0x6c, 0x75,
-	0x65, 0x18, 0x05, 0x20, 0x01, 0x28, 0x09, 0x48, 0x00, 0x52, 0x0b, 0x73, 0x74, 0x72, 0x69, 0x6e,
-	0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x12, 0x45, 0x0a, 0x0f, 0x74, 0x69, 0x6d, 0x65, 0x73, 0x74,
-	0x61, 0x6d, 0x70, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x06, 0x20, 0x01, 0x28, 0x0b, 0x32,
-	0x1a, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75,
-	0x66, 0x2e, 0x54, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x48, 0x00, 0x52, 0x0e, 0x74,
-	0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x12, 0x33, 0x0a,
-	0x0a, 0x69, 0x6e, 0x74, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x18, 0x07, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x12, 0x2e, 0x76, 0x32, 0x62, 0x65, 0x74, 0x61, 0x31, 0x2e, 0x49, 0x6e, 0x74, 0x56,
-	0x61, 0x6c, 0x75, 0x65, 0x73, 0x48, 0x00, 0x52, 0x09, 0x69, 0x6e, 0x74, 0x56, 0x61, 0x6c, 0x75,
-	0x65, 0x73, 0x12, 0x36, 0x0a, 0x0b, 0x6c, 0x6f, 0x6e, 0x67, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65,
-	0x73, 0x18, 0x08, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x13, 0x2e, 0x76, 0x32, 0x62, 0x65, 0x74, 0x61,
-	0x31, 0x2e, 0x4c, 0x6f, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x48, 0x00, 0x52, 0x0a,
-	0x6c, 0x6f, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x12, 0x3c, 0x0a, 0x0d, 0x73, 0x74,
-	0x72, 0x69, 0x6e, 0x67, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x18, 0x09, 0x20, 0x01, 0x28,
-	0x0b, 0x32, 0x15, 0x2e, 0x76, 0x32, 0x62, 0x65, 0x74, 0x61, 0x31, 0x2e, 0x53, 0x74, 0x72, 0x69,
-	0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x48, 0x00, 0x52, 0x0c, 0x73, 0x74, 0x72, 0x69,
-	0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x22, 0x97, 0x01, 0x0a, 0x02, 0x4f, 0x70, 0x12,
-	0x0b, 0x0a, 0x07, 0x55, 0x4e, 0x4b, 0x4e, 0x4f, 0x57, 0x4e, 0x10, 0x00, 0x12, 0x0a, 0x0a, 0x06,
-	0x45, 0x51, 0x55, 0x41, 0x4c, 0x53, 0x10, 0x01, 0x12, 0x0e, 0x0a, 0x0a, 0x4e, 0x4f, 0x54, 0x5f,
-	0x45, 0x51, 0x55, 0x41, 0x4c, 0x53, 0x10, 0x02, 0x12, 0x10, 0x0a, 0x0c, 0x47, 0x52, 0x45, 0x41,
-	0x54, 0x45, 0x52, 0x5f, 0x54, 0x48, 0x41, 0x4e, 0x10, 0x03, 0x12, 0x17, 0x0a, 0x13, 0x47, 0x52,
-	0x45, 0x41, 0x54, 0x45, 0x52, 0x5f, 0x54, 0x48, 0x41, 0x4e, 0x5f, 0x45, 0x51, 0x55, 0x41, 0x4c,
-	0x53, 0x10, 0x05, 0x12, 0x0d, 0x0a, 0x09, 0x4c, 0x45, 0x53, 0x53, 0x5f, 0x54, 0x48, 0x41, 0x4e,
-	0x10, 0x06, 0x12, 0x14, 0x0a, 0x10, 0x4c, 0x45, 0x53, 0x53, 0x5f, 0x54, 0x48, 0x41, 0x4e, 0x5f,
-	0x45, 0x51, 0x55, 0x41, 0x4c, 0x53, 0x10, 0x07, 0x12, 0x06, 0x0a, 0x02, 0x49, 0x4e, 0x10, 0x08,
-	0x12, 0x10, 0x0a, 0x0c, 0x49, 0x53, 0x5f, 0x53, 0x55, 0x42, 0x53, 0x54, 0x52, 0x49, 0x4e, 0x47,
-	0x10, 0x09, 0x42, 0x07, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x22, 0x23, 0x0a, 0x09, 0x49,
-	0x6e, 0x74, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x76, 0x61, 0x6c, 0x75,
-	0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x05, 0x52, 0x06, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73,
-	0x22, 0x26, 0x0a, 0x0c, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73,
-	0x12, 0x16, 0x0a, 0x06, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x18, 0x02, 0x20, 0x03, 0x28, 0x09,
-	0x52, 0x06, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x22, 0x24, 0x0a, 0x0a, 0x4c, 0x6f, 0x6e, 0x67,
-	0x56, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73,
-	0x18, 0x03, 0x20, 0x03, 0x28, 0x03, 0x52, 0x06, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x22, 0x3c,
-	0x0a, 0x06, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x12, 0x32, 0x0a, 0x0a, 0x70, 0x72, 0x65, 0x64,
-	0x69, 0x63, 0x61, 0x74, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x12, 0x2e, 0x76,
-	0x32, 0x62, 0x65, 0x74, 0x61, 0x31, 0x2e, 0x50, 0x72, 0x65, 0x64, 0x69, 0x63, 0x61, 0x74, 0x65,
-	0x52, 0x0a, 0x70, 0x72, 0x65, 0x64, 0x69, 0x63, 0x61, 0x74, 0x65, 0x73, 0x32, 0x45, 0x0a, 0x12,
-	0x44, 0x75, 0x6d, 0x6d, 0x79, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x53, 0x65, 0x72, 0x76, 0x69,
-	0x63, 0x65, 0x12, 0x2f, 0x0a, 0x09, 0x47, 0x65, 0x74, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x12,
-	0x0f, 0x2e, 0x76, 0x32, 0x62, 0x65, 0x74, 0x61, 0x31, 0x2e, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72,
-	0x1a, 0x0f, 0x2e, 0x76, 0x32, 0x62, 0x65, 0x74, 0x61, 0x31, 0x2e, 0x46, 0x69, 0x6c, 0x74, 0x65,
-	0x72, 0x22, 0x00, 0x42, 0x3d, 0x5a, 0x3b, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f,
-	0x6d, 0x2f, 0x6b, 0x75, 0x62, 0x65, 0x66, 0x6c, 0x6f, 0x77, 0x2f, 0x70, 0x69, 0x70, 0x65, 0x6c,
-	0x69, 0x6e, 0x65, 0x73, 0x2f, 0x62, 0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x2f, 0x61, 0x70, 0x69,
-	0x2f, 0x76, 0x32, 0x62, 0x65, 0x74, 0x61, 0x31, 0x2f, 0x67, 0x6f, 0x5f, 0x63, 0x6c, 0x69, 0x65,
-	0x6e, 0x74, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x74, 0x6f, 0x12, 0x1a, 0x6b, 0x75, 0x62, 0x65, 0x66, 0x6c, 0x6f, 0x77, 0x2e, 0x70, 0x69, 0x70,
+	0x65, 0x6c, 0x69, 0x6e, 0x65, 0x73, 0x2e, 0x62, 0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x1a, 0x1f,
+	0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2f,
+	0x74, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22,
+	0x4f, 0x0a, 0x06, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x12, 0x45, 0x0a, 0x0a, 0x70, 0x72, 0x65,
+	0x64, 0x69, 0x63, 0x61, 0x74, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x25, 0x2e,
+	0x6b, 0x75, 0x62, 0x65, 0x66, 0x6c, 0x6f, 0x77, 0x2e, 0x70, 0x69, 0x70, 0x65, 0x6c, 0x69, 0x6e,
+	0x65, 0x73, 0x2e, 0x62, 0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x2e, 0x50, 0x72, 0x65, 0x64, 0x69,
+	0x63, 0x61, 0x74, 0x65, 0x52, 0x0a, 0x70, 0x72, 0x65, 0x64, 0x69, 0x63, 0x61, 0x74, 0x65, 0x73,
+	0x22, 0xc5, 0x06, 0x0a, 0x09, 0x50, 0x72, 0x65, 0x64, 0x69, 0x63, 0x61, 0x74, 0x65, 0x12, 0x4d,
+	0x0a, 0x09, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x0e, 0x32, 0x2f, 0x2e, 0x6b, 0x75, 0x62, 0x65, 0x66, 0x6c, 0x6f, 0x77, 0x2e, 0x70, 0x69, 0x70,
+	0x65, 0x6c, 0x69, 0x6e, 0x65, 0x73, 0x2e, 0x62, 0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x2e, 0x50,
+	0x72, 0x65, 0x64, 0x69, 0x63, 0x61, 0x74, 0x65, 0x2e, 0x4f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69,
+	0x6f, 0x6e, 0x52, 0x09, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x10, 0x0a,
+	0x03, 0x6b, 0x65, 0x79, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12,
+	0x1d, 0x0a, 0x09, 0x69, 0x6e, 0x74, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x03, 0x20, 0x01,
+	0x28, 0x05, 0x48, 0x00, 0x52, 0x08, 0x69, 0x6e, 0x74, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x12, 0x1f,
+	0x0a, 0x0a, 0x6c, 0x6f, 0x6e, 0x67, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x04, 0x20, 0x01,
+	0x28, 0x03, 0x48, 0x00, 0x52, 0x09, 0x6c, 0x6f, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x12,
+	0x23, 0x0a, 0x0c, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18,
+	0x05, 0x20, 0x01, 0x28, 0x09, 0x48, 0x00, 0x52, 0x0b, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x56,
+	0x61, 0x6c, 0x75, 0x65, 0x12, 0x45, 0x0a, 0x0f, 0x74, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d,
+	0x70, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x18, 0x06, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x1a, 0x2e,
+	0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x62, 0x75, 0x66, 0x2e,
+	0x54, 0x69, 0x6d, 0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x48, 0x00, 0x52, 0x0e, 0x74, 0x69, 0x6d,
+	0x65, 0x73, 0x74, 0x61, 0x6d, 0x70, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x12, 0x50, 0x0a, 0x0a, 0x69,
+	0x6e, 0x74, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x18, 0x07, 0x20, 0x01, 0x28, 0x0b, 0x32,
+	0x2f, 0x2e, 0x6b, 0x75, 0x62, 0x65, 0x66, 0x6c, 0x6f, 0x77, 0x2e, 0x70, 0x69, 0x70, 0x65, 0x6c,
+	0x69, 0x6e, 0x65, 0x73, 0x2e, 0x62, 0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x2e, 0x50, 0x72, 0x65,
+	0x64, 0x69, 0x63, 0x61, 0x74, 0x65, 0x2e, 0x49, 0x6e, 0x74, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73,
+	0x48, 0x00, 0x52, 0x09, 0x69, 0x6e, 0x74, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x12, 0x53, 0x0a,
+	0x0b, 0x6c, 0x6f, 0x6e, 0x67, 0x5f, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x18, 0x08, 0x20, 0x01,
+	0x28, 0x0b, 0x32, 0x30, 0x2e, 0x6b, 0x75, 0x62, 0x65, 0x66, 0x6c, 0x6f, 0x77, 0x2e, 0x70, 0x69,
+	0x70, 0x65, 0x6c, 0x69, 0x6e, 0x65, 0x73, 0x2e, 0x62, 0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x2e,
+	0x50, 0x72, 0x65, 0x64, 0x69, 0x63, 0x61, 0x74, 0x65, 0x2e, 0x4c, 0x6f, 0x6e, 0x67, 0x56, 0x61,
+	0x6c, 0x75, 0x65, 0x73, 0x48, 0x00, 0x52, 0x0a, 0x6c, 0x6f, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75,
+	0x65, 0x73, 0x12, 0x59, 0x0a, 0x0d, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x5f, 0x76, 0x61, 0x6c,
+	0x75, 0x65, 0x73, 0x18, 0x09, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x32, 0x2e, 0x6b, 0x75, 0x62, 0x65,
+	0x66, 0x6c, 0x6f, 0x77, 0x2e, 0x70, 0x69, 0x70, 0x65, 0x6c, 0x69, 0x6e, 0x65, 0x73, 0x2e, 0x62,
+	0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x2e, 0x50, 0x72, 0x65, 0x64, 0x69, 0x63, 0x61, 0x74, 0x65,
+	0x2e, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x48, 0x00, 0x52,
+	0x0c, 0x73, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x1a, 0x23, 0x0a,
+	0x09, 0x49, 0x6e, 0x74, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x76, 0x61,
+	0x6c, 0x75, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x05, 0x52, 0x06, 0x76, 0x61, 0x6c, 0x75,
+	0x65, 0x73, 0x1a, 0x26, 0x0a, 0x0c, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75,
+	0x65, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x18, 0x02, 0x20, 0x03,
+	0x28, 0x09, 0x52, 0x06, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x1a, 0x24, 0x0a, 0x0a, 0x4c, 0x6f,
+	0x6e, 0x67, 0x56, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x76, 0x61, 0x6c, 0x75,
+	0x65, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x03, 0x52, 0x06, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73,
+	0x22, 0xac, 0x01, 0x0a, 0x09, 0x4f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x12, 0x19,
+	0x0a, 0x15, 0x4f, 0x50, 0x45, 0x52, 0x41, 0x54, 0x49, 0x4f, 0x4e, 0x5f, 0x55, 0x4e, 0x53, 0x50,
+	0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x0a, 0x0a, 0x06, 0x45, 0x51, 0x55,
+	0x41, 0x4c, 0x53, 0x10, 0x01, 0x12, 0x0e, 0x0a, 0x0a, 0x4e, 0x4f, 0x54, 0x5f, 0x45, 0x51, 0x55,
+	0x41, 0x4c, 0x53, 0x10, 0x02, 0x12, 0x10, 0x0a, 0x0c, 0x47, 0x52, 0x45, 0x41, 0x54, 0x45, 0x52,
+	0x5f, 0x54, 0x48, 0x41, 0x4e, 0x10, 0x03, 0x12, 0x17, 0x0a, 0x13, 0x47, 0x52, 0x45, 0x41, 0x54,
+	0x45, 0x52, 0x5f, 0x54, 0x48, 0x41, 0x4e, 0x5f, 0x45, 0x51, 0x55, 0x41, 0x4c, 0x53, 0x10, 0x05,
+	0x12, 0x0d, 0x0a, 0x09, 0x4c, 0x45, 0x53, 0x53, 0x5f, 0x54, 0x48, 0x41, 0x4e, 0x10, 0x06, 0x12,
+	0x14, 0x0a, 0x10, 0x4c, 0x45, 0x53, 0x53, 0x5f, 0x54, 0x48, 0x41, 0x4e, 0x5f, 0x45, 0x51, 0x55,
+	0x41, 0x4c, 0x53, 0x10, 0x07, 0x12, 0x06, 0x0a, 0x02, 0x49, 0x4e, 0x10, 0x08, 0x12, 0x10, 0x0a,
+	0x0c, 0x49, 0x53, 0x5f, 0x53, 0x55, 0x42, 0x53, 0x54, 0x52, 0x49, 0x4e, 0x47, 0x10, 0x09, 0x42,
+	0x07, 0x0a, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x32, 0x6b, 0x0a, 0x12, 0x44, 0x75, 0x6d, 0x6d,
+	0x79, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x55,
+	0x0a, 0x09, 0x47, 0x65, 0x74, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x12, 0x22, 0x2e, 0x6b, 0x75,
+	0x62, 0x65, 0x66, 0x6c, 0x6f, 0x77, 0x2e, 0x70, 0x69, 0x70, 0x65, 0x6c, 0x69, 0x6e, 0x65, 0x73,
+	0x2e, 0x62, 0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x2e, 0x46, 0x69, 0x6c, 0x74, 0x65, 0x72, 0x1a,
+	0x22, 0x2e, 0x6b, 0x75, 0x62, 0x65, 0x66, 0x6c, 0x6f, 0x77, 0x2e, 0x70, 0x69, 0x70, 0x65, 0x6c,
+	0x69, 0x6e, 0x65, 0x73, 0x2e, 0x62, 0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x2e, 0x46, 0x69, 0x6c,
+	0x74, 0x65, 0x72, 0x22, 0x00, 0x42, 0x3d, 0x5a, 0x3b, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e,
+	0x63, 0x6f, 0x6d, 0x2f, 0x6b, 0x75, 0x62, 0x65, 0x66, 0x6c, 0x6f, 0x77, 0x2f, 0x70, 0x69, 0x70,
+	0x65, 0x6c, 0x69, 0x6e, 0x65, 0x73, 0x2f, 0x62, 0x61, 0x63, 0x6b, 0x65, 0x6e, 0x64, 0x2f, 0x61,
+	0x70, 0x69, 0x2f, 0x76, 0x32, 0x62, 0x65, 0x74, 0x61, 0x31, 0x2f, 0x67, 0x6f, 0x5f, 0x63, 0x6c,
+	0x69, 0x65, 0x6e, 0x74, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -597,23 +625,23 @@ func file_backend_api_v2beta1_filter_proto_rawDescGZIP() []byte {
 var file_backend_api_v2beta1_filter_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_backend_api_v2beta1_filter_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_backend_api_v2beta1_filter_proto_goTypes = []interface{}{
-	(Predicate_Op)(0),             // 0: v2beta1.Predicate.Op
-	(*Predicate)(nil),             // 1: v2beta1.Predicate
-	(*IntValues)(nil),             // 2: v2beta1.IntValues
-	(*StringValues)(nil),          // 3: v2beta1.StringValues
-	(*LongValues)(nil),            // 4: v2beta1.LongValues
-	(*Filter)(nil),                // 5: v2beta1.Filter
-	(*timestamppb.Timestamp)(nil), // 6: google.protobuf.Timestamp
+	(Predicate_Operation)(0),       // 0: kubeflow.pipelines.backend.Predicate.Operation
+	(*Filter)(nil),                 // 1: kubeflow.pipelines.backend.Filter
+	(*Predicate)(nil),              // 2: kubeflow.pipelines.backend.Predicate
+	(*Predicate_IntValues)(nil),    // 3: kubeflow.pipelines.backend.Predicate.IntValues
+	(*Predicate_StringValues)(nil), // 4: kubeflow.pipelines.backend.Predicate.StringValues
+	(*Predicate_LongValues)(nil),   // 5: kubeflow.pipelines.backend.Predicate.LongValues
+	(*timestamppb.Timestamp)(nil),  // 6: google.protobuf.Timestamp
 }
 var file_backend_api_v2beta1_filter_proto_depIdxs = []int32{
-	0, // 0: v2beta1.Predicate.op:type_name -> v2beta1.Predicate.Op
-	6, // 1: v2beta1.Predicate.timestamp_value:type_name -> google.protobuf.Timestamp
-	2, // 2: v2beta1.Predicate.int_values:type_name -> v2beta1.IntValues
-	4, // 3: v2beta1.Predicate.long_values:type_name -> v2beta1.LongValues
-	3, // 4: v2beta1.Predicate.string_values:type_name -> v2beta1.StringValues
-	1, // 5: v2beta1.Filter.predicates:type_name -> v2beta1.Predicate
-	5, // 6: v2beta1.DummyFilterService.GetFilter:input_type -> v2beta1.Filter
-	5, // 7: v2beta1.DummyFilterService.GetFilter:output_type -> v2beta1.Filter
+	2, // 0: kubeflow.pipelines.backend.Filter.predicates:type_name -> kubeflow.pipelines.backend.Predicate
+	0, // 1: kubeflow.pipelines.backend.Predicate.operation:type_name -> kubeflow.pipelines.backend.Predicate.Operation
+	6, // 2: kubeflow.pipelines.backend.Predicate.timestamp_value:type_name -> google.protobuf.Timestamp
+	3, // 3: kubeflow.pipelines.backend.Predicate.int_values:type_name -> kubeflow.pipelines.backend.Predicate.IntValues
+	5, // 4: kubeflow.pipelines.backend.Predicate.long_values:type_name -> kubeflow.pipelines.backend.Predicate.LongValues
+	4, // 5: kubeflow.pipelines.backend.Predicate.string_values:type_name -> kubeflow.pipelines.backend.Predicate.StringValues
+	1, // 6: kubeflow.pipelines.backend.DummyFilterService.GetFilter:input_type -> kubeflow.pipelines.backend.Filter
+	1, // 7: kubeflow.pipelines.backend.DummyFilterService.GetFilter:output_type -> kubeflow.pipelines.backend.Filter
 	7, // [7:8] is the sub-list for method output_type
 	6, // [6:7] is the sub-list for method input_type
 	6, // [6:6] is the sub-list for extension type_name
@@ -628,54 +656,6 @@ func file_backend_api_v2beta1_filter_proto_init() {
 	}
 	if !protoimpl.UnsafeEnabled {
 		file_backend_api_v2beta1_filter_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*Predicate); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_backend_api_v2beta1_filter_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*IntValues); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_backend_api_v2beta1_filter_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*StringValues); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_backend_api_v2beta1_filter_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
-			switch v := v.(*LongValues); i {
-			case 0:
-				return &v.state
-			case 1:
-				return &v.sizeCache
-			case 2:
-				return &v.unknownFields
-			default:
-				return nil
-			}
-		}
-		file_backend_api_v2beta1_filter_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
 			switch v := v.(*Filter); i {
 			case 0:
 				return &v.state
@@ -687,15 +667,63 @@ func file_backend_api_v2beta1_filter_proto_init() {
 				return nil
 			}
 		}
+		file_backend_api_v2beta1_filter_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Predicate); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_backend_api_v2beta1_filter_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Predicate_IntValues); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_backend_api_v2beta1_filter_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Predicate_StringValues); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_backend_api_v2beta1_filter_proto_msgTypes[4].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*Predicate_LongValues); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
-	file_backend_api_v2beta1_filter_proto_msgTypes[0].OneofWrappers = []interface{}{
+	file_backend_api_v2beta1_filter_proto_msgTypes[1].OneofWrappers = []interface{}{
 		(*Predicate_IntValue)(nil),
 		(*Predicate_LongValue)(nil),
 		(*Predicate_StringValue)(nil),
 		(*Predicate_TimestampValue)(nil),
-		(*Predicate_IntValues)(nil),
-		(*Predicate_LongValues)(nil),
-		(*Predicate_StringValues)(nil),
+		(*Predicate_IntValues_)(nil),
+		(*Predicate_LongValues_)(nil),
+		(*Predicate_StringValues_)(nil),
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -743,7 +771,7 @@ func NewDummyFilterServiceClient(cc grpc.ClientConnInterface) DummyFilterService
 
 func (c *dummyFilterServiceClient) GetFilter(ctx context.Context, in *Filter, opts ...grpc.CallOption) (*Filter, error) {
 	out := new(Filter)
-	err := c.cc.Invoke(ctx, "/v2beta1.DummyFilterService/GetFilter", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/kubeflow.pipelines.backend.DummyFilterService/GetFilter", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -777,7 +805,7 @@ func _DummyFilterService_GetFilter_Handler(srv interface{}, ctx context.Context,
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/v2beta1.DummyFilterService/GetFilter",
+		FullMethod: "/kubeflow.pipelines.backend.DummyFilterService/GetFilter",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DummyFilterServiceServer).GetFilter(ctx, req.(*Filter))
@@ -786,7 +814,7 @@ func _DummyFilterService_GetFilter_Handler(srv interface{}, ctx context.Context,
 }
 
 var _DummyFilterService_serviceDesc = grpc.ServiceDesc{
-	ServiceName: "v2beta1.DummyFilterService",
+	ServiceName: "kubeflow.pipelines.backend.DummyFilterService",
 	HandlerType: (*DummyFilterServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
