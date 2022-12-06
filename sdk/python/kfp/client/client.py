@@ -420,8 +420,7 @@ class Client:
                 )
 
             try:
-                response = self._healthz_api.get_healthz()
-                return response
+                return self._healthz_api.get_healthz()
             # ApiException, including network errors, is the only type that may
             # recover after retry.
             except kfp_server_api.ApiException:
@@ -551,7 +550,7 @@ class Client:
             ``ApiListExperimentsResponse`` object.
         """
         namespace = namespace or self.get_user_namespace()
-        response = self._experiment_api.list_experiment(
+        return self._experiment_api.list_experiment(
             page_token=page_token,
             page_size=page_size,
             sort_by=sort_by,
@@ -559,7 +558,6 @@ class Client:
             .NAMESPACE,
             resource_reference_key_id=namespace,
             filter=filter)
-        return response
 
     def get_experiment(self,
                        experiment_id=None,
@@ -1211,7 +1209,7 @@ class Client:
         """
         namespace = namespace or self.get_user_namespace()
         if experiment_id is not None:
-            response = self._run_api.list_runs(
+            return self._run_api.list_runs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
@@ -1219,8 +1217,9 @@ class Client:
                 .EXPERIMENT,
                 resource_reference_key_id=experiment_id,
                 filter=filter)
+
         elif namespace is not None:
-            response = self._run_api.list_runs(
+            return self._run_api.list_runs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
@@ -1228,13 +1227,13 @@ class Client:
                 .NAMESPACE,
                 resource_reference_key_id=namespace,
                 filter=filter)
+
         else:
-            response = self._run_api.list_runs(
+            return self._run_api.list_runs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
                 filter=filter)
-        return response
 
     def list_recurring_runs(
             self,
@@ -1267,7 +1266,7 @@ class Client:
             ``ApiListJobsResponse`` object.
         """
         if experiment_id is not None:
-            response = self._job_api.list_jobs(
+            return self._job_api.list_jobs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
@@ -1275,13 +1274,13 @@ class Client:
                 .EXPERIMENT,
                 resource_reference_key_id=experiment_id,
                 filter=filter)
+
         else:
-            response = self._job_api.list_jobs(
+            return self._job_api.list_jobs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
                 filter=filter)
-        return response
 
     def get_recurring_run(self, job_id: str) -> kfp_server_api.ApiJob:
         """Gets recurring run (job) details.
@@ -1359,8 +1358,7 @@ class Client:
         """
         get_run_response = self._run_api.get_run(run_id=run_id)
         workflow = get_run_response.pipeline_runtime.workflow_manifest
-        workflow_json = json.loads(workflow)
-        return workflow_json
+        return json.loads(workflow)
 
     def upload_pipeline(
         self,

@@ -64,13 +64,13 @@ component_op = TestComponent(
 
 class BaseComponentTest(unittest.TestCase):
 
-    @patch.object(pipeline_task, 'create_pipeline_task', autospec=True)
+    @patch.object(pipeline_task, 'PipelineTask', autospec=True)
     def test_instantiate_component_with_keyword_arguments(
-            self, mock_create_pipeline_task):
+            self, mock_PipelineTask):
 
         component_op(input1='hello', input2=100, input3=1.23, input4=3.21)
 
-        mock_create_pipeline_task.assert_called_once_with(
+        mock_PipelineTask.assert_called_once_with(
             component_spec=component_op.component_spec,
             args={
                 'input1': 'hello',
@@ -79,13 +79,13 @@ class BaseComponentTest(unittest.TestCase):
                 'input4': 3.21,
             })
 
-    @patch.object(pipeline_task, 'create_pipeline_task', autospec=True)
+    @patch.object(pipeline_task, 'PipelineTask', autospec=True)
     def test_instantiate_component_omitting_arguments_with_default(
-            self, mock_create_pipeline_task):
+            self, mock_PipelineTask):
 
         component_op(input1='hello', input2=100)
 
-        mock_create_pipeline_task.assert_called_once_with(
+        mock_PipelineTask.assert_called_once_with(
             component_spec=component_op.component_spec,
             args={
                 'input1': 'hello',

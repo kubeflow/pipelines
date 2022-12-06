@@ -25,14 +25,6 @@ from kfp.components import structures
 from kfp.components import utils
 from kfp.components.types import type_utils
 
-
-def create_pipeline_task(
-    component_spec: structures.ComponentSpec,
-    args: Mapping[str, Any],
-) -> 'PipelineTask':
-    return PipelineTask(component_spec=component_spec, args=args)
-
-
 _register_task_handler = lambda task: utils.maybe_rename_for_k8s(
     task.component_spec.name)
 
@@ -122,11 +114,10 @@ class PipelineTask:
 
         self._task_spec = structures.TaskSpec(
             name=self._register_task_handler(),
-            inputs={input_name: value for input_name, value in args.items()},
+            inputs=dict(args.items()),
             dependent_tasks=[],
             component_ref=component_spec.name,
-            enable_caching=True,
-        )
+            enable_caching=True)
 
         self.importer_spec = None
         self.container_spec = None
@@ -271,11 +262,7 @@ class PipelineTask:
                 'Invalid cpu string. Should be float or integer, or integer'
                 ' followed by "m".')
 
-        if cpu.endswith('m'):
-            cpu = float(cpu[:-1]) / 1000
-        else:
-            cpu = float(cpu)
-
+        cpu = float(cpu[:-1]) / 1000 if cpu.endswith('m') else float(cpu)
         if self.container_spec is None:
             raise ValueError(
                 'There is no container specified in implementation')

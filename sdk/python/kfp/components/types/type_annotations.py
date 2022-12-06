@@ -219,10 +219,7 @@ def get_short_type_name(type_name: str) -> str:
       The short form type name or the original name if pattern doesn't match.
     """
     match = re.match('(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
-    if match:
-        return match.group('type')
-    else:
-        return type_name
+    return match['type'] if match else type_name
 
 
 def is_artifact_class(artifact_class_or_instance: Type) -> bool:
