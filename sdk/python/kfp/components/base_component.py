@@ -58,7 +58,7 @@ class BaseComponent(abc.ABC):
         """
         task_inputs = {}
 
-        if len(args) > 0:
+        if args:
             raise TypeError(
                 'Components must be instantiated using keyword arguments. Positional '
                 f'parameters are not allowed (found {len(args)} such parameters for '

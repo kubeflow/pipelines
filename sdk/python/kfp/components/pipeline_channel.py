@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Definition of PipelineChannel."""
+
 import abc
+import contextlib
 import dataclasses
 import json
 import re
@@ -35,6 +37,7 @@ class ConditionOperator:
     right_operand: Union['PipelineParameterChannel', type_utils.PARAMETER_TYPES]
 
 
+# The string template used to generate the placeholder of a PipelineChannel.
 # The string template used to generate the placeholder of a PipelineChannel.
 _PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE = (
     '{{channel:task=%s;name=%s;type=%s;}}')
@@ -303,10 +306,8 @@ def extract_pipeline_channels_from_string(
         # (e.g.: {"custom_type": {"custom_property": "some_value"}}).
         # Try loading it into dictionary, if failed, it means channel_type is a
         # string.
-        try:
+        with contextlib.suppress(json.JSONDecodeError):
             channel_type = json.loads(channel_type)
-        except json.JSONDecodeError:
-            pass
 
         if type_utils.is_parameter_type(channel_type):
             pipeline_channel = PipelineParameterChannel(
@@ -346,7 +347,7 @@ def extract_pipeline_channels_from_any(
     if isinstance(payload, str):
         return list(set(extract_pipeline_channels_from_string(payload)))
 
-    if isinstance(payload, list) or isinstance(payload, tuple):
+    if isinstance(payload, (list, tuple)):
         pipeline_channels = []
         for item in payload:
             pipeline_channels += extract_pipeline_channels_from_any(item)

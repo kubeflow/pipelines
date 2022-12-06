@@ -936,22 +936,19 @@ def build_task_spec_for_group(
                     input_name].component_input_artifact = (
                         channel_full_name
                         if is_parent_component_root else input_name)
+        elif channel.task_name and channel.task_name in tasks_in_current_dag:
+            pipeline_task_spec.inputs.parameters[
+                input_name].task_output_parameter.producer_task = (
+                    utils.sanitize_task_name(channel.task_name))
+            pipeline_task_spec.inputs.parameters[
+                input_name].task_output_parameter.output_parameter_key = (
+                    channel_name)
         else:
-            # channel is one of PipelineParameterChannel, LoopArgument, or
-            # LoopArgumentVariable
-            if channel.task_name and channel.task_name in tasks_in_current_dag:
-                pipeline_task_spec.inputs.parameters[
-                    input_name].task_output_parameter.producer_task = (
-                        utils.sanitize_task_name(channel.task_name))
-                pipeline_task_spec.inputs.parameters[
-                    input_name].task_output_parameter.output_parameter_key = (
-                        channel_name)
-            else:
-                pipeline_task_spec.inputs.parameters[
-                    input_name].component_input_parameter = (
-                        channel_full_name if is_parent_component_root else
-                        _additional_input_name_for_pipeline_channel(
-                            channel_full_name))
+            pipeline_task_spec.inputs.parameters[
+                input_name].component_input_parameter = (
+                    channel_full_name if is_parent_component_root else
+                    _additional_input_name_for_pipeline_channel(
+                        channel_full_name))
 
     if isinstance(group, tasks_group.ParallelFor):
         _update_task_spec_for_loop_group(
