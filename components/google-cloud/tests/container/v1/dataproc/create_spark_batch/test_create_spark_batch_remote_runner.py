@@ -21,12 +21,15 @@ from unittest import mock
 import google.auth
 from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
 from google_cloud_pipeline_components.container.v1.dataproc.create_spark_batch import remote_runner as dataproc_batch_remote_runner
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 from google_cloud_pipeline_components.proto import gcp_resources_pb2
 import re
 import requests
 
 from google.protobuf import json_format
 import unittest
+
+_SYSTEM_LABELS = {'key1': 'value1', 'key2': 'value2'}
 
 
 class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
@@ -46,6 +49,8 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
     self._batch_uri = f'{self._dataproc_uri_prefix}/{self._batch_name}'
     self._gcp_resources = os.path.join(
         os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'gcp_resources')
+    os.environ[gcp_labels_util.SYSTEM_LABEL_ENV_VAR] = json.dumps(
+        _SYSTEM_LABELS)
 
     self._test_batch = {
         'labels': {'foo': 'bar', 'fizz': 'buzz'},
@@ -79,6 +84,13 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
             'archive_uris': ['test-archive-uri-1', 'test-archive-uri-2'],
             'args': ['arg1', 'arg2']
         }
+    }
+    self._expected_spark_batch = self._test_spark_batch.copy()
+    self._expected_spark_batch['labels'] = {
+        'key1': 'value1',
+        'key2': 'value2',
+        'foo': 'bar',
+        'fizz': 'buzz'
     }
 
   def tearDown(self):
@@ -374,7 +386,7 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
     mock_post_requests.assert_called_once_with(
         self=mock.ANY,
         url=f'{self._dataproc_uri_prefix}/projects/{self._project}/locations/{self._location}/batches/?batchId={self._batch_id}',
-        data=json.dumps(self._test_spark_batch),
+        data=json.dumps(self._expected_spark_batch),
         headers={'Authorization': f'Bearer {self._creds_token}'}
     )
     mock_get_requests.assert_called_once_with(
@@ -432,7 +444,7 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
     mock_post_requests.assert_called_once_with(
         self=mock.ANY,
         url=mock.ANY,
-        data=json.dumps(self._test_spark_batch),
+        data=json.dumps(self._expected_spark_batch),
         headers={'Authorization': f'Bearer {self._creds_token}'}
     )
     mock_get_requests.assert_called_once_with(
@@ -492,7 +504,7 @@ class DataprocBatchRemoteRunnerUtilsTests(unittest.TestCase):
     mock_post_requests.assert_called_once_with(
         self=mock.ANY,
         url=f'{self._dataproc_uri_prefix}/projects/{self._project}/locations/{self._location}/batches/?batchId={self._batch_id}',
-        data=json.dumps(self._test_spark_batch),
+        data=json.dumps(self._expected_spark_batch),
         headers={'Authorization': f'Bearer {self._creds_token}'}
     )
     mock_get_requests.assert_called_once_with(
