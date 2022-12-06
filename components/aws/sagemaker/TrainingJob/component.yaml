@@ -99,10 +99,16 @@ inputs:
       description: "The resources, including the ML compute instances and ML storage volumes, to use for model training.",
     }
   - {
+      name: retry_strategy,
+      type: JsonObject,
+      default: '{}',
+      description: "The number of times to retry the job when the job fails due to an InternalServerError.",
+    }
+  - {
       name: role_arn,
       type: String,
       default: '',
-      description: "The Amazon Resource Name (ARN) of an IAM role that Amazon SageMaker can assume to perform tasks on your behalf.",
+      description: "The Amazon Resource Name (ARN) of an IAM role that SageMaker can assume to perform tasks on your behalf.",
     }
   - {
       name: stopping_condition,
@@ -170,6 +176,11 @@ outputs:
       description: "Evaluation status of Debugger rules for profiling on a training job.",
     }
   - {
+      name: profiling_status,
+      type: String,
+      description: "Profiling status of a training job.",
+    }
+  - {
       name: secondary_status,
       type: String,
       description: "Provides detailed information about the state of the training job.",
@@ -179,11 +190,16 @@ outputs:
       type: String,
       description: "The status of the training job.",
     }
+  - {
+      name: warm_pool_status,
+      type: JsonObject,
+      description: "The status of the warm pool associated with the training job.",
+    }
   ###########################GENERATED SECTION ABOVE############################
 
 implementation:
   container:
-    image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:2.0.0
+    image: abashyam123/kfp20:72
     command: [python3]
     args:
       - TrainingJob/src/TrainingJob_component.py
@@ -220,6 +236,8 @@ implementation:
       - { inputValue: profiler_rule_configurations }
       - --resource_config
       - { inputValue: resource_config }
+      - --retry_strategy
+      - { inputValue: retry_strategy }
       - --role_arn
       - { inputValue: role_arn }
       - --stopping_condition
