@@ -86,7 +86,7 @@ class BaseComponent(abc.ABC):
                 f'{self.name}() missing {len(missing_arguments)} required '
                 f'{argument_or_arguments}: {arguments}.')
 
-        return pipeline_task.create_pipeline_task(
+        return pipeline_task.PipelineTask(
             component_spec=self.component_spec,
             args=task_inputs,
         )
