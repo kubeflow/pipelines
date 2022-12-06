@@ -8,6 +8,7 @@ from typing import Any, Dict, Tuple
 def get_bqml_arima_train_pipeline_and_parameters(
     project: str,
     location: str,
+    root_dir: str,
     time_column: str,
     time_series_identifier_column: str,
     target_column: str,
@@ -23,7 +24,7 @@ def get_bqml_arima_train_pipeline_and_parameters(
     window_column: str = '-',
     window_stride_length: int = -1,
     window_max_count: int = -1,
-    bigquery_destination_uri: str = '',
+    bigquery_destination_uri: str = '-',
     override_destination: bool = False,
     max_order: int = 5,
 ) -> Tuple[str, Dict[str, Any]]:
@@ -32,6 +33,7 @@ def get_bqml_arima_train_pipeline_and_parameters(
   Args:
     project: The GCP project that runs the pipeline components.
     location: The GCP region for Vertex AI.
+    root_dir: The Cloud Storage location to store the output.
     time_column: Name of the column that identifies time order in the time
       series.
     time_series_identifier_column: Name of the column that identifies the time
@@ -76,6 +78,7 @@ def get_bqml_arima_train_pipeline_and_parameters(
   parameter_values = {
       'project': project,
       'location': location,
+      'root_dir': root_dir,
       'time_column': time_column,
       'time_series_identifier_column': time_series_identifier_column,
       'target_column': target_column,
@@ -107,7 +110,7 @@ def get_bqml_arima_predict_pipeline_and_parameters(
     model_name: str,
     data_source_csv_filenames: str = '-',
     data_source_bigquery_table_path: str = '-',
-    bigquery_destination_uri: str = '',
+    bigquery_destination_uri: str = '-',
     generate_explanation: bool = False,
 ) -> Tuple[str, Dict[str, Any]]:
   """Get the BQML ARIMA_PLUS prediction pipeline.
@@ -144,7 +147,7 @@ def get_bqml_arima_predict_pipeline_and_parameters(
   return pipeline_definition_path, parameter_values
 
 
-def get_prophet_pipeline_and_parameters(
+def get_prophet_train_pipeline_and_parameters(
     project: str,
     location: str,
     root_dir: str,
@@ -275,4 +278,67 @@ def get_prophet_pipeline_and_parameters(
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),
       'prophet_trainer_pipeline.json')
+  return pipeline_definition_path, parameter_values
+
+
+def get_prophet_prediction_pipeline_and_parameters(
+    project: str,
+    location: str,
+    model_name: str,
+    time_column: str,
+    time_series_identifier_column: str,
+    target_column: str,
+    data_source_csv_filenames: str = '-',
+    data_source_bigquery_table_path: str = '-',
+    bigquery_destination_uri: str = '-',  # Empty string not supported.
+    machine_type: str = 'n1-standard-2',
+    max_num_workers: int = 200,
+) -> Tuple[str, Dict[str, Any]]:
+  """Returns Prophet prediction pipeline and formatted parameters.
+
+  Unlike the prediction server for Vertex Forecasting, the Prophet prediction
+  server returns predictions batched by time series id. This pipeline shows how
+  these predictions can be disaggregated to get results similar to what Vertex
+  Forecasting provides.
+
+  Args:
+    project: The GCP project that runs the pipeline components.
+    location: The GCP region for Vertex AI.
+    model_name: The name of the Model resource, in a form of
+      projects/{project}/locations/{location}/models/{model}.
+    time_column: Name of the column that identifies time order in the time
+      series.
+    time_series_identifier_column: Name of the column that identifies the time
+      series.
+    target_column: Name of the column that the model is to predict values for.
+    data_source_csv_filenames: A string that represents a list of comma
+      separated CSV filenames.
+    data_source_bigquery_table_path: The BigQuery table path of format
+      bq://bq_project.bq_dataset.bq_table
+    bigquery_destination_uri: URI of the desired destination dataset. If not
+      specified, resources will be created under a new dataset in the project.
+      Unlike in Vertex Forecasting, all resources will be given hardcoded names
+      under this dataset, and the model artifact will also be exported here.
+    machine_type: The machine type used for batch prediction.
+    max_num_workers: The max number of workers used for batch prediction.
+
+  Returns:
+    Tuple of pipeline_definiton_path and parameter_values.
+  """
+  parameter_values = {
+      'project': project,
+      'location': location,
+      'model_name': model_name,
+      'time_column': time_column,
+      'time_series_identifier_column': time_series_identifier_column,
+      'target_column': target_column,
+      'data_source_csv_filenames': data_source_csv_filenames,
+      'data_source_bigquery_table_path': data_source_bigquery_table_path,
+      'bigquery_destination_uri': bigquery_destination_uri,
+      'machine_type': machine_type,
+      'max_num_workers': max_num_workers,
+  }
+  pipeline_definition_path = os.path.join(
+      pathlib.Path(__file__).parent.resolve(),
+      'prophet_predict_pipeline.json')
   return pipeline_definition_path, parameter_values

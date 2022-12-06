@@ -30,35 +30,6 @@
           }
         }
       },
-      "comp-bigquery-create-dataset-2": {
-        "executorLabel": "exec-bigquery-create-dataset-2",
-        "inputDefinitions": {
-          "parameters": {
-            "dataset": {
-              "type": "STRING"
-            },
-            "exists_ok": {
-              "type": "STRING"
-            },
-            "location": {
-              "type": "STRING"
-            },
-            "project": {
-              "type": "STRING"
-            }
-          }
-        },
-        "outputDefinitions": {
-          "parameters": {
-            "dataset_id": {
-              "type": "STRING"
-            },
-            "project_id": {
-              "type": "STRING"
-            }
-          }
-        }
-      },
       "comp-bigquery-delete-dataset-with-prefix": {
         "executorLabel": "exec-bigquery-delete-dataset-with-prefix",
         "inputDefinitions": {
@@ -77,6 +48,46 @@
       },
       "comp-bigquery-query-job": {
         "executorLabel": "exec-bigquery-query-job",
+        "inputDefinitions": {
+          "parameters": {
+            "job_configuration_query": {
+              "type": "STRING"
+            },
+            "labels": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "query": {
+              "type": "STRING"
+            },
+            "query_parameters": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "destination_table": {
+              "artifactType": {
+                "schemaTitle": "google.BQTable",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "gcp_resources": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-bigquery-query-job-2": {
+        "executorLabel": "exec-bigquery-query-job-2",
         "inputDefinitions": {
           "parameters": {
             "job_configuration_query": {
@@ -166,47 +177,6 @@
                 "name": "create-tmp-dataset"
               }
             },
-            "bigquery-create-dataset-2": {
-              "cachingOptions": {
-                "enableCache": true
-              },
-              "componentRef": {
-                "name": "comp-bigquery-create-dataset-2"
-              },
-              "dependentTasks": [
-                "get-table-location",
-                "maybe-replace-with-default"
-              ],
-              "inputs": {
-                "parameters": {
-                  "dataset": {
-                    "taskOutputParameter": {
-                      "outputParameterKey": "Output",
-                      "producerTask": "maybe-replace-with-default"
-                    }
-                  },
-                  "exists_ok": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "intValue": "1"
-                      }
-                    }
-                  },
-                  "location": {
-                    "taskOutputParameter": {
-                      "outputParameterKey": "Output",
-                      "producerTask": "get-table-location"
-                    }
-                  },
-                  "project": {
-                    "componentInputParameter": "pipelineparam--project"
-                  }
-                }
-              },
-              "taskInfo": {
-                "name": "create-prediction-dataset"
-              }
-            },
             "bigquery-query-job": {
               "cachingOptions": {
                 "enableCache": true
@@ -215,9 +185,8 @@
                 "name": "comp-bigquery-query-job"
               },
               "dependentTasks": [
-                "bigquery-create-dataset-2",
+                "bigquery-create-dataset",
                 "get-first-valid",
-                "get-model-metadata",
                 "get-table-location"
               ],
               "inputs": {
@@ -225,7 +194,7 @@
                   "job_configuration_query": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "{\"priority\": \"INTERACTIVE\", \"destinationTable\": {\"projectId\": \"{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-project_id']}}\", \"datasetId\": \"{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-2-dataset_id']}}\", \"tableId\": \"predictions_{{$.pipeline_job_uuid}}\"}}"
+                        "stringValue": "{\"priority\": \"INTERACTIVE\", \"destinationTable\": {\"projectId\": \"{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-project_id']}}\", \"datasetId\": \"{{$.inputs.parameters['pipelineparam--bigquery-create-dataset-dataset_id']}}\", \"tableId\": \"data\"}, \"write_disposition\": \"WRITE_EMPTY\"}"
                       }
                     }
                   },
@@ -242,16 +211,16 @@
                       "producerTask": "get-table-location"
                     }
                   },
-                  "pipelineparam--bigquery-create-dataset-2-dataset_id": {
+                  "pipelineparam--bigquery-create-dataset-dataset_id": {
                     "taskOutputParameter": {
                       "outputParameterKey": "dataset_id",
-                      "producerTask": "bigquery-create-dataset-2"
+                      "producerTask": "bigquery-create-dataset"
                     }
                   },
-                  "pipelineparam--bigquery-create-dataset-2-project_id": {
+                  "pipelineparam--bigquery-create-dataset-project_id": {
                     "taskOutputParameter": {
                       "outputParameterKey": "project_id",
-                      "producerTask": "bigquery-create-dataset-2"
+                      "producerTask": "bigquery-create-dataset"
                     }
                   },
                   "pipelineparam--get-first-valid-Output": {
@@ -260,32 +229,11 @@
                       "producerTask": "get-first-valid"
                     }
                   },
-                  "pipelineparam--get-model-metadata-forecast_horizon": {
-                    "taskOutputParameter": {
-                      "outputParameterKey": "forecast_horizon",
-                      "producerTask": "get-model-metadata"
-                    }
+                  "pipelineparam--time_column": {
+                    "componentInputParameter": "pipelineparam--time_column"
                   },
-                  "pipelineparam--get-model-metadata-target_column": {
-                    "taskOutputParameter": {
-                      "outputParameterKey": "target_column",
-                      "producerTask": "get-model-metadata"
-                    }
-                  },
-                  "pipelineparam--get-model-metadata-time_column": {
-                    "taskOutputParameter": {
-                      "outputParameterKey": "time_column",
-                      "producerTask": "get-model-metadata"
-                    }
-                  },
-                  "pipelineparam--get-model-metadata-time_series_identifier_column": {
-                    "taskOutputParameter": {
-                      "outputParameterKey": "time_series_identifier_column",
-                      "producerTask": "get-model-metadata"
-                    }
-                  },
-                  "pipelineparam--model_name": {
-                    "componentInputParameter": "pipelineparam--model_name"
+                  "pipelineparam--time_series_identifier_column": {
+                    "componentInputParameter": "pipelineparam--time_series_identifier_column"
                   },
                   "project": {
                     "componentInputParameter": "pipelineparam--project"
@@ -293,7 +241,7 @@
                   "query": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "\n      SELECT\n        target.*,\n        STRUCT(prediction.time_series_adjusted_data AS value)\n          AS predicted_{{$.inputs.parameters['pipelineparam--get-model-metadata-target_column']}},\n        prediction.* EXCEPT (\n          {{$.inputs.parameters['pipelineparam--get-model-metadata-time_series_identifier_column']}},\n          time_series_timestamp,\n          time_series_adjusted_data\n        ),\n      FROM\n        ML.EXPLAIN_FORECAST(\n          MODEL `{{$.inputs.parameters['pipelineparam--model_name']}}`,\n          STRUCT({{$.inputs.parameters['pipelineparam--get-model-metadata-forecast_horizon']}} AS horizon)) AS prediction\n      RIGHT JOIN `{{$.inputs.parameters['pipelineparam--get-first-valid-Output']}}` AS target\n        ON\n          CAST(target.{{$.inputs.parameters['pipelineparam--get-model-metadata-time_series_identifier_column']}} AS STRING)\n            = CAST(prediction.{{$.inputs.parameters['pipelineparam--get-model-metadata-time_series_identifier_column']}} AS STRING)\n          AND TIMESTAMP(target.{{$.inputs.parameters['pipelineparam--get-model-metadata-time_column']}}) = prediction.time_series_timestamp\n      WHERE target.{{$.inputs.parameters['pipelineparam--get-model-metadata-target_column']}} IS NULL\n  "
+                        "stringValue": "\n      WITH\n        base_data AS (\n          SELECT * FROM {{$.inputs.parameters['pipelineparam--get-first-valid-Output']}}\n        )\n      SELECT\n        {{$.inputs.parameters['pipelineparam--time_series_identifier_column']}},\n        ARRAY_AGG({{$.inputs.parameters['pipelineparam--time_column']}} ORDER BY {{$.inputs.parameters['pipelineparam--time_column']}}) AS {{$.inputs.parameters['pipelineparam--time_column']}},\n        \n        \n        \n      FROM base_data\n      GROUP BY {{$.inputs.parameters['pipelineparam--time_series_identifier_column']}}\n  "
                       }
                     }
                   },
@@ -307,7 +255,96 @@
                 }
               },
               "taskInfo": {
-                "name": "predictions-table"
+                "name": "remove-feature-columns"
+              }
+            },
+            "bigquery-query-job-2": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-bigquery-query-job-2"
+              },
+              "dependentTasks": [
+                "get-table-location-2",
+                "table-to-uri-2"
+              ],
+              "inputs": {
+                "parameters": {
+                  "job_configuration_query": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{\"priority\": \"INTERACTIVE\", \"destinationTable\": {\"projectId\": \"{{$.inputs.parameters['pipelineparam--table-to-uri-2-project_id']}}\", \"datasetId\": \"{{$.inputs.parameters['pipelineparam--table-to-uri-2-dataset_id']}}\", \"tableId\": \"{{$.inputs.parameters['pipelineparam--table-to-uri-2-table_id']}}\"}, \"write_disposition\": \"WRITE_TRUNCATE\"}"
+                      }
+                    }
+                  },
+                  "labels": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "location": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "Output",
+                      "producerTask": "get-table-location-2"
+                    }
+                  },
+                  "pipelineparam--table-to-uri-2-dataset_id": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "dataset_id",
+                      "producerTask": "table-to-uri-2"
+                    }
+                  },
+                  "pipelineparam--table-to-uri-2-project_id": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "project_id",
+                      "producerTask": "table-to-uri-2"
+                    }
+                  },
+                  "pipelineparam--table-to-uri-2-table_id": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "table_id",
+                      "producerTask": "table-to-uri-2"
+                    }
+                  },
+                  "pipelineparam--table-to-uri-2-uri": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "uri",
+                      "producerTask": "table-to-uri-2"
+                    }
+                  },
+                  "pipelineparam--target_column": {
+                    "componentInputParameter": "pipelineparam--target_column"
+                  },
+                  "pipelineparam--time_column": {
+                    "componentInputParameter": "pipelineparam--time_column"
+                  },
+                  "pipelineparam--time_series_identifier_column": {
+                    "componentInputParameter": "pipelineparam--time_series_identifier_column"
+                  },
+                  "project": {
+                    "componentInputParameter": "pipelineparam--project"
+                  },
+                  "query": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "\n      WITH\n        predictions AS (\n          SELECT\n            {{$.inputs.parameters['pipelineparam--time_series_identifier_column']}},\n            JSON_QUERY_ARRAY(prediction, '$.{{$.inputs.parameters['pipelineparam--time_column']}}') AS {{$.inputs.parameters['pipelineparam--time_column']}},\n            JSON_EXTRACT(\n              prediction,\n              '$.predicted_on_{{$.inputs.parameters['pipelineparam--time_column']}}'\n            ) AS predicted_on_{{$.inputs.parameters['pipelineparam--time_column']}},\n            JSON_QUERY_ARRAY(\n              prediction,\n              '$.predicted_{{$.inputs.parameters['pipelineparam--target_column']}}'\n            ) AS predicted_{{$.inputs.parameters['pipelineparam--target_column']}},\n          FROM `{{$.inputs.parameters['pipelineparam--table-to-uri-2-uri']}}`\n        )\n        SELECT\n          {{$.inputs.parameters['pipelineparam--time_series_identifier_column']}},\n          PARSE_TIMESTAMP(\n            '\\\"%Y-%m-%dT%H:%M:%SZ\\\"',\n            predicted_on_{{$.inputs.parameters['pipelineparam--time_column']}}\n          ) AS predicted_on_{{$.inputs.parameters['pipelineparam--time_column']}},\n          PARSE_TIMESTAMP(\n            '\\\"%Y-%m-%dT%H:%M:%SZ\\\"',\n            {{$.inputs.parameters['pipelineparam--time_column']}}[SAFE_OFFSET(index)]\n          ) AS {{$.inputs.parameters['pipelineparam--time_column']}},\n          STRUCT(\n            CAST(predicted_{{$.inputs.parameters['pipelineparam--target_column']}}[SAFE_OFFSET(index)] AS FLOAT64)\n              AS value\n          ) AS predicted_{{$.inputs.parameters['pipelineparam--target_column']}}\n        FROM predictions\n        CROSS JOIN\n          UNNEST(GENERATE_ARRAY(0, ARRAY_LENGTH({{$.inputs.parameters['pipelineparam--time_column']}}) - 1)) AS index\n  "
+                      }
+                    }
+                  },
+                  "query_parameters": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "[]"
+                      }
+                    }
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "create-predictions-table"
               }
             },
             "generate-iso8601-underscore-datetime-format": {
@@ -371,37 +408,6 @@
                 "name": "get-first-valid"
               }
             },
-            "get-model-metadata": {
-              "cachingOptions": {
-                "enableCache": true
-              },
-              "componentRef": {
-                "name": "comp-get-model-metadata"
-              },
-              "dependentTasks": [
-                "get-table-location",
-                "validate-inputs"
-              ],
-              "inputs": {
-                "parameters": {
-                  "location": {
-                    "taskOutputParameter": {
-                      "outputParameterKey": "Output",
-                      "producerTask": "get-table-location"
-                    }
-                  },
-                  "model": {
-                    "componentInputParameter": "pipelineparam--model_name"
-                  },
-                  "project": {
-                    "componentInputParameter": "pipelineparam--project"
-                  }
-                }
-              },
-              "taskInfo": {
-                "name": "get-model-metadata"
-              }
-            },
             "get-table-location": {
               "cachingOptions": {
                 "enableCache": true
@@ -430,6 +436,40 @@
               },
               "taskInfo": {
                 "name": "get-table-location"
+              }
+            },
+            "get-table-location-2": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-get-table-location-2"
+              },
+              "dependentTasks": [
+                "table-to-uri-2"
+              ],
+              "inputs": {
+                "parameters": {
+                  "default_location": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "project": {
+                    "componentInputParameter": "pipelineparam--project"
+                  },
+                  "table": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "uri",
+                      "producerTask": "table-to-uri-2"
+                    }
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "get-table-location-2"
               }
             },
             "load-table-from-uri": {
@@ -493,6 +533,27 @@
                 "name": "load-table-from-uri"
               }
             },
+            "make-vertex-model-artifact": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-make-vertex-model-artifact"
+              },
+              "inputs": {
+                "parameters": {
+                  "location": {
+                    "componentInputParameter": "pipelineparam--location"
+                  },
+                  "model_resource_name": {
+                    "componentInputParameter": "pipelineparam--model_name"
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "make-vertex-model-artifact"
+              }
+            },
             "maybe-replace-with-default": {
               "cachingOptions": {
                 "enableCache": true
@@ -500,23 +561,10 @@
               "componentRef": {
                 "name": "comp-maybe-replace-with-default"
               },
-              "dependentTasks": [
-                "generate-iso8601-underscore-datetime-format"
-              ],
               "inputs": {
                 "parameters": {
                   "default": {
-                    "runtimeValue": {
-                      "constantValue": {
-                        "stringValue": "prediction_{{$.inputs.parameters['pipelineparam--generate-iso8601-underscore-datetime-format-Output']}}"
-                      }
-                    }
-                  },
-                  "pipelineparam--generate-iso8601-underscore-datetime-format-Output": {
-                    "taskOutputParameter": {
-                      "outputParameterKey": "Output",
-                      "producerTask": "generate-iso8601-underscore-datetime-format"
-                    }
+                    "componentInputParameter": "pipelineparam--project"
                   },
                   "value": {
                     "componentInputParameter": "pipelineparam--bigquery_destination_uri"
@@ -525,6 +573,177 @@
               },
               "taskInfo": {
                 "name": "maybe-replace-with-default"
+              }
+            },
+            "model-batch-predict": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-model-batch-predict"
+              },
+              "dependentTasks": [
+                "make-vertex-model-artifact",
+                "maybe-replace-with-default",
+                "table-to-uri"
+              ],
+              "inputs": {
+                "artifacts": {
+                  "model": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "vertex_model",
+                      "producerTask": "make-vertex-model-artifact"
+                    }
+                  }
+                },
+                "parameters": {
+                  "accelerator_count": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "0"
+                      }
+                    }
+                  },
+                  "accelerator_type": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "bigquery_destination_output_uri": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "bq://{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-Output']}}"
+                      }
+                    }
+                  },
+                  "bigquery_source_input_uri": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "bq://{{$.inputs.parameters['pipelineparam--table-to-uri-uri']}}"
+                      }
+                    }
+                  },
+                  "encryption_spec_key_name": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "explanation_metadata": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "explanation_parameters": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "gcs_destination_output_uri_prefix": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
+                  "gcs_source_uris": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "[]"
+                      }
+                    }
+                  },
+                  "generate_explanation": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "0"
+                      }
+                    }
+                  },
+                  "instances_format": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "bigquery"
+                      }
+                    }
+                  },
+                  "job_display_name": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "batch-predict-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}"
+                      }
+                    }
+                  },
+                  "labels": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "location": {
+                    "componentInputParameter": "pipelineparam--location"
+                  },
+                  "machine_type": {
+                    "componentInputParameter": "pipelineparam--machine_type"
+                  },
+                  "manual_batch_tuning_parameters_batch_size": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "0"
+                      }
+                    }
+                  },
+                  "max_replica_count": {
+                    "componentInputParameter": "pipelineparam--max_num_workers"
+                  },
+                  "model_parameters": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "{}"
+                      }
+                    }
+                  },
+                  "pipelineparam--maybe-replace-with-default-Output": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "Output",
+                      "producerTask": "maybe-replace-with-default"
+                    }
+                  },
+                  "pipelineparam--table-to-uri-uri": {
+                    "taskOutputParameter": {
+                      "outputParameterKey": "uri",
+                      "producerTask": "table-to-uri"
+                    }
+                  },
+                  "predictions_format": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "bigquery"
+                      }
+                    }
+                  },
+                  "project": {
+                    "componentInputParameter": "pipelineparam--project"
+                  },
+                  "starting_replica_count": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "0"
+                      }
+                    }
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "model-batch-predict"
               }
             },
             "parse-data-source": {
@@ -546,6 +765,54 @@
               },
               "taskInfo": {
                 "name": "parse-data-source"
+              }
+            },
+            "table-to-uri": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-table-to-uri"
+              },
+              "dependentTasks": [
+                "bigquery-query-job"
+              ],
+              "inputs": {
+                "artifacts": {
+                  "table": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "destination_table",
+                      "producerTask": "bigquery-query-job"
+                    }
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "table-to-uri"
+              }
+            },
+            "table-to-uri-2": {
+              "cachingOptions": {
+                "enableCache": true
+              },
+              "componentRef": {
+                "name": "comp-table-to-uri-2"
+              },
+              "dependentTasks": [
+                "model-batch-predict"
+              ],
+              "inputs": {
+                "artifacts": {
+                  "table": {
+                    "taskOutputArtifact": {
+                      "outputArtifactKey": "bigquery_output_table",
+                      "producerTask": "model-batch-predict"
+                    }
+                  }
+                }
+              },
+              "taskInfo": {
+                "name": "table-to-uri-2"
               }
             },
             "validate-inputs": {
@@ -574,9 +841,6 @@
                       "outputParameterKey": "data_source_csv_filenames",
                       "producerTask": "parse-data-source"
                     }
-                  },
-                  "source_model_uri": {
-                    "componentInputParameter": "pipelineparam--model_name"
                   }
                 }
               },
@@ -600,10 +864,25 @@
             "pipelineparam--location": {
               "type": "STRING"
             },
+            "pipelineparam--machine_type": {
+              "type": "STRING"
+            },
+            "pipelineparam--max_num_workers": {
+              "type": "INT"
+            },
             "pipelineparam--model_name": {
               "type": "STRING"
             },
             "pipelineparam--project": {
+              "type": "STRING"
+            },
+            "pipelineparam--target_column": {
+              "type": "STRING"
+            },
+            "pipelineparam--time_column": {
+              "type": "STRING"
+            },
+            "pipelineparam--time_series_identifier_column": {
               "type": "STRING"
             }
           }
@@ -643,40 +922,31 @@
           }
         }
       },
-      "comp-get-model-metadata": {
-        "executorLabel": "exec-get-model-metadata",
+      "comp-get-table-location": {
+        "executorLabel": "exec-get-table-location",
         "inputDefinitions": {
           "parameters": {
-            "location": {
-              "type": "STRING"
-            },
-            "model": {
+            "default_location": {
               "type": "STRING"
             },
             "project": {
+              "type": "STRING"
+            },
+            "table": {
               "type": "STRING"
             }
           }
         },
         "outputDefinitions": {
           "parameters": {
-            "forecast_horizon": {
-              "type": "INT"
-            },
-            "target_column": {
-              "type": "STRING"
-            },
-            "time_column": {
-              "type": "STRING"
-            },
-            "time_series_identifier_column": {
+            "Output": {
               "type": "STRING"
             }
           }
         }
       },
-      "comp-get-table-location": {
-        "executorLabel": "exec-get-table-location",
+      "comp-get-table-location-2": {
+        "executorLabel": "exec-get-table-location-2",
         "inputDefinitions": {
           "parameters": {
             "default_location": {
@@ -727,6 +997,29 @@
           }
         }
       },
+      "comp-make-vertex-model-artifact": {
+        "executorLabel": "exec-make-vertex-model-artifact",
+        "inputDefinitions": {
+          "parameters": {
+            "location": {
+              "type": "STRING"
+            },
+            "model_resource_name": {
+              "type": "STRING"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "vertex_model": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        }
+      },
       "comp-maybe-replace-with-default": {
         "executorLabel": "exec-maybe-replace-with-default",
         "inputDefinitions": {
@@ -742,6 +1035,111 @@
         "outputDefinitions": {
           "parameters": {
             "Output": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-model-batch-predict": {
+        "executorLabel": "exec-model-batch-predict",
+        "inputDefinitions": {
+          "artifacts": {
+            "model": {
+              "artifactType": {
+                "schemaTitle": "google.VertexModel",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "accelerator_count": {
+              "type": "INT"
+            },
+            "accelerator_type": {
+              "type": "STRING"
+            },
+            "bigquery_destination_output_uri": {
+              "type": "STRING"
+            },
+            "bigquery_source_input_uri": {
+              "type": "STRING"
+            },
+            "encryption_spec_key_name": {
+              "type": "STRING"
+            },
+            "explanation_metadata": {
+              "type": "STRING"
+            },
+            "explanation_parameters": {
+              "type": "STRING"
+            },
+            "gcs_destination_output_uri_prefix": {
+              "type": "STRING"
+            },
+            "gcs_source_uris": {
+              "type": "STRING"
+            },
+            "generate_explanation": {
+              "type": "STRING"
+            },
+            "instances_format": {
+              "type": "STRING"
+            },
+            "job_display_name": {
+              "type": "STRING"
+            },
+            "labels": {
+              "type": "STRING"
+            },
+            "location": {
+              "type": "STRING"
+            },
+            "machine_type": {
+              "type": "STRING"
+            },
+            "manual_batch_tuning_parameters_batch_size": {
+              "type": "INT"
+            },
+            "max_replica_count": {
+              "type": "INT"
+            },
+            "model_parameters": {
+              "type": "STRING"
+            },
+            "predictions_format": {
+              "type": "STRING"
+            },
+            "project": {
+              "type": "STRING"
+            },
+            "starting_replica_count": {
+              "type": "INT"
+            }
+          }
+        },
+        "outputDefinitions": {
+          "artifacts": {
+            "batchpredictionjob": {
+              "artifactType": {
+                "schemaTitle": "google.VertexBatchPredictionJob",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "bigquery_output_table": {
+              "artifactType": {
+                "schemaTitle": "google.BQTable",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "gcs_output_directory": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          },
+          "parameters": {
+            "gcp_resources": {
               "type": "STRING"
             }
           }
@@ -770,6 +1168,64 @@
           }
         }
       },
+      "comp-table-to-uri": {
+        "executorLabel": "exec-table-to-uri",
+        "inputDefinitions": {
+          "artifacts": {
+            "table": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "dataset_id": {
+              "type": "STRING"
+            },
+            "project_id": {
+              "type": "STRING"
+            },
+            "table_id": {
+              "type": "STRING"
+            },
+            "uri": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
+      "comp-table-to-uri-2": {
+        "executorLabel": "exec-table-to-uri-2",
+        "inputDefinitions": {
+          "artifacts": {
+            "table": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            }
+          }
+        },
+        "outputDefinitions": {
+          "parameters": {
+            "dataset_id": {
+              "type": "STRING"
+            },
+            "project_id": {
+              "type": "STRING"
+            },
+            "table_id": {
+              "type": "STRING"
+            },
+            "uri": {
+              "type": "STRING"
+            }
+          }
+        }
+      },
       "comp-validate-inputs": {
         "executorLabel": "exec-validate-inputs",
         "inputDefinitions": {
@@ -782,9 +1238,6 @@
             },
             "data_source_csv_filenames": {
               "type": "STRING"
-            },
-            "source_model_uri": {
-              "type": "STRING"
             }
           }
         }
@@ -793,26 +1246,6 @@
     "deploymentSpec": {
       "executors": {
         "exec-bigquery-create-dataset": {
-          "container": {
-            "args": [
-              "--executor_input",
-              "{{$}}",
-              "--function_to_execute",
-              "bigquery_create_dataset"
-            ],
-            "command": [
-              "sh",
-              "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1' 'kfp==1.8.14' && \"$0\" \"$@\"\n",
-              "sh",
-              "-ec",
-              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef bigquery_create_dataset(\n    project: str,\n    location: str,\n    dataset: str,\n    exists_ok: bool = False,\n) -> NamedTuple('Outputs', [('project_id', str), ('dataset_id', str)]):\n  \"\"\"Creates a BigQuery dataset.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  import collections\n\n  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\n  client = bigquery.Client(project=project, location=location)\n  ref = client.create_dataset(dataset=dataset, exists_ok=exists_ok)\n  return collections.namedtuple('Outputs', ['project_id', 'dataset_id'])(\n      ref.project, ref.dataset_id)\n\n"
-            ],
-            "image": "python:3.7-slim"
-          }
-        },
-        "exec-bigquery-create-dataset-2": {
           "container": {
             "args": [
               "--executor_input",
@@ -879,6 +1312,33 @@
             "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
           }
         },
+        "exec-bigquery-query-job-2": {
+          "container": {
+            "args": [
+              "--type",
+              "BigqueryQueryJob",
+              "--project",
+              "{{$.inputs.parameters['project']}}",
+              "--location",
+              "{{$.inputs.parameters['location']}}",
+              "--payload",
+              "{\"configuration\": {\"query\": {{$.inputs.parameters['job_configuration_query']}}, \"labels\": {{$.inputs.parameters['labels']}}}}",
+              "--job_configuration_query_override",
+              "{\"query\": \"{{$.inputs.parameters['query']}}\", \"query_parameters\": {{$.inputs.parameters['query_parameters']}}, \"destination_encryption_configuration\": {\"kmsKeyName\": \"\"}}",
+              "--gcp_resources",
+              "{{$.outputs.parameters['gcp_resources'].output_file}}",
+              "--executor_input",
+              "{{$}}"
+            ],
+            "command": [
+              "python3",
+              "-u",
+              "-m",
+              "google_cloud_pipeline_components.container.v1.bigquery.query_job.launcher"
+            ],
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
+          }
+        },
         "exec-generate-iso8601-underscore-datetime-format": {
           "container": {
             "args": [
@@ -919,13 +1379,13 @@
             "image": "python:3.7-slim"
           }
         },
-        "exec-get-model-metadata": {
+        "exec-get-table-location": {
           "container": {
             "args": [
               "--executor_input",
               "{{$}}",
               "--function_to_execute",
-              "get_model_metadata"
+              "get_table_location"
             ],
             "command": [
               "sh",
@@ -934,12 +1394,12 @@
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef get_model_metadata(\n    project: str,\n    location: str,\n    model: str,\n) -> NamedTuple(\n    'Outputs',\n    [\n        ('time_column', str),\n        ('time_series_identifier_column', str),\n        ('target_column', str),\n        ('forecast_horizon', int),\n    ],\n):\n  \"\"\"Retrieves training options for a BQML model.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  import collections\n\n  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\n  client = bigquery.Client(project=project, location=location)\n  options = client.get_model(model).training_runs[0].training_options\n  return collections.namedtuple(\n      'Outputs', [\n          'time_column',\n          'time_series_identifier_column',\n          'target_column',\n          'forecast_horizon',\n      ],\n  )(\n      options.time_series_timestamp_column,\n      options.time_series_id_column,\n      options.time_series_data_column,\n      options.horizon,\n  )\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef get_table_location(\n    project: str,\n    table: Optional[str],\n    default_location: str = '',\n) -> str:\n  \"\"\"Returns the region the given table belongs to.\n\n  Args:\n    project: The GCP project.\n    table: The BigQuery table to get a location for.\n    default_location: Location to return if no table was given.\n\n  Returns:\n    A GCP region or multi-region.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\n  if not table or table == '-':\n    return default_location\n\n  client = bigquery.Client(project=project)\n  if table.startswith('bq://'):\n    table = table[len('bq://'):]\n  elif table.startswith('bigquery://'):\n    table = table[len('bigquery://'):]\n  return client.get_table(table).location\n\n"
             ],
             "image": "python:3.7-slim"
           }
         },
-        "exec-get-table-location": {
+        "exec-get-table-location-2": {
           "container": {
             "args": [
               "--executor_input",
@@ -979,6 +1439,26 @@
             "image": "python:3.7-slim"
           }
         },
+        "exec-make-vertex-model-artifact": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "make_vertex_model_artifact"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef make_vertex_model_artifact(\n    location: str,\n    model_resource_name: str,\n    vertex_model: dsl.Output[dsl.Artifact],\n) -> None:\n  \"\"\"Creates a google.VertexModel artifact.\"\"\"\n  vertex_model.metadata = {'resourceName': model_resource_name}\n  vertex_model.uri = (f'https://{location}-aiplatform.googleapis.com'\n                      f'/v1/{model_resource_name}')\n\n"
+            ],
+            "image": "python:3.7-slim"
+          }
+        },
         "exec-maybe-replace-with-default": {
           "container": {
             "args": [
@@ -999,6 +1479,31 @@
             "image": "python:3.7-slim"
           }
         },
+        "exec-model-batch-predict": {
+          "container": {
+            "args": [
+              "--type",
+              "BatchPredictionJob",
+              "--payload",
+              "{\"display_name\": \"{{$.inputs.parameters['job_display_name']}}\", \"model\": \"{{$.inputs.artifacts['model'].metadata['resourceName']}}\", \"input_config\": {\"instances_format\": \"{{$.inputs.parameters['instances_format']}}\", \"gcs_source\": {\"uris\":{{$.inputs.parameters['gcs_source_uris']}}}, \"bigquery_source\": {\"input_uri\": \"{{$.inputs.parameters['bigquery_source_input_uri']}}\"}}, \"model_parameters\": {{$.inputs.parameters['model_parameters']}}, \"output_config\": {\"predictions_format\": \"{{$.inputs.parameters['predictions_format']}}\", \"gcs_destination\": {\"output_uri_prefix\": \"{{$.inputs.parameters['gcs_destination_output_uri_prefix']}}\"}, \"bigquery_destination\": {\"output_uri\": \"{{$.inputs.parameters['bigquery_destination_output_uri']}}\"}}, \"dedicated_resources\": {\"machine_spec\": {\"machine_type\": \"{{$.inputs.parameters['machine_type']}}\", \"accelerator_type\": \"{{$.inputs.parameters['accelerator_type']}}\", \"accelerator_count\": {{$.inputs.parameters['accelerator_count']}}}, \"starting_replica_count\": {{$.inputs.parameters['starting_replica_count']}}, \"max_replica_count\": {{$.inputs.parameters['max_replica_count']}}}, \"manual_batch_tuning_parameters\": {\"batch_size\": {{$.inputs.parameters['manual_batch_tuning_parameters_batch_size']}}}, \"generate_explanation\": {{$.inputs.parameters['generate_explanation']}}, \"explanation_spec\": {\"parameters\": {{$.inputs.parameters['explanation_parameters']}}, \"metadata\": {{$.inputs.parameters['explanation_metadata']}}}, \"labels\": {{$.inputs.parameters['labels']}}, \"encryption_spec\": {\"kms_key_name\":\"{{$.inputs.parameters['encryption_spec_key_name']}}\"}}",
+              "--project",
+              "{{$.inputs.parameters['project']}}",
+              "--location",
+              "{{$.inputs.parameters['location']}}",
+              "--gcp_resources",
+              "{{$.outputs.parameters['gcp_resources'].output_file}}",
+              "--executor_input",
+              "{{$}}"
+            ],
+            "command": [
+              "python3",
+              "-u",
+              "-m",
+              "google_cloud_pipeline_components.container.v1.batch_prediction_job.launcher"
+            ],
+            "image": "gcr.io/ml-pipeline/google-cloud-pipeline-components:1.0.24"
+          }
+        },
         "exec-parse-data-source": {
           "container": {
             "args": [
@@ -1015,6 +1520,46 @@
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
               "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef parse_data_source(\n    data_source_csv_filenames: Optional[str] = None,\n    data_source_bigquery_table_path: Optional[str] = None,\n) -> NamedTuple('Outputs', [\n    ('data_source_bigquery_table_path', str),\n    ('data_source_csv_filenames', list),\n]):\n  \"\"\"Converts the data source JSON into flat arguments.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n  import collections\n  import re\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\n  result = {\n      'data_source_csv_filenames': data_source_csv_filenames,\n      'data_source_bigquery_table_path': data_source_bigquery_table_path,\n  }\n  for k, v in list(result.items()):\n    is_optional = any([\n        v is None,\n        isinstance(v, str) and v in {'', '-'},\n    ])\n    if is_optional:\n      result.pop(k)\n  if 'data_source_bigquery_table_path' in result:\n    result['data_source_bigquery_table_path'] = re.sub(\n        '^bq://', '', result['data_source_bigquery_table_path'])\n  if 'data_source_csv_filenames' in result:\n    result['data_source_csv_filenames'] = [\n        filename.strip() for filename in data_source_csv_filenames.split(',')]\n  return collections.namedtuple('Outputs', [\n      'data_source_bigquery_table_path',\n      'data_source_csv_filenames',\n  ])(\n      result.get('data_source_bigquery_table_path', ''),\n      result.get('data_source_csv_filenames', []),\n  )\n\n"
+            ],
+            "image": "python:3.7-slim"
+          }
+        },
+        "exec-table-to-uri": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "table_to_uri"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef table_to_uri(\n    table: dsl.Input[dsl.Artifact],\n) -> NamedTuple('Outputs', [\n    ('project_id', str),\n    ('dataset_id', str),\n    ('table_id', str),\n    ('uri', str),\n]):\n  \"\"\"Converts a google.BQTable to a URI.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\n  outputs = [\n      table.metadata['projectId'],\n      table.metadata['datasetId'],\n      table.metadata['tableId'],\n  ]\n  outputs.append('.'.join(outputs))\n  return collections.namedtuple(\n      'Outputs',\n      ['project_id', 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
+            ],
+            "image": "python:3.7-slim"
+          }
+        },
+        "exec-table-to-uri-2": {
+          "container": {
+            "args": [
+              "--executor_input",
+              "{{$}}",
+              "--function_to_execute",
+              "table_to_uri"
+            ],
+            "command": [
+              "sh",
+              "-c",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
+              "sh",
+              "-ec",
+              "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef table_to_uri(\n    table: dsl.Input[dsl.Artifact],\n) -> NamedTuple('Outputs', [\n    ('project_id', str),\n    ('dataset_id', str),\n    ('table_id', str),\n    ('uri', str),\n]):\n  \"\"\"Converts a google.BQTable to a URI.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n  import collections\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\n  outputs = [\n      table.metadata['projectId'],\n      table.metadata['datasetId'],\n      table.metadata['tableId'],\n  ]\n  outputs.append('.'.join(outputs))\n  return collections.namedtuple(\n      'Outputs',\n      ['project_id', 'dataset_id', 'table_id', 'uri'],\n  )(*outputs)\n\n"
             ],
             "image": "python:3.7-slim"
           }
@@ -1042,7 +1587,7 @@
       }
     },
     "pipelineInfo": {
-      "name": "automl-tabular-bqml-arima-prediction"
+      "name": "prophet-predict"
     },
     "root": {
       "dag": {
@@ -1100,11 +1645,26 @@
                 "pipelineparam--location": {
                   "componentInputParameter": "location"
                 },
+                "pipelineparam--machine_type": {
+                  "componentInputParameter": "machine_type"
+                },
+                "pipelineparam--max_num_workers": {
+                  "componentInputParameter": "max_num_workers"
+                },
                 "pipelineparam--model_name": {
                   "componentInputParameter": "model_name"
                 },
                 "pipelineparam--project": {
                   "componentInputParameter": "project"
+                },
+                "pipelineparam--target_column": {
+                  "componentInputParameter": "target_column"
+                },
+                "pipelineparam--time_column": {
+                  "componentInputParameter": "time_column"
+                },
+                "pipelineparam--time_series_identifier_column": {
+                  "componentInputParameter": "time_series_identifier_column"
                 }
               }
             },
@@ -1125,16 +1685,28 @@
           "data_source_csv_filenames": {
             "type": "STRING"
           },
-          "generate_explanation": {
-            "type": "STRING"
-          },
           "location": {
             "type": "STRING"
+          },
+          "machine_type": {
+            "type": "STRING"
+          },
+          "max_num_workers": {
+            "type": "INT"
           },
           "model_name": {
             "type": "STRING"
           },
           "project": {
+            "type": "STRING"
+          },
+          "target_column": {
+            "type": "STRING"
+          },
+          "time_column": {
+            "type": "STRING"
+          },
+          "time_series_identifier_column": {
             "type": "STRING"
           }
         }
@@ -1154,8 +1726,11 @@
       "data_source_csv_filenames": {
         "stringValue": "-"
       },
-      "generate_explanation": {
-        "stringValue": "False"
+      "machine_type": {
+        "stringValue": "n1-standard-2"
+      },
+      "max_num_workers": {
+        "intValue": "200"
       }
     }
   }

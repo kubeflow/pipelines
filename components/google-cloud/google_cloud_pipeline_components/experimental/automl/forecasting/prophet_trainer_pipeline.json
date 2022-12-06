@@ -638,7 +638,7 @@
                   "worker_pool_specs": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": "[{\"machine_spec\": {\"machine_type\": \"n1-standard-4\"}, \"replica_count\": 1, \"container_spec\": {\"image_uri\": \"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/prophet:20221020_1325_RC00\", \"command\": [\"python\"], \"args\": [\"-m\", \"google3.third_party.py.cloud_ml_autoflow.prophet.launcher\", \"train\", \"--job_name\", \"{{$.pipeline_job_name}}\", \"--prophet_backtest_start_time\", \"0001-01-01T00:00:00\", \"--prophet_dataflow_worker_container_image\", \"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/prophet:20221020_1325_RC00\", \"--prophet_root_dir\", \"{{$.inputs.parameters['pipelineparam--root_dir']}}/prophet_{{$.inputs.parameters['pipelineparam--generate-iso8601-underscore-datetime-format-Output']}}\", \"--prophet_region\", \"{{$.inputs.parameters['pipelineparam--location']}}\", \"--prophet_source_bigquery_uri\", \"bq://{{$.inputs.parameters['pipelineparam--table-to-uri-uri']}}\", \"--prophet_target_column\", \"{{$.inputs.parameters['pipelineparam--target_column']}}\", \"--prophet_time_column\", \"{{$.inputs.parameters['pipelineparam--time_column']}}\", \"--prophet_time_series_identifier_column\", \"{{$.inputs.parameters['pipelineparam--time_series_identifier_column']}}\", \"--prophet_forecast_horizon\", \"{{$.inputs.parameters['pipelineparam--forecast_horizon']}}\", \"--prophet_window_column\", \"{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-4-Output']}}\", \"--prophet_optimization_objective\", \"{{$.inputs.parameters['pipelineparam--optimization_objective']}}\", \"--prophet_data_granularity_unit\", \"{{$.inputs.parameters['pipelineparam--data_granularity_unit']}}\", \"--prophet_predefined_split_column\", \"{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-Output']}}\", \"--prophet_max_num_trials\", \"{{$.inputs.parameters['pipelineparam--max_num_trials']}}\", \"--dataflow_project\", \"{{$.inputs.parameters['pipelineparam--project']}}\", \"--dataflow_tmp_dir\", \"{{$.inputs.parameters['pipelineparam--root_dir']}}\", \"--dataflow_staging_dir\", \"{{$.inputs.parameters['pipelineparam--root_dir']}}\", \"--dataflow_max_num_workers\", \"{{$.inputs.parameters['pipelineparam--trainer_dataflow_max_num_workers']}}\", \"--dataflow_machine_type\", \"{{$.inputs.parameters['pipelineparam--trainer_dataflow_machine_type']}}\", \"--dataflow_disk_size_gb\", \"{{$.inputs.parameters['pipelineparam--trainer_dataflow_disk_size_gb']}}\", \"--dataflow_service_account\", \"{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-7-Output']}}\", \"--dataflow_subnetwork\", \"{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-8-Output']}}\", \"--dataflow_use_public_ips\", \"{{$.inputs.parameters['pipelineparam--dataflow_use_public_ips']}}\"]}}]"
+                        "stringValue": "[{\"machine_spec\": {\"machine_type\": \"n1-standard-4\"}, \"replica_count\": 1, \"container_spec\": {\"image_uri\": \"us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/prophet:20221203_1325_RC00\", \"args\": [\"train\", \"--job_name\", \"{{$.pipeline_job_name}}\", \"--prophet_backtest_start_time\", \"0001-01-01T00:00:00\", \"--prophet_dataflow_worker_container_image\", \"us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod\", \"--prophet_root_dir\", \"{{$.inputs.parameters['pipelineparam--root_dir']}}/prophet_{{$.inputs.parameters['pipelineparam--generate-iso8601-underscore-datetime-format-Output']}}\", \"--prophet_region\", \"{{$.inputs.parameters['pipelineparam--location']}}\", \"--prophet_source_bigquery_uri\", \"bq://{{$.inputs.parameters['pipelineparam--table-to-uri-uri']}}\", \"--prophet_target_column\", \"{{$.inputs.parameters['pipelineparam--target_column']}}\", \"--prophet_time_column\", \"{{$.inputs.parameters['pipelineparam--time_column']}}\", \"--prophet_time_series_identifier_column\", \"{{$.inputs.parameters['pipelineparam--time_series_identifier_column']}}\", \"--prophet_forecast_horizon\", \"{{$.inputs.parameters['pipelineparam--forecast_horizon']}}\", \"--prophet_window_column\", \"{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-4-Output']}}\", \"--prophet_optimization_objective\", \"{{$.inputs.parameters['pipelineparam--optimization_objective']}}\", \"--prophet_data_granularity_unit\", \"{{$.inputs.parameters['pipelineparam--data_granularity_unit']}}\", \"--prophet_predefined_split_column\", \"{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-Output']}}\", \"--prophet_max_num_trials\", \"{{$.inputs.parameters['pipelineparam--max_num_trials']}}\", \"--dataflow_project\", \"{{$.inputs.parameters['pipelineparam--project']}}\", \"--dataflow_tmp_dir\", \"{{$.inputs.parameters['pipelineparam--root_dir']}}\", \"--dataflow_staging_dir\", \"{{$.inputs.parameters['pipelineparam--root_dir']}}\", \"--dataflow_max_num_workers\", \"{{$.inputs.parameters['pipelineparam--trainer_dataflow_max_num_workers']}}\", \"--dataflow_machine_type\", \"{{$.inputs.parameters['pipelineparam--trainer_dataflow_machine_type']}}\", \"--dataflow_disk_size_gb\", \"{{$.inputs.parameters['pipelineparam--trainer_dataflow_disk_size_gb']}}\", \"--dataflow_service_account\", \"{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-7-Output']}}\", \"--dataflow_subnetwork\", \"{{$.inputs.parameters['pipelineparam--maybe-replace-with-default-8-Output']}}\", \"--dataflow_use_public_ips\", \"{{$.inputs.parameters['pipelineparam--dataflow_use_public_ips']}}\"]}}]"
                       }
                     }
                   }
@@ -2440,7 +2440,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1' 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1' 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -2460,7 +2460,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1' 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1' 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -2507,7 +2507,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -2527,7 +2527,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1' 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1' 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -2570,7 +2570,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -2590,7 +2590,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -2610,11 +2610,11 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1' 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1' 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef get_table_location(\n    project: str,\n    table: Optional[str],\n    default_location: str = '',\n) -> str:\n  \"\"\"Returns the region the given table belongs to.\n\n  Args:\n    project: The GCP project.\n    table: The BigQuery table to get a row count for.\n    default_location: Location to return if no table was given.\n\n  Returns:\n    A GCP region or multi-region.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\n  if not table:\n    return default_location\n  client = bigquery.Client(project=project)\n  return client.get_table(table).location\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef get_table_location(\n    project: str,\n    table: Optional[str],\n    default_location: str = '',\n) -> str:\n  \"\"\"Returns the region the given table belongs to.\n\n  Args:\n    project: The GCP project.\n    table: The BigQuery table to get a location for.\n    default_location: Location to return if no table was given.\n\n  Returns:\n    A GCP region or multi-region.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\n  if not table or table == '-':\n    return default_location\n\n  client = bigquery.Client(project=project)\n  if table.startswith('bq://'):\n    table = table[len('bq://'):]\n  elif table.startswith('bigquery://'):\n    table = table[len('bigquery://'):]\n  return client.get_table(table).location\n\n"
             ],
             "image": "python:3.7-slim"
           }
@@ -2630,7 +2630,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -2646,19 +2646,11 @@
             },
             "metadata": {
               "containerSpec": {
-                "args": [
-                  "-m",
-                  "google3.third_party.py.cloud_ml_autoflow.prophet.launcher",
-                  "predict"
-                ],
-                "command": [
-                  "python"
-                ],
                 "healthRoute": "/health",
-                "imageUri": "us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/prophet:20221020_1325_RC00",
+                "imageUri": "us-docker.pkg.dev/vertex-ai/automl-tabular/fte-prediction-server:prod",
                 "ports": [
                   {
-                    "containerPort": 8081.0
+                    "containerPort": 8080.0
                   }
                 ],
                 "predictRoute": "/predict"
@@ -2681,11 +2673,11 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1' 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'google-cloud-bigquery==2.24.1' 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef load_table_from_uri(\n    project: str,\n    location: str,\n    source_uris: List[str],\n    destination: str,\n    source_format: str = 'CSV',\n) -> str:\n  \"\"\"Creates a table from a list of URIs.\n\n  Args:\n    project: The GCP project.\n    location: The GCP region.\n    source_uris: URIs of data files to be loaded; in format\n      gs://<bucket_name>/<object_name_or_glob>.\n    destination: Table into which data is to be loaded.\n    source_format: The file format for the files being imported. Only CSV is\n      supported.\n\n  Returns:\n    The destination table containing imported data.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\n  if not source_uris:\n    return ''\n\n  client = bigquery.Client(project=project, location=location)\n  job_config = bigquery.LoadJobConfig(\n      autodetect=True, source_format=source_format)\n  client.load_table_from_uri(\n      source_uris=source_uris,\n      destination=destination,\n      project=project,\n      location=location,\n      job_config=job_config).result()\n  return destination\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef load_table_from_uri(\n    project: str,\n    location: str,\n    source_uris: list,  # pylint: disable=g-bare-generic\n    destination: str,\n    source_format: str = 'CSV',\n) -> str:\n  \"\"\"Creates a table from a list of URIs.\n\n  Args:\n    project: The GCP project.\n    location: The GCP region.\n    source_uris: URIs of data files to be loaded; in format\n      gs://<bucket_name>/<object_name_or_glob>.\n    destination: Table into which data is to be loaded.\n    source_format: The file format for the files being imported. Only CSV is\n      supported.\n\n  Returns:\n    The destination table containing imported data.\n  \"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n  from google.cloud import bigquery\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel,redefined-outer-name,reimported\n\n  if not source_uris:\n    return ''\n\n  client = bigquery.Client(project=project, location=location)\n  job_config = bigquery.LoadJobConfig(\n      autodetect=True, source_format=source_format)\n  client.load_table_from_uri(\n      source_uris=source_uris,\n      destination=destination,\n      project=project,\n      location=location,\n      job_config=job_config).result()\n  return destination\n\n"
             ],
             "image": "python:3.7-slim"
           }
@@ -2701,7 +2693,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -2721,7 +2713,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -2741,7 +2733,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -2761,7 +2753,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -2781,7 +2773,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -2801,7 +2793,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -2821,7 +2813,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -2841,7 +2833,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -2861,7 +2853,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -2983,11 +2975,11 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef parse_data_source(\n    data_source_csv_filenames: Optional[str] = None,\n    data_source_bigquery_table_path: Optional[str] = None,\n) -> NamedTuple('Outputs', [\n    ('data_source_bigquery_table_path', str),\n    ('data_source_csv_filenames', List[str]),\n]):\n  \"\"\"Converts the data source JSON into flat arguments.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n  import collections\n  import re\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\n  result = {\n      'data_source_csv_filenames': data_source_csv_filenames,\n      'data_source_bigquery_table_path': data_source_bigquery_table_path,\n  }\n  for k, v in list(result.items()):\n    is_optional = any([\n        v is None,\n        isinstance(v, str) and v in {'', '-'},\n    ])\n    if is_optional:\n      result.pop(k)\n  if 'data_source_bigquery_table_path' in result:\n    result['data_source_bigquery_table_path'] = re.sub(\n        '^bq://', '', result['data_source_bigquery_table_path'])\n  if 'data_source_csv_filenames' in result:\n    result['data_source_csv_filenames'] = [\n        filename.strip() for filename in data_source_csv_filenames.split(',')]\n  return collections.namedtuple('Outputs', [\n      'data_source_bigquery_table_path',\n      'data_source_csv_filenames',\n  ])(\n      result.get('data_source_bigquery_table_path', ''),\n      result.get('data_source_csv_filenames', []),\n  )\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef parse_data_source(\n    data_source_csv_filenames: Optional[str] = None,\n    data_source_bigquery_table_path: Optional[str] = None,\n) -> NamedTuple('Outputs', [\n    ('data_source_bigquery_table_path', str),\n    ('data_source_csv_filenames', list),\n]):\n  \"\"\"Converts the data source JSON into flat arguments.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n  import collections\n  import re\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\n  result = {\n      'data_source_csv_filenames': data_source_csv_filenames,\n      'data_source_bigquery_table_path': data_source_bigquery_table_path,\n  }\n  for k, v in list(result.items()):\n    is_optional = any([\n        v is None,\n        isinstance(v, str) and v in {'', '-'},\n    ])\n    if is_optional:\n      result.pop(k)\n  if 'data_source_bigquery_table_path' in result:\n    result['data_source_bigquery_table_path'] = re.sub(\n        '^bq://', '', result['data_source_bigquery_table_path'])\n  if 'data_source_csv_filenames' in result:\n    result['data_source_csv_filenames'] = [\n        filename.strip() for filename in data_source_csv_filenames.split(',')]\n  return collections.namedtuple('Outputs', [\n      'data_source_bigquery_table_path',\n      'data_source_csv_filenames',\n  ])(\n      result.get('data_source_bigquery_table_path', ''),\n      result.get('data_source_csv_filenames', []),\n  )\n\n"
             ],
             "image": "python:3.7-slim"
           }
@@ -3003,7 +2995,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -3023,7 +3015,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -3043,7 +3035,7 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
@@ -3063,11 +3055,11 @@
             "command": [
               "sh",
               "-c",
-              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.11' && \"$0\" \"$@\"\n",
+              "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip || python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet     --no-warn-script-location 'kfp==1.8.14' && \"$0\" \"$@\"\n",
               "sh",
               "-ec",
               "program_path=$(mktemp -d)\nprintf \"%s\" \"$0\" > \"$program_path/ephemeral_component.py\"\npython3 -m kfp.v2.components.executor_main                         --component_module_path                         \"$program_path/ephemeral_component.py\"                         \"$@\"\n",
-              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef validate_inputs(\n    time_column: Optional[str] = None,\n    time_series_identifier_column: Optional[str] = None,\n    target_column: Optional[str] = None,\n    data_source_bigquery_table_path: Optional[str] = None,\n    training_fraction: Optional[float] = None,\n    validation_fraction: Optional[float] = None,\n    test_fraction: Optional[float] = None,\n    predefined_split_key: Optional[str] = None,\n    timestamp_split_key: Optional[str] = None,\n    data_source_csv_filenames: Optional[List[str]] = None,\n    source_model_uri: Optional[str] = None,\n    bigquery_destination_uri: Optional[str] = None,\n    window_column: Optional[str] = None,\n    window_stride_length: Optional[int] = None,\n    window_max_count: Optional[int] = None,\n    optimization_objective: Optional[str] = None,\n    data_granularity_unit: Optional[str] = None,\n) -> None:\n  \"\"\"Checks training pipeline input parameters are valid.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n  import re\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\n  project_pattern = r'([a-z0-9.-]+:)?[a-z][a-z0-9-_]{4,28}[a-z0-9]'\n  dataset_pattern = r'.[a-zA-Z0-9_]+'\n  table_pattern = r'.[^\\.\\:`]+'\n\n  # Validate BigQuery column and dataset names.\n  bigquery_column_parameters = [\n      time_column,\n      time_series_identifier_column,\n      target_column,\n  ]\n  column_pattern = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]{1,300}')\n  for column in bigquery_column_parameters:\n    if column is not None and not column_pattern.fullmatch(column):\n      raise ValueError(f'Invalid column name: {column}.')\n  dataset_uri_pattern = re.compile(project_pattern + dataset_pattern)\n  if (bigquery_destination_uri != '-' and\n      bigquery_destination_uri is not None and\n      not dataset_uri_pattern.fullmatch(bigquery_destination_uri)):\n    raise ValueError(\n        f'Invalid BigQuery dataset URI: {bigquery_destination_uri}.')\n  table_uri_pattern = re.compile(project_pattern + dataset_pattern +\n                                 table_pattern)\n  if (source_model_uri is not None and\n      not table_uri_pattern.fullmatch(source_model_uri)):\n    raise ValueError(f'Invalid BigQuery table URI: {source_model_uri}.')\n\n  # Validate data source.\n  data_source_count = sum([bool(source) for source in [\n      data_source_bigquery_table_path, data_source_csv_filenames]])\n  if data_source_count > 1:\n    raise ValueError(f'Expected 1 data source, found {data_source_count}.')\n  if (data_source_bigquery_table_path\n      and not table_uri_pattern.fullmatch(data_source_bigquery_table_path)):\n    raise ValueError(\n        f'Invalid BigQuery table URI: {data_source_bigquery_table_path}.')\n  gcs_path_pattern = re.compile(r'gs:\\/\\/(.+)\\/([^\\/]+)')\n  if data_source_csv_filenames:\n    for gcs_path in data_source_csv_filenames:\n      if not gcs_path_pattern.fullmatch(gcs_path):\n        raise ValueError(f'Invalid path to CSV stored in GCS: {gcs_path}.')\n\n  # Validate split spec.\n  fraction_splits = [\n      training_fraction,\n      validation_fraction,\n      test_fraction,\n  ]\n  split_count = sum([\n      bool(source)\n      for source in [predefined_split_key,\n                     any(fraction_splits)]\n  ])\n  if split_count > 1:\n    raise ValueError(f'Expected 1 split type, found {split_count}.')\n  if (predefined_split_key and\n      not column_pattern.fullmatch(predefined_split_key)):\n    raise ValueError(f'Invalid column name: {predefined_split_key}.')\n  if any(fraction_splits):\n    if not all(fraction_splits):\n      raise ValueError(\n          f'All fractions must be non-zero. Got: {fraction_splits}.')\n    if sum(fraction_splits) != 1:\n      raise ValueError(\n          f'Fraction splits must sum to 1. Got: {sum(fraction_splits)}.')\n  if (timestamp_split_key and\n      not column_pattern.fullmatch(timestamp_split_key)):\n    raise ValueError(f'Invalid column name: {timestamp_split_key}.')\n  if timestamp_split_key and not all(fraction_splits):\n    raise ValueError('All fractions must be non-zero for timestamp split.')\n\n  # Validate window config.\n  window_configs = [window_column, window_stride_length, window_max_count]\n  window_config_count = sum([bool(config) for config in window_configs])\n  if window_config_count > 1:\n    raise ValueError(f'Expected 1 window config, found {window_config_count}.')\n  if window_column and not column_pattern.fullmatch(window_column):\n    raise ValueError(f'Invalid column name: {window_column}.')\n  if window_stride_length and (window_stride_length < 1 or\n                               window_stride_length > 1000):\n    raise ValueError('Stride must be between 1 and 1000. Got: '\n                     f'{window_stride_length}.')\n  if window_max_count and (window_max_count < 1000 or window_max_count > 1e8):\n    raise ValueError('Max count must be between 1000 and 100000000. Got: '\n                     f'{window_max_count}.')\n\n  # Validate eval metric.\n  valid_optimization_objectives = ['rmse', 'mae', 'rmsle']\n  if optimization_objective:\n    if optimization_objective not in valid_optimization_objectives:\n      raise ValueError(\n          'Optimization objective should be one of the following: '\n          f'{valid_optimization_objectives}, got: {optimization_objective}.')\n\n  # Validate data granularity unit.\n  valid_data_granularity_units = [\n      'minute', 'hour', 'day', 'week', 'month', 'year']\n  if data_granularity_unit:\n    if data_granularity_unit not in valid_data_granularity_units:\n      raise ValueError(\n          'Granularity unit should be one of the following: '\n          f'{valid_data_granularity_units}, got: {data_granularity_unit}.')\n\n"
+              "\nimport kfp\nfrom kfp.v2 import dsl\nfrom kfp.v2.dsl import *\nfrom typing import *\n\ndef validate_inputs(\n    time_column: Optional[str] = None,\n    time_series_identifier_column: Optional[str] = None,\n    target_column: Optional[str] = None,\n    data_source_bigquery_table_path: Optional[str] = None,\n    training_fraction: Optional[float] = None,\n    validation_fraction: Optional[float] = None,\n    test_fraction: Optional[float] = None,\n    predefined_split_key: Optional[str] = None,\n    timestamp_split_key: Optional[str] = None,\n    data_source_csv_filenames: Optional[list] = None,  # pylint: disable=g-bare-generic\n    source_model_uri: Optional[str] = None,\n    bigquery_destination_uri: Optional[str] = None,\n    window_column: Optional[str] = None,\n    window_stride_length: Optional[int] = None,\n    window_max_count: Optional[int] = None,\n    optimization_objective: Optional[str] = None,\n    data_granularity_unit: Optional[str] = None,\n) -> None:\n  \"\"\"Checks training pipeline input parameters are valid.\"\"\"\n  # pylint: disable=g-import-not-at-top,import-outside-toplevel\n  import re\n  # pylint: enable=g-import-not-at-top,import-outside-toplevel\n\n  project_pattern = r'([a-z0-9.-]+:)?[a-z][a-z0-9-_]{4,28}[a-z0-9]'\n  dataset_pattern = r'.[a-zA-Z0-9_]+'\n  table_pattern = r'.[^\\.\\:`]+'\n\n  # Validate BigQuery column and dataset names.\n  bigquery_column_parameters = [\n      time_column,\n      time_series_identifier_column,\n      target_column,\n  ]\n  column_pattern = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]{1,300}')\n  for column in bigquery_column_parameters:\n    if column is not None and not column_pattern.fullmatch(column):\n      raise ValueError(f'Invalid column name: {column}.')\n  dataset_uri_pattern = re.compile(project_pattern + dataset_pattern)\n  if (bigquery_destination_uri != '-' and\n      bigquery_destination_uri is not None and\n      not dataset_uri_pattern.fullmatch(bigquery_destination_uri)):\n    raise ValueError(\n        f'Invalid BigQuery dataset URI: {bigquery_destination_uri}.')\n  table_uri_pattern = re.compile(project_pattern + dataset_pattern +\n                                 table_pattern)\n  if (source_model_uri is not None and\n      not table_uri_pattern.fullmatch(source_model_uri)):\n    raise ValueError(f'Invalid BigQuery table URI: {source_model_uri}.')\n\n  # Validate data source.\n  data_source_count = sum([bool(source) for source in [\n      data_source_bigquery_table_path, data_source_csv_filenames]])\n  if data_source_count > 1:\n    raise ValueError(f'Expected 1 data source, found {data_source_count}.')\n  if (data_source_bigquery_table_path\n      and not table_uri_pattern.fullmatch(data_source_bigquery_table_path)):\n    raise ValueError(\n        f'Invalid BigQuery table URI: {data_source_bigquery_table_path}.')\n  gcs_path_pattern = re.compile(r'gs:\\/\\/(.+)\\/([^\\/]+)')\n  if data_source_csv_filenames:\n    for gcs_path in data_source_csv_filenames:\n      if not gcs_path_pattern.fullmatch(gcs_path):\n        raise ValueError(f'Invalid path to CSV stored in GCS: {gcs_path}.')\n\n  # Validate split spec.\n  fraction_splits = [\n      training_fraction,\n      validation_fraction,\n      test_fraction,\n  ]\n  split_count = sum([\n      bool(source)\n      for source in [predefined_split_key,\n                     any(fraction_splits)]\n  ])\n  if split_count > 1:\n    raise ValueError(f'Expected 1 split type, found {split_count}.')\n  if (predefined_split_key and\n      not column_pattern.fullmatch(predefined_split_key)):\n    raise ValueError(f'Invalid column name: {predefined_split_key}.')\n  if any(fraction_splits):\n    if not all(fraction_splits):\n      raise ValueError(\n          f'All fractions must be non-zero. Got: {fraction_splits}.')\n    if sum(fraction_splits) != 1:\n      raise ValueError(\n          f'Fraction splits must sum to 1. Got: {sum(fraction_splits)}.')\n  if (timestamp_split_key and\n      not column_pattern.fullmatch(timestamp_split_key)):\n    raise ValueError(f'Invalid column name: {timestamp_split_key}.')\n  if timestamp_split_key and not all(fraction_splits):\n    raise ValueError('All fractions must be non-zero for timestamp split.')\n\n  # Validate window config.\n  window_configs = [window_column, window_stride_length, window_max_count]\n  window_config_count = sum([bool(config) for config in window_configs])\n  if window_config_count > 1:\n    raise ValueError(f'Expected 1 window config, found {window_config_count}.')\n  if window_column and not column_pattern.fullmatch(window_column):\n    raise ValueError(f'Invalid column name: {window_column}.')\n  if window_stride_length and (window_stride_length < 1 or\n                               window_stride_length > 1000):\n    raise ValueError('Stride must be between 1 and 1000. Got: '\n                     f'{window_stride_length}.')\n  if window_max_count and (window_max_count < 1000 or window_max_count > 1e8):\n    raise ValueError('Max count must be between 1000 and 100000000. Got: '\n                     f'{window_max_count}.')\n\n  # Validate eval metric.\n  valid_optimization_objectives = ['rmse', 'mae', 'rmsle']\n  if optimization_objective:\n    if optimization_objective not in valid_optimization_objectives:\n      raise ValueError(\n          'Optimization objective should be one of the following: '\n          f'{valid_optimization_objectives}, got: {optimization_objective}.')\n\n  # Validate data granularity unit.\n  valid_data_granularity_units = [\n      'minute', 'hour', 'day', 'week', 'month', 'year']\n  if data_granularity_unit:\n    if data_granularity_unit not in valid_data_granularity_units:\n      raise ValueError(\n          'Granularity unit should be one of the following: '\n          f'{valid_data_granularity_units}, got: {data_granularity_unit}.')\n\n"
             ],
             "image": "python:3.7-slim"
           }
@@ -3343,7 +3335,7 @@
       }
     },
     "schemaVersion": "2.0.0",
-    "sdkVersion": "kfp-1.8.11"
+    "sdkVersion": "kfp-1.8.14"
   },
   "runtimeConfig": {
     "parameters": {

@@ -70,6 +70,7 @@ def _get_default_pipeline_params(
     distill_batch_predict_machine_type: Optional[str] = None,
     distill_batch_predict_starting_replica_count: Optional[int] = None,
     distill_batch_predict_max_replica_count: Optional[int] = None,
+    stage_1_tuning_result_artifact_uri: Optional[str] = None,
     quantiles: Optional[List[float]] = None,
     enable_probabilistic_inference: bool = False
 ) -> Dict[str, Any]:
@@ -211,6 +212,8 @@ def _get_default_pipeline_params(
     distill_batch_predict_max_replica_count:
       The max number of prediction server
       for batch predict component in the model distillation.
+    stage_1_tuning_result_artifact_uri:
+      The stage 1 tuning result artifact GCS URI.
     quantiles:
       Quantiles to use for probabilistic inference. Up to 5 quantiles are
       allowed of values between 0 and 1, exclusive. Represents the quantiles to
@@ -316,6 +319,8 @@ def _get_default_pipeline_params(
           additional_experiments,
       'max_selected_features':
           max_selected_features,
+      'stage_1_tuning_result_artifact_uri':
+          stage_1_tuning_result_artifact_uri,
       'quantiles':
           quantiles,
       'enable_probabilistic_inference':
@@ -420,6 +425,7 @@ def get_automl_tabular_pipeline_and_parameters(
     distill_batch_predict_machine_type: Optional[str] = None,
     distill_batch_predict_starting_replica_count: Optional[int] = None,
     distill_batch_predict_max_replica_count: Optional[int] = None,
+    stage_1_tuning_result_artifact_uri: Optional[str] = None,
     quantiles: Optional[List[float]] = None,
     enable_probabilistic_inference: bool = False
 ) -> Tuple[str, Dict[str, Any]]:
@@ -557,6 +563,8 @@ def get_automl_tabular_pipeline_and_parameters(
     distill_batch_predict_max_replica_count:
       The max number of prediction server
       for batch predict component in the model distillation.
+    stage_1_tuning_result_artifact_uri:
+      The stage 1 tuning result artifact GCS URI.
     quantiles:
       Quantiles to use for probabilistic inference. Up to 5 quantiles are
       allowed of values between 0 and 1, exclusive. Represents the quantiles to
@@ -622,6 +630,7 @@ def get_automl_tabular_pipeline_and_parameters(
       distill_batch_predict_machine_type=distill_batch_predict_machine_type,
       distill_batch_predict_starting_replica_count=distill_batch_predict_starting_replica_count,
       distill_batch_predict_max_replica_count=distill_batch_predict_max_replica_count,
+      stage_1_tuning_result_artifact_uri=stage_1_tuning_result_artifact_uri,
       quantiles=quantiles,
       enable_probabilistic_inference=enable_probabilistic_inference,
   )
@@ -1664,113 +1673,60 @@ def get_skip_architecture_search_pipeline_and_parameters(
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
   """
-  if not cv_trainer_worker_pool_specs_override:
-    cv_trainer_worker_pool_specs_override = []
-  if not additional_experiments:
-    additional_experiments = {}
-  parameter_values = {}
-  parameters = {
-      'project':
-          project,
-      'location':
-          location,
-      'root_dir':
-          root_dir,
-      'target_column':
-          target_column,
-      'prediction_type':
-          prediction_type,
-      'data_source_csv_filenames':
-          data_source_csv_filenames,
-      'data_source_bigquery_table_path':
-          data_source_bigquery_table_path,
-      'predefined_split_key':
-          predefined_split_key,
-      'timestamp_split_key':
-          timestamp_split_key,
-      'stratified_split_key':
-          stratified_split_key,
-      'training_fraction':
-          training_fraction,
-      'validation_fraction':
-          validation_fraction,
-      'test_fraction':
-          test_fraction,
-      'optimization_objective':
-          optimization_objective,
-      'transformations':
-          transformations,
-      'train_budget_milli_node_hours':
-          train_budget_milli_node_hours,
-      'stage_1_tuning_result_artifact_uri':
-          stage_1_tuning_result_artifact_uri,
-      'stage_2_num_parallel_trials':
-          stage_2_num_parallel_trials,
-      'stage_2_num_selected_trials':
-          stage_2_num_selected_trials,
-      'weight_column':
-          weight_column,
-      'optimization_objective_recall_value':
-          optimization_objective_recall_value,
-      'optimization_objective_precision_value':
-          optimization_objective_precision_value,
-      'cv_trainer_worker_pool_specs_override':
-          cv_trainer_worker_pool_specs_override,
-      'export_additional_model_without_custom_ops':
-          export_additional_model_without_custom_ops,
-      'stats_and_example_gen_dataflow_machine_type':
-          stats_and_example_gen_dataflow_machine_type,
-      'stats_and_example_gen_dataflow_max_num_workers':
-          stats_and_example_gen_dataflow_max_num_workers,
-      'stats_and_example_gen_dataflow_disk_size_gb':
-          stats_and_example_gen_dataflow_disk_size_gb,
-      'transform_dataflow_machine_type':
-          transform_dataflow_machine_type,
-      'transform_dataflow_max_num_workers':
-          transform_dataflow_max_num_workers,
-      'transform_dataflow_disk_size_gb':
-          transform_dataflow_disk_size_gb,
-      'dataflow_subnetwork':
-          dataflow_subnetwork,
-      'dataflow_use_public_ips':
-          dataflow_use_public_ips,
-      'encryption_spec_key_name':
-          encryption_spec_key_name,
-      'additional_experiments':
-          additional_experiments,
-  }
-  parameter_values.update({
-      param: value for param, value in parameters.items() if value is not None
-  })
-  if run_evaluation:
-    eval_parameters = {
-        'dataflow_service_account':
-            dataflow_service_account,
-        'evaluation_batch_predict_machine_type':
-            evaluation_batch_predict_machine_type,
-        'evaluation_batch_predict_starting_replica_count':
-            evaluation_batch_predict_starting_replica_count,
-        'evaluation_batch_predict_max_replica_count':
-            evaluation_batch_predict_max_replica_count,
-        'evaluation_dataflow_machine_type':
-            evaluation_dataflow_machine_type,
-        'evaluation_dataflow_max_num_workers':
-            evaluation_dataflow_max_num_workers,
-        'evaluation_dataflow_disk_size_gb':
-            evaluation_dataflow_disk_size_gb,
-        'run_evaluation':
-            run_evaluation
-    }
-    parameter_values.update({
-        param: value
-        for param, value in eval_parameters.items()
-        if value is not None
-    })
 
-  pipeline_definition_path = os.path.join(
-      pathlib.Path(__file__).parent.resolve(),
-      'skip_architecture_search_pipeline.json')
-  return pipeline_definition_path, parameter_values
+  return get_automl_tabular_pipeline_and_parameters(
+      project=project,
+      location=location,
+      root_dir=root_dir,
+      target_column=target_column,
+      prediction_type=prediction_type,
+      optimization_objective=optimization_objective,
+      transformations=transformations,
+      train_budget_milli_node_hours=train_budget_milli_node_hours,
+      stage_1_num_parallel_trials=None,
+      stage_2_num_parallel_trials=stage_2_num_parallel_trials,
+      stage_2_num_selected_trials=stage_2_num_selected_trials,
+      data_source_csv_filenames=data_source_csv_filenames,
+      data_source_bigquery_table_path=data_source_bigquery_table_path,
+      predefined_split_key=predefined_split_key,
+      timestamp_split_key=timestamp_split_key,
+      stratified_split_key=stratified_split_key,
+      training_fraction=training_fraction,
+      validation_fraction=validation_fraction,
+      test_fraction=test_fraction,
+      weight_column=weight_column,
+      study_spec_parameters_override=[],
+      optimization_objective_recall_value=optimization_objective_recall_value,
+      optimization_objective_precision_value=optimization_objective_precision_value,
+      stage_1_tuner_worker_pool_specs_override={},
+      cv_trainer_worker_pool_specs_override=cv_trainer_worker_pool_specs_override,
+      export_additional_model_without_custom_ops=export_additional_model_without_custom_ops,
+      stats_and_example_gen_dataflow_machine_type=stats_and_example_gen_dataflow_machine_type,
+      stats_and_example_gen_dataflow_max_num_workers=stats_and_example_gen_dataflow_max_num_workers,
+      stats_and_example_gen_dataflow_disk_size_gb=stats_and_example_gen_dataflow_disk_size_gb,
+      transform_dataflow_machine_type=transform_dataflow_machine_type,
+      transform_dataflow_max_num_workers=transform_dataflow_max_num_workers,
+      transform_dataflow_disk_size_gb=transform_dataflow_disk_size_gb,
+      dataflow_subnetwork=dataflow_subnetwork,
+      dataflow_use_public_ips=dataflow_use_public_ips,
+      encryption_spec_key_name=encryption_spec_key_name,
+      additional_experiments=additional_experiments,
+      dataflow_service_account=dataflow_service_account,
+      run_evaluation=run_evaluation,
+      evaluation_batch_predict_machine_type=evaluation_batch_predict_machine_type,
+      evaluation_batch_predict_starting_replica_count=evaluation_batch_predict_starting_replica_count,
+      evaluation_batch_predict_max_replica_count=evaluation_batch_predict_max_replica_count,
+      evaluation_dataflow_machine_type=evaluation_dataflow_machine_type,
+      evaluation_dataflow_max_num_workers=evaluation_dataflow_max_num_workers,
+      evaluation_dataflow_disk_size_gb=evaluation_dataflow_disk_size_gb,
+      run_distillation=None,
+      distill_batch_predict_machine_type=None,
+      distill_batch_predict_starting_replica_count=None,
+      distill_batch_predict_max_replica_count=None,
+      stage_1_tuning_result_artifact_uri=stage_1_tuning_result_artifact_uri,
+      quantiles=[],
+      enable_probabilistic_inference=False
+  )
 
 
 def get_distill_skip_evaluation_pipeline_and_parameters(
@@ -3595,11 +3551,15 @@ def get_model_comparison_pipeline_and_parameters(
     project: str,
     location: str,
     root_dir: str,
-    problem_type: str,
+    prediction_type: str,
     training_jobs: Dict[str, Dict[str, Any]],
     data_source_csv_filenames: str = '-',
     data_source_bigquery_table_path: str = '-',
+    evaluation_data_source_csv_filenames: str = '-',
+    evaluation_data_source_bigquery_table_path: str = '-',
     experiment: str = '-',
+    service_account: str = '-',
+    network: str = '-',
 ) -> Tuple[str, Dict[str, Any]]:
   """Returns a compiled model comparison pipeline and formatted parameters.
 
@@ -3607,17 +3567,33 @@ def get_model_comparison_pipeline_and_parameters(
     project: The GCP project that runs the pipeline components.
     location: The GCP region that runs the pipeline components.
     root_dir: The root GCS directory for the pipeline components
-    problem_type: The type of problem being solved. Can be one of: regression,
-      binary_classification, multiclass_classification, or forecasting
+    prediction_type: The type of problem being solved. Can be one of:
+      regression, classification, or forecasting.
     training_jobs: A dict mapping name to a dict of training job inputs.
-    data_source_csv_filenames: Comman-separated paths to CSVs stored in GCS to
-      use as the dataset for all training pipelines. This should be None if
-      `data_source_bigquery_table_path` is not None.
+    data_source_csv_filenames: Comma-separated paths to CSVs stored in GCS to
+      use as the training dataset for all training pipelines. This should be
+      None if `data_source_bigquery_table_path` is not None. This should only
+      contain data from the training and validation split and not from the test
+      split.
     data_source_bigquery_table_path: Path to BigQuery Table to use as the
-      dataset for all training pipelines. This should be None if
-      `data_source_csv_filenames` is not None.
+      training dataset for all training pipelines. This should be None if
+      `data_source_csv_filenames` is not None. This should only contain data
+      from the training and validation split and not from the test split.
+    evaluation_data_source_csv_filenames: Comma-separated paths to CSVs stored
+      in GCS to use as the evaluation dataset for all training pipelines. This
+      should be None if `evaluation_data_source_bigquery_table_path` is not
+      None. This should only contain data from the test split and not from the
+      training and validation split.
+    evaluation_data_source_bigquery_table_path: Path to BigQuery Table to use as
+      the evaluation dataset for all training pipelines. This should be None if
+      `evaluation_data_source_csv_filenames` is not None. This should only
+      contain data from the test split and not from the training and validation
+      split.
     experiment: Vertex Experiment to add training pipeline runs to. A new
       Experiment will be created if none is provided.
+    service_account: Specifies the service account for the sub-pipeline jobs.
+    network: The full name of the Compute Engine network to which the
+      sub-pipeline jobs should be peered.
 
   Returns:
     Tuple of pipeline_definiton_path and parameter_values.
@@ -3626,11 +3602,17 @@ def get_model_comparison_pipeline_and_parameters(
       'project': project,
       'location': location,
       'root_dir': root_dir,
-      'problem_type': problem_type,
+      'prediction_type': prediction_type,
       'training_jobs': training_jobs,
       'data_source_csv_filenames': data_source_csv_filenames,
       'data_source_bigquery_table_path': data_source_bigquery_table_path,
+      'evaluation_data_source_csv_filenames':
+          evaluation_data_source_csv_filenames,
+      'evaluation_data_source_bigquery_table_path':
+          evaluation_data_source_bigquery_table_path,
       'experiment': experiment,
+      'service_account': service_account,
+      'network': network,
   }
   pipeline_definition_path = os.path.join(
       pathlib.Path(__file__).parent.resolve(),

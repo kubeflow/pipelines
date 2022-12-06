@@ -158,7 +158,8 @@ class UtilsTest(unittest.TestCase):
         train_budget_milli_node_hours=1000,
         distill_batch_predict_machine_type='n1-standard-32',
         distill_batch_predict_starting_replica_count=40,
-        distill_batch_predict_max_replica_count=80)
+        distill_batch_predict_max_replica_count=80,
+        stage_1_tuning_result_artifact_uri='gs://bar')
 
     self.assertEqual(
         parameter_values, {
@@ -185,6 +186,7 @@ class UtilsTest(unittest.TestCase):
                 }
             },
             'validation_fraction': 0.2,
+            'stage_1_tuning_result_artifact_uri': 'gs://bar',
             'quantiles': [],
             'enable_probabilistic_inference': False,
         })
@@ -332,6 +334,8 @@ class UtilsTest(unittest.TestCase):
             'project': 'project',
             'location': 'us-central1',
             'root_dir': 'gs://foo',
+            'stage_1_tuner_worker_pool_specs_override': [],
+            'study_spec_parameters_override': {},
             'target_column': 'target',
             'prediction_type': 'classification',
             'data_source_csv_filenames': 'gs://foo/bar.csv',
@@ -346,7 +350,9 @@ class UtilsTest(unittest.TestCase):
             'export_additional_model_without_custom_ops': False,
             'dataflow_use_public_ips': True,
             'additional_experiments': {},
-            'run_evaluation': True
+            'run_evaluation': True,
+            'quantiles': [],
+            'enable_probabilistic_inference': False,
         })
 
   def test_get_wide_and_deep_trainer_pipeline_and_parameters(self):
