@@ -19,6 +19,7 @@ Archives an experiment and the experiment's runs and recurring runs.
 
 ### Example
 
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
@@ -31,9 +32,23 @@ configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient() as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.ExperimentServiceApi(api_client)
     experiment_id = 'experiment_id_example' # str | The ID of the experiment to be archived.
@@ -58,7 +73,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[Bearer](../README.md#Bearer)
 
 ### HTTP request headers
 
@@ -73,12 +88,13 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **create_experiment**
-> V2beta1Experiment create_experiment(body)
+> BackendExperiment create_experiment(body)
 
 Creates a new experiment.
 
 ### Example
 
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
@@ -91,12 +107,26 @@ configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient() as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.ExperimentServiceApi(api_client)
-    body = kfp_server_api.V2beta1Experiment() # V2beta1Experiment | The experiment to be created.
+    body = kfp_server_api.BackendExperiment() # BackendExperiment | The experiment to be created.
 
     try:
         # Creates a new experiment.
@@ -110,15 +140,15 @@ with kfp_server_api.ApiClient() as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **body** | [**V2beta1Experiment**](V2beta1Experiment.md)| The experiment to be created. | 
+ **body** | [**BackendExperiment**](BackendExperiment.md)| The experiment to be created. | 
 
 ### Return type
 
-[**V2beta1Experiment**](V2beta1Experiment.md)
+[**BackendExperiment**](BackendExperiment.md)
 
 ### Authorization
 
-No authorization required
+[Bearer](../README.md#Bearer)
 
 ### HTTP request headers
 
@@ -139,6 +169,7 @@ Deletes an experiment without deleting the experiment's runs and recurring  runs
 
 ### Example
 
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
@@ -151,9 +182,23 @@ configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient() as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.ExperimentServiceApi(api_client)
     experiment_id = 'experiment_id_example' # str | The ID of the experiment to be deleted.
@@ -178,7 +223,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[Bearer](../README.md#Bearer)
 
 ### HTTP request headers
 
@@ -193,12 +238,13 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **get_experiment**
-> V2beta1Experiment get_experiment(experiment_id)
+> BackendExperiment get_experiment(experiment_id)
 
 Finds a specific experiment by ID.
 
 ### Example
 
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
@@ -211,9 +257,23 @@ configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient() as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.ExperimentServiceApi(api_client)
     experiment_id = 'experiment_id_example' # str | The ID of the experiment to be retrieved.
@@ -234,11 +294,11 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**V2beta1Experiment**](V2beta1Experiment.md)
+[**BackendExperiment**](BackendExperiment.md)
 
 ### Authorization
 
-No authorization required
+[Bearer](../README.md#Bearer)
 
 ### HTTP request headers
 
@@ -253,12 +313,13 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **list_experiments**
-> V2beta1ListExperimentsResponse list_experiments(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, namespace=namespace)
+> BackendListExperimentsResponse list_experiments(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, namespace=namespace)
 
 Finds all experiments. Supports pagination, and sorting on certain fields.
 
 ### Example
 
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
@@ -271,9 +332,23 @@ configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient() as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.ExperimentServiceApi(api_client)
     page_token = 'page_token_example' # str | A page token to request the next page of results. The token is acquried from the nextPageToken field of the response from the previous ListExperiments call or can be omitted when fetching the first page. (optional)
@@ -302,11 +377,11 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**V2beta1ListExperimentsResponse**](V2beta1ListExperimentsResponse.md)
+[**BackendListExperimentsResponse**](BackendListExperimentsResponse.md)
 
 ### Authorization
 
-No authorization required
+[Bearer](../README.md#Bearer)
 
 ### HTTP request headers
 
@@ -327,6 +402,7 @@ Restores an archived experiment. The experiment's archived runs and recurring ru
 
 ### Example
 
+* Api Key Authentication (Bearer):
 ```python
 from __future__ import print_function
 import time
@@ -339,9 +415,23 @@ configuration = kfp_server_api.Configuration(
     host = "http://localhost"
 )
 
+# The client must configure the authentication and authorization parameters
+# in accordance with the API server security policy.
+# Examples for each auth method are provided below, use the example that
+# satisfies your auth use case.
+
+# Configure API key authorization: Bearer
+configuration = kfp_server_api.Configuration(
+    host = "http://localhost",
+    api_key = {
+        'authorization': 'YOUR_API_KEY'
+    }
+)
+# Uncomment below to setup prefix (e.g. Bearer) for API key, if needed
+# configuration.api_key_prefix['authorization'] = 'Bearer'
 
 # Enter a context with an instance of the API client
-with kfp_server_api.ApiClient() as api_client:
+with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.ExperimentServiceApi(api_client)
     experiment_id = 'experiment_id_example' # str | The ID of the experiment to be restored.
@@ -366,7 +456,7 @@ Name | Type | Description  | Notes
 
 ### Authorization
 
-No authorization required
+[Bearer](../README.md#Bearer)
 
 ### HTTP request headers
 
