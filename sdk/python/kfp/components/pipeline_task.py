@@ -122,11 +122,10 @@ class PipelineTask:
 
         self._task_spec = structures.TaskSpec(
             name=self._register_task_handler(),
-            inputs={input_name: value for input_name, value in args.items()},
+            inputs=dict(args.items()),
             dependent_tasks=[],
             component_ref=component_spec.name,
-            enable_caching=True,
-        )
+            enable_caching=True)
 
         self.importer_spec = None
         self.container_spec = None
