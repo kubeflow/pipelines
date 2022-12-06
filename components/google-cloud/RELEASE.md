@@ -1,5 +1,12 @@
-# Current Version 1.0.29.dev (Still in Development)
+# Current Version 1.0.30.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.29
+* Propagate vertex system labels to the downstream resources
+* Release Structured Data team's updated components and pipelines
+* Fix Dataproc component doc to indicate that batch_id is optional
+* Simplify create_custom_training_job_op_from_component
+* Fix list and dict types for converted aiplatform components
 
 # Release 1.0.28
 * Support uploading for model versions for ModelUploadOp
