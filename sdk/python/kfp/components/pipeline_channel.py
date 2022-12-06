@@ -38,7 +38,6 @@ class ConditionOperator:
 
 
 # The string template used to generate the placeholder of a PipelineChannel.
-# The string template used to generate the placeholder of a PipelineChannel.
 _PIPELINE_CHANNEL_PLACEHOLDER_TEMPLATE = (
     '{{channel:task=%s;name=%s;type=%s;}}')
 # The regex for parsing PipelineChannel placeholders from a string.

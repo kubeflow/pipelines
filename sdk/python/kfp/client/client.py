@@ -421,6 +421,8 @@ class Client:
 
             try:
                 return self._healthz_api.get_healthz()
+            # ApiException, including network errors, is the only type that may
+            # recover after retry.
             except kfp_server_api.ApiException:
                 # logging.exception also logs detailed info about the ApiException
                 logging.exception(
