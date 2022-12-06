@@ -24,6 +24,7 @@ from typing import Any, Callable, Dict, Tuple, Type, TypeVar
 
 from google.cloud import aiplatform
 from google_cloud_pipeline_components.aiplatform import utils
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 from ..utils import execution_context
 
 INIT_KEY = 'init'
@@ -228,10 +229,25 @@ def prepare_parameters(kwargs: Dict[str, Any],
       kwargs[key] = value
 
 
+def attach_system_labels(method_args, cls_name, method_name):
+  """Add or append the system labels to the labels arg."""
+  if cls_name in [
+      'ImageDataset', 'TabularDataset', 'TextDataset', 'TimeSeriesDataset',
+      'VideoDataset'
+  ] and method_name == 'create':
+    method_args['labels'] = json.dumps(
+        gcp_labels_util.attach_system_labels(
+            json.loads(method_args['labels']) if 'labels' in
+            method_args else {}))
+  return method_args
+
+
 def runner(cls_name, method_name, executor_input, kwargs):
   cls = getattr(aiplatform, cls_name)
 
   init_args, method_args = split_args(kwargs)
+
+  method_args = attach_system_labels(method_args, cls_name, method_name)
 
   serialized_args = {INIT_KEY: init_args, METHOD_KEY: method_args}
 
