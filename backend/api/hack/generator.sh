@@ -26,7 +26,7 @@ KFP_VERSION=$(cat VERSION)
 
 # Delete currently generated code.
 rm -r -f backend/api/${API_VERSION}/go_http_client/*
-rm -f -f backend/api/${API_VERSION}/go_client/*
+rm -r -f backend/api/${API_VERSION}/go_client/*
 # Cannot delete backend/api/${API_VERSION}/swagger/*, because there are manually maintained definition files too.
 
 # Create directories if they don't exist
