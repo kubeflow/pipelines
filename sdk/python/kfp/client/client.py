@@ -1207,7 +1207,7 @@ class Client:
         """
         namespace = namespace or self.get_user_namespace()
         if experiment_id is not None:
-            response = self._run_api.list_runs(
+            return self._run_api.list_runs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
@@ -1215,8 +1215,9 @@ class Client:
                 .EXPERIMENT,
                 resource_reference_key_id=experiment_id,
                 filter=filter)
+
         elif namespace is not None:
-            response = self._run_api.list_runs(
+            return self._run_api.list_runs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
@@ -1224,13 +1225,13 @@ class Client:
                 .NAMESPACE,
                 resource_reference_key_id=namespace,
                 filter=filter)
+
         else:
-            response = self._run_api.list_runs(
+            return self._run_api.list_runs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
                 filter=filter)
-        return response
 
     def list_recurring_runs(
             self,
@@ -1263,7 +1264,7 @@ class Client:
             ``ApiListJobsResponse`` object.
         """
         if experiment_id is not None:
-            response = self._job_api.list_jobs(
+            return self._job_api.list_jobs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
@@ -1271,13 +1272,13 @@ class Client:
                 .EXPERIMENT,
                 resource_reference_key_id=experiment_id,
                 filter=filter)
+
         else:
-            response = self._job_api.list_jobs(
+            return self._job_api.list_jobs(
                 page_token=page_token,
                 page_size=page_size,
                 sort_by=sort_by,
                 filter=filter)
-        return response
 
     def get_recurring_run(self, job_id: str) -> kfp_server_api.ApiJob:
         """Gets recurring run (job) details.
