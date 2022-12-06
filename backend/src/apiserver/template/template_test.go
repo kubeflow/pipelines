@@ -375,7 +375,7 @@ func TestScheduledWorkflow(t *testing.T) {
 
 	apiRecurringRun := &apiv2beta1.RecurringRun{
 		DisplayName:    "name1",
-		Mode:           apiv2beta1.RecurringRun_MODE_ENABLED,
+		Mode:           apiv2beta1.RecurringRun_ENABLE,
 		MaxConcurrency: 1,
 		NoCatchup:      true,
 		Trigger: &apiv2beta1.Trigger{
