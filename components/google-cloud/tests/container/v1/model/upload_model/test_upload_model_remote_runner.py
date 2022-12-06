@@ -20,12 +20,15 @@ import time
 import unittest
 from unittest import mock
 from google_cloud_pipeline_components.container.utils.execution_context import ExecutionContext
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 from google_cloud_pipeline_components.container.v1.model.upload_model import remote_runner as upload_model_remote_runner
 from google_cloud_pipeline_components.proto.gcp_resources_pb2 import GcpResources
 from google.protobuf import json_format
 import requests
 import google.auth
 import google.auth.transport.requests
+
+_SYSTEM_LABELS = {'key1': 'value1', 'key2': 'value2'}
 
 
 class LroResult(object):
@@ -38,7 +41,7 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
     super(ModelUploadRemoteRunnerUtilsTests, self).setUp()
     self._project = 'test_project'
     self._location = 'test_region'
-    self._payload = '{"display_name": "model1"}'
+    self._payload = json.dumps({'display_name': 'model1'})
     self._type = 'UploadModel'
     self._lro_name = f'projects/{self._project}/locations/{self._location}/operations/123'
     self._model_name = f'projects/{self._project}/locations/{self._location}/models/123'
@@ -48,6 +51,8 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
     self._gcp_resources_path = os.path.join(
         os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'gcp_resources')
     self._uri_prefix = f'https://{self._location}-aiplatform.googleapis.com/v1/'
+    os.environ[gcp_labels_util.SYSTEM_LABEL_ENV_VAR] = json.dumps(
+        _SYSTEM_LABELS)
 
   def tearDown(self):
     if os.path.exists(self._gcp_resources_path):
@@ -75,9 +80,14 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
                                             self._location, self._payload,
                                             self._gcp_resources_path,
                                             self._executor_input)
+    expected_payload = json.dumps(
+        {'model': {
+            'display_name': 'model1',
+            'labels': _SYSTEM_LABELS
+        }})
     mock_post_requests.assert_called_once_with(
         url=f'{self._uri_prefix}projects/test_project/locations/test_region/models:upload',
-        data='{"model": {"display_name": "model1"}}',
+        data=expected_payload,
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
@@ -129,9 +139,23 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
                                             self._location, self._payload,
                                             self._gcp_resources_path,
                                             self._executor_input)
+
+    expected_payload = json.dumps({
+        'model': {
+            'display_name': 'model1',
+            'labels': _SYSTEM_LABELS,
+            'predict_schemata': {
+                'instance_schema_uri': 'instance_a'
+            },
+            'container_spec': {
+                'image_uri': 'image_foo'
+            },
+            'artifact_uri': 'gs://abc'
+        }
+    })
     mock_post_requests.assert_called_once_with(
         url=f'{self._uri_prefix}projects/test_project/locations/test_region/models:upload',
-        data='{"model": {"display_name": "model1", "predict_schemata": {"instance_schema_uri": "instance_a"}, "container_spec": {"image_uri": "image_foo"}, "artifact_uri": "gs://abc"}}',
+        data=expected_payload,
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
@@ -299,10 +323,17 @@ class ModelUploadRemoteRunnerUtilsTests(unittest.TestCase):
                                             self._gcp_resources_path,
                                             self._executor_input,
                                             self._model_name)
+
+    expected_payload = json.dumps({
+        'model': {
+            'display_name': 'model1',
+            'labels': _SYSTEM_LABELS
+        },
+        'parent_model': self._model_name
+    })
     mock_post_requests.assert_called_once_with(
         url=f'{self._uri_prefix}projects/test_project/locations/test_region/models:upload',
-        data='{"model": {"display_name": "model1"}, "parent_model": "%s"}' %
-        (self._model_name),
+        data=expected_payload,
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',

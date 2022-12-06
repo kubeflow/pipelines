@@ -18,6 +18,7 @@ from typing import Optional
 from google_cloud_pipeline_components.container.v1.gcp_launcher import lro_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import artifact_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
 from google_cloud_pipeline_components.types.artifact_types import VertexModel
 
@@ -26,6 +27,7 @@ ARTIFACT_PROPERTY_KEY_UNMANAGED_CONTAINER_MODEL = 'unmanaged_container_model'
 API_KEY_PREDICT_SCHEMATA = 'predict_schemata'
 API_KEY_CONTAINER_SPEC = 'container_spec'
 API_KEY_ARTIFACT_URI = 'artifact_uri'
+_LABELS_PAYLOAD_KEY = 'labels'
 
 
 def append_unmanaged_model_artifact_into_payload(executor_input, model_spec):
@@ -57,6 +59,9 @@ def upload_model(
   vertex_uri_prefix = f'https://{api_endpoint}/v1/'
   upload_model_url = f'{vertex_uri_prefix}projects/{project}/locations/{location}/models:upload'
   model_spec = json.loads(payload, strict=False)
+  model_spec[_LABELS_PAYLOAD_KEY] = gcp_labels_util.attach_system_labels(
+      model_spec[_LABELS_PAYLOAD_KEY] if _LABELS_PAYLOAD_KEY in
+      model_spec else {})
   upload_model_request = {
       # TODO(IronPan) temporarily remove the empty fields from the spec
       'model':
