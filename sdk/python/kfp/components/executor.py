@@ -175,10 +175,7 @@ class Executor():
         """
         import re
         match = re.match('(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
-        if match:
-            return match.group('type')
-        else:
-            return type_name
+        return match.group('type') if match else type_name
 
     # TODO: merge with type_utils.is_parameter_type
     @classmethod

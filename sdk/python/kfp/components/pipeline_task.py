@@ -262,11 +262,7 @@ class PipelineTask:
                 'Invalid cpu string. Should be float or integer, or integer'
                 ' followed by "m".')
 
-        if cpu.endswith('m'):
-            cpu = float(cpu[:-1]) / 1000
-        else:
-            cpu = float(cpu)
-
+        cpu = float(cpu[:-1]) / 1000 if cpu.endswith('m') else float(cpu)
         if self.container_spec is None:
             raise ValueError(
                 'There is no container specified in implementation')
