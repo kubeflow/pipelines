@@ -59,16 +59,16 @@ def executor_main():
 
     if args.component_module_path is not None:
         logging.info(
-            'Looking for component `{}` in --component_module_path `{}`'.format(
-                func_name, args.component_module_path))
+            f'Looking for component `{func_name}` in --component_module_path `{args.component_module_path}`'
+        )
         module_path = args.component_module_path
         module_directory = os.path.dirname(args.component_module_path)
         module_name = os.path.basename(args.component_module_path)[:-len('.py')]
     else:
         # Look for module directory using kfp_config.ini
-        logging.info('--component_module_path is not specified. Looking for'
-                     ' component `{}` in config file `kfp_config.ini`'
-                     ' instead'.format(func_name))
+        logging.info(
+            f'--component_module_path is not specified. Looking for component `{func_name}` in config file `kfp_config.ini` instead'
+        )
         config = kfp_config.KFPConfig()
         components = config.get_components()
         if not components:
@@ -77,16 +77,15 @@ def executor_main():
             module_path = components[func_name]
         except KeyError:
             raise RuntimeError(
-                'Could not find component `{}` in `kfp_config.ini`. Found the '
-                ' following components instead:\n{}'.format(
-                    func_name, components))
+                f'Could not find component `{func_name}` in `kfp_config.ini`. Found the  following components instead:\n{components}'
+            )
 
         module_directory = str(module_path.parent)
         module_name = str(module_path.name)[:-len('.py')]
 
     logging.info(
-        'Loading KFP component "{}" from {} (directory "{}" and module name'
-        ' "{}")'.format(func_name, module_path, module_directory, module_name))
+        f'Loading KFP component "{func_name}" from {module_path} (directory "{module_directory}" and module name "{module_name}")'
+    )
 
     module = utils.load_module(
         module_name=module_name, module_directory=module_directory)
@@ -94,8 +93,7 @@ def executor_main():
     executor_input = json.loads(args.executor_input)
     function_to_execute = getattr(module, func_name)
 
-    logging.info('Got executor_input:\n{}'.format(
-        json.dumps(executor_input, indent=4)))
+    logging.info(f'Got executor_input:\n{json.dumps(executor_input, indent=4)}')
 
     executor = component_executor.Executor(
         executor_input=executor_input, function_to_execute=function_to_execute)
