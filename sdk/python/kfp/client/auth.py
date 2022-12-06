@@ -101,9 +101,11 @@ def get_auth_token(client_id: str, other_client_id: str,
         if os.path.exists(LOCAL_KFP_CREDENTIAL):
             with open(LOCAL_KFP_CREDENTIAL, 'r') as f:
                 credentials = json.load(f)
-        credentials[client_id] = {}
-        credentials[client_id]['other_client_id'] = other_client_id
-        credentials[client_id]['other_client_secret'] = other_client_secret
+        credentials[client_id] = {
+            'other_client_id': other_client_id,
+            'other_client_secret': other_client_secret
+        }
+
         if is_refresh_token:
             credentials[client_id]['refresh_token'] = refresh_token
         else:

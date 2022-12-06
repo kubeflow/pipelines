@@ -40,7 +40,7 @@ def _get_loop_item_type(type_name: str) -> Optional[str]:
         The collection item type or None if no match found.
     """
     match = re.match('(typing\.)?(?:\w+)(?:\[(?P<item_type>.+)\])', type_name)
-    return match.group('item_type').lstrip().rstrip() if match else None
+    return match['item_type'].lstrip().rstrip() if match else None
 
 
 def _get_subvar_type(type_name: str) -> Optional[str]:
@@ -61,7 +61,7 @@ def _get_subvar_type(type_name: str) -> Optional[str]:
     match = re.match(
         '(typing\.)?(?:\w+)(?:\[\s*(?:\w+)\s*,\s*(?P<value_type>.+)\])',
         type_name)
-    return match.group('value_type').lstrip().rstrip() if match else None
+    return match['value_type'].lstrip().rstrip() if match else None
 
 
 class LoopArgument(pipeline_channel.PipelineParameterChannel):

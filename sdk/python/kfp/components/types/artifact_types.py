@@ -252,9 +252,11 @@ class ClassificationMetrics(Artifact):
         for row in range(len(self._categories)):
             self._matrix.append({'row': [0] * len(self._categories)})
 
-        self._confusion_matrix = {}
-        self._confusion_matrix['annotationSpecs'] = annotation_specs
-        self._confusion_matrix['rows'] = self._matrix
+        self._confusion_matrix = {
+            'annotationSpecs': annotation_specs,
+            'rows': self._matrix
+        }
+
         self.metadata['confusionMatrix'] = self._confusion_matrix
 
     def log_confusion_matrix_row(self, row_category: str,
@@ -366,8 +368,7 @@ class SlicedClassificationMetrics(Artifact):
 
     def _update_metadata(self, slice: str) -> None:
         """Updates metadata to adhere to the metrics schema."""
-        self.metadata = {}
-        self.metadata['evaluationSlices'] = []
+        self.metadata = {'evaluationSlices': []}
         for slice in self._sliced_metrics.keys():
             slice_metrics = {
                 'slice':
