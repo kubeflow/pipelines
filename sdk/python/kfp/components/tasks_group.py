@@ -60,8 +60,8 @@ class TasksGroup:
           name: The name of the group. Used as display name in UI.
         """
         self.group_type = group_type
-        self.tasks = list()
-        self.groups = list()
+        self.tasks = []
+        self.groups = []
         self.display_name = name
         self.dependencies = []
         self.is_root = is_root
