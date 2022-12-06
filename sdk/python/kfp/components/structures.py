@@ -1011,8 +1011,7 @@ def convert_duration_to_seconds(duration: str) -> int:
     """
     duration = normalize_time_string(duration)
     seconds_per_unit = {'s': 1, 'm': 60, 'h': 3_600, 'd': 86_400, 'w': 604_800}
-    if duration[-1] in seconds_per_unit:
-        return int(duration[:-1]) * seconds_per_unit[duration[-1]]
-    else:
+    if duration[-1] not in seconds_per_unit.keys():
         raise ValueError(
             f"Unsupported duration unit: '{duration[-1]}' for '{duration}'.")
+    return int(duration[:-1]) * seconds_per_unit[duration[-1]]
