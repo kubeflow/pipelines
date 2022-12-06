@@ -23,11 +23,11 @@ description: |
             Location for running the Cross-validation trainer.
         root_dir (str):
             The Cloud Storage location to store the output.
-        study_spec_override (str):
-            Quote escaped JSON string for the study spec. An example of the study specs JSON is:
-            {"parameters":[{"parameter_id": "model_type","categorical_value_spec": {"values": ["nn"]}}]}
-        worker_pool_specs_override (str):
-            Quote escaped JSON string for the worker pool specs. An example of the worker pool specs JSON is:
+        study_spec_parameters_override (JsonArray):
+            JSON study spec. E.g.,
+            [{"parameter_id": "model_type","categorical_value_spec": {"values": ["nn"]}}]
+        worker_pool_specs_override_json (JsonArray):
+            JSON worker pool specs. E.g.,
             [{"machine_spec": {"machine_type": "n1-standard-16"}},{},{},{"machine_spec": {"machine_type": "n1-standard-16"}}]
         reduce_search_space_mode (str):
             The reduce search space mode. Possible values: "regular" (default), "minimal", "full".
@@ -64,10 +64,7 @@ inputs:
 - {name: project, type: String}
 - {name: location, type: String}
 - {name: root_dir, type: String}
-- {name: study_spec_override, type: String, default: ""}
-- {name: worker_pool_specs_override, type: String, default: ""}
 - {name: study_spec_parameters_override, type: JsonArray, default: "[]"}
-- {name: study_spec_parameters_override_json, type: JsonObject, default: "{}"}
 - {name: worker_pool_specs_override_json, type: JsonArray, default: "[]"}
 - {name: reduce_search_space_mode, type: String, default: "regular"}
 - {name: num_selected_trials, type: Integer}
@@ -103,11 +100,11 @@ implementation:
         '{"display_name": "automl-tabular-stage-1-tuner-{{$.pipeline_job_uuid}}-{{$.pipeline_task_uuid}}", "encryption_spec": {"kms_key_name":"',
         {inputValue: encryption_spec_key_name},
         '"}, "job_spec": {"worker_pool_specs": [{"replica_count": 1, "machine_spec": {"machine_type": "n1-standard-8"}, "container_spec": {"image_uri":"',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20221020_1325_RC00',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20221203_1325_RC00',
         '", "args": ["l2l_stage_1_tuner", "--transform_output_path=',
         {inputUri: transform_output},
         '", "--training_docker_uri=',
-        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20221020_1325_RC00',
+        'us-docker.pkg.dev/vertex-ai-restricted/automl-tabular/training:20221203_1325_RC00',
         '", ',
         {if: {
           cond: {isPresent: feature_ranking},
@@ -124,11 +121,7 @@ implementation:
         {inputValue: reduce_search_space_mode},
         '", "--component_id={{$.pipeline_task_uuid}}", "--training_base_dir=',
         {inputValue: root_dir},
-        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train", "--study_spec_override=',
-        {inputValue: study_spec_override},
-        '", "--worker_pool_specs_override=',
-        {inputValue: worker_pool_specs_override},
-        '", "--num_parallel_trial=',
+        '/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/train", "--num_parallel_trial=',
         {inputValue: num_parallel_trials},
         '", "--single_run_max_secs=',
         {inputValue: single_run_max_secs},
@@ -152,5 +145,7 @@ implementation:
         {outputUri: tuning_result_output},
         '", "--kms_key_name=',
         {inputValue: encryption_spec_key_name},
-        '", "--use_json=true", "--log_level=ERROR", "--executor_input={{$.json_escape[1]}}"]}}]}}'
+        '", "--gcp_resources_path=',
+        {outputPath: gcp_resources},
+        '", "--use_json=true", "--log_level=ERROR", "--executor_input={{$.json_escape[1]}}"]}}]}}',
       ]]
