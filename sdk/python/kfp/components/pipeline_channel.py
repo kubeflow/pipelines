@@ -86,8 +86,8 @@ class PipelineChannel(abc.ABC):
         valid_name_regex = r'^[A-Za-z][A-Za-z0-9\s_-]*$'
         if not re.match(valid_name_regex, name):
             raise ValueError(
-                'Only letters, numbers, spaces, "_", and "-" are allowed in the '
-                'name. Must begin with a letter. Got name: {}'.format(name))
+                f'Only letters, numbers, spaces, "_", and "-" are allowed in the name. Must begin with a letter. Got name: {name}'
+            )
 
         self.name = name
         self.channel_type = channel_type

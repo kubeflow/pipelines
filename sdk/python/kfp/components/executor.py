@@ -116,16 +116,16 @@ class Executor():
         output_artifact = self._output_artifacts.get(artifact_name)
         if not output_artifact:
             raise ValueError(
-                'Failed to get output artifact path for artifact name {}'
-                .format(artifact_name))
+                f'Failed to get output artifact path for artifact name {artifact_name}'
+            )
         return output_artifact.path
 
     def _get_input_artifact_path(self, artifact_name: str):
         input_artifact = self._input_artifacts.get(artifact_name)
         if not input_artifact:
             raise ValueError(
-                'Failed to get input artifact path for artifact name {}'.format(
-                    artifact_name))
+                f'Failed to get input artifact path for artifact name {artifact_name}'
+            )
         return input_artifact.path
 
     def _write_output_parameter_value(self, name: str,
@@ -140,8 +140,8 @@ class Executor():
             output = json.dumps(value)
         else:
             raise ValueError(
-                'Unable to serialize unknown type `{}` for parameter'
-                ' input with value `{}`'.format(value, type(value)))
+                f'Unable to serialize unknown type `{value}` for parameter input with value `{type(value)}`'
+            )
 
         if not self._executor_output.get('parameterValues'):
             self._executor_output['parameterValues'] = {}
@@ -210,16 +210,15 @@ class Executor():
                                   None) or annotation_type
             if not isinstance(return_value, origin_type):
                 raise ValueError(
-                    'Function `{}` returned value of type {}; want type {}'
-                    .format(self._func.__name__, type(return_value),
-                            origin_type))
+                    f'Function `{self._func.__name__}` returned value of type {type(return_value)}; want type {origin_type}'
+                )
             self._write_output_parameter_value(output_name, return_value)
         elif self._is_artifact(annotation_type):
             self._write_output_artifact_payload(output_name, return_value)
         else:
             raise RuntimeError(
-                'Unknown return type: {}. Must be one of `str`, `int`, `float`, or a'
-                ' subclass of `Artifact`'.format(annotation_type))
+                f'Unknown return type: {annotation_type}. Must be one of `str`, `int`, `float`, or a subclass of `Artifact`'
+            )
 
     def _write_executor_output(self, func_output: Optional[Any] = None):
         if self._output_artifacts:
@@ -245,10 +244,8 @@ class Executor():
             elif self._is_named_tuple(self._return_annotation):
                 if len(self._return_annotation._fields) != len(func_output):
                     raise RuntimeError(
-                        'Expected {} return values from function `{}`, got {}'
-                        .format(
-                            len(self._return_annotation._fields),
-                            self._func.__name__, len(func_output)))
+                        f'Expected {len(self._return_annotation._fields)} return values from function `{self._func.__name__}`, got {len(func_output)}'
+                    )
                 for i in range(len(self._return_annotation._fields)):
                     field = self._return_annotation._fields[i]
                     field_type = self._return_annotation.__annotations__[field]
@@ -260,9 +257,8 @@ class Executor():
                                                      field_value)
             else:
                 raise RuntimeError(
-                    'Unknown return type: {}. Must be one of `str`, `int`, `float`, a'
-                    ' subclass of `Artifact`, or a NamedTuple collection of these types.'
-                    .format(self._return_annotation))
+                    f'Unknown return type: {self._return_annotation}. Must be one of `str`, `int`, `float`, a subclass of `Artifact`, or a NamedTuple collection of these types.'
+                )
 
         executor_output_path = self._input['outputs']['outputFile']
         # This check is to reduce the likelihood that two or more workers (in a distributed training/compute strategy) attempt to write to the same executor output file at the same time using gcsfuse. Do not remove until fixed by gcsfuse.

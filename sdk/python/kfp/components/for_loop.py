@@ -155,7 +155,7 @@ class LoopArgument(pipeline_channel.PipelineParameterChannel):
 
     def _make_name(self, code: str):
         """Makes a name for this loop argument from a unique code."""
-        return '{}-{}'.format(self.LOOP_ITEM_PARAM_NAME_BASE, code)
+        return f'{self.LOOP_ITEM_PARAM_NAME_BASE}-{code}'
 
     @classmethod
     def from_pipeline_channel(

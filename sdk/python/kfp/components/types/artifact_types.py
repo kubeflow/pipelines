@@ -227,9 +227,8 @@ class ClassificationMetrics(Artifact):
         if len(fpr) != len(tpr) or len(fpr) != len(threshold) or len(
                 tpr) != len(threshold):
             raise ValueError(
-                'Length of fpr, tpr and threshold must be the same. '
-                'Got lengths {}, {} and {} respectively.'.format(
-                    len(fpr), len(tpr), len(threshold)))
+                f'Length of fpr, tpr and threshold must be the same. Got lengths {len(fpr)}, {len(tpr)} and {len(threshold)} respectively.'
+            )
 
         for i in range(len(fpr)):
             self.log_roc_data_point(
@@ -271,12 +270,14 @@ class ClassificationMetrics(Artifact):
             set in ``set_categories`` call.
         """
         if row_category not in self._categories:
-            raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
-              format(row_category, self._categories))
+            raise ValueError(
+                f'Invalid category: {row_category} passed. Expected one of: {self._categories}'
+            )
 
         if len(row) != len(self._categories):
-            raise ValueError('Invalid row. Expected size: {} got: {}'.\
-              format(len(self._categories), len(row)))
+            raise ValueError(
+                f'Invalid row. Expected size: {len(self._categories)} got: {len(row)}'
+            )
 
         self._matrix[self._categories.index(row_category)] = {'row': row}
         self.metadata['confusionMatrix'] = self._confusion_matrix
@@ -295,12 +296,14 @@ class ClassificationMetrics(Artifact):
            categories set in ``set_categories``.
         """
         if row_category not in self._categories:
-            raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
-              format(row_category, self._categories))
+            raise ValueError(
+                f'Invalid category: {row_category} passed. Expected one of: {self._categories}'
+            )
 
         if col_category not in self._categories:
-            raise ValueError('Invalid category: {} passed. Expected one of: {}'.\
-              format(row_category, self._categories))
+            raise ValueError(
+                f'Invalid category: {row_category} passed. Expected one of: {self._categories}'
+            )
 
         self._matrix[self._categories.index(row_category)]['row'][
             self._categories.index(col_category)] = value
@@ -320,13 +323,14 @@ class ClassificationMetrics(Artifact):
         self.set_confusion_matrix_categories(categories)
 
         if len(matrix) != len(categories):
-            raise ValueError('Invalid matrix: {} passed for categories: {}'.\
-              format(matrix, categories))
+            raise ValueError(
+                f'Invalid matrix: {matrix} passed for categories: {categories}')
 
         for index in range(len(categories)):
             if len(matrix[index]) != len(categories):
-                raise ValueError('Invalid matrix: {} passed for categories: {}'.\
-                  format(matrix, categories))
+                raise ValueError(
+                    f'Invalid matrix: {matrix} passed for categories: {categories}'
+                )
 
             self.log_confusion_matrix_row(categories[index], matrix[index])
 
