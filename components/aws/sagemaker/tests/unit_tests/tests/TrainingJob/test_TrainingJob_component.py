@@ -20,7 +20,9 @@ class TrainingComponentTestCase(unittest.TestCase):
     @patch("TrainingJob.src.TrainingJob_component.super", MagicMock())
     def test_do_sets_name(self):
         named_spec = SageMakerTrainingJobSpec(self.REQUIRED_ARGS)
-        with patch("TrainingJob.src.TrainingJob_component.SageMakerComponent._get_current_namespace") as mock_namespace:
+        with patch(
+            "TrainingJob.src.TrainingJob_component.SageMakerComponent._get_current_namespace"
+        ) as mock_namespace:
             mock_namespace.return_value = "test-namespace"
             self.component.Do(named_spec)
             self.assertEqual("kfp-ack-training-job-99999", self.component.job_name)
