@@ -1,0 +1,530 @@
+// Copyright 2018-2022 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto3";
+
+option go_package = "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client";
+package kubeflow.pipelines.backend;
+
+import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+import "backend/api/v2beta1/error.proto";
+import "backend/api/v2beta1/runtime_config.proto";
+
+option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
+  responses: {
+    key: "default";
+    value: {
+      schema: {
+        json_schema: {
+          ref: ".kubeflow.pipelines.backend.Status";
+        }
+      }
+    }
+  }
+  // Use bearer token for authorizing access to job service.
+  // Kubernetes client library(https://kubernetes.io/docs/reference/using-api/client-libraries/)
+  // uses bearer token as default for authorization. The section below
+  // ensures security definition object is generated in the swagger definition.
+  // For more details see https://github.com/OAI/OpenAPI-Specification/blob/3.0.0/versions/2.0.md#securityDefinitionsObject
+  security_definitions: {
+    security: {
+      key: "Bearer";
+      value: {
+        type: TYPE_API_KEY;
+        in: IN_HEADER;
+        name: "authorization";
+      }
+    }
+  }
+  security: {
+    security_requirement: {
+      key: "Bearer";
+      value: {};
+    }
+  }
+};
+
+service RunService {
+  // Creates a new run in an experiment specified by experiment ID. 
+  // If experiment ID is not specified, the run is created in the default experiment.
+  rpc CreateRun(CreateRunRequest) returns (Run) {
+    option (google.api.http) = {
+      post: "/apis/v2beta1/experiments/{experiment_id}/runs"
+      body: "run"
+    };
+  }
+
+  // Finds a specific run by ID.
+  rpc GetRun(GetRunRequest) returns (Run) {
+    option (google.api.http) = {
+      get: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}"
+    };
+  }
+
+  // Finds all runs in an experiment given by experiment ID. 
+  // If experiment id is not specified, finds all runs across all experiments.
+  rpc ListRuns(ListRunsRequest) returns (ListRunsResponse) {
+    option (google.api.http) = {
+      get: "/apis/v2beta1/experiments/{experiment_id}/runs"
+    };
+  }
+
+  // Archives a run in an experiment given by run ID and experiment ID.
+  rpc ArchiveRun(ArchiveRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:archive"
+    };
+  }
+
+  // Restores an archived run in an experiment given by run ID and experiment ID.
+  rpc UnarchiveRun(UnarchiveRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:unarchive"
+    };
+  }
+
+  // Deletes a run in an experiment given by run ID and experiment ID.
+  rpc DeleteRun(DeleteRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}"
+    };
+  }
+
+  // Reports metrics of a run. Each metric is reported in its
+  // own transaction, so this API accepts partial failures. Metric can be
+  // uniquely identified by (experiment_id, run_id, node_id, name). Duplicate 
+  // reporting will be ignored by the API. First reporting wins.
+  rpc ReportRunMetrics(ReportRunMetricsRequest)
+      returns (ReportRunMetricsResponse) {
+    option (google.api.http) = {
+      post: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:reportMetrics"
+      body: "*"
+    };
+  }
+
+  // Finds artifact data in a run.
+  rpc ReadArtifact(ReadArtifactRequest) returns (ReadArtifactResponse) {
+    option (google.api.http) = {
+      get: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}/nodes/{node_id}/artifacts/{artifact_name}:read"
+    };
+  }
+
+  // Terminates an active run.
+  rpc TerminateRun(TerminateRunRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      post: "/apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:terminate"
+    };
+  }
+
+}
+
+message Run {
+  // Input. ID of the parent experiment.
+  // The default experiment ID will be used if this is not specified.
+  string experiment_id = 1;
+  
+  // Output. Unique run ID. Generated by API server.
+  string run_id = 2;
+ 
+  // Required input. Name provided by user,
+  // or auto generated if run is created by a recurring run.
+  string display_name = 3;
+ 
+  // Describes whether an entity is available or archived.
+  enum StorageState {
+    // Default state. This state in not used
+    STORAGESTATE_UNSPECIFIED = 0;
+
+    // Entity is available.
+    AVAILABLE = 1;
+
+    // Entity is archived.
+    ARCHIVED = 2;
+  }
+
+  // Output. Specifies whether this run is in archived or available mode.
+  StorageState storage_state = 4;
+ 
+  // Optional input. Short description of the run.
+  string description = 5;
+ 
+  // Required input. Specifies the source of the pipeline spec for this 
+  // run. Can be either a pipeline id, or a pipeline spec.
+  oneof pipeline_source {
+    // ID of existing pipeline.
+    string pipeline_id = 6;
+
+    // Pipeline spec.
+    google.protobuf.Struct pipeline_spec = 7;
+  }
+ 
+  // Required input. Runtime config of the run. 
+  RuntimeConfig runtime_config = 8;
+ 
+  // Optional input. Specifies which kubernetes service account is used.
+  string service_account = 9;
+ 
+  // Output. Creation time of the run.
+  google.protobuf.Timestamp created_at = 10;
+ 
+  // Output. When this run is scheduled to start. This could be different from
+  // created_at. For example, if a run is from a backfilling job that was supposed
+  // to run 2 month ago, the created_at will be 2 month behind scheduled_at.
+  google.protobuf.Timestamp scheduled_at = 11;
+ 
+  // Output. Completion of the run.
+  google.protobuf.Timestamp finished_at = 12;
+
+  // Output. Runtime state of a run.
+  RuntimeState state = 13;
+ 
+  // In case any error happens retrieving a run field, only run ID
+  // and the error message is returned. Client has the flexibility of choosing
+  // how to handle the error. This is especially useful during listing call.
+  Error error = 14;
+ 
+  // Output. Runtime details of a run.
+  RunDetails run_details = 15;
+
+  // ID of the recurring run that triggered this run.
+  string recurring_run_id = 16;
+
+  // Name of the recurring run that triggered this run
+  string recurring_run_name = 17;
+
+  // Output. A sequence of run statuses. This field keeps a record 
+  // of state transitions.
+  repeated RuntimeStatus state_history = 18;
+}
+
+// Describes the runtime state of an entity.
+enum RuntimeState {
+  // Default value. This value is not used.
+  RUNTIMESTATE_UNSPECIFIED = 0;
+
+  // Service is preparing to execute an entity.
+  PENDING = 1;
+
+  // Entity execution is in progress.
+  RUNNING = 2;
+
+  // Entity completed successfully.
+  SUCCEEDED = 3;
+
+  // Entity has been skipped. For example, due to caching.
+  SKIPPED = 4;
+
+  // Entity execution has failed.
+  FAILED = 5;
+
+  // Entity is being canceled. From this state, an entity may only
+  // change its state to SUCCEEDED, FAILED or CANCELED.
+  CANCELING = 6;
+
+  // Entity has been canceled.
+  CANCELED = 7;
+
+  // Entity has been paused. It can be resumed.
+  PAUSED = 8;
+}
+
+// Timestamped representation of a runtime state with an optional error.
+message RuntimeStatus {
+  // Update time of this state.
+  google.protobuf.Timestamp update_time = 1;
+
+  // The state of a runtime instance.
+  RuntimeState state = 2;
+
+  // The error that occurred during the state. May be set when the state is
+  // any of the non-final states (PENDING/RUNNING/CANCELING) or FAILED state.
+  // If the state is FAILED, the error here is final and not going to be
+  // retried. If the state is a non-final state, the error indicates that a 
+  // system-error being retried.
+  Error error = 3;
+}
+
+// Metric assiciated with a run.
+message RunMetric {
+  // Required input. The user defined name of the metric. It must be 1-63
+  // characters long and must conform to the following regular expression:
+  // `[a-z]([-a-z0-9]*[a-z0-9])?`.
+  string display_name = 1;
+
+  // Required input. The runtime node ID which reports the metric. The node ID 
+  // can be found in the RunDetail.workflow.Status. Metric with same 
+  // (node_id, name) are considerd as duplicate. Only the first reporting will
+  //  be recorded. Max length is 128.
+  string node_id = 2;
+
+  oneof value {
+    // The number value of the metric.
+    double number_value = 3;
+  }
+
+  enum Format {
+    // Default value if not present.
+    FORMAT_UNSPECIFIED = 0;
+    
+    // Display value as its raw format.
+    RAW = 1;
+    
+    // Display value in percentage format.
+    PERCENTAGE = 2;
+  }
+
+  // The display format of metric.
+  Format format = 4;
+}
+
+// Runtime details of a run.
+message RunDetails {
+  // Pipeline context ID of a run.
+  int64 pipeline_context_id = 1;
+
+  // Pipeline run context ID of a run.
+  int64 pipeline_run_context_id = 2;
+
+  // Runtime details of the tasks that belong to the run.
+  repeated PipelineTaskDetail task_details = 3;
+}
+
+// Runtime information of a task execution.
+message PipelineTaskDetail {
+  // ID of the parent run.
+  string run_id = 1;
+
+  // System-generated ID of a task.
+  string task_id = 2;
+
+  // User specified name of a task that is defined in
+  // [Pipeline.spec][].
+  string display_name = 3;
+
+  // Creation time of a task.
+  google.protobuf.Timestamp create_time = 4;
+
+  // Starting time of a task.
+  google.protobuf.Timestamp start_time = 5;
+
+  // Completion time of a task.
+  google.protobuf.Timestamp end_time = 6;
+
+  // Execution information of a task.
+  PipelineTaskExecutorDetail executor_detail = 7;
+
+  // Runtime state of a task.
+  RuntimeState state = 8;
+
+  // Execution metadata of a task.
+  int64 execution_id = 9;
+
+  // The error that occurred during task execution.
+  // Only populated when the task is in FAILED or CANCELED state.
+  Error error = 10;
+
+  // Input artifacts of the task.
+  map<string, ArtifactList> inputs = 11;
+
+  // Output artifacts of the task.
+  map<string, ArtifactList> outputs = 12;
+
+  // ID of the parent task if the task is within a component scope.
+  // Empty if the task is at the root level.
+  string parent_task_id = 13;
+
+  // A sequence of task statuses. This field keeps a record 
+  // of state transitions.
+  repeated RuntimeStatus state_history = 14;
+}
+
+// Runtime information of a pipeline task executor.
+message PipelineTaskExecutorDetail {
+  // The name of the job for the main container execution.
+  string main_job = 1;
+
+  // The name of the job for the pre-caching-check container
+  // execution. This job will be available if the
+  // Run.pipeline_spec specifies the `pre_caching_check` hook in
+  // the lifecycle events.
+  string pre_caching_check_job = 2;
+
+  // The names of the previously failed job for the main container
+  // executions. The list includes the all attempts in chronological order.
+  repeated string failed_main_jobs = 3;
+
+  // The names of the previously failed job for the
+  // pre-caching-check container executions. This job will be available if the
+  // Run.pipeline_spec specifies the `pre_caching_check` hook in
+  // the lifecycle events.
+  // The list includes the all attempts in chronological order.
+  repeated string failed_pre_caching_check_jobs = 4;
+}
+
+// A list of artifact metadata.
+message ArtifactList {
+  // A list of artifact metadata ids.
+  repeated int64 artifact_ids = 1;
+}
+
+message CreateRunRequest {
+  // The ID of the parent experiment.
+  string experiment_id = 1;
+
+  // Run to be created.
+  Run run = 2;
+}
+
+message GetRunRequest {
+  // The ID of the parent experiment.
+  string experiment_id = 1;
+
+  // The ID of the run to be retrieved.
+  string run_id = 2;
+}
+
+message ListRunsRequest {
+  // Optional input field. Filters based on the namespace.
+  string namespace = 1;
+
+  // The ID of the parent experiment. If empty, response includes runs across all experiments.
+  string experiment_id = 2;
+
+  // A page token to request the next page of results. The token is acquired
+  // from the nextPageToken field of the response from the previous
+  // ListRuns call or can be omitted when fetching the first page.
+  string page_token = 3;
+
+  // The number of runs to be listed per page. If there are more runs than this
+  // number, the response message will contain a nextPageToken field you can use
+  // to fetch the next page.
+  int32 page_size = 4;
+
+  // Can be format of "field_name", "field_name asc" or "field_name desc"
+  // (Example, "name asc" or "id desc"). Ascending by default.
+  string sort_by = 5;
+
+  // A url-encoded, JSON-serialized Filter protocol buffer (see
+  // [filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).
+  string filter = 6;
+}
+
+message TerminateRunRequest {
+  // The ID of the parent experiment.
+  string experiment_id = 1;
+
+  // The ID of the run to be terminated.
+  string run_id = 2;
+}
+
+message ListRunsResponse {
+  // List of retrieved runs.
+  repeated Run runs = 1;
+
+  // The total number of runs for the given query.
+  int32 total_size = 2;
+
+  // The token to list the next page of runs.
+  string next_page_token = 3;
+}
+
+message ArchiveRunRequest {
+  // The ID of the parent experiment.
+  string experiment_id = 1;
+
+  // The ID of the run to be archived.
+  string run_id = 2;
+}
+
+message UnarchiveRunRequest {
+  // The ID of the parent experiment.
+  string experiment_id = 1;
+
+  // The ID of the run to be restored.
+  string run_id = 2;
+}
+
+message DeleteRunRequest {
+  // The ID of the parent experiment.
+  string experiment_id = 1;
+
+  // The ID of the run to be deleted.
+  string run_id = 2;
+}
+
+message ReportRunMetricsRequest {
+  // The ID of the parent experiment.
+  string experiment_id = 1;
+
+  // Required. The parent run ID of the metric.
+  string run_id = 2;
+
+  // List of metrics to report.
+  repeated RunMetric metrics = 3;
+}
+
+message ReportRunMetricsResponse {
+  // Output. The name of the metric.
+  string metric_name = 1;
+
+  // Output. The ID of the node which reports the metric.
+  string metric_node_id = 2;
+
+  // Returned status of the metric.
+  enum MetricStatus {
+    // Default metric status. This value is not used.
+    METRICSTATUS_UNSPECIFIED = 0;
+
+    // Indicates successful reporting.
+    OK = 1;
+
+    // Indicates that the payload of the metric is invalid.
+    INVALID_ARGUMENT = 2;
+
+    // Indicates that the metric has been reported before.
+    DUPLICATE_REPORTING = 3;
+
+    // Indicates that something went wrong on the server side.
+    INTERNAL_ERROR = 4;
+  }
+
+  // Output. The status of the metric reporting.
+  MetricStatus status = 3;
+
+  // Output. The detailed message of the error of the reporting.
+  string message = 4;
+}
+
+message ReadArtifactRequest {
+  // The ID of the parent experiment.
+  string experiment_id = 1;
+
+  // ID of the run.
+  string run_id = 2;
+
+  // ID of the running node.
+  string node_id = 3;
+
+  // Name of the artifact.
+  string artifact_name = 4;
+}
+
+message ReadArtifactResponse {
+  // Byte array of the artifact content.
+  bytes data = 1;
+}
