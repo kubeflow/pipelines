@@ -31,6 +31,7 @@ from requests.sessions import Session
 from urllib3.util.retry import Retry
 from google_cloud_pipeline_components.container.utils import execution_context
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import json_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 
 from google.protobuf import json_format
 
@@ -38,10 +39,17 @@ from google.protobuf import json_format
 _POLL_INTERVAL_SECONDS = 20
 _CONNECTION_ERROR_RETRY_LIMIT = 5
 _CONNECTION_RETRY_BACKOFF_FACTOR = 2.
+_LABELS_PAYLOAD_KEY = 'labels'
 
 _DATAPROC_URI_PREFIX = 'https://dataproc.googleapis.com/v1'
 _DATAPROC_OPERATION_URI_TEMPLATE = rf'({_DATAPROC_URI_PREFIX}/projects/(?P<project>.*)/regions/(?P<region>.*)/operations/(?P<operation>.*))'
 
+
+def insert_system_labels_into_payload(payload):
+  job_spec = json.loads(payload)
+  job_spec[_LABELS_PAYLOAD_KEY] = gcp_labels_util.attach_system_labels(
+      job_spec[_LABELS_PAYLOAD_KEY] if _LABELS_PAYLOAD_KEY in job_spec else {})
+  return json.dumps(job_spec)
 
 class DataprocBatchRemoteRunner():
   """Common module for creating and polling Dataproc Serverless Batch workloads."""
@@ -307,9 +315,10 @@ def create_batch(
     Dict of the completed Batch resource. For more details, see:
       https://cloud.google.com/dataproc/docs/reference/rest/v1/projects.locations.batches#:-batch
   """
+  # TODO(b/261485228) Update the doc link for payload.
   try:
     batch_request = json_util.recursive_remove_empty(
-        json.loads(payload, strict=False))
+        json.loads(insert_system_labels_into_payload(payload), strict=False))
   except json.decoder.JSONDecodeError as err:
     raise RuntimeError('Failed to decode JSON from payload: {}'
                        .format(err.doc)) from err
