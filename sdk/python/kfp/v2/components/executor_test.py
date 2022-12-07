@@ -18,7 +18,7 @@ import os
 import tempfile
 import unittest
 from typing import Callable, Dict, List, NamedTuple, Optional
-
+from unittest import mock
 from kfp.v2.components import executor
 from kfp.v2.components.types import artifact_types
 from kfp.v2.components.types.artifact_types import (Artifact, Dataset, Metrics,
@@ -728,6 +728,38 @@ class ExecutorTest(unittest.TestCase):
                     }
                 },
             })
+
+    @mock.patch.dict(
+        os.environ,
+        {'CLUSTER_SPEC': json.dumps({'task': {
+            'type': 'workerpool0'
+        }})},
+        clear=True)
+    def test_distributed_training_strategy_write(self):
+
+        def test_func(input_parameter: str):
+            self.assertEqual(input_parameter, "Hello, KFP")
+
+        self._get_executor(test_func).execute()
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(self._test_dir, 'output_metadata.json')))
+
+    @mock.patch.dict(
+        os.environ,
+        {'CLUSTER_SPEC': json.dumps({'task': {
+            'type': 'workerpool1'
+        }})},
+        clear=True)
+    def test_distributed_training_strategy_no_write(self):
+
+        def test_func(input_parameter: str):
+            self.assertEqual(input_parameter, "Hello, KFP")
+
+        self._get_executor(test_func).execute()
+        self.assertFalse(
+            os.path.exists(
+                os.path.join(self._test_dir, 'output_metadata.json')))
 
 
 if __name__ == '__main__':
