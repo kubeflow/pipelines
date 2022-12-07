@@ -253,8 +253,17 @@ class Executor():
                     .format(self._return_annotation))
         import os
         executor_output_path = self._input['outputs']['outputFile']
-        # This check is to reduce the likelihood that two or more workers (in a distributed training/compute strategy) attempt to write to the same executor output file at the same time using gcsfuse. Do not remove until fixed by gcsfuse.
-        if not os.path.exists(executor_output_path):
+        
+        # This check is to ensure only one worker (in a mirrored, distributed training/compute strategy) attempts to write to the same executor output file at the same time using gcsfuse, which enforces immutability of files.
+        write_file = True
+        
+        cluster_spec_string = os.environ.get('CLUSTER_SPEC')
+        if cluster_spec_string:
+            cluster_spec = json.loads(cluster_spec_string)
+            chief_node_label = 'workerpool0'
+            write_file = cluster_spec['task']['type'] == chief_node_label
+            
+        if write_file:
             os.makedirs(os.path.dirname(executor_output_path), exist_ok=True)
             with open(executor_output_path, 'w') as f:
                 f.write(json.dumps(self._executor_output))
