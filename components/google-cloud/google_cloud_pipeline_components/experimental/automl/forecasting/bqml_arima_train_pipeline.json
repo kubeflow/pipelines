@@ -3691,7 +3691,7 @@
               "--dataflow_tmp_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp",
               "--dataflow_max_num_workers={{$.inputs.parameters['dataflow_max_num_workers']}}",
               "--dataflow_machine_type={{$.inputs.parameters['dataflow_machine_type']}}",
-              "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:prod",
+              "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20221203_1325_RC00",
               "--feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:prod",
               "--dataflow_disk_size_gb={{$.inputs.parameters['dataflow_disk_size_gb']}}",
               "--dataflow_subnetwork_fully_qualified={{$.inputs.parameters['dataflow_subnetwork']}}",
