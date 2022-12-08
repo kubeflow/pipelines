@@ -143,9 +143,9 @@ Class | Method | HTTP request | Description
  - [ProtobufAny](docs/ProtobufAny.md)
  - [ProtobufNullValue](docs/ProtobufNullValue.md)
  - [ReportRunMetricsResponseMetricStatus](docs/ReportRunMetricsResponseMetricStatus.md)
+ - [RpcStatus](docs/RpcStatus.md)
  - [RunMetricFormat](docs/RunMetricFormat.md)
  - [V2beta1ArtifactList](docs/V2beta1ArtifactList.md)
- - [V2beta1Error](docs/V2beta1Error.md)
  - [V2beta1Experiment](docs/V2beta1Experiment.md)
  - [V2beta1ExperimentStorageState](docs/V2beta1ExperimentStorageState.md)
  - [V2beta1Filter](docs/V2beta1Filter.md)
@@ -169,7 +169,6 @@ Class | Method | HTTP request | Description
  - [V2beta1RuntimeConfig](docs/V2beta1RuntimeConfig.md)
  - [V2beta1RuntimeState](docs/V2beta1RuntimeState.md)
  - [V2beta1RuntimeStatus](docs/V2beta1RuntimeStatus.md)
- - [V2beta1Status](docs/V2beta1Status.md)
  - [V2beta1Url](docs/V2beta1Url.md)
 
 

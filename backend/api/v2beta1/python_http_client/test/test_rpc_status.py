@@ -16,11 +16,11 @@ import unittest
 import datetime
 
 import kfp_server_api
-from kfp_server_api.models.v2beta1_status import V2beta1Status  # noqa: E501
+from kfp_server_api.models.rpc_status import RpcStatus  # noqa: E501
 from kfp_server_api.rest import ApiException
 
-class TestV2beta1Status(unittest.TestCase):
-    """V2beta1Status unit test stubs"""
+class TestRpcStatus(unittest.TestCase):
+    """RpcStatus unit test stubs"""
 
     def setUp(self):
         pass
@@ -29,15 +29,15 @@ class TestV2beta1Status(unittest.TestCase):
         pass
 
     def make_instance(self, include_optional):
-        """Test V2beta1Status
+        """Test RpcStatus
             include_option is a boolean, when False only required
             params are included, when True both required and
             optional params are included """
-        # model = kfp_server_api.models.v2beta1_status.V2beta1Status()  # noqa: E501
+        # model = kfp_server_api.models.rpc_status.RpcStatus()  # noqa: E501
         if include_optional :
-            return V2beta1Status(
-                error = '0', 
+            return RpcStatus(
                 code = 56, 
+                message = '0', 
                 details = [
                     kfp_server_api.models.protobuf_any.protobufAny(
                         type_url = '0', 
@@ -45,11 +45,11 @@ class TestV2beta1Status(unittest.TestCase):
                     ]
             )
         else :
-            return V2beta1Status(
+            return RpcStatus(
         )
 
-    def testV2beta1Status(self):
-        """Test V2beta1Status"""
+    def testRpcStatus(self):
+        """Test RpcStatus"""
         inst_req_only = self.make_instance(include_optional=False)
         inst_req_and_optional = self.make_instance(include_optional=True)
 

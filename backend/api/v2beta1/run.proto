@@ -21,8 +21,8 @@ import "google/protobuf/empty.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/struct.proto";
+import "google/rpc/status.proto";
 import "protoc-gen-swagger/options/annotations.proto";
-import "backend/api/v2beta1/error.proto";
 import "backend/api/v2beta1/runtime_config.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
@@ -31,7 +31,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
     value: {
       schema: {
         json_schema: {
-          ref: ".kubeflow.pipelines.backend.api.v2beta1.Status";
+          ref: ".google.rpc.Status";
         }
       }
     }
@@ -196,7 +196,7 @@ message Run {
   // In case any error happens retrieving a run field, only run ID
   // and the error message is returned. Client has the flexibility of choosing
   // how to handle the error. This is especially useful during listing call.
-  Error error = 14;
+  google.rpc.Status error = 14;
  
   // Output. Runtime details of a run.
   RunDetails run_details = 15;
@@ -256,7 +256,7 @@ message RuntimeStatus {
   // If the state is FAILED, the error here is final and not going to be
   // retried. If the state is a non-final state, the error indicates that a 
   // system-error being retried.
-  Error error = 3;
+  google.rpc.Status error = 3;
 }
 
 // Metric assiciated with a run.
@@ -336,7 +336,7 @@ message PipelineTaskDetail {
 
   // The error that occurred during task execution.
   // Only populated when the task is in FAILED or CANCELED state.
-  Error error = 10;
+  google.rpc.Status error = 10;
 
   // Input artifacts of the task.
   map<string, ArtifactList> inputs = 11;

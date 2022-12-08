@@ -29,7 +29,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v2beta1Status"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -95,7 +95,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v2beta1Status"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -136,7 +136,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v2beta1Status"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -173,7 +173,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v2beta1Status"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -212,7 +212,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v2beta1Status"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -265,7 +265,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v2beta1Status"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -304,7 +304,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v2beta1Status"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -351,7 +351,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v2beta1Status"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -390,7 +390,7 @@
           "default": {
             "description": "",
             "schema": {
-              "$ref": "#/definitions/v2beta1Status"
+              "$ref": "#/definitions/rpcStatus"
             }
           }
         },
@@ -462,6 +462,28 @@
       "default": "NULL_VALUE",
       "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
     },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The status code, which should be an enum value of [google.rpc.Code][google.rpc.Code]."
+        },
+        "message": {
+          "type": "string",
+          "description": "A developer-facing error message, which should be in English. Any\nuser-facing error message should be localized and sent in the\n[google.rpc.Status.details][google.rpc.Status.details] field, or localized by the client."
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          },
+          "description": "A list of messages that carry the error details.  There is a common set of\nmessage types for APIs to use."
+        }
+      },
+      "description": "The `Status` type defines a logical error model that is suitable for\ndifferent programming environments, including REST APIs and RPC APIs. It is\nused by [gRPC](https://github.com/grpc). Each `Status` message contains\nthree pieces of data: error code, error message, and error details.\n\nYou can find out more about this error model and how to work with it in the\n[API Design Guide](https://cloud.google.com/apis/design/errors)."
+    },
     "v2beta1ArtifactList": {
       "type": "object",
       "properties": {
@@ -475,20 +497,6 @@
         }
       },
       "description": "A list of artifact metadata."
-    },
-    "v2beta1Error": {
-      "type": "object",
-      "properties": {
-        "error_message": {
-          "type": "string",
-          "description": "Error message."
-        },
-        "error_details": {
-          "type": "string",
-          "description": "Error details."
-        }
-      },
-      "description": "Error message."
     },
     "v2beta1ListRunsResponse": {
       "type": "object",
@@ -555,7 +563,7 @@
           "description": "Execution metadata of a task."
         },
         "error": {
-          "$ref": "#/definitions/v2beta1Error",
+          "$ref": "#/definitions/rpcStatus",
           "description": "The error that occurred during task execution.\nOnly populated when the task is in FAILED or CANCELED state."
         },
         "inputs": {
@@ -724,7 +732,7 @@
           "description": "Output. Runtime state of a run."
         },
         "error": {
-          "$ref": "#/definitions/v2beta1Error",
+          "$ref": "#/definitions/rpcStatus",
           "description": "In case any error happens retrieving a run field, only run ID\nand the error message is returned. Client has the flexibility of choosing\nhow to handle the error. This is especially useful during listing call."
         },
         "run_details": {
@@ -850,33 +858,11 @@
           "description": "The state of a runtime instance."
         },
         "error": {
-          "$ref": "#/definitions/v2beta1Error",
+          "$ref": "#/definitions/rpcStatus",
           "description": "The error that occurred during the state. May be set when the state is\nany of the non-final states (PENDING/RUNNING/CANCELING) or FAILED state.\nIf the state is FAILED, the error here is final and not going to be\nretried. If the state is a non-final state, the error indicates that a \nsystem-error being retried."
         }
       },
       "description": "Timestamped representation of a runtime state with an optional error."
-    },
-    "v2beta1Status": {
-      "type": "object",
-      "properties": {
-        "error": {
-          "type": "string",
-          "description": "Error message."
-        },
-        "code": {
-          "type": "integer",
-          "format": "int32",
-          "description": "Status code."
-        },
-        "details": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/protobufAny"
-          },
-          "description": "Any details about the status."
-        }
-      },
-      "description": "Status message representing result of a request."
     }
   },
   "securityDefinitions": {

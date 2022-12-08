@@ -42,7 +42,7 @@ class V2beta1PipelineTaskDetail(object):
         'executor_detail': 'V2beta1PipelineTaskExecutorDetail',
         'state': 'V2beta1RuntimeState',
         'execution_id': 'str',
-        'error': 'V2beta1Error',
+        'error': 'RpcStatus',
         'inputs': 'dict(str, V2beta1ArtifactList)',
         'outputs': 'dict(str, V2beta1ArtifactList)',
         'parent_task_id': 'str',
@@ -326,7 +326,7 @@ class V2beta1PipelineTaskDetail(object):
 
 
         :return: The error of this V2beta1PipelineTaskDetail.  # noqa: E501
-        :rtype: V2beta1Error
+        :rtype: RpcStatus
         """
         return self._error
 
@@ -336,7 +336,7 @@ class V2beta1PipelineTaskDetail(object):
 
 
         :param error: The error of this V2beta1PipelineTaskDetail.  # noqa: E501
-        :type error: V2beta1Error
+        :type error: RpcStatus
         """
 
         self._error = error

@@ -40,7 +40,7 @@ class V2beta1PipelineVersion(object):
         'created_at': 'datetime',
         'package_url': 'V2beta1Url',
         'pipeline_spec': 'object',
-        'error': 'V2beta1Error'
+        'error': 'RpcStatus'
     }
 
     attribute_map = {
@@ -252,7 +252,7 @@ class V2beta1PipelineVersion(object):
 
 
         :return: The error of this V2beta1PipelineVersion.  # noqa: E501
-        :rtype: V2beta1Error
+        :rtype: RpcStatus
         """
         return self._error
 
@@ -262,7 +262,7 @@ class V2beta1PipelineVersion(object):
 
 
         :param error: The error of this V2beta1PipelineVersion.  # noqa: E501
-        :type error: V2beta1Error
+        :type error: RpcStatus
         """
 
         self._error = error

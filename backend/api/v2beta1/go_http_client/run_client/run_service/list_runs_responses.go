@@ -87,7 +87,7 @@ ListRunsDefault list runs default
 type ListRunsDefault struct {
 	_statusCode int
 
-	Payload *run_model.V2beta1Status
+	Payload *run_model.RPCStatus
 }
 
 // Code gets the status code for the list runs default response
@@ -101,7 +101,7 @@ func (o *ListRunsDefault) Error() string {
 
 func (o *ListRunsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(run_model.V2beta1Status)
+	o.Payload = new(run_model.RPCStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

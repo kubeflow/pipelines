@@ -55,9 +55,14 @@ class TestV2beta1ListRunsResponse(unittest.TestCase):
                         scheduled_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                         finished_at = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                         state = 'RUNTIMESTATE_UNSPECIFIED', 
-                        error = kfp_server_api.models.v2beta1_error.v2beta1Error(
-                            error_message = '0', 
-                            error_details = '0', ), 
+                        error = kfp_server_api.models.rpc_status.rpcStatus(
+                            code = 56, 
+                            message = '0', 
+                            details = [
+                                kfp_server_api.models.protobuf_any.protobufAny(
+                                    type_url = '0', 
+                                    value = 'YQ==', )
+                                ], ), 
                         run_details = kfp_server_api.models.v2beta1_run_details.v2beta1RunDetails(
                             pipeline_context_id = '0', 
                             pipeline_run_context_id = '0', 

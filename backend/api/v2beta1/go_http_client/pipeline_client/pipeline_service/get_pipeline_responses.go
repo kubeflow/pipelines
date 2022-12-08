@@ -87,7 +87,7 @@ GetPipelineDefault get pipeline default
 type GetPipelineDefault struct {
 	_statusCode int
 
-	Payload *pipeline_model.V2beta1Status
+	Payload *pipeline_model.RPCStatus
 }
 
 // Code gets the status code for the get pipeline default response
@@ -101,7 +101,7 @@ func (o *GetPipelineDefault) Error() string {
 
 func (o *GetPipelineDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.V2beta1Status)
+	o.Payload = new(pipeline_model.RPCStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

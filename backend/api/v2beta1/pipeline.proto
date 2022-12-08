@@ -21,8 +21,8 @@ import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/struct.proto";
+import "google/rpc/status.proto";
 import "protoc-gen-swagger/options/annotations.proto";
-import "backend/api/v2beta1/error.proto";
 
 option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
   responses: {
@@ -30,7 +30,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
     value: {
       schema: {
         json_schema: {
-          ref: ".kubeflow.pipelines.backend.api.v2beta1.Status";
+          ref: ".google.rpc.Status";
         }
       }
     }
@@ -149,7 +149,7 @@ message Pipeline {
   // In case any error happens retrieving a pipeline field, only pipeline ID,
   // and the error message is returned. Client has the flexibility of choosing
   // how to handle the error. This is especially useful during listing call.
-  Error error = 6;
+  google.rpc.Status error = 6;
 }
 
 message PipelineVersion {
@@ -180,7 +180,7 @@ message PipelineVersion {
   // pipeline ID, pipeline version ID, and the error message are returned. 
   // Client has the flexibility of choosing how to handle the error. 
   // This is especially useful during List() calls.
-  Error error = 8;
+  google.rpc.Status error = 8;
 }
 
 message Url {

@@ -87,7 +87,7 @@ GetPipelineByNameDefault get pipeline by name default
 type GetPipelineByNameDefault struct {
 	_statusCode int
 
-	Payload *pipeline_model.V2beta1Status
+	Payload *pipeline_model.RPCStatus
 }
 
 // Code gets the status code for the get pipeline by name default response
@@ -101,7 +101,7 @@ func (o *GetPipelineByNameDefault) Error() string {
 
 func (o *GetPipelineByNameDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.V2beta1Status)
+	o.Payload = new(pipeline_model.RPCStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

@@ -8,7 +8,7 @@ Name | Type | Description | Notes
 **description** | **str** | Optional input field. A short description of the pipeline. | [optional] 
 **created_at** | **datetime** | Output. Creation time of the pipeline. | [optional] 
 **namespace** | **str** | Input. A namespace this pipeline belongs to. Causes error if user is not authorized to access the specified namespace. If not specified in CreatePipeline, default namespace is used. | [optional] 
-**error** | [**V2beta1Error**](V2beta1Error.md) |  | [optional] 
+**error** | [**RpcStatus**](RpcStatus.md) |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

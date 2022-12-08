@@ -87,7 +87,7 @@ ListPipelinesDefault list pipelines default
 type ListPipelinesDefault struct {
 	_statusCode int
 
-	Payload *pipeline_model.V2beta1Status
+	Payload *pipeline_model.RPCStatus
 }
 
 // Code gets the status code for the list pipelines default response
@@ -101,7 +101,7 @@ func (o *ListPipelinesDefault) Error() string {
 
 func (o *ListPipelinesDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.V2beta1Status)
+	o.Payload = new(pipeline_model.RPCStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

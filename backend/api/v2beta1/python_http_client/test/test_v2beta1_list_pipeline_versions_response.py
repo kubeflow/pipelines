@@ -46,9 +46,14 @@ class TestV2beta1ListPipelineVersionsResponse(unittest.TestCase):
                         package_url = kfp_server_api.models.v2beta1_url.v2beta1Url(
                             pipeline_url = '0', ), 
                         pipeline_spec = kfp_server_api.models.pipeline_spec.pipeline_spec(), 
-                        error = kfp_server_api.models.v2beta1_error.v2beta1Error(
-                            error_message = '0', 
-                            error_details = '0', ), )
+                        error = kfp_server_api.models.rpc_status.rpcStatus(
+                            code = 56, 
+                            message = '0', 
+                            details = [
+                                kfp_server_api.models.protobuf_any.protobufAny(
+                                    type_url = '0', 
+                                    value = 'YQ==', )
+                                ], ), )
                     ], 
                 next_page_token = '0', 
                 total_size = 56

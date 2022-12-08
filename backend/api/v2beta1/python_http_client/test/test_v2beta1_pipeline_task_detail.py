@@ -53,9 +53,14 @@ class TestV2beta1PipelineTaskDetail(unittest.TestCase):
                         ], ), 
                 state = 'RUNTIMESTATE_UNSPECIFIED', 
                 execution_id = '0', 
-                error = kfp_server_api.models.v2beta1_error.v2beta1Error(
-                    error_message = '0', 
-                    error_details = '0', ), 
+                error = kfp_server_api.models.rpc_status.rpcStatus(
+                    code = 56, 
+                    message = '0', 
+                    details = [
+                        kfp_server_api.models.protobuf_any.protobufAny(
+                            type_url = '0', 
+                            value = 'YQ==', )
+                        ], ), 
                 inputs = {
                     'key' : kfp_server_api.models.v2beta1_artifact_list.v2beta1ArtifactList(
                         artifact_ids = [
@@ -73,9 +78,14 @@ class TestV2beta1PipelineTaskDetail(unittest.TestCase):
                     kfp_server_api.models.v2beta1_runtime_status.v2beta1RuntimeStatus(
                         update_time = datetime.datetime.strptime('2013-10-20 19:20:30.00', '%Y-%m-%d %H:%M:%S.%f'), 
                         state = 'RUNTIMESTATE_UNSPECIFIED', 
-                        error = kfp_server_api.models.v2beta1_error.v2beta1Error(
-                            error_message = '0', 
-                            error_details = '0', ), )
+                        error = kfp_server_api.models.rpc_status.rpcStatus(
+                            code = 56, 
+                            message = '0', 
+                            details = [
+                                kfp_server_api.models.protobuf_any.protobufAny(
+                                    type_url = '0', 
+                                    value = 'YQ==', )
+                                ], ), )
                     ]
             )
         else :

@@ -33,7 +33,7 @@ type V2beta1PipelineTaskDetail struct {
 
 	// The error that occurred during task execution.
 	// Only populated when the task is in FAILED or CANCELED state.
-	Error *V2beta1Error `json:"error,omitempty"`
+	Error *RPCStatus `json:"error,omitempty"`
 
 	// Execution metadata of a task.
 	ExecutionID string `json:"execution_id,omitempty"`
