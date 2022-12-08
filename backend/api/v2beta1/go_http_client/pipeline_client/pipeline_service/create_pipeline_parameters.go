@@ -67,7 +67,7 @@ type CreatePipelineParams struct {
 	  Required input. Pipeline that needs to be created.
 
 	*/
-	Body *pipeline_model.BackendPipeline
+	Body *pipeline_model.V2beta1Pipeline
 
 	timeout    time.Duration
 	Context    context.Context
@@ -108,13 +108,13 @@ func (o *CreatePipelineParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithBody adds the body to the create pipeline params
-func (o *CreatePipelineParams) WithBody(body *pipeline_model.BackendPipeline) *CreatePipelineParams {
+func (o *CreatePipelineParams) WithBody(body *pipeline_model.V2beta1Pipeline) *CreatePipelineParams {
 	o.SetBody(body)
 	return o
 }
 
 // SetBody adds the body to the create pipeline params
-func (o *CreatePipelineParams) SetBody(body *pipeline_model.BackendPipeline) {
+func (o *CreatePipelineParams) SetBody(body *pipeline_model.V2beta1Pipeline) {
 	o.Body = body
 }
 

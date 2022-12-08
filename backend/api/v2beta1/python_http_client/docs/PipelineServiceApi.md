@@ -16,7 +16,7 @@ Method | HTTP request | Description
 
 
 # **create_pipeline**
-> BackendPipeline create_pipeline(body)
+> V2beta1Pipeline create_pipeline(body)
 
 Creates a pipeline.
 
@@ -54,7 +54,7 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.PipelineServiceApi(api_client)
-    body = kfp_server_api.BackendPipeline() # BackendPipeline | Required input. Pipeline that needs to be created.
+    body = kfp_server_api.V2beta1Pipeline() # V2beta1Pipeline | Required input. Pipeline that needs to be created.
 
     try:
         # Creates a pipeline.
@@ -68,11 +68,11 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **body** | [**BackendPipeline**](BackendPipeline.md)| Required input. Pipeline that needs to be created. | 
+ **body** | [**V2beta1Pipeline**](V2beta1Pipeline.md)| Required input. Pipeline that needs to be created. | 
 
 ### Return type
 
-[**BackendPipeline**](BackendPipeline.md)
+[**V2beta1Pipeline**](V2beta1Pipeline.md)
 
 ### Authorization
 
@@ -92,7 +92,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **create_pipeline_version**
-> BackendPipelineVersion create_pipeline_version(pipeline_id)
+> V2beta1PipelineVersion create_pipeline_version(pipeline_id)
 
 Adds a pipeline version to the specified pipeline ID.
 
@@ -148,7 +148,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**BackendPipelineVersion**](BackendPipelineVersion.md)
+[**V2beta1PipelineVersion**](V2beta1PipelineVersion.md)
 
 ### Authorization
 
@@ -322,7 +322,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **get_pipeline**
-> BackendPipeline get_pipeline(pipeline_id)
+> V2beta1Pipeline get_pipeline(pipeline_id)
 
 Finds a specific pipeline by ID.
 
@@ -378,7 +378,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**BackendPipeline**](BackendPipeline.md)
+[**V2beta1Pipeline**](V2beta1Pipeline.md)
 
 ### Authorization
 
@@ -398,7 +398,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **get_pipeline_by_name**
-> BackendPipeline get_pipeline_by_name(name, namespace=namespace)
+> V2beta1Pipeline get_pipeline_by_name(name, namespace=namespace)
 
 Finds a specific pipeline by name and namespace.
 
@@ -456,7 +456,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**BackendPipeline**](BackendPipeline.md)
+[**V2beta1Pipeline**](V2beta1Pipeline.md)
 
 ### Authorization
 
@@ -476,7 +476,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **get_pipeline_version**
-> BackendPipelineVersion get_pipeline_version(pipeline_id, pipeline_version_id)
+> V2beta1PipelineVersion get_pipeline_version(pipeline_id, pipeline_version_id)
 
 Gets a pipeline version by pipeline version ID and pipeline ID.
 
@@ -534,7 +534,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**BackendPipelineVersion**](BackendPipelineVersion.md)
+[**V2beta1PipelineVersion**](V2beta1PipelineVersion.md)
 
 ### Authorization
 
@@ -554,7 +554,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **list_pipeline_versions**
-> BackendListPipelineVersionsResponse list_pipeline_versions(pipeline_id, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter)
+> V2beta1ListPipelineVersionsResponse list_pipeline_versions(pipeline_id, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter)
 
 Lists all pipeline versions of a given pipeline ID.
 
@@ -618,7 +618,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**BackendListPipelineVersionsResponse**](BackendListPipelineVersionsResponse.md)
+[**V2beta1ListPipelineVersionsResponse**](V2beta1ListPipelineVersionsResponse.md)
 
 ### Authorization
 
@@ -638,7 +638,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **list_pipelines**
-> BackendListPipelinesResponse list_pipelines(namespace=namespace, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter)
+> V2beta1ListPipelinesResponse list_pipelines(namespace=namespace, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter)
 
 Finds all pipelines within a namespace.
 
@@ -702,7 +702,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**BackendListPipelinesResponse**](BackendListPipelinesResponse.md)
+[**V2beta1ListPipelinesResponse**](V2beta1ListPipelinesResponse.md)
 
 ### Authorization
 

@@ -94,7 +94,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **create_run**
-> BackendRun create_run(experiment_id, body)
+> V2beta1Run create_run(experiment_id, body)
 
 Creates a new run in an experiment specified by experiment ID.  If experiment ID is not specified, the run is created in the default experiment.
 
@@ -133,7 +133,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.RunServiceApi(api_client)
     experiment_id = 'experiment_id_example' # str | The ID of the parent experiment.
-body = kfp_server_api.BackendRun() # BackendRun | Run to be created.
+body = kfp_server_api.V2beta1Run() # V2beta1Run | Run to be created.
 
     try:
         # Creates a new run in an experiment specified by experiment ID.  If experiment ID is not specified, the run is created in the default experiment.
@@ -148,11 +148,11 @@ body = kfp_server_api.BackendRun() # BackendRun | Run to be created.
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **experiment_id** | **str**| The ID of the parent experiment. | 
- **body** | [**BackendRun**](BackendRun.md)| Run to be created. | 
+ **body** | [**V2beta1Run**](V2beta1Run.md)| Run to be created. | 
 
 ### Return type
 
-[**BackendRun**](BackendRun.md)
+[**V2beta1Run**](V2beta1Run.md)
 
 ### Authorization
 
@@ -250,7 +250,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **get_run**
-> BackendRun get_run(experiment_id, run_id)
+> V2beta1Run get_run(experiment_id, run_id)
 
 Finds a specific run by ID.
 
@@ -308,7 +308,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**BackendRun**](BackendRun.md)
+[**V2beta1Run**](V2beta1Run.md)
 
 ### Authorization
 
@@ -328,7 +328,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **list_runs**
-> BackendListRunsResponse list_runs(experiment_id, namespace=namespace, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter)
+> V2beta1ListRunsResponse list_runs(experiment_id, namespace=namespace, page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter)
 
 Finds all runs in an experiment given by experiment ID.  If experiment id is not specified, finds all runs across all experiments.
 
@@ -394,7 +394,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**BackendListRunsResponse**](BackendListRunsResponse.md)
+[**V2beta1ListRunsResponse**](V2beta1ListRunsResponse.md)
 
 ### Authorization
 
@@ -414,7 +414,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **read_artifact**
-> BackendReadArtifactResponse read_artifact(experiment_id, run_id, node_id, artifact_name)
+> V2beta1ReadArtifactResponse read_artifact(experiment_id, run_id, node_id, artifact_name)
 
 Finds artifact data in a run.
 
@@ -476,7 +476,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**BackendReadArtifactResponse**](BackendReadArtifactResponse.md)
+[**V2beta1ReadArtifactResponse**](V2beta1ReadArtifactResponse.md)
 
 ### Authorization
 
@@ -496,7 +496,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **report_run_metrics**
-> BackendReportRunMetricsResponse report_run_metrics(experiment_id, run_id, body)
+> V2beta1ReportRunMetricsResponse report_run_metrics(experiment_id, run_id, body)
 
 Reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (experiment_id, run_id, node_id, name). Duplicate  reporting will be ignored by the API. First reporting wins.
 
@@ -536,7 +536,7 @@ with kfp_server_api.ApiClient(configuration) as api_client:
     api_instance = kfp_server_api.RunServiceApi(api_client)
     experiment_id = 'experiment_id_example' # str | The ID of the parent experiment.
 run_id = 'run_id_example' # str | Required. The parent run ID of the metric.
-body = kfp_server_api.BackendReportRunMetricsRequest() # BackendReportRunMetricsRequest | 
+body = kfp_server_api.V2beta1ReportRunMetricsRequest() # V2beta1ReportRunMetricsRequest | 
 
     try:
         # Reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (experiment_id, run_id, node_id, name). Duplicate  reporting will be ignored by the API. First reporting wins.
@@ -552,11 +552,11 @@ Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
  **experiment_id** | **str**| The ID of the parent experiment. | 
  **run_id** | **str**| Required. The parent run ID of the metric. | 
- **body** | [**BackendReportRunMetricsRequest**](BackendReportRunMetricsRequest.md)|  | 
+ **body** | [**V2beta1ReportRunMetricsRequest**](V2beta1ReportRunMetricsRequest.md)|  | 
 
 ### Return type
 
-[**BackendReportRunMetricsResponse**](BackendReportRunMetricsResponse.md)
+[**V2beta1ReportRunMetricsResponse**](V2beta1ReportRunMetricsResponse.md)
 
 ### Authorization
 

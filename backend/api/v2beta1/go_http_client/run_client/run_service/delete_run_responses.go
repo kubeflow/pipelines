@@ -85,7 +85,7 @@ DeleteRunDefault delete run default
 type DeleteRunDefault struct {
 	_statusCode int
 
-	Payload *run_model.BackendStatus
+	Payload *run_model.V2beta1Status
 }
 
 // Code gets the status code for the delete run default response
@@ -99,7 +99,7 @@ func (o *DeleteRunDefault) Error() string {
 
 func (o *DeleteRunDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(run_model.BackendStatus)
+	o.Payload = new(run_model.V2beta1Status)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

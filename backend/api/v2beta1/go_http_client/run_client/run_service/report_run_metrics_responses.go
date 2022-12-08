@@ -54,7 +54,7 @@ func NewReportRunMetricsOK() *ReportRunMetricsOK {
 A successful response.
 */
 type ReportRunMetricsOK struct {
-	Payload *run_model.BackendReportRunMetricsResponse
+	Payload *run_model.V2beta1ReportRunMetricsResponse
 }
 
 func (o *ReportRunMetricsOK) Error() string {
@@ -63,7 +63,7 @@ func (o *ReportRunMetricsOK) Error() string {
 
 func (o *ReportRunMetricsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(run_model.BackendReportRunMetricsResponse)
+	o.Payload = new(run_model.V2beta1ReportRunMetricsResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -87,7 +87,7 @@ ReportRunMetricsDefault report run metrics default
 type ReportRunMetricsDefault struct {
 	_statusCode int
 
-	Payload *run_model.BackendStatus
+	Payload *run_model.V2beta1Status
 }
 
 // Code gets the status code for the report run metrics default response
@@ -101,7 +101,7 @@ func (o *ReportRunMetricsDefault) Error() string {
 
 func (o *ReportRunMetricsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(run_model.BackendStatus)
+	o.Payload = new(run_model.V2beta1Status)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

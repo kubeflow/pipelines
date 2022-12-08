@@ -15,7 +15,7 @@
 syntax = "proto3";
 
 option go_package = "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client";
-package kubeflow.pipelines.backend;
+package kubeflow.pipelines.backend.api.v2beta1;
 
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
@@ -30,7 +30,7 @@ option (grpc.gateway.protoc_gen_swagger.options.openapiv2_swagger) = {
     value: {
       schema: {
         json_schema: {
-          ref: ".kubeflow.pipelines.backend.Status";
+          ref: ".kubeflow.pipelines.backend.api.v2beta1.Status";
         }
       }
     }

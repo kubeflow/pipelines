@@ -88,7 +88,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **create_experiment**
-> BackendExperiment create_experiment(body)
+> V2beta1Experiment create_experiment(body)
 
 Creates a new experiment.
 
@@ -126,7 +126,7 @@ configuration = kfp_server_api.Configuration(
 with kfp_server_api.ApiClient(configuration) as api_client:
     # Create an instance of the API class
     api_instance = kfp_server_api.ExperimentServiceApi(api_client)
-    body = kfp_server_api.BackendExperiment() # BackendExperiment | The experiment to be created.
+    body = kfp_server_api.V2beta1Experiment() # V2beta1Experiment | The experiment to be created.
 
     try:
         # Creates a new experiment.
@@ -140,11 +140,11 @@ with kfp_server_api.ApiClient(configuration) as api_client:
 
 Name | Type | Description  | Notes
 ------------- | ------------- | ------------- | -------------
- **body** | [**BackendExperiment**](BackendExperiment.md)| The experiment to be created. | 
+ **body** | [**V2beta1Experiment**](V2beta1Experiment.md)| The experiment to be created. | 
 
 ### Return type
 
-[**BackendExperiment**](BackendExperiment.md)
+[**V2beta1Experiment**](V2beta1Experiment.md)
 
 ### Authorization
 
@@ -238,7 +238,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **get_experiment**
-> BackendExperiment get_experiment(experiment_id)
+> V2beta1Experiment get_experiment(experiment_id)
 
 Finds a specific experiment by ID.
 
@@ -294,7 +294,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**BackendExperiment**](BackendExperiment.md)
+[**V2beta1Experiment**](V2beta1Experiment.md)
 
 ### Authorization
 
@@ -313,7 +313,7 @@ Name | Type | Description  | Notes
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
 
 # **list_experiments**
-> BackendListExperimentsResponse list_experiments(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, namespace=namespace)
+> V2beta1ListExperimentsResponse list_experiments(page_token=page_token, page_size=page_size, sort_by=sort_by, filter=filter, namespace=namespace)
 
 Finds all experiments. Supports pagination, and sorting on certain fields.
 
@@ -377,7 +377,7 @@ Name | Type | Description  | Notes
 
 ### Return type
 
-[**BackendListExperimentsResponse**](BackendListExperimentsResponse.md)
+[**V2beta1ListExperimentsResponse**](V2beta1ListExperimentsResponse.md)
 
 ### Authorization
 

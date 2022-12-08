@@ -54,7 +54,7 @@ func NewReadArtifactOK() *ReadArtifactOK {
 A successful response.
 */
 type ReadArtifactOK struct {
-	Payload *run_model.BackendReadArtifactResponse
+	Payload *run_model.V2beta1ReadArtifactResponse
 }
 
 func (o *ReadArtifactOK) Error() string {
@@ -63,7 +63,7 @@ func (o *ReadArtifactOK) Error() string {
 
 func (o *ReadArtifactOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(run_model.BackendReadArtifactResponse)
+	o.Payload = new(run_model.V2beta1ReadArtifactResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -87,7 +87,7 @@ ReadArtifactDefault read artifact default
 type ReadArtifactDefault struct {
 	_statusCode int
 
-	Payload *run_model.BackendStatus
+	Payload *run_model.V2beta1Status
 }
 
 // Code gets the status code for the read artifact default response
@@ -101,7 +101,7 @@ func (o *ReadArtifactDefault) Error() string {
 
 func (o *ReadArtifactDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(run_model.BackendStatus)
+	o.Payload = new(run_model.V2beta1Status)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

@@ -23,7 +23,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/backendListExperimentsResponse"
+              "$ref": "#/definitions/v2beta1ListExperimentsResponse"
             }
           }
         },
@@ -76,7 +76,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/backendExperiment"
+              "$ref": "#/definitions/v2beta1Experiment"
             }
           }
         },
@@ -87,7 +87,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/backendExperiment"
+              "$ref": "#/definitions/v2beta1Experiment"
             }
           }
         ],
@@ -104,7 +104,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/backendExperiment"
+              "$ref": "#/definitions/v2beta1Experiment"
             }
           }
         },
@@ -200,7 +200,7 @@
     }
   },
   "definitions": {
-    "backendExperiment": {
+    "v2beta1Experiment": {
       "type": "object",
       "properties": {
         "experiment_id": {
@@ -225,12 +225,12 @@
           "description": "Optional input field. Specify the namespace this experiment belongs to."
         },
         "storage_state": {
-          "$ref": "#/definitions/backendExperimentStorageState",
+          "$ref": "#/definitions/v2beta1ExperimentStorageState",
           "description": "Output. Specifies whether this experiment is in archived or available state."
         }
       }
     },
-    "backendExperimentStorageState": {
+    "v2beta1ExperimentStorageState": {
       "type": "string",
       "enum": [
         "STORAGESTATE_UNSPECIFIED",
@@ -240,13 +240,13 @@
       "default": "STORAGESTATE_UNSPECIFIED",
       "description": "Describes whether an entity is available or archived.\n\n - STORAGESTATE_UNSPECIFIED: Default state. This state in not used\n - AVAILABLE: Entity is available.\n - ARCHIVED: Entity is archived."
     },
-    "backendListExperimentsResponse": {
+    "v2beta1ListExperimentsResponse": {
       "type": "object",
       "properties": {
         "experiments": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/backendExperiment"
+            "$ref": "#/definitions/v2beta1Experiment"
           },
           "description": "A list of experiments returned."
         },

@@ -67,7 +67,7 @@ type CreateRunParams struct {
 	  Run to be created.
 
 	*/
-	Body *run_model.BackendRun
+	Body *run_model.V2beta1Run
 	/*ExperimentID
 	  The ID of the parent experiment.
 
@@ -113,13 +113,13 @@ func (o *CreateRunParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithBody adds the body to the create run params
-func (o *CreateRunParams) WithBody(body *run_model.BackendRun) *CreateRunParams {
+func (o *CreateRunParams) WithBody(body *run_model.V2beta1Run) *CreateRunParams {
 	o.SetBody(body)
 	return o
 }
 
 // SetBody adds the body to the create run params
-func (o *CreateRunParams) SetBody(body *run_model.BackendRun) {
+func (o *CreateRunParams) SetBody(body *run_model.V2beta1Run) {
 	o.Body = body
 }
 

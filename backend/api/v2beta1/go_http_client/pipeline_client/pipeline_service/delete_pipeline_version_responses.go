@@ -85,7 +85,7 @@ DeletePipelineVersionDefault delete pipeline version default
 type DeletePipelineVersionDefault struct {
 	_statusCode int
 
-	Payload *pipeline_model.BackendStatus
+	Payload *pipeline_model.V2beta1Status
 }
 
 // Code gets the status code for the delete pipeline version default response
@@ -99,7 +99,7 @@ func (o *DeletePipelineVersionDefault) Error() string {
 
 func (o *DeletePipelineVersionDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.BackendStatus)
+	o.Payload = new(pipeline_model.V2beta1Status)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

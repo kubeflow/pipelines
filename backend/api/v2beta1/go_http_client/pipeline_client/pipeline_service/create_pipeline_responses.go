@@ -54,7 +54,7 @@ func NewCreatePipelineOK() *CreatePipelineOK {
 A successful response.
 */
 type CreatePipelineOK struct {
-	Payload *pipeline_model.BackendPipeline
+	Payload *pipeline_model.V2beta1Pipeline
 }
 
 func (o *CreatePipelineOK) Error() string {
@@ -63,7 +63,7 @@ func (o *CreatePipelineOK) Error() string {
 
 func (o *CreatePipelineOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.BackendPipeline)
+	o.Payload = new(pipeline_model.V2beta1Pipeline)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -87,7 +87,7 @@ CreatePipelineDefault create pipeline default
 type CreatePipelineDefault struct {
 	_statusCode int
 
-	Payload *pipeline_model.BackendStatus
+	Payload *pipeline_model.V2beta1Status
 }
 
 // Code gets the status code for the create pipeline default response
@@ -101,7 +101,7 @@ func (o *CreatePipelineDefault) Error() string {
 
 func (o *CreatePipelineDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(pipeline_model.BackendStatus)
+	o.Payload = new(pipeline_model.V2beta1Status)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

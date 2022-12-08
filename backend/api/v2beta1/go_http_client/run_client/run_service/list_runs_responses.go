@@ -54,7 +54,7 @@ func NewListRunsOK() *ListRunsOK {
 A successful response.
 */
 type ListRunsOK struct {
-	Payload *run_model.BackendListRunsResponse
+	Payload *run_model.V2beta1ListRunsResponse
 }
 
 func (o *ListRunsOK) Error() string {
@@ -63,7 +63,7 @@ func (o *ListRunsOK) Error() string {
 
 func (o *ListRunsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(run_model.BackendListRunsResponse)
+	o.Payload = new(run_model.V2beta1ListRunsResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
@@ -87,7 +87,7 @@ ListRunsDefault list runs default
 type ListRunsDefault struct {
 	_statusCode int
 
-	Payload *run_model.BackendStatus
+	Payload *run_model.V2beta1Status
 }
 
 // Code gets the status code for the list runs default response
@@ -101,7 +101,7 @@ func (o *ListRunsDefault) Error() string {
 
 func (o *ListRunsDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(run_model.BackendStatus)
+	o.Payload = new(run_model.V2beta1Status)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

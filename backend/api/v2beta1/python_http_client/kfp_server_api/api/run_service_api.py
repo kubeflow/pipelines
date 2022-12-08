@@ -181,7 +181,7 @@ class RunServiceApi(object):
         :param experiment_id: The ID of the parent experiment. (required)
         :type experiment_id: str
         :param body: Run to be created. (required)
-        :type body: BackendRun
+        :type body: V2beta1Run
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -194,7 +194,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: BackendRun
+        :rtype: V2beta1Run
         """
         kwargs['_return_http_data_only'] = True
         return self.create_run_with_http_info(experiment_id, body, **kwargs)  # noqa: E501
@@ -211,7 +211,7 @@ class RunServiceApi(object):
         :param experiment_id: The ID of the parent experiment. (required)
         :type experiment_id: str
         :param body: Run to be created. (required)
-        :type body: BackendRun
+        :type body: V2beta1Run
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -228,7 +228,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(BackendRun, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2beta1Run, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -298,7 +298,7 @@ class RunServiceApi(object):
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='BackendRun',  # noqa: E501
+            response_type='V2beta1Run',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -464,7 +464,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: BackendRun
+        :rtype: V2beta1Run
         """
         kwargs['_return_http_data_only'] = True
         return self.get_run_with_http_info(experiment_id, run_id, **kwargs)  # noqa: E501
@@ -498,7 +498,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(BackendRun, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2beta1Run, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -564,7 +564,7 @@ class RunServiceApi(object):
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='BackendRun',  # noqa: E501
+            response_type='V2beta1Run',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -605,7 +605,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: BackendListRunsResponse
+        :rtype: V2beta1ListRunsResponse
         """
         kwargs['_return_http_data_only'] = True
         return self.list_runs_with_http_info(experiment_id, **kwargs)  # noqa: E501
@@ -647,7 +647,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(BackendListRunsResponse, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2beta1ListRunsResponse, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -721,7 +721,7 @@ class RunServiceApi(object):
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='BackendListRunsResponse',  # noqa: E501
+            response_type='V2beta1ListRunsResponse',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -758,7 +758,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: BackendReadArtifactResponse
+        :rtype: V2beta1ReadArtifactResponse
         """
         kwargs['_return_http_data_only'] = True
         return self.read_artifact_with_http_info(experiment_id, run_id, node_id, artifact_name, **kwargs)  # noqa: E501
@@ -796,7 +796,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(BackendReadArtifactResponse, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2beta1ReadArtifactResponse, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -876,7 +876,7 @@ class RunServiceApi(object):
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='BackendReadArtifactResponse',  # noqa: E501
+            response_type='V2beta1ReadArtifactResponse',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501
@@ -898,7 +898,7 @@ class RunServiceApi(object):
         :param run_id: Required. The parent run ID of the metric. (required)
         :type run_id: str
         :param body: (required)
-        :type body: BackendReportRunMetricsRequest
+        :type body: V2beta1ReportRunMetricsRequest
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _preload_content: if False, the urllib3.HTTPResponse object will
@@ -911,7 +911,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: BackendReportRunMetricsResponse
+        :rtype: V2beta1ReportRunMetricsResponse
         """
         kwargs['_return_http_data_only'] = True
         return self.report_run_metrics_with_http_info(experiment_id, run_id, body, **kwargs)  # noqa: E501
@@ -930,7 +930,7 @@ class RunServiceApi(object):
         :param run_id: Required. The parent run ID of the metric. (required)
         :type run_id: str
         :param body: (required)
-        :type body: BackendReportRunMetricsRequest
+        :type body: V2beta1ReportRunMetricsRequest
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
         :param _return_http_data_only: response data without head status code
@@ -947,7 +947,7 @@ class RunServiceApi(object):
         :return: Returns the result object.
                  If the method is called asynchronously,
                  returns the request thread.
-        :rtype: tuple(BackendReportRunMetricsResponse, status_code(int), headers(HTTPHeaderDict))
+        :rtype: tuple(V2beta1ReportRunMetricsResponse, status_code(int), headers(HTTPHeaderDict))
         """
 
         local_var_params = locals()
@@ -1024,7 +1024,7 @@ class RunServiceApi(object):
             body=body_params,
             post_params=form_params,
             files=local_var_files,
-            response_type='BackendReportRunMetricsResponse',  # noqa: E501
+            response_type='V2beta1ReportRunMetricsResponse',  # noqa: E501
             auth_settings=auth_settings,
             async_req=local_var_params.get('async_req'),
             _return_http_data_only=local_var_params.get('_return_http_data_only'),  # noqa: E501

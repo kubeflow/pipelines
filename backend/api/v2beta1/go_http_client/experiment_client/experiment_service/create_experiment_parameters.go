@@ -67,7 +67,7 @@ type CreateExperimentParams struct {
 	  The experiment to be created.
 
 	*/
-	Body *experiment_model.BackendExperiment
+	Body *experiment_model.V2beta1Experiment
 
 	timeout    time.Duration
 	Context    context.Context
@@ -108,13 +108,13 @@ func (o *CreateExperimentParams) SetHTTPClient(client *http.Client) {
 }
 
 // WithBody adds the body to the create experiment params
-func (o *CreateExperimentParams) WithBody(body *experiment_model.BackendExperiment) *CreateExperimentParams {
+func (o *CreateExperimentParams) WithBody(body *experiment_model.V2beta1Experiment) *CreateExperimentParams {
 	o.SetBody(body)
 	return o
 }
 
 // SetBody adds the body to the create experiment params
-func (o *CreateExperimentParams) SetBody(body *experiment_model.BackendExperiment) {
+func (o *CreateExperimentParams) SetBody(body *experiment_model.V2beta1Experiment) {
 	o.Body = body
 }
 
