@@ -20,10 +20,12 @@ import (
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
-	structpb "github.com/golang/protobuf/ptypes/struct"
+	//	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	//	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/common/util"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"github.com/stretchr/testify/assert"
@@ -328,65 +330,27 @@ func TestToCrdPeriodicScheduleV1_NilEndTime(t *testing.T) {
 	})
 }
 
-func TestScheduledWorkflow_V1(t *testing.T) {
-	v1Template, _ := New([]byte(v2SpecHelloWorldYAML))
+func TestScheduledWorkflow(t *testing.T) {
+	v2Template, _ := New([]byte(v2SpecHelloWorldYAML))
 
-	apiJob := &apiv1beta1.Job{
+	modelJob := &model.Job{
 		Name:           "name1",
 		Enabled:        true,
 		MaxConcurrency: 1,
 		NoCatchup:      true,
-		Trigger: &apiv1beta1.Trigger{
-			Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
-				Cron:      "1 * * * *",
-			}}},
-		ResourceReferences: []*apiv1beta1.ResourceReference{
-			{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "exp1"}, Relationship: apiv1beta1.Relationship_OWNER},
+		Trigger: model.Trigger{
+			CronSchedule: model.CronSchedule{
+				CronScheduleStartTimeInSec: util.Int64Pointer(1),
+				Cron:                       util.StringPointer("1 * * * *"),
+			},
 		},
-		PipelineSpec: &apiv1beta1.PipelineSpec{PipelineId: "pipeline1", Parameters: []*apiv1beta1.Parameter{{Name: "param2", Value: "world"}}},
-	}
-
-	expectedScheduledWorkflow := scheduledworkflow.ScheduledWorkflow{
-		ObjectMeta: metav1.ObjectMeta{GenerateName: "name1"},
-		Spec: scheduledworkflow.ScheduledWorkflowSpec{
-			Enabled:        true,
-			MaxConcurrency: &apiJob.MaxConcurrency,
-			Trigger: scheduledworkflow.Trigger{
-				CronSchedule: &scheduledworkflow.CronSchedule{
-					Cron:      "1 * * * *",
-					StartTime: &metav1.Time{Time: time.Unix(1, 0)},
-				},
+		PipelineSpec: model.PipelineSpec{
+			PipelineId:           "1",
+			PipelineName:         "pipeline name",
+			PipelineSpecManifest: v2SpecHelloWorldYAML,
+			RuntimeConfig: model.RuntimeConfig{
+				Parameters: "{\"param2\":\"world\"}",
 			},
-			Workflow: &scheduledworkflow.WorkflowResource{
-				Parameters: []scheduledworkflow.Parameter{{Name: "param2", Value: "world"}},
-				Spec:       WorkflowSpecV1,
-			},
-			NoCatchup: &[]bool{true}[0], // returns a pointer to true
-		}}
-
-	actualScheduledWorkflow, _ := v1Template.ScheduledWorkflow(apiJob)
-
-	assert.Equal(t, &expectedScheduledWorkflow, actualScheduledWorkflow)
-}
-
-func TestScheduledWorkflow(t *testing.T) {
-	v2Template, _ := New([]byte(v2SpecHelloWorldYAML))
-
-	apiRecurringRun := &apiv2beta1.RecurringRun{
-		DisplayName:    "name1",
-		Mode:           apiv2beta1.RecurringRun_ENABLE,
-		MaxConcurrency: 1,
-		NoCatchup:      true,
-		Trigger: &apiv2beta1.Trigger{
-			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
-				StartTime: &timestamp.Timestamp{Seconds: 1},
-				Cron:      "1 * * * *",
-			}}},
-		ExperimentId:   "exp1",
-		PipelineSource: &apiv2beta1.RecurringRun_PipelineId{"pipeline1"},
-		RuntimeConfig: &apiv2beta1.RuntimeConfig{
-			Parameters: map[string]*structpb.Value{"param2": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}}},
 		},
 	}
 
@@ -394,12 +358,13 @@ func TestScheduledWorkflow(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{GenerateName: "name1"},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
 			Enabled:        true,
-			MaxConcurrency: &apiRecurringRun.MaxConcurrency,
+			MaxConcurrency: util.Int64Pointer(1),
 			Trigger: scheduledworkflow.Trigger{
 				CronSchedule: &scheduledworkflow.CronSchedule{
 					Cron:      "1 * * * *",
 					StartTime: &metav1.Time{Time: time.Unix(1, 0)},
 				},
+				PeriodicSchedule: &scheduledworkflow.PeriodicSchedule{},
 			},
 			Workflow: &scheduledworkflow.WorkflowResource{
 				Parameters: []scheduledworkflow.Parameter{{Name: "param2", Value: "world"}},
@@ -408,7 +373,8 @@ func TestScheduledWorkflow(t *testing.T) {
 			NoCatchup: &[]bool{true}[0], // returns a pointer to true
 		}}
 
-	actualScheduledWorkflow, _ := v2Template.ScheduledWorkflow(apiRecurringRun)
+	actualScheduledWorkflow, err := v2Template.ScheduledWorkflow(modelJob)
 
+	assert.Nil(t, err)
 	assert.Equal(t, &expectedScheduledWorkflow, actualScheduledWorkflow)
 }
