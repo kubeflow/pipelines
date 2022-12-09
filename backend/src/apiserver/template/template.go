@@ -107,7 +107,7 @@ type Template interface {
 	//Get workflow
 	RunWorkflow(apiRun *apiv1beta1.Run, options RunWorkflowOptions) (util.ExecutionSpec, error)
 
-	ScheduledWorkflow(inputInterface interface{}) (*scheduledworkflow.ScheduledWorkflow, error)
+	ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error)
 }
 
 type RunWorkflowOptions struct {
@@ -134,6 +134,18 @@ func toParametersMap(apiParams []*apiv1beta1.Parameter) map[string]string {
 		desiredParamsMap[param.Name] = param.Value
 	}
 	return desiredParamsMap
+}
+
+func modelToParametersMap(modelParameters string) (map[string]string, error) {
+	desiredParamsMap := make(map[string]string)
+	if modelParameters == "" {
+		return desiredParamsMap, nil
+	}
+	err := json.Unmarshal([]byte(modelParameters), &desiredParamsMap)
+	if err != nil {
+		return nil, err
+	}
+	return desiredParamsMap, nil
 }
 
 // Patch the system-specified default parameters if available.
@@ -344,11 +356,13 @@ func modelToPipelineJobRuntimeConfig(modelRuntimeConfig *model.RuntimeConfig) (*
 	return runtimeConfig, nil
 }
 
-func modelToCRDTrigger(modelJob *model.Job) scheduledworkflow.Trigger {
+func modelToCRDTrigger(modelJob model.Job) scheduledworkflow.Trigger {
 	crdCronSchedule := scheduledworkflow.CronSchedule{}
 	crdPeriodicSchedule := scheduledworkflow.PeriodicSchedule{}
 	if &modelJob.CronSchedule != nil {
-		crdCronSchedule.Cron = *modelJob.CronSchedule.Cron
+		if modelJob.CronSchedule.Cron != nil {
+			crdCronSchedule.Cron = *modelJob.CronSchedule.Cron
+		}
 		if modelJob.CronScheduleStartTimeInSec != nil {
 			startTime := metav1.NewTime(time.Unix(*modelJob.CronScheduleStartTimeInSec, 0))
 			crdCronSchedule.StartTime = &startTime
@@ -381,6 +395,9 @@ func modelToCRDTrigger(modelJob *model.Job) scheduledworkflow.Trigger {
 func modelToCRDParameters(modelJob *model.Job) ([]scheduledworkflow.Parameter, error) {
 	var swParams []scheduledworkflow.Parameter
 	var parameters map[string]string
+	if modelJob.RuntimeConfig.Parameters == "" {
+		return swParams, nil
+	}
 	err := json.Unmarshal([]byte(modelJob.RuntimeConfig.Parameters), &parameters)
 	if err != nil {
 		return nil, err

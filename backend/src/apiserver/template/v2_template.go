@@ -36,9 +36,7 @@ type V2Spec struct {
 }
 
 // Converts modelJob to ScheduledWorkflow
-func (t *V2Spec) ScheduledWorkflow(inputInterface interface{}) (*scheduledworkflow.ScheduledWorkflow, error) {
-	modelJob := inputInterface.(*model.Job)
-
+func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	spec := &structpb.Struct{}
 	job := &pipelinespec.PipelineJob{}
 
@@ -80,7 +78,7 @@ func (t *V2Spec) ScheduledWorkflow(inputInterface interface{}) (*scheduledworkfl
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
 			Enabled:        modelJob.Enabled,
 			MaxConcurrency: &modelJob.MaxConcurrency,
-			Trigger:        modelToCRDTrigger(modelJob),
+			Trigger:        modelToCRDTrigger(*modelJob),
 			Workflow: &scheduledworkflow.WorkflowResource{
 				Parameters: parameters,
 				Spec:       executionSpec.ToStringForSchedule(),
