@@ -199,7 +199,7 @@ outputs:
 
 implementation:
   container:
-    image: abashyam123/kfp20:72
+    image: public.ecr.aws/kubeflow-on-aws/aws-sagemaker-kfp-components:2.0.1
     command: [python3]
     args:
       - TrainingJob/src/TrainingJob_component.py
