@@ -28,7 +28,9 @@ from commonv2 import snake_to_camel
 
 
 @ComponentMetadata(
-    name="SageMaker - TrainingJob", description="", spec=SageMakerTrainingJobSpec,
+    name="SageMaker - TrainingJob",
+    description="",
+    spec=SageMakerTrainingJobSpec,
 )
 class SageMakerTrainingJobComponent(SageMakerComponent):
 
@@ -73,7 +75,9 @@ class SageMakerTrainingJobComponent(SageMakerComponent):
         )
 
     def _create_job_request(
-        self, inputs: SageMakerTrainingJobInputs, outputs: SageMakerTrainingJobOutputs,
+        self,
+        inputs: SageMakerTrainingJobInputs,
+        outputs: SageMakerTrainingJobOutputs,
     ) -> Dict:
 
         return super()._create_job_yaml(inputs, outputs)
@@ -98,12 +102,16 @@ class SageMakerTrainingJobComponent(SageMakerComponent):
         )
         logging.info(
             "Training job in SageMaker: https://{}.console.aws.amazon.com/sagemaker/home?region={}#/jobs/{}".format(
-                inputs.region, inputs.region, self.job_name,
+                inputs.region,
+                inputs.region,
+                self.job_name,
             )
         )
         logging.info(
             "CloudWatch logs: https://{}.console.aws.amazon.com/cloudwatch/home?region={}#logStream:group=/aws/sagemaker/TrainingJobs;prefix={};streamFilter=typeLogStreamPrefix".format(
-                inputs.region, inputs.region, self.job_name,
+                inputs.region,
+                inputs.region,
+                self.job_name,
             )
         )
 
@@ -124,7 +132,10 @@ class SageMakerTrainingJobComponent(SageMakerComponent):
         if sm_job_status == "Completed":
             resourceSynced = self._get_resource_synced_status(ack_statuses)
             if not resourceSynced:
-                return SageMakerJobStatus(is_completed=False, raw_status=sm_job_status,)
+                return SageMakerJobStatus(
+                    is_completed=False,
+                    raw_status=sm_job_status,
+                )
             # Debugger/Profiler is either Complete or has Failed
             if (
                 "debugRuleEvaluationStatuses" not in ack_statuses
