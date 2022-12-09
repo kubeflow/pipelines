@@ -140,7 +140,7 @@ class ExperimentServiceApi(object):
             ['application/json'])  # noqa: E501
 
         # Authentication setting
-        auth_settings = []  # noqa: E501
+        auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
             '/apis/v2beta1/experiments/{experiment_id}:archive', 'POST',
@@ -266,7 +266,7 @@ class ExperimentServiceApi(object):
             ['application/json'])  # noqa: E501
 
         # Authentication setting
-        auth_settings = []  # noqa: E501
+        auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
             '/apis/v2beta1/experiments', 'POST',
@@ -388,7 +388,7 @@ class ExperimentServiceApi(object):
             ['application/json'])  # noqa: E501
 
         # Authentication setting
-        auth_settings = []  # noqa: E501
+        auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
             '/apis/v2beta1/experiments/{experiment_id}', 'DELETE',
@@ -510,7 +510,7 @@ class ExperimentServiceApi(object):
             ['application/json'])  # noqa: E501
 
         # Authentication setting
-        auth_settings = []  # noqa: E501
+        auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
             '/apis/v2beta1/experiments/{experiment_id}', 'GET',
@@ -656,7 +656,7 @@ class ExperimentServiceApi(object):
             ['application/json'])  # noqa: E501
 
         # Authentication setting
-        auth_settings = []  # noqa: E501
+        auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
             '/apis/v2beta1/experiments', 'GET',
@@ -778,7 +778,7 @@ class ExperimentServiceApi(object):
             ['application/json'])  # noqa: E501
 
         # Authentication setting
-        auth_settings = []  # noqa: E501
+        auth_settings = ['Bearer']  # noqa: E501
 
         return self.api_client.call_api(
             '/apis/v2beta1/experiments/{experiment_id}:unarchive', 'POST',
