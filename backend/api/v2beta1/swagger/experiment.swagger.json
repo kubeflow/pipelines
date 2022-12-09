@@ -200,15 +200,6 @@
     }
   },
   "definitions": {
-    "ExperimentStorageState": {
-      "type": "string",
-      "enum": [
-        "STORAGESTATE_UNSPECIFIED",
-        "AVAILABLE",
-        "ARCHIVED"
-      ],
-      "default": "STORAGESTATE_UNSPECIFIED"
-    },
     "v2beta1Experiment": {
       "type": "object",
       "properties": {
@@ -234,10 +225,20 @@
           "description": "Optional input field. Specify the namespace this experiment belongs to."
         },
         "storage_state": {
-          "$ref": "#/definitions/ExperimentStorageState",
+          "$ref": "#/definitions/v2beta1ExperimentStorageState",
           "description": "Output. Specifies whether this experiment is in archived or available state."
         }
       }
+    },
+    "v2beta1ExperimentStorageState": {
+      "type": "string",
+      "enum": [
+        "STORAGESTATE_UNSPECIFIED",
+        "AVAILABLE",
+        "ARCHIVED"
+      ],
+      "default": "STORAGESTATE_UNSPECIFIED",
+      "description": "Describes whether an entity is available or archived.\n\n - STORAGESTATE_UNSPECIFIED: Default state. This state in not used\n - AVAILABLE: Entity is available.\n - ARCHIVED: Entity is archived."
     },
     "v2beta1ListExperimentsResponse": {
       "type": "object",
