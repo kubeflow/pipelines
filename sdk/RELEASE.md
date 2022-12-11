@@ -10,6 +10,7 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
+* Fix sdk requirements for kubernetes v19 dependency [#8563](https://github.com/kubeflow/pipelines/pull/8563)
 
 ## Documentation Updates
 # 1.8.17
