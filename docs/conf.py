@@ -157,9 +157,14 @@ html_theme_options = {
             'aliases': [],
         },
         {
+            'version': 'https://kubeflow-pipelines.readthedocs.io/en/1.8.17/',
+            'title': 'v1.8.17',
+            'aliases': ['stable'],
+        },
+        {
             'version': 'https://kubeflow-pipelines.readthedocs.io/en/1.8.16/',
             'title': 'v1.8.16',
-            'aliases': ['stable'],
+            'aliases': [],
         },
         {
             'version': 'https://kubeflow-pipelines.readthedocs.io/en/1.8.15/',
