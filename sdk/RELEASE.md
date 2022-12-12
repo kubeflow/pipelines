@@ -14,11 +14,9 @@
 ## Documentation Updates
 # 1.8.17
 ## Major Features and Improvements
-
 ## Breaking Changes
 
 ### For Pipeline Authors
-* Allow ephemeral storage to be set via component output parameter [#8428](https://github.com/kubeflow/pipelines/pull/8428)
 
 ### For Component Authors
 
@@ -27,6 +25,7 @@
 ## Bug Fixes and Other Changes
 * Fix bug when writing to same file using gcsfuse and distributed training strategy in lightweight/containerized Python components [#8543](https://github.com/kubeflow/pipelines/pull/8543) [alternative fix after [#8454](https://github.com/kubeflow/pipelines/pull/8454) in `kfp==1.8.15`]
 * Upgrade kubernetes library to v19 to get access to EphemeralVolume [#8526](https://github.com/kubeflow/pipelines/pull/8526) 
+* Allow ephemeral storage to be set via component output parameter [#8428](https://github.com/kubeflow/pipelines/pull/8428)
 
 ## Documentation Updates
 # 1.8.16
