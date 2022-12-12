@@ -49,6 +49,7 @@ class SageMakerTrainingJobInputs(SageMakerComponentCommonInputs):
     profiler_config: Input
     profiler_rule_configurations: Input
     resource_config: Input
+    retry_strategy: Input
     role_arn: Input
     stopping_condition: Input
     tags: Input
@@ -67,8 +68,10 @@ class SageMakerTrainingJobOutputs(SageMakerComponentBaseOutputs):
     failure_reason: Output
     model_artifacts: Output
     profiler_rule_evaluation_statuses: Output
+    profiling_status: Output
     secondary_status: Output
     training_job_status: Output
+    warm_pool_status: Output
 
 
 class SageMakerTrainingJobSpec(
@@ -132,7 +135,7 @@ class SageMakerTrainingJobSpec(
         ),
         output_data_config=InputValidator(
             input_type=SpecInputParsers.yaml_or_json_dict,
-            description="Specifies the path to the S3 location where you want to store model artifacts. Amazon SageMaker crea",
+            description="Specifies the path to the S3 location where you want to store model artifacts. SageMaker creates sub",
             required=True,
         ),
         profiler_config=InputValidator(
@@ -150,9 +153,14 @@ class SageMakerTrainingJobSpec(
             description="The resources, including the ML compute instances and ML storage volumes, to use for model training.",
             required=True,
         ),
+        retry_strategy=InputValidator(
+            input_type=SpecInputParsers.yaml_or_json_dict,
+            description="The number of times to retry the job when the job fails due to an InternalServerError.",
+            required=False,
+        ),
         role_arn=InputValidator(
             input_type=str,
-            description="The Amazon Resource Name (ARN) of an IAM role that Amazon SageMaker can assume to perform tasks on y",
+            description="The Amazon Resource Name (ARN) of an IAM role that SageMaker can assume to perform tasks on your beh",
             required=True,
         ),
         stopping_condition=InputValidator(
@@ -202,11 +210,17 @@ class SageMakerTrainingJobSpec(
         profiler_rule_evaluation_statuses=OutputValidator(
             description="Evaluation status of Debugger rules for profiling on a training job.",
         ),
+        profiling_status=OutputValidator(
+            description="Profiling status of a training job.",
+        ),
         secondary_status=OutputValidator(
             description="Provides detailed information about the state of the training job. For detailed information on the s",
         ),
         training_job_status=OutputValidator(
-            description="The status of the training job.   Amazon SageMaker provides the following training job statuses:",
+            description="The status of the training job.   SageMaker provides the following training job statuses:   * InProg",
+        ),
+        warm_pool_status=OutputValidator(
+            description="The status of the warm pool associated with the training job.",
         ),
     )
 

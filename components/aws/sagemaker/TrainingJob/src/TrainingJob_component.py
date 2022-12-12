@@ -216,6 +216,11 @@ class SageMakerTrainingJobComponent(SageMakerComponent):
             if "profilerRuleEvaluationStatuses" in ack_statuses
             else None
         )
+        outputs.profiling_status = str(
+            ack_statuses["profilingStatus"]
+            if "profilingStatus" in ack_statuses
+            else None
+        )
         outputs.secondary_status = str(
             ack_statuses["secondaryStatus"]
             if "secondaryStatus" in ack_statuses
@@ -225,6 +230,9 @@ class SageMakerTrainingJobComponent(SageMakerComponent):
             ack_statuses["trainingJobStatus"]
             if "trainingJobStatus" in ack_statuses
             else None
+        )
+        outputs.warm_pool_status = str(
+            ack_statuses["warmPoolStatus"] if "warmPoolStatus" in ack_statuses else None
         )
         ############GENERATED SECTION ABOVE############
 
