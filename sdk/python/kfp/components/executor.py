@@ -260,10 +260,12 @@ class Executor():
         # This check is to ensure only one worker (in a mirrored, distributed training/compute strategy) attempts to write to the same executor output file at the same time using gcsfuse, which enforces immutability of files.
         write_file = True
 
-        cluster_spec_string = os.environ.get('CLUSTER_SPEC')
+        CLUSTER_SPEC_ENV_VAR_NAME = 'CLUSTER_SPEC'
+        CHEIF_NODE_LABEL = 'workerpool0'
+        cluster_spec_string = os.environ.get(CLUSTER_SPEC_ENV_VAR_NAME)
         if cluster_spec_string:
             cluster_spec = json.loads(cluster_spec_string)
-            chief_node_label = 'workerpool0'
+            chief_node_label = CHEIF_NODE_LABEL
             write_file = cluster_spec['task']['type'] == chief_node_label
 
         if write_file:
