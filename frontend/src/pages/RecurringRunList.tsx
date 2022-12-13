@@ -301,7 +301,6 @@ class RecurringRunList extends React.PureComponent<RecurringRunListProps, Recurr
         } catch (err) {
           displayRecurringRun.error = await errorToMessage(err);
         }
-        // console.log(displayRecurringRun);
         return displayRecurringRun;
       }),
     );
