@@ -18,6 +18,7 @@ import os
 import tempfile
 from typing import Callable, Dict, List, NamedTuple, Optional
 import unittest
+from unittest import mock
 
 from absl.testing import parameterized
 from kfp.components import executor
@@ -43,14 +44,17 @@ class ExecutorTest(unittest.TestCase):
         artifact_types._MINIO_LOCAL_MOUNT_PREFIX = cls._test_dir + '/minio/'
         artifact_types._S3_LOCAL_MOUNT_PREFIX = cls._test_dir + '/s3/'
 
-    def execute_and_load_output_metadata(self, func: Callable,
-                                         executor_input: str) -> dict:
+    def execute(self, func: Callable, executor_input: str) -> None:
         executor_input_dict = json.loads(executor_input %
                                          {'test_dir': self._test_dir})
 
         executor.Executor(
             executor_input=executor_input_dict,
             function_to_execute=func).execute()
+
+    def execute_and_load_output_metadata(self, func: Callable,
+                                         executor_input: str) -> dict:
+        self.execute(func, executor_input)
         with open(os.path.join(self._test_dir, 'output_metadata.json'),
                   'r') as f:
             return json.loads(f.read())
@@ -1001,6 +1005,78 @@ class ExecutorTest(unittest.TestCase):
                     }
                 }
             })
+
+    @mock.patch.dict(
+        os.environ,
+        {'CLUSTER_SPEC': json.dumps({'task': {
+            'type': 'workerpool0'
+        }})},
+        clear=True)
+    def test_distributed_training_strategy_write(self):
+        executor_input = """\
+        {
+          "inputs": {
+            "parameterValues": {
+              "input_parameter": "Hello, KFP"
+            }
+          },
+          "outputs": {
+            "parameters": {
+              "Output": {
+                "outputFile": "gs://some-bucket/output"
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(input_parameter: str):
+            self.assertEqual(input_parameter, 'Hello, KFP')
+
+        self.execute(
+            func=test_func,
+            executor_input=executor_input,
+        )
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(self._test_dir, 'output_metadata.json')))
+
+    @mock.patch.dict(
+        os.environ,
+        {'CLUSTER_SPEC': json.dumps({'task': {
+            'type': 'workerpool1'
+        }})},
+        clear=True)
+    def test_distributed_training_strategy_no_write(self):
+        executor_input = """\
+        {
+          "inputs": {
+            "parameterValues": {
+              "input_parameter": "Hello, KFP"
+            }
+          },
+          "outputs": {
+            "parameters": {
+              "Output": {
+                "outputFile": "gs://some-bucket/output"
+              }
+            },
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(input_parameter: str):
+            self.assertEqual(input_parameter, 'Hello, KFP')
+
+        self.execute(
+            func=test_func,
+            executor_input=executor_input,
+        )
+        self.assertFalse(
+            os.path.exists(
+                os.path.join(self._test_dir, 'output_metadata.json')))
 
 
 class VertexDataset:
