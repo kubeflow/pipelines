@@ -24,7 +24,7 @@ import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import EnhancedRunDetails, { RunDetailsProps } from 'src/pages/RunDetails';
 import { RunDetailsV2 } from 'src/pages/RunDetailsV2';
 
-// Retrieve the Job ID from run of recurring run
+// Retrieve the Job ID from run if it is a run of recurring run
 function getJobID(apiRun: ApiRunDetail | undefined): string | undefined {
   let jobID;
   if (apiRun && apiRun.run?.resource_references) {
@@ -49,10 +49,12 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
     {},
   );
 
+  // Get Job ID (if it is existed) for retrieve job detail (PipelineSpec IR).
   if (getRunSuccess && apiRun) {
     jobId = getJobID(apiRun);
   }
 
+  // Retrieves job detail.
   const { isSuccess: getJobSuccess, data: apiJob } = useQuery<ApiJob, Error>(
     ['job_detail', { id: jobId }],
     () => {
