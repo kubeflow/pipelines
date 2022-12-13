@@ -131,7 +131,7 @@ function NewRunV2(props: NewRunV2Props) {
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isParameterValid, setIsParameterValid] = useState(false);
-  const [isClone, setIsClone] = useState(false);
+  const [isClone] = useState(false);
   const [isRecurringRun, setIsRecurringRun] = useState(false);
   const [trigger, setTrigger] = useState<ApiTrigger>();
   const [maxConcurrentRuns, setMaxConcurrentRuns] = useState('');
