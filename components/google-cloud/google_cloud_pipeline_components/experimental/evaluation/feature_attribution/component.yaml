@@ -67,7 +67,7 @@ inputs:
 - {name: dataflow_workers_num, type: Integer, default: 1}
 - {name: dataflow_max_workers_num, type: Integer, default: 5}
 - {name: dataflow_subnetwork, type: String, default: ""}
-- {name: dataflow_use_public_ips, type: Boolean, default: "true"}
+- {name: dataflow_use_public_ips, type: Boolean, default: true}
 - {name: encryption_spec_key_name, type: String, default: ""}
 outputs:
 - {name: feature_attributions, type: Metrics}
