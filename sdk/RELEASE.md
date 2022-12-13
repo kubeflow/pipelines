@@ -10,6 +10,7 @@
 ## Deprecations
 
 ## Bug Fixes and Other Changes
+* Upgrade kubernetes library to v19 to get access to EphemeralVolume [#8526](https://github.com/kubeflow/pipelines/pull/8526)  [#8563](https://github.com/kubeflow/pipelines/pull/8563)
 
 ## Documentation Updates
 # 1.8.17
