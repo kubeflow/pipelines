@@ -32,7 +32,7 @@ function getJobID(apiRun: ApiRunDetail | undefined): string | undefined {
       if (value.key?.type === ApiResourceType.JOB && value.key.id) {
         jobID = value.key.id;
       }
-    })
+    });
   }
   return jobID;
 }
@@ -76,24 +76,20 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
   if (getJobSuccess && apiJob) {
     pipelineManifestFromJob = apiJob.pipeline_spec?.pipeline_manifest;
   }
-  
+
   if (getRunSuccess && apiRun) {
-    pipelineManifestFromRun = apiRun.run?.pipeline_spec?.pipeline_manifest
+    pipelineManifestFromRun = apiRun.run?.pipeline_spec?.pipeline_manifest;
   }
 
-  let pipelineManifest = pipelineManifestFromRun ? pipelineManifestFromRun : pipelineManifestFromJob
+  let pipelineManifest = pipelineManifestFromRun
+    ? pipelineManifestFromRun
+    : pipelineManifestFromJob;
 
   if (getRunSuccess && apiRun && pipelineManifest) {
     // TODO(zijianjoy): We need to switch to use pipeline_manifest for new API implementation.
     const isV2Pipeline = WorkflowUtils.isPipelineSpec(pipelineManifest);
     if (isV2Pipeline) {
-      return (
-        <RunDetailsV2
-          pipeline_job={pipelineManifest}
-          runDetail={apiRun}
-          {...props}
-        />
-      );
+      return <RunDetailsV2 pipeline_job={pipelineManifest} runDetail={apiRun} {...props} />;
     }
   }
 
