@@ -596,8 +596,7 @@ def _fill_in_component_input_default_value(
 
 
 def build_component_spec_for_group(
-    pipeline_channels: List[pipeline_channel.PipelineChannel],
-    is_root_group: bool,
+    pipeline_channels: List[pipeline_channel.PipelineChannel]
 ) -> pipeline_spec_pb2.ComponentSpec:
     """Builds ComponentSpec for a TasksGroup.
 
@@ -611,10 +610,7 @@ def build_component_spec_for_group(
     component_spec = pipeline_spec_pb2.ComponentSpec()
 
     for channel in pipeline_channels:
-
-        input_name = (
-            channel.name if is_root_group else
-            _additional_input_name_for_pipeline_channel(channel))
+        input_name = _additional_input_name_for_pipeline_channel(channel)
 
         if isinstance(channel, pipeline_channel.PipelineArtifactChannel):
             component_spec.input_definitions.artifacts[
@@ -627,14 +623,6 @@ def build_component_spec_for_group(
             component_spec.input_definitions.parameters[
                 input_name].parameter_type = type_utils.get_parameter_type(
                     channel.channel_type)
-
-            if is_root_group:
-                _fill_in_component_input_default_value(
-                    component_spec=component_spec,
-                    input_name=input_name,
-                    default_value=channel.value,
-                )
-
     return component_spec
 
 
@@ -1203,9 +1191,7 @@ def build_spec_by_group(
             loop_subgroup_channels.append(subgroup.loop_argument)
 
             subgroup_component_spec = build_component_spec_for_group(
-                pipeline_channels=loop_subgroup_channels,
-                is_root_group=False,
-            )
+                pipeline_channels=loop_subgroup_channels)
 
             subgroup_task_spec = build_task_spec_for_group(
                 group=subgroup,
@@ -1227,9 +1213,7 @@ def build_spec_by_group(
                     condition_subgroup_channels.append(operand)
 
             subgroup_component_spec = build_component_spec_for_group(
-                pipeline_channels=condition_subgroup_channels,
-                is_root_group=False,
-            )
+                pipeline_channels=condition_subgroup_channels)
 
             subgroup_task_spec = build_task_spec_for_group(
                 group=subgroup,
@@ -1241,9 +1225,7 @@ def build_spec_by_group(
         elif isinstance(subgroup, tasks_group.ExitHandler):
 
             subgroup_component_spec = build_component_spec_for_group(
-                pipeline_channels=subgroup_channels,
-                is_root_group=False,
-            )
+                pipeline_channels=subgroup_channels)
 
             subgroup_task_spec = build_task_spec_for_group(
                 group=subgroup,
