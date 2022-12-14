@@ -358,12 +358,18 @@ def build_component_spec_for_task(
                     input_name=input_name,
                     default_value=input_spec.default,
                 )
+            if input_spec.optional:
+                component_spec.input_definitions.parameters[
+                    input_name].is_optional = True
 
         else:
             component_spec.input_definitions.artifacts[
                 input_name].artifact_type.CopyFrom(
                     type_utils.bundled_artifact_to_artifact_proto(
                         input_spec.type))
+            if input_spec.optional:
+                component_spec.input_definitions.artifacts[
+                    input_name].is_optional = True
 
     for output_name, output_spec in (task.component_spec.outputs or {}).items():
         if type_utils.is_parameter_type(output_spec.type):
@@ -404,12 +410,18 @@ def _build_component_spec_from_component_spec_structure(
                     input_name=input_name,
                     default_value=input_spec.default,
                 )
+            if input_spec.optional:
+                component_spec.input_definitions.parameters[
+                    input_name].is_optional = True
 
         else:
             component_spec.input_definitions.artifacts[
                 input_name].artifact_type.CopyFrom(
                     type_utils.bundled_artifact_to_artifact_proto(
                         input_spec.type))
+            if input_spec.optional:
+                component_spec.input_definitions.artifacts[
+                    input_name].is_optional = True
 
     for output_name, output_spec in (component_spec_struct.outputs or
                                      {}).items():
@@ -621,12 +633,18 @@ def build_component_spec_for_group(
                 input_name].artifact_type.CopyFrom(
                     type_utils.bundled_artifact_to_artifact_proto(
                         channel.channel_type))
+            if channel.optional:
+                component_spec.input_definitions.artifacts[
+                    input_name].is_optional = True
         else:
             # channel is one of PipelineParameterChannel, LoopArgument, or
             # LoopArgumentVariable.
             component_spec.input_definitions.parameters[
                 input_name].parameter_type = type_utils.get_parameter_type(
                     channel.channel_type)
+            if channel.optional:
+                component_spec.input_definitions.parameters[
+                    input_name].is_optional = True
 
             if is_root_group:
                 _fill_in_component_input_default_value(

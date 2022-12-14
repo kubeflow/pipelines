@@ -30,6 +30,7 @@ from kfp import dsl
 from kfp.cli import cli
 from kfp.compiler import compiler
 from kfp.components.types import type_utils
+from kfp.dsl import Artifact
 from kfp.dsl import ContainerSpec
 from kfp.dsl import Input
 from kfp.dsl import Model
@@ -2318,6 +2319,88 @@ class TestYamlComments(unittest.TestCase):
 
         # test reloaded comments
         self.assertIn(predicted_comment, reloaded_yaml_content)
+
+
+class TestOptionalArtifactsInSignature(unittest.TestCase):
+
+    def test_python_comp(self):
+
+        @dsl.component
+        def comp(x: Optional[Input[Artifact]] = None):
+            print(x)
+
+        artifact_spec_from_root = comp.pipeline_spec.root.input_definitions.artifacts[
+            'x']
+        self.assertTrue(artifact_spec_from_root.is_optional)
+
+        artifact_spec_from_comp = comp.pipeline_spec.components[
+            'comp-comp'].input_definitions.artifacts['x']
+        self.assertTrue(artifact_spec_from_comp.is_optional)
+
+    def test_python_comp_with_model(self):
+
+        @dsl.component
+        def comp(x: Optional[Input[Model]] = None):
+            print(x)
+
+        artifact_spec_from_root = comp.pipeline_spec.root.input_definitions.artifacts[
+            'x']
+        self.assertTrue(artifact_spec_from_root.is_optional)
+
+        artifact_spec_from_comp = comp.pipeline_spec.components[
+            'comp-comp'].input_definitions.artifacts['x']
+        self.assertTrue(artifact_spec_from_comp.is_optional)
+
+    def test_python_comp_without_optional_type_modifier(self):
+
+        @dsl.component
+        def comp(x: Input[Model] = None):
+            print(x)
+
+        artifact_spec_from_root = comp.pipeline_spec.root.input_definitions.artifacts[
+            'x']
+        self.assertTrue(artifact_spec_from_root.is_optional)
+
+        artifact_spec_from_comp = comp.pipeline_spec.components[
+            'comp-comp'].input_definitions.artifacts['x']
+        self.assertTrue(artifact_spec_from_comp.is_optional)
+
+    def test_container_comp(self):
+
+        @dsl.container_component
+        def comp(x: Optional[Input[Artifact]] = None):
+            return dsl.ContainerSpec(image='alpine', command=[f'echo {x.uri}'])
+
+        artifact_spec_from_root = comp.pipeline_spec.root.input_definitions.artifacts[
+            'x']
+        self.assertTrue(artifact_spec_from_root.is_optional)
+
+        artifact_spec_from_comp = comp.pipeline_spec.components[
+            'comp-comp'].input_definitions.artifacts['x']
+        self.assertTrue(artifact_spec_from_comp.is_optional)
+
+    def test_pipeline(self):
+
+        # @dsl.component
+        # def comp(x: Optional[Input[Model]] = None):
+        #     print(x)
+
+        @dsl.component
+        def comp():
+            print('hello')
+
+        @dsl.pipeline
+        def my_pipeline(x: Optional[Input[Model]] = None):
+            comp()
+
+        artifact_spec_from_root = my_pipeline.pipeline_spec.root.input_definitions.artifacts[
+            'x']
+        print(artifact_spec_from_root)
+        self.assertTrue(artifact_spec_from_root.is_optional)
+
+        # artifact_spec_from_comp = my_pipeline.pipeline_spec.components[
+        #     'comp-comp'].input_definitions.artifacts['x']
+        # self.assertTrue(artifact_spec_from_comp.is_optional)
 
 
 if __name__ == '__main__':
