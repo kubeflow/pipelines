@@ -1,3 +1,7 @@
+# PIPELINE DEFINITION
+# Name: simple-two-step-pipeline
+# Inputs:
+#    text: str [Default: 'Hello KFP!']
 components:
   comp-read-from-gcs:
     executorLabel: exec-read-from-gcs
@@ -84,4 +88,4 @@ root:
         defaultValue: Hello KFP!
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.5
+sdkVersion: kfp-2.0.0-beta.8

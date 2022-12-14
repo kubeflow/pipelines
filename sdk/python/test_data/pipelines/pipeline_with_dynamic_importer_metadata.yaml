@@ -1,3 +1,10 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-importer
+# Inputs:
+#    int_input: int [Default: 1.0]
+#    name: str [Default: 'default-name']
+#    pipeline_input_artifact_uri: str [Default: 'gs://ml-pipeline-playground/shakespeare1.txt']
+#    pipeline_input_image_uri: str [Default: 'us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest']
 components:
   comp-importer:
     executorLabel: exec-importer
@@ -88,7 +95,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.4'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -171,4 +178,4 @@ root:
         defaultValue: us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.4
+sdkVersion: kfp-2.0.0-beta.8
