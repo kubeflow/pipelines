@@ -183,9 +183,18 @@ def extract_component_interface(
                 )
 
             if parameter.default is not inspect.Parameter.empty:
-                raise ValueError(
-                    'Default values for Input/Output artifacts are not supported.'
-                )
+                if passing_style in [
+                        type_annotations.OutputAnnotation,
+                        type_annotations.OutputPath,
+                ]:
+                    raise ValueError(
+                        'Default values for Output artifacts are not supported.'
+                    )
+                elif parameter.default is not None:
+                    raise ValueError(
+                        f'Optional Input artifacts may only have default value None. Got: {parameter.default}.'
+                    )
+
         elif isinstance(
                 parameter_type,
             (type_annotations.InputPath, type_annotations.OutputPath)):
@@ -230,6 +239,8 @@ def extract_component_interface(
                     type=type_utils.create_bundled_artifact_type(
                         type_struct, schema_version),
                     is_artifact_list=is_artifact_list,
+                    default=None,
+                    optional=parameter.default is not inspect.Parameter.empty,
                 )
             else:
                 if parameter.default is not inspect.Parameter.empty:
