@@ -897,8 +897,7 @@ class ComponentSpec:
         for arg_name, input_spec in pipeline_inputs.items():
             args_dict[arg_name] = pipeline_channel.create_pipeline_channel(
                 name=arg_name,
-                channel_type=input_spec.type,
-                value=input_spec.default,
+                spec=input_spec,
             )
 
         task = pipeline_task.PipelineTask(self, args_dict)
