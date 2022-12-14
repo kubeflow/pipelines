@@ -89,7 +89,7 @@ type Argo struct {
 
 func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	workflow := util.NewWorkflow(t.wf.Workflow.DeepCopy())
-	parameters, err := modelToParametersMap(modelJob.Parameters)
+	parameters, err := modelToParametersMap(modelJob.PipelineSpec.Parameters)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert parameters.")
 	}

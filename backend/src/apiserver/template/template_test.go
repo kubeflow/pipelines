@@ -367,7 +367,7 @@ func TestScheduledWorkflow(t *testing.T) {
 				PeriodicSchedule: &scheduledworkflow.PeriodicSchedule{},
 			},
 			Workflow: &scheduledworkflow.WorkflowResource{
-				Parameters: []scheduledworkflow.Parameter{{Name: "param2", Value: "world"}},
+				Parameters: []scheduledworkflow.Parameter{{Name: "param2", Value: "\"world\""}},
 				Spec:       ExpectedWorkflowSpecV2,
 			},
 			NoCatchup: &[]bool{true}[0], // returns a pointer to true

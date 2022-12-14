@@ -137,13 +137,17 @@ func toParametersMap(apiParams []*apiv1beta1.Parameter) map[string]string {
 }
 
 func modelToParametersMap(modelParameters string) (map[string]string, error) {
+	var paramsMapList []*map[string]string
 	desiredParamsMap := make(map[string]string)
 	if modelParameters == "" {
 		return desiredParamsMap, nil
 	}
-	err := json.Unmarshal([]byte(modelParameters), &desiredParamsMap)
+	err := json.Unmarshal([]byte(modelParameters), &paramsMapList)
 	if err != nil {
 		return nil, err
+	}
+	for _, param := range paramsMapList {
+		desiredParamsMap[(*param)["name"]] = (*param)["value"]
 	}
 	return desiredParamsMap, nil
 }
@@ -394,7 +398,7 @@ func modelToCRDTrigger(modelJob model.Job) scheduledworkflow.Trigger {
 
 func modelToCRDParameters(modelJob *model.Job) ([]scheduledworkflow.Parameter, error) {
 	var swParams []scheduledworkflow.Parameter
-	var parameters map[string]string
+	var parameters map[string]*structpb.Value
 	if modelJob.RuntimeConfig.Parameters == "" {
 		return swParams, nil
 	}
@@ -403,9 +407,13 @@ func modelToCRDParameters(modelJob *model.Job) ([]scheduledworkflow.Parameter, e
 		return nil, err
 	}
 	for name, value := range parameters {
+		valueBytes, err := value.MarshalJSON()
+		if err != nil {
+			return nil, err
+		}
 		swParam := scheduledworkflow.Parameter{
 			Name:  name,
-			Value: value,
+			Value: string(valueBytes),
 		}
 		swParams = append(swParams, swParam)
 	}
