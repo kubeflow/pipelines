@@ -13,11 +13,15 @@
 # limitations under the License.
 """GCP launcher for hyperparameter tuning jobs based on the AI Platform SDK."""
 
+import json
+
 from google.api_core import retry
 from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 
 _HYPERPARAMETER_TUNING_JOB_RETRY_DEADLINE_SECONDS = 10.0 * 60.0
+_LABELS_PAYLOAD_KEY = 'labels'
 
 
 def create_hyperparameter_tuning_job_with_client(job_client, parent, job_spec):
@@ -67,13 +71,15 @@ def create_hyperparameter_tuning_job(
   """
   remote_runner = job_remote_runner.JobRemoteRunner(type, project, location,
                                                     gcp_resources)
-
+  job_spec = json.loads(payload)
+  job_spec[_LABELS_PAYLOAD_KEY] = gcp_labels_util.attach_system_labels(
+      job_spec[_LABELS_PAYLOAD_KEY] if _LABELS_PAYLOAD_KEY in job_spec else {})
   try:
     # Create HP Tuning job if it does not exist
     job_name = remote_runner.check_if_job_exists()
     if job_name is None:
       job_name = remote_runner.create_job(
-          create_hyperparameter_tuning_job_with_client, payload)
+          create_hyperparameter_tuning_job_with_client, json.dumps(job_spec))
 
     # Poll HP Tuning job status until "JobState.JOB_STATE_SUCCEEDED"
     remote_runner.poll_job(get_hyperparameter_tuning_job_with_client, job_name)
