@@ -111,11 +111,29 @@ class UtilsTests(unittest.TestCase):
         results = utils.is_mb_sdk_resource_noun_type(mb_sdk_type)
         self.assertTrue(results)
 
-    def test_get_serializer_with_serializable_type(self):
+    def test_get_proto_plus_serializer_with_serializable_type(self):
+        annotation = aiplatform_v1beta1.types.explanation.ExplanationParameters
+
+        results = utils.get_proto_plus_serializer(annotation)
+        self.assertEqual(results, annotation.to_json)
+
+    def test_get_proto_plus_serializer_with_not_proto_plus_type(self):
+        annotation = Dict
+
+        results = utils.get_proto_plus_serializer(annotation)
+        self.assertEqual(results, None)
+
+    def test_get_serializer_with_proto_plus_type(self):
         annotation = aiplatform_v1beta1.types.explanation.ExplanationParameters
 
         results = utils.get_serializer(annotation)
         self.assertEqual(results, annotation.to_json)
+
+    def test_get_serializer_with_serializable_type(self):
+        annotation = Dict
+
+        results = utils.get_serializer(annotation)
+        self.assertEqual(results, json.dumps)
 
     def test_get_serializer_with_not_serializable_type(self):
         annotation = Tuple
@@ -123,11 +141,29 @@ class UtilsTests(unittest.TestCase):
         results = utils.get_serializer(annotation)
         self.assertEqual(results, None)
 
-    def test_get_deserializer_with_serializable_type(self):
+    def test_get_proto_plus_deserializer_with_serializable_type(self):
+        annotation = aiplatform_v1beta1.types.explanation.ExplanationParameters
+
+        results = utils.get_proto_plus_deserializer(annotation)
+        self.assertEqual(results, annotation.from_json)
+
+    def test_get_proto_plus_deserializer_with_not_proto_plus_type(self):
+        annotation = Dict
+
+        results = utils.get_proto_plus_deserializer(annotation)
+        self.assertEqual(results, None)
+
+    def test_get_deserializer_with_proto_plus_type(self):
         annotation = aiplatform_v1beta1.types.explanation.ExplanationParameters
 
         results = utils.get_deserializer(annotation)
         self.assertEqual(results, annotation.from_json)
+
+    def test_get_deserializer_with_serializable_type(self):
+        annotation = Dict
+
+        results = utils.get_deserializer(annotation)
+        self.assertEqual(results, json.dumps)
 
     def test_get_deserializer_with_not_serializable_type(self):
         annotation = Tuple
