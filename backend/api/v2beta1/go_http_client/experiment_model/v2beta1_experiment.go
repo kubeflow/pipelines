@@ -34,7 +34,7 @@ type V2beta1Experiment struct {
 	Namespace string `json:"namespace,omitempty"`
 
 	// Output. Specifies whether this experiment is in archived or available state.
-	StorageState ExperimentStorageState `json:"storage_state,omitempty"`
+	StorageState V2beta1ExperimentStorageState `json:"storage_state,omitempty"`
 }
 
 // Validate validates this v2beta1 experiment

@@ -168,6 +168,20 @@ def get_proto_plus_class(annotation: Any) -> Optional[Callable]:
     return annotation
 
 
+def get_proto_plus_serializer(annotation: Any) -> Optional[Callable]:
+  """Get a serializer for objects to pass them as strings.
+
+    Args:
+        annotation: Parameter annotation
+
+    Returns:
+        serializer for that annotation type if it's a Proto Plus class
+    """
+  proto_plus_class = get_proto_plus_class(annotation)
+  if proto_plus_class:
+    return proto_plus_class.to_json
+
+
 def get_serializer(annotation: Any) -> Optional[Callable]:
   """Get a serializer for objects to pass them as strings.
 
@@ -177,12 +191,28 @@ def get_serializer(annotation: Any) -> Optional[Callable]:
     Returns:
         serializer for that annotation type
     """
-  proto_plus_class = get_proto_plus_class(annotation)
-  if proto_plus_class:
-    return proto_plus_class.to_json
+  proto_plus_serializer = get_proto_plus_serializer(annotation)
+  if proto_plus_serializer:
+    return proto_plus_serializer
 
   if is_serializable_to_json(annotation):
     return json.dumps
+
+
+def get_proto_plus_deserializer(annotation: Any) -> Optional[Callable[..., str]]:
+  """Get deserializer for objects to pass them as strings.
+
+    Remote runner will deserialize.
+
+    Args:
+        annotation: parameter annotation
+
+    Returns:
+        deserializer for annotation type if it's a Proto Plus class
+    """
+  proto_plus_class = get_proto_plus_class(annotation)
+  if proto_plus_class:
+    return proto_plus_class.from_json
 
 
 def get_deserializer(annotation: Any) -> Optional[Callable[..., str]]:
@@ -195,13 +225,14 @@ def get_deserializer(annotation: Any) -> Optional[Callable[..., str]]:
 
     Returns:
         deserializer for annotation type
-    """
-  proto_plus_class = get_proto_plus_class(annotation)
-  if proto_plus_class:
-    return proto_plus_class.from_json
+  """
+  proto_plus_deserializer = get_proto_plus_deserializer(
+      annotation)
+  if proto_plus_deserializer:
+    return proto_plus_deserializer
 
   if is_serializable_to_json(annotation):
-    return json.loads
+    return json.dumps
 
 
 def map_resource_to_metadata_type(
@@ -566,7 +597,7 @@ def convert_method_to_component(cls: aiplatform.base.VertexAiResourceNoun,
 
       param_type = signature.parameters[key].annotation
       param_type = resolve_annotation(param_type)
-      serializer = get_serializer(param_type)
+      serializer = get_proto_plus_serializer(param_type)
       if serializer:
         param_type = str
         if not isinstance(value, kfp.dsl._pipeline_param.PipelineParam):

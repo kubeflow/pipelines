@@ -44,10 +44,13 @@ class InputSpec:
         type: The type of the input.
         default (optional): the default value for the input.
         optional: Wether the input is optional. An input is optional when it has an explicit default value.
+        is_artifact_list: True if `type` represents a list of the artifact type. Only applies when `type` is an artifact.
     """
     type: Union[str, dict]
     default: Optional[Any] = None
     optional: bool = False
+    # This special flag for lists of artifacts allows type to be used the same way for list of artifacts and single artifacts. This is aligned with how IR represents lists of artifacts (same as for single artifacts), as well as simplifies downstream type handling/checking operations in the SDK since we don't need to parse the string `type` to determine if single artifact or list.
+    is_artifact_list: bool = False
 
     def __post_init__(self) -> None:
         self._validate_type()
@@ -132,11 +135,16 @@ class OutputSpec:
 
     Attributes:
         type: The type of the output.
+        is_artifact_list: True if `type` represents a list of the artifact type. Only applies when `type` is an artifact.
     """
     type: Union[str, dict]
+    # This special flag for lists of artifacts allows type to be used the same way for list of artifacts and single artifacts. This is aligned with how IR represents lists of artifacts (same as for single artifacts), as well as simplifies downstream type handling/checking operations in the SDK since we don't need to parse the string `type` to determine if single artifact or list.
+    is_artifact_list: bool = False
 
     def __post_init__(self) -> None:
         self._validate_type()
+        # TODO: remove this method when we support output lists of artifacts
+        self._prevent_using_output_lists_of_artifacts()
 
     @classmethod
     def from_ir_component_outputs_dict(
@@ -195,6 +203,11 @@ class OutputSpec:
         # TODO: add transformation logic so that we don't have to transform outputs at every place they are used, including v1 back compat support
         if not spec_type_is_parameter(self.type):
             type_utils.validate_bundled_artifact_type(self.type)
+
+    def _prevent_using_output_lists_of_artifacts(self):
+        if self.is_artifact_list:
+            raise NotImplementedError(
+                'Output lists of artifacts are not yet supported.')
 
 
 def spec_type_is_parameter(type_: str) -> bool:
@@ -816,6 +829,26 @@ class ComponentSpec:
             Component spec in the form of V2 ComponentSpec.
         """
 
+        def extract_description(component_yaml: str) -> Union[str, None]:
+            heading = '# Description: '
+            multi_line_description_prefix = '#             '
+            index_of_heading = 2
+            if heading in component_yaml:
+                description = component_yaml.splitlines()[index_of_heading]
+
+                # Multi line
+                comments = component_yaml.splitlines()
+                index = index_of_heading + 1
+                while comments[index][:len(multi_line_description_prefix
+                                          )] == multi_line_description_prefix:
+                    description += '\n' + comments[index][
+                        len(multi_line_description_prefix) + 1:]
+                    index += 1
+
+                return description[len(heading):]
+            else:
+                return None
+
         json_component = yaml.safe_load(component_yaml)
         is_v1 = 'implementation' in set(json_component.keys())
         if is_v1:
@@ -823,7 +856,12 @@ class ComponentSpec:
                 component_yaml)
             return cls.from_v1_component_spec(v1_component)
         else:
-            return ComponentSpec.from_pipeline_spec_dict(json_component)
+            component_spec = ComponentSpec.from_pipeline_spec_dict(
+                json_component)
+            if not component_spec.description:
+                component_spec.description = extract_description(
+                    component_yaml=component_yaml)
+            return component_spec
 
     def save_to_component_yaml(self, output_file: str) -> None:
         """Saves ComponentSpec into IR YAML file.
@@ -834,7 +872,7 @@ class ComponentSpec:
         from kfp.compiler import pipeline_spec_builder as builder
 
         pipeline_spec = self.to_pipeline_spec()
-        builder.write_pipeline_spec_to_file(pipeline_spec, output_file)
+        builder.write_pipeline_spec_to_file(pipeline_spec, None, output_file)
 
     def to_pipeline_spec(self) -> pipeline_spec_pb2.PipelineSpec:
         """Creates a pipeline instance and constructs the pipeline spec for a

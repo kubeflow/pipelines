@@ -18,6 +18,7 @@ import os
 import re
 import subprocess
 import tempfile
+import textwrap
 from typing import Any, Dict, List, NamedTuple, Optional
 import unittest
 
@@ -29,6 +30,11 @@ from kfp import dsl
 from kfp.cli import cli
 from kfp.compiler import compiler
 from kfp.components.types import type_utils
+from kfp.dsl import ContainerSpec
+from kfp.dsl import Input
+from kfp.dsl import Model
+from kfp.dsl import Output
+from kfp.dsl import OutputPath
 from kfp.dsl import PipelineTaskFinalStatus
 from kfp.pipeline_spec import pipeline_spec_pb2
 import yaml
@@ -437,7 +443,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 RuntimeError,
-                'Task dummy-op cannot dependent on any task inside the group:'):
+                r'Tasks cannot depend on an upstream task inside'):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -479,7 +485,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 RuntimeError,
-                'Task dummy-op cannot dependent on any task inside the group:'):
+                r'Tasks cannot depend on an upstream task inside'):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -521,7 +527,7 @@ class TestCompilePipeline(parameterized.TestCase):
 
         with self.assertRaisesRegex(
                 RuntimeError,
-                'Task dummy-op cannot dependent on any task inside the group:'):
+                r'Tasks cannot depend on an upstream task inside'):
 
             @dsl.pipeline(name='test-pipeline')
             def my_pipeline(val: bool):
@@ -1488,6 +1494,830 @@ class TestBoolInputParameterWithDefaultSerializesCorrectly(unittest.TestCase):
         self.assertEqual(
             pipeline_spec.root.input_definitions.parameters['boolean']
             .default_value.bool_value, True)
+
+
+# helper component defintions for the ValidLegalTopologies tests
+@dsl.component
+def print_op(message: str):
+    print(message)
+
+
+@dsl.component
+def return_1() -> int:
+    return 1
+
+
+@dsl.component
+def args_generator_op() -> List[Dict[str, str]]:
+    return [{'A_a': '1', 'B_b': '2'}, {'A_a': '10', 'B_b': '20'}]
+
+
+class TestValidLegalTopologies(unittest.TestCase):
+
+    def test_inside_of_root_group_permitted(self):
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+
+            one = print_op(message='1')
+            two = print_op(message='2')
+            three = print_op(message=str(return_1_task.output))
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_upstream_inside_deeper_condition_blocked(self):
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r'Tasks cannot depend on an upstream task inside'):
+
+            @dsl.pipeline()
+            def my_pipeline():
+                return_1_task = return_1()
+
+                one = print_op(message='1')
+                with dsl.Condition(return_1_task.output == 1):
+                    two = print_op(message='2')
+
+                three = print_op(message='3').after(two)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_upstream_in_the_same_condition_permitted(self):
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+
+            with dsl.Condition(return_1_task.output == 1):
+                one = return_1()
+                two = print_op(message='2')
+                three = print_op(message=str(one.output))
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_inside_deeper_condition_permitted(self):
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+
+            one = print_op(message='1')
+            with dsl.Condition(return_1_task.output == 1):
+                two = print_op(message='2')
+                three = print_op(message='3').after(one)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_and_upstream_in_different_condition_on_same_level_blocked(
+            self):
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r'Tasks cannot depend on an upstream task inside'):
+
+            @dsl.pipeline()
+            def my_pipeline():
+                return_1_task = return_1()
+
+                one = print_op(message='1')
+                with dsl.Condition(return_1_task.output == 1):
+                    two = print_op(message='2')
+
+                with dsl.Condition(return_1_task.output == 1):
+                    three = print_op(message='3').after(two)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_inside_deeper_nested_condition_permitted(self):
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+            return_1_task2 = return_1()
+
+            with dsl.Condition(return_1_task.output == 1):
+                one = return_1()
+                with dsl.Condition(return_1_task2.output == 1):
+                    two = print_op(message='2')
+                    three = print_op(message=str(one.output))
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_upstream_inside_deeper_nested_condition_blocked(self):
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r'Tasks cannot depend on an upstream task inside'):
+
+            @dsl.pipeline()
+            def my_pipeline():
+                return_1_task = return_1()
+
+                with dsl.Condition(return_1_task.output == 1):
+                    one = print_op(message='1')
+                    with dsl.Condition(return_1_task.output == 1):
+                        two = print_op(message='2')
+                    three = print_op(message='3').after(two)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_upstream_in_same_for_loop_with_downstream_permitted(self):
+
+        @dsl.pipeline()
+        def my_pipeline():
+            args_generator = args_generator_op()
+
+            with dsl.ParallelFor(args_generator.output):
+                one = print_op(message='1')
+                two = print_op(message='3').after(one)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_not_in_same_for_loop_with_upstream_blocked(self):
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r'Tasks cannot depend on an upstream task inside'):
+
+            @dsl.pipeline()
+            def my_pipeline():
+                args_generator = args_generator_op()
+
+                with dsl.ParallelFor(args_generator.output):
+                    one = print_op(message='1')
+                two = print_op(message='3').after(one)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_not_in_same_for_loop_with_upstream_seperate_blocked(
+            self):
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r'Tasks cannot depend on an upstream task inside'):
+
+            @dsl.pipeline()
+            def my_pipeline():
+                args_generator = args_generator_op()
+
+                with dsl.ParallelFor(args_generator.output):
+                    one = print_op(message='1')
+
+                with dsl.ParallelFor(args_generator.output):
+                    two = print_op(message='3').after(one)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_not_in_same_for_loop_with_upstream_nested_blocked(self):
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r'Downstream tasks in a nested ParallelFor group cannot depend on an upstream task in a shallower ParallelFor group.'
+        ):
+
+            @dsl.pipeline()
+            def my_pipeline():
+                args_generator = args_generator_op()
+
+                with dsl.ParallelFor(args_generator.output):
+                    one = print_op(message='1')
+
+                    with dsl.ParallelFor(args_generator.output):
+                        two = print_op(message='3').after(one)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_in_condition_nested_in_a_for_loop(self):
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+
+            with dsl.ParallelFor([1, 2, 3]):
+                one = print_op(message='1')
+                with dsl.Condition(return_1_task.output == 1):
+                    two = print_op(message='2').after(one)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_in_a_for_loop_nested_in_a_condition(self):
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+
+            with dsl.Condition(return_1_task.output == 1):
+                one = print_op(message='1')
+                with dsl.ParallelFor([1, 2, 3]):
+                    two = print_op(message='2').after(one)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_downstream_in_a_nested_for_loop_not_related_to_upstream(self):
+
+        @dsl.pipeline()
+        def my_pipeline():
+            return_1_task = return_1()
+
+            with dsl.ParallelFor([1, 2, 3]):
+                one = print_op(message='1')
+                with dsl.ParallelFor([1, 2, 3]):
+                    two = print_op(message='2').after(return_1_task)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+
+class TestCannotUseAfterCrossDAG(unittest.TestCase):
+
+    def test_inner_task_prevented(self):
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
+
+            @dsl.component
+            def print_op(message: str):
+                print(message)
+
+            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+            def my_pipeline():
+                first_exit_task = print_op(message='First exit task.')
+
+                with dsl.ExitHandler(first_exit_task):
+                    first_print_op = print_op(
+                        message='Inside first exit handler.')
+
+                second_exit_task = print_op(message='Second exit task.')
+                with dsl.ExitHandler(second_exit_task):
+                    print_op(message='Inside second exit handler.').after(
+                        first_print_op)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_exit_handler_task_prevented(self):
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
+
+            @dsl.component
+            def print_op(message: str):
+                print(message)
+
+            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+            def my_pipeline():
+                first_exit_task = print_op(message='First exit task.')
+
+                with dsl.ExitHandler(first_exit_task):
+                    first_print_op = print_op(
+                        message='Inside first exit handler.')
+
+                second_exit_task = print_op(message='Second exit task.')
+                with dsl.ExitHandler(second_exit_task):
+                    x = print_op(message='Inside second exit handler.')
+                    x.after(first_print_op)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_within_same_exit_handler_permitted(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+        def my_pipeline():
+            first_exit_task = print_op(message='First exit task.')
+
+            with dsl.ExitHandler(first_exit_task):
+                first_print_op = print_op(
+                    message='First task inside first exit handler.')
+                second_print_op = print_op(
+                    message='Second task inside first exit handler.').after(
+                        first_print_op)
+
+            second_exit_task = print_op(message='Second exit task.')
+            with dsl.ExitHandler(second_exit_task):
+                print_op(message='Inside second exit handler.')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_outside_of_condition_blocked(self):
+        with self.assertRaisesRegex(RuntimeError, r'Task'):
+
+            @dsl.component
+            def print_op(message: str):
+                print(message)
+
+            @dsl.component
+            def return_1() -> int:
+                return 1
+
+            @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+            def my_pipeline():
+                return_1_task = return_1()
+
+                with dsl.Condition(return_1_task.output == 1):
+                    one = print_op(message='1')
+                    two = print_op(message='2')
+                three = print_op(message='3').after(one)
+
+            with tempfile.TemporaryDirectory() as tempdir:
+                package_path = os.path.join(tempdir, 'pipeline.yaml')
+                compiler.Compiler().compile(
+                    pipeline_func=my_pipeline, package_path=package_path)
+
+    def test_inside_of_condition_permitted(self):
+
+        @dsl.component
+        def print_op(message: str):
+            print(message)
+
+        @dsl.component
+        def return_1() -> int:
+            return 1
+
+        @dsl.pipeline(name='pipeline-with-multiple-exit-handlers')
+        def my_pipeline():
+            return_1_task = return_1()
+
+            with dsl.Condition(return_1_task.output == '1'):
+                one = print_op(message='1')
+                two = print_op(message='2').after(one)
+            three = print_op(message='3')
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            package_path = os.path.join(tempdir, 'pipeline.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=package_path)
+
+
+class TestYamlComments(unittest.TestCase):
+
+    def test_comments_include_inputs_and_outputs_and_pipeline_name(self):
+
+        @dsl.component
+        def identity(string: str, model: bool) -> str:
+            return string
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: bool = True,
+                        sample_input2: str = 'string') -> str:
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        inputs_string = textwrap.dedent("""\
+                # Inputs:
+                #    sample_input1: bool [Default: True]
+                #    sample_input2: str [Default: 'string']
+                """)
+
+        outputs_string = textwrap.dedent("""\
+                # Outputs:
+                #    Output: str
+                """)
+
+        name_string = '# Name: my-pipeline'
+
+        self.assertIn(name_string, yaml_content)
+
+        self.assertIn(inputs_string, yaml_content)
+
+        self.assertIn(outputs_string, yaml_content)
+
+    def test_comments_include_definition(self):
+
+        @dsl.component
+        def identity(string: str, model: bool) -> str:
+            return string
+
+        @dsl.pipeline()
+        def pipeline_with_no_definition(sample_input1: bool = True,
+                                        sample_input2: str = 'string') -> str:
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_with_no_definition,
+                package_path=pipeline_spec_path)
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+            description_string = '# Description:'
+
+        self.assertNotIn(description_string, yaml_content)
+
+        @dsl.pipeline()
+        def pipeline_with_definition(sample_input1: bool = True,
+                                     sample_input2: str = 'string') -> str:
+            """This is a definition of this pipeline."""
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_with_definition,
+                package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+            description_string = '# Description:'
+
+        self.assertIn(description_string, yaml_content)
+
+    def test_comments_on_pipeline_with_no_inputs_or_outputs(self):
+
+        @dsl.component
+        def identity(string: str, model: bool) -> str:
+            return string
+
+        @dsl.pipeline()
+        def pipeline_with_no_inputs() -> str:
+            op1 = identity(string='string', model=True)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_with_no_inputs,
+                package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        inputs_string = '# Inputs:'
+
+        self.assertNotIn(inputs_string, yaml_content)
+
+        @dsl.pipeline()
+        def pipeline_with_no_outputs(sample_input1: bool = True,
+                                     sample_input2: str = 'string'):
+            identity(string=sample_input2, model=sample_input1)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_with_no_outputs,
+                package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        outputs_string = '# Outputs:'
+
+        self.assertNotIn(outputs_string, yaml_content)
+
+    def test_comments_follow_pattern(self):
+
+        @dsl.component
+        def identity(string: str, model: bool) -> str:
+            return string
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: bool = True,
+                        sample_input2: str = 'string') -> str:
+            """This is a definition of this pipeline."""
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        pattern_sample = textwrap.dedent("""\
+                # PIPELINE DEFINITION
+                # Name: my-pipeline
+                # Description: This is a definition of this pipeline.
+                # Inputs:
+                #    sample_input1: bool [Default: True]
+                #    sample_input2: str [Default: 'string']
+                # Outputs:
+                #    Output: str
+                """)
+
+        self.assertIn(pattern_sample, yaml_content)
+
+    def test_verbose_comment_characteristics(self):
+
+        @dsl.component
+        def output_model(metrics: Output[Model]):
+            """Dummy component that outputs metrics with a random accuracy."""
+            import random
+            result = random.randint(0, 100)
+            metrics.log_metric('accuracy', result)
+
+        @dsl.pipeline(name='Test pipeline')
+        def my_pipeline(sample_input1: bool,
+                        sample_input2: str,
+                        sample_input3: Input[Model],
+                        sample_input4: float = 3.14,
+                        sample_input5: list = [1],
+                        sample_input6: dict = {'one': 1},
+                        sample_input7: int = 5) -> Model:
+            """This is a definition of this pipeline."""
+
+            task = output_model()
+            return task.output
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        predicted_comment = textwrap.dedent("""\
+                # PIPELINE DEFINITION
+                # Name: test-pipeline
+                # Description: This is a definition of this pipeline.
+                # Inputs:
+                #    sample_input1: bool
+                #    sample_input2: str
+                #    sample_input3: system.Model
+                #    sample_input4: float [Default: 3.14]
+                #    sample_input5: list [Default: [1.0]]
+                #    sample_input6: dict [Default: {'one': 1.0}]
+                #    sample_input7: int [Default: 5.0]
+                # Outputs:
+                #    Output: system.Model
+                """)
+
+        self.assertIn(predicted_comment, yaml_content)
+
+    def test_comments_on_compiled_components(self):
+
+        @dsl.component
+        def my_component(string: str, model: bool) -> str:
+            """component description."""
+            return string
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_component, package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        predicted_comment = textwrap.dedent("""\
+                # PIPELINE DEFINITION
+                # Name: my-component
+                # Description: component description.
+                # Inputs:
+                #    model: bool
+                #    string: str
+                """)
+
+        self.assertIn(predicted_comment, yaml_content)
+
+        @dsl.container_component
+        def my_container_component(text: str, output_path: OutputPath(str)):
+            """component description."""
+            return ContainerSpec(
+                image='python:3.7',
+                command=['my_program', text],
+                args=['--output_path', output_path])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_container_component,
+                package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        predicted_comment = textwrap.dedent("""\
+                # PIPELINE DEFINITION
+                # Name: my-container-component
+                # Description: component description.
+                # Inputs:
+                #    text: str
+                """)
+
+        self.assertIn(predicted_comment, yaml_content)
+
+    def test_comments_idempotency(self):
+
+        @dsl.component
+        def identity(string: str, model: bool) -> str:
+            return string
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: bool = True,
+                        sample_input2: str = 'string') -> str:
+            """My description."""
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+            comp = components.load_component_from_file(pipeline_spec_path)
+            compiler.Compiler().compile(
+                pipeline_func=comp, package_path=pipeline_spec_path)
+            with open(pipeline_spec_path, 'r+') as f:
+                reloaded_yaml_content = f.read()
+
+        predicted_comment = textwrap.dedent("""\
+                # PIPELINE DEFINITION
+                # Name: my-pipeline
+                # Description: My description.
+                # Inputs:
+                #    sample_input1: bool [Default: True]
+                #    sample_input2: str [Default: 'string']
+                # Outputs:
+                #    Output: str
+                """)
+
+        # test initial comments
+        self.assertIn(predicted_comment, yaml_content)
+
+        # test reloaded comments
+        self.assertIn(predicted_comment, reloaded_yaml_content)
+
+    def test_comment_with_multiline_docstring(self):
+
+        @dsl.component
+        def identity(string: str, model: bool) -> str:
+            return string
+
+        @dsl.pipeline()
+        def pipeline_with_multiline_definition(
+                sample_input1: bool = True,
+                sample_input2: str = 'string') -> str:
+            """docstring short description.
+            docstring long description. docstring long description.
+            """
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_with_multiline_definition,
+                package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        description_string = textwrap.dedent("""\
+            # Description: docstring short description.
+            #              docstring long description. docstring long description.
+            """)
+
+        self.assertIn(description_string, yaml_content)
+
+        @dsl.pipeline()
+        def pipeline_with_multiline_definition(
+                sample_input1: bool = True,
+                sample_input2: str = 'string') -> str:
+            """
+            docstring long description.
+            docstring long description.
+            docstring long description.
+            """
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=pipeline_with_multiline_definition,
+                package_path=pipeline_spec_path)
+
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+
+        description_string = textwrap.dedent("""\
+            # Description: docstring long description.
+            #              docstring long description.
+            #              docstring long description.
+            """)
+
+        self.assertIn(description_string, yaml_content)
+
+    def test_idempotency_on_comment_with_multiline_docstring(self):
+
+        @dsl.component
+        def identity(string: str, model: bool) -> str:
+            return string
+
+        @dsl.pipeline()
+        def my_pipeline(sample_input1: bool = True,
+                        sample_input2: str = 'string') -> str:
+            """docstring short description.
+            docstring long description.
+            docstring long description.
+            """
+            op1 = identity(string=sample_input2, model=sample_input1)
+            result = op1.output
+            return result
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pipeline_spec_path = os.path.join(tmpdir, 'output.yaml')
+            compiler.Compiler().compile(
+                pipeline_func=my_pipeline, package_path=pipeline_spec_path)
+            with open(pipeline_spec_path, 'r+') as f:
+                yaml_content = f.read()
+            comp = components.load_component_from_file(pipeline_spec_path)
+            compiler.Compiler().compile(
+                pipeline_func=comp, package_path=pipeline_spec_path)
+            with open(pipeline_spec_path, 'r+') as f:
+                reloaded_yaml_content = f.read()
+
+        predicted_comment = textwrap.dedent("""\
+                # PIPELINE DEFINITION
+                # Name: my-pipeline
+                # Description: docstring short description.
+                #              docstring long description.
+                #              docstring long description.
+                # Inputs:
+                #    sample_input1: bool [Default: True]
+                #    sample_input2: str [Default: 'string']
+                # Outputs:
+                #    Output: str
+                """)
+
+        # test initial comments
+        self.assertIn(predicted_comment, yaml_content)
+
+        # test reloaded comments
+        self.assertIn(predicted_comment, reloaded_yaml_content)
 
 
 if __name__ == '__main__':

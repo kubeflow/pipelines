@@ -17,8 +17,9 @@ These are only compatible with v2 Pipelines.
 """
 
 import re
-from typing import Type, TypeVar, Union
+from typing import List, Type, TypeVar, Union
 
+from kfp.components.types import artifact_types
 from kfp.components.types import type_annotations
 from kfp.components.types import type_utils
 
@@ -120,7 +121,7 @@ class OutputAnnotation:
     """Marker type for output artifacts."""
 
 
-def is_artifact_annotation(typ) -> bool:
+def is_Input_Output_artifact_annotation(typ) -> bool:
     if not hasattr(typ, '__metadata__'):
         return False
 
@@ -132,7 +133,7 @@ def is_artifact_annotation(typ) -> bool:
 
 def is_input_artifact(typ) -> bool:
     """Returns True if typ is of type Input[T]."""
-    if not is_artifact_annotation(typ):
+    if not is_Input_Output_artifact_annotation(typ):
         return False
 
     return typ.__metadata__[0] == InputAnnotation
@@ -140,7 +141,7 @@ def is_input_artifact(typ) -> bool:
 
 def is_output_artifact(typ) -> bool:
     """Returns True if typ is of type Output[T]."""
-    if not is_artifact_annotation(typ):
+    if not is_Input_Output_artifact_annotation(typ):
         return False
 
     return typ.__metadata__[0] == OutputAnnotation
@@ -149,16 +150,21 @@ def is_output_artifact(typ) -> bool:
 def get_io_artifact_class(typ):
     from kfp.dsl import Input
     from kfp.dsl import Output
-    if not is_artifact_annotation(typ):
+    if not is_Input_Output_artifact_annotation(typ):
         return None
     if typ == Input or typ == Output:
         return None
 
-    return typ.__args__[0]
+    # extract inner type from list of artifacts
+    inner = typ.__args__[0]
+    if hasattr(inner, '__origin__') and inner.__origin__ == list:
+        return inner.__args__[0]
+
+    return inner
 
 
 def get_io_artifact_annotation(typ):
-    if not is_artifact_annotation(typ):
+    if not is_Input_Output_artifact_annotation(typ):
         return None
 
     return typ.__metadata__[0]
@@ -213,13 +219,20 @@ def get_short_type_name(type_name: str) -> str:
       The short form type name or the original name if pattern doesn't match.
     """
     match = re.match('(typing\.)?(?P<type>\w+)(?:\[.+\])?', type_name)
-    if match:
-        return match.group('type')
-    else:
-        return type_name
+    return match['type'] if match else type_name
 
 
 def is_artifact_class(artifact_class_or_instance: Type) -> bool:
     # we do not yet support non-pre-registered custom artifact types with instance_schema attribute
     return hasattr(artifact_class_or_instance, 'schema_title') and hasattr(
         artifact_class_or_instance, 'schema_version')
+
+
+def is_list_of_artifacts(
+    type_var: Union[Type[List[artifact_types.Artifact]],
+                    Type[artifact_types.Artifact]]
+) -> bool:
+    # the type annotation for this function's `type_var` parameter may not actually be a subclass of the KFP SDK's Artifact class for custom artifact types
+    return getattr(type_var, '__origin__',
+                   None) == list and type_annotations.is_artifact_class(
+                       type_var.__args__[0])

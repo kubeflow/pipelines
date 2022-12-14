@@ -61,7 +61,11 @@ class V2beta1RuntimeConfig(object):
     def parameters(self):
         """Gets the parameters of this V2beta1RuntimeConfig.  # noqa: E501
 
+<<<<<<< HEAD
         The runtime parameters. The parameters will be used to replace  the placeholders at runtime.  # noqa: E501
+=======
+        The runtime parameters of the Pipeline. The parameters will be used to replace the placeholders at runtime.  # noqa: E501
+>>>>>>> origin/master
 
         :return: The parameters of this V2beta1RuntimeConfig.  # noqa: E501
         :rtype: dict(str, object)
@@ -72,7 +76,11 @@ class V2beta1RuntimeConfig(object):
     def parameters(self, parameters):
         """Sets the parameters of this V2beta1RuntimeConfig.
 
+<<<<<<< HEAD
         The runtime parameters. The parameters will be used to replace  the placeholders at runtime.  # noqa: E501
+=======
+        The runtime parameters of the Pipeline. The parameters will be used to replace the placeholders at runtime.  # noqa: E501
+>>>>>>> origin/master
 
         :param parameters: The parameters of this V2beta1RuntimeConfig.  # noqa: E501
         :type parameters: dict(str, object)

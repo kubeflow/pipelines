@@ -8,7 +8,7 @@ Name | Type | Description | Notes
 **description** | **str** | Optional input field. Describes the purpose of the experiment. | [optional] 
 **created_at** | **datetime** | Output. The time that the experiment was created. | [optional] 
 **namespace** | **str** | Optional input field. Specify the namespace this experiment belongs to. | [optional] 
-**storage_state** | [**ExperimentStorageState**](ExperimentStorageState.md) |  | [optional] 
+**storage_state** | [**V2beta1ExperimentStorageState**](V2beta1ExperimentStorageState.md) |  | [optional] 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

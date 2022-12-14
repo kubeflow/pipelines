@@ -20,6 +20,7 @@ spec:
   profilerConfig: 
   profilerRuleConfigurations: 
   resourceConfig: 
+  retryStrategy: 
   roleARN: 
   stoppingCondition: 
   tags: 

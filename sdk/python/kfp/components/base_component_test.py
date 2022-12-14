@@ -16,6 +16,7 @@
 import unittest
 from unittest.mock import patch
 
+from kfp import dsl
 from kfp.components import base_component
 from kfp.components import pipeline_task
 from kfp.components import placeholders
@@ -63,13 +64,13 @@ component_op = TestComponent(
 
 class BaseComponentTest(unittest.TestCase):
 
-    @patch.object(pipeline_task, 'create_pipeline_task', autospec=True)
+    @patch.object(pipeline_task, 'PipelineTask', autospec=True)
     def test_instantiate_component_with_keyword_arguments(
-            self, mock_create_pipeline_task):
+            self, mock_PipelineTask):
 
         component_op(input1='hello', input2=100, input3=1.23, input4=3.21)
 
-        mock_create_pipeline_task.assert_called_once_with(
+        mock_PipelineTask.assert_called_once_with(
             component_spec=component_op.component_spec,
             args={
                 'input1': 'hello',
@@ -78,13 +79,13 @@ class BaseComponentTest(unittest.TestCase):
                 'input4': 3.21,
             })
 
-    @patch.object(pipeline_task, 'create_pipeline_task', autospec=True)
+    @patch.object(pipeline_task, 'PipelineTask', autospec=True)
     def test_instantiate_component_omitting_arguments_with_default(
-            self, mock_create_pipeline_task):
+            self, mock_PipelineTask):
 
         component_op(input1='hello', input2=100)
 
-        mock_create_pipeline_task.assert_called_once_with(
+        mock_PipelineTask.assert_called_once_with(
             component_spec=component_op.component_spec,
             args={
                 'input1': 'hello',
@@ -117,6 +118,43 @@ class BaseComponentTest(unittest.TestCase):
                 r'component-1\(\) missing 2 required arguments: input1, input2.'
         ):
             component_op()
+
+
+class BlockPipelineTaskRegistration(unittest.TestCase):
+
+    def test_mutating_decorator(self):
+
+        def call_pipeline_spec(component):
+            component.pipeline_spec
+            return component
+
+        @dsl.component
+        def identity(text: str) -> str:
+            return text
+
+        @dsl.pipeline
+        def pipeline_custom_job():
+            modified_identity = call_pipeline_spec(identity)
+            modified_identity(text='text')
+
+        self.assertEqual(len(pipeline_custom_job.pipeline_spec.components), 1)
+        self.assertEqual(
+            len(pipeline_custom_job.pipeline_spec.deployment_spec), 1)
+
+    def test_call_directly_in_pipeline(self):
+
+        @dsl.component
+        def identity(text: str) -> str:
+            return text
+
+        @dsl.pipeline
+        def pipeline_custom_job():
+            identity.pipeline_spec
+            identity(text='text')
+
+        self.assertEqual(len(pipeline_custom_job.pipeline_spec.components), 1)
+        self.assertEqual(
+            len(pipeline_custom_job.pipeline_spec.deployment_spec), 1)
 
 
 if __name__ == '__main__':

@@ -21,6 +21,7 @@ import subprocess
 import tempfile
 from typing import Tuple, Optional
 from google.cloud import storage
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
 from google_cloud_pipeline_components.proto import gcp_resources_pb2
 
 from google.protobuf import json_format
@@ -35,6 +36,16 @@ _DATAFLOW_JOB_ID_PATTERN = br'.*console.cloud.google.com/dataflow/jobs/(?P<locat
 _ARGS_FILES_TO_STAGE = ('--requirements_file', '--setup_file', '--sdk_location',
                         '--extra_package')
 
+LABELS_ARG_KEY = '--labels'
+
+
+def get_system_label_args_list():
+  system_labels = gcp_labels_util.attach_system_labels()
+  system_labels_args_list = []
+  for k, v in system_labels.items():
+    system_labels_args_list.append(LABELS_ARG_KEY)
+    system_labels_args_list.append('{}={}'.format(k, v))
+  return system_labels_args_list
 
 def create_python_job(python_module_path: str,
                       project: str,
@@ -67,9 +78,11 @@ def create_python_job(python_module_path: str,
   job_id = None
   if requirements_file_path:
     install_requirements(requirements_file_path)
-  args_list = []
+  # Put system labels at the front of arg list so that later labels defined by
+  # users will overwrite the system label, if exists.
+  args_list = get_system_label_args_list()
   if args:
-    args_list = json.loads(args)
+    args_list += json.loads(args)
 
   python_file_path = stage_file(python_module_path)
   # If an option in _ARGS_FILES_TO_STAGE is provided, stage them locally.

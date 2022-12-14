@@ -33,9 +33,13 @@ from google_cloud_pipeline_components.container.v1.bigquery.evaluate_model impor
 from google_cloud_pipeline_components.container.v1.bigquery.ml_reconstruction_loss import remote_runner as ml_reconstruction_loss_remote_runner
 from google_cloud_pipeline_components.container.v1.bigquery.ml_trial_info import remote_runner as ml_trial_info_remote_runner
 from google_cloud_pipeline_components.container.v1.bigquery.predict_model import remote_runner as predict_model_remote_runner
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
+
+_SYSTEM_LABELS = {'key1': 'value1', 'key2': 'value2'}
 
 
 class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
+  """Unit Tests for Bigquery Job Remote Runner."""
 
   def setUp(self):
     super(BigqueryQueryJobRemoteRunnerUtilsTests, self).setUp()
@@ -55,6 +59,8 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._output_file_path = os.path.join(
         os.getenv('TEST_UNDECLARED_OUTPUTS_DIR'), 'localpath/foo')
     self._executor_input = '{"outputs":{"artifacts":{"destination_table":{"artifacts":[{"metadata":{},"name":"foobar","type":{"schemaTitle":"google.BQTable"}}]}},"outputFile":"' + self._output_file_path + '"}}'
+    os.environ[gcp_labels_util.SYSTEM_LABEL_ENV_VAR] = json.dumps(
+        _SYSTEM_LABELS)
 
   def tearDown(self):
     if os.path.exists(self._gcp_resources):
@@ -100,11 +106,23 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         self._job_type, self._project, self._location, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
         self._executor_input)
+    expected_job_spec = json.dumps({
+        'configuration': {
+            'query': {
+                'query':
+                    'SELECT * FROM `bigquery-public-data.ml_datasets.penguins`',
+                'useLegacySql':
+                    False
+            },
+            'labels': _SYSTEM_LABELS,
+        },
+        'jobReference': {
+            'location': 'US'
+        }
+    })
     mock_post_requests.assert_called_once_with(
         url=f'https://www.googleapis.com/bigquery/v2/projects/{self._project}/jobs',
-        data=(
-            '{"configuration": {"query": {"query": "SELECT * FROM `bigquery-public-data.ml_datasets.penguins`", "useLegacySql": false}}, "jobReference": {"location": "US"}}'
-        ),
+        data=expected_job_spec,
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
@@ -175,11 +193,23 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         self._job_type, self._project, self._location, self._payload,
         job_configuration_query_override, self._gcp_resources,
         self._executor_input)
+
+    expected_job_spec = json.dumps({
+        'configuration': {
+            'query': {
+                'query': 'SELECT * FROM foo',
+                'query_parameters': 'abc',
+                'useLegacySql': False
+            },
+            'labels': _SYSTEM_LABELS,
+        },
+        'jobReference': {
+            'location': 'US'
+        }
+    })
     mock_post_requests.assert_called_once_with(
         url=f'https://www.googleapis.com/bigquery/v2/projects/{self._project}/jobs',
-        data=(
-            '{"configuration": {"query": {"query": "SELECT * FROM foo", "query_parameters": "abc", "useLegacySql": false}}, "jobReference": {"location": "US"}}'
-        ),
+        data=expected_job_spec,
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
@@ -511,11 +541,24 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         self._job_type, self._project, self._location, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
         self._executor_input)
+
+    expected_job_spec = json.dumps({
+        'configuration': {
+            'query': {
+                'query':
+                    "CREATE OR REPLACE MODEL bqml_tutorial.penguins_model OPTIONS (model_type=\'linear_reg\', input_label_cols=[\'body_mass_g\']) AS SELECT * FROM `bigquery-public-data.ml_datasets.penguins` WHERE body_mass_g IS NOT NULL",
+                'useLegacySql':
+                    False
+            },
+            'labels': _SYSTEM_LABELS,
+        },
+        'jobReference': {
+            'location': 'US'
+        }
+    })
     mock_post_requests.assert_called_once_with(
         url=f'https://www.googleapis.com/bigquery/v2/projects/{self._project}/jobs',
-        data=(
-            '{"configuration": {"query": {"query": "CREATE OR REPLACE MODEL bqml_tutorial.penguins_model OPTIONS (model_type=\'linear_reg\', input_label_cols=[\'body_mass_g\']) AS SELECT * FROM `bigquery-public-data.ml_datasets.penguins` WHERE body_mass_g IS NOT NULL", "useLegacySql": false}}, "jobReference": {"location": "US"}}'
-        ),
+        data=expected_job_spec,
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
@@ -591,11 +634,23 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         self._job_type, self._project, self._location, self._payload,
         job_configuration_query_override, self._gcp_resources,
         self._executor_input)
+
+    expected_job_spec = json.dumps({
+        'configuration': {
+            'query': {
+                'query': 'SELECT * FROM foo',
+                'query_parameters': 'abc',
+                'useLegacySql': False
+            },
+            'labels': _SYSTEM_LABELS,
+        },
+        'jobReference': {
+            'location': 'US'
+        }
+    })
     mock_post_requests.assert_called_once_with(
         url=f'https://www.googleapis.com/bigquery/v2/projects/{self._project}/jobs',
-        data=(
-            '{"configuration": {"query": {"query": "SELECT * FROM foo", "query_parameters": "abc", "useLegacySql": false}}, "jobReference": {"location": "US"}}'
-        ),
+        data=expected_job_spec,
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
@@ -1001,11 +1056,23 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         self._table_name, self._query_statement, self._threshold, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
         self._executor_input)
+    expected_job_spec = json.dumps({
+        'configuration': {
+            'query': {
+                'query':
+                    'SELECT * FROM ML.PREDICT(MODEL `bqml_tutorial.penguins_model`, (SELECT * FROM `bigquery-public-data.ml_datasets.penguins`))',
+                'useLegacySql':
+                    False
+            },
+            'labels': _SYSTEM_LABELS,
+        },
+        'jobReference': {
+            'location': 'US'
+        }
+    })
     mock_post_requests.assert_called_once_with(
         url=f'https://www.googleapis.com/bigquery/v2/projects/{self._project}/jobs',
-        data=(
-            '{"configuration": {"query": {"query": "SELECT * FROM ML.PREDICT(MODEL `bqml_tutorial.penguins_model`, (SELECT * FROM `bigquery-public-data.ml_datasets.penguins`))", "useLegacySql": false}}, "jobReference": {"location": "US"}}'
-        ),
+        data=expected_job_spec,
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
@@ -1078,11 +1145,23 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         self._table_name, self._query_statement, self._threshold, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
         self._executor_input)
+    expected_job_spec = json.dumps({
+        'configuration': {
+            'query': {
+                'query':
+                    'SELECT * FROM ML.PREDICT(MODEL `bqml_tutorial.penguins_model`, TABLE `bigquery-public-data.ml_datasets.penguins`)',
+                'useLegacySql':
+                    False
+            },
+            'labels': _SYSTEM_LABELS,
+        },
+        'jobReference': {
+            'location': 'US'
+        }
+    })
     mock_post_requests.assert_called_once_with(
         url=f'https://www.googleapis.com/bigquery/v2/projects/{self._project}/jobs',
-        data=(
-            '{"configuration": {"query": {"query": "SELECT * FROM ML.PREDICT(MODEL `bqml_tutorial.penguins_model`, TABLE `bigquery-public-data.ml_datasets.penguins`)", "useLegacySql": false}}, "jobReference": {"location": "US"}}'
-        ),
+        data=expected_job_spec,
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
@@ -1210,9 +1289,23 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         self._model_destination_path, self._payload, self._exported_model_path,
         self._gcp_resources, self._executor_input)
 
+    expected_job_spec = json.dumps({
+        'configuration': {
+            'query': {
+                'query':
+                    "EXPORT MODEL `testproject.testdataset.testmodel` OPTIONS(URI=\"gs://testproject/testmodelpah\",add_serving_default_signature=True)",
+                'useLegacySql':
+                    False
+            },
+            'labels': _SYSTEM_LABELS,
+        },
+        'jobReference': {
+            'location': 'US'
+        }
+    })
     mock_post_requests.assert_called_once_with(
         url='https://www.googleapis.com/bigquery/v2/projects/test_project/jobs',
-        data='{"configuration": {"query": {"query": "EXPORT MODEL `testproject.testdataset.testmodel` OPTIONS(URI=\\"gs://testproject/testmodelpah\\",add_serving_default_signature=True)", "useLegacySql": false}, "labels": {}}, "jobReference": {"location": "US"}}',
+        data=expected_job_spec,
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
@@ -1279,9 +1372,23 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         self._model_destination_path, self._payload, self._exported_model_path,
         self._gcp_resources, self._executor_input)
 
+    expected_job_spec = json.dumps({
+        'configuration': {
+            'query': {
+                'query':
+                    "EXPORT MODEL `testproject.testdataset.testmodel` OPTIONS(URI=\"gs://testproject/testmodelpah\",add_serving_default_signature=True)",
+                'useLegacySql':
+                    False
+            },
+            'labels': _SYSTEM_LABELS,
+        },
+        'jobReference': {
+            'location': 'US'
+        }
+    })
     mock_post_requests.assert_called_once_with(
         url='https://www.googleapis.com/bigquery/v2/projects/test_project/jobs',
-        data='{"configuration": {"query": {"query": "EXPORT MODEL `testproject.testdataset.testmodel` OPTIONS(URI=\\"gs://testproject/testmodelpah\\",add_serving_default_signature=True)", "useLegacySql": false}, "labels": {}}, "jobReference": {"location": "US"}}',
+        data=expected_job_spec,
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
@@ -1545,11 +1652,23 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         self._table_name, self._query_statement, self._threshold, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
         self._executor_input)
+    expected_job_spec = json.dumps({
+        'configuration': {
+            'query': {
+                'query':
+                    'SELECT * FROM ML.EVALUATE(MODEL `bqml_tutorial.penguins_model`, (SELECT * FROM `bigquery-public-data.ml_datasets.penguins`))',
+                'useLegacySql':
+                    False
+            },
+            'labels': _SYSTEM_LABELS,
+        },
+        'jobReference': {
+            'location': 'US'
+        }
+    })
     mock_post_requests.assert_called_once_with(
         url=f'https://www.googleapis.com/bigquery/v2/projects/{self._project}/jobs',
-        data=(
-            '{"configuration": {"query": {"query": "SELECT * FROM ML.EVALUATE(MODEL `bqml_tutorial.penguins_model`, (SELECT * FROM `bigquery-public-data.ml_datasets.penguins`))", "useLegacySql": false}}, "jobReference": {"location": "US"}}'
-        ),
+        data=expected_job_spec,
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
@@ -1689,13 +1808,23 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         self._table_name, self._query_statement, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
         self._executor_input)
+    expected_job_spec = json.dumps({
+        'configuration': {
+            'query': {
+                'query':
+                    'SELECT * FROM ML.RECONSTRUCTION_LOSS(MODEL `bqml_tutorial.penguins_model`, (SELECT * FROM `bigquery-public-data.ml_datasets.penguins`))',
+                'useLegacySql':
+                    False
+            },
+            'labels': _SYSTEM_LABELS,
+        },
+        'jobReference': {
+            'location': 'US'
+        }
+    })
     mock_post_requests.assert_called_once_with(
         url=f'https://www.googleapis.com/bigquery/v2/projects/{self._project}/jobs',
-        data=('{"configuration": {"query": {"query": '
-              '"SELECT * FROM ML.RECONSTRUCTION_LOSS('
-              'MODEL `bqml_tutorial.penguins_model`, '
-              '(SELECT * FROM `bigquery-public-data.ml_datasets.penguins`))", '
-              '"useLegacySql": false}}, "jobReference": {"location": "US"}}'),
+        data=expected_job_spec,
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
@@ -1779,13 +1908,23 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         self._table_name, self._query_statement, self._payload,
         self._job_configuration_query_override, self._gcp_resources,
         self._executor_input)
+    expected_job_spec = json.dumps({
+        'configuration': {
+            'query': {
+                'query':
+                    'SELECT * FROM ML.RECONSTRUCTION_LOSS(MODEL `bqml_tutorial.penguins_model`, TABLE `bigquery-public-data.ml_datasets.penguins`)',
+                'useLegacySql':
+                    False
+            },
+            'labels': _SYSTEM_LABELS,
+        },
+        'jobReference': {
+            'location': 'US'
+        }
+    })
     mock_post_requests.assert_called_once_with(
         url=f'https://www.googleapis.com/bigquery/v2/projects/{self._project}/jobs',
-        data=('{"configuration": {"query": {'
-              '"query": "SELECT * FROM ML.RECONSTRUCTION_LOSS('
-              'MODEL `bqml_tutorial.penguins_model`, '
-              'TABLE `bigquery-public-data.ml_datasets.penguins`)", '
-              '"useLegacySql": false}}, "jobReference": {"location": "US"}}'),
+        data=expected_job_spec,
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',
@@ -1928,12 +2067,23 @@ class BigqueryQueryJobRemoteRunnerUtilsTests(unittest.TestCase):
         self._job_type, self._project, self._location, self._model_name,
         self._payload, self._job_configuration_query_override,
         self._gcp_resources, self._executor_input)
+    expected_job_spec = json.dumps({
+        'configuration': {
+            'query': {
+                'query':
+                    'SELECT * FROM ML.TRIAL_INFO(MODEL `bqml_tutorial.penguins_model`)',
+                'useLegacySql':
+                    False
+            },
+            'labels': _SYSTEM_LABELS,
+        },
+        'jobReference': {
+            'location': 'US'
+        }
+    })
     mock_post_requests.assert_called_once_with(
         url=f'https://www.googleapis.com/bigquery/v2/projects/{self._project}/jobs',
-        data=('{"configuration": {"query": {'
-              '"query": "SELECT * FROM ML.TRIAL_INFO('
-              'MODEL `bqml_tutorial.penguins_model`)", '
-              '"useLegacySql": false}}, "jobReference": {"location": "US"}}'),
+        data=expected_job_spec,
         headers={
             'Content-type': 'application/json',
             'Authorization': 'Bearer fake_token',

@@ -176,6 +176,18 @@ message ComponentInputsSpec {
   // Definition of an artifact input.
   message ArtifactSpec {
     ArtifactTypeSchema artifact_type = 1;
+    
+    // Indicates whether input is a single artifact or list of artifacts
+    bool is_artifact_list = 2;
+
+    // Whether this input artifact is optional or not.
+    // - If required, the artifact must be able to resolve to an artifact
+    // at runtime.
+    // - If it's optional, it can be missing from the
+    // PipelineTaskInputsSpec.InputArtifactSpec (if it's instantiated into a
+    // task), or can be missing from the runtimeArtifact (if it's the root
+    // component).
+    bool is_optional = 3;
   }
   // Definition of a parameter input.
   message ParameterSpec {
@@ -218,6 +230,9 @@ message ComponentOutputsSpec {
         [deprecated = true];
     // Properties of the Artifact.
     google.protobuf.Struct metadata = 4;
+    
+    // Indicates whether output is a single artifact or list of artifacts
+    bool is_artifact_list = 5;
   }
   // Definition of a parameter output.
   message ParameterSpec {

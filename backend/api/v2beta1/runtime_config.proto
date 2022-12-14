@@ -1,4 +1,4 @@
-// Copyright 2022 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,19 +15,19 @@
 syntax = "proto3";
 
 option go_package = "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client";
-package v2beta1;
+package kubeflow.pipelines.backend.api.v2beta1;
 
 import "google/protobuf/struct.proto";
 
-// The runtime config of a run or recurring run.
+// The runtime config.
 message RuntimeConfig {
-    // The runtime parameters. The parameters will be used to replace 
-    // the placeholders at runtime.
-    map<string, google.protobuf.Value> parameters = 1;
+  // The runtime parameters of the Pipeline. The parameters will be
+  // used to replace the placeholders at runtime.
+  map<string, google.protobuf.Value> parameters = 1;
 
-    // A path in a object store bucket which will be treated as the root
-    // output directory of this run. It is used by the system to
-    // generate the paths of output artifacts. 
-    // Ref:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)
-    string pipeline_root = 2;
-  }
+  // A path in a object store bucket which will be treated as the root
+  // output directory of the pipeline. It is used by the system to
+  // generate the paths of output artifacts. 
+  // Ref:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)
+  string pipeline_root = 2;
+}

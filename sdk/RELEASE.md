@@ -1,12 +1,27 @@
 # Current Version (in development)
 
 ## Features
+* Add comments to IR YAML file [\#8467](https://github.com/kubeflow/pipelines/pull/8467)
 
 ## Breaking changes
 
 ## Deprecations
 
 ## Bug fixes and other changes
+* Unblock valid topologies [\#8416](https://github.com/kubeflow/pipelines/pull/8416)
+* Fix bug when writing to same file using gcsfuse and distributed training strategy in lightweight/containerized Python components [#8544](https://github.com/kubeflow/pipelines/pull/8544) [alternative fix after [#8455](https://github.com/kubeflow/pipelines/pull/8455) in `kfp==2.0.0b8`]
+
+## Documentation updates
+# 2.0.0-beta.8
+
+## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+* Fix client methods [\#8507](https://github.com/kubeflow/pipelines/pull/8507)
 
 
 ## Documentation updates

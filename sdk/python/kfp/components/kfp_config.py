@@ -100,8 +100,7 @@ class KFPConfig():
             A dictionary from component name (function name) to a pathlib.Path
             pointing to the Python file with this component's definition.
         """
-        result = {
+        return {
             function_name: pathlib.Path(module_path) for function_name,
             module_path in self._config_parser[_COMPONENTS_SECTION].items()
         }
-        return result

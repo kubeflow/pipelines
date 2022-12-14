@@ -106,7 +106,7 @@ def _get_packages_to_install_command(
 
 def _get_default_kfp_package_path() -> str:
     import kfp
-    return 'kfp=={}'.format(kfp.__version__)
+    return f'kfp=={kfp.__version__}'
 
 
 def _get_function_source_definition(func: Callable) -> str:
@@ -125,8 +125,8 @@ def _get_function_source_definition(func: Callable) -> str:
 
     if not func_code_lines:
         raise ValueError(
-            'Failed to dedent and clean up the source of function "{}". '
-            'It is probably not properly indented.'.format(func.__name__))
+            f'Failed to dedent and clean up the source of function "{func.__name__}". It is probably not properly indented.'
+        )
 
     return '\n'.join(func_code_lines)
 
@@ -136,11 +136,11 @@ def _maybe_make_unique(name: str, names: List[str]):
         return name
 
     for i in range(2, 100):
-        unique_name = '{}_{}'.format(name, i)
+        unique_name = f'{name}_{i}'
         if unique_name not in names:
             return unique_name
 
-    raise RuntimeError('Too many arguments with the name {}'.format(name))
+    raise RuntimeError(f'Too many arguments with the name {name}')
 
 
 def extract_component_interface(
@@ -164,20 +164,23 @@ def extract_component_interface(
         passing_style = None
         io_name = parameter.name
 
-        if type_annotations.is_artifact_annotation(parameter_type):
+        if type_annotations.is_Input_Output_artifact_annotation(parameter_type):
             # passing_style is either type_annotations.InputAnnotation or
             # type_annotations.OutputAnnotation.
             passing_style = type_annotations.get_io_artifact_annotation(
                 parameter_type)
 
-            # parameter_type is type_annotations.Artifact or one of its subclasses.
+            # parameter_type is a type like typing_extensions.Annotated[kfp.components.types.artifact_types.Artifact, <class 'kfp.components.types.type_annotations.OutputAnnotation'>] OR typing_extensions.Annotated[typing.List[kfp.components.types.artifact_types.Artifact], <class 'kfp.components.types.type_annotations.OutputAnnotation'>]
+
+            is_artifact_list = type_annotations.is_list_of_artifacts(
+                parameter_type.__origin__)
+
             parameter_type = type_annotations.get_io_artifact_class(
                 parameter_type)
             if not type_annotations.is_artifact_class(parameter_type):
                 raise ValueError(
-                    'Input[T] and Output[T] are only supported when T is a '
-                    'subclass of Artifact. Found `{} with type {}`'.format(
-                        io_name, parameter_type))
+                    f'Input[T] and Output[T] are only supported when T is an artifact or list of artifacts. Found `{io_name} with type {parameter_type}`'
+                )
 
             if parameter.default is not inspect.Parameter.empty:
                 raise ValueError(
@@ -197,22 +200,24 @@ def extract_component_interface(
 
         type_struct = type_utils._annotation_to_type_struct(parameter_type)
         if type_struct is None:
-            raise TypeError('Missing type annotation for argument: {}'.format(
-                parameter.name))
+            raise TypeError(
+                f'Missing type annotation for argument: {parameter.name}')
 
         if passing_style in [
                 type_annotations.OutputAnnotation, type_annotations.OutputPath
         ]:
             if io_name == single_output_name_const:
-                raise ValueError('"{}" is an invalid parameter name.'.format(
-                    single_output_name_const))
+                raise ValueError(
+                    f'"{single_output_name_const}" is an invalid parameter name.'
+                )
             io_name = _maybe_make_unique(io_name, output_names)
             output_names.add(io_name)
             if type_annotations.is_artifact_class(parameter_type):
                 schema_version = parameter_type.schema_version
                 output_spec = structures.OutputSpec(
                     type=type_utils.create_bundled_artifact_type(
-                        type_struct, schema_version))
+                        type_struct, schema_version),
+                    is_artifact_list=is_artifact_list)
             else:
                 output_spec = structures.OutputSpec(type=type_struct)
             outputs[io_name] = output_spec
@@ -223,7 +228,9 @@ def extract_component_interface(
                 schema_version = parameter_type.schema_version
                 input_spec = structures.InputSpec(
                     type=type_utils.create_bundled_artifact_type(
-                        type_struct, schema_version))
+                        type_struct, schema_version),
+                    is_artifact_list=is_artifact_list,
+                )
             else:
                 if parameter.default is not inspect.Parameter.empty:
                     input_spec = structures.InputSpec(
@@ -248,14 +255,18 @@ def extract_component_interface(
             for field_name in return_ann._fields:
                 output_name = _maybe_make_unique(field_name, output_names)
                 output_names.add(output_name)
-                annotation = field_annotations.get(field_name)
-                if type_annotations.is_artifact_class(annotation):
+                type_var = field_annotations.get(field_name)
+                if type_annotations.is_list_of_artifacts(type_var):
+                    raise ValueError(
+                        f'Cannot use output lists of artifacts in NamedTuple return annotations. Got output list of artifacts annotation for NamedTuple field `{field_name}`.'
+                    )
+                elif type_annotations.is_artifact_class(type_var):
                     output_spec = structures.OutputSpec(
                         type=type_utils.create_bundled_artifact_type(
-                            annotation.schema_title, annotation.schema_version))
+                            type_var.schema_title, type_var.schema_version))
                 else:
                     type_struct = type_utils._annotation_to_type_struct(
-                        annotation)
+                        type_var)
                     output_spec = structures.OutputSpec(type=type_struct)
                 outputs[output_name] = output_spec
         # Deprecated dict-based way of declaring multiple outputs. Was only used by
@@ -278,10 +289,17 @@ def extract_component_interface(
             #   `def func(output_path: OutputPath()) -> str: ...`
             output_names.add(output_name)
             return_ann = signature.return_annotation
-            if type_annotations.is_artifact_class(signature.return_annotation):
+            if type_annotations.is_list_of_artifacts(return_ann):
+                artifact_cls = return_ann.__args__[0]
                 output_spec = structures.OutputSpec(
                     type=type_utils.create_bundled_artifact_type(
-                        return_ann.schema_title, return_ann.schema_version))
+                        artifact_cls.schema_title, artifact_cls.schema_version),
+                    is_artifact_list=True)
+            elif type_annotations.is_artifact_class(return_ann):
+                output_spec = structures.OutputSpec(
+                    type=type_utils.create_bundled_artifact_type(
+                        return_ann.schema_title, return_ann.schema_version),
+                    is_artifact_list=False)
             else:
                 type_struct = type_utils._annotation_to_type_struct(return_ann)
                 output_spec = structures.OutputSpec(type=type_struct)
@@ -300,8 +318,13 @@ def extract_component_interface(
     component_name = getattr(
         func, '_component_human_name',
         _python_function_name_to_component_name(func.__name__))
-    description = getattr(func, '_component_description',
-                          parsed_docstring.short_description)
+
+    short_description = parsed_docstring.short_description
+    long_description = parsed_docstring.long_description
+    docstring_description = short_description + '\n' + long_description if long_description else short_description
+
+    description = getattr(func, '_component_description', docstring_description)
+
     if description:
         description = description.strip()
 

@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Definition of PipelineChannel."""
+
 import abc
+import contextlib
 import dataclasses
 import json
 import re
@@ -86,8 +88,8 @@ class PipelineChannel(abc.ABC):
         valid_name_regex = r'^[A-Za-z][A-Za-z0-9\s_-]*$'
         if not re.match(valid_name_regex, name):
             raise ValueError(
-                'Only letters, numbers, spaces, "_", and "-" are allowed in the '
-                'name. Must begin with a letter. Got name: {}'.format(name))
+                f'Only letters, numbers, spaces, "_", and "-" are allowed in the name. Must begin with a letter. Got name: {name}'
+            )
 
         self.name = name
         self.channel_type = channel_type
@@ -303,10 +305,8 @@ def extract_pipeline_channels_from_string(
         # (e.g.: {"custom_type": {"custom_property": "some_value"}}).
         # Try loading it into dictionary, if failed, it means channel_type is a
         # string.
-        try:
+        with contextlib.suppress(json.JSONDecodeError):
             channel_type = json.loads(channel_type)
-        except json.JSONDecodeError:
-            pass
 
         if type_utils.is_parameter_type(channel_type):
             pipeline_channel = PipelineParameterChannel(
@@ -346,7 +346,7 @@ def extract_pipeline_channels_from_any(
     if isinstance(payload, str):
         return list(set(extract_pipeline_channels_from_string(payload)))
 
-    if isinstance(payload, list) or isinstance(payload, tuple):
+    if isinstance(payload, (list, tuple)):
         pipeline_channels = []
         for item in payload:
             pipeline_channels += extract_pipeline_channels_from_any(item)

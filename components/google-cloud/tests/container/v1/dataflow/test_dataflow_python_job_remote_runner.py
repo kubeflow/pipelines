@@ -16,10 +16,16 @@
 import json
 import os
 import subprocess
-from unittest import mock
+
 from google.cloud import storage
 from google_cloud_pipeline_components.container.v1.dataflow import dataflow_python_job_remote_runner
+from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
+
 import unittest
+from unittest import mock
+
+_EXPECTED_LABELS_ARGS = ['--labels', 'key1=value1', '--labels', 'key2=value2']
+_SYSTEM_LABELS = {'key1': 'value1', 'key2': 'value2'}
 
 
 class DataflowPythonJobRemoteRunnerUtilsTests(unittest.TestCase):
@@ -40,6 +46,8 @@ class DataflowPythonJobRemoteRunnerUtilsTests(unittest.TestCase):
     self._job_id = 'test_job_id'
     self._args = ['test_arg']
     self._setup_file_path = 'gs://{self._test_bucket_name}/setup.py'
+    os.environ[gcp_labels_util.SYSTEM_LABEL_ENV_VAR] = json.dumps(
+        _SYSTEM_LABELS)
 
   def tearDown(self):
     super(DataflowPythonJobRemoteRunnerUtilsTests, self).tearDown()
@@ -176,7 +184,8 @@ class DataflowPythonJobRemoteRunnerUtilsTests(unittest.TestCase):
           location=self._location,
           temp_location=self._gcs_temp_path)
     mock_prepare_cmd.assert_called_once_with(self._project, self._location,
-                                             mock.ANY, [], self._gcs_temp_path)
+                                             mock.ANY, _EXPECTED_LABELS_ARGS,
+                                             self._gcs_temp_path)
 
   @mock.patch.object(
       dataflow_python_job_remote_runner, 'stage_file', autospec=True)
@@ -205,7 +214,8 @@ class DataflowPythonJobRemoteRunnerUtilsTests(unittest.TestCase):
           temp_location=self._gcs_temp_path,
           args=json.dumps(self._args))
     mock_prepare_cmd.assert_called_once_with(self._project, self._location,
-                                             mock.ANY, self._args,
+                                             mock.ANY,
+                                             _EXPECTED_LABELS_ARGS + self._args,
                                              self._gcs_temp_path)
 
   @mock.patch.object(

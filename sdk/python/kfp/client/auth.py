@@ -101,9 +101,11 @@ def get_auth_token(client_id: str, other_client_id: str,
         if os.path.exists(LOCAL_KFP_CREDENTIAL):
             with open(LOCAL_KFP_CREDENTIAL, 'r') as f:
                 credentials = json.load(f)
-        credentials[client_id] = {}
-        credentials[client_id]['other_client_id'] = other_client_id
-        credentials[client_id]['other_client_secret'] = other_client_secret
+        credentials[client_id] = {
+            'other_client_id': other_client_id,
+            'other_client_secret': other_client_secret
+        }
+
         if is_refresh_token:
             credentials[client_id]['refresh_token'] = refresh_token
         else:
@@ -308,12 +310,11 @@ def get_auth_response_ssh(host: str, port: int, auth_url: str) -> str:
         A URL containing authorization code.
     """
     print(auth_url)
-    authorization_response = input(
+    return input(
         'Carefully follow these steps: (1) open the URL above in your'
         ' browser, (2) authenticate and copy a url of the response page'
         f' that starts with http://{host}:{port}..., and (3) paste it'
         ' below:\n')
-    return authorization_response
 
 
 def get_auth_response_local(host: str, port: int,

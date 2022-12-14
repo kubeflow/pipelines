@@ -155,8 +155,7 @@ def build_task_spec_for_task(
                         _additional_input_name_for_pipeline_channel(input_value)
                     )
                     assert component_input_artifact in parent_component_inputs.artifacts, \
-                        'component_input_artifact: {} not found. All inputs: {}'.format(
-                            component_input_artifact, parent_component_inputs)
+                        f'component_input_artifact: {component_input_artifact} not found. All inputs: {parent_component_inputs}'
                     pipeline_task_spec.inputs.artifacts[
                         input_name].component_input_artifact = (
                             component_input_artifact)
@@ -188,8 +187,7 @@ def build_task_spec_for_task(
                         _additional_input_name_for_pipeline_channel(input_value)
                     )
                     assert component_input_parameter in parent_component_inputs.parameters, \
-                        'component_input_parameter: {} not found. All inputs: {}'.format(
-                            component_input_parameter, parent_component_inputs)
+                        f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
                     pipeline_task_spec.inputs.parameters[
                         input_name].component_input_parameter = (
                             component_input_parameter)
@@ -209,8 +207,7 @@ def build_task_spec_for_task(
             component_input_parameter = (
                 _additional_input_name_for_pipeline_channel(input_value))
             assert component_input_parameter in parent_component_inputs.parameters, \
-                'component_input_parameter: {} not found. All inputs: {}'.format(
-                    component_input_parameter, parent_component_inputs)
+                f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
             pipeline_task_spec.inputs.parameters[
                 input_name].component_input_parameter = (
                     component_input_parameter)
@@ -221,15 +218,13 @@ def build_task_spec_for_task(
                 _additional_input_name_for_pipeline_channel(
                     input_value.loop_argument))
             assert component_input_parameter in parent_component_inputs.parameters, \
-                'component_input_parameter: {} not found. All inputs: {}'.format(
-                    component_input_parameter, parent_component_inputs)
+                f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
             pipeline_task_spec.inputs.parameters[
                 input_name].component_input_parameter = (
                     component_input_parameter)
             pipeline_task_spec.inputs.parameters[
                 input_name].parameter_expression_selector = (
-                    'parseJson(string_value)["{}"]'.format(
-                        input_value.subvar_name))
+                    f'parseJson(string_value)["{input_value.subvar_name}"]')
 
         elif isinstance(input_value, str):
             # Handle extra input due to string concat
@@ -252,9 +247,8 @@ def build_task_spec_for_task(
                 for existing_input_name, _ in task.inputs.items():
                     if existing_input_name == additional_input_name:
                         raise RuntimeError(
-                            'Name collision between existing input name '
-                            '{} and compiler injected input name {}'.format(
-                                existing_input_name, additional_input_name))
+                            f'Name collision between existing input name {existing_input_name} and compiler injected input name {additional_input_name}'
+                        )
 
                 additional_input_placeholder = placeholders.InputValuePlaceholder(
                     additional_input_name)._to_string()
@@ -277,8 +271,7 @@ def build_task_spec_for_task(
                             _additional_input_name_for_pipeline_channel(channel)
                         )
                         assert component_input_parameter in parent_component_inputs.parameters, \
-                            'component_input_parameter: {} not found. All inputs: {}'.format(
-                                component_input_parameter, parent_component_inputs)
+                            f'component_input_parameter: {component_input_parameter} not found. All inputs: {parent_component_inputs}'
                         pipeline_task_spec.inputs.parameters[
                             additional_input_name].component_input_parameter = (
                                 component_input_parameter)
@@ -679,8 +672,7 @@ def _update_task_spec_for_loop_group(
         loop_argument_item_name = _additional_input_name_for_pipeline_channel(
             group.loop_argument.full_name)
 
-        loop_arguments_item = '{}-{}'.format(
-            input_parameter_name, for_loop.LoopArgument.LOOP_ITEM_NAME_BASE)
+        loop_arguments_item = f'{input_parameter_name}-{for_loop.LoopArgument.LOOP_ITEM_NAME_BASE}'
         assert loop_arguments_item == loop_argument_item_name
 
         pipeline_task_spec.parameter_iterator.items.input_parameter = (
@@ -693,8 +685,8 @@ def _update_task_spec_for_loop_group(
         if isinstance(loop_items_channel, for_loop.LoopArgumentVariable):
             pipeline_task_spec.inputs.parameters[
                 input_parameter_name].parameter_expression_selector = (
-                    'parseJson(string_value)["{}"]'.format(
-                        loop_items_channel.subvar_name))
+                    f'parseJson(string_value)["{loop_items_channel.subvar_name}"]'
+                )
             pipeline_task_spec.inputs.parameters[
                 input_parameter_name].component_input_parameter = (
                     _additional_input_name_for_pipeline_channel(
@@ -747,11 +739,9 @@ def _resolve_condition_operands(
             ]:
                 input_name = _additional_input_name_for_pipeline_channel(
                     value_or_reference)
-                raise ValueError('Conditional requires scalar parameter values'
-                                 ' for comparison. Found input "{}" of type {}'
-                                 ' in pipeline definition instead.'.format(
-                                     input_name,
-                                     value_or_reference.channel_type))
+                raise ValueError(
+                    f'Conditional requires scalar parameter values for comparison. Found input "{input_name}" of type {value_or_reference.channel_type} in pipeline definition instead.'
+                )
     parameter_types = set()
     for value_or_reference in [left_operand, right_operand]:
         if isinstance(value_or_reference, pipeline_channel.PipelineChannel):
@@ -775,32 +765,30 @@ def _resolve_condition_operands(
         else:
             # Must be a double and int, promote to double.
             assert pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE in parameter_types, \
-                'Types: {} [{} {}]'.format(
-                parameter_types, left_operand, right_operand)
+                f'Types: {parameter_types} [{left_operand} {right_operand}]'
             assert pipeline_spec_pb2.ParameterType.NUMBER_INTEGER in parameter_types, \
-                'Types: {} [{} {}]'.format(
-                parameter_types, left_operand, right_operand)
+                f'Types: {parameter_types} [{left_operand} {right_operand}]'
             canonical_parameter_type = pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE
     elif len(parameter_types) == 1:  # Both operands are the same type.
         canonical_parameter_type = parameter_types.pop()
     else:
         # Probably shouldn't happen.
-        raise ValueError('Unable to determine operand types for'
-                         ' "{}" and "{}"'.format(left_operand, right_operand))
+        raise ValueError(
+            f'Unable to determine operand types for "{left_operand}" and "{right_operand}"'
+        )
 
     operand_values = []
     for value_or_reference in [left_operand, right_operand]:
         if isinstance(value_or_reference, pipeline_channel.PipelineChannel):
             input_name = _additional_input_name_for_pipeline_channel(
                 value_or_reference)
-            operand_value = "inputs.parameter_values['{input_name}']".format(
-                input_name=input_name)
+            operand_value = f"inputs.parameter_values['{input_name}']"
             parameter_type = type_utils.get_parameter_type(
                 value_or_reference.channel_type)
             if parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_INTEGER:
-                operand_value = 'int({})'.format(operand_value)
+                operand_value = f'int({operand_value})'
         elif isinstance(value_or_reference, str):
-            operand_value = "'{}'".format(value_or_reference)
+            operand_value = f"'{value_or_reference}'"
             parameter_type = pipeline_spec_pb2.ParameterType.STRING
         elif isinstance(value_or_reference, bool):
             # Booleans need to be compared as 'true' or 'false' in CEL.
@@ -822,7 +810,7 @@ def _resolve_condition_operands(
                     pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
                     pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE,
                 ]
-                operand_value = "'{}'".format(operand_value)
+                operand_value = f"'{operand_value}'"
             elif canonical_parameter_type == pipeline_spec_pb2.ParameterType.BOOLEAN:
                 assert parameter_type in [
                     pipeline_spec_pb2.ParameterType.NUMBER_INTEGER,
@@ -832,7 +820,7 @@ def _resolve_condition_operands(
             else:
                 assert canonical_parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_DOUBLE
                 assert parameter_type == pipeline_spec_pb2.ParameterType.NUMBER_INTEGER
-                operand_value = 'double({})'.format(operand_value)
+                operand_value = f'double({operand_value})'
 
         operand_values.append(operand_value)
 
@@ -931,7 +919,7 @@ def build_task_spec_for_group(
         if subvar_name:
             pipeline_task_spec.inputs.parameters[
                 input_name].parameter_expression_selector = (
-                    'parseJson(string_value)["{}"]'.format(subvar_name))
+                    f'parseJson(string_value)["{subvar_name}"]')
             if not channel.is_with_items_loop_argument:
                 channel_name = channel.items_or_pipeline_channel.name
 
@@ -948,22 +936,19 @@ def build_task_spec_for_group(
                     input_name].component_input_artifact = (
                         channel_full_name
                         if is_parent_component_root else input_name)
+        elif channel.task_name and channel.task_name in tasks_in_current_dag:
+            pipeline_task_spec.inputs.parameters[
+                input_name].task_output_parameter.producer_task = (
+                    utils.sanitize_task_name(channel.task_name))
+            pipeline_task_spec.inputs.parameters[
+                input_name].task_output_parameter.output_parameter_key = (
+                    channel_name)
         else:
-            # channel is one of PipelineParameterChannel, LoopArgument, or
-            # LoopArgumentVariable
-            if channel.task_name and channel.task_name in tasks_in_current_dag:
-                pipeline_task_spec.inputs.parameters[
-                    input_name].task_output_parameter.producer_task = (
-                        utils.sanitize_task_name(channel.task_name))
-                pipeline_task_spec.inputs.parameters[
-                    input_name].task_output_parameter.output_parameter_key = (
-                        channel_name)
-            else:
-                pipeline_task_spec.inputs.parameters[
-                    input_name].component_input_parameter = (
-                        channel_full_name if is_parent_component_root else
-                        _additional_input_name_for_pipeline_channel(
-                            channel_full_name))
+            pipeline_task_spec.inputs.parameters[
+                input_name].component_input_parameter = (
+                    channel_full_name if is_parent_component_root else
+                    _additional_input_name_for_pipeline_channel(
+                        channel_full_name))
 
     if isinstance(group, tasks_group.ParallelFor):
         _update_task_spec_for_loop_group(
@@ -1019,7 +1004,7 @@ def populate_metrics_in_dag_outputs(
                     artifact_types.Metrics.schema_title,
                     artifact_types.ClassificationMetrics.schema_title,
             ]:
-                unique_output_name = '{}-{}'.format(task.name, output_name)
+                unique_output_name = f'{task.name}-{output_name}'
 
                 sub_task_name = task.name
                 sub_task_output = output_name
@@ -1075,8 +1060,9 @@ def modify_pipeline_spec_with_override(
             raise NotImplementedError(
                 'Default value for artifact input is not supported.')
         else:
-            raise ValueError('Pipeline parameter {} does not match any known '
-                             'pipeline input.'.format(input_name))
+            raise ValueError(
+                f'Pipeline parameter {input_name} does not match any known pipeline input.'
+            )
 
     return pipeline_spec
 
@@ -1604,6 +1590,7 @@ def create_pipeline_spec(
 
 
 def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
+                                pipeline_description: str,
                                 package_path: str) -> None:
     """Writes PipelineSpec into a YAML or JSON (deprecated) file.
 
@@ -1612,6 +1599,8 @@ def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
         package_path (str): The path to which to write the PipelineSpec.
     """
     json_dict = json_format.MessageToDict(pipeline_spec)
+    yaml_comments = extract_comments_from_pipeline_spec(json_dict,
+                                                        pipeline_description)
 
     if package_path.endswith('.json'):
         warnings.warn(
@@ -1626,8 +1615,89 @@ def write_pipeline_spec_to_file(pipeline_spec: pipeline_spec_pb2.PipelineSpec,
 
     elif package_path.endswith(('.yaml', '.yml')):
         with open(package_path, 'w') as yaml_file:
+            yaml_file.write(yaml_comments)
             yaml.dump(json_dict, yaml_file, sort_keys=True)
 
     else:
         raise ValueError(
             f'The output path {package_path} should end with ".yaml".')
+
+
+def extract_comments_from_pipeline_spec(pipeline_spec: dict,
+                                        pipeline_description: str) -> str:
+    map_parameter_types = {
+        'NUMBER_INTEGER': int.__name__,
+        'NUMBER_DOUBLE': float.__name__,
+        'STRING': str.__name__,
+        'BOOLEAN': bool.__name__,
+        'LIST': list.__name__,
+        'STRUCT': dict.__name__
+    }
+
+    map_headings = {
+        'inputDefinitions': '# Inputs:',
+        'outputDefinitions': '# Outputs:'
+    }
+
+    def collect_pipeline_signatures(root_dict: dict,
+                                    signature_type: str) -> List[str]:
+        comment_strings = []
+        if signature_type in root_dict:
+            signature = root_dict[signature_type]
+            comment_strings.append(map_headings[signature_type])
+
+            # Collect data
+            array_of_signatures = []
+            for parameter_name, parameter_body in signature.get(
+                    'parameters', {}).items():
+                data = {}
+                data['name'] = parameter_name
+                data['parameterType'] = map_parameter_types[
+                    parameter_body['parameterType']]
+                if 'defaultValue' in signature['parameters'][parameter_name]:
+                    data['defaultValue'] = signature['parameters'][
+                        parameter_name]['defaultValue']
+                    if isinstance(data['defaultValue'], str):
+                        data['defaultValue'] = "'" + data['defaultValue'] + "'"
+                array_of_signatures.append(data)
+
+            for artifact_name, artifact_body in signature.get('artifacts',
+                                                              {}).items():
+                data = {
+                    'name':
+                        artifact_name,
+                    'parameterType':
+                        artifact_body['artifactType']['schemaTitle']
+                }
+                array_of_signatures.append(data)
+
+            array_of_signatures = sorted(
+                array_of_signatures, key=lambda d: d.get('name'))
+
+            # Present data
+            for signature in array_of_signatures:
+                string = '#    ' + signature['name'] + ': ' + signature[
+                    'parameterType']
+                if 'defaultValue' in signature:
+                    string += ' [Default: ' + str(
+                        signature['defaultValue']) + ']'
+                comment_strings.append(string)
+
+        return comment_strings
+
+    multi_line_description_prefix = '#              '
+    comment_sections = []
+    comment_sections.append('# PIPELINE DEFINITION')
+    comment_sections.append('# Name: ' + pipeline_spec['pipelineInfo']['name'])
+    if pipeline_description:
+        pipeline_description = f'\n{multi_line_description_prefix}'.join(
+            pipeline_description.splitlines())
+        comment_sections.append('# Description: ' + pipeline_description)
+    comment_sections.extend(
+        collect_pipeline_signatures(pipeline_spec['root'], 'inputDefinitions'))
+    comment_sections.extend(
+        collect_pipeline_signatures(pipeline_spec['root'], 'outputDefinitions'))
+
+    comment = '\n'.join(comment_sections) + '\n'
+
+    return comment
