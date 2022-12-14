@@ -10,6 +10,7 @@
 ## Bug fixes and other changes
 * Unblock valid topologies [\#8416](https://github.com/kubeflow/pipelines/pull/8416)
 * Fix bug when writing to same file using gcsfuse and distributed training strategy in lightweight/containerized Python components [#8544](https://github.com/kubeflow/pipelines/pull/8544) [alternative fix after [#8455](https://github.com/kubeflow/pipelines/pull/8455) in `kfp==2.0.0b8`]
+* Add support for optional artifact inputs (toward feature parity with KFP SDK v1) [\#8576](https://github.com/kubeflow/pipelines/pull/8576)
 
 ## Documentation updates
 # 2.0.0-beta.8
