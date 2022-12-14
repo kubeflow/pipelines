@@ -102,14 +102,6 @@ Class | Method | HTTP request | Description
 *ExperimentServiceApi* | [**get_experiment**](docs/ExperimentServiceApi.md#get_experiment) | **GET** /apis/v2beta1/experiments/{experiment_id} | Finds a specific experiment by ID.
 *ExperimentServiceApi* | [**list_experiments**](docs/ExperimentServiceApi.md#list_experiments) | **GET** /apis/v2beta1/experiments | Finds all experiments. Supports pagination, and sorting on certain fields.
 *ExperimentServiceApi* | [**unarchive_experiment**](docs/ExperimentServiceApi.md#unarchive_experiment) | **POST** /apis/v2beta1/experiments/{experiment_id}:unarchive | Restores an archived experiment. The experiment&#39;s archived runs and recurring runs will stay archived.
-<<<<<<< HEAD
-*RecurringRunServiceApi* | [**create_recurring_run**](docs/RecurringRunServiceApi.md#create_recurring_run) | **POST** /apis/v2beta1/recurringruns | Creates a new recurring run in an experiment, given the experiment ID.
-*RecurringRunServiceApi* | [**delete_recurring_run**](docs/RecurringRunServiceApi.md#delete_recurring_run) | **DELETE** /apis/v2beta1/recurringruns/{recurring_run_id} | Deletes a recurring run.
-*RecurringRunServiceApi* | [**disable_recurring_run**](docs/RecurringRunServiceApi.md#disable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{recurring_run_id}:disable | Stops a recurring run and all its associated runs. The recurring run is not deleted.
-*RecurringRunServiceApi* | [**enable_recurring_run**](docs/RecurringRunServiceApi.md#enable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{recurring_run_id}:enable | Restarts a recurring run that was previously stopped. All runs associated with the  recurring run will continue.
-*RecurringRunServiceApi* | [**get_recurring_run**](docs/RecurringRunServiceApi.md#get_recurring_run) | **GET** /apis/v2beta1/recurringruns/{recurring_run_id} | Finds a specific recurring run by ID.
-*RecurringRunServiceApi* | [**list_recurring_runs**](docs/RecurringRunServiceApi.md#list_recurring_runs) | **GET** /apis/v2beta1/recurringruns | Finds all recurring runs given experiment and namespace.  If experiment ID is not specified, find all recurring runs across all experiments.
-=======
 *PipelineServiceApi* | [**create_pipeline**](docs/PipelineServiceApi.md#create_pipeline) | **POST** /apis/v2beta1/pipelines | Creates a pipeline.
 *PipelineServiceApi* | [**create_pipeline_version**](docs/PipelineServiceApi.md#create_pipeline_version) | **POST** /apis/v2beta1/pipelines/{pipeline_id}/versions | Adds a pipeline version to the specified pipeline ID.
 *PipelineServiceApi* | [**delete_pipeline**](docs/PipelineServiceApi.md#delete_pipeline) | **DELETE** /apis/v2beta1/pipelines/{pipeline_id} | Deletes an empty pipeline by ID. Returns error if the pipeline has pipeline versions.
@@ -132,17 +124,10 @@ Class | Method | HTTP request | Description
 *RunServiceApi* | [**report_run_metrics**](docs/RunServiceApi.md#report_run_metrics) | **POST** /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:reportMetrics | Reports metrics of a run. Each metric is reported in its own transaction, so this API accepts partial failures. Metric can be uniquely identified by (experiment_id, run_id, node_id, name). Duplicate  reporting will be ignored by the API. First reporting wins.
 *RunServiceApi* | [**terminate_run**](docs/RunServiceApi.md#terminate_run) | **POST** /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:terminate | Terminates an active run.
 *RunServiceApi* | [**unarchive_run**](docs/RunServiceApi.md#unarchive_run) | **POST** /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:unarchive | Restores an archived run in an experiment given by run ID and experiment ID.
->>>>>>> origin/master
 
 
 ## Documentation For Models
 
-<<<<<<< HEAD
- - [ExperimentStorageState](docs/ExperimentStorageState.md)
- - [ProtobufNullValue](docs/ProtobufNullValue.md)
- - [RecurringRunMode](docs/RecurringRunMode.md)
- - [V2beta1CronSchedule](docs/V2beta1CronSchedule.md)
-=======
  - [ApiParameter](docs/ApiParameter.md)
  - [ApiPipeline](docs/ApiPipeline.md)
  - [ApiPipelineVersion](docs/ApiPipelineVersion.md)
@@ -161,19 +146,10 @@ Class | Method | HTTP request | Description
  - [RpcStatus](docs/RpcStatus.md)
  - [RunMetricFormat](docs/RunMetricFormat.md)
  - [V2beta1ArtifactList](docs/V2beta1ArtifactList.md)
->>>>>>> origin/master
  - [V2beta1Experiment](docs/V2beta1Experiment.md)
  - [V2beta1ExperimentStorageState](docs/V2beta1ExperimentStorageState.md)
  - [V2beta1Filter](docs/V2beta1Filter.md)
  - [V2beta1ListExperimentsResponse](docs/V2beta1ListExperimentsResponse.md)
-<<<<<<< HEAD
- - [V2beta1ListRecurringRunsResponse](docs/V2beta1ListRecurringRunsResponse.md)
- - [V2beta1PeriodicSchedule](docs/V2beta1PeriodicSchedule.md)
- - [V2beta1RecurringRun](docs/V2beta1RecurringRun.md)
- - [V2beta1RecurringRunStatus](docs/V2beta1RecurringRunStatus.md)
- - [V2beta1RuntimeConfig](docs/V2beta1RuntimeConfig.md)
- - [V2beta1Trigger](docs/V2beta1Trigger.md)
-=======
  - [V2beta1ListPipelineVersionsResponse](docs/V2beta1ListPipelineVersionsResponse.md)
  - [V2beta1ListPipelinesResponse](docs/V2beta1ListPipelinesResponse.md)
  - [V2beta1ListRunsResponse](docs/V2beta1ListRunsResponse.md)
@@ -194,7 +170,6 @@ Class | Method | HTTP request | Description
  - [V2beta1RuntimeState](docs/V2beta1RuntimeState.md)
  - [V2beta1RuntimeStatus](docs/V2beta1RuntimeStatus.md)
  - [V2beta1Url](docs/V2beta1Url.md)
->>>>>>> origin/master
 
 
 ## Documentation For Authorization

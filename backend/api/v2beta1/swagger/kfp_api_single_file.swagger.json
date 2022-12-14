@@ -208,24 +208,14 @@
         ]
       }
     },
-<<<<<<< HEAD
-    "/apis/v2beta1/recurringruns": {
-      "get": {
-        "summary": "Finds all recurring runs given experiment and namespace. \nIf experiment ID is not specified, find all recurring runs across all experiments.",
-        "operationId": "ListRecurringRuns",
-=======
     "/apis/v2beta1/pipelines": {
       "get": {
         "summary": "Finds all pipelines within a namespace.",
         "operationId": "ListPipelines",
->>>>>>> origin/master
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-<<<<<<< HEAD
-              "$ref": "#/definitions/v2beta1ListRecurringRunsResponse"
-=======
               "$ref": "#/definitions/v2beta1ListPipelinesResponse"
             }
           },
@@ -233,16 +223,11 @@
             "description": "",
             "schema": {
               "$ref": "#/definitions/rpcStatus"
->>>>>>> origin/master
             }
           }
         },
         "parameters": [
           {
-<<<<<<< HEAD
-            "name": "page_token",
-            "description": "A page token to request the next page of results. The token is acquired\nfrom the nextPageToken field of the response from the previous\nListRecurringRuns call or can be omitted when fetching the first page.",
-=======
             "name": "namespace",
             "description": "Optional input. Namespace for the pipelines.",
             "in": "query",
@@ -252,18 +237,13 @@
           {
             "name": "page_token",
             "description": "A page token to request the results page.",
->>>>>>> origin/master
             "in": "query",
             "required": false,
             "type": "string"
           },
           {
             "name": "page_size",
-<<<<<<< HEAD
-            "description": "The number of recurring runs to be listed per page. If there are more recurring runs \nthan this number, the response message will contain a nextPageToken field you can use\nto fetch the next page.",
-=======
             "description": "The number of pipelines to be listed per page. If there are more pipelines\nthan this number, the response message will contain a valid value in the\nnextPageToken field.",
->>>>>>> origin/master
             "in": "query",
             "required": false,
             "type": "integer",
@@ -271,9 +251,6 @@
           },
           {
             "name": "sort_by",
-<<<<<<< HEAD
-            "description": "Can be formatted as \"field_name\", \"field_name asc\" or \"field_name desc\".\nAscending by default.",
-=======
             "description": "Sorting order in form of \"field_name\", \"field_name asc\" or \"field_name desc\".\nAscending by default.",
             "in": "query",
             "required": false,
@@ -631,16 +608,12 @@
           },
           {
             "name": "description",
->>>>>>> origin/master
             "in": "query",
             "required": false,
             "type": "string"
           },
           {
             "name": "namespace",
-<<<<<<< HEAD
-            "description": "Optional input. The namespace the recurring runs belong to.",
-=======
             "in": "query",
             "required": false,
             "type": "string"
@@ -817,7 +790,6 @@
           {
             "name": "sort_by",
             "description": "Can be format of \"field_name\", \"field_name asc\" or \"field_name desc\"\n(Example, \"name asc\" or \"id desc\"). Ascending by default.",
->>>>>>> origin/master
             "in": "query",
             "required": false,
             "type": "string"
@@ -828,24 +800,6 @@
             "in": "query",
             "required": false,
             "type": "string"
-<<<<<<< HEAD
-          },
-          {
-            "name": "experiment_id",
-            "description": "The ID of the experiment to be retrieved. If empty, list recurring runs across all experiments.",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          }
-        ],
-        "tags": [
-          "RecurringRunService"
-        ]
-      },
-      "post": {
-        "summary": "Creates a new recurring run in an experiment, given the experiment ID.",
-        "operationId": "CreateRecurringRun",
-=======
           }
         ],
         "tags": [
@@ -855,14 +809,10 @@
       "post": {
         "summary": "Creates a new run in an experiment specified by experiment ID. \nIf experiment ID is not specified, the run is created in the default experiment.",
         "operationId": "CreateRun",
->>>>>>> origin/master
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-<<<<<<< HEAD
-              "$ref": "#/definitions/v2beta1RecurringRun"
-=======
               "$ref": "#/definitions/v2beta1Run"
             }
           },
@@ -870,20 +820,11 @@
             "description": "",
             "schema": {
               "$ref": "#/definitions/rpcStatus"
->>>>>>> origin/master
             }
           }
         },
         "parameters": [
           {
-<<<<<<< HEAD
-            "name": "body",
-            "description": "The recurring run to be created.",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/v2beta1RecurringRun"
-=======
             "name": "experiment_id",
             "description": "The ID of the parent experiment.",
             "in": "path",
@@ -897,21 +838,10 @@
             "required": true,
             "schema": {
               "$ref": "#/definitions/v2beta1Run"
->>>>>>> origin/master
             }
           }
         ],
         "tags": [
-<<<<<<< HEAD
-          "RecurringRunService"
-        ]
-      }
-    },
-    "/apis/v2beta1/recurringruns/{recurring_run_id}": {
-      "get": {
-        "summary": "Finds a specific recurring run by ID.",
-        "operationId": "GetRecurringRun",
-=======
           "RunService"
         ]
       }
@@ -920,14 +850,10 @@
       "get": {
         "summary": "Finds a specific run by ID.",
         "operationId": "GetRun",
->>>>>>> origin/master
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-<<<<<<< HEAD
-              "$ref": "#/definitions/v2beta1RecurringRun"
-=======
               "$ref": "#/definitions/v2beta1Run"
             }
           },
@@ -935,16 +861,11 @@
             "description": "",
             "schema": {
               "$ref": "#/definitions/rpcStatus"
->>>>>>> origin/master
             }
           }
         },
         "parameters": [
           {
-<<<<<<< HEAD
-            "name": "recurring_run_id",
-            "description": "The ID of the recurring run to be retrieved.",
-=======
             "name": "experiment_id",
             "description": "The ID of the parent experiment.",
             "in": "path",
@@ -954,51 +875,34 @@
           {
             "name": "run_id",
             "description": "The ID of the run to be retrieved.",
->>>>>>> origin/master
             "in": "path",
             "required": true,
             "type": "string"
           }
         ],
         "tags": [
-<<<<<<< HEAD
-          "RecurringRunService"
-        ]
-      },
-      "delete": {
-        "summary": "Deletes a recurring run.",
-        "operationId": "DeleteRecurringRun",
-=======
           "RunService"
         ]
       },
       "delete": {
         "summary": "Deletes a run in an experiment given by run ID and experiment ID.",
         "operationId": "DeleteRun",
->>>>>>> origin/master
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "properties": {}
             }
-<<<<<<< HEAD
-=======
           },
           "default": {
             "description": "",
             "schema": {
               "$ref": "#/definitions/rpcStatus"
             }
->>>>>>> origin/master
           }
         },
         "parameters": [
           {
-<<<<<<< HEAD
-            "name": "recurring_run_id",
-            "description": "The ID of the recurring run to be deleted.",
-=======
             "name": "experiment_id",
             "description": "The ID of the parent experiment.",
             "in": "path",
@@ -1008,23 +912,12 @@
           {
             "name": "run_id",
             "description": "The ID of the run to be deleted.",
->>>>>>> origin/master
             "in": "path",
             "required": true,
             "type": "string"
           }
         ],
         "tags": [
-<<<<<<< HEAD
-          "RecurringRunService"
-        ]
-      }
-    },
-    "/apis/v2beta1/recurringruns/{recurring_run_id}:disable": {
-      "post": {
-        "summary": "Stops a recurring run and all its associated runs. The recurring run is not deleted.",
-        "operationId": "DisableRecurringRun",
-=======
           "RunService"
         ]
       }
@@ -1033,14 +926,10 @@
       "get": {
         "summary": "Finds artifact data in a run.",
         "operationId": "ReadArtifact",
->>>>>>> origin/master
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
-<<<<<<< HEAD
-              "properties": {}
-=======
               "$ref": "#/definitions/v2beta1ReadArtifactResponse"
             }
           },
@@ -1048,16 +937,11 @@
             "description": "",
             "schema": {
               "$ref": "#/definitions/rpcStatus"
->>>>>>> origin/master
             }
           }
         },
         "parameters": [
           {
-<<<<<<< HEAD
-            "name": "recurring_run_id",
-            "description": "The ID of the recurring runs to be disabled.",
-=======
             "name": "experiment_id",
             "description": "The ID of the parent experiment.",
             "in": "path",
@@ -1081,23 +965,12 @@
           {
             "name": "artifact_name",
             "description": "Name of the artifact.",
->>>>>>> origin/master
             "in": "path",
             "required": true,
             "type": "string"
           }
         ],
         "tags": [
-<<<<<<< HEAD
-          "RecurringRunService"
-        ]
-      }
-    },
-    "/apis/v2beta1/recurringruns/{recurring_run_id}:enable": {
-      "post": {
-        "summary": "Restarts a recurring run that was previously stopped. All runs associated with the \nrecurring run will continue.",
-        "operationId": "EnableRecurringRun",
-=======
           "RunService"
         ]
       }
@@ -1106,30 +979,22 @@
       "post": {
         "summary": "Archives a run in an experiment given by run ID and experiment ID.",
         "operationId": "ArchiveRun",
->>>>>>> origin/master
         "responses": {
           "200": {
             "description": "A successful response.",
             "schema": {
               "properties": {}
             }
-<<<<<<< HEAD
-=======
           },
           "default": {
             "description": "",
             "schema": {
               "$ref": "#/definitions/rpcStatus"
             }
->>>>>>> origin/master
           }
         },
         "parameters": [
           {
-<<<<<<< HEAD
-            "name": "recurring_run_id",
-            "description": "The ID of the recurring runs to be enabled.",
-=======
             "name": "experiment_id",
             "description": "The ID of the parent experiment.",
             "in": "path",
@@ -1139,16 +1004,12 @@
           {
             "name": "run_id",
             "description": "The ID of the run to be archived.",
->>>>>>> origin/master
             "in": "path",
             "required": true,
             "type": "string"
           }
         ],
         "tags": [
-<<<<<<< HEAD
-          "RecurringRunService"
-=======
           "RunService"
         ]
       }
@@ -1275,7 +1136,6 @@
         ],
         "tags": [
           "RunService"
->>>>>>> origin/master
         ]
       }
     }
@@ -1342,17 +1202,6 @@
         }
       }
     },
-<<<<<<< HEAD
-    "RecurringRunMode": {
-      "type": "string",
-      "enum": [
-        "MODE_UNSPECIFIED",
-        "ENABLE",
-        "DISABLE"
-      ],
-      "default": "MODE_UNSPECIFIED",
-      "description": "Required input.\nUser setting to enable or disable the recurring run. \nOnly used for creation of recurring runs. Later updates use enable/disable API.\n\n - DISABLE: The recurring run won't schedule any run if disabled."
-=======
     "PredicateIntValues": {
       "type": "object",
       "properties": {
@@ -1478,7 +1327,6 @@
         }
       },
       "description": "`Any` contains an arbitrary serialized protocol buffer message along with a\nURL that describes the type of the serialized message.\n\nProtobuf library provides support to pack/unpack Any values in the form\nof utility functions or additional generated methods of the Any type.\n\nExample 1: Pack and unpack a message in C++.\n\n    Foo foo = ...;\n    Any any;\n    any.PackFrom(foo);\n    ...\n    if (any.UnpackTo(&foo)) {\n      ...\n    }\n\nExample 2: Pack and unpack a message in Java.\n\n    Foo foo = ...;\n    Any any = Any.pack(foo);\n    ...\n    if (any.is(Foo.class)) {\n      foo = any.unpack(Foo.class);\n    }\n\n Example 3: Pack and unpack a message in Python.\n\n    foo = Foo(...)\n    any = Any()\n    any.Pack(foo)\n    ...\n    if any.Is(Foo.DESCRIPTOR):\n      any.Unpack(foo)\n      ...\n\n Example 4: Pack and unpack a message in Go\n\n     foo := &pb.Foo{...}\n     any, err := anypb.New(foo)\n     if err != nil {\n       ...\n     }\n     ...\n     foo := &pb.Foo{}\n     if err := any.UnmarshalTo(foo); err != nil {\n       ...\n     }\n\nThe pack methods provided by protobuf library will by default use\n'type.googleapis.com/full.type.name' as the type URL and the unpack\nmethods only use the fully qualified type name after the last '/'\nin the type URL, for example \"foo.bar.com/x/y.z\" will yield type\nname \"y.z\".\n\n\nJSON\n====\nThe JSON representation of an `Any` value uses the regular\nrepresentation of the deserialized, embedded message, with an\nadditional field `@type` which contains the type URL. Example:\n\n    package google.profile;\n    message Person {\n      string first_name = 1;\n      string last_name = 2;\n    }\n\n    {\n      \"@type\": \"type.googleapis.com/google.profile.Person\",\n      \"firstName\": <string>,\n      \"lastName\": <string>\n    }\n\nIf the embedded message type is well-known and has a custom JSON\nrepresentation, that representation will be embedded adding a field\n`value` which holds the custom JSON in addition to the `@type`\nfield. Example (for message [google.protobuf.Duration][]):\n\n    {\n      \"@type\": \"type.googleapis.com/google.protobuf.Duration\",\n      \"value\": \"1.212s\"\n    }"
->>>>>>> origin/master
     },
     "protobufNullValue": {
       "type": "string",
@@ -1488,37 +1336,6 @@
       "default": "NULL_VALUE",
       "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
     },
-<<<<<<< HEAD
-    "v2beta1CronSchedule": {
-      "type": "object",
-      "properties": {
-        "start_time": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The start time of the cron job."
-        },
-        "end_time": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The end time of the cron job."
-        },
-        "cron": {
-          "type": "string",
-          "title": "The cron string. For details how to compose a cron, visit\nttps://en.wikipedia.org/wiki/Cron"
-        }
-      },
-      "description": "CronSchedule allow scheduling the recurring run with unix-like cron."
-    },
-    "v2beta1ListRecurringRunsResponse": {
-      "type": "object",
-      "properties": {
-        "recurringRuns": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v2beta1RecurringRun"
-          },
-          "description": "A list of recurring runs returned."
-=======
     "rpcStatus": {
       "type": "object",
       "properties": {
@@ -1554,84 +1371,10 @@
         "next_page_token": {
           "type": "string",
           "description": "The token to list the next page of pipeline versions."
->>>>>>> origin/master
         },
         "total_size": {
           "type": "integer",
           "format": "int32",
-<<<<<<< HEAD
-          "description": "The total number of recurring runs for the given query."
-        },
-        "next_page_token": {
-          "type": "string",
-          "description": "The token to list the next page of recurring runs."
-        }
-      }
-    },
-    "v2beta1PeriodicSchedule": {
-      "type": "object",
-      "properties": {
-        "start_time": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The start time of the periodic recurring run."
-        },
-        "end_time": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The end time of the periodic recurring run."
-        },
-        "interval_second": {
-          "type": "string",
-          "format": "int64",
-          "description": "The time interval between the starting time of consecutive recurring runs."
-        }
-      },
-      "description": "PeriodicSchedule allow scheduling the recurring run periodically with certain interval."
-    },
-    "v2beta1RecurringRun": {
-      "type": "object",
-      "properties": {
-        "recurring_run_id": {
-          "type": "string",
-          "description": "Output. Unique run ID generated by API server."
-        },
-        "display_name": {
-          "type": "string",
-          "description": "Required input field. Recurring run name provided by user. Not unique."
-        },
-        "description": {
-          "type": "string",
-          "description": "Optional input field. Describes the purpose of the recurring run."
-        },
-        "pipeline_id": {
-          "type": "string",
-          "description": "The ID of the pipeline user uploaded before."
-        },
-        "pipeline_spec": {
-          "type": "object",
-          "description": "The pipeline spec."
-        },
-        "runtime_config": {
-          "$ref": "#/definitions/v2beta1RuntimeConfig",
-          "description": "Runtime config of the pipeline."
-        },
-        "service_account": {
-          "type": "string",
-          "description": "Optional input field. Specifies which Kubernetes service account this recurring run uses."
-        },
-        "max_concurrency": {
-          "type": "string",
-          "format": "int64",
-          "description": "Required input field.\nSpecifies how many runs can be executed concurrently. Range [1-10]."
-        },
-        "trigger": {
-          "$ref": "#/definitions/v2beta1Trigger",
-          "description": "Required input field.\nSpecifies how a run is triggered. Support cron mode or periodic mode."
-        },
-        "mode": {
-          "$ref": "#/definitions/RecurringRunMode"
-=======
           "description": "The total number of pipeline versions for the given query."
         }
       }
@@ -1671,51 +1414,10 @@
         "description": {
           "type": "string",
           "description": "Optional input field. A short description of the pipeline."
->>>>>>> origin/master
         },
         "created_at": {
           "type": "string",
           "format": "date-time",
-<<<<<<< HEAD
-          "description": "Output. The time this recurring run was created."
-        },
-        "updated_at": {
-          "type": "string",
-          "format": "date-time",
-          "description": "Output. The last time this recurring run was updated."
-        },
-        "status": {
-          "$ref": "#/definitions/v2beta1RecurringRunStatus"
-        },
-        "error": {
-          "type": "string",
-          "description": "In case any error happens retrieving a recurring run field, only recurring run ID\nand the error message is returned. Client has the flexibility of choosing\nhow to handle the error. This is especially useful during listing call."
-        },
-        "no_catchup": {
-          "type": "boolean",
-          "format": "boolean",
-          "description": "Optional input field. Whether the recurring run should catch up if behind schedule.\nIf true, the recurring run will only schedule the latest interval if behind schedule.\nIf false, the recurring run will catch up on each past interval."
-        },
-        "namespace": {
-          "type": "string",
-          "description": "Namespace this recurring run belongs to."
-        },
-        "experiment_id": {
-          "type": "string",
-          "description": "ID of the experiment this recurring run belongs to."
-        }
-      }
-    },
-    "v2beta1RecurringRunStatus": {
-      "type": "string",
-      "enum": [
-        "STATUS_UNSPECIFIED",
-        "ENABLED",
-        "DISABLED"
-      ],
-      "default": "STATUS_UNSPECIFIED",
-      "description": "Output. The status of the recurring run."
-=======
           "description": "Output. Creation time of the pipeline."
         },
         "namespace": {
@@ -2279,7 +1981,6 @@
       ],
       "default": "STORAGESTATE_UNSPECIFIED",
       "description": "Describes whether an entity is available or archived.\n\n - STORAGESTATE_UNSPECIFIED: Default state. This state in not used\n - AVAILABLE: Entity is available.\n - ARCHIVED: Entity is archived."
->>>>>>> origin/master
     },
     "v2beta1RuntimeConfig": {
       "type": "object",
@@ -2289,28 +1990,6 @@
           "additionalProperties": {
             "type": "object"
           },
-<<<<<<< HEAD
-          "description": "The runtime parameters. The parameters will be used to replace \nthe placeholders at runtime."
-        },
-        "pipeline_root": {
-          "type": "string",
-          "title": "A path in a object store bucket which will be treated as the root\noutput directory of this run. It is used by the system to\ngenerate the paths of output artifacts. \nRef:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)"
-        }
-      },
-      "description": "The runtime config of a run or recurring run."
-    },
-    "v2beta1Trigger": {
-      "type": "object",
-      "properties": {
-        "cron_schedule": {
-          "$ref": "#/definitions/v2beta1CronSchedule"
-        },
-        "periodic_schedule": {
-          "$ref": "#/definitions/v2beta1PeriodicSchedule"
-        }
-      },
-      "description": "Trigger defines what starts a pipeline run."
-=======
           "description": "The runtime parameters of the Pipeline. The parameters will be\nused to replace the placeholders at runtime."
         },
         "pipeline_root": {
@@ -2354,7 +2033,6 @@
         }
       },
       "description": "Timestamped representation of a runtime state with an optional error."
->>>>>>> origin/master
     }
   },
   "securityDefinitions": {
