@@ -183,12 +183,6 @@ def get_inputs_for_all_groups(
         task_condition_inputs = list(condition_channels[task.name])
 
         for channel in task.channel_inputs + task_condition_inputs:
-
-            # If the value is already provided (immediate value), then no
-            # need to expose it as input for its parent groups.
-            if getattr(channel, 'value', None):
-                continue
-
             # channels_to_add could be a list of PipelineChannels when loop
             # args are involved. Given a nested loops example as follows:
             #

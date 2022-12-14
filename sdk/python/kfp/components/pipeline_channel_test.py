@@ -40,13 +40,13 @@ class PipelineChannelTest(parameterized.TestCase):
             )
 
     def test_task_name_and_value_both_set(self):
-        with self.assertRaisesRegex(ValueError,
-                                    'task_name and value cannot be both set.'):
+        with self.assertRaisesRegex(
+                ValueError, 'task_name and default_value cannot be both set.'):
             p = pipeline_channel.PipelineParameterChannel(
                 name='abc',
                 channel_type='Integer',
                 task_name='task1',
-                value=123,
+                default_value=123,
             )
 
     def test_invalid_type(self):
@@ -102,7 +102,7 @@ class PipelineChannelTest(parameterized.TestCase):
                 pipeline_channel.PipelineParameterChannel(
                     name='channel4',
                     channel_type='Float',
-                    value=1.23,
+                    default_value=1.23,
                 ),
             'str_repr':
                 '{{channel:task=;name=channel4;type=Float;}}',
@@ -125,7 +125,7 @@ class PipelineChannelTest(parameterized.TestCase):
         p1 = pipeline_channel.PipelineParameterChannel(
             name='channel1',
             channel_type='String',
-            value='abc',
+            default_value='abc',
         )
         p2 = pipeline_channel.PipelineArtifactChannel(
             name='channel2',

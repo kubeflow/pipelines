@@ -632,7 +632,7 @@ def build_component_spec_for_group(
                 _fill_in_component_input_default_value(
                     component_spec=component_spec,
                     input_name=input_name,
-                    default_value=channel.value,
+                    default_value=channel.default_value,
                 )
 
     return component_spec
