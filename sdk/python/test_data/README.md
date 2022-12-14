@@ -10,13 +10,13 @@ Tests the compiler (write) and load (read) functionality of the SDK. This ensure
 These tests require golden snapshots of pipelines and components against with compiled pipelines are compared. To update pipeline golden snapshots:
 
 ```bash
-for f in sdk/python/kfp/compiler/test_data/pipelines/*.py ; do echo "$f" && python3 "$f" ; done
+for f in sdk/python/test_data/pipelines/*.py ; do echo "$f" && python3 "$f" ; done
 ```
 
 
 To update component golden snapshots:
 ```bash
-for f in sdk/python/kfp/compiler/test_data/components/*.py ; do echo "$f" && python3 "$f" ; done
+for f in sdk/python/test_data/components/*.py ; do echo "$f" && python3 "$f" ; done
 ```
 
 
