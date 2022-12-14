@@ -896,7 +896,10 @@ class ComponentSpec:
 
         for arg_name, input_spec in pipeline_inputs.items():
             args_dict[arg_name] = pipeline_channel.create_pipeline_channel(
-                name=arg_name, channel_type=input_spec.type)
+                name=arg_name,
+                channel_type=input_spec.type,
+                value=input_spec.default,
+            )
 
         task = pipeline_task.PipelineTask(self, args_dict)
 
@@ -906,18 +909,10 @@ class ComponentSpec:
             group_type=tasks_group.TasksGroupType.PIPELINE)
         group.tasks.append(task)
 
-        # Fill in the default values.
-        args_list_with_defaults = [
-            pipeline_channel.create_pipeline_channel(
-                name=input_name,
-                channel_type=input_spec.type,
-                value=input_spec.default,
-            ) for input_name, input_spec in pipeline_inputs.items()
-        ]
         group.name = uuid.uuid4().hex
 
         pipeline_name = self.name
-        pipeline_args = args_list_with_defaults
+        pipeline_args = list(args_dict.values())
         task_group = group
 
         utils.validate_pipeline_name(pipeline_name)
