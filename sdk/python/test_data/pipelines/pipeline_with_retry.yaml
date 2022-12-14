@@ -71,9 +71,11 @@ root:
     parameters:
       a:
         defaultValue: 1.0
+        isOptional: true
         parameterType: NUMBER_DOUBLE
       b:
         defaultValue: 7.0
+        isOptional: true
         parameterType: NUMBER_DOUBLE
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-beta.8
