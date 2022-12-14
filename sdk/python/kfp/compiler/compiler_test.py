@@ -2466,6 +2466,17 @@ class TestOptionalArtifactsInSignature(unittest.TestCase):
                 name='', uri='', metadata={})):
                 comp()
 
+    def test_optional_artifact_not_provided_compiles(self):
+
+        @dsl.component
+        def comp(x: Optional[Input[Model]] = None):
+            print(x)
+
+        @dsl.pipeline
+        def my_pipeline():
+            # the following should not throw an exception!
+            comp()
+
 
 if __name__ == '__main__':
     unittest.main()
