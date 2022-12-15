@@ -111,10 +111,11 @@ implementation:
         '", ',
         {if: {
           cond: {isPresent: feature_ranking},
-          then:
-          ['"--feature_selection_result_path=',
-          {inputUri: feature_ranking},
-          '",']
+          then: {
+            concat: ['"--feature_selection_result_path=',
+            {inputUri: feature_ranking},
+            '",']
+          }
         }},
         '"--disable_early_stopping=',
         {inputValue: disable_early_stopping},
