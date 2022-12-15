@@ -1078,6 +1078,96 @@ class ExecutorTest(unittest.TestCase):
             os.path.exists(
                 os.path.join(self._test_dir, 'output_metadata.json')))
 
+    def test_single_artifact_input(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "artifacts": {
+          "input_artifact": {
+            "artifacts": [
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/input_artifact",
+                "type": {
+                  "schemaTitle": "system.Artifact"
+                },
+                "uri": "gs://some-bucket/output/input_artifact"
+              }
+            ]
+          }
+        }
+      },
+      "outputs": {
+        "outputFile": "%(test_dir)s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(input_artifact: Input[Artifact]):
+            self.assertIsInstance(input_artifact, Artifact)
+            self.assertEqual(
+                input_artifact.name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_artifact'
+            )
+            self.assertEqual(
+                input_artifact.name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_artifact'
+            )
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
+        self.assertDictEqual(output_metadata, {})
+
+    def test_list_of_artifacts_input(self):
+        executor_input = """\
+    {
+      "inputs": {
+        "artifacts": {
+          "input_list": {
+            "artifacts": [
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/0",
+                "type": {
+                  "schemaTitle": "system.Artifact"
+                },
+                "uri": "gs://some-bucket/output/input_list/0"
+              },
+              {
+                "metadata": {},
+                "name": "projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/1",
+                "type": {
+                  "schemaTitle": "system.Artifact"
+                },
+                "uri": "gs://some-bucket/output/input_list/1"
+              }
+            ]
+          }
+        }
+      },
+      "outputs": {
+        "outputFile": "%(test_dir)s/output_metadata.json"
+      }
+    }
+    """
+
+        def test_func(input_list: Input[List[Artifact]]):
+            self.assertEqual(len(input_list), 2)
+            self.assertEqual(
+                input_list[0].name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/0'
+            )
+            self.assertEqual(
+                input_list[1].name,
+                'projects/123/locations/us-central1/metadataStores/default/artifacts/input_list/1'
+            )
+
+        output_metadata = self.execute_and_load_output_metadata(
+            test_func, executor_input)
+
+        self.assertDictEqual(output_metadata, {})
+
 
 class VertexDataset:
     schema_title = 'google.VertexDataset'

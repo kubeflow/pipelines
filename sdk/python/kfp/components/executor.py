@@ -25,31 +25,43 @@ class Executor():
     """Executor executes v2-based Python function components."""
 
     def __init__(self, executor_input: Dict, function_to_execute: Callable):
-        if hasattr(function_to_execute, 'python_func'):
-            self._func = function_to_execute.python_func
-        else:
-            self._func = function_to_execute
+        self._func = function_to_execute
 
         self._input = executor_input
-        self._input_artifacts: Dict[str, artifact_types.Artifact] = {}
+        self._input_artifacts: Dict[str,
+                                    Union[artifact_types.Artifact,
+                                          List[artifact_types.Artifact]]] = {}
         self._output_artifacts: Dict[str, artifact_types.Artifact] = {}
 
         for name, artifacts in self._input.get('inputs',
                                                {}).get('artifacts', {}).items():
-            artifacts_list = artifacts.get('artifacts')
-            if artifacts_list:
-                self._input_artifacts[name] = self.make_artifact(
-                    artifacts_list[0],
-                    name,
-                    self._func,
-                )
+            list_of_artifact_proto_structs = artifacts.get('artifacts')
+            if list_of_artifact_proto_structs:
+                annotation = self._func.__annotations__[name]
+                # InputPath has no attribute __origin__ and also should be handled as a single artifact
+                if type_annotations.is_Input_Output_artifact_annotation(
+                        annotation) and type_annotations.is_list_of_artifacts(
+                            annotation.__origin__):
+                    self._input_artifacts[name] = [
+                        self.make_artifact(
+                            msg,
+                            name,
+                            self._func,
+                        ) for msg in list_of_artifact_proto_structs
+                    ]
+                else:
+                    self._input_artifacts[name] = self.make_artifact(
+                        list_of_artifact_proto_structs[0],
+                        name,
+                        self._func,
+                    )
 
         for name, artifacts in self._input.get('outputs',
                                                {}).get('artifacts', {}).items():
-            artifacts_list = artifacts.get('artifacts')
-            if artifacts_list:
+            list_of_artifact_proto_structs = artifacts.get('artifacts')
+            if list_of_artifact_proto_structs:
                 output_artifact = self.make_artifact(
-                    artifacts_list[0],
+                    list_of_artifact_proto_structs[0],
                     name,
                     self._func,
                 )
