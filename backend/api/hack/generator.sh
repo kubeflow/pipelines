@@ -108,13 +108,6 @@ swagger generate client \
     -c run_client \
     -m run_model \
     -t backend/api/${API_VERSION}/go_http_client
-# swagger generate client \
-#     -f backend/api/${API_VERSION}/swagger/run.swagger.json \
-#     -A run \
-#     --principal models.Principal \
-#     -c run_client \
-#     -m run_model \
-#     -t backend/api/${API_VERSION}/go_http_client
 swagger generate client \
     -f backend/api/${API_VERSION}/swagger/experiment.swagger.json \
     -A experiment \

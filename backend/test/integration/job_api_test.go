@@ -397,7 +397,10 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	job.Description = "A job with NoCatchup=false will backfill each past interval when behind schedule."
 	job.NoCatchup = false // This is the key difference.
 	createJobRequest = &jobparams.CreateJobParams{Body: job}
-	_, err = s.jobClient.Create(createJobRequest)
+	fmt.Printf("\n createJobRequest: %+v \n", createJobRequest)
+	ee, err := s.jobClient.Create(createJobRequest)
+	fmt.Printf("\n eeeeeeeeeeee: %+v \n", ee)
+	fmt.Printf("\n Trigger: %+v \n", ee.Trigger.CronSchedule)
 	assert.Nil(t, err)
 
 	/* -------- Create another cron job with start and end date in the past but catchup = false ------ */
@@ -414,7 +417,9 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	job.Description = "A job with NoCatchup=true only schedules the last interval when behind schedule."
 	job.NoCatchup = true // This is the key difference.
 	createJobRequest = &jobparams.CreateJobParams{Body: job}
-	_, err = s.jobClient.Create(createJobRequest)
+	fmt.Printf("\n createJobRequest: %+v \n", createJobRequest)
+	ff, err := s.jobClient.Create(createJobRequest)
+	fmt.Printf("\n fffffffffffff: %+v \n", ff)
 	assert.Nil(t, err)
 
 	// The scheduledWorkflow CRD would create the run and it is synced to the DB by persistent agent.
