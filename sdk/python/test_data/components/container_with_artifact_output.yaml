@@ -1,3 +1,7 @@
+# PIPELINE DEFINITION
+# Name: container-with-artifact-output
+# Inputs:
+#    num_epochs: int
 components:
   comp-container-with-artifact-output:
     executorLabel: exec-container-with-artifact-output
@@ -52,4 +56,4 @@ root:
       num_epochs:
         parameterType: NUMBER_INTEGER
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.2
+sdkVersion: kfp-2.0.0-beta.8

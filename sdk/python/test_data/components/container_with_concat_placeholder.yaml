@@ -1,3 +1,7 @@
+# PIPELINE DEFINITION
+# Name: container-with-concat-placeholder
+# Inputs:
+#    text1: str
 components:
   comp-container-with-concat-placeholder:
     executorLabel: exec-container-with-concat-placeholder
@@ -46,4 +50,4 @@ root:
       text1:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.1
+sdkVersion: kfp-2.0.0-beta.8

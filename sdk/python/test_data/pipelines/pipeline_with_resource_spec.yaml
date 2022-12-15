@@ -1,3 +1,10 @@
+# PIPELINE DEFINITION
+# Name: two-step-pipeline-with-resource-spec
+# Description: A linear two-step pipeline with resource specification.
+# Inputs:
+#    input_location: str [Default: 'gs://test-bucket/pipeline_root']
+#    n_epochs: int [Default: 200.0]
+#    optimizer: str [Default: 'sgd']
 components:
   comp-ingestion:
     executorLabel: exec-ingestion
@@ -107,4 +114,4 @@ root:
         defaultValue: sgd
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.5
+sdkVersion: kfp-2.0.0-beta.8
