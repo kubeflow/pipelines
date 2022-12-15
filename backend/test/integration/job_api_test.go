@@ -417,7 +417,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	_, err = s.jobClient.Create(createJobRequest)
 	assert.Nil(t, err)
 
-	// The scheduledWorkflow CRD would create the run and it synced to the DB by persistent agent.
+	// The scheduledWorkflow CRD would create the run and it is synced to the DB by persistent agent.
 	// This could take a few seconds to finish.
 
 	/* ---------- Assert number of runs when catchup = true ---------- */
@@ -449,24 +449,28 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 
 	/* ---------- Assert number of runs when catchup = false ---------- */
 	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
-		_, runsWhenCatchupFalse, _, err := s.runClient.List(&runParams.ListRunsV1Params{
+		cc, runsWhenCatchupFalse, dd, err := s.runClient.List(&runParams.ListRunsV1Params{
 			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(periodicCatchupFalseExperiment.ID)})
 		if err != nil {
 			return err
 		}
+		fmt.Printf("\n ccccccccccc %+v \n", cc)
+		fmt.Printf("\n ddddddddddd %+v \n", dd)
 		if runsWhenCatchupFalse != 1 {
 			return fmt.Errorf("expected runsWhenCatchupFalse with periodic schedule to be 1, got: %v", runsWhenCatchupFalse)
 		}
 
-		_, runsWhenCatchupFalse, _, err = s.runClient.List(&runParams.ListRunsV1Params{
+		aa, runsWhenCatchupFalse, bb, err := s.runClient.List(&runParams.ListRunsV1Params{
 			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(cronCatchupFalseExperiment.ID)})
 		if err != nil {
 			return err
 		}
+		fmt.Printf("\n aaaaaaaaaaa %+v \n", aa)
+		fmt.Printf("\n bbbbbbbbbbb %+v \n", bb)
 		if runsWhenCatchupFalse != 1 {
-			return fmt.Errorf("expected runsWhenCatchupFalse with cron schedule to be 1, got: %v", runsWhenCatchupFalse)
+			return fmt.Errorf("expected runsWhenCatchupFalse with cron schedule to be 1, got: %v \n aaaaa: %+v \n bbbb: %+v \n", runsWhenCatchupFalse, aa, bb)
 		}
 		return nil
 	}); err != nil {
