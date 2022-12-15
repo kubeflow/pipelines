@@ -1,3 +1,6 @@
+# PIPELINE DEFINITION
+# Name: conditional-execution-pipeline
+# Description: Shows how to use dsl.Condition().
 components:
   comp-condition-1:
     dag:
@@ -343,4 +346,4 @@ root:
         taskInfo:
           name: flip-coin
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-alpha.5
+sdkVersion: kfp-2.0.0-beta.8

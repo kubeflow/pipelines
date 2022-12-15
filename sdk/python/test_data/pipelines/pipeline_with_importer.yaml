@@ -1,3 +1,7 @@
+# PIPELINE DEFINITION
+# Name: pipeline-with-importer
+# Inputs:
+#    dataset2: str [Default: 'gs://ml-pipeline-playground/shakespeare2.txt']
 components:
   comp-condition-1:
     dag:
@@ -124,7 +128,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.4'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -156,7 +160,7 @@ deploymentSpec:
         - -c
         - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
           \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
-          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.4'\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
           \ && \"$0\" \"$@\"\n"
         - sh
         - -ec
@@ -231,4 +235,4 @@ root:
         defaultValue: gs://ml-pipeline-playground/shakespeare2.txt
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.4
+sdkVersion: kfp-2.0.0-beta.8
