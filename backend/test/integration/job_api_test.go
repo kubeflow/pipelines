@@ -380,7 +380,8 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	job.Description = "A job with NoCatchup=true only schedules the last interval when behind schedule."
 	job.NoCatchup = true // This is the key difference.
 	createJobRequest = &jobparams.CreateJobParams{Body: job}
-	_, err = s.jobClient.Create(createJobRequest)
+	gg, err := s.jobClient.Create(createJobRequest)
+	fmt.Printf("\n catch up false cron Trigger: %#v \n", gg.Trigger.CronSchedule)
 	assert.Nil(t, err)
 
 	/* ---------- Create a cron job with start and end date in the past and catchup = true ---------- */
@@ -475,7 +476,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 		fmt.Printf("\n aaaaaaaaaaa %+v \n", aa)
 		fmt.Printf("\n bbbbbbbbbbb %+v \n", bb)
 		if runsWhenCatchupFalse != 1 {
-			return fmt.Errorf("expected runsWhenCatchupFalse with cron schedule to be 1, got: %v \n aaaaa: %+v \n bbbb: %+v \n", runsWhenCatchupFalse, aa, bb)
+			return fmt.Errorf("expected runsWhenCatchupFalse with cron schedule to be 1, got: %v \n aaaaa: %#v \n bbbb: %#v \n", runsWhenCatchupFalse, aa, bb)
 		}
 		return nil
 	}); err != nil {
