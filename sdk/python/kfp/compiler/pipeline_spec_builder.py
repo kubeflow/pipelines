@@ -330,56 +330,18 @@ def build_component_spec_for_task(
     Returns:
         A ComponentSpec object for the task.
     """
-    component_spec = pipeline_spec_pb2.ComponentSpec()
-    component_spec.executor_label = utils.sanitize_executor_label(task.name)
-
     for input_name, input_spec in (task.component_spec.inputs or {}).items():
-
-        # Special handling for PipelineTaskFinalStatus first.
-        if type_utils.is_task_final_status_type(input_spec.type):
-            if not is_exit_task:
-                raise ValueError(
-                    'PipelineTaskFinalStatus can only be used in an exit task.')
-            component_spec.input_definitions.parameters[
-                input_name].parameter_type = pipeline_spec_pb2.ParameterType.STRUCT
-            continue
-
-        # skip inputs not present, as a workaround to support optional inputs.
-        if input_name not in task.inputs and input_spec.default is None:
-            continue
-
-        if type_utils.is_parameter_type(input_spec.type):
-            component_spec.input_definitions.parameters[
-                input_name].parameter_type = type_utils.get_parameter_type(
-                    input_spec.type)
-            if input_spec.default is not None:
-                _fill_in_component_input_default_value(
-                    component_spec=component_spec,
-                    input_name=input_name,
-                    default_value=input_spec.default,
-                )
-
-        else:
-            component_spec.input_definitions.artifacts[
-                input_name].artifact_type.CopyFrom(
-                    type_utils.bundled_artifact_to_artifact_proto(
-                        input_spec.type))
-
-    for output_name, output_spec in (task.component_spec.outputs or {}).items():
-        if type_utils.is_parameter_type(output_spec.type):
-            component_spec.output_definitions.parameters[
-                output_name].parameter_type = type_utils.get_parameter_type(
-                    output_spec.type)
-        else:
-            component_spec.output_definitions.artifacts[
-                output_name].artifact_type.CopyFrom(
-                    type_utils.bundled_artifact_to_artifact_proto(
-                        output_spec.type))
-
+        if not is_exit_task and type_utils.is_task_final_status_type(
+                input_spec.type):
+            raise ValueError(
+                f'PipelineTaskFinalStatus can only be used in an exit task. Parameter {input_name} of a non exit task has type PipelineTaskFinalStatus.'
+            )
+    component_spec = _build_component_spec_from_component_spec_structure(
+        task.component_spec)
+    component_spec.executor_label = utils.sanitize_executor_label(task.name)
     return component_spec
 
 
-# TODO(chensun): merge with build_component_spec_for_task
 def _build_component_spec_from_component_spec_structure(
     component_spec_struct: structures.ComponentSpec,
 ) -> pipeline_spec_pb2.ComponentSpec:
@@ -392,13 +354,14 @@ def _build_component_spec_from_component_spec_structure(
         if type_utils.is_task_final_status_type(input_spec.type):
             component_spec.input_definitions.parameters[
                 input_name].parameter_type = pipeline_spec_pb2.ParameterType.STRUCT
-            continue
 
-        if type_utils.is_parameter_type(input_spec.type):
+        elif type_utils.is_parameter_type(input_spec.type):
             component_spec.input_definitions.parameters[
                 input_name].parameter_type = type_utils.get_parameter_type(
                     input_spec.type)
-            if input_spec.default is not None:
+            if input_spec.optional:
+                component_spec.input_definitions.parameters[
+                    input_name].is_optional = True
                 _fill_in_component_input_default_value(
                     component_spec=component_spec,
                     input_name=input_name,
@@ -410,6 +373,9 @@ def _build_component_spec_from_component_spec_structure(
                 input_name].artifact_type.CopyFrom(
                     type_utils.bundled_artifact_to_artifact_proto(
                         input_spec.type))
+            if input_spec.optional:
+                component_spec.input_definitions.artifacts[
+                    input_name].is_optional = True
 
     for output_name, output_spec in (component_spec_struct.outputs or
                                      {}).items():
