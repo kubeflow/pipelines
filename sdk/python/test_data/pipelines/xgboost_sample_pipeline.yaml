@@ -1,3 +1,5 @@
+# PIPELINE DEFINITION
+# Name: xgboost-sample-pipeline
 components:
   comp-chicago-taxi-trips-dataset:
     executorLabel: exec-chicago-taxi-trips-dataset
@@ -885,4 +887,4 @@ root:
         taskInfo:
           name: xgboost-train-2
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.6
+sdkVersion: kfp-2.0.0-beta.8

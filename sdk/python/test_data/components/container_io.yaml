@@ -1,3 +1,7 @@
+# PIPELINE DEFINITION
+# Name: container-io
+# Inputs:
+#    text: str
 components:
   comp-container-io:
     executorLabel: exec-container-io
@@ -41,4 +45,4 @@ root:
       text:
         parameterType: STRING
 schemaVersion: 2.1.0
-sdkVersion: kfp-2.0.0-beta.1
+sdkVersion: kfp-2.0.0-beta.8
