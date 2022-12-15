@@ -216,7 +216,10 @@ class RemoteRunnerTests(unittest.TestCase):
         _SYSTEM_LABELS)
     self.assertEqual(
         remote_runner.attach_system_labels({}, "VideoDataset", "create"),
-        {"labels": '{"key1": "value1", "key2": "value2"}'})
+        {"labels": {
+            "key1": "value1",
+            "key2": "value2"
+        }})
 
   @mock.patch.object(
       utils, "resolve_annotation", autospec=True, return_value=bool

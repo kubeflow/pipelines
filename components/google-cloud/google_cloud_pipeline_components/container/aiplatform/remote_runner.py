@@ -235,10 +235,8 @@ def attach_system_labels(method_args, cls_name, method_name):
       'ImageDataset', 'TabularDataset', 'TextDataset', 'TimeSeriesDataset',
       'VideoDataset'
   ] and method_name == 'create':
-    method_args['labels'] = json.dumps(
-        gcp_labels_util.attach_system_labels(
-            json.loads(method_args['labels']) if 'labels' in
-            method_args else {}))
+    method_args['labels'] = gcp_labels_util.attach_system_labels(
+        method_args['labels'] if 'labels' in method_args else {})
   return method_args
 
 
