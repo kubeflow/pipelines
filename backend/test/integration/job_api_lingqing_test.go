@@ -380,10 +380,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	job.Description = "A job with NoCatchup=true only schedules the last interval when behind schedule."
 	job.NoCatchup = true // This is the key difference.
 	createJobRequest = &jobparams.CreateJobParams{Body: job}
-	fmt.Printf("\n input request catch up false periodic job: %#v \n", job)
-	fmt.Printf("\n input request catch up false periodic job Trigger: %#v \n", job.Trigger)
-	gg, err := s.jobClient.Create(createJobRequest)
-	fmt.Printf("\n catch up false periodic Trigger: %#v \n", gg.Trigger.PeriodicSchedule)
+	_, err = s.jobClient.Create(createJobRequest)
 	assert.Nil(t, err)
 
 	/* ---------- Create a cron job with start and end date in the past and catchup = true ---------- */
@@ -400,12 +397,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	job.Description = "A job with NoCatchup=false will backfill each past interval when behind schedule."
 	job.NoCatchup = false // This is the key difference.
 	createJobRequest = &jobparams.CreateJobParams{Body: job}
-	fmt.Printf("\n createJobRequest: %+v \n", createJobRequest)
-	fmt.Printf("\n input request catch up true cron job: %#v \n", job)
-	fmt.Printf("\n input request catch up true cron job Trigger: %#v \n", job.Trigger)
-	ee, err := s.jobClient.Create(createJobRequest)
-	fmt.Printf("\n eeeeeeeeeeee: %+v \n", ee)
-	fmt.Printf("\n catch up true cron Trigger: %+v \n", ee.Trigger.CronSchedule)
+	_, err = s.jobClient.Create(createJobRequest)
 	assert.Nil(t, err)
 
 	/* -------- Create another cron job with start and end date in the past but catchup = false ------ */
@@ -421,68 +413,31 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	job.Name = "cron-catchup-false-"
 	job.Description = "A job with NoCatchup=true only schedules the last interval when behind schedule."
 	job.NoCatchup = true // This is the key difference.
+	fmt.Print("No catch up debug info \n")
 	createJobRequest = &jobparams.CreateJobParams{Body: job}
-	fmt.Printf("\n createJobRequest: %#v \n", createJobRequest)
-	fmt.Printf("\n input request catch up false cron job: %#v \n", job)
-	fmt.Printf("\n input request catch up false cron job Trigger: %#v \n", job.Trigger.CronSchedule)
-	ff, err := s.jobClient.Create(createJobRequest)
-	fmt.Printf("\n output catch up false cron job Trigger: %#v \n", ff.Trigger.CronSchedule)
+	fmt.Printf("createJobRequest value: %#v \n", createJobRequest)
+	returnedJobRequest, err := s.jobClient.Create(createJobRequest)
+	fmt.Printf("returnedJobRequest value: %#v \n", returnedJobRequest)
 	assert.Nil(t, err)
 
 	// The scheduledWorkflow CRD would create the run and it is synced to the DB by persistent agent.
 	// This could take a few seconds to finish.
 
-	/* ---------- Assert number of runs when catchup = true ---------- */
-	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
-		_, runsWhenCatchupTrue, _, err := s.runClient.List(&runParams.ListRunsV1Params{
-			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
-			ResourceReferenceKeyID:   util.StringPointer(periodicCatchupTrueExperiment.ID)})
-		if err != nil {
-			return err
-		}
-		if runsWhenCatchupTrue != 2 {
-			return fmt.Errorf("expected runsWhenCatchupTrue with periodic schedule to be 2, got: %v", runsWhenCatchupTrue)
-		}
-
-		_, runsWhenCatchupTrue, _, err = s.runClient.List(&runParams.ListRunsV1Params{
-			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
-			ResourceReferenceKeyID:   util.StringPointer(cronCatchupTrueExperiment.ID)})
-		if err != nil {
-			return err
-		}
-		if runsWhenCatchupTrue != 2 {
-			return fmt.Errorf("expected runsWhenCatchupTrue with cron schedule to be 2, got: %v", runsWhenCatchupTrue)
-		}
-
-		return nil
-	}); err != nil {
-		assert.Nil(t, err)
-	}
-
 	/* ---------- Assert number of runs when catchup = false ---------- */
 	if err := retrier.New(retrier.ConstantBackoff(8, 5*time.Second), nil).Run(func() error {
-		cc, runsWhenCatchupFalse, dd, err := s.runClient.List(&runParams.ListRunsV1Params{
-			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
-			ResourceReferenceKeyID:   util.StringPointer(periodicCatchupFalseExperiment.ID)})
-		if err != nil {
-			return err
-		}
-		fmt.Printf("\n ccccccccccc %+v \n", cc)
-		fmt.Printf("\n ddddddddddd %+v \n", dd)
-		if runsWhenCatchupFalse != 1 {
-			return fmt.Errorf("expected runsWhenCatchupFalse with periodic schedule to be 1, got: %v", runsWhenCatchupFalse)
-		}
 
-		aa, runsWhenCatchupFalse, bb, err := s.runClient.List(&runParams.ListRunsV1Params{
+		listResult, runsWhenCatchupFalse, _, err := s.runClient.List(&runParams.ListRunsV1Params{
 			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(cronCatchupFalseExperiment.ID)})
 		if err != nil {
 			return err
 		}
-		fmt.Printf("\n aaaaaaaaaaa %+v \n", aa)
-		fmt.Printf("\n bbbbbbbbbbb %+v \n", bb)
+		fmt.Printf("returned listResult: %#v \n", listResult)
+		for _, listResultItem := range listResult {
+			fmt.Printf("listResult item: %#v \n", listResultItem)
+		}
 		if runsWhenCatchupFalse != 1 {
-			return fmt.Errorf("expected runsWhenCatchupFalse with cron schedule to be 1, got: %v \n aaaaa: %#v \n bbbb: %#v \n", runsWhenCatchupFalse, aa, bb)
+			return fmt.Errorf("expected runsWhenCatchupFalse with cron schedule to be 1, got: %v \n", runsWhenCatchupFalse)
 		}
 		return nil
 	}); err != nil {
