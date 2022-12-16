@@ -24,7 +24,7 @@ inputs:
 
 implementation:
   container:
-    image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20221203_1325_RC00
+    image: us-docker.pkg.dev/vertex-ai/automl-tabular/prediction-server:20221216_0001_RC00
     args: [
       --executor_input, "{{$}}",
     ]
