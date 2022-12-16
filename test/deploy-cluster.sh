@@ -51,12 +51,12 @@ function clean_up {
     kubectl get pod $POD_NAME -n $NAMESPACE -o yaml >> "$pod_info_file"
   done
 
-  echo "Clean up cluster..."
-  if [ $SHOULD_CLEANUP_CLUSTER == true ]; then
+  echo "Does not clean up cluster..."
+  #if [ $SHOULD_CLEANUP_CLUSTER == true ]; then
     # --async doesn't wait for this operation to complete, so we can get test
     # results faster
-    yes | gcloud container clusters delete ${TEST_CLUSTER} --async
-  fi
+  #  yes | gcloud container clusters delete ${TEST_CLUSTER} --async
+  # fi
 }
 trap clean_up EXIT SIGINT SIGTERM
 
