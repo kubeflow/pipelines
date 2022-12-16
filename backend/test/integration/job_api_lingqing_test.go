@@ -418,6 +418,8 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	fmt.Printf("createJobRequest value: %#v \n", createJobRequest)
 	returnedJobRequest, err := s.jobClient.Create(createJobRequest)
 	fmt.Printf("returnedJobRequest value: %#v \n", returnedJobRequest)
+	fmt.Printf("returnedJobRequest Trigger value: %#v \n", returnedJobRequest.Trigger)
+	fmt.Printf("returnedJobRequest Trigger Cron value: %#v \n", returnedJobRequest.Trigger.CronSchedule)
 	assert.Nil(t, err)
 
 	// The scheduledWorkflow CRD would create the run and it is synced to the DB by persistent agent.
