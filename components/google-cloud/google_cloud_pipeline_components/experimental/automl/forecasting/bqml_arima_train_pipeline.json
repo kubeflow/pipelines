@@ -1336,12 +1336,12 @@
                 "name": "csv-list-to-string"
               }
             },
-            "feature-transform-engine-with-dlt": {
+            "feature-transform-engine": {
               "cachingOptions": {
                 "enableCache": true
               },
               "componentRef": {
-                "name": "comp-feature-transform-engine-with-dlt"
+                "name": "comp-feature-transform-engine"
               },
               "dependentTasks": [
                 "bigquery-create-dataset-2",
@@ -1441,6 +1441,13 @@
                       }
                     }
                   },
+                  "feature_selection_algorithm": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "AMI"
+                      }
+                    }
+                  },
                   "forecasting_apply_windowing": {
                     "runtimeValue": {
                       "constantValue": {
@@ -1506,6 +1513,13 @@
                   "location": {
                     "componentInputParameter": "pipelineparam--location"
                   },
+                  "max_selected_features": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "intValue": "1000"
+                      }
+                    }
+                  },
                   "pipelineparam--bigquery-create-dataset-2-dataset_id": {
                     "taskOutputParameter": {
                       "outputParameterKey": "dataset_id",
@@ -1544,6 +1558,20 @@
                       }
                     }
                   },
+                  "run_feature_selection": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": "false"
+                      }
+                    }
+                  },
+                  "stratified_split_key": {
+                    "runtimeValue": {
+                      "constantValue": {
+                        "stringValue": ""
+                      }
+                    }
+                  },
                   "target_column": {
                     "componentInputParameter": "pipelineparam--target_column"
                   },
@@ -1556,7 +1584,7 @@
                   "tf_auto_transform_features": {
                     "runtimeValue": {
                       "constantValue": {
-                        "stringValue": ""
+                        "stringValue": "[]"
                       }
                     }
                   },
@@ -1602,7 +1630,7 @@
                 }
               },
               "taskInfo": {
-                "name": "feature-transform-engine-with-dlt"
+                "name": "feature-transform-engine"
               }
             },
             "for-loop-2": {
@@ -1763,7 +1791,7 @@
               },
               "dependentTasks": [
                 "bigquery-create-dataset-2",
-                "feature-transform-engine-with-dlt"
+                "feature-transform-engine"
               ],
               "inputs": {
                 "parameters": {
@@ -2164,8 +2192,8 @@
           }
         }
       },
-      "comp-feature-transform-engine-with-dlt": {
-        "executorLabel": "exec-feature-transform-engine-with-dlt",
+      "comp-feature-transform-engine": {
+        "executorLabel": "exec-feature-transform-engine",
         "inputDefinitions": {
           "parameters": {
             "autodetect_csv_schema": {
@@ -2207,6 +2235,9 @@
             "encryption_spec_key_name": {
               "type": "STRING"
             },
+            "feature_selection_algorithm": {
+              "type": "STRING"
+            },
             "forecasting_apply_windowing": {
               "type": "STRING"
             },
@@ -2243,6 +2274,9 @@
             "location": {
               "type": "STRING"
             },
+            "max_selected_features": {
+              "type": "INT"
+            },
             "predefined_split_key": {
               "type": "STRING"
             },
@@ -2256,6 +2290,12 @@
               "type": "STRING"
             },
             "run_distill": {
+              "type": "STRING"
+            },
+            "run_feature_selection": {
+              "type": "STRING"
+            },
+            "stratified_split_key": {
               "type": "STRING"
             },
             "target_column": {
@@ -2290,6 +2330,12 @@
         "outputDefinitions": {
           "artifacts": {
             "dataset_stats": {
+              "artifactType": {
+                "schemaTitle": "system.Artifact",
+                "schemaVersion": "0.0.1"
+              }
+            },
+            "feature_ranking": {
               "artifactType": {
                 "schemaTitle": "system.Artifact",
                 "schemaVersion": "0.0.1"
@@ -3640,10 +3686,10 @@
             "image": "python:3.7-slim"
           }
         },
-        "exec-feature-transform-engine-with-dlt": {
+        "exec-feature-transform-engine": {
           "container": {
             "args": [
-              "feature_transform_engine_with_dlt",
+              "feature_transform_engine",
               "--project={{$.inputs.parameters['project']}}",
               "--location={{$.inputs.parameters['location']}}",
               "--dataset_level_custom_transformation_definitions={{$.inputs.parameters['dataset_level_custom_transformation_definitions']}}",
@@ -3660,6 +3706,7 @@
               "--forecasting_window_max_count={{$.inputs.parameters['forecasting_window_max_count']}}",
               "--forecasting_apply_windowing={{$.inputs.parameters['forecasting_apply_windowing']}}",
               "--predefined_split_key={{$.inputs.parameters['predefined_split_key']}}",
+              "--stratified_split_key={{$.inputs.parameters['stratified_split_key']}}",
               "--timestamp_split_key={{$.inputs.parameters['timestamp_split_key']}}",
               "--training_fraction={{$.inputs.parameters['training_fraction']}}",
               "--validation_fraction={{$.inputs.parameters['validation_fraction']}}",
@@ -3674,10 +3721,17 @@
               "--weight_column={{$.inputs.parameters['weight_column']}}",
               "--prediction_type={{$.inputs.parameters['prediction_type']}}",
               "--run_distill={{$.inputs.parameters['run_distill']}}",
+              "--run_feature_selection={{$.inputs.parameters['run_feature_selection']}}",
+              "--max_selected_features={{$.inputs.parameters['max_selected_features']}}",
+              "--feature_selection_staging_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/feature_selection_staging_dir",
+              "--feature_selection_algorithm={{$.inputs.parameters['feature_selection_algorithm']}}",
+              "--feature_ranking_path={{$.outputs.artifacts['feature_ranking'].uri}}",
               "--error_file_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/error.txt",
               "--stats_result_path={{$.outputs.artifacts['dataset_stats'].uri}}",
               "--transform_output_artifact_path={{$.outputs.artifacts['transform_output'].uri}}",
               "--transform_output_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/transform",
+              "--materialized_examples_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized",
+              "--export_data_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/export",
               "--materialized_data_path={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/materialized_data",
               "--materialized_data_artifact_path={{$.outputs.artifacts['materialized_data'].uri}}",
               "--bigquery_test_split_uri_path={{$.outputs.parameters['bigquery_test_split_uri'].output_file}}",
@@ -3691,8 +3745,8 @@
               "--dataflow_tmp_dir={{$.inputs.parameters['root_dir']}}/{{$.pipeline_job_uuid}}/{{$.pipeline_task_uuid}}/dataflow_tmp",
               "--dataflow_max_num_workers={{$.inputs.parameters['dataflow_max_num_workers']}}",
               "--dataflow_machine_type={{$.inputs.parameters['dataflow_machine_type']}}",
-              "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20221203_1325_RC00",
-              "--feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:prod",
+              "--dataflow_worker_container_image=us-docker.pkg.dev/vertex-ai/automl-tabular/dataflow-worker:20221216_0001_RC00",
+              "--feature_transform_engine_docker_uri=us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:dev",
               "--dataflow_disk_size_gb={{$.inputs.parameters['dataflow_disk_size_gb']}}",
               "--dataflow_subnetwork_fully_qualified={{$.inputs.parameters['dataflow_subnetwork']}}",
               "--dataflow_use_public_ips={{$.inputs.parameters['dataflow_use_public_ips']}}",
@@ -3700,7 +3754,7 @@
               "--dataflow_kms_key={{$.inputs.parameters['encryption_spec_key_name']}}",
               "--autodetect_csv_schema={{$.inputs.parameters['autodetect_csv_schema']}}"
             ],
-            "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:prod"
+            "image": "us-docker.pkg.dev/vertex-ai/automl-tabular/feature-transform-engine:dev"
           }
         },
         "exec-generate-iso8601-underscore-datetime-format": {
