@@ -732,12 +732,9 @@ func (r *ResourceManager) CreateJob(ctx context.Context, apiJobInterface interfa
 	now := r.time.Now().Unix()
 	modelJob.CreatedAtInSec = now
 	modelJob.UpdatedAtInSec = now
-	modelJob.Description = modelJob.Description + fmt.Sprintf("############ modelJob value: %#v ###############", modelJob)
 
 	// Store modelJob to database and return.
-	returnedModelJob := r.jobStore.CreateJob(modelJob)
-	returnedModelJob.Description = returnedModelJob.Description + fmt.Sprintf("############ modelJob value: %#v ###############", modelJob)
-	return returnedModelJob
+	return r.jobStore.CreateJob(modelJob)
 }
 
 func (r *ResourceManager) updateJobResourceReferences(resourceId string, modelJob *model.Job) error {
