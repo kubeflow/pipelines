@@ -3,7 +3,6 @@ package integration
 import (
 	"bytes"
 	"context"
-	"debug"
 	"fmt"
 	"io/ioutil"
 	"reflect"
