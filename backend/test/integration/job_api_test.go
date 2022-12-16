@@ -380,8 +380,10 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	job.Description = "A job with NoCatchup=true only schedules the last interval when behind schedule."
 	job.NoCatchup = true // This is the key difference.
 	createJobRequest = &jobparams.CreateJobParams{Body: job}
+	fmt.Printf("\n input request catch up false periodic job: %#v \n", job)
+	fmt.Printf("\n input request catch up false periodic job Trigger: %#v \n", job.Trigger)
 	gg, err := s.jobClient.Create(createJobRequest)
-	fmt.Printf("\n catch up false cron Trigger: %#v \n", gg.Trigger.CronSchedule)
+	fmt.Printf("\n catch up false periodic Trigger: %#v \n", gg.Trigger.PeriodicSchedule)
 	assert.Nil(t, err)
 
 	/* ---------- Create a cron job with start and end date in the past and catchup = true ---------- */
@@ -399,9 +401,11 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	job.NoCatchup = false // This is the key difference.
 	createJobRequest = &jobparams.CreateJobParams{Body: job}
 	fmt.Printf("\n createJobRequest: %+v \n", createJobRequest)
+	fmt.Printf("\n input request catch up true cron job: %#v \n", job)
+	fmt.Printf("\n input request catch up true cron job Trigger: %#v \n", job.Trigger)
 	ee, err := s.jobClient.Create(createJobRequest)
 	fmt.Printf("\n eeeeeeeeeeee: %+v \n", ee)
-	fmt.Printf("\n Trigger: %+v \n", ee.Trigger.CronSchedule)
+	fmt.Printf("\n catch up true cron Trigger: %+v \n", ee.Trigger.CronSchedule)
 	assert.Nil(t, err)
 
 	/* -------- Create another cron job with start and end date in the past but catchup = false ------ */
@@ -418,9 +422,11 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	job.Description = "A job with NoCatchup=true only schedules the last interval when behind schedule."
 	job.NoCatchup = true // This is the key difference.
 	createJobRequest = &jobparams.CreateJobParams{Body: job}
-	fmt.Printf("\n createJobRequest: %+v \n", createJobRequest)
+	fmt.Printf("\n createJobRequest: %#v \n", createJobRequest)
+	fmt.Printf("\n input request catch up false cron job: %#v \n", job)
+	fmt.Printf("\n input request catch up false cron job Trigger: %#v \n", job.Trigger.CronSchedule)
 	ff, err := s.jobClient.Create(createJobRequest)
-	fmt.Printf("\n fffffffffffff: %+v \n", ff)
+	fmt.Printf("\n output catch up false cron job Trigger: %#v \n", ff.Trigger.CronSchedule)
 	assert.Nil(t, err)
 
 	// The scheduledWorkflow CRD would create the run and it is synced to the DB by persistent agent.
