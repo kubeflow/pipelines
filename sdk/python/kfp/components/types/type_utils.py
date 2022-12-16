@@ -131,7 +131,9 @@ def get_parameter_type(
     Raises:
       AttributeError: if type_name is not a string type.
     """
-
+    # Special handling for PipelineTaskFinalStatus, treat it as Dict type.
+    if is_task_final_status_type(param_type):
+        param_type = 'dict'
     if type(param_type) == type:
         type_name = param_type.__name__
     elif isinstance(param_type, dict):
@@ -193,10 +195,6 @@ def verify_type_compatibility(
     Raises:
         InconsistentTypeException if types are incompatible and TYPE_CHECK==True.
     """
-
-    # Special handling for PipelineTaskFinalStatus, treat it as Dict type.
-    if is_task_final_status_type(given_type):
-        given_type = 'Dict'
 
     types_are_compatible = False
     is_parameter = is_parameter_type(str(given_type))
