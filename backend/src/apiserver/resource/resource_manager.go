@@ -716,11 +716,15 @@ func (r *ResourceManager) CreateJob(ctx context.Context, apiJobInterface interfa
 		return nil, util.Wrap(err, "Failed to generate the scheduledWorkflow")
 	}
 
+	fmt.Printf("Input Scheduled Workflow value Lingqing Gan: %#v \n", scheduledWorkflow)
+
 	// Create a new ScheduledWorkflow at the ScheduledWorkflow client.
 	newScheduledWorkflow, err := r.getScheduledWorkflowClient(modelJob.Namespace).Create(ctx, scheduledWorkflow)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to create a scheduled workflow")
 	}
+
+	fmt.Printf("Returned Scheduled Workflow value Lingqing Gan: %#v \n", newScheduledWorkflow)
 
 	// Complete modelJob with info coming back from ScheduledWorkflow client.
 	err = r.updateModelJobWithNewScheduledWorkflow(modelJob, util.NewScheduledWorkflow(newScheduledWorkflow))
