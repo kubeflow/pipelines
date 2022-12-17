@@ -163,7 +163,7 @@ class UtilsTests(unittest.TestCase):
         annotation = Dict
 
         results = utils.get_deserializer(annotation)
-        self.assertEqual(results, json.dumps)
+        self.assertEqual(results, json.loads)
 
     def test_get_deserializer_with_not_serializable_type(self):
         annotation = Tuple

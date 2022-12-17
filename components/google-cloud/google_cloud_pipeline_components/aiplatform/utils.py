@@ -232,7 +232,7 @@ def get_deserializer(annotation: Any) -> Optional[Callable[..., str]]:
     return proto_plus_deserializer
 
   if is_serializable_to_json(annotation):
-    return json.dumps
+    return json.loads
 
 
 def map_resource_to_metadata_type(
