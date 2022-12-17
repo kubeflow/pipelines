@@ -417,6 +417,10 @@ func (c *Controller) syncHandler(ctx context.Context, key string) (
 			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't fetch completed workflows: %v", name, err)
 	}
 
+	log.WithFields(log.Fields{
+		ScheduledWorkflow: name,
+	}).Infof("submitted: %v, nowEpoch: %v, nextScheduledEpoch: %v\n", submitted, nowEpoch, nextScheduledEpoch)
+
 	err = c.updateStatus(ctx, swf, submitted, active, completed, nextScheduledEpoch, nowEpoch)
 	if err != nil {
 		return false, true, swf,
