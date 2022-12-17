@@ -25,6 +25,7 @@ import (
 
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
+	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/apis/core"
 )
@@ -245,11 +246,11 @@ func (s *ScheduledWorkflow) getNextScheduledEpoch(nowEpoch int64, location time.
 		cronScheduleJSON, _ := json.Marshal(s.Spec.Trigger.CronSchedule)
 		fmt.Printf("Lingqing swf cronScheduleJSON: %s \n", string(cronScheduleJSON))
 
-		log.WithFields(log.Fields{
-			LastTriggeredTime: s.Status.Trigger.LastTriggeredTime,
-			NowTime:  nowTime,
-			SWFCronScheduleJSON: string(cronScheduleJSON)
-		}).Info("Lingqing logs: ")
+		log.Infof("Lingqing logs: \nLastTriggeredTime: %#v \nnowTime: %#v \nswf cronScheduleJSON: %s \n",
+			s.Status.Trigger.LastTriggeredTime,
+			nowTime,
+			string(cronScheduleJSON),
+		)
 
 		if catchup {
 			return schedule.GetNextScheduledTime(
