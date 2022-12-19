@@ -468,7 +468,7 @@ class ComponentSpec(BaseModel):
             ]
         if implementation['env']:
             container_spec.env = {
-                k: _copy_model(v) for k, v in implementation['env']
+                k: _copy_model(v) for k, v in implementation['env'].items()
             }
 
         return ComponentSpec(
