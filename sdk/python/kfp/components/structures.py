@@ -897,6 +897,11 @@ class ComponentSpec:
         args_dict = {}
         pipeline_inputs = self.inputs or {}
 
+        # convert PipelineTaskFinalStatus to a 'Dict' type early for a compiled primitive component to bypass downstream checks that require a PipelineTask to be used as an exit task
+        for _, input_spec in pipeline_inputs.items():
+            if type_utils.is_task_final_status_type(input_spec.type):
+                input_spec.type = 'Dict'
+
         for arg_name, input_spec in pipeline_inputs.items():
             args_dict[arg_name] = pipeline_channel.create_pipeline_channel(
                 name=arg_name, channel_type=input_spec.type)

@@ -144,6 +144,9 @@ pipelines:
     - module: components_with_optional_artifacts
       name: pipeline
       execute: false
+    - module: pipeline_with_task_final_status_as_parameter
+      name: exit_task
+      execute: false
 components:
   test_data_dir: sdk/python/test_data/components
   read: true
@@ -203,6 +206,9 @@ components:
       execute: false
     - module: container_with_placeholder_in_fstring
       name: container_with_placeholder_in_fstring
+      execute: false
+    - module: component_with_pipeline_task_final_status
+      name: exit_comp
       execute: false
 v1_components:
   test_data_dir: sdk/python/test_data/v1_component_yaml

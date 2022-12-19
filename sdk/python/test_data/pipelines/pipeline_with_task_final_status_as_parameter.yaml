@@ -1,0 +1,136 @@
+# PIPELINE DEFINITION
+# Name: exit-task
+# Description: Checks pipeline run status.
+# Inputs:
+#    status: dict
+components:
+  comp-condition-1:
+    dag:
+      tasks:
+        print-op:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-print-op
+          inputs:
+            parameters:
+              message:
+                runtimeValue:
+                  constant: notify task failure.
+          taskInfo:
+            name: print-op
+    inputDefinitions:
+      parameters:
+        pipelinechannel--get-run-state-Output:
+          parameterType: STRING
+  comp-get-run-state:
+    executorLabel: exec-get-run-state
+    inputDefinitions:
+      parameters:
+        status:
+          parameterType: STRUCT
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: STRING
+  comp-print-op:
+    executorLabel: exec-print-op
+    inputDefinitions:
+      parameters:
+        message:
+          parameterType: STRING
+deploymentSpec:
+  executors:
+    exec-get-run-state:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - get_run_state
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef get_run_state(status: dict) -> str:\n    print('Pipeline status:\
+          \ ', status)\n    return status['state']\n\n"
+        image: python:3.7
+    exec-print-op:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - print_op
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.8'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef print_op(message: str):\n    \"\"\"Prints a message.\"\"\"\n\
+          \    print(message)\n\n"
+        image: python:3.7
+pipelineInfo:
+  name: exit-task
+root:
+  dag:
+    tasks:
+      condition-1:
+        componentRef:
+          name: comp-condition-1
+        dependentTasks:
+        - get-run-state
+        inputs:
+          parameters:
+            pipelinechannel--get-run-state-Output:
+              taskOutputParameter:
+                outputParameterKey: Output
+                producerTask: get-run-state
+        taskInfo:
+          name: condition-1
+        triggerPolicy:
+          condition: inputs.parameter_values['pipelinechannel--get-run-state-Output']
+            == 'FAILED'
+      get-run-state:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-get-run-state
+        inputs:
+          parameters:
+            status:
+              componentInputParameter: status
+        taskInfo:
+          name: get-run-state
+  inputDefinitions:
+    parameters:
+      status:
+        isOptional: true
+        parameterType: STRUCT
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.8

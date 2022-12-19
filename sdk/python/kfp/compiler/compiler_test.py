@@ -588,6 +588,8 @@ implementation:
     - {inputValue: message}
 """)
 
+        self.assertTrue(print_op.component_spec.inputs['message'].optional)
+
         with self.assertRaisesRegex(
                 ValueError,
                 'PipelineTaskFinalStatus can only be used in an exit task.'):
@@ -2605,6 +2607,61 @@ class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
         self.assertIn('comp-comp', my_pipeline.pipeline_spec.components)
         self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
                         .input_definitions.artifacts['x'].is_optional)
+
+    def test__component__taskfinalstatus(self):
+
+        @dsl.component
+        def fail_op():
+            import sys
+            sys.exit(1)
+
+        @dsl.component
+        def comp(x: dsl.PipelineTaskFinalStatus):
+            print(x)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'comp.yaml')
+            compiler.Compiler().compile(comp, path)
+            loaded_comp = components.load_component_from_file(path)
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ExitHandler(loaded_comp()):
+                fail_op()
+
+        self.assertIn('comp-comp', my_pipeline.pipeline_spec.components)
+        self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
+                        .input_definitions.parameters['x'].is_optional)
+
+    def test__pipeline__taskfinalstatus(self):
+
+        @dsl.component
+        def fail_op():
+            import sys
+            sys.exit(1)
+
+        @dsl.component
+        def comp(x: dict):
+            print(x)
+
+        @dsl.pipeline
+        def inner_pipeline(x: dsl.PipelineTaskFinalStatus):
+            comp(x=x)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'comp.yaml')
+            compiler.Compiler().compile(inner_pipeline, path)
+            loaded_comp = components.load_component_from_file(path)
+
+        @dsl.pipeline
+        def my_pipeline():
+            with dsl.ExitHandler(loaded_comp()):
+                fail_op()
+
+        self.assertIn('comp-comp', my_pipeline.pipeline_spec.components)
+        self.assertTrue(
+            my_pipeline.pipeline_spec.components['comp-inner-pipeline']
+            .input_definitions.parameters['x'].is_optional)
 
 
 if __name__ == '__main__':

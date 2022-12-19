@@ -197,6 +197,8 @@ def verify_type_compatibility(
     # Special handling for PipelineTaskFinalStatus, treat it as Dict type.
     if is_task_final_status_type(given_type):
         given_type = 'Dict'
+    if is_task_final_status_type(expected_type):
+        expected_type = 'Dict'
 
     types_are_compatible = False
     is_parameter = is_parameter_type(str(given_type))
