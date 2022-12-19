@@ -13,6 +13,8 @@
 # limitations under the License.
 """Importer-based component."""
 
+from typing import List
+
 from kfp.components import base_component
 from kfp.components import structures
 
@@ -28,3 +30,7 @@ class ImporterComponent(base_component.BaseComponent):
 
     def execute(self, **kwargs):
         raise NotImplementedError
+
+    @property
+    def required_inputs(self) -> List[str]:
+        return []

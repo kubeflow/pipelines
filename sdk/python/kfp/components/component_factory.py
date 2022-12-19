@@ -243,7 +243,8 @@ def extract_component_interface(
                     optional=parameter.default is not inspect.Parameter.empty,
                 )
             else:
-                if parameter.default is not inspect.Parameter.empty:
+                if parameter.default is not inspect.Parameter.empty or type_utils.is_task_final_status_type(
+                        type_struct):
                     input_spec = structures.InputSpec(
                         type=type_struct,
                         default=parameter.default,

@@ -14,7 +14,7 @@
 """Pipeline as a component (aka graph component)."""
 
 import inspect
-from typing import Callable
+from typing import Callable, List
 import uuid
 
 from kfp.compiler import pipeline_spec_builder as builder
@@ -82,3 +82,18 @@ class GraphComponent(base_component.BaseComponent):
 
     def execute(self, **kwargs):
         raise RuntimeError('Graph component has no local execution mode.')
+
+    @property
+    def required_inputs(self) -> List[str]:
+        input_definitions = self.pipeline_spec.root.input_definitions
+        required_parameters = [
+            str(input_name)
+            for input_name, input_body in input_definitions.parameters.items()
+            if not input_body.is_optional
+        ]
+        required_artifacts = [
+            str(input_name)
+            for input_name, input_body in input_definitions.artifacts.items()
+            if not input_body.is_optional
+        ]
+        return required_parameters + required_artifacts

@@ -13,7 +13,7 @@
 # limitations under the License.
 """Functions for loading components from compiled YAML."""
 
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 from google.protobuf import json_format
 from kfp import components
@@ -55,6 +55,14 @@ class YamlComponent(components.BaseComponent):
     def execute(self, *args, **kwargs):
         """Not implemented."""
         raise NotImplementedError
+
+    @property
+    def required_inputs(self) -> List[str]:
+        return [
+            input_name for input_name, input_spec in (
+                self.component_spec.inputs or {}).items()
+            if not input_spec.optional
+        ]
 
 
 def load_component_from_text(text: str) -> YamlComponent:

@@ -16,6 +16,7 @@
 import os
 import tempfile
 import textwrap
+from typing import List
 import unittest
 
 from absl.testing import parameterized
@@ -238,6 +239,10 @@ class StructuresTest(parameterized.TestCase):
 
             def execute(self, **kwargs):
                 pass
+
+            @property
+            def required_inputs(self) -> List[str]:
+                return []
 
         test_component = TestComponent(component_spec=original_component_spec)
         with tempfile.TemporaryDirectory() as tempdir:

@@ -13,7 +13,7 @@
 # limitations under the License.
 """Container-based component."""
 
-from typing import Callable
+from typing import Callable, List
 
 from kfp.components import base_component
 from kfp.components import structures
@@ -36,3 +36,11 @@ class ContainerComponent(base_component.BaseComponent):
         # As its name suggests, this class backs (custom) container components.
         # Its `execute()` method uses `docker run` for local component execution
         raise NotImplementedError
+
+    @property
+    def required_inputs(self) -> List[str]:
+        return [
+            input_name for input_name, input_spec in (
+                self.component_spec.inputs or {}).items()
+            if not input_spec.optional
+        ]

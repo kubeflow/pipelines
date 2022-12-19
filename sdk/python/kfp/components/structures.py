@@ -76,8 +76,8 @@ class InputSpec:
             if type_ is None:
                 raise ValueError(f'Unknown type {type_string} found in IR.')
             default_value = ir_component_inputs_dict.get('defaultValue')
-            # TODO: write the IR is_optional field to IR when compiling. currently we don't do this, so just set optional to True if default_value is not None.
-            optional = default_value is not None
+            optional = ir_component_inputs_dict.get('isOptional',
+                                                    bool(default_value))
             return InputSpec(
                 type=type_, default=default_value, optional=optional)
 
@@ -85,9 +85,11 @@ class InputSpec:
             type_ = ir_component_inputs_dict['artifactType']['schemaTitle']
             schema_version = ir_component_inputs_dict['artifactType'][
                 'schemaVersion']
+            optional = ir_component_inputs_dict.get('isOptional', False)
             return InputSpec(
                 type=type_utils.create_bundled_artifact_type(
-                    type_, schema_version))
+                    type_, schema_version),
+                optional=optional)
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for InputSpec. Robust to different type
@@ -639,11 +641,12 @@ class ComponentSpec:
         for spec in component_dict.get('inputs', []):
             type_ = spec.get('type')
             optional = spec.get('optional', False) or 'default' in spec
+
             default = spec.get('default')
 
             if isinstance(type_, str) and type_ == 'PipelineTaskFinalStatus':
-                inputs[utils.sanitize_input_name(
-                    spec['name'])] = InputSpec(type=type_)
+                inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
+                    type=type_, optional=True)
                 continue
 
             elif isinstance(type_, str) and type_.lower(
@@ -682,7 +685,7 @@ class ComponentSpec:
                 raise ValueError(f'Unknown input: {type_}')
 
             if optional:
-                # handles a v1 edge-case where a user marks an artifact input as optional with no default value. some of these v1 component YAMLs exist.
+                # handles cases in v1 an artifact input as optional with no default value. some of these v1 component YAMLs exist.
                 inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
                     type=type_utils.create_bundled_artifact_type(
                         schema_title, schema_version),

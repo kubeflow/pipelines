@@ -17,19 +17,14 @@ import unittest
 from unittest.mock import patch
 
 from kfp import dsl
-from kfp.components import base_component
 from kfp.components import pipeline_task
 from kfp.components import placeholders
+from kfp.components import PythonComponent
 from kfp.components import structures
 
-
-class TestComponent(base_component.BaseComponent):
-
-    def execute(self, *args, **kwargs):
-        pass
-
-
-component_op = TestComponent(
+component_op = PythonComponent(
+    # dummy python_func not used in behavior that is being tested
+    python_func=lambda: None,
     component_spec=structures.ComponentSpec(
         name='component_1',
         implementation=structures.Implementation(

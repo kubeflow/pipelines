@@ -2321,7 +2321,7 @@ class TestYamlComments(unittest.TestCase):
         self.assertIn(predicted_comment, reloaded_yaml_content)
 
 
-class TestOptionalArtifactsInSignature(unittest.TestCase):
+class TestCompileAndLoad(unittest.TestCase):
 
     def test_python_comp(self):
 
@@ -2476,6 +2476,135 @@ class TestOptionalArtifactsInSignature(unittest.TestCase):
         def my_pipeline():
             # the following should not throw an exception!
             comp()
+
+
+class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
+
+    def test__component__param__None_default(self):
+
+        @dsl.component
+        def comp(x: Optional[int] = None):
+            print(x)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'comp.yaml')
+            compiler.Compiler().compile(comp, path)
+            loaded_comp = components.load_component_from_file(path)
+
+        @dsl.pipeline
+        def my_pipeline():
+            loaded_comp()
+
+        self.assertIn('comp-comp', my_pipeline.pipeline_spec.components)
+        self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
+                        .input_definitions.parameters['x'].is_optional)
+
+    def test__component__param__non_None_default(self):
+
+        @dsl.component
+        def comp(x: Optional[int] = 1):
+            print(x)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'comp.yaml')
+            compiler.Compiler().compile(comp, path)
+            loaded_comp = components.load_component_from_file(path)
+
+        @dsl.pipeline
+        def my_pipeline():
+            loaded_comp()
+
+        self.assertIn('comp-comp', my_pipeline.pipeline_spec.components)
+        self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
+                        .input_definitions.parameters['x'].is_optional)
+
+    def test__pipeline__param__None_default(self):
+
+        @dsl.component
+        def comp(x: Optional[int] = None):
+            print(x)
+
+        @dsl.pipeline
+        def inner_pipeline(x: Optional[int] = None):
+            comp(x=x)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'comp.yaml')
+            compiler.Compiler().compile(inner_pipeline, path)
+            loaded_comp = components.load_component_from_file(path)
+
+        @dsl.pipeline
+        def my_pipeline():
+            loaded_comp()
+
+        self.assertIn('comp-comp', my_pipeline.pipeline_spec.components)
+        self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
+                        .input_definitions.parameters['x'].is_optional)
+
+    def test__pipeline__param__non_None_default(self):
+
+        @dsl.component
+        def comp(x: Optional[int] = None):
+            print(x)
+
+        @dsl.pipeline
+        def inner_pipeline(x: Optional[int] = 1):
+            comp(x=x)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'comp.yaml')
+            compiler.Compiler().compile(inner_pipeline, path)
+            loaded_comp = components.load_component_from_file(path)
+
+        @dsl.pipeline
+        def my_pipeline():
+            loaded_comp()
+
+        self.assertIn('comp-comp', my_pipeline.pipeline_spec.components)
+        self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
+                        .input_definitions.parameters['x'].is_optional)
+
+    def test__component__artifact(self):
+
+        @dsl.component
+        def comp(x: Optional[Input[Artifact]] = None):
+            print(x)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'comp.yaml')
+            compiler.Compiler().compile(comp, path)
+            loaded_comp = components.load_component_from_file(path)
+
+        @dsl.pipeline
+        def my_pipeline():
+            loaded_comp()
+
+        self.assertIn('comp-comp', my_pipeline.pipeline_spec.components)
+        self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
+                        .input_definitions.artifacts['x'].is_optional)
+
+    def test__pipeline__artifact(self):
+
+        @dsl.component
+        def comp(x: Optional[Input[Artifact]] = None):
+            print(x)
+
+        @dsl.pipeline
+        def inner_pipeline(x: Optional[Input[Artifact]] = None):
+            comp(x=x)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, 'comp.yaml')
+            compiler.Compiler().compile(inner_pipeline, path)
+            loaded_comp = components.load_component_from_file(path)
+
+        @dsl.pipeline
+        def my_pipeline():
+            loaded_comp()
+
+        self.assertIn('comp-comp', my_pipeline.pipeline_spec.components)
+        self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
+                        .input_definitions.artifacts['x'].is_optional)
 
 
 if __name__ == '__main__':

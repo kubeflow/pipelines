@@ -13,7 +13,7 @@
 # limitations under the License.
 """Python function-based component."""
 
-from typing import Callable
+from typing import Callable, List
 
 from kfp import components
 from kfp.components import structures
@@ -40,3 +40,11 @@ class PythonComponent(components.BaseComponent):
     def execute(self, **kwargs):
         """Executes the Python function that defines the component."""
         return self.python_func(**kwargs)
+
+    @property
+    def required_inputs(self) -> List[str]:
+        return [
+            input_name for input_name, input_spec in (
+                self.component_spec.inputs or {}).items()
+            if not input_spec.optional
+        ]
