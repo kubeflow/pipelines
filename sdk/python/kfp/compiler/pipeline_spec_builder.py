@@ -354,6 +354,8 @@ def _build_component_spec_from_component_spec_structure(
         if type_utils.is_task_final_status_type(input_spec.type):
             component_spec.input_definitions.parameters[
                 input_name].parameter_type = pipeline_spec_pb2.ParameterType.STRUCT
+            component_spec.input_definitions.parameters[
+                input_name].is_optional = True
 
         elif type_utils.is_parameter_type(input_spec.type):
             component_spec.input_definitions.parameters[

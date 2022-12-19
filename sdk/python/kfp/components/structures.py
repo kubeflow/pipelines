@@ -685,7 +685,7 @@ class ComponentSpec:
                 raise ValueError(f'Unknown input: {type_}')
 
             if optional:
-                # handles cases in v1 an artifact input as optional with no default value. some of these v1 component YAMLs exist.
+                # handles optional artifacts with no default value
                 inputs[utils.sanitize_input_name(spec['name'])] = InputSpec(
                     type=type_utils.create_bundled_artifact_type(
                         schema_title, schema_version),

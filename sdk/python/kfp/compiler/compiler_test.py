@@ -2321,7 +2321,7 @@ class TestYamlComments(unittest.TestCase):
         self.assertIn(predicted_comment, reloaded_yaml_content)
 
 
-class TestCompileAndLoad(unittest.TestCase):
+class TestCompileOptionalArtifacts(unittest.TestCase):
 
     def test_python_comp(self):
 
@@ -2466,17 +2466,6 @@ class TestCompileAndLoad(unittest.TestCase):
                 name='', uri='', metadata={})):
                 comp()
 
-    def test_optional_artifact_not_provided_compiles(self):
-
-        @dsl.component
-        def comp(x: Optional[Input[Model]] = None):
-            print(x)
-
-        @dsl.pipeline
-        def my_pipeline():
-            # the following should not throw an exception!
-            comp()
-
 
 class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
 
@@ -2540,6 +2529,9 @@ class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
         self.assertIn('comp-comp', my_pipeline.pipeline_spec.components)
         self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
                         .input_definitions.parameters['x'].is_optional)
+        self.assertTrue(
+            my_pipeline.pipeline_spec.components['comp-inner-pipeline']
+            .input_definitions.parameters['x'].is_optional)
 
     def test__pipeline__param__non_None_default(self):
 
@@ -2563,6 +2555,9 @@ class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
         self.assertIn('comp-comp', my_pipeline.pipeline_spec.components)
         self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
                         .input_definitions.parameters['x'].is_optional)
+        self.assertTrue(
+            my_pipeline.pipeline_spec.components['comp-inner-pipeline']
+            .input_definitions.parameters['x'].is_optional)
 
     def test__component__artifact(self):
 
@@ -2605,6 +2600,9 @@ class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
         self.assertIn('comp-comp', my_pipeline.pipeline_spec.components)
         self.assertTrue(my_pipeline.pipeline_spec.components['comp-comp']
                         .input_definitions.artifacts['x'].is_optional)
+        self.assertTrue(
+            my_pipeline.pipeline_spec.components['comp-inner-pipeline']
+            .input_definitions.artifacts['x'].is_optional)
 
 
 if __name__ == '__main__':

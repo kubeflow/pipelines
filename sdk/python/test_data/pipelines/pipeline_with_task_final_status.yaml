@@ -38,6 +38,7 @@ components:
     inputDefinitions:
       parameters:
         status:
+          isOptional: true
           parameterType: STRUCT
         user_input:
           parameterType: STRING
