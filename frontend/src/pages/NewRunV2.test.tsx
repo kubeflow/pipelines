@@ -655,6 +655,89 @@ describe('NewRunV2', () => {
     });
   });
 
+  describe('creating a recurring run', () => {
+    it('displays run trigger section', async () => {
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            apiRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2YamlTemplateString}
+            chosenExperiment={DEFAULT_EXPERIMENT}
+          />
+        </CommonTestWrapper>,
+      );
+
+      const recurringSwitcher = screen.getByLabelText('Recurring');
+      fireEvent.click(recurringSwitcher);
+      screen.getByText('Run trigger');
+    });
+
+    it('enables to change the trigger parameters.', async () => {
+      const createJobSpy = jest.spyOn(Apis.jobServiceApi, 'createJob');
+
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            apiRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2YamlTemplateString}
+            chosenExperiment={DEFAULT_EXPERIMENT}
+          />
+        </CommonTestWrapper>,
+      );
+
+      const recurringSwitcher = screen.getByLabelText('Recurring');
+      fireEvent.click(recurringSwitcher);
+
+      const maxConcurrenyParam = screen.getByDisplayValue('10');
+      fireEvent.change(maxConcurrenyParam, { target: { value: '5' } });
+
+      const timeCountParam = screen.getByDisplayValue('1');
+      fireEvent.change(timeCountParam, { target: { value: '5' } });
+
+      const timeUnitDropdown = screen.getAllByText('Hours')[0];
+      fireEvent.click(timeUnitDropdown);
+      const minutesItem = await screen.findByText('Minutes');
+      fireEvent.click(minutesItem);
+
+      const startButton = await screen.findByText('Start');
+      // Because start button is set false by default
+      await waitFor(() => {
+        expect(startButton.closest('button')?.disabled).toEqual(false);
+      });
+      fireEvent.click(startButton);
+
+      await waitFor(() => {
+        expect(createJobSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            enabled: true,
+            max_concurrency: '5',
+            trigger: {
+              periodic_schedule: {
+                interval_second: '300',
+              },
+            },
+          }),
+        );
+      });
+    });
+
+    // it('', () => {
+
+    // });
+  });
+
   describe('cloning a existing run', () => {
     it('only shows clone run name from original run', () => {
       render(
