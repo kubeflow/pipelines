@@ -15,6 +15,7 @@
 package template
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 
@@ -37,12 +38,21 @@ type V2Spec struct {
 
 // Converts modelJob to ScheduledWorkflow
 func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
-	spec := &structpb.Struct{}
+	// spec := &structpb.Struct{}
 	job := &pipelinespec.PipelineJob{}
 
-	if err := yaml.Unmarshal([]byte(modelJob.PipelineSpec.PipelineSpecManifest), spec); err != nil {
-		return nil, util.Wrap(err, "Failed to parse pipeline spec manifest."+modelJob.PipelineSpec.PipelineSpecManifest)
+	bytes, err := protojson.Marshal(t.spec)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed marshal pipeline spec to json")
 	}
+	spec := &structpb.Struct{}
+	if err := protojson.Unmarshal(bytes, spec); err != nil {
+		return nil, util.Wrap(err, "Failed to parse pipeline spec")
+	}
+
+	// if err := yaml.Unmarshal([]byte(modelJob.PipelineSpec.PipelineSpecManifest), spec); err != nil {
+	//	return nil, util.Wrap(err, "Failed to parse pipeline spec manifest."+modelJob.PipelineSpec.PipelineSpecManifest)
+	// }
 	job.PipelineSpec = spec
 
 	jobRuntimeConfig, err := modelToPipelineJobRuntimeConfig(&modelJob.RuntimeConfig)
@@ -113,6 +123,11 @@ func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
 	if spec.GetRoot() == nil {
 		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: root component is empty")
 	}
+
+	fmt.Printf("lingqing-logs spec value: %#v \n", spec)
+	specJSON, _ := json.Marshal(spec)
+	fmt.Printf("lingqing-logs specJSON value: %s \n", specJSON)
+
 	return &V2Spec{spec: &spec}, nil
 }
 

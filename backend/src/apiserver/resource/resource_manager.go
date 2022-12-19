@@ -705,6 +705,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, apiJobInterface interfa
 	}
 	templateJSON, _ := json.Marshal(tmpl)
 	glog.Infof("lingqing-log: templateJSON value: %s \n", string(templateJSON))
+	fmt.Printf("lingqing-log: template value: %#v \n", tmpl)
 
 	// Convert apiJob, either v1 or v2, to model Job.
 	modelJob, err := r.ToModelJob(apiJobInterface, string(manifestBytes), tmpl.GetTemplateType())
