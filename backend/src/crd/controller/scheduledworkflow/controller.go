@@ -422,7 +422,7 @@ func (c *Controller) syncHandler(ctx context.Context, key string) (
 
 	log.WithFields(log.Fields{
 		ScheduledWorkflow: name,
-	}).Infof("submitted: %v, nowEpoch: %v, nextScheduledEpoch: %v\n swfJSON: %s \n", submitted, nowEpoch, nextScheduledEpoch, swfJSON)
+	}).Infof("submitted: %v, nowEpoch: %v, nextScheduledEpoch: %v\n active count: %v\nswfJSON: %s \n", submitted, nowEpoch, nextScheduledEpoch, active, swfJSON)
 
 	err = c.updateStatus(ctx, swf, submitted, active, completed, nextScheduledEpoch, nowEpoch)
 	if err != nil {
