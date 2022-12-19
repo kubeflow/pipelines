@@ -1,0 +1,9 @@
+name: whalesay
+inputs:
+- name: param1
+- name: param2
+implementation:
+  container:
+    image: docker/whalesay:latest
+    command: [cowsay]
+    args: [{inputValue: param1}, {inputValue: param2}]

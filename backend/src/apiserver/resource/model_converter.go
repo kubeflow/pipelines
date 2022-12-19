@@ -20,8 +20,8 @@ import (
 
 	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiV1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -33,21 +33,21 @@ func (r *ResourceManager) ToModelExperiment(inputExperiment interface{}) (*model
 	name := ""
 	description := ""
 	switch inputExperiment.(type) {
-	case *apiv1beta1.Experiment:
-		v1Experiment := inputExperiment.(*apiv1beta1.Experiment)
+	case *apiV1beta1.Experiment:
+		v1Experiment := inputExperiment.(*apiV1beta1.Experiment)
 		name = v1Experiment.GetName()
 		description = v1Experiment.GetDescription()
 		resourceReferences := v1Experiment.GetResourceReferences()
 		if resourceReferences != nil {
 			if len(resourceReferences) != 1 ||
-				resourceReferences[0].Key.Type != apiv1beta1.ResourceType_NAMESPACE ||
-				resourceReferences[0].Relationship != apiv1beta1.Relationship_OWNER {
+				resourceReferences[0].Key.Type != apiV1beta1.ResourceType_NAMESPACE ||
+				resourceReferences[0].Relationship != apiV1beta1.Relationship_OWNER {
 				return nil, util.NewInternalServerError(errors.New("Invalid resource references for experiment"), "Unable to convert to model experiment.")
 			}
 			namespace = resourceReferences[0].Key.Id
 		}
-	case *apiv2beta1.Experiment:
-		v2Experiment := inputExperiment.(*apiv2beta1.Experiment)
+	case *apiV2beta1.Experiment:
+		v2Experiment := inputExperiment.(*apiV2beta1.Experiment)
 		name = v2Experiment.GetDisplayName()
 		namespace = v2Experiment.GetNamespace()
 		description = v2Experiment.GetDescription()
@@ -61,7 +61,7 @@ func (r *ResourceManager) ToModelExperiment(inputExperiment interface{}) (*model
 	}, nil
 }
 
-func (r *ResourceManager) ToModelRunMetric(metric *apiv1beta1.RunMetric, runUUID string) *model.RunMetric {
+func (r *ResourceManager) ToModelRunMetric(metric *apiV1beta1.RunMetric, runUUID string) *model.RunMetric {
 	return &model.RunMetric{
 		RunUUID:     runUUID,
 		Name:        metric.GetName(),
@@ -73,8 +73,8 @@ func (r *ResourceManager) ToModelRunMetric(metric *apiv1beta1.RunMetric, runUUID
 
 // The input run might not contain workflowSpecManifest and pipelineSpecManifest, but instead a pipeline ID.
 // The caller would retrieve manifest and pass in.
-func (r *ResourceManager) ToModelRunDetail(run *apiv1beta1.Run, runId string, workflow util.ExecutionSpec, manifest string, templateType template.TemplateType) (*model.RunDetail, error) {
-	resourceReferences, err := r.toModelResourceReferencesV1(runId, common.Run, run.GetResourceReferences())
+func (r *ResourceManager) ToModelRunDetail(run *apiV1beta1.Run, runId string, workflow util.ExecutionSpec, manifest string, templateType template.TemplateType) (*model.RunDetail, error) {
+	resourceReferences, err := r.toModelResourceReferences(runId, common.Run, run.GetResourceReferences())
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to convert resource references.")
 	}
@@ -120,7 +120,7 @@ func (r *ResourceManager) ToModelRunDetail(run *apiv1beta1.Run, runId string, wo
 		return runDetail, nil
 
 	} else if templateType == template.V2 {
-		params, err := runtimeConfigToModelParametersV1(run.GetPipelineSpec().GetRuntimeConfig())
+		params, err := runtimeConfigToModelParameters(run.GetPipelineSpec().GetRuntimeConfig())
 		if err != nil {
 			return nil, util.Wrap(err, "Unable to parse the V2 parameter.")
 		}
@@ -130,123 +130,22 @@ func (r *ResourceManager) ToModelRunDetail(run *apiv1beta1.Run, runId string, wo
 		return runDetail, nil
 
 	} else {
-		return nil, fmt.Errorf("failed to generate RunDetail with templateType %s.", templateType)
+		return nil, fmt.Errorf("failed to generate RunDetail with templateType %s", templateType)
 	}
 }
 
-func (r *ResourceManager) ToModelJob(jobInterface interface{}, manifest string, templateType template.TemplateType) (*model.Job, error) {
-	modelJob := &model.Job{}
-	switch jobInterface.(type) {
-	case *apiv1beta1.Job:
-		apiJob := jobInterface.(*apiv1beta1.Job)
-		// Add a reference to the default experiment if run does not already have a containing experiment
-		ref, err := r.getDefaultExperimentIfNoExperiment(apiJob.GetResourceReferences())
-		if err != nil {
-			return nil, err
-		}
-		if ref != nil {
-			apiJob.ResourceReferences = append(apiJob.GetResourceReferences(), ref)
-		}
-
-		namespace, err := r.getNamespaceFromExperiment(apiJob.GetResourceReferences())
-		if err != nil {
-			return nil, err
-		}
-
-		// Create model Resource References
-		resourceReferences, err := r.toModelResourceReferencesV1("", common.Job, apiJob.GetResourceReferences())
-		if err != nil {
-			return nil, util.Wrap(err, "Error converting resource references.")
-		}
-		// Retrieve Pipeline name
-		var pipelineName string
-		if apiJob.GetPipelineSpec().GetPipelineId() != "" {
-			pipelineName, err = r.getResourceName(common.Pipeline, apiJob.GetPipelineSpec().GetPipelineId())
-			if err != nil {
-				return nil, util.Wrap(err, "Error getting the pipeline name.")
-			}
-		}
-		modelJob.Name = apiJob.Name
-		modelJob.DisplayName = apiJob.Name
-		modelJob.Description = apiJob.Description
-		modelJob.Enabled = apiJob.Enabled
-		modelJob.Namespace = namespace
-		modelJob.Trigger = toModelTriggerV1(apiJob.Trigger)
-		modelJob.MaxConcurrency = apiJob.MaxConcurrency
-		modelJob.NoCatchup = apiJob.NoCatchup
-		modelJob.ResourceReferences = resourceReferences
-		modelJob.ServiceAccount = apiJob.ServiceAccount
-		modelJob.PipelineSpec = model.PipelineSpec{
-			PipelineId:   apiJob.GetPipelineSpec().GetPipelineId(),
-			PipelineName: pipelineName,
-		}
-		if templateType == template.V1 {
-			params, err := apiParametersToModelParameters(apiJob.GetPipelineSpec().GetParameters())
-			if err != nil {
-				return nil, util.Wrap(err, "Unable to parse the parameters.")
-			}
-			modelJob.Parameters = params
-			modelJob.WorkflowSpecManifest = manifest
-		} else if templateType == template.V2 {
-			params, err := runtimeConfigToModelParametersV1(apiJob.GetPipelineSpec().GetRuntimeConfig())
-			if err != nil {
-				return nil, util.Wrap(err, "Unable to parse the parameters inside runtimeConfig.")
-			}
-			modelJob.PipelineSpecManifest = manifest
-			modelJob.PipelineSpec.RuntimeConfig.Parameters = params
-			modelJob.PipelineSpec.RuntimeConfig.PipelineRoot = apiJob.GetPipelineSpec().GetRuntimeConfig().GetPipelineRoot()
-		} else {
-			return nil, fmt.Errorf("failed to generate ModelJob with templateType %s", templateType)
-		}
-	case *apiv2beta1.RecurringRun:
-		apiRecurringRun := jobInterface.(*apiv2beta1.RecurringRun)
-		// Retrieve Pipeline name
-		var pipelineName string
-		var err error
-		if apiRecurringRun.GetPipelineId() != "" {
-			pipelineName, err = r.getResourceName(common.Pipeline, apiRecurringRun.GetPipelineId())
-			if err != nil {
-				return nil, util.Wrap(err, "Error getting the pipeline name.")
-			}
-		}
-		modelJob.DisplayName = apiRecurringRun.DisplayName
-		modelJob.Name = apiRecurringRun.DisplayName
-		modelJob.Description = apiRecurringRun.Description
-		modelJob.Enabled = modeToModelEnabled(apiRecurringRun.Mode)
-		modelJob.Trigger, err = toModelTriggerV2(apiRecurringRun.Trigger)
-		if err != nil {
-			return nil, util.Wrap(err, "Cannot convert RecurringRun Trigger.")
-		}
-		modelJob.MaxConcurrency = apiRecurringRun.MaxConcurrency
-		modelJob.NoCatchup = apiRecurringRun.NoCatchup
-		modelJob.ServiceAccount = apiRecurringRun.ServiceAccount
-		experimentId := apiRecurringRun.ExperimentId
-		namespace, err := r.GetNamespaceFromExperimentID(experimentId)
-		modelJob.Namespace = namespace
-		modelJob.PipelineSpec = model.PipelineSpec{
-			PipelineId:   apiRecurringRun.GetPipelineId(),
-			PipelineName: pipelineName,
-		}
-		params, err := runtimeConfigToModelParameters(apiRecurringRun.GetRuntimeConfig())
-		if err != nil {
-			return nil, util.Wrap(err, "Unable to parse the parameters inside runtimeConfig.")
-		}
-		modelJob.PipelineSpecManifest = manifest
-		modelJob.PipelineSpec.RuntimeConfig.Parameters = params
-		modelJob.PipelineSpec.RuntimeConfig.PipelineRoot = apiRecurringRun.GetRuntimeConfig().GetPipelineRoot()
-	default:
-		return nil, util.NewInvalidInputError("Wrong Api Job type.")
+func (r *ResourceManager) ToModelJob(job *apiV1beta1.Job, swf *util.ScheduledWorkflow, manifest string, templateType template.TemplateType) (*model.Job, error) {
+	resourceReferences, err := r.toModelResourceReferences(string(swf.UID), common.Job, job.GetResourceReferences())
+	if err != nil {
+		return nil, util.Wrap(err, "Error to convert resource references.")
 	}
-	return modelJob, nil
-}
-
-func (r *ResourceManager) updateModelJobWithNewScheduledWorkflow(modelJob *model.Job, swf *util.ScheduledWorkflow) error {
-	modelJob.UUID = string(swf.UID)
-	modelJob.Name = swf.Name
-	modelJob.Namespace = swf.Namespace
-	modelJob.Conditions = swf.ConditionSummary()
-	r.updateJobResourceReferences(string(swf.UID), modelJob)
-
+	var pipelineName string
+	if job.GetPipelineSpec().GetPipelineId() != "" {
+		pipelineName, err = r.getResourceName(common.Pipeline, job.GetPipelineSpec().GetPipelineId())
+		if err != nil {
+			return nil, util.Wrap(err, "Error getting the pipeline name")
+		}
+	}
 	serviceAccount := ""
 	if swf.Spec.Workflow != nil {
 		execSpec, err := util.ScheduleSpecToExecutionSpec(util.ArgoWorkflow, swf.Spec.Workflow)
@@ -254,50 +153,49 @@ func (r *ResourceManager) updateModelJobWithNewScheduledWorkflow(modelJob *model
 			serviceAccount = execSpec.ServiceAccount()
 		}
 	}
-	modelJob.ServiceAccount = serviceAccount
-	return nil
-}
+	modelJob := &model.Job{
+		UUID:               string(swf.UID),
+		DisplayName:        job.Name,
+		Name:               swf.Name,
+		Namespace:          swf.Namespace,
+		ServiceAccount:     serviceAccount,
+		Description:        job.Description,
+		Conditions:         swf.ConditionSummary(),
+		Enabled:            job.Enabled,
+		Trigger:            toModelTrigger(job.Trigger),
+		MaxConcurrency:     job.MaxConcurrency,
+		NoCatchup:          job.NoCatchup,
+		ResourceReferences: resourceReferences,
+		PipelineSpec: model.PipelineSpec{
+			PipelineId:   job.GetPipelineSpec().GetPipelineId(),
+			PipelineName: pipelineName,
+		}}
 
-func modeToModelEnabled(v2APIMode apiv2beta1.RecurringRun_Mode) bool {
-	// Returns false if status is disable or unspecified.
-	if v2APIMode == apiv2beta1.RecurringRun_ENABLE {
-		return true
+	if templateType == template.V1 {
+		params, err := apiParametersToModelParameters(job.GetPipelineSpec().GetParameters())
+		if err != nil {
+			return nil, util.Wrap(err, "Unable to parse the parameters.")
+		}
+		modelJob.Parameters = params
+		modelJob.WorkflowSpecManifest = manifest
+		return modelJob, nil
+
+	} else if templateType == template.V2 {
+		params, err := runtimeConfigToModelParameters(job.GetPipelineSpec().GetRuntimeConfig())
+		if err != nil {
+			return nil, util.Wrap(err, "Unable to parse the parameters inside runtimeConfig.")
+		}
+		modelJob.PipelineSpecManifest = manifest
+		modelJob.PipelineSpec.RuntimeConfig.Parameters = params
+		modelJob.PipelineSpec.RuntimeConfig.PipelineRoot = job.GetPipelineSpec().GetRuntimeConfig().GetPipelineRoot()
+		return modelJob, nil
+
 	} else {
-		return false
+		return nil, fmt.Errorf("failed to generate ModelJob with templateType %s", templateType)
 	}
 }
 
-func toModelTriggerV2(v2APITrigger *apiv2beta1.Trigger) (model.Trigger, error) {
-	modelTrigger := model.Trigger{}
-	if v2APITrigger == nil {
-		return modelTrigger, nil
-	}
-	if v2APITrigger.GetCronSchedule() != nil {
-		cronSchedule := v2APITrigger.GetCronSchedule()
-		modelTrigger.CronSchedule = model.CronSchedule{Cron: &cronSchedule.Cron}
-		if cronSchedule.StartTime != nil {
-			modelTrigger.CronScheduleStartTimeInSec = &cronSchedule.StartTime.Seconds
-		}
-		if cronSchedule.EndTime != nil {
-			modelTrigger.CronScheduleEndTimeInSec = &cronSchedule.EndTime.Seconds
-		}
-	}
-
-	if v2APITrigger.GetPeriodicSchedule() != nil {
-		periodicSchedule := v2APITrigger.GetPeriodicSchedule()
-		modelTrigger.PeriodicSchedule = model.PeriodicSchedule{
-			IntervalSecond: &periodicSchedule.IntervalSecond}
-		if v2APITrigger.GetPeriodicSchedule().StartTime != nil {
-			modelTrigger.PeriodicScheduleStartTimeInSec = &periodicSchedule.StartTime.Seconds
-		}
-		if v2APITrigger.GetPeriodicSchedule().EndTime != nil {
-			modelTrigger.PeriodicScheduleEndTimeInSec = &periodicSchedule.EndTime.Seconds
-		}
-	}
-	return modelTrigger, nil
-}
-
-func (r *ResourceManager) ToModelPipelineVersion(version *apiv1beta1.PipelineVersion) (*model.PipelineVersion, error) {
+func (r *ResourceManager) ToModelPipelineVersion(version *apiV1beta1.PipelineVersion) (*model.PipelineVersion, error) {
 	paramStr, err := apiParametersToModelParameters(version.Parameters)
 	if err != nil {
 		return nil, err
@@ -305,7 +203,7 @@ func (r *ResourceManager) ToModelPipelineVersion(version *apiv1beta1.PipelineVer
 
 	var pipelineId string
 	for _, resourceReference := range version.ResourceReferences {
-		if resourceReference.Key.Type == apiv1beta1.ResourceType_PIPELINE {
+		if resourceReference.Key.Type == apiV1beta1.ResourceType_PIPELINE {
 			pipelineId = resourceReference.Key.Id
 		}
 	}
@@ -320,7 +218,7 @@ func (r *ResourceManager) ToModelPipelineVersion(version *apiv1beta1.PipelineVer
 	}, nil
 }
 
-func toModelTriggerV1(trigger *apiv1beta1.Trigger) model.Trigger {
+func toModelTrigger(trigger *apiV1beta1.Trigger) model.Trigger {
 	modelTrigger := model.Trigger{}
 	if trigger == nil {
 		return modelTrigger
@@ -350,7 +248,7 @@ func toModelTriggerV1(trigger *apiv1beta1.Trigger) model.Trigger {
 	return modelTrigger
 }
 
-func apiParametersToModelParameters(apiParams []*apiv1beta1.Parameter) (string, error) {
+func apiParametersToModelParameters(apiParams []*apiV1beta1.Parameter) (string, error) {
 	if apiParams == nil || len(apiParams) == 0 {
 		return "", nil
 	}
@@ -369,7 +267,7 @@ func apiParametersToModelParameters(apiParams []*apiv1beta1.Parameter) (string, 
 	return string(paramsBytes), nil
 }
 
-func runtimeConfigToModelParametersV1(runtimeConfig *apiv1beta1.PipelineSpec_RuntimeConfig) (string, error) {
+func runtimeConfigToModelParameters(runtimeConfig *apiV1beta1.PipelineSpec_RuntimeConfig) (string, error) {
 	if runtimeConfig == nil {
 		return "", nil
 	}
@@ -380,19 +278,8 @@ func runtimeConfigToModelParametersV1(runtimeConfig *apiv1beta1.PipelineSpec_Run
 	return string(paramsBytes), nil
 }
 
-func runtimeConfigToModelParameters(runtimeConfig *apiv2beta1.RuntimeConfig) (string, error) {
-	if runtimeConfig == nil {
-		return "", nil
-	}
-	paramsBytes, err := json.Marshal(runtimeConfig.GetParameters())
-	if err != nil {
-		return "", util.NewInternalServerError(err, "Failed to marshal RuntimeConfig API parameters as string.")
-	}
-	return string(paramsBytes), nil
-}
-
-func (r *ResourceManager) toModelResourceReferencesV1(
-	resourceId string, resourceType model.ResourceType, apiRefs []*apiv1beta1.ResourceReference) ([]*model.ResourceReference, error) {
+func (r *ResourceManager) toModelResourceReferences(
+	resourceId string, resourceType model.ResourceType, apiRefs []*apiV1beta1.ResourceReference) ([]*model.ResourceReference, error) {
 	var modelRefs []*model.ResourceReference
 	for _, apiRef := range apiRefs {
 		modelReferenceType, err := common.ToModelResourceType(apiRef.Key.Type)
@@ -439,7 +326,7 @@ func (r *ResourceManager) getResourceName(resourceType model.ResourceType, resou
 	case common.Job:
 		job, err := r.GetJob(resourceId)
 		if err != nil {
-			return "", util.NewInvalidInputError("Referred job not found.")
+			return "", util.Wrap(err, "Referred job not found.")
 		}
 		return job.DisplayName, nil
 	case common.Run:
@@ -461,10 +348,10 @@ func (r *ResourceManager) getResourceName(resourceType model.ResourceType, resou
 	}
 }
 
-func (r *ResourceManager) getOwningExperimentUUID(references []*apiv1beta1.ResourceReference) (string, error) {
+func (r *ResourceManager) getOwningExperimentUUID(references []*apiV1beta1.ResourceReference) (string, error) {
 	var experimentUUID string
 	for _, ref := range references {
-		if ref.Key.Type == apiv1beta1.ResourceType_EXPERIMENT && ref.Relationship == apiv1beta1.Relationship_OWNER {
+		if ref.Key.Type == apiV1beta1.ResourceType_EXPERIMENT && ref.Relationship == apiV1beta1.Relationship_OWNER {
 			experimentUUID = ref.Key.Id
 			break
 		}

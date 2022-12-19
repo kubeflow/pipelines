@@ -1,4 +1,4 @@
-// Copyright 2018-2022 The Kubeflow Authors
+// Copyright 2018 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,16 +21,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ghodss/yaml"
 	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+
+	"github.com/ghodss/yaml"
+
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	"google.golang.org/protobuf/encoding/protojson"
-	structpb "google.golang.org/protobuf/types/known/structpb"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -105,9 +104,9 @@ type Template interface {
 	GetTemplateType() TemplateType
 
 	//Get workflow
-	RunWorkflow(apiRun *apiv1beta1.Run, options RunWorkflowOptions) (util.ExecutionSpec, error)
+	RunWorkflow(apiRun *api.Run, options RunWorkflowOptions) (util.ExecutionSpec, error)
 
-	ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error)
+	ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledWorkflow, error)
 }
 
 type RunWorkflowOptions struct {
@@ -127,29 +126,13 @@ func New(bytes []byte) (Template, error) {
 	}
 }
 
-func toParametersMap(apiParams []*apiv1beta1.Parameter) map[string]string {
+func toParametersMap(apiParams []*api.Parameter) map[string]string {
 	// Preprocess workflow by appending parameter and add pipeline specific labels
 	desiredParamsMap := make(map[string]string)
 	for _, param := range apiParams {
 		desiredParamsMap[param.Name] = param.Value
 	}
 	return desiredParamsMap
-}
-
-func modelToParametersMap(modelParameters string) (map[string]string, error) {
-	var paramsMapList []*map[string]string
-	desiredParamsMap := make(map[string]string)
-	if modelParameters == "" {
-		return desiredParamsMap, nil
-	}
-	err := json.Unmarshal([]byte(modelParameters), &paramsMapList)
-	if err != nil {
-		return nil, err
-	}
-	for _, param := range paramsMapList {
-		desiredParamsMap[(*param)["name"]] = (*param)["value"]
-	}
-	return desiredParamsMap, nil
 }
 
 // Patch the system-specified default parameters if available.
@@ -209,18 +192,7 @@ func toSWFCRDResourceGeneratedName(displayName string) (string, error) {
 	return util.Truncate(processedName, 25), nil
 }
 
-func toCRDTriggerV1(apiTrigger *apiv1beta1.Trigger) *scheduledworkflow.Trigger {
-	var crdTrigger scheduledworkflow.Trigger
-	if apiTrigger.GetCronSchedule() != nil {
-		crdTrigger.CronSchedule = toCRDCronScheduleV1(apiTrigger.GetCronSchedule())
-	}
-	if apiTrigger.GetPeriodicSchedule() != nil {
-		crdTrigger.PeriodicSchedule = toCRDPeriodicScheduleV1(apiTrigger.GetPeriodicSchedule())
-	}
-	return &crdTrigger
-}
-
-func toCRDTrigger(apiTrigger *apiv2beta1.Trigger) *scheduledworkflow.Trigger {
+func toCRDTrigger(apiTrigger *api.Trigger) *scheduledworkflow.Trigger {
 	var crdTrigger scheduledworkflow.Trigger
 	if apiTrigger.GetCronSchedule() != nil {
 		crdTrigger.CronSchedule = toCRDCronSchedule(apiTrigger.GetCronSchedule())
@@ -231,7 +203,7 @@ func toCRDTrigger(apiTrigger *apiv2beta1.Trigger) *scheduledworkflow.Trigger {
 	return &crdTrigger
 }
 
-func toCRDCronScheduleV1(cronSchedule *apiv1beta1.CronSchedule) *scheduledworkflow.CronSchedule {
+func toCRDCronSchedule(cronSchedule *api.CronSchedule) *scheduledworkflow.CronSchedule {
 	if cronSchedule == nil || cronSchedule.Cron == "" {
 		return nil
 	}
@@ -249,25 +221,7 @@ func toCRDCronScheduleV1(cronSchedule *apiv1beta1.CronSchedule) *scheduledworkfl
 	return &crdCronSchedule
 }
 
-func toCRDCronSchedule(cronSchedule *apiv2beta1.CronSchedule) *scheduledworkflow.CronSchedule {
-	if cronSchedule == nil || cronSchedule.Cron == "" {
-		return nil
-	}
-	crdCronSchedule := scheduledworkflow.CronSchedule{}
-	crdCronSchedule.Cron = cronSchedule.Cron
-
-	if cronSchedule.StartTime != nil {
-		startTime := metav1.NewTime(time.Unix(cronSchedule.StartTime.Seconds, 0))
-		crdCronSchedule.StartTime = &startTime
-	}
-	if cronSchedule.EndTime != nil {
-		endTime := metav1.NewTime(time.Unix(cronSchedule.EndTime.Seconds, 0))
-		crdCronSchedule.EndTime = &endTime
-	}
-	return &crdCronSchedule
-}
-
-func toCRDPeriodicScheduleV1(periodicSchedule *apiv1beta1.PeriodicSchedule) *scheduledworkflow.PeriodicSchedule {
+func toCRDPeriodicSchedule(periodicSchedule *api.PeriodicSchedule) *scheduledworkflow.PeriodicSchedule {
 	if periodicSchedule == nil || periodicSchedule.IntervalSecond == 0 {
 		return nil
 	}
@@ -284,24 +238,7 @@ func toCRDPeriodicScheduleV1(periodicSchedule *apiv1beta1.PeriodicSchedule) *sch
 	return &crdPeriodicSchedule
 }
 
-func toCRDPeriodicSchedule(periodicSchedule *apiv2beta1.PeriodicSchedule) *scheduledworkflow.PeriodicSchedule {
-	if periodicSchedule == nil || periodicSchedule.IntervalSecond == 0 {
-		return nil
-	}
-	crdPeriodicSchedule := scheduledworkflow.PeriodicSchedule{}
-	crdPeriodicSchedule.IntervalSecond = periodicSchedule.IntervalSecond
-	if periodicSchedule.StartTime != nil {
-		startTime := metav1.NewTime(time.Unix(periodicSchedule.StartTime.Seconds, 0))
-		crdPeriodicSchedule.StartTime = &startTime
-	}
-	if periodicSchedule.EndTime != nil {
-		endTime := metav1.NewTime(time.Unix(periodicSchedule.EndTime.Seconds, 0))
-		crdPeriodicSchedule.EndTime = &endTime
-	}
-	return &crdPeriodicSchedule
-}
-
-func toCRDParametersV1(apiParams []*apiv1beta1.Parameter) []scheduledworkflow.Parameter {
+func toCRDParameter(apiParams []*api.Parameter) []scheduledworkflow.Parameter {
 	var swParams []scheduledworkflow.Parameter
 	for _, apiParam := range apiParams {
 		swParam := scheduledworkflow.Parameter{
@@ -313,19 +250,7 @@ func toCRDParametersV1(apiParams []*apiv1beta1.Parameter) []scheduledworkflow.Pa
 	return swParams
 }
 
-func toCRDParameters(apiParams map[string]*structpb.Value) []scheduledworkflow.Parameter {
-	var swParams []scheduledworkflow.Parameter
-	for name, value := range apiParams {
-		swParam := scheduledworkflow.Parameter{
-			Name:  name,
-			Value: value.GetStringValue(),
-		}
-		swParams = append(swParams, swParam)
-	}
-	return swParams
-}
-
-func toPipelineJobRuntimeConfigV1(apiRuntimeConfig *apiv1beta1.PipelineSpec_RuntimeConfig) (*pipelinespec.PipelineJob_RuntimeConfig, error) {
+func toPipelineJobRuntimeConfig(apiRuntimeConfig *api.PipelineSpec_RuntimeConfig) (*pipelinespec.PipelineJob_RuntimeConfig, error) {
 	if apiRuntimeConfig == nil {
 		return nil, nil
 	}
@@ -333,97 +258,4 @@ func toPipelineJobRuntimeConfigV1(apiRuntimeConfig *apiv1beta1.PipelineSpec_Runt
 	runtimeConfig.ParameterValues = apiRuntimeConfig.GetParameters()
 	runtimeConfig.GcsOutputDirectory = apiRuntimeConfig.GetPipelineRoot()
 	return runtimeConfig, nil
-}
-
-func toPipelineJobRuntimeConfig(apiRuntimeConfig *apiv2beta1.RuntimeConfig) (*pipelinespec.PipelineJob_RuntimeConfig, error) {
-	if apiRuntimeConfig == nil {
-		return nil, nil
-	}
-	runtimeConfig := &pipelinespec.PipelineJob_RuntimeConfig{}
-	runtimeConfig.ParameterValues = apiRuntimeConfig.GetParameters()
-	runtimeConfig.GcsOutputDirectory = apiRuntimeConfig.GetPipelineRoot()
-	return runtimeConfig, nil
-}
-
-func modelToPipelineJobRuntimeConfig(modelRuntimeConfig *model.RuntimeConfig) (*pipelinespec.PipelineJob_RuntimeConfig, error) {
-	if modelRuntimeConfig == nil {
-		return nil, nil
-	}
-	parameters := new(map[string]*structpb.Value)
-	err := json.Unmarshal([]byte(modelRuntimeConfig.Parameters), parameters)
-	if err != nil {
-		return nil, err
-	}
-	runtimeConfig := &pipelinespec.PipelineJob_RuntimeConfig{}
-	runtimeConfig.ParameterValues = *parameters
-	runtimeConfig.GcsOutputDirectory = modelRuntimeConfig.PipelineRoot
-	return runtimeConfig, nil
-}
-
-func modelToCRDTrigger(modelJob model.Job) scheduledworkflow.Trigger {
-	crdCronSchedule := scheduledworkflow.CronSchedule{}
-	crdPeriodicSchedule := scheduledworkflow.PeriodicSchedule{}
-	if &modelJob.CronSchedule != nil {
-		if modelJob.CronSchedule.Cron != nil {
-			crdCronSchedule.Cron = *modelJob.CronSchedule.Cron
-		}
-		if modelJob.CronScheduleStartTimeInSec != nil {
-			startTime := metav1.NewTime(time.Unix(*modelJob.CronScheduleStartTimeInSec, 0))
-			crdCronSchedule.StartTime = &startTime
-		}
-		if modelJob.CronScheduleEndTimeInSec != nil {
-			endTime := metav1.NewTime(time.Unix(*modelJob.CronScheduleEndTimeInSec, 0))
-			crdCronSchedule.EndTime = &endTime
-		}
-	}
-	if &modelJob.PeriodicSchedule != nil {
-		if modelJob.IntervalSecond != nil {
-			crdPeriodicSchedule.IntervalSecond = *modelJob.IntervalSecond
-		}
-		if modelJob.PeriodicScheduleStartTimeInSec != nil {
-			startTime := metav1.NewTime(time.Unix(*modelJob.PeriodicScheduleStartTimeInSec, 0))
-			crdPeriodicSchedule.StartTime = &startTime
-		}
-		if modelJob.PeriodicScheduleEndTimeInSec != nil {
-			endTime := metav1.NewTime(time.Unix(*modelJob.PeriodicScheduleEndTimeInSec, 0))
-			crdPeriodicSchedule.EndTime = &endTime
-		}
-	}
-	crdTrigger := scheduledworkflow.Trigger{
-		CronSchedule:     &crdCronSchedule,
-		PeriodicSchedule: &crdPeriodicSchedule,
-	}
-	return crdTrigger
-}
-
-func modelToCRDParameters(modelJob *model.Job) ([]scheduledworkflow.Parameter, error) {
-	var swParams []scheduledworkflow.Parameter
-	var parameters map[string]*structpb.Value
-	if modelJob.RuntimeConfig.Parameters == "" {
-		return swParams, nil
-	}
-	err := json.Unmarshal([]byte(modelJob.RuntimeConfig.Parameters), &parameters)
-	if err != nil {
-		return nil, err
-	}
-	for name, value := range parameters {
-		valueBytes, err := value.MarshalJSON()
-		if err != nil {
-			return nil, err
-		}
-		swParam := scheduledworkflow.Parameter{
-			Name:  name,
-			Value: string(valueBytes),
-		}
-		swParams = append(swParams, swParam)
-	}
-	return swParams, nil
-}
-
-func modeToPipelineJobEnabled(recurringRunMode apiv2beta1.RecurringRun_Mode) bool {
-	if recurringRunMode == 1 {
-		return true
-	} else {
-		return false
-	}
 }

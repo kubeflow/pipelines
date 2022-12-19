@@ -1,17 +1,3 @@
-// Copyright 2018-2022 The Kubeflow Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// https://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package template
 
 import (
@@ -20,9 +6,9 @@ import (
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/ghodss/yaml"
+
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -87,48 +73,42 @@ type Argo struct {
 	wf *util.Workflow
 }
 
-func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
+func (t *Argo) ScheduledWorkflow(apiJob *api.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
 	workflow := util.NewWorkflow(t.wf.Workflow.DeepCopy())
-	parameters, err := modelToParametersMap(modelJob.PipelineSpec.Parameters)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert parameters.")
-	}
+
+	parameters := toParametersMap(apiJob.GetPipelineSpec().GetParameters())
 	// Verify no additional parameter provided
 	if err := workflow.VerifyParameters(parameters); err != nil {
 		return nil, util.Wrap(err, "Failed to verify parameters.")
 	}
 	// Append provided parameter
 	workflow.OverrideParameters(parameters)
-	setDefaultServiceAccount(workflow, modelJob.ServiceAccount)
+	setDefaultServiceAccount(workflow, apiJob.GetServiceAccount())
 	// Disable istio sidecar injection if not specified
 	workflow.SetAnnotationsToAllTemplatesIfKeyNotExist(util.AnnotationKeyIstioSidecarInject, util.AnnotationValueIstioSidecarInjectDisabled)
-	swfGeneratedName, err := toSWFCRDResourceGeneratedName(modelJob.Name)
+	swfGeneratedName, err := toSWFCRDResourceGeneratedName(apiJob.Name)
 	if err != nil {
-		return nil, util.Wrap(err, "Create job failed.")
+		return nil, util.Wrap(err, "Create job failed")
 	}
 
 	// Marking auto-added artifacts as optional. Otherwise most older workflows will start failing after upgrade to Argo 2.3.
 	// TODO: Fix the components to explicitly declare the artifacts they really output.
 	workflow.PatchTemplateOutputArtifacts()
 
-	swfParameters, err := modelToCRDParameters(modelJob)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert model parameters to CRD parameters")
-	}
-
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{GenerateName: swfGeneratedName},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
-			Enabled:        modelJob.Enabled,
-			MaxConcurrency: &modelJob.MaxConcurrency,
-			Trigger:        modelToCRDTrigger(*modelJob),
+			Enabled:        apiJob.Enabled,
+			MaxConcurrency: &apiJob.MaxConcurrency,
+			Trigger:        *toCRDTrigger(apiJob.Trigger),
 			Workflow: &scheduledworkflow.WorkflowResource{
-				Parameters: swfParameters,
+				Parameters: toCRDParameter(apiJob.GetPipelineSpec().GetParameters()),
 				Spec:       workflow.ToStringForSchedule(),
 			},
-			NoCatchup: util.BoolPointer(modelJob.NoCatchup),
+			NoCatchup: util.BoolPointer(apiJob.NoCatchup),
 		},
 	}
+
 	return scheduledWorkflow, nil
 }
 
