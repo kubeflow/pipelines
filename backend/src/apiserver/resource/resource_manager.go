@@ -703,21 +703,24 @@ func (r *ResourceManager) CreateJob(ctx context.Context, apiJobInterface interfa
 	if err != nil {
 		return nil, util.Wrap(err, "Error creating new template")
 	}
+	templateJSON, _ := json.Marshal(tmpl)
+	glog.Infof("lingqing-log: templateJSON value: %s \n", string(templateJSON))
 
 	// Convert apiJob, either v1 or v2, to model Job.
 	modelJob, err := r.ToModelJob(apiJobInterface, string(manifestBytes), tmpl.GetTemplateType())
 	if err != nil {
 		return nil, util.Wrap(err, "Error creating model job")
 	}
+	modelJobJSON, _ := json.Marshal(modelJob)
+	glog.Infof("lingqing-log: modelJobJSON value: %s \n", string(modelJobJSON))
 
 	// Convert modelJob into scheduledWorkflow.
 	scheduledWorkflow, err := tmpl.ScheduledWorkflow(modelJob)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to generate the scheduledWorkflow")
 	}
-
 	scheduledWorkflowJSON, _ := json.Marshal(scheduledWorkflow)
-	fmt.Printf("Input Scheduled Workflow value Lingqing Gan: " + string(scheduledWorkflowJSON))
+	glog.Infof("lingqing-log: scheduledWorkflowJSON value: %s \n", string(scheduledWorkflowJSON))
 
 	// Create a new ScheduledWorkflow at the ScheduledWorkflow client.
 	newScheduledWorkflow, err := r.getScheduledWorkflowClient(modelJob.Namespace).Create(ctx, scheduledWorkflow)
@@ -726,13 +729,15 @@ func (r *ResourceManager) CreateJob(ctx context.Context, apiJobInterface interfa
 	}
 
 	newScheduledWorkflowJSON, _ := json.Marshal(newScheduledWorkflow)
-	fmt.Println("Returned Scheduled Workflow value Lingqing Gan: " + string(newScheduledWorkflowJSON))
+	fmt.Println("lingqing-log: Returned Scheduled Workflow value Lingqing Gan: " + string(newScheduledWorkflowJSON))
 
 	// Complete modelJob with info coming back from ScheduledWorkflow client.
 	err = r.updateModelJobWithNewScheduledWorkflow(modelJob, util.NewScheduledWorkflow(newScheduledWorkflow))
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to add scheduled workflow info to model job")
 	}
+	modelJobJSON, _ = json.Marshal(modelJob)
+	glog.Infof("lingqing-log: modelJobJSON after update value: %s \n", string(modelJobJSON))
 
 	// Add creation/update time.
 	now := r.time.Now().Unix()
