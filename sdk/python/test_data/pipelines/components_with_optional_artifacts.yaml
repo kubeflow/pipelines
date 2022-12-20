@@ -98,12 +98,14 @@ deploymentSpec:
     exec-custom-artifact-printer:
       container:
         command:
-        - echo {{$.inputs.artifacts['artifact'].uri}}
+        - '{"IfPresent": {"InputName": "artifact", "Then": ["echo", "{{$.inputs.artifacts[''artifact''].uri}}"],
+          "Else": ["echo", "No artifact provided!"]}}'
         image: alpine
     exec-custom-artifact-printer-2:
       container:
         command:
-        - echo {{$.inputs.artifacts['artifact'].uri}}
+        - '{"IfPresent": {"InputName": "artifact", "Then": ["echo", "{{$.inputs.artifacts[''artifact''].uri}}"],
+          "Else": ["echo", "No artifact provided!"]}}'
         image: alpine
     exec-importer:
       importer:

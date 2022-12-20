@@ -2369,7 +2369,14 @@ class TestCompileOptionalArtifacts(unittest.TestCase):
 
         @dsl.container_component
         def comp(x: Optional[Input[Artifact]] = None):
-            return dsl.ContainerSpec(image='alpine', command=[f'echo {x.uri}'])
+            return dsl.ContainerSpec(
+                image='alpine',
+                command=[
+                    dsl.IfPresentPlaceholder(
+                        input_name='x',
+                        then=['echo', x.uri],
+                        else_=['echo', 'No artifact provided!'])
+                ])
 
         artifact_spec_from_root = comp.pipeline_spec.root.input_definitions.artifacts[
             'x']
@@ -2491,7 +2498,7 @@ class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
     def test__component__param__non_None_default(self):
 
         @dsl.component
-        def comp(x: Optional[int] = 1):
+        def comp(x: int = 1):
             print(x)
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -2540,7 +2547,7 @@ class TestCompileThenLoadThenUseWithOptionalInputs(unittest.TestCase):
             print(x)
 
         @dsl.pipeline
-        def inner_pipeline(x: Optional[int] = 1):
+        def inner_pipeline(x: int = 1):
             comp(x=x)
 
         with tempfile.TemporaryDirectory() as tmpdir:
