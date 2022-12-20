@@ -15,12 +15,13 @@
 package template
 
 import (
+	"testing"
+	"time"
+
 	"github.com/golang/protobuf/ptypes/timestamp"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	scheduledworkflow "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
-	"time"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
@@ -205,16 +206,22 @@ schemaVersion: 2.0.0
 sdkVersion: kfp-1.6.5
 `
 
+func TestToSwfCRDResourceGeneratedName_HasSuffix(t *testing.T) {
+	name, err := toSWFCRDResourceGeneratedName("name-")
+	assert.Nil(t, err)
+	assert.Equal(t, name, "name-")
+}
+
 func TestToSwfCRDResourceGeneratedName_SpecialCharsAndSpace(t *testing.T) {
 	name, err := toSWFCRDResourceGeneratedName("! HaVe ä £unky name")
 	assert.Nil(t, err)
-	assert.Equal(t, name, "haveunkyname")
+	assert.Equal(t, name, "haveunkyname-")
 }
 
 func TestToSwfCRDResourceGeneratedName_TruncateLongName(t *testing.T) {
 	name, err := toSWFCRDResourceGeneratedName("AloooooooooooooooooongName")
 	assert.Nil(t, err)
-	assert.Equal(t, name, "aloooooooooooooooooongnam")
+	assert.Equal(t, name, "aloooooooooooooooooongna-")
 }
 
 func TestToSwfCRDResourceGeneratedName_EmptyName(t *testing.T) {
