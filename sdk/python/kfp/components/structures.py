@@ -76,8 +76,11 @@ class InputSpec:
             if type_ is None:
                 raise ValueError(f'Unknown type {type_string} found in IR.')
             default_value = ir_component_inputs_dict.get('defaultValue')
-            optional = ir_component_inputs_dict.get('isOptional',
-                                                    bool(default_value))
+            # fallback to checking if the parameter has a default value,
+            # since some IR compiled with kfp<=2.0.0b8 will have defaults
+            # without isOptional=True
+            optional = ir_component_inputs_dict.get(
+                'isOptional', 'defaultValue' in ir_component_inputs_dict)
             return InputSpec(
                 type=type_, default=default_value, optional=optional)
 
