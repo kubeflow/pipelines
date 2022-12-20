@@ -258,12 +258,11 @@ class Executor():
         write_file = True
 
         CLUSTER_SPEC_ENV_VAR_NAME = 'CLUSTER_SPEC'
-        CHEIF_NODE_LABEL = 'workerpool0'
-
         cluster_spec_string = os.environ.get(CLUSTER_SPEC_ENV_VAR_NAME)
         if cluster_spec_string:
             cluster_spec = json.loads(cluster_spec_string)
-            write_file = cluster_spec['task']['type'] == CHEIF_NODE_LABEL
+            CHIEF_NODE_LABELS = {'workerpool0', 'chief', 'master'}
+            write_file = cluster_spec['task']['type'] in CHIEF_NODE_LABELS
 
         if write_file:
             os.makedirs(os.path.dirname(executor_output_path), exist_ok=True)
