@@ -723,6 +723,10 @@ func (r *ResourceManager) CreateJob(ctx context.Context, apiJobInterface interfa
 	scheduledWorkflowJSON, _ := json.Marshal(scheduledWorkflow)
 	glog.Infof("lingqing-log: scheduledWorkflowJSON value: %s \n", string(scheduledWorkflowJSON))
 
+	// test: overwrite scheduledWorkflow's Trigger field using the old functions
+	crdTrigger := template.ToCRDTriggerV1(apiJobInterface.(*apiv1beta1.Job).Trigger)
+	scheduledWorkflow.Spec.Trigger = *crdTrigger
+
 	// Create a new ScheduledWorkflow at the ScheduledWorkflow client.
 	newScheduledWorkflow, err := r.getScheduledWorkflowClient(modelJob.Namespace).Create(ctx, scheduledWorkflow)
 	if err != nil {

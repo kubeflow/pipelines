@@ -209,7 +209,7 @@ func toSWFCRDResourceGeneratedName(displayName string) (string, error) {
 	return util.Truncate(processedName, 25), nil
 }
 
-func toCRDTriggerV1(apiTrigger *apiv1beta1.Trigger) *scheduledworkflow.Trigger {
+func ToCRDTriggerV1(apiTrigger *apiv1beta1.Trigger) *scheduledworkflow.Trigger {
 	var crdTrigger scheduledworkflow.Trigger
 	if apiTrigger.GetCronSchedule() != nil {
 		crdTrigger.CronSchedule = toCRDCronScheduleV1(apiTrigger.GetCronSchedule())
