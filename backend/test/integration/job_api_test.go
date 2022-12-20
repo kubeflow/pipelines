@@ -388,7 +388,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	cronCatchupTrueExperiment, err := s.experimentClient.Create(&experimentparams.CreateExperimentV1Params{Body: experiment})
 	assert.Nil(t, err)
 
-	job = jobInThePastForTwoMinutes(jobOptions{
+	job = jobInThePastForThreeMinutes(jobOptions{
 		pipelineVersionId: helloWorldPipelineVersion.ID,
 		experimentId:      cronCatchupTrueExperiment.ID,
 		periodic:          false,
@@ -432,7 +432,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 		if err != nil {
 			return err
 		}
-		if runsWhenCatchupTrue != 2 {
+		if runsWhenCatchupTrue != 3 {
 			return fmt.Errorf("expected runsWhenCatchupTrue with periodic schedule to be 2, got: %v", runsWhenCatchupTrue)
 		}
 
@@ -442,7 +442,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 		if err != nil {
 			return err
 		}
-		if runsWhenCatchupTrue != 2 {
+		if runsWhenCatchupTrue != 3 {
 			return fmt.Errorf("expected runsWhenCatchupTrue with cron schedule to be 2, got: %v", runsWhenCatchupTrue)
 		}
 
@@ -710,6 +710,31 @@ type jobOptions struct {
 func jobInThePastForTwoMinutes(options jobOptions) *job_model.APIJob {
 	startTime := strfmt.DateTime(time.Unix(10*hour, 0))
 	endTime := strfmt.DateTime(time.Unix(10*hour+2*minute, 0))
+
+	job := defaultApiJob(options.pipelineVersionId, options.experimentId)
+	if options.periodic {
+		job.Trigger = &job_model.APITrigger{
+			PeriodicSchedule: &job_model.APIPeriodicSchedule{
+				StartTime:      startTime,
+				EndTime:        endTime,
+				IntervalSecond: 60, // Runs every 1 minute.
+			},
+		}
+	} else {
+		job.Trigger = &job_model.APITrigger{
+			CronSchedule: &job_model.APICronSchedule{
+				StartTime: startTime,
+				EndTime:   endTime,
+				Cron:      "0 * * * * ?", // Runs every 1 minute.
+			},
+		}
+	}
+	return job
+}
+
+func jobInThePastForThreeMinutes(options jobOptions) *job_model.APIJob {
+	startTime := strfmt.DateTime(time.Unix(10*hour, 0))
+	endTime := strfmt.DateTime(time.Unix(10*hour+3*minute, 0))
 
 	job := defaultApiJob(options.pipelineVersionId, options.experimentId)
 	if options.periodic {
