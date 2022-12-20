@@ -84,7 +84,8 @@ if ! [ -x "$(command -v pip)" ]; then
 fi
 
 PIP_DISABLE_PIP_VERSION_CHECK=1 python3 -m pip install --quiet \
-    --no-warn-script-location {index_url_options}{concat_package_list} && "$0" "$@"
+    --no-warn-script-location --root-user-action=ignore \
+    {index_url_options}{concat_package_list} && "$0" "$@"
 '''
 
 
