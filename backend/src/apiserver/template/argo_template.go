@@ -111,7 +111,7 @@ func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 	// TODO: Fix the components to explicitly declare the artifacts they really output.
 	workflow.PatchTemplateOutputArtifacts()
 
-	swfParameters, err := modelToCRDParameters(modelJob)
+	swfParameters, err := modelToCRDParameters(modelJob.RuntimeConfig.Parameters)
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert model parameters to CRD parameters")
 	}

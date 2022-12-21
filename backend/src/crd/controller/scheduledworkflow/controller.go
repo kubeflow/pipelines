@@ -16,7 +16,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -417,12 +416,6 @@ func (c *Controller) syncHandler(ctx context.Context, key string) (
 		return false, true, swf,
 			wraperror.Wrapf(err, "Syncing ScheduledWorkflow (%v): transient failure, can't fetch completed workflows: %v", name, err)
 	}
-
-	swfJSON, _ := json.Marshal(swf)
-
-	log.WithFields(log.Fields{
-		ScheduledWorkflow: name,
-	}).Infof("submitted: %v, nowEpoch: %v, nextScheduledEpoch: %v\n active count: %v\nswfJSON: %s \n", submitted, nowEpoch, nextScheduledEpoch, active, swfJSON)
 
 	err = c.updateStatus(ctx, swf, submitted, active, completed, nextScheduledEpoch, nowEpoch)
 	if err != nil {

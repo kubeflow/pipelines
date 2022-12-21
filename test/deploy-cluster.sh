@@ -56,7 +56,7 @@ function clean_up {
     # --async doesn't wait for this operation to complete, so we can get test
     # results faster
     yes | gcloud container clusters delete ${TEST_CLUSTER} --async
-   fi
+  fi
 }
 trap clean_up EXIT SIGINT SIGTERM
 

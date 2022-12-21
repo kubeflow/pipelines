@@ -1,4 +1,4 @@
-// Copyright 2018-2022 The Kubeflow Authors
+// Copyright 2021-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -74,7 +74,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	if err != nil {
 		return nil, util.Wrap(err, "Create job failed.")
 	}
-	parameters, err := modelToCRDParameters(modelJob)
+	parameters, err := modelToCRDParameters(modelJob.RuntimeConfig.Parameters)
 	if err != nil {
 		return nil, util.Wrap(err, "Converting model.Job parameters to CDR parameters failed.")
 	}
