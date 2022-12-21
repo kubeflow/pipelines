@@ -1,0 +1,405 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "backend/api/v2beta1/recurring_run.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/apis/v2beta1/recurringruns": {
+      "get": {
+        "summary": "Finds all recurring runs given experiment and namespace. \nIf experiment ID is not specified, find all recurring runs across all experiments.",
+        "operationId": "ListRecurringRuns",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1ListRecurringRunsResponse"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "page_token",
+            "description": "A page token to request the next page of results. The token is acquired\nfrom the nextPageToken field of the response from the previous\nListRecurringRuns call or can be omitted when fetching the first page.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "page_size",
+            "description": "The number of recurring runs to be listed per page. If there are more recurring runs \nthan this number, the response message will contain a nextPageToken field you can use\nto fetch the next page.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "sort_by",
+            "description": "Can be formatted as \"field_name\", \"field_name asc\" or \"field_name desc\".\nAscending by default.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "namespace",
+            "description": "Optional input. The namespace the recurring runs belong to.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "filter",
+            "description": "A url-encoded, JSON-serialized Filter protocol buffer (see\n[filter.proto](https://github.com/kubeflow/pipelines/blob/master/backend/api/filter.proto)).",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "experiment_id",
+            "description": "The ID of the experiment to be retrieved. If empty, list recurring runs across all experiments.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "RecurringRunService"
+        ]
+      },
+      "post": {
+        "summary": "Creates a new recurring run in an experiment, given the experiment ID.",
+        "operationId": "CreateRecurringRun",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1RecurringRun"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "The recurring run to be created.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v2beta1RecurringRun"
+            }
+          }
+        ],
+        "tags": [
+          "RecurringRunService"
+        ]
+      }
+    },
+    "/apis/v2beta1/recurringruns/{recurring_run_id}": {
+      "get": {
+        "summary": "Finds a specific recurring run by ID.",
+        "operationId": "GetRecurringRun",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v2beta1RecurringRun"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "recurring_run_id",
+            "description": "The ID of the recurring run to be retrieved.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "RecurringRunService"
+        ]
+      },
+      "delete": {
+        "summary": "Deletes a recurring run.",
+        "operationId": "DeleteRecurringRun",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "recurring_run_id",
+            "description": "The ID of the recurring run to be deleted.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "RecurringRunService"
+        ]
+      }
+    },
+    "/apis/v2beta1/recurringruns/{recurring_run_id}:disable": {
+      "post": {
+        "summary": "Stops a recurring run and all its associated runs. The recurring run is not deleted.",
+        "operationId": "DisableRecurringRun",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "recurring_run_id",
+            "description": "The ID of the recurring runs to be disabled.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "RecurringRunService"
+        ]
+      }
+    },
+    "/apis/v2beta1/recurringruns/{recurring_run_id}:enable": {
+      "post": {
+        "summary": "Restarts a recurring run that was previously stopped. All runs associated with the \nrecurring run will continue.",
+        "operationId": "EnableRecurringRun",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "properties": {}
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "recurring_run_id",
+            "description": "The ID of the recurring runs to be enabled.",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "RecurringRunService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "RecurringRunMode": {
+      "type": "string",
+      "enum": [
+        "MODE_UNSPECIFIED",
+        "ENABLE",
+        "DISABLE"
+      ],
+      "default": "MODE_UNSPECIFIED",
+      "description": "Required input.\nUser setting to enable or disable the recurring run. \nOnly used for creation of recurring runs. Later updates use enable/disable API.\n\n - DISABLE: The recurring run won't schedule any run if disabled."
+    },
+    "protobufNullValue": {
+      "type": "string",
+      "enum": [
+        "NULL_VALUE"
+      ],
+      "default": "NULL_VALUE",
+      "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
+    },
+    "v2beta1CronSchedule": {
+      "type": "object",
+      "properties": {
+        "start_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The start time of the cron job."
+        },
+        "end_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The end time of the cron job."
+        },
+        "cron": {
+          "type": "string",
+          "title": "The cron string. For details how to compose a cron, visit\nttps://en.wikipedia.org/wiki/Cron"
+        }
+      },
+      "description": "CronSchedule allow scheduling the recurring run with unix-like cron."
+    },
+    "v2beta1ListRecurringRunsResponse": {
+      "type": "object",
+      "properties": {
+        "recurringRuns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v2beta1RecurringRun"
+          },
+          "description": "A list of recurring runs returned."
+        },
+        "total_size": {
+          "type": "integer",
+          "format": "int32",
+          "description": "The total number of recurring runs for the given query."
+        },
+        "next_page_token": {
+          "type": "string",
+          "description": "The token to list the next page of recurring runs."
+        }
+      }
+    },
+    "v2beta1PeriodicSchedule": {
+      "type": "object",
+      "properties": {
+        "start_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The start time of the periodic recurring run."
+        },
+        "end_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The end time of the periodic recurring run."
+        },
+        "interval_second": {
+          "type": "string",
+          "format": "int64",
+          "description": "The time interval between the starting time of consecutive recurring runs."
+        }
+      },
+      "description": "PeriodicSchedule allow scheduling the recurring run periodically with certain interval."
+    },
+    "v2beta1RecurringRun": {
+      "type": "object",
+      "properties": {
+        "recurring_run_id": {
+          "type": "string",
+          "description": "Output. Unique run ID generated by API server."
+        },
+        "display_name": {
+          "type": "string",
+          "description": "Required input field. Recurring run name provided by user. Not unique."
+        },
+        "description": {
+          "type": "string",
+          "description": "Optional input field. Describes the purpose of the recurring run."
+        },
+        "pipeline_id": {
+          "type": "string",
+          "description": "The ID of the pipeline user uploaded before."
+        },
+        "pipeline_spec": {
+          "type": "object",
+          "description": "The pipeline spec."
+        },
+        "runtime_config": {
+          "$ref": "#/definitions/v2beta1RuntimeConfig",
+          "description": "Runtime config of the pipeline."
+        },
+        "service_account": {
+          "type": "string",
+          "description": "Optional input field. Specifies which Kubernetes service account this recurring run uses."
+        },
+        "max_concurrency": {
+          "type": "string",
+          "format": "int64",
+          "description": "Required input field.\nSpecifies how many runs can be executed concurrently. Range [1-10]."
+        },
+        "trigger": {
+          "$ref": "#/definitions/v2beta1Trigger",
+          "description": "Required input field.\nSpecifies how a run is triggered. Support cron mode or periodic mode."
+        },
+        "mode": {
+          "$ref": "#/definitions/RecurringRunMode"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Output. The time this recurring run was created."
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Output. The last time this recurring run was updated."
+        },
+        "status": {
+          "$ref": "#/definitions/v2beta1RecurringRunStatus"
+        },
+        "error": {
+          "type": "string",
+          "description": "In case any error happens retrieving a recurring run field, only recurring run ID\nand the error message is returned. Client has the flexibility of choosing\nhow to handle the error. This is especially useful during listing call."
+        },
+        "no_catchup": {
+          "type": "boolean",
+          "format": "boolean",
+          "description": "Optional input field. Whether the recurring run should catch up if behind schedule.\nIf true, the recurring run will only schedule the latest interval if behind schedule.\nIf false, the recurring run will catch up on each past interval."
+        },
+        "namespace": {
+          "type": "string",
+          "description": "Namespace this recurring run belongs to."
+        },
+        "experiment_id": {
+          "type": "string",
+          "description": "ID of the experiment this recurring run belongs to."
+        }
+      }
+    },
+    "v2beta1RecurringRunStatus": {
+      "type": "string",
+      "enum": [
+        "STATUS_UNSPECIFIED",
+        "ENABLED",
+        "DISABLED"
+      ],
+      "default": "STATUS_UNSPECIFIED",
+      "description": "Output. The status of the recurring run."
+    },
+    "v2beta1RuntimeConfig": {
+      "type": "object",
+      "properties": {
+        "parameters": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "description": "The runtime parameters. The parameters will be used to replace \nthe placeholders at runtime."
+        },
+        "pipeline_root": {
+          "type": "string",
+          "title": "A path in a object store bucket which will be treated as the root\noutput directory of this run. It is used by the system to\ngenerate the paths of output artifacts. \nRef:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)"
+        }
+      },
+      "description": "The runtime config of a run or recurring run."
+    },
+    "v2beta1Trigger": {
+      "type": "object",
+      "properties": {
+        "cron_schedule": {
+          "$ref": "#/definitions/v2beta1CronSchedule"
+        },
+        "periodic_schedule": {
+          "$ref": "#/definitions/v2beta1PeriodicSchedule"
+        }
+      },
+      "description": "Trigger defines what starts a pipeline run."
+    }
+  }
+}
