@@ -378,6 +378,7 @@ func modelToCRDTrigger(modelTrigger model.Trigger) (scheduledworkflow.Trigger, e
 			endTime := metav1.NewTime(time.Unix(*modelTrigger.CronScheduleEndTimeInSec, 0))
 			crdCronSchedule.EndTime = &endTime
 		}
+		crdTrigger.CronSchedule = &crdCronSchedule
 	} else if modelTrigger.PeriodicSchedule != (model.PeriodicSchedule{}) {
 		// Check if PeriodicSchedule is non-empty
 		if modelTrigger.IntervalSecond != nil {
@@ -391,9 +392,8 @@ func modelToCRDTrigger(modelTrigger model.Trigger) (scheduledworkflow.Trigger, e
 			endTime := metav1.NewTime(time.Unix(*modelTrigger.PeriodicScheduleEndTimeInSec, 0))
 			crdPeriodicSchedule.EndTime = &endTime
 		}
+		crdTrigger.PeriodicSchedule = &crdPeriodicSchedule
 	}
-	crdTrigger.CronSchedule = &crdCronSchedule
-	crdTrigger.PeriodicSchedule = &crdPeriodicSchedule
 	return crdTrigger, nil
 }
 
