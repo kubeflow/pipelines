@@ -370,7 +370,7 @@ func TestScheduledWorkflow(t *testing.T) {
 				Parameters: []scheduledworkflow.Parameter{{Name: "param2", Value: "\"world\""}},
 				Spec:       ExpectedWorkflowSpecV2,
 			},
-			NoCatchup: &[]bool{true}[0], // returns a pointer to true
+			NoCatchup: util.BoolPointer(true),
 		}}
 
 	actualScheduledWorkflow, err := v2Template.ScheduledWorkflow(modelJob)

@@ -360,13 +360,14 @@ func modelToPipelineJobRuntimeConfig(modelRuntimeConfig *model.RuntimeConfig) (*
 	return runtimeConfig, nil
 }
 
-func modelToCRDTrigger(modelJob model.Job) scheduledworkflow.Trigger {
+func modelToCRDTrigger(modelJob model.Job) (scheduledworkflow.Trigger, error) {
 	crdCronSchedule := scheduledworkflow.CronSchedule{}
 	crdPeriodicSchedule := scheduledworkflow.PeriodicSchedule{}
-	if &modelJob.CronSchedule != nil {
-		if modelJob.CronSchedule.Cron != nil {
-			crdCronSchedule.Cron = *modelJob.CronSchedule.Cron
-		}
+	crdTrigger := scheduledworkflow.Trigger{}
+	// CronSchedule and PeriodicSchedule can have at most one being non-empty
+	if modelJob.Trigger.CronSchedule != (model.CronSchedule{}) {
+		// Check if CronSchedule is non-empty
+		crdCronSchedule.Cron = *modelJob.CronSchedule.Cron
 		if modelJob.CronScheduleStartTimeInSec != nil {
 			startTime := metav1.NewTime(time.Unix(*modelJob.CronScheduleStartTimeInSec, 0))
 			crdCronSchedule.StartTime = &startTime
@@ -375,8 +376,8 @@ func modelToCRDTrigger(modelJob model.Job) scheduledworkflow.Trigger {
 			endTime := metav1.NewTime(time.Unix(*modelJob.CronScheduleEndTimeInSec, 0))
 			crdCronSchedule.EndTime = &endTime
 		}
-	}
-	if &modelJob.PeriodicSchedule != nil {
+	} else if modelJob.Trigger.PeriodicSchedule != (model.PeriodicSchedule{}) {
+		// Check if PeriodicSchedule is non-empty
 		if modelJob.IntervalSecond != nil {
 			crdPeriodicSchedule.IntervalSecond = *modelJob.IntervalSecond
 		}
@@ -389,11 +390,9 @@ func modelToCRDTrigger(modelJob model.Job) scheduledworkflow.Trigger {
 			crdPeriodicSchedule.EndTime = &endTime
 		}
 	}
-	crdTrigger := scheduledworkflow.Trigger{
-		CronSchedule:     &crdCronSchedule,
-		PeriodicSchedule: &crdPeriodicSchedule,
-	}
-	return crdTrigger
+	crdTrigger.CronSchedule = &crdCronSchedule
+	crdTrigger.PeriodicSchedule = &crdPeriodicSchedule
+	return crdTrigger, nil
 }
 
 func modelToCRDParameters(modelJob *model.Job) ([]scheduledworkflow.Parameter, error) {

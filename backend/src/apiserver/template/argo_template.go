@@ -115,13 +115,17 @@ func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert model parameters to CRD parameters")
 	}
+	crdTrigger, err := modelToCRDTrigger(*modelJob)
+	if err != nil {
+		return nil, err
+	}
 
 	scheduledWorkflow := &scheduledworkflow.ScheduledWorkflow{
 		ObjectMeta: metav1.ObjectMeta{GenerateName: swfGeneratedName},
 		Spec: scheduledworkflow.ScheduledWorkflowSpec{
 			Enabled:        modelJob.Enabled,
 			MaxConcurrency: &modelJob.MaxConcurrency,
-			Trigger:        modelToCRDTrigger(*modelJob),
+			Trigger:        crdTrigger,
 			Workflow: &scheduledworkflow.WorkflowResource{
 				Parameters: swfParameters,
 				Spec:       workflow.ToStringForSchedule(),
