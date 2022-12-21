@@ -209,98 +209,6 @@ func toSWFCRDResourceGeneratedName(displayName string) (string, error) {
 	return util.Truncate(processedName, 25), nil
 }
 
-// func ToCRDTriggerV1(apiTrigger *apiv1beta1.Trigger) *scheduledworkflow.Trigger {
-// 	var crdTrigger scheduledworkflow.Trigger
-// 	if apiTrigger.GetCronSchedule() != nil {
-// 		crdTrigger.CronSchedule = toCRDCronScheduleV1(apiTrigger.GetCronSchedule())
-// 	}
-// 	if apiTrigger.GetPeriodicSchedule() != nil {
-// 		crdTrigger.PeriodicSchedule = toCRDPeriodicScheduleV1(apiTrigger.GetPeriodicSchedule())
-// 	}
-// 	return &crdTrigger
-// }
-
-// // func toCRDTrigger(apiTrigger *apiv2beta1.Trigger) *scheduledworkflow.Trigger {
-// // 	var crdTrigger scheduledworkflow.Trigger
-// // 	if apiTrigger.GetCronSchedule() != nil {
-// // 		crdTrigger.CronSchedule = toCRDCronSchedule(apiTrigger.GetCronSchedule())
-// // 	}
-// // 	if apiTrigger.GetPeriodicSchedule() != nil {
-// // 		crdTrigger.PeriodicSchedule = toCRDPeriodicSchedule(apiTrigger.GetPeriodicSchedule())
-// // 	}
-// // 	return &crdTrigger
-// // }
-
-// // func toCRDCronScheduleV1(cronSchedule *apiv1beta1.CronSchedule) *scheduledworkflow.CronSchedule {
-// // 	if cronSchedule == nil || cronSchedule.Cron == "" {
-// // 		return nil
-// // 	}
-// // 	crdCronSchedule := scheduledworkflow.CronSchedule{}
-// // 	crdCronSchedule.Cron = cronSchedule.Cron
-
-// // 	if cronSchedule.StartTime != nil {
-// // 		startTime := metav1.NewTime(time.Unix(cronSchedule.StartTime.Seconds, 0))
-// // 		crdCronSchedule.StartTime = &startTime
-// // 	}
-// // 	if cronSchedule.EndTime != nil {
-// // 		endTime := metav1.NewTime(time.Unix(cronSchedule.EndTime.Seconds, 0))
-// // 		crdCronSchedule.EndTime = &endTime
-// // 	}
-// // 	return &crdCronSchedule
-// // }
-
-// func toCRDCronSchedule(cronSchedule *apiv2beta1.CronSchedule) *scheduledworkflow.CronSchedule {
-// 	if cronSchedule == nil || cronSchedule.Cron == "" {
-// 		return nil
-// 	}
-// 	crdCronSchedule := scheduledworkflow.CronSchedule{}
-// 	crdCronSchedule.Cron = cronSchedule.Cron
-
-// 	if cronSchedule.StartTime != nil {
-// 		startTime := metav1.NewTime(time.Unix(cronSchedule.StartTime.Seconds, 0))
-// 		crdCronSchedule.StartTime = &startTime
-// 	}
-// 	if cronSchedule.EndTime != nil {
-// 		endTime := metav1.NewTime(time.Unix(cronSchedule.EndTime.Seconds, 0))
-// 		crdCronSchedule.EndTime = &endTime
-// 	}
-// 	return &crdCronSchedule
-// }
-
-// func toCRDPeriodicScheduleV1(periodicSchedule *apiv1beta1.PeriodicSchedule) *scheduledworkflow.PeriodicSchedule {
-// 	if periodicSchedule == nil || periodicSchedule.IntervalSecond == 0 {
-// 		return nil
-// 	}
-// 	crdPeriodicSchedule := scheduledworkflow.PeriodicSchedule{}
-// 	crdPeriodicSchedule.IntervalSecond = periodicSchedule.IntervalSecond
-// 	if periodicSchedule.StartTime != nil {
-// 		startTime := metav1.NewTime(time.Unix(periodicSchedule.StartTime.Seconds, 0))
-// 		crdPeriodicSchedule.StartTime = &startTime
-// 	}
-// 	if periodicSchedule.EndTime != nil {
-// 		endTime := metav1.NewTime(time.Unix(periodicSchedule.EndTime.Seconds, 0))
-// 		crdPeriodicSchedule.EndTime = &endTime
-// 	}
-// 	return &crdPeriodicSchedule
-// }
-
-// func toCRDPeriodicSchedule(periodicSchedule *apiv2beta1.PeriodicSchedule) *scheduledworkflow.PeriodicSchedule {
-// 	if periodicSchedule == nil || periodicSchedule.IntervalSecond == 0 {
-// 		return nil
-// 	}
-// 	crdPeriodicSchedule := scheduledworkflow.PeriodicSchedule{}
-// 	crdPeriodicSchedule.IntervalSecond = periodicSchedule.IntervalSecond
-// 	if periodicSchedule.StartTime != nil {
-// 		startTime := metav1.NewTime(time.Unix(periodicSchedule.StartTime.Seconds, 0))
-// 		crdPeriodicSchedule.StartTime = &startTime
-// 	}
-// 	if periodicSchedule.EndTime != nil {
-// 		endTime := metav1.NewTime(time.Unix(periodicSchedule.EndTime.Seconds, 0))
-// 		crdPeriodicSchedule.EndTime = &endTime
-// 	}
-// 	return &crdPeriodicSchedule
-// }
-
 func toCRDParametersV1(apiParams []*apiv1beta1.Parameter) []scheduledworkflow.Parameter {
 	var swParams []scheduledworkflow.Parameter
 	for _, apiParam := range apiParams {
@@ -361,12 +269,11 @@ func modelToPipelineJobRuntimeConfig(modelRuntimeConfig *model.RuntimeConfig) (*
 }
 
 func modelToCRDTrigger(modelTrigger model.Trigger) (scheduledworkflow.Trigger, error) {
-	crdCronSchedule := scheduledworkflow.CronSchedule{}
-	crdPeriodicSchedule := scheduledworkflow.PeriodicSchedule{}
 	crdTrigger := scheduledworkflow.Trigger{}
 	// CronSchedule and PeriodicSchedule can have at most one being non-empty
 	if modelTrigger.CronSchedule != (model.CronSchedule{}) {
 		// Check if CronSchedule is non-empty
+		crdCronSchedule := scheduledworkflow.CronSchedule{}
 		if modelTrigger.Cron != nil {
 			crdCronSchedule.Cron = *modelTrigger.Cron
 		}
@@ -381,6 +288,7 @@ func modelToCRDTrigger(modelTrigger model.Trigger) (scheduledworkflow.Trigger, e
 		crdTrigger.CronSchedule = &crdCronSchedule
 	} else if modelTrigger.PeriodicSchedule != (model.PeriodicSchedule{}) {
 		// Check if PeriodicSchedule is non-empty
+		crdPeriodicSchedule := scheduledworkflow.PeriodicSchedule{}
 		if modelTrigger.IntervalSecond != nil {
 			crdPeriodicSchedule.IntervalSecond = *modelTrigger.IntervalSecond
 		}
