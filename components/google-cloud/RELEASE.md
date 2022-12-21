@@ -1,5 +1,8 @@
-# Current Version 1.0.32.dev (Still in Development)
+# Current Version 1.0.33.dev (Still in Development)
 * Add notes for next release here.
+
+# Release 1.0.32
+* Support a HyperparameterTuningJobWithMetrics type to take execution_metrics path
 
 # Release 1.0.31
 * Fix aiplatform serialization
