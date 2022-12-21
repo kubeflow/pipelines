@@ -433,7 +433,7 @@ func TestToModelJob(t *testing.T) {
 	}
 }
 
-func TestUPpdateModelJobWithNewScheduledWorkflow(t *testing.T) {
+func TestUpdateModelJobWithNewScheduledWorkflow(t *testing.T) {
 	store, manager, experiment, pipeline := initWithExperimentAndPipeline(t)
 	defer store.Close()
 
