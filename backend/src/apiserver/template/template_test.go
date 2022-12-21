@@ -20,10 +20,8 @@ import (
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/ghodss/yaml"
-	//	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	//	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
@@ -400,35 +398,4 @@ func TestModelToCRDTrigger_Cron(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, expectedCRDTrigger, actualCRDTrigger)
 
-}
-
-func TestModelToCRDTrigger_Cron_temp(t *testing.T) {
-	inputModelTrigger := model.Trigger{
-		CronSchedule: model.CronSchedule{
-			CronScheduleStartTimeInSec: util.Int64Pointer(1),
-			CronScheduleEndTimeInSec:   util.Int64Pointer(10),
-			Cron:                       util.StringPointer("1 * * * *"),
-		},
-	}
-	expectedCRDTrigger := scheduledworkflow.Trigger{
-		CronSchedule: &scheduledworkflow.CronSchedule{
-			Cron:      "1 * * * *",
-			StartTime: &metav1.Time{Time: time.Unix(1, 0)},
-			EndTime:   &metav1.Time{Time: time.Unix(10, 0)},
-		},
-	}
-
-	inputAPITrigger := &apiv1beta1.Trigger{
-		Trigger: &apiv1beta1.Trigger_CronSchedule{CronSchedule: &apiv1beta1.CronSchedule{
-			StartTime: &timestamp.Timestamp{Seconds: 1},
-			EndTime:   &timestamp.Timestamp{Seconds: 10},
-			Cron:      "1 * * * *",
-		}}}
-
-	v1CRDTrigger := ToCRDTriggerV1(inputAPITrigger)
-
-	actualCRDTrigger, err := modelToCRDTrigger(inputModelTrigger)
-	assert.Nil(t, err)
-	assert.Equal(t, expectedCRDTrigger, actualCRDTrigger)
-	assert.Equal(t, *v1CRDTrigger, actualCRDTrigger)
 }

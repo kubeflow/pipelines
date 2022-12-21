@@ -715,9 +715,6 @@ func (r *ResourceManager) CreateJob(ctx context.Context, apiJobInterface interfa
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to generate the scheduledWorkflow")
 	}
-	// test: overwrite scheduledWorkflow's Trigger field using the old functions
-	// crdTrigger := template.ToCRDTriggerV1(apiJobInterface.(*apiv1beta1.Job).Trigger)
-	// scheduledWorkflow.Spec.Trigger = *crdTrigger
 
 	// Create a new ScheduledWorkflow at the ScheduledWorkflow client.
 	newScheduledWorkflow, err := r.getScheduledWorkflowClient(modelJob.Namespace).Create(ctx, scheduledWorkflow)

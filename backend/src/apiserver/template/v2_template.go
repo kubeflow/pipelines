@@ -37,7 +37,6 @@ type V2Spec struct {
 
 // Converts modelJob to ScheduledWorkflow
 func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error) {
-	// spec := &structpb.Struct{}
 	job := &pipelinespec.PipelineJob{}
 
 	bytes, err := protojson.Marshal(t.spec)
@@ -49,9 +48,6 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 		return nil, util.Wrap(err, "Failed to parse pipeline spec")
 	}
 
-	// if err := yaml.Unmarshal([]byte(modelJob.PipelineSpec.PipelineSpecManifest), spec); err != nil {
-	//	return nil, util.Wrap(err, "Failed to parse pipeline spec manifest."+modelJob.PipelineSpec.PipelineSpecManifest)
-	// }
 	job.PipelineSpec = spec
 
 	jobRuntimeConfig, err := modelToPipelineJobRuntimeConfig(&modelJob.RuntimeConfig)
