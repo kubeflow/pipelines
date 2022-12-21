@@ -417,7 +417,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 	_, err = s.jobClient.Create(createJobRequest)
 	assert.Nil(t, err)
 
-	// The scheduledWorkflow CRD would create the run and it synced to the DB by persistent agent.
+	// The scheduledWorkflow CRD would create the run and it is synced to the DB by persistent agent.
 	// This could take a few seconds to finish.
 
 	/* ---------- Assert number of runs when catchup = true ---------- */
@@ -429,7 +429,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 			return err
 		}
 		if runsWhenCatchupTrue != 2 {
-			return fmt.Errorf("expected runsWhenCatchupTrue to be 1, got: %v", runsWhenCatchupTrue)
+			return fmt.Errorf("expected runsWhenCatchupTrue with periodic schedule to be 2, got: %v", runsWhenCatchupTrue)
 		}
 
 		_, runsWhenCatchupTrue, _, err = s.runClient.List(&runParams.ListRunsV1Params{
@@ -439,8 +439,9 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 			return err
 		}
 		if runsWhenCatchupTrue != 2 {
-			return fmt.Errorf("expected runsWhenCatchupTrue to be 1, got: %v", runsWhenCatchupTrue)
+			return fmt.Errorf("expected runsWhenCatchupTrue with cron schedule to be 2, got: %v", runsWhenCatchupTrue)
 		}
+
 		return nil
 	}); err != nil {
 		assert.Nil(t, err)
@@ -455,7 +456,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 			return err
 		}
 		if runsWhenCatchupFalse != 1 {
-			return fmt.Errorf("expected runsWhenCatchupFalse to be 1, got: %v", runsWhenCatchupFalse)
+			return fmt.Errorf("expected runsWhenCatchupFalse with periodic schedule to be 1, got: %v", runsWhenCatchupFalse)
 		}
 
 		_, runsWhenCatchupFalse, _, err = s.runClient.List(&runParams.ListRunsV1Params{
@@ -465,7 +466,7 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 			return err
 		}
 		if runsWhenCatchupFalse != 1 {
-			return fmt.Errorf("expected runsWhenCatchupFalse to be 1, got: %v", runsWhenCatchupFalse)
+			return fmt.Errorf("expected runsWhenCatchupFalse with cron schedule to be 1, got: %v", runsWhenCatchupFalse)
 		}
 		return nil
 	}); err != nil {
