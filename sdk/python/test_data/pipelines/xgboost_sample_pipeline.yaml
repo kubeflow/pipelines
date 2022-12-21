@@ -133,10 +133,6 @@ components:
     executorLabel: exec-xgboost-train
     inputDefinitions:
       artifacts:
-        starting_model:
-          artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
         training_data:
           artifactType:
             schemaTitle: system.Artifact
@@ -187,10 +183,6 @@ components:
     executorLabel: exec-xgboost-train-2
     inputDefinitions:
       artifacts:
-        starting_model:
-          artifactType:
-            schemaTitle: system.Artifact
-            schemaVersion: 0.0.1
         training_data:
           artifactType:
             schemaTitle: system.Artifact
