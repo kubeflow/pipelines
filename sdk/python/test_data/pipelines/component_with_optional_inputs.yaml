@@ -7,8 +7,13 @@ components:
       parameters:
         input1:
           defaultValue: default value
+          isOptional: true
           parameterType: STRING
         input2:
+          isOptional: true
+          parameterType: STRING
+        input3:
+          isOptional: true
           parameterType: STRING
 deploymentSpec:
   executors:
