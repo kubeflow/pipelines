@@ -110,11 +110,17 @@ components:
       parameters:
         msg:
           parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
   comp-print-op-2:
     executorLabel: exec-print-op-2
     inputDefinitions:
       parameters:
         msg:
+          parameterType: STRING
+        msg2:
+          isOptional: true
           parameterType: STRING
   comp-print-op-3:
     executorLabel: exec-print-op-3
@@ -123,6 +129,7 @@ components:
         msg:
           parameterType: STRING
         msg2:
+          isOptional: true
           parameterType: STRING
 deploymentSpec:
   executors:
@@ -246,6 +253,7 @@ root:
           - q_a: '11'
           - q_a: '22'
           p_b: halo
+        isOptional: true
         parameterType: LIST
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-beta.8
