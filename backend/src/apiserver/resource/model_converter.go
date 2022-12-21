@@ -108,7 +108,7 @@ func (r *ResourceManager) ToModelRunDetail(run *apiv1beta1.Run, runId string, wo
 			},
 		},
 	}
-=
+
 	if templateType == template.V1 {
 		// Input template if of V1 type (argo)
 		params, err := apiParametersToModelParameters(run.GetPipelineSpec().GetParameters())
@@ -224,8 +224,7 @@ func (r *ResourceManager) ToModelJob(jobInterface interface{}, manifest string, 
 		modelJob.MaxConcurrency = apiRecurringRun.MaxConcurrency
 		modelJob.NoCatchup = apiRecurringRun.NoCatchup
 		modelJob.ServiceAccount = apiRecurringRun.ServiceAccount
-		experimentId := apiRecurringRun.ExperimentId
-		namespace, err := r.GetNamespaceFromExperimentID(experimentId)
+		namespace, err := r.GetNamespaceFromExperimentID(apiRecurringRun.ExperimentId)
 		modelJob.Namespace = namespace
 		modelJob.PipelineSpec = model.PipelineSpec{
 			PipelineId:   apiRecurringRun.GetPipelineId(),
