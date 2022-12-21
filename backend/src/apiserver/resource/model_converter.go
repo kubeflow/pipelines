@@ -108,8 +108,9 @@ func (r *ResourceManager) ToModelRunDetail(run *apiv1beta1.Run, runId string, wo
 			},
 		},
 	}
-
+=
 	if templateType == template.V1 {
+		// Input template if of V1 type (argo)
 		params, err := apiParametersToModelParameters(run.GetPipelineSpec().GetParameters())
 		if err != nil {
 			return nil, util.Wrap(err, "Unable to parse the V1 parameter.")
@@ -120,6 +121,7 @@ func (r *ResourceManager) ToModelRunDetail(run *apiv1beta1.Run, runId string, wo
 		return runDetail, nil
 
 	} else if templateType == template.V2 {
+		// Input template if of V2 type (IR)
 		params, err := runtimeConfigToModelParametersV1(run.GetPipelineSpec().GetRuntimeConfig())
 		if err != nil {
 			return nil, util.Wrap(err, "Unable to parse the V2 parameter.")
@@ -181,6 +183,7 @@ func (r *ResourceManager) ToModelJob(jobInterface interface{}, manifest string, 
 			PipelineName: pipelineName,
 		}
 		if templateType == template.V1 {
+			// Input template if of V1 type (argo)
 			params, err := apiParametersToModelParameters(apiJob.GetPipelineSpec().GetParameters())
 			if err != nil {
 				return nil, util.Wrap(err, "Unable to parse the parameters.")
@@ -188,6 +191,7 @@ func (r *ResourceManager) ToModelJob(jobInterface interface{}, manifest string, 
 			modelJob.Parameters = params
 			modelJob.WorkflowSpecManifest = manifest
 		} else if templateType == template.V2 {
+			// Input template if of V2 type (IR)
 			params, err := runtimeConfigToModelParametersV1(apiJob.GetPipelineSpec().GetRuntimeConfig())
 			if err != nil {
 				return nil, util.Wrap(err, "Unable to parse the parameters inside runtimeConfig.")
