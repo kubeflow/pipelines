@@ -74,7 +74,7 @@ func (r *ResourceManager) ToModelRunMetric(metric *apiv1beta1.RunMetric, runUUID
 // The input run might not contain workflowSpecManifest and pipelineSpecManifest, but instead a pipeline ID.
 // The caller would retrieve manifest and pass in.
 func (r *ResourceManager) ToModelRunDetail(run *apiv1beta1.Run, runId string, workflow util.ExecutionSpec, manifest string, templateType template.TemplateType) (*model.RunDetail, error) {
-	resourceReferences, err := r.toModelResourceReferencesV1(runId, common.Run, run.GetResourceReferences())
+	resourceReferences, err := r.toModelResourceReferences(runId, common.Run, run.GetResourceReferences())
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to convert resource references.")
 	}
@@ -154,7 +154,7 @@ func (r *ResourceManager) ToModelJob(jobInterface interface{}, manifest string, 
 		}
 
 		// Create model Resource References
-		resourceReferences, err := r.toModelResourceReferencesV1("", common.Job, apiJob.GetResourceReferences())
+		resourceReferences, err := r.toModelResourceReferences("", common.Job, apiJob.GetResourceReferences())
 		if err != nil {
 			return nil, util.Wrap(err, "Error converting resource references.")
 		}
@@ -391,7 +391,7 @@ func runtimeConfigToModelParameters(runtimeConfig *apiv2beta1.RuntimeConfig) (st
 	return string(paramsBytes), nil
 }
 
-func (r *ResourceManager) toModelResourceReferencesV1(
+func (r *ResourceManager) toModelResourceReferences(
 	resourceId string, resourceType model.ResourceType, apiRefs []*apiv1beta1.ResourceReference) ([]*model.ResourceReference, error) {
 	var modelRefs []*model.ResourceReference
 	for _, apiRef := range apiRefs {

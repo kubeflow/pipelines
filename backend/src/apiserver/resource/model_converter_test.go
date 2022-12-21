@@ -517,10 +517,10 @@ func TestUPpdateModelJobWithNewScheduledWorkflow(t *testing.T) {
 	assert.Equal(t, expectedModelJob, modelJob)
 }
 
-func TestToModelResourceReferencesV1(t *testing.T) {
+func TestToModelResourceReferences(t *testing.T) {
 	store, manager, _ := initWithJob(t)
 	defer store.Close()
-	refs, err := manager.toModelResourceReferencesV1("r1", common.Run, []*apiv1beta1.ResourceReference{
+	refs, err := manager.toModelResourceReferences("r1", common.Run, []*apiv1beta1.ResourceReference{
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: DefaultFakeUUID}, Relationship: apiv1beta1.Relationship_OWNER},
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: DefaultFakeUUID}, Relationship: apiv1beta1.Relationship_CREATOR},
 	})
@@ -534,11 +534,11 @@ func TestToModelResourceReferencesV1(t *testing.T) {
 	assert.Equal(t, expectedRefs, refs)
 }
 
-func TestToModelResourceReferencesV1_UnknownRefType(t *testing.T) {
+func TestToModelResourceReferences_UnknownRefType(t *testing.T) {
 	store, manager, _ := initWithJob(t)
 	defer store.Close()
 
-	_, err := manager.toModelResourceReferencesV1("r1", common.Run, []*apiv1beta1.ResourceReference{
+	_, err := manager.toModelResourceReferences("r1", common.Run, []*apiv1beta1.ResourceReference{
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_UNKNOWN_RESOURCE_TYPE, Id: "e1"}, Relationship: apiv1beta1.Relationship_OWNER},
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "j1"}, Relationship: apiv1beta1.Relationship_CREATOR},
 	})
@@ -546,21 +546,21 @@ func TestToModelResourceReferencesV1_UnknownRefType(t *testing.T) {
 	assert.Contains(t, err.Error(), "Failed to convert reference type")
 }
 
-func TestToModelResourceReferencesV1_NamespaceRef(t *testing.T) {
+func TestToModelResourceReferences_NamespaceRef(t *testing.T) {
 	store, manager, _ := initWithJob(t)
 	defer store.Close()
 
-	modelRefs, err := manager.toModelResourceReferencesV1("r1", common.Run, []*apiv1beta1.ResourceReference{
+	modelRefs, err := manager.toModelResourceReferences("r1", common.Run, []*apiv1beta1.ResourceReference{
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "e1"}, Relationship: apiv1beta1.Relationship_OWNER},
 	})
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(modelRefs))
 }
 
-func TestToModelResourceReferencesV1_UnknownRelationship(t *testing.T) {
+func TestToModelResourceReferences_UnknownRelationship(t *testing.T) {
 	store, manager, _ := initWithJob(t)
 	defer store.Close()
-	_, err := manager.toModelResourceReferencesV1("r1", common.Run, []*apiv1beta1.ResourceReference{
+	_, err := manager.toModelResourceReferences("r1", common.Run, []*apiv1beta1.ResourceReference{
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "e1"}, Relationship: apiv1beta1.Relationship_UNKNOWN_RELATIONSHIP},
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "j1"}, Relationship: apiv1beta1.Relationship_CREATOR},
 	})
@@ -568,10 +568,10 @@ func TestToModelResourceReferencesV1_UnknownRelationship(t *testing.T) {
 	assert.Contains(t, err.Error(), "Failed to convert relationship")
 }
 
-func TestToModelResourceReferencesV1_ReferredJobNotFound(t *testing.T) {
+func TestToModelResourceReferences_ReferredJobNotFound(t *testing.T) {
 	store, manager, _ := initWithJob(t)
 	defer store.Close()
-	_, err := manager.toModelResourceReferencesV1("r1", common.Run, []*apiv1beta1.ResourceReference{
+	_, err := manager.toModelResourceReferences("r1", common.Run, []*apiv1beta1.ResourceReference{
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "e1"}, Relationship: apiv1beta1.Relationship_OWNER},
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "j2"}, Relationship: apiv1beta1.Relationship_CREATOR},
 	})
@@ -579,10 +579,10 @@ func TestToModelResourceReferencesV1_ReferredJobNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "Failed to find the referred resource")
 }
 
-func TestToModelResourceReferencesV1_ReferredExperimentNotFound(t *testing.T) {
+func TestToModelResourceReferences_ReferredExperimentNotFound(t *testing.T) {
 	store, manager, _ := initWithJob(t)
 	defer store.Close()
-	_, err := manager.toModelResourceReferencesV1("r1", common.Run, []*apiv1beta1.ResourceReference{
+	_, err := manager.toModelResourceReferences("r1", common.Run, []*apiv1beta1.ResourceReference{
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "e2"}, Relationship: apiv1beta1.Relationship_OWNER},
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "j1"}, Relationship: apiv1beta1.Relationship_CREATOR},
 	})
