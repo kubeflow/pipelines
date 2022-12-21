@@ -27,8 +27,8 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0
 	github.com/jinzhu/gorm v1.9.16
-	github.com/kubeflow/pipelines/api v0.0.0-20221221201813-c30648a390c2
-	github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20221221201813-c30648a390c2
+	github.com/kubeflow/pipelines/api v0.0.0-20221221220424-0409315e6527
+	github.com/kubeflow/pipelines/third_party/ml-metadata v0.0.0-20221221220424-0409315e6527
 	github.com/lestrrat-go/strftime v1.0.6
 	github.com/mattn/go-sqlite3 v1.14.16
 	github.com/minio/minio-go/v6 v6.0.57
