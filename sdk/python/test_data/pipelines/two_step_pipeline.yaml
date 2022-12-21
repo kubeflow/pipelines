@@ -86,6 +86,7 @@ root:
     parameters:
       text:
         defaultValue: Hello KFP!
+        isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-beta.8
