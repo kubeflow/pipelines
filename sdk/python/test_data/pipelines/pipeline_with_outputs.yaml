@@ -194,6 +194,7 @@ root:
     parameters:
       msg:
         defaultValue: Hello
+        isOptional: true
         parameterType: STRING
   outputDefinitions:
     artifacts:
