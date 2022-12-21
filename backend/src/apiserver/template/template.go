@@ -360,33 +360,35 @@ func modelToPipelineJobRuntimeConfig(modelRuntimeConfig *model.RuntimeConfig) (*
 	return runtimeConfig, nil
 }
 
-func modelToCRDTrigger(modelJob model.Job) (scheduledworkflow.Trigger, error) {
+func modelToCRDTrigger(modelTrigger model.Trigger) (scheduledworkflow.Trigger, error) {
 	crdCronSchedule := scheduledworkflow.CronSchedule{}
 	crdPeriodicSchedule := scheduledworkflow.PeriodicSchedule{}
 	crdTrigger := scheduledworkflow.Trigger{}
 	// CronSchedule and PeriodicSchedule can have at most one being non-empty
-	if modelJob.Trigger.CronSchedule != (model.CronSchedule{}) {
+	if modelTrigger.CronSchedule != (model.CronSchedule{}) {
 		// Check if CronSchedule is non-empty
-		crdCronSchedule.Cron = *modelJob.CronSchedule.Cron
-		if modelJob.CronScheduleStartTimeInSec != nil {
-			startTime := metav1.NewTime(time.Unix(*modelJob.CronScheduleStartTimeInSec, 0))
+		if modelTrigger.Cron != nil {
+			crdCronSchedule.Cron = *modelTrigger.Cron
+		}
+		if modelTrigger.CronScheduleStartTimeInSec != nil {
+			startTime := metav1.NewTime(time.Unix(*modelTrigger.CronScheduleStartTimeInSec, 0))
 			crdCronSchedule.StartTime = &startTime
 		}
-		if modelJob.CronScheduleEndTimeInSec != nil {
-			endTime := metav1.NewTime(time.Unix(*modelJob.CronScheduleEndTimeInSec, 0))
+		if modelTrigger.CronScheduleEndTimeInSec != nil {
+			endTime := metav1.NewTime(time.Unix(*modelTrigger.CronScheduleEndTimeInSec, 0))
 			crdCronSchedule.EndTime = &endTime
 		}
-	} else if modelJob.Trigger.PeriodicSchedule != (model.PeriodicSchedule{}) {
+	} else if modelTrigger.PeriodicSchedule != (model.PeriodicSchedule{}) {
 		// Check if PeriodicSchedule is non-empty
-		if modelJob.IntervalSecond != nil {
-			crdPeriodicSchedule.IntervalSecond = *modelJob.IntervalSecond
+		if modelTrigger.IntervalSecond != nil {
+			crdPeriodicSchedule.IntervalSecond = *modelTrigger.IntervalSecond
 		}
-		if modelJob.PeriodicScheduleStartTimeInSec != nil {
-			startTime := metav1.NewTime(time.Unix(*modelJob.PeriodicScheduleStartTimeInSec, 0))
+		if modelTrigger.PeriodicScheduleStartTimeInSec != nil {
+			startTime := metav1.NewTime(time.Unix(*modelTrigger.PeriodicScheduleStartTimeInSec, 0))
 			crdPeriodicSchedule.StartTime = &startTime
 		}
-		if modelJob.PeriodicScheduleEndTimeInSec != nil {
-			endTime := metav1.NewTime(time.Unix(*modelJob.PeriodicScheduleEndTimeInSec, 0))
+		if modelTrigger.PeriodicScheduleEndTimeInSec != nil {
+			endTime := metav1.NewTime(time.Unix(*modelTrigger.PeriodicScheduleEndTimeInSec, 0))
 			crdPeriodicSchedule.EndTime = &endTime
 		}
 	}

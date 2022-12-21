@@ -341,6 +341,7 @@ func TestScheduledWorkflow(t *testing.T) {
 		Trigger: model.Trigger{
 			CronSchedule: model.CronSchedule{
 				CronScheduleStartTimeInSec: util.Int64Pointer(1),
+				CronScheduleEndTimeInSec:   util.Int64Pointer(10),
 				Cron:                       util.StringPointer("1 * * * *"),
 			},
 		},
@@ -363,6 +364,7 @@ func TestScheduledWorkflow(t *testing.T) {
 				CronSchedule: &scheduledworkflow.CronSchedule{
 					Cron:      "1 * * * *",
 					StartTime: &metav1.Time{Time: time.Unix(1, 0)},
+					EndTime:   &metav1.Time{Time: time.Unix(10, 0)},
 				},
 				PeriodicSchedule: &scheduledworkflow.PeriodicSchedule{},
 			},

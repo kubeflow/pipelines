@@ -115,7 +115,7 @@ func (t *Argo) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Schedu
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to convert model parameters to CRD parameters")
 	}
-	crdTrigger, err := modelToCRDTrigger(*modelJob)
+	crdTrigger, err := modelToCRDTrigger(modelJob.Trigger)
 	if err != nil {
 		return nil, err
 	}

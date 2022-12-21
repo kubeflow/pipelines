@@ -83,7 +83,7 @@ func (t *V2Spec) ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.Sche
 	if err != nil {
 		return nil, util.Wrap(err, "Converting model.Job parameters to CDR parameters failed.")
 	}
-	crdTrigger, err := modelToCRDTrigger(*modelJob)
+	crdTrigger, err := modelToCRDTrigger(modelJob.Trigger)
 	if err != nil {
 		return nil, err
 	}
