@@ -240,18 +240,6 @@ func (s *ScheduledWorkflow) getNextScheduledEpoch(nowEpoch int64, location time.
 	if s.Spec.Trigger.CronSchedule != nil {
 		nowTime := time.Unix(nowEpoch, 0)
 		schedule := NewCronSchedule(s.Spec.Trigger.CronSchedule)
-		fmt.Printf("Lingqing LastTriggeredTime: %#v \n", s.Status.Trigger.LastTriggeredTime)
-		fmt.Printf("Lingqing nowTime: %#v \n", nowTime)
-
-		cronScheduleJSON, _ := json.Marshal(s.Spec.Trigger.CronSchedule)
-		fmt.Printf("Lingqing swf cronScheduleJSON: %s \n", string(cronScheduleJSON))
-
-		log.Infof("Lingqing logs: \nLastTriggeredTime: %#v \nnowTime: %#v \nswf cronScheduleJSON: %s \n",
-			s.Status.Trigger.LastTriggeredTime,
-			nowTime,
-			string(cronScheduleJSON),
-		)
-
 		if catchup {
 			return schedule.GetNextScheduledTime(
 				s.Status.Trigger.LastTriggeredTime,

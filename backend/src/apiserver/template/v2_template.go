@@ -129,10 +129,6 @@ func NewV2SpecTemplate(template []byte) (*V2Spec, error) {
 		return nil, util.NewInvalidInputErrorWithDetails(ErrorInvalidPipelineSpec, "invalid v2 pipeline spec: root component is empty")
 	}
 
-	fmt.Printf("lingqing-logs spec value: %#v \n", spec)
-	specJSON, _ := json.Marshal(spec)
-	fmt.Printf("lingqing-logs specJSON value: %s \n", specJSON)
-
 	return &V2Spec{spec: &spec}, nil
 }
 

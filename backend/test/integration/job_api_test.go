@@ -463,14 +463,14 @@ func (s *JobApiTestSuite) TestJobApis_noCatchupOption() {
 			return fmt.Errorf("expected runsWhenCatchupFalse with periodic schedule to be 1, got: %v", runsWhenCatchupFalse)
 		}
 
-		aa, runsWhenCatchupFalse, bb, err := s.runClient.List(&runParams.ListRunsV1Params{
+		_, runsWhenCatchupFalse, _, err = s.runClient.List(&runParams.ListRunsV1Params{
 			ResourceReferenceKeyType: util.StringPointer(string(run_model.APIResourceTypeEXPERIMENT)),
 			ResourceReferenceKeyID:   util.StringPointer(cronCatchupFalseExperiment.ID)})
 		if err != nil {
 			return err
 		}
 		if runsWhenCatchupFalse != 1 {
-			return fmt.Errorf("expected runsWhenCatchupFalse with cron schedule to be 1, got: %v \n aaaaa: %#v \n bbbb: %#v \n", runsWhenCatchupFalse, aa, bb)
+			return fmt.Errorf("expected runsWhenCatchupFalse with cron schedule to be 1, got: %v", runsWhenCatchupFalse)
 		}
 		return nil
 	}); err != nil {
