@@ -9,6 +9,7 @@ components:
       parameters:
         text1:
           defaultValue: text!
+          isOptional: true
           parameterType: STRING
     outputDefinitions:
       artifacts:
@@ -45,6 +46,7 @@ root:
     parameters:
       text1:
         defaultValue: text!
+        isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-beta.8

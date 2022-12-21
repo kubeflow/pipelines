@@ -513,11 +513,17 @@ components:
       parameters:
         msg:
           parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
   comp-print-text-2:
     executorLabel: exec-print-text-2
     inputDefinitions:
       parameters:
         msg:
+          parameterType: STRING
+        msg2:
+          isOptional: true
           parameterType: STRING
   comp-print-text-3:
     executorLabel: exec-print-text-3
@@ -525,17 +531,26 @@ components:
       parameters:
         msg:
           parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
   comp-print-text-4:
     executorLabel: exec-print-text-4
     inputDefinitions:
       parameters:
         msg:
           parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
   comp-print-text-5:
     executorLabel: exec-print-text-5
     inputDefinitions:
       parameters:
         msg:
+          parameterType: STRING
+        msg2:
+          isOptional: true
           parameterType: STRING
   comp-print-text-6:
     executorLabel: exec-print-text-6
@@ -544,6 +559,7 @@ components:
         msg:
           parameterType: STRING
         msg2:
+          isOptional: true
           parameterType: STRING
   comp-print-text-7:
     executorLabel: exec-print-text-7
@@ -551,17 +567,26 @@ components:
       parameters:
         msg:
           parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
   comp-print-text-8:
     executorLabel: exec-print-text-8
     inputDefinitions:
       parameters:
         msg:
           parameterType: STRING
+        msg2:
+          isOptional: true
+          parameterType: STRING
   comp-print-text-9:
     executorLabel: exec-print-text-9
     inputDefinitions:
       parameters:
         msg:
+          parameterType: STRING
+        msg2:
+          isOptional: true
           parameterType: STRING
 deploymentSpec:
   executors:
@@ -990,9 +1015,11 @@ root:
           - X
           - Y
           - Z
+        isOptional: true
         parameterType: LIST
       msg:
         defaultValue: hello
+        isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-beta.8
