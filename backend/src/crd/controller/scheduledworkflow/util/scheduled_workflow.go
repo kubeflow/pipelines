@@ -15,7 +15,6 @@
 package util
 
 import (
-	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"math"
@@ -25,7 +24,6 @@ import (
 
 	commonutil "github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
-	log "github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/apis/core"
 )
