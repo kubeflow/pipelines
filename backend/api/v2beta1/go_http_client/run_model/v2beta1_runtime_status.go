@@ -22,7 +22,7 @@ type V2beta1RuntimeStatus struct {
 	// If the state is FAILED, the error here is final and not going to be
 	// retried. If the state is a non-final state, the error indicates that a
 	// system-error being retried.
-	Error *RPCStatus `json:"error,omitempty"`
+	Error *GooglerpcStatus `json:"error,omitempty"`
 
 	// The state of a runtime instance.
 	State V2beta1RuntimeState `json:"state,omitempty"`

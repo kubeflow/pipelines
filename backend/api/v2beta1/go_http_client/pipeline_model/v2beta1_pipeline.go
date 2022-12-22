@@ -24,14 +24,13 @@ type V2beta1Pipeline struct {
 	// Optional input field. A short description of the pipeline.
 	Description string `json:"description,omitempty"`
 
-	// Required input field. Pipeline name provided by user. If not specified,
-	// file name is used as pipeline name.
+	// Required input field. Pipeline name provided by user.
 	DisplayName string `json:"display_name,omitempty"`
 
 	// In case any error happens retrieving a pipeline field, only pipeline ID,
 	// and the error message is returned. Client has the flexibility of choosing
 	// how to handle the error. This is especially useful during listing call.
-	Error *RPCStatus `json:"error,omitempty"`
+	Error *GooglerpcStatus `json:"error,omitempty"`
 
 	// Input. A namespace this pipeline belongs to.
 	// Causes error if user is not authorized to access the specified namespace.
