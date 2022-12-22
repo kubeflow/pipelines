@@ -38,7 +38,7 @@ class V2beta1Pipeline(object):
         'description': 'str',
         'created_at': 'datetime',
         'namespace': 'str',
-        'error': 'RpcStatus'
+        'error': 'GooglerpcStatus'
     }
 
     attribute_map = {
@@ -104,7 +104,7 @@ class V2beta1Pipeline(object):
     def display_name(self):
         """Gets the display_name of this V2beta1Pipeline.  # noqa: E501
 
-        Required input field. Pipeline name provided by user. If not specified, file name is used as pipeline name.  # noqa: E501
+        Required input field. Pipeline name provided by user.  # noqa: E501
 
         :return: The display_name of this V2beta1Pipeline.  # noqa: E501
         :rtype: str
@@ -115,7 +115,7 @@ class V2beta1Pipeline(object):
     def display_name(self, display_name):
         """Sets the display_name of this V2beta1Pipeline.
 
-        Required input field. Pipeline name provided by user. If not specified, file name is used as pipeline name.  # noqa: E501
+        Required input field. Pipeline name provided by user.  # noqa: E501
 
         :param display_name: The display_name of this V2beta1Pipeline.  # noqa: E501
         :type display_name: str
@@ -198,7 +198,7 @@ class V2beta1Pipeline(object):
 
 
         :return: The error of this V2beta1Pipeline.  # noqa: E501
-        :rtype: RpcStatus
+        :rtype: GooglerpcStatus
         """
         return self._error
 
@@ -208,7 +208,7 @@ class V2beta1Pipeline(object):
 
 
         :param error: The error of this V2beta1Pipeline.  # noqa: E501
-        :type error: RpcStatus
+        :type error: GooglerpcStatus
         """
 
         self._error = error

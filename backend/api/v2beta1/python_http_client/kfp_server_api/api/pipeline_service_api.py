@@ -672,7 +672,7 @@ class PipelineServiceApi(object):
 
         :param name: Required input. Name of the pipeline to be retrieved. (required)
         :type name: str
-        :param namespace: Optional input. Namespace of the pipeline.  It could be empty if default namespaces needs to be used or if  multi-user  support is turned off.
+        :param namespace: Optional input. Namespace of the pipeline.  It could be empty if default namespaces needs to be used or if multi-user  support is turned off.
         :type namespace: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
@@ -702,7 +702,7 @@ class PipelineServiceApi(object):
 
         :param name: Required input. Name of the pipeline to be retrieved. (required)
         :type name: str
-        :param namespace: Optional input. Namespace of the pipeline.  It could be empty if default namespaces needs to be used or if  multi-user  support is turned off.
+        :param namespace: Optional input. Namespace of the pipeline.  It could be empty if default namespaces needs to be used or if multi-user  support is turned off.
         :type namespace: str
         :param async_req: Whether to execute the request asynchronously.
         :type async_req: bool, optional
