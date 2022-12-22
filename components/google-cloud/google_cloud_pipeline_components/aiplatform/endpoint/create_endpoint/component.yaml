@@ -70,6 +70,8 @@ implementation:
       --init.project, {inputValue: project},
       --init.location, {inputValue: location},
       --init.endpoint_name, {inputValue: endpoint_name},
+      --method.project, { inputValue: project },
+      --method.location, { inputValue: location },
       --method.display_name, {inputValue: display_name},
       --method.description, {inputValue: description},
       --method.labels, {inputValue: labels},
