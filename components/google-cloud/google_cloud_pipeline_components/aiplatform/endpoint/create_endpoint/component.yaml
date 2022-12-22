@@ -67,7 +67,7 @@ implementation:
       --method.display_name, {inputValue: display_name},
       --method.description, {inputValue: description},
       --method.labels, {inputValue: labels},
-      --method.encryption_spec, '{"kms_key_name":"', {inputValue: encryption_spec_key_name}, '"}',
+      --method.encryption_spec_key_name {inputValue: encryption_spec_key_name},
       --method.network, {inputValue: network},
       --init.project, {inputValue: project},
       --init.location, {inputValue: location},
