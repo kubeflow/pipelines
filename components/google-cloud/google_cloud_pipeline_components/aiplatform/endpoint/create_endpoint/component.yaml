@@ -73,7 +73,7 @@ implementation:
       - --method.description
       -  {inputValue: description}
       - --method.labels
-      -  {inputValue: labels},
+      -  {inputValue: labels}
       - if:
           cond: {isPresent: encryption_spec_key_name}
           then:
