@@ -68,7 +68,7 @@ implementation:
     command: [python3, -u, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner, --cls_name, Endpoint, --method_name, create]
     args:
       - --init.project
-      - {inputValue: project},
+      - {inputValue: project}
       - --init.location
       - {inputValue: location}
       - --init.endpoint_name
@@ -82,7 +82,7 @@ implementation:
       - --method.description
       -  {inputValue: description}
       - --method.labels
-      -  {inputValue: labels},
+      -  {inputValue: labels}
       - if:
           cond: {isPresent: encryption_spec_key_name}
           then:
