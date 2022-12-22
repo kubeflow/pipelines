@@ -35,14 +35,6 @@ description: |
             resource is created.
 
             If set, this Endpoint and all sub-resources of this Endpoint will be secured by this key.
-        network (Optional[str]):
-            The full name of the Google Compute Engine network to which the
-            Endpoint should be peered. Private services access must already be configured for
-            the network. If left unspecified, the Endpoint is not peered with any network.
-
-            [Format](https://cloud.google.com/compute/docs/reference/rest/v1/networks/insert):
-            projects/{project}/global/networks/{network}.
-            Where {project} is a project number, as in '12345', and {network} is network name.
     Returns:
         endpoint (google.VertexEndpoint):
             Artifact tracking the created endpoint.
@@ -58,7 +50,6 @@ inputs:
 - {name: description, type: String, optional: true, default: ''}
 - {name: labels, type: JsonObject, optional: true, default: '{}'}
 - {name: encryption_spec_key_name, type: String, optional: true}
-- {name: network, type: String, optional: true, default: ''}
 outputs:
 - {name: endpoint, type: google.VertexEndpoint}
 - {name: gcp_resources, type: String}
@@ -88,8 +79,6 @@ implementation:
           then:
           - --method.encryption_spec_key_name
           - {inputValue: encryption_spec_key_name}
-      - --method.network
-      - {inputValue: network}
       - --gcp_resources
       - {outputPath: gcp_resources}
       - --executor_input
