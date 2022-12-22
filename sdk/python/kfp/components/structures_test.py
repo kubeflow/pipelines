@@ -20,6 +20,7 @@ import unittest
 
 from absl.testing import parameterized
 from kfp import compiler
+from kfp import components
 from kfp import dsl
 from kfp.components import component_factory
 from kfp.components import placeholders
@@ -232,14 +233,12 @@ class StructuresTest(parameterized.TestCase):
             inputs={'input1': structures.InputSpec(type='String')},
             outputs={'output1': structures.OutputSpec(type='String')},
         )
-        from kfp.components import base_component
 
-        class TestComponent(base_component.BaseComponent):
-
-            def execute(self, **kwargs):
-                pass
-
-        test_component = TestComponent(component_spec=original_component_spec)
+        test_component = components.PythonComponent(
+            # dummy python_func not used in behavior that is being tested
+            python_func=lambda: None,
+            component_spec=original_component_spec,
+        )
         with tempfile.TemporaryDirectory() as tempdir:
             output_path = os.path.join(tempdir, 'component.yaml')
             compiler.Compiler().compile(test_component, output_path)

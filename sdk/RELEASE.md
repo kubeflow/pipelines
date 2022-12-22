@@ -1,6 +1,18 @@
 # Current Version (in development)
 
 ## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+* Fully support optional parameter inputs by witing `isOptional` field to IR [\#8612](https://github.com/kubeflow/pipelines/pull/8612)
+
+## Documentation updates
+# 2.0.0-beta.9
+
+## Features
 * Add comments to IR YAML file [\#8467](https://github.com/kubeflow/pipelines/pull/8467)
 
 ## Breaking changes
@@ -9,7 +21,7 @@
 
 ## Bug fixes and other changes
 * Unblock valid topologies [\#8416](https://github.com/kubeflow/pipelines/pull/8416)
-* Fix bug when writing to same file using gcsfuse and distributed training strategy in lightweight/containerized Python components [#8544](https://github.com/kubeflow/pipelines/pull/8544) [alternative fix after [#8455](https://github.com/kubeflow/pipelines/pull/8455) in `kfp==2.0.0b8`]
+* Fix bug when writing to same file using gcsfuse and distributed training strategy in lightweight/containerized Python components [#8544](https://github.com/kubeflow/pipelines/pull/8544) [alternative fix after [#8455](https://github.com/kubeflow/pipelines/pull/8455) in `kfp==2.0.0b8`], [#8607](https://github.com/kubeflow/pipelines/pull/8607)
 
 ## Documentation updates
 # 2.0.0-beta.8

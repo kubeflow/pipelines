@@ -14,6 +14,7 @@
 """Base class for KFP components."""
 
 import abc
+from typing import List
 
 from kfp.components import pipeline_task
 from kfp.components import structures
@@ -72,15 +73,13 @@ class BaseComponent(abc.ABC):
 
         # Skip optional inputs and arguments typed as PipelineTaskFinalStatus.
         missing_arguments = [
-            input_name for input_name, input_spec in (
-                self.component_spec.inputs or {}).items()
-            if input_name not in task_inputs and not input_spec.optional and
-            not type_utils.is_task_final_status_type(input_spec.type)
+            arg for arg in self.required_inputs if arg not in kwargs
         ]
         if missing_arguments:
             argument_or_arguments = 'argument' if len(
                 missing_arguments) == 1 else 'arguments'
-            arguments = ', '.join(missing_arguments)
+            arguments = ', '.join(
+                arg_name.replace('-', '_') for arg_name in missing_arguments)
 
             raise TypeError(
                 f'{self.name}() missing {len(missing_arguments)} required '
@@ -101,6 +100,14 @@ class BaseComponent(abc.ABC):
     def execute(self, **kwargs):
         """Executes the component locally if implemented by the inheriting
         subclass."""
+
+    @property
+    def required_inputs(self) -> List[str]:
+        return [
+            input_name for input_name, input_spec in (
+                self.component_spec.inputs or {}).items()
+            if not input_spec.optional
+        ]
 
 
 class BlockPipelineTaskRegistration:

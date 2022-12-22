@@ -23,9 +23,8 @@ import (
 
 	"github.com/cenkalti/backoff"
 	"github.com/golang/glog"
-	apiV1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-
-	// apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/archive"
 	kfpauth "github.com/kubeflow/pipelines/backend/src/apiserver/auth"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
@@ -470,13 +469,13 @@ func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error 
 	return nil
 }
 
-func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *apiV1beta1.Run) (*model.RunDetail, error) {
+func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *apiv1beta1.Run) (*model.RunDetail, error) {
 	// Get manifest from either of the two places:
 	// (1) raw manifest in pipeline_spec
 	// (2) pipeline version in resource_references
 	// And the latter takes priority over the former when the manifest is from pipeline_spec.pipeline_id
 	// workflow/pipeline manifest and pipeline id/version will not exist at the same time, guaranteed by the validation phase
-	manifestBytes, err := getManifestBytes(apiRun.PipelineSpec, &apiRun.ResourceReferences, r)
+	manifestBytes, err := getManifestBytesV1(apiRun.PipelineSpec, &apiRun.ResourceReferences, r)
 	if err != nil {
 		return nil, err
 	}
@@ -608,7 +607,7 @@ func (r *ResourceManager) DeleteRun(ctx context.Context, runID string) error {
 	return nil
 }
 
-func (r *ResourceManager) CreateTask(ctx context.Context, apiTask *apiV1beta1.Task) (*model.Task, error) {
+func (r *ResourceManager) CreateTask(ctx context.Context, apiTask *apiv1beta1.Task) (*model.Task, error) {
 	uuid, err := r.uuid.NewRandom()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to generate task ID.")
@@ -824,54 +823,60 @@ func (r *ResourceManager) GetJob(id string) (*model.Job, error) {
 	return r.jobStore.GetJob(id)
 }
 
-func (r *ResourceManager) CreateJob(ctx context.Context, apiJob *apiV1beta1.Job) (*model.Job, error) {
-	// Get workflow from either of the two places:
+func (r *ResourceManager) CreateJob(ctx context.Context, apiJobInterface interface{}) (*model.Job, error) {
+	// Get pipeline manifest from either of the two places:
 	// (1) raw pipeline manifest in pipeline_spec
-	// (2) pipeline version in resource_references
+	// (2) pipeline id
 	// 	And the latter takes priority over the former when the pipeline manifest is from pipeline_spec.pipeline_id
-	// workflow manifest and pipeline id/version will not exist at the same time, guaranteed by the validation phase
-	manifestBytes, err := getManifestBytes(apiJob.PipelineSpec, &apiJob.ResourceReferences, r)
+	// TODO(lingqinggan): Add get pipeline from pipeline version.
+	manifestBytes, err := getManifestBytesfromAPIJobInterface(apiJobInterface, r)
 	if err != nil {
-		return nil, err
+		return nil, util.Wrap(err, "Error getting manifest Bytes from api job")
 	}
 
 	tmpl, err := template.New(manifestBytes)
 	if err != nil {
-		return nil, err
+		return nil, util.Wrap(err, "Error creating new template")
 	}
 
-	scheduledWorkflow, err := tmpl.ScheduledWorkflow(apiJob)
+	// Convert apiJob, either v1 or v2, to model Job.
+	modelJob, err := r.ToModelJob(apiJobInterface, string(manifestBytes), tmpl.GetTemplateType())
 	if err != nil {
-		return nil, util.Wrap(err, "failed to generate the scheduledWorkflow.")
-	}
-	// Add a reference to the default experiment if run does not already have a containing experiment
-	ref, err := r.getDefaultExperimentIfNoExperiment(apiJob.GetResourceReferences())
-	if err != nil {
-		return nil, err
-	}
-	if ref != nil {
-		apiJob.ResourceReferences = append(apiJob.GetResourceReferences(), ref)
+		return nil, util.Wrap(err, "Error creating model job")
 	}
 
-	namespace, err := r.getNamespaceFromExperiment(apiJob.GetResourceReferences())
+	// Convert modelJob into scheduledWorkflow.
+	scheduledWorkflow, err := tmpl.ScheduledWorkflow(modelJob)
 	if err != nil {
-		return nil, err
+		return nil, util.Wrap(err, "Failed to generate the scheduledWorkflow")
 	}
 
-	newScheduledWorkflow, err := r.getScheduledWorkflowClient(namespace).Create(ctx, scheduledWorkflow)
+	// Create a new ScheduledWorkflow at the ScheduledWorkflow client.
+	newScheduledWorkflow, err := r.getScheduledWorkflowClient(modelJob.Namespace).Create(ctx, scheduledWorkflow)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "Failed to create a scheduled workflow for (%s)", scheduledWorkflow.Name)
+		return nil, util.Wrap(err, "Failed to create a scheduled workflow")
 	}
 
-	job, err := r.ToModelJob(apiJob, util.NewScheduledWorkflow(newScheduledWorkflow), string(manifestBytes), tmpl.GetTemplateType())
+	// Complete modelJob with info coming back from ScheduledWorkflow client.
+	err = r.updateModelJobWithNewScheduledWorkflow(modelJob, util.NewScheduledWorkflow(newScheduledWorkflow))
 	if err != nil {
-		return nil, util.Wrap(err, "Create job failed")
+		return nil, util.Wrap(err, "Failed to add scheduled workflow info to model job")
 	}
 
+	// Add creation/update time.
 	now := r.time.Now().Unix()
-	job.CreatedAtInSec = now
-	job.UpdatedAtInSec = now
-	return r.jobStore.CreateJob(job)
+	modelJob.CreatedAtInSec = now
+	modelJob.UpdatedAtInSec = now
+
+	// Store modelJob to database and return.
+	return r.jobStore.CreateJob(modelJob)
+}
+
+func (r *ResourceManager) updateJobResourceReferences(resourceId string, modelJob *model.Job) error {
+	for _, modelRef := range modelJob.ResourceReferences {
+		modelRef.ResourceUUID = resourceId
+	}
+	return nil
 }
 
 func (r *ResourceManager) EnableJob(ctx context.Context, jobID string, enabled bool) error {
@@ -1017,7 +1022,7 @@ func (r *ResourceManager) ReportWorkflowResource(ctx context.Context, execSpec u
 				ExperimentUUID:   experimentRef.ReferenceUUID,
 				DisplayName:      execSpec.ExecutionName(),
 				Name:             execSpec.ExecutionName(),
-				StorageState:     apiV1beta1.Run_STORAGESTATE_AVAILABLE.String(),
+				StorageState:     apiv1beta1.Run_STORAGESTATE_AVAILABLE.String(),
 				Namespace:        execSpec.ExecutionNamespace(),
 				CreatedAtInSec:   objMeta.CreationTimestamp.Unix(),
 				ScheduledAtInSec: scheduledTimeInSec,
@@ -1131,17 +1136,17 @@ func (r *ResourceManager) checkRunExist(runID string) (*model.RunDetail, error) 
 	return runDetail, nil
 }
 
-func (r *ResourceManager) getWorkflowSpecBytesFromPipelineSpec(spec *apiV1beta1.PipelineSpec) ([]byte, error) {
+func (r *ResourceManager) getWorkflowSpecBytesFromPipelineSpec(spec *apiv1beta1.PipelineSpec) ([]byte, error) {
 	if spec.GetWorkflowManifest() != "" {
 		return []byte(spec.GetWorkflowManifest()), nil
 	}
 	return nil, util.NewInvalidInputError("Please provide a valid pipeline spec")
 }
 
-func (r *ResourceManager) getManifestBytesFromPipelineVersion(references []*apiV1beta1.ResourceReference) ([]byte, error) {
+func (r *ResourceManager) getManifestBytesFromPipelineVersion(references []*apiv1beta1.ResourceReference) ([]byte, error) {
 	var pipelineVersionId = ""
 	for _, reference := range references {
-		if reference.Key.Type == apiV1beta1.ResourceType_PIPELINE_VERSION && reference.Relationship == apiV1beta1.Relationship_CREATOR {
+		if reference.Key.Type == apiv1beta1.ResourceType_PIPELINE_VERSION && reference.Relationship == apiv1beta1.Relationship_CREATOR {
 			pipelineVersionId = reference.Key.Id
 		}
 	}
@@ -1156,7 +1161,7 @@ func (r *ResourceManager) getManifestBytesFromPipelineVersion(references []*apiV
 	return manifestBytes, nil
 }
 
-func getManifestBytes(pipelineSpec *apiV1beta1.PipelineSpec, resourceReferences *[]*apiV1beta1.ResourceReference, r *ResourceManager) ([]byte, error) {
+func getManifestBytesV1(pipelineSpec *apiv1beta1.PipelineSpec, resourceReferences *[]*apiv1beta1.ResourceReference, r *ResourceManager) ([]byte, error) {
 	var manifestBytes []byte
 	if pipelineSpec.GetWorkflowManifest() != "" {
 		manifestBytes = []byte(pipelineSpec.GetWorkflowManifest())
@@ -1175,6 +1180,35 @@ func getManifestBytes(pipelineSpec *apiV1beta1.PipelineSpec, resourceReferences 
 	return manifestBytes, nil
 }
 
+func getManifestBytesfromAPIJobInterface(apiJobInterface interface{}, r *ResourceManager) ([]byte, error) {
+	var manifestBytes []byte
+	var err error
+	switch apiJobInterface.(type) {
+	case *apiv1beta1.Job:
+		apiJob := apiJobInterface.(*apiv1beta1.Job)
+		manifestBytes, err = getManifestBytesV1(apiJob.PipelineSpec, &apiJob.ResourceReferences, r)
+		if err != nil {
+			return nil, util.Wrap(err, "Cannot get manifest bytes.")
+		}
+	case *apiv2beta1.RecurringRun:
+		apiRecurringRun := apiJobInterface.(*apiv2beta1.RecurringRun)
+		if apiRecurringRun.GetPipelineId() != "" {
+			manifestBytes, err = r.GetPipelineTemplate(apiRecurringRun.GetPipelineId())
+			if err != nil {
+				return nil, util.Wrap(err, "Cannot retrieve manifestBytes using pipelineId.")
+			}
+		} else if apiRecurringRun.GetPipelineSpec() != nil {
+			manifestBytes, err = json.Marshal(apiRecurringRun.GetPipelineSpec())
+			if err != nil {
+				return nil, util.Wrap(err, "Cannot marshal PipelineSpec.")
+			}
+		}
+	default:
+		return nil, util.Wrap(err, "Wrong api job interface type.")
+	}
+	return manifestBytes, nil
+}
+
 // Used to initialize the Experiment database with a default to be used for runs
 func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 	// First check that we don't already have a default experiment ID in the DB.
@@ -1189,7 +1223,7 @@ func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 	}
 
 	// Create default experiment
-	defaultExperiment := &apiV1beta1.Experiment{
+	defaultExperiment := &apiv1beta1.Experiment{
 		Name:        "Default",
 		Description: "All runs created without specifying an experiment will be grouped here.",
 	}
@@ -1210,10 +1244,10 @@ func (r *ResourceManager) CreateDefaultExperiment() (string, error) {
 
 // getDefaultExperimentIfNoExperiment If the provided run does not include a reference to a containing
 // experiment, then we fetch the default experiment's ID and create a reference to that.
-func (r *ResourceManager) getDefaultExperimentIfNoExperiment(references []*apiV1beta1.ResourceReference) (*apiV1beta1.ResourceReference, error) {
+func (r *ResourceManager) getDefaultExperimentIfNoExperiment(references []*apiv1beta1.ResourceReference) (*apiv1beta1.ResourceReference, error) {
 	// First check if there is already a referenced experiment
 	for _, ref := range references {
-		if ref.Key.Type == apiV1beta1.ResourceType_EXPERIMENT && ref.Relationship == apiV1beta1.Relationship_OWNER {
+		if ref.Key.Type == apiv1beta1.ResourceType_EXPERIMENT && ref.Relationship == apiv1beta1.Relationship_OWNER {
 			return nil, nil
 		}
 	}
@@ -1223,7 +1257,7 @@ func (r *ResourceManager) getDefaultExperimentIfNoExperiment(references []*apiV1
 	return r.getDefaultExperimentResourceReference(references)
 }
 
-func (r *ResourceManager) getDefaultExperimentResourceReference(references []*apiV1beta1.ResourceReference) (*apiV1beta1.ResourceReference, error) {
+func (r *ResourceManager) getDefaultExperimentResourceReference(references []*apiv1beta1.ResourceReference) (*apiv1beta1.ResourceReference, error) {
 	// Create reference to the default experiment
 	defaultExperimentId, err := r.GetDefaultExperimentId()
 	if err != nil {
@@ -1236,18 +1270,18 @@ func (r *ResourceManager) getDefaultExperimentResourceReference(references []*ap
 			return nil, util.NewInternalServerError(err, "Failed to create new default experiment")
 		}
 	}
-	defaultExperimentRef := &apiV1beta1.ResourceReference{
-		Key: &apiV1beta1.ResourceKey{
+	defaultExperimentRef := &apiv1beta1.ResourceReference{
+		Key: &apiv1beta1.ResourceKey{
 			Id:   defaultExperimentId,
-			Type: apiV1beta1.ResourceType_EXPERIMENT,
+			Type: apiv1beta1.ResourceType_EXPERIMENT,
 		},
-		Relationship: apiV1beta1.Relationship_OWNER,
+		Relationship: apiv1beta1.Relationship_OWNER,
 	}
 
 	return defaultExperimentRef, nil
 }
 
-func (r *ResourceManager) ReportMetric(metric *apiV1beta1.RunMetric, runUUID string) error {
+func (r *ResourceManager) ReportMetric(metric *apiv1beta1.RunMetric, runUUID string) error {
 	return r.runStore.ReportMetric(r.ToModelRunMetric(metric, runUUID))
 }
 
@@ -1289,6 +1323,112 @@ func (r *ResourceManager) HaveSamplesLoaded() (bool, error) {
 
 func (r *ResourceManager) MarkSampleLoaded() error {
 	return r.dBStatusStore.MarkSampleLoaded()
+}
+
+func (r *ResourceManager) CreatePipelineVersion(apiVersion *apiv1beta1.PipelineVersion, pipelineFile []byte, updateDefaultVersion bool) (*model.PipelineVersion, error) {
+	// Extract pipeline id
+	var pipelineId = ""
+	for _, resourceReference := range apiVersion.ResourceReferences {
+		if resourceReference.Key.Type == apiv1beta1.ResourceType_PIPELINE && resourceReference.Relationship == apiv1beta1.Relationship_OWNER {
+			pipelineId = resourceReference.Key.Id
+		}
+	}
+	if len(pipelineId) == 0 {
+		return nil, util.NewInvalidInputError("Create pipeline version failed due to missing pipeline id")
+	}
+	tmpl, err := template.New(pipelineFile)
+	if err != nil {
+		return nil, util.Wrap(err, "Create pipeline version failed")
+	}
+	if tmpl.IsV2() {
+		pipeline, err := r.GetPipeline(pipelineId)
+		if err != nil {
+			return nil, util.Wrap(err, "Create pipeline version failed")
+		}
+		tmpl.OverrideV2PipelineName(pipeline.Name, pipeline.Namespace)
+	}
+	paramsJSON, err := tmpl.ParametersJSON()
+	if err != nil {
+		return nil, util.Wrap(err, "Create pipeline version failed")
+	}
+	// Construct model.PipelineVersion
+	version := &model.PipelineVersion{
+		Name:          apiVersion.Name,
+		PipelineId:    pipelineId,
+		Status:        model.PipelineVersionCreating,
+		Parameters:    paramsJSON,
+		CodeSourceUrl: apiVersion.CodeSourceUrl,
+		Description:   apiVersion.Description,
+	}
+	version, err = r.pipelineStore.CreatePipelineVersion(version, updateDefaultVersion)
+	if err != nil {
+		return nil, util.Wrap(err, "Create pipeline version failed")
+	}
+
+	// Store the pipeline file
+	err = r.objectStore.AddFile(tmpl.Bytes(), r.objectStore.GetPipelineKey(fmt.Sprint(version.UUID)))
+	if err != nil {
+		return nil, util.Wrap(err, "Create pipeline version failed")
+	}
+
+	// After pipeline version being created in DB and pipeline file being
+	// saved in minio server, set this pieline version to status ready.
+	version.Status = model.PipelineVersionReady
+	err = r.pipelineStore.UpdatePipelineVersionStatus(version.UUID, version.Status)
+	if err != nil {
+		return nil, util.Wrap(err, "Create pipeline version failed")
+	}
+
+	return version, nil
+}
+
+func (r *ResourceManager) GetPipelineVersion(versionId string) (*model.PipelineVersion, error) {
+	return r.pipelineStore.GetPipelineVersion(versionId)
+}
+
+func (r *ResourceManager) ListPipelineVersions(pipelineId string, opts *list.Options) (pipelines []*model.PipelineVersion, total_size int, nextPageToken string, err error) {
+	return r.pipelineStore.ListPipelineVersions(pipelineId, opts)
+}
+
+func (r *ResourceManager) DeletePipelineVersion(pipelineVersionId string) error {
+	_, err := r.pipelineStore.GetPipelineVersion(pipelineVersionId)
+	if err != nil {
+		return util.Wrap(err, "Delete pipeline version failed")
+	}
+
+	// Mark pipeline as deleting so it's not visible to user.
+	err = r.pipelineStore.UpdatePipelineVersionStatus(pipelineVersionId, model.PipelineVersionDeleting)
+	if err != nil {
+		return util.Wrap(err, "Delete pipeline version failed")
+	}
+
+	err = r.objectStore.DeleteFile(r.objectStore.GetPipelineKey(fmt.Sprint(pipelineVersionId)))
+	if err != nil {
+		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline file for pipeline version %v", pipelineVersionId))
+		return util.Wrap(err, "Delete pipeline version failed")
+	}
+	err = r.pipelineStore.DeletePipelineVersion(pipelineVersionId)
+	if err != nil {
+		glog.Errorf("%v", errors.Wrapf(err, "Failed to delete pipeline DB entry for pipeline %v", pipelineVersionId))
+		return util.Wrap(err, "Delete pipeline version failed")
+	}
+
+	return nil
+}
+
+func (r *ResourceManager) GetPipelineVersionTemplate(versionId string) ([]byte, error) {
+	// Verify pipeline version exist
+	_, err := r.pipelineStore.GetPipelineVersion(versionId)
+	if err != nil {
+		return nil, util.Wrap(err, "Get pipeline version template failed: cannot get pipeline version")
+	}
+
+	template, err := r.objectStore.GetFile(r.objectStore.GetPipelineKey(fmt.Sprint(versionId)))
+	if err != nil {
+		return nil, util.Wrap(err, "Get pipeline version template failed: cannot get file")
+	}
+
+	return template, nil
 }
 
 func (r *ResourceManager) AuthenticateRequest(ctx context.Context) (string, error) {
@@ -1380,7 +1520,7 @@ func (r *ResourceManager) GetNamespaceFromPipelineVersion(versionId string) (str
 	return r.GetNamespaceFromPipelineID(pipelineVersion.PipelineId)
 }
 
-func (r *ResourceManager) getNamespaceFromExperiment(references []*apiV1beta1.ResourceReference) (string, error) {
+func (r *ResourceManager) getNamespaceFromExperiment(references []*apiv1beta1.ResourceReference) (string, error) {
 	experimentID := common.GetExperimentIDFromAPIResourceReferences(references)
 	experiment, err := r.GetExperiment(experimentID)
 	if err != nil {
