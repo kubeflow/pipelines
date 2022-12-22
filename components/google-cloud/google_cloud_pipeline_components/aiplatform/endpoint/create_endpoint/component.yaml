@@ -67,14 +67,14 @@ implementation:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
     command: [python3, -u, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner, --cls_name, Endpoint, --method_name, create]
     args: [
+      --init.project, {inputValue: project},
+      --init.location, {inputValue: location},
+      --init.endpoint_name, {inputValue: endpoint_name},
       --method.display_name, {inputValue: display_name},
       --method.description, {inputValue: description},
       --method.labels, {inputValue: labels},
       --method.encryption_spec_key_name, {inputValue: encryption_spec_key_name},
       --method.network, {inputValue: network},
-      --init.project, {inputValue: project},
-      --init.location, {inputValue: location},
-      --init.endpoint_name, {inputValue: endpoint_name},
       --gcp_resources, {outputPath: gcp_resources},
       --executor_input, "{{$}}",
     ]
