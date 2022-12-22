@@ -62,20 +62,15 @@ outputs:
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
-    command: [python3, -u, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner, --cls_name, Endpoint, --method_name, create]
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.aiplatform.emote_runner, --cls_name, Endpoint, --method_name, create]
     args: [
-      --method.payload,
-      concat: [
-          '{',
-          '"display_name": "', {inputValue: display_name}, '"',
-          ', "description": "', {inputValue: description}, '"',
-          ', "labels": ', {inputValue: labels},
-          ', "encryption_spec": {"kms_key_name":"', {inputValue: encryption_spec_key_name}, '"}',
-          ', "network": "', {inputValue: network}, '"',
-          '}'
-      ],
-      --method.project, {inputValue: project},
-      --method.location, {inputValue: location},
+      --method.display_name, {inputValue: display_name},
+      --method.description, {inputValue: description},
+      --method.labels, {inputValue: labels},
+      --method.encryption_spec, '{"kms_key_name":"', {inputValue: encryption_spec_key_name}, '"}',
+      --method.network, {inputValue: network},
+      --init.project, {inputValue: project},
+      --init.location, {inputValue: location},
       --gcp_resources, {outputPath: gcp_resources},
       --executor_input, "{{$}}",
     ]
