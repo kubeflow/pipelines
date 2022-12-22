@@ -19,10 +19,10 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/golang/glog"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/pkg/errors"
+	status "google.golang.org/genproto/googleapis/rpc/status"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	status1 "google.golang.org/grpc/status"
 	k8errors "k8s.io/apimachinery/pkg/api/errors"
 	k8metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -218,6 +218,14 @@ func NewPermissionDeniedError(err error, externalFormat string, a ...interface{}
 		codes.PermissionDenied)
 }
 
+func NewUnknownApiVersionError(a string, o string) *UserError {
+	externalMessage := fmt.Sprintf("Error using %s for %s.", a, o)
+	return newUserError(
+		errors.New(fmt.Sprintf("UnknownApiVersionError: %v", externalMessage)),
+		externalMessage,
+		codes.NotFound)
+}
+
 func (e *UserError) ExternalMessage() string {
 	return e.externalMessage
 }
@@ -262,6 +270,24 @@ func (e *UserError) Log() {
 	}
 }
 
+// Convert UserError to GRPCStatus.
+// Required by https://pkg.go.dev/google.golang.org/grpc/status#FromError
+func (e *UserError) GRPCStatus() *status1.Status {
+	stat := status1.New(e.externalStatusCode, e.internalError.Error())
+	statWithDetail, statErr := stat.
+		WithDetails(&status.Status{
+			Code:    int32(e.externalStatusCode),
+			Message: e.externalMessage,
+		})
+	if statErr != nil {
+		// Failed to stream error message as proto.
+		glog.Errorf("Failed to convert UserError to GRPCStatus. Error to be streamed: %v. Error thrown: %v",
+			e.externalMessage, statErr)
+		return stat
+	}
+	return statWithDetail
+}
+
 func Wrapf(err error, format string, args ...interface{}) error {
 	if err == nil {
 		return nil
@@ -301,26 +327,21 @@ func LogError(err error) {
 func ToGRPCError(err error) error {
 	switch err.(type) {
 	case *UserError:
-		userError := err.(*UserError)
-		stat := status.New(userError.externalStatusCode, userError.internalError.Error())
-		statWithDetail, statErr := stat.
-			WithDetails(&api.Error{
-				ErrorMessage: userError.externalMessage,
-				ErrorDetails: userError.internalError.Error(),
-			})
-
-		if statErr != nil {
+		if stat, ok := status1.FromError(err); !ok {
 			// Failed to stream error message as proto.
-			glog.Errorf("Failed to stream gRpc error. Error to be streamed: %v Error: %v",
-				userError.String(), statErr)
+			glog.Errorf("Failed to stream gRpc error. Error to be streamed: %v Error: %v", err.Error(), stat)
+			return stat.Err()
+		} else {
 			return stat.Err()
 		}
-		return statWithDetail.Err()
 	default:
 		externalMessage := fmt.Sprintf("Internal error: %+v", err)
-		stat := status.New(codes.Internal, externalMessage)
+		stat := status1.New(codes.Internal, externalMessage)
 		statWithDetail, statErr := stat.
-			WithDetails(&api.Error{ErrorMessage: externalMessage, ErrorDetails: externalMessage})
+			WithDetails(&status.Status{
+				Code:    int32(codes.Unknown),
+				Message: externalMessage,
+			})
 		if statErr != nil {
 			// Failed to stream error message as proto.
 			glog.Errorf("Failed to stream gRpc error. Error to be streamed: %v Error: %v",

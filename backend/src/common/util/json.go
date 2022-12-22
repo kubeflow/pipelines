@@ -16,6 +16,7 @@ package util
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/golang/glog"
 )
@@ -33,4 +34,33 @@ func MarshalJsonOrFail(v interface{}) []byte {
 		glog.Fatalf("Failed to marshal the object: %+v", v)
 	}
 	return bytes
+}
+
+// Converts an object into []byte array
+func MarshalJsonWithError(v interface{}) ([]byte, error) {
+	bytes, err := json.Marshal(v)
+	if err != nil {
+		return nil, Wrap(err, fmt.Sprintf("Failed to marshal the object: %+v", v))
+	}
+	return bytes, nil
+}
+
+// Converts a []byte array into an interface
+func UnmarshalJsonWithError(data interface{}, v *interface{}) error {
+	var bytes []byte
+	switch data.(type) {
+	case string:
+		bytes = []byte(data.(string))
+	case []byte:
+		bytes = data.([]byte)
+	case *[]byte:
+		bytes = data.([]byte)
+	default:
+		return NewInvalidInputError("Unmarshalling %T is not implemented.", data)
+	}
+	err := json.Unmarshal(bytes, v)
+	if err != nil {
+		return Wrap(err, fmt.Sprintf("Failed to unmarshal the object: %+v", v))
+	}
+	return nil
 }

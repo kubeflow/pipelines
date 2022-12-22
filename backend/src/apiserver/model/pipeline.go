@@ -14,7 +14,11 @@
 
 package model
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/kubeflow/pipelines/backend/src/common/util"
+)
 
 // PipelineStatus a label for the status of the Pipeline.
 // This is intend to make pipeline creation and deletion atomic.
@@ -29,19 +33,14 @@ const (
 )
 
 type Pipeline struct {
-	UUID           string `gorm:"column:UUID; not null; primary_key"`
-	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null"`
-	Name           string `gorm:"column:Name; not null"`
-	Description    string `gorm:"column:Description; not null; size:65535"` // Same as below, set size to large number so it will be stored as longtext
-	// TODO(jingzhang36): remove Parameters when no code is accessing this
-	// field. Should use PipelineVersion.Parameters instead.
-	/* Set size to 65535 so it will be stored as longtext. https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html */
-	Parameters string         `gorm:"column:Parameters; not null; size:65535"`
-	Status     PipelineStatus `gorm:"column:Status; not null"`
-	// Default version of this pipeline. It could be null.
-	DefaultVersionId string           `gorm:"column:DefaultVersionId;"`
-	DefaultVersion   *PipelineVersion `gorm:"-"`
-	Namespace        string           `gorm:"column:Namespace; size:63; default:''"`
+	// gorm.Model
+	UUID           string         `gorm:"column:UUID; not null; primary_key;"`
+	CreatedAtInSec int64          `gorm:"column:CreatedAtInSec; not null;"`
+	Name           string         `gorm:"column:Name; not null; unique_index:namespace_name;"` // Index improves performance of the List ang Get queries
+	Description    string         `gorm:"column:Description; not null; size:65535;"`           // Same as below, set size to large number so it will be stored as longtext
+	Status         PipelineStatus `gorm:"column:Status; not null;"`
+	Namespace      string         `gorm:"column:Namespace; unique_index:namespace_name; size:63; default:'default';"`
+	// Url       string `gorm:"column:Url; default:'';"`
 }
 
 func (p Pipeline) GetValueOfPrimaryKey() string {
@@ -63,13 +62,15 @@ func (p *Pipeline) DefaultSortField() string {
 }
 
 var pipelineAPIToModelFieldMap = map[string]string{
-	"id":          "UUID",
-	"name":        "Name",
-	"created_at":  "CreatedAtInSec",
-	"description": "Description",
-	"namespace":   "Namespace",
-	// TODO(jingzhang36): uncomment this field when we expose it to API
-	// "default_version_id": "DefaultVersionId",
+	"id":           "UUID",
+	"pipeline_id":  "UUID", // Added for KFP v2
+	"name":         "Name",
+	"display_name": "Name", // Added for KFP v2
+	"created_at":   "CreatedAtInSec",
+	"description":  "Description",
+	"namespace":    "Namespace",
+	// "url.pipeline_url": "Url",
+	// "url":              "Url",
 }
 
 // APIToModelFieldMap returns a map from API names to field names for model
@@ -102,8 +103,26 @@ func (p *Pipeline) GetFieldValue(name string) interface{} {
 		return p.Description
 	case "Namespace":
 		return p.Namespace
+	// case "Url":
+	// 	return p.Url
 	default:
 		return nil
+	}
+}
+
+// Returns a value of a field in a Pipeline object.
+// If not found, checks for proto-style names based on APIToModelFieldMap.
+// Returns nil if does not exist.
+func (p *Pipeline) GetProtoFieldValue(name string) interface{} {
+	if val := p.GetFieldValue(name); val == nil {
+		newKey, ok := p.APIToModelFieldMap()[name]
+		if ok {
+			return p.GetFieldValue(newKey)
+		} else {
+			return nil
+		}
+	} else {
+		return val
 	}
 }
 
@@ -113,4 +132,46 @@ func (p *Pipeline) GetSortByFieldPrefix(name string) string {
 
 func (p *Pipeline) GetKeyFieldPrefix() string {
 	return "pipelines."
+}
+
+// Sets a value based on the field's name provided.
+// Returns NewInvalidInputError if does not exist.
+func (p *Pipeline) SetFieldValue(name string, value interface{}) error {
+	switch name {
+	case "UUID":
+		p.UUID = value.(string)
+		return nil
+	case "Name":
+		p.Name = value.(string)
+		return nil
+	case "CreatedAtInSec":
+		p.CreatedAtInSec = value.(int64)
+		return nil
+	case "Description":
+		p.Description = value.(string)
+		return nil
+	case "Namespace":
+		p.Namespace = value.(string)
+		return nil
+		// case "Url":
+		// 	p.Url = value.(string)
+		// return nil
+	default:
+		return util.NewInvalidInputError(fmt.Sprintf("Error setting field '%s' to '%v' in Pipeline object: not found or not allowed to set.", name, value))
+	}
+}
+
+// Sets a value based on the field's name provided.
+// If not found, checks for proto-style names based on APIToModelFieldMap.
+// Returns NewInvalidInputError if does not exist.
+func (p *Pipeline) SetProtoFieldValue(name string, value interface{}) error {
+	if err := p.SetFieldValue(name, value); err != nil {
+		newKey, ok := p.APIToModelFieldMap()[name]
+		if ok {
+			return p.SetFieldValue(newKey, value)
+		} else {
+			return err
+		}
+	}
+	return nil
 }

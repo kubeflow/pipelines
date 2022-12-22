@@ -114,6 +114,14 @@ type RunWorkflowOptions struct {
 	RunAt int64
 }
 
+func NewFromString(s string) (Template, error) {
+	bytes, err := util.MarshalJsonWithError(s)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to parse a template from string.")
+	}
+	return New(bytes)
+}
+
 func New(bytes []byte) (Template, error) {
 	format := inferTemplateFormat(bytes)
 	switch format {

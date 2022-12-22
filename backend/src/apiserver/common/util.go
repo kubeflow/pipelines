@@ -15,8 +15,9 @@
 package common
 
 import (
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"strings"
+
+	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 )
 
 const (
@@ -35,6 +36,17 @@ func GetNamespaceFromAPIResourceReferences(resourceRefs []*api.ResourceReference
 		}
 	}
 	return namespace
+}
+
+func GetPipelineIdFromAPIResourceReferences(resourceRefs []*api.ResourceReference) string {
+	pipelineId := ""
+	for _, resourceRef := range resourceRefs {
+		if resourceRef.Key.Type == api.ResourceType_PIPELINE {
+			pipelineId = resourceRef.Key.Id
+			break
+		}
+	}
+	return pipelineId
 }
 
 func GetExperimentIDFromAPIResourceReferences(resourceRefs []*api.ResourceReference) string {
