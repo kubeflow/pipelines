@@ -62,10 +62,9 @@ outputs:
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
-    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.endpoint.create_endpoint.launcher]
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner, --cls_name, Endpoint, --method_name, create]
     args: [
-      --type, CreateEndpoint,
-      --payload,
+      --method.payload,
       concat: [
           '{',
           '"display_name": "', {inputValue: display_name}, '"',
@@ -75,8 +74,8 @@ implementation:
           ', "network": "', {inputValue: network}, '"',
           '}'
       ],
-      --project, {inputValue: project},
-      --location, {inputValue: location},
+      --method.project, {inputValue: project},
+      --method.location, {inputValue: location},
       --gcp_resources, {outputPath: gcp_resources},
       --executor_input, "{{$}}",
     ]
