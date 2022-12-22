@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -111,6 +111,7 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	apiV1beta1.RegisterAuthServiceServer(s, server.NewAuthServer(resourceManager))
 
 	apiV2beta1.RegisterExperimentServiceServer(s, sharedExperimentServer)
+	apiV2beta1.RegisterRecurringRunServiceServer(s, server.NewRecurringRunServer(resourceManager, &server.RecurringRunServerOptions{CollectMetrics: *collectMetricsFlag}))
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
@@ -140,6 +141,7 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 
 	// Create gRPC HTTP MUX and register services for v2beta1 api.
 	registerHttpHandlerFromEndpoint(apiV2beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiV2beta1.RegisterRecurringRunServiceHandlerFromEndpoint, "RecurringRunService", ctx, runtimeMux)
 
 	// Create a top level mux to include both pipeline upload server and gRPC servers.
 	topMux := mux.NewRouter()
