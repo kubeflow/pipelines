@@ -1,3 +1,17 @@
+// Copyright 2018-2022 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package list
 
 import (
@@ -7,7 +21,6 @@ import (
 
 	"google.golang.org/protobuf/testing/protocmp"
 
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -798,7 +811,7 @@ func TestFilterOnResourceReference(t *testing.T) {
 		table        string
 		resourceType model.ResourceType
 		count        bool
-		filter       *common.FilterContext
+		filter       *model.FilterContext
 	}
 	tests := []struct {
 		in      *testIn
@@ -808,9 +821,9 @@ func TestFilterOnResourceReference(t *testing.T) {
 		{
 			in: &testIn{
 				table:        "testTable",
-				resourceType: common.Run,
+				resourceType: model.RunResourceType,
 				count:        false,
-				filter:       &common.FilterContext{},
+				filter:       &model.FilterContext{},
 			},
 			wantSql: "SELECT * FROM testTable",
 			wantErr: nil,
@@ -818,9 +831,9 @@ func TestFilterOnResourceReference(t *testing.T) {
 		{
 			in: &testIn{
 				table:        "testTable",
-				resourceType: common.Run,
+				resourceType: model.RunResourceType,
 				count:        true,
-				filter:       &common.FilterContext{},
+				filter:       &model.FilterContext{},
 			},
 			wantSql: "SELECT count(*) FROM testTable",
 			wantErr: nil,
@@ -828,9 +841,9 @@ func TestFilterOnResourceReference(t *testing.T) {
 		{
 			in: &testIn{
 				table:        "testTable",
-				resourceType: common.Run,
+				resourceType: model.RunResourceType,
 				count:        false,
-				filter:       &common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Run}},
+				filter:       &model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType}},
 			},
 			wantSql: "SELECT * FROM testTable WHERE UUID in (SELECT ResourceUUID FROM resource_references as rf WHERE (rf.ResourceType = ? AND rf.ReferenceUUID = ? AND rf.ReferenceType = ?))",
 			wantErr: nil,
@@ -838,9 +851,9 @@ func TestFilterOnResourceReference(t *testing.T) {
 		{
 			in: &testIn{
 				table:        "testTable",
-				resourceType: common.Run,
+				resourceType: model.RunResourceType,
 				count:        true,
-				filter:       &common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Run}},
+				filter:       &model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.RunResourceType}},
 			},
 			wantSql: "SELECT count(*) FROM testTable WHERE UUID in (SELECT ResourceUUID FROM resource_references as rf WHERE (rf.ResourceType = ? AND rf.ReferenceUUID = ? AND rf.ReferenceType = ?))",
 			wantErr: nil,
@@ -864,7 +877,7 @@ func TestFilterOnExperiment(t *testing.T) {
 	type testIn struct {
 		table  string
 		count  bool
-		filter *common.FilterContext
+		filter *model.FilterContext
 	}
 	tests := []struct {
 		in      *testIn
@@ -875,7 +888,7 @@ func TestFilterOnExperiment(t *testing.T) {
 			in: &testIn{
 				table:  "testTable",
 				count:  false,
-				filter: &common.FilterContext{},
+				filter: &model.FilterContext{},
 			},
 			wantSql: "SELECT * FROM testTable WHERE ExperimentUUID = ?",
 			wantErr: nil,
@@ -884,7 +897,7 @@ func TestFilterOnExperiment(t *testing.T) {
 			in: &testIn{
 				table:  "testTable",
 				count:  true,
-				filter: &common.FilterContext{},
+				filter: &model.FilterContext{},
 			},
 			wantSql: "SELECT count(*) FROM testTable WHERE ExperimentUUID = ?",
 			wantErr: nil,
@@ -908,7 +921,7 @@ func TestFilterOnNamesapce(t *testing.T) {
 	type testIn struct {
 		table  string
 		count  bool
-		filter *common.FilterContext
+		filter *model.FilterContext
 	}
 	tests := []struct {
 		in      *testIn
@@ -919,7 +932,7 @@ func TestFilterOnNamesapce(t *testing.T) {
 			in: &testIn{
 				table:  "testTable",
 				count:  false,
-				filter: &common.FilterContext{},
+				filter: &model.FilterContext{},
 			},
 			wantSql: "SELECT * FROM testTable WHERE Namespace = ?",
 			wantErr: nil,
@@ -928,7 +941,7 @@ func TestFilterOnNamesapce(t *testing.T) {
 			in: &testIn{
 				table:  "testTable",
 				count:  true,
-				filter: &common.FilterContext{},
+				filter: &model.FilterContext{},
 			},
 			wantSql: "SELECT count(*) FROM testTable WHERE Namespace = ?",
 			wantErr: nil,

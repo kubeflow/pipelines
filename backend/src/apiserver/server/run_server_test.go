@@ -1,3 +1,17 @@
+// Copyright 2018-2022 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package server
 
 import (
@@ -17,6 +31,7 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/template"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -53,7 +68,7 @@ func TestCreateRun_V1Params(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
-	resource.AddRuntimeMetadata(expectedRuntimeWorkflow)
+	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
@@ -176,7 +191,7 @@ func TestCreateRunPatch(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflowPatch.DeepCopy()
-	resource.AddRuntimeMetadata(expectedRuntimeWorkflow)
+	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("test-default-bucket")},
 		{Name: "param2", Value: v1alpha1.AnyStringPtr("test-project-id")},
@@ -283,7 +298,7 @@ func TestCreateRun_Multiuser(t *testing.T) {
 	assert.Nil(t, err)
 
 	expectedRuntimeWorkflow := testWorkflow.DeepCopy()
-	resource.AddRuntimeMetadata(expectedRuntimeWorkflow)
+	template.AddRuntimeMetadata(expectedRuntimeWorkflow)
 	expectedRuntimeWorkflow.Spec.Arguments.Parameters = []v1alpha1.Parameter{
 		{Name: "param1", Value: v1alpha1.AnyStringPtr("world")}}
 	expectedRuntimeWorkflow.Labels = map[string]string{util.LabelKeyWorkflowRunId: "123e4567-e89b-12d3-a456-426655440000"}
@@ -639,7 +654,7 @@ func TestValidateCreateRunRequest_InvalidPipelineSpec(t *testing.T) {
 		Name:               "run1",
 		ResourceReferences: validReference,
 		PipelineSpec: &api.PipelineSpec{
-			PipelineId:       resource.DefaultFakeUUID,
+			PipelineId:       common.DefaultFakeUUID,
 			WorkflowManifest: testWorkflow.ToStringForStore(),
 			Parameters:       []*api.Parameter{{Name: "param1", Value: "world"}},
 		},
@@ -731,7 +746,7 @@ func TestReportRunMetrics_Unauthorized(t *testing.T) {
 	clientManager, resourceManager, runDetails := initWithOneTimeRun(t)
 	defer clientManager.Close()
 	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
-	resourceManager = resource.NewResourceManager(clientManager)
+	resourceManager = resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
 
 	_, err := runServer.ReportRunMetricsV1(ctx, &api.ReportRunMetricsRequest{
@@ -1003,7 +1018,7 @@ func TestReadArtifacts_Unauthorized(t *testing.T) {
 
 	//make the following request unauthorized
 	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
-	resourceManager = resource.NewResourceManager(clientManager)
+	resourceManager = resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 
 	runServer := RunServer{resourceManager: resourceManager, options: &RunServerOptions{CollectMetrics: false}}
 	artifact := &api.ReadArtifactRequest{
@@ -1031,7 +1046,7 @@ func TestReadArtifacts_Unauthorized(t *testing.T) {
 
 func TestReadArtifacts_Run_NotFound(t *testing.T) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	manager := resource.NewResourceManager(clientManager)
+	manager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	runServer := RunServer{resourceManager: manager, options: &RunServerOptions{CollectMetrics: false}}
 	artifact := &api.ReadArtifactRequest{
 		RunId:        "Wrong_RUN_UUID",

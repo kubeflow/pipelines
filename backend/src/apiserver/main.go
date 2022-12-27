@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -220,7 +220,7 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 		if configErr != nil {
 			return fmt.Errorf("Failed to load sample %s. Error: %v", config.Name, configErr)
 		}
-		pipelineFile, configErr := server.ReadPipelineFile(config.File, reader, server.MaxFileLength)
+		pipelineFile, configErr := server.ReadPipelineFile(config.File, reader, common.MaxFileLength)
 		if configErr != nil {
 			return fmt.Errorf("Failed to decompress the file %s. Error: %v", config.Name, configErr)
 		}

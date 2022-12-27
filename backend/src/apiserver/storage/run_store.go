@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import (
 	"github.com/golang/glog"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -40,7 +39,7 @@ var runColumns = []string{"UUID", "ExperimentUUID", "DisplayName", "Name", "Stor
 type RunStoreInterface interface {
 	GetRun(runId string) (*model.RunDetail, error)
 
-	ListRuns(filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, int, string, error)
+	ListRuns(filterContext *model.FilterContext, opts *list.Options) ([]*model.Run, int, string, error)
 
 	// Create a run entry in the database
 	CreateRun(run *model.RunDetail) (*model.RunDetail, error)
@@ -77,7 +76,7 @@ type RunStore struct {
 // total_size. The total_size does not reflect the page size, but it does reflect the number of runs
 // matching the supplied filters and resource references.
 func (s *RunStore) ListRuns(
-	filterContext *common.FilterContext, opts *list.Options) ([]*model.Run, int, string, error) {
+	filterContext *model.FilterContext, opts *list.Options) ([]*model.Run, int, string, error) {
 	errorF := func(err error) ([]*model.Run, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list runs: %v", err)
 	}
@@ -143,23 +142,23 @@ func (s *RunStore) ListRuns(
 }
 
 func (s *RunStore) buildSelectRunsQuery(selectCount bool, opts *list.Options,
-	filterContext *common.FilterContext) (string, []interface{}, error) {
+	filterContext *model.FilterContext) (string, []interface{}, error) {
 
 	var filteredSelectBuilder sq.SelectBuilder
 	var err error
 
 	refKey := filterContext.ReferenceKey
-	if refKey != nil && refKey.Type == common.Experiment {
+	if refKey != nil && refKey.Type == model.ExperimentResourceType {
 		// for performance reasons need to special treat experiment ID filter on runs
 		// currently only the run table have experiment UUID column
 		filteredSelectBuilder, err = list.FilterOnExperiment("run_details", runColumns,
 			selectCount, refKey.ID)
-	} else if refKey != nil && refKey.Type == common.Namespace {
+	} else if refKey != nil && refKey.Type == model.NamespaceResourceType {
 		filteredSelectBuilder, err = list.FilterOnNamespace("run_details", runColumns,
 			selectCount, refKey.ID)
 	} else {
 		filteredSelectBuilder, err = list.FilterOnResourceReference("run_details", runColumns,
-			common.Run, selectCount, filterContext)
+			model.RunResourceType, selectCount, filterContext)
 	}
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list runs: %v", err)
@@ -408,6 +407,7 @@ func (s *RunStore) CreateRun(r *model.RunDetail) (*model.RunDetail, error) {
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a new transaction to create run.")
 	}
+
 	_, err = tx.Exec(runSql, runArgs...)
 	if err != nil {
 		tx.Rollback()
@@ -549,7 +549,7 @@ func (s *RunStore) DeleteRun(id string) error {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete run %s from table", id)
 	}
-	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, common.Run)
+	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, model.RunResourceType)
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete resource references from table for run %v ", id)

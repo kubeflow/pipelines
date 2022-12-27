@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,15 +17,17 @@ package server
 import (
 	"encoding/base64"
 	"encoding/json"
+	"testing"
+
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/protobuf/testing/protocmp"
-	"testing"
 
 	"github.com/google/go-cmp/cmp"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
@@ -51,7 +53,7 @@ func TestValidateFilterV1(t *testing.T) {
 	referenceKey := &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: "123"}
 	ctx, err := ValidateFilterV1(referenceKey)
 	assert.Nil(t, err)
-	assert.Equal(t, &common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: "123"}}, ctx)
+	assert.Equal(t, &model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: "123"}}, ctx)
 }
 
 func TestValidateFilterV1_ToModelResourceTypeFailed(t *testing.T) {

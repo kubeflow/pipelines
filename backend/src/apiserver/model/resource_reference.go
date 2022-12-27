@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +13,20 @@
 // limitations under the License.
 
 package model
+
+const (
+	ExperimentResourceType      ResourceType = "Experiment"
+	JobResourceType             ResourceType = "Job"
+	RunResourceType             ResourceType = "Run"
+	PipelineResourceType        ResourceType = "pipeline"
+	PipelineVersionResourceType ResourceType = "PipelineVersion"
+	NamespaceResourceType       ResourceType = "Namespace"
+)
+
+const (
+	OwnerRelationship   Relationship = "Owner"
+	CreatorRelationship Relationship = "Creator"
+)
 
 // The type of a resource object.
 type ResourceType string
@@ -42,4 +56,14 @@ type ResourceReference struct {
 
 	// The json formatted blob of the resource reference.
 	Payload string `gorm:"column:Payload; not null; size:65535 "`
+}
+
+type ReferenceKey struct {
+	Type ResourceType
+	ID   string
+}
+
+type FilterContext struct {
+	// Filter by a specific reference key
+	*ReferenceKey
 }

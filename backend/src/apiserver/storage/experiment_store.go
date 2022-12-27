@@ -1,3 +1,17 @@
+// Copyright 2018-2022 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package storage
 
 import (
@@ -8,14 +22,13 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
 type ExperimentStoreInterface interface {
-	ListExperiments(filterContext *common.FilterContext, opts *list.Options) ([]*model.Experiment, int, string, error)
+	ListExperiments(filterContext *model.FilterContext, opts *list.Options) ([]*model.Experiment, int, string, error)
 	GetExperiment(uuid string) (*model.Experiment, error)
 	CreateExperiment(*model.Experiment) (*model.Experiment, error)
 	DeleteExperiment(uuid string) error
@@ -44,14 +57,14 @@ var (
 
 // Runs two SQL queries in a transaction to return a list of matching experiments, as well as their
 // total_size. The total_size does not reflect the page size.
-func (s *ExperimentStore) ListExperiments(filterContext *common.FilterContext, opts *list.Options) ([]*model.Experiment, int, string, error) {
+func (s *ExperimentStore) ListExperiments(filterContext *model.FilterContext, opts *list.Options) ([]*model.Experiment, int, string, error) {
 	errorF := func(err error) ([]*model.Experiment, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list experiments: %v", err)
 	}
 
 	// SQL for getting the filtered and paginated rows
 	sqlBuilder := sq.Select(experimentColumns...).From("experiments")
-	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == common.Namespace {
+	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{"Namespace": filterContext.ReferenceKey.ID})
 	}
 	sqlBuilder = opts.AddFilterToSelect(sqlBuilder)
@@ -64,7 +77,7 @@ func (s *ExperimentStore) ListExperiments(filterContext *common.FilterContext, o
 	// SQL for getting total size. This matches the query to get all the rows above, in order
 	// to do the same filter, but counts instead of scanning the rows.
 	sqlBuilder = sq.Select("count(*)").From("experiments")
-	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == common.Namespace {
+	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{"Namespace": filterContext.ReferenceKey.ID})
 	}
 	sizeSql, sizeArgs, err := opts.AddFilterToSelect(sqlBuilder).ToSql()
@@ -235,7 +248,7 @@ func (s *ExperimentStore) DeleteExperiment(id string) error {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to clear default experiment ID for experiment %v ", id)
 	}
-	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, common.Run)
+	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, model.RunResourceType)
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete resource references from table for experiment %v ", id)
@@ -267,9 +280,9 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 	filteredRunsSql, filteredRunsArgs, err := sq.Select("ResourceUUID").
 		From("resource_references as rf").
 		Where(sq.And{
-			sq.Eq{"rf.ResourceType": common.Run},
+			sq.Eq{"rf.ResourceType": model.RunResourceType},
 			sq.Eq{"rf.ReferenceUUID": expId},
-			sq.Eq{"rf.ReferenceType": common.Experiment}}).ToSql()
+			sq.Eq{"rf.ReferenceType": model.ExperimentResourceType}}).ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to create query to filter the runs in an experiment %s. error: '%v'", expId, err.Error())
@@ -303,9 +316,9 @@ func (s *ExperimentStore) ArchiveExperiment(expId string) error {
 	filteredJobsSql, filteredJobsArgs, err := sq.Select("ResourceUUID").
 		From("resource_references as rf").
 		Where(sq.And{
-			sq.Eq{"rf.ResourceType": common.Job},
+			sq.Eq{"rf.ResourceType": model.JobResourceType},
 			sq.Eq{"rf.ReferenceUUID": expId},
-			sq.Eq{"rf.ReferenceType": common.Experiment}}).ToSql()
+			sq.Eq{"rf.ReferenceType": model.ExperimentResourceType}}).ToSql()
 	if err != nil {
 		return util.NewInternalServerError(err,
 			"Failed to create query to filter the jobs in an experiment %s. error: '%v'", expId, err.Error())

@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,21 +13,6 @@
 // limitations under the License.
 
 package common
-
-import (
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
-	"github.com/kubeflow/pipelines/backend/src/common/util"
-)
-
-const (
-	Experiment      model.ResourceType = "Experiment"
-	Job             model.ResourceType = "Job"
-	Run             model.ResourceType = "Run"
-	Pipeline        model.ResourceType = "pipeline"
-	PipelineVersion model.ResourceType = "PipelineVersion"
-	Namespace       model.ResourceType = "Namespace"
-)
 
 const (
 	RbacKubeflowGroup    = "kubeflow.org"
@@ -57,11 +42,6 @@ const (
 )
 
 const (
-	Owner   model.Relationship = "Owner"
-	Creator model.Relationship = "Creator"
-)
-
-const (
 	GoogleIAPUserIdentityHeader    string = "x-goog-authenticated-user-email"
 	GoogleIAPUserIdentityPrefix    string = "accounts.google.com:"
 	AuthorizationBearerTokenHeader string = "Authorization"
@@ -70,28 +50,27 @@ const (
 
 const DefaultTokenReviewAudience string = "pipelines.kubeflow.org"
 
-func ToModelResourceType(apiType api.ResourceType) (model.ResourceType, error) {
-	switch apiType {
-	case api.ResourceType_EXPERIMENT:
-		return Experiment, nil
-	case api.ResourceType_JOB:
-		return Job, nil
-	case api.ResourceType_PIPELINE_VERSION:
-		return PipelineVersion, nil
-	case api.ResourceType_NAMESPACE:
-		return Namespace, nil
-	default:
-		return "", util.NewInvalidInputError("Unsupported resource type: %s", api.ResourceType_name[int32(apiType)])
-	}
-}
+const (
+	DefaultPipelineRunnerServiceAccount = "pipeline-runner"
+	HasDefaultBucketEnvVar              = "HAS_DEFAULT_BUCKET"
+	DefaultBucketNameEnvVar             = "BUCKET_NAME"
+	ProjectIDEnvVar                     = "PROJECT_ID"
+)
 
-func ToModelRelationship(r api.Relationship) (model.Relationship, error) {
-	switch r {
-	case api.Relationship_CREATOR:
-		return Creator, nil
-	case api.Relationship_OWNER:
-		return Owner, nil
-	default:
-		return "", util.NewInvalidInputError("Unsupported resource relationship: %s", api.Relationship_name[int32(r)])
-	}
-}
+const (
+	MultiUserMode                           string = "MULTIUSER"
+	MultiUserModeSharedReadAccess           string = "MULTIUSER_SHARED_READ"
+	PodNamespace                            string = "POD_NAMESPACE"
+	CacheEnabled                            string = "CacheEnabled"
+	DefaultPipelineRunnerServiceAccountFlag string = "DEFAULTPIPELINERUNNERSERVICEACCOUNT"
+	KubeflowUserIDHeader                    string = "KUBEFLOW_USERID_HEADER"
+	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
+	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
+	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
+)
+
+// These are valid conditions of a ScheduledWorkflow.
+const (
+	MaxFileNameLength = 100
+	MaxFileLength     = 32 << 20 // 32Mb
+)

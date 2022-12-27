@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ import (
 	"time"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -64,9 +63,9 @@ func initializeDbAndStore() (*DB, *JobStore) {
 		UpdatedAtInSec: 1,
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID: "1", ResourceType: common.Job, ReferenceUUID: defaultFakeExpId,
-				ReferenceName: "e1", ReferenceType: common.Experiment,
-				Relationship: common.Owner,
+				ResourceUUID: "1", ResourceType: model.JobResourceType, ReferenceUUID: defaultFakeExpId,
+				ReferenceName: "e1", ReferenceType: model.ExperimentResourceType,
+				Relationship: model.OwnerRelationship,
 			},
 		},
 	}
@@ -94,9 +93,9 @@ func initializeDbAndStore() (*DB, *JobStore) {
 		UpdatedAtInSec: 2,
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID: "2", ResourceType: common.Job,
-				ReferenceUUID: defaultFakeExpIdTwo, ReferenceName: "e2", ReferenceType: common.Experiment,
-				Relationship: common.Owner,
+				ResourceUUID: "2", ResourceType: model.JobResourceType,
+				ReferenceUUID: defaultFakeExpIdTwo, ReferenceName: "e2", ReferenceType: model.ExperimentResourceType,
+				Relationship: model.OwnerRelationship,
 			},
 		},
 	}
@@ -131,16 +130,16 @@ func TestListJobs_Pagination(t *testing.T) {
 			UpdatedAtInSec: 1,
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "1", ResourceType: common.Job,
+					ResourceUUID: "1", ResourceType: model.JobResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Owner,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
 				},
 			},
 		}}
 
 	opts, err := list.NewOptions(&model.Job{}, 1, "name", nil)
 	assert.Nil(t, err)
-	jobs, total_size, nextPageToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
+	jobs, total_size, nextPageToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
@@ -170,16 +169,16 @@ func TestListJobs_Pagination(t *testing.T) {
 			Conditions:     "ready",
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "2", ResourceType: common.Job,
+					ResourceUUID: "2", ResourceType: model.JobResourceType,
 					ReferenceUUID: defaultFakeExpIdTwo, ReferenceName: "e2",
-					ReferenceType: common.Experiment, Relationship: common.Owner,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
 				},
 			},
 		}}
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
-	jobs, total_size, newToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
+	jobs, total_size, newToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", newToken)
 	assert.Equal(t, 2, total_size)
@@ -193,7 +192,7 @@ func TestListJobs_TotalSizeWithNoFilter(t *testing.T) {
 	opts, _ := list.NewOptions(&model.Job{}, 4, "name", nil)
 
 	// No filter
-	jobs, total_size, _, err := jobStore.ListJobs(&common.FilterContext{}, opts)
+	jobs, total_size, _, err := jobStore.ListJobs(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(jobs))
 	assert.Equal(t, 2, total_size)
@@ -217,7 +216,7 @@ func TestListJobs_TotalSizeWithFilter(t *testing.T) {
 			},
 		},
 	})
-	jobs, total_size, _, err := jobStore.ListJobs(&common.FilterContext{}, opts)
+	jobs, total_size, _, err := jobStore.ListJobs(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(jobs))
 	assert.Equal(t, 1, total_size)
@@ -251,15 +250,15 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 			UpdatedAtInSec: 2,
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "2", ResourceType: common.Job,
+					ResourceUUID: "2", ResourceType: model.JobResourceType,
 					ReferenceUUID: defaultFakeExpIdTwo, ReferenceName: "e2",
-					ReferenceType: common.Experiment, Relationship: common.Owner,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
 				},
 			},
 		}}
 	opts, err := list.NewOptions(&model.Job{}, 1, "name desc", nil)
 	assert.Nil(t, err)
-	jobs, total_size, nextPageToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
+	jobs, total_size, nextPageToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
 	assert.Equal(t, 2, total_size)
@@ -289,16 +288,16 @@ func TestListJobs_Pagination_Descent(t *testing.T) {
 			UpdatedAtInSec: 1,
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "1", ResourceType: common.Job,
+					ResourceUUID: "1", ResourceType: model.JobResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Owner,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
 				},
 			},
 		}}
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
-	jobs, total_size, newToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
+	jobs, total_size, newToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", newToken)
 	assert.Equal(t, 2, total_size)
@@ -332,9 +331,9 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 			UpdatedAtInSec: 1,
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "1", ResourceType: common.Job,
+					ResourceUUID: "1", ResourceType: model.JobResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Owner,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
 				},
 			},
 		},
@@ -361,16 +360,16 @@ func TestListJobs_Pagination_LessThanPageSize(t *testing.T) {
 			UpdatedAtInSec: 2,
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "2", ResourceType: common.Job,
+					ResourceUUID: "2", ResourceType: model.JobResourceType,
 					ReferenceUUID: defaultFakeExpIdTwo, ReferenceName: "e2",
-					ReferenceType: common.Experiment, Relationship: common.Owner,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
 				},
 			},
 		}}
 
 	opts, err := list.NewOptions(&model.Job{}, 2, "name", nil)
 	assert.Nil(t, err)
-	jobs, total_size, nextPageToken, err := jobStore.ListJobs(&common.FilterContext{}, opts)
+	jobs, total_size, nextPageToken, err := jobStore.ListJobs(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 2, total_size)
@@ -404,9 +403,9 @@ func TestListJobs_FilterByReferenceKey(t *testing.T) {
 			UpdatedAtInSec: 1,
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "1", ResourceType: common.Job,
+					ResourceUUID: "1", ResourceType: model.JobResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Owner,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
 				},
 			},
 		}}
@@ -414,14 +413,14 @@ func TestListJobs_FilterByReferenceKey(t *testing.T) {
 	opts, err := list.NewOptions(&model.Job{}, 2, "name", nil)
 	assert.Nil(t, err)
 	jobs, total_size, nextPageToken, err := jobStore.ListJobs(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 1, total_size)
 	assert.Equal(t, jobsExpected, jobs)
 
 	jobs, total_size, nextPageToken, err = jobStore.ListJobs(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Namespace, ID: "n1"}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: "n1"}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 2, total_size) // both test jobs belong to namespace `n1`
@@ -435,7 +434,7 @@ func TestListJobsError(t *testing.T) {
 	opts, err := list.NewOptions(&model.Job{}, 2, "", nil)
 	assert.Nil(t, err)
 	_, _, _, err = jobStore.ListJobs(
-		&common.FilterContext{}, opts)
+		&model.FilterContext{}, opts)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to list job to return error")
 }
@@ -466,9 +465,9 @@ func TestGetJob(t *testing.T) {
 		UpdatedAtInSec: 1,
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID: "1", ResourceType: common.Job,
+				ResourceUUID: "1", ResourceType: model.JobResourceType,
 				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-				ReferenceType: common.Experiment, Relationship: common.Owner,
+				ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
 			},
 		},
 	}
@@ -517,9 +516,9 @@ func TestCreateJob(t *testing.T) {
 		Enabled:        true,
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID: "1", ResourceType: common.Job,
-				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1", ReferenceType: common.Experiment,
-				Relationship: common.Owner,
+				ResourceUUID: "1", ResourceType: model.JobResourceType,
+				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1", ReferenceType: model.ExperimentResourceType,
+				Relationship: model.OwnerRelationship,
 			},
 		},
 	}
@@ -540,16 +539,16 @@ func TestCreateJob(t *testing.T) {
 		UpdatedAtInSec: 1,
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID: "1", ResourceType: common.Job,
-				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1", ReferenceType: common.Experiment,
-				Relationship: common.Owner,
+				ResourceUUID: "1", ResourceType: model.JobResourceType,
+				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1", ReferenceType: model.ExperimentResourceType,
+				Relationship: model.OwnerRelationship,
 			},
 		}}
 	assert.Equal(t, jobExpected, job, "Got unexpected jobs")
 
 	// Check resource reference exists
 	resourceReferenceStore := NewResourceReferenceStore(db)
-	r, err := resourceReferenceStore.GetResourceReference("1", common.Job, common.Experiment)
+	r, err := resourceReferenceStore.GetResourceReference("1", model.JobResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
 	assert.Equal(t, r.ReferenceUUID, defaultFakeExpId)
 }
@@ -578,9 +577,9 @@ func TestCreateJob_V2(t *testing.T) {
 		Enabled:        true,
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID: "1", ResourceType: common.Job,
-				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1", ReferenceType: common.Experiment,
-				Relationship: common.Owner,
+				ResourceUUID: "1", ResourceType: model.JobResourceType,
+				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1", ReferenceType: model.ExperimentResourceType,
+				Relationship: model.OwnerRelationship,
 			},
 		},
 	}
@@ -605,16 +604,16 @@ func TestCreateJob_V2(t *testing.T) {
 		UpdatedAtInSec: 1,
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID: "1", ResourceType: common.Job,
-				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1", ReferenceType: common.Experiment,
-				Relationship: common.Owner,
+				ResourceUUID: "1", ResourceType: model.JobResourceType,
+				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1", ReferenceType: model.ExperimentResourceType,
+				Relationship: model.OwnerRelationship,
 			},
 		}}
 	assert.Equal(t, jobExpected, job, "Got unexpected jobs")
 
 	// Check resource reference exists
 	resourceReferenceStore := NewResourceReferenceStore(db)
-	r, err := resourceReferenceStore.GetResourceReference("1", common.Job, common.Experiment)
+	r, err := resourceReferenceStore.GetResourceReference("1", model.JobResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
 	assert.Equal(t, r.ReferenceUUID, defaultFakeExpId)
 }
@@ -636,9 +635,9 @@ func TestCreateJobError(t *testing.T) {
 		Enabled: true,
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID: "1", ResourceType: common.Job,
+				ResourceUUID: "1", ResourceType: model.JobResourceType,
 				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-				ReferenceType: common.Experiment, Relationship: common.Owner,
+				ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
 			},
 		},
 	}
@@ -677,9 +676,9 @@ func TestEnableJob(t *testing.T) {
 		UpdatedAtInSec: 1,
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID: "1", ResourceType: common.Job,
+				ResourceUUID: "1", ResourceType: model.JobResourceType,
 				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-				ReferenceType: common.Experiment, Relationship: common.Owner,
+				ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
 			},
 		},
 	}
@@ -718,9 +717,9 @@ func TestEnableJob_SkipUpdate(t *testing.T) {
 		UpdatedAtInSec: 1,
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID: "1", ResourceType: common.Job,
+				ResourceUUID: "1", ResourceType: model.JobResourceType,
 				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-				ReferenceType: common.Experiment, Relationship: common.Owner,
+				ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
 			},
 		},
 	}
@@ -767,9 +766,9 @@ func TestUpdateJob_Success(t *testing.T) {
 		UpdatedAtInSec: 1,
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID: "1", ResourceType: common.Job,
+				ResourceUUID: "1", ResourceType: model.JobResourceType,
 				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-				ReferenceType: common.Experiment, Relationship: common.Owner,
+				ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
 			},
 		},
 	}
@@ -852,9 +851,9 @@ func TestUpdateJob_Success(t *testing.T) {
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID: "1", ResourceType: common.Job,
+				ResourceUUID: "1", ResourceType: model.JobResourceType,
 				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-				ReferenceType: common.Experiment, Relationship: common.Owner,
+				ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
 			},
 		},
 	}
@@ -890,9 +889,9 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 		UpdatedAtInSec: 1,
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID: "1", ResourceType: common.Job,
+				ResourceUUID: "1", ResourceType: model.JobResourceType,
 				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-				ReferenceType: common.Experiment, Relationship: common.Owner,
+				ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
 			},
 		},
 	}
@@ -940,9 +939,9 @@ func TestUpdateJob_MostlyEmptySpec(t *testing.T) {
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID: "1", ResourceType: common.Job,
+				ResourceUUID: "1", ResourceType: model.JobResourceType,
 				ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-				ReferenceType: common.Experiment, Relationship: common.Owner,
+				ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship,
 			},
 		},
 	}
@@ -993,7 +992,7 @@ func TestDeleteJob(t *testing.T) {
 	defer db.Close()
 	resourceReferenceStore := NewResourceReferenceStore(db)
 	// Check resource reference exists
-	r, err := resourceReferenceStore.GetResourceReference("1", common.Job, common.Experiment)
+	r, err := resourceReferenceStore.GetResourceReference("1", model.JobResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
 	assert.Equal(t, r.ReferenceUUID, defaultFakeExpId)
 
@@ -1005,7 +1004,7 @@ func TestDeleteJob(t *testing.T) {
 	assert.Contains(t, err.Error(), "Job 1 not found")
 
 	// Check resource reference deleted
-	_, err = resourceReferenceStore.GetResourceReference("1", common.Job, common.Experiment)
+	_, err = resourceReferenceStore.GetResourceReference("1", model.JobResourceType, model.ExperimentResourceType)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }

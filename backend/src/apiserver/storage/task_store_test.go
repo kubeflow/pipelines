@@ -1,4 +1,4 @@
-// Copyright 2021 The Kubeflow Authors
+// Copyright 2021-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,11 +15,9 @@
 package storage
 
 import (
-	"fmt"
 	"testing"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -56,11 +54,11 @@ func initializeTaskStore() (*DB, *TaskStore) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID:  defaultFakeRunId,
-					ResourceType:  common.Run,
+					ResourceType:  model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId,
 					ReferenceName: "e1",
-					ReferenceType: common.Experiment,
-					Relationship:  common.Owner,
+					ReferenceType: model.ExperimentResourceType,
+					Relationship:  model.OwnerRelationship,
 				},
 			},
 		},
@@ -83,11 +81,11 @@ func initializeTaskStore() (*DB, *TaskStore) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID:  defaultFakeRunIdTwo,
-					ResourceType:  common.Run,
+					ResourceType:  model.RunResourceType,
 					ReferenceUUID: defaultFakeExpIdTwo,
 					ReferenceName: "e2",
-					ReferenceType: common.Experiment,
-					Relationship:  common.Owner,
+					ReferenceType: model.ExperimentResourceType,
+					Relationship:  model.OwnerRelationship,
 				},
 			},
 		},
@@ -110,11 +108,11 @@ func initializeTaskStore() (*DB, *TaskStore) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID:  defaultFakeRunIdThree,
-					ResourceType:  common.Run,
+					ResourceType:  model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId,
 					ReferenceName: "e1",
-					ReferenceType: common.Experiment,
-					Relationship:  common.Owner,
+					ReferenceType: model.ExperimentResourceType,
+					Relationship:  model.OwnerRelationship,
 				},
 			},
 		},
@@ -203,7 +201,8 @@ func TestListTasks(t *testing.T) {
 			CreatedTimestamp:  5,
 			FinishedTimestamp: 6,
 			Fingerprint:       "1",
-		}}
+		},
+	}
 	expectedSecondPageTasks := []*model.Task{
 		{
 			UUID:              defaultFakeTaskIdFive,
@@ -214,24 +213,23 @@ func TestListTasks(t *testing.T) {
 			CreatedTimestamp:  7,
 			FinishedTimestamp: 8,
 			Fingerprint:       "10",
-		}}
+		},
+	}
 
 	opts, err := list.NewOptions(&model.Task{}, 1, "", nil)
 	assert.Nil(t, err)
 
 	tasks, total_size, nextPageToken, err := taskStore.ListTasks(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Pipeline, ID: "namespace/ns2/pipeline/pipeline2"}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.PipelineResourceType, ID: "namespace/ns2/pipeline/pipeline2"}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
 	assert.Equal(t, expectedFirstPageTasks, tasks, "Unexpected Tasks listed.")
 	assert.NotEmpty(t, nextPageToken)
-	fmt.Print("tasks")
-	fmt.Print(nextPageToken)
 
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
 	tasks, total_size, nextPageToken, err = taskStore.ListTasks(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Pipeline, ID: "namespace/ns2/pipeline/pipeline2"}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.PipelineResourceType, ID: "namespace/ns2/pipeline/pipeline2"}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
 	assert.Equal(t, expectedSecondPageTasks, tasks, "Unexpected Tasks listed.")

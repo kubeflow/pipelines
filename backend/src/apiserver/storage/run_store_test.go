@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -64,9 +63,9 @@ func initializeRunStore() (*DB, *RunStore) {
 			Conditions:       "Running",
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "1", ResourceType: common.Run,
+					ResourceUUID: "1", ResourceType: model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 			PipelineSpec: model.PipelineSpec{
@@ -93,9 +92,9 @@ func initializeRunStore() (*DB, *RunStore) {
 			Conditions:       "done",
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "2", ResourceType: common.Run,
+					ResourceUUID: "2", ResourceType: model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 			PipelineSpec: model.PipelineSpec{
@@ -122,9 +121,9 @@ func initializeRunStore() (*DB, *RunStore) {
 			Conditions:       "done",
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "3", ResourceType: common.Run,
+					ResourceUUID: "3", ResourceType: model.RunResourceType,
 					ReferenceUUID: defaultFakeExpIdTwo, ReferenceName: "e2",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 			PipelineSpec: model.PipelineSpec{
@@ -188,9 +187,9 @@ func TestListRuns_Pagination(t *testing.T) {
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "1", ResourceType: common.Run,
+					ResourceUUID: "1", ResourceType: model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 			PipelineSpec: model.PipelineSpec{
@@ -222,9 +221,9 @@ func TestListRuns_Pagination(t *testing.T) {
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "2", ResourceType: common.Run,
+					ResourceUUID: "2", ResourceType: model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 			PipelineSpec: model.PipelineSpec{
@@ -239,7 +238,7 @@ func TestListRuns_Pagination(t *testing.T) {
 	assert.Nil(t, err)
 
 	runs, total_size, nextPageToken, err := runStore.ListRuns(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
@@ -248,7 +247,7 @@ func TestListRuns_Pagination(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
 	runs, total_size, nextPageToken, err = runStore.ListRuns(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
@@ -281,9 +280,9 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "1", ResourceType: common.Run,
+					ResourceUUID: "1", ResourceType: model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 			PipelineSpec: model.PipelineSpec{
@@ -315,9 +314,9 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "2", ResourceType: common.Run,
+					ResourceUUID: "2", ResourceType: model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 			PipelineSpec: model.PipelineSpec{
@@ -333,7 +332,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 	assert.Nil(t, err)
 
 	runs, total_size, nextPageToken, err := runStore.ListRuns(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
@@ -342,7 +341,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
 	runs, total_size, nextPageToken, err = runStore.ListRuns(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
@@ -353,7 +352,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 	assert.Nil(t, err)
 
 	runs, total_size, nextPageToken, err = runStore.ListRuns(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
@@ -362,7 +361,7 @@ func TestListRuns_Pagination_WithSortingOnMetrics(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
 	runs, total_size, nextPageToken, err = runStore.ListRuns(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
 	assert.Equal(t, expectedFirstPageRuns, runs, "Unexpected Run listed.")
@@ -376,7 +375,7 @@ func TestListRuns_TotalSizeWithNoFilter(t *testing.T) {
 	opts, _ := list.NewOptions(&model.Run{}, 4, "", nil)
 
 	// No filter
-	runs, total_size, _, err := runStore.ListRuns(&common.FilterContext{}, opts)
+	runs, total_size, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(runs))
 	assert.Equal(t, 3, total_size)
@@ -400,7 +399,7 @@ func TestListRuns_TotalSizeWithFilter(t *testing.T) {
 			},
 		},
 	})
-	runs, total_size, _, err := runStore.ListRuns(&common.FilterContext{}, opts)
+	runs, total_size, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(runs))
 	assert.Equal(t, 2, total_size)
@@ -432,9 +431,9 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "2", ResourceType: common.Run,
+					ResourceUUID: "2", ResourceType: model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 			PipelineSpec: model.PipelineSpec{
@@ -466,9 +465,9 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "1", ResourceType: common.Run,
+					ResourceUUID: "1", ResourceType: model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 			PipelineSpec: model.PipelineSpec{
@@ -482,7 +481,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 	opts, err := list.NewOptions(&model.Run{}, 1, "id desc", nil)
 	assert.Nil(t, err)
 	runs, total_size, nextPageToken, err := runStore.ListRuns(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 
 	for _, run := range runs {
 		fmt.Printf("%+v\n", run)
@@ -496,7 +495,7 @@ func TestListRuns_Pagination_Descend(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 1)
 	assert.Nil(t, err)
 	runs, total_size, nextPageToken, err = runStore.ListRuns(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
 	assert.Equal(t, expectedSecondPageRuns, runs, "Unexpected Run listed.")
@@ -529,9 +528,9 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "1", ResourceType: common.Run,
+					ResourceUUID: "1", ResourceType: model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 			PipelineSpec: model.PipelineSpec{
@@ -562,9 +561,9 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "2", ResourceType: common.Run,
+					ResourceUUID: "2", ResourceType: model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 			PipelineSpec: model.PipelineSpec{
@@ -578,7 +577,7 @@ func TestListRuns_Pagination_LessThanPageSize(t *testing.T) {
 	opts, err := list.NewOptions(&model.Run{}, 10, "", nil)
 	assert.Nil(t, err)
 	runs, total_size, nextPageToken, err := runStore.ListRuns(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
 	assert.Equal(t, expectedRuns, runs, "Unexpected Run listed.")
@@ -591,7 +590,7 @@ func TestListRunsError(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
 	_, _, _, err = runStore.ListRuns(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode(),
 		"Expected to throw an internal error")
 }
@@ -622,9 +621,9 @@ func TestGetRun(t *testing.T) {
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "1", ResourceType: common.Run,
+					ResourceUUID: "1", ResourceType: model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 			PipelineSpec: model.PipelineSpec{
@@ -686,9 +685,9 @@ func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "1", ResourceType: common.Run,
+					ResourceUUID: "1", ResourceType: model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 			PipelineSpec: model.PipelineSpec{
@@ -739,9 +738,9 @@ func TestCreateOrUpdateRun_UpdateSuccess(t *testing.T) {
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "1", ResourceType: common.Run,
+					ResourceUUID: "1", ResourceType: model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 			PipelineSpec: model.PipelineSpec{
@@ -782,11 +781,11 @@ func TestCreateOrUpdateRun_CreateSuccess(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID:  "2000",
-					ResourceType:  common.Run,
+					ResourceType:  model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId,
 					ReferenceName: "e1",
-					ReferenceType: common.Experiment,
-					Relationship:  common.Owner,
+					ReferenceType: model.ExperimentResourceType,
+					Relationship:  model.OwnerRelationship,
 				},
 			},
 		},
@@ -810,11 +809,11 @@ func TestCreateOrUpdateRun_CreateSuccess(t *testing.T) {
 			ResourceReferences: []*model.ResourceReference{
 				{
 					ResourceUUID:  "2000",
-					ResourceType:  common.Run,
+					ResourceType:  model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId,
 					ReferenceName: "e1",
-					ReferenceType: common.Experiment,
-					Relationship:  common.Owner,
+					ReferenceType: model.ExperimentResourceType,
+					Relationship:  model.OwnerRelationship,
 				},
 			},
 			StorageState: api.Run_STORAGESTATE_AVAILABLE.String(),
@@ -862,7 +861,7 @@ func TestCreateOrUpdateRun_NoStorageStateValue(t *testing.T) {
 
 	run, err := runStore.CreateRun(runDetail)
 	assert.Nil(t, err)
-	assert.Equal(t, run.StorageState, api.Run_STORAGESTATE_AVAILABLE.String())
+	assert.Equal(t, api.Run_STORAGESTATE_AVAILABLE.String(), run.StorageState)
 }
 
 func TestCreateOrUpdateRun_BadStorageStateValue(t *testing.T) {
@@ -890,9 +889,9 @@ func TestCreateOrUpdateRun_BadStorageStateValue(t *testing.T) {
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "1", ResourceType: common.Run,
+					ResourceUUID: "1", ResourceType: model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 		},
@@ -945,9 +944,9 @@ func TestTerminateRun(t *testing.T) {
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "1", ResourceType: common.Run,
+					ResourceUUID: "1", ResourceType: model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 			PipelineSpec: model.PipelineSpec{
@@ -1095,9 +1094,9 @@ func TestListRuns_WithMetrics(t *testing.T) {
 			Conditions:       "Running",
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "1", ResourceType: common.Run,
+					ResourceUUID: "1", ResourceType: model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 			PipelineSpec: model.PipelineSpec{
@@ -1129,9 +1128,9 @@ func TestListRuns_WithMetrics(t *testing.T) {
 			Conditions:       "done",
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "2", ResourceType: common.Run,
+					ResourceUUID: "2", ResourceType: model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 			PipelineSpec: model.PipelineSpec{
@@ -1154,7 +1153,7 @@ func TestListRuns_WithMetrics(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Run{}, 2, "id", nil)
 	assert.Nil(t, err)
-	runs, total_size, _, err := runStore.ListRuns(&common.FilterContext{}, opts)
+	runs, total_size, _, err := runStore.ListRuns(&model.FilterContext{}, opts)
 	assert.Equal(t, 3, total_size)
 	assert.Nil(t, err)
 	for _, run := range expectedRuns {
@@ -1171,7 +1170,7 @@ func TestArchiveRun(t *testing.T) {
 	defer db.Close()
 	resourceReferenceStore := NewResourceReferenceStore(db)
 	// Check resource reference exists
-	r, err := resourceReferenceStore.GetResourceReference("1", common.Run, common.Experiment)
+	r, err := resourceReferenceStore.GetResourceReference("1", model.RunResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
 	assert.Equal(t, r.ReferenceUUID, defaultFakeExpId)
 
@@ -1183,7 +1182,7 @@ func TestArchiveRun(t *testing.T) {
 	assert.Equal(t, run.Run.StorageState, api.Run_STORAGESTATE_ARCHIVED.String())
 
 	// Check resource reference wasn't deleted
-	_, err = resourceReferenceStore.GetResourceReference("1", common.Run, common.Experiment)
+	_, err = resourceReferenceStore.GetResourceReference("1", model.RunResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
 }
 
@@ -1203,7 +1202,7 @@ func TestUnarchiveRun(t *testing.T) {
 	defer db.Close()
 	resourceReferenceStore := NewResourceReferenceStore(db)
 	// Check resource reference exists
-	r, err := resourceReferenceStore.GetResourceReference("1", common.Run, common.Experiment)
+	r, err := resourceReferenceStore.GetResourceReference("1", model.RunResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
 	assert.Equal(t, r.ReferenceUUID, defaultFakeExpId)
 
@@ -1222,7 +1221,7 @@ func TestUnarchiveRun(t *testing.T) {
 	assert.Equal(t, run.Run.StorageState, api.Run_STORAGESTATE_AVAILABLE.String())
 
 	// Check resource reference wasn't deleted
-	_, err = resourceReferenceStore.GetResourceReference("1", common.Run, common.Experiment)
+	_, err = resourceReferenceStore.GetResourceReference("1", model.RunResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
 }
 
@@ -1270,9 +1269,9 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 			},
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "1", ResourceType: common.Run,
+					ResourceUUID: "1", ResourceType: model.RunResourceType,
 					ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 			PipelineSpec: model.PipelineSpec{
@@ -1284,7 +1283,7 @@ func TestArchiveRun_IncludedInRunList(t *testing.T) {
 		}}
 	opts, err := list.NewOptions(&model.Run{}, 1, "", nil)
 	runs, total_size, nextPageToken, err := runStore.ListRuns(
-		&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: defaultFakeExpId}}, opts)
+		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: defaultFakeExpId}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 2, total_size)
 	assert.Equal(t, expectedRuns, runs)
@@ -1296,7 +1295,7 @@ func TestDeleteRun(t *testing.T) {
 	defer db.Close()
 	resourceReferenceStore := NewResourceReferenceStore(db)
 	// Check resource reference exists
-	r, err := resourceReferenceStore.GetResourceReference("1", common.Run, common.Experiment)
+	r, err := resourceReferenceStore.GetResourceReference("1", model.RunResourceType, model.ExperimentResourceType)
 	assert.Nil(t, err)
 	assert.Equal(t, r.ReferenceUUID, defaultFakeExpId)
 
@@ -1308,7 +1307,7 @@ func TestDeleteRun(t *testing.T) {
 	assert.Contains(t, err.Error(), "Run 1 not found")
 
 	// Check resource reference deleted
-	_, err = resourceReferenceStore.GetResourceReference("1", common.Run, common.Experiment)
+	_, err = resourceReferenceStore.GetResourceReference("1", model.RunResourceType, model.ExperimentResourceType)
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
@@ -1363,9 +1362,9 @@ func TestParseRuntimeConfig(t *testing.T) {
 func TestParseResourceReferences(t *testing.T) {
 	expectedResourceReferences := []*model.ResourceReference{
 		{
-			ResourceUUID: "2", ResourceType: common.Run,
+			ResourceUUID: "2", ResourceType: model.RunResourceType,
 			ReferenceUUID: defaultFakeExpId, ReferenceName: "e1",
-			ReferenceType: common.Experiment, Relationship: common.Creator,
+			ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 		},
 	}
 	resourceReferencesBytes, _ := json.Marshal(expectedResourceReferences)

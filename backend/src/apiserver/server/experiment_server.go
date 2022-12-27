@@ -1,3 +1,17 @@
+// Copyright 2018-2022 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package server
 
 import (
@@ -78,7 +92,7 @@ func (s *ExperimentServer) CreateExperimentV1(ctx context.Context, request *apiv
 	}
 
 	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Namespace: common.GetNamespaceFromAPIResourceReferences(request.Experiment.ResourceReferences),
+		Namespace: GetNamespaceFromAPIResourceReferences(request.Experiment.ResourceReferences),
 		Verb:      common.RbacResourceVerbCreate,
 		Name:      request.Experiment.Name,
 	}
@@ -185,7 +199,7 @@ func (s *ExperimentServer) ListExperimentsV1(ctx context.Context, request *apiv1
 
 	refKey := filterContext.ReferenceKey
 	if common.IsMultiUserMode() {
-		if refKey == nil || refKey.Type != common.Namespace {
+		if refKey == nil || refKey.Type != model.NamespaceResourceType {
 			return nil, util.NewInvalidInputError("Invalid resource references for experiment. ListExperimentsV1 requires filtering by namespace.")
 		}
 		namespace := refKey.ID
@@ -201,12 +215,12 @@ func (s *ExperimentServer) ListExperimentsV1(ctx context.Context, request *apiv1
 			return nil, util.Wrap(err, "Failed to authorize with API")
 		}
 	} else {
-		if refKey != nil && refKey.Type == common.Namespace && len(refKey.ID) > 0 {
+		if refKey != nil && refKey.Type == model.NamespaceResourceType && len(refKey.ID) > 0 {
 			return nil, util.NewInvalidInputError("In single-user mode, ListExperimentsV1 cannot filter by namespace.")
 		}
 		// In single user mode, apply filter with empty namespace for backward compatibile.
-		filterContext = &common.FilterContext{
-			ReferenceKey: &common.ReferenceKey{Type: common.Namespace, ID: ""},
+		filterContext = &model.FilterContext{
+			ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: ""},
 		}
 	}
 
@@ -233,7 +247,7 @@ func (s *ExperimentServer) ListExperiments(ctx context.Context, request *apiv2be
 		return nil, util.Wrap(err, "Failed to create list options")
 	}
 
-	filterContext := &common.FilterContext{}
+	filterContext := &model.FilterContext{}
 	if common.IsMultiUserMode() {
 		if request.Namespace == "" {
 			return nil, util.NewInvalidInputError("Invalid ListExperiments request. No namespace provided in multi-user mode.")
@@ -247,16 +261,16 @@ func (s *ExperimentServer) ListExperiments(ctx context.Context, request *apiv2be
 			return nil, util.Wrap(err, "Failed to authorize with API")
 		}
 		// In multi-user mode, apply filter with the namespace provided.
-		filterContext = &common.FilterContext{
-			ReferenceKey: &common.ReferenceKey{Type: common.Namespace, ID: request.Namespace},
+		filterContext = &model.FilterContext{
+			ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: request.Namespace},
 		}
 	} else {
 		if request.Namespace != "" {
 			return nil, util.NewInvalidInputError("Invalid ListExperiments request. Namespace should not be provided in single-user mode.")
 		}
 		// In single user mode, apply filter with empty namespace for backward compatibility.
-		filterContext = &common.FilterContext{
-			ReferenceKey: &common.ReferenceKey{Type: common.Namespace, ID: ""},
+		filterContext = &model.FilterContext{
+			ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: ""},
 		}
 	}
 
@@ -324,7 +338,7 @@ func ValidateCreateExperimentRequestV1(request *apiv1beta1.CreateExperimentReque
 			return util.NewInvalidInputError(
 				"Invalid resource references for experiment. Expect one namespace type with owner relationship. Got: %v", resourceReferences)
 		}
-		namespace := common.GetNamespaceFromAPIResourceReferences(request.Experiment.ResourceReferences)
+		namespace := GetNamespaceFromAPIResourceReferences(request.Experiment.ResourceReferences)
 		if len(namespace) == 0 {
 			return util.NewInvalidInputError("Invalid resource references for experiment. Namespace is empty.")
 		}

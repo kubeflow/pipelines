@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -89,28 +88,28 @@ type PipelineStoreInterface interface {
 	//
 	// `pipelines` left joined with `pipeline_versions`
 	// This supports v1beta1 behavior.
-	GetPipelineByNameAndNamespaceV1(string, string) (*model.Pipeline, error)
-	ListPipelinesV1(*common.FilterContext, *list.Options) ([]*model.Pipeline, int, string, error)
+	GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, error)
+	ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error)
 
 	// `pipelines`
-	CreatePipeline(*model.Pipeline) (*model.Pipeline, error)
-	GetPipelineWithStatus(string, model.PipelineStatus) (*model.Pipeline, error)
-	GetPipeline(string) (*model.Pipeline, error)
-	GetPipelineByNameAndNamespace(string, string) (*model.Pipeline, error)
-	ListPipelines(*common.FilterContext, *list.Options) ([]*model.Pipeline, int, string, error)
-	UpdatePipelineStatus(string, model.PipelineStatus) error
-	DeletePipeline(string) error
-	UpdatePipelineDefaultVersionV1(string, string) error // Used in v1beta1 only
+	CreatePipeline(pipeline *model.Pipeline) (*model.Pipeline, error)
+	GetPipelineWithStatus(pipelineId string, status model.PipelineStatus) (*model.Pipeline, error)
+	GetPipeline(pipelineId string) (*model.Pipeline, error)
+	GetPipelineByNameAndNamespace(name string, namespace string) (*model.Pipeline, error)
+	ListPipelines(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error)
+	UpdatePipelineStatus(pipelineId string, status model.PipelineStatus) error
+	DeletePipeline(pipelineId string) error
+	//UpdatePipelineDefaultVersionV1(pipelineId string, defaultPipelineVersionId string) error // Used in v1beta1 only
 
 	// `pipeline_versions`
-	CreatePipelineVersion(*model.PipelineVersion, bool) (*model.PipelineVersion, error)
-	GetPipelineVersionWithStatus(string, model.PipelineVersionStatus) (*model.PipelineVersion, error)
-	GetPipelineVersion(string) (*model.PipelineVersion, error)
-	GetLatestPipelineVersion(string) (*model.PipelineVersion, error)
-	ListPipelineVersions(string, *list.Options) ([]*model.PipelineVersion, int, string, error)
-	UpdatePipelineVersionStatus(string, model.PipelineVersionStatus) error
-	DeletePipelineVersion(string) error
-	DeletePipelineVersionAndUpdateDefaultV1(string) error // Used in v1beta1 only
+	CreatePipelineVersion(pipelineVersion *model.PipelineVersion) (*model.PipelineVersion, error)
+	GetPipelineVersionWithStatus(pipelineVersionId string, status model.PipelineVersionStatus) (*model.PipelineVersion, error)
+	GetPipelineVersion(pipelineVersionId string) (*model.PipelineVersion, error)
+	GetLatestPipelineVersion(pipelineId string) (*model.PipelineVersion, error)
+	ListPipelineVersions(pipelineId string, opts *list.Options) ([]*model.PipelineVersion, int, string, error)
+	UpdatePipelineVersionStatus(pipelineVersionId string, status model.PipelineVersionStatus) error
+	DeletePipelineVersion(pipelineVersionId string) error
+	//DeletePipelineVersionAndUpdateDefaultV1(pipelineVersionId string) error // Used in v1beta1 only
 }
 
 type PipelineStore struct {
@@ -321,6 +320,7 @@ func (s *PipelineStore) CreatePipeline(p *model.Pipeline) (*model.Pipeline, erro
 			err.Error())
 	}
 	if err := tx.Commit(); err != nil {
+		tx.Rollback()
 		return nil, util.NewInternalServerError(err,
 			`PipelineStore: Failed to commit pipeline creation in a SQL
 			transaction: %v`, err.Error())
@@ -386,6 +386,7 @@ func (s *PipelineStore) CreatePipelineVersion(pv *model.PipelineVersion) (*model
 			err.Error())
 	}
 	if err := tx.Commit(); err != nil {
+		tx.Rollback()
 		return nil, util.NewInternalServerError(err, "PipelineStore: Failed to create a new pipeline version: %v",
 			err.Error())
 	}
@@ -496,123 +497,6 @@ func (s *PipelineStore) GetPipelineVersionWithStatus(versionId string, status mo
 	return versions[0], nil
 }
 
-// TODO (gkcalat): consider removing after KFP v2 GA if users are not affected.
-// Returns the latest pipeline and the latest pipeline version specified by name and namespace.
-// Performance depends on the index (name, namespace) in `pipelines` table.
-// This supports v1beta1 behavior.
-func (s *PipelineStore) GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, error) {
-	sql, args, err := sq.
-		Select(joinedColumns...).
-		From("pipelines").
-		LeftJoin("pipeline_versions on pipelines.UUID = pipeline_versions.PipelineId").
-		Where(sq.And{
-			sq.Eq{"pipelines.Name": name},
-			sq.Eq{"pipelines.Namespace": namespace},
-			sq.Eq{"pipelines.Status": model.PipelineReady},
-		}).
-		OrderBy("pipeline_versions.CreatedAtInSec DESC", "pipelines.CreatedAtInSec DESC"). // In case of duplicate (name, namespace combination), this will return the latest PipelineVersion
-		Limit(1).ToSql()
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to create query to get pipeline and pipeline version by name and namespace: %v", err.Error())
-	}
-	r, err := s.db.Query(sql, args...)
-	if err != nil {
-		return nil, util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to get pipeline and pipeline version by name and namespace: %v", err.Error())
-	}
-	defer r.Close()
-	pipelines, err := s.scanJoinedRows(r)
-	if err != nil || len(pipelines) > 1 {
-		return nil, util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to parse results of GetPipelineByNameAndNamespaceV1: %v", err.Error())
-	}
-	if len(pipelines) == 0 {
-		return nil, util.NewResourceNotFoundError("Pipeline and PipelineVersion", fmt.Sprint(name))
-	}
-	return pipelines[0], nil
-}
-
-// TODO (gkcalat): consider removing after KFP v2 GA if users are not affected.
-// Runs two SQL queries in a transaction to return a list of matching pipelines, as well as their
-// total_size. The total_size does not reflect the page size. Total_size reflects the number of pipeline_versions (not pipelines).
-// This supports v1beta1 behavior.
-func (s *PipelineStore) ListPipelinesV1(filterContext *common.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error) {
-	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
-		query := opts.AddFilterToSelect(sqlBuilder).From("pipelines").
-			LeftJoin("pipeline_versions ON pipelines.UUID = pipeline_versions.PipelineId") // this results in total_size reflecting the number of pipeline_versions
-		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == common.Namespace {
-			query = query.Where(
-				sq.Eq{"pipelines.Status": model.PipelineReady,
-					"pipelines.Namespace": filterContext.ReferenceKey.ID},
-			)
-		} else {
-			query = query.Where(
-				sq.Eq{"pipelines.Status": model.PipelineReady},
-			)
-		}
-		return query
-	}
-	sqlBuilder := buildQuery(sq.Select(joinedColumns...))
-
-	// SQL for row list
-	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
-	if err != nil {
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to prepare a query to list pipelines: %v", err.Error())
-	}
-
-	// SQL for getting total size. This matches the query to get all the rows above, in order
-	// to do the same filter, but counts instead of scanning the rows.
-	sizeSql, sizeArgs, err := buildQuery(sq.Select("count(*)")).ToSql()
-	if err != nil {
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to prepare a query to count pipelines: %v", err.Error())
-	}
-
-	// Use a transaction to make sure we're returning the total_size of the same rows queried
-	tx, err := s.db.Begin()
-	if err != nil {
-		glog.Errorf("PipelineStore (v1beta1): Failed to start transaction to list pipelines")
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to start transaction to list pipelines: %v", err.Error())
-	}
-
-	// Get pipelines
-	rows, err := tx.Query(rowsSql, rowsArgs...)
-	if err != nil {
-		tx.Rollback()
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to execute SQL for listing pipelines: %v", err.Error())
-	}
-	pipelines, err := s.scanJoinedRows(rows)
-	if err != nil {
-		tx.Rollback()
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to parse results of listing pipelines: %v", err.Error())
-	}
-	rows.Close()
-
-	// Count pipelines
-	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
-	if err != nil {
-		tx.Rollback()
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to count pipelines: %v", err.Error())
-	}
-	total_size, err := list.ScanRowToTotalSize(sizeRow)
-	if err != nil {
-		tx.Rollback()
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to parse results of counting pipelines: %v", err.Error())
-	}
-	sizeRow.Close()
-
-	// Commit transaction
-	err = tx.Commit()
-	if err != nil {
-		glog.Errorf("PipelineStore (v1beta1): Failed to commit transaction to list pipelines")
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to commit listing pipelines: %v", err.Error())
-	}
-
-	// Split results on multiple pages, if needed
-	if len(pipelines) <= opts.PageSize {
-		return pipelines, total_size, "", nil
-	}
-	npt, err := opts.NextPageToken(pipelines[opts.PageSize])
-	return pipelines[:opts.PageSize], total_size, npt, err
-}
-
 // Returns the latest pipeline specified by name and namespace.
 // Performance depends on the index (name, namespace) in `pipelines` table.
 func (s *PipelineStore) GetPipelineByNameAndNamespace(name string, namespace string) (*model.Pipeline, error) {
@@ -647,10 +531,10 @@ func (s *PipelineStore) GetPipelineByNameAndNamespace(name string, namespace str
 // Runs two SQL queries in a transaction to return a list of matching pipelines, as well as their
 // total_size. The total_size does not reflect the page size.
 // This will not join with `pipeline_versions` table, hence, total_size is the size of pipelines, not pipeline_versions.
-func (s *PipelineStore) ListPipelines(filterContext *common.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error) {
+func (s *PipelineStore) ListPipelines(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error) {
 	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 		query := opts.AddFilterToSelect(sqlBuilder).From("pipelines")
-		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == common.Namespace {
+		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
 			query = query.Where(
 				sq.Eq{"pipelines.Status": model.PipelineReady,
 					"pipelines.Namespace": filterContext.ReferenceKey.ID},
@@ -845,21 +729,6 @@ func (s *PipelineStore) UpdatePipelineVersionStatus(id string, status model.Pipe
 	return s.ExecuteSQL(sql, args, "update", "status of a pipeline version")
 }
 
-// TODO (gkcalat): consider removing after KFP v2 GA if users are not affected
-// Updates the default pipeline version.
-// This is used in the v1beta1 flow of deleting a pipeline version and updating the default version to the latest one.
-func (s *PipelineStore) UpdatePipelineDefaultVersionV1(pipelineId string, versionId string) error {
-	sql, args, err := sq.
-		Update("pipelines").
-		SetMap(sq.Eq{"DefaultVersionId": versionId}).
-		Where(sq.Eq{"UUID": pipelineId}).
-		ToSql()
-	if err != nil {
-		return util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to create query to update the pipeline default version: %s", err.Error())
-	}
-	return s.ExecuteSQL(sql, args, "update", "default pipeline version (v1beta1)")
-}
-
 // Removes a pipeline from the DB.
 // DB should take care of the corresponding records in pipeline_versions.
 func (s *PipelineStore) DeletePipeline(id string) error {
@@ -886,131 +755,260 @@ func (s *PipelineStore) DeletePipelineVersion(versionId string) error {
 }
 
 // TODO (gkcalat): consider removing after KFP v2 GA if users are not affected.
-// Deletes a pipeline version and updates the corresponding default pipeline version.
-func (s *PipelineStore) DeletePipelineVersionAndUpdateDefaultV1(versionId string) error {
-	// If this version is used as default version for a pipeline, we have to
-	// find a new default version for that pipeline, which is usually the latest
-	// version of that pipeline. Then we'll have 3 operations in a single
-	// transactions: (1) delete version (2) get new default version id (3) use
-	// new default version id to update pipeline.
-	tx, err := s.db.Begin()
+// Returns the latest pipeline and the latest pipeline version specified by name and namespace.
+// Performance depends on the index (name, namespace) in `pipelines` table.
+// This supports v1beta1 behavior.
+func (s *PipelineStore) GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, error) {
+	sql, args, err := sq.
+		Select(joinedColumns...).
+		From("pipelines").
+		LeftJoin("pipeline_versions on pipelines.UUID = pipeline_versions.PipelineId").
+		Where(sq.And{
+			sq.Eq{"pipelines.Name": name},
+			sq.Eq{"pipelines.Namespace": namespace},
+			sq.Eq{"pipelines.Status": model.PipelineReady},
+		}).
+		OrderBy("pipeline_versions.CreatedAtInSec DESC", "pipelines.CreatedAtInSec DESC"). // In case of duplicate (name, namespace combination), this will return the latest PipelineVersion
+		Limit(1).ToSql()
 	if err != nil {
-		return util.NewInternalServerError(
-			err,
-			"Failed to start an transaction while trying to delete pipeline version: %v",
-			err.Error())
+		return nil, util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to create query to get pipeline and pipeline version by name and namespace: %v", err.Error())
 	}
-
-	// (1) delete version.
-	_, err = tx.Exec(
-		"delete from pipeline_versions where UUID = ?",
-		versionId)
+	r, err := s.db.Query(sql, args...)
 	if err != nil {
-		tx.Rollback()
-		return util.NewInternalServerError(
-			err,
-			"Failed to delete pipeline version: %v",
-			err.Error())
+		return nil, util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to get pipeline and pipeline version by name and namespace: %v", err.Error())
 	}
-
-	// (2) check whether this version is used as default version.
-	r, err := tx.Query(
-		"select UUID from pipelines where DefaultVersionId = ?",
-		versionId)
-	if err != nil {
-		tx.Rollback()
-		return util.NewInternalServerError(
-			err,
-			`Failed to query pipelines table while deleting pipeline version:
-			%v`,
-			err.Error())
+	defer r.Close()
+	pipelines, err := s.scanJoinedRows(r)
+	if err != nil || len(pipelines) > 1 {
+		return nil, util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to parse results of GetPipelineByNameAndNamespaceV1: %v", err.Error())
 	}
-	var pipelineId = ""
-	if r.Next() {
-		if err := r.Scan(&pipelineId); err != nil {
-			tx.Rollback()
-			return util.NewInternalServerError(
-				err,
-				"Failed to get pipeline id for version id: %v",
-				err.Error())
-		}
+	if len(pipelines) == 0 {
+		return nil, util.NewResourceNotFoundError("Pipeline and PipelineVersion", fmt.Sprint(name))
 	}
-	r.Close()
-	if len(pipelineId) == 0 {
-		// The deleted version is not used as a default version. So no extra
-		// work is needed. We commit the deletion now.
-		if err := tx.Commit(); err != nil {
-			return util.NewInternalServerError(
-				err,
-				"Failed to delete pipeline version: %v",
-				err.Error())
-		}
-		return nil
-	}
-
-	// (3) find a new default version.
-	r, err = tx.Query(
-		`select UUID from pipeline_versions
-		where PipelineId = ? and Status = ?
-		order by CreatedAtInSec DESC
-		limit 1`,
-		pipelineId,
-		model.PipelineVersionReady)
-	if err != nil {
-		tx.Rollback()
-		return util.NewInternalServerError(
-			err,
-			"Failed to get a new default version id: %v",
-			err.Error())
-	}
-	var newDefaultVersionId = ""
-	if r.Next() {
-		if err := r.Scan(&newDefaultVersionId); err != nil {
-			tx.Rollback()
-			return util.NewInternalServerError(
-				err,
-				"Failed to get a new default version id: %v",
-				err.Error())
-		}
-	}
-	r.Close()
-	if len(newDefaultVersionId) == 0 {
-		// No new default version. The pipeline's default version id will be
-		// null.
-		_, err = tx.Exec(
-			"update pipelines set DefaultVersionId = null where UUID = ?",
-			pipelineId)
-		if err != nil {
-			tx.Rollback()
-			return util.NewInternalServerError(
-				err,
-				"Failed to update pipeline's default version id: %v",
-				err.Error())
-		}
-	} else {
-		_, err = tx.Exec(
-			"update pipelines set DefaultVersionId = ? where UUID = ?",
-			newDefaultVersionId, pipelineId)
-		if err != nil {
-			tx.Rollback()
-			return util.NewInternalServerError(
-				err,
-				"Failed to update pipeline's default version id: %v",
-				err.Error())
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return util.NewInternalServerError(
-			err,
-			"Failed to delete pipeline version: %v",
-			err.Error())
-	}
-	return nil
+	return pipelines[0], nil
 }
 
-// Deprecated in v2beta1
-//
+// TODO (gkcalat): consider removing after KFP v2 GA if users are not affected.
+// Runs two SQL queries in a transaction to return a list of matching pipelines, as well as their
+// total_size. The total_size does not reflect the page size. Total_size reflects the number of pipeline_versions (not pipelines).
+// This supports v1beta1 behavior.
+func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error) {
+	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
+		query := opts.AddFilterToSelect(sqlBuilder).From("pipelines").
+			LeftJoin("pipeline_versions ON pipelines.UUID = pipeline_versions.PipelineId") // this results in total_size reflecting the number of pipeline_versions
+		if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.NamespaceResourceType {
+			query = query.Where(
+				sq.Eq{"pipelines.Status": model.PipelineReady,
+					"pipelines.Namespace": filterContext.ReferenceKey.ID},
+			)
+		} else {
+			query = query.Where(
+				sq.Eq{"pipelines.Status": model.PipelineReady},
+			)
+		}
+		return query
+	}
+	sqlBuilder := buildQuery(sq.Select(joinedColumns...))
+
+	// SQL for row list
+	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
+	if err != nil {
+		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to prepare a query to list pipelines: %v", err.Error())
+	}
+
+	// SQL for getting total size. This matches the query to get all the rows above, in order
+	// to do the same filter, but counts instead of scanning the rows.
+	sizeSql, sizeArgs, err := buildQuery(sq.Select("count(*)")).ToSql()
+	if err != nil {
+		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to prepare a query to count pipelines: %v", err.Error())
+	}
+
+	// Use a transaction to make sure we're returning the total_size of the same rows queried
+	tx, err := s.db.Begin()
+	if err != nil {
+		glog.Errorf("PipelineStore (v1beta1): Failed to start transaction to list pipelines")
+		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to start transaction to list pipelines: %v", err.Error())
+	}
+
+	// Get pipelines
+	rows, err := tx.Query(rowsSql, rowsArgs...)
+	if err != nil {
+		tx.Rollback()
+		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to execute SQL for listing pipelines: %v", err.Error())
+	}
+	pipelines, err := s.scanJoinedRows(rows)
+	if err != nil {
+		tx.Rollback()
+		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to parse results of listing pipelines: %v", err.Error())
+	}
+	rows.Close()
+
+	// Count pipelines
+	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
+	if err != nil {
+		tx.Rollback()
+		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to count pipelines: %v", err.Error())
+	}
+	total_size, err := list.ScanRowToTotalSize(sizeRow)
+	if err != nil {
+		tx.Rollback()
+		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to parse results of counting pipelines: %v", err.Error())
+	}
+	sizeRow.Close()
+
+	// Commit transaction
+	err = tx.Commit()
+	if err != nil {
+		glog.Errorf("PipelineStore (v1beta1): Failed to commit transaction to list pipelines")
+		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to commit listing pipelines: %v", err.Error())
+	}
+
+	// Split results on multiple pages, if needed
+	if len(pipelines) <= opts.PageSize {
+		return pipelines, total_size, "", nil
+	}
+	npt, err := opts.NextPageToken(pipelines[opts.PageSize])
+	return pipelines[:opts.PageSize], total_size, npt, err
+}
+
+// // Deprecated in v2beta1
+// // TODO (gkcalat): consider removing after KFP v2 GA if users are not affected
+// // Updates the default pipeline version.
+// // This is used in the v1beta1 flow of deleting a pipeline version and updating the default version to the latest one.
+// func (s *PipelineStore) UpdatePipelineDefaultVersionV1(pipelineId string, versionId string) error {
+// 	sql, args, err := sq.
+// 		Update("pipelines").
+// 		SetMap(sq.Eq{"DefaultVersionId": versionId}).
+// 		Where(sq.Eq{"UUID": pipelineId}).
+// 		ToSql()
+// 	if err != nil {
+// 		return util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to create query to update the pipeline default version: %s", err.Error())
+// 	}
+// 	return s.ExecuteSQL(sql, args, "update", "default pipeline version (v1beta1)")
+// }
+
+// // Deprecated in v2beta1
+// // TODO (gkcalat): consider removing after KFP v2 GA if users are not affected.
+// // Deletes a pipeline version and updates the corresponding default pipeline version.
+// func (s *PipelineStore) DeletePipelineVersionAndUpdateDefaultV1(versionId string) error {
+// 	// If this version is used as default version for a pipeline, we have to
+// 	// find a new default version for that pipeline, which is usually the latest
+// 	// version of that pipeline. Then we'll have 3 operations in a single
+// 	// transactions: (1) delete version (2) get new default version id (3) use
+// 	// new default version id to update pipeline.
+// 	tx, err := s.db.Begin()
+// 	if err != nil {
+// 		return util.NewInternalServerError(
+// 			err,
+// 			"Failed to start an transaction while trying to delete pipeline version: %v",
+// 			err.Error())
+// 	}
+// 	// (1) delete version.
+// 	_, err = tx.Exec(
+// 		"delete from pipeline_versions where UUID = ?",
+// 		versionId)
+// 	if err != nil {
+// 		tx.Rollback()
+// 		return util.NewInternalServerError(
+// 			err,
+// 			"Failed to delete pipeline version: %v",
+// 			err.Error())
+// 	}
+// 	// (2) check whether this version is used as default version.
+// 	r, err := tx.Query(
+// 		"select UUID from pipelines where DefaultVersionId = ?",
+// 		versionId)
+// 	if err != nil {
+// 		tx.Rollback()
+// 		return util.NewInternalServerError(
+// 			err,
+// 			`Failed to query pipelines table while deleting pipeline version:
+// 			%v`,
+// 			err.Error())
+// 	}
+// 	var pipelineId = ""
+// 	if r.Next() {
+// 		if err := r.Scan(&pipelineId); err != nil {
+// 			tx.Rollback()
+// 			return util.NewInternalServerError(
+// 				err,
+// 				"Failed to get pipeline id for version id: %v",
+// 				err.Error())
+// 		}
+// 	}
+// 	r.Close()
+// 	if len(pipelineId) == 0 {
+// 		// The deleted version is not used as a default version. So no extra
+// 		// work is needed. We commit the deletion now.
+// 		if err := tx.Commit(); err != nil {
+// 			return util.NewInternalServerError(
+// 				err,
+// 				"Failed to delete pipeline version: %v",
+// 				err.Error())
+// 		}
+// 		return nil
+// 	}
+// 	// (3) find a new default version.
+// 	r, err = tx.Query(
+// 		`select UUID from pipeline_versions
+// 		where PipelineId = ? and Status = ?
+// 		order by CreatedAtInSec DESC
+// 		limit 1`,
+// 		pipelineId,
+// 		model.PipelineVersionReady)
+// 	if err != nil {
+// 		tx.Rollback()
+// 		return util.NewInternalServerError(
+// 			err,
+// 			"Failed to get a new default version id: %v",
+// 			err.Error())
+// 	}
+// 	var newDefaultVersionId = ""
+// 	if r.Next() {
+// 		if err := r.Scan(&newDefaultVersionId); err != nil {
+// 			tx.Rollback()
+// 			return util.NewInternalServerError(
+// 				err,
+// 				"Failed to get a new default version id: %v",
+// 				err.Error())
+// 		}
+// 	}
+// 	r.Close()
+// 	if len(newDefaultVersionId) == 0 {
+// 		// No new default version. The pipeline's default version id will be
+// 		// null.
+// 		_, err = tx.Exec(
+// 			"update pipelines set DefaultVersionId = null where UUID = ?",
+// 			pipelineId)
+// 		if err != nil {
+// 			tx.Rollback()
+// 			return util.NewInternalServerError(
+// 				err,
+// 				"Failed to update pipeline's default version id: %v",
+// 				err.Error())
+// 		}
+// 	} else {
+// 		_, err = tx.Exec(
+// 			"update pipelines set DefaultVersionId = ? where UUID = ?",
+// 			newDefaultVersionId, pipelineId)
+// 		if err != nil {
+// 			tx.Rollback()
+// 			return util.NewInternalServerError(
+// 				err,
+// 				"Failed to update pipeline's default version id: %v",
+// 				err.Error())
+// 		}
+// 	}
+// 	if err := tx.Commit(); err != nil {
+// 		return util.NewInternalServerError(
+// 			err,
+// 			"Failed to delete pipeline version: %v",
+// 			err.Error())
+// 	}
+// 	return nil
+// }
+
+// // Deprecated in v2beta1
 // // Updates status for a Pipeline and a PipelineVersion in as single transaction.
 // // This supports v1beta1 behavior.
 // func (s *PipelineStore) UpdatePipelineAndVersionsStatus(id string, status model.PipelineStatus, pipelineVersionId string, pipelineVersionStatus model.PipelineVersionStatus) error {
@@ -1021,7 +1019,6 @@ func (s *PipelineStore) DeletePipelineVersionAndUpdateDefaultV1(versionId string
 // 			"PipelineStore (v1beta1): Failed to Pipeline and PipelineVersion status: %s",
 // 			err.Error())
 // 	}
-
 // 	sql, args, err := sq.
 // 		Update("pipelines").
 // 		SetMap(sq.Eq{"Status": status}).
@@ -1053,14 +1050,14 @@ func (s *PipelineStore) DeletePipelineVersionAndUpdateDefaultV1(versionId string
 // 		return util.NewInternalServerError(err,
 // 			"PipelineStore (v1beta1): Failed to update the pipeline version status: %s", err.Error())
 // 	}
-
 // 	if err := tx.Commit(); err != nil {
 // 		return util.NewInternalServerError(err,
 // 			"PipelineStore (v1beta1): Failed to update pipeline status and its version status: %v", err)
 // 	}
 // 	return nil
 // }
-//
+
+// // Deprecated in v2beta1
 // // Inserts records into both `pipelines` and `pipeline_versions` tables.
 // // This supports v1beta1 behavior where pipelines and pipeline_versions tables get updated in a single transaction.
 // func (s *PipelineStore) CreatePipelineV1(p *model.Pipeline) (*model.Pipeline, error) {
@@ -1073,7 +1070,6 @@ func (s *PipelineStore) DeletePipelineVersionAndUpdateDefaultV1(versionId string
 // 		return nil, util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to create a pipeline id.")
 // 	}
 // 	newPipeline.UUID = id.String()
-
 // 	// TODO(jingzhang36): remove default version id assignment after version API
 // 	// is ready.
 // 	newPipeline.DefaultVersionId = id.String()
@@ -1094,7 +1090,6 @@ func (s *PipelineStore) DeletePipelineVersionAndUpdateDefaultV1(versionId string
 // 		return nil, util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to create query to insert pipeline to pipeline table: %v",
 // 			err.Error())
 // 	}
-
 // 	// Set up creation time, UUID and sql query for pipeline.
 // 	// TODO(jingzhang36): remove version related operations from CreatePipeline
 // 	// when version API is ready. Before that we create an implicit version
@@ -1128,7 +1123,6 @@ func (s *PipelineStore) DeletePipelineVersionAndUpdateDefaultV1(versionId string
 // 		return nil, util.NewInternalServerError(err,
 // 			"PipelineStore (v1beta1): Failed to create query to insert pipeline version to pipeline_versions table: %v", err.Error())
 // 	}
-
 // 	// In a transaction, we insert into both pipelines and pipeline_versions.
 // 	tx, err := s.db.Begin()
 // 	if err != nil {

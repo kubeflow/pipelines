@@ -116,10 +116,7 @@ type RunWorkflowOptions struct {
 }
 
 func NewFromString(s string) (Template, error) {
-	bytes, err := util.MarshalJsonWithError(s)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to parse a template from string.")
-	}
+	bytes := []byte(s)
 	return New(bytes)
 }
 
@@ -168,13 +165,13 @@ func OverrideParameterWithSystemDefault(execSpec util.ExecutionSpec) error {
 		patched := make(util.SpecParameters, 0, len(params))
 		for _, currentParam := range params {
 			if currentParam.Value != nil {
-				desiredValue, err := common.PatchPipelineDefaultParameter(*currentParam.Value)
+				desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Value)
 				if err != nil {
 					return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
 				}
 				patched = append(patched, util.SpecParameter{Name: currentParam.Name, Value: &desiredValue})
 			} else if currentParam.Default != nil {
-				desiredValue, err := common.PatchPipelineDefaultParameter(*currentParam.Default)
+				desiredValue, err := PatchPipelineDefaultParameter(*currentParam.Default)
 				if err != nil {
 					return fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
 				}
@@ -343,4 +340,21 @@ func modeToPipelineJobEnabled(recurringRunMode apiv2beta1.RecurringRun_Mode) boo
 	} else {
 		return false
 	}
+}
+
+// Mutate default values of specified pipeline spec.
+// Args:
+//
+//	text: (part of) pipeline file in string.
+func PatchPipelineDefaultParameter(text string) (string, error) {
+	defaultBucket := common.GetStringConfig(common.DefaultBucketNameEnvVar)
+	projectId := common.GetStringConfig(common.ProjectIDEnvVar)
+	toPatch := map[string]string{
+		"{{kfp-default-bucket}}": defaultBucket,
+		"{{kfp-project-id}}":     projectId,
+	}
+	for key, value := range toPatch {
+		text = strings.Replace(text, key, value, -1)
+	}
+	return text, nil
 }

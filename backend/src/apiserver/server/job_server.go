@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -91,7 +91,7 @@ func (s *JobServer) CreateJob(ctx context.Context, request *api.CreateJobRequest
 	}
 
 	if common.IsMultiUserMode() {
-		experimentID := common.GetExperimentIDFromAPIResourceReferences(request.Job.ResourceReferences)
+		experimentID := GetExperimentIDFromAPIResourceReferences(request.Job.ResourceReferences)
 		if experimentID == "" {
 			return nil, util.NewInvalidInputError("Job has no experiment.")
 		}
@@ -162,7 +162,7 @@ func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) 
 		if refKey == nil {
 			return nil, util.NewInvalidInputError("ListJobs must filter by resource reference in multi-user mode.")
 		}
-		if refKey.Type == common.Namespace {
+		if refKey.Type == model.NamespaceResourceType {
 			namespace := refKey.ID
 			if len(namespace) == 0 {
 				return nil, util.NewInvalidInputError("Invalid resource references for ListJobs. Namespace is empty.")
@@ -175,7 +175,7 @@ func (s *JobServer) ListJobs(ctx context.Context, request *api.ListJobsRequest) 
 			if err != nil {
 				return nil, util.Wrap(err, "Failed to authorize with namespace resource reference.")
 			}
-		} else if refKey.Type == common.Experiment {
+		} else if refKey.Type == model.ExperimentResourceType {
 			experimentID := refKey.ID
 			if len(experimentID) == 0 {
 				return nil, util.NewInvalidInputError("Invalid resource references for job. Experiment ID is empty.")

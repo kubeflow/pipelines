@@ -1,11 +1,25 @@
+// Copyright 2021-2022 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.package storage
+
 package storage
 
 import (
 	"database/sql"
 	"fmt"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -30,7 +44,7 @@ type TaskStoreInterface interface {
 	// Create a task entry in the database
 	CreateTask(task *model.Task) (*model.Task, error)
 
-	ListTasks(filterContext *common.FilterContext, opts *list.Options) ([]*model.Task, int, string, error)
+	ListTasks(filterContext *model.FilterContext, opts *list.Options) ([]*model.Task, int, string, error)
 
 	GetTask(id string) (*model.Task, error)
 }
@@ -111,14 +125,14 @@ func (s *TaskStore) scanRows(rows *sql.Rows) ([]*model.Task, error) {
 
 // Runs two SQL queries in a transaction to return a list of matching experiments, as well as their
 // total_size. The total_size does not reflect the page size.
-func (s *TaskStore) ListTasks(filterContext *common.FilterContext, opts *list.Options) ([]*model.Task, int, string, error) {
+func (s *TaskStore) ListTasks(filterContext *model.FilterContext, opts *list.Options) ([]*model.Task, int, string, error) {
 	errorF := func(err error) ([]*model.Task, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list tasks: %v", err)
 	}
 
 	// SQL for getting the filtered and paginated rows
 	sqlBuilder := sq.Select(taskColumns...).From("tasks")
-	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == common.Pipeline {
+	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.PipelineResourceType {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{"PipelineName": filterContext.ReferenceKey.ID})
 	}
 	sqlBuilder = opts.AddFilterToSelect(sqlBuilder)
@@ -131,7 +145,7 @@ func (s *TaskStore) ListTasks(filterContext *common.FilterContext, opts *list.Op
 	// SQL for getting total size. This matches the query to get all the rows above, in order
 	// to do the same filter, but counts instead of scanning the rows.
 	sqlBuilder = sq.Select("count(*)").From("tasks")
-	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == common.Pipeline {
+	if filterContext.ReferenceKey != nil && filterContext.ReferenceKey.Type == model.PipelineResourceType {
 		sqlBuilder = sqlBuilder.Where(sq.Eq{"PipelineName": filterContext.ReferenceKey.ID})
 	}
 	sizeSql, sizeArgs, err := opts.AddFilterToSelect(sqlBuilder).ToSql()

@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,18 +20,6 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/spf13/viper"
-)
-
-const (
-	MultiUserMode                           string = "MULTIUSER"
-	MultiUserModeSharedReadAccess           string = "MULTIUSER_SHARED_READ"
-	PodNamespace                            string = "POD_NAMESPACE"
-	CacheEnabled                            string = "CacheEnabled"
-	DefaultPipelineRunnerServiceAccountFlag string = "DEFAULTPIPELINERUNNERSERVICEACCOUNT"
-	KubeflowUserIDHeader                    string = "KUBEFLOW_USERID_HEADER"
-	KubeflowUserIDPrefix                    string = "KUBEFLOW_USERID_PREFIX"
-	UpdatePipelineVersionByDefault          string = "AUTO_UPDATE_PIPELINE_DEFAULT_VERSION"
-	TokenReviewAudience                     string = "TOKEN_REVIEW_AUDIENCE"
 )
 
 func IsPipelineVersionUpdatedByDefault() bool {

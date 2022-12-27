@@ -1,3 +1,17 @@
+// Copyright 2018-2022 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package storage
 
 import (
@@ -6,7 +20,6 @@ import (
 	"fmt"
 
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -63,7 +76,7 @@ func TestListExperiments_Pagination(t *testing.T) {
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "name", nil)
 	assert.Nil(t, err)
 
-	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&common.FilterContext{}, opts)
+	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&model.FilterContext{}, opts)
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
@@ -89,7 +102,7 @@ func TestListExperiments_Pagination(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 
-	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&common.FilterContext{}, opts)
+	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
@@ -126,7 +139,7 @@ func TestListExperiments_Pagination_Descend(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "name desc", nil)
 	assert.Nil(t, err)
-	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&common.FilterContext{}, opts)
+	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&model.FilterContext{}, opts)
 
 	assert.Nil(t, err)
 	assert.NotEmpty(t, nextPageToken)
@@ -152,7 +165,7 @@ func TestListExperiments_Pagination_Descend(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 
-	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&common.FilterContext{}, opts)
+	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Empty(t, nextPageToken)
 	assert.Equal(t, 4, total_size)
@@ -176,7 +189,7 @@ func TestListExperiments_Pagination_LessThanPageSize(t *testing.T) {
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "", nil)
 	assert.Nil(t, err)
 
-	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&common.FilterContext{}, opts)
+	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, "", nextPageToken)
 	assert.Equal(t, 1, total_size)
@@ -191,7 +204,7 @@ func TestListExperimentsError(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "", nil)
 	assert.Nil(t, err)
-	_, _, _, err = experimentStore.ListExperiments(&common.FilterContext{}, opts)
+	_, _, _, err = experimentStore.ListExperiments(&model.FilterContext{}, opts)
 	assert.Equal(t, codes.Internal, err.(*util.UserError).ExternalStatusCode())
 }
 
@@ -382,7 +395,7 @@ func TestListExperiments_Filtering(t *testing.T) {
 
 	opts, err := list.NewOptions(&model.Experiment{}, 2, "id", filterProto)
 	assert.Nil(t, err)
-	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&common.FilterContext{}, opts)
+	experiments, total_size, nextPageToken, err := experimentStore.ListExperiments(&model.FilterContext{}, opts)
 
 	expected := []*model.Experiment{
 		&model.Experiment{
@@ -410,7 +423,7 @@ func TestListExperiments_Filtering(t *testing.T) {
 	opts, err = list.NewOptionsFromToken(nextPageToken, 2)
 	assert.Nil(t, err)
 
-	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&common.FilterContext{}, opts)
+	experiments, total_size, nextPageToken, err = experimentStore.ListExperiments(&model.FilterContext{}, opts)
 
 	expected = []*model.Experiment{
 		&model.Experiment{
@@ -463,9 +476,9 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 			ExperimentUUID:   fakeID,
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "1", ResourceType: common.Run,
+					ResourceUUID: "1", ResourceType: model.RunResourceType,
 					ReferenceUUID: fakeID, ReferenceName: "experiment1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 		},
@@ -486,9 +499,9 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 			ExperimentUUID:   fakeID,
 			ResourceReferences: []*model.ResourceReference{
 				{
-					ResourceUUID: "2", ResourceType: common.Run,
+					ResourceUUID: "2", ResourceType: model.RunResourceType,
 					ReferenceUUID: fakeID, ReferenceName: "experiment1",
-					ReferenceType: common.Experiment, Relationship: common.Creator,
+					ReferenceType: model.ExperimentResourceType, Relationship: model.CreatorRelationship,
 				},
 			},
 		},
@@ -498,6 +511,13 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	}
 	runStore.CreateRun(run1)
 	runStore.CreateRun(run2)
+	opts, err := list.NewOptions(&model.Run{}, 10, "id", nil)
+	runs, total_run_size, _, err := runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
+	assert.Nil(t, err)
+	assert.Equal(t, 2, total_run_size)
+	assert.Equal(t, api.Run_STORAGESTATE_AVAILABLE.String(), runs[0].StorageState)
+	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[1].StorageState)
+
 	jobStore := NewJobStore(db, util.NewFakeTimeForEpoch())
 	job1 := &model.Job{
 		UUID:        "1",
@@ -517,9 +537,9 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 		UpdatedAtInSec: 1,
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID: "1", ResourceType: common.Job, ReferenceUUID: fakeID,
-				ReferenceName: "experiment1", ReferenceType: common.Experiment,
-				Relationship: common.Owner,
+				ResourceUUID: "1", ResourceType: model.JobResourceType, ReferenceUUID: fakeID,
+				ReferenceName: "experiment1", ReferenceType: model.ExperimentResourceType,
+				Relationship: model.OwnerRelationship,
 			},
 		},
 	}
@@ -542,9 +562,9 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 		UpdatedAtInSec: 2,
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceUUID: "2", ResourceType: common.Job,
-				ReferenceUUID: fakeID, ReferenceName: "experiment2", ReferenceType: common.Experiment,
-				Relationship: common.Owner,
+				ResourceUUID: "2", ResourceType: model.JobResourceType,
+				ReferenceUUID: fakeID, ReferenceName: "experiment2", ReferenceType: model.ExperimentResourceType,
+				Relationship: model.OwnerRelationship,
 			},
 		},
 	}
@@ -552,18 +572,18 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	jobStore.CreateJob(job2)
 
 	// Archive experiment and verify the experiment and two runs in it are all archived.
-	err := experimentStore.ArchiveExperiment(fakeID)
+	err = experimentStore.ArchiveExperiment(fakeID)
 	assert.Nil(t, err)
 	exp, err := experimentStore.GetExperiment(fakeID)
 	assert.Nil(t, err)
 	assert.Equal(t, "ARCHIVED", exp.StorageState)
-	opts, err := list.NewOptions(&model.Run{}, 10, "id", nil)
-	runs, total_run_size, _, err := runStore.ListRuns(&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: fakeID}}, opts)
+	opts, err = list.NewOptions(&model.Run{}, 10, "id", nil)
+	runs, total_run_size, _, err = runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
 	assert.Nil(t, err)
-	assert.Equal(t, total_run_size, 2)
+	assert.Equal(t, 2, total_run_size)
 	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[0].StorageState)
 	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[1].StorageState)
-	jobs, total_job_size, _, err := jobStore.ListJobs(&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: fakeID}}, opts)
+	jobs, total_job_size, _, err := jobStore.ListJobs(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, total_job_size, 2)
 	assert.Equal(t, false, jobs[0].Enabled)
@@ -575,12 +595,12 @@ func TestArchiveAndUnarchiveExperiment(t *testing.T) {
 	exp, err = experimentStore.GetExperiment(fakeID)
 	assert.Nil(t, err)
 	assert.Equal(t, "AVAILABLE", exp.StorageState)
-	runs, total_run_size, _, err = runStore.ListRuns(&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: fakeID}}, opts)
+	runs, total_run_size, _, err = runStore.ListRuns(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, total_run_size, 2)
 	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[0].StorageState)
 	assert.Equal(t, api.Run_STORAGESTATE_ARCHIVED.String(), runs[1].StorageState)
-	jobs, total_job_size, _, err = jobStore.ListJobs(&common.FilterContext{ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: fakeID}}, opts)
+	jobs, total_job_size, _, err = jobStore.ListJobs(&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.ExperimentResourceType, ID: fakeID}}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, total_job_size, 2)
 	assert.Equal(t, false, jobs[0].Enabled)

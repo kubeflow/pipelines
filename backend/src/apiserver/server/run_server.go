@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -110,7 +110,7 @@ func (s *RunServer) CreateRunV1(ctx context.Context, request *api.CreateRunReque
 	}
 
 	if common.IsMultiUserMode() {
-		experimentID := common.GetExperimentIDFromAPIResourceReferences(request.Run.ResourceReferences)
+		experimentID := GetExperimentIDFromAPIResourceReferences(request.Run.ResourceReferences)
 		if experimentID == "" {
 			return nil, util.NewInvalidInputError("Job has no experiment.")
 		}
@@ -180,7 +180,7 @@ func (s *RunServer) ListRunsV1(ctx context.Context, request *api.ListRunsRequest
 		if refKey == nil {
 			return nil, util.NewInvalidInputError("ListRuns must filter by resource reference in multi-user mode.")
 		}
-		if refKey.Type == common.Namespace {
+		if refKey.Type == model.NamespaceResourceType {
 			namespace := refKey.ID
 			if len(namespace) == 0 {
 				return nil, util.NewInvalidInputError("Invalid resource references for ListRuns. Namespace is empty.")
@@ -193,7 +193,7 @@ func (s *RunServer) ListRunsV1(ctx context.Context, request *api.ListRunsRequest
 			if err != nil {
 				return nil, util.Wrap(err, "Failed to authorize with namespace resource reference.")
 			}
-		} else if refKey.Type == common.Experiment || refKey.Type == "ExperimentUUID" {
+		} else if refKey.Type == model.ExperimentResourceType || refKey.Type == "ExperimentUUID" {
 			// "ExperimentUUID" was introduced for perf optimization. We accept both refKey.Type for backward-compatible reason.
 			experimentID := refKey.ID
 			if len(experimentID) == 0 {

@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,7 +27,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/filter"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -228,7 +227,7 @@ func (o *Options) AddFilterToSelect(sqlBuilder sq.SelectBuilder) sq.SelectBuilde
 // FilterOnResourceReference filters the given resource's table by rows from the ResourceReferences
 // table that match an optional given filter, and returns the rebuilt SelectBuilder
 func FilterOnResourceReference(tableName string, columns []string, resourceType model.ResourceType,
-	selectCount bool, filterContext *common.FilterContext) (sq.SelectBuilder, error) {
+	selectCount bool, filterContext *model.FilterContext) (sq.SelectBuilder, error) {
 	selectBuilder := sq.Select(columns...)
 	if selectCount {
 		selectBuilder = sq.Select("count(*)")

@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,20 +15,25 @@
 package model
 
 type PipelineSpec struct {
-	// Pipeline ID will be optional. It's available only if the resource is created through
-	// a pipeline ID.
-	PipelineId string `gorm:"column:PipelineId; not null"`
+	// Creation of runs via pipeline ID was deprecated in v2beta1.
+	// It is available only in older resources created through a pipeline ID.
+	PipelineId string `gorm:"column:PipelineId; not null;"`
 
-	// Pipeline Name will be required if ID is not empty.
+	// Pipeline version's id.
+	PipelineVersionId string `gorm:"column:PipelineVersionId;default:null;"`
+
+	// Pipeline versions's Name will be required if ID is not empty.
+	// This carries the name of the pipeline version in v2beta1.
 	PipelineName string `gorm:"column:PipelineName; not null"`
 
 	// Pipeline YAML definition. This is the pipeline interface for creating a pipeline.
 	// Set size to 65535 so it will be stored as longtext.
 	// https://dev.mysql.com/doc/refman/8.0/en/column-count-limit.html
-	PipelineSpecManifest string `gorm:"column:PipelineSpecManifest; size:65535"`
+	// TODO (gkcalat): consider increasing the size limit > 32MB (<4GB for MySQL, and <1GB for PostgreSQL).
+	PipelineSpecManifest string `gorm:"column:PipelineSpecManifest; size:33554432;"`
 
 	// Argo workflow YAML definition. This is the Argo Spec converted from Pipeline YAML.
-	WorkflowSpecManifest string `gorm:"column:WorkflowSpecManifest; not null; size:65535"`
+	WorkflowSpecManifest string `gorm:"column:WorkflowSpecManifest; not null; size:33554432"`
 
 	// Store parameters key-value pairs as serialized string.
 	// This field is only used for V1 API. For V2, use the `Parameters` field in RuntimeConfig.

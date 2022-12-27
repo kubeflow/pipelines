@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,11 +33,6 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	swfapi "github.com/kubeflow/pipelines/backend/src/crd/pkg/apis/scheduledworkflow/v1beta1"
 )
-
-func initResourceManager() (*FakeClientManager, *ResourceManager) {
-	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	return store, NewResourceManager(store)
-}
 
 func TestToModelExperiment(t *testing.T) {
 	store, manager := initResourceManager()
@@ -238,11 +233,11 @@ func TestToModelRunDetail(t *testing.T) {
 					ResourceReferences: []*model.ResourceReference{
 						{
 							ResourceUUID:  "123",
-							ResourceType:  common.Run,
+							ResourceType:  model.RunResourceType,
 							ReferenceUUID: experiment.UUID,
 							ReferenceName: experiment.Name,
-							ReferenceType: common.Experiment,
-							Relationship:  common.Owner},
+							ReferenceType: model.ExperimentResourceType,
+							Relationship:  model.OwnerRelationship},
 					},
 				},
 				PipelineRuntime: model.PipelineRuntime{
@@ -292,11 +287,11 @@ func TestToModelRunDetail(t *testing.T) {
 					ResourceReferences: []*model.ResourceReference{
 						{
 							ResourceUUID:  "123",
-							ResourceType:  common.Run,
+							ResourceType:  model.RunResourceType,
 							ReferenceUUID: experiment.UUID,
 							ReferenceName: experiment.Name,
-							ReferenceType: common.Experiment,
-							Relationship:  common.Owner},
+							ReferenceType: model.ExperimentResourceType,
+							Relationship:  model.OwnerRelationship},
 					},
 				},
 			},
@@ -313,7 +308,7 @@ func TestToModelRunDetail(t *testing.T) {
 }
 
 func TestToModelJob(t *testing.T) {
-	store, manager, experiment, pipeline := initWithExperimentAndPipeline(t)
+	store, manager, experiment, pipeline, _ := initWithExperimentAndPipeline(t)
 	defer store.Close()
 
 	tests := []struct {
@@ -363,11 +358,11 @@ func TestToModelJob(t *testing.T) {
 				},
 				ResourceReferences: []*model.ResourceReference{
 					{
-						ResourceType:  common.Job,
+						ResourceType:  model.JobResourceType,
 						ReferenceUUID: experiment.UUID,
 						ReferenceName: experiment.Name,
-						ReferenceType: common.Experiment,
-						Relationship:  common.Owner},
+						ReferenceType: model.ExperimentResourceType,
+						Relationship:  model.OwnerRelationship},
 				},
 			},
 		}, {
@@ -415,11 +410,11 @@ func TestToModelJob(t *testing.T) {
 				},
 				ResourceReferences: []*model.ResourceReference{
 					{
-						ResourceType:  common.Job,
+						ResourceType:  model.JobResourceType,
 						ReferenceUUID: experiment.UUID,
 						ReferenceName: experiment.Name,
-						ReferenceType: common.Experiment,
-						Relationship:  common.Owner},
+						ReferenceType: model.ExperimentResourceType,
+						Relationship:  model.OwnerRelationship},
 				},
 			},
 		},
@@ -434,7 +429,7 @@ func TestToModelJob(t *testing.T) {
 }
 
 func TestUpdateModelJobWithNewScheduledWorkflow(t *testing.T) {
-	store, manager, experiment, pipeline := initWithExperimentAndPipeline(t)
+	store, manager, experiment, pipeline, _ := initWithExperimentAndPipeline(t)
 	defer store.Close()
 
 	modelJob := &model.Job{
@@ -460,11 +455,11 @@ func TestUpdateModelJobWithNewScheduledWorkflow(t *testing.T) {
 		},
 		ResourceReferences: []*model.ResourceReference{
 			{
-				ResourceType:  common.Job,
+				ResourceType:  model.JobResourceType,
 				ReferenceUUID: experiment.UUID,
 				ReferenceName: experiment.Name,
-				ReferenceType: common.Experiment,
-				Relationship:  common.Owner},
+				ReferenceType: model.ExperimentResourceType,
+				Relationship:  model.OwnerRelationship},
 		},
 	}
 
@@ -504,11 +499,11 @@ func TestUpdateModelJobWithNewScheduledWorkflow(t *testing.T) {
 		ResourceReferences: []*model.ResourceReference{
 			{
 				ResourceUUID:  "swf_123",
-				ResourceType:  common.Job,
+				ResourceType:  model.JobResourceType,
 				ReferenceUUID: experiment.UUID,
 				ReferenceName: experiment.Name,
-				ReferenceType: common.Experiment,
-				Relationship:  common.Owner},
+				ReferenceType: model.ExperimentResourceType,
+				Relationship:  model.OwnerRelationship},
 		},
 	}
 
@@ -520,16 +515,16 @@ func TestUpdateModelJobWithNewScheduledWorkflow(t *testing.T) {
 func TestToModelResourceReferences(t *testing.T) {
 	store, manager, _ := initWithJob(t)
 	defer store.Close()
-	refs, err := manager.toModelResourceReferences("r1", common.Run, []*apiv1beta1.ResourceReference{
-		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: DefaultFakeUUID}, Relationship: apiv1beta1.Relationship_OWNER},
-		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: DefaultFakeUUID}, Relationship: apiv1beta1.Relationship_CREATOR},
+	refs, err := manager.toModelResourceReferences("r1", model.RunResourceType, []*apiv1beta1.ResourceReference{
+		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: common.DefaultFakeUUID}, Relationship: apiv1beta1.Relationship_OWNER},
+		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: common.DefaultFakeUUID}, Relationship: apiv1beta1.Relationship_CREATOR},
 	})
 	assert.Nil(t, err)
 	expectedRefs := []*model.ResourceReference{
-		{ResourceUUID: "r1", ResourceType: common.Run,
-			ReferenceUUID: DefaultFakeUUID, ReferenceName: "e1", ReferenceType: common.Experiment, Relationship: common.Owner},
-		{ResourceUUID: "r1", ResourceType: common.Run,
-			ReferenceUUID: DefaultFakeUUID, ReferenceName: "j1", ReferenceType: common.Job, Relationship: common.Creator},
+		{ResourceUUID: "r1", ResourceType: model.RunResourceType,
+			ReferenceUUID: common.DefaultFakeUUID, ReferenceName: "e1", ReferenceType: model.ExperimentResourceType, Relationship: model.OwnerRelationship},
+		{ResourceUUID: "r1", ResourceType: model.RunResourceType,
+			ReferenceUUID: common.DefaultFakeUUID, ReferenceName: "j1", ReferenceType: model.JobResourceType, Relationship: model.CreatorRelationship},
 	}
 	assert.Equal(t, expectedRefs, refs)
 }
@@ -538,7 +533,7 @@ func TestToModelResourceReferences_UnknownRefType(t *testing.T) {
 	store, manager, _ := initWithJob(t)
 	defer store.Close()
 
-	_, err := manager.toModelResourceReferences("r1", common.Run, []*apiv1beta1.ResourceReference{
+	_, err := manager.toModelResourceReferences("r1", model.RunResourceType, []*apiv1beta1.ResourceReference{
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_UNKNOWN_RESOURCE_TYPE, Id: "e1"}, Relationship: apiv1beta1.Relationship_OWNER},
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "j1"}, Relationship: apiv1beta1.Relationship_CREATOR},
 	})
@@ -550,7 +545,7 @@ func TestToModelResourceReferences_NamespaceRef(t *testing.T) {
 	store, manager, _ := initWithJob(t)
 	defer store.Close()
 
-	modelRefs, err := manager.toModelResourceReferences("r1", common.Run, []*apiv1beta1.ResourceReference{
+	modelRefs, err := manager.toModelResourceReferences("r1", model.RunResourceType, []*apiv1beta1.ResourceReference{
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "e1"}, Relationship: apiv1beta1.Relationship_OWNER},
 	})
 	assert.Nil(t, err)
@@ -560,7 +555,7 @@ func TestToModelResourceReferences_NamespaceRef(t *testing.T) {
 func TestToModelResourceReferences_UnknownRelationship(t *testing.T) {
 	store, manager, _ := initWithJob(t)
 	defer store.Close()
-	_, err := manager.toModelResourceReferences("r1", common.Run, []*apiv1beta1.ResourceReference{
+	_, err := manager.toModelResourceReferences("r1", model.RunResourceType, []*apiv1beta1.ResourceReference{
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "e1"}, Relationship: apiv1beta1.Relationship_UNKNOWN_RELATIONSHIP},
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "j1"}, Relationship: apiv1beta1.Relationship_CREATOR},
 	})
@@ -571,7 +566,7 @@ func TestToModelResourceReferences_UnknownRelationship(t *testing.T) {
 func TestToModelResourceReferences_ReferredJobNotFound(t *testing.T) {
 	store, manager, _ := initWithJob(t)
 	defer store.Close()
-	_, err := manager.toModelResourceReferences("r1", common.Run, []*apiv1beta1.ResourceReference{
+	_, err := manager.toModelResourceReferences("r1", model.RunResourceType, []*apiv1beta1.ResourceReference{
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "e1"}, Relationship: apiv1beta1.Relationship_OWNER},
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "j2"}, Relationship: apiv1beta1.Relationship_CREATOR},
 	})
@@ -582,43 +577,10 @@ func TestToModelResourceReferences_ReferredJobNotFound(t *testing.T) {
 func TestToModelResourceReferences_ReferredExperimentNotFound(t *testing.T) {
 	store, manager, _ := initWithJob(t)
 	defer store.Close()
-	_, err := manager.toModelResourceReferences("r1", common.Run, []*apiv1beta1.ResourceReference{
+	_, err := manager.toModelResourceReferences("r1", model.RunResourceType, []*apiv1beta1.ResourceReference{
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: "e2"}, Relationship: apiv1beta1.Relationship_OWNER},
 		{Key: &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_JOB, Id: "j1"}, Relationship: apiv1beta1.Relationship_CREATOR},
 	})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Failed to find the referred resource")
-}
-
-func TestToModelPipelineVersion(t *testing.T) {
-	store, manager := initResourceManager()
-	defer store.Close()
-	apiPipelineVersion := &apiv1beta1.PipelineVersion{
-		Id:            "pipelineversion1",
-		CreatedAt:     &timestamp.Timestamp{Seconds: 1},
-		Parameters:    []*apiv1beta1.Parameter{},
-		CodeSourceUrl: "http://repo/11111",
-		ResourceReferences: []*apiv1beta1.ResourceReference{
-			&apiv1beta1.ResourceReference{
-				Key: &apiv1beta1.ResourceKey{
-					Id:   "pipeline1",
-					Type: apiv1beta1.ResourceType_PIPELINE,
-				},
-				Relationship: apiv1beta1.Relationship_OWNER,
-			},
-		},
-	}
-
-	convertedModelPipelineVersion, _ := manager.ToModelPipelineVersion(
-		apiPipelineVersion)
-
-	expectedModelPipelineVersion := &model.PipelineVersion{
-		UUID:           "pipelineversion1",
-		CreatedAtInSec: 1,
-		Parameters:     "",
-		PipelineId:     "pipeline1",
-		CodeSourceUrl:  "http://repo/11111",
-	}
-
-	assert.Equal(t, convertedModelPipelineVersion, expectedModelPipelineVersion)
 }

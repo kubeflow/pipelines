@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/golang/glog"
-	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -34,7 +33,7 @@ var jobColumns = []string{"UUID", "DisplayName", "Name", "Namespace", "ServiceAc
 }
 
 type JobStoreInterface interface {
-	ListJobs(filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, int, string, error)
+	ListJobs(filterContext *model.FilterContext, opts *list.Options) ([]*model.Job, int, string, error)
 	GetJob(id string) (*model.Job, error)
 	CreateJob(*model.Job) (*model.Job, error)
 	DeleteJob(id string) error
@@ -52,7 +51,7 @@ type JobStore struct {
 // total_size. The total_size does not reflect the page size, but it does reflect the number of jobs
 // matching the supplied filters and resource references.
 func (s *JobStore) ListJobs(
-	filterContext *common.FilterContext, opts *list.Options) ([]*model.Job, int, string, error) {
+	filterContext *model.FilterContext, opts *list.Options) ([]*model.Job, int, string, error) {
 	errorF := func(err error) ([]*model.Job, int, string, error) {
 		return nil, 0, "", util.NewInternalServerError(err, "Failed to list jobs: %v", err)
 	}
@@ -112,18 +111,18 @@ func (s *JobStore) ListJobs(
 }
 
 func (s *JobStore) buildSelectJobsQuery(selectCount bool, opts *list.Options,
-	filterContext *common.FilterContext) (string, []interface{}, error) {
+	filterContext *model.FilterContext) (string, []interface{}, error) {
 
 	var filteredSelectBuilder sq.SelectBuilder
 	var err error
 
 	refKey := filterContext.ReferenceKey
-	if refKey != nil && refKey.Type == common.Namespace {
+	if refKey != nil && refKey.Type == model.NamespaceResourceType {
 		filteredSelectBuilder, err = list.FilterOnNamespace("jobs", jobColumns,
 			selectCount, refKey.ID)
 	} else {
 		filteredSelectBuilder, err = list.FilterOnResourceReference("jobs", jobColumns,
-			common.Job, selectCount, filterContext)
+			model.JobResourceType, selectCount, filterContext)
 	}
 	if err != nil {
 		return "", nil, util.NewInternalServerError(err, "Failed to list jobs: %v", err)
@@ -258,7 +257,7 @@ func (s *JobStore) DeleteJob(id string) error {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete job %s from table", id)
 	}
-	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, common.Job)
+	err = s.resourceReferenceStore.DeleteResourceReferences(tx, id, model.JobResourceType)
 	if err != nil {
 		tx.Rollback()
 		return util.NewInternalServerError(err, "Failed to delete resource references from table for job %v ", id)

@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
@@ -72,49 +72,49 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 	Status: v1alpha1.WorkflowStatus{Phase: v1alpha1.WorkflowRunning},
 })
 
-var validReference = []*api.ResourceReference{
+var validReference = []*apiv1beta1.ResourceReference{
 	{
-		Key: &api.ResourceKey{
-			Type: api.ResourceType_EXPERIMENT, Id: resource.DefaultFakeUUID},
-		Relationship: api.Relationship_OWNER,
+		Key: &apiv1beta1.ResourceKey{
+			Type: apiv1beta1.ResourceType_EXPERIMENT, Id: common.DefaultFakeUUID},
+		Relationship: apiv1beta1.Relationship_OWNER,
 	},
 }
 
-var validReferencesOfExperimentAndPipelineVersion = []*api.ResourceReference{
+var validReferencesOfExperimentAndPipelineVersion = []*apiv1beta1.ResourceReference{
 	{
-		Key: &api.ResourceKey{
-			Type: api.ResourceType_EXPERIMENT,
-			Id:   resource.DefaultFakeUUID,
+		Key: &apiv1beta1.ResourceKey{
+			Type: apiv1beta1.ResourceType_EXPERIMENT,
+			Id:   common.DefaultFakeUUID,
 		},
-		Relationship: api.Relationship_OWNER,
+		Relationship: apiv1beta1.Relationship_OWNER,
 	},
 	{
-		Key: &api.ResourceKey{
-			Type: api.ResourceType_PIPELINE_VERSION,
-			Id:   resource.DefaultFakeUUID,
+		Key: &apiv1beta1.ResourceKey{
+			Type: apiv1beta1.ResourceType_PIPELINE_VERSION,
+			Id:   common.DefaultFakeUUID,
 		},
-		Relationship: api.Relationship_CREATOR,
+		Relationship: apiv1beta1.Relationship_CREATOR,
 	},
 }
 
-var referencesOfExperimentAndInvalidPipelineVersion = []*api.ResourceReference{
+var referencesOfExperimentAndInvalidPipelineVersion = []*apiv1beta1.ResourceReference{
 	{
-		Key: &api.ResourceKey{
-			Type: api.ResourceType_EXPERIMENT,
-			Id:   resource.DefaultFakeUUID,
+		Key: &apiv1beta1.ResourceKey{
+			Type: apiv1beta1.ResourceType_EXPERIMENT,
+			Id:   common.DefaultFakeUUID,
 		},
-		Relationship: api.Relationship_OWNER,
+		Relationship: apiv1beta1.Relationship_OWNER,
 	},
 	{
-		Key:          &api.ResourceKey{Type: api.ResourceType_PIPELINE_VERSION, Id: invalidPipelineVersionId},
-		Relationship: api.Relationship_CREATOR,
+		Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE_VERSION, Id: invalidPipelineVersionId},
+		Relationship: apiv1beta1.Relationship_CREATOR,
 	},
 }
 
-var referencesOfInvalidPipelineVersion = []*api.ResourceReference{
+var referencesOfInvalidPipelineVersion = []*apiv1beta1.ResourceReference{
 	{
-		Key:          &api.ResourceKey{Type: api.ResourceType_PIPELINE_VERSION, Id: invalidPipelineVersionId},
-		Relationship: api.Relationship_CREATOR,
+		Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_PIPELINE_VERSION, Id: invalidPipelineVersionId},
+		Relationship: apiv1beta1.Relationship_CREATOR,
 	},
 }
 
@@ -126,15 +126,15 @@ func initEnvVars() {
 func initWithExperiment(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Experiment) {
 	initEnvVars()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager)
-	apiExperiment := &api.Experiment{Name: "exp1"}
+	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	apiExperiment := &apiv1beta1.Experiment{Name: "exp1"}
 	if common.IsMultiUserMode() {
-		apiExperiment = &api.Experiment{
+		apiExperiment = &apiv1beta1.Experiment{
 			Name: "exp1",
-			ResourceReferences: []*api.ResourceReference{
+			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
-					Key:          &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "ns1"},
-					Relationship: api.Relationship_OWNER,
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+					Relationship: apiv1beta1.Relationship_OWNER,
 				},
 			},
 		}
@@ -148,15 +148,15 @@ func initWithExperiment_SubjectAccessReview_Unauthorized(t *testing.T) (*resourc
 	initEnvVars()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	clientManager.SubjectAccessReviewClientFake = client.NewFakeSubjectAccessReviewClientUnauthorized()
-	resourceManager := resource.NewResourceManager(clientManager)
-	apiExperiment := &api.Experiment{Name: "exp1"}
+	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	apiExperiment := &apiv1beta1.Experiment{Name: "exp1"}
 	if common.IsMultiUserMode() {
-		apiExperiment = &api.Experiment{
+		apiExperiment = &apiv1beta1.Experiment{
 			Name: "exp1",
-			ResourceReferences: []*api.ResourceReference{
+			ResourceReferences: []*apiv1beta1.ResourceReference{
 				{
-					Key:          &api.ResourceKey{Type: api.ResourceType_NAMESPACE, Id: "ns1"},
-					Relationship: api.Relationship_OWNER,
+					Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_NAMESPACE, Id: "ns1"},
+					Relationship: apiv1beta1.Relationship_OWNER,
 				},
 			},
 		}
@@ -169,84 +169,106 @@ func initWithExperiment_SubjectAccessReview_Unauthorized(t *testing.T) (*resourc
 func initWithExperimentAndPipelineVersion(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Experiment) {
 	initEnvVars()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager)
+	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 
 	// Create an experiment.
-	apiExperiment := &api.Experiment{Name: "exp1"}
+	apiExperiment := &apiv1beta1.Experiment{Name: "exp1"}
 	experiment, err := resourceManager.CreateExperiment(apiExperiment)
 	assert.Nil(t, err)
 
 	// Create a pipeline and then a pipeline version.
-	_, err = resourceManager.CreatePipeline("pipeline", "", "", []byte(testWorkflow.ToStringForStore()))
-	assert.Nil(t, err)
-	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(resource.NonDefaultFakeUUID, nil))
-	_, err = resourceManager.CreatePipelineVersion(&api.PipelineVersion{
-		Name: "pipeline_version",
-		ResourceReferences: []*api.ResourceReference{
-			&api.ResourceReference{
-				Key: &api.ResourceKey{
-					Id:   resource.DefaultFakeUUID,
-					Type: api.ResourceType_PIPELINE,
-				},
-				Relationship: api.Relationship_OWNER,
-			},
+	p, err := resourceManager.CreatePipeline(
+		model.Pipeline{
+			Name:        "p1",
+			Description: "",
+			Namespace:   "",
 		},
-	},
-		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"), true)
-
+	)
+	assert.Nil(t, err)
+	_, err = resourceManager.CreatePipelineVersion(
+		model.PipelineVersion{
+			Name:         "p1",
+			PipelineId:   p.UUID,
+			PipelineSpec: testWorkflow.ToStringForStore(),
+		},
+	)
+	assert.Nil(t, err)
+	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(common.NonDefaultFakeUUID, nil))
+	_, err = resourceManager.CreatePipelineVersion(
+		model.PipelineVersion{
+			Name:       "pipeline_version",
+			PipelineId: common.DefaultFakeUUID,
+		},
+	)
 	return clientManager, resourceManager, experiment
 }
 
 func initWithExperimentsAndTwoPipelineVersions(t *testing.T) *resource.FakeClientManager {
 	initEnvVars()
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager)
+	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 
 	// Create an experiment.
-	apiExperiment := &api.Experiment{Name: "exp1"}
+	apiExperiment := &apiv1beta1.Experiment{Name: "exp1"}
 	_, err := resourceManager.CreateExperiment(apiExperiment)
 	assert.Nil(t, err)
 
 	// Create a pipeline and then a pipeline version.
-	_, err = resourceManager.CreatePipeline("pipeline", "", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	p, err := resourceManager.CreatePipeline(
+		model.Pipeline{
+			Name:        "pipeline",
+			Description: "",
+			Namespace:   "",
+		},
+	)
+	assert.Nil(t, err)
+	_, err = resourceManager.CreatePipelineVersion(
+		model.PipelineVersion{
+			Name:         "pipeline",
+			PipelineId:   p.UUID,
+			PipelineSpec: "apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
+		},
+	)
 	assert.Nil(t, err)
 	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-426655441001", nil))
-	resourceManager = resource.NewResourceManager(clientManager)
-	_, err = resourceManager.CreatePipelineVersion(&api.PipelineVersion{
-		Name: "pipeline_version",
-		ResourceReferences: []*api.ResourceReference{
-			&api.ResourceReference{
-				Key: &api.ResourceKey{
-					Id:   resource.DefaultFakeUUID,
-					Type: api.ResourceType_PIPELINE,
-				},
-				Relationship: api.Relationship_OWNER,
-			},
+	resourceManager = resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	_, err = resourceManager.CreatePipelineVersion(
+		model.PipelineVersion{
+			Name:       "pipeline_version",
+			PipelineId: common.DefaultFakeUUID,
 		},
-	},
-		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"), true)
+	)
 	assert.Nil(t, err)
-	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(resource.NonDefaultFakeUUID, nil))
-	resourceManager = resource.NewResourceManager(clientManager)
+	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal(common.NonDefaultFakeUUID, nil))
+	resourceManager = resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	// Create another pipeline and then pipeline version.
-	_, err = resourceManager.CreatePipeline("anpther-pipeline", "", "", []byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"))
+	p1, err := resourceManager.CreatePipeline(
+		model.Pipeline{
+			Name:        "anpther-pipeline",
+			Description: "",
+			Namespace:   "",
+		},
+	)
+
+	assert.Nil(t, err)
+	_, err = resourceManager.CreatePipelineVersion(
+		model.PipelineVersion{
+			Name:         "anpther-pipeline",
+			PipelineId:   p1.UUID,
+			Description:  "",
+			PipelineSpec: "apiVersion: argoproj.io/v1alpha1\nkind: Workflow",
+		},
+	)
 	assert.Nil(t, err)
 
 	clientManager.UpdateUUID(util.NewFakeUUIDGeneratorOrFatal("123e4567-e89b-12d3-a456-426655441002", nil))
-	resourceManager = resource.NewResourceManager(clientManager)
-	_, err = resourceManager.CreatePipelineVersion(&api.PipelineVersion{
-		Name: "another_pipeline_version",
-		ResourceReferences: []*api.ResourceReference{
-			&api.ResourceReference{
-				Key: &api.ResourceKey{
-					Id:   resource.NonDefaultFakeUUID,
-					Type: api.ResourceType_PIPELINE,
-				},
-				Relationship: api.Relationship_OWNER,
-			},
+	resourceManager = resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	_, err = resourceManager.CreatePipelineVersion(
+		model.PipelineVersion{
+			Name:       "another_pipeline_version",
+			PipelineId: common.NonDefaultFakeUUID,
 		},
-	},
-		[]byte("apiVersion: argoproj.io/v1alpha1\nkind: Workflow"), true)
+	)
 	assert.Nil(t, err)
 	return clientManager
 }
@@ -259,18 +281,18 @@ func initWithOneTimeRun(t *testing.T) (*resource.FakeClientManager, *resource.Re
 		md := metadata.New(map[string]string{common.GoogleIAPUserIdentityHeader: common.GoogleIAPUserIdentityPrefix + "user@google.com"})
 		ctx = metadata.NewIncomingContext(context.Background(), md)
 	}
-	apiRun := &api.Run{
+	apiRun := &apiv1beta1.Run{
 		Name: "run1",
-		PipelineSpec: &api.PipelineSpec{
+		PipelineSpec: &apiv1beta1.PipelineSpec{
 			WorkflowManifest: testWorkflow.ToStringForStore(),
-			Parameters: []*api.Parameter{
+			Parameters: []*apiv1beta1.Parameter{
 				{Name: "param1", Value: "world"},
 			},
 		},
-		ResourceReferences: []*api.ResourceReference{
+		ResourceReferences: []*apiv1beta1.ResourceReference{
 			{
-				Key:          &api.ResourceKey{Type: api.ResourceType_EXPERIMENT, Id: exp.UUID},
-				Relationship: api.Relationship_OWNER,
+				Key:          &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: exp.UUID},
+				Relationship: apiv1beta1.Relationship_OWNER,
 			},
 		},
 	}
@@ -283,8 +305,22 @@ func initWithOneTimeRun(t *testing.T) (*resource.FakeClientManager, *resource.Re
 func initWithPipeline(t *testing.T) (*resource.FakeClientManager, *resource.ResourceManager, *model.Pipeline) {
 	initEnvVars()
 	store := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	manager := resource.NewResourceManager(store)
-	p, err := manager.CreatePipeline("p1", "", "", []byte(testWorkflow.ToStringForStore()))
+	manager := resource.NewResourceManager(store, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
+	p, err := manager.CreatePipeline(
+		model.Pipeline{
+			Name:        "p1",
+			Description: "",
+			Namespace:   "",
+		},
+	)
+	assert.Nil(t, err)
+	_, err = manager.CreatePipelineVersion(
+		model.PipelineVersion{
+			Name:         "p1",
+			PipelineId:   p.UUID,
+			PipelineSpec: testWorkflow.ToStringForStore(),
+		},
+	)
 	assert.Nil(t, err)
 	return store, manager, p
 }

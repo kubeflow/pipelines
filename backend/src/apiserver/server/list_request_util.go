@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import (
 	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/list"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 )
 
@@ -33,14 +34,14 @@ const (
 	maxPageSize     = 200
 )
 
-func ValidateFilterV1(referenceKey *api.ResourceKey) (*common.FilterContext, error) {
-	filterContext := &common.FilterContext{}
+func ValidateFilterV1(referenceKey *api.ResourceKey) (*model.FilterContext, error) {
+	filterContext := &model.FilterContext{}
 	if referenceKey != nil {
-		refType, err := common.ToModelResourceType(referenceKey.Type)
+		refType, err := ToModelResourceType(referenceKey.Type)
 		if err != nil {
 			return nil, util.Wrap(err, "Unrecognized resource reference type.")
 		}
-		filterContext.ReferenceKey = &common.ReferenceKey{Type: refType, ID: referenceKey.Id}
+		filterContext.ReferenceKey = &model.ReferenceKey{Type: refType, ID: referenceKey.Id}
 	}
 	return filterContext, nil
 }

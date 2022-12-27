@@ -1,3 +1,17 @@
+// Copyright 2018-2022 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package server
 
 import (
@@ -7,17 +21,11 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"encoding/json"
 	"io"
 	"io/ioutil"
-	"net/url"
 	"strings"
 
-	"github.com/kubeflow/pipelines/api/v2alpha1/go/pipelinespec"
-
-	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -25,38 +33,15 @@ import (
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
-// These are valid conditions of a ScheduledWorkflow.
-const (
-	MaxFileNameLength = 100
-	MaxFileLength     = 32 << 20 // 32Mb
-)
-
-// This method extract the common logic of naming the pipeline.
-// API caller can either explicitly name the pipeline through query string ?name=foobar
-// or API server can use the file name by default.
-func GetPipelineName(queryString string, fileName string) (string, error) {
-	pipelineName, err := url.QueryUnescape(queryString)
-	if err != nil {
-		return "", util.NewInvalidInputErrorWithDetails(err, "Pipeline name in the query string has invalid format.")
-	}
-	if pipelineName == "" {
-		pipelineName = fileName
-	}
-	if len(pipelineName) > MaxFileNameLength {
-		return "", util.NewInvalidInputError("Pipeline name too long. Support maximum length of %v", MaxFileNameLength)
-	}
-	return pipelineName, nil
-}
-
-func loadFile(fileReader io.Reader, maxFileLength int) ([]byte, error) {
+func loadFile(fileReader io.Reader, MaxFileLength int) ([]byte, error) {
 	reader := bufio.NewReader(fileReader)
-	pipelineFile := make([]byte, maxFileLength+1)
+	pipelineFile := make([]byte, MaxFileLength+1)
 	size, err := reader.Read(pipelineFile)
 	if err != nil && err != io.EOF {
 		return nil, util.NewInvalidInputErrorWithDetails(err, "Error read pipeline file.")
 	}
-	if size == maxFileLength+1 {
-		return nil, util.NewInvalidInputError("File size too large. Maximum supported size: %v", maxFileLength)
+	if size == MaxFileLength+1 {
+		return nil, util.NewInvalidInputError("File size too large. Maximum supported size: %v", MaxFileLength)
 	}
 
 	return pipelineFile[:size], nil
@@ -160,9 +145,9 @@ func DecompressPipelineZip(compressedFile []byte) ([]byte, error) {
 	return decompressedFile, err
 }
 
-func ReadPipelineFile(fileName string, fileReader io.Reader, maxFileLength int) ([]byte, error) {
+func ReadPipelineFile(fileName string, fileReader io.Reader, MaxFileLength int) ([]byte, error) {
 	// Read file into size limited byte array.
-	pipelineFileBytes, err := loadFile(fileReader, maxFileLength)
+	pipelineFileBytes, err := loadFile(fileReader, MaxFileLength)
 	if err != nil {
 		return nil, util.Wrap(err, "Error read pipeline file.")
 	}
@@ -184,161 +169,6 @@ func ReadPipelineFile(fileName string, fileReader io.Reader, maxFileLength int) 
 		return nil, util.Wrap(err, "Error decompress the pipeline file")
 	}
 	return processedFile, nil
-}
-
-func printParameters(params []*api.Parameter) string {
-	var s strings.Builder
-	for _, p := range params {
-		s.WriteString(p.String())
-	}
-	return s.String()
-}
-
-// Verify the input resource references has one and only reference which is owner experiment.
-func ValidateExperimentResourceReference(resourceManager *resource.ResourceManager, references []*api.ResourceReference) error {
-	if references == nil || len(references) == 0 || references[0] == nil {
-		return util.NewInvalidInputError("The resource reference is empty. Please specify which experiment owns this resource.")
-	}
-	if len(references) > 1 {
-		return util.NewInvalidInputError("Got more resource references than expected. Please only specify which experiment owns this resource.")
-	}
-	if references[0].Key.Type != api.ResourceType_EXPERIMENT {
-		return util.NewInvalidInputError("Unexpected resource type. Expected:%v. Got: %v",
-			api.ResourceType_EXPERIMENT, references[0].Key.Type)
-	}
-	if references[0].Key.Id == "" {
-		return util.NewInvalidInputError("Resource ID is empty. Please specify a valid ID")
-	}
-	if references[0].Relationship != api.Relationship_OWNER {
-		return util.NewInvalidInputError("Unexpected relationship for the experiment. Expected: %v. Got: %v",
-			api.Relationship_OWNER, references[0].Relationship)
-	}
-	if _, err := resourceManager.GetExperiment(references[0].Key.Id); err != nil {
-		return util.Wrap(err, "Failed to get experiment.")
-	}
-	return nil
-}
-
-func ValidatePipelineSpecAndResourceReferences(resourceManager *resource.ResourceManager, spec *api.PipelineSpec, resourceReferences []*api.ResourceReference) error {
-	pipelineId := spec.GetPipelineId()
-	workflowManifest := spec.GetWorkflowManifest()
-	pipelineManifest := spec.GetPipelineManifest()
-	pipelineVersionId := getPipelineVersionIdFromResourceReferences(resourceManager, resourceReferences)
-
-	if workflowManifest != "" || pipelineManifest != "" {
-		if workflowManifest != "" && pipelineManifest != "" {
-			return util.NewInvalidInputError("Please don't specify both workflow manifest and pipeline manifest.")
-		}
-		if pipelineId != "" || pipelineVersionId != "" {
-			return util.NewInvalidInputError("Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest or pipeline manifest.")
-		}
-		if err := validateWorkflowManifest(workflowManifest); err != nil {
-			return err
-		}
-		if err := validatePipelineManifest(pipelineManifest); err != nil {
-			return err
-		}
-	} else {
-		if pipelineId == "" && pipelineVersionId == "" {
-			return util.NewInvalidInputError("Please specify a pipeline by providing a (workflow manifest or pipeline manifest) or (pipeline id or/and pipeline version).")
-		}
-		if err := validatePipelineId(resourceManager, pipelineId); err != nil {
-			return err
-		}
-		if pipelineVersionId != "" {
-			// verify pipelineVersionId exists
-			pipelineVersion, err := resourceManager.GetPipelineVersion(pipelineVersionId)
-			if err != nil {
-				return util.Wrap(err, "Get pipelineVersionId failed.")
-			}
-			// verify pipelineId should be parent of pipelineVersionId
-			if pipelineId != "" && pipelineVersion.PipelineId != pipelineId {
-				return util.NewInvalidInputError("pipeline ID should be parent of pipeline version.")
-			}
-		}
-	}
-	if spec.GetParameters() != nil && spec.GetRuntimeConfig() != nil {
-		return util.NewInvalidInputError("Please don't specify both parameters and runtime config.")
-	}
-	if err := validateParameters(spec.GetParameters()); err != nil {
-		return err
-	}
-	if err := validateRuntimeConfig(spec.GetRuntimeConfig()); err != nil {
-		return err
-	}
-	return nil
-}
-func validateParameters(parameters []*api.Parameter) error {
-	if parameters != nil {
-		paramsBytes, err := json.Marshal(parameters)
-		if err != nil {
-			return util.NewInternalServerError(err,
-				"Failed to Marshall the pipeline parameters into bytes. Parameters: %s",
-				printParameters(parameters))
-		}
-		if len(paramsBytes) > util.MaxParameterBytes {
-			return util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
-		}
-	}
-	return nil
-}
-
-func validateRuntimeConfig(runtimeConfig *api.PipelineSpec_RuntimeConfig) error {
-	if runtimeConfig.GetParameters() != nil {
-		paramsBytes, err := json.Marshal(runtimeConfig.GetParameters())
-		if err != nil {
-			return util.NewInternalServerError(err,
-				"Failed to Marshall the runtime config parameters into bytes.")
-		}
-		if len(paramsBytes) > util.MaxParameterBytes {
-			return util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
-		}
-	}
-	return nil
-}
-
-func validatePipelineId(resourceManager *resource.ResourceManager, pipelineId string) error {
-	if pipelineId != "" {
-		// Verify pipeline exist
-		if _, err := resourceManager.GetPipeline(pipelineId); err != nil {
-			return util.Wrap(err, "Get pipelineId failed.")
-		}
-	}
-	return nil
-}
-
-func validateWorkflowManifest(workflowManifest string) error {
-	if workflowManifest != "" {
-		// Verify valid workflow template
-		var workflow util.Workflow
-		if err := json.Unmarshal([]byte(workflowManifest), &workflow); err != nil {
-			return util.NewInvalidInputErrorWithDetails(err,
-				"Invalid argo workflow format. Workflow: "+workflowManifest)
-		}
-	}
-	return nil
-}
-
-func validatePipelineManifest(pipelineManifest string) error {
-	if pipelineManifest != "" {
-		// Verify valid IR spec
-		spec := &pipelinespec.PipelineSpec{}
-		if err := yaml.Unmarshal([]byte(pipelineManifest), spec); err != nil {
-			return util.NewInvalidInputErrorWithDetails(err,
-				"Invalid IR spec format.")
-		}
-	}
-	return nil
-}
-
-func getPipelineVersionIdFromResourceReferences(resourceManager *resource.ResourceManager, resourceReferences []*api.ResourceReference) string {
-	var pipelineVersionId = ""
-	for _, resourceReference := range resourceReferences {
-		if resourceReference.Key.Type == api.ResourceType_PIPELINE_VERSION && resourceReference.Relationship == api.Relationship_CREATOR {
-			pipelineVersionId = resourceReference.Key.Id
-		}
-	}
-	return pipelineVersionId
 }
 
 // isAuthorized verifies whether the user identity, which is contained in the context object,

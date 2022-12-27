@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -288,6 +288,25 @@ func (e *UserError) GRPCStatus() *status1.Status {
 	return statWithDetail
 }
 
+// Converts an error to google.rpc.Status
+func ToRpcStatus(e error) *status.Status {
+	var grpcStatus *status1.Status
+	var rpcStatus *status.Status
+	grpcStatus, ok := status1.FromError(e)
+	if !ok {
+		grpcStatus = status1.Newf(
+			codes.Unknown,
+			"Failed to convert %T to GRPC Status. Check implementation of GRPCStatus(). %v.",
+			e,
+			e,
+		)
+	}
+	rpcStatus.Code = grpcStatus.Proto().GetCode()
+	rpcStatus.Message = grpcStatus.Proto().GetMessage()
+	rpcStatus.Details = grpcStatus.Proto().GetDetails()
+	return rpcStatus
+}
+
 func Wrapf(err error, format string, args ...interface{}) error {
 	if err == nil {
 		return nil
@@ -349,6 +368,34 @@ func ToGRPCError(err error) error {
 			return stat.Err()
 		}
 		return statWithDetail.Err()
+	}
+}
+
+func ToGRPCStatus(err error) *status1.Status {
+	switch err.(type) {
+	case *UserError:
+		if stat, ok := status1.FromError(err); !ok {
+			// Failed to stream error message as proto.
+			glog.Errorf("Failed to stream gRpc error. Error to be streamed: %v Error: %v", err.Error(), stat)
+			return stat
+		} else {
+			return stat
+		}
+	default:
+		externalMessage := fmt.Sprintf("Internal error: %+v", err)
+		stat := status1.New(codes.Internal, externalMessage)
+		statWithDetail, statErr := stat.
+			WithDetails(&status.Status{
+				Code:    int32(codes.Unknown),
+				Message: externalMessage,
+			})
+		if statErr != nil {
+			// Failed to stream error message as proto.
+			glog.Errorf("Failed to stream gRpc error. Error to be streamed: %v Error: %v",
+				externalMessage, statErr)
+			return stat
+		}
+		return statWithDetail
 	}
 }
 
