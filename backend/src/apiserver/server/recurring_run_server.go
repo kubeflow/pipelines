@@ -124,6 +124,21 @@ func (s *RecurringRunServer) CreateRecurringRun(ctx context.Context, request *ap
 }
 
 func (s *RecurringRunServer) GetRecurringRun(ctx context.Context, request *apiv2beta1.GetRecurringRunRequest) (*apiv2beta1.RecurringRun, error) {
+	if s.options.CollectMetrics {
+		getRecurringRunRequests.Inc()
+	}
+
+	err := s.canAccessRecurringRun(ctx, request.RecurringRunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+
+	recurringRun, err := s.resourceManager.GetJob(request.RecurringRunId)
+	if err != nil {
+		return nil, err
+	}
+	return ToApiRecurringRun(recurringRun), nil
+
 	return nil, util.NewInvalidInputError("GetRecurringRun succeed")
 }
 
