@@ -88,8 +88,8 @@ type PipelineStoreInterface interface {
 	//
 	// `pipelines` left joined with `pipeline_versions`
 	// This supports v1beta1 behavior.
-	GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, error)
-	ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error)
+	GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, *model.PipelineVersion, error)
+	ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error, string, error)
 
 	// `pipelines`
 	CreatePipeline(pipeline *model.Pipeline) (*model.Pipeline, error)
@@ -210,8 +210,9 @@ func (s *PipelineStore) scanPipelineVersionsRows(rows *sql.Rows) ([]*model.Pipel
 // TODO (gkcalat): consider removing after KFP v2 GA if users are not affected.
 // Parses SQL results of joining `pipelines` and `pipeline_versions` tables into []Pipelines.
 // This supports v1beta1 behavior.
-func (s *PipelineStore) scanJoinedRows(rows *sql.Rows) ([]*model.Pipeline, error) {
+func (s *PipelineStore) scanJoinedRows(rows *sql.Rows) ([]*model.Pipeline, []*model.PipelineVersion, error) {
 	var pipelines []*model.Pipeline
+	var pipelineVersions []*model.PipelineVersion
 	for rows.Next() {
 		var uuid, name, description string
 		var namespace sql.NullString
@@ -236,21 +237,8 @@ func (s *PipelineStore) scanJoinedRows(rows *sql.Rows) ([]*model.Pipeline, error
 			&versionStatus,
 			&versionCodeSourceUrl,
 			&versionDescription); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		// if defaultVersionId.Valid {
-		// 	pipelines = append(
-		// 		pipelines,
-		// 		&model.Pipeline{
-		// 			UUID:           uuid,
-		// 			CreatedAtInSec: createdAtInSec,
-		// 			Name:           name,
-		// 			Description:    description,
-		// 			Status:         status,
-		// 			Namespace:      namespace.String,
-		// 		},
-		// 	)
-		// } else {
 		pipelines = append(
 			pipelines,
 			&model.Pipeline{
@@ -262,9 +250,22 @@ func (s *PipelineStore) scanJoinedRows(rows *sql.Rows) ([]*model.Pipeline, error
 				Namespace:      namespace.String,
 			},
 		)
+		pipelineVersions = append(
+			pipelineVersions,
+			&model.PipelineVersion{
+				UUID:           versionUUID.String,
+				CreatedAtInSec: versionCreatedAtInSec.Int64,
+				Name:           versionName.String,
+				Parameters:     versionParameters.String,
+				PipelineId:     versionPipelineId.String,
+				Status:         model.PipelineVersionStatus(versionStatus.String),
+				CodeSourceUrl:  versionCodeSourceUrl.String,
+				Description:    versionDescription.String,
+			},
+		)
 		// }
 	}
-	return pipelines, nil
+	return pipelines, pipelineVersions, nil
 }
 
 // Inserts a record into `pipelines` table.
@@ -758,7 +759,7 @@ func (s *PipelineStore) DeletePipelineVersion(versionId string) error {
 // Returns the latest pipeline and the latest pipeline version specified by name and namespace.
 // Performance depends on the index (name, namespace) in `pipelines` table.
 // This supports v1beta1 behavior.
-func (s *PipelineStore) GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, error) {
+func (s *PipelineStore) GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, *model.PipelineVersion, error) {
 	sql, args, err := sq.
 		Select(joinedColumns...).
 		From("pipelines").
@@ -771,28 +772,28 @@ func (s *PipelineStore) GetPipelineByNameAndNamespaceV1(name string, namespace s
 		OrderBy("pipeline_versions.CreatedAtInSec DESC", "pipelines.CreatedAtInSec DESC"). // In case of duplicate (name, namespace combination), this will return the latest PipelineVersion
 		Limit(1).ToSql()
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to create query to get pipeline and pipeline version by name and namespace: %v", err.Error())
+		return nil, nil, util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to create query to get pipeline and pipeline version by name and namespace: %v", err.Error())
 	}
 	r, err := s.db.Query(sql, args...)
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to get pipeline and pipeline version by name and namespace: %v", err.Error())
+		return nil, nil, util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to get pipeline and pipeline version by name and namespace: %v", err.Error())
 	}
 	defer r.Close()
-	pipelines, err := s.scanJoinedRows(r)
+	pipelines, pipelineVersions, err := s.scanJoinedRows(r)
 	if err != nil || len(pipelines) > 1 {
-		return nil, util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to parse results of GetPipelineByNameAndNamespaceV1: %v", err.Error())
+		return nil, nil, util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to parse results of GetPipelineByNameAndNamespaceV1: %v", err.Error())
 	}
 	if len(pipelines) == 0 {
-		return nil, util.NewResourceNotFoundError("Pipeline and PipelineVersion", fmt.Sprint(name))
+		return nil, nil, util.NewResourceNotFoundError("Pipeline and PipelineVersion", fmt.Sprint(name))
 	}
-	return pipelines[0], nil
+	return pipelines[0], pipelineVersions[0], nil
 }
 
 // TODO (gkcalat): consider removing after KFP v2 GA if users are not affected.
 // Runs two SQL queries in a transaction to return a list of matching pipelines, as well as their
 // total_size. The total_size does not reflect the page size. Total_size reflects the number of pipeline_versions (not pipelines).
 // This supports v1beta1 behavior.
-func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error) {
+func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error, string, error) {
 	buildQuery := func(sqlBuilder sq.SelectBuilder) sq.SelectBuilder {
 		query := opts.AddFilterToSelect(sqlBuilder).From("pipelines").
 			LeftJoin("pipeline_versions ON pipelines.UUID = pipeline_versions.PipelineId") // this results in total_size reflecting the number of pipeline_versions
@@ -813,33 +814,33 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 	// SQL for row list
 	rowsSql, rowsArgs, err := opts.AddPaginationToSelect(sqlBuilder).ToSql()
 	if err != nil {
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to prepare a query to list pipelines: %v", err.Error())
+		return nil, nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to prepare a query to list pipelines: %v", err.Error()), "", nil
 	}
 
 	// SQL for getting total size. This matches the query to get all the rows above, in order
 	// to do the same filter, but counts instead of scanning the rows.
 	sizeSql, sizeArgs, err := buildQuery(sq.Select("count(*)")).ToSql()
 	if err != nil {
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to prepare a query to count pipelines: %v", err.Error())
+		return nil, nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to prepare a query to count pipelines: %v", err.Error()), "", nil
 	}
 
 	// Use a transaction to make sure we're returning the total_size of the same rows queried
 	tx, err := s.db.Begin()
 	if err != nil {
 		glog.Errorf("PipelineStore (v1beta1): Failed to start transaction to list pipelines")
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to start transaction to list pipelines: %v", err.Error())
+		return nil, nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to start transaction to list pipelines: %v", err.Error()), "", nil
 	}
 
 	// Get pipelines
 	rows, err := tx.Query(rowsSql, rowsArgs...)
 	if err != nil {
 		tx.Rollback()
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to execute SQL for listing pipelines: %v", err.Error())
+		return nil, nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to execute SQL for listing pipelines: %v", err.Error()), "", nil
 	}
-	pipelines, err := s.scanJoinedRows(rows)
+	pipelines, pipelineVersions, err := s.scanJoinedRows(rows)
 	if err != nil {
 		tx.Rollback()
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to parse results of listing pipelines: %v", err.Error())
+		return nil, nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to parse results of listing pipelines: %v", err.Error()), "", nil
 	}
 	rows.Close()
 
@@ -847,12 +848,12 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 	sizeRow, err := tx.Query(sizeSql, sizeArgs...)
 	if err != nil {
 		tx.Rollback()
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to count pipelines: %v", err.Error())
+		return nil, nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to count pipelines: %v", err.Error()), "", nil
 	}
 	total_size, err := list.ScanRowToTotalSize(sizeRow)
 	if err != nil {
 		tx.Rollback()
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to parse results of counting pipelines: %v", err.Error())
+		return nil, nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to parse results of counting pipelines: %v", err.Error()), "", nil
 	}
 	sizeRow.Close()
 
@@ -860,15 +861,16 @@ func (s *PipelineStore) ListPipelinesV1(filterContext *model.FilterContext, opts
 	err = tx.Commit()
 	if err != nil {
 		glog.Errorf("PipelineStore (v1beta1): Failed to commit transaction to list pipelines")
-		return nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to commit listing pipelines: %v", err.Error())
+		return nil, nil, 0, "", util.NewInternalServerError(err, "PipelineStore (v1beta1): Failed to commit listing pipelines: %v", err.Error()), "", nil
 	}
 
 	// Split results on multiple pages, if needed
 	if len(pipelines) <= opts.PageSize {
-		return pipelines, total_size, "", nil
+		return pipelines, pipelineVersions, total_size, "", nil, "", nil
 	}
-	npt, err := opts.NextPageToken(pipelines[opts.PageSize])
-	return pipelines[:opts.PageSize], total_size, npt, err
+	npt1, err1 := opts.NextPageToken(pipelines[opts.PageSize])
+	npt2, err2 := opts.NextPageToken(pipelineVersions[opts.PageSize])
+	return pipelines[:opts.PageSize], pipelineVersions[:opts.PageSize], total_size, npt1, err1, npt2, err2
 }
 
 // // Deprecated in v2beta1

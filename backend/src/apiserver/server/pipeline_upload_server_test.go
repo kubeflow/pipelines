@@ -188,25 +188,34 @@ func TestUploadPipeline_Tarball(t *testing.T) {
 	// Verify metadata in db
 	pkgsExpect := []*model.Pipeline{
 		{
-			UUID:             common.DefaultFakeUUID,
-			CreatedAtInSec:   1,
-			Name:             "arguments.tar.gz",
-			Parameters:       "[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]",
-			Status:           model.PipelineReady,
-			DefaultVersionId: common.DefaultFakeUUID,
-			DefaultVersion: &model.PipelineVersion{
-				UUID:           common.DefaultFakeUUID,
-				CreatedAtInSec: 1,
-				Name:           "arguments.tar.gz",
-				Parameters:     "[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]",
-				Status:         model.PipelineVersionReady,
-				PipelineId:     common.DefaultFakeUUID,
-			}}}
+			UUID:           common.DefaultFakeUUID,
+			CreatedAtInSec: 1,
+			Name:           "arguments.tar.gz",
+			Status:         model.PipelineReady,
+		},
+	}
 	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, str, "")
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, pkgsExpect, pkg)
+
+	pkgsExpect2 := []*model.PipelineVersion{
+		{
+			UUID:           common.DefaultFakeUUID,
+			CreatedAtInSec: 1,
+			Name:           "arguments.tar.gz",
+			Parameters:     "[{\"name\":\"param1\",\"value\":\"hello\"},{\"name\":\"param2\"}]",
+			Status:         model.PipelineVersionReady,
+			PipelineId:     common.DefaultFakeUUID,
+		},
+	}
+	opts2, err := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
+	pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(common.DefaultFakeUUID, opts2)
+	assert.Nil(t, err)
+	assert.Equal(t, str, "")
+	assert.Equal(t, 1, totalSize)
+	assert.Equal(t, pkgsExpect2, pkg2)
 
 	// Upload a new version under this pipeline
 
@@ -283,25 +292,36 @@ func TestUploadPipeline_SpecifyFileName(t *testing.T) {
 	// Verify metadata in db
 	pkgsExpect := []*model.Pipeline{
 		{
-			UUID:             common.DefaultFakeUUID,
-			CreatedAtInSec:   1,
-			Name:             "foo bar",
-			Parameters:       "[]",
-			Status:           model.PipelineReady,
-			DefaultVersionId: common.DefaultFakeUUID,
-			DefaultVersion: &model.PipelineVersion{
-				UUID:           common.DefaultFakeUUID,
-				CreatedAtInSec: 1,
-				Name:           "foo bar",
-				Parameters:     "[]",
-				Status:         model.PipelineVersionReady,
-				PipelineId:     common.DefaultFakeUUID,
-			}}}
+			UUID:           common.DefaultFakeUUID,
+			CreatedAtInSec: 1,
+			Name:           "foo bar",
+			Status:         model.PipelineReady,
+		},
+	}
 	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, str, "")
 	assert.Equal(t, pkgsExpect, pkg)
+
+	opts2, err := list.NewOptions(&model.PipelineVersion{}, 2, "", nil)
+	assert.Nil(t, err)
+	pkgsExpect2 := []*model.PipelineVersion{
+		{
+
+			UUID:           common.DefaultFakeUUID,
+			CreatedAtInSec: 1,
+			Name:           "foo bar",
+			Parameters:     "[]",
+			Status:         model.PipelineVersionReady,
+			PipelineId:     common.DefaultFakeUUID,
+		},
+	}
+	pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(common.DefaultFakeUUID, opts2)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, totalSize)
+	assert.Equal(t, str, "")
+	assert.Equal(t, pkgsExpect2, pkg2)
 }
 
 func TestUploadPipeline_FileNameTooLong(t *testing.T) {
@@ -336,27 +356,36 @@ func TestUploadPipeline_SpecifyFileDescription(t *testing.T) {
 	// Verify metadata in db
 	pkgsExpect := []*model.Pipeline{
 		{
-			UUID:             common.DefaultFakeUUID,
-			CreatedAtInSec:   1,
-			Name:             "foo bar",
-			Parameters:       "[]",
-			Status:           model.PipelineReady,
-			DefaultVersionId: common.DefaultFakeUUID,
-			DefaultVersion: &model.PipelineVersion{
-				UUID:           common.DefaultFakeUUID,
-				CreatedAtInSec: 1,
-				Name:           "foo bar",
-				Parameters:     "[]",
-				Status:         model.PipelineVersionReady,
-				PipelineId:     common.DefaultFakeUUID,
-			},
-			Description: "description of foo bar",
-		}}
+			UUID:           common.DefaultFakeUUID,
+			CreatedAtInSec: 1,
+			Name:           "foo bar",
+			Status:         model.PipelineReady,
+			Description:    "description of foo bar",
+		},
+	}
 	pkg, totalSize, str, err := clientManager.PipelineStore().ListPipelines(&model.FilterContext{}, opts)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, totalSize)
 	assert.Equal(t, str, "")
 	assert.Equal(t, pkgsExpect, pkg)
+
+	opts2, err := list.NewOptions(&model.Pipeline{}, 2, "", nil)
+	assert.Nil(t, err)
+	pkgsExpect2 := []*model.PipelineVersion{
+		{
+			UUID:           common.DefaultFakeUUID,
+			CreatedAtInSec: 1,
+			Name:           "foo bar",
+			Parameters:     "[]",
+			Status:         model.PipelineVersionReady,
+			PipelineId:     common.DefaultFakeUUID,
+		},
+	}
+	pkg2, totalSize, str, err := clientManager.PipelineStore().ListPipelineVersions(common.DefaultFakeUUID, opts2)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, totalSize)
+	assert.Equal(t, str, "")
+	assert.Equal(t, pkgsExpect2, pkg2)
 }
 
 func TestUploadPipelineVersion_GetFromFileError(t *testing.T) {
@@ -424,10 +453,10 @@ func TestDefaultNotUpdatedPipelineVersion(t *testing.T) {
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineVersion)
 	assert.Equal(t, 200, response.Code)
 
-	pipeline, err := clientManager.PipelineStore().GetPipeline(common.DefaultFakeUUID)
+	_, err = clientManager.PipelineStore().GetPipeline(common.DefaultFakeUUID)
 	assert.Nil(t, err)
-	assert.Equal(t, pipeline.DefaultVersionId, common.DefaultFakeUUID)
-	assert.NotEqual(t, pipeline.DefaultVersionId, fakeVersionUUID)
+	// assert.Equal(t, pipeline.DefaultVersionId, common.DefaultFakeUUID)
+	// assert.NotEqual(t, pipeline.DefaultVersionId, fakeVersionUUID)
 }
 
 func TestDefaultUpdatedPipelineVersion(t *testing.T) {
@@ -452,9 +481,9 @@ func TestDefaultUpdatedPipelineVersion(t *testing.T) {
 		bytes.NewReader(bytesBuffer.Bytes()), writer, server.UploadPipelineVersion)
 	assert.Equal(t, 200, response.Code)
 
-	pipeline, err := clientManager.PipelineStore().GetPipeline(common.DefaultFakeUUID)
+	pipelineVersion2, err := clientManager.PipelineStore().GetLatestPipelineVersion(common.DefaultFakeUUID)
 	assert.Nil(t, err)
-	assert.Equal(t, pipeline.DefaultVersionId, fakeVersionUUID)
+	assert.Equal(t, pipelineVersion2.UUID, fakeVersionUUID)
 }
 
 func setWriterWithBuffer(fieldname string, filename string, buffer string, writer *multipart.Writer) {
@@ -480,14 +509,14 @@ func setupWriter(text string) (*bytes.Buffer, *multipart.Writer) {
 
 func setupClientManagerAndServer() (*resource.FakeClientManager, PipelineUploadServer) {
 	clientManager := resource.NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
-	resourceManager := resource.NewResourceManager(clientManager)
+	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	return clientManager, server
 }
 
 func updateClientManager(clientManager *resource.FakeClientManager, uuid util.UUIDGeneratorInterface) PipelineUploadServer {
 	clientManager.UpdateUUID(uuid)
-	resourceManager := resource.NewResourceManager(clientManager)
+	resourceManager := resource.NewResourceManager(clientManager, map[string]interface{}{"DefaultNamespace": "default", "ApiVersion": "v2beta1"})
 	server := PipelineUploadServer{resourceManager: resourceManager, options: &PipelineUploadServerOptions{CollectMetrics: false}}
 	return server
 }

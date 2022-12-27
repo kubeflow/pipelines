@@ -630,7 +630,7 @@ func (s *PipelineServer) ListPipelinesV1(ctx context.Context, request *apiv1beta
 	if err != nil {
 		return nil, util.Wrap(err, "List pipelines failed.")
 	}
-	apiPipelines := ToApiPipelines(pipelines)
+	apiPipelines := ToApiPipelinesV1(pipelines)
 	return &apiv1beta1.ListPipelinesResponse{Pipelines: apiPipelines, TotalSize: int32(total_size), NextPageToken: nextPageToken}, nil
 }
 
@@ -682,24 +682,6 @@ func (s *PipelineServer) ListPipelineVersionsV1(ctx context.Context, request *ap
 		Versions:      apiPipelineVersions,
 		NextPageToken: nextPageToken,
 		TotalSize:     int32(totalSize)}, nil
-}
-
-func (s *PipelineServer) UpdatePipelineDefaultVersionV1(ctx context.Context, request *apiv1beta1.UpdatePipelineDefaultVersionRequest) (*empty.Empty, error) {
-	if s.options.CollectMetrics {
-		updatePipelineDefaultVersionRequests.Inc()
-	}
-	resourceAttributes := &authorizationv1.ResourceAttributes{
-		Verb: common.RbacResourceVerbUpdate,
-	}
-	err := s.canAccessPipeline(ctx, request.PipelineId, resourceAttributes)
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to authorize the requests.")
-	}
-	err = s.resourceManager.UpdatePipelineDefaultVersion(request.PipelineId, request.VersionId)
-	if err != nil {
-		return nil, util.Wrap(err, "Update Pipeline Default Version failed.")
-	}
-	return &empty.Empty{}, nil
 }
 
 func (s *PipelineServer) DeletePipelineV1(ctx context.Context, request *apiv1beta1.DeletePipelineRequest) (*empty.Empty, error) {

@@ -404,8 +404,8 @@ func (r *ResourceManager) ListPipelines(filterContext *model.FilterContext, opts
 // TODO (gkcalat): consider removing after KFP v2 GA if users are not affected.
 // Returns a list of pipelines using LEFT JOIN on SQL query.
 // This could be more performant for a large number of pipeline versions.
-func (r *ResourceManager) ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, int, string, error) {
-	pipelines, total_size, nextPageToken, err := r.pipelineStore.ListPipelinesV1(filterContext, opts)
+func (r *ResourceManager) ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
+	pipelines, pipelineVersions, total_size, nextPageToken, err, nextPageTokenVersions, errVersions := r.pipelineStore.ListPipelinesV1(filterContext, opts)
 	if err != nil {
 		err = util.Wrap(err, fmt.Sprintf("ResourceManager (v1beta1): Failed to list pipelines with context %v, options %v.", filterContext, opts))
 	}
