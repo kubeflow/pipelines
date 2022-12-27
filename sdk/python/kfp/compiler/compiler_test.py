@@ -29,6 +29,7 @@ from kfp import components
 from kfp import dsl
 from kfp.cli import cli
 from kfp.compiler import compiler
+from kfp.compiler import compiler_utils
 from kfp.components.types import type_utils
 from kfp.dsl import Artifact
 from kfp.dsl import ContainerSpec
@@ -453,27 +454,6 @@ class TestCompilePipeline(parameterized.TestCase):
 
                 dummy_op(msg=producer_task.output)
 
-    def test_valid_data_dependency_loop(self):
-
-        @dsl.component
-        def producer_op() -> str:
-            return 'a'
-
-        @dsl.component
-        def dummy_op(msg: str = ''):
-            pass
-
-        @dsl.pipeline(name='test-pipeline')
-        def my_pipeline(val: bool):
-            with dsl.ParallelFor(['a, b']):
-                producer_task = producer_op()
-                dummy_op(msg=producer_task.output)
-
-        with tempfile.TemporaryDirectory() as tmpdir:
-            package_path = os.path.join(tmpdir, 'pipeline.yaml')
-            compiler.Compiler().compile(
-                pipeline_func=my_pipeline, package_path=package_path)
-
     def test_invalid_data_dependency_condition(self):
 
         @dsl.component
@@ -690,8 +670,7 @@ implementation:
                                 pipeline_spec['deploymentSpec']['executors'])
 
     def test_pipeline_with_invalid_output(self):
-        with self.assertRaisesRegex(ValueError,
-                                    'Pipeline output not defined: msg1'):
+        with self.assertRaisesRegex(ValueError, 'DAG output not defined: msg1'):
 
             @dsl.component
             def print_op(msg: str) -> str:
@@ -2650,6 +2629,170 @@ class TestCompileOptionalArtifacts(unittest.TestCase):
             def my_pipeline(x: Input[Artifact] = Artifact(
                 name='', uri='', metadata={})):
                 comp()
+
+
+class TestIllegalFanInCollection(unittest.TestCase):
+
+    def test_no_aggregated(self):
+        from typing import List
+
+        from kfp import dsl
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        with self.assertRaisesRegex(
+                type_utils.InconsistentTypeException,
+                'Argument type "NUMBER_INTEGER" is incompatible with the input type "LIST"'
+        ):
+
+            @dsl.pipeline
+            def math_pipeline() -> int:
+                with dsl.ParallelFor([1, 2, 3]) as f:
+                    t = double(num=f)
+
+                return add(nums=t.output).output
+
+    def test_missing_Collected(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        # this error will only be surfaced if the annotation is correct,
+        # since the type-checker would catch the type LIST v primitive type
+        # mismatch first
+        @dsl.component
+        def add(nums: int) -> int:
+            return nums
+
+        with self.assertRaisesRegex(
+                RuntimeError,
+                r'Tasks cannot depend on an upstream task inside a ParallelFor that is not a common ancestor of both tasks\. Task add depends on upstream task double\. Did you mean to use dsl\.Collected to fan-in outputs from a ParallelFor sub-DAG?'
+        ):
+
+            @dsl.pipeline
+            def math_pipeline() -> int:
+                with dsl.ParallelFor([1, 2, 3]) as f:
+                    t = double(num=f)
+
+                return add(nums=t.output).output
+
+    def test_producer_condition_legal1(self):
+        from kfp import dsl
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        @dsl.pipeline
+        def math_pipeline(text: str) -> int:
+            with dsl.Condition(text == 'text'):
+                with dsl.ParallelFor([1, 2, 3]) as f:
+                    t = double(num=f)
+
+                return add(nums=dsl.Collected(t.output)).output
+
+    def test_producer_condition_legal2(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        @dsl.pipeline
+        def my_pipeline(text: str = ''):
+            with dsl.ParallelFor([1, 2, 3]) as f:
+                with dsl.Condition(text == 'text'):
+                    t = double(num=f)
+
+            with dsl.Condition(text == 'text'):
+                x = add(nums=dsl.Collected(t.output))
+
+    def test_producer_condition_illegal1(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Tasks cannot depend on an upstream task inside Condition that is not a common ancestor of both tasks\. Task add depends on upstream task double\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(text: str = ''):
+                with dsl.Condition(text == 'text'):
+                    with dsl.ParallelFor([1, 2, 3]) as f:
+                        t = double(num=f)
+
+                with dsl.Condition(text == 'text'):
+                    x = add(nums=dsl.Collected(t.output))
+
+    def test_producer_condition_illegal2(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                r'Tasks cannot depend on an upstream task inside Condition that is not a common ancestor of both tasks\. Task add depends on upstream task double\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(text: str = ''):
+                with dsl.Condition(text == 'a'):
+                    with dsl.Condition(text == 'b'):
+                        with dsl.ParallelFor([1, 2, 3]) as f:
+                            t = double(num=f)
+                    add(nums=dsl.Collected(t.output))
+
+    def test_producer_exit_handler_illegal1(self):
+
+        @dsl.component
+        def double(num: int) -> int:
+            return 2 * num
+
+        @dsl.component
+        def exit_comp():
+            print('Running exit task!')
+
+        @dsl.component
+        def add(nums: List[int]) -> int:
+            return sum(nums)
+
+        with self.assertRaisesRegex(
+                compiler_utils.InvalidTopologyException,
+                'Tasks cannot depend on an upstream task inside ExitHandler that is not a common ancestor of both tasks\. Task add depends on upstream task double\.'
+        ):
+
+            @dsl.pipeline
+            def my_pipeline(text: str = ''):
+                with dsl.ExitHandler(exit_comp()):
+                    with dsl.ParallelFor([1, 2, 3]) as f:
+                        t = double(num=f)
+                add(nums=dsl.Collected(t.output))
 
 
 if __name__ == '__main__':

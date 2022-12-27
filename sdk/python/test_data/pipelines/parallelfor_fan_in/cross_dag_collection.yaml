@@ -1,0 +1,508 @@
+# PIPELINE DEFINITION
+# Name: math-pipeline
+components:
+  comp-add:
+    executorLabel: exec-add
+    inputDefinitions:
+      parameters:
+        nums:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-add-2:
+    executorLabel: exec-add-2
+    inputDefinitions:
+      parameters:
+        nums:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-add-3:
+    executorLabel: exec-add-3
+    inputDefinitions:
+      parameters:
+        nums:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-add-4:
+    executorLabel: exec-add-4
+    inputDefinitions:
+      parameters:
+        nums:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-add-5:
+    executorLabel: exec-add-5
+    inputDefinitions:
+      parameters:
+        nums:
+          parameterType: LIST
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-double:
+    executorLabel: exec-double
+    inputDefinitions:
+      parameters:
+        num:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-double-2:
+    executorLabel: exec-double-2
+    inputDefinitions:
+      parameters:
+        num:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-double-3:
+    executorLabel: exec-double-3
+    inputDefinitions:
+      parameters:
+        num:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        Output:
+          parameterType: NUMBER_INTEGER
+  comp-for-loop-2:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--double-2-Output:
+            valueFromParameter:
+              outputParameterKey: pipelinechannel--double-2-Output
+              producerSubtask: for-loop-4
+          pipelinechannel--double-3-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: double-3
+          pipelinechannel--double-Output:
+            valueFromParameter:
+              outputParameterKey: pipelinechannel--double-Output
+              producerSubtask: for-loop-4
+      tasks:
+        add:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-add
+          dependentTasks:
+          - for-loop-4
+          inputs:
+            parameters:
+              nums:
+                taskOutputParameter:
+                  outputParameterKey: pipelinechannel--double-Output
+                  producerTask: for-loop-4
+          taskInfo:
+            name: add
+        add-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-add-2
+          dependentTasks:
+          - for-loop-4
+          inputs:
+            parameters:
+              nums:
+                taskOutputParameter:
+                  outputParameterKey: pipelinechannel--double-2-Output
+                  producerTask: for-loop-4
+          taskInfo:
+            name: add-2
+        double-3:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-double-3
+          inputs:
+            parameters:
+              num:
+                componentInputParameter: pipelinechannel--loop-item-param-1
+          taskInfo:
+            name: double-3
+        for-loop-4:
+          componentRef:
+            name: comp-for-loop-4
+          inputs:
+            parameters:
+              pipelinechannel--loop-item-param-1:
+                componentInputParameter: pipelinechannel--loop-item-param-1
+          parameterIterator:
+            itemInput: pipelinechannel--loop-item-param-3
+            items:
+              raw: '[4, 5, 6]'
+          taskInfo:
+            name: for-loop-4
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        pipelinechannel--double-2-Output:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--double-3-Output:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--double-Output:
+          parameterType: NUMBER_INTEGER
+  comp-for-loop-4:
+    dag:
+      outputs:
+        parameters:
+          pipelinechannel--double-2-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: double-2
+          pipelinechannel--double-Output:
+            valueFromParameter:
+              outputParameterKey: Output
+              producerSubtask: double
+      tasks:
+        double:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-double
+          inputs:
+            parameters:
+              num:
+                componentInputParameter: pipelinechannel--loop-item-param-3
+          taskInfo:
+            name: double
+        double-2:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-double-2
+          inputs:
+            parameters:
+              num:
+                componentInputParameter: pipelinechannel--loop-item-param-1
+          taskInfo:
+            name: double-2
+    inputDefinitions:
+      parameters:
+        pipelinechannel--loop-item-param-1:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--loop-item-param-3:
+          parameterType: NUMBER_INTEGER
+    outputDefinitions:
+      parameters:
+        pipelinechannel--double-2-Output:
+          parameterType: NUMBER_INTEGER
+        pipelinechannel--double-Output:
+          parameterType: NUMBER_INTEGER
+  comp-for-loop-6:
+    dag:
+      tasks:
+        add-4:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-add-4
+          inputs:
+            parameters:
+              nums:
+                componentInputParameter: pipelinechannel--for-loop-2-pipelinechannel--double-2-Output
+          taskInfo:
+            name: add-4
+        add-5:
+          cachingOptions:
+            enableCache: true
+          componentRef:
+            name: comp-add-5
+          inputs:
+            parameters:
+              nums:
+                componentInputParameter: pipelinechannel--for-loop-2-pipelinechannel--double-3-Output
+          taskInfo:
+            name: add-5
+    inputDefinitions:
+      parameters:
+        pipelinechannel--for-loop-2-pipelinechannel--double-2-Output:
+          parameterType: LIST
+        pipelinechannel--for-loop-2-pipelinechannel--double-3-Output:
+          parameterType: LIST
+        pipelinechannel--loop-item-param-5:
+          parameterType: NUMBER_INTEGER
+deploymentSpec:
+  executors:
+    exec-add:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - add
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.9'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef add(nums: List[int]) -> int:\n    return sum(nums)\n\n"
+        image: python:3.7
+    exec-add-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - add
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.9'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef add(nums: List[int]) -> int:\n    return sum(nums)\n\n"
+        image: python:3.7
+    exec-add-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - add
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.9'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef add(nums: List[int]) -> int:\n    return sum(nums)\n\n"
+        image: python:3.7
+    exec-add-4:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - add
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.9'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef add(nums: List[int]) -> int:\n    return sum(nums)\n\n"
+        image: python:3.7
+    exec-add-5:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - add
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.9'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef add(nums: List[int]) -> int:\n    return sum(nums)\n\n"
+        image: python:3.7
+    exec-double:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - double
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.9'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef double(num: int) -> int:\n    return 2 * num\n\n"
+        image: python:3.7
+    exec-double-2:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - double
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.9'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef double(num: int) -> int:\n    return 2 * num\n\n"
+        image: python:3.7
+    exec-double-3:
+      container:
+        args:
+        - --executor_input
+        - '{{$}}'
+        - --function_to_execute
+        - double
+        command:
+        - sh
+        - -c
+        - "\nif ! [ -x \"$(command -v pip)\" ]; then\n    python3 -m ensurepip ||\
+          \ python3 -m ensurepip --user || apt-get install python3-pip\nfi\n\nPIP_DISABLE_PIP_VERSION_CHECK=1\
+          \ python3 -m pip install --quiet     --no-warn-script-location 'kfp==2.0.0-beta.9'\
+          \ && \"$0\" \"$@\"\n"
+        - sh
+        - -ec
+        - 'program_path=$(mktemp -d)
+
+          printf "%s" "$0" > "$program_path/ephemeral_component.py"
+
+          python3 -m kfp.components.executor_main                         --component_module_path                         "$program_path/ephemeral_component.py"                         "$@"
+
+          '
+        - "\nimport kfp\nfrom kfp import dsl\nfrom kfp.dsl import *\nfrom typing import\
+          \ *\n\ndef double(num: int) -> int:\n    return 2 * num\n\n"
+        image: python:3.7
+pipelineInfo:
+  name: math-pipeline
+root:
+  dag:
+    tasks:
+      add-3:
+        cachingOptions:
+          enableCache: true
+        componentRef:
+          name: comp-add-3
+        dependentTasks:
+        - for-loop-2
+        inputs:
+          parameters:
+            nums:
+              taskOutputParameter:
+                outputParameterKey: pipelinechannel--double-Output
+                producerTask: for-loop-2
+        taskInfo:
+          name: add-3
+      for-loop-2:
+        componentRef:
+          name: comp-for-loop-2
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-1
+          items:
+            raw: '[1, 2, 3]'
+        taskInfo:
+          name: for-loop-2
+      for-loop-6:
+        componentRef:
+          name: comp-for-loop-6
+        dependentTasks:
+        - for-loop-2
+        inputs:
+          parameters:
+            pipelinechannel--for-loop-2-pipelinechannel--double-2-Output:
+              taskOutputParameter:
+                outputParameterKey: pipelinechannel--double-2-Output
+                producerTask: for-loop-2
+            pipelinechannel--for-loop-2-pipelinechannel--double-3-Output:
+              taskOutputParameter:
+                outputParameterKey: pipelinechannel--double-3-Output
+                producerTask: for-loop-2
+        parameterIterator:
+          itemInput: pipelinechannel--loop-item-param-5
+          items:
+            raw: '[1, 2, 3]'
+        taskInfo:
+          name: for-loop-6
+schemaVersion: 2.1.0
+sdkVersion: kfp-2.0.0-beta.9
