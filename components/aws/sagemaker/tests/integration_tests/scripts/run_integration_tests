@@ -116,7 +116,7 @@ set -e
 function launch_eks() {
   echo "[Creating EKS] Launching EKS cluster $EKS_CLUSTER_NAME"
 
-  eksctl_args=( --managed --nodes "${EKS_NODE_COUNT}" --node-type=c5.xlarge --timeout=60m --region "${REGION}" --auto-kubeconfig --version "${EKS_CLUSTER_VERSION}" )
+  eksctl_args=( --managed --nodes "${EKS_NODE_COUNT}" --node-type=c5.xlarge --timeout=60m --region "${REGION}" --version "${EKS_CLUSTER_VERSION}" )
   [ ! -z "${EKS_PUBLIC_SUBNETS}" ] && eksctl_args+=( --vpc-public-subnets="${EKS_PUBLIC_SUBNETS}" )
   [ ! -z "${EKS_PRIVATE_SUBNETS}" ] && eksctl_args+=( --vpc-private-subnets="${EKS_PRIVATE_SUBNETS}" )
 
@@ -124,7 +124,7 @@ function launch_eks() {
 
   yq -i ".managedNodeGroups[0].disableIMDSv1 = true" generated-cluster.yaml
 
-  eksctl create cluster -f generated-cluster.yaml
+  eksctl create cluster -f generated-cluster.yaml --auto-kubeconfig
   rm generated-cluster.yaml
 
   aws eks update-kubeconfig --name "$EKS_CLUSTER_NAME" --region "$REGION"
