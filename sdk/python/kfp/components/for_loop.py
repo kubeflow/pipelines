@@ -272,3 +272,70 @@ class LoopArgumentVariable(pipeline_channel.PipelineChannel):
             The name of this loop arg variable.
         """
         return f'{loop_arg_name}{self.SUBVAR_NAME_DELIMITER}{subvar_name}'
+
+
+class Aggregated(pipeline_channel.PipelineChannel):
+    output_no = 0
+
+    def __init__(self, output) -> None:
+        self.output = output
+
+    def set_consumer_task(self, task: 'PipelineTask') -> None:
+        modified_channel = self._traverse_parent_groups_and_set_outputs(
+            self.output, task)
+        super().__init__(
+            name=modified_channel.name,
+            channel_type=modified_channel.channel_type,
+            task_name=modified_channel.task_name,
+        )
+
+    def _make_new_channel_for_group(
+        self,
+        name: str,
+        starting_channel: pipeline_channel.PipelineChannel,
+        task_name: 'TasksGroup',
+    ) -> pipeline_channel.PipelineChannel:
+        return starting_channel.__class__(
+            name,
+            channel_type=starting_channel.channel_type if isinstance(
+                starting_channel, pipeline_channel.PipelineArtifactChannel) else
+            'LIST',
+            task_name=task_name,
+        )
+
+    def _traverse_parent_groups_and_set_outputs(
+        self,
+        channel: pipeline_channel.PipelineChannel,
+        consumer_task: 'PipelineTask',
+    ):
+        from kfp.components import pipeline_task
+
+        producer_task = channel.task_or_group
+        parent_group = producer_task.parent_task_group
+        inner_name = channel.name
+        outer_name = f'output-{self.output_no}'
+
+        assert isinstance(
+            producer_task, pipeline_task.PipelineTask
+        ), 'The first output producer should always be a primitive task, not a TasksGroup.'
+
+        while consumer_task not in parent_group.tasks:
+            # iterately surface the producer task's outputs from the immediate
+            # parent group until the group we're surfacing is at the same
+            # level as the consumer task
+            parent_group.outputs_to_surface[
+                outer_name] = self._make_new_channel_for_group(
+                    inner_name,
+                    channel,
+                    producer_task.name,
+                )
+
+            inner_name, outer_name = outer_name, f'output-{self.output_no}'
+            producer_task = parent_group
+            parent_group = parent_group.parent_task_group
+
+        return self._make_new_channel_for_group(
+            f'output-{self.output_no}',
+            channel,
+            producer_task.name,
+        )

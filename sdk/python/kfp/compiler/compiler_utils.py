@@ -237,7 +237,9 @@ def get_inputs_for_all_groups(
             if isinstance(channel_to_add, pipeline_channel.PipelineChannel):
                 channels_to_add.append(channel_to_add)
 
-            if channel.task_name:
+            if channel.task_name and not isinstance(channel.task_or_group,
+                                                    tasks_group.TasksGroup):
+
                 # The PipelineChannel is produced by a task.
 
                 upstream_task = pipeline.tasks[channel.task_name]
@@ -274,7 +276,13 @@ def get_inputs_for_all_groups(
                             channels_to_add.pop()
                             if not channels_to_add:
                                 break
-
+            elif isinstance(channel, for_loop.Aggregated):
+                # Don't create compiler-injected inputs for fan-in.
+                # This is data passing in the opposite direction: instead of
+                # passing inputs from a parent task group to a child task
+                # group/task (what this function handles), instead surface
+                # outputs from inner tasks to one or more parent groups
+                pass
             else:
                 # The PipelineChannel is not produced by a task. It's either
                 # a top-level pipeline input, or a constant value to loop
@@ -433,6 +441,7 @@ def get_dependencies(
             uncommon_upstream_groups.remove(
                 upstream_task.name
             )  # because a task's `upstream_groups` contains the task's name
+            skip = False
             if uncommon_upstream_groups:
                 dependent_group = group_name_to_group.get(
                     uncommon_upstream_groups[0], None)
@@ -443,27 +452,28 @@ def get_dependencies(
                     task_group_type = 'a ' + tasks_group.Condition.__name__
 
                 else:
+                    skip = True
                     task_group_type = 'a ' + tasks_group.ParallelFor.__name__
-
-                raise RuntimeError(
-                    f'Tasks cannot depend on an upstream task inside {task_group_type} that is not a common ancestor of both tasks. Task {task.name} depends on upstream task {upstream_task.name}.'
-                )
+                if not skip:
+                    raise RuntimeError(
+                        f'Tasks cannot depend on an upstream task inside {task_group_type} that is not a common ancestor of both tasks. Task {task.name} depends on upstream task {upstream_task.name}.'
+                    )
 
             # ParralelFor Nested Check
-            # if there is a parrallelFor group type in the upstream parents tasks and there also exists a parallelFor in the uncommon_ancestors of downstream: this means a nested for loop exists in the DAG
-            upstream_parent_tasks = task_name_to_parent_groups[
-                upstream_task.name]
-            for group in downstream_groups:
-                if isinstance(
-                        group_name_to_group.get(group, None),
-                        tasks_group.ParallelFor):
-                    for parent_task in upstream_parent_tasks:
-                        if isinstance(
-                                group_name_to_group.get(parent_task, None),
-                                tasks_group.ParallelFor):
-                            raise RuntimeError(
-                                f'Downstream tasks in a nested {tasks_group.ParallelFor.__name__} group cannot depend on an upstream task in a shallower {tasks_group.ParallelFor.__name__} group. Task {task.name} depends on upstream task {upstream_task.name}, while {group} is nested in {parent_task}.'
-                            )
+            # # if there is a parrallelFor group type in the upstream parents tasks and there also exists a parallelFor in the uncommon_ancestors of downstream: this means a nested for loop exists in the DAG
+            # upstream_parent_tasks = task_name_to_parent_groups[
+            #     upstream_task.name]
+            # for group in downstream_groups:
+            #     if isinstance(
+            #             group_name_to_group.get(group, None),
+            #             tasks_group.ParallelFor):
+            #         for parent_task in upstream_parent_tasks:
+            #             if isinstance(
+            #                     group_name_to_group.get(parent_task, None),
+            #                     tasks_group.ParallelFor):
+            #                 raise RuntimeError(
+            #                     f'Downstream tasks in a nested {tasks_group.ParallelFor.__name__} group cannot depend on an upstream task in a shallower {tasks_group.ParallelFor.__name__} group. Task {task.name} depends on upstream task {upstream_task.name}, while {group} is nested in {parent_task}.'
+            #                 )
 
             dependencies[downstream_groups[0]].add(upstream_groups[0])
 

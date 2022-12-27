@@ -14,7 +14,7 @@
 """Definition for TasksGroup."""
 
 import enum
-from typing import Optional, Union
+from typing import Dict, Optional, Union
 
 from kfp.components import for_loop
 from kfp.components import pipeline_channel
@@ -65,14 +65,21 @@ class TasksGroup:
         self.display_name = name
         self.dependencies = []
         self.is_root = is_root
+        self.outputs_to_surface: Dict[str,
+                                      pipeline_channel.PipelineChannel] = {}
+
+        pipeline = pipeline_context.Pipeline.get_default_pipeline()
+        self.parent_task_group = pipeline.groups[
+            -1] if pipeline is not None else None
 
     def __enter__(self):
         if not pipeline_context.Pipeline.get_default_pipeline():
             raise ValueError('Default pipeline not defined.')
 
         self._make_name_unique()
-
-        pipeline_context.Pipeline.get_default_pipeline().push_tasks_group(self)
+        default_pipeline = pipeline_context.Pipeline.get_default_pipeline()
+        default_pipeline.parent_task_group = default_pipeline.groups[-1]
+        default_pipeline.push_tasks_group(self)
         return self
 
     def __exit__(self, *unused_args):

@@ -59,7 +59,7 @@ class PipelineSpecBuilderTest(parameterized.TestCase):
                                                         expected):
         self.assertEqual(
             expected,
-            pipeline_spec_builder._additional_input_name_for_pipeline_channel(
+            pipeline_spec_builder._additional_name_for_pipeline_channel(
                 channel))
 
     @parameterized.parameters(

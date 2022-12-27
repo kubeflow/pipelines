@@ -32,7 +32,7 @@ pipelines:
     - module: pipeline_with_concat_placeholder
       name: my_pipeline
       execute: false
-    - module: pipeline_with_resource_spec
+    - module: task_methods/pipeline_with_resource_spec
       name: my_pipeline
       execute: false
     - module: pipeline_with_various_io_types
@@ -41,7 +41,7 @@ pipelines:
     - module: pipeline_with_reused_component
       name: my_pipeline
       execute: true
-    - module: pipeline_with_after
+    - module: task_methods/pipeline_with_after
       name: my_pipeline
       execute: true
     - module: pipeline_with_condition
@@ -120,19 +120,19 @@ pipelines:
     - module: pipeline_with_parallelfor_parallelism
       name: my_pipeline
       execute: false
-    - module: pipeline_in_pipeline
+    - module: pipeline_in_pipeline/pipeline_in_pipeline
       name: my_pipeline
       execute: false
-    - module: pipeline_in_pipeline_complex
+    - module: pipeline_in_pipeline/pipeline_in_pipeline_complex
       name: my_pipeline
       execute: true
-    - module: pipeline_with_outputs
+    - module: pipeline_in_pipeline/pipeline_with_outputs
       name: my_pipeline
       execute: true
-    - module: pipeline_in_pipeline_loaded_from_yaml
+    - module: pipeline_in_pipeline/pipeline_in_pipeline_loaded_from_yaml
       name: my_pipeline
       execute: false
-    - module: pipeline_as_exit_task
+    - module: pipeline_in_pipeline/pipeline_as_exit_task
       name: my_pipeline
       execute: false
     - module: pipeline_with_google_artifact_type
@@ -140,6 +140,12 @@ pipelines:
       execute: false
     - module: pipeline_with_dynamic_importer_metadata
       name: my_pipeline
+      execute: false
+    - module: parallelfor_fan_in/parallelfor_fan_in_with_parameters
+      name: math_pipeline
+      execute: false
+    - module: parallelfor_fan_in/parallelfor_fan_in_with_artifacts
+      name: math_pipeline
       execute: false
 components:
   test_data_dir: sdk/python/test_data/components

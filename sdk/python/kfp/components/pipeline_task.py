@@ -69,6 +69,9 @@ class PipelineTask:
         from kfp.components.tasks_group import TasksGroup
 
         self.parent_task_group: Union[None, TasksGroup] = None
+        self.component_spec = component_spec
+        name = self._register_task_handler()
+
         args = args or {}
 
         for input_name, argument_value in args.items():
@@ -78,8 +81,13 @@ class PipelineTask:
                     f'Component "{component_spec.name}" got an unexpected input:'
                     f' {input_name}.')
 
-            input_spec = component_spec.inputs[input_name]
-            input_type = input_spec.type
+            from kfp.components import for_loop
+
+            if isinstance(argument_value, for_loop.Aggregated):
+                # see Aggregated code -- sets outputs for tasks parent groups
+                argument_value.set_consumer_task(self)
+
+            input_type = component_spec.inputs[input_name].type
             argument_type = None
 
             if isinstance(argument_value, pipeline_channel.PipelineChannel):
@@ -110,10 +118,8 @@ class PipelineTask:
                     f'"{input_name}" of component "{component_spec.name}": '),
             )
 
-        self.component_spec = component_spec
-
         self._task_spec = structures.TaskSpec(
-            name=self._register_task_handler(),
+            name=name,
             inputs=dict(args.items()),
             dependent_tasks=[],
             component_ref=component_spec.name,
