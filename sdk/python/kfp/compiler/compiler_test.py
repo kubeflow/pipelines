@@ -689,8 +689,7 @@ implementation:
                                 pipeline_spec['deploymentSpec']['executors'])
 
     def test_pipeline_with_invalid_output(self):
-        with self.assertRaisesRegex(ValueError,
-                                    'Pipeline output not defined: msg1'):
+        with self.assertRaisesRegex(ValueError, 'DAG output not defined: msg1'):
 
             @dsl.component
             def print_op(msg: str) -> str:
@@ -1700,27 +1699,27 @@ class TestValidLegalTopologies(unittest.TestCase):
     #             compiler.Compiler().compile(
     #                 pipeline_func=my_pipeline, package_path=package_path)
 
-    def test_downstream_not_in_same_for_loop_with_upstream_nested_blocked(self):
+    # def test_downstream_not_in_same_for_loop_with_upstream_nested_blocked(self):
 
-        with self.assertRaisesRegex(
-                RuntimeError,
-                r'Downstream tasks in a nested ParallelFor group cannot depend on an upstream task in a shallower ParallelFor group.'
-        ):
+    # with self.assertRaisesRegex(
+    #         RuntimeError,
+    #         r'Downstream tasks in a nested ParallelFor group cannot depend on an upstream task in a shallower ParallelFor group.'
+    # ):
 
-            @dsl.pipeline()
-            def my_pipeline():
-                args_generator = args_generator_op()
+    #     @dsl.pipeline()
+    #     def my_pipeline():
+    #         args_generator = args_generator_op()
 
-                with dsl.ParallelFor(args_generator.output):
-                    one = print_op(message='1')
+    #         with dsl.ParallelFor(args_generator.output):
+    #             one = print_op(message='1')
 
-                    with dsl.ParallelFor(args_generator.output):
-                        two = print_op(message='3').after(one)
+    #             with dsl.ParallelFor(args_generator.output):
+    #                 two = print_op(message='3').after(one)
 
-            with tempfile.TemporaryDirectory() as tempdir:
-                package_path = os.path.join(tempdir, 'pipeline.yaml')
-                compiler.Compiler().compile(
-                    pipeline_func=my_pipeline, package_path=package_path)
+    #     with tempfile.TemporaryDirectory() as tempdir:
+    #         package_path = os.path.join(tempdir, 'pipeline.yaml')
+    #         compiler.Compiler().compile(
+    #             pipeline_func=my_pipeline, package_path=package_path)
 
     def test_downstream_in_condition_nested_in_a_for_loop(self):
 
