@@ -120,7 +120,12 @@ function launch_eks() {
   [ ! -z "${EKS_PUBLIC_SUBNETS}" ] && eksctl_args+=( --vpc-public-subnets="${EKS_PUBLIC_SUBNETS}" )
   [ ! -z "${EKS_PRIVATE_SUBNETS}" ] && eksctl_args+=( --vpc-private-subnets="${EKS_PRIVATE_SUBNETS}" )
 
-  eksctl create cluster "${EKS_CLUSTER_NAME}" "${eksctl_args[@]}" --enable-ssm
+  eksctl create cluster "${EKS_CLUSTER_NAME}" "${eksctl_args[@]}" --enable-ssm --dry-run > generated-cluster.yaml
+
+  yq -i ".managedNodeGroups[0].disableIMDSv1 = true" generated-cluster.yaml
+
+  eksctl create cluster -f generated-cluster.yaml
+  rm generated-cluster.yaml
 
   aws eks update-kubeconfig --name "$EKS_CLUSTER_NAME" --region "$REGION"
 
