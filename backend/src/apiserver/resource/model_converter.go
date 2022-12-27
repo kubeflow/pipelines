@@ -224,8 +224,15 @@ func (r *ResourceManager) ToModelJob(jobInterface interface{}, manifest string, 
 		modelJob.MaxConcurrency = apiRecurringRun.MaxConcurrency
 		modelJob.NoCatchup = apiRecurringRun.NoCatchup
 		modelJob.ServiceAccount = apiRecurringRun.ServiceAccount
-		namespace, err := r.GetNamespaceFromExperimentID(apiRecurringRun.ExperimentId)
-		modelJob.Namespace = namespace
+		if apiRecurringRun.Namespace != "" {
+			modelJob.Namespace = apiRecurringRun.Namespace
+		} else {
+			namespace, err := r.GetNamespaceFromExperimentID(apiRecurringRun.ExperimentId)
+			if err != nil {
+				return nil, util.Wrap(err, "Unable to retrieve namespace from experiment id.")
+			}
+			modelJob.Namespace = namespace
+		}
 		modelJob.PipelineSpec = model.PipelineSpec{
 			PipelineId:   apiRecurringRun.GetPipelineId(),
 			PipelineName: pipelineName,

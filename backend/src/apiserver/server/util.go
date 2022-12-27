@@ -1,3 +1,17 @@
+// Copyright 2018-2022 The Kubeflow Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package server
 
 import (
@@ -17,7 +31,9 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	structpb "github.com/golang/protobuf/ptypes/struct"
+	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
@@ -186,7 +202,7 @@ func ReadPipelineFile(fileName string, fileReader io.Reader, maxFileLength int) 
 	return processedFile, nil
 }
 
-func printParameters(params []*api.Parameter) string {
+func printParameters(params []*apiv1beta1.Parameter) string {
 	var s strings.Builder
 	for _, p := range params {
 		s.WriteString(p.String())
@@ -195,23 +211,23 @@ func printParameters(params []*api.Parameter) string {
 }
 
 // Verify the input resource references has one and only reference which is owner experiment.
-func ValidateExperimentResourceReference(resourceManager *resource.ResourceManager, references []*api.ResourceReference) error {
+func ValidateExperimentResourceReference(resourceManager *resource.ResourceManager, references []*apiv1beta1.ResourceReference) error {
 	if references == nil || len(references) == 0 || references[0] == nil {
 		return util.NewInvalidInputError("The resource reference is empty. Please specify which experiment owns this resource.")
 	}
 	if len(references) > 1 {
 		return util.NewInvalidInputError("Got more resource references than expected. Please only specify which experiment owns this resource.")
 	}
-	if references[0].Key.Type != api.ResourceType_EXPERIMENT {
+	if references[0].Key.Type != apiv1beta1.ResourceType_EXPERIMENT {
 		return util.NewInvalidInputError("Unexpected resource type. Expected:%v. Got: %v",
-			api.ResourceType_EXPERIMENT, references[0].Key.Type)
+			apiv1beta1.ResourceType_EXPERIMENT, references[0].Key.Type)
 	}
 	if references[0].Key.Id == "" {
 		return util.NewInvalidInputError("Resource ID is empty. Please specify a valid ID")
 	}
-	if references[0].Relationship != api.Relationship_OWNER {
+	if references[0].Relationship != apiv1beta1.Relationship_OWNER {
 		return util.NewInvalidInputError("Unexpected relationship for the experiment. Expected: %v. Got: %v",
-			api.Relationship_OWNER, references[0].Relationship)
+			apiv1beta1.Relationship_OWNER, references[0].Relationship)
 	}
 	if _, err := resourceManager.GetExperiment(references[0].Key.Id); err != nil {
 		return util.Wrap(err, "Failed to get experiment.")
@@ -219,7 +235,7 @@ func ValidateExperimentResourceReference(resourceManager *resource.ResourceManag
 	return nil
 }
 
-func ValidatePipelineSpecAndResourceReferences(resourceManager *resource.ResourceManager, spec *api.PipelineSpec, resourceReferences []*api.ResourceReference) error {
+func ValidatePipelineSpecAndResourceReferences(resourceManager *resource.ResourceManager, spec *apiv1beta1.PipelineSpec, resourceReferences []*apiv1beta1.ResourceReference) error {
 	pipelineId := spec.GetPipelineId()
 	workflowManifest := spec.GetWorkflowManifest()
 	pipelineManifest := spec.GetPipelineManifest()
@@ -263,12 +279,29 @@ func ValidatePipelineSpecAndResourceReferences(resourceManager *resource.Resourc
 	if err := validateParameters(spec.GetParameters()); err != nil {
 		return err
 	}
-	if err := validateRuntimeConfig(spec.GetRuntimeConfig()); err != nil {
+	if err := validateRuntimeConfigV1(spec.GetRuntimeConfig()); err != nil {
 		return err
 	}
 	return nil
 }
-func validateParameters(parameters []*api.Parameter) error {
+
+func ValidatePipelineSource(resourceManager *resource.ResourceManager, recurringRun *apiv2beta1.RecurringRun) error {
+	pipelineId := recurringRun.GetPipelineId()
+	pipelineSpec := recurringRun.GetPipelineSpec()
+
+	if pipelineId == "" && pipelineSpec == nil {
+		return util.NewInvalidInputError("Invalid pipeline source: both pipelineId and pipelineSpec are empty.")
+	} else if pipelineId != "" && pipelineSpec != nil {
+		return util.NewInvalidInputError("Invalid pipeline source: both pipelineId and pipelineSpec are non-empty.")
+	} else if pipelineId != "" {
+		return validatePipelineId(resourceManager, pipelineId)
+	} else if err := validatePiplineSpec(*pipelineSpec); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateParameters(parameters []*apiv1beta1.Parameter) error {
 	if parameters != nil {
 		paramsBytes, err := json.Marshal(parameters)
 		if err != nil {
@@ -283,7 +316,21 @@ func validateParameters(parameters []*api.Parameter) error {
 	return nil
 }
 
-func validateRuntimeConfig(runtimeConfig *api.PipelineSpec_RuntimeConfig) error {
+func validateRuntimeConfigV1(runtimeConfig *apiv1beta1.PipelineSpec_RuntimeConfig) error {
+	if runtimeConfig.GetParameters() != nil {
+		paramsBytes, err := json.Marshal(runtimeConfig.GetParameters())
+		if err != nil {
+			return util.NewInternalServerError(err,
+				"Failed to Marshall the runtime config parameters into bytes.")
+		}
+		if len(paramsBytes) > util.MaxParameterBytes {
+			return util.NewInvalidInputError("The input parameter length exceed maximum size of %v.", util.MaxParameterBytes)
+		}
+	}
+	return nil
+}
+
+func validateRuntimeConfig(runtimeConfig *apiv2beta1.RuntimeConfig) error {
 	if runtimeConfig.GetParameters() != nil {
 		paramsBytes, err := json.Marshal(runtimeConfig.GetParameters())
 		if err != nil {
@@ -331,10 +378,18 @@ func validatePipelineManifest(pipelineManifest string) error {
 	return nil
 }
 
-func getPipelineVersionIdFromResourceReferences(resourceManager *resource.ResourceManager, resourceReferences []*api.ResourceReference) string {
+func validatePiplineSpec(pipelineSpec structpb.Struct) error {
+	marshalledPipelineSpec, err := json.Marshal(pipelineSpec)
+	if err != nil {
+		return err
+	}
+	return validatePipelineManifest(string(marshalledPipelineSpec))
+}
+
+func getPipelineVersionIdFromResourceReferences(resourceManager *resource.ResourceManager, resourceReferences []*apiv1beta1.ResourceReference) string {
 	var pipelineVersionId = ""
 	for _, resourceReference := range resourceReferences {
-		if resourceReference.Key.Type == api.ResourceType_PIPELINE_VERSION && resourceReference.Relationship == api.Relationship_CREATOR {
+		if resourceReference.Key.Type == apiv1beta1.ResourceType_PIPELINE_VERSION && resourceReference.Relationship == apiv1beta1.Relationship_CREATOR {
 			pipelineVersionId = resourceReference.Key.Id
 		}
 	}
