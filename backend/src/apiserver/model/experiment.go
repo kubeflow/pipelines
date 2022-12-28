@@ -19,7 +19,7 @@ type Experiment struct {
 	Name           string `gorm:"column:Name; not null; unique_index:idx_name_namespace"`
 	Description    string `gorm:"column:Description; not null"`
 	CreatedAtInSec int64  `gorm:"column:CreatedAtInSec; not null"`
-	Namespace      string `gorm:"column:Namespace; not null; default:'default'; unique_index:idx_name_namespace;"`
+	Namespace      string `gorm:"column:Namespace; not null; default:''; unique_index:idx_name_namespace;"`
 	StorageState   string `gorm:"column:StorageState; not null;"`
 }
 

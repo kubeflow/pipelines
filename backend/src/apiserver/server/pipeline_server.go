@@ -99,7 +99,7 @@ var (
 type PipelineServerOptions struct {
 	CollectMetrics   bool   `json:"collect_metrics,omitempty"`
 	ApiVersion       string `default:"v2beta1" json:"api_version,omitempty"`
-	DefaultNamespace string `default:"default" json:"default_namespace,omitempty"`
+	DefaultNamespace string `default:"" json:"default_namespace,omitempty"`
 }
 
 type PipelineServer struct {
@@ -889,11 +889,6 @@ func (s *PipelineServer) ListPipelinesV1(ctx context.Context, request *apiv1beta
 	if s.options.CollectMetrics {
 		listPipelineRequests.Inc()
 	}
-	// Check if parent namespace is present in the request
-	if request.GetResourceReferenceKey() == nil {
-		return nil, util.NewInvalidInputError("[PipelineServer %s]: Failed to list pipelines (v1beta1) due to missing parent namespace.", s.options.ApiVersion)
-	}
-	namespace := request.GetResourceReferenceKey().GetId()
 
 	/*
 		Override namespace to support v1beta behavior
@@ -902,6 +897,7 @@ func (s *PipelineServer) ListPipelinesV1(ctx context.Context, request *apiv1beta
 		2. User provides resource reference to public namespace ""
 		3. User provides resource reference to namespace
 	*/
+	namespace := ""
 	filterContext, err := ValidateFilterV1(request.GetResourceReferenceKey())
 	if err != nil {
 		return nil, util.Wrap(err, fmt.Sprintf("[PipelineServer %s]: Failed to list pipelines (v1beta1) due to filter validation error.", s.options.ApiVersion))

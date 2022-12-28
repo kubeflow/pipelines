@@ -39,7 +39,7 @@ type Pipeline struct {
 	Name           string         `gorm:"column:Name; not null; unique_index:namespace_name;"` // Index improves performance of the List ang Get queries
 	Description    string         `gorm:"column:Description; not null; size:65535;"`           // Same as below, set size to large number so it will be stored as longtext
 	Status         PipelineStatus `gorm:"column:Status; not null;"`
-	Namespace      string         `gorm:"column:Namespace; unique_index:namespace_name; size:63; default:'default';"`
+	Namespace      string         `gorm:"column:Namespace; unique_index:namespace_name; size:63; default:'';"`
 	// Url       string `gorm:"column:Url; default:'';"`
 }
 

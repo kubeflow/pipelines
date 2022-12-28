@@ -63,7 +63,7 @@ var (
 type PipelineUploadServerOptions struct {
 	CollectMetrics   bool   `json:"collect_metrics,omitempty"`
 	ApiVersion       string `default:"v2beta1" json:"api_version,omitempty"`
-	DefaultNamespace string `default:"default" json:"default_namespace,omitempty"`
+	DefaultNamespace string `default:"" json:"default_namespace,omitempty"`
 }
 
 type PipelineUploadServer struct {

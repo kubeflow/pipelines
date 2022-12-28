@@ -53,7 +53,7 @@ var (
 	sampleConfigPath = flag.String("sampleconfig", "", "Path to samples")
 
 	collectMetricsFlag = flag.Bool("collectMetricsFlag", true, "Whether to collect Prometheus metrics in API server.")
-	defaultNamespace   = flag.String("defaultNamespace", "default", "Default namespace used in ApiServer.")
+	defaultNamespace   = flag.String("defaultNamespace", "", "Default namespace used in ApiServer.")
 	apiVersion         = flag.String("apiversion", "v2beta1", "API version of the ApiServer.")
 )
 
