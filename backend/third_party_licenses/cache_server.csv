@@ -38,7 +38,7 @@ github.com/huandu/xstrings,https://github.com/huandu/xstrings/blob/v1.3.2/LICENS
 github.com/imdario/mergo,https://github.com/imdario/mergo/blob/v0.3.12/LICENSE,BSD-3-Clause
 github.com/jcmturner/gofork,https://github.com/jcmturner/gofork/blob/v1.0.0/LICENSE,BSD-3-Clause
 github.com/jinzhu/gorm,https://github.com/jinzhu/gorm/blob/v1.9.1/License,MIT
-github.com/jinzhu/inflection,https://github.com/jinzhu/inflection/blob/04140366298a/LICENSE,MIT
+github.com/jinzhu/inflection,https://github.com/jinzhu/inflection/blob/v1.0.0/LICENSE,MIT
 github.com/josharian/intern,https://github.com/josharian/intern/blob/v1.0.0/license.md,MIT
 github.com/json-iterator/go,https://github.com/json-iterator/go/blob/v1.1.12/LICENSE,MIT
 github.com/klauspost/compress/flate,https://github.com/klauspost/compress/blob/v1.14.2/LICENSE,Apache-2.0

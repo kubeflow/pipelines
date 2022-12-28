@@ -53,14 +53,15 @@ github.com/huandu/xstrings,https://github.com/huandu/xstrings/blob/v1.3.2/LICENS
 github.com/imdario/mergo,https://github.com/imdario/mergo/blob/v0.3.12/LICENSE,BSD-3-Clause
 github.com/jcmturner/gofork,https://github.com/jcmturner/gofork/blob/v1.0.0/LICENSE,BSD-3-Clause
 github.com/jinzhu/gorm,https://github.com/jinzhu/gorm/blob/v1.9.1/License,MIT
-github.com/jinzhu/inflection,https://github.com/jinzhu/inflection/blob/04140366298a/LICENSE,MIT
+github.com/jinzhu/inflection,https://github.com/jinzhu/inflection/blob/v1.0.0/LICENSE,MIT
+github.com/jinzhu/now,https://github.com/jinzhu/now/blob/v1.1.4/License,MIT
 github.com/jmespath/go-jmespath,https://github.com/jmespath/go-jmespath/blob/v0.4.0/LICENSE,Apache-2.0
 github.com/josharian/intern,https://github.com/josharian/intern/blob/v1.0.0/license.md,MIT
 github.com/json-iterator/go,https://github.com/json-iterator/go/blob/v1.1.12/LICENSE,MIT
 github.com/klauspost/compress/flate,https://github.com/klauspost/compress/blob/v1.14.2/LICENSE,Apache-2.0
 github.com/klauspost/cpuid,https://github.com/klauspost/cpuid/blob/v1.3.1/LICENSE,MIT
 github.com/klauspost/pgzip,https://github.com/klauspost/pgzip/blob/v1.2.5/LICENSE,MIT
-github.com/kubeflow/pipelines/api/v2alpha1/go,https://github.com/kubeflow/pipelines/blob/11635101d944/api/LICENSE,Apache-2.0
+github.com/kubeflow/pipelines/api/v2alpha1/go,https://github.com/kubeflow/pipelines/blob/d6cccc92a539/api/LICENSE,Apache-2.0
 github.com/kubeflow/pipelines/backend,https://github.com/kubeflow/pipelines/blob/HEAD/LICENSE,Apache-2.0
 github.com/kubeflow/pipelines/third_party/ml-metadata/go/ml_metadata,https://github.com/kubeflow/pipelines/blob/e78ed557ddcb/third_party/ml-metadata/LICENSE,Apache-2.0
 github.com/lann/builder,https://github.com/lann/builder/blob/47ae307949d0/LICENSE,MIT
@@ -127,6 +128,7 @@ gopkg.in/jcmturner/gokrb5.v5,https://github.com/jcmturner/gokrb5/blob/v5.3.0/LIC
 gopkg.in/jcmturner/rpc.v0/ndr,https://github.com/jcmturner/rpc/blob/v0.0.2/LICENSE,Apache-2.0
 gopkg.in/yaml.v2,https://github.com/go-yaml/yaml/blob/v2.4.0/LICENSE,Apache-2.0
 gopkg.in/yaml.v3,https://github.com/go-yaml/yaml/blob/496545a6307b/LICENSE,MIT
+gorm.io/gorm,https://github.com/go-gorm/gorm/blob/v1.24.2/License,MIT
 k8s.io/api,https://github.com/kubernetes/api/blob/v0.23.3/LICENSE,Apache-2.0
 k8s.io/apimachinery/pkg,https://github.com/kubernetes/apimachinery/blob/v0.23.3/LICENSE,Apache-2.0
 k8s.io/apimachinery/third_party/forked/golang,https://github.com/kubernetes/apimachinery/blob/v0.23.3/third_party/forked/golang/LICENSE,BSD-3-Clause
