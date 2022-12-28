@@ -141,6 +141,9 @@ pipelines:
     - module: pipeline_with_dynamic_importer_metadata
       name: my_pipeline
       execute: false
+    - module: components_with_optional_artifacts
+      name: pipeline
+      execute: false
 components:
   test_data_dir: sdk/python/test_data/components
   read: true
