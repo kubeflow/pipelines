@@ -295,7 +295,7 @@ func ValidatePipelineSource(resourceManager *resource.ResourceManager, recurring
 		return util.NewInvalidInputError("Invalid pipeline source: both pipelineId and pipelineSpec are non-empty.")
 	} else if pipelineId != "" {
 		return validatePipelineId(resourceManager, pipelineId)
-	} else if err := validatePiplineSpec(*pipelineSpec); err != nil {
+	} else if err := validatePipelineSpec(*pipelineSpec); err != nil {
 		return err
 	}
 	return nil
@@ -378,7 +378,7 @@ func validatePipelineManifest(pipelineManifest string) error {
 	return nil
 }
 
-func validatePiplineSpec(pipelineSpec structpb.Struct) error {
+func validatePipelineSpec(pipelineSpec structpb.Struct) error {
 	marshalledPipelineSpec, err := json.Marshal(pipelineSpec)
 	if err != nil {
 		return err
