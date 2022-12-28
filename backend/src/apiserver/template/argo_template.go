@@ -17,7 +17,6 @@ package template
 import (
 	"fmt"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	workflowapi "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/argoproj/argo-workflows/v3/workflow/validate"
 	"github.com/ghodss/yaml"
@@ -223,7 +222,7 @@ func ValidateWorkflow(template []byte) (*util.Workflow, error) {
 	return util.NewWorkflow(&wf), nil
 }
 
-func AddRuntimeMetadata(wf *v1alpha1.Workflow) {
+func AddRuntimeMetadata(wf *workflowapi.Workflow) {
 	template := wf.Spec.Templates[0]
 	template.Metadata.Annotations = map[string]string{"sidecar.istio.io/inject": "false"}
 	template.Metadata.Labels = map[string]string{"pipelines.kubeflow.org/cache_enabled": "true"}
