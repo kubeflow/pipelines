@@ -24,12 +24,11 @@ import (
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/robfig/cron"
 	authorizationv1 "k8s.io/api/authorization/v1"
 )
 
+/*
 // Metric variables. Please prefix the metric names with recurring_run_server_.
 var (
 	// Used to calculate the request rate.
@@ -70,6 +69,7 @@ var (
 		Help: "The current number of recurring runs in Kubeflow Pipelines instance",
 	})
 )
+*/
 
 type RecurringRunServerOptions struct {
 	CollectMetrics bool
@@ -83,7 +83,7 @@ type RecurringRunServer struct {
 func (s *RecurringRunServer) CreateRecurringRun(ctx context.Context, request *apiv2beta1.CreateRecurringRunRequest) (*apiv2beta1.RecurringRun, error) {
 	// For metric purposes. Count how many times this function has been called.
 	if s.options.CollectMetrics {
-		createRecurringRunRequests.Inc()
+		createJobRequests.Inc()
 	}
 
 	// Validate the request.
@@ -116,7 +116,7 @@ func (s *RecurringRunServer) CreateRecurringRun(ctx context.Context, request *ap
 
 	// For metric purposes. Count how many recurring runs have been created.
 	if s.options.CollectMetrics {
-		recurringRunCount.Inc()
+		jobCount.Inc()
 	}
 
 	return ToApiRecurringRun(newRecurringRun), nil
@@ -125,7 +125,7 @@ func (s *RecurringRunServer) CreateRecurringRun(ctx context.Context, request *ap
 
 func (s *RecurringRunServer) GetRecurringRun(ctx context.Context, request *apiv2beta1.GetRecurringRunRequest) (*apiv2beta1.RecurringRun, error) {
 	if s.options.CollectMetrics {
-		getRecurringRunRequests.Inc()
+		getJobRequests.Inc()
 	}
 
 	err := s.canAccessRecurringRun(ctx, request.RecurringRunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
@@ -142,7 +142,7 @@ func (s *RecurringRunServer) GetRecurringRun(ctx context.Context, request *apiv2
 
 func (s *RecurringRunServer) ListRecurringRuns(ctx context.Context, request *apiv2beta1.ListRecurringRunsRequest) (*apiv2beta1.ListRecurringRunsResponse, error) {
 	if s.options.CollectMetrics {
-		listRecurringRunsRequests.Inc()
+		listJobRequests.Inc()
 	}
 
 	opts, err := validatedListOptions(&model.Job{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
@@ -213,7 +213,7 @@ func (s *RecurringRunServer) ListRecurringRuns(ctx context.Context, request *api
 
 func (s *RecurringRunServer) EnableRecurringRun(ctx context.Context, request *apiv2beta1.EnableRecurringRunRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
-		enableRecurringRunRequests.Inc()
+		enableJobRequests.Inc()
 	}
 
 	err := s.canAccessRecurringRun(ctx, request.RecurringRunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbEnable})
@@ -230,7 +230,7 @@ func (s *RecurringRunServer) EnableRecurringRun(ctx context.Context, request *ap
 
 func (s *RecurringRunServer) DisableRecurringRun(ctx context.Context, request *apiv2beta1.DisableRecurringRunRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
-		disableRecurringRunRequests.Inc()
+		disableJobRequests.Inc()
 	}
 
 	err := s.canAccessRecurringRun(ctx, request.RecurringRunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbEnable})
@@ -247,7 +247,7 @@ func (s *RecurringRunServer) DisableRecurringRun(ctx context.Context, request *a
 
 func (s *RecurringRunServer) DeleteRecurringRun(ctx context.Context, request *apiv2beta1.DeleteRecurringRunRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
-		deleteRecurringRunRequests.Inc()
+		deleteJobRequests.Inc()
 	}
 
 	err := s.canAccessRecurringRun(ctx, request.RecurringRunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
