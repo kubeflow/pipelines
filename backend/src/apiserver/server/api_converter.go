@@ -418,6 +418,14 @@ func ToApiRecurringRun(job *model.Job) *apiv2beta1.RecurringRun {
 	return apiRecurringRun
 }
 
+func ToApiRecurringRuns(jobs []*model.Job) []*apiv2beta1.RecurringRun {
+	apiRecurringRuns := make([]*apiv2beta1.RecurringRun, 0)
+	for _, job := range jobs {
+		apiRecurringRuns = append(apiRecurringRuns, ToApiRecurringRun(job))
+	}
+	return apiRecurringRuns
+}
+
 func toApiMode(enabled bool) apiv2beta1.RecurringRun_Mode {
 	if enabled {
 		return apiv2beta1.RecurringRun_ENABLE

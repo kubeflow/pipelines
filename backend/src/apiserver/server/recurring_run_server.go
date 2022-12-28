@@ -20,7 +20,7 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
-	//"github.com/kubeflow/pipelines/backend/src/apiserver/model"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/common/util"
 	"github.com/pkg/errors"
@@ -43,7 +43,7 @@ var (
 		Help: "The total number of GetReccurringRun requests",
 	})
 
-	listRecurringRunRequests = promauto.NewCounter(prometheus.CounterOpts{
+	listRecurringRunsRequests = promauto.NewCounter(prometheus.CounterOpts{
 		Name: "recurring_run_server_list_requests",
 		Help: "The total number of ListRecurringRuns requests",
 	})
@@ -138,24 +138,132 @@ func (s *RecurringRunServer) GetRecurringRun(ctx context.Context, request *apiv2
 		return nil, err
 	}
 	return ToApiRecurringRun(recurringRun), nil
-
-	return nil, util.NewInvalidInputError("GetRecurringRun succeed")
 }
 
 func (s *RecurringRunServer) ListRecurringRuns(ctx context.Context, request *apiv2beta1.ListRecurringRunsRequest) (*apiv2beta1.ListRecurringRunsResponse, error) {
-	return nil, util.NewInvalidInputError("ListRecurringRuns succeed")
+	if s.options.CollectMetrics {
+		listRecurringRunsRequests.Inc()
+	}
+
+	opts, err := validatedListOptions(&model.Job{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
+
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create list options")
+	}
+
+	filterContext := &common.FilterContext{}
+
+	if common.IsMultiUserMode() {
+		// In multi-user mode, users must provide the namespace they are authorized with.
+		// If the ExperimentId field is empty, then return all recurring runs in this namespace.
+		// If the ExperimentId is provided, the experiment must belong to the namespace user is authorized with.
+
+		// Apply Namespace filter.
+		if request.Namespace == "" {
+			return nil, util.NewInvalidInputError("Invalid ListRecurringRuns request. No namespace provided in multi-user mode.")
+		}
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace: request.Namespace,
+			Verb:      common.RbacResourceVerbList,
+		}
+		err = s.canAccessRecurringRun(ctx, "", resourceAttributes)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to authorize with API")
+		}
+		filterContext = &common.FilterContext{
+			ReferenceKey: &common.ReferenceKey{Type: common.Namespace, ID: request.Namespace},
+		}
+
+		// Apply experiment filter if non-empty.
+		if request.ExperimentId != "" {
+			// Verify that the requested experiment belongs to this authorized namespace.
+			experimentNamespace, err := s.resourceManager.GetNamespaceFromExperimentID(request.ExperimentId)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to get namespace of the experiment")
+			}
+			if experimentNamespace != request.Namespace {
+				return nil, util.NewInvalidInputError("Error Listing recurring runs: in multi user mode, experiment filter does not belong to the authorized namespace.")
+			}
+
+			filterContext = &common.FilterContext{
+				ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: request.ExperimentId},
+			}
+		}
+
+	} else {
+		// In single-user mode, Namespace must be empty.
+		if request.Namespace != "" {
+			return nil, util.NewInvalidInputError("Invalid ListRecurringRuns request. Namespace should not be provided in single-user mode.")
+		}
+		// Apply experiment filter.
+		if request.ExperimentId != "" {
+			filterContext = &common.FilterContext{
+				ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: request.ExperimentId},
+			}
+		}
+	}
+
+	jobs, total_size, nextPageToken, err := s.resourceManager.ListJobs(filterContext, opts)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to list jobs.")
+	}
+	return &apiv2beta1.ListRecurringRunsResponse{RecurringRuns: ToApiRecurringRuns(jobs), TotalSize: int32(total_size), NextPageToken: nextPageToken}, nil
+
 }
 
 func (s *RecurringRunServer) EnableRecurringRun(ctx context.Context, request *apiv2beta1.EnableRecurringRunRequest) (*empty.Empty, error) {
-	return nil, util.NewInvalidInputError("EnableRecurringRun succeed")
+	if s.options.CollectMetrics {
+		enableRecurringRunRequests.Inc()
+	}
+
+	err := s.canAccessRecurringRun(ctx, request.RecurringRunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbEnable})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+
+	err = s.resourceManager.EnableJob(ctx, request.RecurringRunId, true)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
 }
 
 func (s *RecurringRunServer) DisableRecurringRun(ctx context.Context, request *apiv2beta1.DisableRecurringRunRequest) (*empty.Empty, error) {
-	return nil, util.NewInvalidInputError("DisableRecurringRun succeed")
+	if s.options.CollectMetrics {
+		disableRecurringRunRequests.Inc()
+	}
+
+	err := s.canAccessRecurringRun(ctx, request.RecurringRunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbEnable})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+
+	err = s.resourceManager.EnableJob(ctx, request.RecurringRunId, false)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
 }
 
 func (s *RecurringRunServer) DeleteRecurringRun(ctx context.Context, request *apiv2beta1.DeleteRecurringRunRequest) (*empty.Empty, error) {
-	return &empty.Empty{}, util.NewInvalidInputError("DeleteRecurringRun succeed")
+	if s.options.CollectMetrics {
+		deleteRecurringRunRequests.Inc()
+	}
+
+	err := s.canAccessRecurringRun(ctx, request.RecurringRunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+
+	err = s.resourceManager.DeleteJob(ctx, request.RecurringRunId)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.options.CollectMetrics {
+		jobCount.Dec()
+	}
+	return &empty.Empty{}, nil
 }
 
 func NewRecurringRunServer(resourceManager *resource.ResourceManager, options *RecurringRunServerOptions) *RecurringRunServer {
