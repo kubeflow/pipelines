@@ -337,33 +337,19 @@ def build_component_spec_for_task(
                 f'PipelineTaskFinalStatus can only be used in an exit task. Parameter {input_name} of a non exit task has type PipelineTaskFinalStatus.'
             )
 
-    unprovided_artifact_inputs = []
-    for input_name, input_spec in (task.component_spec.inputs or {}).items():
-        if not type_utils.is_parameter_type(
-                input_spec.type) and input_name not in task.inputs:
-            unprovided_artifact_inputs.append(input_name)
-
     component_spec = _build_component_spec_from_component_spec_structure(
-        task.component_spec, unprovided_artifact_inputs)
+        task.component_spec)
     component_spec.executor_label = utils.sanitize_executor_label(task.name)
     return component_spec
 
 
 def _build_component_spec_from_component_spec_structure(
-    component_spec_struct: structures.ComponentSpec,
-    unprovided_artifact_inputs: Optional[List[str]] = None,
+    component_spec_struct: structures.ComponentSpec
 ) -> pipeline_spec_pb2.ComponentSpec:
     """Builds ComponentSpec proto from ComponentSpec structure."""
-    # TODO: remove unprovided_artifact_inputs from interface and all downstream logic when supporting optional artifact inputs
-    unprovided_artifact_inputs = unprovided_artifact_inputs or []
-
     component_spec = pipeline_spec_pb2.ComponentSpec()
 
     for input_name, input_spec in (component_spec_struct.inputs or {}).items():
-
-        # skip inputs not present, as a workaround to support optional inputs.
-        if input_name in unprovided_artifact_inputs and input_spec.default is None:
-            continue
 
         # Special handling for PipelineTaskFinalStatus first.
         if type_utils.is_task_final_status_type(input_spec.type):
@@ -390,6 +376,9 @@ def _build_component_spec_from_component_spec_structure(
                 input_name].artifact_type.CopyFrom(
                     type_utils.bundled_artifact_to_artifact_proto(
                         input_spec.type))
+            if input_spec.optional:
+                component_spec.input_definitions.artifacts[
+                    input_name].is_optional = True
 
     for output_name, output_spec in (component_spec_struct.outputs or
                                      {}).items():
