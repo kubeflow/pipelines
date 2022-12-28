@@ -140,29 +140,29 @@ func GetDisplayNameFromRunInterface(r interface{}) (string, error) {
 	}
 }
 
-// Converts PipelineSpec (v1) into structpb.Struct (v2)
-func ConvertPipelineSpecToProtoStruct(pipelineSpec *apiv1beta1.PipelineSpec) (*structpb.Struct, error) {
-	mapValue := map[string]interface{}{
-		"PipelineId":       pipelineSpec.GetPipelineId(),
-		"PipelineName":     pipelineSpec.GetPipelineName(),
-		"WorkflowManifest": pipelineSpec.GetWorkflowManifest(),
-		"PipelineManifest": pipelineSpec.GetPipelineManifest(),
+// Converts structpb.Struct into a yaml string
+func ProtobufStructToYamlString(s *structpb.Struct) (string, error) {
+	bytes, err := yaml.Marshal(s.AsMap())
+	// bytes, err := json.Marshal(s.AsMap())
+	if err != nil {
+		return "", util.Wrap(err, "Failed to convert a protobuf struct into a yaml string.")
 	}
-	return structpb.NewStruct(mapValue)
+	return string(bytes), nil
 }
 
-// Fetches a PipelineSpec from a Run.
-// This is not intended for validation.
-// Raises error if an incompatible interface is used.
-func GetPipelineSpecFromRunInterface(r interface{}) (*structpb.Struct, error) {
-	switch r.(type) {
-	case *apiv1beta1.Run:
-		return ConvertPipelineSpecToProtoStruct(r.(*apiv1beta1.Run).GetPipelineSpec())
-	case *apiv2beta1.Run:
-		return r.(*apiv2beta1.Run).GetPipelineSpec(), nil
-	default:
-		return nil, util.NewUnknownApiVersionError("GetPipelineSpecFromRunInterface()", fmt.Sprintf("PipelineSpec from %T", reflect.TypeOf(r)))
+// Converts a yaml string into structpb.Struct (v2)
+func YamlStringToProtobufStruct(s string) (*structpb.Struct, error) {
+	var m *map[string]interface{}
+	// var m *structpb.Struct
+	err := yaml.Unmarshal([]byte(s), m)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to convert a yaml string into a map[string]interface{}.")
 	}
+	st, err := structpb.NewStruct(*m)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to convert a yaml string into a protobuf struct.")
+	}
+	return st, nil
 }
 
 // Fetches a PipelineRoot from a Run.

@@ -143,7 +143,7 @@ var testWorkflow = util.NewWorkflow(&v1alpha1.Workflow{
 })
 
 // Util function to create an initial state with pipeline uploaded
-func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Pipeline) {
+func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Pipeline, *model.PipelineVersion) {
 	initEnvVars()
 	store := NewFakeClientManagerOrFatal(util.NewFakeTimeForEpoch())
 	manager := NewResourceManager(store, map[string]interface{}{"DefaultNamespace": "", "ApiVersion": "v2beta1"})
@@ -158,9 +158,9 @@ func initWithPipeline(t *testing.T) (*FakeClientManager, *ResourceManager, *mode
 		"uri://namespaces/ns1/pipelines/p1/versions/v1/p1v1.yaml",
 		"ns1",
 	)
-	_, err = manager.CreatePipelineVersion(*pv1)
+	pv, err := manager.CreatePipelineVersion(*pv1)
 	assert.Nil(t, err)
-	return store, manager, p
+	return store, manager, p, pv
 }
 
 func initWithExperiment(t *testing.T) (*FakeClientManager, *ResourceManager, *model.Experiment) {
@@ -820,7 +820,7 @@ func TestGetPipelineByNameAndNamespace(t *testing.T) {
 	}
 	for _, test := range tt {
 		t.Run(test.msg, func(t *testing.T) {
-			store, manager, p := initWithPipeline(t)
+			store, manager, p, _ := initWithPipeline(t)
 			if test.badDB {
 				store.Close()
 			}
@@ -884,12 +884,12 @@ func TestGetPipelineByNameAndNamespaceV1(t *testing.T) {
 	}
 	for _, test := range tt {
 		t.Run(test.msg, func(t *testing.T) {
-			store, manager, p := initWithPipeline(t)
+			store, manager, p, pv := initWithPipeline(t)
 			if test.badDB {
 				store.Close()
 			}
 
-			result, err := manager.GetPipelineByNameAndNamespaceV1(
+			resp, respv, err := manager.GetPipelineByNameAndNamespaceV1(
 				test.pipelineName,
 				test.namespace,
 			)
@@ -904,14 +904,43 @@ func TestGetPipelineByNameAndNamespaceV1(t *testing.T) {
 				return
 			}
 			require.Nil(t, err)
-			assert.Equal(t, result, p)
+			assert.Equal(t, p, resp)
+			assert.Equal(t, pv, respv)
 		})
 	}
 }
 
 // Tests GetPipelineLatestTemplate (from PipelineSpec)
+func TestGetLatestPipelineVersion(t *testing.T) {
+	store, manager, p, pv := initWithPipeline(t)
+	defer store.Close()
+	actualTemplate, err := manager.GetLatestPipelineVersion(p.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, pv, actualTemplate)
+
+	pipelineStore, ok := manager.pipelineStore.(*storage.PipelineStore)
+	pipelineStore.SetUUIDGenerator(util.NewFakeUUIDGeneratorOrFatal(common.FakeUUIDOne, nil))
+	assert.True(t, ok)
+	pv2 := createPipelineVersion(
+		p.UUID,
+		"new version",
+		"new version desc",
+		"url://pipelines/p1/versions/v2",
+		testWorkflow.ToStringForStore(),
+		"uri://pipelines/p1/versions/v2/spec.yaml",
+		p.Namespace,
+	)
+	pv2expected, _ := manager.CreatePipelineVersion(*pv2)
+	pv2.UUID = pv2expected.UUID
+	pv2.CreatedAtInSec = pv2expected.CreatedAtInSec
+	actualTemplate2, err := manager.GetLatestPipelineVersion(p.UUID)
+	assert.Nil(t, err)
+	assert.Equal(t, pv2, actualTemplate2)
+}
+
+// Tests GetPipelineLatestTemplate (from PipelineSpec)
 func TestGetPipelineTemplate(t *testing.T) {
-	store, manager, p := initWithPipeline(t)
+	store, manager, p, _ := initWithPipeline(t)
 	defer store.Close()
 	actualTemplate, err := manager.GetPipelineLatestTemplate(p.UUID)
 	assert.Nil(t, err)
@@ -1114,7 +1143,7 @@ func TestListPipelinesV1(t *testing.T) {
 	opts, err := list.NewOptions(&model.Pipeline{}, 10, "", nil)
 	assert.Nil(t, err)
 
-	_, nTotal, _, err := manager.ListPipelinesV1(
+	_, _, nTotal, _, err := manager.ListPipelinesV1(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: "default2"}},
 		opts,
 	)
@@ -1125,7 +1154,7 @@ func TestListPipelinesV1(t *testing.T) {
 	err = manager.DeletePipeline(pnew2.UUID)
 	assert.Nil(t, err)
 
-	_, nTotal, _, err = manager.ListPipelinesV1(
+	_, _, nTotal, _, err = manager.ListPipelinesV1(
 		&model.FilterContext{ReferenceKey: &model.ReferenceKey{Type: model.NamespaceResourceType, ID: "default2"}},
 		opts,
 	)
@@ -1509,7 +1538,7 @@ func TestDeletePipeline(t *testing.T) {
 
 // TODO: use table driven test to test CreateRun api
 func TestCreateRun_ThroughPipelineID(t *testing.T) {
-	store, manager, p := initWithPipeline(t)
+	store, manager, p, _ := initWithPipeline(t)
 	defer store.Close()
 	apiExperiment := &apiv1beta1.Experiment{Name: "e1"}
 	experiment, err := manager.CreateExperiment(apiExperiment)
@@ -2394,7 +2423,7 @@ func TestCreateJob_ThroughWorkflowSpecV2(t *testing.T) {
 }
 
 func TestCreateJob_ThroughPipelineID(t *testing.T) {
-	store, manager, pipeline := initWithPipeline(t)
+	store, manager, pipeline, _ := initWithPipeline(t)
 	defer store.Close()
 	apiExperiment := &apiv1beta1.Experiment{Name: "e1"}
 	experiment, err := manager.CreateExperiment(apiExperiment)
@@ -2685,7 +2714,7 @@ func TestCreateJob_NullWorkflowSpec(t *testing.T) {
 }
 
 func TestCreateJob_ExtraInputParameterError(t *testing.T) {
-	store, manager, p := initWithPipeline(t)
+	store, manager, p, _ := initWithPipeline(t)
 	defer store.Close()
 	job := &apiv1beta1.Job{
 		Name:    "pp 1",
@@ -2704,7 +2733,7 @@ func TestCreateJob_ExtraInputParameterError(t *testing.T) {
 }
 
 func TestCreateJob_FailedToCreateScheduleWorkflow(t *testing.T) {
-	store, manager, p := initWithPipeline(t)
+	store, manager, p, _ := initWithPipeline(t)
 	defer store.Close()
 	manager.swfClient = client.NewFakeSwfClientWithBadWorkflow()
 	job := &apiv1beta1.Job{

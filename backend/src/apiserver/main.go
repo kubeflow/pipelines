@@ -33,9 +33,10 @@ import (
 	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	apiV1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
-	apiV2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
+	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
+	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/server"
 	"github.com/spf13/viper"
@@ -52,6 +53,8 @@ var (
 	sampleConfigPath = flag.String("sampleconfig", "", "Path to samples")
 
 	collectMetricsFlag = flag.Bool("collectMetricsFlag", true, "Whether to collect Prometheus metrics in API server.")
+	defaultNamespace   = flag.String("defaultNamespace", "default", "Default namespace used in ApiServer.")
+	apiVersion         = flag.String("apiversion", "v2beta1", "API version of the ApiServer.")
 )
 
 type RegisterHttpHandlerFromEndpoint func(ctx context.Context, mux *runtime.ServeMux, endpoint string, opts []grpc.DialOption) error
@@ -61,7 +64,14 @@ func main() {
 
 	initConfig()
 	clientManager := newClientManager()
-	resourceManager := resource.NewResourceManager(&clientManager)
+	resourceManager := resource.NewResourceManager(
+		&clientManager,
+		map[string]interface{}{
+			"CollectMetrics":   *collectMetricsFlag,
+			"ApiVersion":       *apiVersion,
+			"DefaultNamespace": *defaultNamespace,
+		},
+	)
 	err := loadSamples(resourceManager)
 	if err != nil {
 		glog.Fatalf("Failed to load samples. Err: %v", err)
@@ -95,24 +105,31 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	}
 	s := grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor), grpc.MaxRecvMsgSize(math.MaxInt32))
 	sharedExperimentServer := server.NewExperimentServer(resourceManager, &server.ExperimentServerOptions{CollectMetrics: *collectMetricsFlag})
-	sharedPipelineServer := server.NewPipelineServer(resourceManager, &server.PipelineServerOptions{CollectMetrics: *collectMetricsFlag})
-	apiV1beta1.RegisterExperimentServiceServer(s, sharedExperimentServer)
-	apiV1beta1.RegisterPipelineServiceServer(s, sharedPipelineServer)
-	apiV1beta1.RegisterRunServiceServer(s, server.NewRunServer(resourceManager, &server.RunServerOptions{CollectMetrics: *collectMetricsFlag}))
-	apiV1beta1.RegisterTaskServiceServer(s, server.NewTaskServer(resourceManager))
-	apiV1beta1.RegisterJobServiceServer(s, server.NewJobServer(resourceManager, &server.JobServerOptions{CollectMetrics: *collectMetricsFlag}))
-	apiV1beta1.RegisterReportServiceServer(s, server.NewReportServer(resourceManager))
-	apiV1beta1.RegisterVisualizationServiceServer(
+	sharedPipelineServer := server.NewPipelineServer(
+		resourceManager,
+		&server.PipelineServerOptions{
+			CollectMetrics:   *collectMetricsFlag,
+			ApiVersion:       *apiVersion,
+			DefaultNamespace: *defaultNamespace,
+		},
+	)
+	apiv1beta1.RegisterExperimentServiceServer(s, sharedExperimentServer)
+	apiv1beta1.RegisterPipelineServiceServer(s, sharedPipelineServer)
+	apiv1beta1.RegisterRunServiceServer(s, server.NewRunServer(resourceManager, &server.RunServerOptions{CollectMetrics: *collectMetricsFlag}))
+	apiv1beta1.RegisterTaskServiceServer(s, server.NewTaskServer(resourceManager))
+	apiv1beta1.RegisterJobServiceServer(s, server.NewJobServer(resourceManager, &server.JobServerOptions{CollectMetrics: *collectMetricsFlag}))
+	apiv1beta1.RegisterReportServiceServer(s, server.NewReportServer(resourceManager))
+	apiv1beta1.RegisterVisualizationServiceServer(
 		s,
 		server.NewVisualizationServer(
 			resourceManager,
 			common.GetStringConfig(visualizationServiceHost),
 			common.GetStringConfig(visualizationServicePort),
 		))
-	apiV1beta1.RegisterAuthServiceServer(s, server.NewAuthServer(resourceManager))
+	apiv1beta1.RegisterAuthServiceServer(s, server.NewAuthServer(resourceManager))
 
-	apiV2beta1.RegisterExperimentServiceServer(s, sharedExperimentServer)
-	apiV2beta1.RegisterPipelineServiceServer(s, sharedPipelineServer)
+	apiv2beta1.RegisterExperimentServiceServer(s, sharedExperimentServer)
+	apiv2beta1.RegisterPipelineServiceServer(s, sharedPipelineServer)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)
@@ -131,18 +148,18 @@ func startHttpProxy(resourceManager *resource.ResourceManager) {
 
 	// Create gRPC HTTP MUX and register services for v1beta1 api.
 	runtimeMux := runtime.NewServeMux(runtime.WithIncomingHeaderMatcher(grpcCustomMatcher))
-	registerHttpHandlerFromEndpoint(apiV1beta1.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService", ctx, runtimeMux)
-	registerHttpHandlerFromEndpoint(apiV1beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService", ctx, runtimeMux)
-	registerHttpHandlerFromEndpoint(apiV1beta1.RegisterJobServiceHandlerFromEndpoint, "JobService", ctx, runtimeMux)
-	registerHttpHandlerFromEndpoint(apiV1beta1.RegisterRunServiceHandlerFromEndpoint, "RunService", ctx, runtimeMux)
-	registerHttpHandlerFromEndpoint(apiV1beta1.RegisterTaskServiceHandlerFromEndpoint, "TaskService", ctx, runtimeMux)
-	registerHttpHandlerFromEndpoint(apiV1beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService", ctx, runtimeMux)
-	registerHttpHandlerFromEndpoint(apiV1beta1.RegisterVisualizationServiceHandlerFromEndpoint, "Visualization", ctx, runtimeMux)
-	registerHttpHandlerFromEndpoint(apiV1beta1.RegisterAuthServiceHandlerFromEndpoint, "AuthService", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiv1beta1.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiv1beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiv1beta1.RegisterJobServiceHandlerFromEndpoint, "JobService", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiv1beta1.RegisterRunServiceHandlerFromEndpoint, "RunService", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiv1beta1.RegisterTaskServiceHandlerFromEndpoint, "TaskService", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiv1beta1.RegisterReportServiceHandlerFromEndpoint, "ReportService", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiv1beta1.RegisterVisualizationServiceHandlerFromEndpoint, "Visualization", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiv1beta1.RegisterAuthServiceHandlerFromEndpoint, "AuthService", ctx, runtimeMux)
 
 	// Create gRPC HTTP MUX and register services for v2beta1 api.
-	registerHttpHandlerFromEndpoint(apiV2beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService", ctx, runtimeMux)
-	registerHttpHandlerFromEndpoint(apiV2beta1.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiv2beta1.RegisterExperimentServiceHandlerFromEndpoint, "ExperimentService", ctx, runtimeMux)
+	registerHttpHandlerFromEndpoint(apiv2beta1.RegisterPipelineServiceHandlerFromEndpoint, "PipelineService", ctx, runtimeMux)
 
 	// Create a top level mux to include both pipeline upload server and gRPC servers.
 	topMux := mux.NewRouter()
@@ -224,7 +241,13 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 		if configErr != nil {
 			return fmt.Errorf("Failed to decompress the file %s. Error: %v", config.Name, configErr)
 		}
-		_, configErr = resourceManager.CreatePipeline(config.Name, config.Description, "", pipelineFile)
+		p, configErr := resourceManager.CreatePipeline(
+			model.Pipeline{
+				Name:        config.Name,
+				Description: config.Description,
+				Namespace:   *defaultNamespace,
+			},
+		)
 		if configErr != nil {
 			// Log the error but not fail. The API Server pod can restart and it could potentially cause name collision.
 			// In the future, we might consider loading samples during deployment, instead of when API server starts.
@@ -232,6 +255,20 @@ func loadSamples(resourceManager *resource.ResourceManager) error {
 			continue
 		}
 
+		_, configErr = resourceManager.CreatePipelineVersion(
+			model.PipelineVersion{
+				Name:         config.Name,
+				Description:  config.Description,
+				PipelineId:   p.UUID,
+				PipelineSpec: string(pipelineFile),
+			},
+		)
+		if configErr != nil {
+			// Log the error but not fail. The API Server pod can restart and it could potentially cause name collision.
+			// In the future, we might consider loading samples during deployment, instead of when API server starts.
+			glog.Warningf(fmt.Sprintf("Failed to create pipeline for %s. Error: %v", config.Name, configErr))
+			continue
+		}
 		// Since the default sorting is by create time,
 		// Sleep one second makes sure the samples are showing up in the same order as they are added.
 		time.Sleep(1 * time.Second)

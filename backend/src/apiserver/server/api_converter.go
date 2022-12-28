@@ -106,13 +106,19 @@ func ToModelPipelineVersion(p interface{}) (model.PipelineVersion, error) {
 	switch p.(type) {
 	case *apiv1beta1.PipelineVersion:
 		pv1 := p.(*apiv1beta1.PipelineVersion)
+		url := pv1.GetCodeSourceUrl()
+		if url == "" {
+			if pv1.GetPackageUrl() != nil {
+				url = pv1.GetPackageUrl().GetPipelineUrl()
+			}
+		}
 		modelPipelineVersion = model.PipelineVersion{
 			UUID:           pv1.GetId(),
 			CreatedAtInSec: pv1.GetCreatedAt().GetSeconds(),
 			Name:           pv1.GetName(),
 			Parameters:     ParametersToString(pv1.GetParameters()),
 			PipelineId:     GetPipelineIdFromAPIResourceReferences(pv1.GetResourceReferences()),
-			CodeSourceUrl:  pv1.GetCodeSourceUrl(),
+			CodeSourceUrl:  url,
 			Description:    pv1.GetDescription(),
 			PipelineSpec:   "",
 		}
@@ -123,9 +129,26 @@ func ToModelPipelineVersion(p interface{}) (model.PipelineVersion, error) {
 		if pipelineId == "" {
 			pipelineId = GetPipelineIdFromAPIResourceReferences(pv1.GetResourceReferences())
 		}
+		if pipelineId == "" {
+			pipelineId = GetPipelineIdFromAPIResourceReferences(p1.GetResourceReferences())
+		}
+		if pipelineId == "" {
+			pipelineId = p1.GetId()
+		}
 		params := ParametersToString(pv1.GetParameters())
 		if params == "" {
 			params = ParametersToString(p1.GetParameters())
+		}
+		url := pv1.GetCodeSourceUrl()
+		if url == "" {
+			if pv1.GetPackageUrl() != nil {
+				url = pv1.GetPackageUrl().GetPipelineUrl()
+			}
+		}
+		if url == "" {
+			if p1.GetUrl() != nil {
+				url = p1.GetUrl().GetPipelineUrl()
+			}
 		}
 		modelPipelineVersion = model.PipelineVersion{
 			UUID:           pv1.GetId(),
@@ -133,12 +156,16 @@ func ToModelPipelineVersion(p interface{}) (model.PipelineVersion, error) {
 			Name:           pv1.GetName(),
 			Parameters:     params,
 			PipelineId:     pipelineId,
-			CodeSourceUrl:  pv1.GetCodeSourceUrl(),
+			CodeSourceUrl:  url,
 			Description:    pv1.GetDescription(),
 			PipelineSpec:   "",
 		}
 	case *apiv2beta1.PipelineVersion:
 		pv2 := p.(*apiv2beta1.PipelineVersion)
+		spec, err := ProtobufStructToYamlString(pv2.GetPipelineSpec())
+		if err != nil {
+			return model.PipelineVersion{}, util.NewInternalServerError(err, "Failed to convert API PipelineVersion to pipeline version due to pipeline spec conversion error.")
+		}
 		modelPipelineVersion = model.PipelineVersion{
 			UUID:           pv2.GetPipelineVersionId(),
 			CreatedAtInSec: pv2.GetCreatedAt().GetSeconds(),
@@ -146,7 +173,7 @@ func ToModelPipelineVersion(p interface{}) (model.PipelineVersion, error) {
 			PipelineId:     pv2.GetPipelineId(),
 			CodeSourceUrl:  pv2.GetPackageUrl().GetPipelineUrl(),
 			Description:    pv2.GetDescription(),
-			PipelineSpec:   pv2.GetPipelineSpec().String(),
+			PipelineSpec:   spec,
 		}
 	default:
 		return modelPipelineVersion, util.NewUnknownApiVersionError("PipelineVersion", fmt.Sprintf("%v", p))
@@ -279,8 +306,58 @@ func ToApiExperiments(experiments []*model.Experiment) []*apiv2beta1.Experiment 
 	return apiExperiments
 }
 
-// Coverts a pipeline into API Pipeline message
+// Converts arrays of pipelines and pipeline versions to an array of v1beta1 API Pipeline.
+func ToApiPipelinesV1(pipelines []*model.Pipeline, pipelineVersion []*model.PipelineVersion) []*apiv1beta1.Pipeline {
+	apiPipelines := make([]*apiv1beta1.Pipeline, 0)
+	for i, pipeline := range pipelines {
+		apiPipelines = append(apiPipelines, ToApiPipelineV1(pipeline, pipelineVersion[i]))
+	}
+	return apiPipelines
+}
+
+// Converts arrays of pipelines and pipeline versions to an array of v2beta1 API Pipeline.
+func ToApiPipelines(pipelines []*model.Pipeline) []*apiv2beta1.Pipeline {
+	apiPipelines := make([]*apiv2beta1.Pipeline, 0)
+	for _, pipeline := range pipelines {
+		apiPipelines = append(apiPipelines, ToApiPipeline(pipeline))
+	}
+	return apiPipelines
+}
+
+// Converts an array of pipeline versions to an array of v1beta1 API PipelineVersions.
+func ToApiPipelineVersionsV1(versions []*model.PipelineVersion) ([]*apiv1beta1.PipelineVersion, error) {
+	apiVersions := make([]*apiv1beta1.PipelineVersion, 0)
+	for _, version := range versions {
+		v, err := ToApiPipelineVersionV1(version)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to convert array of pipeline versions to v1beta1  API.")
+		}
+		apiVersions = append(apiVersions, v)
+	}
+	return apiVersions, nil
+}
+
+// Converts an array of pipeline versions to an array of v1beta1 API PipelineVersions.
+func ToApiPipelineVersions(versions []*model.PipelineVersion) []*apiv2beta1.PipelineVersion {
+	apiVersions := make([]*apiv2beta1.PipelineVersion, 0)
+	for _, version := range versions {
+		apiVersions = append(apiVersions, ToApiPipelineVersion(version))
+	}
+	return apiVersions
+}
+
+// Coverts a pipeline into v1beta1 API Pipeline message.
 func ToApiPipelineV1(pipeline *model.Pipeline, pipelineVersion *model.PipelineVersion) *apiv1beta1.Pipeline {
+	if pipeline == nil {
+		return &apiv1beta1.Pipeline{
+			Id: "",
+			Error: util.NewInternalServerError(
+				errors.New("Pipeline is nil."),
+				"Failed to convert a model pipeline to v1beta1 API Pipeline.",
+			).Error(),
+		}
+	}
+
 	params, err := toApiParameters(pipelineVersion.Parameters)
 	if err != nil {
 		return &apiv1beta1.Pipeline{
@@ -321,9 +398,21 @@ func ToApiPipelineV1(pipeline *model.Pipeline, pipelineVersion *model.PipelineVe
 	}
 }
 
-// Converts a pipeline into API Pipeline message.
+// Converts a pipeline into v2beta1 API Pipeline.
 // Require the input pipeline to have UUID and CreateAt set to non-default values.
 func ToApiPipeline(pipeline *model.Pipeline) *apiv2beta1.Pipeline {
+	if pipeline == nil {
+		return &apiv2beta1.Pipeline{
+			PipelineId: "",
+			Error: util.ToRpcStatus(
+				util.NewInternalServerError(
+					errors.New("Pipeline is nil."),
+					"Failed to convert a model pipeline to API Pipeline.",
+				),
+			),
+		}
+	}
+
 	if pipeline.UUID == "" {
 		return &apiv2beta1.Pipeline{
 			PipelineId: "",
@@ -335,6 +424,7 @@ func ToApiPipeline(pipeline *model.Pipeline) *apiv2beta1.Pipeline {
 			),
 		}
 	}
+
 	if pipeline.CreatedAtInSec == 0 {
 		return &apiv2beta1.Pipeline{
 			PipelineId: pipeline.UUID,
@@ -346,6 +436,7 @@ func ToApiPipeline(pipeline *model.Pipeline) *apiv2beta1.Pipeline {
 			),
 		}
 	}
+
 	return &apiv2beta1.Pipeline{
 		PipelineId:  pipeline.UUID,
 		DisplayName: pipeline.Name,
@@ -355,13 +446,15 @@ func ToApiPipeline(pipeline *model.Pipeline) *apiv2beta1.Pipeline {
 	}
 }
 
+// Converts pipeline version to v1beta1 API PipelineVersion.
+// Returns error if conversion fails.
 func ToApiPipelineVersionV1(version *model.PipelineVersion) (*apiv1beta1.PipelineVersion, error) {
 	if version == nil {
-		return nil, nil
+		return nil, util.NewInternalServerError(util.NewInvalidInputError("Pipeline version is nil."), "Failed to convert pipeline version to API PipelineVersion.")
 	}
 	params, err := toApiParameters(version.Parameters)
 	if err != nil {
-		return nil, err
+		return nil, util.Wrap(err, "Failed to convert pipeline version's parameters to v1beta1 API Parameters.")
 	}
 
 	return &apiv1beta1.PipelineVersion{
@@ -383,21 +476,72 @@ func ToApiPipelineVersionV1(version *model.PipelineVersion) (*apiv1beta1.Pipelin
 	}, nil
 }
 
-func ToApiPipelineVersionsV1(versions []*model.PipelineVersion) ([]*apiv1beta1.PipelineVersion, error) {
-	apiVersions := make([]*apiv1beta1.PipelineVersion, 0)
-	for _, version := range versions {
-		v, _ := ToApiPipelineVersionV1(version)
-		apiVersions = append(apiVersions, v)
+// Converts pipeline version to v2beta1 API PipelineVersion.
+func ToApiPipelineVersion(version *model.PipelineVersion) *apiv2beta1.PipelineVersion {
+	if version == nil {
+		return &apiv2beta1.PipelineVersion{
+			PipelineVersionId: "",
+			Error: util.ToRpcStatus(
+				util.NewInternalServerError(
+					errors.New("Pipeline version is nil."),
+					"Failed to convert a pipeline version to API PipelineVersion.",
+				),
+			),
+		}
 	}
-	return apiVersions, nil
-}
 
-func ToApiPipelinesV1(pipelines []*model.Pipeline, pipelineVersion []*model.PipelineVersion) []*apiv1beta1.Pipeline {
-	apiPipelines := make([]*apiv1beta1.Pipeline, 0)
-	for i, pipeline := range pipelines {
-		apiPipelines = append(apiPipelines, ToApiPipelineV1(pipeline, pipelineVersion[i]))
+	if version.UUID == "" {
+		return &apiv2beta1.PipelineVersion{
+			PipelineVersionId: "",
+			Error: util.ToRpcStatus(
+				util.NewInternalServerError(
+					errors.New("Empty pipeline version id."),
+					"Failed to convert a pipeline version to API PipelineVersion.",
+				),
+			),
+		}
 	}
-	return apiPipelines
+
+	if version.CreatedAtInSec == 0 {
+		return &apiv2beta1.PipelineVersion{
+			PipelineVersionId: version.UUID,
+			Error: util.ToRpcStatus(
+				util.NewInternalServerError(
+					errors.New("Create time is missing."),
+					"Failed to convert a pipeline versions to API PipelineVersion.",
+				),
+			),
+		}
+	}
+
+	url := version.PipelineSpecURI
+	if url == "" {
+		url = version.CodeSourceUrl
+	}
+
+	spec, err := YamlStringToProtobufStruct(version.PipelineSpec)
+	if err != nil {
+		return &apiv2beta1.PipelineVersion{
+			PipelineVersionId: version.UUID,
+			Error: util.ToRpcStatus(
+				util.NewInternalServerError(
+					err,
+					"Failed to convert a pipeline versions to API PipelineVersion due to error in parsing a pipeline spec yaml.",
+				),
+			),
+		}
+	}
+	return &apiv2beta1.PipelineVersion{
+		PipelineId:        version.PipelineId,
+		PipelineVersionId: version.UUID,
+		DisplayName:       version.Name,
+		Description:       version.Description,
+		CreatedAt:         &timestamp.Timestamp{Seconds: version.CreatedAtInSec},
+		PackageUrl: &apiv2beta1.Url{
+			PipelineUrl: url,
+		},
+		PipelineSpec: spec,
+	}
 }
 
 func toApiParameters(paramsString string) ([]*apiv1beta1.Parameter, error) {

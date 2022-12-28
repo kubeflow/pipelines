@@ -182,15 +182,15 @@ func TestToModelPipelineVersion(t *testing.T) {
 
 	convertedModelPipelineVersion, _ := ToModelPipelineVersion(apiPipelineVersion)
 
-	expectedModelPipelineVersion := &model.PipelineVersion{
+	expectedModelPipelineVersion := model.PipelineVersion{
 		UUID:           "pipelineversion1",
 		CreatedAtInSec: 1,
-		Parameters:     "",
+		Parameters:     "[]",
 		PipelineId:     "pipeline1",
 		CodeSourceUrl:  "http://repo/11111",
 	}
 
-	assert.Equal(t, convertedModelPipelineVersion, expectedModelPipelineVersion)
+	assert.Equal(t, expectedModelPipelineVersion, convertedModelPipelineVersion)
 }
 
 // Tests ToApiPipelineV1
@@ -238,7 +238,9 @@ func TestToApiPipeline_ErrorParsingField(t *testing.T) {
 		UUID:           "pipeline1",
 		CreatedAtInSec: 1,
 	}
-	modelVersion := &model.PipelineVersion{}
+	modelVersion := &model.PipelineVersion{
+		Parameters: "wrong parameters",
+	}
 	apiPipeline := ToApiPipelineV1(modelPipeline, modelVersion)
 	assert.Equal(t, "pipeline1", apiPipeline.Id)
 	assert.Contains(t, apiPipeline.Error, "Parameter with wrong format is stored")
@@ -482,7 +484,7 @@ func TestToApiTask(t *testing.T) {
 	}
 	apiTask := ToApiTask(modelTask)
 	expectedApiTask := &apiv1beta1.Task{
-		Id:              common.NonDefaultFakeUUID,
+		Id:              common.DefaultFakeUUID,
 		Namespace:       "",
 		PipelineName:    "pipeline/my-pipeline",
 		RunId:           common.NonDefaultFakeUUID,

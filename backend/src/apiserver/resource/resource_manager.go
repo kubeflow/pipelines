@@ -333,20 +333,20 @@ func (r *ResourceManager) GetPipelineByNameAndNamespace(name string, namespace s
 // TODO (gkcalat): consider removing after KFP v2 GA if users are not affected.
 // Returns a pipeline specified by name and namespace using LEFT JOIN on SQL query.
 // This could be more performant for a large number of pipeline versions.
-func (r *ResourceManager) GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, error) {
-	if pipeline, err := r.pipelineStore.GetPipelineByNameAndNamespaceV1(name, namespace); err != nil {
-		return nil, util.Wrap(err, fmt.Sprintf("ResourceManager (v1beta1): Failed to get a pipeline named %v in namespace %v.", name, namespace))
+func (r *ResourceManager) GetPipelineByNameAndNamespaceV1(name string, namespace string) (*model.Pipeline, *model.PipelineVersion, error) {
+	if pipeline, pipelineVersion, err := r.pipelineStore.GetPipelineByNameAndNamespaceV1(name, namespace); err != nil {
+		return nil, nil, util.Wrap(err, fmt.Sprintf("ResourceManager (v1beta1): Failed to get a pipeline named %v in namespace %v.", name, namespace))
 	} else {
-		return pipeline, nil
+		return pipeline, pipelineVersion, nil
 	}
 }
 
-// Returns tge latest template for a specified pipeline id.
+// Returns the latest template for a specified pipeline id.
 func (r *ResourceManager) GetPipelineLatestTemplate(pipelineId string) ([]byte, error) {
 	// Verify pipeline exists
 	_, err := r.pipelineStore.GetPipeline(pipelineId)
 	if err != nil {
-		return nil, util.Wrap(err, "ResourceManager: Failed to get a template as pipeline was not found.")
+		return nil, util.Wrap(err, "ResourceManager: Failed to get the latest template as pipeline was not found.")
 	}
 
 	// Get the latest pipeline version
@@ -361,6 +361,22 @@ func (r *ResourceManager) GetPipelineLatestTemplate(pipelineId string) ([]byte, 
 	} else {
 		return bytes, nil
 	}
+}
+
+// Returns the latest pipeline version for a specified pipeline id.
+func (r *ResourceManager) GetLatestPipelineVersion(pipelineId string) (*model.PipelineVersion, error) {
+	// Verify pipeline exists
+	_, err := r.pipelineStore.GetPipeline(pipelineId)
+	if err != nil {
+		return nil, util.Wrap(err, "ResourceManager: Failed to get the latest pipeline version as pipeline was not found.")
+	}
+
+	// Get the latest pipeline version
+	latestPipelineVersion, err := r.pipelineStore.GetLatestPipelineVersion(pipelineId)
+	if err != nil {
+		return nil, util.Wrap(err, "ResourceManager: Failed to get the latest pipeline version for a pipeline.")
+	}
+	return latestPipelineVersion, nil
 }
 
 // Returns a template for a specified pipeline version id.
@@ -405,11 +421,11 @@ func (r *ResourceManager) ListPipelines(filterContext *model.FilterContext, opts
 // Returns a list of pipelines using LEFT JOIN on SQL query.
 // This could be more performant for a large number of pipeline versions.
 func (r *ResourceManager) ListPipelinesV1(filterContext *model.FilterContext, opts *list.Options) ([]*model.Pipeline, []*model.PipelineVersion, int, string, error) {
-	pipelines, pipelineVersions, total_size, nextPageToken, err, nextPageTokenVersions, errVersions := r.pipelineStore.ListPipelinesV1(filterContext, opts)
+	pipelines, pipelineVersions, total_size, nextPageToken, err := r.pipelineStore.ListPipelinesV1(filterContext, opts)
 	if err != nil {
 		err = util.Wrap(err, fmt.Sprintf("ResourceManager (v1beta1): Failed to list pipelines with context %v, options %v.", filterContext, opts))
 	}
-	return pipelines, total_size, nextPageToken, err
+	return pipelines, pipelineVersions, total_size, nextPageToken, err
 }
 
 // Returns a list of pipeline versions.
@@ -1530,6 +1546,13 @@ func getManifestBytesV1(pipelineSpec *apiv1beta1.PipelineSpec, resourceReference
 		}
 	}
 	return manifestBytes, nil
+}
+
+// TODO (gkcalat): consider removing before v2beta1 GA as default version is deprecated. This requires changes to v1beta1 proto.
+// Updates default pipeline version for a given pipeline.
+// Supports v1beta1 behavior.
+func (r *ResourceManager) UpdatePipelineDefaultVersion(pipelineId string, versionId string) error {
+	return r.pipelineStore.UpdatePipelineDefaultVersion(pipelineId, versionId)
 }
 
 // TODO (gkcalat): remove this before GA. This is duplicating the function in server package.
