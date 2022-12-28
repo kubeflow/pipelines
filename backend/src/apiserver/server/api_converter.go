@@ -391,11 +391,14 @@ func ToApiRecurringRun(job *model.Job) *apiv2beta1.RecurringRun {
 		apiRecurringRun.PipelineSource = &apiv2beta1.RecurringRun_PipelineId{PipelineId: job.PipelineSpec.PipelineId}
 	} else {
 		pipelineSpec := structpb.Struct{}
-		err := pipelineSpec.UnmarshalJSON([]byte(job.PipelineSpec.PipelineSpecManifest))
-		if err != nil {
-			return &apiv2beta1.RecurringRun{
-				RecurringRunId: job.UUID,
-				Error:          err.Error(),
+		if job.PipelineSpec.PipelineSpecManifest != "" {
+			// Unmarshal only if PipelineSpecManifest is non-empty.
+			err := pipelineSpec.UnmarshalJSON([]byte(job.PipelineSpec.PipelineSpecManifest))
+			if err != nil {
+				return &apiv2beta1.RecurringRun{
+					RecurringRunId: job.UUID,
+					Error:          err.Error(),
+				}
 			}
 		}
 		apiRecurringRun.PipelineSource = &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: &pipelineSpec}
