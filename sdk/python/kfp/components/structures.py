@@ -88,9 +88,13 @@ class InputSpec:
             type_ = ir_component_inputs_dict['artifactType']['schemaTitle']
             schema_version = ir_component_inputs_dict['artifactType'][
                 'schemaVersion']
+            # TODO: would be better to extract these fields from the proto
+            # message, as False default would be preserved
+            optional = ir_component_inputs_dict.get('isOptional', False)
             return InputSpec(
                 type=type_utils.create_bundled_artifact_type(
-                    type_, schema_version))
+                    type_, schema_version),
+                optional=optional)
 
     def __eq__(self, other: Any) -> bool:
         """Equality comparison for InputSpec. Robust to different type
