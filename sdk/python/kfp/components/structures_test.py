@@ -921,5 +921,267 @@ class TestRetryPolicy(unittest.TestCase):
         self.assertEqual(retry_policy_proto.backoff_max_duration.seconds, 3600)
 
 
+class TestDeserializeV1ComponentYamlDefaults(unittest.TestCase):
+
+    def test_uppercase_T_True(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: Boolean, default: "True" }
+implementation:
+  container:
+    image: python:3.7
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputValue: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['val'].default, True)
+        self.assertEqual(
+            comp.pipeline_spec.root.input_definitions.parameters['val']
+            .default_value.bool_value, True)
+
+    def test_lowercase_t_true(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: Boolean, default: "true" }
+implementation:
+  container:
+    image: python:3.7
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputValue: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['val'].default, True)
+        self.assertEqual(
+            comp.pipeline_spec.root.input_definitions.parameters['val']
+            .default_value.bool_value, True)
+
+    def test_uppercase_T_True_no_quotes(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: Boolean, default: True }
+implementation:
+  container:
+    image: python:3.7
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputValue: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['val'].default, True)
+        self.assertEqual(
+            comp.pipeline_spec.root.input_definitions.parameters['val']
+            .default_value.bool_value, True)
+
+    def test_lowercase_t_true_no_quotes(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: Boolean, default: true }
+implementation:
+  container:
+    image: python:3.7
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputValue: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['val'].default, True)
+        self.assertEqual(
+            comp.pipeline_spec.root.input_definitions.parameters['val']
+            .default_value.bool_value, True)
+
+    def test_uppercase_F_False(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: Boolean, default: "False" }
+implementation:
+  container:
+    image: python:3.7
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputValue: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['val'].default, False)
+        self.assertEqual(
+            comp.pipeline_spec.root.input_definitions.parameters['val']
+            .default_value.bool_value, False)
+
+    def test_lowercase_f_false(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: Boolean, default: "false" }
+implementation:
+  container:
+    image: python:3.7
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputValue: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['val'].default, False)
+        self.assertEqual(
+            comp.pipeline_spec.root.input_definitions.parameters['val']
+            .default_value.bool_value, False)
+
+    def test_uppercase_F_False_no_quotes(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: Boolean, default: False }
+implementation:
+  container:
+    image: python:3.7
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputValue: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['val'].default, False)
+        self.assertEqual(
+            comp.pipeline_spec.root.input_definitions.parameters['val']
+            .default_value.bool_value, False)
+
+    def test_lowercase_f_false_no_quotes(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: Boolean, default: false }
+implementation:
+  container:
+    image: python:3.7
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputValue: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['val'].default, False)
+        self.assertEqual(
+            comp.pipeline_spec.root.input_definitions.parameters['val']
+            .default_value.bool_value, False)
+
+    def test_int_as_string(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: Integer, default: "1" }
+implementation:
+  container:
+    image: python:3.7
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputValue: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['val'].default, 1)
+        self.assertEqual(
+            comp.pipeline_spec.root.input_definitions.parameters['val']
+            .default_value.number_value, 1.0)
+
+    def test_float_as_string(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: Float, default: "1.0" }
+implementation:
+  container:
+    image: python:3.7
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputValue: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['val'].default, 1.0)
+        self.assertEqual(
+            comp.pipeline_spec.root.input_definitions.parameters['val']
+            .default_value.number_value, 1.0)
+
+    def test_struct(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: JsonObject, default: '{"a": 1.0}' }
+implementation:
+  container:
+    image: python:3.7
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputValue: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['val'].default, {'a': 1.0})
+        self.assertEqual(
+            dict(comp.pipeline_spec.root.input_definitions.parameters['val']
+                 .default_value.struct_value), {'a': 1.0})
+
+    def test_array(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: JsonObject, default: '["a", 1.0]' }
+implementation:
+  container:
+    image: python:3.7
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputValue: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertEqual(comp.component_spec.inputs['val'].default, ['a', 1.0])
+        self.assertEqual(
+            list(comp.pipeline_spec.root.input_definitions.parameters['val']
+                 .default_value.list_value), ['a', 1.0])
+
+    def test_artifact_with_dict_type_passes_through(self):
+        comp_text = textwrap.dedent("""\
+inputs:
+  - { name: val, type: {Key: Val}}
+implementation:
+  container:
+    image: python:3.7
+    command:
+      - sh
+      - -c
+      - |
+        echo $0
+      - { inputPath: val }
+""")
+        comp = components.load_component_from_text(comp_text)
+        self.assertFalse(comp.component_spec.inputs['val'].optional)
+        self.assertFalse(comp.pipeline_spec.root.input_definitions
+                         .artifacts['val'].is_optional)
+
+
 if __name__ == '__main__':
     unittest.main()
