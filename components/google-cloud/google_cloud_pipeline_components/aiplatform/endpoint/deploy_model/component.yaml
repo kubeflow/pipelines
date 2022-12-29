@@ -143,11 +143,11 @@ implementation:
       - --init.endpoint_name
       - "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}"
       - --method.model
-      - {inputPath: model}
+      - "{{$.inputs.artifacts['model'].metadata['resourceName']}}"
       - --method.traffic_split
       - {inputValue: traffic_split}
       - --method.machine_type
-      - {inputValue: dedicated_resources_machine_type}      
+      - {inputValue: dedicated_resources_machine_type}
       - --method.accelerator_type
       - {inputValue: dedicated_resources_accelerator_type}
       - --method.accelerator_count
