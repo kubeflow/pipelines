@@ -143,7 +143,9 @@ function NewRunV2(props: NewRunV2Props) {
   const [isClone, setIsClone] = useState(false);
   const [isRecurringRun, setIsRecurringRun] = useState(apiRecurringRun !== undefined);
   const [trigger, setTrigger] = useState<ApiTrigger>();
+  // const [trigger, setTrigger] = useState(apiRecurringRun ? apiRecurringRun.trigger : undefined);
   const [maxConcurrentRuns, setMaxConcurrentRuns] = useState('10');
+  // const [maxConcurrentRuns, setMaxConcurrentRuns] = useState(apiRecurringRun ? apiRecurringRun.max_concurrency : '10');
   const [isMaxConcurrentRunValid, setIsMaxConcurrentRunValid] = useState(true);
   const [catchup, setCatchup] = useState(true);
   const [clonedRuntimeConfig, setClonedRuntimeConfig] = useState<PipelineSpecRuntimeConfig>({});
@@ -168,8 +170,8 @@ function NewRunV2(props: NewRunV2Props) {
   const pipelineDetailsUrl = pipelineDetailsUrlfromRun ? pipelineDetailsUrlfromRun : pipelineDetailsUrlfromRecurringRun;
   const isTemplatePullSuccess = templateString ? true : false;
   const apiResourceRefFromRun = apiRun?.run?.resource_references
-    ? apiRun.run?.resource_references
-    : undefined;
+  const apiResourceRefFromRecurringRun = apiRecurringRun?.resource_references
+  const existResourceRef = apiResourceRefFromRun ? apiResourceRefFromRun : apiResourceRefFromRecurringRun;
 
   // TODO(jlyaoyuli): support cloning recurring run with query parameter from isRecurring.
   const titleVerb = (existingRunId || originalRecurringRunId) ? 'Clone' : 'Start';
@@ -263,6 +265,22 @@ function NewRunV2(props: NewRunV2Props) {
     }
   }, [apiRun, apiRecurringRun]);
 
+  /*
+  useEffect(() => {
+    if (apiRecurringRun && apiRecurringRun.trigger) {
+      setTrigger(apiRecurringRun.trigger)
+    }
+    if (apiRecurringRun && apiRecurringRun.max_concurrency) {
+      // console.log(apiRecurringRun.max_concurrency);
+      setMaxConcurrentRuns(apiRecurringRun.max_concurrency)
+      // console.log(maxConcurrentRuns);
+    }
+    if (apiRecurringRun && apiRecurringRun.no_catchup) {
+      setCatchup(apiRecurringRun.no_catchup)
+    }
+  }, [apiRecurringRun])
+  */
+
   // Whenever any input value changes, validate and show error if needed.
   // TODO(zijianjoy): Validate run name for now, we need to validate others first.
   useEffect(() => {
@@ -319,7 +337,7 @@ function NewRunV2(props: NewRunV2Props) {
         },
       },
       //TODO(jlyaoyuli): deprecate the resource reference and use pipeline / workflow manifest
-      resource_references: apiResourceRefFromRun ? apiResourceRefFromRun : references,
+      resource_references: existResourceRef ? existResourceRef : references,
       service_account: serviceAccount,
     };
 
@@ -569,9 +587,9 @@ function NewRunV2(props: NewRunV2Props) {
 
             <Trigger
               initialProps={{
-                trigger: trigger,
-                maxConcurrentRuns: maxConcurrentRuns,
-                catchup: catchup,
+                trigger: apiRecurringRun ? apiRecurringRun.trigger : trigger,
+                maxConcurrentRuns: apiRecurringRun ? apiRecurringRun.max_concurrency : maxConcurrentRuns,
+                catchup: apiRecurringRun ? !apiRecurringRun.no_catchup : catchup,
               }}
               onChange={({ trigger, maxConcurrentRuns, catchup }) => {
                 setTrigger(trigger);
