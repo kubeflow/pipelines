@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-import { Button, Dialog, DialogActions, DialogContent, InputAdornment } from '@material-ui/core';
+import { Button, Dialog, DialogActions, DialogContent, InputAdornment, FormControlLabel, Radio } from '@material-ui/core';
 import React, { useEffect, useState } from 'react';
 import { useMutation } from 'react-query';
 import { Link } from 'react-router-dom';
 import { ApiExperiment, ApiExperimentStorageState } from 'src/apis/experiment';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
+import { ApiJob, ApiTrigger } from 'src/apis/job';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import {
   ApiRelationship,
@@ -38,6 +39,7 @@ import { NameWithTooltip } from 'src/components/CustomTableNameColumn';
 import { Description } from 'src/components/Description';
 import NewRunParametersV2 from 'src/components/NewRunParametersV2';
 import { QUERY_PARAMS, RoutePage, RouteParams } from 'src/components/Router';
+import Trigger from 'src/components/Trigger';
 import { color, commonCss, padding } from 'src/Css';
 import { ComponentInputsSpec_ParameterSpec } from 'src/generated/pipeline_spec/pipeline_spec';
 import { Apis, ExperimentSortKeys, PipelineSortKeys, PipelineVersionSortKeys } from 'src/lib/Apis';
@@ -121,6 +123,11 @@ function NewRunV2(props: NewRunV2Props) {
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isParameterValid, setIsParameterValid] = useState(false);
+  const [isClone, setIsClone] = useState(false);
+  const [isRecurringRun, setIsRecurringRun] = useState(false);
+  const [trigger, setTrigger] = useState<ApiTrigger>();
+  const [maxConcurrentRuns, setMaxConcurrentRuns] = useState('');
+  const [catchup, setCatchup] = useState(true);
   const [clonedRuntimeConfig, setClonedRuntimeConfig] = useState<PipelineSpecRuntimeConfig>({});
 
   const urlParser = new URLParser(props);
@@ -137,7 +144,7 @@ function NewRunV2(props: NewRunV2Props) {
     ? apiRun.run?.resource_references
     : undefined;
 
-  const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
+  // const isRecurringRun = urlParser.get(QUERY_PARAMS.isRecurring) === '1';
   const titleVerb = existingRunId ? 'Clone' : 'Start';
   const titleAdjective = existingRunId ? '' : 'new';
 
@@ -147,7 +154,8 @@ function NewRunV2(props: NewRunV2Props) {
       actions: {},
       pageTitle: isRecurringRun
         ? `${titleVerb} a recurring run`
-        : `${titleVerb} a ${titleAdjective} run`,
+        : `${titleVerb} a ${titleAdjective} run v2`,
+        // temporarily add v2 in the title for differenciate the v1 / v2 when developing.
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -234,6 +242,10 @@ function NewRunV2(props: NewRunV2Props) {
   const newRunMutation = useMutation((apiRun: ApiRun) => {
     return Apis.runServiceApi.createRun(apiRun);
   });
+  const newRecurringRunMutation = useMutation((apiJob: ApiJob) => {
+    return Apis.jobServiceApi.createJob(apiJob);
+  })
+
   const startRun = () => {
     const references: ApiResourceReference[] = [];
     if (apiExperiment) {
@@ -271,9 +283,21 @@ function NewRunV2(props: NewRunV2Props) {
       resource_references: apiResourceRefFromRun ? apiResourceRefFromRun : references,
       service_account: serviceAccount,
     };
+
+    let newRecurringRun: ApiJob = Object.assign(newRun, isRecurringRun ? {
+        enabled: true,
+        max_concurrency: maxConcurrentRuns || '1',
+        no_catchup: !catchup,
+        trigger: trigger,
+      } : {
+        enabled: false,
+        max_concurrency: undefined,
+        no_catchup: undefined,
+        trigger: undefined,
+      } );
     setIsStartingNewRun(true);
 
-    newRunMutation.mutate(newRun, {
+    const runCreation = () => newRunMutation.mutate(newRun, {
       onSuccess: data => {
         setIsStartingNewRun(false);
         if (data.run?.id) {
@@ -296,6 +320,33 @@ function NewRunV2(props: NewRunV2Props) {
         });
       },
     });
+
+    const recurringRunCreation = () => newRecurringRunMutation.mutate(newRecurringRun, {
+      onSuccess: data => {
+        setIsStartingNewRun(false);
+        if (data.id) {
+          props.history.push(RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, data.id));
+        }
+        props.history.push(RoutePage.RUNS);
+
+        props.updateSnackbar({
+          message: `Successfully started new recurring Run: ${data.name}`,
+          open: true,
+        });
+      },
+      onError: async error => {
+        const errorMessage = await errorToMessage(error);
+        props.updateDialog({
+          buttons: [{ text: 'Dismiss' }],
+          onClose: () => setIsStartingNewRun(false),
+          content: errorMessage,
+          title: 'Recurring run creation failed',
+        });
+      },
+    })
+
+    isRecurringRun ? recurringRunCreation() : runCreation();
+
   };
 
   return (
@@ -366,7 +417,7 @@ function NewRunV2(props: NewRunV2Props) {
 
         {/* Run info inputs */}
         <Input
-          label={'Run name'}
+          label={isRecurringRun ? 'Recurring run config name' : 'Run name'}
           required={true}
           onChange={event => setRunName(event.target.value)}
           autoFocus={true}
@@ -440,7 +491,48 @@ function NewRunV2(props: NewRunV2Props) {
         {/* One-off/Recurring Run Type */}
         {/* TODO(zijianjoy): Support Recurring Run */}
         <div className={commonCss.header}>Run Type</div>
-        <div>Only one-off run is supported for KFPv2 Pipeline at the moment.</div>
+        {/* <div>Only one-off run is supported for KFPv2 Pipeline at the moment.</div> */}
+        {isClone && <span>{isRecurringRun ? 'Recurring' : 'One-off'}</span>}
+          {!isClone && (
+            <React.Fragment>
+              <FormControlLabel
+                id='oneOffToggle'
+                label='One-off'
+                control={<Radio color='primary' />}
+                onChange={() => setIsRecurringRun(false)}
+                checked={!isRecurringRun}
+              />
+              <FormControlLabel
+                id='recurringToggle'
+                label='Recurring'
+                control={<Radio color='primary' />}
+                onChange={() => setIsRecurringRun(true)}
+                checked={isRecurringRun}
+              />
+            </React.Fragment>
+          )}
+
+        {/* Recurring run controls */}
+        {isRecurringRun && (
+            <React.Fragment>
+              <div className={commonCss.header}>Run trigger</div>
+              <div>Choose a method by which new runs will be triggered</div>
+
+              <Trigger
+                initialProps={{
+                  trigger: trigger,
+                  maxConcurrentRuns: maxConcurrentRuns,
+                  catchup: catchup,
+                }}
+                onChange={({ trigger, maxConcurrentRuns, catchup }) => {
+                  setTrigger(trigger);
+                  setMaxConcurrentRuns(maxConcurrentRuns!);
+                  setCatchup(catchup);
+                }
+                }
+              />
+            </React.Fragment>
+          )}
 
         {/* PipelineRoot and Run Parameters */}
         <NewRunParametersV2
