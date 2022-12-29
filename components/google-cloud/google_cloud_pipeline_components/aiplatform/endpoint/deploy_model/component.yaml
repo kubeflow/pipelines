@@ -110,6 +110,8 @@ description: |
 
             For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
 inputs:
+- {name: project, type: String}
+- {name: location, type: String, default: "us-central1"}
 - {name: model, type: google.VertexModel}
 - {name: endpoint, type: google.VertexEndpoint, optional: true}
 - {name: deployed_model_display_name, type: String, optional: true, default: ''}
@@ -139,7 +141,7 @@ implementation:
       - --init.location
       - {inputValue: location}
       - --init.endpoint_name
-      - {inputValue: endpoint}
+      - "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}"
       - --method.model
       - {inputValue: model}
       - --method.traffic_split
