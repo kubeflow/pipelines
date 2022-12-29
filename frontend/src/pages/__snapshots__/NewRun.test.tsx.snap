@@ -1496,6 +1496,7 @@ exports[`NewRun changes title and form if the new run will recur, based on the r
           "trigger": undefined,
         }
       }
+      isMaxConcurrentRunValid={true}
       onChange={[Function]}
     />
     <NewRunParameters
@@ -3596,6 +3597,7 @@ exports[`NewRun starting a new recurring run includes additional trigger input f
           "trigger": undefined,
         }
       }
+      isMaxConcurrentRunValid={true}
       onChange={[Function]}
     />
     <NewRunParameters

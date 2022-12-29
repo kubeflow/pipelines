@@ -747,7 +747,6 @@ class RunDetails extends Page<RunDetailsInternalProps, RunDetailsState> {
 
     try {
       const runDetail = await Apis.runServiceApi.getRun(runId);
-      // console.log(runDetail);
 
       const relatedExperimentId = RunUtils.getFirstExperimentReferenceId(runDetail.run);
       let experiment: ApiExperiment | undefined;
