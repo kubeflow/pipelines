@@ -39,7 +39,7 @@ exports[`Trigger enables a single day on click 1`] = `
         }
       }
     >
-      Invalid input. The number of maximum concurrent runs should be integer
+      Invalid input. The maximum concurrent runs number should be an integer.
     </div>
     <div
       className="flex"
@@ -408,7 +408,7 @@ exports[`Trigger renders all week days enabled 1`] = `
         }
       }
     >
-      Invalid input. The number of maximum concurrent runs should be integer
+      Invalid input. The maximum concurrent runs number should be an integer.
     </div>
     <div
       className="flex"
@@ -777,7 +777,7 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
         }
       }
     >
-      Invalid input. The number of maximum concurrent runs should be integer
+      Invalid input. The maximum concurrent runs number should be an integer.
     </div>
     <div
       className="flex"
@@ -1044,7 +1044,7 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
         }
       }
     >
-      Invalid input. The number of maximum concurrent runs should be integer
+      Invalid input. The maximum concurrent runs number should be an integer.
     </div>
     <div
       className="flex"
@@ -1334,7 +1334,7 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
         }
       }
     >
-      Invalid input. The number of maximum concurrent runs should be integer
+      Invalid input. The maximum concurrent runs number should be an integer.
     </div>
     <div
       className="flex"
