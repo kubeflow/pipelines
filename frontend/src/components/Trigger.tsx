@@ -185,7 +185,7 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
           />
           {!this.props.isMaxConcurrentRunValid && (
             <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
-              {'Invalid input. The maximum concurrent runs should be an integer.'}
+              {'Invalid input. The maximum concurrent runs number should be an integer.'}
             </div>
           )}
 
