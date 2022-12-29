@@ -315,8 +315,9 @@ function NewRunV2(props: NewRunV2Props) {
           setIsStartingNewRun(false);
           if (data.run?.id) {
             props.history.push(RoutePage.RUN_DETAILS.replace(':' + RouteParams.runId, data.run.id));
+          } else {
+            props.history.push(RoutePage.RUNS);
           }
-          props.history.push(RoutePage.RUNS);
 
           props.updateSnackbar({
             message: `Successfully started new Run: ${data.run?.name}`,
@@ -342,8 +343,9 @@ function NewRunV2(props: NewRunV2Props) {
             props.history.push(
               RoutePage.RECURRING_RUN_DETAILS.replace(':' + RouteParams.runId, data.id),
             );
+          } else {
+            props.history.push(RoutePage.RECURRING_RUNS);
           }
-          props.history.push(RoutePage.RECURRING_RUNS);
 
           props.updateSnackbar({
             message: `Successfully started new recurring Run: ${data.name}`,

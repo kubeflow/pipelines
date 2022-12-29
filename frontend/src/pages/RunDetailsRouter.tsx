@@ -49,12 +49,12 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
     {},
   );
 
-  // Get Job ID (if it is existed) for retrieve job detail (PipelineSpec IR).
+  // Get Recurring run ID (if it is existed) for retrieve job detail (PipelineSpec IR).
   if (getRunSuccess && apiRun) {
     recurringRunId = getRecurringRunId(apiRun);
   }
 
-  // Retrieves job detail.
+  // Retrieves recurring run detail.
   const { isSuccess: getJobSuccess, data: apiRecurringRun } = useQuery<ApiJob, Error>(
     ['job_detail', { id: recurringRunId }],
     () => {
