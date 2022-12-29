@@ -95,11 +95,12 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	}
 	s := grpc.NewServer(grpc.UnaryInterceptor(apiServerInterceptor), grpc.MaxRecvMsgSize(math.MaxInt32))
 	sharedExperimentServer := server.NewExperimentServer(resourceManager, &server.ExperimentServerOptions{CollectMetrics: *collectMetricsFlag})
+	sharedJobServer := server.NewJobServer(resourceManager, &server.JobServerOptions{CollectMetrics: *collectMetricsFlag})
 	apiV1beta1.RegisterPipelineServiceServer(s, server.NewPipelineServer(resourceManager, &server.PipelineServerOptions{CollectMetrics: *collectMetricsFlag}))
 	apiV1beta1.RegisterExperimentServiceServer(s, sharedExperimentServer)
 	apiV1beta1.RegisterRunServiceServer(s, server.NewRunServer(resourceManager, &server.RunServerOptions{CollectMetrics: *collectMetricsFlag}))
 	apiV1beta1.RegisterTaskServiceServer(s, server.NewTaskServer(resourceManager))
-	apiV1beta1.RegisterJobServiceServer(s, server.NewJobServer(resourceManager, &server.JobServerOptions{CollectMetrics: *collectMetricsFlag}))
+	apiV1beta1.RegisterJobServiceServer(s, sharedJobServer)
 	apiV1beta1.RegisterReportServiceServer(s, server.NewReportServer(resourceManager))
 	apiV1beta1.RegisterVisualizationServiceServer(
 		s,
@@ -111,7 +112,7 @@ func startRpcServer(resourceManager *resource.ResourceManager) {
 	apiV1beta1.RegisterAuthServiceServer(s, server.NewAuthServer(resourceManager))
 
 	apiV2beta1.RegisterExperimentServiceServer(s, sharedExperimentServer)
-	apiV2beta1.RegisterRecurringRunServiceServer(s, server.NewRecurringRunServer(resourceManager, &server.RecurringRunServerOptions{CollectMetrics: *collectMetricsFlag}))
+	apiV2beta1.RegisterRecurringRunServiceServer(s, sharedJobServer)
 
 	// Register reflection service on gRPC server.
 	reflection.Register(s)

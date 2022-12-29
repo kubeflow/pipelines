@@ -1396,18 +1396,5 @@ func (r *ResourceManager) GetNamespaceFromPipelineVersion(versionId string) (str
 
 func (r *ResourceManager) getNamespaceFromExperiment(references []*apiv1beta1.ResourceReference) (string, error) {
 	experimentID := common.GetExperimentIDFromAPIResourceReferences(references)
-	experiment, err := r.GetExperiment(experimentID)
-	if err != nil {
-		return "", util.NewInternalServerError(err, "Failed to get experiment.")
-	}
-
-	namespace := experiment.Namespace
-	if len(namespace) == 0 {
-		if common.IsMultiUserMode() {
-			return "", util.NewInternalServerError(errors.New("Missing namespace"), "Experiment %v doesn't have a namespace.", experiment.Name)
-		} else {
-			namespace = common.GetPodNamespace()
-		}
-	}
-	return namespace, nil
+	return r.GetNamespaceFromExperimentID(experimentID)
 }
