@@ -65,15 +65,15 @@ implementation:
       - --init.endpoint_name
       - {inputValue: endpoint_name}
       - --method.project
-      -  { inputValue: project }
+      - {inputValue: project}
       - --method.location
-      - { inputValue: location }
+      - {inputValue: location}
       - --method.display_name
-      -  {inputValue: display_name}
+      - {inputValue: display_name}
       - --method.description
-      -  {inputValue: description}
+      - {inputValue: description}
       - --method.labels
-      -  {inputValue: labels}
+      - {inputValue: labels}
       - if:
           cond: {isPresent: encryption_spec_key_name}
           then:
