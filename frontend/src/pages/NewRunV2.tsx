@@ -258,7 +258,10 @@ function NewRunV2(props: NewRunV2Props) {
     if (apiRun?.run?.pipeline_spec?.runtime_config) {
       setClonedRuntimeConfig(apiRun?.run?.pipeline_spec?.runtime_config);
     }
-  }, [apiRun]);
+    if (apiRecurringRun?.pipeline_spec?.runtime_config) {
+      setClonedRuntimeConfig(apiRecurringRun.pipeline_spec.runtime_config);
+    }
+  }, [apiRun, apiRecurringRun]);
 
   // Whenever any input value changes, validate and show error if needed.
   // TODO(zijianjoy): Validate run name for now, we need to validate others first.
