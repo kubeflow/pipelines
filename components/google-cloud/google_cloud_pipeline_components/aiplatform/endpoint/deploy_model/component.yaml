@@ -131,40 +131,39 @@ outputs:
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
-    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.endpoint.deploy_model.launcher]
-    args: [
-      --type, DeployModel,
-      --payload,
-      concat: [
-          '{',
-          '"endpoint": "', "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}", '"',
-          ', "traffic_split": ', {inputValue: traffic_split},
-          ', "deployed_model": {',
-          '"model": "', "{{$.inputs.artifacts['model'].metadata['resourceName']}}", '"',
-          ', "dedicated_resources": {',
-          '"machine_spec": {',
-          '"machine_type": "',{inputValue: dedicated_resources_machine_type}, '"',
-          ', "accelerator_type": "',{inputValue: dedicated_resources_accelerator_type}, '"',
-          ', "accelerator_count": ',{inputValue: dedicated_resources_accelerator_count},
-          '}',
-          ', "min_replica_count": ', {inputValue: dedicated_resources_min_replica_count},
-          ', "max_replica_count": ', {inputValue: dedicated_resources_max_replica_count},
-          '}',
-          ', "automatic_resources": {',
-          '"min_replica_count": ',{inputValue: automatic_resources_min_replica_count},
-          ', "max_replica_count": ',{inputValue: automatic_resources_max_replica_count},
-          '}',
-          ', "service_account": "', {inputValue: service_account}, '"',
-          ', "disable_container_logging": ', {inputValue: disable_container_logging},
-          ', "enable_access_logging": ', {inputValue: enable_access_logging},
-          ', "explanation_spec": {',
-          '"parameters": ', {inputValue: explanation_parameters},
-          ', "metadata": ', {inputValue: explanation_metadata},
-          '}',
-          '}',
-          '}'
-      ],
-      --project, '', # not being used
-      --location, '', # not being used
-      --gcp_resources, {outputPath: gcp_resources},
-    ]
+    command: [python3, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner,
+      --cls_name, Endpoint, --method_name, deploy]
+    args: 
+      - --init.project
+      - {inputValue: project}
+      - --init.location
+      - {inputValue: location}
+      - --init.endpoint_name
+      - {inputValue: endpoint}
+      - --method.model
+      - {inputValue: model}
+      - --method.traffic_split
+      - {inputValue: traffic_split}
+      - --method.machine_type
+      - {inputValue: dedicated_resources_machine_type}      
+      - --method.accelerator_type
+      - {inputValue: dedicated_resources_accelerator_type}
+      - --method.accelerator_count
+      - {inputValue: dedicated_resources_accelerator_count}
+      - --method.min_replica_count
+      - {inputValue: automatic_resources_min_replica_count}
+      - --method.max_replica_count
+      - {inputValue: automatic_resources_max_replica_count}
+      - --method.service_account
+      - {inputValue: service_account}
+      - --method.explanation_metadata
+      - {inputValue: explanation_metadata}
+      - --method.explanation_parameters
+      - {inputValue: explanation_parameters}
+      - --gcp_resources
+      - {outputPath: gcp_resources}
+      - --executor_input
+      - "{{$}}"
+
+      # disable container logging
+      # enable access logging
