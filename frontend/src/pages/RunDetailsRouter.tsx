@@ -25,22 +25,22 @@ import EnhancedRunDetails, { RunDetailsProps } from 'src/pages/RunDetails';
 import { RunDetailsV2 } from 'src/pages/RunDetailsV2';
 
 // Retrieve the Job ID from run if it is a run of recurring run
-function getJobID(apiRun: ApiRunDetail | undefined): string | undefined {
-  let jobID;
+function getRecurringRunId(apiRun: ApiRunDetail | undefined): string | undefined {
+  let recurringRunId;
   if (apiRun && apiRun.run?.resource_references) {
     apiRun.run.resource_references.forEach(value => {
       if (value.key?.type === ApiResourceType.JOB && value.key.id) {
-        jobID = value.key.id;
+        recurringRunId = value.key.id;
       }
     });
   }
-  return jobID;
+  return recurringRunId;
 }
 
 // This is a router to determine whether to show V1 or V2 run detail page.
 export default function RunDetailsRouter(props: RunDetailsProps) {
   const runId = props.match.params[RouteParams.runId];
-  let jobId: string | undefined;
+  let recurringRunId: string | undefined;
 
   // Retrieves run detail.
   const { isSuccess: getRunSuccess, data: apiRun } = useQuery<ApiRunDetail, Error>(
@@ -51,30 +51,30 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
 
   // Get Job ID (if it is existed) for retrieve job detail (PipelineSpec IR).
   if (getRunSuccess && apiRun) {
-    jobId = getJobID(apiRun);
+    recurringRunId = getRecurringRunId(apiRun);
   }
 
   // Retrieves job detail.
-  const { isSuccess: getJobSuccess, data: apiJob } = useQuery<ApiJob, Error>(
-    ['job_detail', { id: jobId }],
+  const { isSuccess: getJobSuccess, data: apiRecurringRun } = useQuery<ApiJob, Error>(
+    ['job_detail', { id: recurringRunId }],
     () => {
-      if (!jobId) {
-        throw new Error('no Job ID');
+      if (!recurringRunId) {
+        throw new Error('no Recurring run ID');
       }
-      return Apis.jobServiceApi.getJob(jobId);
+      return Apis.jobServiceApi.getJob(recurringRunId);
     },
-    { enabled: !!jobId, staleTime: Infinity },
+    { enabled: !!recurringRunId, staleTime: Infinity },
   );
 
   if (apiRun === undefined) {
     return <></>;
   }
 
-  let pipelineManifestFromJob: string | undefined;
+  let pipelineManifestFromRecurringRun: string | undefined;
   let pipelineManifestFromRun: string | undefined;
 
-  if (getJobSuccess && apiJob) {
-    pipelineManifestFromJob = apiJob.pipeline_spec?.pipeline_manifest;
+  if (getJobSuccess && apiRecurringRun) {
+    pipelineManifestFromRecurringRun = apiRecurringRun.pipeline_spec?.pipeline_manifest;
   }
 
   if (getRunSuccess && apiRun) {
@@ -83,7 +83,7 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
 
   let pipelineManifest = pipelineManifestFromRun
     ? pipelineManifestFromRun
-    : pipelineManifestFromJob;
+    : pipelineManifestFromRecurringRun;
 
   if (getRunSuccess && apiRun && pipelineManifest) {
     // TODO(zijianjoy): We need to switch to use pipeline_manifest for new API implementation.

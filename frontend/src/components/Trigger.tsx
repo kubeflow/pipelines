@@ -19,13 +19,13 @@ import Checkbox from '@material-ui/core/Checkbox';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import MenuItem from '@material-ui/core/MenuItem';
 import * as React from 'react';
-import { stylesheet } from 'typestyle';
+import { classes, stylesheet } from 'typestyle';
 import { ApiTrigger } from '../apis/job';
 import { HelpButton } from '../atoms/HelpButton';
 import { ExternalLink } from '../atoms/ExternalLink';
 import Input from '../atoms/Input';
 import Separator from '../atoms/Separator';
-import { color, commonCss } from '../Css';
+import { color, commonCss, padding } from '../Css';
 import {
   buildCron,
   buildTrigger,
@@ -52,6 +52,7 @@ interface TriggerProps {
     maxConcurrentRuns?: string;
     catchup: boolean;
   }) => void;
+  isMaxConcurrentRunValid: boolean;
 }
 
 interface TriggerState {
@@ -182,6 +183,11 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
             value={maxConcurrentRuns}
             variant='outlined'
           />
+          {!this.props.isMaxConcurrentRunValid && (
+            <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
+              {'Invalid input. The number of maximum concurrent runs should be integer'}
+            </div>
+          )}
 
           <div className={commonCss.flex}>
             <FormControlLabel

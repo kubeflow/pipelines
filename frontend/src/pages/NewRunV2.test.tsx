@@ -26,6 +26,7 @@ import {
   ApiListExperimentsResponse,
 } from '../apis/experiment';
 import { ApiFilter, PredicateOp } from '../apis/filter';
+import { ApiJob } from '../apis/job';
 import {
   ApiListPipelinesResponse,
   ApiListPipelineVersionsResponse,
@@ -45,6 +46,7 @@ testBestPractices();
 
 describe('NewRunV2', () => {
   const TEST_RUN_ID = 'test-run-id';
+  const TEST_RECURRING_RUN_ID = 'test-recurring-run-id';
   const ORIGINAL_TEST_PIPELINE_ID = 'test-pipeline-id';
   const ORIGINAL_TEST_PIPELINE_NAME = 'test pipeline';
   const ORIGINAL_TEST_PIPELINE_VERSION_ID = 'test-pipeline-version-id';
@@ -122,6 +124,16 @@ describe('NewRunV2', () => {
       ],
       scheduled_at: new Date('2021-05-17T20:58:23.000Z'),
       status: 'Succeeded',
+    },
+  };
+
+  const API_UI_CREATED_NEW_RECURRING_RUN_DETAILS: ApiJob = {
+    created_at: new Date('2021-05-17T20:58:23.000Z'),
+    description: 'V2 xgboost',
+    id: TEST_RECURRING_RUN_ID,
+    name: 'Run of v2-xgboost-ilbo',
+    pipeline_spec: {
+      pipeline_manifest: v2YamlTemplateString,
     },
   };
 
@@ -657,6 +669,9 @@ describe('NewRunV2', () => {
 
   describe('creating a recurring run', () => {
     it('displays run trigger section', async () => {
+      const createJobSpy = jest.spyOn(Apis.jobServiceApi, 'createJob');
+      createJobSpy.mockResolvedValue(API_UI_CREATED_NEW_RECURRING_RUN_DETAILS);
+
       render(
         <CommonTestWrapper>
           <NewRunV2
@@ -676,6 +691,34 @@ describe('NewRunV2', () => {
       const recurringSwitcher = screen.getByLabelText('Recurring');
       fireEvent.click(recurringSwitcher);
       screen.getByText('Run trigger');
+
+      const startButton = await screen.findByText('Start');
+      // Because start button is set false by default
+      await waitFor(() => {
+        expect(startButton.closest('button')?.disabled).toEqual(false);
+      });
+      fireEvent.click(startButton);
+
+      await waitFor(() => {
+        expect(createJobSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            enabled: true,
+            max_concurrency: '10',
+            trigger: {
+              periodic_schedule: {
+                interval_second: '3600',
+              },
+            },
+          }),
+        );
+      });
+
+      await waitFor(() => {
+        expect(updateSnackbarSpy).toHaveBeenLastCalledWith({
+          message: 'Successfully started new recurring Run: Run of v2-xgboost-ilbo',
+          open: true,
+        });
+      });
     });
 
     it('enables to change the trigger parameters.', async () => {
