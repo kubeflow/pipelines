@@ -923,13 +923,13 @@ class TestRetryPolicy(unittest.TestCase):
 
 class TestDeserializeV1ComponentYamlDefaults(unittest.TestCase):
 
-    def test_uppercase_T_True(self):
+    def test_True(self):
         comp_text = textwrap.dedent("""\
 inputs:
   - { name: val, type: Boolean, default: "True" }
 implementation:
   container:
-    image: python:3.7
+    image: alpine
     command:
       - sh
       - -c
@@ -943,13 +943,13 @@ implementation:
             comp.pipeline_spec.root.input_definitions.parameters['val']
             .default_value.bool_value, True)
 
-    def test_lowercase_t_true(self):
+    def test_true(self):
         comp_text = textwrap.dedent("""\
 inputs:
   - { name: val, type: Boolean, default: "true" }
 implementation:
   container:
-    image: python:3.7
+    image: alpine
     command:
       - sh
       - -c
@@ -963,73 +963,13 @@ implementation:
             comp.pipeline_spec.root.input_definitions.parameters['val']
             .default_value.bool_value, True)
 
-    def test_uppercase_T_True_no_quotes(self):
-        comp_text = textwrap.dedent("""\
-inputs:
-  - { name: val, type: Boolean, default: True }
-implementation:
-  container:
-    image: python:3.7
-    command:
-      - sh
-      - -c
-      - |
-        echo $0
-      - { inputValue: val }
-""")
-        comp = components.load_component_from_text(comp_text)
-        self.assertEqual(comp.component_spec.inputs['val'].default, True)
-        self.assertEqual(
-            comp.pipeline_spec.root.input_definitions.parameters['val']
-            .default_value.bool_value, True)
-
-    def test_lowercase_t_true_no_quotes(self):
-        comp_text = textwrap.dedent("""\
-inputs:
-  - { name: val, type: Boolean, default: true }
-implementation:
-  container:
-    image: python:3.7
-    command:
-      - sh
-      - -c
-      - |
-        echo $0
-      - { inputValue: val }
-""")
-        comp = components.load_component_from_text(comp_text)
-        self.assertEqual(comp.component_spec.inputs['val'].default, True)
-        self.assertEqual(
-            comp.pipeline_spec.root.input_definitions.parameters['val']
-            .default_value.bool_value, True)
-
-    def test_uppercase_F_False(self):
-        comp_text = textwrap.dedent("""\
-inputs:
-  - { name: val, type: Boolean, default: "False" }
-implementation:
-  container:
-    image: python:3.7
-    command:
-      - sh
-      - -c
-      - |
-        echo $0
-      - { inputValue: val }
-""")
-        comp = components.load_component_from_text(comp_text)
-        self.assertEqual(comp.component_spec.inputs['val'].default, False)
-        self.assertEqual(
-            comp.pipeline_spec.root.input_definitions.parameters['val']
-            .default_value.bool_value, False)
-
-    def test_lowercase_f_false(self):
+    def test_false(self):
         comp_text = textwrap.dedent("""\
 inputs:
   - { name: val, type: Boolean, default: "false" }
 implementation:
   container:
-    image: python:3.7
+    image: alpine
     command:
       - sh
       - -c
@@ -1043,13 +983,13 @@ implementation:
             comp.pipeline_spec.root.input_definitions.parameters['val']
             .default_value.bool_value, False)
 
-    def test_uppercase_F_False_no_quotes(self):
+    def test_False(self):
         comp_text = textwrap.dedent("""\
 inputs:
-  - { name: val, type: Boolean, default: False }
+  - { name: val, type: Boolean, default: "False" }
 implementation:
   container:
-    image: python:3.7
+    image: alpine
     command:
       - sh
       - -c
@@ -1063,33 +1003,13 @@ implementation:
             comp.pipeline_spec.root.input_definitions.parameters['val']
             .default_value.bool_value, False)
 
-    def test_lowercase_f_false_no_quotes(self):
-        comp_text = textwrap.dedent("""\
-inputs:
-  - { name: val, type: Boolean, default: false }
-implementation:
-  container:
-    image: python:3.7
-    command:
-      - sh
-      - -c
-      - |
-        echo $0
-      - { inputValue: val }
-""")
-        comp = components.load_component_from_text(comp_text)
-        self.assertEqual(comp.component_spec.inputs['val'].default, False)
-        self.assertEqual(
-            comp.pipeline_spec.root.input_definitions.parameters['val']
-            .default_value.bool_value, False)
-
-    def test_int_as_string(self):
+    def test_int(self):
         comp_text = textwrap.dedent("""\
 inputs:
   - { name: val, type: Integer, default: "1" }
 implementation:
   container:
-    image: python:3.7
+    image: alpine
     command:
       - sh
       - -c
@@ -1103,13 +1023,13 @@ implementation:
             comp.pipeline_spec.root.input_definitions.parameters['val']
             .default_value.number_value, 1.0)
 
-    def test_float_as_string(self):
+    def test_float(self):
         comp_text = textwrap.dedent("""\
 inputs:
   - { name: val, type: Float, default: "1.0" }
 implementation:
   container:
-    image: python:3.7
+    image: alpine
     command:
       - sh
       - -c
@@ -1129,7 +1049,7 @@ inputs:
   - { name: val, type: JsonObject, default: '{"a": 1.0}' }
 implementation:
   container:
-    image: python:3.7
+    image: alpine
     command:
       - sh
       - -c
@@ -1149,7 +1069,7 @@ inputs:
   - { name: val, type: JsonObject, default: '["a", 1.0]' }
 implementation:
   container:
-    image: python:3.7
+    image: alpine
     command:
       - sh
       - -c
@@ -1169,7 +1089,7 @@ inputs:
   - { name: val, type: {Key: Val}}
 implementation:
   container:
-    image: python:3.7
+    image: alpine
     command:
       - sh
       - -c
