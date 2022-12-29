@@ -143,7 +143,7 @@ implementation:
       - --init.endpoint_name
       - "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}"
       - --method.model
-      - {inputUri: model}
+      - {inputPath: model}
       - --method.traffic_split
       - {inputValue: traffic_split}
       - --method.machine_type
