@@ -11,16 +11,16 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// V2beta1RuntimeConfig The runtime config of a run or recurring run.
+// V2beta1RuntimeConfig The runtime config.
 // swagger:model v2beta1RuntimeConfig
 type V2beta1RuntimeConfig struct {
 
-	// The runtime parameters. The parameters will be used to replace
-	// the placeholders at runtime.
+	// The runtime parameters of the Pipeline. The parameters will be
+	// used to replace the placeholders at runtime.
 	Parameters map[string]interface{} `json:"parameters,omitempty"`
 
 	// A path in a object store bucket which will be treated as the root
-	// output directory of this run. It is used by the system to
+	// output directory of the pipeline. It is used by the system to
 	// generate the paths of output artifacts.
 	// Ref:(https://www.kubeflow.org/docs/components/pipelines/pipeline-root/)
 	PipelineRoot string `json:"pipeline_root,omitempty"`
