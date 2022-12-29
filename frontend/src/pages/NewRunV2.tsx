@@ -78,6 +78,8 @@ interface RunV2Props {
   namespace?: string;
   existingRunId: string | null;
   apiRun: ApiRunDetail | undefined;
+  originalRecurringRunId: string | null;
+  apiRecurringRun: ApiJob | undefined;
   existingPipeline: ApiPipeline | undefined;
   handlePipelineIdChange: (pipelineId: string) => void;
   existingPipelineVersion: ApiPipelineVersion | undefined;
@@ -91,15 +93,20 @@ type NewRunV2Props = RunV2Props & PageProps;
 export type SpecParameters = { [key: string]: ComponentInputsSpec_ParameterSpec };
 export type RuntimeParameters = { [key: string]: any };
 
-function hasVersionID(apiRun: ApiRunDetail | undefined): boolean {
-  if (!apiRun) {
+function hasVersionID(apiRun: ApiRunDetail | undefined, apiRecurringRun: ApiJob | undefined): boolean {
+  if (!apiRun && !apiRecurringRun) {
     return true;
   }
   let hasVersionType: boolean = false;
-  if (apiRun.run?.resource_references) {
+  if (apiRun && apiRun.run?.resource_references) {
     apiRun.run.resource_references.forEach(value => {
       hasVersionType = hasVersionType || value.key?.type === ApiResourceType.PIPELINEVERSION;
     });
+  }
+  if (apiRecurringRun && apiRecurringRun.resource_references) {
+    apiRecurringRun.resource_references.forEach(value => {
+      hasVersionType = hasVersionType || value.key?.type === ApiResourceType.PIPELINEVERSION;
+    })
   }
   return hasVersionType;
 }
@@ -109,6 +116,8 @@ function NewRunV2(props: NewRunV2Props) {
   const {
     existingRunId,
     apiRun,
+    originalRecurringRunId,
+    apiRecurringRun,
     existingPipeline,
     handlePipelineIdChange,
     existingPipelineVersion,
@@ -131,7 +140,8 @@ function NewRunV2(props: NewRunV2Props) {
   const [isStartingNewRun, setIsStartingNewRun] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isParameterValid, setIsParameterValid] = useState(false);
-  const [isRecurringRun, setIsRecurringRun] = useState(false);
+  const [isClone, setIsClone] = useState(false);
+  const [isRecurringRun, setIsRecurringRun] = useState(apiRecurringRun !== undefined);
   const [trigger, setTrigger] = useState<ApiTrigger>();
   const [maxConcurrentRuns, setMaxConcurrentRuns] = useState('10');
   const [isMaxConcurrentRunValid, setIsMaxConcurrentRunValid] = useState(true);
@@ -139,22 +149,31 @@ function NewRunV2(props: NewRunV2Props) {
   const [clonedRuntimeConfig, setClonedRuntimeConfig] = useState<PipelineSpecRuntimeConfig>({});
 
   const urlParser = new URLParser(props);
-  const usePipelineFromRunLabel = 'Using pipeline from existing run.';
-  const pipelineDetailsUrl = existingRunId
+  const labelTextAdjective = isRecurringRun ? 'recurring ' : ''
+  const usePipelineFromRunLabel = `Using pipeline from existing ${labelTextAdjective} run.`;
+  const pipelineDetailsUrlfromRun = existingRunId
     ? RoutePage.PIPELINE_DETAILS.replace(
         ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
         '',
       ) + urlParser.build({ [QUERY_PARAMS.fromRunId]: existingRunId })
     : '';
 
+  const pipelineDetailsUrlfromRecurringRun = originalRecurringRunId
+  ? RoutePage.PIPELINE_DETAILS.replace(
+      ':' + RouteParams.pipelineId + '/version/:' + RouteParams.pipelineVersionId + '?',
+      '',
+    ) + urlParser.build({ [QUERY_PARAMS.cloneFromRecurringRun]: originalRecurringRunId })
+  : '';  
+
+  const pipelineDetailsUrl = pipelineDetailsUrlfromRun ? pipelineDetailsUrlfromRun : pipelineDetailsUrlfromRecurringRun;
   const isTemplatePullSuccess = templateString ? true : false;
   const apiResourceRefFromRun = apiRun?.run?.resource_references
     ? apiRun.run?.resource_references
     : undefined;
 
   // TODO(jlyaoyuli): support cloning recurring run with query parameter from isRecurring.
-  const titleVerb = existingRunId ? 'Clone' : 'Start';
-  const titleAdjective = existingRunId ? '' : 'new';
+  const titleVerb = (existingRunId || originalRecurringRunId) ? 'Clone' : 'Start';
+  const titleAdjective = (existingRunId || originalRecurringRunId) ? '' : 'new';
 
   // Title and list of actions on the top of page.
   useEffect(() => {
@@ -166,6 +185,13 @@ function NewRunV2(props: NewRunV2Props) {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Determine if it is cloning run / recurring run
+  useEffect(() => {
+    if (apiRun || apiRecurringRun) {
+      setIsClone(true);
+    }
+  }, [apiRun, apiRecurringRun])
 
   // Pre-fill names for pipeline, pipeline version and experiment.
   useEffect(() => {
@@ -188,12 +214,15 @@ function NewRunV2(props: NewRunV2Props) {
     if (apiRun?.run?.name) {
       const cloneRunName = 'Clone of ' + apiRun.run.name;
       setRunName(cloneRunName);
+    } else if (apiRecurringRun?.name) {
+      const cloneRecurringName = 'Clone of ' + apiRecurringRun.name;
+      setRunName(cloneRecurringName);
     } else if (existingPipelineVersion?.name) {
       const initRunName =
         'Run of ' + existingPipelineVersion.name + ' (' + generateRandomString(5) + ')';
       setRunName(initRunName);
     }
-  }, [apiRun, existingPipelineVersion]);
+  }, [apiRun, apiRecurringRun, existingPipelineVersion]);
 
   // Set pipeline spec, pipeline root and parameters fields on UI based on returned template.
   useEffect(() => {
@@ -264,7 +293,7 @@ function NewRunV2(props: NewRunV2Props) {
         relationship: ApiRelationship.OWNER,
       });
     }
-    if (existingPipelineVersion && hasVersionID(apiRun)) {
+    if (existingPipelineVersion && hasVersionID(apiRun, apiRecurringRun)) {
       references.push({
         key: {
           id: existingPipelineVersion.id,
@@ -279,7 +308,7 @@ function NewRunV2(props: NewRunV2Props) {
       name: runName,
       pipeline_spec: {
         // FE can only provide either pipeline_manifest or pipeline version
-        pipeline_manifest: hasVersionID(apiRun) ? undefined : templateString,
+        pipeline_manifest: hasVersionID(apiRun, apiRecurringRun) ? undefined : templateString,
         runtime_config: {
           // TODO(zijianjoy): determine whether to provide pipeline root.
           pipeline_root: undefined, // pipelineRoot,
@@ -371,12 +400,13 @@ function NewRunV2(props: NewRunV2Props) {
       <div className={commonCss.scrollContainer}>
         <div className={commonCss.header}>Run details</div>
 
-        {apiRun && (
+        {(apiRun || apiRecurringRun) && (
           <div>
             <div>
               <span>{usePipelineFromRunLabel}</span>
             </div>
             <div className={classes(padding(10, 't'))}>
+              {/* TODO(jlyaoyuli): View pipelineDetails from existing recurring run*/}
               {apiRun && (
                 <Link className={classes(commonCss.link)} to={pipelineDetailsUrl}>
                   [View pipeline]
@@ -386,7 +416,7 @@ function NewRunV2(props: NewRunV2Props) {
           </div>
         )}
 
-        {!apiRun && (
+        {!(apiRun || apiRecurringRun) && (
           <div>
             {/* Pipeline selection */}
             <PipelineSelector
@@ -508,22 +538,25 @@ function NewRunV2(props: NewRunV2Props) {
         {/* One-off/Recurring Run Type */}
         {/* TODO(zijianjoy): Support Recurring Run */}
         <div className={commonCss.header}>Run Type</div>
-        <React.Fragment>
-          <FormControlLabel
-            id='oneOffToggle'
-            label='One-off'
-            control={<Radio color='primary' />}
-            onChange={() => setIsRecurringRun(false)}
-            checked={!isRecurringRun}
-          />
-          <FormControlLabel
-            id='recurringToggle'
-            label='Recurring'
-            control={<Radio color='primary' />}
-            onChange={() => setIsRecurringRun(true)}
-            checked={isRecurringRun}
-          />
-        </React.Fragment>
+        {isClone && <span>{isRecurringRun ? 'Recurring' : 'One-off'}</span>}
+        {!isClone && (
+          <React.Fragment>
+            <FormControlLabel
+              id='oneOffToggle'
+              label='One-off'
+              control={<Radio color='primary' />}
+              onChange={() => setIsRecurringRun(false)}
+              checked={!isRecurringRun}
+            />
+            <FormControlLabel
+              id='recurringToggle'
+              label='Recurring'
+              control={<Radio color='primary' />}
+              onChange={() => setIsRecurringRun(true)}
+              checked={isRecurringRun}
+            />
+          </React.Fragment>
+        )}
 
         {/* Recurring run controls */}
         {isRecurringRun && (

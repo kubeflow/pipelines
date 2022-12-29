@@ -12,6 +12,7 @@ import { isTemplateV2 } from 'src/lib/v2/WorkflowUtils';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import { ApiRunDetail } from 'src/apis/run';
 import { ApiExperiment } from 'src/apis/experiment';
+import { ApiJob } from 'src/apis/job';
 
 function NewRunSwitcher(props: PageProps) {
   const namespace = React.useContext(NamespaceContext);
@@ -23,6 +24,7 @@ function NewRunSwitcher(props: PageProps) {
   // runID query by cloneFromRun will be deprecated once v1 is deprecated.
   const originalRunId = urlParser.get(QUERY_PARAMS.cloneFromRun);
   const embeddedRunId = urlParser.get(QUERY_PARAMS.fromRunId);
+  const originalRecurringRunId = urlParser.get(QUERY_PARAMS.cloneFromRecurringRun);
   const [pipelineId, setPipelineId] = useState(urlParser.get(QUERY_PARAMS.pipelineId));
   const experimentId = urlParser.get(QUERY_PARAMS.experimentId);
   const [pipelineVersionIdParam, setPipelineVersionIdParam] = useState(
@@ -30,7 +32,7 @@ function NewRunSwitcher(props: PageProps) {
   );
   const existingRunId = originalRunId ? originalRunId : embeddedRunId;
 
-  const { isSuccess: runIsSuccess, isFetching: runIsFetching, data: apiRun } = useQuery<
+  const { isSuccess: getRunSuccess, isFetching: runIsFetching, data: apiRun } = useQuery<
     ApiRunDetail,
     Error
   >(
@@ -43,7 +45,34 @@ function NewRunSwitcher(props: PageProps) {
     },
     { enabled: !!existingRunId, staleTime: Infinity },
   );
-  const templateStrFromRunId = apiRun ? apiRun.run?.pipeline_spec?.pipeline_manifest : '';
+
+  const {isSuccess: getRecurringRunSuccess, isFetching: recurringRunIsFetching, data: apiRecurringRun} = useQuery<ApiJob, Error>(
+    ['ApiRecurringRun', originalRecurringRunId],
+    () => {
+      if (!originalRecurringRunId) {
+        throw new Error('Recurring Run ID is missing');
+      }
+      return Apis.jobServiceApi.getJob(originalRecurringRunId);
+    },
+    { enabled: !!originalRecurringRunId, staleTime: Infinity },
+  );
+
+  let pipelineManifestFromRecurringRun: string | undefined;
+  let pipelineManifestFromRun: string | undefined;
+
+  if (getRecurringRunSuccess && apiRecurringRun) {
+    pipelineManifestFromRecurringRun = apiRecurringRun.pipeline_spec?.pipeline_manifest;
+  }
+
+  if (getRunSuccess && apiRun) {
+    pipelineManifestFromRun = apiRun.run?.pipeline_spec?.pipeline_manifest;
+  }
+
+  let pipelineManifest = pipelineManifestFromRun
+    ? pipelineManifestFromRun
+    : pipelineManifestFromRecurringRun;
+
+  // const templateStrFromRunId = apiRun ? apiRun.run?.pipeline_spec?.pipeline_manifest : '';
 
   const { isFetching: pipelineIsFetching, data: apiPipeline } = useQuery<ApiPipeline, Error>(
     ['ApiPipeline', pipelineId],
@@ -99,17 +128,20 @@ function NewRunSwitcher(props: PageProps) {
     { enabled: !!experimentId, staleTime: Infinity },
   );
 
-  const templateString =
-    templateStrFromRunId === '' ? templateStrFromPipelineId : templateStrFromRunId;
+  // const templateString =
+  //   templateStrFromRunId === '' ? templateStrFromPipelineId : templateStrFromRunId;
+  const templateString = pipelineManifest ? pipelineManifest : templateStrFromPipelineId
 
   if (isFeatureEnabled(FeatureKey.V2_ALPHA)) {
-    if ((runIsSuccess || isTemplatePullSuccessFromPipeline) && isTemplateV2(templateString || '')) {
+    if ((getRunSuccess || getRecurringRunSuccess || isTemplatePullSuccessFromPipeline) && isTemplateV2(templateString || '')) {
       return (
         <NewRunV2
           {...props}
           namespace={namespace}
           existingRunId={existingRunId}
           apiRun={apiRun}
+          originalRecurringRunId={originalRecurringRunId}
+          apiRecurringRun={apiRecurringRun}
           existingPipeline={apiPipeline}
           handlePipelineIdChange={setPipelineId}
           existingPipelineVersion={apiPipelineVersion}
@@ -126,6 +158,7 @@ function NewRunSwitcher(props: PageProps) {
   // TODO(jlyaoyuli): set v2 as default once v1 is deprecated.
   if (
     runIsFetching ||
+    recurringRunIsFetching ||
     pipelineIsFetching ||
     pipelineVersionIsFetching ||
     pipelineTemplateStrIsFetching
