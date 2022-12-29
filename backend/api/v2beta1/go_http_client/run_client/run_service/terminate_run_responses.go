@@ -85,7 +85,7 @@ TerminateRunDefault terminate run default
 type TerminateRunDefault struct {
 	_statusCode int
 
-	Payload *run_model.RPCStatus
+	Payload *run_model.GooglerpcStatus
 }
 
 // Code gets the status code for the terminate run default response
@@ -99,7 +99,7 @@ func (o *TerminateRunDefault) Error() string {
 
 func (o *TerminateRunDefault) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(run_model.RPCStatus)
+	o.Payload = new(run_model.GooglerpcStatus)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
