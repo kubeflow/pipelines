@@ -199,14 +199,15 @@ def prepare_parameters(kwargs: Dict[str, Any],
       method (Callable): The method the kwargs used to invoke the method.
       is_init (bool): Whether this method is a constructor
   """
+  import warnings
   for key, param in inspect.signature(method).parameters.items():
     if key in kwargs:
       value = kwargs[key]
       param_type = utils.resolve_annotation(param.annotation)
       value = resolve_init_args(key, value) if is_init else resolve_input_args(
           value, param_type)
-      print(param_type)
-      print(value)
+      warnings.warn("parameter type: " + str(param_type))
+      warnings.warn("parameter value: " + str(value))
       deserializer = utils.get_deserializer(param_type)
       if deserializer:
         value = deserializer(value)
