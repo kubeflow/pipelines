@@ -205,6 +205,8 @@ def prepare_parameters(kwargs: Dict[str, Any],
       param_type = utils.resolve_annotation(param.annotation)
       value = resolve_init_args(key, value) if is_init else resolve_input_args(
           value, param_type)
+      print(param_type)
+      print(value)
       deserializer = utils.get_deserializer(param_type)
       if deserializer:
         value = deserializer(value)
