@@ -69,7 +69,7 @@ def bool_cast_fn(default: Union[str, bool]) -> bool:
     return default
 
 
-def try_loading_json(default: str) -> Union[dict, list]:
+def try_loading_json(default: str) -> Union[dict, list, str]:
     try:
         return json.loads(default)
     except:
