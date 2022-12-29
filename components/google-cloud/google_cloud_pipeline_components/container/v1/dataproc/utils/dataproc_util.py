@@ -315,7 +315,6 @@ def create_batch(
     Dict of the completed Batch resource. For more details, see:
       https://cloud.google.com/dataproc-serverless/docs/reference/rest/v1/projects.locations.batches#resource:-batch
   """
-  # TODO(b/261485228) Update the doc link for payload.
   try:
     batch_request = json_util.recursive_remove_empty(
         json.loads(insert_system_labels_into_payload(payload), strict=False))
