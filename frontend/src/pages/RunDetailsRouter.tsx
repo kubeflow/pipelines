@@ -24,7 +24,7 @@ import * as WorkflowUtils from 'src/lib/v2/WorkflowUtils';
 import EnhancedRunDetails, { RunDetailsProps } from 'src/pages/RunDetails';
 import { RunDetailsV2 } from 'src/pages/RunDetailsV2';
 
-// Retrieve the Job ID from run if it is a run of recurring run
+// Retrieve the recurring run ID from run if it is a run of recurring run
 function getRecurringRunId(apiRun: ApiRunDetail | undefined): string | undefined {
   let recurringRunId;
   if (apiRun && apiRun.run?.resource_references) {
@@ -49,14 +49,14 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
     {},
   );
 
-  // Get Recurring run ID (if it is existed) for retrieve job detail (PipelineSpec IR).
+  // Get Recurring run ID (if it is existed) for retrieve recurring run detail (PipelineSpec IR).
   if (getRunSuccess && apiRun) {
     recurringRunId = getRecurringRunId(apiRun);
   }
 
   // Retrieves recurring run detail.
-  const { isSuccess: getJobSuccess, data: apiRecurringRun } = useQuery<ApiJob, Error>(
-    ['job_detail', { id: recurringRunId }],
+  const { isSuccess: getRecurringRunSuccess, data: apiRecurringRun } = useQuery<ApiJob, Error>(
+    ['recurring_run_detail', { id: recurringRunId }],
     () => {
       if (!recurringRunId) {
         throw new Error('no Recurring run ID');
@@ -73,7 +73,7 @@ export default function RunDetailsRouter(props: RunDetailsProps) {
   let pipelineManifestFromRecurringRun: string | undefined;
   let pipelineManifestFromRun: string | undefined;
 
-  if (getJobSuccess && apiRecurringRun) {
+  if (getRecurringRunSuccess && apiRecurringRun) {
     pipelineManifestFromRecurringRun = apiRecurringRun.pipeline_spec?.pipeline_manifest;
   }
 
