@@ -115,7 +115,7 @@ inputs:
 - {name: model, type: google.VertexModel}
 - {name: endpoint, type: google.VertexEndpoint, optional: true}
 - {name: deployed_model_display_name, type: String, optional: true, default: ''}
-# - {name: traffic_split, type: JsonObject, optional: true, default: '{}'}
+- {name: traffic_split, type: JsonObject, optional: true, default: '{}'}
 - {name: dedicated_resources_machine_type, type: String, optional: true, default: ''}
 - {name: dedicated_resources_min_replica_count, type: Integer, optional: true, default: 0}
 - {name: dedicated_resources_max_replica_count, type: Integer, optional: true, default: 0}
@@ -132,7 +132,7 @@ outputs:
 - {name: gcp_resources, type: String}
 implementation:
   container:
-    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
+    image: europe-west1-docker.pkg.dev/dgc-feast-demo/pipeline-containers/google-cloud-pipeline-components:latest
     command: [python3, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner,
       --cls_name, Endpoint, --method_name, deploy]
     args: 
@@ -144,8 +144,8 @@ implementation:
       - "'{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}'"
       - --method.model
       - "'{{$.inputs.artifacts['model'].metadata['resourceName']}}'"
-    #   - --method.traffic_split
-    #   - {inputValue: traffic_split}
+      - --method.traffic_split
+      - {inputValue: traffic_split}
       - --method.machine_type
       - {inputValue: dedicated_resources_machine_type}
       - --method.accelerator_type

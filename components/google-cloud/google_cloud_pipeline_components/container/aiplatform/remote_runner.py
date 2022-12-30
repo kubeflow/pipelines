@@ -206,13 +206,11 @@ def prepare_parameters(kwargs: Dict[str, Any],
       value = resolve_init_args(key, value) if is_init else resolve_input_args(
           value, param_type)
       deserializer = utils.get_deserializer(param_type)
-      try:
-        if deserializer:
-          value = deserializer(value)
-        else:
-          value = cast(value, param_type)
-      except ValueError:
-        raise ValueError(f"{value} is not a valid model name")
+      print(value)
+      if deserializer:
+        value = deserializer(value)
+      else:
+        value = cast(value, param_type)
 
       try:
         # Attempt at converting String to list:
