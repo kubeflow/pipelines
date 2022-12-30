@@ -141,9 +141,9 @@ implementation:
       - --init.location
       - {inputValue: location}
       - --init.endpoint_name
-      - "'{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}'"
+      - "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}"
       - --method.model
-      - "'{{$.inputs.artifacts['model'].metadata['resourceName']}}'"
+      - "{{$.inputs.artifacts['model'].metadata['resourceName']}}"
       - --method.traffic_split
       - {inputValue: traffic_split}
       - --method.machine_type
