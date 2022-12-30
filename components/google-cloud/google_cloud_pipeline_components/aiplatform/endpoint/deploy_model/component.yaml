@@ -115,7 +115,7 @@ inputs:
 - {name: model, type: google.VertexModel}
 - {name: endpoint, type: google.VertexEndpoint, optional: true}
 - {name: deployed_model_display_name, type: String, optional: true, default: ''}
-- {name: traffic_split, type: JsonObject, optional: true, default: '{"0": 100}'}
+- {name: traffic_split, type: JsonObject, optional: true, default: '{}'}
 - {name: dedicated_resources_machine_type, type: String, optional: true, default: ''}
 - {name: dedicated_resources_min_replica_count, type: Integer, optional: true, default: 0}
 - {name: dedicated_resources_max_replica_count, type: Integer, optional: true, default: 0}
@@ -124,15 +124,19 @@ inputs:
 - {name: automatic_resources_min_replica_count, type: Integer, optional: true, default: 0}
 - {name: automatic_resources_max_replica_count, type: Integer, optional: true, default: 0}
 - {name: service_account, type: String, optional: true, default: ''}
-- {name: disable_container_logging, type: Boolean, optional: true, default: False}
-- {name: enable_access_logging, type: Boolean, optional: true, default: False}
+# - {name: disable_container_logging, type: Boolean, optional: true, default: False}
+# - {name: enable_access_logging, type: Boolean, optional: true, default: False}
 - {name: explanation_metadata, type: JsonObject, optional: true, default: '{}'}
 - {name: explanation_parameters, type: JsonObject, optional: true, default: '{}'}
+- {name: sync, type: Boolean, optional: true, default: True}
+- {name: deploy_request_timeout, type: Float, optional: true}
+- {name: autoscaling_target_cpu_utilization, type: Integer, optional: true, default: 60}
+- {name: autoscaling_target_accelerator_duty_cycle, type: Integer, optional: true, default: 60}
 outputs:
 - {name: gcp_resources, type: String}
 implementation:
   container:
-    image: europe-west1-docker.pkg.dev/dgc-feast-demo/pipeline-containers/google-cloud-pipeline-components:latest
+    image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
     command: [python3, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner,
       --cls_name, Endpoint, --method_name, deploy]
     args: 
@@ -197,6 +201,26 @@ implementation:
           then:
           - --method.explanation_parameters
           - {inputValue: explanation_parameters}
+      - if:
+          cond: {isPresent: sync}
+          then:
+          - --method.sync
+          - {inputValue: sync}
+      - if:
+          cond: {isPresent: deploy_request_timeout}
+          then:
+          - --method.deploy_request_timeout
+          - {inputValue: deploy_request_timeout}
+      - if:
+          cond: {isPresent: autoscaling_target_cpu_utilization}
+          then:
+          - --method.autoscaling_target_cpu_utilization
+          - {inputValue: autoscaling_target_cpu_utilization}
+      - if:
+          cond: {isPresent: autoscaling_target_accelerator_duty_cycle}
+          then:
+          - --method.autoscaling_target_accelerator_duty_cycle
+          - {inputValue: autoscaling_target_accelerator_duty_cycle}
       - --gcp_resources
       - {outputPath: gcp_resources}
       - --executor_input
