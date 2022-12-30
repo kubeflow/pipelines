@@ -1,4 +1,4 @@
-// Copyright 2018 The Kubeflow Authors
+// Copyright 2018-2022 The Kubeflow Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import (
 	"context"
 
 	"github.com/golang/protobuf/ptypes/empty"
-	api "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -99,7 +99,7 @@ type RunServer struct {
 	options         *RunServerOptions
 }
 
-func (s *RunServer) CreateRunV1(ctx context.Context, request *api.CreateRunRequest) (*api.RunDetail, error) {
+func (s *RunServer) CreateRunV1(ctx context.Context, request *apiv1beta1.CreateRunRequest) (*apiv1beta1.RunDetail, error) {
 	if s.options.CollectMetrics {
 		createRunRequests.Inc()
 	}
@@ -143,7 +143,7 @@ func (s *RunServer) CreateRunV1(ctx context.Context, request *api.CreateRunReque
 	return ToApiRunDetail(run), nil
 }
 
-func (s *RunServer) GetRunV1(ctx context.Context, request *api.GetRunRequest) (*api.RunDetail, error) {
+func (s *RunServer) GetRunV1(ctx context.Context, request *apiv1beta1.GetRunRequest) (*apiv1beta1.RunDetail, error) {
 	if s.options.CollectMetrics {
 		getRunRequests.Inc()
 	}
@@ -160,7 +160,7 @@ func (s *RunServer) GetRunV1(ctx context.Context, request *api.GetRunRequest) (*
 	return ToApiRunDetail(run), nil
 }
 
-func (s *RunServer) ListRunsV1(ctx context.Context, request *api.ListRunsRequest) (*api.ListRunsResponse, error) {
+func (s *RunServer) ListRunsV1(ctx context.Context, request *apiv1beta1.ListRunsRequest) (*apiv1beta1.ListRunsResponse, error) {
 	if s.options.CollectMetrics {
 		listRunRequests.Inc()
 	}
@@ -220,10 +220,10 @@ func (s *RunServer) ListRunsV1(ctx context.Context, request *api.ListRunsRequest
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list runs.")
 	}
-	return &api.ListRunsResponse{Runs: ToApiRuns(runs), TotalSize: int32(total_size), NextPageToken: nextPageToken}, nil
+	return &apiv1beta1.ListRunsResponse{Runs: ToApiRuns(runs), TotalSize: int32(total_size), NextPageToken: nextPageToken}, nil
 }
 
-func (s *RunServer) ArchiveRunV1(ctx context.Context, request *api.ArchiveRunRequest) (*empty.Empty, error) {
+func (s *RunServer) ArchiveRunV1(ctx context.Context, request *apiv1beta1.ArchiveRunRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		archiveRunRequests.Inc()
 	}
@@ -239,7 +239,7 @@ func (s *RunServer) ArchiveRunV1(ctx context.Context, request *api.ArchiveRunReq
 	return &empty.Empty{}, nil
 }
 
-func (s *RunServer) UnarchiveRunV1(ctx context.Context, request *api.UnarchiveRunRequest) (*empty.Empty, error) {
+func (s *RunServer) UnarchiveRunV1(ctx context.Context, request *apiv1beta1.UnarchiveRunRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		unarchiveRunRequests.Inc()
 	}
@@ -255,7 +255,7 @@ func (s *RunServer) UnarchiveRunV1(ctx context.Context, request *api.UnarchiveRu
 	return &empty.Empty{}, nil
 }
 
-func (s *RunServer) DeleteRunV1(ctx context.Context, request *api.DeleteRunRequest) (*empty.Empty, error) {
+func (s *RunServer) DeleteRunV1(ctx context.Context, request *apiv1beta1.DeleteRunRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		deleteRunRequests.Inc()
 	}
@@ -275,7 +275,7 @@ func (s *RunServer) DeleteRunV1(ctx context.Context, request *api.DeleteRunReque
 	return &empty.Empty{}, nil
 }
 
-func (s *RunServer) ReportRunMetricsV1(ctx context.Context, request *api.ReportRunMetricsRequest) (*api.ReportRunMetricsResponse, error) {
+func (s *RunServer) ReportRunMetricsV1(ctx context.Context, request *apiv1beta1.ReportRunMetricsRequest) (*apiv1beta1.ReportRunMetricsResponse, error) {
 	if s.options.CollectMetrics {
 		reportRunMetricsRequests.Inc()
 	}
@@ -290,8 +290,8 @@ func (s *RunServer) ReportRunMetricsV1(ctx context.Context, request *api.ReportR
 	if err != nil {
 		return nil, err
 	}
-	response := &api.ReportRunMetricsResponse{
-		Results: []*api.ReportRunMetricsResponse_ReportRunMetricResult{},
+	response := &apiv1beta1.ReportRunMetricsResponse{
+		Results: []*apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult{},
 	}
 	for _, metric := range request.GetMetrics() {
 		err := ValidateRunMetric(metric)
@@ -305,7 +305,7 @@ func (s *RunServer) ReportRunMetricsV1(ctx context.Context, request *api.ReportR
 	return response, nil
 }
 
-func (s *RunServer) ReadArtifactV1(ctx context.Context, request *api.ReadArtifactRequest) (*api.ReadArtifactResponse, error) {
+func (s *RunServer) ReadArtifactV1(ctx context.Context, request *apiv1beta1.ReadArtifactRequest) (*apiv1beta1.ReadArtifactResponse, error) {
 	if s.options.CollectMetrics {
 		readArtifactRequests.Inc()
 	}
@@ -320,12 +320,12 @@ func (s *RunServer) ReadArtifactV1(ctx context.Context, request *api.ReadArtifac
 	if err != nil {
 		return nil, util.Wrapf(err, "failed to read artifact '%+v'.", request)
 	}
-	return &api.ReadArtifactResponse{
+	return &apiv1beta1.ReadArtifactResponse{
 		Data: content,
 	}, nil
 }
 
-func (s *RunServer) validateCreateRunRequest(request *api.CreateRunRequest) error {
+func (s *RunServer) validateCreateRunRequest(request *apiv1beta1.CreateRunRequest) error {
 	run := request.Run
 	if run.Name == "" {
 		return util.NewInvalidInputError("The run name is empty. Please specify a valid name.")
@@ -333,7 +333,7 @@ func (s *RunServer) validateCreateRunRequest(request *api.CreateRunRequest) erro
 	return ValidatePipelineSpecAndResourceReferences(s.resourceManager, run.PipelineSpec, run.ResourceReferences)
 }
 
-func (s *RunServer) TerminateRunV1(ctx context.Context, request *api.TerminateRunRequest) (*empty.Empty, error) {
+func (s *RunServer) TerminateRunV1(ctx context.Context, request *apiv1beta1.TerminateRunRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		terminateRunRequests.Inc()
 	}
@@ -349,7 +349,7 @@ func (s *RunServer) TerminateRunV1(ctx context.Context, request *api.TerminateRu
 	return &empty.Empty{}, nil
 }
 
-func (s *RunServer) RetryRunV1(ctx context.Context, request *api.RetryRunRequest) (*empty.Empty, error) {
+func (s *RunServer) RetryRunV1(ctx context.Context, request *apiv1beta1.RetryRunRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		retryRunRequests.Inc()
 	}

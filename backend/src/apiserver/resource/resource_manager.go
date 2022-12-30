@@ -334,17 +334,25 @@ func (r *ResourceManager) GetPipelineTemplate(pipelineId string) ([]byte, error)
 	return template, nil
 }
 
-func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *apiv1beta1.Run) (*model.RunDetail, error) {
+func (r *ResourceManager) CreateRun(ctx context.Context, apiRunInterface interface{}) (*model.RunDetail, error) {
+	// For apiv1beta1:
 	// Get manifest from either of the two places:
 	// (1) raw manifest in pipeline_spec
 	// (2) pipeline version in resource_references
 	// And the latter takes priority over the former when the manifest is from pipeline_spec.pipeline_id
 	// workflow/pipeline manifest and pipeline id/version will not exist at the same time, guaranteed by the validation phase
-	manifestBytes, err := getManifestBytesV1(apiRun.PipelineSpec, &apiRun.ResourceReferences, r)
+	// For apiv2beta1:
+	// Get pipeline manifest from either of the two places:
+	// (1) raw pipeline manifest in pipeline_spec
+	// (2) pipeline id
+	// 	And the latter takes priority over the former when the pipeline manifest is from pipeline_spec.pipeline_id
+	// TODO(lingqinggan): Add get pipeline from pipeline version.
+	manifestBytes, err := getManifestBytesfromAPIRunInterface(apiRunInterface, r)
 	if err != nil {
 		return nil, err
 	}
 
+	// Generate Run Id and timestamps.
 	uuid, err := r.uuid.NewRandom()
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to generate run ID.")
@@ -352,6 +360,7 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *apiv1beta1.Run)
 	runId := uuid.String()
 	runAt := r.time.Now().Unix()
 
+	// Create template for this run. Template can be argo template or IR. New templates may be added in the future.
 	tmpl, err := template.New(manifestBytes)
 	if err != nil {
 		return nil, err
@@ -360,63 +369,47 @@ func (r *ResourceManager) CreateRun(ctx context.Context, apiRun *apiv1beta1.Run)
 		RunId: runId,
 		RunAt: runAt,
 	}
-	executionSpec, err := tmpl.RunWorkflow(apiRun, runWorkflowOptions)
+
+	// Convert apiRun to model Run.
+	modelRunDetail, err := r.ToModelRunDetail(apiRunInterface, runId, runAt, string(manifestBytes), tmpl.GetTemplateType())
 	if err != nil {
-		return nil, util.NewInternalServerError(err, "failed to generate the ExecutionSpec.")
-	}
-	// Add a reference to the default experiment if run does not already have a containing experiment
-	ref, err := r.getDefaultExperimentIfNoExperiment(apiRun.GetResourceReferences())
-	if err != nil {
-		return nil, err
-	}
-	if ref != nil {
-		apiRun.ResourceReferences = append(apiRun.GetResourceReferences(), ref)
+		return nil, util.Wrap(err, "Error creating model RunDetail")
 	}
 
-	namespace, err := r.getNamespaceFromExperiment(apiRun.GetResourceReferences())
+	// Convert modelRun into execution spec.
+	executionSpec, err := tmpl.RunWorkflow(&modelRunDetail.Run, runWorkflowOptions)
 	if err != nil {
-		return nil, err
+		return nil, util.Wrap(err, "failed to generate the ExecutionSpec")
 	}
 
+	// Validate executionSpec.
 	err = executionSpec.Validate(false, false)
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to validate workflow for (%+v)", executionSpec.ExecutionName())
 	}
-	// Create argo workflow CR resource
-	newExecSpec, err := r.getWorkflowClient(namespace).Create(ctx, executionSpec, v1.CreateOptions{})
+
+	// Create argo workflow CR resource.
+	newExecSpec, err := r.getWorkflowClient(modelRunDetail.Namespace).Create(ctx, executionSpec, v1.CreateOptions{})
 	if err != nil {
 		return nil, util.NewInternalServerError(err, "Failed to create a workflow for (%s)", executionSpec.ExecutionName())
 	}
 
-	// Patched the default value to apiRun
+	// Patch the default value to apiRun.
 	if common.GetBoolConfigWithDefault(common.HasDefaultBucketEnvVar, false) {
-		for _, param := range apiRun.PipelineSpec.Parameters {
-			var err error
-			param.Value, err = common.PatchPipelineDefaultParameter(param.Value)
-			if err != nil {
-				return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
-			}
+		var err error
+		modelRunDetail.PipelineSpec.Parameters, err = common.PatchPipelineDefaultParameter(modelRunDetail.PipelineSpec.Parameters)
+		if err != nil {
+			return nil, fmt.Errorf("failed to patch default value to pipeline. Error: %v", err)
 		}
 	}
 
-	// Store run metadata into database
-	runDetail, err := r.ToModelRunDetail(apiRun, runId, newExecSpec, string(manifestBytes), tmpl.GetTemplateType())
-	if err != nil {
-		return nil, util.Wrap(err, "Failed to convert run model")
-	}
+	// Update modelRunDetail with information from workflow
+	r.updateModelRunWithNewScheduledWorkflow(modelRunDetail, newExecSpec, tmpl.GetTemplateType())
 
 	// Assign the create at time.
-	runDetail.CreatedAtInSec = runAt
+	modelRunDetail.CreatedAtInSec = runAt
 
-	// Assign the scheduled at time
-	if !apiRun.ScheduledAt.AsTime().IsZero() {
-		// if there is no scheduled time, then we assume this run is scheduled at the same time it is created
-		runDetail.ScheduledAtInSec = runAt
-	} else {
-		runDetail.ScheduledAtInSec = apiRun.ScheduledAt.AsTime().Unix()
-	}
-
-	return r.runStore.CreateRun(runDetail)
+	return r.runStore.CreateRun(modelRunDetail)
 }
 
 func (r *ResourceManager) GetRun(runId string) (*model.RunDetail, error) {
@@ -689,6 +682,13 @@ func (r *ResourceManager) GetJob(id string) (*model.Job, error) {
 }
 
 func (r *ResourceManager) CreateJob(ctx context.Context, apiJobInterface interface{}) (*model.Job, error) {
+	// For apiv1beta1:
+	// Get manifest from either of the two places:
+	// (1) raw manifest in pipeline_spec
+	// (2) pipeline version in resource_references
+	// And the latter takes priority over the former when the manifest is from pipeline_spec.pipeline_id
+	// workflow/pipeline manifest and pipeline id/version will not exist at the same time, guaranteed by the validation phase
+	// For apiv2beta1:
 	// Get pipeline manifest from either of the two places:
 	// (1) raw pipeline manifest in pipeline_spec
 	// (2) pipeline id
@@ -699,6 +699,7 @@ func (r *ResourceManager) CreateJob(ctx context.Context, apiJobInterface interfa
 		return nil, util.Wrap(err, "Error getting manifest Bytes from api job")
 	}
 
+	// Create template for this job. Template can be argo template or IR. New templates may be added in the future.
 	tmpl, err := template.New(manifestBytes)
 	if err != nil {
 		return nil, util.Wrap(err, "Error creating new template")
@@ -1041,6 +1042,35 @@ func getManifestBytesV1(pipelineSpec *apiv1beta1.PipelineSpec, resourceReference
 		if err != nil {
 			return nil, util.Wrap(err, "Failed to fetch manifest bytes.")
 		}
+	}
+	return manifestBytes, nil
+}
+
+func getManifestBytesfromAPIRunInterface(apiRunInterface interface{}, r *ResourceManager) ([]byte, error) {
+	var manifestBytes []byte
+	var err error
+	switch apiRunInterface.(type) {
+	case *apiv1beta1.Run:
+		apiRun := apiRunInterface.(*apiv1beta1.Run)
+		manifestBytes, err = getManifestBytesV1(apiRun.PipelineSpec, &apiRun.ResourceReferences, r)
+		if err != nil {
+			return nil, util.Wrap(err, "Cannot get manifest bytes.")
+		}
+	case *apiv2beta1.Run:
+		apiRun := apiRunInterface.(*apiv2beta1.Run)
+		if apiRun.GetPipelineId() != "" {
+			manifestBytes, err = r.GetPipelineTemplate(apiRun.GetPipelineId())
+			if err != nil {
+				return nil, util.Wrap(err, "Cannot retrieve manifestBytes using pipelineId.")
+			}
+		} else if apiRun.GetPipelineSpec() != nil {
+			manifestBytes, err = json.Marshal(apiRun.GetPipelineSpec())
+			if err != nil {
+				return nil, util.Wrap(err, "Cannot marshal PipelineSpec.")
+			}
+		}
+	default:
+		return nil, util.Wrap(err, "Wrong api run interface type")
 	}
 	return manifestBytes, nil
 }

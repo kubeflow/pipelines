@@ -227,9 +227,9 @@ func TestToModelRunDetail(t *testing.T) {
 				Run: model.Run{
 					UUID:           "123",
 					ExperimentUUID: experiment.UUID,
+					Namespace:      "ns1",
+					Name:           "name1",
 					DisplayName:    "name1",
-					Name:           "workflow-name",
-					Conditions:     "running",
 					Description:    "this is a run",
 					PipelineSpec: model.PipelineSpec{
 						WorkflowSpecManifest: "workflow spec",
@@ -244,12 +244,6 @@ func TestToModelRunDetail(t *testing.T) {
 							ReferenceType: common.Experiment,
 							Relationship:  common.Owner},
 					},
-				},
-				PipelineRuntime: model.PipelineRuntime{
-					WorkflowRuntimeManifest: util.NewWorkflow(&v1alpha1.Workflow{
-						ObjectMeta: v1.ObjectMeta{Name: "workflow-name", UID: "123"},
-						Status:     v1alpha1.WorkflowStatus{Phase: "running"},
-					}).ToStringForStore(),
 				},
 			},
 		},
@@ -278,9 +272,9 @@ func TestToModelRunDetail(t *testing.T) {
 				Run: model.Run{
 					UUID:           "123",
 					ExperimentUUID: experiment.UUID,
+					Namespace:      "ns1",
+					Name:           "name1",
 					DisplayName:    "name1",
-					Name:           "workflow-name",
-					Conditions:     "running",
 					Description:    "this is a run",
 					PipelineSpec: model.PipelineSpec{
 						PipelineSpecManifest: "pipeline spec",
@@ -304,7 +298,7 @@ func TestToModelRunDetail(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			modelRunDetail, err := manager.ToModelRunDetail(tt.apiRun, "123", tt.workflow, tt.manifest, tt.templateType)
+			modelRunDetail, err := manager.ToModelRunDetail(tt.apiRun, "123", 0, tt.manifest, tt.templateType)
 			assert.Nil(t, err)
 			assert.Equal(t, tt.expectedModelRunDetail, modelRunDetail)
 		})
