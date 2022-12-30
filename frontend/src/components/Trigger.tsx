@@ -52,7 +52,6 @@ interface TriggerProps {
     maxConcurrentRuns?: string;
     catchup: boolean;
   }) => void;
-  isMaxConcurrentRunValid: boolean;
 }
 
 interface TriggerState {
@@ -183,9 +182,9 @@ export default class Trigger extends React.Component<TriggerProps, TriggerState>
             value={maxConcurrentRuns}
             variant='outlined'
           />
-          {!this.props.isMaxConcurrentRunValid && (
+          {!Number.isInteger(Number(maxConcurrentRuns)) && (
             <div className={classes(padding(20, 'r'))} style={{ color: 'red' }}>
-              {'Invalid input. The maximum concurrent runs number should be an integer.'}
+              {'Invalid input. The maximum concurrent runs should be a positive integer.'}
             </div>
           )}
 

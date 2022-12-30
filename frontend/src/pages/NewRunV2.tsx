@@ -508,7 +508,7 @@ function NewRunV2(props: NewRunV2Props) {
         {/* One-off/Recurring Run Type */}
         {/* TODO(zijianjoy): Support Recurring Run */}
         <div className={commonCss.header}>Run Type</div>
-        <React.Fragment>
+        <>
           <FormControlLabel
             id='oneOffToggle'
             label='One-off'
@@ -523,11 +523,11 @@ function NewRunV2(props: NewRunV2Props) {
             onChange={() => setIsRecurringRun(true)}
             checked={isRecurringRun}
           />
-        </React.Fragment>
+        </>
 
         {/* Recurring run controls */}
         {isRecurringRun && (
-          <React.Fragment>
+          <>
             <div className={commonCss.header}>Run trigger</div>
             <div>Choose a method by which new runs will be triggered</div>
 
@@ -543,9 +543,8 @@ function NewRunV2(props: NewRunV2Props) {
                 setIsMaxConcurrentRunValid(Number.isInteger(Number(maxConcurrentRuns)));
                 setCatchup(catchup);
               }}
-              isMaxConcurrentRunValid={isMaxConcurrentRunValid}
             />
-          </React.Fragment>
+          </>
         )}
 
         {/* PipelineRoot and Run Parameters */}

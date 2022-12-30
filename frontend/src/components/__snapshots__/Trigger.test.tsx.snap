@@ -32,16 +32,6 @@ exports[`Trigger enables a single day on click 1`] = `
       variant="outlined"
     />
     <div
-      className=""
-      style={
-        Object {
-          "color": "red",
-        }
-      }
-    >
-      Invalid input. The maximum concurrent runs number should be an integer.
-    </div>
-    <div
       className="flex"
     >
       <WithStyles(WithFormControlContext(FormControlLabel))
@@ -400,16 +390,6 @@ exports[`Trigger renders all week days enabled 1`] = `
       value="10"
       variant="outlined"
     />
-    <div
-      className=""
-      style={
-        Object {
-          "color": "red",
-        }
-      }
-    >
-      Invalid input. The maximum concurrent runs number should be an integer.
-    </div>
     <div
       className="flex"
     >
@@ -770,16 +750,6 @@ exports[`Trigger renders periodic schedule controls for initial render 1`] = `
       variant="outlined"
     />
     <div
-      className=""
-      style={
-        Object {
-          "color": "red",
-        }
-      }
-    >
-      Invalid input. The maximum concurrent runs number should be an integer.
-    </div>
-    <div
       className="flex"
     >
       <WithStyles(WithFormControlContext(FormControlLabel))
@@ -1036,16 +1006,6 @@ exports[`Trigger renders periodic schedule controls if the trigger type is CRON 
       value="10"
       variant="outlined"
     />
-    <div
-      className=""
-      style={
-        Object {
-          "color": "red",
-        }
-      }
-    >
-      Invalid input. The maximum concurrent runs number should be an integer.
-    </div>
     <div
       className="flex"
     >
@@ -1326,16 +1286,6 @@ exports[`Trigger renders week days if the trigger type is CRON and interval is w
       value="10"
       variant="outlined"
     />
-    <div
-      className=""
-      style={
-        Object {
-          "color": "red",
-        }
-      }
-    >
-      Invalid input. The maximum concurrent runs number should be an integer.
-    </div>
     <div
       className="flex"
     >
