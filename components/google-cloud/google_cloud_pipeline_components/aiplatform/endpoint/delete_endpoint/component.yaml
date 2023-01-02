@@ -14,21 +14,26 @@ description: |
             For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
 inputs:
 - {name: endpoint, type: google.VertexEndpoint}
+- {name: force, type: Boolean, optional: true, default: False}
+- {name: sync, type: Boolean, optional: true, default: True}
 outputs:
 - {name: gcp_resources, type: String}
 implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
-    command: [python3, -u, -m, google_cloud_pipeline_components.container.v1.endpoint.delete_endpoint.launcher]
-    args: [
-      --type, DeleteEndpoint,
-      --payload,
-      concat: [
-          '{',
-          '"endpoint": "', "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}", '"',
-          '}'
-      ],
-      --project, '', # not being used
-      --location, '', # not being used
-      --gcp_resources, {outputPath: gcp_resources},
-    ]
+    command: [python3, -u, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner, --cls_name, Endpoint, --method_name, delete]
+    args: 
+      - --init.endpoint_name
+      - "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}"
+      - if:
+          cond: {isPresent: force}
+          then:
+          - --method.force
+          - {inputValue: force}
+      - if:
+          cond: {isPresent: sync}
+          then:
+          - --method.sync
+          - {inputValue: sync}
+      - --gcp_resources,
+      - {outputPath: gcp_resources}
