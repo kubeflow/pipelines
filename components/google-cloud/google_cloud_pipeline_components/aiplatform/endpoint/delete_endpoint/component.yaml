@@ -37,3 +37,5 @@ implementation:
           - {inputValue: sync}
       - --gcp_resources,
       - {outputPath: gcp_resources}
+      - --executor_input
+      - "{{$}}"
