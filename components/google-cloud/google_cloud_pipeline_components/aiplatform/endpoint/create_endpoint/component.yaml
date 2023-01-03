@@ -70,10 +70,16 @@ implementation:
       - {inputValue: location}
       - --method.display_name
       - {inputValue: display_name}
-      - --method.description
-      - {inputValue: description}
-      - --method.labels
-      - {inputValue: labels}
+      - if:
+          cond: {isPresent: description}
+          then:
+          - --method.description
+          - {inputValue: description}
+      - if:
+          cond: {isPresent: labels}
+          then:
+          - --method.labels
+          - {inputValue: labels}
       - if:
           cond: {isPresent: encryption_spec_key_name}
           then:
