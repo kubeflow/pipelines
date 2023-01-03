@@ -20,6 +20,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/ghodss/yaml"
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -790,4 +791,235 @@ func TestListJobs_Unauthenticated(t *testing.T) {
 			"Failed to authorize with namespace resource reference.",
 		).Error(),
 	)
+}
+
+func TestValidateApiRecurringRun(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+	err := server.validateCreateRecurringRunRequest(&apiv2beta1.CreateRecurringRunRequest{RecurringRun: commonApiRecurringRun})
+	assert.Nil(t, err)
+}
+
+func TestCreateRecurringRun(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+
+	pipelineSpecStruct := &structpb.Struct{}
+	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
+
+	apiRecurringRun := &apiv2beta1.RecurringRun{
+		DisplayName:    "recurring_run_1",
+		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		MaxConcurrency: 1,
+		Trigger: &apiv2beta1.Trigger{
+			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}}},
+		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+			PipelineRoot: "model-pipeline-root",
+		},
+		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
+	}
+
+	expectedRecurringRun := &apiv2beta1.RecurringRun{
+		RecurringRunId: "123e4567-e89b-12d3-a456-426655440000",
+		DisplayName:    "recurring_run_1",
+		ServiceAccount: "pipeline-runner",
+		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		Namespace:      "ns1",
+		MaxConcurrency: 1,
+		Trigger: &apiv2beta1.Trigger{
+			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}}},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
+		Status:         apiv2beta1.RecurringRun_STATUS_UNSPECIFIED,
+		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+			PipelineRoot: "model-pipeline-root",
+		},
+	}
+
+	recurringRun, err := server.CreateRecurringRun(nil, &apiv2beta1.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRecurringRun, recurringRun)
+
+}
+
+func TestGetRecurringRun(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+
+	pipelineSpecStruct := &structpb.Struct{}
+	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
+
+	apiRecurringRun := &apiv2beta1.RecurringRun{
+		DisplayName:    "recurring_run_1",
+		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		MaxConcurrency: 1,
+		Trigger: &apiv2beta1.Trigger{
+			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}}},
+		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+			PipelineRoot: "model-pipeline-root",
+		},
+		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
+	}
+
+	expectedRecurringRun := &apiv2beta1.RecurringRun{
+		RecurringRunId: "123e4567-e89b-12d3-a456-426655440000",
+		DisplayName:    "recurring_run_1",
+		ServiceAccount: "pipeline-runner",
+		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		Namespace:      "ns1",
+		MaxConcurrency: 1,
+		Trigger: &apiv2beta1.Trigger{
+			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}}},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
+		Status:         apiv2beta1.RecurringRun_STATUS_UNSPECIFIED,
+		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+			PipelineRoot: "model-pipeline-root",
+		},
+	}
+
+	createdRecurringRun, err := server.CreateRecurringRun(nil, &apiv2beta1.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
+	assert.Nil(t, err)
+
+	recurringRun, err := server.GetRecurringRun(nil, &apiv2beta1.GetRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRecurringRun, recurringRun)
+
+}
+
+func TestListRecurringRuns(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+
+	pipelineSpecStruct := &structpb.Struct{}
+	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
+
+	apiRecurringRun := &apiv2beta1.RecurringRun{
+		DisplayName:    "recurring_run_1",
+		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		MaxConcurrency: 1,
+		Trigger: &apiv2beta1.Trigger{
+			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}}},
+		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+			PipelineRoot: "model-pipeline-root",
+		},
+		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
+	}
+
+	expectedRecurringRun := &apiv2beta1.RecurringRun{
+		RecurringRunId: "123e4567-e89b-12d3-a456-426655440000",
+		DisplayName:    "recurring_run_1",
+		ServiceAccount: "pipeline-runner",
+		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		Namespace:      "ns1",
+		MaxConcurrency: 1,
+		Trigger: &apiv2beta1.Trigger{
+			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}}},
+		CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+		UpdatedAt:      &timestamp.Timestamp{Seconds: 2},
+		Status:         apiv2beta1.RecurringRun_STATUS_UNSPECIFIED,
+		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+			PipelineRoot: "model-pipeline-root",
+		},
+	}
+
+	createdRecurringRun, err := server.CreateRecurringRun(nil, &apiv2beta1.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRecurringRun, createdRecurringRun)
+
+	expectedRecurringRunsList := []*apiv2beta1.RecurringRun{expectedRecurringRun}
+
+	actualRecurringRunsList, err := server.ListRecurringRuns(nil, &apiv2beta1.ListRecurringRunsRequest{})
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRecurringRunsList, actualRecurringRunsList.RecurringRuns)
+}
+
+func TestEnableJob(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+
+	pipelineSpecStruct := &structpb.Struct{}
+	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
+
+	apiRecurringRun := &apiv2beta1.RecurringRun{
+		DisplayName:    "recurring_run_1",
+		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		MaxConcurrency: 1,
+		Trigger: &apiv2beta1.Trigger{
+			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}}},
+		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+			PipelineRoot: "model-pipeline-root",
+		},
+		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
+	}
+
+	createdRecurringRun, err := server.CreateRecurringRun(nil, &apiv2beta1.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
+	assert.Nil(t, err)
+
+	_, err = server.EnableRecurringRun(nil, &apiv2beta1.EnableRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
+	assert.Nil(t, err)
+}
+
+func TestDisableJob(t *testing.T) {
+	clients, manager, _ := initWithExperiment(t)
+	defer clients.Close()
+	server := NewJobServer(manager, &JobServerOptions{CollectMetrics: false})
+
+	pipelineSpecStruct := &structpb.Struct{}
+	yaml.Unmarshal([]byte(v2SpecHelloWorld), pipelineSpecStruct)
+
+	apiRecurringRun := &apiv2beta1.RecurringRun{
+		DisplayName:    "recurring_run_1",
+		Mode:           apiv2beta1.RecurringRun_ENABLE,
+		MaxConcurrency: 1,
+		Trigger: &apiv2beta1.Trigger{
+			Trigger: &apiv2beta1.Trigger_CronSchedule{CronSchedule: &apiv2beta1.CronSchedule{
+				StartTime: &timestamp.Timestamp{Seconds: 1},
+				Cron:      "1 * * * *",
+			}}},
+		PipelineSource: &apiv2beta1.RecurringRun_PipelineSpec{PipelineSpec: pipelineSpecStruct},
+		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+			PipelineRoot: "model-pipeline-root",
+		},
+		ExperimentId: "123e4567-e89b-12d3-a456-426655440000",
+	}
+
+	createdRecurringRun, err := server.CreateRecurringRun(nil, &apiv2beta1.CreateRecurringRunRequest{RecurringRun: apiRecurringRun})
+	assert.Nil(t, err)
+
+	_, err = server.DisableRecurringRun(nil, &apiv2beta1.DisableRecurringRunRequest{RecurringRunId: createdRecurringRun.RecurringRunId})
+	assert.Nil(t, err)
 }
