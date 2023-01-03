@@ -113,6 +113,12 @@ Class | Method | HTTP request | Description
 *PipelineServiceApi* | [**list_pipelines**](docs/PipelineServiceApi.md#list_pipelines) | **GET** /apis/v2beta1/pipelines | Finds all pipelines within a namespace.
 *PipelineUploadServiceApi* | [**upload_pipeline**](docs/PipelineUploadServiceApi.md#upload_pipeline) | **POST** /apis/v2beta1/pipelines/upload | 
 *PipelineUploadServiceApi* | [**upload_pipeline_version**](docs/PipelineUploadServiceApi.md#upload_pipeline_version) | **POST** /apis/v2beta1/pipelines/upload_version | 
+*RecurringRunServiceApi* | [**create_recurring_run**](docs/RecurringRunServiceApi.md#create_recurring_run) | **POST** /apis/v2beta1/recurringruns | Creates a new recurring run in an experiment, given the experiment ID.
+*RecurringRunServiceApi* | [**delete_recurring_run**](docs/RecurringRunServiceApi.md#delete_recurring_run) | **DELETE** /apis/v2beta1/recurringruns/{recurring_run_id} | Deletes a recurring run.
+*RecurringRunServiceApi* | [**disable_recurring_run**](docs/RecurringRunServiceApi.md#disable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{recurring_run_id}:disable | Stops a recurring run and all its associated runs. The recurring run is not deleted.
+*RecurringRunServiceApi* | [**enable_recurring_run**](docs/RecurringRunServiceApi.md#enable_recurring_run) | **POST** /apis/v2beta1/recurringruns/{recurring_run_id}:enable | Restarts a recurring run that was previously stopped. All runs associated with the  recurring run will continue.
+*RecurringRunServiceApi* | [**get_recurring_run**](docs/RecurringRunServiceApi.md#get_recurring_run) | **GET** /apis/v2beta1/recurringruns/{recurring_run_id} | Finds a specific recurring run by ID.
+*RecurringRunServiceApi* | [**list_recurring_runs**](docs/RecurringRunServiceApi.md#list_recurring_runs) | **GET** /apis/v2beta1/recurringruns | Finds all recurring runs given experiment and namespace.  If experiment ID is not specified, find all recurring runs across all experiments.
 *ReportServiceApi* | [**report_scheduled_workflow_v1**](docs/ReportServiceApi.md#report_scheduled_workflow_v1) | **POST** /apis/v2beta1/scheduledworkflows | 
 *ReportServiceApi* | [**report_workflow_v1**](docs/ReportServiceApi.md#report_workflow_v1) | **POST** /apis/v2beta1/workflows | 
 *RunServiceApi* | [**archive_run**](docs/RunServiceApi.md#archive_run) | **POST** /apis/v2beta1/experiments/{experiment_id}/runs/{run_id}:archive | Archives a run in an experiment given by run ID and experiment ID.
@@ -137,22 +143,27 @@ Class | Method | HTTP request | Description
  - [ApiResourceType](docs/ApiResourceType.md)
  - [ApiStatus](docs/ApiStatus.md)
  - [ApiUrl](docs/ApiUrl.md)
+ - [GooglerpcStatus](docs/GooglerpcStatus.md)
  - [PredicateIntValues](docs/PredicateIntValues.md)
  - [PredicateLongValues](docs/PredicateLongValues.md)
  - [PredicateStringValues](docs/PredicateStringValues.md)
  - [ProtobufAny](docs/ProtobufAny.md)
  - [ProtobufNullValue](docs/ProtobufNullValue.md)
- - [ReportRunMetricsResponseMetricStatus](docs/ReportRunMetricsResponseMetricStatus.md)
- - [RpcStatus](docs/RpcStatus.md)
+ - [RecurringRunMode](docs/RecurringRunMode.md)
+ - [ReportRunMetricsResponseReportRunMetricResult](docs/ReportRunMetricsResponseReportRunMetricResult.md)
+ - [ReportRunMetricsResponseReportRunMetricResultStatus](docs/ReportRunMetricsResponseReportRunMetricResultStatus.md)
  - [RunMetricFormat](docs/RunMetricFormat.md)
  - [V2beta1ArtifactList](docs/V2beta1ArtifactList.md)
+ - [V2beta1CronSchedule](docs/V2beta1CronSchedule.md)
  - [V2beta1Experiment](docs/V2beta1Experiment.md)
  - [V2beta1ExperimentStorageState](docs/V2beta1ExperimentStorageState.md)
  - [V2beta1Filter](docs/V2beta1Filter.md)
  - [V2beta1ListExperimentsResponse](docs/V2beta1ListExperimentsResponse.md)
  - [V2beta1ListPipelineVersionsResponse](docs/V2beta1ListPipelineVersionsResponse.md)
  - [V2beta1ListPipelinesResponse](docs/V2beta1ListPipelinesResponse.md)
+ - [V2beta1ListRecurringRunsResponse](docs/V2beta1ListRecurringRunsResponse.md)
  - [V2beta1ListRunsResponse](docs/V2beta1ListRunsResponse.md)
+ - [V2beta1PeriodicSchedule](docs/V2beta1PeriodicSchedule.md)
  - [V2beta1Pipeline](docs/V2beta1Pipeline.md)
  - [V2beta1PipelineTaskDetail](docs/V2beta1PipelineTaskDetail.md)
  - [V2beta1PipelineTaskExecutorDetail](docs/V2beta1PipelineTaskExecutorDetail.md)
@@ -160,6 +171,8 @@ Class | Method | HTTP request | Description
  - [V2beta1Predicate](docs/V2beta1Predicate.md)
  - [V2beta1PredicateOperation](docs/V2beta1PredicateOperation.md)
  - [V2beta1ReadArtifactResponse](docs/V2beta1ReadArtifactResponse.md)
+ - [V2beta1RecurringRun](docs/V2beta1RecurringRun.md)
+ - [V2beta1RecurringRunStatus](docs/V2beta1RecurringRunStatus.md)
  - [V2beta1ReportRunMetricsRequest](docs/V2beta1ReportRunMetricsRequest.md)
  - [V2beta1ReportRunMetricsResponse](docs/V2beta1ReportRunMetricsResponse.md)
  - [V2beta1Run](docs/V2beta1Run.md)
@@ -169,6 +182,7 @@ Class | Method | HTTP request | Description
  - [V2beta1RuntimeConfig](docs/V2beta1RuntimeConfig.md)
  - [V2beta1RuntimeState](docs/V2beta1RuntimeState.md)
  - [V2beta1RuntimeStatus](docs/V2beta1RuntimeStatus.md)
+ - [V2beta1Trigger](docs/V2beta1Trigger.md)
  - [V2beta1Url](docs/V2beta1Url.md)
 
 
