@@ -515,7 +515,7 @@ func (s *JobServer) validateCreateRecurringRunRequest(request *apiv2beta1.Create
 	recurringRun := request.RecurringRun
 
 	// Validate the content of PipelineSource
-	if err := ValidatePipelineSource(s.resourceManager, recurringRun); err != nil {
+	if err := ValidatePipelineSource(s.resourceManager, recurringRun.GetPipelineId(), recurringRun.GetPipelineSpec()); err != nil {
 		return err
 	}
 

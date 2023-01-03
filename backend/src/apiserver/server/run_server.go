@@ -19,6 +19,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/empty"
 	apiv1beta1 "github.com/kubeflow/pipelines/backend/api/v1beta1/go_client"
+	apiv2beta1 "github.com/kubeflow/pipelines/backend/api/v2beta1/go_client"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/common"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/model"
 	"github.com/kubeflow/pipelines/backend/src/apiserver/resource"
@@ -99,27 +100,33 @@ type RunServer struct {
 	options         *RunServerOptions
 }
 
+func NewRunServer(resourceManager *resource.ResourceManager, options *RunServerOptions) *RunServer {
+	return &RunServer{resourceManager: resourceManager, options: options}
+}
+
 func (s *RunServer) CreateRunV1(ctx context.Context, request *apiv1beta1.CreateRunRequest) (*apiv1beta1.RunDetail, error) {
 	if s.options.CollectMetrics {
 		createRunRequests.Inc()
 	}
 
-	err := s.validateCreateRunRequest(request)
+	err := s.validateCreateRunRequestV1(request)
 	if err != nil {
 		return nil, util.Wrap(err, "Validate create run request failed.")
 	}
 
+	// In multi-user mode, verify the user has access to the resources related to this run.
 	if common.IsMultiUserMode() {
+		// User must provide the experiment ID, which must belong to a namespace the user is authorized with.
 		experimentID := common.GetExperimentIDFromAPIResourceReferences(request.Run.ResourceReferences)
 		if experimentID == "" {
-			return nil, util.NewInvalidInputError("Job has no experiment.")
+			return nil, util.NewInvalidInputError("Run has no experiment.")
 		}
 		namespace, err := s.resourceManager.GetNamespaceFromExperimentID(experimentID)
 		if err != nil {
-			return nil, util.Wrap(err, "Failed to get experiment for job.")
+			return nil, util.Wrap(err, "Failed to get namespace for run.")
 		}
 		if namespace == "" {
-			return nil, util.NewInvalidInputError("Job's experiment has no namespace.")
+			return nil, util.NewInvalidInputError("Run's experiment has no namespace.")
 		}
 		resourceAttributes := &authorizationv1.ResourceAttributes{
 			Namespace: namespace,
@@ -140,7 +147,7 @@ func (s *RunServer) CreateRunV1(ctx context.Context, request *apiv1beta1.CreateR
 	if s.options.CollectMetrics {
 		runCount.Inc()
 	}
-	return ToApiRunDetail(run), nil
+	return ToApiRunDetailV1(run), nil
 }
 
 func (s *RunServer) GetRunV1(ctx context.Context, request *apiv1beta1.GetRunRequest) (*apiv1beta1.RunDetail, error) {
@@ -157,7 +164,7 @@ func (s *RunServer) GetRunV1(ctx context.Context, request *apiv1beta1.GetRunRequ
 	if err != nil {
 		return nil, err
 	}
-	return ToApiRunDetail(run), nil
+	return ToApiRunDetailV1(run), nil
 }
 
 func (s *RunServer) ListRunsV1(ctx context.Context, request *apiv1beta1.ListRunsRequest) (*apiv1beta1.ListRunsResponse, error) {
@@ -220,7 +227,7 @@ func (s *RunServer) ListRunsV1(ctx context.Context, request *apiv1beta1.ListRuns
 	if err != nil {
 		return nil, util.Wrap(err, "Failed to list runs.")
 	}
-	return &apiv1beta1.ListRunsResponse{Runs: ToApiRuns(runs), TotalSize: int32(total_size), NextPageToken: nextPageToken}, nil
+	return &apiv1beta1.ListRunsResponse{Runs: toApiRunsV1(runs), TotalSize: int32(total_size), NextPageToken: nextPageToken}, nil
 }
 
 func (s *RunServer) ArchiveRunV1(ctx context.Context, request *apiv1beta1.ArchiveRunRequest) (*empty.Empty, error) {
@@ -325,14 +332,6 @@ func (s *RunServer) ReadArtifactV1(ctx context.Context, request *apiv1beta1.Read
 	}, nil
 }
 
-func (s *RunServer) validateCreateRunRequest(request *apiv1beta1.CreateRunRequest) error {
-	run := request.Run
-	if run.Name == "" {
-		return util.NewInvalidInputError("The run name is empty. Please specify a valid name.")
-	}
-	return ValidatePipelineSpecAndResourceReferences(s.resourceManager, run.PipelineSpec, run.ResourceReferences)
-}
-
 func (s *RunServer) TerminateRunV1(ctx context.Context, request *apiv1beta1.TerminateRunRequest) (*empty.Empty, error) {
 	if s.options.CollectMetrics {
 		terminateRunRequests.Inc()
@@ -363,6 +362,102 @@ func (s *RunServer) RetryRunV1(ctx context.Context, request *apiv1beta1.RetryRun
 		return nil, err
 	}
 	return &empty.Empty{}, nil
+
+}
+
+func (s *RunServer) CreateRun(ctx context.Context, request *apiv2beta1.CreateRunRequest) (*apiv2beta1.Run, error) {
+	if s.options.CollectMetrics {
+		createRunRequests.Inc()
+	}
+
+	err := s.validateCreateRunRequest(request)
+	if err != nil {
+		return nil, util.Wrap(err, "Validate create run request failed.")
+	}
+
+	// In multi-user mode, verify the user has access to the resources related to this run.
+	if common.IsMultiUserMode() {
+		// User must provide the experiment ID and the namespace. The experiment must belong to the namespace,
+		// and user must be authorized with this namespace.
+		if request.Run.ExperimentId == "" {
+			return nil, util.NewInvalidInputError("Run experiment ID is empty.")
+		}
+		namespace, err := s.resourceManager.GetNamespaceFromExperimentID(request.Run.ExperimentId)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to get namespace for run.")
+		}
+		if namespace == "" {
+			return nil, util.NewInvalidInputError("Run's experiment has no namespace.")
+		}
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      common.RbacResourceVerbCreate,
+			Name:      request.Run.DisplayName,
+		}
+		err = s.canAccessRun(ctx, "", resourceAttributes)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to authorize the request")
+		}
+	}
+
+	run, err := s.resourceManager.CreateRun(ctx, request.Run)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create a new run.")
+	}
+
+	if s.options.CollectMetrics {
+		runCount.Inc()
+	}
+	return toApiRun(&run.Run), nil
+
+}
+
+func (s *RunServer) GetRun(ctx context.Context, request *apiv2beta1.GetRunRequest) (*apiv2beta1.Run, error) {
+	return nil, util.NewInvalidInputError("GetRun success!")
+}
+
+func (s *RunServer) ListRuns(ctx context.Context, request *apiv2beta1.ListRunsRequest) (*apiv2beta1.ListRunsResponse, error) {
+	return nil, util.NewInvalidInputError("ListRuns success!")
+}
+
+func (s *RunServer) ArchiveRun(ctx context.Context, request *apiv2beta1.ArchiveRunRequest) (*empty.Empty, error) {
+	return nil, util.NewInvalidInputError("ArchiveRun success!")
+}
+
+func (s *RunServer) UnarchiveRun(ctx context.Context, request *apiv2beta1.UnarchiveRunRequest) (*empty.Empty, error) {
+	return nil, util.NewInvalidInputError("UnarchiveRun success!")
+}
+
+func (s *RunServer) DeleteRun(ctx context.Context, request *apiv2beta1.DeleteRunRequest) (*empty.Empty, error) {
+	return nil, util.NewInvalidInputError("DeletteRun success!")
+}
+
+func (s *RunServer) ReportRunMetrics(ctx context.Context, request *apiv2beta1.ReportRunMetricsRequest) (*apiv2beta1.ReportRunMetricsResponse, error) {
+	return nil, util.NewInvalidInputError("ReportRunMetrics success!")
+}
+
+func (s *RunServer) ReadArtifact(ctx context.Context, request *apiv2beta1.ReadArtifactRequest) (*apiv2beta1.ReadArtifactResponse, error) {
+	return nil, util.NewInvalidInputError("ReadArtifact success!")
+}
+
+func (s *RunServer) TerminateRun(ctx context.Context, request *apiv2beta1.TerminateRunRequest) (*empty.Empty, error) {
+	return nil, util.NewInvalidInputError("TerminateRun success!")
+}
+
+func (s *RunServer) validateCreateRunRequestV1(request *apiv1beta1.CreateRunRequest) error {
+	run := request.Run
+	if run.Name == "" {
+		return util.NewInvalidInputError("The run name is empty. Please specify a valid name.")
+	}
+	return ValidatePipelineSpecAndResourceReferences(s.resourceManager, run.PipelineSpec, run.ResourceReferences)
+}
+
+func (s *RunServer) validateCreateRunRequest(request *apiv2beta1.CreateRunRequest) error {
+	run := request.Run
+	if run.DisplayName == "" {
+		return util.NewInvalidInputError("The run name is empty. Please specify a valid name.")
+	}
+	return ValidatePipelineSource(s.resourceManager, run.GetPipelineId(), run.GetPipelineSpec())
 
 }
 
@@ -400,8 +495,4 @@ func (s *RunServer) canAccessRun(ctx context.Context, runId string, resourceAttr
 		return util.Wrap(err, "Failed to authorize with API")
 	}
 	return nil
-}
-
-func NewRunServer(resourceManager *resource.ResourceManager, options *RunServerOptions) *RunServer {
-	return &RunServer{resourceManager: resourceManager, options: options}
 }

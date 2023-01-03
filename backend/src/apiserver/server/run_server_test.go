@@ -37,7 +37,7 @@ var metric = &apiv1beta1.RunMetric{
 	Format: apiv1beta1.RunMetric_RAW,
 }
 
-func TestCreateRun_V1Params(t *testing.T) {
+func TestCreateRunV1_V1Params(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
@@ -95,7 +95,7 @@ func TestCreateRun_V1Params(t *testing.T) {
 	assert.Equal(t, expectedRunDetail, *runDetail)
 }
 
-func TestCreateRun_RuntimeParams(t *testing.T) {
+func TestCreateRunV1_RuntimeParams(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
@@ -158,7 +158,7 @@ func TestCreateRun_RuntimeParams(t *testing.T) {
 	assert.EqualValues(t, expectedRunDetail, *runDetail)
 }
 
-func TestCreateRunPatch(t *testing.T) {
+func TestCreateRunV1Patch(t *testing.T) {
 	clients, manager, experiment := initWithExperiment(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
@@ -222,7 +222,7 @@ func TestCreateRunPatch(t *testing.T) {
 	assert.Equal(t, expectedRunDetail, *runDetail)
 }
 
-func TestCreateRun_Unauthorized(t *testing.T) {
+func TestCreateRunV1_Unauthorized(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	defer viper.Set(common.MultiUserMode, "false")
 
@@ -259,7 +259,7 @@ func TestCreateRun_Unauthorized(t *testing.T) {
 	)
 }
 
-func TestCreateRun_Multiuser(t *testing.T) {
+func TestCreateRunV1_Multiuser(t *testing.T) {
 	viper.Set(common.MultiUserMode, "true")
 	viper.Set(common.DefaultPipelineRunnerServiceAccountFlag, "default-editor")
 	defer viper.Set(common.MultiUserMode, "false")
@@ -323,6 +323,68 @@ func TestCreateRun_Multiuser(t *testing.T) {
 		},
 	}
 	assert.Equal(t, expectedRunDetail, *runDetail)
+}
+
+func TestCreateRun_RuntimeParams(t *testing.T) {
+	clients, manager, experiment := initWithExperiment(t)
+	defer clients.Close()
+	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
+
+	listParams := []interface{}{1, 2, 3}
+	v2RuntimeListParams, _ := structpb.NewList(listParams)
+	structParams := map[string]interface{}{"structParam1": "hello", "structParam2": 32}
+	v2RuntimeStructParams, _ := structpb.NewStruct(structParams)
+
+	// Test all parameters types converted to model.RuntimeConfig.Parameters, which is string type
+	v2RuntimeParams := map[string]*structpb.Value{
+		"param1": &structpb.Value{Kind: &structpb.Value_StringValue{StringValue: "world"}},
+		"param2": &structpb.Value{Kind: &structpb.Value_BoolValue{BoolValue: true}},
+		"param3": &structpb.Value{Kind: &structpb.Value_ListValue{ListValue: v2RuntimeListParams}},
+		"param4": &structpb.Value{Kind: &structpb.Value_NumberValue{NumberValue: 12}},
+		"param5": &structpb.Value{Kind: &structpb.Value_StructValue{StructValue: v2RuntimeStructParams}},
+	}
+
+	run := &apiv2beta1.Run{
+		DisplayName: "run1",
+		PipelineSource: &apiv2beta1.PipelineSource{
+			PipelineManifest: v2SpecHelloWorld,
+		},
+		RuntimeConfig: &apiv2beta1.RuntimeConfig{
+			Parameters:   v2RuntimeParams,
+			PipelineRoot: "model-pipeline-root",
+		},
+	}
+	runDetail, err := server.CreateRunV1(nil, &apiv1beta1.CreateRunRequest{Run: run})
+	assert.Nil(t, err)
+
+	expectedRunDetail := apiv1beta1.RunDetail{
+		Run: &apiv1beta1.Run{
+			Id:             "123e4567-e89b-12d3-a456-426655440000",
+			Name:           "run1",
+			ServiceAccount: "pipeline-runner",
+			StorageState:   apiv1beta1.Run_STORAGESTATE_AVAILABLE,
+			CreatedAt:      &timestamp.Timestamp{Seconds: 2},
+			ScheduledAt:    &timestamp.Timestamp{Seconds: 2},
+			FinishedAt:     &timestamp.Timestamp{},
+			// Status:         "Running",
+			Status: "",
+			PipelineSpec: &apiv1beta1.PipelineSpec{
+				PipelineManifest: v2SpecHelloWorld,
+				RuntimeConfig: &apiv1beta1.PipelineSpec_RuntimeConfig{
+					Parameters:   v2RuntimeParams,
+					PipelineRoot: "model-pipeline-root",
+				},
+			},
+			ResourceReferences: []*apiv1beta1.ResourceReference{
+				{
+					Key:  &apiv1beta1.ResourceKey{Type: apiv1beta1.ResourceType_EXPERIMENT, Id: experiment.UUID},
+					Name: "exp1", Relationship: apiv1beta1.Relationship_OWNER,
+				},
+			},
+		},
+		PipelineRuntime: &apiv1beta1.PipelineRuntime{},
+	}
+	assert.EqualValues(t, expectedRunDetail, *runDetail)
 }
 
 func TestListRun(t *testing.T) {
@@ -528,7 +590,7 @@ func TestListRuns_Multiuser(t *testing.T) {
 
 }
 
-func TestValidateCreateRunRequest(t *testing.T) {
+func TestvalidateCreateRunRequestV1(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
@@ -540,11 +602,11 @@ func TestValidateCreateRunRequest(t *testing.T) {
 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
-	err := server.validateCreateRunRequest(&apiv1beta1.CreateRunRequest{Run: run})
+	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 }
 
-func TestValidateCreateRunRequest_WithPipelineVersionReference(t *testing.T) {
+func TestvalidateCreateRunRequestV1_WithPipelineVersionReference(t *testing.T) {
 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
@@ -552,11 +614,11 @@ func TestValidateCreateRunRequest_WithPipelineVersionReference(t *testing.T) {
 		Name:               "run1",
 		ResourceReferences: validReferencesOfExperimentAndPipelineVersion,
 	}
-	err := server.validateCreateRunRequest(&apiv1beta1.CreateRunRequest{Run: run})
+	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 }
 
-func TestValidateCreateRunRequest_EmptyName(t *testing.T) {
+func TestvalidateCreateRunRequestV1_EmptyName(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
@@ -567,12 +629,12 @@ func TestValidateCreateRunRequest_EmptyName(t *testing.T) {
 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
-	err := server.validateCreateRunRequest(&apiv1beta1.CreateRunRequest{Run: run})
+	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "The run name is empty")
 }
 
-func TestValidateCreateRunRequest_InvalidPipelineVersionReference(t *testing.T) {
+func TestvalidateCreateRunRequestV1_InvalidPipelineVersionReference(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
@@ -580,12 +642,12 @@ func TestValidateCreateRunRequest_InvalidPipelineVersionReference(t *testing.T) 
 		Name:               "run1",
 		ResourceReferences: referencesOfExperimentAndInvalidPipelineVersion,
 	}
-	err := server.validateCreateRunRequest(&apiv1beta1.CreateRunRequest{Run: run})
+	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Get pipelineVersionId failed.")
 }
 
-func TestValidateCreateRunRequest_NoExperiment(t *testing.T) {
+func TestvalidateCreateRunRequestV1_NoExperiment(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
@@ -597,11 +659,11 @@ func TestValidateCreateRunRequest_NoExperiment(t *testing.T) {
 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
-	err := server.validateCreateRunRequest(&apiv1beta1.CreateRunRequest{Run: run})
+	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
 	assert.Nil(t, err)
 }
 
-func TestValidateCreateRunRequest_NilPipelineSpecAndEmptyPipelineVersion(t *testing.T) {
+func TestvalidateCreateRunRequestV1_NilPipelineSpecAndEmptyPipelineVersion(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
@@ -609,12 +671,12 @@ func TestValidateCreateRunRequest_NilPipelineSpecAndEmptyPipelineVersion(t *test
 		Name:               "run1",
 		ResourceReferences: validReference,
 	}
-	err := server.validateCreateRunRequest(&apiv1beta1.CreateRunRequest{Run: run})
+	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Please specify a pipeline by providing a (workflow manifest or pipeline manifest) or (pipeline id or/and pipeline version).")
 }
 
-func TestValidateCreateRunRequest_WorkflowManifestAndPipelineVersion(t *testing.T) {
+func TestvalidateCreateRunRequestV1_WorkflowManifestAndPipelineVersion(t *testing.T) {
 	clients, manager, _ := initWithExperimentAndPipelineVersion(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
@@ -626,12 +688,12 @@ func TestValidateCreateRunRequest_WorkflowManifestAndPipelineVersion(t *testing.
 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
-	err := server.validateCreateRunRequest(&apiv1beta1.CreateRunRequest{Run: run})
+	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest or pipeline manifest.")
 }
 
-func TestValidateCreateRunRequest_InvalidPipelineSpec(t *testing.T) {
+func TestvalidateCreateRunRequestV1_InvalidPipelineSpec(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
@@ -644,12 +706,12 @@ func TestValidateCreateRunRequest_InvalidPipelineSpec(t *testing.T) {
 			Parameters:       []*apiv1beta1.Parameter{{Name: "param1", Value: "world"}},
 		},
 	}
-	err := server.validateCreateRunRequest(&apiv1beta1.CreateRunRequest{Run: run})
+	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "Please don't specify a pipeline version or pipeline ID when you specify a workflow manifest or pipeline manifest.")
 }
 
-func TestValidateCreateRunRequest_TooMuchParameters(t *testing.T) {
+func TestvalidateCreateRunRequestV1_TooMuchParameters(t *testing.T) {
 	clients, manager, _ := initWithExperiment(t)
 	defer clients.Close()
 	server := NewRunServer(manager, &RunServerOptions{CollectMetrics: false})
@@ -668,7 +730,7 @@ func TestValidateCreateRunRequest_TooMuchParameters(t *testing.T) {
 		},
 	}
 
-	err := server.validateCreateRunRequest(&apiv1beta1.CreateRunRequest{Run: run})
+	err := server.validateCreateRunRequestV1(&apiv1beta1.CreateRunRequest{Run: run})
 	assert.NotNil(t, err)
 	assert.Contains(t, err.Error(), "The input parameter length exceed maximum size")
 }
