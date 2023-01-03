@@ -133,6 +133,7 @@ inputs:
 - {name: autoscaling_target_cpu_utilization, type: Integer, optional: true, default: 60}
 - {name: autoscaling_target_accelerator_duty_cycle, type: Integer, optional: true, default: 60}
 outputs:
+- {name: endpoint, type: google.VertexEndpoint}
 - {name: gcp_resources, type: String}
 implementation:
   container:
