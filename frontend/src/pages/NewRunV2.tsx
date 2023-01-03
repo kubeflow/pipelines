@@ -581,7 +581,7 @@ function NewRunV2(props: NewRunV2Props) {
 
         {/* Recurring run controls */}
         {isRecurringRun && (
-          <React.Fragment>
+          <>
             <div className={commonCss.header}>Run trigger</div>
             <div>Choose a method by which new runs will be triggered</div>
 
@@ -597,9 +597,8 @@ function NewRunV2(props: NewRunV2Props) {
                 setIsMaxConcurrentRunValid(Number.isInteger(Number(maxConcurrentRuns)));
                 setCatchup(catchup);
               }}
-              isMaxConcurrentRunValid={isMaxConcurrentRunValid}
             />
-          </React.Fragment>
+          </>
         )}
 
         {/* PipelineRoot and Run Parameters */}

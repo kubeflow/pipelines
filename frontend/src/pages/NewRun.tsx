@@ -589,7 +589,6 @@ export class NewRun extends Page<NewRunProps, NewRunState> {
                     this._validate.bind(this),
                   )
                 }
-                isMaxConcurrentRunValid={true}
               />
             </React.Fragment>
           )}
