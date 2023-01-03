@@ -124,10 +124,10 @@ inputs:
 - {name: automatic_resources_min_replica_count, type: Integer, optional: true, default: 0}
 - {name: automatic_resources_max_replica_count, type: Integer, optional: true, default: 0}
 - {name: service_account, type: String, optional: true, default: ''}
-# - {name: disable_container_logging, type: Boolean, optional: true, default: False}
-# - {name: enable_access_logging, type: Boolean, optional: true, default: False}
 - {name: explanation_metadata, type: JsonObject, optional: true, default: '{}'}
 - {name: explanation_parameters, type: JsonObject, optional: true, default: '{}'}
+- {name: encryption_spec_key_name, type: String, optional: true, default: ''}
+- {name: network, type: String, optional: true, default: ''}
 - {name: sync, type: Boolean, optional: true, default: True}
 - {name: deploy_request_timeout, type: Float, optional: true}
 - {name: autoscaling_target_cpu_utilization, type: Integer, optional: true, default: 60}
@@ -138,19 +138,19 @@ implementation:
   container:
     image: gcr.io/ml-pipeline/google-cloud-pipeline-components:latest
     command: [python3, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner,
-      --cls_name, Endpoint, --method_name, deploy]
+      --cls_name, Model, --method_name, deploy]
     args: 
       - --init.project
       - {inputValue: project}
       - --init.location
       - {inputValue: location}
+      - --init.model_name
+      - "{{$.inputs.artifacts['model'].metadata['resourceName']}}"
       - if:
           cond: {isPresent: endpoint}
           then:
-          - --init.endpoint_name
+          - --method.endpoint
           - "{{$.inputs.artifacts['endpoint'].metadata['resourceName']}}"
-      - --method.model
-      - "{{$.inputs.artifacts['model'].metadata['resourceName']}}"
       - if:
           cond: {isPresent: deployed_model_display_name}
           then:
@@ -202,6 +202,16 @@ implementation:
           - --method.explanation_parameters
           - {inputValue: explanation_parameters}
       - if:
+          cond: {isPresent: encryption_spec_key_name}
+          then:
+          - --method.encryption_spec_key_name
+          - {inputValue: encryption_spec_key_name}
+      - if:
+          cond: {isPresent: network}
+          then:
+          - --method.network
+          - {inputValue: network}
+      - if:
           cond: {isPresent: sync}
           then:
           - --method.sync
@@ -225,6 +235,3 @@ implementation:
       - {outputPath: gcp_resources}
       - --executor_input
       - "{{$}}"
-
-      # disable container logging
-      # enable access logging
