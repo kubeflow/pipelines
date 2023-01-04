@@ -19,7 +19,6 @@ import Trigger from './Trigger';
 import { shallow } from 'enzyme';
 import { TriggerType, PeriodicInterval } from '../lib/TriggerUtils';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { CommonTestWrapper } from 'src/TestWrapper';
 
 const PARAMS_DEFAULT = {
   catchup: true,
