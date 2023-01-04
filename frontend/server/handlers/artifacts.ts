@@ -215,11 +215,11 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: n
         // escapes everything else.
         const regex = new RegExp(
           '^' +
-          key
-            .split(/\*+/)
-            .map(escapeRegexChars)
-            .join('.*') +
-          '$',
+            key
+              .split(/\*+/)
+              .map(escapeRegexChars)
+              .join('.*') +
+            '$',
         );
         return regex.test(f.name);
       });
