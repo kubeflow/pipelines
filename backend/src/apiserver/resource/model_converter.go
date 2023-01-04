@@ -61,13 +61,26 @@ func (r *ResourceManager) ToModelExperiment(inputExperiment interface{}) (*model
 	}, nil
 }
 
-func (r *ResourceManager) ToModelRunMetric(metric *apiv1beta1.RunMetric, runUUID string) *model.RunMetric {
-	return &model.RunMetric{
-		RunUUID:     runUUID,
-		Name:        metric.GetName(),
-		NodeID:      metric.GetNodeId(),
-		NumberValue: metric.GetNumberValue(),
-		Format:      metric.GetFormat().String(),
+func (r *ResourceManager) ToModelRunMetric(metricInterface interface{}, runUUID string) *model.RunMetric {
+	switch metricInterface.(type) {
+	case *apiv1beta1.RunMetric:
+		v1Metric := metricInterface.(*apiv1beta1.RunMetric)
+		return &model.RunMetric{
+			RunUUID:     runUUID,
+			Name:        v1Metric.GetName(),
+			NodeID:      v1Metric.GetNodeId(),
+			NumberValue: v1Metric.GetNumberValue(),
+			Format:      v1Metric.GetFormat().String(),
+		}
+	default:
+		v2Metric := metricInterface.(*apiv2beta1.RunMetric)
+		return &model.RunMetric{
+			RunUUID:     runUUID,
+			Name:        v2Metric.GetDisplayName(),
+			NodeID:      v2Metric.GetNodeId(),
+			NumberValue: v2Metric.GetNumberValue(),
+			Format:      v2Metric.GetFormat().String(),
+		}
 	}
 }
 

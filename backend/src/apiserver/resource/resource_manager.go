@@ -1176,7 +1176,7 @@ func (r *ResourceManager) getDefaultExperimentResourceReference(references []*ap
 	return defaultExperimentRef, nil
 }
 
-func (r *ResourceManager) ReportMetric(metric *apiv1beta1.RunMetric, runUUID string) error {
+func (r *ResourceManager) ReportMetric(metric interface{}, runUUID string) error {
 	return r.runStore.ReportMetric(r.ToModelRunMetric(metric, runUUID))
 }
 

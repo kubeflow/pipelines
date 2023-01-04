@@ -301,13 +301,13 @@ func (s *RunServer) ReportRunMetricsV1(ctx context.Context, request *apiv1beta1.
 		Results: []*apiv1beta1.ReportRunMetricsResponse_ReportRunMetricResult{},
 	}
 	for _, metric := range request.GetMetrics() {
-		err := ValidateRunMetric(metric)
+		err := ValidateRunMetricV1(metric)
 		if err == nil {
 			err = s.resourceManager.ReportMetric(metric, request.GetRunId())
 		}
 		response.Results = append(
 			response.Results,
-			NewReportRunMetricResult(metric.GetName(), metric.GetNodeId(), err))
+			NewReportRunMetricResultV1(metric.GetName(), metric.GetNodeId(), err))
 	}
 	return response, nil
 }
@@ -413,35 +413,209 @@ func (s *RunServer) CreateRun(ctx context.Context, request *apiv2beta1.CreateRun
 }
 
 func (s *RunServer) GetRun(ctx context.Context, request *apiv2beta1.GetRunRequest) (*apiv2beta1.Run, error) {
-	return nil, util.NewInvalidInputError("GetRun success!")
+	if s.options.CollectMetrics {
+		getRunRequests.Inc()
+	}
+
+	err := s.canAccessRun(ctx, request.RunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbGet})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+
+	run, err := s.resourceManager.GetRun(request.RunId)
+	if err != nil {
+		return nil, err
+	}
+	return toApiRun(&run.Run), nil
 }
 
 func (s *RunServer) ListRuns(ctx context.Context, request *apiv2beta1.ListRunsRequest) (*apiv2beta1.ListRunsResponse, error) {
-	return nil, util.NewInvalidInputError("ListRuns success!")
+	if s.options.CollectMetrics {
+		listRunRequests.Inc()
+	}
+
+	opts, err := validatedListOptions(&model.Run{}, request.PageToken, int(request.PageSize), request.SortBy, request.Filter)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to create list options")
+	}
+
+	filterContext := &common.FilterContext{}
+
+	if common.IsMultiUserMode() {
+		// In multi-user mode, users must provide the namespace they are authorized with.
+		// If the ExperimentId field is empty, then return all recurring runs in this namespace.
+		// If the ExperimentId is provided, the experiment must belong to the namespace user is authorized with.
+
+		// Apply Namespace filter.
+		if request.Namespace == "" {
+			return nil, util.NewInvalidInputError("Invalid ListRuns request. No namespace provided in multi-user mode.")
+		}
+		resourceAttributes := &authorizationv1.ResourceAttributes{
+			Namespace: request.Namespace,
+			Verb:      common.RbacResourceVerbList,
+		}
+		err = s.canAccessRun(ctx, "", resourceAttributes)
+		if err != nil {
+			return nil, util.Wrap(err, "Failed to authorize with API")
+		}
+		filterContext = &common.FilterContext{
+			ReferenceKey: &common.ReferenceKey{Type: common.Namespace, ID: request.Namespace},
+		}
+
+		// Apply experiment filter if non-empty.
+		if request.ExperimentId != "" {
+			// Verify that the requested experiment belongs to this authorized namespace.
+			experimentNamespace, err := s.resourceManager.GetNamespaceFromExperimentID(request.ExperimentId)
+			if err != nil {
+				return nil, util.Wrap(err, "Failed to get namespace of the experiment")
+			}
+			if experimentNamespace != request.Namespace {
+				return nil, util.NewInvalidInputError("Error Listing runs: in multi user mode, experiment filter does not belong to the authorized namespace.")
+			}
+
+			filterContext = &common.FilterContext{
+				ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: request.ExperimentId},
+			}
+		}
+
+	} else {
+		// In single-user mode, Namespace must be empty.
+		if request.Namespace != "" {
+			return nil, util.NewInvalidInputError("Invalid ListRuns request. Namespace should not be provided in single-user mode.")
+		}
+		// Apply experiment filter.
+		if request.ExperimentId != "" {
+			filterContext = &common.FilterContext{
+				ReferenceKey: &common.ReferenceKey{Type: common.Experiment, ID: request.ExperimentId},
+			}
+		}
+	}
+
+	runs, total_size, nextPageToken, err := s.resourceManager.ListRuns(filterContext, opts)
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to list runs.")
+	}
+
+	return &apiv2beta1.ListRunsResponse{Runs: toApiRuns(runs), TotalSize: int32(total_size), NextPageToken: nextPageToken}, nil
+
 }
 
 func (s *RunServer) ArchiveRun(ctx context.Context, request *apiv2beta1.ArchiveRunRequest) (*empty.Empty, error) {
-	return nil, util.NewInvalidInputError("ArchiveRun success!")
+	if s.options.CollectMetrics {
+		archiveRunRequests.Inc()
+	}
+
+	err := s.canAccessRun(ctx, request.RunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbArchive})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+	err = s.resourceManager.ArchiveRun(request.RunId)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
 }
 
 func (s *RunServer) UnarchiveRun(ctx context.Context, request *apiv2beta1.UnarchiveRunRequest) (*empty.Empty, error) {
-	return nil, util.NewInvalidInputError("UnarchiveRun success!")
+	if s.options.CollectMetrics {
+		unarchiveRunRequests.Inc()
+	}
+
+	err := s.canAccessRun(ctx, request.RunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbUnarchive})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+	err = s.resourceManager.UnarchiveRun(request.RunId)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
 }
 
 func (s *RunServer) DeleteRun(ctx context.Context, request *apiv2beta1.DeleteRunRequest) (*empty.Empty, error) {
-	return nil, util.NewInvalidInputError("DeletteRun success!")
+	if s.options.CollectMetrics {
+		deleteRunRequests.Inc()
+	}
+
+	err := s.canAccessRun(ctx, request.RunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbDelete})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+	err = s.resourceManager.DeleteRun(ctx, request.RunId)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.options.CollectMetrics {
+		runCount.Dec()
+	}
+	return &empty.Empty{}, nil
 }
 
 func (s *RunServer) ReportRunMetrics(ctx context.Context, request *apiv2beta1.ReportRunMetricsRequest) (*apiv2beta1.ReportRunMetricsResponse, error) {
-	return nil, util.NewInvalidInputError("ReportRunMetrics success!")
+	if s.options.CollectMetrics {
+		reportRunMetricsRequests.Inc()
+	}
+
+	err := s.canAccessRun(ctx, request.RunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbReportMetrics})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+
+	// Makes sure run exists
+	_, err = s.resourceManager.GetRun(request.GetRunId())
+	if err != nil {
+		return nil, err
+	}
+	response := &apiv2beta1.ReportRunMetricsResponse{
+		Results: []*apiv2beta1.ReportRunMetricsResponse_ReportRunMetricResult{},
+	}
+	for _, metric := range request.GetMetrics() {
+		err := ValidateRunMetric(metric)
+		if err == nil {
+			err = s.resourceManager.ReportMetric(metric, request.GetRunId())
+		}
+		response.Results = append(
+			response.Results,
+			NewReportRunMetricResult(metric.GetDisplayName(), metric.GetNodeId(), err))
+	}
+	return response, nil
 }
 
 func (s *RunServer) ReadArtifact(ctx context.Context, request *apiv2beta1.ReadArtifactRequest) (*apiv2beta1.ReadArtifactResponse, error) {
-	return nil, util.NewInvalidInputError("ReadArtifact success!")
+	if s.options.CollectMetrics {
+		readArtifactRequests.Inc()
+	}
+
+	err := s.canAccessRun(ctx, request.RunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbReadArtifact})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+
+	content, err := s.resourceManager.ReadArtifact(
+		request.GetRunId(), request.GetNodeId(), request.GetArtifactName())
+	if err != nil {
+		return nil, util.Wrapf(err, "failed to read artifact '%+v'.", request)
+	}
+	return &apiv2beta1.ReadArtifactResponse{
+		Data: content,
+	}, nil
 }
 
 func (s *RunServer) TerminateRun(ctx context.Context, request *apiv2beta1.TerminateRunRequest) (*empty.Empty, error) {
-	return nil, util.NewInvalidInputError("TerminateRun success!")
+	if s.options.CollectMetrics {
+		terminateRunRequests.Inc()
+	}
+
+	err := s.canAccessRun(ctx, request.RunId, &authorizationv1.ResourceAttributes{Verb: common.RbacResourceVerbTerminate})
+	if err != nil {
+		return nil, util.Wrap(err, "Failed to authorize the request")
+	}
+	err = s.resourceManager.TerminateRun(ctx, request.RunId)
+	if err != nil {
+		return nil, err
+	}
+	return &empty.Empty{}, nil
 }
 
 func (s *RunServer) validateCreateRunRequestV1(request *apiv1beta1.CreateRunRequest) error {
