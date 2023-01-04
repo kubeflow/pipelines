@@ -81,7 +81,6 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
   const pipelineJobStr = props.pipeline_job;
   const pipelineSpec = WorkflowUtils.convertYamlToV2PipelineSpec(pipelineJobStr);
   const elements = convertFlowElements(pipelineSpec);
-  const templateString = runDetail.run?.pipeline_spec?.pipeline_manifest;
 
   const [flowElements, setFlowElements] = useState(elements);
   const [layers, setLayers] = useState(['root']);
@@ -236,7 +235,7 @@ export function RunDetailsV2(props: RunDetailsV2Props) {
         {/* Pipeline Spec tab */}
         {selectedTab === 2 && (
           <div className={commonCss.codeEditor} data-testid={'spec-ir'}>
-            <PipelineSpecTabContent templateString={templateString || ''} />
+            <PipelineSpecTabContent templateString={pipelineJobStr || ''} />
           </div>
         )}
       </div>
