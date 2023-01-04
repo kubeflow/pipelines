@@ -153,9 +153,10 @@ pipelines:
     - module: parallelfor_fan_in/simple_with_parameters
       name: math_pipeline
       execute: false
-    - module: parallelfor_fan_in/simple_with_artifacts
-      name: math_pipeline
-      execute: false
+    # TODO: uncomment to support artifact fan-in
+    # - module: parallelfor_fan_in/simple_with_artifacts
+    #   name: math_pipeline
+    #   execute: false
     - module: parallelfor_fan_in/pipeline_producer
       name: math_pipeline
       execute: false
@@ -174,14 +175,16 @@ pipelines:
     - module: parallelfor_fan_in/cross_dag_collection
       name: math_pipeline
       execute: false
-    - module: parallelfor_fan_in/return_collected_from_nested
-      name: math_pipeline
-      execute: false
+    # TODO: uncomment to support artifact fan-in
+    # - module: parallelfor_fan_in/return_collected_from_nested
+    #   name: math_pipeline
+    #   execute: false
     - module: parallelfor_fan_in/parameters_with_conditional_consumer
       name: math_pipeline
       execute: false
-    - module: parallelfor_fan_in/nested_with_artifact
-      name: math_pipeline
+    # TODO: uncomment to support artifact fan-in
+    # - module: parallelfor_fan_in/nested_with_artifact
+    #   name: math_pipeline
 components:
   test_data_dir: sdk/python/test_data/components
   read: true

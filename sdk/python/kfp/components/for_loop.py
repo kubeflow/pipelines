@@ -303,6 +303,12 @@ class Collected(pipeline_channel.PipelineChannel):
             channel_type = 'LIST'
             self.is_artifact_channel = False
 
+        # TODO: remove to support artifact fan-in
+        if self.is_artifact_channel:
+            raise NotImplementedError(
+                'Fan-in of artifacts created in a ParallelFor loop is not yet supported.'
+            )
+
         super().__init__(
             output.name,
             channel_type=channel_type,
