@@ -849,6 +849,21 @@ class ExecutorTest(unittest.TestCase):
                 },
             })
 
+    def test_function_with_optional_input_artifact(self):
+        executor_input = """\
+        {
+          "inputs": {},
+          "outputs": {
+            "outputFile": "%(test_dir)s/output_metadata.json"
+          }
+        }
+        """
+
+        def test_func(a: Optional[Input[Artifact]] = None):
+            self.assertIsNone(a)
+
+        self.execute(test_func, executor_input)
+
     def test_function_with_pipeline_task_final_status(self):
         executor_input = """\
     {

@@ -19,6 +19,7 @@ from google.api_core import retry
 from google_cloud_pipeline_components.container.v1.gcp_launcher import job_remote_runner
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import error_util
 from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import gcp_labels_util
+from google.cloud.aiplatform_v1.types import study as gca_study
 
 _HYPERPARAMETER_TUNING_JOB_RETRY_DEADLINE_SECONDS = 10.0 * 60.0
 _LABELS_PAYLOAD_KEY = 'labels'
@@ -52,6 +53,7 @@ def create_hyperparameter_tuning_job(
     location,
     payload,
     gcp_resources,
+    execution_metrics=None,
 ):
   """Create and poll HP Tuning job status till it reaches a final state.
 
@@ -82,6 +84,18 @@ def create_hyperparameter_tuning_job(
           create_hyperparameter_tuning_job_with_client, json.dumps(job_spec))
 
     # Poll HP Tuning job status until "JobState.JOB_STATE_SUCCEEDED"
-    remote_runner.poll_job(get_hyperparameter_tuning_job_with_client, job_name)
+    get_job_response = remote_runner.poll_job(
+        get_hyperparameter_tuning_job_with_client, job_name)
+    if type == 'HyperparameterTuningJobWithMetrics':
+      completed_trials = [
+          t for t in get_job_response.trials
+          if t.state == gca_study.Trial.State.SUCCEEDED
+      ]
+      execution_metrics_dict = {
+          'success_trials_count': len(completed_trials),
+          'total_trials_count': len(get_job_response.trials)
+      }
+      with open(execution_metrics, 'w') as f:
+        f.write(json.dumps(execution_metrics_dict, sort_keys=True))
   except (ConnectionError, RuntimeError) as err:
     error_util.exit_with_internal_error(err.args[0])

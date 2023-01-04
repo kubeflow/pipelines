@@ -1,6 +1,31 @@
 # Current Version (in development)
 
 ## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+
+## Documentation updates
+# 2.0.0-beta.10
+
+## Features
+
+## Breaking changes
+
+## Deprecations
+
+## Bug fixes and other changes
+* Fully support optional parameter inputs by witing `isOptional` field to IR [\#8612](https://github.com/kubeflow/pipelines/pull/8612)
+* Add support for optional artifact inputs (toward feature parity with KFP SDK v1) [\#8623](https://github.com/kubeflow/pipelines/pull/8623)
+* Fix bug deserializing v1 component YAML with boolean defaults, struct defaults, and array defaults [\#8639](https://github.com/kubeflow/pipelines/pull/8639)
+
+## Documentation updates
+# 2.0.0-beta.9
+
+## Features
 * Add comments to IR YAML file [\#8467](https://github.com/kubeflow/pipelines/pull/8467)
 
 ## Breaking changes
@@ -9,7 +34,7 @@
 
 ## Bug fixes and other changes
 * Unblock valid topologies [\#8416](https://github.com/kubeflow/pipelines/pull/8416)
-* Fix bug when writing to same file using gcsfuse and distributed training strategy in lightweight/containerized Python components [#8544](https://github.com/kubeflow/pipelines/pull/8544) [alternative fix after [#8455](https://github.com/kubeflow/pipelines/pull/8455) in `kfp==2.0.0b8`]
+* Fix bug when writing to same file using gcsfuse and distributed training strategy in lightweight/containerized Python components [#8544](https://github.com/kubeflow/pipelines/pull/8544) [alternative fix after [#8455](https://github.com/kubeflow/pipelines/pull/8455) in `kfp==2.0.0b8`], [#8607](https://github.com/kubeflow/pipelines/pull/8607)
 
 ## Documentation updates
 # 2.0.0-beta.8

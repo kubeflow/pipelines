@@ -23,7 +23,15 @@ from google_cloud_pipeline_components.container.v1.gcp_launcher.utils import par
 
 def _parse_args(args):
   """Parse command line arguments."""
-  _, parsed_args = parser_util.parse_default_args(args)
+  parser, parsed_args = parser_util.parse_default_args(args)
+  parser.add_argument(
+      '--execution_metrics',
+      dest='execution_metrics',
+      type=str,
+      required=False,
+      default=None)
+
+  parsed_args, _ = parser.parse_known_args(args)
   return vars(parsed_args)
 
 
@@ -45,10 +53,12 @@ def main(argv):
   parsed_args = _parse_args(argv)
   job_type = parsed_args['type']
 
-  if job_type != 'HyperparameterTuningJob':
+  if job_type not in [
+      'HyperparameterTuningJob', 'HyperparameterTuningJobWithMetrics'
+  ]:
     raise ValueError('Incorrect job type: ' + job_type)
 
-  logging.info('Job started for type: ' + job_type)
+  logging.info('Job started for type: %s ', job_type)
 
   remote_runner.create_hyperparameter_tuning_job(**parsed_args)
 

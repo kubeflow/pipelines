@@ -167,15 +167,19 @@ root:
     parameters:
       int_input:
         defaultValue: 1.0
+        isOptional: true
         parameterType: NUMBER_INTEGER
       name:
         defaultValue: default-name
+        isOptional: true
         parameterType: STRING
       pipeline_input_artifact_uri:
         defaultValue: gs://ml-pipeline-playground/shakespeare1.txt
+        isOptional: true
         parameterType: STRING
       pipeline_input_image_uri:
         defaultValue: us-docker.pkg.dev/vertex-ai/prediction/tf2-gpu.2-5:latest
+        isOptional: true
         parameterType: STRING
 schemaVersion: 2.1.0
 sdkVersion: kfp-2.0.0-beta.8

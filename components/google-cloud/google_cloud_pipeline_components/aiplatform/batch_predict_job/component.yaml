@@ -249,11 +249,15 @@ implementation:
           '"display_name": "', {inputValue: job_display_name}, '", ',
           {if: {
             cond: {isPresent: model},
-            then: [
-              concat: [
-                '"model": "', "{{$.inputs.artifacts['model'].metadata['resourceName']}}", '",'
-              ]
-            ]
+            then: '"model": "'
+          }},
+          {if: {
+            cond: {isPresent: model},
+            then: "{{$.inputs.artifacts['model'].metadata['resourceName']}}"
+          }},
+          {if: {
+            cond: {isPresent: model},
+            then: '",'
           }},
           ' "input_config": {',
           '"instances_format": "', {inputValue: instances_format}, '"',

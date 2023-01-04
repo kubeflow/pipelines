@@ -10,6 +10,10 @@ components:
     inputDefinitions:
       parameters:
         optional_input_1:
+          isOptional: true
+          parameterType: STRING
+        optional_input_2:
+          isOptional: true
           parameterType: STRING
         required_input:
           parameterType: STRING

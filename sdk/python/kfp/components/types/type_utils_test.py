@@ -474,5 +474,171 @@ class TestValidateBundledArtifactType(parameterized.TestCase):
             type_utils.validate_bundled_artifact_type(type_)
 
 
+class TestDeserializeV1ComponentYamlDefault(parameterized.TestCase):
+
+    @parameterized.parameters([
+        {
+            'type_': 'String',
+            'default': 'val',
+            'expected_type': str,
+            'expected_val': 'val',
+        },
+        {
+            'type_': 'Boolean',
+            'default': 'True',
+            'expected_type': bool,
+            'expected_val': True,
+        },
+        {
+            'type_': 'Boolean',
+            'default': 'true',
+            'expected_type': bool,
+            'expected_val': True,
+        },
+        {
+            'type_': 'Boolean',
+            'default': 'False',
+            'expected_type': bool,
+            'expected_val': False,
+        },
+        {
+            'type_': 'Boolean',
+            'default': 'false',
+            'expected_type': bool,
+            'expected_val': False,
+        },
+        {
+            'type_': 'Float',
+            'default': '0.0',
+            'expected_type': float,
+            'expected_val': 0.0,
+        },
+        {
+            'type_': 'Float',
+            'default': '1.0',
+            'expected_type': float,
+            'expected_val': 1.0,
+        },
+        {
+            'type_': 'Integer',
+            'default': '0',
+            'expected_type': int,
+            'expected_val': 0,
+        },
+        {
+            'type_': 'JsonObject',
+            'default': '[]',
+            'expected_type': list,
+            'expected_val': [],
+        },
+        {
+            'type_': 'JsonObject',
+            'default': '[1, 1.0, "a", true]',
+            'expected_type': list,
+            'expected_val': [1, 1.0, 'a', True],
+        },
+        {
+            'type_': 'JsonObject',
+            'default': '{}',
+            'expected_type': dict,
+            'expected_val': {},
+        },
+        {
+            'type_': 'JsonObject',
+            'default': '{"a": 1.0, "b": true}',
+            'expected_type': dict,
+            'expected_val': {
+                'a': 1.0,
+                'b': True
+            },
+        },
+    ])
+    def test_for_defaults_as_strings(
+        self,
+        type_: Any,
+        default: str,
+        expected_type: type,
+        expected_val: Any,
+    ):
+        res = type_utils.deserialize_v1_component_yaml_default(type_, default)
+        # check type first since equals check is insufficient since 1.0 == 1
+        self.assertIsInstance(res, expected_type)
+        self.assertEquals(res, expected_val)
+
+    @parameterized.parameters([
+        {
+            'type_': 'Boolean',
+            'default': True,
+            'expected_type': bool,
+            'expected_val': True,
+        },
+        {
+            'type_': 'Boolean',
+            'default': False,
+            'expected_type': bool,
+            'expected_val': False,
+        },
+        {
+            'type_': 'Float',
+            'default': 0.0,
+            'expected_type': float,
+            'expected_val': 0.0,
+        },
+        {
+            'type_': 'Float',
+            'default': 1.0,
+            'expected_type': float,
+            'expected_val': 1.0,
+        },
+        {
+            'type_': 'Integer',
+            'default': 0,
+            'expected_type': int,
+            'expected_val': 0,
+        },
+        {
+            'type_': 'JsonObject',
+            'default': [],
+            'expected_type': list,
+            'expected_val': [],
+        },
+        {
+            'type_': 'JsonObject',
+            'default': [1, 1.0, 'a', True],
+            'expected_type': list,
+            'expected_val': [1, 1.0, 'a', True],
+        },
+        {
+            'type_': 'JsonObject',
+            'default': {},
+            'expected_type': dict,
+            'expected_val': {},
+        },
+        {
+            'type_': 'JsonObject',
+            'default': {
+                'a': 1.0,
+                'b': True
+            },
+            'expected_type': dict,
+            'expected_val': {
+                'a': 1.0,
+                'b': True
+            },
+        },
+    ])
+    def test_robustness_to_literals(
+        self,
+        type_: Any,
+        default: str,
+        expected_type: type,
+        expected_val: Any,
+    ):
+        res = type_utils.deserialize_v1_component_yaml_default(type_, default)
+        # check type first since equals check is insufficient since 1.0 == 1
+        self.assertIsInstance(res, expected_type)
+        self.assertEquals(res, expected_val)
+
+
 if __name__ == '__main__':
     unittest.main()

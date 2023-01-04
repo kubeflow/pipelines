@@ -163,6 +163,7 @@ def extract_component_interface(
             parameter.annotation)
         passing_style = None
         io_name = parameter.name
+        is_artifact_list = False
 
         if type_annotations.is_Input_Output_artifact_annotation(parameter_type):
             # passing_style is either type_annotations.InputAnnotation or
@@ -183,9 +184,18 @@ def extract_component_interface(
                 )
 
             if parameter.default is not inspect.Parameter.empty:
-                raise ValueError(
-                    'Default values for Input/Output artifacts are not supported.'
-                )
+                if passing_style in [
+                        type_annotations.OutputAnnotation,
+                        type_annotations.OutputPath,
+                ]:
+                    raise ValueError(
+                        'Default values for Output artifacts are not supported.'
+                    )
+                elif parameter.default is not None:
+                    raise ValueError(
+                        f'Optional Input artifacts may only have default value None. Got: {parameter.default}.'
+                    )
+
         elif isinstance(
                 parameter_type,
             (type_annotations.InputPath, type_annotations.OutputPath)):
@@ -224,21 +234,20 @@ def extract_component_interface(
         else:
             io_name = _maybe_make_unique(io_name, input_names)
             input_names.add(io_name)
-            if type_annotations.is_artifact_class(parameter_type):
-                schema_version = parameter_type.schema_version
-                input_spec = structures.InputSpec(
-                    type=type_utils.create_bundled_artifact_type(
-                        type_struct, schema_version),
-                    is_artifact_list=is_artifact_list,
-                )
-            else:
-                if parameter.default is not inspect.Parameter.empty:
-                    input_spec = structures.InputSpec(
-                        type=type_struct,
-                        default=parameter.default,
-                        optional=True)
-                else:
-                    input_spec = structures.InputSpec(type=type_struct,)
+            type_ = type_utils.create_bundled_artifact_type(
+                type_struct, parameter_type.schema_version
+            ) if type_annotations.is_artifact_class(
+                parameter_type) else type_struct
+            default = None if parameter.default == inspect.Parameter.empty or type_annotations.is_artifact_class(
+                parameter_type) else parameter.default
+            optional = parameter.default is not inspect.Parameter.empty or type_utils.is_task_final_status_type(
+                type_struct)
+            input_spec = structures.InputSpec(
+                type=type_,
+                default=default,
+                optional=optional,
+                is_artifact_list=is_artifact_list,
+            )
 
             inputs[io_name] = input_spec
 
