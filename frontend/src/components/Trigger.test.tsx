@@ -109,7 +109,7 @@ describe('Trigger', () => {
     it('shows error message if the input is invalid (negative integer)', () => {
       render(<Trigger />);
       const maxConcurrenyParam = screen.getByDisplayValue('10');
-      fireEvent.change(maxConcurrenyParam, { target: { value: '10a' } });
+      fireEvent.change(maxConcurrenyParam, { target: { value: '-10' } });
       screen.getByText('Invalid input. The maximum concurrent runs should be a positive integer.');
     });
   });
