@@ -164,7 +164,8 @@ func TestToModelRunMetric(t *testing.T) {
 		Format: apiv1beta1.RunMetric_RAW,
 	}
 
-	actualModelRunMetric := manager.ToModelRunMetric(apiRunMetric, "run-1")
+	actualModelRunMetric, err := manager.ToModelRunMetric(apiRunMetric, "run-1")
+	assert.Nil(t, err)
 
 	expectedModelRunMetric := &model.RunMetric{
 		RunUUID:     "run-1",
@@ -312,14 +313,14 @@ func TestToModelJob(t *testing.T) {
 
 	tests := []struct {
 		name             string
-		jobInterface     interface{}
+		job              interface{}
 		manifest         string
 		templateType     template.TemplateType
 		expectedModelJob *model.Job
 	}{
 		{
 			name: "v1api v1template",
-			jobInterface: &apiv1beta1.Job{
+			job: &apiv1beta1.Job{
 				Name:           "name1",
 				Enabled:        true,
 				MaxConcurrency: 1,
@@ -366,7 +367,7 @@ func TestToModelJob(t *testing.T) {
 			},
 		}, {
 			name: "v1api v2template",
-			jobInterface: &apiv1beta1.Job{
+			job: &apiv1beta1.Job{
 				Name:           "name1",
 				Enabled:        true,
 				MaxConcurrency: 1,
@@ -420,7 +421,7 @@ func TestToModelJob(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			modelJob, err := manager.ToModelJob(tt.jobInterface, tt.manifest, tt.templateType)
+			modelJob, err := manager.ToModelJob(tt.job, tt.manifest, tt.templateType)
 			assert.Nil(t, err)
 			assert.Equal(t, tt.expectedModelJob, modelJob)
 		})

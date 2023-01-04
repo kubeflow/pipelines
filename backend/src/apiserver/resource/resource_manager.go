@@ -1177,7 +1177,11 @@ func (r *ResourceManager) getDefaultExperimentResourceReference(references []*ap
 }
 
 func (r *ResourceManager) ReportMetric(metric interface{}, runUUID string) error {
-	return r.runStore.ReportMetric(r.ToModelRunMetric(metric, runUUID))
+	modelRunMetrics, err := r.ToModelRunMetric(metric, runUUID)
+	if err != nil {
+		return err
+	}
+	return r.runStore.ReportMetric(modelRunMetrics)
 }
 
 // ReadArtifact parses run's workflow to find artifact file path and reads the content of the file

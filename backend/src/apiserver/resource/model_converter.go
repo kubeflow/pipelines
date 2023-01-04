@@ -61,74 +61,78 @@ func (r *ResourceManager) ToModelExperiment(inputExperiment interface{}) (*model
 	}, nil
 }
 
-func (r *ResourceManager) ToModelRunMetric(metricInterface interface{}, runUUID string) *model.RunMetric {
-	switch metricInterface.(type) {
+func (r *ResourceManager) ToModelRunMetric(metric interface{}, runUUID string) (*model.RunMetric, error) {
+	switch metric.(type) {
 	case *apiv1beta1.RunMetric:
-		v1Metric := metricInterface.(*apiv1beta1.RunMetric)
-		return &model.RunMetric{
+		v1Metric := metric.(*apiv1beta1.RunMetric)
+		modelRunMetric := &model.RunMetric{
 			RunUUID:     runUUID,
 			Name:        v1Metric.GetName(),
 			NodeID:      v1Metric.GetNodeId(),
 			NumberValue: v1Metric.GetNumberValue(),
 			Format:      v1Metric.GetFormat().String(),
 		}
-	default:
-		v2Metric := metricInterface.(*apiv2beta1.RunMetric)
-		return &model.RunMetric{
+		return modelRunMetric, nil
+	case *apiv2beta1.RunMetric:
+		v2Metric := metric.(*apiv2beta1.RunMetric)
+		modelRunMetric := &model.RunMetric{
 			RunUUID:     runUUID,
 			Name:        v2Metric.GetDisplayName(),
 			NodeID:      v2Metric.GetNodeId(),
 			NumberValue: v2Metric.GetNumberValue(),
 			Format:      v2Metric.GetFormat().String(),
 		}
+		return modelRunMetric, nil
+	default:
+		return nil, util.NewInvalidInputError("Invalid API run metric type.")
 	}
 }
 
-func (r *ResourceManager) ToModelRunDetail(runInterface interface{}, runId string, runAt int64, manifest string, templateType template.TemplateType) (*model.RunDetail, error) {
-	switch runInterface.(type) {
+func (r *ResourceManager) ToModelRunDetail(run interface{}, runId string, runAt int64, manifest string, templateType template.TemplateType) (*model.RunDetail, error) {
+	switch run.(type) {
 	case *apiv1beta1.Run:
-		return r.ToModelRunDetailV1(runInterface, runId, runAt, manifest, templateType)
+		return r.ToModelRunDetailV1(run, runId, runAt, manifest, templateType)
 	case *apiv2beta1.Run:
-		return r.ToModelRunDetailV2(runInterface, runId, runAt, manifest, templateType)
+		return r.ToModelRunDetailV2(run, runId, runAt, manifest, templateType)
 	default:
-		return nil, util.NewInvalidInputError("Invalid Api run type.")
+		return nil, util.NewInvalidInputError("Invalid API run type.")
 	}
 }
 
 // The input run might not contain workflowSpecManifest and pipelineSpecManifest, but instead a pipeline ID.
 // The caller would retrieve manifest and pass in.
-func (r *ResourceManager) ToModelRunDetailV1(runInterface interface{}, runId string, runAt int64, manifest string, templateType template.TemplateType) (*model.RunDetail, error) {
-	run := runInterface.(*apiv1beta1.Run)
+func (r *ResourceManager) ToModelRunDetailV1(run interface{}, runId string, runAt int64, manifest string, templateType template.TemplateType) (*model.RunDetail, error) {
+	v1Run := run.(*apiv1beta1.Run)
 	var pipelineName string
 	var err error
-	if run.GetPipelineSpec().GetPipelineId() != "" {
-		pipelineName, err = r.getResourceName(common.Pipeline, run.GetPipelineSpec().GetPipelineId())
+	if v1Run.GetPipelineSpec().GetPipelineId() != "" {
+		pipelineName, err = r.getResourceName(common.Pipeline, v1Run.GetPipelineSpec().GetPipelineId())
 		if err != nil {
 			return nil, util.Wrap(err, "Error getting the pipeline name")
 		}
 	}
 
 	// Add a reference to the default experiment if run does not already have a containing experiment
-	ref, err := r.getDefaultExperimentIfNoExperiment(run.GetResourceReferences())
+	ref, err := r.getDefaultExperimentIfNoExperiment(v1Run.GetResourceReferences())
 	if err != nil {
 		return nil, err
 	}
 	if ref != nil {
-		run.ResourceReferences = append(run.GetResourceReferences(), ref)
+		v1Run.ResourceReferences = append(v1Run.GetResourceReferences(), ref)
 	}
 
 	// Convert api ResourceReferences to Model ResourceReferences.
-	resourceReferences, err := r.toModelResourceReferences(runId, common.Run, run.GetResourceReferences())
+	resourceReferences, err := r.toModelResourceReferences(runId, common.Run, v1Run.GetResourceReferences())
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to convert resource references.")
 	}
 
-	experimentUUID, err := r.getOwningExperimentUUID(run.ResourceReferences)
+	experimentUUID, err := r.getOwningExperimentUUID(v1Run.ResourceReferences)
 	if err != nil {
 		return nil, util.Wrap(err, "Error getting the experiment UUID")
 	}
 
-	namespace, err := r.getNamespaceFromExperiment(run.GetResourceReferences())
+	namespace, err := r.getNamespaceFromExperiment(v1Run.GetResourceReferences())
 	if err != nil {
 		return nil, err
 	}
@@ -138,29 +142,29 @@ func (r *ResourceManager) ToModelRunDetailV1(runInterface interface{}, runId str
 			UUID:               runId,
 			ExperimentUUID:     experimentUUID,
 			Namespace:          namespace,
-			Name:               run.Name,
-			DisplayName:        run.Name,
-			ServiceAccount:     run.ServiceAccount,
-			Description:        run.Description,
+			Name:               v1Run.Name,
+			DisplayName:        v1Run.Name,
+			ServiceAccount:     v1Run.ServiceAccount,
+			Description:        v1Run.Description,
 			ResourceReferences: resourceReferences,
 			PipelineSpec: model.PipelineSpec{
-				PipelineId:   run.GetPipelineSpec().GetPipelineId(),
+				PipelineId:   v1Run.GetPipelineSpec().GetPipelineId(),
 				PipelineName: pipelineName,
 			},
 		},
 	}
 
 	// Assign the scheduled at time
-	if !run.ScheduledAt.AsTime().IsZero() {
+	if !v1Run.ScheduledAt.AsTime().IsZero() {
 		// if there is no scheduled time, then we assume this run is scheduled at the same time it is created
 		runDetail.ScheduledAtInSec = runAt
 	} else {
-		runDetail.ScheduledAtInSec = run.ScheduledAt.AsTime().Unix()
+		runDetail.ScheduledAtInSec = v1Run.ScheduledAt.AsTime().Unix()
 	}
 
 	if templateType == template.V1 {
 		// Input template if of V1 type (argo)
-		params, err := apiParametersToModelParameters(run.GetPipelineSpec().GetParameters())
+		params, err := apiParametersToModelParameters(v1Run.GetPipelineSpec().GetParameters())
 		if err != nil {
 			return nil, util.Wrap(err, "Unable to parse the V1 parameter.")
 		}
@@ -170,13 +174,13 @@ func (r *ResourceManager) ToModelRunDetailV1(runInterface interface{}, runId str
 
 	} else if templateType == template.V2 {
 		// Input template if of V2 type (IR)
-		params, err := runtimeConfigToModelParametersV1(run.GetPipelineSpec().GetRuntimeConfig())
+		params, err := runtimeConfigToModelParametersV1(v1Run.GetPipelineSpec().GetRuntimeConfig())
 		if err != nil {
 			return nil, util.Wrap(err, "Unable to parse the V2 parameter.")
 		}
 		runDetail.PipelineSpecManifest = manifest
 		runDetail.PipelineSpec.RuntimeConfig.Parameters = params
-		runDetail.PipelineSpec.RuntimeConfig.PipelineRoot = run.GetPipelineSpec().GetRuntimeConfig().GetPipelineRoot()
+		runDetail.PipelineSpec.RuntimeConfig.PipelineRoot = v1Run.GetPipelineSpec().GetRuntimeConfig().GetPipelineRoot()
 		return runDetail, nil
 
 	} else {
@@ -186,50 +190,50 @@ func (r *ResourceManager) ToModelRunDetailV1(runInterface interface{}, runId str
 
 // The input run might not contain workflowSpecManifest and pipelineSpecManifest, but instead a pipeline ID.
 // The caller would retrieve manifest and pass in.
-func (r *ResourceManager) ToModelRunDetailV2(runInterface interface{}, runId string, runAt int64, manifest string, templateType template.TemplateType) (*model.RunDetail, error) {
+func (r *ResourceManager) ToModelRunDetailV2(run interface{}, runId string, runAt int64, manifest string, templateType template.TemplateType) (*model.RunDetail, error) {
 	modelRunDetail := &model.RunDetail{}
-	run := runInterface.(*apiv2beta1.Run)
+	v2Run := run.(*apiv2beta1.Run)
 
 	// Retrieve Pipeline name
 	var pipelineName string
 	var err error
-	if run.GetPipelineId() != "" {
-		pipelineName, err = r.getResourceName(common.Pipeline, run.GetPipelineId())
+	if v2Run.GetPipelineId() != "" {
+		pipelineName, err = r.getResourceName(common.Pipeline, v2Run.GetPipelineId())
 		if err != nil {
 			return nil, util.Wrap(err, "Error getting the pipeline name")
 		}
 	}
 
 	modelRunDetail.UUID = runId
-	modelRunDetail.ExperimentUUID = run.ExperimentId
-	modelRunDetail.DisplayName = run.DisplayName
-	modelRunDetail.Name = run.DisplayName
-	namespace, err := r.GetNamespaceFromExperimentID(run.ExperimentId)
+	modelRunDetail.ExperimentUUID = v2Run.ExperimentId
+	modelRunDetail.DisplayName = v2Run.DisplayName
+	modelRunDetail.Name = v2Run.DisplayName
+	namespace, err := r.GetNamespaceFromExperimentID(v2Run.ExperimentId)
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to retrieve namespace from experiment id.")
 	}
 	modelRunDetail.Namespace = namespace
-	modelRunDetail.Description = run.Description
-	modelRunDetail.ServiceAccount = run.ServiceAccount
+	modelRunDetail.Description = v2Run.Description
+	modelRunDetail.ServiceAccount = v2Run.ServiceAccount
 	modelRunDetail.PipelineSpec = model.PipelineSpec{
-		PipelineId:   run.GetPipelineId(),
+		PipelineId:   v2Run.GetPipelineId(),
 		PipelineName: pipelineName,
 	}
 
-	params, err := runtimeConfigToModelParametersV2(run.GetRuntimeConfig())
+	params, err := runtimeConfigToModelParametersV2(v2Run.GetRuntimeConfig())
 	if err != nil {
 		return nil, util.Wrap(err, "Unable to parse the V2 parameter.")
 	}
 	modelRunDetail.PipelineSpecManifest = manifest
 	modelRunDetail.RuntimeConfig.Parameters = params
-	modelRunDetail.RuntimeConfig.PipelineRoot = run.GetRuntimeConfig().GetPipelineRoot()
+	modelRunDetail.RuntimeConfig.PipelineRoot = v2Run.GetRuntimeConfig().GetPipelineRoot()
 
 	// Assign the scheduled at time
-	if !run.ScheduledAt.AsTime().IsZero() {
+	if !v2Run.ScheduledAt.AsTime().IsZero() {
 		// if there is no scheduled time, then we assume this run is scheduled at the same time it is created
 		modelRunDetail.ScheduledAtInSec = runAt
 	} else {
-		modelRunDetail.ScheduledAtInSec = run.ScheduledAt.AsTime().Unix()
+		modelRunDetail.ScheduledAtInSec = v2Run.ScheduledAt.AsTime().Unix()
 	}
 
 	return modelRunDetail, nil
@@ -245,20 +249,20 @@ func (r *ResourceManager) updateModelRunWithNewScheduledWorkflow(modelRunDetail 
 	}
 }
 
-func (r *ResourceManager) ToModelJob(jobInterface interface{}, manifest string, templateType template.TemplateType) (*model.Job, error) {
-	switch jobInterface.(type) {
+func (r *ResourceManager) ToModelJob(job interface{}, manifest string, templateType template.TemplateType) (*model.Job, error) {
+	switch job.(type) {
 	case *apiv1beta1.Job:
-		return r.toModelJobV1(jobInterface, manifest, templateType)
+		return r.toModelJobV1(job, manifest, templateType)
 	case *apiv2beta1.RecurringRun:
-		return r.toModelJobV2(jobInterface, manifest, templateType)
+		return r.toModelJobV2(job, manifest, templateType)
 	default:
 		return nil, util.NewInvalidInputError("Invalid Api Job type.")
 	}
 }
 
-func (r *ResourceManager) toModelJobV1(jobInterface interface{}, manifest string, templateType template.TemplateType) (*model.Job, error) {
+func (r *ResourceManager) toModelJobV1(job interface{}, manifest string, templateType template.TemplateType) (*model.Job, error) {
 	modelJob := &model.Job{}
-	apiJob := jobInterface.(*apiv1beta1.Job)
+	apiJob := job.(*apiv1beta1.Job)
 	// Add a reference to the default experiment if run does not already have a containing experiment
 	ref, err := r.getDefaultExperimentIfNoExperiment(apiJob.GetResourceReferences())
 	if err != nil {
@@ -323,9 +327,9 @@ func (r *ResourceManager) toModelJobV1(jobInterface interface{}, manifest string
 	return modelJob, nil
 }
 
-func (r *ResourceManager) toModelJobV2(jobInterface interface{}, manifest string, templateType template.TemplateType) (*model.Job, error) {
+func (r *ResourceManager) toModelJobV2(job interface{}, manifest string, templateType template.TemplateType) (*model.Job, error) {
 	modelJob := &model.Job{}
-	apiRecurringRun := jobInterface.(*apiv2beta1.RecurringRun)
+	apiRecurringRun := job.(*apiv2beta1.RecurringRun)
 	// Retrieve Pipeline name
 	var pipelineName string
 	var err error
