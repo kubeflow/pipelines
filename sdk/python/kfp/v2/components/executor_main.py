@@ -92,6 +92,7 @@ def executor_main():
         module_name=module_name, module_directory=module_directory)
 
     executor_input = json.loads(args.executor_input)
+    logging.info(f'Got executor input: {executor_input}')
     function_to_execute = getattr(module, func_name)
 
     executor = component_executor.Executor(
