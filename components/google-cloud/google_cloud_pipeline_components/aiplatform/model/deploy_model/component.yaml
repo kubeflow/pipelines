@@ -6,8 +6,8 @@ description: |
     Args:
         model (google.VertexModel):
             Required. The model to be deployed.
-        endpoint (google.VertexEndpoint):
-            Required. The endpoint to be deployed to.
+        endpoint (Optional[google.VertexEndpoint]):
+            Optional. The endpoint to be deployed to.
         deployed_model_display_name (Optional[str]):
             The display name of the DeployedModel. If not provided
             upon creation, the Model's display_name is used.
@@ -22,26 +22,26 @@ description: |
             The traffic percentage values must add up to 100.
 
             If this field is empty, then the Endpoint's trafficSplit is not updated.
-        dedicated_resources_machine_type (Optional[str]):
+        machine_type (Optional[str]):
             The specification of a single machine used by the prediction.
 
-            This field is required if `automatic_resources_min_replica_count` is not specified.
+            This field is required if `min_replica_count` is not specified.
 
             For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints#dedicatedresources.
-        dedicated_resources_accelerator_type (Optional[str]):
+        accelerator_type (Optional[str]):
             Hardware accelerator type. Must also set accelerator_count if used.
             See https://cloud.google.com/vertex-ai/docs/reference/rest/v1/MachineSpec#AcceleratorType
             for available options.
 
-            This field is required if `dedicated_resources_machine_type` is specified.
-        dedicated_resources_accelerator_count (Optional[int]):
+            This field is required if `machine_type` is specified.
+        accelerator_count (Optional[int]):
             The number of accelerators to attach to a worker replica.
-        dedicated_resources_min_replica_count (Optional[int]):
+        min_replica_count (Optional[int]):
             The minimum number of machine replicas this DeployedModel will be
             always deployed on. This value must be greater than or equal to 1.
             If traffic against the DeployedModel increases, it may dynamically be deployed
             onto more replicas, and as traffic decreases, some of these extra replicas may be freed.
-        dedicated_resources_max_replica_count (Optional[int]):
+        max_replica_count (Optional[int]):
             The maximum number of replicas this deployed model may
             the larger value of min_replica_count or 1 will
             be used. If value provided is smaller than min_replica_count, it
@@ -53,27 +53,8 @@ description: |
             is guaranteed (barring service outages). If traffic against the
             deployed model increases beyond what its replicas at maximum may
             handle, a portion of the traffic will be dropped. If this value
-            is not provided, will use dedicated_resources_min_replica_count as
+            is not provided, will use min_replica_count as
             the default value.
-        automatic_resources_min_replica_count (Optional[int]):
-            The minimum number of replicas this DeployedModel
-            will be always deployed on. If traffic against it increases,
-            it may dynamically be deployed onto more replicas up to
-            automatic_resources_max_replica_count, and as traffic decreases,
-            some of these extra replicas may be freed. If the requested value
-            is too large, the deployment will error.
-
-            This field is required if `dedicated_resources_machine_type` is not specified.
-        automatic_resources_max_replica_count (Optional[int]):
-            The maximum number of replicas this DeployedModel may
-            be deployed on when the traffic against it increases. If the requested
-            value is too large, the deployment will error, but if deployment
-            succeeds then the ability to scale the model to that many replicas
-            is guaranteed (barring service outages). If traffic against the
-            DeployedModel increases beyond what its replicas at maximum may handle,
-            a portion of the traffic will be dropped. If this value is not provided,
-            a no upper bound for scaling under heavy traffic will be assume,
-            though Vertex AI may be unable to scale beyond certain replica number.
         service_account (Optional[str]):
             The service account that the DeployedModel's container runs as. Specify the
             email address of the service account. If this service account is not
@@ -82,20 +63,6 @@ description: |
 
             Users deploying the Model must have the `iam.serviceAccounts.actAs`
             permission on this service account.
-        disable_container_logging (Optional[bool]):
-            For custom-trained Models and AutoML Tabular Models, the container of the
-            DeployedModel instances will send stderr and stdout streams to Stackdriver
-            Logging by default. Please note that the logs incur cost, which are subject
-            to Cloud Logging pricing.
-
-            User can disable container logging by setting this flag to true.
-        enable_access_logging (Optional[bool]):
-            These logs are like standard server access logs, containing information like
-            timestamp and latency for each prediction request.
-
-            Note that Stackdriver logs may incur a cost, especially if your project
-            receives prediction requests at a high queries per second rate (QPS).
-            Estimate your costs before enabling this option.
         explanation_metadata (Optional[dict]):
             Metadata describing the Model's input and output for explanation.
 
@@ -104,25 +71,35 @@ description: |
             Parameters that configure explaining information of the Model's predictions.
 
             For more details, see https://cloud.google.com/vertex-ai/docs/reference/rest/v1/ExplanationSpec#explanationmetadata.
+        encryption_spec_key_name (Optional[str]):
+            Optional. The Cloud KMS resource identifier of the customer managed encryption key used to protect the model.
+        network (Optional[str])
+            Optional. The full name of the Compute Engine network to which the Endpoint, if created, will be peered to.
+        deploy_request_timeout (Optional[float])
+            Optional. The timeout for the deploy request in seconds.
+        autoscaling_target_cpu_utilization (Optional[int])
+            Optional. Target CPU Utilization to use for Autoscaling Replicas.
+        autoscaling_target_accelerator_duty_cycle (Optional[int])
+            Optional. Target Accelerator Duty Cycle.
+        sync (Optional[bool])
+            Optional. Whether to execute this method synchronously.
     Returns:
+        endpoint (google.VertexEndpoint):
+            Endpoint with the deployed model.
         gcp_resources (str):
             Serialized gcp_resources proto tracking the deploy model's long running operation.
 
             For more details, see https://github.com/kubeflow/pipelines/blob/master/components/google-cloud/google_cloud_pipeline_components/proto/README.md.
 inputs:
-- {name: project, type: String}
-- {name: location, type: String, default: "us-central1"}
 - {name: model, type: google.VertexModel}
 - {name: endpoint, type: google.VertexEndpoint, optional: true}
 - {name: deployed_model_display_name, type: String, optional: true, default: ''}
 - {name: traffic_split, type: JsonObject, optional: true, default: '{}'}
-- {name: dedicated_resources_machine_type, type: String, optional: true, default: ''}
-- {name: dedicated_resources_min_replica_count, type: Integer, optional: true, default: 0}
-- {name: dedicated_resources_max_replica_count, type: Integer, optional: true, default: 0}
-- {name: dedicated_resources_accelerator_type, type: String, optional: true, default: ''}
-- {name: dedicated_resources_accelerator_count, type: Integer, optional: true, default: 0}
-- {name: automatic_resources_min_replica_count, type: Integer, optional: true, default: 0}
-- {name: automatic_resources_max_replica_count, type: Integer, optional: true, default: 0}
+- {name: machine_type, type: String, optional: true, default: ''}
+- {name: min_replica_count, type: Integer, optional: true, default: 0}
+- {name: max_replica_count, type: Integer, optional: true, default: 0}
+- {name: accelerator_type, type: String, optional: true, default: ''}
+- {name: accelerator_count, type: Integer, optional: true, default: 0}
 - {name: service_account, type: String, optional: true, default: ''}
 - {name: explanation_metadata, type: JsonObject, optional: true, default: '{}'}
 - {name: explanation_parameters, type: JsonObject, optional: true, default: '{}'}
@@ -141,10 +118,6 @@ implementation:
     command: [python3, -m, google_cloud_pipeline_components.container.aiplatform.remote_runner,
       --cls_name, Model, --method_name, deploy]
     args: 
-      - --init.project
-      - {inputValue: project}
-      - --init.location
-      - {inputValue: location}
       - --init.model_name
       - "{{$.inputs.artifacts['model'].metadata['resourceName']}}"
       - if:
@@ -163,30 +136,30 @@ implementation:
           - --method.traffic_split
           - {inputValue: traffic_split}
       - if:
-          cond: {isPresent: dedicated_resources_machine_type}
+          cond: {isPresent: machine_type}
           then:
           - --method.machine_type
-          - {inputValue: dedicated_resources_machine_type}
+          - {inputValue: machine_type}
       - if:
-          cond: {isPresent: dedicated_resources_min_replica_count}
+          cond: {isPresent: min_replica_count}
           then:
           - --method.min_replica_count
-          - {inputValue: dedicated_resources_min_replica_count}
+          - {inputValue: min_replica_count}
       - if:
-          cond: {isPresent: dedicated_resources_max_replica_count}
+          cond: {isPresent: max_replica_count}
           then:
           - --method.max_replica_count
-          - {inputValue: dedicated_resources_max_replica_count}
+          - {inputValue: max_replica_count}
       - if:
-          cond: {isPresent: dedicated_resources_accelerator_type}
+          cond: {isPresent: accelerator_type}
           then:
           - --method.accelerator_type
-          - {inputValue: dedicated_resources_accelerator_type}
+          - {inputValue: accelerator_type}
       - if:
-          cond: {isPresent: dedicated_resources_accelerator_count}
+          cond: {isPresent: accelerator_count}
           then:
           - --method.accelerator_count
-          - {inputValue: dedicated_resources_accelerator_count}
+          - {inputValue: accelerator_count}
       - if:
           cond: {isPresent: service_account}
           then:
