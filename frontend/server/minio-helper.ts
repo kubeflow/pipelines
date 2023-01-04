@@ -17,7 +17,7 @@ import * as tar from 'tar-stream';
 import peek from 'peek-stream';
 import gunzip from 'gunzip-maybe';
 import { Client as MinioClient, ClientOptions as MinioClientOptions } from 'minio';
-import { awsInstanceProfileCredentials } from './aws-helper';
+const { fromNodeProviderChain } = require("@aws-sdk/credential-providers");
 
 /** MinioRequestConfig describes the info required to retrieve an artifact. */
 export interface MinioRequestConfig {
@@ -38,23 +38,19 @@ export interface MinioClientOptionsWithOptionalSecrets extends Partial<MinioClie
  */
 export async function createMinioClient(config: MinioClientOptionsWithOptionalSecrets) {
   if (!config.accessKey || !config.secretKey) {
-    try {
-      if (await awsInstanceProfileCredentials.ok()) {
-        const credentials = await awsInstanceProfileCredentials.getCredentials();
-        if (credentials) {
-          const {
-            AccessKeyId: accessKey,
-            SecretAccessKey: secretKey,
-            Token: sessionToken,
-          } = credentials;
-          return new MinioClient({ ...config, accessKey, secretKey, sessionToken });
-        }
-        console.error('unable to get credentials from AWS metadata store.');
-      }
-    } catch (err) {
-      console.error('Unable to get aws instance profile credentials: ', err);
+    const credentials = fromNodeProviderChain();
+    const aws_credentials = await credentials();
+    if (aws_credentials) {
+      const {
+        accessKeyId: accessKey,
+        secretAccessKey: secretKey,
+        sessionToken: sessionToken,
+      } = aws_credentials;
+      return new MinioClient({ ...config, accessKey, secretKey, sessionToken });
     }
+    console.error('unable to get credentials from AWS credential provider chain.');
   }
+
   return new MinioClient(config as MinioClientOptions);
 }
 
@@ -105,7 +101,7 @@ function extractFirstTarRecordAsStream() {
       extract.write(chunk, callback);
     },
   });
-  extract.once('entry', function(_header, stream, next) {
+  extract.once('entry', function (_header, stream, next) {
     stream.on('data', (buffer: any) => transformStream.push(buffer));
     stream.on('end', () => {
       transformStream.emit('end');

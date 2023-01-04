@@ -95,7 +95,6 @@ export function getArtifactsHandler({
           peek,
         )(req, res);
         break;
-
       case 's3':
         getMinioArtifactHandler(
           {
@@ -216,11 +215,11 @@ function getGCSArtifactHandler(options: { key: string; bucket: string }, peek: n
         // escapes everything else.
         const regex = new RegExp(
           '^' +
-            key
-              .split(/\*+/)
-              .map(escapeRegexChars)
-              .join('.*') +
-            '$',
+          key
+            .split(/\*+/)
+            .map(escapeRegexChars)
+            .join('.*') +
+          '$',
         );
         return regex.test(f.name);
       });
