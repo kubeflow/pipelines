@@ -775,6 +775,60 @@ describe('NewRunV2', () => {
         );
       });
     });
+
+    it('disables the start button if max concurrent run is invalid input (non-integer)', async () => {
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            apiRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2YamlTemplateString}
+            chosenExperiment={DEFAULT_EXPERIMENT}
+          />
+        </CommonTestWrapper>,
+      );
+
+      const recurringSwitcher = screen.getByLabelText('Recurring');
+      fireEvent.click(recurringSwitcher);
+
+      const maxConcurrenyParam = screen.getByDisplayValue('10');
+      fireEvent.change(maxConcurrenyParam, { target: { value: '10a' } });
+
+      const startButton = await screen.findByText('Start');
+      expect(startButton.closest('button')?.disabled).toEqual(true);
+    });
+
+    it('disables the start button if max concurrent run is invalid input (negative integer)', async () => {
+      render(
+        <CommonTestWrapper>
+          <NewRunV2
+            {...generatePropsNewRun()}
+            existingRunId={null}
+            apiRun={undefined}
+            existingPipeline={ORIGINAL_TEST_PIPELINE}
+            handlePipelineIdChange={jest.fn()}
+            existingPipelineVersion={ORIGINAL_TEST_PIPELINE_VERSION}
+            handlePipelineVersionIdChange={jest.fn()}
+            templateString={v2YamlTemplateString}
+            chosenExperiment={DEFAULT_EXPERIMENT}
+          />
+        </CommonTestWrapper>,
+      );
+
+      const recurringSwitcher = screen.getByLabelText('Recurring');
+      fireEvent.click(recurringSwitcher);
+
+      const maxConcurrenyParam = screen.getByDisplayValue('10');
+      fireEvent.change(maxConcurrenyParam, { target: { value: '-10' } });
+
+      const startButton = await screen.findByText('Start');
+      expect(startButton.closest('button')?.disabled).toEqual(true);
+    });
   });
 
   describe('cloning a existing run', () => {
