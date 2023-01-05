@@ -28,7 +28,7 @@ import { useMutation } from 'react-query';
 import { Link } from 'react-router-dom';
 import { ApiExperiment, ApiExperimentStorageState } from 'src/apis/experiment';
 import { ApiFilter, PredicateOp } from 'src/apis/filter';
-import { ApiJob} from 'src/apis/job';
+import { ApiJob } from 'src/apis/job';
 import { ApiPipeline, ApiPipelineVersion } from 'src/apis/pipeline';
 import {
   ApiRelationship,
