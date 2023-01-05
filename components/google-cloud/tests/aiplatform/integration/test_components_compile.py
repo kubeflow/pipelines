@@ -386,14 +386,16 @@ class ComponentsCompileTest(unittest.TestCase):
       create_endpoint_op = EndpointCreateOp(
           project=self._project,
           location=self._location,
+          endpoint_name="endpoint-name",
           display_name=self._display_name,
           description="some description",
           labels={"foo": "bar"},
-          network="abc",
           encryption_spec_key_name="some encryption_spec_key_name")
 
       delete_endpoint_op = EndpointDeleteOp(
-          endpoint=create_endpoint_op.outputs["endpoint"])
+          endpoint=create_endpoint_op.outputs["endpoint"],
+          force=False,
+          sync=True,)
 
     compiler.Compiler().compile(
         pipeline_func=pipeline, package_path=self._package_path)
@@ -455,16 +457,20 @@ class ComponentsCompileTest(unittest.TestCase):
           endpoint=create_endpoint_op.outputs["endpoint"],
           deployed_model_display_name="deployed_model_display_name",
           traffic_split={},
-          dedicated_resources_machine_type="n1-standard-4",
-          dedicated_resources_min_replica_count=1,
-          dedicated_resources_max_replica_count=2,
-          dedicated_resources_accelerator_type="fake-accelerator",
-          dedicated_resources_accelerator_count=1,
-          automatic_resources_min_replica_count=1,
-          automatic_resources_max_replica_count=2,
+          machine_type="n1-standard-4",
+          min_replica_count=1,
+          max_replica_count=2,
+          accelerator_type="fake-accelerator",
+          accelerator_count=1,
           service_account="fake-sa",
           explanation_metadata={"xai_m": "bar"},
           explanation_parameters={"xai_p": "foo"},
+          encryption_spec_key_name="some encryption_spec_key_name",
+          network="fake-network",
+          sync=True,
+          deploy_request_timeout=600,
+          autoscaling_target_cpu_utilization=1,
+          autoscaling_target_accelerator_duty_cycle=1,
       )
 
       _ = ModelUndeployOp(
