@@ -36,10 +36,13 @@ class TestV2beta1ReportRunMetricsResponse(unittest.TestCase):
         # model = kfp_server_api.models.v2beta1_report_run_metrics_response.V2beta1ReportRunMetricsResponse()  # noqa: E501
         if include_optional :
             return V2beta1ReportRunMetricsResponse(
-                metric_name = '0', 
-                metric_node_id = '0', 
-                status = 'METRICSTATUS_UNSPECIFIED', 
-                message = '0'
+                results = [
+                    kfp_server_api.models.report_run_metrics_response_report_run_metric_result.ReportRunMetricsResponseReportRunMetricResult(
+                        metric_name = '0', 
+                        metric_node_id = '0', 
+                        status = 'UNSPECIFIED', 
+                        message = '0', )
+                    ]
             )
         else :
             return V2beta1ReportRunMetricsResponse(

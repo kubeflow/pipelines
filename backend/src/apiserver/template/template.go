@@ -100,7 +100,7 @@ type Template interface {
 	GetTemplateType() TemplateType
 
 	//Get workflow
-	RunWorkflow(apiRun *apiv1beta1.Run, options RunWorkflowOptions) (util.ExecutionSpec, error)
+	RunWorkflow(modelRun *model.Run, options RunWorkflowOptions) (util.ExecutionSpec, error)
 
 	ScheduledWorkflow(modelJob *model.Job) (*scheduledworkflow.ScheduledWorkflow, error)
 }
@@ -253,9 +253,11 @@ func modelToPipelineJobRuntimeConfig(modelRuntimeConfig *model.RuntimeConfig) (*
 		return nil, nil
 	}
 	parameters := new(map[string]*structpb.Value)
-	err := json.Unmarshal([]byte(modelRuntimeConfig.Parameters), parameters)
-	if err != nil {
-		return nil, err
+	if modelRuntimeConfig.Parameters != "" {
+		err := json.Unmarshal([]byte(modelRuntimeConfig.Parameters), parameters)
+		if err != nil {
+			return nil, err
+		}
 	}
 	runtimeConfig := &pipelinespec.PipelineJob_RuntimeConfig{}
 	runtimeConfig.ParameterValues = *parameters

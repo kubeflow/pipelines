@@ -80,7 +80,7 @@ func TestToApiPipeline_ErrorParsingField(t *testing.T) {
 	assert.Contains(t, apiPipeline.Error, "Parameter with wrong format is stored")
 }
 
-func TestToApiRunDetail_RuntimeParams(t *testing.T) {
+func TestToApiRunDetailV1_RuntimeParams(t *testing.T) {
 	modelRun := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "run123",
@@ -106,7 +106,7 @@ func TestToApiRunDetail_RuntimeParams(t *testing.T) {
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow123"},
 	}
-	apiRun := ToApiRunDetail(modelRun)
+	apiRun := ToApiRunDetailV1(modelRun)
 
 	listParams := []interface{}{1, 2, 3}
 	v2RuntimeListParams, _ := structpb.NewList(listParams)
@@ -155,7 +155,7 @@ func TestToApiRunDetail_RuntimeParams(t *testing.T) {
 	assert.Equal(t, expectedApiRun.String(), apiRun.String())
 }
 
-func TestToApiRunDetail_V1Params(t *testing.T) {
+func TestToApiRunDetailV1_V1Params(t *testing.T) {
 	modelRun := &model.RunDetail{
 		Run: model.Run{
 			UUID:             "run123",
@@ -178,7 +178,7 @@ func TestToApiRunDetail_V1Params(t *testing.T) {
 		},
 		PipelineRuntime: model.PipelineRuntime{WorkflowRuntimeManifest: "workflow123"},
 	}
-	apiRun := ToApiRunDetail(modelRun)
+	apiRun := ToApiRunDetailV1(modelRun)
 	expectedApiRun := &apiv1beta1.RunDetail{
 		Run: &apiv1beta1.Run{
 			Id:           "run123",
@@ -204,7 +204,7 @@ func TestToApiRunDetail_V1Params(t *testing.T) {
 	assert.Equal(t, expectedApiRun, apiRun)
 }
 
-func TestToApiRuns(t *testing.T) {
+func TesttoApiRunsV1(t *testing.T) {
 	metric1 := &model.RunMetric{
 		Name:        "metric-1",
 		NodeID:      "node-1",
@@ -265,7 +265,7 @@ func TestToApiRuns(t *testing.T) {
 		},
 		Metrics: []*model.RunMetric{metric2},
 	}
-	apiRuns := ToApiRuns([]*model.Run{&modelRun1, &modelRun2})
+	apiRuns := toApiRunsV1([]*model.Run{&modelRun1, &modelRun2})
 	expectedApiRun := []*apiv1beta1.Run{
 		{
 			Id:           "run1",

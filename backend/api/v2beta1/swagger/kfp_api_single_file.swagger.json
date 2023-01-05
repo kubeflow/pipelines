@@ -2008,17 +2008,38 @@
       },
       "description": "Trigger defines what starts a pipeline run."
     },
-    "ReportRunMetricsResponseMetricStatus": {
+    "ReportRunMetricsResponseReportRunMetricResult": {
+      "type": "object",
+      "properties": {
+        "metric_name": {
+          "type": "string",
+          "description": "Output. The name of the metric."
+        },
+        "metric_node_id": {
+          "type": "string",
+          "description": "Output. The ID of the node which reports the metric."
+        },
+        "status": {
+          "$ref": "#/definitions/ReportRunMetricsResponseReportRunMetricResultStatus",
+          "description": "Output. The status of the metric reporting."
+        },
+        "message": {
+          "type": "string",
+          "description": "Output. The detailed message of the error of the reporting."
+        }
+      }
+    },
+    "ReportRunMetricsResponseReportRunMetricResultStatus": {
       "type": "string",
       "enum": [
-        "METRICSTATUS_UNSPECIFIED",
+        "UNSPECIFIED",
         "OK",
         "INVALID_ARGUMENT",
         "DUPLICATE_REPORTING",
         "INTERNAL_ERROR"
       ],
-      "default": "METRICSTATUS_UNSPECIFIED",
-      "description": "Returned status of the metric.\n\n - METRICSTATUS_UNSPECIFIED: Default metric status. This value is not used.\n - OK: Indicates successful reporting.\n - INVALID_ARGUMENT: Indicates that the payload of the metric is invalid.\n - DUPLICATE_REPORTING: Indicates that the metric has been reported before.\n - INTERNAL_ERROR: Indicates that something went wrong on the server side."
+      "default": "UNSPECIFIED",
+      "description": " - UNSPECIFIED: Default value if not present.\n - OK: Indicates successful reporting.\n - INVALID_ARGUMENT: Indicates that the payload of the metric is invalid.\n - DUPLICATE_REPORTING: Indicates that the metric has been reported before.\n - INTERNAL_ERROR: Indicates that something went wrong in the server."
     },
     "RunMetricFormat": {
       "type": "string",
@@ -2201,21 +2222,11 @@
     "v2beta1ReportRunMetricsResponse": {
       "type": "object",
       "properties": {
-        "metric_name": {
-          "type": "string",
-          "description": "Output. The name of the metric."
-        },
-        "metric_node_id": {
-          "type": "string",
-          "description": "Output. The ID of the node which reports the metric."
-        },
-        "status": {
-          "$ref": "#/definitions/ReportRunMetricsResponseMetricStatus",
-          "description": "Output. The status of the metric reporting."
-        },
-        "message": {
-          "type": "string",
-          "description": "Output. The detailed message of the error of the reporting."
+        "results": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ReportRunMetricsResponseReportRunMetricResult"
+          }
         }
       }
     },
