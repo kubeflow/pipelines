@@ -556,7 +556,7 @@ function NewRunV2(props: NewRunV2Props) {
         <div className={commonCss.header}>Run Type</div>
         {isClone && <span>{isRecurringRun ? 'Recurring' : 'One-off'}</span>}
         {!isClone && (
-          <React.Fragment>
+          <>
             <FormControlLabel
               id='oneOffToggle'
               label='One-off'
@@ -571,7 +571,7 @@ function NewRunV2(props: NewRunV2Props) {
               onChange={() => setIsRecurringRun(true)}
               checked={isRecurringRun}
             />
-          </React.Fragment>
+          </>
         )}
 
         {/* Recurring run controls */}
